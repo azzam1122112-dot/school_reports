@@ -17,6 +17,8 @@ from .models import (
     Report,
     Ticket,
     TicketNote,
+    School,
+    SchoolMembership,
 )
 
 # =========================
@@ -255,6 +257,25 @@ class TicketNoteAdmin(admin.ModelAdmin):
     autocomplete_fields = ("ticket", "author")
     date_hierarchy = "created_at"
     readonly_fields = ("created_at",)
+
+
+# =========================
+# إدارة المدارس وعضوياتها
+# =========================
+@admin.register(School)
+class SchoolAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "is_active", "created_at")
+    list_filter = ("is_active", "created_at")
+    search_fields = ("name", "code")
+    prepopulated_fields = {"code": ("name",)}
+
+
+@admin.register(SchoolMembership)
+class SchoolMembershipAdmin(admin.ModelAdmin):
+    list_display = ("teacher", "school", "role_type", "is_active", "created_at")
+    list_filter = ("role_type", "is_active", "school")
+    search_fields = ("teacher__name", "teacher__phone", "school__name", "school__code")
+    autocomplete_fields = ("teacher", "school")
 
 
 

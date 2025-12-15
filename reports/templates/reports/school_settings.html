@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}إعدادات المدرسة{% endblock %}
+
+{% block head %}
+<style>
+  .wrap{max-width:720px;margin:auto;padding:18px}
+  .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);box-shadow:0 10px 26px rgba(15,23,42,.06);padding:18px}
+  h1{margin:0 0 6px;font-size:1.4rem;font-weight:900;color:var(--ink-soft,#111827)}
+  .sub{color:var(--muted,#6b7280);margin-bottom:18px;font-weight:700}
+  form{display:grid;gap:14px;margin-top:8px}
+  label{display:block;font-weight:800;font-size:.9rem;color:#374151;margin-bottom:4px}
+  input[type="text"],input[type="url"]{width:100%;border-radius:12px;border:1px solid #d1d5db;padding:8px 10px;font-size:.9rem}
+  .hint{font-size:.8rem;color:#6b7280;margin-top:2px}
+  .btn-primary{border-radius:999px;border:0;padding:9px 18px;font-size:.9rem;font-weight:800;background:#111827;color:#fff;cursor:pointer}
+  .btn-primary:hover{background:#0f172a}
+  .preview{display:flex;align-items:center;gap:10px;margin-top:10px}
+  .preview img{width:52px;height:52px;object-fit:contain;border-radius:14px;border:1px solid #e5e7eb;background:#f9fafb}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap" dir="rtl">
+  <div class="card">
+    <h1>إعدادات المدرسة</h1>
+    <p class="sub">تحديث اسم المدرسة والشعار المستخدم في أعلى النظام.</p>
+
+    <form method="post">
+      {% csrf_token %}
+      <div>
+        <label for="id_name">اسم المدرسة</label>
+        {{ form.name }}
+      </div>
+      <div class="row">
+        <div>
+          <label for="id_stage">المرحلة</label>
+          {{ form.stage }}
+        </div>
+        <div>
+          <label for="id_gender">بنين / بنات</label>
+          {{ form.gender }}
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="id_city">المدينة</label>
+          {{ form.city }}
+        </div>
+        <div>
+          <label for="id_phone">رقم الجوال</label>
+          {{ form.phone }}
+        </div>
+      </div>
+      <div>
+        <label for="id_logo_url">رابط الشعار</label>
+        {{ form.logo_url }}
+        <p class="hint">رابط صورة (PNG / JPG / SVG) تُعرض في الهيدر. اتركه فارغًا لاستخدام الشعار الافتراضي.</p>
+        {% if school.logo_url %}
+        <div class="preview">
+          <img src="{{ school.logo_url }}" alt="شعار المدرسة الحالي">
+          <span class="hint">معاينة الشعار الحالي</span>
+        </div>
+        {% endif %}
+      </div>
+      <div>
+        <button type="submit" class="btn-primary">حفظ التغييرات</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

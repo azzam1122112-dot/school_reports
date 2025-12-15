@@ -25,6 +25,60 @@ MANAGER_ROLE_LABEL = "المدير"
 
 
 # =========================
+# المدرسة (Tenant)
+# =========================
+class School(models.Model):
+    name = models.CharField("اسم المدرسة", max_length=200)
+    class Stage(models.TextChoices):
+        KG = "kg", "رياض أطفال"
+        PRIMARY = "primary", "ابتدائي"
+        MIDDLE = "middle", "متوسط"
+        HIGH = "high", "ثانوي"
+
+    class Gender(models.TextChoices):
+        BOYS = "boys", "بنين"
+        GIRLS = "girls", "بنات"
+
+    code = models.SlugField(
+        "المعرّف (code)",
+        max_length=64,
+        unique=True,
+        help_text="كود قصير لتمييز المدرسة، يُستخدم في الاختيار والتقارير.",
+    )
+    stage = models.CharField(
+        "المرحلة",
+        max_length=16,
+        choices=Stage.choices,
+        default=Stage.PRIMARY,
+    )
+    gender = models.CharField(
+        "بنين / بنات",
+        max_length=8,
+        choices=Gender.choices,
+        default=Gender.BOYS,
+    )
+    phone = models.CharField("رقم الجوال", max_length=20, blank=True, null=True)
+    city = models.CharField("المدينة", max_length=120, blank=True, null=True)
+    is_active = models.BooleanField("نشطة؟", default=True)
+    logo_url = models.URLField("رابط الشعار", blank=True, null=True)
+    created_at = models.DateTimeField("أُنشئت في", auto_now_add=True)
+    updated_at = models.DateTimeField("تم التحديث في", auto_now=True)
+
+    class Meta:
+        ordering = ("name",)
+        verbose_name = "مدرسة"
+        verbose_name_plural = "المدارس"
+
+    def __str__(self) -> str:
+        return self.name or self.code
+
+    def save(self, *args, **kwargs):
+        if self.code:
+            self.code = self.code.strip().lower()
+        super().save(*args, **kwargs)
+
+
+# =========================
 # مرجع الأدوار الديناميكي
 # =========================
 class Role(models.Model):
@@ -106,6 +160,16 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
         related_name="users",
     )
 
+    # لاحقاً يمكن ربط المعلّم مباشرة بمدرسة افتراضية
+    # school = models.ForeignKey(
+    #     School,
+    #     on_delete=models.SET_NULL,
+    #     null=True,
+    #     blank=True,
+    #     verbose_name="المدرسة",
+    #     related_name="teachers",
+    # )
+
     is_active = models.BooleanField("نشط", default=True)
     # يُحدَّث تلقائيًا حسب role.is_staff_by_default
     is_staff = models.BooleanField("موظّف لوحة", default=False)
@@ -140,6 +204,15 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
 # مرجع الأقسام الديناميكي
 # =========================
 class Department(models.Model):
+    school = models.ForeignKey(
+        "School",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="departments",
+        verbose_name="المدرسة",
+        help_text="يظهر هذا القسم فقط داخل المدرسة المحددة.",
+    )
     name = models.CharField("اسم القسم", max_length=120)
     slug = models.SlugField("المعرّف (slug)", max_length=64, unique=True)
     role_label = models.CharField(
@@ -410,9 +483,69 @@ class DepartmentMembership(models.Model):
 
 
 # =========================
+# عضوية المدرسة (Teacher ↔ School)
+# =========================
+class SchoolMembership(models.Model):
+    class RoleType(models.TextChoices):
+        TEACHER = "teacher", "معلم"
+        MANAGER = "manager", "مدير مدرسة"
+
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+        verbose_name="المدرسة",
+    )
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="school_memberships",
+        verbose_name="المستخدم",
+    )
+    role_type = models.CharField(
+        "الدور داخل المدرسة",
+        max_length=16,
+        choices=RoleType.choices,
+        default=RoleType.TEACHER,
+    )
+    is_active = models.BooleanField("نشط؟", default=True)
+    created_at = models.DateTimeField("أُنشئ في", auto_now_add=True)
+
+    class Meta:
+        unique_together = [("school", "teacher", "role_type")]
+        constraints = [
+            # مدرسة واحدة لا يمكن أن يكون لها أكثر من مدير نشط واحد
+            models.UniqueConstraint(
+                fields=["school"],
+                # نستخدم القيمة النصية "manager" لتفادي NameError أثناء تعريف الكلاس
+                condition=models.Q(role_type="manager", is_active=True),
+                name="uniq_active_manager_per_school",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["school"]),
+            models.Index(fields=["teacher"]),
+        ]
+        verbose_name = "عضوية مدرسة"
+        verbose_name_plural = "عضويات المدارس"
+
+    def __str__(self) -> str:
+        return f"{self.teacher} @ {self.school} ({self.role_type})"
+
+
+# =========================
 # مرجع أنواع التقارير الديناميكي
 # =========================
 class ReportType(models.Model):
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="report_types",
+        verbose_name="المدرسة",
+        help_text="يظهر هذا النوع فقط في المدرسة المحددة.",
+    )
     code = models.SlugField("الكود", max_length=40, unique=True)
     name = models.CharField("الاسم", max_length=120)
     description = models.TextField("الوصف", blank=True)
@@ -440,6 +573,16 @@ class ReportType(models.Model):
 # نموذج التقرير العام
 # =========================
 class Report(models.Model):
+    school = models.ForeignKey(
+        School,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reports",
+        verbose_name="المدرسة",
+        db_index=True,
+    )
+
     teacher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -547,6 +690,16 @@ class Ticket(models.Model):
         IN_PROGRESS = "in_progress", "قيد المعالجة"
         DONE = "done", "مكتمل"
         REJECTED = "rejected", "مرفوض"
+
+    school = models.ForeignKey(
+        School,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tickets",
+        verbose_name="المدرسة",
+        db_index=True,
+    )
 
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -825,6 +978,15 @@ class Notification(models.Model):
     is_important = models.BooleanField(default=False)
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
+    school = models.ForeignKey(
+        School,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+        verbose_name="المدرسة المستهدفة",
+        help_text="إن تُركت فارغة يكون الإشعار عامًا أو على مستوى كل المدارس.",
+    )
     created_by = models.ForeignKey(
         Teacher, null=True, blank=True, on_delete=models.SET_NULL, related_name="notifications_created"
     )

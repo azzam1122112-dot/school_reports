@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}إدارة مدراء المدرسة{% endblock %}
+
+{% block head %}
+<style>
+  .wrap{max-width:900px;margin:auto;padding:18px}
+  .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);box-shadow:0 10px 26px rgba(15,23,42,.06);padding:18px}
+  h1{margin:0 0 6px;font-size:1.4rem;font-weight:900;color:var(--ink-soft,#111827)}
+  .sub{color:var(--muted,#6b7280);margin-bottom:18px;font-weight:700}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#eff6ff;color:#1e3a8a;font-size:.8rem;font-weight:800}
+  .section-title{margin:18px 0 8px;font-weight:800;font-size:.95rem;color:#4b5563}
+  ul{list-style:none;padding:0;margin:0}
+  li{padding:6px 0;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;font-size:.9rem}
+  form{display:inline}
+  button{cursor:pointer}
+  .btn-pill{border-radius:999px;border:1px solid #e5e7eb;padding:5px 10px;font-size:.8rem;font-weight:800;background:#fff;color:#111827}
+  .btn-pill:hover{background:#fee2e2;border-color:#fecaca;color:#b91c1c}
+  .btn-primary{border-radius:999px;border:0;padding:7px 14px;font-size:.85rem;font-weight:800;background:#111827;color:#fff}
+  .btn-primary:hover{background:#0f172a}
+  select{border-radius:999px;border:1px solid #d1d5db;padding:6px 10px;font-size:.85rem;min-width:220px}
+  .flex-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap" dir="rtl">
+  <div class="card">
+    <h1>إدارة مدراء المدرسة</h1>
+    <p class="sub">قم بإضافة أو إزالة المدراء لهذه المدرسة.</p>
+
+    <div style="margin-bottom:14px">
+      <span class="pill">المدرسة: {{ school.name }} — الكود: {{ school.code }}</span>
+    </div>
+
+    <h2 class="section-title">المدراء الحاليون</h2>
+    {% if managers %}
+      <ul>
+        {% for m in managers %}
+        <li>
+          <span>{{ m.name }}</span>
+          <form method="post" style="margin:0">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="remove">
+            <input type="hidden" name="teacher_id" value="{{ m.id }}">
+            <button type="submit" class="btn-pill">إزالة من المدراء</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color:#9ca3af;font-weight:700">لا يوجد مدراء معيّنون لهذه المدرسة بعد.</p>
+    {% endif %}
+
+    <h2 class="section-title" style="margin-top:20px">إضافة مدير جديد</h2>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <div class="flex-row" style="gap:8px;flex-wrap:wrap">
+        <div>
+          <input type="search" id="managerSearch" placeholder="ابحث باسم المدير" style="border-radius:999px;border:1px solid #d1d5db;padding:6px 10px;font-size:.8rem;min-width:220px">
+        </div>
+        <select name="teacher_id" id="managerSelect" required>
+          <option value="" disabled selected>اختر المعلّم ليصبح مديراً...</option>
+          {% for t in teachers %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn-primary">إضافة كمدير</button>
+      </div>
+    </form>
+
+    <div style="margin-top:20px">
+      <a href="{% url 'reports:schools_admin_list' %}" class="btn-pill">عودة لقائمة المدارس</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+  {% block scripts %}
+  {{ block.super }}
+  <script>
+    (function(){
+      const input = document.getElementById('managerSearch');
+      const select = document.getElementById('managerSelect');
+      if (!input || !select) return;
+      const allOptions = Array.from(select.options).slice(1); // تخطي خيار العنوان
+
+      input.addEventListener('input', function(){
+        const q = (this.value || '').toLowerCase().trim();
+        // إعادة جميع الخيارات ثم إخفاء غير المطابق
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        placeholder.textContent = 'اختر المعلّم ليصبح مديراً...';
+        select.appendChild(placeholder);
+
+        allOptions.forEach(function(opt){
+          const txt = (opt.textContent || '').toLowerCase();
+          if (!q || txt.includes(q)) {
+            select.appendChild(opt);
+          }
+        });
+      });
+    })();
+  </script>
+  {% endblock %}

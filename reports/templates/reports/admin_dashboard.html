@@ -38,6 +38,7 @@
     {% if reporttypes_count %}
       <div class="kpi"><div class="num">{{ reporttypes_count }}</div><div class="lbl">أنواع التقارير</div></div>
     {% endif %}
+
   </section>
 
   <section class="grid" aria-label="إجراءات">
@@ -83,6 +84,17 @@
           <div class="muted">فعّل ReportType والروابط الخاصة به لبدء الإدارة</div>
         </div>
       </div>
+    {% endif %}
+
+    {# إعدادات المدرسة الحالية (لمدير المدرسة) #}
+    {% if active_school %}
+      <a class="tile" href="{% url 'reports:school_settings' %}">
+        <div class="ico b4">⚙️</div>
+        <div>
+          <div class="title">إعدادات المدرسة</div>
+          <div class="muted">تعديل اسم المدرسة وشعارها النشط حالياً</div>
+        </div>
+      </a>
     {% endif %}
   </section>
 </div>

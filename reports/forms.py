@@ -28,6 +28,8 @@ from .models import (
     TicketNote,
     Notification,
     NotificationRecipient,
+    School,
+    SchoolMembership,
 )
 
 # (تراثي – اختياري)
@@ -48,7 +50,7 @@ sa_phone = RegexValidator(r"^0\d{9}$", "رقم الجوال يجب أن يبدأ
 # ==============================
 # مساعدات داخلية للأقسام/المستخدمين
 # ==============================
-def _teachers_for_dept(dept_slug: str):
+def _teachers_for_dept(dept_slug: str, school: Optional["School"] = None):
     """
     إرجاع QuerySet للمعلمين المنتمين لقسم معيّن.
     - عبر Role.slug = dept_slug
@@ -59,18 +61,21 @@ def _teachers_for_dept(dept_slug: str):
 
     q = Q(role__slug=dept_slug)
 
-    dep = Department.objects.filter(slug=dept_slug).first()
+    dep_qs = Department.objects.filter(slug=dept_slug)
+    if school is not None and hasattr(Department, "school"):
+        dep_qs = dep_qs.filter(school=school)
+    dep = dep_qs.first()
     if dep:
         teacher_ids = DepartmentMembership.objects.filter(department=dep).values_list("teacher_id", flat=True)
         q |= Q(id__in=teacher_ids)
+    base_qs = Teacher.objects.filter(is_active=True)
+    if school is not None:
+        base_qs = base_qs.filter(
+            school_memberships__school=school,
+            school_memberships__is_active=True,
+        )
 
-    return (
-        Teacher.objects.filter(is_active=True)
-        .filter(q)
-        .only("id", "name")
-        .order_by("name")
-        .distinct()
-    )
+    return base_qs.filter(q).only("id", "name").order_by("name").distinct()
 
 
 def _is_teacher_in_dept(teacher: Teacher, dept_slug: str) -> bool:
@@ -144,11 +149,16 @@ class ReportForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
+
+        qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
+        if active_school is not None and hasattr(ReportType, "school"):
+            qs = qs.filter(school=active_school)
 
         self.fields["category"] = forms.ModelChoiceField(
             label="نوع التقرير",
-            queryset=ReportType.objects.filter(is_active=True).order_by("order", "name"),
+            queryset=qs,
             required=True,
             empty_label="— اختر نوع التقرير —",
             to_field_name="code",
@@ -275,7 +285,15 @@ class TeacherForm(forms.ModelForm):
         return (dep_slug or "").lower() or None
 
     def __init__(self, *args, **kwargs):
+        active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
+
+        # حصر الأقسام على المدرسة النشطة فقط
+        if Department is not None:
+            dept_qs = Department.objects.filter(is_active=True)
+            if active_school is not None and hasattr(Department, "school"):
+                dept_qs = dept_qs.filter(school=active_school)
+            self.fields["department"].queryset = dept_qs.order_by("name")
         dep_slug = self._current_department_slug()
         if dep_slug and dep_slug in {s.lower() for s in TEACHERS_DEPT_SLUGS}:
             self.fields["membership_role"].choices = self.ROLE_CHOICES_TEACHERS_ONLY
@@ -323,6 +341,101 @@ class TeacherForm(forms.ModelForm):
                     defaults={"role_type": role_in_dept},
                 )
 
+        return instance
+
+
+class ManagerCreateForm(forms.ModelForm):
+    """نموذج مبسّط لإنشاء مدير مدرسة:
+
+    - لا يطلب تحديد قسم أو دور داخل القسم.
+    - يضبط كلمة المرور للمستخدم الجديد.
+    - يُستخدم مع منطق SchoolMembership في views لربط المدير بالمدارس.
+    """
+
+    password = forms.CharField(
+        label="كلمة المرور",
+        required=True,
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "كلمة المرور للحساب الجديد",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    phone = forms.CharField(
+        label="رقم الجوال",
+        min_length=10,
+        max_length=10,
+        validators=[sa_phone],
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "05XXXXXXXX",
+                "maxlength": "10",
+                "inputmode": "numeric",
+                "pattern": r"0\d{9}",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
+    national_id = forms.CharField(
+        label="رقم الهوية الوطنية",
+        min_length=10,
+        max_length=10,
+        required=False,
+        validators=[digits10],
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "رقم الهوية (10 أرقام)",
+                "maxlength": "10",
+                "inputmode": "numeric",
+                "pattern": r"\d{10}",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
+    class Meta:
+        model = Teacher
+        fields = ["name", "phone", "national_id", "is_active"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "الاسم الكامل", "maxlength": "150"}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # في وضع التعديل تكون كلمة المرور اختيارية، وتُستخدم فقط عند إدخال قيمة جديدة
+        if self.instance and getattr(self.instance, "pk", None):
+            self.fields["password"].required = False
+            self.fields["password"].widget.attrs.setdefault(
+                "placeholder", "اتركه فارغًا للإبقاء على كلمة المرور الحالية"
+            )
+
+    def clean_national_id(self):
+        nid = (self.cleaned_data.get("national_id") or "").strip()
+        if nid:
+            if not nid.isdigit() or len(nid) != 10:
+                raise ValidationError("رقم الهوية يجب أن يتكون من 10 أرقام.")
+        return nid or None
+
+    def save(self, commit: bool = True):
+        instance: Teacher = super().save(commit=False)
+        new_pwd = (self.cleaned_data.get("password") or "").strip()
+        # إنشاء: إن لم تُحدّد كلمة مرور نضبط كلمة مرور غير قابلة للاستخدام.
+        # تعديل: إن تُرك الحقل فارغًا نحافظ على كلمة المرور الحالية.
+        if new_pwd:
+            instance.set_password(new_pwd)
+        elif not getattr(instance, "pk", None):
+            instance.set_unusable_password()
+        if commit:
+            instance.save()
         return instance
 
 # ==============================
@@ -401,7 +514,15 @@ class TicketCreateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         kwargs.pop("user", None)  # يُمرَّر في save
+        active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
+
+        # عزل الأقسام حسب المدرسة النشطة
+        if Department is not None:
+            dept_qs = Department.objects.filter(is_active=True)
+            if active_school is not None and hasattr(Department, "school"):
+                dept_qs = dept_qs.filter(school=active_school)
+            self.fields["department"].queryset = dept_qs.order_by("name")
 
         # تأكيد اختياريّة الصور (تحصين إضافي)
         self.fields["images"].required = False
@@ -409,7 +530,7 @@ class TicketCreateForm(forms.ModelForm):
         # بناء قائمة المستلمين حسب القسم
         dept_value = (self.data.get("department") or "").strip() if self.is_bound \
             else getattr(getattr(self.instance, "department", None), "slug", "") or ""
-        base_qs = _teachers_for_dept(dept_value) if dept_value else Teacher.objects.none()
+        base_qs = _teachers_for_dept(dept_value, active_school) if dept_value else Teacher.objects.none()
 
         # إدراج المستلم المرسل ضمن queryset لتفادي "اختيار غير صالح"
         assignee_id = (self.data.get("assignee") or "").strip() if self.is_bound else ""
@@ -679,6 +800,17 @@ class DepartmentForm(forms.ModelForm):
             raise forms.ValidationError("المعرّف (slug) مستخدم مسبقًا لقسم آخر.")
         return slug
 
+    def __init__(self, *args, **kwargs):
+        active_school = kwargs.pop("active_school", None)
+        super().__init__(*args, **kwargs)
+
+        # حصر أنواع التقارير على المدرسة النشطة
+        if ReportType is not None:
+            rt_qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
+            if active_school is not None and hasattr(ReportType, "school"):
+                rt_qs = rt_qs.filter(school=active_school)
+            self.fields["reporttypes"].queryset = rt_qs
+
 # ==============================
 # 📌 إنشاء إشعار
 # ==============================
@@ -688,6 +820,22 @@ class NotificationCreateForm(forms.Form):
     is_important = forms.BooleanField(required=False, initial=False, label="مهم")
     expires_at = forms.DateTimeField(required=False, label="ينتهي في (اختياري)",
                                      widget=forms.DateTimeInput(attrs={"type":"datetime-local"}))
+    audience_scope = forms.ChoiceField(
+        label="نطاق الإرسال",
+        required=False,
+        choices=(
+            ("school", "مدرسة معيّنة"),
+            ("all", "كل المدارس"),
+        ),
+        initial="school",
+        help_text="للمشرف العام فقط: اختر ما إذا كان الإشعار موجهاً لمدرسة واحدة أو لكل المدارس.",
+    )
+    target_school = forms.ModelChoiceField(
+        queryset=School.objects.none(),
+        required=False,
+        label="المدرسة المستهدفة",
+        help_text="اختر المدرسة التي سيتم إرسال الإشعار لمستخدميها.",
+    )
     teachers = forms.ModelMultipleChoiceField(
         queryset=Teacher.objects.none(),
         required=True,
@@ -697,35 +845,88 @@ class NotificationCreateForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
+        active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
+
+        self.user = user
+
+        is_superuser = bool(getattr(user, "is_superuser", False))
+
+        # إعداد حقول نطاق الإرسال/المدرسة حسب نوع المستخدم
+        if is_superuser:
+            self.fields["target_school"].queryset = School.objects.filter(is_active=True).order_by("name")
+        else:
+            # لا يحتاج المدير/الضابط لاختيار النطاق أو المدرسة؛ نستخدم المدرسة النشطة تلقائياً
+            self.fields.pop("audience_scope", None)
+            self.fields.pop("target_school", None)
 
         qs = Teacher.objects.filter(is_active=True).order_by("name")
 
-        # تقليص القائمة حسب دور المُنشئ (اختياري حسب منطقك الحالي)
+        # تقليص القائمة حسب الأقسام التي يديرها المستخدم (للضباط)
         try:
             role_slug = getattr(getattr(user, "role", None), "slug", None)
             if role_slug and role_slug not in (None, "manager"):
-                # احصل على أكواد الأقسام التي يديرها المستخدم
                 from .views import _user_department_codes  # تفادِ الاستيراد في أعلى الملف
                 codes = _user_department_codes(user)
                 if codes:
                     qs = qs.filter(
-                        models.Q(role__slug__in=codes) |
-                        models.Q(dept_memberships__department__slug__in=codes)
+                        models.Q(role__slug__in=codes)
+                        | models.Q(dept_memberships__department__slug__in=codes)
                     ).distinct()
         except Exception:
             pass
 
+        # تقليص حسب المدرسة النشطة للمدير/الضابط
+        if active_school is not None:
+            qs = qs.filter(
+                school_memberships__school=active_school,
+                school_memberships__is_active=True,
+            ).distinct()
+
+        # للمشرف العام: لو اختار "مدرسة معيّنة" في الطلب، نقيّد القائمة بهذه المدرسة
+        if is_superuser:
+            scope_val = (self.data.get("audience_scope") or self.initial.get("audience_scope") or "").strip()
+            school_id = self.data.get("target_school") or self.initial.get("target_school")
+            if (not scope_val or scope_val == "school") and school_id:
+                try:
+                    qs = qs.filter(
+                        school_memberships__school_id=int(school_id),
+                        school_memberships__is_active=True,
+                    ).distinct()
+                except ValueError:
+                    pass
+
         self.fields["teachers"].queryset = qs
 
-    def save(self, creator):
+    def clean(self):
+        cleaned = super().clean()
+        user = getattr(self, "user", None)
+        if getattr(user, "is_superuser", False):
+            scope = cleaned.get("audience_scope") or "school"
+            target_school = cleaned.get("target_school")
+            if scope == "school" and not target_school:
+                raise ValidationError("الرجاء اختيار مدرسة مستهدفة أو تغيير النطاق إلى \"كل المدارس\".")
+        return cleaned
+
+    def save(self, creator, default_school=None):
         cleaned = self.cleaned_data
+
+        # تحديد المدرسة المرتبطة بالإشعار
+        school_for_notification = default_school
+        if getattr(creator, "is_superuser", False):
+            scope = cleaned.get("audience_scope") or "school"
+            if scope == "all":
+                school_for_notification = None
+            else:
+                school_for_notification = cleaned.get("target_school") or None
+
         n = Notification.objects.create(
             title=cleaned.get("title") or "",
             message=cleaned["message"],
             is_important=bool(cleaned.get("is_important")),
             expires_at=cleaned.get("expires_at") or None,
             created_by=creator,
+            school=school_for_notification,
         )
         teachers = list(cleaned["teachers"])
         if teachers:

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == "edit" %}تعديل مدير مدرسة{% else %}إنشاء مدير مدرسة{% endif %}{% endblock %}
+
+{% block head %}
+<style>
+  .wrap{max-width:780px;margin:auto;padding:18px}
+  .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);box-shadow:0 10px 26px rgba(15,23,42,.06);padding:18px}
+  h1{margin:0 0 10px;font-size:1.4rem;font-weight:900;color:var(--ink-soft,#111827)}
+  .sub{color:var(--muted,#6b7280);font-weight:700;margin-bottom:16px}
+  form{display:grid;gap:14px}
+  .row{display:grid;gap:12px}
+  @media(min-width:680px){.row{grid-template-columns:1.2fr 1fr}}
+  label{display:block;font-size:.9rem;font-weight:800;color:#4b5563;margin-bottom:4px}
+  .field{display:flex;flex-direction:column}
+  .schools-list{max-height:220px;overflow:auto;border:1px solid var(--line,#e5e7eb);border-radius:12px;padding:10px;background:#f9fafb}
+  .schools-list label{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:6px;cursor:pointer}
+  .hint{font-size:.85rem;color:#6b7280;margin-top:2px}
+  .btn-primary{background:var(--brand,#2563eb);color:#fff;border-color:var(--brand,#2563eb)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap" dir="rtl">
+  <div class="card">
+    {% if mode == "edit" and manager %}
+      <h1>تعديل مدير المدرسة</h1>
+      <p class="sub">قم بتحديث بيانات المدير {{ manager.name }} وربطه بالمدارس المناسبة.</p>
+    {% else %}
+      <h1>إنشاء مدير مدرسة جديد</h1>
+      <p class="sub">سيتم إنشاء حساب مدير وربطه بمدرسة واحدة على الأقل، ويمكن ربطه بعدة مدارس.</p>
+    {% endif %}
+
+    {# أخطاء عامة للنموذج #}
+    {% if form.non_field_errors %}
+      <div class="msg error" data-autohide="false" style="margin-bottom:10px;">
+        {% for err in form.non_field_errors %}{{ err }}<br>{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="row">
+        <div>
+          <div class="field">
+            <label for="id_name">اسم المدير</label>
+            {{ form.name }}
+            {{ form.name.errors }}
+          </div>
+          <div class="field">
+            <label for="id_phone">رقم الجوال (اسم المستخدم)</label>
+            {{ form.phone }}
+            <div class="hint">سيُستخدم رقم الجوال لتسجيل الدخول.</div>
+            {{ form.phone.errors }}
+          </div>
+          <div class="field">
+            <label for="id_national_id">الهوية الوطنية (اختياري)</label>
+            {{ form.national_id }}
+            {{ form.national_id.errors }}
+          </div>
+          <div class="field">
+            <label for="id_password">كلمة المرور</label>
+            {{ form.password }}
+            {{ form.password.errors }}
+          </div>
+          <div class="field">
+            <label for="id_is_active">حالة الحساب</label>
+            {{ form.is_active }}
+            {{ form.is_active.errors }}
+          </div>
+        </div>
+
+        <div>
+          <label>المدارس المرتبطة بالمدير</label>
+          <div class="schools-list">
+            {% if schools %}
+              <input type="search" id="managerSchoolsSearch" placeholder="ابحث عن مدرسة" style="width:100%;padding:6px 8px;margin-bottom:6px;border-radius:10px;border:1px solid var(--line,#e5e7eb);font-size:.85rem;">
+              {% for s in schools %}
+                <label class="school-item">
+                  <input type="checkbox" name="schools" value="{{ s.id }}" {% if s.id|stringformat:"s" in selected_ids %}checked{% endif %}>
+                  <span>{{ s.name }}</span>
+                  {% if s.city %}<span class="hint">- {{ s.city }}</span>{% endif %}
+                </label>
+              {% endfor %}
+            {% else %}
+              <p class="hint">لا توجد مدارس نشطة حتى الآن. قم بإنشاء مدرسة أولاً من "إدارة المدارس".</p>
+            {% endif %}
+          </div>
+          <div class="hint">يجب اختيار مدرسة واحدة على الأقل.</div>
+        </div>
+      </div>
+
+      <div>
+        <button type="submit" class="btn btn-primary">{% if mode == "edit" %}حفظ التعديلات{% else %}حفظ وإنشاء المدير{% endif %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+  (function(){
+    const input = document.getElementById('managerSchoolsSearch');
+    if(!input) return;
+    const items = Array.from(document.querySelectorAll('.schools-list .school-item'));
+    input.addEventListener('input', function(){
+      const q = this.value.trim().toLowerCase();
+      items.forEach(function(el){
+        const txt = (el.textContent || '').toLowerCase();
+        el.style.display = (!q || txt.includes(q)) ? '' : 'none';
+      });
+    });
+  })();
+</script>
+{% endblock %}

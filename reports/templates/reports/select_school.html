@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}اختيار المدرسة{% endblock %}
+
+{% block head %}
+<style>
+  .wrap{max-width:680px;margin:auto;padding:18px}
+  .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);padding:20px;box-shadow:0 10px 26px rgba(15,23,42,.08)}
+  .card h1{margin-top:0;font-size:1.4rem;font-weight:900;color:var(--ink-soft,#111827)}
+  .card p{color:var(--muted,#6b7280);font-weight:700;margin-top:4px}
+  .schools{display:grid;gap:10px;margin-top:18px}
+  .school-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:12px;border:1px solid var(--line,#e5e7eb);background:#fff;cursor:pointer;transition:all .18s ease}
+  .school-row:hover{border-color:#bfdbfe;background:#eff6ff}
+  .school-main{display:flex;align-items:center;gap:10px}
+  .school-logo{width:36px;height:36px;border-radius:10px;overflow:hidden;background:#eef2ff;display:grid;place-items:center;font-weight:900;color:#1e40af;font-size:.9rem}
+  .school-name{font-weight:900}
+  .school-code{color:var(--muted,#6b7280);font-size:.85rem;font-weight:700}
+  .radio{accent-color:var(--brand,#2563eb);width:18px;height:18px}
+  .actions{margin-top:18px;display:flex;gap:10px;justify-content:flex-start;flex-wrap:wrap}
+  .btn-main{padding:10px 16px;border-radius:999px;border:none;background:var(--brand,#2563eb);color:#fff;font-weight:800;cursor:pointer;min-width:140px}
+  .hint{margin-top:10px;color:var(--muted,#6b7280);font-size:.85rem}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap" dir="rtl">
+  <div class="card">
+    <h1>اختيار المدرسة</h1>
+    <p>اختر المدرسة التي ترغب في إدارتها الآن. يمكن تغيير الاختيار لاحقًا في أي وقت.</p>
+
+    {% if schools %}
+      <form method="post" id="schoolForm">
+        {% csrf_token %}
+        <div class="schools">
+          {% for s in schools %}
+          <label class="school-row">
+            <div class="school-main">
+              <div class="school-logo">
+                {% if s.logo_url %}
+                  <img src="{{ s.logo_url }}" alt="{{ s.name }}" style="width:100%;height:100%;object-fit:contain;">
+                {% else %}
+                  {{ s.name|slice:":2" }}
+                {% endif %}
+              </div>
+              <div>
+                <div class="school-name">{{ s.name }}</div>
+                <div class="school-code">الكود: {{ s.code }}</div>
+              </div>
+            </div>
+            <input class="radio" type="radio" name="school_id" value="{{ s.id }}" {% if current_school and current_school.id == s.id %}checked{% endif %}>
+          </label>
+          {% endfor %}
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn-main">دخول لوحة المدير</button>
+        </div>
+        <div class="hint">إذا لم تظهر أي مدرسة، قم بإضافة مدرسة من لوحة تحكم Django (admin-panel).</div>
+      </form>
+    {% else %}
+      <p>لا توجد مدارس مضافة بعد. قم بإضافة مدرسة من خلال لوحة تحكم Django (<code>/admin-panel/</code>) ثم عد إلى هذه الصفحة.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

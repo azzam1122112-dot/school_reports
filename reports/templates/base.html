@@ -168,7 +168,7 @@
         <span></span><span></span><span></span>
       </button>
 
-      <!-- الشعار -->
+      <!-- الشعار + معلومات المدرسة الحالية -->
       <a href="{% url 'reports:home' %}" class="brand">
         <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo.png' %}{% endif %}" alt="الشعار" loading="eager" decoding="async" width="40" height="40">
         <span>{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</span>
@@ -192,7 +192,27 @@
           {% endif %}
 
           {% if SHOW_ADMIN_DASHBOARD_LINK %}
-            <a class="{% if active == 'admin_dashboard' %}active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
+            {% if request.user.is_superuser %}
+              <a class="{% if active == 'platform_admin_dashboard' %}active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
+            {% else %}
+              <a class="{% if active == 'admin_dashboard' %}active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
+            {% endif %}
+          {% endif %}
+
+          {# مبدّل المدارس: يظهر إذا كان للمستخدم أكثر من مدرسة #}
+          {% if USER_SCHOOLS|length > 1 %}
+            <form method="post" action="{% url 'reports:switch_school' %}" style="display:inline-flex;align-items:center;gap:6px;">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <div style="display:flex;flex-direction:column;gap:4px;max-width:260px;">
+                <input type="search" id="schoolSearchDesktop" placeholder="ابحث عن مدرسة" style="border-radius:999px;border:1px solid var(--line);padding:4px 10px;font-size:.8rem;">
+                <select id="schoolSelectDesktop" name="school_id" onchange="this.form.submit()" style="border-radius:999px;border:1px solid var(--line);padding:6px 10px;font-weight:800;background:var(--card);cursor:pointer;max-width:260px;">
+                  {% for s in USER_SCHOOLS %}
+                    <option value="{{ s.id }}" {% if SCHOOL_NAME and s.name == SCHOOL_NAME %}selected{% endif %}>{{ s.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </form>
           {% endif %}
 
           {% url 'reports:my_notifications' as my_notifications_url %}
@@ -262,7 +282,24 @@
         {% endif %}
 
         {% if SHOW_ADMIN_DASHBOARD_LINK %}
-          <a class="{% if active == 'admin_dashboard' %}active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
+          {% if request.user.is_superuser %}
+            <a class="{% if active == 'platform_admin_dashboard' %}active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
+          {% else %}
+            <a class="{% if active == 'admin_dashboard' %}active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
+          {% endif %}
+        {% endif %}
+
+        {% if USER_SCHOOLS|length > 1 %}
+          <form method="post" action="{% url 'reports:switch_school' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <input type="search" id="schoolSearchMobile" placeholder="ابحث عن مدرسة" style="width:100%;padding:8px 10px;margin-bottom:6px;border-radius:12px;border:1px solid var(--line);font-size:.9rem;">
+            <select id="schoolSelectMobile" name="school_id" onchange="this.form.submit()" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--line);font-weight:800;">
+              {% for s in USER_SCHOOLS %}
+                <option value="{{ s.id }}" {% if SCHOOL_NAME and s.name == SCHOOL_NAME %}selected{% endif %}>{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </form>
         {% endif %}
 
         {% url 'reports:my_notifications' as my_notifications_url %}
@@ -499,6 +536,25 @@
 
       // سياسة العرض التلقائي في الرئيسية — وسط الشاشة
       window.showNotification(null);
+    })();
+
+    // بحث داخل قائمة المدارس (سطح المكتب والجوال)
+    (function(){
+      function attachSearch(inputId, selectId){
+        const input = document.getElementById(inputId);
+        const select = document.getElementById(selectId);
+        if(!input || !select) return;
+        const options = Array.from(select.options);
+        input.addEventListener('input', function(){
+          const q = this.value.trim().toLowerCase();
+          options.forEach(function(opt){
+            const txt = (opt.textContent || '').toLowerCase();
+            opt.hidden = q && !txt.includes(q);
+          });
+        });
+      }
+      attachSearch('schoolSearchDesktop', 'schoolSelectDesktop');
+      attachSearch('schoolSearchMobile', 'schoolSelectMobile');
     })();
   </script>
 

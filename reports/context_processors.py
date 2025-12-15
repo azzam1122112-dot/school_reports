@@ -9,7 +9,7 @@ from django.apps import apps
 from django.db.models import Q
 from django.urls import reverse
 
-from .models import Ticket, Department, Report
+from .models import Ticket, Department, Report, School, SchoolMembership
 
 # حالات التذاكر
 OPEN_STATES = {"open", "new"}
@@ -469,14 +469,31 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "NAV_NOTIFICATION_HERO": None,
             "CAN_SEND_NOTIFICATIONS": False,
             "SEND_NOTIFICATION_URL": None,
+            "SCHOOL_NAME": None,
+            "SCHOOL_LOGO_URL": None,
         }
 
+    # نحدد المدرسة النشطة (إن وُجدت) لاستخدامها في العدادات
+    active_school = None
     try:
-        my_open = _safe_count(Ticket.objects.filter(creator=u, status__in=UNRESOLVED_STATES))
+        sid = request.session.get("active_school_id")
+        if sid:
+            active_school = School.objects.filter(pk=sid, is_active=True).first()
+    except Exception:
+        active_school = None
+
+    try:
+        qs = Ticket.objects.filter(creator=u, status__in=UNRESOLVED_STATES)
+        if active_school is not None:
+            qs = qs.filter(school=active_school)
+        my_open = _safe_count(qs)
     except Exception:
         my_open = 0
     try:
-        assigned_open = _safe_count(Ticket.objects.filter(assignee=u, status__in=UNRESOLVED_STATES))
+        qs2 = Ticket.objects.filter(assignee=u, status__in=UNRESOLVED_STATES)
+        if active_school is not None:
+            qs2 = qs2.filter(school=active_school)
+        assigned_open = _safe_count(qs2)
     except Exception:
         assigned_open = 0
 
@@ -488,8 +505,12 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     nav_officer_reports = 0
     try:
         start_date = timezone.localdate() - timedelta(days=7)
+        base_qs = Report.objects.filter(report_date__gte=start_date)
+        if active_school is not None and "school" in {f.name for f in Report._meta.get_fields()}:
+            base_qs = base_qs.filter(school=active_school)
+
         if getattr(u, "is_superuser", False):
-            nav_officer_reports = Report.objects.filter(report_date__gte=start_date).count()
+            nav_officer_reports = base_qs.count()
         elif is_officer:
             rt_ids: set = set()
             rt_slugs: set = set()
@@ -503,7 +524,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
                 except Exception:
                     pass
             if rt_ids or rt_slugs:
-                q = Report.objects.filter(report_date__gte=start_date)
+                q = base_qs
                 if rt_ids:
                     try:
                         nav_officer_reports = q.filter(category_id__in=list(rt_ids)).count()
@@ -517,13 +538,12 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         nav_officer_reports = 0
 
-    # روابط لوحة المدير
+    # روابط لوحة المدير: تظهر لكل من لديه is_staff (مدير/سوبر أدمن)
     try:
         role_slug = getattr(getattr(u, "role", None), "slug", None)
-        show_admin_link = bool(getattr(u, "is_superuser", False) or role_slug == "manager")
     except Exception:
         role_slug = None
-        show_admin_link = bool(getattr(u, "is_superuser", False))
+    show_admin_link = bool(getattr(u, "is_staff", False))
 
     # من يحق له إرسال إشعارات؟
     can_send_notifications = bool(getattr(u, "is_superuser", False) or role_slug == "manager" or is_officer)
@@ -551,6 +571,31 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         hero = None
 
+    # المدرسة النشطة + قائمة مدارس المستخدم (للتبديل في الهيدر)
+    school_name = None
+    school_logo = None
+    user_schools: list[School] = []
+    try:
+        if getattr(request.user, "is_authenticated", False):
+            user_schools = list(
+                School.objects.filter(
+                    memberships__teacher=request.user,
+                    memberships__is_active=True,
+                )
+                .distinct()
+                .order_by("name")
+            )
+        sid = request.session.get("active_school_id")
+        if sid:
+            s = School.objects.filter(pk=sid, is_active=True).first()
+            if s is not None:
+                school_name = s.name
+                school_logo = getattr(s, "logo_url", None) or None
+    except Exception:
+        school_name = None
+        school_logo = None
+        user_schools = []
+
     return {
         "NAV_MY_OPEN_TICKETS": my_open,
         "NAV_ASSIGNED_TO_ME": assigned_open,
@@ -564,6 +609,9 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "NAV_NOTIFICATION_HERO": hero,
         "CAN_SEND_NOTIFICATIONS": can_send_notifications,
         "SEND_NOTIFICATION_URL": send_notification_url,
+        "SCHOOL_NAME": school_name,
+        "SCHOOL_LOGO_URL": school_logo,
+        "USER_SCHOOLS": user_schools,
     }
 
 

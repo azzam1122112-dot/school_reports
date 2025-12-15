@@ -67,6 +67,20 @@ urlpatterns = [
     # =========================
     # لوحة المدير
     # =========================
+    path("staff/select-school/", views.select_school, name="select_school"),
+    path("staff/switch-school/", views.switch_school, name="switch_school"),
+    path("staff/my-school/", views.school_settings, name="school_settings"),
+    path("staff/schools/", views.schools_admin_list, name="schools_admin_list"),
+    path("staff/schools/add/", views.school_create, name="school_create"),
+    path("staff/schools/<int:pk>/profile/", views.school_profile, name="school_profile"),
+    path("staff/schools/<int:pk>/edit/", views.school_update, name="school_update"),
+    path("staff/schools/<int:pk>/delete/", views.school_delete, name="school_delete"),
+    path("staff/schools/managers/", views.school_managers_list, name="school_managers_list"),
+    path("staff/schools/managers/<int:pk>/edit/", views.school_manager_update, name="school_manager_update"),
+    path("staff/schools/managers/<int:pk>/delete/", views.school_manager_delete, name="school_manager_delete"),
+    path("staff/schools/managers/add/", views.school_manager_create, name="school_manager_create"),
+    path("staff/schools/<int:pk>/managers/", views.school_managers_manage, name="school_managers_manage"),
+    path("platform-dashboard/", views.platform_admin_dashboard, name="platform_admin_dashboard"),
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("manager/", views.admin_dashboard, name="manager_dashboard"),  # alias قديم
 

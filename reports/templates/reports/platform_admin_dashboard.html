@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}لوحة إدارة المنصة{% endblock %}
+
+{% block head %}
+<style>
+  .wrap{max-width:1100px;margin:auto;padding:18px}
+  .kpis{display:grid;gap:12px;margin-top:8px}
+  @media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
+  .kpi{background:var(--card,#fff);border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:16px;box-shadow:0 10px 26px rgba(2,6,23,.08)}
+  .kpi .num{font-weight:900;font-size:1.6rem;color:var(--brand,#2563eb)}
+  .kpi .lbl{color:var(--muted,#6b7280);font-weight:800}
+  .grid{display:grid;gap:14px;margin-top:16px}
+  @media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+  .tile{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:16px;text-decoration:none;color:inherit;box-shadow:0 10px 26px rgba(2,6,23,.08)}
+  .tile:hover{border-color:#dbeafe;background:#f8fbff}
+  .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:900}
+  .b1{background:linear-gradient(135deg,#2563eb,#60a5fa)}
+  .b2{background:linear-gradient(135deg,#10b981,#34d399)}
+  .b3{background:linear-gradient(135deg,#f59e0b,#fbbf24)}
+  .b4{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
+  .title{font-weight:900;margin:0;color:var(--ink-soft,#1f2937)}
+  .muted{color:var(--muted,#6b7280);font-weight:700}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap" dir="rtl">
+  <h1 class="title">لوحة إدارة المنصة</h1>
+  <p class="muted" style="margin-top:4px">إحصائيات عامة وإجراءات خاصة بالمشرف العام فقط.</p>
+
+  <section class="kpis" aria-label="مؤشرات سريعة للمنصة">
+    <div class="kpi"><div class="num">{{ platform_schools_active }}</div><div class="lbl">مدارس نشطة</div></div>
+    <div class="kpi"><div class="num">{{ platform_schools_total }}</div><div class="lbl">إجمالي المدارس</div></div>
+    <div class="kpi"><div class="num">{{ platform_managers_count }}</div><div class="lbl">مدراء المدارس</div></div>
+    <div class="kpi"><div class="num">{{ teachers_count }}</div><div class="lbl">المستخدمون (معلمون/مدراء)</div></div>
+    <div class="kpi"><div class="num">{{ reports_count }}</div><div class="lbl">إجمالي التقارير</div></div>
+    <div class="kpi"><div class="num">{{ tickets_total }}</div><div class="lbl">إجمالي الطلبات</div></div>
+    <div class="kpi"><div class="num">{{ tickets_open }}</div><div class="lbl">طلبات جديدة/قيد</div></div>
+    <div class="kpi"><div class="num">{{ tickets_done }}</div><div class="lbl">طلبات مكتملة</div></div>
+  </section>
+
+  <section class="grid" aria-label="إجراءات المنصة">
+    <a class="tile" href="{% url 'reports:schools_admin_list' %}">
+      <div class="ico b1">🏫</div>
+      <div>
+        <div class="title">إدارة المدارس</div>
+        <div class="muted">إنشاء/تعديل/حذف المدارس وتعيين مدراء لها</div>
+      </div>
+    </a>
+
+    <a class="tile" href="{% url 'reports:school_managers_list' %}">
+      <div class="ico b2">👨‍💼</div>
+      <div>
+        <div class="title">مدراء المدارس</div>
+        <div class="muted">مراجعة جميع المدراء وإنشاء/تعديل مدير مدرسة</div>
+      </div>
+    </a>
+
+    <a class="tile" href="{% url 'reports:admin_dashboard' %}">
+      <div class="ico b3">📊</div>
+      <div>
+        <div class="title">لوحة مدراء المدارس</div>
+        <div class="muted">الانتقال للوحة المدير الخاصة بمدرسة معيّنة</div>
+      </div>
+    </a>
+
+    <a class="tile" href="{% url 'admin:index' %}">
+      <div class="ico b4">⚙️</div>
+      <div>
+        <div class="title">لوحة Django الإدارية</div>
+        <div class="muted">إدارة متقدمة للجداول والصلاحيات من لوحة Django</div>
+      </div>
+    </a>
+  </section>
+</div>
+{% endblock %}
