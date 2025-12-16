@@ -38,13 +38,13 @@ DEBUG = (ENV != "production") if os.getenv("DEBUG") is None else _env_bool("DEBU
 print(f"🚀 DEBUG: {DEBUG}")
 
 ALLOWED_HOSTS = _split_env_list(
-    os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,school-7lgm.onrender.com,.onrender.com")
+    os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,school-7lgm.onrender.com,school-reports.onrender.com,.onrender.com")
 )
 
 CSRF_TRUSTED_ORIGINS = _split_env_list(
     os.getenv(
         "CSRF_TRUSTED_ORIGINS",
-        "https://*.onrender.com,https://*.render.com,https://school-7lgm.onrender.com"
+        "https://*.onrender.com,https://*.render.com,https://school-7lgm.onrender.com,https://school-reports.onrender.com"
     )
 )
 
