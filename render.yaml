@@ -10,10 +10,10 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        value: "postgresql://school_db_hp0k_user:c6JNeWO8Urlhy7pgK46AHAelXTcr47FJ@dpg-d2m48pbuibrs73fr1530-a/school_db_hp0k"
+        value: "postgresql://school_db_lbxv_user:KoIAnrjvXRU8oATuw6DDqNJajUXd5xw4@dpg-d50rlgtactks73bjebi0-a/school_db_lbxv"
       - key: CLOUDINARY_CLOUD_NAME
-        value: "dvptglfs2"
+        value: "dnob4uzo6"
       - key: CLOUDINARY_API_KEY
-        value: "469557475625854"
+        value: "338112422428927"
       - key: CLOUDINARY_API_SECRET
-        value: "aJXnXwL_PeGjRXxsQKBYAGj6F7o"
+        value: "cbvBfgbgfnlDA69i7xG11KJ_da8"
