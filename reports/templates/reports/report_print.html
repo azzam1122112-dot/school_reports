@@ -12,7 +12,10 @@
   <style>
     :root{
       --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
-      --brand:#2563eb; --accent:#059669; --bg:#f8fafc; --card:#ffffff;
+      /* لون الهوية للطباعة: نستخدم نفس اللون للتدرج حتى لا يظهر الأخضر القديم */
+      --brand: {{ PRINT_PRIMARY_COLOR|default:"#2563eb" }};
+      --accent: {{ PRINT_PRIMARY_COLOR|default:"#2563eb" }};
+      --bg:#f8fafc; --card:#ffffff;
       --chip:#eef2ff; --chip-ink:#1e40af;
       --radius:12px; --print-margin:15mm;
 
@@ -239,7 +242,7 @@
       {% with cat_label=r.category.name|default:"غير مصنّف" %}
       <div class="hero" id="hero1">
         <img class="logo"
-             src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo.png' %}{% endif %}"
+             src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}"
              alt="{{ SCHOOL_NAME|default:'شعار المدرسة' }}">
         <div>
           <div class="title">تقرير <span class="cat-badge">{{ cat_label }}</span></div>
@@ -329,7 +332,7 @@
       {% with cat_label=r.category.name|default:"غير مصنّف" %}
       <div class="hero" id="hero2">
         <img class="logo"
-             src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo.png' %}{% endif %}"
+             src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}"
              alt="{{ SCHOOL_NAME|default:'شعار المدرسة' }}">
         <div>
           <div class="title">تقرير <span class="cat-badge">{{ cat_label }}</span> - صفحة 2</div>

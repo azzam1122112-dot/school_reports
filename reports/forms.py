@@ -79,36 +79,68 @@ def _teachers_for_dept(dept_slug: str, school: Optional["School"] = None):
 
 
 def _is_teacher_in_dept(teacher: Teacher, dept_slug: str) -> bool:
-    """
-    هل المعلّم ينتمي للقسم؟
-    - يطابق بحسب role.slug (مع تطبيع للحروف والمسافات)
-    - يستثني "أقسام المعلّمين" بحيث يكفي أن يكون الدور "teacher"
-    - يتحقق بعضوية DepartmentMembership عند الحاجة
-    """
+    """هل المعلّم ينتمي للقسم؟"""
     if not teacher or not dept_slug:
         return False
 
-    # تطبيع
     dept_slug_norm = (dept_slug or "").strip().lower()
     role_slug = (getattr(getattr(teacher, "role", None), "slug", None) or "").strip().lower()
 
-    # أقسام المعلّمين المسموح بها (حدّثها عندك إن لزم)
     TEACHERS_DEPT_SLUGS = {"teachers", "teacher", "معلمين", "المعلمين"}
 
-    # إن كان القسم أحد أقسام المعلّمين، فوجود الدور teacher يكفي
     if dept_slug_norm in TEACHERS_DEPT_SLUGS and role_slug in {"teacher", "teachers"}:
         return True
 
-    # تطابق مباشر role.slug == dept_slug
     if role_slug and role_slug == dept_slug_norm:
         return True
 
-    # تحقق بالعضوية
     dep = Department.objects.filter(slug__iexact=dept_slug_norm).first()
     if not dep:
         return False
 
     return DepartmentMembership.objects.filter(department=dep, teacher=teacher).exists()
+
+
+def _compress_image_upload(f, *, max_px: int = 1600, quality: int = 85) -> InMemoryUploadedFile:
+    """ضغط ملف صورة واحد قبل التخزين (يُستخدم للتقارير والتذاكر).
+
+    - يقلّص الأبعاد القصوى إلى max_px.
+    - يحاول الحفظ بصيغة WEBP، مع fallback إلى PNG/JPEG.
+    """
+    from PIL import Image
+
+    img = Image.open(f)
+    has_alpha = img.mode in ("RGBA", "LA", "P")
+    img = img.convert("RGBA" if has_alpha else "RGB")
+
+    if max(img.size) > max_px:
+        img.thumbnail((max_px, max_px), Image.LANCZOS)
+
+    buf = BytesIO()
+    try:
+        img.save(buf, format="WEBP", quality=quality, optimize=True)
+        new_ext, ctype = ".webp", "image/webp"
+    except Exception:
+        buf = BytesIO()
+        fmt = "PNG" if has_alpha else "JPEG"
+        save_kwargs = {"optimize": True}
+        if fmt == "JPEG":
+            save_kwargs["quality"] = quality
+        img.save(buf, format=fmt, **save_kwargs)
+        new_ext = ".png" if has_alpha else ".jpg"
+        ctype = "image/png" if has_alpha else "image/jpeg"
+
+    buf.seek(0)
+    base = os.path.splitext(getattr(f, "name", "image"))[0]
+    return InMemoryUploadedFile(
+        buf,
+        getattr(f, "field_name", None) or "image",
+        f"{base}{new_ext}",
+        ctype,
+        buf.getbuffer().nbytes,
+        None,
+    )
+
 
 # ==============================
 # 📌 نموذج التقرير العام
@@ -175,15 +207,32 @@ class ReportForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        # قيود الصور (الحجم ≤ 2MB وأن تكون صورة)
-        for f in ["image1", "image2", "image3", "image4"]:
-            img = cleaned.get(f)
-            if img:
-                if hasattr(img, "size") and img.size > 2 * 1024 * 1024:
-                    self.add_error(f, "حجم الصورة أكبر من 2MB.")
-                ctype = (getattr(img, "content_type", "") or "").lower()
-                if ctype and not ctype.startswith("image/"):
-                    self.add_error(f, "الملف يجب أن يكون صورة صالحة.")
+
+        # ضغط الصور قبل الرفع إلى Cloudinary + التحقق من الحجم بعد الضغط
+        for field_name in ["image1", "image2", "image3", "image4"]:
+            img = cleaned.get(field_name)
+            if not img:
+                continue
+
+            ctype = (getattr(img, "content_type", "") or "").lower()
+            if ctype and not ctype.startswith("image/"):
+                self.add_error(field_name, "الملف يجب أن يكون صورة صالحة.")
+                continue
+
+            try:
+                compressed = _compress_image_upload(img, max_px=1600, quality=85)
+                cleaned[field_name] = compressed
+                # تحديث self.files حتى يستخدمها model.save()
+                if hasattr(self, "files"):
+                    self.files[field_name] = compressed
+                img = compressed
+            except Exception:
+                # في حال فشل الضغط نستخدم الملف كما هو مع فحص الحجم فقط
+                pass
+
+            if hasattr(img, "size") and img.size > 2 * 1024 * 1024:
+                self.add_error(field_name, "حجم الصورة بعد الضغط ما زال أكبر من 2MB.")
+
         return cleaned
 
 # ==============================
@@ -840,7 +889,7 @@ class NotificationCreateForm(forms.Form):
         queryset=Teacher.objects.none(),
         required=True,
         label="المستلمون (يمكن اختيار أكثر من معلم)",
-        widget=forms.SelectMultiple(attrs={"size":12})
+        widget=forms.CheckboxSelectMultiple()
     )
 
     def __init__(self, *args, **kwargs):

@@ -61,6 +61,19 @@ class School(models.Model):
     city = models.CharField("المدينة", max_length=120, blank=True, null=True)
     is_active = models.BooleanField("نشطة؟", default=True)
     logo_url = models.URLField("رابط الشعار", blank=True, null=True)
+    logo_file = models.ImageField(
+        "شعار مرفوع",
+        upload_to="schools/logos/",
+        blank=True,
+        null=True,
+    )
+    print_primary_color = models.CharField(
+        "لون قالب الطباعة",
+        max_length=9,
+        blank=True,
+        null=True,
+        help_text="لون رئيسي لقالب الطباعة (مثلاً #2563eb).",
+    )
     created_at = models.DateTimeField("أُنشئت في", auto_now_add=True)
     updated_at = models.DateTimeField("تم التحديث في", auto_now=True)
 

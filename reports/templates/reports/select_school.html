@@ -35,9 +35,11 @@
           <label class="school-row">
             <div class="school-main">
               <div class="school-logo">
-                {% if s.logo_url %}
-                  <img src="{{ s.logo_url }}" alt="{{ s.name }}" style="width:100%;height:100%;object-fit:contain;">
-                {% else %}
+                  {% if s.logo_file %}
+                    <img src="{{ s.logo_file.url }}" alt="{{ s.name }}" style="width:100%;height:100%;object-fit:contain;">
+                  {% elif s.logo_url %}
+                    <img src="{{ s.logo_url }}" alt="{{ s.name }}" style="width:100%;height:100%;object-fit:contain;">
+                  {% else %}
                   {{ s.name|slice:":2" }}
                 {% endif %}
               </div>
@@ -53,7 +55,6 @@
         <div class="actions">
           <button type="submit" class="btn-main">دخول لوحة المدير</button>
         </div>
-        <div class="hint">إذا لم تظهر أي مدرسة، قم بإضافة مدرسة من لوحة تحكم Django (admin-panel).</div>
       </form>
     {% else %}
       <p>لا توجد مدارس مضافة بعد. قم بإضافة مدرسة من خلال لوحة تحكم Django (<code>/admin-panel/</code>) ثم عد إلى هذه الصفحة.</p>

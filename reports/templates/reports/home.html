@@ -2,208 +2,442 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}مرحبا {{ request.user.name|default:"" }}{% endblock %}
+{% block title %}مرحباً {{ request.user.name|default:"" }}{% endblock %}
 
 {% block head %}
 <style>
-  /* ===== متغيرات الصفحة ===== */
-  .home {
-    --ink:#0f172a; --muted:#64748b; --line:#e5e7eb; --line2:#f1f5f9;
-    --card:#fff; --brand:#2563eb; --accent:#10b981; --warn:#f59e0b; --danger:#ef4444;
-    --radius:16px; --shadow:0 10px 30px rgba(2,6,23,.08); --t:all .22s ease;
-  }
-  @media (prefers-color-scheme:dark){
-    .home { --ink:#e6ebff; --muted:#9fb0d9; --line:#1b2744; --line2:#142349; --card:#0f1629; }
+  /* =========================================================
+     HOME (page-only polish) — بدون إعادة تعريف .btn / .card
+     ========================================================= */
+  .home-wrap{
+    --h-radius: 18px;
+    --h-shadow: 0 18px 50px rgba(2,6,23,.10);
+    --h-ring: 0 0 0 4px rgba(37,99,235,.20);
   }
 
-  /* ===== القسم الترحيبي (Hero) ===== */
-  .hero-home{
-    display:grid; gap:20px; padding:30px clamp(16px,4vw,30px);
-    border-radius:var(--radius);
-    background:linear-gradient(135deg,#2563eb,#1e40af); color:#fff;
-    box-shadow:var(--shadow); position:relative; overflow:hidden;
+  .home-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius: var(--h-radius);
+    background:
+      radial-gradient(900px 380px at 15% 0%, rgba(255,255,255,.22), transparent 60%),
+      radial-gradient(900px 420px at 95% 85%, rgba(16,185,129,.18), transparent 55%),
+      linear-gradient(135deg, #2563eb 0%, #1e40af 55%, #0f2a6a 100%);
+    color:#fff;
+    box-shadow: var(--h-shadow);
+    border: 1px solid rgba(255,255,255,.14);
   }
-  .hero-home::before{
-    content:""; position:absolute; inset:0;
-    background:url("{% static 'img/pattern.svg' %}") no-repeat right 30px bottom -20px;
-    background-size:200px; opacity:.15; transform:rotate(180deg);
-  }
-  .hero-home .content{ position:relative; z-index:10 }
-  .hero-home h1{ margin:0; font-size:clamp(1.4rem,4vw,2.2rem); font-weight:900; line-height:1.3; letter-spacing:-.5px; color:#e6ebff }
-  .hero-home p{ margin:8px 0 0; font-size:clamp(1rem,2vw,1.15rem); font-weight:800; opacity:.9; max-width:700px }
-  .hero-actions{ display:flex; flex-wrap:wrap; gap:12px; margin-top:18px }
-  .hero-actions .btn{ border-radius:999px; padding:10px 18px; font-size:1rem; font-weight:800 }
 
-  /* ===== الأزرار ===== */
-  .btn{
-    display:inline-flex; align-items:center; gap:8px; padding:10px 14px;
-    border-radius:12px; border:1px solid var(--line); background:var(--card);
-    color:var(--ink); text-decoration:none; font-weight:800; transition:var(--t);
+  .home-hero::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(closest-side, rgba(255,255,255,.14), transparent 60%) 20% 15%/220px 220px no-repeat,
+      radial-gradient(closest-side, rgba(255,255,255,.10), transparent 60%) 85% 70%/260px 260px no-repeat;
+    pointer-events:none;
+    opacity:.85;
   }
-  .btn:hover{ transform:translateY(-2px); box-shadow:0 4px 12px rgba(2,6,23,.05) }
-  .btn-primary{ background:var(--brand); border-color:var(--brand); color:#fff }
-  .btn-primary:hover{ background:#1e40af; border-color:#1e40af }
-  .btn-accent{ background:var(--accent); border-color:var(--accent); color:#003322 }
-  .btn-accent:hover{ background:#0d9465; border-color:#0d9465 }
-  .btn-ghost{ background:#eef2ff; color:#1e40af; border-color:#dbeafe }
-  @media(prefers-color-scheme:dark){ .btn-ghost{ background:#142349; color:#cfe0ff; border-color:#1c2f5d } }
-  .btn.outline{ background:transparent } .btn.outline:hover{ background:var(--line2) }
 
-  /* ===== الشبكات ===== */
-  .grid{ display:grid; gap:14px }
-  @media(min-width:900px){ .grid-3{ grid-template-columns:1.3fr .7fr } }
-  .card{
-    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-    box-shadow:var(--shadow); padding:16px; transition:var(--t);
+  .home-hero-inner{
+    position:relative;
+    padding: clamp(16px, 3vw, 28px);
+    display:grid;
+    gap:16px;
   }
-  .card:hover{ transform:translateY(-3px); box-shadow:0 15px 40px rgba(2,6,23,.08) }
-  .card h3{ margin:0 0 10px; font-size:1.05rem; font-weight:900; display:flex; align-items:center; gap:8px }
-  .card h3 i{ opacity:.8 }
-  .meta{ color:var(--muted); font-weight:800; font-size:.95rem }
 
-  /* ===== بطاقات الإحصاءات ===== */
-  .stats{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)) }
-  .stat{
-    position:relative; overflow:hidden; border-radius:14px; padding:14px;
-    border:1px solid var(--line);
-    background:linear-gradient(180deg,var(--line2),var(--card)); transition:var(--t);
+  .hero-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
   }
-  .stat:hover{ transform:translateY(-2px); box-shadow:0 4px 12px rgba(2,6,23,.05) }
-  @media(prefers-color-scheme:dark){ .stat{ background:linear-gradient(180deg,#122043,#0f1629) } }
-  .stat .k{ font-size:clamp(1.2rem,2.2vw,1.5rem); font-weight:900; color:var(--ink) }
-  .stat .t{ color:var(--muted); font-weight:800 }
-  .stat .ico{ position:absolute; inset:auto 10px 10px auto; font-size:22px; opacity:.22 }
 
-  /* ===== القوائم الحديثة ===== */
-  .list{ display:grid; gap:10px }
-  .row{
-    display:grid; gap:10px; padding:12px; border:1px solid var(--line); border-radius:12px;
-    grid-template-columns:1fr auto; background:var(--line2); transition:var(--t);
+  .hero-title{
+    margin:0;
+    font-weight: 950;
+    letter-spacing: -.5px;
+    line-height:1.2;
+    font-size: clamp(1.35rem, 3.2vw, 2.05rem);
+    color:#eef2ff;
   }
-  .row:hover{ background:#dbeafe } @media(prefers-color-scheme:dark){ .row:hover{ background:#1a2c53 } }
-  .row strong{ font-weight:900; color:var(--ink) }
-  .row .badge{
-    align-self:center; justify-self:end; border-radius:999px; padding:4px 10px;
-    font-size:.85rem; font-weight:900; color:#fff; white-space:nowrap;
-  }
-  .b-gray{ background:#64748b } .b-brand{ background:#2563eb } .b-accent{ background:#10b981 }
-  .b-warn{ background:#f59e0b } .b-danger{ background:#ef4444 }
 
-  /* ===== زر التحفيز (يفتح النافذة) ===== */
-  .motivate{ display:inline-flex; align-items:center; gap:8px; margin-top:6px; cursor:pointer; font-weight:800; color:var(--ink); opacity:.9; transition:var(--t) }
-  .motivate:hover{ opacity:1; transform:translateY(-1px) }
-  .motivate i{ font-size:1.15rem; color:#f59e0b }
+  .hero-sub{
+    margin:8px 0 0;
+    font-weight: 800;
+    opacity:.92;
+    max-width: 740px;
+    font-size: clamp(.98rem, 1.8vw, 1.12rem);
+  }
+
+  .hero-meta{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    font-weight: 900;
+    opacity:.95;
+  }
+
+  .hero-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.16);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    white-space:nowrap;
+  }
+  .hero-chip i{ opacity:.95; }
+
+  .hero-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top: 2px;
+  }
+
+  /* أزرار داخل الهيرو فقط (بدون لمس .btn العامة) */
+  .hero-actions .btn{
+    border-radius: 999px;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-color: rgba(255,255,255,.18);
+  }
+  .btn-hero{
+    background:#fff;
+    color:#1e40af;
+    border-color:#fff;
+  }
+  .btn-hero:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 18px 35px rgba(2,6,23,.18);
+  }
+  .btn-hero-outline{
+    background: rgba(255,255,255,.10);
+    color:#eef2ff;
+    border-color: rgba(255,255,255,.22);
+  }
+  .btn-hero-outline:hover{
+    background: rgba(255,255,255,.16);
+    transform: translateY(-2px);
+  }
+
+  /* Layout */
+  .home-grid{
+    display:grid;
+    gap:14px;
+    margin-top: 14px;
+  }
+  @media(min-width: 980px){
+    .home-grid{
+      grid-template-columns: 1.35fr .65fr;
+      align-items:start;
+    }
+  }
+
+  /* KPI */
+  .kpis{
+    display:grid;
+    gap:12px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+  .kpi{
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    padding: 14px;
+    position:relative;
+    overflow:hidden;
+    transition: var(--t);
+  }
+  .kpi:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(2,6,23,.08);
+  }
+  @media(prefers-color-scheme: dark){
+    .kpi{
+      background: linear-gradient(180deg, #122043, #0f1629);
+      border-color: #1b2744;
+    }
+  }
+
+  .kpi .v{
+    font-weight: 950;
+    font-size: clamp(1.2rem, 2.2vw, 1.65rem);
+    color: var(--ink);
+    line-height:1.1;
+  }
+  .kpi .l{
+    margin-top: 6px;
+    font-weight: 900;
+    color: var(--muted);
+    font-size: .95rem;
+  }
+  .kpi .bub{
+    position:absolute;
+    left: 12px;
+    bottom: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    display:grid;
+    place-items:center;
+    background: rgba(37,99,235,.10);
+    border: 1px solid rgba(37,99,235,.18);
+    color: rgba(37,99,235,.95);
+  }
+  .kpi.kpi-green .bub{ background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.20); color: rgba(16,185,129,.95); }
+  .kpi.kpi-amber .bub{ background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.22); color: rgba(245,158,11,.95); }
+  .kpi.kpi-red   .bub{ background: rgba(239,68,68,.10);  border-color: rgba(239,68,68,.22);  color: rgba(239,68,68,.95); }
+
+  /* Modern list rows */
+  .list{
+    display:grid;
+    gap:10px;
+  }
+  .item{
+    display:grid;
+    grid-template-columns: 1fr auto;
+    gap:10px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--line-2);
+    text-decoration:none;
+    color: inherit;
+    transition: var(--t);
+  }
+  .item:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(2,6,23,.07);
+    background: rgba(219,234,254,.60);
+  }
+  @media(prefers-color-scheme: dark){
+    .item{ background: rgba(20,35,73,.40); border-color:#1b2744; }
+    .item:hover{ background: rgba(26,44,83,.70); }
+  }
+
+  .item strong{
+    font-weight: 950;
+    color: var(--ink);
+    display:block;
+  }
+  .item .meta{
+    margin-top: 4px;
+    font-weight: 800;
+    color: var(--muted);
+    font-size: .95rem;
+  }
+
+  .pill{
+    align-self:center;
+    justify-self:end;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-weight: 950;
+    font-size: .85rem;
+    color:#fff;
+    white-space:nowrap;
+  }
+  .p-blue{ background:#2563eb; }
+  .p-green{ background:#10b981; }
+  .p-amber{ background:#f59e0b; }
+  .p-red{ background:#ef4444; }
+  .p-gray{ background:#64748b; }
+
+  /* Empty state */
+  .empty{
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px dashed var(--line);
+    background: linear-gradient(180deg, var(--card), var(--line-2));
+    color: var(--muted);
+    font-weight: 850;
+  }
+  .empty b{ color: var(--ink); }
+
+  /* Motivator button (subtle) */
+  .motivate{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-weight: 950;
+    margin-top: 8px;
+    border:0;
+    background: transparent;
+    color: rgba(255,255,255,.95);
+    cursor:pointer;
+    opacity:.95;
+    transition: var(--t);
+    padding: 6px 0;
+    text-align:start;
+  }
+  .motivate:hover{ opacity:1; transform: translateY(-1px); }
+  .motivate i{ color:#fbbf24; }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .kpi, .item, .hero-actions .btn, .motivate{ transition:none !important; }
+    .kpi:hover, .item:hover, .hero-actions .btn:hover, .motivate:hover{ transform:none !important; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="home">
-  <!-- ===== Hero ===== -->
-  <section class="hero-home" aria-labelledby="welcomeTitle">
-    <div class="content">
-      <h1 id="welcomeTitle">أهلًا {{ request.user.name|default:"بك" }} 👋</h1>
-      <p>مرحباً بعودتك! انطلق الآن ووثّق إنجازاتك، وتابع طلباتك، واطّلع على آخر المستجدات.</p>
+<div class="home-wrap">
+  <!-- HERO -->
+  <section class="home-hero" aria-labelledby="welcomeTitle">
+    <div class="home-hero-inner">
+      <div class="hero-top">
+        <div>
+          <h1 class="hero-title" id="welcomeTitle">أهلًا {{ request.user.name|default:"بك" }} 👋</h1>
+          <p class="hero-sub">
+            مرحباً بعودتك! وثّق إنجازاتك، تابع طلباتك، واطّلع على آخر المستجدات بسرعة.
+          </p>
 
-      <!-- إجراءات سريعة (تتضمن "طلباتي") -->
-      <div class="hero-actions">
-        <a class="btn" href="{% url 'reports:add_report' %}" style="background:#fff;color:var(--brand);">
-          <i class="fa-solid fa-plus"></i> إضافة تقرير جديد
+          {% if NAV_NOTIFICATION_HERO %}
+            <button type="button" class="motivate" onclick="window.showNotification(this)" aria-label="افتح آخر إشعار">
+              <i class="fa-solid fa-sparkles"></i> حفّزني الآن
+            </button>
+          {% endif %}
+        </div>
+
+        <div class="hero-meta" aria-label="معلومات سريعة">
+          <span class="hero-chip">
+            <i class="fa-solid fa-building"></i>
+            {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}
+          </span>
+          <span class="hero-chip">
+            <i class="fa-solid fa-user"></i>
+            {% firstof request.user.role "مستخدم" %}
+          </span>
+        </div>
+      </div>
+
+      <div class="hero-actions" aria-label="إجراءات سريعة">
+        <a class="btn btn-hero" href="{% url 'reports:add_report' %}">
+          <i class="fa-solid fa-plus"></i> إضافة تقرير
         </a>
-        <a class="btn outline" href="{% url 'reports:my_reports' %}" style="color:#eef2ff;">
+
+        <a class="btn btn-hero-outline" href="{% url 'reports:my_reports' %}">
           <i class="fa-solid fa-file-lines"></i> تقاريري
         </a>
+
         {% url 'reports:assigned_to_me' as inbox_url %}
         {% if inbox_url %}
-          <a class="btn outline" href="{{ inbox_url }}" style="color:#eef2ff;">
-            <i class="fa-solid fa-inbox"></i> المعينة لي
+          <a class="btn btn-hero-outline" href="{{ inbox_url }}">
+            <i class="fa-solid fa-inbox"></i> الوارد
           </a>
         {% endif %}
-        <!-- ✅ زر طلباتي المُضاف -->
-        <a class="btn outline" href="{% url 'reports:my_requests' %}" style="color:#eef2ff;">
+
+        <a class="btn btn-hero-outline" href="{% url 'reports:my_requests' %}">
           <i class="fa-solid fa-rectangle-list"></i> طلباتي
         </a>
       </div>
-
-      {% if NAV_NOTIFICATION_HERO %}
-        <button type="button" class="motivate" onclick="window.showNotification(this)" aria-label="افتح آخر إشعار تحفيزي">
-          <i class="fa-solid fa-sparkles"></i> 🎉 حفّزني الآن
-        </button>
-      {% endif %}
     </div>
   </section>
 
-  <!-- ===== المحتوى ===== -->
-  <div class="grid grid-3">
-    <!-- يسار: إحصاءات + أحدث تقاريري -->
+  <div class="home-grid">
+    <!-- LEFT -->
     <div class="grid" style="align-content:start">
       <div class="card">
-        <h3><i class="fa-solid fa-chart-simple"></i> نظرة سريعة</h3>
-        <div class="stats" role="list">
-          <div class="stat" role="listitem">
-            <div class="k">{{ stats.today_count|default:"0" }}</div>
-            <div class="t">تقارير اليوم</div>
-            <i class="ico fa-solid fa-sun"></i>
+        <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
+          <i class="fa-solid fa-chart-simple" style="opacity:.85"></i> نظرة سريعة
+        </h3>
+
+        <div class="kpis" role="list">
+          <div class="kpi" role="listitem">
+            <div class="v">{{ stats.today_count|default:"0" }}</div>
+            <div class="l">تقارير اليوم</div>
+            <div class="bub" aria-hidden="true"><i class="fa-solid fa-sun"></i></div>
           </div>
-          <div class="stat" role="listitem">
-            <div class="k">{{ stats.total_count|default:"0" }}</div>
-            <div class="t">إجمالي تقاريري</div>
-            <i class="ico fa-solid fa-layer-group"></i>
+
+          <div class="kpi" role="listitem">
+            <div class="v">{{ stats.total_count|default:"0" }}</div>
+            <div class="l">إجمالي تقاريري</div>
+            <div class="bub" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></div>
           </div>
-          <div class="stat" role="listitem">
-            <div class="k">{{ req_stats.open|default:"0" }}</div>
-            <div class="t">طلبات جـديدة</div>
-            <i class="ico fa-solid fa-door-open"></i>
+
+          <div class="kpi kpi-amber" role="listitem">
+            <div class="v">{{ req_stats.open|default:"0" }}</div>
+            <div class="l">طلبات جديدة</div>
+            <div class="bub" aria-hidden="true"><i class="fa-solid fa-door-open"></i></div>
           </div>
-          <div class="stat" role="listitem">
-            <div class="k">{{ req_stats.in_progress|default:"0" }}</div>
-            <div class="t">قيد المعالجة</div>
-            <i class="ico fa-solid fa-hourglass-half"></i>
+
+          <div class="kpi kpi-green" role="listitem">
+            <div class="v">{{ req_stats.in_progress|default:"0" }}</div>
+            <div class="l">قيد المعالجة</div>
+            <div class="bub" aria-hidden="true"><i class="fa-solid fa-hourglass-half"></i></div>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <h3><i class="fa-solid fa-file-circle-check"></i> أحدث تقاريري</h3>
+        <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
+          <i class="fa-solid fa-file-circle-check" style="opacity:.85"></i> أحدث تقاريري
+        </h3>
+
         {% if recent_reports %}
           <div class="list" role="list">
             {% for r in recent_reports %}
-            <a class="row" role="listitem" href="{% url 'reports:report_print' r.id %}" title="فتح لطباعة التقرير">
-              <div>
-                <strong>{{ r.title }}</strong>
-                <div class="meta">بتاريخ {{ r.report_date }} — {{ r.day_name }}</div>
-              </div>
-              <span class="badge b-brand">{{ r.category.name|default:"—" }}</span>
-            </a>
+              <a class="item" role="listitem" href="{% url 'reports:report_print' r.id %}" title="فتح لطباعة التقرير">
+                <div>
+                  <strong>{{ r.title }}</strong>
+                  <div class="meta">بتاريخ {{ r.report_date }} — {{ r.day_name }}</div>
+                </div>
+
+                {# لو ما فيه category.name نخليها افتراضي #}
+                <span class="pill p-blue">{% if r.category and r.category.name %}{{ r.category.name }}{% else %}—{% endif %}</span>
+              </a>
             {% endfor %}
           </div>
-          <div style="margin-top:16px">
+
+          <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap">
             <a class="btn btn-ghost" href="{% url 'reports:my_reports' %}">
               <i class="fa-solid fa-list"></i> عرض جميع تقاريري
             </a>
+            <a class="btn btn-primary" href="{% url 'reports:add_report' %}">
+              <i class="fa-solid fa-plus"></i> إضافة تقرير
+            </a>
           </div>
         {% else %}
-          <p class="meta">لا توجد تقارير حديثة بعد.
-            <a href="{% url 'reports:add_report' %}"><b>أضف تقريرك الأول الآن!</b></a>
-          </p>
+          <div class="empty">
+            لا توجد تقارير حديثة بعد — <b>ابدأ بتوثيق أول إنجاز الآن</b>.
+            <div style="margin-top:12px">
+              <a class="btn btn-primary" href="{% url 'reports:add_report' %}">
+                <i class="fa-solid fa-plus"></i> إضافة تقرير جديد
+              </a>
+            </div>
+          </div>
         {% endif %}
       </div>
     </div>
 
-    <!-- يمين: حالة الطلبات + دفعة طاقة -->
+    <!-- RIGHT -->
     <div class="grid" style="align-content:start">
       <div class="card">
-        <h3><i class="fa-solid fa-clipboard-check"></i> حالة طلباتي</h3>
+        <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
+          <i class="fa-solid fa-clipboard-check" style="opacity:.85"></i> حالة طلباتي
+        </h3>
+
         <div class="list" role="list">
-          <div class="row" role="listitem">
+          <div class="item" role="listitem" style="cursor:default">
             <div><strong>مكتملة</strong></div>
-            <span class="badge b-accent">{{ req_stats.done|default:"0" }}</span>
+            <span class="pill p-green">{{ req_stats.done|default:"0" }}</span>
           </div>
-          <div class="row" role="listitem">
+
+          <div class="item" role="listitem" style="cursor:default">
             <div><strong>مرفوضة</strong></div>
-            <span class="badge b-danger">{{ req_stats.rejected|default:"0" }}</span>
+            <span class="pill p-red">{{ req_stats.rejected|default:"0" }}</span>
           </div>
         </div>
-        <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+
+        <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap">
           <a class="btn btn-ghost" href="{% url 'reports:request_create' %}">
             <i class="fa-solid fa-ticket"></i> فتح طلب جديد
           </a>
@@ -214,16 +448,23 @@
       </div>
 
       <div class="card" id="motivateCard" aria-live="polite">
-        <h3><i class="fa-solid fa-bolt"></i> دفعة طاقة</h3>
-        <p class="meta">ابدأ يومك بإنجاز صغير الآن. دقيقة واحدة يمكن أن تصنع فرقًا كبيرًا.</p>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;">
+        <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
+          <i class="fa-solid fa-bolt" style="opacity:.85"></i> دفعة طاقة
+        </h3>
+
+        <div class="meta" style="font-weight:900">
+          ابدأ يومك بخطوة صغيرة الآن. دقيقة واحدة قد تغيّر نتيجة يومك بالكامل.
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
           <a class="btn btn-primary" href="{% url 'reports:add_report' %}">
             <i class="fa-solid fa-plus"></i> توثيق إنجاز
           </a>
+
           {% if NAV_NOTIFICATION_HERO %}
-          <button type="button" class="btn" onclick="window.showNotification(document.getElementById('motivateCard'))">
-            <i class="fa-solid fa-sparkles"></i> عرض الإشعار
-          </button>
+            <button type="button" class="btn" onclick="window.showNotification(document.getElementById('motivateCard'))">
+              <i class="fa-solid fa-sparkles"></i> عرض الإشعار
+            </button>
           {% endif %}
         </div>
       </div>

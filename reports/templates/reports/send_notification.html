@@ -254,19 +254,14 @@
     cursor: not-allowed;
   }
 
-  /* أدوات المعلّمين */
+  /* حقل المعلّمين: أدوات البحث والتحديد */
   .teacher-tools {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
     align-items: center;
     margin: 10px 0 12px;
-    padding: 12px;
-    background: var(--bg);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
   }
-  
   .teacher-tools input[type="search"] {
     flex: 1 1 260px;
     border: 2px solid var(--border);
@@ -274,12 +269,10 @@
     padding: 10px 14px;
     background: var(--card);
   }
-  
   .teacher-tools .mini {
     font-weight: 800;
     color: var(--text);
   }
-  
   .teacher-tools .count {
     background: var(--primary);
     color: #fff;
@@ -288,21 +281,23 @@
     font-weight: 900;
     font-size: 0.9rem;
   }
-  
-  .teacher-tools .btn-sm {
-    padding: 8px 14px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-    background: var(--card);
-    font-weight: 800;
-    cursor: pointer;
-    transition: var(--transition);
+
+  .teacher-actions {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:0.9rem;
   }
-  
-  .teacher-tools .btn-sm:hover {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
+  .teacher-actions button {
+    background:none;
+    border:0;
+    padding:0;
+    color:var(--primary);
+    cursor:pointer;
+    font-weight:800;
+  }
+  .teacher-actions button:hover {
+    text-decoration:underline;
   }
 
   /* المعاينة */
@@ -528,17 +523,42 @@
             {% endif %}
 
             <div class="form-grid">
-              {# عرض الحقول تلقائيًا دون استخدام سمات خاصة #}
+              {# تخصيص حقل المستلمين ليحصل على أدوات (تحديد الكل/إلغاء) وبحث #}
               {% for field in form.visible_fields %}
-                <div class="field" data-name="{{ field.html_name|lower }}">
-                  <label for="{{ field.id_for_label }}">
-                    {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
-                    {{ field.label|default:"الحقل" }}
-                  </label>
-                  {{ field }}
-                  {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
-                  {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
-                </div>
+                {% if field.name == "teachers" %}
+                  <div class="field" data-name="{{ field.html_name|lower }}">
+                    <label for="{{ field.id_for_label }}" class="row" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                      <span>
+                        {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
+                        {{ field.label|default:"الحقل" }}
+                      </span>
+                      <span class="teacher-actions">
+                        <button type="button" id="selectAllTeachers">تحديد الكل</button>
+                        <span>/</span>
+                        <button type="button" id="clearAllTeachers">إلغاء التحديد</button>
+                      </span>
+                    </label>
+
+                    <div class="teacher-tools">
+                      <input id="teacherSearch" type="search" placeholder="ابحث باسم المعلّم…" aria-label="البحث عن معلّم">
+                      <span class="mini">المحدّد: <span class="count" id="selCount">0</span></span>
+                    </div>
+
+                    {{ field }}
+                    {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+                    {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                  </div>
+                {% else %}
+                  <div class="field" data-name="{{ field.html_name|lower }}">
+                    <label for="{{ field.id_for_label }}">
+                      {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
+                      {{ field.label|default:"الحقل" }}
+                    </label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+                    {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                  </div>
+                {% endif %}
               {% endfor %}
             </div>
 
@@ -688,44 +708,15 @@
     });
 
     // =========================
-    // بحث بالاسم + تحديد/إلغاء تحديد كل المعلّمين
+    // بحث بالاسم + تحديد/إلغاء تحديد كل المعلّمين (المستلمون)
     // =========================
 
-    // نحدّد الحقل الذي يحتوي قائمة كبيرة من Checkboxes (المعلّمين)
-    function findTeacherField(){
-      const fields = $$('.form-grid .field');
-      for(const f of fields){
-        const checkboxes = f.querySelectorAll('input[type="checkbox"]');
-        const multiSelect = f.querySelector('select[multiple]');
-        // استبعد خانة "هام"
-        const isImportantOnly = (checkboxes.length === 1 && f.querySelector('#id_is_important'));
-        if(!isImportantOnly && (checkboxes.length >= 3 || (multiSelect && multiSelect.options.length >= 3))){
-          return f;
-        }
-      }
-      return null;
-    }
-
-    const teacherField = findTeacherField();
+    const teacherField = document.querySelector('.form-grid .field[data-name="teachers"]');
     if(teacherField){
-      // أنشئ أدوات البحث والتحديد
-      const tools = document.createElement('div');
-      tools.className = 'teacher-tools';
-      tools.innerHTML = `
-        <input id="teacherSearch" type="search" placeholder="ابحث باسم المعلّم…" aria-label="البحث عن معلّم">
-        <button type="button" id="btnToggleAll" class="btn-sm" aria-pressed="false">
-          <i class="fa-solid fa-check-double"></i> تحديد الجميع
-        </button>
-        <span class="mini">المحدّد: <span class="count" id="selCount">0</span></span>
-      `;
-
-      // موضع الأدوات: قبل القائمة مباشرة
-      const firstList = teacherField.querySelector('ul, ol, .checkboxselectmultiple, .related-widget-wrapper, div, fieldset, select[multiple]');
-      teacherField.insertBefore(tools, firstList || teacherField.firstChild);
-
       const searchInput = $('#teacherSearch');
-      const btnToggleAll = $('#btnToggleAll');
       const selCount = $('#selCount');
+      const btnSelectAll = $('#selectAllTeachers');
+      const btnClearAll = $('#clearAllTeachers');
 
       // اجمع العناصر القابلة للتصفية (li/label حول كل Checkbox أو option في select[multiple])
       function getTeacherItems(){
@@ -768,16 +759,6 @@
           if(it.option && it.option.selected) count++;
         });
         if(selCount) selCount.textContent = String(count);
-        // حدّث نص زر التبديل
-        const allVisibleSelected = teacherItems.filter(it=> isVisible(it.wrap)).every(it=>{
-          if(it.input) return it.input.checked;
-          if(it.option) return it.option.selected;
-          return true;
-        });
-        btnToggleAll.setAttribute('aria-pressed', allVisibleSelected ? 'true' : 'false');
-        btnToggleAll.innerHTML = allVisibleSelected ? 
-          '<i class="fa-solid fa-times"></i> إلغاء الكل' : 
-          '<i class="fa-solid fa-check-double"></i> تحديد الجميع';
       }
 
       function filterByQuery(q){
@@ -801,13 +782,13 @@
 
       // مستمعو الأحداث
       if(searchInput){
-        searchInput.addEventListener('input', e => filterByQuery(searchInput.value));
+        searchInput.addEventListener('input', () => filterByQuery(searchInput.value));
       }
-      if(btnToggleAll){
-        btnToggleAll.addEventListener('click', ()=>{
-          const pressed = btnToggleAll.getAttribute('aria-pressed') === 'true';
-          toggleAllVisible(!pressed); // إذا كان محددًا، ألغِ؛ وإلا حدّد
-        });
+      if(btnSelectAll){
+        btnSelectAll.addEventListener('click', () => toggleAllVisible(true));
+      }
+      if(btnClearAll){
+        btnClearAll.addEventListener('click', () => toggleAllVisible(false));
       }
 
       // عدّاد يتحدّث عند تغيّر أي اختيار

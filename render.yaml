@@ -1,7 +1,7 @@
 services:
   - type: web
     name: school-app
-    env: python
+    runtime: python
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
     startCommand: "gunicorn config.wsgi:application --log-file -"
     envVars:

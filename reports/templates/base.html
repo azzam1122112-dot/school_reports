@@ -4,235 +4,439 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="color-scheme" content="light" />
   <title>{% block title %}نظام التقارير{% endblock %}</title>
 
   <!-- أداء -->
   <link rel="preload" href="{% static 'css/app.css' %}" as="style">
   <link rel="stylesheet" href="{% static 'css/app.css' %}" />
 
-  <!-- الخط والأيقونات (نبقي الأيقونات للجرس وبعض العناصر الثانوية فقط) -->
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" referrerpolicy="no-referrer">
 
   <style>
     :root{
-      --brand:#2563eb;--brand-ink:#1e3a8a;--brand-ghost:#e8efff;
-      --accent:#10b981;--ink:#0f172a;--ink-soft:#1f2937;--muted:#64748b;
-      --bg:#f8fafc;--card:#ffffff;--line:#e5e7eb;--line-2:#f1f5f9;
-      --radius:14px;--t:all .22s ease;--shadow:0 4px 16px rgba(2,6,23,.08);--ring:0 0 0 3px rgba(37,99,235,.25);
+      --brand:#2563eb;
+      --brand2:#3b82f6;
+      --brand-ghost:#e8efff;
+      --accent:#10b981;
+
+      --ink:#0f172a;
+      --muted:#64748b;
+
+      --bg:#f8fafc;
+      --card:#ffffff;
+      --line:#e5e7eb;
+      --line-2:#f1f5f9;
+
+      --shadow:0 8px 28px rgba(2,6,23,.08);
+      --shadow2:0 20px 50px rgba(2,6,23,.16);
+      --ring:0 0 0 3px rgba(37,99,235,.25);
+
       --tap:48px;
+
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-right: env(safe-area-inset-right, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       --safe-left: env(safe-area-inset-left, 0px);
     }
 
+    @media (prefers-color-scheme:dark){
+      :root{
+        --bg:#0b1220;
+        --card:#0f1629;
+        --ink:#e6ebff;
+        --muted:#a9b8de;
+        --line:#1b2744;
+        --line-2:#142246;
+      }
+    }
+
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
     html,body{height:100%}
     body{
-      margin:0;font-family:'Tajawal',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-      color:var(--ink);background:var(--bg);line-height:1.7;
-      display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+      margin:0;
+      font-family:'Tajawal',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+      line-height:1.75;
+      display:flex;
+      flex-direction:column;
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
     }
     img{max-width:100%;display:block}
+    a{color:inherit}
     .container{width:100%;max-width:1240px;margin-inline:auto;padding:0 clamp(12px,3vw,24px)}
-    .page-main{flex:1;padding:clamp(12px,2.5vw,24px) 0;animation:fadeUp .5s ease both}
+    .page-main{flex:1;padding:clamp(12px,2.5vw,24px) 0;animation:fadeUp .35s ease both}
     @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
-    /* ===== شريط التقدم ===== */
-    .progress-bar{position:fixed;top:0;right:0;height:3px;width:0;background:linear-gradient(90deg,#2563eb,#10b981);z-index:9999;transition:width .2s ease}
+    /* Accessibility */
+    .skip-link{
+      position:absolute; top:10px; right:10px; z-index:10001;
+      background:var(--card); border:1px solid var(--line); border-radius:14px;
+      padding:10px 12px; font-weight:900; text-decoration:none; color:var(--ink);
+      transform:translateY(-140%); transition:transform .2s ease;
+      box-shadow:var(--shadow2);
+    }
+    .skip-link:focus{transform:none; outline:none; box-shadow:var(--ring)}
+    :focus-visible{outline:none; box-shadow:var(--ring)}
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+    }
 
-    /* ===== الهيدر ===== */
+    /* Progress */
+    .progress-bar{position:fixed;top:0;right:0;height:3px;width:0;background:linear-gradient(90deg,var(--brand),var(--accent));z-index:9999;transition:width .2s ease}
+
+    /* ===== Header v2 ===== */
     .site-header{
-      position:sticky;top:0;inset-inline:0;z-index:900;background:rgba(255,255,255,.82);
-      border-bottom:1px solid var(--line-2);backdrop-filter:saturate(180%) blur(12px);
+      position:sticky;top:0;inset-inline:0;z-index:900;
+      background:rgba(255,255,255,.82);
+      border-bottom:1px solid var(--line-2);
+      backdrop-filter:saturate(180%) blur(12px);
       transition:box-shadow .25s ease, background .25s ease, border-color .25s ease;
     }
-    .site-header.scrolled{box-shadow:0 10px 30px rgba(2,6,23,.10);background:rgba(255,255,255,.92);border-color:#dfe7ff}
-    .topbar{display:flex;align-items:center;gap:10px;min-height:64px;padding:8px 0}
+    @supports not (backdrop-filter: blur(12px)){
+      .site-header{background:var(--card)}
+    }
+    .site-header.scrolled{
+      box-shadow:0 10px 30px rgba(2,6,23,.10);
+      background:rgba(255,255,255,.92);
+      border-color:#dfe7ff;
+    }
 
-    .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
-    .brand span{font-weight:900;font-size:clamp(1.02rem,1.5vw,1.15rem);white-space:nowrap}
-    .brand img{width:40px;height:40px;object-fit:contain}
-    @media(max-width:480px){.brand img{width:32px;height:32px}}
+    .hdr{display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 0}
 
-    /* زر الهمبرجر */
-    .hamburger{display:none;width:var(--tap);height:var(--tap);border-radius:12px;border:1px solid var(--line);align-items:center;justify-content:center;gap:4px;cursor:pointer;background:var(--card)}
-    .hamburger span{display:block;width:18px;height:2px;background:#334155;border-radius:2px;transition:var(--t)}
+    .hdr-brand{
+      display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);
+      min-width:240px;
+    }
+    .hdr-brand img{
+      width:42px;height:42px;object-fit:contain;border-radius:14px;
+      background:#fff;border:1px solid var(--line);
+      box-shadow:0 8px 18px rgba(2,6,23,.06);
+    }
+    .hdr-brand-txt{display:grid;gap:2px}
+    .hdr-brand-name{font-weight:900;font-size:1.05rem;white-space:nowrap}
+    .hdr-brand-sub{font-weight:800;color:var(--muted);font-size:.88rem;white-space:nowrap}
+    @media(max-width:520px){.hdr-brand-sub{display:none}}
+
+    .hdr-nav{display:flex;align-items:center;gap:6px;margin-inline:auto;flex-wrap:wrap}
+    .tab{
+      display:inline-flex;align-items:center;gap:8px;min-height:44px;
+      padding:0 14px;border-radius:999px;text-decoration:none;
+      color:var(--ink);font-weight:900;border:1px solid transparent;
+      transition:all .18s ease;
+    }
+    .tab:hover{background:var(--brand-ghost);color:var(--brand)}
+    .tab.is-active{background:var(--brand-ghost);color:var(--brand);border-color:#dbeafe}
+    .pill{
+      min-width:22px;height:22px;border-radius:999px;background:#ef4444;color:#fff;
+      display:inline-grid;place-items:center;font-size:.78rem;padding:0 7px;font-weight:900;
+    }
+
+    .hdr-actions{display:flex;align-items:center;gap:10px}
+
+    .icon-btn{
+      position:relative;display:grid;place-items:center;
+      width:44px;height:44px;border-radius:999px;
+      border:1px solid var(--line);background:var(--card);
+      color:var(--ink);text-decoration:none;transition:all .18s ease;
+    }
+    .icon-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow);border-color:#dbeafe}
+    .dot{
+      position:absolute;top:6px;left:6px;
+      min-width:18px;height:18px;border-radius:999px;
+      background:#ef4444;color:#fff;font-size:.72rem;
+      display:grid;place-items:center;padding:0 5px;font-weight:900;
+    }
+
+    .school-btn{
+      display:inline-flex;align-items:center;gap:10px;
+      min-height:44px; padding:6px 12px;
+      border-radius:999px;border:1px solid var(--line);
+      background:var(--card);cursor:pointer;font-weight:900;color:var(--ink);
+      transition:all .18s ease;
+    }
+    .school-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow);border-color:#dbeafe}
+    .school-btn i{color:var(--brand)}
+    .school-btn-txt{display:grid;gap:2px;min-width:170px}
+    .school-btn-top{font-size:.72rem;color:var(--muted);font-weight:900}
+    .school-btn-name{font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    @media(max-width:1024px){.hdr-nav{display:none}}
+
+    /* Hamburger */
+    .hamburger{
+      display:none;width:var(--tap);height:var(--tap);border-radius:14px;border:1px solid var(--line);
+      align-items:center;justify-content:center;gap:4px;cursor:pointer;background:var(--card);
+    }
+    .hamburger span{display:block;width:18px;height:2px;background:#334155;border-radius:2px;transition:all .18s ease}
     .hamburger.active span:nth-child(1){transform:translateY(4px) rotate(45deg)}
     .hamburger.active span:nth-child(2){opacity:0}
     .hamburger.active span:nth-child(3){transform:translateY(-4px) rotate(-45deg)}
     @media(max-width:1024px){.hamburger{display:flex}}
 
-    /* قائمة سطح المكتب — نصية بدون أيقونات لتفادي التكرار مع الصفحة الرئيسية */
-    .nav-desktop{margin-inline-start:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-    .nav-desktop a{--h:40px;position:relative;display:inline-flex;align-items:center;gap:8px;height:var(--h);padding:0 12px;border-radius:10px;border:1px solid transparent;color:var(--ink);text-decoration:none;font-weight:800;transition:var(--t);white-space:nowrap}
-    .nav-desktop a:hover{color:var(--brand)}
-    .nav-desktop a::after{content:"";position:absolute;inset:auto 10px 6px 10px;height:2px;background:currentColor;transform:scaleX(0);transform-origin:50% 50%;transition:transform .25s ease}
-    .nav-desktop a:hover::after{transform:scaleX(1)}
-    .nav-desktop a.active{color:var(--brand);background:var(--brand-ghost)}
-    .nav-desktop a.active::after{transform:scaleX(1)}
-    @media(max-width:1024px){.nav-desktop{display:none}}
+    /* User menu */
+    .userbox{position:relative}
+    .avatar{
+      width:44px;height:44px;border-radius:999px;display:grid;place-items:center;
+      background:linear-gradient(180deg,#eef2ff,#fff);
+      color:#1e40af;font-weight:900;border:1px solid #dbeafe;
+      box-shadow:var(--shadow);cursor:pointer;transition:transform .18s ease;
+    }
+    .avatar:hover{transform:translateY(-1px)}
+    .menu{
+      position:absolute;inset:calc(100% + 10px) 0 auto auto;min-width:230px;background:var(--card);
+      border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 45px rgba(2,6,23,.14);
+      padding:8px;opacity:0;transform:translateY(-6px) scale(.98);pointer-events:none;transition:all .18s ease;z-index:185;
+    }
+    .menu.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+    .menu .mi{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;color:var(--ink);text-decoration:none;font-weight:800}
+    .menu .mi:hover{background:var(--line-2)}
+    .menu .meta{color:var(--muted);font-size:.9rem;font-weight:800}
 
-    /* شارة */
-    .badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:.78rem;color:#fff;background:#ef4444}
-
-    /* ===== الدروَر للجوال (RTL: من اليمين) ===== */
+    /* Mobile drawer */
     .drawer-overlay{
       position:fixed;inset:0;background:rgba(2,6,23,.45);
       backdrop-filter:blur(6px);z-index:980;display:none;
     }
     .drawer{
-      position:fixed;
-      inset:0 0 0 auto;                /* أعلى-يمين-أسفل-يسار: نثبته يمين الشاشة */
-      width:min(320px,86vw);
-      background:var(--card);
-      border-inline-start:1px solid var(--line);
-      z-index:990;
-      transform:translateX(110%);       /* خارج الشاشة يمينًا */
-      transition:var(--t);
-      display:flex;flex-direction:column;
-      max-height:100vh;overflow:auto;
+      position:fixed; inset:0 0 0 auto; width:min(340px,88vw);
+      background:var(--card); border-inline-start:1px solid var(--line);
+      z-index:990; transform:translateX(110%); transition:all .18s ease;
+      display:flex;flex-direction:column; max-height:100vh;overflow:auto;
       padding-bottom:var(--safe-bottom);
     }
     .drawer.open{transform:translateX(0)}
     .drawer-overlay.show{display:block}
     .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--line)}
     .drawer-title{font-weight:900}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-weight:900;cursor:pointer;text-decoration:none;color:var(--ink);transition:all .12s ease}
+    .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+    .btn-primary{background:var(--brand);border-color:var(--brand);color:#fff}
     .drawer-nav{display:grid;padding:12px;gap:10px}
-    .drawer-nav a{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--ink);font-weight:800;background:linear-gradient(180deg,#fff,#fbfdff)}
-    .drawer-nav a:hover{background:var(--line-2)}
-    .drawer-footer{margin-top:auto;padding:12px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
-
-    /* صندوق المستخدم (نبقي الأفاتار فقط؛ لا نكرر الأيقونات الكبيرة) */
-    .userbox{position:relative}
-    .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#eef2ff,#fff);color:#1e40af;font-weight:900;border:1px solid #dbeafe;box-shadow:var(--shadow);cursor:pointer;border:0;transition:transform .18s ease}
-    .avatar:hover{transform:translateY(-2px)}
-    .menu{position:absolute;inset:calc(100% + 10px) 0 auto auto;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 40px rgba(2,6,23,.12);padding:8px;opacity:0;transform:translateY(-6px) scale(.98);pointer-events:none;transition:var(--t);z-index:185}
-    .menu.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
-    .menu .mi{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;color:var(--ink);text-decoration:none;font-weight:700}
-    .menu .mi:hover{background:var(--line-2)}
-    .menu .meta{color:var(--muted);font-size:.9rem}
-
-    /* رسائل Django */
-    .messages{margin:16px 0}
-    .msg{position:relative;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#f8fbff;color:#0b1b3a;box-shadow:var(--shadow);margin-bottom:10px;animation:fadeUp .5s ease both}
-    .msg.success{background:#f0fff6;border-color:#c8f3d6;color:#064e3b}
-    .msg.error{background:#fff0f0;border-color:#ffd4d4;color:#7f1d1d}
-    .msg.warning{background:#fffbeb;border-color:#fed7aa;color:#7c2d12}
-    .msg-close{position:absolute;top:8px;left:8px;background:none;border:0;cursor:pointer;opacity:0.7;transition:opacity 0.2s ease;padding:0;font-size:14px}
-    .msg-close:hover{opacity:1}
-    .msg-progress{position:absolute;bottom:0;left:0;height:3px;width:100%;background:rgba(0,0,0,0.1);overflow:hidden}
-    .msg-progress::after{content:'';position:absolute;bottom:0;left:0;height:3px;width:100%;background:currentColor;opacity:0.3;animation:progress 3s linear forwards}
-    @keyframes progress{from{transform:translateX(-100%)}to{transform:none}}
-
-    /* ===== نافذة الإشعار المنبثقة (Hero) ===== */
-    .notify-overlay{position:fixed; inset:0; z-index:10000; display:grid; place-items:center; padding:10px; padding-top:calc(10px + var(--safe-top)); padding-bottom:calc(10px + var(--safe-bottom));}
-    .notify-overlay[hidden]{display:none}
-    .notify-card{
-      position:relative; width:min(520px,92vw); max-height:min(80vh,520px); overflow:auto;
-      border:1px solid #dbeafe; border-radius:16px; background:linear-gradient(135deg,#ffffff 0%, #f7fbff 100%);
-      box-shadow:0 30px 60px rgba(2,6,23,.20); padding:16px;
+    .drawer-nav a{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:12px;border:1px solid var(--line);border-radius:14px;
+      text-decoration:none;color:var(--ink);font-weight:900;
+      background:linear-gradient(180deg,#fff,#fbfdff);
     }
-    .notify-head{display:flex;align-items:center;gap:14px}
-    .notify-icon{font-size:2.1rem;width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(135deg,#eef2ff,#ffffff);color:#1e40af;border:1px solid #e7efff;box-shadow:0 8px 20px rgba(37,99,235,.10)}
-    .notify-title{margin:0;font-weight:900;color:#0b1b3a;font-size:clamp(1.05rem,2.5vw,1.35rem)}
-    .notify-sub{color:#475569;font-weight:800;font-size:.95rem;margin-top:2px}
-    .notify-content{margin-top:12px;color:#1f2937;font-weight:800;background:linear-gradient(180deg,#ffffff,#fbfdff);border:1px dashed #dbeafe;border-radius:14px;padding:12px 14px;white-space:pre-line}
-    .notify-meta{margin-top:10px;color:#475569;font-weight:800;display:flex;align-items:center;gap:8px}
-    .notify-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-    .notify-actions .btn{border-radius:999px;padding:10px 16px;min-height:var(--tap)}
-    .btn{padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;font-weight:800;text-decoration:none;color:#1e293b}
-    .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
-    .btn-ghost{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
-    .btn:hover{transform:translateY(-1px)}
-    .notify-confetti{pointer-events:none; position:absolute; inset:0; overflow:hidden; border-radius:inherit}
-    .notify-card.is-anchored{ position:fixed; width:min(520px,92vw); max-height:min(80vh,520px);}
-    .notify-card.is-anchored::after{content:""; position:absolute; width:14px; height:14px; rotate:45deg; background:inherit; border:inherit; border-left:none; border-top:none;}
+    .drawer-nav a:hover{background:var(--line-2)}
+    .drawer-nav a.is-active{border-color:#c7d2fe;background:linear-gradient(180deg,#eef2ff,#ffffff);color:#1e40af}
+    .drawer-footer{margin-top:auto;padding:12px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap}
 
-    /* زر العودة للأعلى */
-    .to-top{position:fixed;left:16px;bottom:16px;z-index:880;display:none;width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;box-shadow:var(--shadow);cursor:pointer}
-    .to-top:hover{transform:translateY(-2px)}
+    /* Toasts */
+    .messages{
+      position:fixed;
+      top:calc(var(--safe-top) + 78px);
+      right:clamp(10px,2vw,16px);
+      left:auto;
+      width:min(420px, calc(100vw - 20px));
+      z-index:950;
+      display:grid;
+      gap:10px;
+      margin:0;
+      pointer-events:none;
+    }
+    .msg{
+      pointer-events:auto;
+      position:relative;
+      padding:12px 14px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.92);
+      color:#0b1b3a;
+      box-shadow:0 14px 40px rgba(2,6,23,.14);
+      animation:fadeUp .28s ease both;
+      overflow:hidden;
+      font-weight:900;
+    }
+    .msg.success{background:rgba(240,255,246,.95);border-color:#c8f3d6;color:#064e3b}
+    .msg.error{background:rgba(255,240,240,.95);border-color:#ffd4d4;color:#7f1d1d}
+    .msg.warning{background:rgba(255,251,235,.95);border-color:#fed7aa;color:#7c2d12}
+    .msg.info{background:rgba(239,246,255,.95);border-color:#bfdbfe;color:#0b1b3a}
+
+    .msg-close{
+      position:absolute;top:8px;left:8px;background:none;border:0;cursor:pointer;
+      opacity:.7;transition:opacity .2s ease;padding:0;font-size:14px;color:inherit
+    }
+    .msg-close:hover{opacity:1}
+    .msg-progress{position:absolute;bottom:0;left:0;height:3px;width:100%;background:rgba(0,0,0,0.08);overflow:hidden}
+    .msg-progress::after{content:"";position:absolute;bottom:0;left:0;height:3px;width:100%;background:currentColor;opacity:.25;animation:progress 3.2s linear forwards}
+    @keyframes progress{from{transform:translateX(-100%)}to{transform:none}}
+    @media(max-width:520px){.messages{right:10px;left:10px;width:auto}}
+
+    /* Footer v2 */
+    .site-footer{border-top:1px solid var(--line-2);background:linear-gradient(180deg,#ffffff,#fbfdff)}
+    .footer-v2{padding:18px 0;display:grid;gap:14px}
+    .footer-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .footer-brand{display:flex;align-items:center;gap:12px}
+    .footer-brand img{width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:#fff;object-fit:contain}
+    .footer-brand b{font-weight:900}
+    .footer-brand small{display:block;color:var(--muted);font-weight:800;margin-top:2px}
+    .footer-links{display:flex;gap:10px;flex-wrap:wrap}
+    .footer-links a{color:var(--ink);text-decoration:none;font-weight:900;padding:8px 10px;border-radius:14px}
+    .footer-links a:hover{background:var(--brand-ghost);color:var(--brand)}
+    .footer-copy{color:var(--muted);font-weight:800}
+
+    /* To top */
+    .to-top{
+      position:fixed;left:16px;bottom:16px;z-index:880;
+      display:none; width:44px;height:44px;border-radius:999px;border:1px solid var(--line);
+      background:var(--card); place-items:center; box-shadow:var(--shadow); cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .to-top:hover{transform:translateY(-2px); box-shadow:var(--shadow2)}
+
+    /* School Modal */
+    .school-modal{
+      position:fixed;inset:0;z-index:12000;
+      display:grid;place-items:center;
+      padding:12px;background:rgba(2,6,23,.55);
+      backdrop-filter:blur(8px);
+    }
+    .school-modal[hidden]{display:none}
+    .school-panel{
+      width:min(560px,94vw);
+      max-height:min(80vh,720px);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:0 40px 90px rgba(2,6,23,.28);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .school-panel-h{
+      padding:14px 16px;border-bottom:1px solid var(--line);
+      display:flex;align-items:center;justify-content:space-between;gap:10px
+    }
+    .school-panel-h b{font-weight:900}
+    .school-panel-close{
+      width:44px;height:44px;border-radius:999px;border:1px solid var(--line);
+      background:var(--card);cursor:pointer
+    }
+    .school-panel-b{padding:14px 16px;display:grid;gap:12px}
+    .school-search{
+      width:100%;min-height:48px;border-radius:14px;border:1px solid var(--line);
+      padding:12px 14px;font-weight:900;background:rgba(248,250,252,.9);color:var(--ink)
+    }
+    @media (prefers-color-scheme:dark){
+      .school-search{background:#0b1833}
+    }
+    .school-list{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+    .school-item{
+      width:100%;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#fff,#fbfdff);
+      padding:12px 12px;cursor:pointer;font-weight:900;
+      text-align:right;
+    }
+    @media (prefers-color-scheme:dark){
+      .school-item{background:linear-gradient(180deg,#0f1629,#0b1220)}
+    }
+    .school-item:hover{border-color:#dbeafe;background:var(--brand-ghost)}
+    .school-item small{display:block;color:var(--muted);font-weight:800;margin-top:3px}
+    .school-item .tag{
+      padding:6px 10px;border-radius:999px;
+      background:#eef2ff;color:#1e40af;border:1px solid #dbeafe;
+      font-size:.8rem;font-weight:900;white-space:nowrap;
+    }
+
+    /* TV / Large */
+    @media(min-width:1400px){
+      body{font-size:18px}
+      .hdr{min-height:78px}
+      .tab{min-height:46px}
+    }
   </style>
 
   {% block head %}{% endblock %}
 </head>
-<body>
+
+<body class="page">
+  <a class="skip-link" href="#mainContent">تخطي إلى المحتوى</a>
   <div class="progress-bar" id="scrollProgress"></div>
 
-  <!-- ===== الهيدر ===== -->
+  <!-- ===== Header ===== -->
   <header class="site-header" id="siteHeader">
-    <div class="container topbar">
-      <!-- زر همبرجر (جوال) -->
+    <div class="container hdr">
       <button class="hamburger" id="hamburger" aria-label="فتح القائمة" aria-controls="mobile-drawer" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
 
-      <!-- الشعار + معلومات المدرسة الحالية -->
-      <a href="{% url 'reports:home' %}" class="brand">
-        <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo.png' %}{% endif %}" alt="الشعار" loading="eager" decoding="async" width="40" height="40">
-        <span>{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</span>
+      <a class="hdr-brand" href="{% url 'reports:home' %}">
+        <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="الشعار" width="42" height="42" loading="eager" decoding="async">
+        <div class="hdr-brand-txt">
+          <div class="hdr-brand-name">{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</div>
+          <div class="hdr-brand-sub">منصة التقارير والتذاكر</div>
+        </div>
       </a>
 
-      <!-- قائمة سطح المكتب (نصية بدون أيقونات لتجنّب التكرار) -->
       {% with active=request.resolver_match.url_name %}
-      <nav class="nav-desktop" aria-label="روابط أساسية">
+      <nav class="hdr-nav" aria-label="روابط">
         {% if request.user.is_authenticated %}
-          <a class="{% if active == 'home' %}active{% endif %}" href="{% url 'reports:home' %}">الرئيسية</a>
+          <a class="tab {% if active == 'home' %}is-active{% endif %}" href="{% url 'reports:home' %}">الرئيسية</a>
 
           {% url 'reports:assigned_to_me' as inbox_url %}
           {% if inbox_url %}
-            <a class="{% if active == 'assigned_to_me' %}active{% endif %}" href="{{ inbox_url }}">
-              الوارد{% if NAV_ASSIGNED_TO_ME|default:0 > 0 %} <span class="badge">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}
+            <a class="tab {% if active == 'assigned_to_me' %}is-active{% endif %}" href="{{ inbox_url }}">
+              الوارد
+              {% if NAV_ASSIGNED_TO_ME %}<span class="pill">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}
             </a>
           {% endif %}
 
           {% if SHOW_OFFICER_REPORTS_LINK %}
-            <a class="{% if active == 'officer_reports' %}active{% endif %}" href="{% url 'reports:officer_reports' %}">تقارير قسمي</a>
+            <a class="tab {% if active == 'officer_reports' %}is-active{% endif %}" href="{% url 'reports:officer_reports' %}">تقارير قسمي</a>
           {% endif %}
 
           {% if SHOW_ADMIN_DASHBOARD_LINK %}
             {% if request.user.is_superuser %}
-              <a class="{% if active == 'platform_admin_dashboard' %}active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
+              <a class="tab {% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
             {% else %}
-              <a class="{% if active == 'admin_dashboard' %}active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
+              <a class="tab {% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
             {% endif %}
           {% endif %}
+        {% else %}
+          <a class="tab is-active" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+        {% endif %}
+      </nav>
+      {% endwith %}
 
-          {# مبدّل المدارس: يظهر إذا كان للمستخدم أكثر من مدرسة #}
+      <div class="hdr-actions">
+        {% if request.user.is_authenticated %}
+
           {% if USER_SCHOOLS|length > 1 %}
-            <form method="post" action="{% url 'reports:switch_school' %}" style="display:inline-flex;align-items:center;gap:6px;">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.path }}">
-              <div style="display:flex;flex-direction:column;gap:4px;max-width:260px;">
-                <input type="search" id="schoolSearchDesktop" placeholder="ابحث عن مدرسة" style="border-radius:999px;border:1px solid var(--line);padding:4px 10px;font-size:.8rem;">
-                <select id="schoolSelectDesktop" name="school_id" onchange="this.form.submit()" style="border-radius:999px;border:1px solid var(--line);padding:6px 10px;font-weight:800;background:var(--card);cursor:pointer;max-width:260px;">
-                  {% for s in USER_SCHOOLS %}
-                    <option value="{{ s.id }}" {% if SCHOOL_NAME and s.name == SCHOOL_NAME %}selected{% endif %}>{{ s.name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </form>
+            <button type="button" class="school-btn" id="openSchoolModal" aria-haspopup="dialog" aria-controls="schoolModal" aria-expanded="false">
+              <i class="fa-solid fa-school" aria-hidden="true"></i>
+              <span class="school-btn-txt">
+                <span class="school-btn-top">المدرسة</span>
+                <span class="school-btn-name">{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}اختر مدرسة{% endif %}</span>
+              </span>
+              <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </button>
           {% endif %}
 
           {% url 'reports:my_notifications' as my_notifications_url %}
           {% if my_notifications_url %}
-            <!-- نُبقي أيقونة الجرس فقط (ليست مكررة في الصفحة الرئيسية) -->
-            <a class="{% if active == 'my_notifications' %}active{% endif %}" href="{{ my_notifications_url }}" aria-label="إشعاراتي">
+            <a class="icon-btn" href="{{ my_notifications_url }}" aria-label="الإشعارات">
               <i class="fa-solid fa-bell"></i>
-              {% if NAV_NOTIFICATIONS_UNREAD|default:0 > 0 %}<span class="badge">{{ NAV_NOTIFICATIONS_UNREAD }}</span>{% endif %}
+              {% if NAV_NOTIFICATIONS_UNREAD %}<span class="dot">{{ NAV_NOTIFICATIONS_UNREAD }}</span>{% endif %}
             </a>
           {% endif %}
 
-          {# ✅ أيقونة إرسال إشعار — للمدير/المسؤول فقط #}
           {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
-            <a class="{% if active == 'notifications_create' or active == 'send_notification' %}active{% endif %}"
-               href="{{ SEND_NOTIFICATION_URL }}" aria-label="إرسال إشعار" title="إرسال إشعار">
+            <a class="icon-btn" href="{{ SEND_NOTIFICATION_URL }}" aria-label="إرسال إشعار" title="إرسال إشعار">
               <i class="fa-solid fa-bullhorn"></i>
             </a>
           {% endif %}
 
-          <!-- حساب -->
           <div class="userbox">
             {% firstof request.user.name request.user.phone request.user.national_id "حسابي" as display_name %}
             <button class="avatar" id="userAvatar" type="button" aria-haspopup="menu" aria-expanded="false" title="{{ display_name }}">
@@ -248,166 +452,229 @@
               <a href="{% url 'reports:logout' %}" class="mi" role="menuitem">تسجيل الخروج</a>
             </div>
           </div>
+
         {% else %}
-          <a class="{% if active == 'login' %}active{% endif %}" href="{% url 'reports:login' %}">
-            تسجيل الدخول
-          </a>
+          <a class="tab is-active" href="{% url 'reports:login' %}">تسجيل الدخول</a>
         {% endif %}
-      </nav>
-      {% endwith %}
+      </div>
     </div>
   </header>
 
-  <!-- ===== الدروَر للجوال (من اليمين) ===== -->
+  <!-- ===== Mobile Drawer ===== -->
   <div class="drawer-overlay" id="drawerOverlay" hidden></div>
   <aside class="drawer" id="mobile-drawer" aria-hidden="true" aria-labelledby="drawerTitle">
     <div class="drawer-head">
       <div id="drawerTitle" class="drawer-title">القائمة</div>
       <button class="btn" id="drawerClose" aria-label="إغلاق">إغلاق</button>
     </div>
+
     {% with active=request.resolver_match.url_name %}
     <nav class="drawer-nav" aria-label="القائمة الجانبية">
       {% if request.user.is_authenticated %}
-        <a class="{% if active == 'home' %}active{% endif %}" href="{% url 'reports:home' %}">الرئيسية</a>
+        <a class="{% if active == 'home' %}is-active{% endif %}" href="{% url 'reports:home' %}">
+          <span>الرئيسية</span>
+          <i class="fa-solid fa-house"></i>
+        </a>
 
         {% url 'reports:assigned_to_me' as inbox_url %}
         {% if inbox_url %}
-          <a class="{% if active == 'assigned_to_me' %}active{% endif %}" href="{{ inbox_url }}">
-            الوارد{% if NAV_ASSIGNED_TO_ME|default:0 > 0 %} <span class="badge">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}
+          <a class="{% if active == 'assigned_to_me' %}is-active{% endif %}" href="{{ inbox_url }}">
+            <span>الوارد</span>
+            <span>{% if NAV_ASSIGNED_TO_ME %}<span class="pill">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}</span>
           </a>
         {% endif %}
 
         {% if SHOW_OFFICER_REPORTS_LINK %}
-          <a class="{% if active == 'officer_reports' %}active{% endif %}" href="{% url 'reports:officer_reports' %}">تقارير قسمي</a>
+          <a class="{% if active == 'officer_reports' %}is-active{% endif %}" href="{% url 'reports:officer_reports' %}">
+            <span>تقارير قسمي</span>
+            <i class="fa-solid fa-layer-group"></i>
+          </a>
         {% endif %}
 
         {% if SHOW_ADMIN_DASHBOARD_LINK %}
           {% if request.user.is_superuser %}
-            <a class="{% if active == 'platform_admin_dashboard' %}active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
+            <a class="{% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">
+              <span>لوحة الآدمن</span>
+              <i class="fa-solid fa-gauge-high"></i>
+            </a>
           {% else %}
-            <a class="{% if active == 'admin_dashboard' %}active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
+            <a class="{% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">
+              <span>لوحة المدير</span>
+              <i class="fa-solid fa-gauge"></i>
+            </a>
           {% endif %}
         {% endif %}
 
         {% if USER_SCHOOLS|length > 1 %}
-          <form method="post" action="{% url 'reports:switch_school' %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <input type="search" id="schoolSearchMobile" placeholder="ابحث عن مدرسة" style="width:100%;padding:8px 10px;margin-bottom:6px;border-radius:12px;border:1px solid var(--line);font-size:.9rem;">
-            <select id="schoolSelectMobile" name="school_id" onchange="this.form.submit()" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--line);font-weight:800;">
-              {% for s in USER_SCHOOLS %}
-                <option value="{{ s.id }}" {% if SCHOOL_NAME and s.name == SCHOOL_NAME %}selected{% endif %}>{{ s.name }}</option>
-              {% endfor %}
-            </select>
-          </form>
-        {% endif %}
-
-        {% url 'reports:my_notifications' as my_notifications_url %}
-        {% if my_notifications_url %}
-          <a class="{% if active == 'my_notifications' %}active{% endif %}" href="{{ my_notifications_url }}">
-            إشعاراتي{% if NAV_NOTIFICATIONS_UNREAD|default:0 > 0 %} <span class="badge">{{ NAV_NOTIFICATIONS_UNREAD }}</span>{% endif %}
-          </a>
-        {% endif %}
-
-        {# ✅ رابط إرسال إشعار في الجوال #}
-        {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
-          <a class="{% if active == 'notifications_create' or active == 'send_notification' %}active{% endif %}"
-             href="{{ SEND_NOTIFICATION_URL }}">
-            <i class="fa-solid fa-bullhorn"></i> إرسال إشعار
-          </a>
+          <button type="button" class="btn" id="openSchoolModalMobile" style="width:100%">
+            <i class="fa-solid fa-school" style="margin-left:8px"></i>
+            تبديل المدرسة
+          </button>
         {% endif %}
 
         <div class="drawer-footer">
           <a class="btn" href="{% url 'reports:logout' %}">تسجيل الخروج</a>
         </div>
       {% else %}
-        <a class="{% if active == 'login' %}active{% endif %}" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+        <a class="{% if active == 'login' %}is-active{% endif %}" href="{% url 'reports:login' %}">
+          <span>تسجيل الدخول</span>
+          <i class="fa-solid fa-right-to-bracket"></i>
+        </a>
       {% endif %}
     </nav>
     {% endwith %}
   </aside>
 
-  <main class="container page-main">
-    {% if messages %}
-      <div class="messages" id="messages-container">
-        {% for message in messages %}
-          <div class="msg {{ message.tags }}" data-autohide="true">
-            <button class="msg-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
-            {{ message }}
-            <div class="msg-progress"></div>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
+  <!-- Toasts -->
+  {% if messages %}
+    <div class="messages" id="messages-container" aria-live="polite" aria-atomic="true">
+      {% for message in messages %}
+        <div class="msg {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" data-autohide="true">
+          <button class="msg-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+          {{ message }}
+          <div class="msg-progress"></div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
+  <main class="container page-main" id="mainContent">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- زر العودة للأعلى -->
+  <!-- ===== Footer v2 ===== -->
+  <footer class="site-footer" aria-label="تذييل النظام">
+    <div class="container footer-v2">
+      <div class="footer-row">
+        <div class="footer-brand">
+          <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="الشعار" loading="lazy" decoding="async">
+          <div>
+            <b>{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</b>
+            <small>إدارة التقارير والتذاكر — تجربة عربية احترافية</small>
+          </div>
+        </div>
+
+        <nav class="footer-links" aria-label="روابط سريعة">
+          {% if request.user.is_authenticated %}
+            <a href="{% url 'reports:home' %}">الرئيسية</a>
+            <a href="{% url 'reports:my_reports' %}">تقاريري</a>
+            <a href="{% url 'reports:my_requests' %}">طلباتي</a>
+          {% else %}
+            <a href="{% url 'reports:login' %}">تسجيل الدخول</a>
+          {% endif %}
+        </nav>
+      </div>
+
+      <div class="footer-copy">
+        © {% now "Y" %} جميع الحقوق محفوظة.
+      </div>
+    </div>
+  </footer>
+
   <button class="to-top" id="toTop" aria-label="العودة للأعلى">
     <i class="fa-solid fa-arrow-left-long" style="transform:rotate(90deg)"></i>
   </button>
 
-  <!-- ===== نافذة الإشعار التحفيزية (تظهر تلقائياً في الرئيسية إن وُجد NAV_NOTIFICATION_HERO) ===== -->
-  {% if NAV_NOTIFICATION_HERO %}
-  <div class="notify-overlay" id="notifyOverlay" hidden>
-    <div class="notify-card" id="notifyCard" role="dialog" aria-modal="true" aria-labelledby="notifyTitle" aria-describedby="notifyBody" data-notif-id="{{ NAV_NOTIFICATION_HERO.id }}">
-      <div class="notify-head">
-        <div class="notify-icon"><i class="fa-solid fa-bullhorn"></i></div>
-        <div>
-          <h3 class="notify-title" id="notifyTitle">{{ NAV_NOTIFICATION_HERO.title }}</h3>
-          <div class="notify-sub">من: {{ NAV_NOTIFICATION_HERO.sender_name|default:"الإدارة" }}</div>
+  <!-- ===== School Switch Modal ===== -->
+  {% if request.user.is_authenticated %}
+    {% if USER_SCHOOLS|length > 1 %}
+      <div class="school-modal" id="schoolModal" hidden>
+        <div class="school-panel" role="dialog" aria-modal="true" aria-labelledby="schoolModalTitle">
+          <div class="school-panel-h">
+            <div>
+              <b id="schoolModalTitle">التبديل بين المدارس</b>
+              <div style="color:var(--muted);font-weight:900;font-size:.9rem;margin-top:2px">ابحث ثم اختر مدرسة للتبديل فوراً</div>
+            </div>
+            <button type="button" class="school-panel-close" id="closeSchoolModal" aria-label="إغلاق">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="school-panel-b">
+            <input type="search" class="school-search" id="schoolSearch" placeholder="اكتب اسم المدرسة للبحث...">
+
+            <form method="post" action="{% url 'reports:switch_school' %}" id="schoolSwitchForm">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <input type="hidden" name="school_id" id="schoolIdField">
+
+              <ul class="school-list" id="schoolList">
+                {% for s in USER_SCHOOLS %}
+                  <li>
+                    <button type="button" class="school-item" data-school-id="{{ s.id }}">
+                      <span>
+                        {{ s.name }}
+                        <small>اضغط للتبديل</small>
+                      </span>
+                      <span class="tag">
+                        {% if SCHOOL_ID %}
+                          {% if s.id == SCHOOL_ID %}الحالية{% else %}تبديل{% endif %}
+                        {% else %}
+                          {% if SCHOOL_NAME %}
+                            {% if s.name == SCHOOL_NAME %}الحالية{% else %}تبديل{% endif %}
+                          {% else %}
+                            تبديل
+                          {% endif %}
+                        {% endif %}
+                      </span>
+                    </button>
+                  </li>
+                {% endfor %}
+              </ul>
+
+              <noscript>
+                <div style="margin-top:10px">
+                  <select name="school_id" style="width:100%;min-height:48px;border-radius:14px;border:1px solid var(--line);padding:10px;font-weight:900">
+                    {% for s in USER_SCHOOLS %}
+                      <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-primary" type="submit" style="margin-top:10px;width:100%">تبديل</button>
+                </div>
+              </noscript>
+            </form>
+          </div>
         </div>
       </div>
-      <div class="notify-content" id="notifyBody">{{ NAV_NOTIFICATION_HERO.body }}</div>
-      {% if NAV_NOTIFICATION_HERO.action_url %}
-        <div class="notify-actions">
-          <a class="btn btn-primary" href="{{ NAV_NOTIFICATION_HERO.action_url }}" rel="noopener">فتح الرابط</a>
-        </div>
-      {% endif %}
-      <div class="notify-meta">
-        <small>يمكنك إغلاق الرسالة ولن تظهر مرة أخرى تلقائيًا.</small>
-      </div>
-      <div class="notify-confetti" id="notifyConfetti"></div>
-      <button class="btn" id="notifyClose" style="position:absolute;top:10px;left:10px" aria-label="إغلاق">إغلاق</button>
-    </div>
-  </div>
+    {% endif %}
   {% endif %}
 
   <script>
-    // شريط تقدّم التمرير + ظل الهيدر
+    // Progress + Header shadow
     (function(){
       const bar = document.getElementById('scrollProgress');
       const header = document.getElementById('siteHeader');
       const onScroll = ()=>{
-        const h = document.documentElement; const sc = h.scrollTop; const max = h.scrollHeight - h.clientHeight;
-        bar.style.width = (max ? (sc/max)*100 : 0) + '%';
-        header.classList.toggle('scrolled', window.scrollY > 4);
+        const h = document.documentElement;
+        const sc = h.scrollTop;
+        const max = h.scrollHeight - h.clientHeight;
+        if(bar) bar.style.width = (max ? (sc/max)*100 : 0) + '%';
+        if(header) header.classList.toggle('scrolled', window.scrollY > 4);
       };
       window.addEventListener('scroll', onScroll, {passive:true});
       onScroll();
     })();
 
-    // رسائل Django (إغلاق تلقائي + زر إغلاق)
+    // Toasts
     (function(){
       const container = document.getElementById('messages-container');
       if(!container) return;
       container.querySelectorAll('.msg').forEach((el)=>{
         const closeBtn = el.querySelector('.msg-close');
-        closeBtn && closeBtn.addEventListener('click', ()=> el.remove());
+        if(closeBtn) closeBtn.addEventListener('click', ()=> el.remove());
         if(el.dataset.autohide === 'true'){
-          setTimeout(()=>{ if (el && el.parentNode){ el.remove(); } }, 3200);
+          setTimeout(()=>{ if (el && el.parentNode){ el.remove(); } }, 3400);
         }
       });
     })();
 
-    // دروَر الجوال (RTL: يفتح من اليمين ويُغلق بذكاء)
+    // Drawer
     (function(){
       const drawer   = document.getElementById('mobile-drawer');
       const overlay  = document.getElementById('drawerOverlay');
       const hamburger= document.getElementById('hamburger');
       const closeBtn = document.getElementById('drawerClose');
-      if(!(drawer && overlay && hamburger)) return;
+      if(!drawer || !overlay || !hamburger) return;
 
       const lockScroll = (on)=>{ document.documentElement.style.overflow = on ? 'hidden' : ''; };
 
@@ -427,35 +694,33 @@
       };
 
       hamburger.addEventListener('click', ()=> drawer.classList.contains('open') ? close() : open());
-      closeBtn && closeBtn.addEventListener('click', close);
+      if(closeBtn) closeBtn.addEventListener('click', close);
       overlay.addEventListener('click', (e)=>{ if(e.target === overlay) close(); });
-      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
 
-      // إغلاق عند تغيير المقاس إلى سطح مكتب
-      matchMedia('(min-width:1025px)').addEventListener('change', (e)=>{ if(e.matches) close(); });
-
-      // إغلاق عند الضغط على أي رابط داخل الدروَر
       drawer.addEventListener('click', (e)=>{
         const a = e.target.closest('a');
         if(a && a.href) close();
       });
-
-      // عند الرجوع/تحديث الصفحة
-      window.addEventListener('pageshow', ()=> close());
     })();
 
-    // قائمة المستخدم
+    // User menu
     (function(){
       const avatar = document.getElementById('userAvatar');
       const menu = document.getElementById('userMenu');
-      if(!(avatar && menu)) return;
+      if(!avatar || !menu) return;
       const close = ()=>{ menu.classList.remove('open'); avatar.setAttribute('aria-expanded','false'); };
-      avatar.addEventListener('click', ()=>{ const isOpen = menu.classList.toggle('open'); avatar.setAttribute('aria-expanded', isOpen ? 'true' : 'false');});
-      document.addEventListener('click', (e)=>{ if(!e.target.closest('#userMenu') && !e.target.closest('#userAvatar')) close(); });
-      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
+      avatar.addEventListener('click', ()=>{
+        const isOpen = menu.classList.toggle('open');
+        avatar.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+      document.addEventListener('click', (e)=>{
+        if(!e.target.closest('#userMenu') && !e.target.closest('#userAvatar')) close();
+      });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
     })();
 
-    // زر العودة للأعلى
+    // To top
     (function(){
       const toTop = document.getElementById('toTop');
       if(!toTop) return;
@@ -464,97 +729,81 @@
       toTop.addEventListener('click', ()=>window.scrollTo({top:0, behavior:'smooth'}));
     })();
 
-    // ===== نافذة الإشعار: منتصف الشاشة + إمكانية الإلتحام بالكرت =====
+    // Cookies helper
     (function(){
-      const overlayN = document.getElementById('notifyOverlay');
-      if(!overlayN) return;
-      const card = document.getElementById('notifyCard');
-      const confettiBox = document.getElementById('notifyConfetti');
-      const id = card ? card.getAttribute('data-notif-id') : null;
-
-      // لا نعرض إذا سبق إخفاؤه
-      const dismissed = id && document.cookie.includes(`notif_dismissed_${id}=1`);
-      if(dismissed){ overlayN.remove(); return; }
-
-      const openModal = ()=>{
-        overlayN.hidden = false;
-        // نثر بسيط للأداء
-        try{
-          confettiBox.innerHTML = '';
-          const n = 18;
-          for(let i=0;i<n;i++){
-            const piece = document.createElement('div');
-            piece.className = 'piece';
-            piece.style.position='absolute';
-            piece.style.width='8px'; piece.style.height='12px';
-            piece.style.left = (Math.random()*100)+'%';
-            piece.style.top = '-10%';
-            piece.style.background = `hsl(${Math.random()*360},85%,60%)`;
-            piece.style.transform = `rotate(${(Math.random()*160-80)}deg)`;
-            piece.style.animation = 'confettiFall 1200ms ease-out forwards';
-            confettiBox.appendChild(piece);
-          }
-        }catch(e){}
-      };
-
-      const closeModal = ()=>{
-        overlayN.hidden = true;
-        if(id){
-          const ex = new Date(Date.now()+1000*60*60*24*7).toUTCString();
-          document.cookie = `notif_dismissed_${id}=1; path=/; expires=${ex}; SameSite=Lax`;
+      window.getCookie = function(name){
+        const parts = document.cookie ? document.cookie.split('; ') : [];
+        for(const p of parts){
+          const i = p.indexOf('=');
+          const k = i > -1 ? p.slice(0,i) : p;
+          if(k === name) return i > -1 ? decodeURIComponent(p.slice(i+1)) : '';
         }
+        return null;
       };
-
-      document.getElementById('notifyClose')?.addEventListener('click', closeModal);
-      overlayN.addEventListener('click', (e)=>{ if(e.target === overlayN) closeModal(); });
-      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeModal(); });
-
-      // تموضع ملتصق بعنصر (إذا تم استدعاؤها من الهوم)
-      const positionAnchored = (anchorEl)=>{
-        try{
-          if(!anchorEl || !card) return false;
-          const r = anchorEl.getBoundingClientRect();
-          const cx = r.left + r.width/2;
-          const top = Math.max(r.top - 14 - card.offsetHeight, 12);
-          const left = Math.min(Math.max(cx - card.offsetWidth/2, 12), window.innerWidth - card.offsetWidth - 12);
-          card.classList.add('is-anchored');
-          card.style.top = top+'px';
-          card.style.left = left+'px';
-          return true;
-        }catch(e){ return false; }
+      window.setCookie = function(name, value, days){
+        const d = new Date(Date.now() + (days||7)*864e5);
+        const secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = name + '=' + encodeURIComponent(value) + '; path=/; expires=' + d.toUTCString() + '; SameSite=Lax' + secure;
       };
-
-      // API عالمي: allow home to call window.showNotification(anchor)
-      window.showNotification = (anchorEl=null)=>{
-        if(!anchorEl){ card && card.classList.remove('is-anchored'); card && (card.style.left = card.style.top = ''); }
-        else{
-          const ok = positionAnchored(anchorEl);
-          if(!ok){ card && card.classList.remove('is-anchored'); card && (card.style.left = card.style.top = ''); }
-        }
-        openModal();
-      };
-
-      // سياسة العرض التلقائي في الرئيسية — وسط الشاشة
-      window.showNotification(null);
     })();
 
-    // بحث داخل قائمة المدارس (سطح المكتب والجوال)
+    // School Modal (Desktop + Mobile)
     (function(){
-      function attachSearch(inputId, selectId){
-        const input = document.getElementById(inputId);
-        const select = document.getElementById(selectId);
-        if(!input || !select) return;
-        const options = Array.from(select.options);
-        input.addEventListener('input', function(){
-          const q = this.value.trim().toLowerCase();
-          options.forEach(function(opt){
-            const txt = (opt.textContent || '').toLowerCase();
-            opt.hidden = q && !txt.includes(q);
-          });
+      const openBtn = document.getElementById('openSchoolModal');
+      const openBtnMobile = document.getElementById('openSchoolModalMobile');
+      const modal = document.getElementById('schoolModal');
+      const closeBtn = document.getElementById('closeSchoolModal');
+      const search = document.getElementById('schoolSearch');
+      const list = document.getElementById('schoolList');
+      const form = document.getElementById('schoolSwitchForm');
+      const schoolIdField = document.getElementById('schoolIdField');
+
+      if(!modal || !closeBtn || !search || !list || !form || !schoolIdField) return;
+
+      const lock = (on)=>{ document.documentElement.style.overflow = on ? 'hidden' : ''; };
+
+      const filter = (q)=>{
+        const qq = (q || '').trim().toLowerCase();
+        list.querySelectorAll('.school-item').forEach(btn=>{
+          const t = (btn.textContent || '').toLowerCase();
+          const li = btn.closest('li');
+          if(!li) return;
+          li.style.display = qq && !t.includes(qq) ? 'none' : '';
         });
-      }
-      attachSearch('schoolSearchDesktop', 'schoolSelectDesktop');
-      attachSearch('schoolSearchMobile', 'schoolSelectMobile');
+      };
+
+      const open = ()=>{
+        modal.hidden = false;
+        if(openBtn) openBtn.setAttribute('aria-expanded','true');
+        lock(true);
+        setTimeout(()=>{ search.focus(); }, 10);
+      };
+
+      const close = ()=>{
+        modal.hidden = true;
+        if(openBtn) openBtn.setAttribute('aria-expanded','false');
+        lock(false);
+        search.value = '';
+        filter('');
+      };
+
+      if(openBtn) openBtn.addEventListener('click', open);
+      if(openBtnMobile) openBtnMobile.addEventListener('click', open);
+
+      closeBtn.addEventListener('click', close);
+      modal.addEventListener('click', (e)=>{ if(e.target === modal) close(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
+
+      search.addEventListener('input', ()=> filter(search.value));
+
+      list.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.school-item');
+        if(!btn) return;
+        const id = btn.getAttribute('data-school-id');
+        if(!id) return;
+        schoolIdField.value = id;
+        form.submit();
+      });
     })();
   </script>
 

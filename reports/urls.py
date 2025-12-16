@@ -8,7 +8,8 @@ urlpatterns = [
     # =========================
     # الدخول والخروج
     # =========================
-    path("", views.login_view, name="login"),
+    path("", views.platform_landing, name="landing"),
+    path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
 
     # =========================

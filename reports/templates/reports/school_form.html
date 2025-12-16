@@ -23,7 +23,7 @@
     <h1>{% if mode == 'edit' %}تعديل مدرسة{% else %}إنشاء مدرسة جديدة{% endif %}</h1>
     <p class="sub">املأ بيانات المدرسة كما ستظهر في النظام.</p>
 
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div>
         <label for="id_name">اسم المدرسة</label>
@@ -56,8 +56,19 @@
       </div>
       <div class="row">
         <div>
+          <label for="id_print_primary_color">لون قالب الطباعة</label>
+          {{ form.print_primary_color }}
+          <p class="hint">لون رئيسي لقالب الطباعة (يمكن تغييره لاحقًا من إعدادات المدرسة).</p>
+        </div>
+        <div>
+          <label for="id_logo_file">رفع الشعار (اختياري)</label>
+          {{ form.logo_file }}
+          <p class="hint">يمكنك رفع شعار المدرسة (PNG / JPG / SVG / WEBP).</p>
+        </div>
+        <div>
           <label for="id_logo_url">رابط الشعار (اختياري)</label>
           {{ form.logo_url }}
+          <p class="hint">أو استخدم رابط صورة خارجي؛ سيُستخدم إذا لم يتوفر شعار مرفوع.</p>
         </div>
         <div>
           <label for="id_is_active">الحالة</label>

@@ -24,7 +24,7 @@
     <h1>إعدادات المدرسة</h1>
     <p class="sub">تحديث اسم المدرسة والشعار المستخدم في أعلى النظام.</p>
 
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div>
         <label for="id_name">اسم المدرسة</label>
@@ -51,13 +51,28 @@
         </div>
       </div>
       <div>
-        <label for="id_logo_url">رابط الشعار</label>
+        <label for="id_print_primary_color">لون قالب الطباعة</label>
+        {{ form.print_primary_color }}
+        <p class="hint">اختر لون الهوية الذي سيُستخدم في ترويسة تقرير الطباعة (إن تركته فارغًا سيتم استخدام اللون الافتراضي للنظام).</p>
+      </div>
+      <div>
+        <label for="id_logo_file">رفع الشعار (ملف)</label>
+        {{ form.logo_file }}
+        <p class="hint">يمكنك رفع ملف شعار (PNG / JPG / SVG / WEBP). سيُستخدم الشعار المرفوع أولاً إن وُجد.</p>
+      </div>
+      <div>
+        <label for="id_logo_url">رابط الشعار (اختياري)</label>
         {{ form.logo_url }}
-        <p class="hint">رابط صورة (PNG / JPG / SVG) تُعرض في الهيدر. اتركه فارغًا لاستخدام الشعار الافتراضي.</p>
-        {% if school.logo_url %}
+        <p class="hint">أو أدخل رابط صورة للشعار، وسيُستخدم إذا لم يتوفر شعار مرفوع.</p>
+        {% if school.logo_file %}
+        <div class="preview">
+          <img src="{{ school.logo_file.url }}" alt="الشعار الحالي">
+          <span class="hint">معاينة الشعار الحالي (مرفوع)</span>
+        </div>
+        {% elif school.logo_url %}
         <div class="preview">
           <img src="{{ school.logo_url }}" alt="شعار المدرسة الحالي">
-          <span class="hint">معاينة الشعار الحالي</span>
+          <span class="hint">معاينة الشعار الحالي (من رابط)</span>
         </div>
         {% endif %}
       </div>

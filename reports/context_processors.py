@@ -590,7 +590,12 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             s = School.objects.filter(pk=sid, is_active=True).first()
             if s is not None:
                 school_name = s.name
-                school_logo = getattr(s, "logo_url", None) or None
+                # نفضّل الشعار المرفوع إن وُجد، ثم نرجع للرابط الخارجي
+                logo_file = getattr(s, "logo_file", None)
+                if logo_file:
+                    school_logo = getattr(logo_file, "url", None) or None
+                else:
+                    school_logo = getattr(s, "logo_url", None) or None
     except Exception:
         school_name = None
         school_logo = None

@@ -291,6 +291,24 @@ def login_view(request: HttpRequest) -> HttpResponse:
     context = {"next": _safe_next_url(request.GET.get("next"))}
     return render(request, "reports/login.html", context)
 
+
+@require_http_methods(["GET"])
+def platform_landing(request: HttpRequest) -> HttpResponse:
+    """الصفحة الرئيسية العامة للمنصة (تعريف + مميزات + زر دخول).
+
+    - المستخدِم المسجّل بالفعل يُعاد توجيهه مباشرةً للواجهة المناسبة.
+    - الزر الأساسي يقود إلى شاشة تسجيل الدخول العادية.
+    """
+
+    if getattr(request.user, "is_authenticated", False):
+        if getattr(request.user, "is_superuser", False):
+            return redirect("reports:platform_admin_dashboard")
+        if _is_staff(request.user):
+            return redirect("reports:admin_dashboard")
+        return redirect("reports:home")
+
+    return render(request, "reports/landing.html", {})
+
 @require_http_methods(["GET", "POST"])
 def logout_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
@@ -784,7 +802,43 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
         dept = _resolve_department_for_category(cat)
 
     head_decision = _build_head_decision(dept)
-    school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
+
+    # اسم مدير المدرسة: نبحث عن مدير مفعّل للمدرسة المرتبطة بالتقرير،
+    # أو نستخدم المدرسة النشطة كاحتياط، ثم نرجع لإعدادات النظام إذا لم نجد.
+    school_principal = ""
+    try:
+        school_for_principal = getattr(r, "school", None) or _get_active_school(request)
+        if school_for_principal is not None:
+            principal_membership = (
+                SchoolMembership.objects.select_related("teacher")
+                .filter(
+                    school=school_for_principal,
+                    role_type=SchoolMembership.RoleType.MANAGER,
+                    is_active=True,
+                )
+                .order_by("-id")
+                .first()
+            )
+            if principal_membership and principal_membership.teacher:
+                school_principal = getattr(principal_membership.teacher, "name", "") or ""
+    except Exception:
+        school_principal = ""
+
+    if not school_principal:
+        school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
+
+    # لون قالب الطباعة: من إعدادات المدرسة إن وُجد، وإلا من إعدادات النظام أو قيمة افتراضية
+    print_color = "#2563eb"
+    try:
+        school_for_color = getattr(r, "school", None) or _get_active_school(request)
+        if school_for_color is not None:
+            color_val = getattr(school_for_color, "print_primary_color", "") or ""
+            if color_val:
+                print_color = color_val
+        else:
+            print_color = getattr(settings, "SCHOOL_PRINT_COLOR", print_color)
+    except Exception:
+        print_color = getattr(settings, "SCHOOL_PRINT_COLOR", print_color)
 
     return render(
         request,
@@ -793,6 +847,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
             "r": r,
             "head_decision": head_decision,   # ← القالب يعتمد عليه
             "SCHOOL_PRINCIPAL": school_principal,
+            "PRINT_PRIMARY_COLOR": print_color,
         },
     )
 
@@ -806,7 +861,50 @@ def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
 
     r = _get_report_for_user_or_404(request, pk)
 
-    html = render_to_string("reports/report_print.html", {"r": r, "for_pdf": True}, request=request)
+    # إعادة استخدام نفس منطق اسم مدير المدرسة لضمان تطابق الطباعة و PDF
+    school_principal = ""
+    try:
+        school_for_principal = getattr(r, "school", None)
+        if school_for_principal is None:
+            # لا توجد request في _get_active_school هنا بسهولة، لكن في PDF نفضل مدرسة التقرير نفسها فقط
+            school_for_principal = getattr(r, "school", None)
+        if school_for_principal is not None:
+            principal_membership = (
+                SchoolMembership.objects.select_related("teacher")
+                .filter(
+                    school=school_for_principal,
+                    role_type=SchoolMembership.RoleType.MANAGER,
+                    is_active=True,
+                )
+                .order_by("-id")
+                .first()
+            )
+            if principal_membership and principal_membership.teacher:
+                school_principal = getattr(principal_membership.teacher, "name", "") or ""
+    except Exception:
+        school_principal = ""
+
+    if not school_principal:
+        school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
+
+    # نفس منطق لون قالب الطباعة كما في report_print
+    print_color = "#2563eb"
+    try:
+        school_for_color = getattr(r, "school", None)
+        if school_for_color is not None:
+            color_val = getattr(school_for_color, "print_primary_color", "") or ""
+            if color_val:
+                print_color = color_val
+        else:
+            print_color = getattr(settings, "SCHOOL_PRINT_COLOR", print_color)
+    except Exception:
+        print_color = getattr(settings, "SCHOOL_PRINT_COLOR", print_color)
+
+    html = render_to_string(
+        "reports/report_print.html",
+        {"r": r, "for_pdf": True, "SCHOOL_PRINCIPAL": school_principal, "PRINT_PRIMARY_COLOR": print_color},
+        request=request,
+    )
     css = CSS(string="@page { size: A4; margin: 14mm 12mm; }")
     pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf(stylesheets=[css])
 
@@ -1314,7 +1412,24 @@ def get_department_form():
 class _SchoolSettingsForm(forms.ModelForm):
     class Meta:
         model = School
-        fields = ["name", "stage", "gender", "city", "phone", "logo_url"]
+        fields = [
+            "name",
+            "stage",
+            "gender",
+            "city",
+            "phone",
+            "logo_url",
+            "logo_file",
+            "print_primary_color",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # حقل لون قالب الطباعة كـ color-picker في المتصفح
+        if "print_primary_color" in self.fields:
+            self.fields["print_primary_color"].widget = forms.TextInput(
+                attrs={"type": "color"}
+            )
 
 
 @login_required(login_url="reports:login")
@@ -1335,13 +1450,22 @@ def school_settings(request: HttpRequest) -> HttpResponse:
         messages.error(request, "لا تملك صلاحية تعديل إعدادات هذه المدرسة.")
         return redirect("reports:admin_dashboard")
 
-    form = _SchoolSettingsForm(request.POST or None, instance=active_school)
+    form = _SchoolSettingsForm(request.POST or None, request.FILES or None, instance=active_school)
     if request.method == "POST":
         if form.is_valid():
             form.save()
             messages.success(request, "تم تحديث إعدادات المدرسة بنجاح.")
             return redirect("reports:admin_dashboard")
+        # في حال وجود أخطاء نعرضها للمستخدم ليسهل معرفة سبب الفشل
         messages.error(request, "تعذّر الحفظ. تحقّق من الحقول.")
+        try:
+            for field, errors in form.errors.items():
+                label = form.fields.get(field).label if field in form.fields else field
+                joined = "; ".join(errors)
+                messages.error(request, f"{label}: {joined}")
+        except Exception:
+            # لا نكسر الصفحة إن حدث خطأ أثناء بناء الرسالة
+            pass
 
     return render(request, "reports/school_settings.html", {"form": form, "school": active_school})
 
@@ -1350,7 +1474,25 @@ def school_settings(request: HttpRequest) -> HttpResponse:
 class _SchoolAdminForm(forms.ModelForm):
     class Meta:
         model = School
-        fields = ["name", "code", "stage", "gender", "city", "phone", "is_active", "logo_url"]
+        fields = [
+            "name",
+            "code",
+            "stage",
+            "gender",
+            "city",
+            "phone",
+            "is_active",
+            "logo_url",
+            "logo_file",
+            "print_primary_color",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "print_primary_color" in self.fields:
+            self.fields["print_primary_color"].widget = forms.TextInput(
+                attrs={"type": "color"}
+            )
 
 
 @login_required(login_url="reports:login")
