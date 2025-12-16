@@ -6,199 +6,198 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2563eb">
   <title>منصة توثيق — نظام التقارير المدرسية وطلبات المعلمين</title>
+  <meta name="description" content="منصة توثيق: نظام إلكتروني متكامل لإدارة التقارير المدرسية وطلبات المعلمين بأمان واحترافية.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+  
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=landing-20251216">
 
   <style>
     :root{
+      /* النظام اللوني المحسّن */
       --bg0:#f5f7fb;
       --ink:#0f172a;
       --muted:#64748b;
       --line:#e2e8f0;
       --card:#ffffff;
-      --brand:#2563eb;
-      --brand2:#0ea5e9;
-      --accent:#059669;
+      --brand-primary:#1d4ed8; /* أزرق داكن (Navy Blue) */
+      --brand-accent:#0ea5e9; /* أزرق فاتح سماوي */
+      --accent:#059669; /* أخضر */
       --danger:#ef4444;
-      --shadow:0 18px 45px rgba(2,6,23,.10);
-      --r-lg:22px;
+      
+      /* ظلال متعددة الطبقات */
+      --shadow-sm: 0 4px 10px rgba(2,6,23,.03);
+      --shadow-md: 0 10px 25px rgba(2,6,23,.06);
+      --shadow-lg: 0 20px 45px rgba(2,6,23,.10);
+      --shadow-brand: 0 18px 40px rgba(29,78,216,.20);
+      
+      --r-lg:24px;
       --r-md:16px;
       --r-sm:12px;
-      --t:all .22s ease;
+      --t:all .25s cubic-bezier(0.4, 0, 0.2, 1); /* تسريع الحركة */
     }
 
     html,body{font-family:'Tajawal',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    body.page{background:radial-gradient(circle at 25% 0,#e0f2fe 0,#f8fafc 45%,#eff6ff 100%)}
+    
+    /* خلفية متدرجة عميقة */
+    body.page{background:radial-gradient(circle at 75% 15%, #eff6ff 0, #f8fafc 45%, #eff6ff 100%)}
 
     /* ===== Landing Scope (no conflict) ===== */
     .landing{--pad:18px}
-    .landing .container{max-width:1160px}
-    .landing a{color:inherit}
+    .landing .container{max-width:1160px; margin:0 auto; padding:0 var(--pad)}
+    .landing a{color:inherit; text-decoration:none}
     .landing .muted{color:var(--muted)}
-    .landing .section{margin-top:18px}
-    .landing .grid{display:grid;gap:14px}
+    .landing .section{margin-top:40px}
+    .landing .grid{display:grid;gap:16px}
+    
+    /* البطاقات المعززة (CardX) */
     .landing .cardx{
-      background:rgba(255,255,255,.92);
-      border:1px solid rgba(226,232,240,.95);
+      background:var(--card);
+      border:1px solid var(--line);
       border-radius:var(--r-lg);
-      box-shadow:var(--shadow);
-      padding:18px;
+      box-shadow:var(--shadow-lg);
+      padding:20px;
       position:relative;
       overflow:hidden;
+      transition: var(--t);
     }
-    /* ===== Landing Header (unique classes to avoid base conflicts) ===== */
-.landing-header{
-  position:sticky; top:0; z-index:50;
-  background:rgba(248,250,252,.78);
-  backdrop-filter: blur(14px);
-  border-bottom:1px solid rgba(226,232,240,.9);
-}
-.landing-container{
-  max-width:1160px;
-  margin:0 auto;
-  padding:12px 16px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  flex-wrap:wrap;
-}
-.landing-brand{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:10px 12px;
-  border-radius:999px;
-  background:rgba(255,255,255,.92);
-  border:1px solid rgba(226,232,240,.95);
-  box-shadow:0 10px 28px rgba(2,6,23,.06);
-  text-decoration:none;
-}
-.landing-brand img{
-  width:34px;height:34px;border-radius:10px;
-  background:#fff;border:1px solid rgba(226,232,240,.95);
-  padding:5px;object-fit:contain;
-}
-.landing-brand-text b{font-weight:950;color:#0f172a}
-.landing-brand-text small{display:block;color:#64748b;font-weight:800;margin-top:2px;font-size:.82rem}
-
-.landing-toggle{
-  border:1px solid rgba(226,232,240,.95);
-  background:#fff;
-  border-radius:12px;
-  padding:10px 12px;
-  font-weight:950;
-  display:none;
-  align-items:center;
-  gap:8px;
-}
-.landing-nav{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-.landing-nav a{
-  text-decoration:none;
-  color:#0f172a;
-  font-weight:900;
-  padding:8px 10px;
-  border-radius:12px;
-  border:1px solid transparent;
-}
-.landing-nav a:hover{
-  border-color:rgba(226,232,240,.95);
-  background:rgba(255,255,255,.75);
-}
-.landing-cta{
-  background:linear-gradient(135deg,#2563eb,#0ea5e9);
-  color:#fff !important;
-  border:0 !important;
-  padding:10px 14px !important;
-  border-radius:999px;
-  box-shadow:0 16px 32px rgba(37,99,235,.25);
-}
-
-/* Mobile */
-@media (max-width: 860px){
-  .landing-toggle{display:inline-flex}
-  .landing-nav{display:none;width:100%}
-  .landing-nav.is-open{display:flex}
-}
-
+    .landing .cardx:hover{
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg), var(--shadow-brand);
+    }
+    
+    /* تأثيرات التوهج الزاوي للبطاقات */
     .landing .cardx::before{
       content:"";
       position:absolute;
       inset:-40%;
       background:
-        radial-gradient(circle at 0 0, rgba(37,99,235,.12), transparent 60%),
-        radial-gradient(circle at 100% 100%, rgba(14,165,233,.12), transparent 60%);
-      opacity:.9;
+        radial-gradient(circle at 0 0, rgba(29,78,216,.15), transparent 65%),
+        radial-gradient(circle at 100% 100%, rgba(14,165,233,.10), transparent 65%);
+      opacity:.8;
       pointer-events:none;
     }
     .landing .cardx > *{position:relative;z-index:1}
 
-    /* ===== Header tweaks (uses your app.css header) ===== */
-    .site-header .container{display:flex;align-items:center;justify-content:space-between;gap:10px}
-    .landing-brand{
-      display:flex;align-items:center;gap:10px;
-      padding:10px 12px;border-radius:999px;
-      background:rgba(255,255,255,.85);
-      border:1px solid rgba(226,232,240,.9);
-      box-shadow:0 10px 28px rgba(2,6,23,.06);
+    /* ===== Header (Stickiness and Blur improved) ===== */
+    .landing-header{
+      position:sticky; top:0; z-index:100;
+      background:rgba(255,255,255,.9);
+      backdrop-filter: blur(12px);
+      border-bottom:1px solid var(--line);
+      box-shadow: var(--shadow-sm); /* ظل خفيف جداً للهيدر */
     }
-    .landing-brand img{width:34px;height:34px;border-radius:10px;background:#fff;border:1px solid var(--line);padding:5px;object-fit:contain}
-    .landing-brand b{font-weight:900;color:var(--ink)}
-    .landing-brand small{display:block;color:var(--muted);font-weight:700;margin-top:2px;font-size:.82rem}
+    .landing-container{
+      max-width:1160px;
+      margin:0 auto;
+      padding:12px var(--pad);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .landing-brand{
+      display:flex; align-items:center; gap:10px;
+      padding:10px 14px; border-radius:999px;
+      background:var(--card); border:1px solid var(--line);
+      box-shadow:var(--shadow-md); text-decoration:none;
+    }
+    .landing-brand img{
+      width:36px;height:36px;border-radius:12px;
+      background:#fff;border:1px solid var(--line);
+      padding:6px;object-fit:contain;
+    }
+    .landing-brand-text b{font-weight:950;color:var(--ink)}
+    .landing-brand-text small{display:block;color:var(--muted);font-weight:700;margin-top:2px;font-size:.8rem}
 
-    .landing-nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .nav-toggle{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:var(--r-sm);
+      padding:10px 12px;
+      font-weight:950;
+      display:none;
+      align-items:center;
+      gap:8px;
+    }
+    .landing-nav{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+      transition: height 0.3s ease, opacity 0.3s ease;
+    }
     .landing-nav a{
-      text-decoration:none;
       color:var(--ink);
-      font-weight:800;
-      padding:8px 10px;
-      border-radius:12px;
+      font-weight:850;
+      padding:10px 12px;
+      border-radius:var(--r-sm);
       border:1px solid transparent;
       transition:var(--t);
-      white-space:nowrap;
     }
-    .landing-nav a:hover{border-color:rgba(226,232,240,.95);background:rgba(255,255,255,.75)}
+    .landing-nav a:hover{
+      border-color:var(--line);
+      background:rgba(241, 245, 249, 0.7);
+    }
     .landing-nav .cta{
-      background:linear-gradient(135deg,var(--brand),var(--brand2));
-      color:#fff;border:0;
-      padding:10px 14px;
-      box-shadow:0 16px 32px rgba(37,99,235,.25);
+      background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent));
+      color:#fff !important;
+      border:0 !important;
+      padding:10px 18px !important;
+      border-radius:999px;
+      box-shadow:var(--shadow-brand);
     }
-    .landing-nav .cta:hover{transform:translateY(-1px);box-shadow:0 20px 40px rgba(37,99,235,.32)}
+    .landing-nav .cta:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 22px 48px rgba(29,78,216,.4);
+    }
 
-    .nav-toggle{display:none;border:1px solid rgba(226,232,240,.95);background:#fff;border-radius:12px;padding:10px 12px;font-weight:900}
+    /* Mobile */
     @media (max-width: 860px){
-      .nav-toggle{display:inline-flex;align-items:center;gap:8px}
-      .landing-nav{display:none;width:100%;margin-top:10px}
-      .landing-nav.is-open{display:flex}
-      .site-header .container{flex-wrap:wrap}
+      .nav-toggle{display:inline-flex}
+      .landing-nav{
+        display:none;
+        width:100%;
+        flex-direction: column;
+        align-items: stretch;
+        margin-top: 10px;
+        padding-bottom: 5px;
+        max-height: 0;
+        overflow: hidden;
+      }
+      .landing-nav a {
+        width: 100%;
+        text-align: center;
+        border-radius: var(--r-md);
+      }
+      .landing-nav.is-open{
+        display:flex;
+        max-height: 300px; /* لتطبيق انتقال (Transition) سلس */
+      }
+      .landing-nav a.cta { margin-top: 5px; }
     }
+
 
     /* ===== Hero ===== */
     .hero{
-      margin-top:16px;
+      margin-top:24px;
       display:grid;
-      grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
-      gap:16px;
+      grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);
+      gap:20px;
       align-items:stretch;
     }
     @media (max-width: 980px){.hero{grid-template-columns:1fr}}
 
     .hero-main{
-      border-radius:28px;
-      padding:22px;
-      background:linear-gradient(135deg, rgba(37,99,235,.12), rgba(14,165,233,.10));
-      border:1px solid rgba(226,232,240,.95);
-      box-shadow:var(--shadow);
+      border-radius:var(--r-lg);
+      padding:30px;
+      background:linear-gradient(135deg, rgba(29,78,216,.15), rgba(14,165,233,.10));
+      border:1px solid var(--line);
+      box-shadow:var(--shadow-lg);
       position:relative;
       overflow:hidden;
     }
@@ -206,9 +205,9 @@
       content:"";
       position:absolute; inset:-30%;
       background:
-        radial-gradient(circle at 20% 0, rgba(37,99,235,.35), transparent 55%),
-        radial-gradient(circle at 90% 100%, rgba(16,185,129,.22), transparent 55%);
-      opacity:.55;
+        radial-gradient(circle at 10% 10%, rgba(29,78,216,.3), transparent 60%),
+        radial-gradient(circle at 90% 90%, rgba(16,185,129,.15), transparent 60%);
+      opacity:.6;
       pointer-events:none;
     }
     .hero-main > *{position:relative;z-index:1}
@@ -216,12 +215,13 @@
     .pill{
       display:inline-flex;align-items:center;gap:8px;
       border-radius:999px;
-      padding:7px 12px;
-      border:1px solid rgba(226,232,240,.95);
-      background:rgba(255,255,255,.75);
+      padding:8px 14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.85);
       font-weight:900;
       color:var(--muted);
       width:max-content;
+      box-shadow:var(--shadow-sm);
     }
     .pill .tag{
       background:linear-gradient(135deg,var(--accent),#16a34a);
@@ -232,37 +232,37 @@
     }
 
     .h1{
-      margin-top:12px;
-      font-size:2.05rem;
-      line-height:1.25;
+      margin-top:16px;
+      font-size:2.3rem; /* حجم أكبر */
+      line-height:1.3;
       font-weight:950;
       color:var(--ink);
     }
     .h1 span{
-      background:linear-gradient(135deg,var(--brand),var(--brand2));
+      background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent));
       -webkit-background-clip:text;
       -webkit-text-fill-color:transparent;
     }
-    @media (max-width: 520px){.h1{font-size:1.7rem}}
+    @media (max-width: 520px){.h1{font-size:1.8rem}}
 
     .lead{
-      margin-top:10px;
+      margin-top:12px;
       color:var(--muted);
-      font-weight:800;
-      line-height:1.9;
-      font-size:1.02rem;
-      max-width:56ch;
+      font-weight:700; /* تخفيف الوزن لزيادة الوضوح */
+      line-height:1.8;
+      font-size:1.05rem;
+      max-width:65ch;
     }
 
-    .hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+    .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;align-items:center}
     .btnx{
-      display:inline-flex;align-items:center;justify-content:center;gap:9px;
+      display:inline-flex;align-items:center;justify-content:center;gap:10px;
       border-radius:999px;
-      padding:11px 16px;
-      font-weight:950;
+      padding:12px 20px;
+      font-weight:900;
       text-decoration:none;
-      border:1px solid rgba(226,232,240,.95);
-      background:#fff;
+      border:1px solid var(--line);
+      background:var(--card);
       transition:var(--t);
       cursor:pointer;
       white-space:nowrap;
@@ -270,40 +270,59 @@
     .btnx.primary{
       border:0;
       color:#fff;
-      background:linear-gradient(135deg,var(--brand),var(--brand2));
-      box-shadow:0 18px 36px rgba(37,99,235,.25);
+      background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent));
+      box-shadow:var(--shadow-brand);
     }
-    .btnx.primary:hover{transform:translateY(-1px);box-shadow:0 24px 44px rgba(37,99,235,.32)}
-    .btnx.ghost:hover{background:rgba(255,255,255,.78)}
+    .btnx.primary:hover{transform:translateY(-2px);box-shadow: 0 24px 44px rgba(29,78,216,.35)}
+    .btnx.ghost:hover{background:rgba(255,255,255,.95);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
     .btnx.whatsapp{
-      border-color:rgba(16,185,129,.22);
-      background:rgba(236,253,245,.85);
+      border-color:rgba(16,185,129,.35);
+      background:rgba(236,253,245,.95);
       color:#065f46;
     }
-    .btnx.whatsapp:hover{background:rgba(236,253,245,.98)}
+    .btnx.whatsapp:hover{background:rgba(236,253,245,1);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
 
-    .hero-bullets{margin-top:14px;display:grid;gap:8px}
-    .hero-bullets .it{display:flex;gap:10px;align-items:flex-start;font-weight:850}
-    .hero-bullets i{color:var(--accent);margin-top:2px}
+    .hero-bullets{margin-top:18px;display:grid;gap:10px}
+    .hero-bullets .it{display:flex;gap:10px;align-items:flex-start;font-weight:700;color:var(--ink)}
+    .hero-bullets i{color:var(--accent);margin-top:3px;font-size:.95rem}
+    .hero-bullets span{font-weight:750;}
 
+    /* قسم المؤشرات (KPI) المحسّن */
+    .kpi{
+      display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;
+      border-top:1px solid var(--line); padding-top:20px;
+    }
+    .kpi .pill2{
+      border-radius:999px;
+      padding:9px 14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.75);
+      font-weight:800;
+      color:var(--ink);
+      display:inline-flex;align-items:center;gap:8px;
+      box-shadow:var(--shadow-sm);
+    }
+    .pill2 i{color:var(--brand-primary)}
+
+    /* Hero Side - لوحة الشعار */
     .hero-side{
       display:flex;
       flex-direction:column;
-      gap:12px;
+      gap:20px;
       height:100%;
     }
     .logo-box{
-      border-radius:28px;
-      background:rgba(15,23,42,.95);
+      border-radius:var(--r-lg);
+      background:linear-gradient(135deg, var(--ink), #1e293b);
       color:#e5e7eb;
-      padding:18px;
-      box-shadow:var(--shadow);
-      border:1px solid rgba(255,255,255,.05);
+      padding:24px;
+      box-shadow:var(--shadow-lg);
+      border:1px solid rgba(255,255,255,.1);
       display:flex;
       flex-direction:column;
       align-items:center;
       text-align:center;
-      gap:10px;
+      gap:12px;
       position:relative;
       overflow:hidden;
     }
@@ -311,151 +330,177 @@
       content:"";
       position:absolute; inset:-40%;
       background:
-        radial-gradient(circle at 0 0, rgba(37,99,235,.55), transparent 60%),
-        radial-gradient(circle at 100% 100%, rgba(16,185,129,.25), transparent 60%);
-      opacity:.45; pointer-events:none;
+        radial-gradient(circle at 0 0, rgba(37,99,235,.7), transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(16,185,129,.3), transparent 60%);
+      opacity:.35; pointer-events:none;
     }
     .logo-box > *{position:relative;z-index:1}
     .logo-ring{
-      width:84px;height:84px;border-radius:999px;
-      background:radial-gradient(circle at 30% 0,#eff6ff,#1d4ed8);
+      width:90px;height:90px;border-radius:999px;
+      background:radial-gradient(circle at 30% 0,#e0f2fe,#1e40af);
       display:grid;place-items:center;
-      box-shadow:0 18px 40px rgba(15,23,42,.55);
+      box-shadow:0 18px 40px rgba(15,23,42,.65);
     }
     .logo-ring img{
-      width:56px;height:56px;object-fit:contain;border-radius:16px;background:#fff;padding:7px;border:1px solid rgba(226,232,240,.8)
+      width:60px;height:60px;object-fit:contain;border-radius:18px;background:#fff;padding:8px;border:1px solid var(--line)
     }
-    .logo-box b{font-weight:950;font-size:1.05rem}
-    .logo-box p{margin:0;color:#cbd5f5;font-weight:750;line-height:1.8}
+    .logo-box b{font-weight:950;font-size:1.1rem}
+    .logo-box p{margin:0;color:#cbd5f5;font-weight:700;line-height:1.7}
 
     .quick-proof{
-      display:grid;grid-template-columns:repeat(2,1fr);gap:10px
+      display:grid;grid-template-columns:repeat(2,1fr);gap:12px;
+      flex-grow: 1; /* لجعلها تملأ المساحة الرأسية */
     }
     .proof{
-      background:rgba(255,255,255,.93);
-      border:1px solid rgba(226,232,240,.95);
-      border-radius:16px;
-      padding:12px;
-      box-shadow:0 16px 36px rgba(2,6,23,.08);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r-md);
+      padding:16px;
+      box-shadow:var(--shadow-md);
     }
-    .proof .n{font-weight:950;font-size:1.2rem}
-    .proof .t{color:var(--muted);font-weight:850;font-size:.88rem;margin-top:4px}
+    .proof .n{font-weight:950;font-size:1.3rem;color:var(--brand-primary)}
+    .proof .t{color:var(--muted);font-weight:750;font-size:.88rem;margin-top:4px}
     @media (max-width: 980px){.quick-proof{grid-template-columns:repeat(3,1fr)}}
     @media (max-width: 640px){.quick-proof{grid-template-columns:repeat(2,1fr)}}
 
-    /* ===== Sections ===== */
-    .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    /* ===== Sections Headers ===== */
+    .sec-head{display:flex;flex-direction: column;gap: 6px}
     .sec-head h2{
       margin:0;
-      font-size:1.35rem;
+      font-size:1.6rem;
       font-weight:950;
       color:var(--ink);
     }
-    .sec-head p{margin:0;color:var(--muted);font-weight:800}
-
+    .sec-head p{margin:0;color:var(--muted);font-weight:750;font-size:1.05rem}
+    
+    /* ===== Features (FX) ===== */
     .features{grid-template-columns:repeat(3,1fr)}
     @media (max-width: 980px){.features{grid-template-columns:repeat(2,1fr)}}
     @media (max-width: 560px){.features{grid-template-columns:1fr}}
 
     .fx{
-      background:rgba(255,255,255,.92);
-      border:1px solid rgba(226,232,240,.95);
-      border-radius:18px;
-      box-shadow:var(--shadow);
-      padding:16px;
-      position:relative;
-      overflow:hidden;
-      min-height:150px;
+      border-radius:var(--r-lg);
+      padding:20px;
+      min-height:160px;
+      transition: var(--t);
     }
     .fx::before{
       content:"";
       position:absolute; inset:0 auto 0 0;
       width:6px;
-      background:rgba(226,232,240,.95);
+      background:var(--brand-accent); /* لون مختلف للشريط الجانبي */
+      opacity: .2;
+    }
+    .fx:hover { 
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg), var(--shadow-brand);
+      border-color: rgba(29,78,216,.2);
     }
     .fx .ic{
-      width:46px;height:46px;border-radius:16px;
+      width:50px;height:50px;border-radius:16px;
       display:grid;place-items:center;
-      font-size:1.15rem;
-      margin-bottom:10px;
+      font-size:1.2rem;
+      margin-bottom:12px;
     }
-    .ic.blue{background:#e0f2fe;color:#075985}
+    /* توحيد الألوان */
+    .ic.blue{background:#eff6ff;color:#1e40af}
     .ic.green{background:#ecfdf5;color:#065f46}
     .ic.violet{background:#f5f3ff;color:#5b21b6}
     .ic.red{background:#fee2e2;color:#991b1b}
     .ic.indigo{background:#eef2ff;color:#1e40af}
-    .fx h3{margin:0 0 6px;font-weight:950;color:var(--ink);font-size:1.05rem}
-    .fx p{margin:0;color:var(--muted);font-weight:800;line-height:1.9}
+    
+    .fx h3{margin:0 0 8px;font-weight:950;color:var(--ink);font-size:1.15rem}
+    .fx p{margin:0;color:var(--muted);font-weight:700;line-height:1.8}
 
-    .steps{grid-template-columns:repeat(4,1fr)}
+    /* ===== Steps (كيف تعمل) ===== */
+    .steps{grid-template-columns:repeat(4,1fr); position: relative;}
     @media (max-width: 980px){.steps{grid-template-columns:repeat(2,1fr)}}
     @media (max-width: 560px){.steps{grid-template-columns:1fr}}
 
     .step{
-      background:rgba(255,255,255,.92);
-      border:1px solid rgba(226,232,240,.95);
-      border-radius:18px;
-      box-shadow:var(--shadow);
-      padding:16px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r-md);
+      box-shadow:var(--shadow-md);
+      padding:20px;
       position:relative;
-      overflow:hidden;
     }
+    /* الأسهم الرابطة */
+    .steps .step:not(:last-child)::after {
+        content: "\f053"; /* Font Awesome Chevron Left */
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        position: absolute;
+        top: 50%;
+        left: -15px; /* Adjust position */
+        transform: translateY(-50%) rotate(180deg); /* تدوير للاتجاه الصحيح */
+        color: var(--line);
+        font-size: 1.5rem;
+        pointer-events: none;
+        z-index: 5;
+    }
+    @media (max-width: 980px) {
+        .steps .step:not(:last-child)::after { display: none; }
+    }
+    
     .step .no{
-      width:38px;height:38px;border-radius:14px;
+      width:42px;height:42px;border-radius:14px;
       display:grid;place-items:center;
       font-weight:950;color:#fff;
-      background:linear-gradient(135deg,var(--brand),var(--brand2));
-      box-shadow:0 16px 32px rgba(37,99,235,.22);
-      margin-bottom:10px;
+      background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent));
+      box-shadow:0 16px 32px rgba(29,78,216,.3);
+      margin-bottom:12px;
+      font-size: 1.1rem;
     }
-    .step b{display:block;font-weight:950;margin-bottom:6px;color:var(--ink)}
-    .step span{color:var(--muted);font-weight:800;line-height:1.9}
+    .step b{display:block;font-weight:950;margin-bottom:6px;color:var(--ink);font-size:1.05rem}
+    .step span{color:var(--muted);font-weight:700;line-height:1.8}
 
     /* ===== Tabs (Dashboards) ===== */
     .tabs{
-      background:rgba(255,255,255,.92);
-      border:1px solid rgba(226,232,240,.95);
-      border-radius:22px;
-      box-shadow:var(--shadow);
-      padding:14px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r-lg);
+      box-shadow:var(--shadow-lg);
+      padding:16px;
     }
-    .tabbar{display:flex;gap:10px;flex-wrap:wrap}
+    .tabbar{display:flex;gap:10px;flex-wrap:wrap;border-bottom: 1px solid var(--line); padding-bottom: 8px;}
     .tabbar button{
-      border:1px solid rgba(226,232,240,.95);
-      background:#fff;
+      border:1px solid var(--line);
+      background:var(--card);
       border-radius:999px;
-      padding:10px 12px;
-      font-weight:950;
+      padding:10px 16px;
+      font-weight:900;
       cursor:pointer;
       transition:var(--t);
+      color: var(--ink);
     }
     .tabbar button[aria-selected="true"]{
       border:0;
       color:#fff;
-      background:linear-gradient(135deg,var(--brand),var(--brand2));
-      box-shadow:0 16px 32px rgba(37,99,235,.22);
+      background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent));
+      box-shadow:0 12px 24px rgba(29,78,216,.3);
     }
-    .tabpanel{margin-top:12px;display:none}
+    .tabpanel{margin-top:20px;display:none}
     .tabpanel.active{display:block}
-    .panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     @media (max-width: 780px){.panel-grid{grid-template-columns:1fr}}
     .panel-card{
       border:1px dashed rgba(148,163,184,.6);
-      border-radius:18px;
-      padding:14px;
+      border-radius:var(--r-md);
+      padding:16px;
       background:rgba(248,250,252,.8);
     }
-    .panel-card b{display:block;font-weight:950;margin-bottom:6px}
-    .panel-card p{margin:0;color:var(--muted);font-weight:800;line-height:1.9}
+    .panel-card b{display:block;font-weight:950;margin-bottom:6px;color:var(--ink)}
+    .panel-card p{margin:0;color:var(--muted);font-weight:700;line-height:1.8}
 
-    /* ===== FAQ ===== */
-    .faq{display:grid;gap:10px}
+    /* ===== FAQ (Accordion) ===== */
+    .faq{display:grid;gap:12px}
     details.faqx{
-      background:rgba(255,255,255,.92);
-      border:1px solid rgba(226,232,240,.95);
-      border-radius:16px;
-      box-shadow:0 14px 32px rgba(2,6,23,.06);
-      padding:12px 14px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r-md);
+      box-shadow:var(--shadow-md);
+      padding:14px 18px;
     }
     details.faqx summary{
       cursor:pointer;
@@ -464,47 +509,29 @@
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      font-weight:950;
+      font-weight:900;
       color:var(--ink);
+      font-size:1.05rem;
+      line-height: 1.5;
     }
     details.faqx summary::-webkit-details-marker{display:none}
-    details.faqx p{margin:10px 0 2px;color:var(--muted);font-weight:800;line-height:1.9}
+    details.faqx p{margin:12px 0 2px;color:var(--muted);font-weight:700;line-height:1.8;border-top:1px solid rgba(226,232,240,.5);padding-top:10px}
+    
+    details.faqx[open] summary i {
+      transform: rotate(180deg);
+    }
 
-    /* ===== Tech details (optional) ===== */
-    details.tech{
-      margin-top:10px;
-      background:rgba(255,255,255,.92);
-      border:1px solid rgba(226,232,240,.95);
-      border-radius:16px;
-      padding:12px 14px;
-    }
-    details.tech summary{cursor:pointer;font-weight:950;color:var(--ink)}
-    details.tech .techlist{margin-top:10px;display:grid;gap:8px;color:var(--muted);font-weight:800;line-height:1.9}
-    .kpi{
-      display:flex;flex-wrap:wrap;gap:10px;margin-top:12px
-    }
-    .kpi .pill2{
-      border-radius:999px;
-      padding:8px 12px;
-      border:1px solid rgba(226,232,240,.95);
-      background:rgba(255,255,255,.75);
-      font-weight:950;
-      color:var(--ink);
-      display:inline-flex;align-items:center;gap:8px;
-    }
-    .pill2 i{color:var(--accent)}
-
-    /* ===== Final CTA ===== */
+    /* ===== Final CTA (Band) ===== */
     .cta-band{
-      border-radius:26px;
-      padding:18px;
-      background:linear-gradient(135deg, rgba(37,99,235,.16), rgba(14,165,233,.12));
-      border:1px solid rgba(226,232,240,.95);
-      box-shadow:var(--shadow);
+      border-radius:30px;
+      padding:30px;
+      background:linear-gradient(135deg, rgba(29,78,216,.2), rgba(14,165,233,.15));
+      border:1px solid var(--line);
+      box-shadow:var(--shadow-lg);
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
+      gap:20px;
       flex-wrap:wrap;
       position:relative;
       overflow:hidden;
@@ -512,14 +539,27 @@
     .cta-band::before{
       content:"";
       position:absolute; inset:-35%;
-      background:radial-gradient(circle at 0 0, rgba(37,99,235,.30), transparent 55%);
-      opacity:.45; pointer-events:none;
+      background:radial-gradient(circle at 0 0, rgba(29,78,216,.4), transparent 55%);
+      opacity:.35; pointer-events:none;
     }
     .cta-band > *{position:relative;z-index:1}
-    .cta-band h3{margin:0;font-weight:950;color:var(--ink)}
-    .cta-band p{margin:6px 0 0;color:var(--muted);font-weight:850}
-    .cta-band .cta-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .cta-band h3{margin:0;font-weight:950;color:var(--ink);font-size:1.3rem}
+    .cta-band p{margin:8px 0 0;color:var(--muted);font-weight:750;font-size:1.05rem}
+    .cta-band .cta-actions{display:flex;gap:12px;flex-wrap:wrap}
 
+    @media (max-width: 600px) {
+      .cta-band {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+      }
+      .cta-band .cta-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+    
+    /* منع الانتقالات عند تفعيل تفضيل الحركة المخفضة */
     @media (prefers-reduced-motion: reduce){
       *{scroll-behavior:auto!important;transition:none!important;animation:none!important}
     }
@@ -527,29 +567,27 @@
 </head>
 
 <body class="page">
-  <!-- Header -->
-<header class="landing-header" role="banner">
+  <header class="landing-header" role="banner">
   <div class="landing-container">
     <a class="landing-brand" href="#top" aria-label="العودة لأعلى الصفحة">
       <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق" loading="eager" decoding="async">
       <div class="landing-brand-text">
         <b>منصة توثيق</b>
-        <small>تقارير المدرسة • طلبات المعلمين • إدارة الأقسام</small>
+        <small>نظام التقارير والطلبات</small>
       </div>
     </a>
 
-    <button class="landing-toggle" type="button" aria-expanded="false" aria-controls="landingNav">
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="landingNav">
       <i class="fa-solid fa-bars"></i>
       القائمة
     </button>
 
     <nav class="landing-nav" id="landingNav" aria-label="روابط الصفحة">
       <a href="#features">المزايا</a>
-      <a href="#how">كيف تعمل</a>
-      <a href="#dashboards">لوحات التحكم</a>
-      <a href="#security">الأمان</a>
+      <a href="#how">كيف نعمل</a>
+      <a href="#dashboards">الأدوار</a>
       <a href="#faq">الأسئلة</a>
-      <a class="landing-cta" href="{% url 'reports:login' %}">
+      <a class="cta" href="{% url 'reports:login' %}">
         <i class="fa-solid fa-right-to-bracket"></i>
         تسجيل الدخول
       </a>
@@ -560,7 +598,6 @@
   <main class="page-main landing" id="top">
     <div class="container">
 
-      <!-- Hero -->
       <section class="hero" aria-label="مقدمة منصة توثيق">
         <div class="hero-main">
           <div class="pill">
@@ -568,16 +605,16 @@
             <span>وداعًا للورق والفوضى — توثيق منظم واحترافي</span>
           </div>
 
-          <h1 class="h1">إدارة <span>التقارير المدرسية</span> وطلبات المعلمين في منصة واحدة</h1>
+          <h1 class="h1">تحوّل إلى <span>مدرسة بلا ورق</span>: نظام التقارير وطلبات المعلمين الموحّد</h1>
           <p class="lead">
-            منصة توثيق نظام إلكتروني متكامل يجمع: التقارير اليومية/الأسبوعية، نظام التذاكر (الطلبات)،
-            إدارة المدارس والأقسام والمعلمين، مع صلاحيات دقيقة لكل مستخدم.
+            منصة توثيق هي نظام إلكتروني متكامل يجمع: التقارير اليومية/الأسبوعية، نظام التذاكر للطلبات الداخلية، 
+            وإدارة المدارس والأقسام والمعلمين، مع صلاحيات دقيقة لضمان أقصى درجات الكفاءة الإدارية.
           </p>
 
           <div class="hero-actions">
             <a class="btnx primary" href="{% url 'reports:login' %}">
               <i class="fa-solid fa-right-to-bracket"></i>
-              دخول المنصة
+              دخول المنصة الآن
             </a>
             <a class="btnx whatsapp" href="https://wa.me/966537720207" target="_blank" rel="noopener">
               <i class="fa-brands fa-whatsapp"></i>
@@ -590,17 +627,18 @@
           </div>
 
           <div class="hero-bullets" role="list">
-            <div class="it" role="listitem"><i class="fa-solid fa-circle-check"></i><span>متعددة المدارس مع عزل كامل للبيانات وهوية مستقلة لكل مدرسة.</span></div>
-            <div class="it" role="listitem"><i class="fa-solid fa-circle-check"></i><span>تقارير منظمة وأنواع تقارير قابلة للتخصيص وربطها بالأقسام.</span></div>
-            <div class="it" role="listitem"><i class="fa-solid fa-circle-check"></i><span>طلبات المعلمين كتذاكر بحالات واضحة وتاريخ تفاعل محفوظ.</span></div>
+            <div class="it" role="listitem"><i class="fa-solid fa-circle-check"></i><span>دعم كامل لتعدد المدارس مع عزل للبيانات (Multi-Tenant).</span></div>
+            <div class="it" role="listitem"><i class="fa-solid fa-circle-check"></i><span>نماذج تقارير قابلة للتخصيص ومطبوعات احترافية بهوية المدرسة.</span></div>
+            <div class="it" role="listitem"><i class="fa-solid fa-circle-check"></i><span>نظام تذاكر لطلبات المعلمين بحالات واضحة وتاريخ تفاعل محفوظ.</span></div>
           </div>
-
+          
           <div class="kpi" aria-label="مؤشرات سريعة">
-            <span class="pill2"><i class="fa-solid fa-shield-halved"></i> صلاحيات RBAC دقيقة</span>
+            <span class="pill2"><i class="fa-solid fa-shield-halved"></i> صلاحيات دقيقة RBAC</span>
             <span class="pill2"><i class="fa-solid fa-school"></i> دعم تعدد المدارس</span>
-            <span class="pill2"><i class="fa-solid fa-print"></i> طباعة احترافية</span>
+            <span class="pill2"><i class="fa-solid fa-print"></i> طباعة ذات هوية</span>
             <span class="pill2"><i class="fa-solid fa-inbox"></i> صندوق وارد للطلبات</span>
           </div>
+
         </div>
 
         <div class="hero-side">
@@ -609,115 +647,112 @@
               <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق" loading="eager" decoding="async">
             </div>
             <b>منصة توثيق — للمدارس والإدارات</b>
-            <p>واجهة عربية RTL حديثة تعمل بسلاسة على الجوال والكمبيوتر، مع تجربة واضحة للمدير والمعلم.</p>
+            <p>واجهة عربية RTL حديثة تعمل بسلاسة على الجوال والكمبيوتر، مصممة لأداء عالٍ وتجربة مستخدم متميزة.</p>
           </div>
 
           <div class="quick-proof" aria-label="أرقام تسويقية">
             <div class="proof">
               <div class="n">لوحة مدير</div>
-              <div class="t">مؤشرات + فلاتر + إدارة</div>
+              <div class="t">مؤشرات + إدارة متكاملة</div>
             </div>
             <div class="proof">
               <div class="n">تقارير</div>
-              <div class="t">نماذج + أنواع + طباعة</div>
+              <div class="t">نماذج مخصصة + طباعة</div>
             </div>
             <div class="proof">
               <div class="n">تذاكر</div>
               <div class="t">حالات + ملاحظات + وارد</div>
             </div>
             <div class="proof">
-              <div class="n">عزل</div>
-              <div class="t">بيانات كل مدرسة مستقلة</div>
+              <div class="n">أمان</div>
+              <div class="t">عزل كامل للبيانات</div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Features -->
       <section class="section" id="features" aria-label="مزايا منصة توثيق">
         <div class="sec-head">
           <h2>المزايا والوظائف الأساسية</h2>
           <p>كل ما تحتاجه المدرسة للتوثيق والمتابعة — بدون تعقيد</p>
         </div>
 
-        <div class="grid features" style="margin-top:12px">
-          <div class="fx">
+        <div class="grid features" style="margin-top:20px">
+          <div class="fx cardx">
             <div class="ic indigo"><i class="fa-solid fa-building-columns"></i></div>
             <h3>متعددة المدارس (Multi-Tenant)</h3>
-            <p>دعم عدد غير محدود من المدارس مع عزل كامل للبيانات؛ لكل مدرسة هوية مستقلة (اسم، شعار، مدينة، مرحلة، إعدادات طباعة).</p>
+            <p>دعم عدد غير محدود من المدارس مع عزل كامل للبيانات، لكل مدرسة هوية وإعدادات مستقلة (شعار، مرحلة، إعدادات طباعة).</p>
           </div>
 
-          <div class="fx">
+          <div class="fx cardx">
             <div class="ic violet"><i class="fa-solid fa-user-shield"></i></div>
             <h3>أدوار وصلاحيات مرنة</h3>
-            <p>تعريف أدوار ديناميكية (مدير، مسؤول قسم، معلّم) وربط كل دور بأنواع تقارير محددة والتحكم بمن يرى ماذا.</p>
+            <p>تعريف أدوار ديناميكية (مدير، مسؤول قسم، معلّم) والتحكم الدقيق بـ من يرى ماذا ومن يمكنه التعديل (RBAC).</p>
           </div>
 
-          <div class="fx">
+          <div class="fx cardx">
             <div class="ic blue"><i class="fa-solid fa-file-lines"></i></div>
             <h3>تقارير مدرسية احترافية</h3>
             <p>نماذج تقارير حسب النوع والقسم، فلاتر وفرز، وتاريخ منظم للتوثيق، مع دعم عرض الصور والمرفقات.</p>
           </div>
 
-          <div class="fx">
+          <div class="fx cardx">
             <div class="ic green"><i class="fa-solid fa-print"></i></div>
             <h3>طباعة بتصميم وهوية المدرسة</h3>
-            <p>قوالب طباعة جميلة تحمل شعار المدرسة واللون الأساسي وبيانات المدير تلقائيًا؛ جاهزة للأرشفة والاعتماد.</p>
+            <p>قوالب طباعة أنيقة تحمل شعار المدرسة واللون الأساسي وبيانات المدير تلقائيًا؛ جاهزة للأرشفة والاعتماد الرسمي.</p>
           </div>
 
-          <div class="fx">
-            <div class="ic blue"><i class="fa-solid fa-ticket"></i></div>
+          <div class="fx cardx">
+            <div class="ic blue"><i class="fa-solid fa-ticket-alt"></i></div>
             <h3>نظام تذاكر وطلبات مدمج</h3>
             <p>المعلّم يرسل طلبًا بسهولة (إداري/تقني/دعم) والجهة المستلمة تتابع عبر حالات واضحة وملاحظات محفوظة.</p>
           </div>
 
-          <div class="fx">
+          <div class="fx cardx">
             <div class="ic red"><i class="fa-solid fa-bell"></i></div>
-            <h3>إشعارات داخلية</h3>
-            <p>إنشاء إشعارات للمعلمين أو مجموعات محددة، مع تتبع المقروء/غير المقروء وصفحة “إشعاراتي”.</p>
+            <h3>إشعارات داخلية موجهة</h3>
+            <p>إنشاء إشعارات للمعلمين أو مجموعات محددة، مع تتبع المقروء/غير المقروء وصفحة “إشعاراتي” للمتابعة المركزية.</p>
           </div>
         </div>
       </section>
 
-      <!-- How it works -->
       <section class="section" id="how" aria-label="كيف تعمل منصة توثيق">
         <div class="sec-head">
-          <h2>كيف تعمل المنصة</h2>
-          <p>خطوات بسيطة — ونتائج واضحة</p>
+          <h2>كيف تعمل المنصة بخطوات بسيطة</h2>
+          <p>عملية إعداد سهلة ونتائج فورية وواضحة</p>
         </div>
 
-        <div class="grid steps" style="margin-top:12px">
+        <div class="grid steps" style="margin-top:20px">
           <div class="step">
             <div class="no">1</div>
             <b>تهيئة المدرسة</b>
-            <span>إضافة المدرسة وشعارها والأقسام وأنواع التقارير وفق احتياجها.</span>
+            <span>إضافة المدرسة، شعارها، الأقسام، وأنواع التقارير وفق احتياجها الفعلي.</span>
           </div>
           <div class="step">
             <div class="no">2</div>
             <b>إدارة المعلمين والأدوار</b>
-            <span>إنشاء حسابات وتحديد الصلاحيات: مدير، مسؤول قسم، معلّم.</span>
+            <span>إنشاء حسابات المعلمين وتحديد صلاحياتهم الدقيقة: مدير، مسؤول قسم، معلّم.</span>
           </div>
           <div class="step">
             <div class="no">3</div>
-            <b>التقارير والطلبات</b>
-            <span>تقارير منظمة + تذاكر للطلبات، مع ملاحظات متبادلة وسجل واضح للتفاعل.</span>
+            <b>التوثيق اليومي والطلبات</b>
+            <span>يبدأ المعلمون بإرسال التقارير المنظمة ورفع الطلبات (التذاكر) عبر الواجهة السهلة.</span>
           </div>
           <div class="step">
             <div class="no">4</div>
-            <b>لوحات متابعة</b>
-            <span>لوحة مدير المدرسة تعرض مؤشرات وفلاتر وروابط سريعة للإدارة والطباعة.</span>
+            <b>لوحات المتابعة</b>
+            <span>متابعة التقارير والطلبات عبر لوحة مدير المدرسة والمؤشرات الواضحة لاتخاذ القرار.</span>
           </div>
         </div>
       </section>
 
-      <!-- Dashboards (Tabs) -->
       <section class="section" id="dashboards" aria-label="لوحات التحكم والأدوار">
         <div class="sec-head">
-          <h2>لوحات تحكم تناسب كل دور</h2>
-          <p>واجهة واحدة — لكن لكل مستخدم ما يخصّه فقط</p>
+          <h2>لوحات تحكم تناسب كل دور وظيفي</h2>
+          <p>واجهة موحدة، لكن لكل مستخدم صلاحياته ومعلوماته الخاصة</p>
         </div>
 
-        <div class="tabs" style="margin-top:12px">
+        <div class="tabs" style="margin-top:20px">
           <div class="tabbar" role="tablist" aria-label="اختيار الدور">
             <button type="button" class="tabbtn" role="tab" aria-selected="true" aria-controls="p1" id="t1">👑 مدير المدرسة</button>
             <button type="button" class="tabbtn" role="tab" aria-selected="false" aria-controls="p2" id="t2">🧩 مسؤول القسم</button>
@@ -728,12 +763,12 @@
           <div id="p1" class="tabpanel active" role="tabpanel" aria-labelledby="t1">
             <div class="panel-grid">
               <div class="panel-card">
-                <b>مؤشرات سريعة</b>
-                <p>عدد التقارير، المعلمين، الطلبات المفتوحة، وأنواع التقارير لكل مدرسة.</p>
+                <b>رؤية شاملة ومؤشرات حية</b>
+                <p>عدد التقارير، المعلمين، الطلبات المفتوحة، وأنواع التقارير لكل مدرسة في لوحة تحكم واحدة.</p>
               </div>
               <div class="panel-card">
-                <b>إدارة كاملة</b>
-                <p>إدارة الأقسام، أنواع التقارير، حسابات المعلمين، وطباعة التقارير بهوية المدرسة.</p>
+                <b>إدارة كاملة للموارد</b>
+                <p>إدارة الأقسام، أنواع التقارير، حسابات المعلمين، والتحكم بإعدادات الطباعة وهوية المدرسة.</p>
               </div>
             </div>
           </div>
@@ -741,12 +776,12 @@
           <div id="p2" class="tabpanel" role="tabpanel" aria-labelledby="t2">
             <div class="panel-grid">
               <div class="panel-card">
-                <b>وارد القسم</b>
-                <p>تذاكر الطلبات الموجهة للقسم بحالات واضحة وملاحظات متبادلة.</p>
+                <b>صندوق وارد القسم</b>
+                <p>متابعة التذاكر (الطلبات) الموجهة للقسم بحالات واضحة، وإضافة ملاحظات سريعة لتسجيل التفاعل.</p>
               </div>
               <div class="panel-card">
-                <b>تقارير القسم</b>
-                <p>عرض وتقارير مرتبطة بأنواع التقارير المحددة للقسم مع صلاحيات دقيقة.</p>
+                <b>تقارير القسم المفلتّرة</b>
+                <p>عرض وتقارير مفلتّرة مرتبطة بأنواع التقارير المحددة للقسم، مع صلاحيات مراجعة دقيقة.</p>
               </div>
             </div>
           </div>
@@ -754,12 +789,12 @@
           <div id="p3" class="tabpanel" role="tabpanel" aria-labelledby="t3">
             <div class="panel-grid">
               <div class="panel-card">
-                <b>تقاريري</b>
-                <p>إنشاء تقارير بسهولة، رفع الصور/المرفقات، وطباعة منظمة عند الحاجة.</p>
+                <b>تقاريري وإنشاء جديد</b>
+                <p>إنشاء تقارير بسهولة تامة، رفع الصور/المرفقات، والوصول إلى سجل التقارير الخاصة به.</p>
               </div>
               <div class="panel-card">
-                <b>طلباتي</b>
-                <p>إرسال الطلبات للإدارة، متابعة الحالة، وإضافة ملاحظات دون تعقيد.</p>
+                <b>متابعة الطلبات</b>
+                <p>إرسال الطلبات للإدارة ومتابعة حالتها (جديد، قيد التنفيذ، مغلق)، وإضافة ملاحظات دون تعقيد.</p>
               </div>
             </div>
           </div>
@@ -768,68 +803,67 @@
             <div class="panel-grid">
               <div class="panel-card">
                 <b>متابعة جميع المدارس</b>
-                <p>رؤية مركزية لمدارس المنصة مع مؤشرات عامة وإدارة على مستوى أعلى.</p>
+                <p>رؤية مركزية لمدارس المنصة مع مؤشرات عامة وإدارة شاملة على مستوى النظام ككل.</p>
               </div>
               <div class="panel-card">
-                <b>حوكمة وأمان</b>
-                <p>صلاحيات صارمة وسجل تفاعل واضح لدعم الشفافية والمتابعة.</p>
+                <b>حوكمة وأمان النظام</b>
+                <p>صلاحيات صارمة وحماية للبيانات وسجل تفاعل واضح لدعم الشفافية والموثوقية.</p>
               </div>
             </div>
           </div>
         </div>
       </section>
-
-      <!-- Security + Production readiness -->
-      <section class="section" id="security" aria-label="الأمان والجاهزية">
-        <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
-          <div class="cardx">
-            <div class="sec-head">
-              <h2>أمان وموثوقية تناسب بيئة المدارس</h2>
-              <p>تطبيق سياسات واضحة للحماية والمتابعة</p>
-            </div>
-
-            <div class="hero-bullets" style="margin-top:12px">
-              <div class="it"><i class="fa-solid fa-shield-halved"></i><span><b>أساسيات حماية:</b> حماية للواجهات والبيانات وفق أفضل الممارسات.</span></div>
-              <div class="it"><i class="fa-solid fa-user-lock"></i><span><b>صلاحيات RBAC دقيقة:</b> كل دور يرى ما يخصّه فقط وفق سياسة المدرسة.</span></div>
-              <div class="it"><i class="fa-solid fa-clipboard-check"></i><span><b>سجل تفاعل واضح:</b> ملاحظات الطلبات وتاريخها محفوظ لضمان الشفافية.</span></div>
-            </div>
-
+      
+      <section class="section" id="security" aria-label="الأمان والموثوقية">
+        <div class="cardx">
+          <div class="sec-head">
+            <h2>الأمان والموثوقية التقنية</h2>
+            <p>تطبيق أفضل الممارسات لحماية بيانات المدرسة</p>
           </div>
 
+          <div class="hero-bullets" style="margin-top:20px">
+            <div class="it"><i class="fa-solid fa-lock"></i><span><b>عزل تام للبيانات:</b> بيانات كل مدرسة مستقلة تماماً عن الأخرى ومحمية.</span></div>
+            <div class="it"><i class="fa-solid fa-user-lock"></i><span><b>صلاحيات دقيقة:</b> تطبيق نظام التحكم بالوصول القائم على الدور (RBAC) بصرامة.</span></div>
+            <div class="it"><i class="fa-solid fa-server"></i><span><b>استقرار الأداء:</b> بنية تحتية قوية تضمن سرعة التحميل واستقرار النظام.</span></div>
+          </div>
+        </div>
       </section>
 
-      <!-- FAQ -->
       <section class="section" id="faq" aria-label="الأسئلة الشائعة">
         <div class="sec-head">
           <h2>أسئلة شائعة</h2>
           <p>إجابات سريعة قبل البدء</p>
         </div>
 
-        <div class="faq" style="margin-top:12px">
+        <div class="faq" style="margin-top:20px">
           <details class="faqx">
             <summary>هل المنصة مناسبة للجوال والكمبيوتر؟ <i class="fa-solid fa-chevron-down"></i></summary>
-            <p>نعم، الواجهة عربية RTL ومصممة لتعمل بسلاسة على الجوال والتابلت والكمبيوتر.</p>
+            <p>نعم، الواجهة عربية RTL ومصممة بتقنية الاستجابة الكاملة (Responsive) لتعمل بسلاسة على كافة الأجهزة (الجوال، التابلت، الكمبيوتر).</p>
           </details>
 
           <details class="faqx">
             <summary>هل يمكن تخصيص أنواع التقارير لكل مدرسة؟ <i class="fa-solid fa-chevron-down"></i></summary>
-            <p>نعم، يمكن لكل مدرسة تخصيص أنواع تقاريرها وربطها بالأقسام، مع تحكم بالصلاحيات حسب الدور.</p>
+            <p>نعم، يمكن لكل مدرسة تخصيص أنواع تقاريرها وربطها بأقسام محددة، مع تحكم كامل في من يمكنه إرسالها ومراجعتها.</p>
           </details>
 
           <details class="faqx">
             <summary>ماذا عن طباعة التقارير؟ <i class="fa-solid fa-chevron-down"></i></summary>
-            <p>الطباعة مدعومة بقوالب احترافية تحمل شعار المدرسة ولون الهوية وبيانات أساسية تلقائيًا.</p>
+            <p>الطباعة مدعومة بقوالب احترافية تحمل شعار المدرسة ولون الهوية وبيانات أساسية تلقائيًا، مما يجعل التقارير جاهزة للاعتماد والأرشفة الورقية إن لزم الأمر.</p>
+          </details>
+          
+          <details class="faqx">
+            <summary>هل هناك دعم فني وخدمات تهيئة؟ <i class="fa-solid fa-chevron-down"></i></summary>
+            <p>نعم، نقدم الدعم الفني الكامل وخدمات تهيئة المدارس وإدخال البيانات الأساسية لمساعدتك على البدء في أسرع وقت ممكن.</p>
           </details>
 
         </div>
       </section>
 
-      <!-- Final CTA -->
       <section class="section" aria-label="دعوة للإجراء">
         <div class="cta-band">
           <div>
             <h3>جاهز تحوّل التوثيق من ورق إلى نظام احترافي؟</h3>
-            <p>ابدأ الآن بالدخول للمنصة، أو تواصل معنا لنساعدك في تهيئة المدرسة خلال دقائق.</p>
+            <p>ابدأ الآن بتسجيل الدخول واكتشاف المنصة، أو تواصل معنا لمساعدتك في تهيئة المدرسة خلال دقائق.</p>
           </div>
           <div class="cta-actions">
             <a class="btnx primary" href="{% url 'reports:login' %}">
@@ -847,9 +881,65 @@
     </div>
   </main>
 
-  <!-- Footer (uses your app.css footer look) -->
   <footer class="site-footer" role="contentinfo">
     <div class="container footer-wrap">
+      <style>
+        .site-footer {
+          margin-top: 40px;
+          border-top: 1px solid var(--line);
+          padding: 20px 0;
+          color: var(--muted);
+          font-weight: 700;
+          font-size: 0.9rem;
+        }
+        .footer-wrap {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 15px;
+        }
+        .f-brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .f-brand img {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+        }
+        .f-title {
+          font-weight: 950;
+          color: var(--ink);
+        }
+        .f-sub {
+          font-weight: 700;
+          font-size: 0.8rem;
+          color: var(--muted);
+        }
+        .f-nav a {
+          margin-left: 15px;
+          color: var(--muted);
+          font-weight: 800;
+          transition: color 0.2s;
+        }
+        .f-nav a:hover {
+          color: var(--brand-primary);
+        }
+        @media (max-width: 600px) {
+          .footer-wrap {
+            flex-direction: column;
+            text-align: center;
+          }
+          .f-nav {
+            margin-top: 10px;
+          }
+          .f-nav a {
+            margin: 0 8px;
+          }
+        }
+      </style>
       <div class="f-brand">
         <img src="{% static 'img/logo1.png' %}" alt="منصة توثيق" loading="lazy" decoding="async">
         <div>
@@ -861,8 +951,7 @@
       <div class="f-nav" aria-label="روابط سريعة">
         <a href="#features">المزايا</a>
         <a href="#how">كيف تعمل</a>
-        <a href="#dashboards">لوحات التحكم</a>
-        <a href="#security">الأمان</a>
+        <a href="#dashboards">الأدوار</a>
         <a href="{% url 'reports:login' %}">تسجيل الدخول</a>
       </div>
 
@@ -872,25 +961,40 @@
 
   <script>
     (function(){
-      // Mobile Nav
+      // 1. Mobile Nav Toggle
       const btn = document.querySelector('.nav-toggle');
       const nav = document.getElementById('landingNav');
       if(btn && nav){
         btn.addEventListener('click', function(){
           const open = nav.classList.toggle('is-open');
           btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          btn.querySelector('i').className = open ? 'fa-solid fa-xmark' : 'fa-solid fa-bars'; // تغيير أيقونة القائمة
         });
       }
 
-      // Tabs
+      // 2. Tabs Functionality
       const tabBtns = Array.from(document.querySelectorAll('.tabbtn'));
       const panels = Array.from(document.querySelectorAll('.tabpanel'));
+      
       function activateTab(btn){
         const targetId = btn.getAttribute('aria-controls');
-        tabBtns.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
-        panels.forEach(p => p.classList.toggle('active', p.id === targetId));
+        
+        // إلغاء تحديد الكل
+        tabBtns.forEach(b => b.setAttribute('aria-selected', 'false'));
+        panels.forEach(p => p.classList.remove('active'));
+        
+        // تفعيل الزر المحدد واللوحة المرتبطة
+        btn.setAttribute('aria-selected', 'true');
+        document.getElementById(targetId).classList.add('active');
       }
-      tabBtns.forEach(b => b.addEventListener('click', function(){ activateTab(b); }));
+
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => activateTab(btn));
+      });
+      
+      // 3. Scrollspy for active nav links (Optional, Advanced feature for better UX)
+      // (تم حذفه للتركيز على الوظائف الأساسية والحد الأقصى لحجم الكود)
+
     })();
   </script>
 </body>

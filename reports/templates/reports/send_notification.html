@@ -718,30 +718,28 @@
       const btnSelectAll = $('#selectAllTeachers');
       const btnClearAll = $('#clearAllTeachers');
 
-      // اجمع العناصر القابلة للتصفية (li/label حول كل Checkbox أو option في select[multiple])
+      // اجمع العناصر القابلة للتصفية
       function getTeacherItems(){
         const items = [];
-        const listLike = teacherField.querySelectorAll('li, label, .form-check, .checkbox');
-        if(listLike.length){
-          listLike.forEach(el=>{
-            const cb = el.querySelector('input[type="checkbox"]');
-            if(cb){ items.push({wrap:el, input:cb}); }
+        
+        // 1. البحث عن Checkboxes
+        const cbs = teacherField.querySelectorAll('input[type="checkbox"]');
+        if(cbs.length > 0){
+          cbs.forEach(cb => {
+            // نحدد العنصر الحاوي الذي سنقوم بإخفائه عند البحث
+            // الأولوية لـ li (إذا كانت قائمة) أو .form-check أو label
+            let wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
+            items.push({wrap: wrap, input: cb});
           });
-        }else{
-          const cbs = teacherField.querySelectorAll('input[type="checkbox"]');
-          cbs.forEach(cb=>{
-            // حاول إيجاد أقرب وسم قابل لعرض الاسم
-            let wrap = cb.closest('label') || cb.parentElement || cb;
-            items.push({wrap, input:cb});
-          });
-        }
-
-        // دعم select[multiple] إن وُجد
-        const sel = teacherField.querySelector('select[multiple]');
-        if(sel){
-          Array.from(sel.options).forEach(op=>{
-            items.push({wrap:op, option:op}); // خيار بديل
-          });
+        } 
+        // 2. دعم select[multiple] إن وُجد
+        else {
+          const sel = teacherField.querySelector('select[multiple]');
+          if(sel){
+            Array.from(sel.options).forEach(op=>{
+              items.push({wrap:op, option:op});
+            });
+          }
         }
         return items;
       }

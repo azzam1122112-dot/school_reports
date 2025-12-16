@@ -8,20 +8,18 @@
   <meta name="color-scheme" content="light" />
   <title>{% block title %}نظام التقارير{% endblock %}</title>
 
-  <!-- أداء -->
   <link rel="preload" href="{% static 'css/app.css' %}" as="style">
   <link rel="stylesheet" href="{% static 'css/app.css' %}" />
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;800;900&display=swap" rel="stylesheet">
 
-  <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" referrerpolicy="no-referrer">
 
   <style>
     :root{
+      /* الألوان */
       --brand:#2563eb;
       --brand2:#3b82f6;
       --brand-ghost:#e8efff;
@@ -34,17 +32,23 @@
       --card:#ffffff;
       --line:#e5e7eb;
       --line-2:#f1f5f9;
+      --current-school-bg: #f0f9ff;
+      --current-school-border: #93c5fd;
 
+      /* الظلال */
       --shadow:0 8px 28px rgba(2,6,23,.08);
       --shadow2:0 20px 50px rgba(2,6,23,.16);
       --ring:0 0 0 3px rgba(37,99,235,.25);
 
       --tap:48px;
 
+      /* الأمان */
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-right: env(safe-area-inset-right, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       --safe-left: env(safe-area-inset-left, 0px);
+      
+      --t-fast: all .18s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     @media (prefers-color-scheme:dark){
@@ -55,6 +59,9 @@
         --muted:#a9b8de;
         --line:#1b2744;
         --line-2:#142246;
+        --current-school-bg: #0f1629;
+        --current-school-border: #1e40af;
+        --brand-ghost:#142c55;
       }
     }
 
@@ -132,7 +139,7 @@
       display:inline-flex;align-items:center;gap:8px;min-height:44px;
       padding:0 14px;border-radius:999px;text-decoration:none;
       color:var(--ink);font-weight:900;border:1px solid transparent;
-      transition:all .18s ease;
+      transition:var(--t-fast);
     }
     .tab:hover{background:var(--brand-ghost);color:var(--brand)}
     .tab.is-active{background:var(--brand-ghost);color:var(--brand);border-color:#dbeafe}
@@ -147,7 +154,7 @@
       position:relative;display:grid;place-items:center;
       width:44px;height:44px;border-radius:999px;
       border:1px solid var(--line);background:var(--card);
-      color:var(--ink);text-decoration:none;transition:all .18s ease;
+      color:var(--ink);text-decoration:none;transition:var(--t-fast);
     }
     .icon-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow);border-color:#dbeafe}
     .dot{
@@ -157,18 +164,32 @@
       display:grid;place-items:center;padding:0 5px;font-weight:900;
     }
 
+    /* School Button - Enhanced */
     .school-btn{
+      position:relative;
       display:inline-flex;align-items:center;gap:10px;
       min-height:44px; padding:6px 12px;
       border-radius:999px;border:1px solid var(--line);
       background:var(--card);cursor:pointer;font-weight:900;color:var(--ink);
-      transition:all .18s ease;
+      transition:var(--t-fast);
     }
     .school-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow);border-color:#dbeafe}
     .school-btn i{color:var(--brand)}
     .school-btn-txt{display:grid;gap:2px;min-width:170px}
     .school-btn-top{font-size:.72rem;color:var(--muted);font-weight:900}
     .school-btn-name{font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    
+    /* Pulse Effect */
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(37,99,235, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(37,99,235, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37,99,235, 0); }
+    }
+    .school-btn.pulse-active {
+        animation: pulse-ring 2s infinite;
+        background: var(--brand-ghost);
+    }
+
     @media(max-width:1024px){.hdr-nav{display:none}}
 
     /* Hamburger */
@@ -204,17 +225,19 @@
     /* Mobile drawer */
     .drawer-overlay{
       position:fixed;inset:0;background:rgba(2,6,23,.45);
-      backdrop-filter:blur(6px);z-index:980;display:none;
+      backdrop-filter:blur(6px);z-index:980;
+      /* Initial state for transition */
+      opacity: 0; visibility: hidden; transition: var(--t-fast);
     }
     .drawer{
       position:fixed; inset:0 0 0 auto; width:min(340px,88vw);
       background:var(--card); border-inline-start:1px solid var(--line);
-      z-index:990; transform:translateX(110%); transition:all .18s ease;
+      z-index:990; transform:translateX(100%); transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1);
       display:flex;flex-direction:column; max-height:100vh;overflow:auto;
       padding-bottom:var(--safe-bottom);
     }
     .drawer.open{transform:translateX(0)}
-    .drawer-overlay.show{display:block}
+    .drawer-overlay.show{opacity: 1; visibility: visible;}
     .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--line)}
     .drawer-title{font-weight:900}
     .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-weight:900;cursor:pointer;text-decoration:none;color:var(--ink);transition:all .12s ease}
@@ -226,12 +249,13 @@
       padding:12px;border:1px solid var(--line);border-radius:14px;
       text-decoration:none;color:var(--ink);font-weight:900;
       background:linear-gradient(180deg,#fff,#fbfdff);
+      transition:var(--t-fast);
     }
     .drawer-nav a:hover{background:var(--line-2)}
     .drawer-nav a.is-active{border-color:#c7d2fe;background:linear-gradient(180deg,#eef2ff,#ffffff);color:#1e40af}
     .drawer-footer{margin-top:auto;padding:12px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap}
 
-    /* Toasts */
+    /* Toasts (No change, they are excellent) */
     .messages{
       position:fixed;
       top:calc(var(--safe-top) + 78px);
@@ -294,14 +318,22 @@
     }
     .to-top:hover{transform:translateY(-2px); box-shadow:var(--shadow2)}
 
-    /* School Modal */
+    /* School Modal - Enhanced Transitions */
     .school-modal{
       position:fixed;inset:0;z-index:12000;
       display:grid;place-items:center;
-      padding:12px;background:rgba(2,6,23,.55);
-      backdrop-filter:blur(8px);
+      padding:12px;background:rgba(2,6,23,0); /* Start transparent */
+      backdrop-filter:blur(0px); /* Start no blur */
+      opacity: 0; visibility: hidden;
+      transition: opacity .3s ease, backdrop-filter .3s ease, visibility 0s .3s;
     }
-    .school-modal[hidden]{display:none}
+    .school-modal.open{
+      opacity: 1; visibility: visible;
+      background:rgba(2,6,23,.55);
+      backdrop-filter:blur(8px);
+      transition: opacity .3s ease, backdrop-filter .3s ease, visibility 0s 0s;
+    }
+    
     .school-panel{
       width:min(560px,94vw);
       max-height:min(80vh,720px);
@@ -312,7 +344,14 @@
       overflow:hidden;
       display:flex;
       flex-direction:column;
+      /* Panel transition */
+      transform: scale(.95) translateY(10px);
+      transition: transform .3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Springy effect */
     }
+    .school-modal.open .school-panel{
+      transform: scale(1) translateY(0);
+    }
+    
     .school-panel-h{
       padding:14px 16px;border-bottom:1px solid var(--line);
       display:flex;align-items:center;justify-content:space-between;gap:10px
@@ -320,9 +359,17 @@
     .school-panel-h b{font-weight:900}
     .school-panel-close{
       width:44px;height:44px;border-radius:999px;border:1px solid var(--line);
-      background:var(--card);cursor:pointer
+      background:var(--card);cursor:pointer;transition:var(--t-fast)
     }
-    .school-panel-b{padding:14px 16px;display:grid;gap:12px}
+    .school-panel-close:hover{transform:rotate(90deg)}
+
+    .school-panel-b{
+      padding:14px 16px;
+      display:grid;
+      gap:12px;
+      overflow-y: auto; /* Allow scrolling list */
+      flex-grow: 1;
+    }
     .school-search{
       width:100%;min-height:48px;border-radius:14px;border:1px solid var(--line);
       padding:12px 14px;font-weight:900;background:rgba(248,250,252,.9);color:var(--ink)
@@ -331,23 +378,53 @@
       .school-search{background:#0b1833}
     }
     .school-list{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+    
+    /* School Item - Detailed Design */
     .school-item{
       width:100%;
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#fff,#fbfdff);
-      padding:12px 12px;cursor:pointer;font-weight:900;
+      border:2px solid var(--line); /* Increased border for better feel */
+      border-radius:14px;background:linear-gradient(180deg,#fff,#fbfdff);
+      padding:12px 14px;cursor:pointer;font-weight:900;
       text-align:right;
+      transition:var(--t-fast);
     }
     @media (prefers-color-scheme:dark){
       .school-item{background:linear-gradient(180deg,#0f1629,#0b1220)}
     }
-    .school-item:hover{border-color:#dbeafe;background:var(--brand-ghost)}
-    .school-item small{display:block;color:var(--muted);font-weight:800;margin-top:3px}
+    .school-item:hover{
+      border-color:var(--brand);
+      background:var(--brand-ghost);
+      transform:translateY(-1px);
+      box-shadow:var(--shadow);
+    }
+    .school-item.current-school{
+      border-color:var(--current-school-border);
+      background:var(--current-school-bg);
+      pointer-events:none; /* Cannot click current school */
+      box-shadow: 0 4px 12px rgba(37,99,235,.15);
+    }
+
+    .school-item-text {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+    .school-item-text b { font-weight: 950; font-size: 1rem; }
+    .school-item small{display:block;color:var(--muted);font-weight:800;margin-top:0px;font-size:.85rem}
     .school-item .tag{
       padding:6px 10px;border-radius:999px;
       background:#eef2ff;color:#1e40af;border:1px solid #dbeafe;
       font-size:.8rem;font-weight:900;white-space:nowrap;
+      min-width: 60px; /* Standardize tag size */
+      text-align: center;
     }
+    .school-item.current-school .tag{
+      background:#dcfce7;color:#065f46;border-color:#bbf7d0;
+    }
+
 
     /* TV / Large */
     @media(min-width:1400px){
@@ -364,7 +441,6 @@
   <a class="skip-link" href="#mainContent">تخطي إلى المحتوى</a>
   <div class="progress-bar" id="scrollProgress"></div>
 
-  <!-- ===== Header ===== -->
   <header class="site-header" id="siteHeader">
     <div class="container hdr">
       <button class="hamburger" id="hamburger" aria-label="فتح القائمة" aria-controls="mobile-drawer" aria-expanded="false">
@@ -413,7 +489,7 @@
         {% if request.user.is_authenticated %}
 
           {% if USER_SCHOOLS|length > 1 %}
-            <button type="button" class="school-btn" id="openSchoolModal" aria-haspopup="dialog" aria-controls="schoolModal" aria-expanded="false">
+            <button type="button" class="school-btn pulse-active" id="openSchoolModal" aria-haspopup="dialog" aria-controls="schoolModal" aria-expanded="false">
               <i class="fa-solid fa-school" aria-hidden="true"></i>
               <span class="school-btn-txt">
                 <span class="school-btn-top">المدرسة</span>
@@ -460,8 +536,7 @@
     </div>
   </header>
 
-  <!-- ===== Mobile Drawer ===== -->
-  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+  <div class="drawer-overlay" id="drawerOverlay"></div>
   <aside class="drawer" id="mobile-drawer" aria-hidden="true" aria-labelledby="drawerTitle">
     <div class="drawer-head">
       <div id="drawerTitle" class="drawer-title">القائمة</div>
@@ -505,15 +580,14 @@
           {% endif %}
         {% endif %}
 
-        {% if USER_SCHOOLS|length > 1 %}
-          <button type="button" class="btn" id="openSchoolModalMobile" style="width:100%">
-            <i class="fa-solid fa-school" style="margin-left:8px"></i>
-            تبديل المدرسة
-          </button>
-        {% endif %}
-
         <div class="drawer-footer">
-          <a class="btn" href="{% url 'reports:logout' %}">تسجيل الخروج</a>
+          {% if USER_SCHOOLS|length > 1 %}
+            <button type="button" class="btn btn-primary" id="openSchoolModalMobile" style="width:100%">
+              <i class="fa-solid fa-school" style="margin-left:8px"></i>
+              تبديل المدرسة
+            </button>
+          {% endif %}
+          <a class="btn" href="{% url 'reports:logout' %}" style="flex-grow:1">تسجيل الخروج</a>
         </div>
       {% else %}
         <a class="{% if active == 'login' %}is-active{% endif %}" href="{% url 'reports:login' %}">
@@ -525,7 +599,6 @@
     {% endwith %}
   </aside>
 
-  <!-- Toasts -->
   {% if messages %}
     <div class="messages" id="messages-container" aria-live="polite" aria-atomic="true">
       {% for message in messages %}
@@ -542,7 +615,6 @@
     {% block content %}{% endblock %}
   </main>
 
-  <!-- ===== Footer v2 ===== -->
   <footer class="site-footer" aria-label="تذييل النظام">
     <div class="container footer-v2">
       <div class="footer-row">
@@ -575,10 +647,9 @@
     <i class="fa-solid fa-arrow-left-long" style="transform:rotate(90deg)"></i>
   </button>
 
-  <!-- ===== School Switch Modal ===== -->
   {% if request.user.is_authenticated %}
     {% if USER_SCHOOLS|length > 1 %}
-      <div class="school-modal" id="schoolModal" hidden>
+      <div class="school-modal" id="schoolModal">
         <div class="school-panel" role="dialog" aria-modal="true" aria-labelledby="schoolModalTitle">
           <div class="school-panel-h">
             <div>
@@ -591,7 +662,7 @@
           </div>
 
           <div class="school-panel-b">
-            <input type="search" class="school-search" id="schoolSearch" placeholder="اكتب اسم المدرسة للبحث...">
+            <input type="search" class="school-search" id="schoolSearch" placeholder="اكتب اسم المدرسة للبحث..." aria-label="البحث عن مدرسة">
 
             <form method="post" action="{% url 'reports:switch_school' %}" id="schoolSwitchForm">
               {% csrf_token %}
@@ -601,21 +672,17 @@
               <ul class="school-list" id="schoolList">
                 {% for s in USER_SCHOOLS %}
                   <li>
-                    <button type="button" class="school-item" data-school-id="{{ s.id }}">
-                      <span>
-                        {{ s.name }}
-                        <small>اضغط للتبديل</small>
-                      </span>
+                    <button type="button" 
+                      class="school-item {% if SCHOOL_ID and s.id == SCHOOL_ID %}current-school{% endif %}" 
+                      data-school-id="{{ s.id }}"
+                      data-school-name="{{ s.name }}"
+                    >
+                      <div class="school-item-text">
+                        <b>{{ s.name }}</b>
+                        <small>{% if s.id == SCHOOL_ID %}هذه هي المدرسة الحالية{% else %}اضغط للتبديل{% endif %}</small>
+                      </div>
                       <span class="tag">
-                        {% if SCHOOL_ID %}
-                          {% if s.id == SCHOOL_ID %}الحالية{% else %}تبديل{% endif %}
-                        {% else %}
-                          {% if SCHOOL_NAME %}
-                            {% if s.name == SCHOOL_NAME %}الحالية{% else %}تبديل{% endif %}
-                          {% else %}
-                            تبديل
-                          {% endif %}
-                        {% endif %}
+                        {% if s.id == SCHOOL_ID %}الحالية{% else %}تبديل{% endif %}
                       </span>
                     </button>
                   </li>
@@ -626,7 +693,7 @@
                 <div style="margin-top:10px">
                   <select name="school_id" style="width:100%;min-height:48px;border-radius:14px;border:1px solid var(--line);padding:10px;font-weight:900">
                     {% for s in USER_SCHOOLS %}
-                      <option value="{{ s.id }}">{{ s.name }}</option>
+                      <option value="{{ s.id }}" {% if SCHOOL_ID and s.id == SCHOOL_ID %}selected{% endif %}>{{ s.name }}</option>
                     {% endfor %}
                   </select>
                   <button class="btn btn-primary" type="submit" style="margin-top:10px;width:100%">تبديل</button>
@@ -640,7 +707,7 @@
   {% endif %}
 
   <script>
-    // Progress + Header shadow
+    // Progress + Header shadow (No change)
     (function(){
       const bar = document.getElementById('scrollProgress');
       const header = document.getElementById('siteHeader');
@@ -655,7 +722,7 @@
       onScroll();
     })();
 
-    // Toasts
+    // Toasts (No change)
     (function(){
       const container = document.getElementById('messages-container');
       if(!container) return;
@@ -668,7 +735,7 @@
       });
     })();
 
-    // Drawer
+    // Drawer (Slight change to respect initial visibility via CSS)
     (function(){
       const drawer   = document.getElementById('mobile-drawer');
       const overlay  = document.getElementById('drawerOverlay');
@@ -680,14 +747,14 @@
 
       const open = ()=>{
         drawer.classList.add('open');
-        overlay.classList.add('show'); overlay.hidden=false;
+        overlay.classList.add('show');
         hamburger.classList.add('active'); hamburger.setAttribute('aria-expanded','true');
         drawer.setAttribute('aria-hidden','false');
         lockScroll(true);
       };
       const close = ()=>{
         drawer.classList.remove('open');
-        overlay.classList.remove('show'); overlay.hidden=true;
+        overlay.classList.remove('show');
         hamburger.classList.remove('active'); hamburger.setAttribute('aria-expanded','false');
         drawer.setAttribute('aria-hidden','true');
         lockScroll(false);
@@ -704,7 +771,7 @@
       });
     })();
 
-    // User menu
+    // User menu (No change)
     (function(){
       const avatar = document.getElementById('userAvatar');
       const menu = document.getElementById('userMenu');
@@ -720,7 +787,7 @@
       document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
     })();
 
-    // To top
+    // To top (No change)
     (function(){
       const toTop = document.getElementById('toTop');
       if(!toTop) return;
@@ -728,8 +795,8 @@
       window.addEventListener('scroll', toggle, {passive:true}); toggle();
       toTop.addEventListener('click', ()=>window.scrollTo({top:0, behavior:'smooth'}));
     })();
-
-    // Cookies helper
+    
+    // Cookies helper (No change)
     (function(){
       window.getCookie = function(name){
         const parts = document.cookie ? document.cookie.split('; ') : [];
@@ -747,66 +814,81 @@
       };
     })();
 
-    // School Modal (Desktop + Mobile)
+    // School Modal Logic - Enhanced
     (function(){
+      const modal = document.getElementById('schoolModal');
       const openBtn = document.getElementById('openSchoolModal');
       const openBtnMobile = document.getElementById('openSchoolModalMobile');
-      const modal = document.getElementById('schoolModal');
       const closeBtn = document.getElementById('closeSchoolModal');
-      const search = document.getElementById('schoolSearch');
-      const list = document.getElementById('schoolList');
       const form = document.getElementById('schoolSwitchForm');
       const schoolIdField = document.getElementById('schoolIdField');
+      const schoolList = document.getElementById('schoolList');
+      const searchInput = document.getElementById('schoolSearch');
+      
+      if (!modal || !form || !schoolList) return;
 
-      if(!modal || !closeBtn || !search || !list || !form || !schoolIdField) return;
+      const lockScroll = (on)=>{ document.documentElement.style.overflow = on ? 'hidden' : ''; };
 
-      const lock = (on)=>{ document.documentElement.style.overflow = on ? 'hidden' : ''; };
-
-      const filter = (q)=>{
-        const qq = (q || '').trim().toLowerCase();
-        list.querySelectorAll('.school-item').forEach(btn=>{
-          const t = (btn.textContent || '').toLowerCase();
-          const li = btn.closest('li');
-          if(!li) return;
-          li.style.display = qq && !t.includes(qq) ? 'none' : '';
-        });
+      const openModal = () => {
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        lockScroll(true);
+        // Focus the search input for immediate typing
+        setTimeout(() => searchInput.focus(), 300);
       };
 
-      const open = ()=>{
-        modal.hidden = false;
-        if(openBtn) openBtn.setAttribute('aria-expanded','true');
-        lock(true);
-        setTimeout(()=>{ search.focus(); }, 10);
+      const closeModal = () => {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+        lockScroll(false);
       };
 
-      const close = ()=>{
-        modal.hidden = true;
-        if(openBtn) openBtn.setAttribute('aria-expanded','false');
-        lock(false);
-        search.value = '';
-        filter('');
-      };
-
-      if(openBtn) openBtn.addEventListener('click', open);
-      if(openBtnMobile) openBtnMobile.addEventListener('click', open);
-
-      closeBtn.addEventListener('click', close);
-      modal.addEventListener('click', (e)=>{ if(e.target === modal) close(); });
-      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
-
-      search.addEventListener('input', ()=> filter(search.value));
-
-      list.addEventListener('click', (e)=>{
-        const btn = e.target.closest('.school-item');
-        if(!btn) return;
-        const id = btn.getAttribute('data-school-id');
-        if(!id) return;
-        schoolIdField.value = id;
-        form.submit();
+      // 1. Open/Close Handlers
+      if (openBtn) openBtn.addEventListener('click', openModal);
+      if (openBtnMobile) openBtnMobile.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
       });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+      });
+
+      // 2. School Selection Handler
+      schoolList.addEventListener('click', (e) => {
+        const item = e.target.closest('.school-item');
+        if (item && !item.classList.contains('current-school')) {
+          const schoolId = item.dataset.schoolId;
+          schoolIdField.value = schoolId;
+          form.submit();
+        }
+      });
+
+      // 3. Search Filter Logic
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const items = schoolList.querySelectorAll('li');
+        
+        items.forEach(li => {
+          const name = li.querySelector('.school-item').dataset.schoolName.toLowerCase();
+          if (name.includes(query)) {
+            li.style.display = '';
+          } else {
+            li.style.display = 'none';
+          }
+        });
+      });
+      
+      // 4. Initial Pulse check (If a school is selected, remove the pulse)
+      const currentSchoolId = '{{ SCHOOL_ID|default:"" }}';
+      if (openBtn && currentSchoolId) {
+          // You might check an additional flag here if the system needs to force a school selection
+          // For now, if SCHOOL_ID exists, we assume a school is selected.
+          openBtn.classList.remove('pulse-active');
+      }
+
     })();
   </script>
-
   {% block scripts %}{% endblock %}
 </body>
 </html>

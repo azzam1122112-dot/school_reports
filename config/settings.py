@@ -30,8 +30,12 @@ ENV = os.getenv("ENV", "development").strip().lower()
 if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):
     ENV = "production"
 
+print(f"🚀 Current Environment: {ENV}")
+
 # يمكنك أيضًا فرض DEBUG عبر متغير DEBUG=1
 DEBUG = (ENV != "production") if os.getenv("DEBUG") is None else _env_bool("DEBUG", False)
+
+print(f"🚀 DEBUG: {DEBUG}")
 
 ALLOWED_HOSTS = _split_env_list(
     os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,school-7lgm.onrender.com,.onrender.com")
@@ -144,8 +148,12 @@ else:
         }
 
 # خلف Proxy (مثل Render) حافظ على HTTPS + اسم المضيف الأصلي
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-USE_X_FORWARDED_HOST = True
+if ENV == "production":
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
+else:
+    SECURE_PROXY_SSL_HEADER = None
+    USE_X_FORWARDED_HOST = False
 
 # ----------------- كلمات المرور -----------------
 AUTH_PASSWORD_VALIDATORS = [
