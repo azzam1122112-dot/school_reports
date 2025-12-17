@@ -30,6 +30,8 @@ from .models import (
     NotificationRecipient,
     School,
     SchoolMembership,
+    SubscriptionPlan,
+    SchoolSubscription,
 )
 
 # (تراثي – اختياري)
@@ -983,3 +985,71 @@ class NotificationCreateForm(forms.Form):
                 NotificationRecipient(notification=n, teacher=t) for t in teachers
             ], ignore_conflicts=True)
         return n
+
+
+class SupportTicketForm(forms.ModelForm):
+    """
+    نموذج إنشاء تذكرة دعم فني للمنصة.
+    """
+    class Meta:
+        model = Ticket
+        fields = ["title", "body", "attachment"]
+        widgets = {
+            "title": forms.TextInput(attrs={
+                "class": "form-control", "placeholder": "عنوان المشكلة أو الاستفسار", "maxlength": "255"
+            }),
+            "body": forms.Textarea(attrs={"class": "form-control", "rows": 5, "placeholder": "اشرح المشكلة بالتفصيل..."}),
+            "attachment": forms.ClearableFileInput(attrs={"class": "form-control"}),
+        }
+
+    def save(self, commit=True, user=None):
+        ticket = super().save(commit=False)
+        if user:
+            ticket.creator = user
+        ticket.is_platform = True
+        if commit:
+            ticket.save()
+        return ticket
+
+
+# ==============================
+# نماذج الاشتراكات (Platform Admin)
+# ==============================
+class SubscriptionPlanForm(forms.ModelForm):
+    class Meta:
+        model = SubscriptionPlan
+        fields = ["name", "description", "price", "days_duration", "is_active"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "اسم الخطة (مثلاً: باقة سنوية)"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "وصف مميزات الخطة..."}),
+            "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "days_duration": forms.NumberInput(attrs={"class": "form-control"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+        labels = {
+            "name": "اسم الخطة",
+            "description": "الوصف",
+            "price": "السعر (ريال)",
+            "days_duration": "المدة (بالأيام)",
+            "is_active": "نشط؟",
+        }
+
+
+class SchoolSubscriptionForm(forms.ModelForm):
+    class Meta:
+        model = SchoolSubscription
+        fields = ["school", "plan", "start_date", "end_date", "is_active"]
+        widgets = {
+            "school": forms.Select(attrs={"class": "form-select"}),
+            "plan": forms.Select(attrs={"class": "form-select"}),
+            "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "end_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+        labels = {
+            "school": "المدرسة",
+            "plan": "الباقة",
+            "start_date": "تاريخ البدء",
+            "end_date": "تاريخ الانتهاء",
+            "is_active": "نشط؟",
+        }

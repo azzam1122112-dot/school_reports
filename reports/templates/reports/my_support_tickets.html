@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}تذاكر الدعم الفني{% endblock %}
+
+{% block head %}
+<style>
+  .page-wrap{max-width:1000px;margin:0 auto;padding:20px}
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+  .btn-new{background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-flex;align-items:center;gap:8px}
+  .ticket-list{display:grid;gap:12px}
+  .ticket-item{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:inherit;transition:all 0.2s}
+  .ticket-item:hover{border-color:#2563eb;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.05)}
+  .status-badge{padding:4px 12px;border-radius:999px;font-size:0.85rem;font-weight:bold}
+  .status-open{background:#dbeafe;color:#1e40af}
+  .status-in_progress{background:#fef3c7;color:#92400e}
+  .status-done{background:#d1fae5;color:#065f46}
+  .status-rejected{background:#fee2e2;color:#991b1b}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap" dir="rtl">
+  <div class="header">
+    <div>
+      <h1 style="margin:0;font-size:1.8rem">تذاكر الدعم الفني</h1>
+      <p style="color:#6b7280;margin:4px 0 0">متابعة طلباتك المقدمة لإدارة المنصة</p>
+    </div>
+    <a href="{% url 'reports:support_ticket_create' %}" class="btn-new">
+      <span>+</span> طلب جديد
+    </a>
+  </div>
+
+  {% if tickets %}
+  <div class="ticket-list">
+    {% for ticket in tickets %}
+    <a href="{% url 'reports:ticket_detail' ticket.pk %}" class="ticket-item">
+      <div>
+        <div style="font-weight:bold;font-size:1.1rem;margin-bottom:4px">#{{ ticket.pk }} - {{ ticket.title }}</div>
+        <div style="color:#6b7280;font-size:0.9rem">
+          📅 {{ ticket.created_at|date:"Y-m-d H:i" }}
+        </div>
+      </div>
+      <div>
+        {% if ticket.status == 'open' %}
+        <span class="status-badge status-open">جديد</span>
+        {% elif ticket.status == 'in_progress' %}
+        <span class="status-badge status-in_progress">قيد المعالجة</span>
+        {% elif ticket.status == 'done' %}
+        <span class="status-badge status-done">مكتمل</span>
+        {% else %}
+        <span class="status-badge status-rejected">{{ ticket.get_status_display }}</span>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:60px;background:#fff;border-radius:16px;border:1px dashed #d1d5db">
+    <div style="font-size:3rem;margin-bottom:16px">📭</div>
+    <h3 style="margin:0 0 8px">لا توجد تذاكر دعم فني</h3>
+    <p style="color:#6b7280;margin-bottom:24px">لم تقم بإنشاء أي طلب دعم فني بعد.</p>
+    <a href="{% url 'reports:support_ticket_create' %}" class="btn-new">إنشاء طلب جديد</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

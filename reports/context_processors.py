@@ -601,6 +601,35 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         school_logo = None
         user_schools = []
 
+    # تنبيه انتهاء الاشتراك (لمدير المدرسة فقط)
+    subscription_warning = False
+    subscription_days_left = None
+    
+    try:
+        # إذا كان المستخدم مدير مدرسة
+        qs = SchoolMembership.objects.filter(
+            teacher=u, 
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True
+        ).select_related('school__subscription')
+
+        membership = None
+        active_sid = request.session.get("active_school_id")
+        if active_sid:
+            membership = qs.filter(school_id=active_sid).first()
+        
+        if not membership:
+            membership = qs.first()
+        
+        if membership and hasattr(membership.school, 'subscription'):
+            sub = membership.school.subscription
+            days = sub.days_remaining
+            if days <= 30: # تنبيه قبل 30 يوم
+                subscription_warning = True
+                subscription_days_left = days
+    except Exception:
+        pass
+
     return {
         "NAV_MY_OPEN_TICKETS": my_open,
         "NAV_ASSIGNED_TO_ME": assigned_open,
@@ -617,6 +646,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SCHOOL_NAME": school_name,
         "SCHOOL_LOGO_URL": school_logo,
         "USER_SCHOOLS": user_schools,
+        "SUBSCRIPTION_WARNING": subscription_warning,
+        "SUBSCRIPTION_DAYS_LEFT": subscription_days_left,
     }
 
 

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل عملية الدفع #{{ payment.id }}{% endblock %}
+
+{% block head %}
+<style>
+  :root {
+    --ink: #0f172a; --ink-soft: #1f2937; --muted: #6b7280; --line: #e5e7eb;
+    --card: #ffffff; --bg: #f8fafc; --brand: #2563eb; --danger: #ef4444;
+    --shadow: 0 10px 26px rgba(2,6,23,.08);
+  }
+  .wrap { max-width: 900px; margin: auto; padding: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+  .title { font-weight: 900; margin: 0 0 16px 0; color: var(--ink-soft); font-size: 1.25rem; }
+  
+  .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: none; }
+  .label { font-weight: 700; color: var(--muted); }
+  .value { font-weight: 900; color: var(--ink); }
+  
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border-radius: 10px; font-weight: 800; text-decoration: none; cursor: pointer; border: none; transition: all .2s; }
+  .btn-primary { background: var(--brand); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-secondary { background: #fff; border: 1px solid var(--line); color: var(--ink); }
+  
+  .status-badge { padding: 6px 12px; border-radius: 99px; font-weight: 800; font-size: 0.85rem; }
+  .st-approved { background: #dcfce7; color: #166534; }
+  .st-rejected { background: #fee2e2; color: #991b1b; }
+  .st-pending { background: #fef3c7; color: #92400e; }
+  
+  .img-preview { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); margin-top: 10px; }
+  
+  .form-group { margin-bottom: 16px; }
+  .input, .select, .textarea { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap" dir="rtl">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <h1 class="title">تفاصيل عملية الدفع #{{ payment.id }}</h1>
+    <a href="{% url 'reports:platform_payments_list' %}" class="btn btn-secondary">عودة للقائمة</a>
+  </div>
+
+  <div class="card">
+    <h2 class="title">معلومات الدفع</h2>
+    <div class="row">
+      <span class="label">المدرسة</span>
+      <span class="value">{{ payment.school.name }}</span>
+    </div>
+    <div class="row">
+      <span class="label">المبلغ</span>
+      <span class="value" style="color:var(--brand);font-size:1.2rem">{{ payment.amount }} ريال</span>
+    </div>
+    <div class="row">
+      <span class="label">التاريخ</span>
+      <span class="value">{{ payment.payment_date|date:"Y-m-d" }}</span>
+    </div>
+    <div class="row">
+      <span class="label">رقم العملية</span>
+      <span class="value">{{ payment.transaction_id|default:"-" }}</span>
+    </div>
+    <div class="row">
+      <span class="label">الحالة الحالية</span>
+      <span class="value">
+        {% if payment.status == 'approved' %}
+          <span class="status-badge st-approved">مقبول</span>
+        {% elif payment.status == 'rejected' %}
+          <span class="status-badge st-rejected">مرفوض</span>
+        {% else %}
+          <span class="status-badge st-pending">قيد المراجعة</span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="row">
+      <span class="label">ملاحظات المستخدم</span>
+      <span class="value">{{ payment.notes|default:"-" }}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="title">صورة الإيصال</h2>
+    {% if payment.receipt_image %}
+      <a href="{{ payment.receipt_image.url }}" target="_blank">
+        <img src="{{ payment.receipt_image.url }}" class="img-preview" alt="إيصال الدفع">
+      </a>
+    {% else %}
+      <div style="padding:20px;text-align:center;color:var(--muted)">لا توجد صورة مرفقة</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2 class="title">إجراءات الإدارة</h2>
+    <form method="post">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label class="label" style="display:block;margin-bottom:8px">تحديث الحالة</label>
+        <select name="status" class="select">
+          <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>قيد المراجعة</option>
+          <option value="approved" {% if payment.status == 'approved' %}selected{% endif %}>قبول الدفع</option>
+          <option value="rejected" {% if payment.status == 'rejected' %}selected{% endif %}>رفض الدفع</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="label" style="display:block;margin-bottom:8px">ملاحظات الإدارة (تظهر للمدرسة)</label>
+        <textarea name="notes" class="textarea" rows="3">{{ payment.notes }}</textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

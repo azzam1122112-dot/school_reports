@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}اشتراكي{% endblock %}
+
+{% block head %}
+<style>
+  :root {
+    --ink: #0f172a; --ink-soft: #1f2937; --muted: #6b7280; --line: #e5e7eb;
+    --card: #ffffff; --bg: #f8fafc; --brand: #2563eb; --accent: #10b981; --danger: #ef4444;
+    --shadow: 0 10px 26px rgba(2,6,23,.08);
+  }
+  .wrap { max-width: 1100px; margin: auto; padding: 18px; }
+  .grid { display: grid; gap: 20px; }
+  @media(min-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } }
+  
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); }
+  .title { font-weight: 900; margin: 0 0 16px 0; color: var(--ink-soft); font-size: 1.25rem; }
+  
+  .stat-box { background: #f8fafc; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--line); }
+  .stat-val { font-size: 1.8rem; font-weight: 900; color: var(--brand); }
+  .stat-lbl { font-size: 0.9rem; color: var(--muted); font-weight: 700; margin-top: 4px; }
+  
+  .status-badge { display: inline-block; padding: 6px 12px; border-radius: 99px; font-weight: 800; font-size: 0.85rem; }
+  .st-active { background: #dcfce7; color: #166534; }
+  .st-expired { background: #fee2e2; color: #991b1b; }
+  
+  .form-group { margin-bottom: 16px; }
+  .label { display: block; font-weight: 800; margin-bottom: 8px; color: var(--ink); }
+  .input, .select, .textarea { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+  
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 600px; }
+  th { text-align: right; padding: 12px; border-bottom: 2px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+  td { padding: 12px; border-bottom: 1px solid var(--line); color: var(--ink); }
+  
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 20px; border-radius: 10px; font-weight: 800; text-decoration: none; cursor: pointer; border: none; transition: all .2s; }
+  .btn-primary { background: var(--brand); color: #fff; width: 100%; }
+  .btn-primary:hover { background: #1d4ed8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap" dir="rtl">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <div>
+      <h1 style="font-size:1.8rem;font-weight:900;margin:0;color:var(--ink)">إدارة اشتراك المدرسة</h1>
+      <div style="color:var(--muted);font-weight:700;margin-top:4px">{{ school.name }}</div>
+    </div>
+    <a href="{% url 'reports:admin_dashboard' %}" class="btn" style="background:#fff;border:1px solid var(--line);color:var(--ink)">عودة للوحة التحكم</a>
+  </div>
+
+  <div class="grid">
+    <!-- Status Card -->
+    <div class="card">
+      <h2 class="title">حالة الاشتراك الحالي</h2>
+      {% if subscription %}
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;background:#eff6ff;padding:16px;border-radius:12px;border:1px solid #dbeafe">
+           <div style="font-size:24px">💎</div>
+           <div>
+             <div style="font-weight:800;color:#1e40af">الباقة الحالية: {{ subscription.plan.name }}</div>
+             <div style="font-size:0.9rem;color:#1e3a8a">ينتهي في: <span dir="ltr">{{ subscription.end_date|date:"Y-m-d" }}</span></div>
+           </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+           <div class="stat-box">
+             <div class="stat-val">
+               {% if subscription.days_remaining > 0 %}{{ subscription.days_remaining }}{% else %}0{% endif %}
+             </div>
+             <div class="stat-lbl">الأيام المتبقية</div>
+           </div>
+           <div class="stat-box">
+             <div class="stat-val" style="font-size:1.2rem;display:flex;align-items:center;justify-content:center;height:100%">
+               {% if subscription.is_expired %}
+                 <span class="status-badge st-expired">منتهي</span>
+               {% else %}
+                 <span class="status-badge st-active">نشط</span>
+               {% endif %}
+             </div>
+             <div class="stat-lbl">الحالة</div>
+           </div>
+        </div>
+        
+        <div style="text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)">
+           <a href="{% url 'reports:support_ticket_create' %}" style="color:var(--brand);font-weight:800;text-decoration:none">هل تواجه مشكلة؟ تواصل مع الدعم الفني</a>
+        </div>
+      {% else %}
+        <div style="text-align:center;padding:40px 0;color:var(--muted)">
+           <div style="font-size:40px;margin-bottom:10px">🚫</div>
+           <h3 style="margin:0;color:var(--ink)">لا يوجد اشتراك نشط</h3>
+           <p>يرجى اختيار باقة وتفعيل الاشتراك.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Renewal Form -->
+    <div class="card">
+      <h2 class="title">تجديد الاشتراك / رفع إيصال</h2>
+      <form action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-group">
+          <label class="label">اختر الباقة</label>
+          <select id="plan_select" class="select">
+            <option value="">-- اختر الباقة --</option>
+            {% for plan in plans %}
+              <option value="{{ plan.price }}">{{ plan.name }} - {{ plan.price }} ريال</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="label">المبلغ المحول (ريال)</label>
+          <input type="number" name="amount" id="amount" required step="0.01" class="input" placeholder="0.00">
+        </div>
+
+        <div class="form-group">
+          <label class="label">صورة الإيصال</label>
+          <input type="file" name="receipt_image" class="input" required accept="image/*">
+          <div style="font-size:0.85rem;color:var(--muted);margin-top:6px">يرجى إرفاق صورة واضحة للتحويل البنكي.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="label">ملاحظات إضافية</label>
+          <textarea name="notes" rows="2" class="textarea"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">إرسال طلب التجديد</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Payments History -->
+  <div class="card" style="margin-top:24px">
+    <h2 class="title">آخر عمليات الدفع</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>المبلغ</th>
+            <th>الحالة</th>
+            <th>ملاحظات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+          <tr>
+            <td>{{ payment.created_at|date:"Y-m-d" }}</td>
+            <td style="font-weight:bold">{{ payment.amount }} ريال</td>
+            <td>
+              {% if payment.status == 'approved' %}
+                <span class="status-badge st-active">مقبول</span>
+              {% elif payment.status == 'rejected' %}
+                <span class="status-badge st-expired">مرفوض</span>
+              {% else %}
+                <span class="status-badge" style="background:#fef3c7;color:#92400e">قيد المراجعة</span>
+              {% endif %}
+            </td>
+            <td style="color:var(--muted)">{{ payment.notes|default:"-" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" style="text-align:center;padding:30px;color:var(--muted)">لا توجد عمليات دفع سابقة</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+    document.getElementById('plan_select').addEventListener('change', function() {
+        if(this.value) {
+            document.getElementById('amount').value = this.value;
+        }
+    });
+</script>
+{% endblock %}

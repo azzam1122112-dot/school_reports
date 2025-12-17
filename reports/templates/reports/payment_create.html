@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}رفع إيصال دفع{% endblock %}
+
+{% block content %}
+<div class="wrap" dir="rtl">
+  <div style="max-width:600px;margin:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h1 class="title">رفع إيصال دفع / تجديد اشتراك</h1>
+      <a href="{% url 'reports:my_subscription' %}" class="btn">إلغاء</a>
+    </div>
+
+    <div class="card" style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:var(--shadow)">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div style="display:grid;gap:16px">
+          <div>
+            <label style="display:block;font-weight:bold;margin-bottom:6px;color:var(--ink)">المبلغ المحول (ريال)</label>
+            <input type="number" name="amount" step="0.01" class="form-control" required>
+          </div>
+
+          <div>
+            <label style="display:block;font-weight:bold;margin-bottom:6px;color:var(--ink)">صورة الإيصال</label>
+            <input type="file" name="receipt_image" class="form-control" accept="image/*" required>
+            <div style="font-size:0.85rem;color:var(--muted);margin-top:4px">يرجى إرفاق صورة واضحة للتحويل البنكي.</div>
+          </div>
+
+          <div>
+            <label style="display:block;font-weight:bold;margin-bottom:6px;color:var(--ink)">ملاحظات (اختياري)</label>
+            <textarea name="notes" class="form-control" rows="3" placeholder="أي تفاصيل إضافية..."></textarea>
+          </div>
+        </div>
+
+        <div style="margin-top:24px;display:flex;gap:10px">
+          <button type="submit" class="btn btn-primary" style="flex:1">إرسال الطلب</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

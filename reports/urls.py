@@ -103,6 +103,10 @@ urlpatterns = [
     path("requests/<int:pk>/", views.ticket_detail, name="ticket_detail"),
     path("requests/admin/<int:pk>/", views.admin_request_update, name="admin_request_update"),
 
+    # الدعم الفني للمنصة
+    path("support/new/", views.support_ticket_create, name="support_ticket_create"),
+    path("support/mine/", views.my_support_tickets, name="my_support_tickets"),
+
     # Officer
     path("officer/reports/", views.officer_reports, name="officer_reports"),
     path("officer/reports/<int:pk>/delete/", views.officer_delete_report, name="officer_delete_report"),
@@ -129,4 +133,24 @@ urlpatterns = [
         views.notification_mark_read_by_notification,
         name="notification_mark_read_by_notification",
     ),
+
+    # =========================
+    # الاشتراكات والمالية
+    # =========================
+    path("subscription/expired/", views.subscription_expired, name="subscription_expired"),
+    path("subscription/my/", views.my_subscription, name="my_subscription"),
+    path("subscription/payment/create/", views.payment_create, name="payment_create"),
+
+    # =========================
+    # إدارة المنصة (Custom Views)
+    # =========================
+    path("platform/subscriptions/", views.platform_subscriptions_list, name="platform_subscriptions_list"),
+    path("platform/subscriptions/add/", views.platform_subscription_form, name="platform_subscription_add"),
+    path("platform/subscriptions/<int:pk>/edit/", views.platform_subscription_form, name="platform_subscription_edit"),
+    path("platform/plans/", views.platform_plans_list, name="platform_plans_list"),
+    path("platform/plans/add/", views.platform_plan_form, name="platform_plan_add"),
+    path("platform/plans/<int:pk>/edit/", views.platform_plan_form, name="platform_plan_edit"),
+    path("platform/payments/", views.platform_payments_list, name="platform_payments_list"),
+    path("platform/payments/<int:pk>/", views.platform_payment_detail, name="platform_payment_detail"),
+    path("platform/tickets/", views.platform_tickets_list, name="platform_tickets_list"),
 ]

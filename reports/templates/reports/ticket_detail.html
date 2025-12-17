@@ -102,8 +102,13 @@
       </div>
     </div>
     <div class="btns">
-      <a class="btn" href="{% url 'reports:my_requests' %}">← العودة لطلباتي</a>
-      {% if request.user.is_staff %}
+      {% if t.is_platform %}
+        <a class="btn" href="{% url 'reports:my_support_tickets' %}">← العودة لطلبات الدعم</a>
+      {% else %}
+        <a class="btn" href="{% url 'reports:my_requests' %}">← العودة لطلباتي</a>
+      {% endif %}
+      
+      {% if request.user.is_staff and not t.is_platform %}
         <a class="btn" href="{% url 'reports:tickets_inbox' %}">صندوق الطلبات</a>
       {% endif %}
     </div>
@@ -160,7 +165,7 @@
       </div>
 
       {# ✅ استخدم and بدل && #}
-      {% if is_owner and not can_act %}
+      {% if is_owner and not can_act and not t.is_platform %}
         <div class="sticky-hint"><span class="help">أضِف ملاحظة للتواصل — ستتحوّل الحالة تلقائيًا إلى <b>جــديد</b>.</span></div>
       {% endif %}
     </article>

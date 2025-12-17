@@ -766,6 +766,13 @@ class Ticket(models.Model):
         default=Status.OPEN,
         db_index=True,
     )
+    
+    is_platform = models.BooleanField(
+        "دعم فني للمنصة؟", 
+        default=False,
+        help_text="إذا تم تحديده، يعتبر هذا الطلب موجهاً لإدارة المنصة وليس للمدرسة داخلياً."
+    )
+
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField("تاريخ التحديث", auto_now=True)
 
@@ -1054,3 +1061,125 @@ class TicketImage(models.Model):
 
     def __str__(self):
         return f"TicketImage #{self.pk} for Ticket #{self.ticket_id}"
+
+
+# =========================
+# إدارة الاشتراكات والمالية
+# =========================
+
+class SubscriptionPlan(models.Model):
+    name = models.CharField("اسم الباقة", max_length=100)
+    price = models.DecimalField("السعر", max_digits=10, decimal_places=2)
+    days_duration = models.PositiveIntegerField(
+        "المدة بالأيام", 
+        help_text="مدة الباقة الافتراضية بالأيام (مثلاً 90 للفصل، 365 للسنة)"
+    )
+    description = models.TextField("المميزات", blank=True)
+    is_active = models.BooleanField("نشطة", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "باقة اشتراك"
+        verbose_name_plural = "باقات الاشتراكات"
+
+    def __str__(self):
+        return f"{self.name} ({self.price} ريال)"
+
+
+class SchoolSubscription(models.Model):
+    school = models.OneToOneField(
+        School,
+        on_delete=models.CASCADE,
+        related_name="subscription",
+        verbose_name="المدرسة"
+    )
+    plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.PROTECT,
+        verbose_name="الباقة الحالية"
+    )
+    start_date = models.DateField("تاريخ البدء")
+    end_date = models.DateField("تاريخ الانتهاء", db_index=True)
+    is_active = models.BooleanField(
+        "نشط يدوياً", 
+        default=True, 
+        help_text="يمكن استخدامه لتعطيل الاشتراك مؤقتاً بغض النظر عن التاريخ"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "اشتراك مدرسة"
+        verbose_name_plural = "اشتراكات المدارس"
+        indexes = [
+            models.Index(fields=['end_date', 'is_active']),
+        ]
+
+    def __str__(self):
+        return f"اشتراك {self.school.name} - ينتهي في {self.end_date}"
+
+    @property
+    def is_expired(self):
+        if not self.is_active:
+            return True
+        return timezone.now().date() > self.end_date
+
+    @property
+    def days_remaining(self):
+        delta = self.end_date - timezone.now().date()
+        return delta.days
+
+
+class Payment(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "قيد المراجعة"
+        APPROVED = "approved", "مقبول"
+        REJECTED = "rejected", "مرفوض"
+
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="payments",
+        verbose_name="المدرسة"
+    )
+    subscription = models.ForeignKey(
+        SchoolSubscription,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="payments",
+        verbose_name="الاشتراك المرتبط"
+    )
+    amount = models.DecimalField("المبلغ", max_digits=10, decimal_places=2)
+    receipt_image = models.ImageField(
+        "صورة الإيصال",
+        upload_to="payments/receipts/%Y/%m/",
+        help_text="يرجى إرفاق صورة التحويل البنكي"
+    )
+    payment_date = models.DateField("تاريخ التحويل", default=timezone.now)
+    status = models.CharField(
+        "الحالة", 
+        max_length=20, 
+        choices=Status.choices, 
+        default=Status.PENDING, 
+        db_index=True
+    )
+    notes = models.TextField("ملاحظات الإدارة", blank=True)
+    
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="قام بالرفع"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "عملية دفع"
+        verbose_name_plural = "المدفوعات والإيرادات"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"دفع #{self.id} - {self.school.name} - {self.amount}"
+

@@ -438,6 +438,15 @@
 </head>
 
 <body class="page">
+  {% if SUBSCRIPTION_WARNING %}
+  <div style="background-color: #fff7ed; border-bottom: 1px solid #fdba74; color: #c2410c; padding: 12px; text-align: center; font-weight: bold;">
+    <div class="container">
+      <i class="fas fa-exclamation-triangle ml-2"></i>
+      تنبيه: اشتراك المدرسة ينتهي خلال {{ SUBSCRIPTION_DAYS_LEFT }} يوم. 
+      <a href="{% url 'reports:my_subscription' %}" style="text-decoration: underline; margin-right: 8px;">تجديد الاشتراك الآن</a>
+    </div>
+  </div>
+  {% endif %}
   <a class="skip-link" href="#mainContent">تخطي إلى المحتوى</a>
   <div class="progress-bar" id="scrollProgress"></div>
 

@@ -19,6 +19,9 @@ from .models import (
     TicketNote,
     School,
     SchoolMembership,
+    SubscriptionPlan,
+    SchoolSubscription,
+    Payment,
 )
 
 # =========================
@@ -216,6 +219,7 @@ class TicketAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "title",
+        "is_platform",
         "status",
         "department",
         "creator",
@@ -223,7 +227,7 @@ class TicketAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
-    list_filter = ("status", "department", "created_at", "updated_at", "assignee")
+    list_filter = ("is_platform", "status", "department", "created_at", "updated_at", "assignee")
     search_fields = (
         "id",
         "title",
@@ -242,7 +246,7 @@ class TicketAdmin(admin.ModelAdmin):
     inlines = (TicketNoteInline,)
 
     fieldsets = (
-        (None, {"fields": ("title", "body", "attachment")}),
+        (None, {"fields": ("title", "body", "attachment", "is_platform")}),
         ("الملكية والتعيين", {"fields": ("creator", "assignee", "department")}),
         ("الحالة", {"fields": ("status",)}),
         ("أخرى", {"fields": ("created_at", "updated_at")}),
@@ -293,3 +297,34 @@ class NotificationRecipientAdmin(admin.ModelAdmin):
     list_display = ("id", "notification", "teacher", "is_read", "created_at", "read_at")
     list_filter = ("is_read", "created_at")
     search_fields = ("notification__title", "teacher__name")
+
+
+# =========================
+# إدارة الاشتراكات والمالية
+# =========================
+@admin.register(SubscriptionPlan)
+class SubscriptionPlanAdmin(admin.ModelAdmin):
+    list_display = ("name", "price", "days_duration", "is_active", "created_at")
+    list_filter = ("is_active", "created_at")
+    search_fields = ("name", "description")
+    ordering = ("price",)
+
+
+@admin.register(SchoolSubscription)
+class SchoolSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("school", "plan", "start_date", "end_date", "is_active", "is_expired")
+    list_filter = ("is_active", "plan", "start_date", "end_date")
+    search_fields = ("school__name", "school__code")
+    autocomplete_fields = ("school", "plan")
+    date_hierarchy = "start_date"
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ("id", "school", "amount", "status", "payment_date", "created_at")
+    list_filter = ("status", "payment_date", "created_at")
+    search_fields = ("school__name", "notes", "transaction_id")
+    autocomplete_fields = ("school",)
+    date_hierarchy = "created_at"
+    readonly_fields = ("created_at",)
+

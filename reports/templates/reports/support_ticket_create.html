@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}طلب دعم فني جديد{% endblock %}
+
+{% block head %}
+<style>
+  .ticket-page{max-width:800px;margin:0 auto;padding:20px}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;box-shadow:0 4px 12px rgba(0,0,0,0.05)}
+  .form-group{margin-bottom:16px}
+  .form-group label{display:block;font-weight:bold;margin-bottom:8px;color:#374151}
+  .form-control{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:1rem}
+  .form-control:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+  .btn-submit{background:#2563eb;color:#fff;padding:12px 24px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;width:100%}
+  .btn-submit:hover{background:#1d4ed8}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ticket-page" dir="rtl">
+  <div class="card">
+    <h1 style="margin-top:0;margin-bottom:20px;color:#111827;display:flex;align-items:center;gap:10px">
+      <span style="font-size:1.5em">🎧</span> طلب دعم فني للمنصة
+    </h1>
+    <p style="color:#6b7280;margin-bottom:24px">
+      استخدم هذا النموذج للتواصل مع إدارة المنصة بخصوص المشاكل التقنية أو الاستفسارات العامة حول النظام.
+    </p>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      {% if form.errors %}
+      <div style="background:#fee2e2;color:#b91c1c;padding:12px;border-radius:8px;margin-bottom:20px">
+        يرجى تصحيح الأخطاء أدناه.
+      </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label for="{{ form.title.id_for_label }}">عنوان الطلب</label>
+        {{ form.title }}
+        {% if form.title.errors %}<div style="color:#dc2626;font-size:0.9em;margin-top:4px">{{ form.title.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.body.id_for_label }}">تفاصيل المشكلة</label>
+        {{ form.body }}
+        {% if form.body.errors %}<div style="color:#dc2626;font-size:0.9em;margin-top:4px">{{ form.body.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.attachment.id_for_label }}">مرفق (اختياري)</label>
+        {{ form.attachment }}
+        <div style="font-size:0.85em;color:#6b7280;margin-top:4px">يمكنك إرفاق صورة أو ملف PDF لشرح المشكلة.</div>
+        {% if form.attachment.errors %}<div style="color:#dc2626;font-size:0.9em;margin-top:4px">{{ form.attachment.errors.0 }}</div>{% endif %}
+      </div>
+
+      <button type="submit" class="btn-submit">إرسال الطلب</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

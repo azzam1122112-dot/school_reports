@@ -1,12 +1,15 @@
 # reports/views.py
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from .models import Ticket, TicketNote, TicketImage
+from .models import (
+    Ticket, TicketNote, TicketImage, 
+    SubscriptionPlan, SchoolSubscription, Payment, SchoolMembership, NotificationRecipient
+)
 
 import logging
 import os
 import traceback
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
@@ -26,6 +29,7 @@ from django.db.models import (
     OuterRef,
     Subquery,
     ProtectedError,
+    Sum,
 )
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -44,6 +48,8 @@ from .forms import (
     TicketCreateForm,
     DepartmentForm,  # إن لم تكن موجودة في مشروعك سيتم استخدام بديل داخلي
     ManagerCreateForm,
+    SubscriptionPlanForm,
+    SchoolSubscriptionForm,
 )
 
 # إشعارات (اختياري)
@@ -62,6 +68,9 @@ from .models import (
     School,
     SchoolMembership,
     MANAGER_SLUG,
+    SubscriptionPlan,
+    SchoolSubscription,
+    Payment,
 )
 
 # موديلات الإشعارات (اختياري)
@@ -1075,7 +1084,37 @@ def delete_teacher(request: HttpRequest, pk: int) -> HttpResponse:
 def _can_act(user, ticket: Ticket) -> bool:
     if not getattr(user, "is_authenticated", False):
         return False
-    return (ticket.assignee_id is not None) and (ticket.assignee_id == user.id)
+
+    # 1. المشرف العام (تذاكر المنصة)
+    if ticket.is_platform and getattr(user, "is_superuser", False):
+        return True
+
+    # 2. المستلم المباشر (Assignee)
+    if ticket.assignee_id == user.id:
+        return True
+
+    # 3. مدير المدرسة (لتذاكر المدرسة)
+    # يحق للمدير التحكم في أي تذكرة تابعة لمدرسته
+    if not ticket.is_platform and ticket.school_id:
+        if SchoolMembership.objects.filter(
+            school_id=ticket.school_id,
+            teacher=user,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True
+        ).exists():
+            return True
+
+    # 4. مسؤول القسم (Officer)
+    # إذا كانت التذكرة تابعة لقسم، فمسؤول القسم يملك صلاحية عليها
+    if ticket.department_id and DepartmentMembership is not None:
+        if DepartmentMembership.objects.filter(
+            department_id=ticket.department_id,
+            teacher=user,
+            role_type=DepartmentMembership.OFFICER
+        ).exists():
+            return True
+
+    return False
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET", "POST"])
@@ -1097,7 +1136,42 @@ def request_create(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/request_create.html", {"form": form})
 
 @login_required(login_url="reports:login")
-@require_http_methods(["GET"])
+@role_required({"manager"})
+@require_http_methods(["GET", "POST"])
+def support_ticket_create(request: HttpRequest) -> HttpResponse:
+    """إنشاء تذكرة دعم فني للمنصة (للمدراء فقط)"""
+    from .forms import SupportTicketForm
+    
+    active_school = _get_active_school(request)
+    
+    if request.method == "POST":
+        form = SupportTicketForm(request.POST, request.FILES)
+        if form.is_valid():
+            ticket = form.save(commit=False, user=request.user)
+            if active_school:
+                ticket.school = active_school
+            ticket.save()
+            messages.success(request, "✅ تم إرسال طلب الدعم الفني بنجاح.")
+            return redirect("reports:my_support_tickets")
+        messages.error(request, "فضلاً تحقّق من الحقول.")
+    else:
+        form = SupportTicketForm()
+        
+    return render(request, "reports/support_ticket_create.html", {"form": form})
+
+
+@login_required(login_url="reports:login")
+@role_required({"manager"})
+def my_support_tickets(request: HttpRequest) -> HttpResponse:
+    """عرض تذاكر الدعم الفني الخاصة بالمدير"""
+    tickets = Ticket.objects.filter(
+        creator=request.user, 
+        is_platform=True
+    ).order_by("-created_at")
+    
+    return render(request, "reports/my_support_tickets.html", {"tickets": tickets})
+
+
 def my_requests(request: HttpRequest) -> HttpResponse:
     user = request.user
     active_school = _get_active_school(request)
@@ -1112,7 +1186,7 @@ def my_requests(request: HttpRequest) -> HttpResponse:
         Ticket.objects.select_related("assignee", "department")
         .prefetch_related(Prefetch("notes", queryset=notes_qs, to_attr="pub_notes"))
         .only("id", "title", "status", "department", "created_at", "assignee__name")
-        .filter(creator=user),
+        .filter(creator=user, is_platform=False),
         active_school,
     )
 
@@ -1159,10 +1233,34 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
     # احضر التذكرة مع الحقول المطلوبة مع احترام المدرسة النشطة
     base_qs = Ticket.objects.select_related("creator", "assignee", "department").only(
         "id", "title", "body", "status", "department", "created_at",
-        "creator__name", "assignee__name", "assignee_id", "creator_id"
+        "creator__name", "assignee__name", "assignee_id", "creator_id", "is_platform"
     )
-    base_qs = _filter_by_school(base_qs, active_school)
-    t: Ticket = get_object_or_404(base_qs, pk=pk)
+    
+    # إذا كانت التذكرة للمنصة، لا نفلتر بالمدرسة (لأنها قد لا تكون مرتبطة بمدرسة أو نريد السماح للمدير برؤيتها)
+    # لكن يجب التأكد أن المستخدم هو المنشئ أو مشرف نظام
+    # سنحاول جلب التذكرة أولاً بدون فلتر المدرسة إذا كانت is_platform=True
+    
+    # الحل الأبسط: نعدل _filter_by_school ليتجاهل الفلتر إذا كانت التذكرة is_platform=True
+    # لكن _filter_by_school تعمل على QuerySet.
+    
+    # لذا سنقوم بالتالي:
+    # 1. نحاول جلب التذكرة بـ PK فقط
+    # 2. نتحقق من الصلاحية يدوياً
+    
+    t = get_object_or_404(Ticket, pk=pk)
+    
+    # التحقق من الوصول
+    if t.is_platform:
+        # تذاكر المنصة: مسموحة للمنشئ (المدير) أو المشرف العام
+        if not (request.user.is_superuser or t.creator_id == request.user.id):
+             raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+    else:
+        # تذاكر المدرسة: يجب أن تكون تابعة للمدرسة النشطة (إن وجدت)
+        if active_school and t.school_id != active_school.id:
+             # قد يكون المستخدم له صلاحية على مدرسة التذكرة حتى لو لم تكن النشطة حالياً؟
+             # للتبسيط سنلتزم بالمدرسة النشطة، أو نتحقق إن كان المستخدم عضواً في مدرسة التذكرة
+             if not SchoolMembership.objects.filter(teacher=request.user, school_id=t.school_id, is_active=True).exists():
+                 raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
 
     is_owner = (t.creator_id == request.user.id)
     can_act = _can_act(request.user, t)
@@ -1173,7 +1271,12 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         changed = False
 
         # إضافة ملاحظة (المرسل أو من يملك الصلاحية)
-        if note_txt and (is_owner or can_act):
+        # يسمح للمرسل بإضافة ملاحظات (للتواصل) ولكن لا يملك صلاحية تغيير الحالة إلا إذا كان من ضمن المستلمين/الإدارة
+        can_comment = False
+        if is_owner or can_act:
+            can_comment = True
+
+        if note_txt and can_comment:
             try:
                 with transaction.atomic():
                     TicketNote.objects.create(
@@ -1747,10 +1850,11 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     ctx = {
         "reports_count": _filter_by_school(Report.objects.all(), active_school).count(),
         "teachers_count": teachers_qs.count(),
-        "tickets_total": _filter_by_school(Ticket.objects.all(), active_school).count(),
-        "tickets_open": _filter_by_school(Ticket.objects.filter(status__in=["open", "in_progress"]), active_school).count(),
-        "tickets_done": _filter_by_school(Ticket.objects.filter(status="done"), active_school).count(),
-        "tickets_rejected": _filter_by_school(Ticket.objects.filter(status="rejected"), active_school).count(),
+        # ✅ إصلاح: عرض التذاكر الداخلية فقط (is_platform=False)
+        "tickets_total": _filter_by_school(Ticket.objects.filter(is_platform=False), active_school).count(),
+        "tickets_open": _filter_by_school(Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=False), active_school).count(),
+        "tickets_done": _filter_by_school(Ticket.objects.filter(status="done", is_platform=False), active_school).count(),
+        "tickets_rejected": _filter_by_school(Ticket.objects.filter(status="rejected", is_platform=False), active_school).count(),
         "has_dept_model": Department is not None,
         "active_school": active_school,
     }
@@ -1794,10 +1898,12 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
 
     reports_count = Report.objects.count()
     teachers_count = Teacher.objects.count()
-    tickets_total = Ticket.objects.count()
-    tickets_open = Ticket.objects.filter(status__in=["open", "in_progress"]).count()
-    tickets_done = Ticket.objects.filter(status="done").count()
-    tickets_rejected = Ticket.objects.filter(status="rejected").count()
+    
+    # ✅ إصلاح: عرض تذاكر الدعم الفني فقط (is_platform=True)
+    tickets_total = Ticket.objects.filter(is_platform=True).count()
+    tickets_open = Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=True).count()
+    tickets_done = Ticket.objects.filter(status="done", is_platform=True).count()
+    tickets_rejected = Ticket.objects.filter(status="rejected", is_platform=True).count()
 
     platform_schools_total = School.objects.count()
     platform_schools_active = School.objects.filter(is_active=True).count()
@@ -1834,9 +1940,72 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         "platform_managers_count": platform_managers_count,
         "has_reporttype": has_reporttype,
         "reporttypes_count": reporttypes_count,
+        
+        # إحصائيات الاشتراكات والمالية
+        "subscriptions_active": SchoolSubscription.objects.filter(is_active=True, end_date__gte=timezone.now().date()).count(),
+        "subscriptions_expired": SchoolSubscription.objects.filter(Q(is_active=False) | Q(end_date__lt=timezone.now().date())).count(),
+        "subscriptions_expiring_soon": SchoolSubscription.objects.filter(
+            is_active=True,
+            end_date__gte=timezone.now().date(),
+            end_date__lte=timezone.now().date() + timedelta(days=30)
+        ).count(),
+        "pending_payments": Payment.objects.filter(status=Payment.Status.PENDING).count(),
+        "total_revenue": Payment.objects.filter(status=Payment.Status.APPROVED).aggregate(total=Sum('amount'))['total'] or 0,
     }
 
     return render(request, "reports/platform_admin_dashboard.html", ctx)
+
+
+# =========================
+# صفحات إدارة المنصة المخصصة (بديلة للآدمن)
+# =========================
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
+    subscriptions = SchoolSubscription.objects.select_related('school', 'plan').order_by('-start_date')
+    return render(request, "reports/platform_subscriptions.html", {"subscriptions": subscriptions})
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_plans_list(request: HttpRequest) -> HttpResponse:
+    plans = SubscriptionPlan.objects.all().order_by('price')
+    return render(request, "reports/platform_plans.html", {"plans": plans})
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_payments_list(request: HttpRequest) -> HttpResponse:
+    payments = Payment.objects.select_related('school').order_by('-created_at')
+    return render(request, "reports/platform_payments.html", {"payments": payments})
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    payment = get_object_or_404(Payment, pk=pk)
+    
+    if request.method == "POST":
+        new_status = request.POST.get("status")
+        notes = request.POST.get("notes")
+        
+        if new_status in Payment.Status.values:
+            payment.status = new_status
+        
+        if notes is not None:
+            payment.notes = notes
+            
+        payment.save()
+        messages.success(request, "تم تحديث حالة الدفع بنجاح.")
+        return redirect("reports:platform_payment_detail", pk=pk)
+
+    return render(request, "reports/platform_payment_detail.html", {"payment": payment})
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_tickets_list(request: HttpRequest) -> HttpResponse:
+    # تذاكر الدعم الفني فقط
+    tickets = Ticket.objects.filter(is_platform=True).select_related('creator').order_by('-created_at')
+    return render(request, "reports/platform_tickets.html", {"tickets": tickets})
+
 
 # ---- الأقسام: عرض/إنشاء/تعديل/حذف ----
 @login_required(login_url="reports:login")
@@ -2523,6 +2692,9 @@ def tickets_inbox(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
     qs = Ticket.objects.select_related("creator", "assignee", "department").order_by("-created_at")
     qs = _filter_by_school(qs, active_school)
+    
+    # استبعاد تذاكر الدعم الفني للمنصة (لأنها خاصة بالإدارة العليا)
+    qs = qs.filter(is_platform=False)
 
     is_manager = bool(getattr(getattr(request.user, "role", None), "slug", None) == "manager")
     if not is_manager:
@@ -2561,6 +2733,9 @@ def assigned_to_me(request: HttpRequest) -> HttpResponse:
         Q(assignee=user) | Q(assignee__isnull=True, department__slug__in=user_codes)
     )
     qs = _filter_by_school(qs, active_school)
+    
+    # استبعاد تذاكر الدعم الفني للمنصة
+    qs = qs.filter(is_platform=False)
 
     q = (request.GET.get("q") or "").strip()
     if q:
@@ -2986,3 +3161,137 @@ def notification_mark_read_by_notification(request: HttpRequest, pk: int) -> Htt
 @user_passes_test(_is_staff, login_url="reports:login")
 def send_notification(request: HttpRequest) -> HttpResponse:
     return redirect("reports:notifications_create")
+
+
+# =========================
+# إدارة الاشتراكات والمالية
+# =========================
+
+def subscription_expired(request):
+    """صفحة تظهر عند انتهاء الاشتراك"""
+    return render(request, 'reports/subscription_expired.html')
+
+@login_required(login_url="reports:login")
+def my_subscription(request):
+    """صفحة عرض تفاصيل الاشتراك لمدير المدرسة"""
+    active_school = _get_active_school(request)
+    
+    # جلب جميع عضويات الإدارة للمستخدم
+    memberships = SchoolMembership.objects.filter(
+        teacher=request.user, 
+        role_type=SchoolMembership.RoleType.MANAGER,
+        is_active=True
+    ).select_related('school__subscription__plan')
+    
+    membership = None
+    # محاولة استخدام المدرسة النشطة إذا كان المستخدم مديراً فيها
+    if active_school:
+        membership = memberships.filter(school=active_school).first()
+    
+    # إذا لم توجد مدرسة نشطة أو المستخدم ليس مديراً فيها، نأخذ أول مدرسة يديرها
+    if not membership:
+        membership = memberships.first()
+    
+    if not membership:
+        messages.error(request, "عفواً، هذه الصفحة مخصصة لمدير المدرسة فقط.")
+        return redirect('reports:home')
+        
+    subscription = getattr(membership.school, 'subscription', None)
+    
+    # جلب آخر المدفوعات
+    payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:5]
+    
+    context = {
+        'subscription': subscription,
+        'school': membership.school,
+        'plans': SubscriptionPlan.objects.filter(is_active=True),
+        'payments': payments
+    }
+    return render(request, 'reports/my_subscription.html', context)
+
+@login_required(login_url="reports:login")
+def payment_create(request):
+    """صفحة رفع إيصال الدفع"""
+    active_school = _get_active_school(request)
+    
+    memberships = SchoolMembership.objects.filter(
+        teacher=request.user, 
+        role_type=SchoolMembership.RoleType.MANAGER,
+        is_active=True
+    )
+    
+    membership = None
+    if active_school:
+        membership = memberships.filter(school=active_school).first()
+        
+    if not membership:
+        membership = memberships.first()
+    
+    if not membership:
+        messages.error(request, "عفواً، هذه الصفحة مخصصة لمدير المدرسة فقط.")
+        return redirect('reports:home')
+
+    if request.method == 'POST':
+        amount = request.POST.get('amount')
+        receipt = request.FILES.get('receipt_image')
+        notes = request.POST.get('notes')
+        
+        if not amount or not receipt:
+            messages.error(request, "يرجى إدخال المبلغ وإرفاق صورة الإيصال.")
+        else:
+            Payment.objects.create(
+                school=membership.school,
+                subscription=getattr(membership.school, 'subscription', None),
+                amount=amount,
+                receipt_image=receipt,
+                notes=notes,
+                created_by=request.user
+            )
+            messages.success(request, "تم رفع طلب الدفع بنجاح، سيتم مراجعته قريباً.")
+            return redirect('reports:my_subscription')
+            
+    return redirect('reports:my_subscription')
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_plan_form(request: HttpRequest, pk: Optional[int] = None) -> HttpResponse:
+    """إضافة أو تعديل خطة اشتراك"""
+    plan = None
+    if pk:
+        plan = get_object_or_404(SubscriptionPlan, pk=pk)
+    
+    if request.method == "POST":
+        form = SubscriptionPlanForm(request.POST, instance=plan)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ الخطة بنجاح.")
+            return redirect("reports:platform_plans_list")
+        else:
+            messages.error(request, "يرجى تصحيح الأخطاء أدناه.")
+    else:
+        form = SubscriptionPlanForm(instance=plan)
+    
+    return render(request, "reports/platform_plan_form.html", {"form": form, "plan": plan})
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_subscription_form(request: HttpRequest, pk: Optional[int] = None) -> HttpResponse:
+    """إضافة أو تعديل اشتراك مدرسة"""
+    subscription = None
+    if pk:
+        subscription = get_object_or_404(SchoolSubscription, pk=pk)
+    
+    if request.method == "POST":
+        form = SchoolSubscriptionForm(request.POST, instance=subscription)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ الاشتراك بنجاح.")
+            return redirect("reports:platform_subscriptions_list")
+        else:
+            messages.error(request, "يرجى تصحيح الأخطاء أدناه.")
+    else:
+        form = SchoolSubscriptionForm(instance=subscription)
+    
+    return render(request, "reports/platform_subscription_form.html", {"form": form, "subscription": subscription})

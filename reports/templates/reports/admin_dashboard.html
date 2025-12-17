@@ -95,7 +95,24 @@
           <div class="muted">تعديل اسم المدرسة وشعارها النشط حالياً</div>
         </div>
       </a>
+
+      <a class="tile" href="{% url 'reports:my_subscription' %}">
+        <div class="ico" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed)">💳</div>
+        <div>
+          <div class="title">الاشتراك والباقات</div>
+          <div class="muted">متابعة حالة الاشتراك وتجديد الباقة</div>
+        </div>
+      </a>
     {% endif %}
+
+    <!-- الدعم الفني للمنصة -->
+    <a class="tile" href="{% url 'reports:my_support_tickets' %}">
+      <div class="ico" style="background:linear-gradient(135deg,#f97316,#ea580c)">🎧</div>
+      <div>
+        <div class="title">الدعم الفني للمنصة</div>
+        <div class="muted">تواصل مع إدارة النظام للمشاكل التقنية</div>
+      </div>
+    </a>
   </section>
 </div>
 {% endblock %}
