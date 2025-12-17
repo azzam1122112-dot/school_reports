@@ -134,7 +134,7 @@
     .hdr-brand-sub{font-weight:800;color:var(--muted);font-size:.88rem;white-space:nowrap}
     @media(max-width:520px){.hdr-brand-sub{display:none}}
 
-    .hdr-nav{display:flex;align-items:center;gap:6px;margin-inline:auto;flex-wrap:wrap}
+    .hdr-nav{display:flex;align-items:center;gap:6px;margin-inline-start:24px;margin-inline-end:auto;flex-wrap:wrap}
     .tab{
       display:inline-flex;align-items:center;gap:8px;min-height:44px;
       padding:0 14px;border-radius:999px;text-decoration:none;
@@ -230,13 +230,19 @@
       opacity: 0; visibility: hidden; transition: var(--t-fast);
     }
     .drawer{
-      position:fixed; inset:0 0 0 auto; width:min(340px,88vw);
-      background:var(--card); border-inline-start:1px solid var(--line);
-      z-index:990; transform:translateX(100%); transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1);
+      position:fixed; top:0; right:0; bottom:0; width:min(340px,88vw);
+      background:var(--card); border-left:1px solid var(--line);
+      z-index:990; transform:translateX(100%); 
+      visibility: hidden;
+      transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s .3s;
       display:flex;flex-direction:column; max-height:100vh;overflow:auto;
       padding-bottom:var(--safe-bottom);
     }
-    .drawer.open{transform:translateX(0)}
+    .drawer.open{
+      transform:translateX(0);
+      visibility: visible;
+      transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s;
+    }
     .drawer-overlay.show{opacity: 1; visibility: visible;}
     .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--line)}
     .drawer-title{font-weight:900}
