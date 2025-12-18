@@ -11,6 +11,16 @@
   }
   .title{margin:0 0 12px;font-weight:900;color:#1f2937}
 
+  /* Filters (use global input/select/button styles) */
+  .inbox-filters{display:grid;gap:10px;margin:8px 0 14px}
+  .inbox-filters .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end}
+  .inbox-filters .chk{display:flex;align-items:center;gap:10px;font-weight:900;color:var(--muted)}
+  .inbox-filters .actions{display:flex;gap:8px;flex-wrap:wrap}
+  @media (max-width:520px){
+    .card{padding:14px}
+    .inbox-filters .actions .btn{flex:1;justify-content:center}
+  }
+
   /* شارات الحالة */
   .status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.8rem;font-weight:900;white-space:nowrap}
   .s-open,.s-new{background:#dcfce7;color:#166534}
@@ -48,26 +58,24 @@
   <div class="card">
     <h2 class="title">📥 صندوق الطلبات</h2>
 
-    <form method="get" class="filters" style="display:grid;gap:10px;margin:8px 0 14px;">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
-        <input type="text" name="q" value="{{ q }}" class="filter-input"
-               placeholder="بحث في العنوان/التفاصيل"
-               style="padding:10px;border:1px solid #d1d5db;border-radius:10px;">
-        <select name="status" class="filter-input" style="padding:10px;border:1px solid #d1d5db;border-radius:10px;">
+    <form method="get" class="inbox-filters" aria-label="فلترة الطلبات">
+      <div class="grid">
+        <input type="text" name="q" value="{{ q }}" class="input" placeholder="بحث في العنوان/التفاصيل">
+        <select name="status" class="select">
           <option value="">كل الحالات</option>
           {% for v,lbl in status_choices %}
             <option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ lbl }}</option>
           {% endfor %}
         </select>
-        <label style="display:flex;align-items:center;gap:8px;">
+        <label class="chk">
           <input type="checkbox" name="mine" value="1" {% if mine %}checked{% endif %}>
           المعيّنة لي فقط
         </label>
       </div>
-      <div>
-        <button class="btn" style="padding:10px 14px;border-radius:10px;background:#2563eb;color:#fff;border:0;">تطبيق</button>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">تطبيق</button>
         {% if q or status or mine %}
-          <a href="{% url 'reports:tickets_inbox' %}" class="btn" style="padding:10px 14px;border-radius:10px;border:1px solid #d1d5db;background:#fff;color:#111827;">مسح</a>
+          <a href="{% url 'reports:tickets_inbox' %}" class="btn btn-outline">مسح</a>
         {% endif %}
       </div>
     </form>

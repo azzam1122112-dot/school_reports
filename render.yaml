@@ -10,10 +10,10 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        value: "postgresql://school_db_lbxv_user:KoIAnrjvXRU8oATuw6DDqNJajUXd5xw4@dpg-d50rlgtactks73bjebi0-a/school_db_lbxv"
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
-        value: "dnob4uzo6"
+        sync: false
       - key: CLOUDINARY_API_KEY
-        value: "338112422428927"
+        sync: false
       - key: CLOUDINARY_API_SECRET
-        value: "cbvBfgbgfnlDA69i7xG11KJ_da8"
+        sync: false

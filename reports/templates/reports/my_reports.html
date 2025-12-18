@@ -25,6 +25,7 @@
   .filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:8px 0 12px}
   .fg{display:flex;flex-direction:column;gap:6px}
   .input{border:1px solid var(--line);border-radius:var(--rsm);padding:11px 12px;background:#fff;min-width:200px}
+  .filters-actions{display:flex;gap:10px;flex-direction:row;margin-inline-start:auto;align-items:center;flex-wrap:wrap}
   .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;font-weight:800;text-decoration:none;border:1px solid var(--line);cursor:pointer;transition:.15s}
   .btn:hover{transform:translateY(-1px)}
   .btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:transparent}
@@ -76,6 +77,24 @@
   /* responsive */
   @media(max-width:960px){ .table-wrap{display:none} .gallery{--size:100px} .row{grid-template-columns:120px 1fr} }
   @media(min-width:961px){ .report-card{display:none} }
+
+  /* Mobile ergonomics */
+  @media(max-width:520px){
+    .container{padding:16px 12px}
+    .filters{gap:10px}
+    .fg{flex:1;min-width: min(220px, 100%)}
+    .input{min-width:0}
+    .filters-actions{width:100%;margin-inline-start:0}
+    .filters-actions .btn{flex:1;justify-content:center}
+    .actions{display:grid;grid-template-columns:1fr}
+    .actions a, .actions form{width:100%}
+    .act{width:100%;justify-content:center}
+    /* Modal buttons bigger + easier on mobile */
+    #imageModal button{min-width:44px;min-height:44px}
+    #prevBtn,#nextBtn{top:auto;bottom:18px;transform:none}
+    #prevBtn{left:14px}
+    #nextBtn{right:14px}
+  }
 </style>
 {% endblock %}
 
@@ -94,7 +113,7 @@
         <label class="lbl">إلى تاريخ</label>
         <input class="input" type="date" name="end_date" value="{{ end_date }}">
       </div>
-      <div class="fg" style="gap:10px;flex-direction:row;margin-inline-start:auto">
+      <div class="filters-actions">
         <button type="submit" class="btn btn-primary">🔍 تصفية</button>
         {% if start_date or end_date %}
           <a class="btn btn-ghost" href="{% url 'reports:my_reports' %}">🧹 مسح</a>

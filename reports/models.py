@@ -227,7 +227,7 @@ class Department(models.Model):
         help_text="يظهر هذا القسم فقط داخل المدرسة المحددة.",
     )
     name = models.CharField("اسم القسم", max_length=120)
-    slug = models.SlugField("المعرّف (slug)", max_length=64, unique=True)
+    slug = models.SlugField("المعرّف (slug)", max_length=64)
     role_label = models.CharField(
         "الاسم الظاهر في قائمة (الدور)",
         max_length=120,
@@ -247,6 +247,23 @@ class Department(models.Model):
 
     class Meta:
         ordering = ("id",)
+        constraints = [
+            # ✅ السماح بتكرار slug بين المدارس المختلفة
+            models.UniqueConstraint(
+                fields=["school", "slug"],
+                condition=models.Q(school__isnull=False),
+                name="uniq_department_slug_per_school",
+            ),
+            # ✅ لو وُجدت أقسام عامة (school=NULL) تبقى فريدة عالميًا
+            models.UniqueConstraint(
+                fields=["slug"],
+                condition=models.Q(school__isnull=True),
+                name="uniq_global_department_slug",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["school", "slug"]),
+        ]
         verbose_name = "قسم"
         verbose_name_plural = "الأقسام"
 
@@ -260,19 +277,16 @@ class Department(models.Model):
         return super().delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
+        """تطبيع slug + فرض خصائص قسم المدير فقط.
+
+        ملاحظة مهمة: كان هناك سابقًا مزامنة تلقائية بين Department.slug و Role.slug.
+        هذا لا يعمل مع الأقسام المخصصة لكل مدرسة (لأن Role.slug فريد عالميًا)، لذلك تم إيقافه.
         """
-        مزامنة جدول Role مع كل قسم:
-        - ينشئ/يحدّث Role بنفس slug.
-        - عند تغيير slug: دمج/إعادة تسمية.
-        - قسم المدير MANAGER_SLUG: يُجبر خصائصه.
-        """
-        # تطبيع الحقول
         if self.slug:
             self.slug = self.slug.strip().lower()
         else:
             self.slug = slugify(self.name or "", allow_unicode=True)
 
-        # إجبار خصائص قسم المدير
         if self.slug == MANAGER_SLUG:
             self.name = MANAGER_NAME
             self.role_label = MANAGER_ROLE_LABEL
@@ -281,174 +295,7 @@ class Department(models.Model):
         if not self.role_label:
             self.role_label = self.name
 
-        old_slug = None
-        if self.pk:
-            old_slug = Department.objects.filter(pk=self.pk).values_list("slug", flat=True).first()
-
-        role_name = (self.role_label or self.name or "").strip()
-
-        with transaction.atomic():
-            # حماية قسم المدير من تغيير slug
-            if old_slug == MANAGER_SLUG and self.slug != MANAGER_SLUG:
-                self.slug = MANAGER_SLUG
-                self.name = MANAGER_NAME
-                self.role_label = MANAGER_ROLE_LABEL
-                self.is_active = True
-
-            super().save(*args, **kwargs)
-
-            # --- مزامنة الدور المطابق ---
-            _Role = Role
-            _Teacher = Teacher
-
-            if old_slug and old_slug != self.slug:
-                old_role = _Role.objects.filter(slug=old_slug).first()
-                if old_role:
-                    target_role = _Role.objects.filter(slug=self.slug).first()
-                    if target_role and target_role.pk != old_role.pk:
-                        # ✅ دمج
-                        to_update = []
-                        if target_role.name != role_name:
-                            target_role.name = role_name
-                            to_update.append("name")
-                        desired_is_staff = True if self.slug == MANAGER_SLUG else target_role.is_staff_by_default
-                        desired_can_view_all = True if self.slug == MANAGER_SLUG else target_role.can_view_all_reports
-                        if target_role.is_staff_by_default != desired_is_staff:
-                            target_role.is_staff_by_default = desired_is_staff
-                            to_update.append("is_staff_by_default")
-                        if target_role.can_view_all_reports != desired_can_view_all:
-                            target_role.can_view_all_reports = desired_can_view_all
-                            to_update.append("can_view_all_reports")
-                        if target_role.is_active != self.is_active:
-                            target_role.is_active = self.is_active
-                            to_update.append("is_active")
-                        if to_update:
-                            target_role.save(update_fields=to_update)
-
-                        try:
-                            target_role.allowed_reporttypes.add(
-                                *old_role.allowed_reporttypes.values_list("pk", flat=True)
-                            )
-                        except Exception:
-                            pass
-                        try:
-                            _Teacher.objects.filter(role=old_role).update(role=target_role)
-                        except Exception:
-                            pass
-                        try:
-                            old_role.delete()
-                        except Exception:
-                            pass
-                    else:
-                        # إعادة تسمية الدور القديم
-                        updates = []
-                        if old_role.slug != self.slug:
-                            old_role.slug = self.slug
-                            updates.append("slug")
-                        if old_role.name != role_name:
-                            old_role.name = role_name
-                            updates.append("name")
-                        if self.slug == MANAGER_SLUG:
-                            if not old_role.is_staff_by_default:
-                                old_role.is_staff_by_default = True
-                                updates.append("is_staff_by_default")
-                            if not old_role.can_view_all_reports:
-                                old_role.can_view_all_reports = True
-                                updates.append("can_view_all_reports")
-                        if old_role.is_active != self.is_active:
-                            old_role.is_active = self.is_active
-                            updates.append("is_active")
-                        if updates:
-                            old_role.save(update_fields=updates)
-                else:
-                    # لا يوجد دور بـ old_slug → احصل/أنشئ دورًا بالـ slug الجديد
-                    role, created = _Role.objects.get_or_create(
-                        slug=self.slug,
-                        defaults={
-                            "name": role_name,
-                            "is_active": self.is_active,
-                            "is_staff_by_default": (self.slug == MANAGER_SLUG),
-                            "can_view_all_reports": (self.slug == MANAGER_SLUG),
-                        },
-                    )
-                    if not created:
-                        to_update = []
-                        if role.name != role_name:
-                            role.name = role_name
-                            to_update.append("name")
-                        if role.is_active != self.is_active:
-                            role.is_active = self.is_active
-                            to_update.append("is_active")
-                        if self.slug == MANAGER_SLUG:
-                            if not role.is_staff_by_default:
-                                role.is_staff_by_default = True
-                                to_update.append("is_staff_by_default")
-                            if not role.can_view_all_reports:
-                                role.can_view_all_reports = True
-                                to_update.append("can_view_all_reports")
-                        if to_update:
-                            role.save(update_fields=to_update)
-            else:
-                # لم يتغير slug → احصل/أنشئ وحدث الخصائص
-                role, created = _Role.objects.get_or_create(
-                    slug=self.slug,
-                    defaults={
-                        "name": role_name,
-                        "is_active": self.is_active,
-                        "is_staff_by_default": (self.slug == MANAGER_SLUG),
-                        "can_view_all_reports": (self.slug == MANAGER_SLUG),
-                    },
-                )
-                if not created:
-                    to_update = []
-                    if role.name != role_name:
-                        role.name = role_name
-                        to_update.append("name")
-                    if role.is_active != self.is_active:
-                        role.is_active = self.is_active
-                        to_update.append("is_active")
-                    if self.slug == MANAGER_SLUG:
-                        if not role.is_staff_by_default:
-                            role.is_staff_by_default = True
-                            to_update.append("is_staff_by_default")
-                        if not role.can_view_all_reports:
-                            role.can_view_all_reports = True
-                            to_update.append("can_view_all_reports")
-                    if to_update:
-                        role.save(update_fields=to_update)
-
-
-def _sync_dept_reporttypes_to_role(dept: Department) -> None:
-    """
-    يقرأ اختيارات القسم (reporttypes) ويعكسها على الدور الموازي.
-    - قسم المدير: يفوز بخاصية can_view_all_reports=True ولا يعتمد على القائمة.
-    """
-    try:
-        role = Role.objects.filter(slug=dept.slug).first()
-        if not role:
-            return
-        if dept.slug == MANAGER_SLUG:
-            updates = []
-            if not role.is_staff_by_default:
-                role.is_staff_by_default = True
-                updates.append("is_staff_by_default")
-            if not role.can_view_all_reports:
-                role.can_view_all_reports = True
-                updates.append("can_view_all_reports")
-            if updates:
-                role.save(update_fields=updates)
-            return
-        role.allowed_reporttypes.set(dept.reporttypes.all())
-    except Exception:
-        # نتجاهل الأخطاء للحفاظ على استقرار عملية الحفظ
-        pass
-
-
-@receiver(m2m_changed, sender=Department.reporttypes.through)
-def department_reporttypes_changed(sender, instance: Department, action, **kwargs):
-    """مزامنة allowed_reporttypes للدور عند تعديل reporttypes في القسم."""
-    if action in {"post_add", "post_remove", "post_clear"}:
-        _sync_dept_reporttypes_to_role(instance)
+        super().save(*args, **kwargs)
 
 
 class DepartmentMembership(models.Model):
@@ -559,7 +406,7 @@ class ReportType(models.Model):
         verbose_name="المدرسة",
         help_text="يظهر هذا النوع فقط في المدرسة المحددة.",
     )
-    code = models.SlugField("الكود", max_length=40, unique=True)
+    code = models.SlugField("الكود", max_length=40)
     name = models.CharField("الاسم", max_length=120)
     description = models.TextField("الوصف", blank=True)
     order = models.PositiveIntegerField("الترتيب", default=0)
@@ -569,6 +416,21 @@ class ReportType(models.Model):
 
     class Meta:
         ordering = ("order", "name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["school", "code"],
+                condition=models.Q(school__isnull=False),
+                name="uniq_reporttype_code_per_school",
+            ),
+            models.UniqueConstraint(
+                fields=["code"],
+                condition=models.Q(school__isnull=True),
+                name="uniq_global_reporttype_code",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["school", "code"]),
+        ]
         verbose_name = "نوع تقرير"
         verbose_name_plural = "أنواع التقارير"
 
@@ -649,6 +511,10 @@ class Report(models.Model):
             models.Index(fields=["created_at"]),
             models.Index(fields=["teacher", "category"]),
             models.Index(fields=["report_date"]),
+            # ✅ في الإنتاج غالبًا نستعلم دائمًا داخل مدرسة محددة
+            models.Index(fields=["school", "report_date"]),
+            models.Index(fields=["school", "created_at"]),
+            models.Index(fields=["school", "category"]),
         ]
         verbose_name = "تقرير"
         verbose_name_plural = "التقارير"
@@ -783,6 +649,9 @@ class Ticket(models.Model):
         indexes = [
             models.Index(fields=["department", "status", "created_at"]),
             models.Index(fields=["assignee", "status"]),
+            # ✅ فهارس شائعة لصفحات المدرسة/الاستعلامات
+            models.Index(fields=["school", "status", "created_at"]),
+            models.Index(fields=["school", "assignee", "status"]),
         ]
 
     def __str__(self):
@@ -935,30 +804,14 @@ class RequestLog(models.Model):
 @receiver(post_migrate)
 def ensure_manager_department_and_role(sender, **kwargs):
     """
-    يضمن وجود قسم المدير ودوره بعد الهجرات:
-    - Department(slug='manager', name='الإدارة', role_label='المدير', is_active=True)
-    - Role(slug='manager', name='المدير', is_staff_by_default=True, can_view_all_reports=True, is_active=True)
+    يضمن وجود دور المدير بعد الهجرات، ويضمن وجود قسم (الإدارة) داخل كل مدرسة.
+
+    لماذا؟
+    - الأقسام أصبحت مخصصة لكل مدرسة، لذا نحتاج Department(slug='manager') لكل مدرسة.
+    - دور Role(slug='manager') يبقى كمرجع عام (اختياري) لبعض الشاشات/المهام.
     """
     try:
         with transaction.atomic():
-            dep, _ = Department.objects.get_or_create(
-                slug=MANAGER_SLUG,
-                defaults={"name": MANAGER_NAME, "role_label": MANAGER_ROLE_LABEL, "is_active": True},
-            )
-            # إصلاح أي تغييرات غير مقصودة
-            updates = []
-            if dep.name != MANAGER_NAME:
-                dep.name = MANAGER_NAME
-                updates.append("name")
-            if dep.role_label != MANAGER_ROLE_LABEL:
-                dep.role_label = MANAGER_ROLE_LABEL
-                updates.append("role_label")
-            if not dep.is_active:
-                dep.is_active = True
-                updates.append("is_active")
-            if updates:
-                dep.save(update_fields=updates)
-
             role, created = Role.objects.get_or_create(
                 slug=MANAGER_SLUG,
                 defaults={
@@ -984,6 +837,31 @@ def ensure_manager_department_and_role(sender, **kwargs):
                     r_upd.append("is_active")
                 if r_upd:
                     role.save(update_fields=r_upd)
+
+            # ✅ قسم الإدارة لكل مدرسة
+            try:
+                schools = School.objects.all().only("id")
+                for s in schools:
+                    dep, _ = Department.objects.get_or_create(
+                        school=s,
+                        slug=MANAGER_SLUG,
+                        defaults={"name": MANAGER_NAME, "role_label": MANAGER_ROLE_LABEL, "is_active": True},
+                    )
+                    updates = []
+                    if dep.name != MANAGER_NAME:
+                        dep.name = MANAGER_NAME
+                        updates.append("name")
+                    if dep.role_label != MANAGER_ROLE_LABEL:
+                        dep.role_label = MANAGER_ROLE_LABEL
+                        updates.append("role_label")
+                    if not dep.is_active:
+                        dep.is_active = True
+                        updates.append("is_active")
+                    if updates:
+                        dep.save(update_fields=updates)
+            except Exception:
+                # لا نوقف post_migrate بسبب مشاكل بيانات
+                pass
     except Exception:
         # لا نرفع خطأ أثناء post_migrate للحفاظ على استقرار الهجرات
         pass

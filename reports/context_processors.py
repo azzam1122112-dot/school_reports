@@ -308,6 +308,21 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
                 # فلترة تخصّص المستلم
                 qs = qs.filter(**{user_fk: user})
 
+                # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
+                try:
+                    if request is not None:
+                        sid = request.session.get("active_school_id")
+                    else:
+                        sid = None
+                    fN = _model_fields(N)
+                    if sid and "school" in fN:
+                        qs = qs.filter(
+                            Q(**{f"{notif_fk}__school_id": sid}) |
+                            Q(**{f"{notif_fk}__school_id__isnull": True})
+                        )
+                except Exception:
+                    pass
+
                 # غير مقروء
                 if "is_read" in fR:
                     qs = qs.filter(is_read=False)
@@ -356,6 +371,15 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
     try:
         now = timezone.now()
         base_qs = _published_notifications_qs(N).filter(_targeted_for_user_q(N, user)).distinct()
+
+        # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
+        try:
+            sid = request.session.get("active_school_id") if request is not None else None
+            fN = _model_fields(N)
+            if sid and "school" in fN:
+                base_qs = base_qs.filter(Q(school_id=sid) | Q(school__isnull=True))
+        except Exception:
+            pass
         base_qs = _exclude_notif_dismissed_cookies_notif_qs(base_qs, request)
         base_qs = _order_newest(base_qs, N)
 
@@ -387,7 +411,7 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
     return None
 
 
-def _unread_count(user) -> int:
+def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
     """عدد الإشعارات غير المقروءة للمستخدم."""
     N, R = _notification_models()
     if not N:
@@ -405,18 +429,32 @@ def _unread_count(user) -> int:
             if not user_fk:
                 return 0
 
+            notif_fk = None
+            for cand in ("notification", "notif", "message"):
+                if cand in fR:
+                    notif_fk = cand
+                    break
+
             qs = R.objects.filter(**{user_fk: user})
+
+            # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
+            try:
+                sid = request.session.get("active_school_id") if request is not None else None
+                fN = _model_fields(N)
+                if sid and notif_fk and "school" in fN:
+                    qs = qs.filter(
+                        Q(**{f"{notif_fk}__school_id": sid}) |
+                        Q(**{f"{notif_fk}__school_id__isnull": True})
+                    )
+            except Exception:
+                pass
+
             if "is_read" in fR:
                 qs = qs.filter(is_read=False)
             elif "read_at" in fR:
                 qs = qs.filter(read_at__isnull=True)
 
             # استبعاد المنتهي عبر FK إن أمكن
-            notif_fk = None
-            for cand in ("notification", "notif", "message"):
-                if cand in fR:
-                    notif_fk = cand
-                    break
             if notif_fk:
                 fN = _model_fields(N)
                 now = timezone.now()
@@ -434,6 +472,15 @@ def _unread_count(user) -> int:
     # فالباك: بلا سجل استلام → نعجز عن قياس غير المقروء بدقة
     try:
         qs = _published_notifications_qs(N).filter(_targeted_for_user_q(N, user)).distinct()
+
+        # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
+        try:
+            sid = request.session.get("active_school_id") if request is not None else None
+            fN = _model_fields(N)
+            if sid and "school" in fN:
+                qs = qs.filter(Q(school_id=sid) | Q(school__isnull=True))
+        except Exception:
+            pass
         return _safe_count(qs)
     except Exception:
         return 0
@@ -575,7 +622,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
 
     # عداد الإشعارات + الـ Hero
     try:
-        unread_count = _unread_count(u)
+        unread_count = _unread_count(u, request=request)
     except Exception:
         unread_count = 0
     try:

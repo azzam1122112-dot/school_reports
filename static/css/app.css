@@ -108,6 +108,10 @@ body.page{
 
 .row-between{display:flex;align-items:center;justify-content:space-between;gap:10px}
 
+/* Visibility helpers (used across templates) */
+.desktop-only{display:block}
+.mobile-only{display:none}
+
 /* ========== 4) Header / Nav (basic legacy support) ========== */
 .site-header{
   background: rgba(255,255,255,.86);
@@ -216,6 +220,15 @@ input:focus, textarea:focus, select:focus{outline:none; box-shadow: var(--ring);
 
 /* ========== 8) Tables / Cards responsive list ========== */
 .table-wrap{display:none;overflow:auto}
+.table-wrap, .table-responsive{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.table-wrap::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar{height:10px}
+.table-wrap::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb{background: rgba(100,116,139,.35); border-radius:999px}
+
 table{width:100%;border-collapse:collapse;background:transparent}
 thead th{
   background: rgba(248,250,252,.9);
@@ -325,6 +338,21 @@ tbody tr:hover td{background: rgba(37,99,235,.03)}
   .table-wrap{display:block}
   .footer-wrap{grid-template-columns:auto 1fr auto}
   .f-copy{text-align:end}
+}
+
+/* Mobile-first improvements */
+@media (max-width: 820px){
+  .desktop-only{display:none!important}
+  .mobile-only{display:block!important}
+  .row-between{flex-wrap:wrap}
+}
+
+/* Prevent iOS Safari zoom-on-focus + improve tap targets */
+@media (max-width: 520px){
+  input[type="text"], input[type="password"], input[type="search"], input[type="number"], input[type="date"],
+  textarea, select{
+    font-size:16px;
+  }
 }
 
 /* TV / large screens */

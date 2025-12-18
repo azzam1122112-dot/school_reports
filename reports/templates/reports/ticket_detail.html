@@ -85,6 +85,18 @@
     .sticky-hint{position:sticky; bottom:0; background:linear-gradient(0deg,rgba(248,250,252,.98),rgba(248,250,252,.75));
       border-top:1px solid #e5e7eb; padding:10px; border-bottom-left-radius:16px; border-bottom-right-radius:16px}
   }
+
+  /* Mobile ergonomics */
+  @media(max-width:520px){
+    .wrap{padding:14px 12px}
+    .bar{padding:10px 12px}
+    .bar .btns{width:100%}
+    .bar .btns .btn{flex:1;justify-content:center}
+    .hd{padding:14px 14px}
+    .body{padding:14px 14px}
+    .input,.select,.textarea{font-size:16px}
+    .gallery{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+  }
 </style>
 {% endblock %}
 

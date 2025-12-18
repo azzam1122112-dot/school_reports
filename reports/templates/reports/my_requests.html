@@ -80,6 +80,20 @@
   .req-scope .btnx:hover{background:#e0e7ff;border-color:#b6c3ff;transform:translateY(-1px)}
   .req-scope .btnx:active{transform:none}
 
+  .req-scope .btnx.primary{
+    background:var(--brand);
+    border-color:var(--brand);
+    color:#fff;
+  }
+  .req-scope .btnx.primary:hover{filter:brightness(.98)}
+
+  .req-scope .btnx.sm{
+    padding:8px 10px;
+    min-height:38px;
+    border-radius:12px;
+    font-size:.92rem;
+  }
+
   .req-scope .view-switch{margin-inline-start:auto;display:flex;gap:8px}
   .req-scope .view-switch a{
     padding:9px 12px;border-radius:12px;border:1px solid var(--line);
@@ -297,6 +311,8 @@
           <input class="input" type="search" name="q" placeholder="ابحث في طلباتك…" value="{{ request.GET.q }}">
           <button class="btnx" type="submit"><i class="fa-solid fa-magnifying-glass"></i> بحث</button>
 
+          <a class="btnx primary" href="{% url 'reports:request_create' %}"><i class="fa-solid fa-plus"></i> طلب جديد</a>
+
           {% if request.GET.q or request.GET.status or request.GET.order %}
             <a class="btnx" href="?view={{ view_mode|default:'list' }}"><i class="fa-solid fa-rotate-left"></i> مسح</a>
           {% endif %}
@@ -362,6 +378,7 @@
                 <th>العنوان</th>
                 <th>الحالة</th>
                 <th>آخر إجراء</th>
+                <th>إجراء</th>
               </tr>
             </thead>
             <tbody>
@@ -390,9 +407,12 @@
                     {% endwith %}
                   {% else %}—{% endif %}
                 </td>
+                <td>
+                  <a class="btnx sm" href="{% url 'reports:ticket_detail' t.pk %}">عرض</a>
+                </td>
               </tr>
               {% empty %}
-                <tr><td colspan="7" style="text-align:center;color:var(--muted);font-weight:900;padding:18px">لا توجد طلبات</td></tr>
+                <tr><td colspan="8" style="text-align:center;color:var(--muted);font-weight:900;padding:18px">لا توجد طلبات</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -461,7 +481,7 @@
             <div class="empty" role="status" aria-live="polite">
               <div>
                 <div class="big">لا توجد طلبات حالياً</div>
-                <div class="sub">جرّب إزالة الفلاتر أو أنشئ طلبًا جديدًا من لوحة النظام.</div>
+                <div class="sub">جرّب إزالة الفلاتر أو اضغط <a href="{% url 'reports:request_create' %}" style="font-weight:900;color:var(--brand);text-decoration:none">طلب جديد</a> لفتح تذكرة.</div>
               </div>
               <div class="spark"><i class="fa-solid fa-face-smile"></i></div>
             </div>

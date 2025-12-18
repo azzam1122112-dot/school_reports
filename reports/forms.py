@@ -55,21 +55,20 @@ sa_phone = RegexValidator(r"^0\d{9}$", "رقم الجوال يجب أن يبدأ
 def _teachers_for_dept(dept_slug: str, school: Optional["School"] = None):
     """
     إرجاع QuerySet للمعلمين المنتمين لقسم معيّن.
-    - عبر Role.slug = dept_slug
-    - أو عبر عضوية DepartmentMembership (department ←→ teacher)
+    - عبر عضوية DepartmentMembership (department ←→ teacher)
+
+    ملاحظة: لا نعتمد على Role.slug لأن الأقسام أصبحت مخصصة لكل مدرسة ويمكن تكرار slugs.
     """
     if not dept_slug:
         return Teacher.objects.none()
 
-    q = Q(role__slug=dept_slug)
-
-    dep_qs = Department.objects.filter(slug=dept_slug)
+    dep_qs = Department.objects.filter(slug__iexact=dept_slug)
     if school is not None and hasattr(Department, "school"):
         dep_qs = dep_qs.filter(school=school)
     dep = dep_qs.first()
-    if dep:
-        teacher_ids = DepartmentMembership.objects.filter(department=dep).values_list("teacher_id", flat=True)
-        q |= Q(id__in=teacher_ids)
+    if not dep:
+        return Teacher.objects.none()
+
     base_qs = Teacher.objects.filter(is_active=True)
     if school is not None:
         base_qs = base_qs.filter(
@@ -77,7 +76,8 @@ def _teachers_for_dept(dept_slug: str, school: Optional["School"] = None):
             school_memberships__is_active=True,
         )
 
-    return base_qs.filter(q).only("id", "name").order_by("name").distinct()
+    teacher_ids = DepartmentMembership.objects.filter(department=dep).values_list("teacher_id", flat=True)
+    return base_qs.filter(id__in=teacher_ids).only("id", "name").order_by("name").distinct()
 
 
 def _is_teacher_in_dept(teacher: Teacher, dept_slug: str) -> bool:
@@ -86,21 +86,19 @@ def _is_teacher_in_dept(teacher: Teacher, dept_slug: str) -> bool:
         return False
 
     dept_slug_norm = (dept_slug or "").strip().lower()
-    role_slug = (getattr(getattr(teacher, "role", None), "slug", None) or "").strip().lower()
-
-    TEACHERS_DEPT_SLUGS = {"teachers", "teacher", "معلمين", "المعلمين"}
-
-    if dept_slug_norm in TEACHERS_DEPT_SLUGS and role_slug in {"teacher", "teachers"}:
-        return True
-
-    if role_slug and role_slug == dept_slug_norm:
-        return True
-
     dep = Department.objects.filter(slug__iexact=dept_slug_norm).first()
     if not dep:
         return False
 
     return DepartmentMembership.objects.filter(department=dep, teacher=teacher).exists()
+
+
+def _is_teacher_in_department(teacher: Teacher, department: Optional[Department]) -> bool:
+    """هل المعلّم ينتمي لكائن قسم محدد (بدون lookup بالـ slug)؟"""
+    if not teacher or not department:
+        return False
+
+    return DepartmentMembership.objects.filter(department=department, teacher=teacher).exists()
 
 
 def _compress_image_upload(f, *, max_px: int = 1600, quality: int = 85) -> InMemoryUploadedFile:
@@ -568,6 +566,8 @@ class TicketCreateForm(forms.ModelForm):
         active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
 
+        self.active_school = active_school
+
         # عزل الأقسام حسب المدرسة النشطة
         if Department is not None:
             dept_qs = Department.objects.filter(is_active=True)
@@ -582,11 +582,6 @@ class TicketCreateForm(forms.ModelForm):
         dept_value = (self.data.get("department") or "").strip() if self.is_bound \
             else getattr(getattr(self.instance, "department", None), "slug", "") or ""
         base_qs = _teachers_for_dept(dept_value, active_school) if dept_value else Teacher.objects.none()
-
-        # إدراج المستلم المرسل ضمن queryset لتفادي "اختيار غير صالح"
-        assignee_id = (self.data.get("assignee") or "").strip() if self.is_bound else ""
-        if assignee_id.isdigit():
-            base_qs = Teacher.objects.filter(Q(id=int(assignee_id)) | Q(id__in=base_qs.values_list("id", flat=True)))
         self.fields["assignee"].queryset = base_qs
 
         # سنخزن النسخ المضغوطة بعد التحقق
@@ -629,8 +624,13 @@ class TicketCreateForm(forms.ModelForm):
             self.add_error("department", "الرجاء اختيار القسم.")
         if dept and not assignee and self.fields["assignee"].queryset.count() > 1:
             self.add_error("assignee", "يرجى اختيار الموظّف.")
-        if assignee and dept and not _is_teacher_in_dept(assignee, dept.slug):
-            self.add_error("assignee", "الموظّف المختار لا ينتمي إلى هذا القسم.")
+        if assignee and dept:
+            if self.active_school is not None:
+                is_allowed = _teachers_for_dept(dept.slug, self.active_school).filter(id=assignee.id).exists()
+            else:
+                is_allowed = _is_teacher_in_department(assignee, dept)
+            if not is_allowed:
+                self.add_error("assignee", "الموظّف المختار لا ينتمي إلى هذا القسم.")
 
         # الآن images هي list[UploadedFile] قادمة من الحقل نفسه
         files = self.cleaned_data.get("images") or []
@@ -757,7 +757,10 @@ if HAS_REQUEST_TICKET and RequestTicket is not None:
 
         def __init__(self, *args, **kwargs):
             kwargs.pop("user", None)
+            active_school = kwargs.pop("active_school", None)
             super().__init__(*args, **kwargs)
+
+            self.active_school = active_school
 
             # مصادر الاختيارات لقسم تراثي
             choices: List[Tuple[str, str]] = []
@@ -779,7 +782,7 @@ if HAS_REQUEST_TICKET and RequestTicket is not None:
                 dept_value = ""
 
             if dept_value:
-                qs = _teachers_for_dept(dept_value)
+                qs = _teachers_for_dept(dept_value, self.active_school)
                 self.fields["assignee"].queryset = qs
                 if qs.count() == 1 and not self.is_bound and not getattr(self.instance, "assignee_id", None):
                     self.initial["assignee"] = qs.first().pk
@@ -791,10 +794,10 @@ if HAS_REQUEST_TICKET and RequestTicket is not None:
             dept = (cleaned.get("department") or "").strip()
             assignee: Optional[Teacher] = cleaned.get("assignee")
             if dept:
-                qs = _teachers_for_dept(dept)
+                qs = _teachers_for_dept(dept, getattr(self, "active_school", None))
                 if qs.count() > 1 and assignee is None:
                     self.add_error("assignee", "يرجى اختيار الموظّف المستلم.")
-                if assignee and not _is_teacher_in_dept(assignee, dept):
+                if assignee and not qs.filter(id=assignee.id).exists():
                     self.add_error("assignee", "الموظّف المختار لا ينتمي إلى هذا القسم.")
             return cleaned
 

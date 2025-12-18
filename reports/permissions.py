@@ -10,7 +10,7 @@ from django.db.models import QuerySet, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 
-from .models import Department, SchoolMembership
+from .models import Department, SchoolMembership, ReportType, School
 
 # نحاول الاستيراد المرن لعضويات الأقسام
 try:
@@ -48,11 +48,11 @@ def _user_role_slug(user) -> Optional[str]:
 # ==============================
 # اكتشاف “مسؤول قسم” (متعدد الأقسام)
 # ==============================
-def get_officer_departments(user) -> List[Department]:
+def get_officer_departments(user, *, active_school: Optional[School] = None) -> List[Department]:
     """
-    يعيد قائمة الأقسام التي المستخدم مسؤول عنها:
-      1) عبر DepartmentMembership.role_type = OFFICER (إن وُجد الموديل).
-      2) fallback: مطابقة Department.slug == user.role.slug (أو role_label == role.name) للأقسام النشطة.
+        يعيد قائمة الأقسام التي المستخدم مسؤول عنها عبر DepartmentMembership.role_type = OFFICER.
+
+        ملاحظة: لا نعتمد على user.role/Role.slug لأن الأقسام الآن مخصصة لكل مدرسة ويمكن أن تتكرر slugs.
     تُعاد قائمة بدون تكرار ومحافظة على الترتيب.
     """
     if not getattr(user, "is_authenticated", False):
@@ -61,7 +61,7 @@ def get_officer_departments(user) -> List[Department]:
     seen = set()
     results: List[Department] = []
 
-    # (1) عبر العضويات
+    # عبر العضويات
     if DepartmentMembership is not None:
         try:
             memb_qs = (
@@ -69,6 +69,8 @@ def get_officer_departments(user) -> List[Department]:
                 .filter(teacher=user, role_type=getattr(DepartmentMembership, "OFFICER", "officer"),
                         department__is_active=True)
             )
+            if active_school is not None:
+                memb_qs = memb_qs.filter(department__school=active_school)
             for m in memb_qs:
                 d = m.department
                 if d and d.pk not in seen:
@@ -76,21 +78,6 @@ def get_officer_departments(user) -> List[Department]:
                     results.append(d)
         except Exception:
             pass
-
-    # (2) fallback عبر الدور
-    try:
-        role = _user_role(user)
-        if role:
-            qs = Department.objects.filter(is_active=True).only("id", "name", "slug")
-            d = None
-            if getattr(role, "slug", None):
-                d = qs.filter(slug=role.slug).first()
-            if not d and getattr(role, "name", None):
-                d = qs.filter(role_label__iexact=role.name).first()
-            if d and d.pk not in seen:
-                results.append(d)
-    except Exception:
-        pass
 
     return results
 
@@ -159,46 +146,39 @@ def role_required(allowed_roles: Iterable[str]):
 # ==============================
 # صلاحيات أنواع التقارير (بالاعتماد على الدور + أقسام المسؤول)
 # ==============================
-def allowed_categories_for(user) -> Set[str]:
+def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[str]:
     """
-    يعيد مجموعة أكواد ReportType المسموحة للمستخدم:
-      - {"all"} للسوبر أو الدور الذي يملك can_view_all_reports=True أو slug="manager".
-      - اتحاد:
-          • أكواد M2M على الدور: role.allowed_reporttypes
-          • أكواد reporttypes لكل الأقسام التي هو مسؤول عنها عبر DepartmentMembership
+        يعيد مجموعة أكواد ReportType المسموحة للمستخدم داخل مدرسة محددة:
+            - {"all"} للسوبر.
+            - مدير المدرسة (SchoolMembership.role_type=manager) داخل active_school: {"all"}.
+            - غير ذلك: اتحاد أكواد reporttypes للأقسام التي هو مسؤول عنها داخل active_school.
+
+        ملاحظة: لا نستخدم Role.allowed_reporttypes هنا لأن Role عالمي وقد يخلط بين المدارس.
     """
     try:
         # سوبر ومدير أو دور يرى الكل
         if getattr(user, "is_superuser", False):
             return {"all"}
-        role = _user_role(user)
-        role_slug = _user_role_slug(user)
-        if role_slug == "manager":
-            return {"all"}
-        
-        # ✅ مدير المدرسة يرى كل التصنيفات
-        if SchoolMembership is not None:
+        if active_school is not None and SchoolMembership is not None:
             try:
-                if SchoolMembership.objects.filter(teacher=user, role_type="manager", is_active=True).exists():
+                if SchoolMembership.objects.filter(
+                    teacher=user,
+                    school=active_school,
+                    role_type="manager",
+                    is_active=True,
+                ).exists():
                     return {"all"}
             except Exception:
                 pass
 
-        if role and getattr(role, "can_view_all_reports", False):
-            return {"all"}
+        if active_school is None:
+            # بدون مدرسة نشطة لا نسمح بتوسيع الوصول
+            return set()
 
         allowed_codes: Set[str] = set()
-
-        # من الدور (إن وُجد الحقل)
         try:
-            if role:
-                allowed_codes |= set(c for c in role.allowed_reporttypes.values_list("code", flat=True) if c)
-        except Exception:
-            pass
-
-        # من جميع أقسام المسؤول
-        try:
-            for d in get_officer_departments(user):
+            officer_depts = get_officer_departments(user, active_school=active_school)
+            for d in officer_depts:
                 allowed_codes |= set(c for c in d.reporttypes.values_list("code", flat=True) if c)
         except Exception:
             pass
@@ -211,28 +191,30 @@ def allowed_categories_for(user) -> Set[str]:
 # ==============================
 # تقييد QuerySet بحسب المستخدم
 # ==============================
-def restrict_queryset_for_user(qs: QuerySet[Any], user) -> QuerySet[Any]:
+def restrict_queryset_for_user(qs: QuerySet[Any], user, active_school: Optional[School] = None) -> QuerySet[Any]:
     """
     يقيّد QuerySet للتقارير بحسب صلاحيات المستخدم:
       - السوبر/المدير/الدور الذي يرى الكل: يرى الجميع.
       - غير ذلك: يرى تقاريره + أي تقرير يقع ضمن الأنواع المسموح بها له (من الدور/الأقسام).
     """
-    role = _user_role(user)
-    role_slug = _user_role_slug(user)
-
-    # سوبر أو مدير أو can_view_all_reports: لا قيود
-    if getattr(user, "is_superuser", False) or role_slug == "manager" or (role and getattr(role, "can_view_all_reports", False)):
+    # سوبر: لا قيود
+    if getattr(user, "is_superuser", False):
         return qs
 
-    # ✅ مدير المدرسة يرى كل التقارير (مع مراعاة فلترة المدرسة في الـ View)
-    if SchoolMembership is not None:
+    # ✅ مدير المدرسة داخل active_school يرى كل التقارير (مع مراعاة فلترة المدرسة في الـ View)
+    if active_school is not None and SchoolMembership is not None:
         try:
-            if SchoolMembership.objects.filter(teacher=user, role_type="manager", is_active=True).exists():
+            if SchoolMembership.objects.filter(
+                teacher=user,
+                school=active_school,
+                role_type="manager",
+                is_active=True,
+            ).exists():
                 return qs
         except Exception:
             pass
 
-    allowed_codes = allowed_categories_for(user)
+    allowed_codes = allowed_categories_for(user, active_school)
     if "all" in allowed_codes:
         return qs
 

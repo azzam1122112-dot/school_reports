@@ -44,6 +44,17 @@
   .ticket-page .btn-outline:hover{background:#f8fafc}
 
   .ticket-page #dynamic-msg{min-height:22px}
+
+  /* Mobile polish */
+  @media(max-width:520px){
+    .ticket-page .ticket-container{padding:14px 12px}
+    .ticket-page .ticket-card{padding:16px}
+    .ticket-page .section-title{font-size:1.18rem}
+    /* منع تكبير iOS عند التركيز */
+    .ticket-page input[type="text"], .ticket-page select, .ticket-page textarea{font-size:16px}
+    .ticket-page .form-actions{grid-template-columns:1fr}
+    .ticket-page .btn{width:100%}
+  }
 </style>
 {% endblock %}
 

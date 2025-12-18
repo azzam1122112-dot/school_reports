@@ -88,11 +88,25 @@
   .bg-pro { background: #f5f3ff; color: #7c3aed; border: 1px solid rgba(124,58,237,.2); }
   .bg-don { background: #e0f2fe; color: var(--brand); border: 1px solid rgba(37,99,235,.2); }
   .bg-rej { background: #fee2e2; color: var(--danger); border: 1px solid rgba(239,68,68,.2); }
+
+  /* Mobile tweaks (scoped) */
+  @media (max-width: 520px) {
+    .assigned-scope .filters > div { grid-column: 1 / -1 !important; }
+    .assigned-scope .filters .actions { width: 100%; flex-direction: column; align-items: stretch; }
+    .assigned-scope .filters .actions .select,
+    .assigned-scope .filters .actions .btn { width: 100%; justify-content: center; }
+
+    .assigned-scope .view-switch { width: 100%; justify-content: stretch; flex-wrap: wrap; }
+    .assigned-scope .view-switch .btn { flex: 1; justify-content: center; }
+
+    .assigned-scope .ticket-item > div:last-child { align-items: stretch !important; }
+    .assigned-scope .btn-detail { width: 100%; justify-content: center; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container assigned-scope">
 
   <section class="card page-hero row-between" style="margin-bottom: 20px;">
     <div>
@@ -133,7 +147,7 @@
       </div>
     </form>
 
-    <div style="margin-top:12px; border-top:1px solid var(--line-2); padding-top:12px; display:flex; justify-content:flex-end; gap:8px;">
+    <div class="view-switch" style="margin-top:12px; border-top:1px solid var(--line-2); padding-top:12px; display:flex; justify-content:flex-end; gap:8px;">
         {% with bq=request.GET.q|urlencode bs=request.GET.status bo=request.GET.order %}
           <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=list"
              class="btn btn-outline view-btn {% if view_mode != 'table' %}active{% endif %}" style="min-height:36px; padding:6px 12px;">
@@ -261,7 +275,7 @@
               "></span>
             </div>
 
-            <a href="{% url 'reports:ticket_detail' t.id %}" style="font-size:0.85rem; font-weight:900; color:var(--brand); margin-top:4px;">
+            <a href="{% url 'reports:ticket_detail' t.id %}" class="btn btn-outline btn-detail" style="min-height:36px; padding:6px 12px; font-size:.9rem;">
               التفاصيل <i class="fa-solid fa-arrow-left"></i>
             </a>
           </div>

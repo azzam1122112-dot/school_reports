@@ -527,9 +527,9 @@ def my_reports(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def admin_reports(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
-    cats = allowed_categories_for(request.user)
+    cats = allowed_categories_for(request.user, active_school)
     qs = Report.objects.select_related("teacher", "category").order_by("-report_date", "-id")
-    qs = restrict_queryset_for_user(qs, request.user)
+    qs = restrict_queryset_for_user(qs, request.user, active_school)
     qs = _filter_by_school(qs, active_school)
 
     start_date = _parse_date_safe(request.GET.get("start_date"))
@@ -553,9 +553,9 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
             qs = qs.filter(category__code=category)
 
     if HAS_RTYPE and ReportType is not None:
-        rtypes_qs = ReportType.objects.all().order_by("order", "name")
-        if cats and "all" not in cats:
-            rtypes_qs = rtypes_qs.filter(code__in=list(cats))
+        rtypes_qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
+        if active_school is not None and hasattr(ReportType, "school"):
+            rtypes_qs = rtypes_qs.filter(school=active_school)
         allowed_choices = [(rt.code, rt.name) for rt in rtypes_qs]
     else:
         allowed_choices = []
@@ -594,29 +594,38 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
         messages.error(request, "صلاحيات المسؤول تتطلب تفعيل الأقسام وعضوياتها.")
         return redirect("reports:home")
 
-    membership = (
-        DepartmentMembership.objects.select_related("department")
-        .filter(teacher=user, role_type=DM_OFFICER, department__is_active=True)
-        .first()
-    )
+    if active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:select_school")
 
-    if not (membership or is_officer(user)):
+    officer_memberships_qs = DepartmentMembership.objects.select_related("department").filter(
+        teacher=user,
+        role_type=DM_OFFICER,
+        department__is_active=True,
+        department__school=active_school,
+    )
+    membership = officer_memberships_qs.first()
+
+    # ✅ يلزم أن تكون مسؤولاً داخل المدرسة النشطة نفسها (بدون fallback عبر مدرسة أخرى)
+    if membership is None:
         messages.error(request, "لا تملك صلاحية مسؤول قسم.")
         return redirect("reports:home")
 
     dept = membership.department if membership else None
 
+    # ✅ الأنواع المسموحة لمسؤول القسم = اتحاد reporttypes لأقسامه داخل المدرسة النشطة
     allowed_cats_qs = None
-    if dept is not None:
-        allowed_cats_qs = getattr(dept, "reporttypes", None)
-        allowed_cats_qs = (allowed_cats_qs.filter(is_active=True) if allowed_cats_qs is not None else None)
-
-    role = getattr(user, "role", None)
-    if (allowed_cats_qs is None) or (not allowed_cats_qs.exists()):
-        if role is not None and hasattr(role, "allowed_reporttypes"):
-            allowed_cats_qs = role.allowed_reporttypes.filter(is_active=True)
-        else:
-            allowed_cats_qs = ReportType.objects.none() if HAS_RTYPE and ReportType else None
+    if HAS_RTYPE and ReportType is not None:
+        allowed_cats_qs = (
+            ReportType.objects.filter(
+                is_active=True,
+                departments__memberships__teacher=user,
+                departments__memberships__role_type=DM_OFFICER,
+                departments__school=active_school,
+            )
+            .distinct()
+            .order_by("order", "name")
+        )
 
     if allowed_cats_qs is None or not allowed_cats_qs.exists():
         messages.info(request, "لم يتم ربط قسمك بأي أنواع تقارير بعد.")
@@ -699,6 +708,25 @@ def admin_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
 @user_passes_test(_is_staff_or_officer, login_url="reports:login")
 @require_http_methods(["POST"])
 def officer_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
+    # ✅ تأكيد أن المستخدم مسؤول داخل المدرسة النشطة قبل السماح بالحذف عبر هذا المسار
+    active_school = _get_active_school(request)
+    if not getattr(request.user, "is_staff", False):
+        if active_school is None:
+            messages.error(request, "فضلاً اختر مدرسة أولاً.")
+            return redirect("reports:select_school")
+        if DepartmentMembership is None:
+            messages.error(request, "صلاحيات المسؤول تتطلب تفعيل الأقسام وعضوياتها.")
+            return redirect("reports:home")
+        has_officer_membership = DepartmentMembership.objects.filter(
+            teacher=request.user,
+            role_type=DM_OFFICER,
+            department__is_active=True,
+            department__school=active_school,
+        ).exists()
+        if not has_officer_membership:
+            messages.error(request, "لا تملك صلاحية مسؤول قسم في هذه المدرسة.")
+            return redirect("reports:home")
+
     try:
         r = _get_report_for_user_or_404(request, pk)  # 404 تلقائيًا خارج النطاق ومع عزل المدرسة
         r.delete()
@@ -727,7 +755,7 @@ def _get_report_for_user_or_404(request: HttpRequest, pk: int):
         return get_object_or_404(qs, pk=pk)
 
     try:
-        cats = allowed_categories_for(user) or set()
+        cats = allowed_categories_for(user, active_school) or set()
     except Exception:
         cats = set()
 
@@ -810,17 +838,44 @@ def _build_head_decision(dept):
 def report_print(request: HttpRequest, pk: int) -> HttpResponse:
     r = _get_report_for_user_or_404(request, pk)
 
+    active_school = _get_active_school(request)
+    school_scope = getattr(r, "school", None) or active_school
+
     # اختيار القسم يدويًا عبر ?dept=slug-or-id (اختياري)
     dept = None
     if Department is not None:
         pref = request.GET.get("dept")
         if pref:
-            dept = (Department.objects.filter(Q(slug=pref) | Q(id=pref)).first()
-                    or dept)
+            dept_qs = Department.objects.all()
+            try:
+                if school_scope is not None and "school" in [f.name for f in Department._meta.get_fields()]:
+                    dept_qs = dept_qs.filter(school=school_scope)
+            except Exception:
+                pass
+
+            dept = dept_qs.filter(Q(slug=pref) | Q(id=pref)).first() or dept
+
+            # لا نسمح باختيار قسم لا يرتبط بتصنيف التقرير
+            cat = getattr(r, "category", None)
+            if dept is not None and cat is not None:
+                try:
+                    if hasattr(dept, "reporttypes") and getattr(cat, "pk", None) is not None:
+                        if not dept.reporttypes.filter(pk=cat.pk).exists():
+                            dept = None
+                except Exception:
+                    dept = None
 
     if dept is None:
         cat = getattr(r, "category", None)
         dept = _resolve_department_for_category(cat)
+        # حماية إضافية: تأكد أن القسم من نفس مدرسة التقرير/المدرسة النشطة
+        if dept is not None and school_scope is not None:
+            try:
+                dept_school = getattr(dept, "school", None)
+                if dept_school is not None and dept_school != school_scope:
+                    dept = None
+            except Exception:
+                dept = None
 
     head_decision = _build_head_decision(dept)
 
@@ -882,6 +937,44 @@ def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
 
     r = _get_report_for_user_or_404(request, pk)
 
+    active_school = _get_active_school(request)
+    school_scope = getattr(r, "school", None) or active_school
+
+    dept = None
+    if Department is not None:
+        pref = request.GET.get("dept")
+        if pref:
+            dept_qs = Department.objects.all()
+            try:
+                if school_scope is not None and "school" in [f.name for f in Department._meta.get_fields()]:
+                    dept_qs = dept_qs.filter(school=school_scope)
+            except Exception:
+                pass
+
+            dept = dept_qs.filter(Q(slug=pref) | Q(id=pref)).first() or dept
+
+            cat = getattr(r, "category", None)
+            if dept is not None and cat is not None:
+                try:
+                    if hasattr(dept, "reporttypes") and getattr(cat, "pk", None) is not None:
+                        if not dept.reporttypes.filter(pk=cat.pk).exists():
+                            dept = None
+                except Exception:
+                    dept = None
+
+    if dept is None:
+        cat = getattr(r, "category", None)
+        dept = _resolve_department_for_category(cat)
+        if dept is not None and school_scope is not None:
+            try:
+                dept_school = getattr(dept, "school", None)
+                if dept_school is not None and dept_school != school_scope:
+                    dept = None
+            except Exception:
+                dept = None
+
+    head_decision = _build_head_decision(dept)
+
     # إعادة استخدام نفس منطق اسم مدير المدرسة لضمان تطابق الطباعة و PDF
     school_principal = ""
     try:
@@ -923,7 +1016,13 @@ def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
 
     html = render_to_string(
         "reports/report_print.html",
-        {"r": r, "for_pdf": True, "SCHOOL_PRINCIPAL": school_principal, "PRINT_PRIMARY_COLOR": print_color},
+        {
+            "r": r,
+            "for_pdf": True,
+            "head_decision": head_decision,
+            "SCHOOL_PRINCIPAL": school_principal,
+            "PRINT_PRIMARY_COLOR": print_color,
+        },
         request=request,
     )
     css = CSS(string="@page { size: A4; margin: 14mm 12mm; }")
@@ -1124,6 +1223,17 @@ def _can_act(user, ticket: Ticket) -> bool:
             teacher=user,
             role_type=DepartmentMembership.OFFICER
         ).exists():
+            # عزل المدرسة: لمسؤول القسم، لا نسمح بالتعامل مع تذكرة مدرسة أخرى
+            try:
+                if (not ticket.is_platform) and ticket.school_id:
+                    if not SchoolMembership.objects.filter(
+                        teacher=user,
+                        school_id=ticket.school_id,
+                        is_active=True,
+                    ).exists():
+                        return False
+            except Exception:
+                pass
             return True
 
     return False
@@ -1132,6 +1242,11 @@ def _can_act(user, ticket: Ticket) -> bool:
 @require_http_methods(["GET", "POST"])
 def request_create(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
+
+    # إذا كانت هناك مدارس مفعّلة، نلزم اختيار مدرسة لإنشاء تذكرة مدرسة
+    if School.objects.filter(is_active=True).exists() and active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:select_school")
 
     if request.method == "POST":
         form = TicketCreateForm(request.POST, request.FILES, user=request.user, active_school=active_school)
@@ -1155,6 +1270,14 @@ def support_ticket_create(request: HttpRequest) -> HttpResponse:
     from .forms import SupportTicketForm
     
     active_school = _get_active_school(request)
+
+    if School.objects.filter(is_active=True).exists():
+        if active_school is None:
+            messages.error(request, "فضلاً اختر مدرسة أولاً.")
+            return redirect("reports:select_school")
+        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+            messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
+            return redirect("reports:select_school")
     
     if request.method == "POST":
         form = SupportTicketForm(request.POST, request.FILES)
@@ -1176,17 +1299,33 @@ def support_ticket_create(request: HttpRequest) -> HttpResponse:
 @role_required({"manager"})
 def my_support_tickets(request: HttpRequest) -> HttpResponse:
     """عرض تذاكر الدعم الفني الخاصة بالمدير"""
+    active_school = _get_active_school(request)
+
+    if School.objects.filter(is_active=True).exists():
+        if active_school is None:
+            messages.error(request, "فضلاً اختر مدرسة أولاً.")
+            return redirect("reports:select_school")
+        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+            messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
+            return redirect("reports:select_school")
+
     tickets = Ticket.objects.filter(
         creator=request.user, 
-        is_platform=True
+        is_platform=True,
+        school=active_school,
     ).order_by("-created_at")
     
     return render(request, "reports/my_support_tickets.html", {"tickets": tickets})
 
 
+@login_required(login_url="reports:login")
 def my_requests(request: HttpRequest) -> HttpResponse:
     user = request.user
     active_school = _get_active_school(request)
+
+    if School.objects.filter(is_active=True).exists() and active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:select_school")
 
     notes_qs = (
         TicketNote.objects.filter(is_public=True)
@@ -1245,7 +1384,7 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
     # احضر التذكرة مع الحقول المطلوبة مع احترام المدرسة النشطة
     base_qs = Ticket.objects.select_related("creator", "assignee", "department").only(
         "id", "title", "body", "status", "department", "created_at",
-        "creator__name", "assignee__name", "assignee_id", "creator_id", "is_platform"
+        "creator__name", "assignee__name", "assignee_id", "creator_id", "is_platform", "school_id"
     )
     
     # إذا كانت التذكرة للمنصة، لا نفلتر بالمدرسة (لأنها قد لا تكون مرتبطة بمدرسة أو نريد السماح للمدير برؤيتها)
@@ -1259,7 +1398,7 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
     # 1. نحاول جلب التذكرة بـ PK فقط
     # 2. نتحقق من الصلاحية يدوياً
     
-    t = get_object_or_404(Ticket, pk=pk)
+    t = get_object_or_404(base_qs, pk=pk)
     
     # التحقق من الوصول
     if t.is_platform:
@@ -1267,12 +1406,20 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         if not (request.user.is_superuser or t.creator_id == request.user.id):
              raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
     else:
-        # تذاكر المدرسة: يجب أن تكون تابعة للمدرسة النشطة (إن وجدت)
-        if active_school and t.school_id != active_school.id:
-             # قد يكون المستخدم له صلاحية على مدرسة التذكرة حتى لو لم تكن النشطة حالياً؟
-             # للتبسيط سنلتزم بالمدرسة النشطة، أو نتحقق إن كان المستخدم عضواً في مدرسة التذكرة
-             if not SchoolMembership.objects.filter(teacher=request.user, school_id=t.school_id, is_active=True).exists():
-                 raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
+        # تذاكر المدرسة: نلزم عضوية المستخدم في مدرسة التذكرة
+        if not request.user.is_superuser:
+            if not t.school_id:
+                raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
+            if not SchoolMembership.objects.filter(
+                teacher=request.user,
+                school_id=t.school_id,
+                is_active=True,
+            ).exists():
+                raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+
+            # عند تعدد المدارس: نلزم توافق المدرسة النشطة مع مدرسة التذكرة
+            if active_school is not None and t.school_id != active_school.id:
+                raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
 
     is_owner = (t.creator_id == request.user.id)
     can_act = _can_act(request.user, t)
@@ -1399,16 +1546,19 @@ def _arabic_label_for(dept_obj_or_code) -> str:
     )
     return _role_display_map().get(code, code or "—")
 
-def _resolve_department_by_code_or_pk(code_or_pk: str) -> Tuple[Optional[object], str, str]:
+def _resolve_department_by_code_or_pk(code_or_pk: str, school: Optional[School] = None) -> Tuple[Optional[object], str, str]:
     dept_obj = None
     dept_code = (code_or_pk or "").strip()
 
     if Department is not None:
         try:
-            dept_obj = Department.objects.filter(slug__iexact=dept_code).first()
+            qs = Department.objects.all()
+            if school is not None and hasattr(Department, "school"):
+                qs = qs.filter(school=school)
+            dept_obj = qs.filter(slug__iexact=dept_code).first()
             if not dept_obj:
                 try:
-                    dept_obj = Department.objects.filter(pk=int(dept_code)).first()
+                    dept_obj = qs.filter(pk=int(dept_code)).first()
                 except (ValueError, TypeError):
                     dept_obj = None
         except Exception:
@@ -1423,34 +1573,24 @@ def _resolve_department_by_code_or_pk(code_or_pk: str) -> Tuple[Optional[object]
 def _members_for_department(dept_code: str, school: Optional[School] = None):
     if not dept_code:
         return Teacher.objects.none()
-    role_qs = Teacher.objects.filter(is_active=True, role__slug=dept_code)
+    if DepartmentMembership is None:
+        return Teacher.objects.none()
+
+    mem_qs = DepartmentMembership.objects.filter(department__slug__iexact=dept_code)
     if school is not None:
-        role_qs = role_qs.filter(
+        mem_qs = mem_qs.filter(department__school=school)
+    member_ids = mem_qs.values_list("teacher_id", flat=True)
+
+    qs = Teacher.objects.filter(is_active=True, id__in=member_ids).distinct()
+    if school is not None:
+        qs = qs.filter(
             school_memberships__school=school,
             school_memberships__is_active=True,
         )
-    if DepartmentMembership is not None:
-        member_ids = DepartmentMembership.objects.filter(
-            department__slug=dept_code
-        ).values_list("teacher_id", flat=True)
-        qs = Teacher.objects.filter(is_active=True).filter(Q(role__slug=dept_code) | Q(id__in=member_ids)).distinct()
-        if school is not None:
-            qs = qs.filter(
-                school_memberships__school=school,
-                school_memberships__is_active=True,
-            )
-        return qs.order_by("name")
-    return role_qs.order_by("name")
+    return qs.order_by("name")
 
 def _user_department_codes(user) -> list[str]:
     codes = set()
-    try:
-        role = getattr(user, "role", None)
-        if role and getattr(role, "slug", None) and role.slug != "teacher":
-            codes.add(role.slug)
-    except Exception:
-        pass
-
     if DepartmentMembership is not None:
         try:
             mem_codes = (
@@ -2113,10 +2253,23 @@ def department_edit(request: HttpRequest, code: str) -> HttpResponse:
         messages.error(request, "تعديل الأقسام غير متاح بدون موديل Department.")
         return redirect("reports:departments_list")
 
-    obj, _, label = _resolve_department_by_code_or_pk(code)
+    obj, _, label = _resolve_department_by_code_or_pk(str(code), active_school)
     if not obj:
         messages.error(request, "القسم غير موجود.")
         return redirect("reports:departments_list")
+
+    # عزل المدرسة: منع تعديل قسم يخص مدرسة أخرى.
+    # الأقسام العامة (school is NULL) يسمح بها للسوبر فقط.
+    try:
+        if not getattr(request.user, "is_superuser", False) and hasattr(obj, "school_id"):
+            if getattr(obj, "school_id", None) is None:
+                messages.error(request, "لا يمكنك تعديل قسم عام.")
+                return redirect("reports:departments_list")
+            if active_school is None or getattr(obj, "school_id", None) != getattr(active_school, "id", None):
+                messages.error(request, "لا يمكنك تعديل قسم من مدرسة أخرى.")
+                return redirect("reports:departments_list")
+    except Exception:
+        pass
 
     FormCls = get_department_form()
     if not FormCls:
@@ -2359,14 +2512,37 @@ def school_manager_update(request: HttpRequest, pk: int) -> HttpResponse:
 @role_required({"manager"})
 @require_http_methods(["POST"])
 def department_delete(request: HttpRequest, code: str) -> HttpResponse:
+    active_school = _get_active_school(request)
+    if School.objects.filter(is_active=True).exists():
+        if active_school is None:
+            messages.error(request, "فضلاً اختر مدرسة أولاً.")
+            return redirect("reports:select_school")
+        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+            messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
+            return redirect("reports:select_school")
+
     if Department is None:
         messages.error(request, "حذف الأقسام غير متاح بدون موديل Department.")
         return redirect("reports:departments_list")
 
-    obj, _, label = _resolve_department_by_code_or_pk(code)
+    obj, _, label = _resolve_department_by_code_or_pk(str(code), active_school)
     if not obj:
         messages.error(request, "القسم غير موجود.")
         return redirect("reports:departments_list")
+
+    # عزل المدرسة: لا يُسمح بحذف قسم يخص مدرسة أخرى.
+    # الأقسام العامة (school is NULL) يُسمح بها للسوبر فقط (باستثناء قسم المدير الدائم الذي يمنع حذفه أصلاً).
+    try:
+        dep_school_id = getattr(obj, "school_id", None)
+        if dep_school_id is None:
+            if not getattr(request.user, "is_superuser", False):
+                messages.error(request, "لا يمكنك حذف قسم عام على مستوى المنصة.")
+                return redirect("reports:departments_list")
+        elif active_school is not None and dep_school_id != active_school.id:
+            messages.error(request, "لا يمكنك حذف قسم يخص مدرسة أخرى.")
+            return redirect("reports:departments_list")
+    except Exception:
+        pass
 
     try:
         obj.delete()
@@ -2474,10 +2650,24 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
             messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
             return redirect("reports:select_school")
 
-    obj, dept_code, dept_label = _resolve_department_by_code_or_pk(str(code))
+    obj, dept_code, dept_label = _resolve_department_by_code_or_pk(str(code), active_school)
     if not dept_code:
         messages.error(request, "القسم غير موجود.")
         return redirect("reports:departments_list")
+
+    # عزل المدرسة: لا نسمح بإدارة أعضاء قسم تابع لمدرسة أخرى.
+    try:
+        if obj is not None:
+            dep_school_id = getattr(obj, "school_id", None)
+            if dep_school_id is None:
+                if not getattr(request.user, "is_superuser", False):
+                    messages.error(request, "لا يمكنك إدارة قسم عام على مستوى المنصة.")
+                    return redirect("reports:departments_list")
+            elif active_school is not None and dep_school_id != active_school.id:
+                messages.error(request, "لا يمكنك إدارة قسم يخص مدرسة أخرى.")
+                return redirect("reports:departments_list")
+    except Exception:
+        pass
 
     if request.method == "POST":
         teacher_id = request.POST.get("teacher_id")
@@ -2496,22 +2686,13 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
                         if ok:
                             messages.success(request, f"تم تكليف {teacher.name} في قسم «{dept_label}».")
                         else:
-                            if not _assign_role_by_slug(teacher, dept_code):
-                                messages.error(request, "تعذّر إسناد المعلّم — تحقّق من بنية DepartmentMembership/Role.")
-                            else:
-                                messages.warning(request, f"تم الإسناد عبر الدور (fallback). راجع بنية DepartmentMembership لاحقًا.")
+                            messages.error(request, "تعذّر إسناد المعلّم — تحقّق من بنية DepartmentMembership.")
                     elif action == "remove":
                         ok = _dept_remove_member(obj, teacher)
                         if ok:
                             messages.success(request, f"تم إلغاء تكليف {teacher.name}.")
                         else:
-                            if getattr(getattr(teacher, "role", None), "slug", None) == dept_code:
-                                if not _assign_role_by_slug(teacher, "teacher"):
-                                    messages.error(request, "تعذّر الإلغاء (الدور).")
-                                else:
-                                    messages.warning(request, "تم الإلغاء عبر الدور (fallback).")
-                            else:
-                                messages.error(request, "تعذّر إلغاء التكليف — تحقق من بنية العلاقات.")
+                            messages.error(request, "تعذّر إلغاء التكليف — تحقق من بنية العلاقات.")
                     else:
                         messages.error(request, "إجراء غير معروف.")
             except Exception:
@@ -2573,7 +2754,17 @@ def reporttypes_list(request: HttpRequest) -> HttpResponse:
         qs = qs.filter(school=active_school)
     items = []
     for rt in qs:
-        cnt = Report.objects.filter(category__code=rt.code).count()
+        cnt_qs = Report.objects.filter(category__code=rt.code)
+        try:
+            if hasattr(Report, "school"):
+                rt_school_id = getattr(rt, "school_id", None)
+                if rt_school_id is not None:
+                    cnt_qs = cnt_qs.filter(school_id=rt_school_id)
+                elif active_school is not None:
+                    cnt_qs = cnt_qs.filter(school=active_school)
+        except Exception:
+            pass
+        cnt = cnt_qs.count()
         items.append({"obj": rt, "code": rt.code, "name": rt.name, "is_active": rt.is_active, "order": rt.order, "count": cnt})
     return render(request, "reports/reporttypes_list.html", {"items": items, "db_backed": True})
 
@@ -2665,8 +2856,29 @@ def reporttype_delete(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("reports:reporttypes_list")
 
     active_school = _get_active_school(request)
-    obj = get_object_or_404(ReportType, pk=pk)
-    used = Report.objects.filter(category__code=obj.code).count()
+    if School.objects.filter(is_active=True).exists():
+        if active_school is None:
+            messages.error(request, "فضلاً اختر مدرسة أولاً.")
+            return redirect("reports:select_school")
+        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+            messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
+            return redirect("reports:select_school")
+
+    # عزل المدرسة: لا نسمح بحذف نوع تقرير يخص مدرسة أخرى.
+    # الأنواع العامة (school is NULL) يسمح بها للسوبر فقط.
+    if getattr(request.user, "is_superuser", False):
+        obj = get_object_or_404(ReportType, pk=pk)
+    else:
+        obj = get_object_or_404(ReportType, pk=pk, school=active_school)
+
+    # حساب الاستخدام وفق نطاق المدرسة.
+    try:
+        if getattr(obj, "school_id", None) is not None:
+            used = Report.objects.filter(category__code=obj.code, school_id=obj.school_id).count()
+        else:
+            used = Report.objects.filter(category__code=obj.code).count()
+    except Exception:
+        used = Report.objects.filter(category__code=obj.code).count()
     if used > 0:
         messages.error(request, f"لا يمكن حذف «{obj.name}» لوجود {used} تقرير مرتبط. يمكنك تعطيله بدلًا من الحذف.")
         return redirect("reports:reporttypes_list")
@@ -2702,6 +2914,9 @@ def api_department_members(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def tickets_inbox(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
+    if School.objects.filter(is_active=True).exists() and active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:select_school")
     qs = Ticket.objects.select_related("creator", "assignee", "department").order_by("-created_at")
     qs = _filter_by_school(qs, active_school)
     
@@ -2740,6 +2955,10 @@ def assigned_to_me(request: HttpRequest) -> HttpResponse:
     user = request.user
     user_codes = _user_department_codes(user)
     active_school = _get_active_school(request)
+
+    if School.objects.filter(is_active=True).exists() and active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:select_school")
 
     qs = Ticket.objects.select_related("creator", "assignee", "department").filter(
         Q(assignee=user) | Q(assignee__isnull=True, department__slug__in=user_codes)
@@ -2855,6 +3074,12 @@ def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
     if Notification is None:
         messages.error(request, "نموذج الإشعار غير متاح.")
         return redirect("reports:notifications_sent")
+
+    active_school = _get_active_school(request)
+    if not request.user.is_superuser and active_school is None:
+        messages.error(request, "يرجى اختيار المدرسة أولاً.")
+        return redirect("reports:home")
+
     n = get_object_or_404(Notification, pk=pk)
     role_slug = getattr(getattr(request.user, "role", None), "slug", None)
     is_owner = getattr(n, "created_by_id", None) == request.user.id
@@ -2862,6 +3087,18 @@ def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
     if not (is_manager or is_owner):
         messages.error(request, "لا تملك صلاحية حذف هذا الإشعار.")
         return redirect("reports:notifications_sent")
+
+    # عزل حسب المدرسة النشطة (غير السوبر)
+    try:
+        if not request.user.is_superuser and hasattr(n, "school_id"):
+            if getattr(n, "school_id", None) is None:
+                messages.error(request, "لا تملك صلاحية حذف إشعار عام.")
+                return redirect("reports:notifications_sent")
+            if getattr(n, "school_id", None) != getattr(active_school, "id", None):
+                messages.error(request, "لا تملك صلاحية حذف إشعار من مدرسة أخرى.")
+                return redirect("reports:notifications_sent")
+    except Exception:
+        pass
     try:
         n.delete()
         messages.success(request, "🗑️ تم حذف الإشعار.")
@@ -2904,7 +3141,24 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, "نموذج الإشعار غير متاح.")
         return redirect("reports:notifications_sent")
 
+    active_school = _get_active_school(request)
+    if not request.user.is_superuser and active_school is None:
+        messages.error(request, "يرجى اختيار المدرسة أولاً.")
+        return redirect("reports:home")
+
     n = get_object_or_404(Notification, pk=pk)
+
+    # عزل حسب المدرسة النشطة (غير السوبر)
+    try:
+        if not request.user.is_superuser and hasattr(n, "school_id"):
+            if getattr(n, "school_id", None) is None:
+                messages.error(request, "لا تملك صلاحية عرض إشعار عام.")
+                return redirect("reports:notifications_sent")
+            if getattr(n, "school_id", None) != getattr(active_school, "id", None):
+                messages.error(request, "لا تملك صلاحية عرض إشعار من مدرسة أخرى.")
+                return redirect("reports:notifications_sent")
+    except Exception:
+        pass
 
     role_slug = getattr(getattr(request.user, "role", None), "slug", None)
     if not (request.user.is_superuser or role_slug == "manager"):
@@ -2968,10 +3222,19 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
     if NotificationRecipient is None:
         return render(request, "reports/my_notifications.html", {"page_obj": Paginator([], 12).get_page(1)})
 
+    active_school = _get_active_school(request)
+
     qs = (NotificationRecipient.objects
           .select_related("notification")
           .filter(teacher=request.user)
           .order_by("-created_at", "-id"))
+
+    # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
+    try:
+        if active_school is not None and Notification is not None and hasattr(Notification, "school"):
+            qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+    except Exception:
+        pass
 
     # إخفاء المنتهية بحسب الحقول المتاحة
     now = timezone.now()
@@ -2993,7 +3256,19 @@ def notifications_sent(request: HttpRequest) -> HttpResponse:
     if Notification is None:
         return render(request, "reports/notifications_sent.html", {"page_obj": Paginator([], 20).get_page(1), "stats": {}})
 
+    active_school = _get_active_school(request)
+    if not request.user.is_superuser and active_school is None:
+        messages.error(request, "يرجى اختيار المدرسة أولاً.")
+        return redirect("reports:home")
+
     qs = Notification.objects.all().order_by("-created_at", "-id")
+
+    # غير السوبر: لا يرى إلا إشعارات المدرسة النشطة (لا إشعارات عامة)
+    try:
+        if not request.user.is_superuser and hasattr(Notification, "school"):
+            qs = qs.filter(school=active_school)
+    except Exception:
+        pass
 
     role_slug = getattr(getattr(request.user, "role", None), "slug", None)
     if role_slug and role_slug != "manager" and not request.user.is_superuser:
