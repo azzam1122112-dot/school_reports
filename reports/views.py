@@ -409,8 +409,10 @@ def home(request: HttpRequest) -> HttpResponse:
     stats = {"today_count": 0, "total_count": 0, "last_title": "—"}
     req_stats = {"open": 0, "in_progress": 0, "done": 0, "rejected": 0, "total": 0}
 
-    # آخر إشعار للمستخدم: نعرض الأحدث فقط، وإذا كان غير مقروء نعلّمه كمقروء عند العرض.
-    login_notification = None
+    # إشعار التحفيز: اعرض أحدث إشعار غير مقروء فقط.
+    # (يُعلّم كمقروء فقط بعد إغلاق المستخدم للرسالة من الواجهة.)
+    home_notification = None
+    home_notification_recipient_id: int | None = None
     try:
         if NotificationRecipient is not None and Notification is not None:
             now = timezone.now()
@@ -418,6 +420,15 @@ def home(request: HttpRequest) -> HttpResponse:
                 NotificationRecipient.objects.select_related("notification", "notification__created_by")
                 .filter(teacher=request.user)
             )
+
+            # غير مقروء فقط
+            try:
+                if hasattr(NotificationRecipient, "is_read"):
+                    nqs = nqs.filter(is_read=False)
+                elif hasattr(NotificationRecipient, "read_at"):
+                    nqs = nqs.filter(read_at__isnull=True)
+            except Exception:
+                pass
 
             # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
             try:
@@ -434,17 +445,15 @@ def home(request: HttpRequest) -> HttpResponse:
                 pass
 
             rec = nqs.order_by("-created_at", "-id").first()
-            if rec is not None and not bool(getattr(rec, "is_read", False)):
-                login_notification = getattr(rec, "notification", None)
+            if rec is not None:
+                home_notification = getattr(rec, "notification", None)
                 try:
-                    rec.is_read = True
-                    rec.read_at = now
-                    rec.save(update_fields=["is_read", "read_at"])
+                    home_notification_recipient_id = int(getattr(rec, "pk"))
                 except Exception:
-                    # لا نكسر الرئيسية لو فشل تعليم القراءة
-                    pass
+                    home_notification_recipient_id = None
     except Exception:
-        login_notification = None
+        home_notification = None
+        home_notification_recipient_id = None
 
     try:
         my_qs = _filter_by_school(
@@ -486,7 +495,8 @@ def home(request: HttpRequest) -> HttpResponse:
                 "recent_reports": recent_reports[:2],
                 "req_stats": req_stats,
                 "recent_tickets": recent_tickets[:2],
-                "login_notification": login_notification,
+                "home_notification": home_notification,
+                "home_notification_recipient_id": home_notification_recipient_id,
             },
         )
     except Exception:

@@ -285,11 +285,88 @@
     .kpi, .item, .hero-actions .btn, .motivate{ transition:none !important; }
     .kpi:hover, .item:hover, .hero-actions .btn:hover, .motivate:hover{ transform:none !important; }
   }
+
+  /* ===== Home Notification Modal (center) ===== */
+  .hn-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(2,6,23,.55);
+    z-index: 12000;
+    display: none;
+    place-items: center;
+    padding: 12px;
+  }
+  .hn-overlay.is-open{ display: grid; }
+  .hn-modal{
+    width: min(560px, 94vw);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 40px 90px rgba(2,6,23,.28);
+    overflow: hidden;
+  }
+  .hn-hd{
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+  }
+  .hn-hd .ttl{
+    margin: 0;
+    font-weight: 950;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink);
+  }
+  .hn-close{
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    cursor: pointer;
+    font-weight: 900;
+    color: var(--ink);
+  }
+  .hn-bd{ padding: 14px 16px; }
+  .hn-title{ font-weight: 950; margin: 0 0 8px 0; color: var(--ink); }
+  .hn-body{ color: var(--ink); font-weight: 800; line-height: 1.8; white-space: pre-wrap; }
+  .hn-meta{ margin-top: 10px; color: var(--muted); font-weight: 800; font-size: .95rem; display:flex; gap:10px; flex-wrap:wrap; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="home-wrap">
+  {% if home_notification %}
+    <div class="hn-overlay is-open" id="homeNotifOverlay" role="dialog" aria-modal="true" aria-label="إشعار جديد"
+         {% if home_notification_recipient_id %}data-recipient-id="{{ home_notification_recipient_id }}" data-mark-url="{% url 'reports:notification_mark_read' home_notification_recipient_id %}"{% endif %}>
+      <div class="hn-modal">
+        <div class="hn-hd">
+          <h3 class="ttl">
+            <i class="fa-solid fa-bell" style="opacity:.9"></i>
+            رسالة جديدة
+            {% if home_notification.is_important %}<span class="pill p-red">هام</span>{% endif %}
+          </h3>
+          <button type="button" class="hn-close" id="homeNotifClose" aria-label="إغلاق">✕</button>
+        </div>
+        <div class="hn-bd">
+          {% if home_notification.title %}
+            <div class="hn-title">{{ home_notification.title }}</div>
+          {% endif %}
+          <div class="hn-body">{{ home_notification.message|linebreaksbr }}</div>
+          <div class="hn-meta">
+            <span>المرسل: {% firstof home_notification.created_by.name home_notification.created_by.phone "الإدارة" %}</span>
+            {% if home_notification.created_at %}<span dir="ltr">{{ home_notification.created_at|date:"Y-m-d H:i" }}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
   <!-- HERO -->
   <section class="home-hero" aria-labelledby="welcomeTitle">
     <div class="home-hero-inner">
@@ -300,11 +377,7 @@
             مرحباً بعودتك! وثّق إنجازاتك، تابع طلباتك، واطّلع على آخر المستجدات بسرعة.
           </p>
 
-          {% if NAV_NOTIFICATION_HERO %}
-            <button type="button" class="motivate" onclick="window.showNotification(this)" aria-label="افتح آخر إشعار">
-              <i class="fa-solid fa-sparkles"></i> حفّزني الآن
-            </button>
-          {% endif %}
+
         </div>
 
         <div class="hero-meta" aria-label="معلومات سريعة">
@@ -341,24 +414,6 @@
       </div>
     </div>
   </section>
-
-  {% if login_notification %}
-    <section class="card" aria-label="آخر إشعار" style="margin-top:14px">
-      <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
-        <i class="fa-solid fa-bell" style="opacity:.85"></i>
-        آخر إشعار
-        {% if login_notification.is_important %}<span class="pill p-red">هام</span>{% endif %}
-      </h3>
-      {% if login_notification.title %}
-        <div style="font-weight:950; margin-bottom:6px">{{ login_notification.title }}</div>
-      {% endif %}
-      <div class="muted" style="white-space:pre-wrap">{{ login_notification.message|linebreaksbr }}</div>
-      <div class="muted" style="margin-top:10px; font-weight:800; font-size:.95rem">
-        المرسل: {% firstof login_notification.created_by.name login_notification.created_by.phone "الإدارة" %}
-        {% if login_notification.created_at %} — <span dir="ltr">{{ login_notification.created_at|date:"Y-m-d H:i" }}</span>{% endif %}
-      </div>
-    </section>
-  {% endif %}
 
   <div class="home-grid">
     <!-- LEFT -->
@@ -479,14 +534,76 @@
             <i class="fa-solid fa-plus"></i> توثيق إنجاز
           </a>
 
-          {% if NAV_NOTIFICATION_HERO %}
-            <button type="button" class="btn" onclick="window.showNotification(document.getElementById('motivateCard'))">
-              <i class="fa-solid fa-sparkles"></i> عرض الإشعار
-            </button>
-          {% endif %}
         </div>
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function(){
+    var overlay = document.getElementById('homeNotifOverlay');
+    if(!overlay) return;
+
+    var closeBtn = document.getElementById('homeNotifClose');
+
+    var recipientId = overlay.getAttribute('data-recipient-id') || '';
+    var storageKey = recipientId ? ('hn_dismissed_recipient_' + recipientId) : '';
+
+    function getCookie(name){
+      var value = '; ' + document.cookie;
+      var parts = value.split('; ' + name + '=');
+      if(parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    function hide(){
+      overlay.classList.remove('is-open');
+    }
+
+    async function markRead(){
+      var url = overlay.getAttribute('data-mark-url');
+      if(!url) return;
+      try{
+        var csrftoken = getCookie('csrftoken');
+        await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken || '',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          credentials: 'same-origin'
+        });
+      }catch(e){
+        // ignore
+      }
+    }
+
+    // إذا المستخدم أغلق هذا الإشعار سابقاً، لا تظهره مرة أخرى.
+    try{
+      if(storageKey && window.localStorage && localStorage.getItem(storageKey) === '1'){
+        hide();
+        // محاولة تعليم كمقروء بالخلفية (بدون إعادة فتح الرسالة)
+        markRead();
+        return;
+      }
+    }catch(e){
+      // ignore
+    }
+
+    if(closeBtn){
+      closeBtn.addEventListener('click', function(){
+        try{
+          if(storageKey && window.localStorage) localStorage.setItem(storageKey, '1');
+        }catch(e){
+          // ignore
+        }
+        markRead();
+        hide();
+      });
+    }
+  })();
+</script>
 {% endblock %}
