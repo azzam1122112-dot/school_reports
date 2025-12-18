@@ -2,43 +2,47 @@
 {% block title %}خطط الاشتراك{% endblock %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-    <h1 class="title">خطط الاشتراك</h1>
-    <div style="display:flex;gap:10px">
-        <a href="{% url 'reports:platform_plan_add' %}" class="btn btn-primary">إضافة خطة جديدة</a>
-        <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn">عودة</a>
+<div class="container" dir="rtl">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">خطط الاشتراك</h1>
+      <p class="page-subtitle">إدارة باقات الأسعار المتاحة للمدارس.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="{% url 'reports:platform_plan_add' %}" class="btn btn-primary">إضافة خطة جديدة</a>
+      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">عودة للوحة المنصة</a>
     </div>
   </div>
 
-  <div class="grid" style="grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:20px">
+  <div class="cards" style="grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));">
     {% for plan in plans %}
-    <div class="card" style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow)">
-      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
-        <h2 style="margin:0;font-size:1.2rem">{{ plan.name }}</h2>
+    <div class="card">
+      <div class="row-between" style="align-items:flex-start">
+        <div>
+          <div style="font-weight:950;font-size:1.08rem">{{ plan.name }}</div>
+          <div class="muted" style="font-weight:850;margin-top:4px">⏱️ المدة: {{ plan.days_duration }} يوم</div>
+        </div>
         {% if plan.is_active %}
-        <span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:6px;font-size:0.8rem">فعال</span>
+          <span class="badge success">فعال</span>
         {% else %}
-        <span style="background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:6px;font-size:0.8rem">غير فعال</span>
+          <span class="badge">غير فعال</span>
         {% endif %}
       </div>
-      
-      <div style="font-size:1.5rem;font-weight:900;color:var(--brand);margin-bottom:10px">
+
+      <div style="font-size:1.55rem;font-weight:950;color:var(--brand);margin-top:12px">
         {{ plan.price }} ريال
       </div>
-      
-      <div style="color:var(--muted);margin-bottom:15px;min-height:40px">
+
+      <div class="muted" style="margin-top:10px;font-weight:850;min-height:44px">
         {{ plan.description|truncatechars:100 }}
       </div>
-      
-      <div style="display:flex;gap:10px;font-size:0.9rem;color:var(--ink);margin-bottom:20px">
-        <span>⏱️ المدة: {{ plan.days_duration }} يوم</span>
-      </div>
 
-      <a href="{% url 'reports:platform_plan_edit' plan.id %}" class="btn" style="width:100%">تعديل الخطة</a>
+      <div style="margin-top:14px">
+        <a href="{% url 'reports:platform_plan_edit' plan.id %}" class="btn btn-outline btn-block">تعديل الخطة</a>
+      </div>
     </div>
     {% empty %}
-    <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">
+    <div class="card" style="grid-column:1/-1;text-align:center" class="muted">
       لا توجد خطط اشتراك مضافة.
     </div>
     {% endfor %}

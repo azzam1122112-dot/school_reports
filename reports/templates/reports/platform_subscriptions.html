@@ -2,54 +2,55 @@
 {% block title %}إدارة الاشتراكات{% endblock %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-    <h1 class="title">إدارة الاشتراكات</h1>
-    <div style="display:flex;gap:10px">
-        <a href="{% url 'reports:platform_subscription_add' %}" class="btn btn-primary">إضافة اشتراك</a>
-        <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn">عودة للوحة التحكم</a>
+<div class="container" dir="rtl">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">إدارة الاشتراكات</h1>
+      <p class="page-subtitle">تجديد وتعديل اشتراكات المدارس على مستوى المنصة.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="{% url 'reports:platform_subscription_add' %}" class="btn btn-primary">إضافة اشتراك</a>
+      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">عودة للوحة المنصة</a>
     </div>
   </div>
 
-  <div class="card" style="background:#fff;border-radius:14px;border:1px solid var(--line);overflow:hidden">
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:800px">
-        <thead>
-          <tr style="background:var(--bg);text-align:right">
-            <th style="padding:12px;border-bottom:1px solid var(--line)">المدرسة</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">الخطة</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">تاريخ البدء</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">تاريخ الانتهاء</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">الحالة</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">إجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for sub in subscriptions %}
-          <tr style="border-bottom:1px solid var(--line-2)">
-            <td style="padding:12px;font-weight:bold">{{ sub.school.name }}</td>
-            <td style="padding:12px">{{ sub.plan.name }}</td>
-            <td style="padding:12px">{{ sub.start_date|date:"Y-m-d" }}</td>
-            <td style="padding:12px">{{ sub.end_date|date:"Y-m-d" }}</td>
-            <td style="padding:12px">
-              {% if sub.is_active %}
-                <span style="background:#dcfce7;color:#166534;padding:4px 8px;border-radius:99px;font-size:0.85rem;font-weight:bold">نشط</span>
-              {% else %}
-                <span style="background:#fee2e2;color:#991b1b;padding:4px 8px;border-radius:99px;font-size:0.85rem;font-weight:bold">منتهي/غير نشط</span>
-              {% endif %}
-            </td>
-            <td style="padding:12px">
-                <a href="{% url 'reports:platform_subscription_edit' sub.id %}" class="btn" style="padding:4px 10px;font-size:0.85rem">تعديل</a>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">لا توجد اشتراكات مسجلة.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div class="card table-responsive">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th style="text-align:right">المدرسة</th>
+          <th style="text-align:right">الخطة</th>
+          <th>تاريخ البدء</th>
+          <th>تاريخ الانتهاء</th>
+          <th>الحالة</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in subscriptions %}
+        <tr>
+          <td data-label="المدرسة" style="text-align:right;font-weight:950">{{ sub.school.name }}</td>
+          <td data-label="الخطة" style="text-align:right">{{ sub.plan.name }}</td>
+          <td data-label="البدء">{{ sub.start_date|date:"Y-m-d" }}</td>
+          <td data-label="الانتهاء">{{ sub.end_date|date:"Y-m-d" }}</td>
+          <td data-label="الحالة">
+            {% if sub.is_active %}
+              <span class="badge success">نشط</span>
+            {% else %}
+              <span class="badge danger">منتهي/غير نشط</span>
+            {% endif %}
+          </td>
+          <td data-label="إجراء">
+            <a href="{% url 'reports:platform_subscription_edit' sub.id %}" class="btn btn-outline" style="min-height:38px;padding:8px 10px">تعديل</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" style="padding:20px;text-align:center" class="muted">لا توجد اشتراكات مسجلة.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 {% endblock %}

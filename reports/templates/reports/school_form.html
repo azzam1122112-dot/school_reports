@@ -1,84 +1,79 @@
 {% extends "base.html" %}
 {% block title %}{% if mode == 'edit' %}تعديل مدرسة{% else %}إنشاء مدرسة جديدة{% endif %}{% endblock %}
 
-{% block head %}
-<style>
-  .wrap{max-width:720px;margin:auto;padding:18px}
-  .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);box-shadow:0 10px 26px rgba(15,23,42,.06);padding:18px}
-  h1{margin:0 0 6px;font-size:1.4rem;font-weight:900;color:var(--ink-soft,#111827)}
-  .sub{color:var(--muted,#6b7280);margin-bottom:18px;font-weight:700}
-  form{display:grid;gap:14px;margin-top:8px}
-  label{display:block;font-weight:800;font-size:.9rem;color:#374151;margin-bottom:4px}
-  input,select{width:100%;border-radius:12px;border:1px solid #d1d5db;padding:8px 10px;font-size:.9rem}
-  .hint{font-size:.8rem;color:#6b7280;margin-top:2px}
-  .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-  .btn-primary{border-radius:999px;border:0;padding:9px 18px;font-size:.9rem;font-weight:800;background:#111827;color:#fff;cursor:pointer}
-  .btn-primary:hover{background:#0f172a}
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div class="card">
-    <h1>{% if mode == 'edit' %}تعديل مدرسة{% else %}إنشاء مدرسة جديدة{% endif %}</h1>
-    <p class="sub">املأ بيانات المدرسة كما ستظهر في النظام.</p>
+<div class="container" dir="rtl">
+  <div class="page-head" style="max-width:720px;margin-inline:auto">
+    <div>
+      <h1 class="page-title">{% if mode == 'edit' %}تعديل مدرسة{% else %}إنشاء مدرسة جديدة{% endif %}</h1>
+      <p class="page-subtitle">املأ بيانات المدرسة كما ستظهر في النظام.</p>
+    </div>
+  </div>
 
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <div>
-        <label for="id_name">اسم المدرسة</label>
-        {{ form.name }}
-      </div>
-      <div class="row">
+  <div style="max-width:720px;margin-inline:auto">
+    <div class="card">
+      <form method="post" enctype="multipart/form-data" class="form-grid">
+        {% csrf_token %}
+
         <div>
-          <label for="id_code">الكود الداخلي</label>
-          {{ form.code }}
-          <p class="hint">كود قصير (بالإنجليزية) لتمييز المدرسة، يُستخدم داخليًا.</p>
+          <label for="id_name" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">اسم المدرسة</label>
+          {{ form.name }}
         </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+          <div>
+            <label for="id_code" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">الكود الداخلي</label>
+            {{ form.code }}
+            <div class="muted" style="font-weight:850;font-size:.9rem;margin-top:6px">كود قصير (بالإنجليزية) لتمييز المدرسة، يُستخدم داخليًا.</div>
+          </div>
+          <div>
+            <label for="id_stage" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">المرحلة</label>
+            {{ form.stage }}
+          </div>
+          <div>
+            <label for="id_gender" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">بنين / بنات</label>
+            {{ form.gender }}
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+          <div>
+            <label for="id_city" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">المدينة</label>
+            {{ form.city }}
+          </div>
+          <div>
+            <label for="id_phone" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">رقم الجوال</label>
+            {{ form.phone }}
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+          <div>
+            <label for="id_print_primary_color" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">لون قالب الطباعة</label>
+            {{ form.print_primary_color }}
+            <div class="muted" style="font-weight:850;font-size:.9rem;margin-top:6px">لون رئيسي لقالب الطباعة (يمكن تغييره لاحقًا من إعدادات المدرسة).</div>
+          </div>
+          <div>
+            <label for="id_logo_file" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">رفع الشعار (اختياري)</label>
+            {{ form.logo_file }}
+            <div class="muted" style="font-weight:850;font-size:.9rem;margin-top:6px">PNG / JPG / SVG / WEBP.</div>
+          </div>
+          <div>
+            <label for="id_logo_url" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">رابط الشعار (اختياري)</label>
+            {{ form.logo_url }}
+            <div class="muted" style="font-weight:850;font-size:.9rem;margin-top:6px">يُستخدم إذا لم يتوفر شعار مرفوع.</div>
+          </div>
+          <div>
+            <label for="id_is_active" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">الحالة</label>
+            {{ form.is_active }}
+          </div>
+        </div>
+
         <div>
-          <label for="id_stage">المرحلة</label>
-          {{ form.stage }}
+          <button type="submit" class="btn btn-primary">حفظ</button>
         </div>
-        <div>
-          <label for="id_gender">بنين / بنات</label>
-          {{ form.gender }}
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label for="id_city">المدينة</label>
-          {{ form.city }}
-        </div>
-        <div>
-          <label for="id_phone">رقم الجوال</label>
-          {{ form.phone }}
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label for="id_print_primary_color">لون قالب الطباعة</label>
-          {{ form.print_primary_color }}
-          <p class="hint">لون رئيسي لقالب الطباعة (يمكن تغييره لاحقًا من إعدادات المدرسة).</p>
-        </div>
-        <div>
-          <label for="id_logo_file">رفع الشعار (اختياري)</label>
-          {{ form.logo_file }}
-          <p class="hint">يمكنك رفع شعار المدرسة (PNG / JPG / SVG / WEBP).</p>
-        </div>
-        <div>
-          <label for="id_logo_url">رابط الشعار (اختياري)</label>
-          {{ form.logo_url }}
-          <p class="hint">أو استخدم رابط صورة خارجي؛ سيُستخدم إذا لم يتوفر شعار مرفوع.</p>
-        </div>
-        <div>
-          <label for="id_is_active">الحالة</label>
-          {{ form.is_active }}
-        </div>
-      </div>
-      <div>
-        <button type="submit" class="btn-primary">حفظ</button>
-      </div>
-    </form>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

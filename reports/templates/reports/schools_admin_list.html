@@ -1,87 +1,82 @@
 {% extends "base.html" %}
 {% block title %}إدارة المدارس{% endblock %}
 
-{% block head %}
-<style>
-  .wrap{max-width:980px;margin:auto;padding:18px}
-  .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);box-shadow:0 10px 26px rgba(15,23,42,.06);padding:18px}
-  h1{margin:0 0 10px;font-size:1.45rem;font-weight:900;color:var(--ink-soft,#111827)}
-  .sub{color:var(--muted,#6b7280);font-weight:700;margin-bottom:16px}
-  table{width:100%;border-collapse:collapse;font-size:.95rem}
-  th,td{padding:10px 8px;text-align:right;border-bottom:1px solid var(--line,#e5e7eb)}
-  th{background:#f9fafb;font-weight:800;color:#4b5563}
-  tr:hover td{background:#f9fafb}
-  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:2px 8px;border-radius:999px;font-size:.8rem;background:#eef2ff;color:#1e40af;font-weight:800}
-  .btn-link{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:999px;border:1px solid var(--line,#e5e7eb);background:#fff;text-decoration:none;color:#1e293b;font-weight:800;font-size:.85rem}
-  .btn-link:hover{background:#eff6ff;border-color:#bfdbfe}
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div class="card">
-    <h1>إدارة المدارس</h1>
-    <p class="sub">هذه الصفحة مخصّصة للمشرف العام لإدارة المدارس وتعيين مدراء لكل مدرسة.</p>
-
-    <div style="margin-bottom:14px;display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap">
-      <a class="btn-link" href="{% url 'reports:school_create' %}">+ إنشاء مدرسة جديدة</a>
-      <a class="btn-link" href="{% url 'reports:school_manager_create' %}">+ إنشاء مدير مدرسة جديد</a>
+<div class="container" dir="rtl">
+  <div class="page-head" style="max-width:980px;margin-inline:auto">
+    <div>
+      <h1 class="page-title">إدارة المدارس</h1>
+      <p class="page-subtitle">إدارة المدارس وتعيين مدراء لكل مدرسة.</p>
     </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn btn-primary" href="{% url 'reports:school_create' %}">+ إنشاء مدرسة جديدة</a>
+      <a class="btn btn-outline" href="{% url 'reports:school_manager_create' %}">+ إنشاء مدير مدرسة جديد</a>
+    </div>
+  </div>
 
-    {% if schools %}
-    <table>
-      <thead>
-        <tr>
-          <th>المدرسة</th>
-          <th>المرحلة</th>
-          <th>بنين/بنات</th>
-          <th>المدينة</th>
-          <th>الجوال</th>
-          <th>الحالة</th>
-          <th>المدراء</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in schools %}
-          {% with s=item.school managers=item.managers %}
-          <tr>
-            <td>{{ s.name }}</td>
-            <td>{{ s.get_stage_display }}</td>
-            <td>{{ s.get_gender_display }}</td>
-            <td>{{ s.city|default:"-" }}</td>
-            <td>{{ s.phone|default:"-" }}</td>
-            <td>
-              {% if s.is_active %}
-                <span class="badge" style="background:#dcfce7;color:#166534">نشطة</span>
-              {% else %}
-                <span class="badge" style="background:#fee2e2;color:#b91c1c">موقوفة</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if managers %}
-                {{ managers|join:"، " }}
-              {% else %}
-                <span style="color:#9ca3af;font-weight:700">لا يوجد مدير معيَّن</span>
-              {% endif %}
-            </td>
-            <td>
-              <a class="btn-link" href="{% url 'reports:school_profile' s.id %}">بروفايل</a>
-              <a class="btn-link" href="{% url 'reports:school_managers_manage' s.id %}">المدراء</a>
-              <a class="btn-link" href="{% url 'reports:school_update' s.id %}">تعديل</a>
-              <form method="post" action="{% url 'reports:school_delete' s.id %}" style="display:inline" onsubmit="return confirm('سيتم حذف المدرسة وكل بياناتها، هل أنت متأكد؟');">
-                {% csrf_token %}
-                <button type="submit" class="btn-link" style="border-color:#fecaca;color:#b91c1c;background:#fef2f2">حذف</button>
-              </form>
-            </td>
-          </tr>
-          {% endwith %}
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-      <p>لا توجد مدارس مضافة بعد. يمكنك إضافة المدارس من لوحة تحكم Django (admin-panel) ثم العودة هنا لتعيين المدراء.</p>
-    {% endif %}
+  <div style="max-width:980px;margin-inline:auto">
+    <div class="card">
+      <div class="section-title">قائمة المدارس</div>
+
+      {% if schools %}
+      <div class="table-responsive">
+        <table class="rtable">
+          <thead>
+            <tr>
+              <th>المدرسة</th>
+              <th>المرحلة</th>
+              <th>بنين/بنات</th>
+              <th>المدينة</th>
+              <th>الجوال</th>
+              <th>الحالة</th>
+              <th>المدراء</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in schools %}
+              {% with s=item.school managers=item.managers %}
+              <tr>
+                <td data-label="المدرسة"><b>{{ s.name }}</b></td>
+                <td data-label="المرحلة">{{ s.get_stage_display }}</td>
+                <td data-label="بنين/بنات">{{ s.get_gender_display }}</td>
+                <td data-label="المدينة">{{ s.city|default:"-" }}</td>
+                <td data-label="الجوال">{{ s.phone|default:"-" }}</td>
+                <td data-label="الحالة">
+                  {% if s.is_active %}
+                    <span class="badge success">نشطة</span>
+                  {% else %}
+                    <span class="badge danger">موقوفة</span>
+                  {% endif %}
+                </td>
+                <td data-label="المدراء">
+                  {% if managers %}
+                    {{ managers|join:"، " }}
+                  {% else %}
+                    <span class="muted" style="font-weight:900">لا يوجد مدير معيَّن</span>
+                  {% endif %}
+                </td>
+                <td data-label="إجراءات">
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start">
+                    <a class="btn btn-outline" href="{% url 'reports:school_profile' s.id %}" style="padding:8px 10px">بروفايل</a>
+                    <a class="btn btn-outline" href="{% url 'reports:school_managers_manage' s.id %}" style="padding:8px 10px">المدراء</a>
+                    <a class="btn btn-outline" href="{% url 'reports:school_update' s.id %}" style="padding:8px 10px">تعديل</a>
+                    <form method="post" action="{% url 'reports:school_delete' s.id %}" style="display:inline" onsubmit="return confirm('سيتم حذف المدرسة وكل بياناتها، هل أنت متأكد؟');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-danger" style="padding:8px 10px">حذف</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="muted" style="font-weight:900">لا توجد مدارس مضافة بعد.</div>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}

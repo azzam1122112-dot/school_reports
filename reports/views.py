@@ -44,6 +44,8 @@ from django.views.decorators.http import require_http_methods
 from .forms import (
     ReportForm,
     TeacherForm,
+    TeacherCreateForm,
+    TeacherEditForm,
     TicketActionForm,
     TicketCreateForm,
     DepartmentForm,  # إن لم تكن موجودة في مشروعك سيتم استخدام بديل داخلي
@@ -1086,7 +1088,8 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
             return redirect("reports:select_school")
 
     if request.method == "POST":
-        form = TeacherForm(request.POST, active_school=active_school)
+        # إنشاء معلّم فقط: بدون قسم/بدون دور داخل قسم. التكاليف تتم من صفحة أعضاء القسم.
+        form = TeacherCreateForm(request.POST)
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -1110,7 +1113,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
         else:
             messages.error(request, "الرجاء تصحيح الأخطاء الظاهرة.")
     else:
-        form = TeacherForm(active_school=active_school)
+        form = TeacherCreateForm()
     return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
 
 @login_required(login_url="reports:login")
@@ -1132,7 +1135,8 @@ def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
             messages.error(request, "لا يمكنك تعديل هذا المعلّم لأنه غير مرتبط بمدرستك.")
             return redirect("reports:manage_teachers")
     if request.method == "POST":
-        form = TeacherForm(request.POST, instance=teacher, active_school=active_school)
+        # تعديل بيانات المعلّم فقط — التكاليف تتم من صفحة أعضاء القسم
+        form = TeacherEditForm(request.POST, instance=teacher)
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -1145,19 +1149,7 @@ def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
         else:
             messages.error(request, "الرجاء تصحيح الأخطاء الظاهرة.")
     else:
-        initial = {}
-        memb = None
-        if DepartmentMembership is not None:
-            memb = teacher.dept_memberships.select_related("department").first()  # type: ignore[attr-defined]
-        if memb:
-            initial["department"] = getattr(memb.department, "slug", None)
-            initial["membership_role"] = memb.role_type
-        else:
-            role_slug = getattr(getattr(teacher, "role", None), "slug", None)
-            if role_slug:
-                initial["department"] = role_slug
-                initial["membership_role"] = DM_TEACHER
-        form = TeacherForm(instance=teacher, initial=initial, active_school=active_school)
+        form = TeacherEditForm(instance=teacher)
 
     return render(request, "reports/edit_teacher.html", {"form": form, "teacher": teacher, "title": "تعديل مستخدم"})
 
@@ -2637,6 +2629,68 @@ def _dept_remove_member(dep, teacher: Teacher) -> bool:
 
     return False
 
+def _dept_set_member_role(dep, teacher: Teacher, role_type: str) -> bool:
+    try:
+        if DepartmentMembership is None or Department is None:
+            return False
+
+        dep_field, tea_field = _deptmember_field_names()
+        if not dep_field or not tea_field:
+            return False
+
+        if not hasattr(DepartmentMembership, "role_type"):
+            return False
+
+        kwargs = {dep_field: dep, tea_field: teacher}
+        obj, created = DepartmentMembership.objects.get_or_create(
+            defaults={"role_type": role_type},
+            **kwargs,
+        )
+        if (not created) and getattr(obj, "role_type", None) != role_type:
+            obj.role_type = role_type
+            obj.save(update_fields=["role_type"])
+        return True
+    except Exception:
+        logger.exception("Failed to set DepartmentMembership role_type")
+        return False
+
+def _dept_set_officer(dep, teacher: Teacher) -> bool:
+    try:
+        if DepartmentMembership is None or Department is None:
+            return False
+
+        dep_field, tea_field = _deptmember_field_names()
+        if not dep_field or not tea_field:
+            return False
+
+        if not hasattr(DepartmentMembership, "role_type"):
+            return False
+
+        qs = DepartmentMembership.objects.filter(**{dep_field: dep})
+        qs.filter(role_type=DM_OFFICER).exclude(**{tea_field: teacher}).update(role_type=DM_TEACHER)
+        return _dept_set_member_role(dep, teacher, DM_OFFICER)
+    except Exception:
+        logger.exception("Failed to set department officer")
+        return False
+
+def _dept_unset_officer(dep, teacher: Teacher) -> bool:
+    try:
+        if DepartmentMembership is None or Department is None:
+            return False
+
+        dep_field, tea_field = _deptmember_field_names()
+        if not dep_field or not tea_field:
+            return False
+
+        if not hasattr(DepartmentMembership, "role_type"):
+            return False
+
+        updated = DepartmentMembership.objects.filter(**{dep_field: dep, tea_field: teacher}).update(role_type=DM_TEACHER)
+        return updated > 0
+    except Exception:
+        logger.exception("Failed to unset department officer")
+        return False
+
 @login_required(login_url="reports:login")
 @role_required({"manager"})
 @require_http_methods(["GET", "POST"])
@@ -2672,7 +2726,14 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
     if request.method == "POST":
         teacher_id = request.POST.get("teacher_id")
         action = (request.POST.get("action") or "").strip()
-        teacher = Teacher.objects.filter(pk=teacher_id).first()
+
+        allowed_teachers = Teacher.objects.filter(is_active=True)
+        if active_school is not None:
+            allowed_teachers = allowed_teachers.filter(
+                school_memberships__school=active_school,
+                school_memberships__is_active=True,
+            )
+        teacher = allowed_teachers.filter(pk=teacher_id).first()
         if not teacher:
             messages.error(request, "المعلّم غير موجود.")
             return redirect("reports:department_members", code=dept_code)
@@ -2682,11 +2743,23 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
                 with transaction.atomic():
                     ok = False
                     if action == "add":
-                        ok = _dept_add_member(obj, teacher)
+                        ok = _dept_set_member_role(obj, teacher, DM_TEACHER) or _dept_add_member(obj, teacher)
                         if ok:
                             messages.success(request, f"تم تكليف {teacher.name} في قسم «{dept_label}».")
                         else:
                             messages.error(request, "تعذّر إسناد المعلّم — تحقّق من بنية DepartmentMembership.")
+                    elif action == "set_officer":
+                        ok = _dept_set_officer(obj, teacher)
+                        if ok:
+                            messages.success(request, f"تم تعيين {teacher.name} مسؤولاً لقسم «{dept_label}». ")
+                        else:
+                            messages.error(request, "تعذّر تعيين مسؤول القسم — تحقّق من دعم role_type.")
+                    elif action == "unset_officer":
+                        ok = _dept_remove_member(obj, teacher)
+                        if ok:
+                            messages.success(request, f"تم إلغاء تكليف {teacher.name} من القسم.")
+                        else:
+                            messages.error(request, "تعذّر إلغاء التكليف.")
                     elif action == "remove":
                         ok = _dept_remove_member(obj, teacher)
                         if ok:
@@ -2705,6 +2778,39 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
         return redirect("reports:department_members", code=dept_code)
 
     members_qs = _members_for_department(dept_code, active_school)
+
+    officers_qs = Teacher.objects.none()
+    teachers_qs = Teacher.objects.none()
+    assigned_ids_qs = Teacher.objects.none()
+    try:
+        if DepartmentMembership is not None:
+            mem_qs = DepartmentMembership.objects.filter(department__slug__iexact=dept_code)
+            if active_school is not None:
+                mem_qs = mem_qs.filter(department__school=active_school)
+            officer_ids = mem_qs.filter(role_type=DM_OFFICER).values_list("teacher_id", flat=True)
+            teacher_ids = mem_qs.filter(role_type=DM_TEACHER).values_list("teacher_id", flat=True)
+            assigned_ids = mem_qs.values_list("teacher_id", flat=True)
+
+            officers_qs = Teacher.objects.filter(is_active=True, id__in=officer_ids).distinct().order_by("name")
+            teachers_qs = Teacher.objects.filter(is_active=True, id__in=teacher_ids).distinct().order_by("name")
+            assigned_ids_qs = Teacher.objects.filter(id__in=assigned_ids)
+
+            if active_school is not None:
+                officers_qs = officers_qs.filter(
+                    school_memberships__school=active_school,
+                    school_memberships__is_active=True,
+                )
+                teachers_qs = teachers_qs.filter(
+                    school_memberships__school=active_school,
+                    school_memberships__is_active=True,
+                )
+                assigned_ids_qs = assigned_ids_qs.filter(
+                    school_memberships__school=active_school,
+                    school_memberships__is_active=True,
+                )
+    except Exception:
+        logger.exception("Failed to compute officers/teachers memberships")
+
     all_teachers = Teacher.objects.filter(is_active=True)
     if active_school is not None:
         all_teachers = all_teachers.filter(
@@ -2712,11 +2818,15 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
             school_memberships__is_active=True,
         )
     all_teachers = all_teachers.order_by("name")
-    available = (
-        all_teachers.exclude(id__in=members_qs.values_list("id", flat=True))
-        if hasattr(members_qs, "values_list")
-        else all_teachers
-    )
+
+    try:
+        if hasattr(assigned_ids_qs, "values_list"):
+            assigned_ids_list = assigned_ids_qs.values_list("id", flat=True)
+            available = all_teachers.exclude(id__in=assigned_ids_list)
+        else:
+            available = all_teachers
+    except Exception:
+        available = all_teachers
 
     return render(
         request,
@@ -2726,7 +2836,10 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
             "dept_code": dept_code,
             "dept_label": dept_label,
             "members": members_qs,
-            "all_teachers": available,
+            "officers": officers_qs,
+            "teachers": teachers_qs,
+            "all_teachers": all_teachers,
+            "available_teachers": available,
             "has_dept_model": Department is not None,
         },
     )

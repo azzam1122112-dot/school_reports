@@ -393,6 +393,187 @@ class TeacherForm(forms.ModelForm):
         return instance
 
 
+class TeacherCreateForm(forms.ModelForm):
+    """نموذج مبسّط لإنشاء معلّم فقط (بدون أي تكليفات).
+
+    - لا يعرض/لا يطلب تحديد قسم أو دور داخل القسم.
+    - لا ينشئ DepartmentMembership نهائيًا.
+    - يضبط Teacher.role إلى "teacher" (إن وُجد) للتوافق مع الواجهات التراثية.
+    """
+
+    password = forms.CharField(
+        label="كلمة المرور",
+        required=True,
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "كلمة المرور للحساب الجديد",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    phone = forms.CharField(
+        label="رقم الجوال",
+        min_length=10,
+        max_length=10,
+        validators=[sa_phone],
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "05XXXXXXXX",
+                "maxlength": "10",
+                "inputmode": "numeric",
+                "pattern": r"0\d{9}",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
+    national_id = forms.CharField(
+        label="رقم الهوية الوطنية",
+        min_length=10,
+        max_length=10,
+        required=False,
+        validators=[digits10],
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "رقم الهوية (10 أرقام)",
+                "maxlength": "10",
+                "inputmode": "numeric",
+                "pattern": r"\d{10}",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
+    class Meta:
+        model = Teacher
+        fields = ["name", "phone", "national_id", "is_active"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "الاسم الكامل", "maxlength": "150"}
+            ),
+        }
+
+    def clean_national_id(self):
+        nid = (self.cleaned_data.get("national_id") or "").strip()
+        if nid:
+            if not nid.isdigit() or len(nid) != 10:
+                raise ValidationError("رقم الهوية يجب أن يتكون من 10 أرقام.")
+        return nid or None
+
+    def save(self, commit: bool = True):
+        instance: Teacher = super().save(commit=False)
+        pwd = (self.cleaned_data.get("password") or "").strip()
+        instance.set_password(pwd)
+
+        # توافق تراثي: Teacher.role ليس مصدر الصلاحيات (SchoolMembership/DepartmentMembership)
+        # لكن نضبطه على teacher إن كان موجودًا.
+        try:
+            instance.role = Role.objects.filter(slug="teacher").first()
+        except Exception:
+            instance.role = None
+
+        if commit:
+            instance.save()
+        return instance
+
+
+class TeacherEditForm(forms.ModelForm):
+    """نموذج مبسّط لتعديل بيانات المعلّم فقط (بدون أي تكليفات).
+
+    - لا يعرض/لا يطلب قسم أو دور داخل قسم.
+    - لا ينشئ/لا يحدّث DepartmentMembership.
+    - كلمة المرور اختيارية: إن تُركت فارغة تبقى الحالية.
+    """
+
+    password = forms.CharField(
+        label="كلمة المرور",
+        required=False,
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "اتركه فارغًا للإبقاء على كلمة المرور الحالية",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    phone = forms.CharField(
+        label="رقم الجوال",
+        min_length=10,
+        max_length=10,
+        validators=[sa_phone],
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "05XXXXXXXX",
+                "maxlength": "10",
+                "inputmode": "numeric",
+                "pattern": r"0\d{9}",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
+    national_id = forms.CharField(
+        label="رقم الهوية الوطنية",
+        min_length=10,
+        max_length=10,
+        required=False,
+        validators=[digits10],
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "رقم الهوية (10 أرقام)",
+                "maxlength": "10",
+                "inputmode": "numeric",
+                "pattern": r"\d{10}",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
+    class Meta:
+        model = Teacher
+        fields = ["name", "phone", "national_id", "is_active"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "الاسم الكامل", "maxlength": "150"}
+            ),
+        }
+
+    def clean_national_id(self):
+        nid = (self.cleaned_data.get("national_id") or "").strip()
+        if nid:
+            if not nid.isdigit() or len(nid) != 10:
+                raise ValidationError("رقم الهوية يجب أن يتكون من 10 أرقام.")
+        return nid or None
+
+    def save(self, commit: bool = True):
+        instance: Teacher = super().save(commit=False)
+        new_pwd = (self.cleaned_data.get("password") or "").strip()
+
+        if new_pwd:
+            instance.set_password(new_pwd)
+        elif self.instance and getattr(self.instance, "pk", None):
+            instance.password = self.instance.password
+
+        # توافق تراثي: نجعل role=teacher.
+        try:
+            instance.role = Role.objects.filter(slug="teacher").first()
+        except Exception:
+            instance.role = None
+
+        if commit:
+            instance.save()
+        return instance
+
+
 class ManagerCreateForm(forms.ModelForm):
     """نموذج مبسّط لإنشاء مدير مدرسة:
 
@@ -835,19 +1016,37 @@ class DepartmentForm(forms.ModelForm):
 
     class Meta:
         model = Department
-        fields = ["name", "slug", "role_label", "is_active", "reporttypes"]
+        fields = ["name", "slug", "is_active", "reporttypes"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "maxlength": "120"}),
             "slug": forms.TextInput(attrs={"class": "form-control", "maxlength": "64"}),
-            "role_label": forms.TextInput(attrs={"class": "form-control", "maxlength": "120"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+    def _slugify_english(self, text: str) -> str:
+        # توليد slug ASCII (إنجليزي) حتى لو كان الاسم عربيًا.
+        try:
+            from unidecode import unidecode  # type: ignore
+
+            text = unidecode(text or "")
+        except Exception:
+            # fallback: بدون تحويل
+            pass
+        return slugify(text or "", allow_unicode=False)
 
     def clean_slug(self):
         slug = (self.cleaned_data.get("slug") or "").strip().lower()
         if not slug:
-            slug = slugify(self.cleaned_data.get("name") or "", allow_unicode=True)
+            slug = self._slugify_english(self.cleaned_data.get("name") or "")
+        # fallback في حال كان الاسم غير قابل للتحويل
+        if not slug:
+            slug = "dept"
+
         qs = Department.objects.filter(slug=slug)
+        # حصر فحص التعارض داخل المدرسة النشطة عند توفرها
+        active_school = getattr(self, "active_school", None)
+        if active_school is not None and hasattr(Department, "school"):
+            qs = qs.filter(school=active_school)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
@@ -857,6 +1056,8 @@ class DepartmentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         active_school = kwargs.pop("active_school", None)
         super().__init__(*args, **kwargs)
+
+        self.active_school = active_school
 
         # حصر أنواع التقارير على المدرسة النشطة
         if ReportType is not None:

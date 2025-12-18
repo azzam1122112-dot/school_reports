@@ -72,7 +72,7 @@
     </h2>
     <div class="sub">
       سيظهر هذا القسم كـ <em>دور</em> في نماذج المعلّمين باستخدام <strong>الكود (slug)</strong> كقيمة،
-      و<strong>اسم الدور</strong> للعرض. يمكنك الحفظ سريعًا باستخدام
+      ويمكنك الحفظ سريعًا باستخدام
       <span class="kbd">Ctrl/⌘ + S</span>.
     </div>
 
@@ -117,17 +117,6 @@
           </label>
         </div>
       </div>
-
-      {% if form.role_label %}
-      <div>
-        <label for="{{ form.role_label.id_for_label }}">اسم الدور المعروض</label>
-        {{ form.role_label }}
-        {% for e in form.role_label.errors %}<div class="err">• {{ e }}</div>{% endfor %}
-        <div class="help">
-          مثال: <b>مسؤول النشاط</b> — سيظهر في قائمة “الدور” ضمن نماذج المعلّمين.
-        </div>
-      </div>
-      {% endif %}
 
       {% if form.description %}
       <div>
@@ -219,11 +208,24 @@
 
   // توليد slug + المعاينة + حظر تحرير manager
   function normArabicDigits(s){return (s||'').replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));}
+  function translitArabic(s){
+    const map = {
+      'ا':'a','أ':'a','إ':'i','آ':'a','ء':'','ؤ':'w','ئ':'y','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh',
+      'د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh',
+      'ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'h','و':'w','ي':'y','ى':'a','ﻻ':'la','لا':'la',
+    };
+    return (s||'')
+      .replace(/[\u064B-\u065F]/g,'')
+      .split('')
+      .map(ch => map[ch] ?? ch)
+      .join('');
+  }
   function slugifyAscii(s){
     s = (s||"").trim();
     // خريطة مسبقة
     if (ALIASES[s]) return ALIASES[s];
     s = normArabicDigits(s);
+    s = translitArabic(s);
     // إزالة تشكيل
     s = s.normalize("NFKD").replace(/[\u064B-\u065F]/g,"");
     // مسافات لشرطة
@@ -236,7 +238,6 @@
   (function(){
     const name = document.getElementById("{{ form.name.id_for_label }}");
     const slug = document.getElementById("{{ form.slug.id_for_label }}");
-    const roleLabel = document.getElementById("{% if form.role_label %}{{ form.role_label.id_for_label }}{% else %}__none{% endif %}");
     const auto = document.getElementById("autoSlug");
     const pvCode = document.getElementById("pvCode");
     const pvLabel = document.getElementById("pvLabel");
@@ -244,8 +245,7 @@
 
     function updatePreview(){
       pvCode.textContent  = (slug && slug.value) ? slug.value : "—";
-      const label = roleLabel && roleLabel.value ? roleLabel.value : (name ? name.value : "");
-      pvLabel.textContent = label || "—";
+      pvLabel.textContent = (name && name.value) ? name.value : "—";
     }
 
     function lockIfManager(){
@@ -254,12 +254,10 @@
         // اجعل الحقول للقراءة فقط لكن أرسل القيم
         name.readOnly = true;
         slug.readOnly = true;
-        if (roleLabel) roleLabel.readOnly = true;
         if (auto){ auto.checked = false; auto.disabled = true; }
       } else {
         name.readOnly = false;
         slug.readOnly = false;
-        if (roleLabel) roleLabel.readOnly = false;
         if (auto){ auto.disabled = false; }
       }
     }
@@ -282,8 +280,6 @@
       // بداية
       updatePreview(); lockIfManager();
     }
-
-    if (roleLabel){ roleLabel.addEventListener("input", updatePreview); }
 
     // حفظ سريع: Ctrl/Cmd + S
     document.addEventListener("keydown", function(e){

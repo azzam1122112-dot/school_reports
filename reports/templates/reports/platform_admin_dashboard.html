@@ -3,113 +3,127 @@
 
 {% block head %}
 <style>
-  .wrap{max-width:1100px;margin:auto;padding:18px}
-  .kpis{display:grid;gap:12px;margin-top:8px}
-  @media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
-  .kpi{background:var(--card,#fff);border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:16px;box-shadow:0 10px 26px rgba(2,6,23,.08)}
-  .kpi .num{font-weight:900;font-size:1.6rem;color:var(--brand,#2563eb)}
-  .kpi .lbl{color:var(--muted,#6b7280);font-weight:800}
-  .grid{display:grid;gap:14px;margin-top:16px}
-  @media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
-  .tile{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:16px;text-decoration:none;color:inherit;box-shadow:0 10px 26px rgba(2,6,23,.08)}
-  .tile:hover{border-color:#dbeafe;background:#f8fbff}
-  .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:900}
-  .b1{background:linear-gradient(135deg,#2563eb,#60a5fa)}
-  .b2{background:linear-gradient(135deg,#10b981,#34d399)}
-  .b3{background:linear-gradient(135deg,#f59e0b,#fbbf24)}
-  .b4{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
-  .title{font-weight:900;margin:0;color:var(--ink-soft,#1f2937)}
-  .muted{color:var(--muted,#6b7280);font-weight:700}
+  .plat-scope .actions-grid{display:grid;gap:12px;margin-top:14px}
+  @media(min-width: 900px){.plat-scope .actions-grid{grid-template-columns:1fr 1fr}}
+
+  .plat-scope .tile{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    text-decoration:none;
+    color: inherit;
+    padding: 14px;
+  }
+  .plat-scope .tile:hover{background: rgba(37,99,235,.04); border-color: rgba(37,99,235,.20)}
+  .plat-scope .tile .ico{
+    width:46px;height:46px;
+    border-radius: 14px;
+    display:grid;
+    place-items:center;
+    font-weight: 950;
+    border: 1px solid rgba(15,23,42,.06);
+    background: rgba(37,99,235,.10);
+    color: var(--brand);
+    flex: 0 0 auto;
+  }
+  .plat-scope .tile .t-title{margin:0;font-weight:950;color:var(--ink);font-size:1.02rem}
+  .plat-scope .tile .t-sub{margin-top:4px;color:var(--muted);font-weight:850}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <h1 class="title">لوحة إدارة المنصة (System Admin)</h1>
-  <p class="muted" style="margin-top:4px">إحصائيات عامة وإجراءات خاصة بالمشرف العام فقط.</p>
+<div class="container plat-scope" dir="rtl">
+  <section class="card page-hero" aria-label="رأس لوحة المنصة">
+    <div class="page-head" style="margin:0">
+      <div>
+        <h1 class="page-title">لوحة مدير النظام</h1>
+        <p class="page-subtitle">إحصائيات عامة وإجراءات خاصة بالمشرف العام فقط.</p>
+      </div>
 
-  <section class="kpis" aria-label="مؤشرات سريعة للمنصة">
-    <div class="kpi"><div class="num">{{ platform_schools_active }}</div><div class="lbl">مدارس نشطة</div></div>
-    <div class="kpi"><div class="num">{{ platform_schools_total }}</div><div class="lbl">إجمالي المدارس</div></div>
-    
-    <!-- اشتراكات -->
-    <div class="kpi" style="border-color: #f59e0b;"><div class="num" style="color: #d97706;">{{ subscriptions_expiring_soon }}</div><div class="lbl">اشتراكات تنتهي قريباً</div></div>
-    <div class="kpi" style="border-color: #ef4444;"><div class="num" style="color: #dc2626;">{{ subscriptions_expired }}</div><div class="lbl">اشتراكات منتهية</div></div>
-    
-    <!-- مالية -->
-    <div class="kpi"><div class="num">{{ pending_payments }}</div><div class="lbl">مدفوعات معلقة</div></div>
-    <div class="kpi"><div class="num">{{ total_revenue }}</div><div class="lbl">إجمالي الإيرادات</div></div>
-
-    <div class="kpi"><div class="num">{{ tickets_open }}</div><div class="lbl">طلبات دعم فني</div></div>
-    <div class="kpi"><div class="num">{{ reports_count }}</div><div class="lbl">إجمالي التقارير</div></div>
+      <div class="hero-badge" title="مستخدم حالي">
+        {% firstof request.user.name request.user.phone "System Admin" as display_name %}
+        <div class="hero-ava">{{ display_name|slice:":1" }}</div>
+        <div>
+          <div style="font-weight:950;line-height:1">{{ display_name }}</div>
+          <div style="opacity:.92;font-weight:900;font-size:.85rem;margin-top:3px">مشرف عام</div>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <section class="grid" aria-label="إجراءات المنصة">
-    <a class="tile" href="{% url 'reports:schools_admin_list' %}">
-      <div class="ico b1">🏫</div>
+  <section class="kpi-grid" aria-label="مؤشرات سريعة" style="margin-top:12px">
+    <div class="kpi"><div><div class="num">{{ platform_schools_active }}</div><div class="lbl">مدارس نشطة</div></div><div class="kpi-ico ok">🏫</div></div>
+    <div class="kpi"><div><div class="num">{{ platform_schools_total }}</div><div class="lbl">إجمالي المدارس</div></div><div class="kpi-ico info">🏷️</div></div>
+    <div class="kpi"><div><div class="num">{{ subscriptions_expiring_soon }}</div><div class="lbl">تنتهي قريباً</div></div><div class="kpi-ico warn">⏳</div></div>
+    <div class="kpi"><div><div class="num">{{ subscriptions_expired }}</div><div class="lbl">منتهية</div></div><div class="kpi-ico danger">⛔</div></div>
+    <div class="kpi"><div><div class="num">{{ pending_payments }}</div><div class="lbl">مدفوعات معلّقة</div></div><div class="kpi-ico warn">💳</div></div>
+    <div class="kpi"><div><div class="num">{{ total_revenue }}</div><div class="lbl">إجمالي الإيرادات</div></div><div class="kpi-ico ok">💰</div></div>
+    <div class="kpi"><div><div class="num">{{ tickets_open }}</div><div class="lbl">تذاكر دعم فني</div></div><div class="kpi-ico info">🎧</div></div>
+    <div class="kpi"><div><div class="num">{{ reports_count }}</div><div class="lbl">إجمالي التقارير</div></div><div class="kpi-ico info">📄</div></div>
+  </section>
+
+  <section class="actions-grid" aria-label="إجراءات مدير النظام">
+    <a class="card tile" href="{% url 'reports:schools_admin_list' %}">
+      <div class="ico">🏫</div>
       <div>
-        <div class="title">إدارة المدارس</div>
-        <div class="muted">إنشاء/تعديل/حذف المدارس وتعيين مدراء لها</div>
+        <div class="t-title">إدارة المدارس</div>
+        <div class="t-sub">إنشاء/تعديل/حذف المدارس وتعيين مدراء لها</div>
       </div>
     </a>
 
-    <a class="tile" href="{% url 'reports:school_managers_list' %}">
-      <div class="ico b2">👨‍💼</div>
+    <a class="card tile" href="{% url 'reports:school_managers_list' %}">
+      <div class="ico">👨‍💼</div>
       <div>
-        <div class="title">مدراء المدارس</div>
-        <div class="muted">مراجعة جميع المدراء وإنشاء/تعديل مدير مدرسة</div>
+        <div class="t-title">مدراء المدارس</div>
+        <div class="t-sub">إنشاء/تعديل المدراء وربطهم بالمدارس</div>
       </div>
     </a>
 
-    <a class="tile" href="{% url 'reports:admin_dashboard' %}">
-      <div class="ico b3">📊</div>
+    <a class="card tile" href="{% url 'reports:platform_subscriptions_list' %}">
+      <div class="ico">📅</div>
       <div>
-        <div class="title">لوحة مدراء المدارس</div>
-        <div class="muted">الانتقال للوحة المدير الخاصة بمدرسة معيّنة</div>
+        <div class="t-title">الاشتراكات</div>
+        <div class="t-sub">تجديد وتعديل اشتراكات المدارس</div>
       </div>
     </a>
 
-    <!-- إدارة الاشتراكات -->
-    <a class="tile" href="{% url 'reports:platform_subscriptions_list' %}">
-      <div class="ico" style="background:linear-gradient(135deg,#ec4899,#db2777)">📅</div>
+    <a class="card tile" href="{% url 'reports:platform_plans_list' %}">
+      <div class="ico">📝</div>
       <div>
-        <div class="title">إدارة الاشتراكات</div>
-        <div class="muted">تجديد وتعديل اشتراكات المدارس</div>
+        <div class="t-title">خطط الاشتراك</div>
+        <div class="t-sub">إضافة وتعديل باقات الأسعار</div>
       </div>
     </a>
 
-    <!-- إدارة الخطط -->
-    <a class="tile" href="{% url 'reports:platform_plans_list' %}">
-      <div class="ico" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed)">📝</div>
+    <a class="card tile" href="{% url 'reports:platform_payments_list' %}">
+      <div class="ico">💰</div>
       <div>
-        <div class="title">خطط الاشتراك</div>
-        <div class="muted">إضافة وتعديل باقات الأسعار</div>
+        <div class="t-title">المالية والمدفوعات</div>
+        <div class="t-sub">مراجعة المدفوعات وتأكيد التحويلات</div>
       </div>
     </a>
 
-    <!-- المالية -->
-    <a class="tile" href="{% url 'reports:platform_payments_list' %}">
-      <div class="ico" style="background:linear-gradient(135deg,#10b981,#059669)">💰</div>
+    <a class="card tile" href="{% url 'reports:platform_tickets_list' %}">
+      <div class="ico">🎧</div>
       <div>
-        <div class="title">المالية والمدفوعات</div>
-        <div class="muted">مراجعة سجل المدفوعات وتأكيد التحويلات</div>
+        <div class="t-title">الدعم الفني</div>
+        <div class="t-sub">متابعة تذاكر الدعم والرد عليها</div>
       </div>
     </a>
 
-    <!-- الدعم الفني -->
-    <a class="tile" href="{% url 'reports:platform_tickets_list' %}">
-      <div class="ico" style="background:linear-gradient(135deg,#f97316,#ea580c)">🎧</div>
+    <a class="card tile" href="{% url 'reports:admin_dashboard' %}">
+      <div class="ico">📊</div>
       <div>
-        <div class="title">الدعم الفني</div>
-        <div class="muted">متابعة تذاكر الدعم والرد عليها</div>
+        <div class="t-title">لوحة مدراء المدارس</div>
+        <div class="t-sub">الانتقال للوحة مدير مدرسة (حسب المدرسة النشطة)</div>
       </div>
     </a>
 
-    <a class="tile" href="{% url 'admin:index' %}">
-      <div class="ico b4">⚙️</div>
+    <a class="card tile" href="{% url 'admin:index' %}">
+      <div class="ico">⚙️</div>
       <div>
-        <div class="title">لوحة Django الإدارية</div>
-        <div class="muted">إدارة متقدمة للجداول والصلاحيات من لوحة Django</div>
+        <div class="t-title">لوحة Django الإدارية</div>
+        <div class="t-sub">إدارة متقدمة للجداول والصلاحيات</div>
       </div>
     </a>
   </section>

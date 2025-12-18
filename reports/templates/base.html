@@ -217,6 +217,19 @@
       border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 45px rgba(2,6,23,.14);
       padding:8px;opacity:0;transform:translateY(-6px) scale(.98);pointer-events:none;transition:all .18s ease;z-index:185;
     }
+    /* Mobile: اجعل قائمة المستخدم تظهر يمين الشاشة بدل الوسط */
+    @media(max-width:520px){
+      .menu{
+        position:fixed;
+        inset:auto;
+        top:calc(var(--safe-top) + 78px);
+        right:10px;
+        left:auto;
+        width:min(320px, calc(100vw - 20px));
+        min-width:0;
+        transform-origin: top right;
+      }
+    }
     .menu.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
     .menu .mi{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;color:var(--ink);text-decoration:none;font-weight:800}
     .menu .mi:hover{background:var(--line-2)}

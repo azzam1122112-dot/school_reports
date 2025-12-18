@@ -1,82 +1,77 @@
 {% extends "base.html" %}
 {% block title %}مدراء المدارس{% endblock %}
 
-{% block head %}
-<style>
-  .wrap{max-width:980px;margin:auto;padding:18px}
-  .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);box-shadow:0 10px 26px rgba(15,23,42,.06);padding:18px}
-  h1{margin:0 0 10px;font-size:1.45rem;font-weight:900;color:var(--ink-soft,#111827)}
-  .sub{color:var(--muted,#6b7280);font-weight:700;margin-bottom:16px}
-  table{width:100%;border-collapse:collapse;font-size:.95rem}
-  th,td{padding:10px 8px;text-align:right;border-bottom:1px solid var(--line,#e5e7eb)}
-  th{background:#f9fafb;font-weight:800;color:#4b5563}
-  tr:hover td{background:#f9fafb}
-  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:2px 8px;border-radius:999px;font-size:.8rem;background:#dcfce7;color:#166534;font-weight:800}
-  .btn-link{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:999px;border:1px solid var(--line,#e5e7eb);background:#fff;text-decoration:none;color:#1e293b;font-weight:800;font-size:.85rem}
-  .btn-link:hover{background:#eff6ff;border-color:#bfdbfe}
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div class="card">
-    <h1>مدراء المدارس</h1>
-    <p class="sub">قائمة بجميع مدراء المدارس مع المدارس المرتبطة بكل مدير.</p>
-
-    <div style="margin-bottom:14px;display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap">
-      <a class="btn-link" href="{% url 'reports:school_manager_create' %}">+ إنشاء مدير مدرسة جديد</a>
-      <a class="btn-link" href="{% url 'reports:schools_admin_list' %}">إدارة المدارس</a>
+<div class="container" dir="rtl">
+  <div class="page-head" style="max-width:980px;margin-inline:auto">
+    <div>
+      <h1 class="page-title">مدراء المدارس</h1>
+      <p class="page-subtitle">قائمة بجميع مدراء المدارس والمدارس المرتبطة بكل مدير.</p>
     </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn btn-primary" href="{% url 'reports:school_manager_create' %}">+ إنشاء مدير مدرسة جديد</a>
+      <a class="btn btn-outline" href="{% url 'reports:schools_admin_list' %}">إدارة المدارس</a>
+    </div>
+  </div>
 
-    {% if managers %}
-    <table>
-      <thead>
-        <tr>
-          <th>المدير</th>
-          <th>رقم الجوال</th>
-          <th>الحالة</th>
-          <th>المدارس المرتبطة</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in managers %}
-          {% with m=item.manager schools=item.schools %}
-          <tr>
-            <td>{{ m.name }}</td>
-            <td>{{ m.phone }}</td>
-            <td>
-              {% if m.is_active %}
-                <span class="badge">نشط</span>
-              {% else %}
-                <span class="badge" style="background:#fee2e2;color:#b91c1c">موقوف</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if schools %}
-                {% for s in schools %}
-                  {{ s.name }}{% if not forloop.last %}، {% endif %}
-                {% endfor %}
-              {% else %}
-                <span style="color:#9ca3af;font-weight:700">لا توجد مدارس مرتبطة</span>
-              {% endif %}
-            </td>
-            <td>
-              <a class="btn-link" href="{% url 'reports:school_manager_update' m.id %}">تعديل المدير</a>
-              <a class="btn-link" href="{% url 'reports:manage_teachers' %}">قائمة المعلّمين</a>
-              <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" style="display:inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا المدير؟ سيتم إيقاف حسابه وإلغاء صلاحياته.');">
-                {% csrf_token %}
-                <button type="submit" class="btn-link" style="color:#b91c1c;border-color:#fecaca;background:#fef2f2">حذف المدير</button>
-              </form>
-            </td>
-          </tr>
-          {% endwith %}
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-      <p>لا يوجد أي مدير مدرسة بعد. يمكنك إنشاء أول مدير من الزر أعلاه.</p>
-    {% endif %}
+  <div style="max-width:980px;margin-inline:auto">
+    <div class="card">
+      <div class="section-title">قائمة المدراء</div>
+
+      {% if managers %}
+      <div class="table-responsive">
+        <table class="rtable">
+          <thead>
+            <tr>
+              <th>المدير</th>
+              <th>رقم الجوال</th>
+              <th>الحالة</th>
+              <th>المدارس المرتبطة</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in managers %}
+              {% with m=item.manager schools=item.schools %}
+              <tr>
+                <td data-label="المدير"><b>{{ m.name }}</b></td>
+                <td data-label="رقم الجوال">{{ m.phone }}</td>
+                <td data-label="الحالة">
+                  {% if m.is_active %}
+                    <span class="badge success">نشط</span>
+                  {% else %}
+                    <span class="badge danger">موقوف</span>
+                  {% endif %}
+                </td>
+                <td data-label="المدارس المرتبطة">
+                  {% if schools %}
+                    {% for s in schools %}
+                      {{ s.name }}{% if not forloop.last %}، {% endif %}
+                    {% endfor %}
+                  {% else %}
+                    <span class="muted" style="font-weight:900">لا توجد مدارس مرتبطة</span>
+                  {% endif %}
+                </td>
+                <td data-label="إجراءات">
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start">
+                    <a class="btn btn-outline" href="{% url 'reports:school_manager_update' m.id %}" style="padding:8px 10px">تعديل المدير</a>
+                    <a class="btn btn-outline" href="{% url 'reports:manage_teachers' %}" style="padding:8px 10px">قائمة المعلّمين</a>
+                    <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" style="display:inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا المدير؟ سيتم إيقاف حسابه وإلغاء صلاحياته.');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-danger" style="padding:8px 10px">حذف المدير</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="muted" style="font-weight:900">لا يوجد أي مدير مدرسة بعد.</div>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}

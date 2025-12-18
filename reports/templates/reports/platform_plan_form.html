@@ -2,43 +2,45 @@
 {% block title %}{% if plan %}تعديل خطة{% else %}إضافة خطة جديدة{% endif %}{% endblock %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div style="max-width:600px;margin:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h1 class="title">{% if plan %}تعديل خطة: {{ plan.name }}{% else %}إضافة خطة اشتراك جديدة{% endif %}</h1>
-      <a href="{% url 'reports:platform_plans_list' %}" class="btn">إلغاء</a>
+<div class="container" dir="rtl">
+  <div class="page-head" style="max-width:720px;margin-inline:auto">
+    <div>
+      <h1 class="page-title">{% if plan %}تعديل خطة: {{ plan.name }}{% else %}إضافة خطة اشتراك جديدة{% endif %}</h1>
+      <p class="page-subtitle">إدارة باقات الأسعار الخاصة بالمنصة.</p>
     </div>
+    <a href="{% url 'reports:platform_plans_list' %}" class="btn btn-outline">إلغاء</a>
+  </div>
 
-    <div class="card" style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:var(--shadow)">
-      <form method="post">
-        {% csrf_token %}
-        
-        {% if form.non_field_errors %}
-        <div class="msg error" style="margin-bottom:20px">
-          {{ form.non_field_errors }}
-        </div>
-        {% endif %}
+  <div class="card" style="max-width:720px;margin-inline:auto">
+    <form method="post">
+      {% csrf_token %}
 
-        <div style="display:grid;gap:16px">
-          {% for field in form %}
-          <div>
-            <label style="display:block;font-weight:bold;margin-bottom:6px;color:var(--ink)">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}
-            <div style="font-size:0.85rem;color:var(--muted);margin-top:4px">{{ field.help_text }}</div>
-            {% endif %}
-            {% if field.errors %}
-            <div style="color:#dc2626;font-size:0.85rem;margin-top:4px;font-weight:bold">{{ field.errors.0 }}</div>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
+      {% if form.non_field_errors %}
+      <div class="msg error" data-autohide="false" style="margin-bottom:12px">
+        {{ form.non_field_errors }}
+      </div>
+      {% endif %}
 
-        <div style="margin-top:24px;display:flex;gap:10px">
-          <button type="submit" class="btn btn-primary" style="flex:1">حفظ الخطة</button>
+      <div class="form-grid">
+        {% for field in form %}
+        <div>
+          <label style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <div class="muted" style="font-size:.88rem;font-weight:850;margin-top:6px">{{ field.help_text }}</div>
+          {% endif %}
+          {% if field.errors %}
+            <div style="color:var(--danger);font-size:.88rem;margin-top:6px;font-weight:950">{{ field.errors.0 }}</div>
+          {% endif %}
         </div>
-      </form>
-    </div>
+        {% endfor %}
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button type="submit" class="btn btn-primary" style="flex:1">حفظ الخطة</button>
+        <a href="{% url 'reports:platform_plans_list' %}" class="btn btn-outline">رجوع</a>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}

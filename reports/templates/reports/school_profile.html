@@ -1,115 +1,90 @@
 {% extends "base.html" %}
 {% block title %}بروفايل المدرسة{% endblock %}
 
-{% block head %}
-<style>
-  .wrap{max-width:980px;margin:auto;padding:18px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:18px}
-  .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);box-shadow:0 10px 26px rgba(15,23,42,.06);padding:18px}
-  h1{margin:0 0 8px;font-size:1.45rem;font-weight:900;color:var(--ink-soft,#111827)}
-  .sub{color:#6b7280;font-weight:600;margin-bottom:4px}
-  .label{font-size:.85rem;color:#6b7280;margin-bottom:2px}
-  .value{font-weight:800;color:#111827}
-  .metric{display:flex;flex-direction:column;gap:2px}
-  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:2px 8px;border-radius:999px;font-size:.8rem;background:#eef2ff;color:#1e40af;font-weight:800}
-  ul{margin:0;padding-right:18px;font-size:.9rem}
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div class="card">
-    <h1>بروفايل المدرسة</h1>
-    <p class="sub">نظرة عامة على بيانات المدرسة وإحصائياتها.</p>
+<div class="container" dir="rtl">
+  <div class="page-head" style="max-width:980px;margin-inline:auto">
+    <div>
+      <h1 class="page-title">بروفايل المدرسة</h1>
+      <p class="page-subtitle">نظرة عامة على بيانات المدرسة وإحصائياتها.</p>
+    </div>
+    <a href="{% url 'reports:schools_admin_list' %}" class="btn btn-outline">عودة للقائمة</a>
+  </div>
 
-    <div class="grid">
-      <div class="metric">
-        <span class="label">اسم المدرسة</span>
-        <span class="value">{{ school.name }}</span>
-      </div>
-      <div class="metric">
-        <span class="label">المرحلة</span>
-        <span class="value">{{ school.get_stage_display }}</span>
-      </div>
-      <div class="metric">
-        <span class="label">بنين / بنات</span>
-        <span class="value">{{ school.get_gender_display }}</span>
-      </div>
-      <div class="metric">
-        <span class="label">المدينة</span>
-        <span class="value">{{ school.city|default:"-" }}</span>
-      </div>
-      <div class="metric">
-        <span class="label">رقم الجوال</span>
-        <span class="value">{{ school.phone|default:"-" }}</span>
-      </div>
-      <div class="metric">
-        <span class="label">الحالة</span>
+  <div style="max-width:980px;margin-inline:auto">
+    <div class="card">
+      <div class="section-title">بيانات المدرسة</div>
+      <div class="card-row"><span>اسم المدرسة</span><b>{{ school.name }}</b></div>
+      <div class="card-row"><span>المرحلة</span><b>{{ school.get_stage_display }}</b></div>
+      <div class="card-row"><span>بنين / بنات</span><b>{{ school.get_gender_display }}</b></div>
+      <div class="card-row"><span>المدينة</span><b>{{ school.city|default:"-" }}</b></div>
+      <div class="card-row"><span>رقم الجوال</span><b>{{ school.phone|default:"-" }}</b></div>
+      <div style="margin-top:10px">
         {% if school.is_active %}
-          <span class="badge" style="background:#dcfce7;color:#166534">نشطة</span>
+          <span class="badge success">نشطة</span>
         {% else %}
-          <span class="badge" style="background:#fee2e2;color:#b91c1c">موقوفة</span>
+          <span class="badge danger">موقوفة</span>
         {% endif %}
       </div>
     </div>
-  </div>
 
-  <div class="grid">
-    <div class="card">
-      <div class="metric">
-        <span class="label">عدد التقارير</span>
-        <span class="value">{{ reports_count }}</span>
+    <div style="height:12px"></div>
+
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div><div class="num">{{ reports_count }}</div><div class="lbl">عدد التقارير</div></div>
+        <div class="kpi-ico info">R</div>
+      </div>
+      <div class="kpi">
+        <div><div class="num">{{ tickets_total }}</div><div class="lbl">التذاكر (الكل)</div></div>
+        <div class="kpi-ico warn">T</div>
+      </div>
+      <div class="kpi">
+        <div><div class="num">{{ departments_count }}</div><div class="lbl">الأقسام</div></div>
+        <div class="kpi-ico info">D</div>
+      </div>
+      <div class="kpi">
+        <div><div class="num">{{ teachers_count }}</div><div class="lbl">المعلمين</div></div>
+        <div class="kpi-ico ok">M</div>
       </div>
     </div>
+
+    <div style="height:12px"></div>
+
     <div class="card">
-      <div class="metric">
-        <span class="label">عدد التذاكر (الكل)</span>
-        <span class="value">{{ tickets_total }}</span>
-      </div>
-      <div class="metric" style="margin-top:8px;font-size:.85rem">
-        <span class="label">مفتوحة / تحت المعالجة</span>
-        <span class="value">{{ tickets_open }}</span>
-      </div>
-      <div class="metric" style="margin-top:4px;font-size:.85rem">
-        <span class="label">مغلقة</span>
-        <span class="value">{{ tickets_done }}</span>
-      </div>
-      <div class="metric" style="margin-top:4px;font-size:.85rem">
-        <span class="label">مرفوضة</span>
-        <span class="value">{{ tickets_rejected }}</span>
-      </div>
+      <div class="section-title">تفاصيل التذاكر</div>
+      <div class="card-row"><span>مفتوحة / تحت المعالجة</span><b>{{ tickets_open }}</b></div>
+      <div class="card-row"><span>مغلقة</span><b>{{ tickets_done }}</b></div>
+      <div class="card-row"><span>مرفوضة</span><b>{{ tickets_rejected }}</b></div>
     </div>
-    <div class="card">
-      <div class="metric">
-        <span class="label">عدد الأقسام المرتبطة بمعلمي هذه المدرسة</span>
-        <span class="value">{{ departments_count }}</span>
-      </div>
-      {% if departments %}
-        <div style="margin-top:8px">
-          <span class="label">أمثلة أقسام (بحد أقصى 20):</span>
-          <ul>
+
+    <div style="height:12px"></div>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:12px">
+      <div class="card">
+        <div class="section-title">أمثلة أقسام (بحد أقصى 20)</div>
+        {% if departments %}
+          <ul style="margin:0;padding-right:18px">
             {% for d in departments %}
               <li>{{ d.name }}</li>
             {% endfor %}
           </ul>
-        </div>
-      {% endif %}
-    </div>
-    <div class="card">
-      <div class="metric">
-        <span class="label">عدد المعلمين المرتبطين بالمدرسة</span>
-        <span class="value">{{ teachers_count }}</span>
+        {% else %}
+          <div class="muted" style="font-weight:900">لا توجد أقسام لعرضها.</div>
+        {% endif %}
       </div>
-      {% if teachers %}
-        <div style="margin-top:8px">
-          <span class="label">أمثلة معلمين (بحد أقصى 20):</span>
-          <ul>
+      <div class="card">
+        <div class="section-title">أمثلة معلمين (بحد أقصى 20)</div>
+        {% if teachers %}
+          <ul style="margin:0;padding-right:18px">
             {% for t in teachers %}
               <li>{{ t.name }}</li>
             {% endfor %}
           </ul>
-        </div>
-      {% endif %}
+        {% else %}
+          <div class="muted" style="font-weight:900">لا يوجد معلمين لعرضهم.</div>
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>

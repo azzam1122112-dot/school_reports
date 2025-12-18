@@ -258,32 +258,6 @@
             </div>
             {% for e in form.is_active.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
           </div>
-
-          <!-- القسم -->
-          <div class="group">
-            <label class="label" for="{{ form.department.id_for_label }}">
-              <i class="fas fa-building" aria-hidden="true"></i> القسم
-            </label>
-            <div class="select-wrap">
-              {{ form.department }}
-              <span class="caret" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
-            </div>
-            {% for e in form.department.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">اختر القسم الذي يتبع له المعلّم</div>
-          </div>
-
-          <!-- الدور داخل القسم -->
-          <div class="group">
-            <label class="label" for="{{ form.membership_role.id_for_label }}">
-              <i class="fas fa-user-shield" aria-hidden="true"></i> الدور داخل القسم
-            </label>
-            <div class="select-wrap">
-              {{ form.membership_role }}
-              <span class="caret" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
-            </div>
-            {% for e in form.membership_role.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">“مسؤول القسم” يمنح صلاحيات الاطلاع على تقارير القسم</div>
-          </div>
         </div>
 
         <div class="actions">
@@ -348,31 +322,6 @@
       });
     }
 
-    // ضبط خيارات الدور داخل قسم "المعلمين" (تعطيل officer)
-    const dept = document.getElementById('{{ form.department.id_for_label }}') || document.getElementById('id_department');
-    const role = document.getElementById('{{ form.membership_role.id_for_label }}') || document.getElementById('id_membership_role');
-
-    const TEACHERS = new Set(["teachers","معلمين","المعلمين"]);
-    function adjustRoleChoices(){
-      if(!dept || !role) return;
-      const val = (dept.value || "").trim().toLowerCase();
-      const isTeachers = TEACHERS.has(val);
-
-      for(const opt of (role.options || [])){
-        if((opt.value || "").toLowerCase() === "officer"){
-          opt.disabled = isTeachers;
-          if(isTeachers && (role.value || "").toLowerCase() === "officer"){
-            for(const o of role.options){
-              if((o.value || "").toLowerCase() === "teacher"){ role.value = o.value; break; }
-            }
-          }
-        }
-      }
-    }
-    if(dept){
-      dept.addEventListener("change", adjustRoleChoices);
-      adjustRoleChoices();
-    }
   });
 </script>
 {% endblock %}

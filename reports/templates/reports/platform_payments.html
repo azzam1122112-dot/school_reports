@@ -2,53 +2,54 @@
 {% block title %}المالية والمدفوعات{% endblock %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-    <h1 class="title">المالية والمدفوعات</h1>
-    <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn">عودة</a>
+<div class="container" dir="rtl">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">المالية والمدفوعات</h1>
+      <p class="page-subtitle">مراجعة المدفوعات وتأكيد التحويلات على مستوى المنصة.</p>
+    </div>
+    <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">عودة للوحة المنصة</a>
   </div>
 
-  <div class="card" style="background:#fff;border-radius:14px;border:1px solid var(--line);overflow:hidden">
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:800px">
-        <thead>
-          <tr style="background:var(--bg);text-align:right">
-            <th style="padding:12px;border-bottom:1px solid var(--line)">المدرسة</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">المبلغ</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">التاريخ</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">رقم العملية</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">الحالة</th>
-            <th style="padding:12px;border-bottom:1px solid var(--line)">إجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for payment in payments %}
-          <tr style="border-bottom:1px solid var(--line-2)">
-            <td style="padding:12px;font-weight:bold">{{ payment.school.name }}</td>
-            <td style="padding:12px;font-weight:900;color:var(--brand)">{{ payment.amount }} ريال</td>
-            <td style="padding:12px">{{ payment.payment_date|date:"Y-m-d" }}</td>
-            <td style="padding:12px;font-family:monospace">{{ payment.transaction_id|default:"-" }}</td>
-            <td style="padding:12px">
-              {% if payment.status == 'approved' %}
-                <span style="background:#dcfce7;color:#166534;padding:4px 8px;border-radius:99px;font-size:0.85rem;font-weight:bold">مقبول</span>
-              {% elif payment.status == 'pending' %}
-                <span style="background:#fef3c7;color:#92400e;padding:4px 8px;border-radius:99px;font-size:0.85rem;font-weight:bold">معلق</span>
-              {% else %}
-                <span style="background:#fee2e2;color:#991b1b;padding:4px 8px;border-radius:99px;font-size:0.85rem;font-weight:bold">مرفوض</span>
-              {% endif %}
-            </td>
-            <td style="padding:12px">
-                <a href="{% url 'reports:platform_payment_detail' payment.id %}" class="btn" style="padding:4px 10px;font-size:0.85rem">تفاصيل</a>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">لا توجد عمليات دفع مسجلة.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div class="card table-responsive">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th style="text-align:right">المدرسة</th>
+          <th>المبلغ</th>
+          <th>التاريخ</th>
+          <th>رقم العملية</th>
+          <th>الحالة</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in payments %}
+        <tr>
+          <td data-label="المدرسة" style="text-align:right;font-weight:950">{{ payment.school.name }}</td>
+          <td data-label="المبلغ" style="font-weight:950;color:var(--brand)">{{ payment.amount }} ريال</td>
+          <td data-label="التاريخ">{{ payment.payment_date|date:"Y-m-d" }}</td>
+          <td data-label="رقم العملية" style="font-family:monospace">{{ payment.transaction_id|default:"-" }}</td>
+          <td data-label="الحالة">
+            {% if payment.status == 'approved' %}
+              <span class="badge success">مقبول</span>
+            {% elif payment.status == 'pending' %}
+              <span class="badge warning">معلّق</span>
+            {% else %}
+              <span class="badge danger">مرفوض</span>
+            {% endif %}
+          </td>
+          <td data-label="إجراء">
+            <a href="{% url 'reports:platform_payment_detail' payment.id %}" class="btn btn-outline" style="min-height:38px;padding:8px 10px">تفاصيل</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" style="padding:20px;text-align:center" class="muted">لا توجد عمليات دفع مسجلة.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 {% endblock %}

@@ -282,10 +282,23 @@ class Department(models.Model):
         ملاحظة مهمة: كان هناك سابقًا مزامنة تلقائية بين Department.slug و Role.slug.
         هذا لا يعمل مع الأقسام المخصصة لكل مدرسة (لأن Role.slug فريد عالميًا)، لذلك تم إيقافه.
         """
+        def _slugify_english(text: str) -> str:
+            try:
+                from unidecode import unidecode  # type: ignore
+
+                text = unidecode(text or "")
+            except Exception:
+                pass
+            return slugify(text or "", allow_unicode=False)
+
         if self.slug:
             self.slug = self.slug.strip().lower()
         else:
-            self.slug = slugify(self.name or "", allow_unicode=True)
+            self.slug = _slugify_english(self.name or "")
+
+        # fallback: لا نسمح بـ slug فارغ
+        if not self.slug:
+            self.slug = "dept"
 
         if self.slug == MANAGER_SLUG:
             self.name = MANAGER_NAME
