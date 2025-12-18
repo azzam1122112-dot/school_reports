@@ -8,7 +8,7 @@
     <h1 class="admin-title"><i class="fas fa-chart-bar"></i> لوحة المسؤول – تقارير قسمي</h1>
     <p class="admin-subtitle">
       عرض وإدارة تقارير القسم:
-      <b>{{ department.name|default:request.user.role.name }}</b>
+      <b>{% if department %}{{ department.name }}{% else %}—{% endif %}</b>
     </p>
   </div>
 

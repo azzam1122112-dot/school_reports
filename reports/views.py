@@ -631,11 +631,12 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
 
     if allowed_cats_qs is None or not allowed_cats_qs.exists():
         messages.info(request, "لم يتم ربط قسمك بأي أنواع تقارير بعد.")
+        empty_page = Paginator(Report.objects.none(), 25).get_page(1)
         return render(
             request,
             "reports/officer_reports.html",
             {
-                "reports": [],
+                "reports": empty_page,
                 "categories": [],
                 "category": "",
                 "teacher_name": "",
