@@ -538,15 +538,27 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         nav_officer_reports = 0
 
-    # روابط لوحة المدير: تظهر لكل من لديه is_staff (مدير/سوبر أدمن)
+    # روابط لوحة المدير: تظهر لكل من لديه is_staff (مدير/سوبر أدمن) أو مدير مدرسة
     try:
         role_slug = getattr(getattr(u, "role", None), "slug", None)
     except Exception:
         role_slug = None
-    show_admin_link = bool(getattr(u, "is_staff", False))
+    
+    is_school_manager = False
+    try:
+        if getattr(u, "is_authenticated", False):
+             is_school_manager = SchoolMembership.objects.filter(
+                teacher=u, 
+                role_type=SchoolMembership.RoleType.MANAGER,
+                is_active=True
+            ).exists()
+    except Exception:
+        pass
+
+    show_admin_link = bool(getattr(u, "is_staff", False)) or is_school_manager
 
     # من يحق له إرسال إشعارات؟
-    can_send_notifications = bool(getattr(u, "is_superuser", False) or role_slug == "manager" or is_officer)
+    can_send_notifications = bool(getattr(u, "is_superuser", False) or role_slug == "manager" or is_officer or is_school_manager)
 
     # اختر الرابط الأنسب الذي يملك إذن الدخول إليه
     send_notification_url = None

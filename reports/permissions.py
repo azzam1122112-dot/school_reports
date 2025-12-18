@@ -18,6 +18,11 @@ try:
 except Exception:  # pragma: no cover
     DepartmentMembership = None  # type: ignore
 
+try:
+    from .models import SchoolMembership
+except Exception:
+    SchoolMembership = None
+
 __all__ = [
     "get_officer_departments",
     "get_officer_department",
@@ -135,6 +140,19 @@ def role_required(allowed_roles: Iterable[str]):
             if role_slug in allowed:
                 return view_func(request, *args, **kwargs)
 
+            # ✅ دعم مدير المدرسة (School Manager) إذا كان الدور المطلوب "manager"
+            if "manager" in allowed and SchoolMembership is not None:
+                try:
+                    is_school_manager = SchoolMembership.objects.filter(
+                        teacher=user,
+                        role_type="manager",
+                        is_active=True
+                    ).exists()
+                    if is_school_manager:
+                        return view_func(request, *args, **kwargs)
+                except Exception:
+                    pass
+
             messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
             return redirect("reports:home")
 
@@ -162,6 +180,15 @@ def allowed_categories_for(user) -> Set[str]:
         role_slug = _user_role_slug(user)
         if role_slug == "manager":
             return {"all"}
+        
+        # ✅ مدير المدرسة يرى كل التصنيفات
+        if SchoolMembership is not None:
+            try:
+                if SchoolMembership.objects.filter(teacher=user, role_type="manager", is_active=True).exists():
+                    return {"all"}
+            except Exception:
+                pass
+
         if role and getattr(role, "can_view_all_reports", False):
             return {"all"}
 
@@ -201,6 +228,14 @@ def restrict_queryset_for_user(qs: QuerySet[Any], user) -> QuerySet[Any]:
     # سوبر أو مدير أو can_view_all_reports: لا قيود
     if getattr(user, "is_superuser", False) or role_slug == "manager" or (role and getattr(role, "can_view_all_reports", False)):
         return qs
+
+    # ✅ مدير المدرسة يرى كل التقارير (مع مراعاة فلترة المدرسة في الـ View)
+    if SchoolMembership is not None:
+        try:
+            if SchoolMembership.objects.filter(teacher=user, role_type="manager", is_active=True).exists():
+                return qs
+        except Exception:
+            pass
 
     allowed_codes = allowed_categories_for(user)
     if "all" in allowed_codes:
