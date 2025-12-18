@@ -342,6 +342,24 @@
     </div>
   </section>
 
+  {% if login_notification %}
+    <section class="card" aria-label="آخر إشعار" style="margin-top:14px">
+      <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
+        <i class="fa-solid fa-bell" style="opacity:.85"></i>
+        آخر إشعار
+        {% if login_notification.is_important %}<span class="pill p-red">هام</span>{% endif %}
+      </h3>
+      {% if login_notification.title %}
+        <div style="font-weight:950; margin-bottom:6px">{{ login_notification.title }}</div>
+      {% endif %}
+      <div class="muted" style="white-space:pre-wrap">{{ login_notification.message|linebreaksbr }}</div>
+      <div class="muted" style="margin-top:10px; font-weight:800; font-size:.95rem">
+        المرسل: {% firstof login_notification.created_by.name login_notification.created_by.phone "الإدارة" %}
+        {% if login_notification.created_at %} — <span dir="ltr">{{ login_notification.created_at|date:"Y-m-d H:i" }}</span>{% endif %}
+      </div>
+    </section>
+  {% endif %}
+
   <div class="home-grid">
     <!-- LEFT -->
     <div class="grid" style="align-content:start">

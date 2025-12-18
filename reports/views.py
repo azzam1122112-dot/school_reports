@@ -409,6 +409,43 @@ def home(request: HttpRequest) -> HttpResponse:
     stats = {"today_count": 0, "total_count": 0, "last_title": "—"}
     req_stats = {"open": 0, "in_progress": 0, "done": 0, "rejected": 0, "total": 0}
 
+    # آخر إشعار للمستخدم: نعرض الأحدث فقط، وإذا كان غير مقروء نعلّمه كمقروء عند العرض.
+    login_notification = None
+    try:
+        if NotificationRecipient is not None and Notification is not None:
+            now = timezone.now()
+            nqs = (
+                NotificationRecipient.objects.select_related("notification", "notification__created_by")
+                .filter(teacher=request.user)
+            )
+
+            # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
+            try:
+                if active_school is not None and hasattr(Notification, "school"):
+                    nqs = nqs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+            except Exception:
+                pass
+
+            # استبعاد المنتهي
+            try:
+                if hasattr(Notification, "expires_at"):
+                    nqs = nqs.filter(Q(notification__expires_at__gt=now) | Q(notification__expires_at__isnull=True))
+            except Exception:
+                pass
+
+            rec = nqs.order_by("-created_at", "-id").first()
+            if rec is not None and not bool(getattr(rec, "is_read", False)):
+                login_notification = getattr(rec, "notification", None)
+                try:
+                    rec.is_read = True
+                    rec.read_at = now
+                    rec.save(update_fields=["is_read", "read_at"])
+                except Exception:
+                    # لا نكسر الرئيسية لو فشل تعليم القراءة
+                    pass
+    except Exception:
+        login_notification = None
+
     try:
         my_qs = _filter_by_school(
             Report.objects.filter(teacher=request.user).only(
@@ -449,6 +486,7 @@ def home(request: HttpRequest) -> HttpResponse:
                 "recent_reports": recent_reports[:2],
                 "req_stats": req_stats,
                 "recent_tickets": recent_tickets[:2],
+                "login_notification": login_notification,
             },
         )
     except Exception:
@@ -3165,6 +3203,11 @@ def notifications_create(request: HttpRequest) -> HttpResponse:
         active_school = _get_active_school(request)
     except Exception:
         active_school = None
+
+    # حماية: غير السوبر يجب أن يختار مدرسة نشطة قبل الإرسال
+    if not getattr(request.user, "is_superuser", False) and active_school is None:
+        messages.error(request, "يرجى اختيار المدرسة أولاً قبل إرسال الإشعارات.")
+        return redirect("reports:home")
 
     form = NotificationCreateForm(request.POST or None, user=request.user, active_school=active_school)
     if request.method == "POST":

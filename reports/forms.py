@@ -1093,7 +1093,7 @@ class NotificationCreateForm(forms.Form):
     )
     teachers = forms.ModelMultipleChoiceField(
         queryset=Teacher.objects.none(),
-        required=True,
+        required=False,
         label="المستلمون (يمكن اختيار أكثر من معلم)",
         widget=forms.CheckboxSelectMultiple()
     )
@@ -1183,11 +1183,38 @@ class NotificationCreateForm(forms.Form):
             created_by=creator,
             school=school_for_notification,
         )
-        teachers = list(cleaned["teachers"])
-        if teachers:
-            NotificationRecipient.objects.bulk_create([
-                NotificationRecipient(notification=n, teacher=t) for t in teachers
-            ], ignore_conflicts=True)
+        selected_teachers = list(cleaned.get("teachers") or [])
+        if selected_teachers:
+            NotificationRecipient.objects.bulk_create(
+                [NotificationRecipient(notification=n, teacher=t) for t in selected_teachers],
+                ignore_conflicts=True,
+            )
+        else:
+            # إذا لم يتم اختيار مستلمين: نرسل تلقائياً حسب نطاق الإرسال
+            # - مدرسة معيّنة: كل مستخدمي المدرسة
+            # - كل المدارس: كل المستخدمين المرتبطين بأي مدرسة نشطة
+            qs = Teacher.objects.filter(is_active=True)
+
+            # حصر على عضويات مدرسة نشطة لتفادي إرسال لمستخدمين بدون مدرسة
+            qs = qs.filter(
+                school_memberships__is_active=True,
+                school_memberships__school__is_active=True,
+            ).distinct()
+
+            if getattr(creator, "is_superuser", False):
+                scope = cleaned.get("audience_scope") or "school"
+                if scope != "all":
+                    if school_for_notification is not None:
+                        qs = qs.filter(school_memberships__school=school_for_notification).distinct()
+            else:
+                # المدير/المسؤول: لا يسمح بالإرسال خارج المدرسة النشطة
+                if school_for_notification is not None:
+                    qs = qs.filter(school_memberships__school=school_for_notification).distinct()
+
+            NotificationRecipient.objects.bulk_create(
+                [NotificationRecipient(notification=n, teacher=t) for t in qs],
+                ignore_conflicts=True,
+            )
         return n
 
 
