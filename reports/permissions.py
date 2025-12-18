@@ -10,18 +10,13 @@ from django.db.models import QuerySet, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 
-from .models import Department
+from .models import Department, SchoolMembership
 
 # نحاول الاستيراد المرن لعضويات الأقسام
 try:
     from .models import DepartmentMembership  # type: ignore
 except Exception:  # pragma: no cover
     DepartmentMembership = None  # type: ignore
-
-try:
-    from .models import SchoolMembership
-except Exception:
-    SchoolMembership = None
 
 __all__ = [
     "get_officer_departments",

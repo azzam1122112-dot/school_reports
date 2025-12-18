@@ -128,7 +128,19 @@ logger = logging.getLogger(__name__)
 # أدوات مساعدة عامة
 # =========================
 def _is_staff(user) -> bool:
-    return bool(user and user.is_authenticated and user.is_staff)
+    # ✅ دعم مدير المدرسة (School Manager)
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_staff", False):
+        return True
+    try:
+        return SchoolMembership.objects.filter(
+            teacher=user, 
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True
+        ).exists()
+    except Exception:
+        return False
 
 def _is_staff_or_officer(user) -> bool:
     """يسمح للموظّفين (is_staff) أو لمسؤولي الأقسام (Officer)."""
