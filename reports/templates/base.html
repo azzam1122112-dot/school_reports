@@ -178,6 +178,26 @@
     .school-btn-txt{display:grid;gap:2px;min-width:170px}
     .school-btn-top{font-size:.72rem;color:var(--muted);font-weight:900}
     .school-btn-name{font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* ===== Mobile header overflow fix =====
+       السبب الشائع للـ overflow: عناصر flex مع min-width + نصوص nowrap.
+       نسمح للـ brand بالانكماش، ونخفّف قيود min-width للنصوص على الجوال.
+    */
+    @media(max-width:520px){
+      .hdr{gap:10px}
+      .hdr-brand{min-width:0; flex:1 1 auto; max-width:100%}
+      .hdr-brand-txt{min-width:0; max-width:100%}
+      .hdr-brand-name{min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis}
+
+      .hdr-actions{flex:0 0 auto}
+
+      .school-btn-txt{min-width:0}
+      .school-btn{max-width:min(260px, 58vw)}
+    }
+
+    @media(max-width:380px){
+      .school-btn{max-width:min(220px, 52vw)}
+    }
     
     /* Pulse Effect */
     @keyframes pulse-ring {

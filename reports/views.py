@@ -3569,8 +3569,43 @@ def send_notification(request: HttpRequest) -> HttpResponse:
 # =========================
 
 def subscription_expired(request):
-    """صفحة تظهر عند انتهاء الاشتراك"""
-    return render(request, 'reports/subscription_expired.html')
+    """صفحة تظهر عند انتهاء الاشتراك.
+
+    نُمرّر معلومات المدرسة + تاريخ انتهاء الاشتراك إن توفّرت لعرضها في الرسالة.
+    """
+    school = None
+    subscription = None
+    is_manager = False
+
+    try:
+        user = getattr(request, "user", None)
+        if user is not None and getattr(user, "is_authenticated", False):
+            active_school = _get_active_school(request)
+            memberships = (
+                SchoolMembership.objects.filter(teacher=user, is_active=True)
+                .select_related("school__subscription__plan", "school")
+            )
+            membership = None
+            if active_school:
+                membership = memberships.filter(school=active_school).first()
+            if membership is None:
+                membership = memberships.first()
+
+            if membership is not None:
+                school = membership.school
+                is_manager = membership.role_type == SchoolMembership.RoleType.MANAGER
+                subscription = getattr(school, "subscription", None)
+    except Exception:
+        # لا نكسر الصفحة لو كانت هناك مشكلة في العضويات
+        school = None
+        subscription = None
+        is_manager = False
+
+    return render(
+        request,
+        "reports/subscription_expired.html",
+        {"school": school, "subscription": subscription, "is_manager": is_manager},
+    )
 
 @login_required(login_url="reports:login")
 def my_subscription(request):
