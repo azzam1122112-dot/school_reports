@@ -14,6 +14,34 @@
     </div>
   </div>
 
+  <div class="card" style="padding:14px;margin-bottom:14px">
+    <form method="get" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+      <div>
+        <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">فلترة حسب الاشتراك</label>
+        <select name="status" class="input" style="min-width:220px">
+          <option value="all" {% if status == 'all' or not status %}selected{% endif %}>الكل</option>
+          <option value="active" {% if status == 'active' %}selected{% endif %}>ساري</option>
+          <option value="expired" {% if status == 'expired' %}selected{% endif %}>منتهي</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">حسب الباقة</label>
+        <select name="plan" class="input" style="min-width:240px">
+          <option value="" {% if not plan_id %}selected{% endif %}>كل الباقات</option>
+          {% for p in plans %}
+            <option value="{{ p.id }}" {% if plan_id|stringformat:'s' == p.id|stringformat:'s' %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-outline" style="min-height:44px">تطبيق</button>
+      {% if plan_id or status and status != 'all' %}
+        <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn btn-outline" style="min-height:44px">مسح الفلتر</a>
+      {% endif %}
+    </form>
+  </div>
+
   <div class="card table-responsive">
     <table class="rtable">
       <thead>
@@ -34,10 +62,10 @@
           <td data-label="البدء">{{ sub.start_date|date:"Y-m-d" }}</td>
           <td data-label="الانتهاء">{{ sub.end_date|date:"Y-m-d" }}</td>
           <td data-label="الحالة">
-            {% if sub.is_active %}
-              <span class="badge success">نشط</span>
+            {% if sub.is_expired %}
+              <span class="badge danger">منتهي</span>
             {% else %}
-              <span class="badge danger">منتهي/غير نشط</span>
+              <span class="badge success">ساري</span>
             {% endif %}
           </td>
           <td data-label="إجراء">

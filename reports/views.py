@@ -284,7 +284,67 @@ def login_view(request: HttpRequest) -> HttpResponse:
         password = request.POST.get("password") or ""
         user = authenticate(request, username=phone, password=password)
         if user is not None:
-            login(request, user)
+            # ✅ قواعد الاشتراك عند تسجيل الدخول:
+            # - السوبر: يتجاوز دائمًا.
+            # - مدير المدرسة: يُسمح له بالدخول حتى لو انتهى الاشتراك، لكن يُوجّه لصفحة (انتهاء الاشتراك)
+            #   ولا يستطيع استخدام المنصة إلا لصفحات التجديد (يُفرض ذلك عبر SubscriptionMiddleware).
+            # - بقية المستخدمين: إن لم توجد أي مدرسة باشتراك ساري → نمنع تسجيل الدخول.
+
+            if not getattr(user, "is_superuser", False):
+                try:
+                    memberships = (
+                        SchoolMembership.objects.filter(teacher=user, is_active=True)
+                        .select_related("school")
+                        .order_by("id")
+                    )
+
+                    active_school = None
+                    any_active_subscription = False
+                    is_any_manager = False
+                    manager_school = None
+                    first_school_name = None
+
+                    for m in memberships:
+                        if first_school_name is None:
+                            first_school_name = getattr(getattr(m, "school", None), "name", None)
+                        if m.role_type == SchoolMembership.RoleType.MANAGER:
+                            is_any_manager = True
+                            if manager_school is None:
+                                manager_school = m.school
+
+                        sub = None
+                        try:
+                            sub = m.school.subscription
+                        except Exception:
+                            sub = None
+
+                        # عدم وجود اشتراك = منتهي
+                        if sub is not None and not bool(sub.is_expired) and bool(getattr(m.school, "is_active", True)):
+                            any_active_subscription = True
+                            if active_school is None:
+                                active_school = m.school
+
+                    if not any_active_subscription:
+                        if is_any_manager and manager_school is not None:
+                            # المدير يُسمح له بالدخول للتجديد فقط
+                            login(request, user)
+                            _set_active_school(request, manager_school)
+                            return redirect("reports:subscription_expired")
+
+                        school_label = f" ({first_school_name})" if first_school_name else ""
+                        messages.error(request, f"عذرًا، اشتراك المدرسة{school_label} منتهي. لا يمكن الدخول حتى يتم تجديد الاشتراك.")
+                        return redirect("reports:login")
+
+                    # هناك اشتراك ساري واحد على الأقل → نكمل تسجيل الدخول ونثبت مدرسة نشطة مناسبة
+                    login(request, user)
+                    if active_school is not None:
+                        _set_active_school(request, active_school)
+                except Exception:
+                    # في حال أي مشكلة في تحقق الاشتراك، لا نكسر تسجيل الدخول (سيتولى Middleware المنع لاحقاً)
+                    login(request, user)
+            else:
+                login(request, user)
+
             # بعد تسجيل الدخول مباشرةً: اختيار مدرسة افتراضية عند توفر مدرسة واحدة فقط
             try:
                 # إن كان للمستخدم مدرسة واحدة فقط ضمن عضوياته نعتبرها المدرسة النشطة
@@ -300,6 +360,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                             _set_active_school(request, s)
             except Exception:
                 pass
+
             next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
             # الوجهة الافتراضية حسب الدور
             if getattr(user, "is_superuser", False):
@@ -357,6 +418,21 @@ def switch_school(request: HttpRequest) -> HttpResponse:
                 raise School.DoesNotExist
         _set_active_school(request, school)
         messages.success(request, f"تم التبديل إلى: {school.name}")
+
+        # ✅ حماية الاشتراك: إذا كانت المدرسة المختارة اشتراكها منتهي/غير موجود
+        # نوجّه مباشرةً لصفحة (انتهاء الاشتراك). المدير سيُسمح له فقط بصفحات التجديد.
+        if not request.user.is_superuser:
+            sub = None
+            try:
+                sub = school.subscription
+            except Exception:
+                sub = None
+            try:
+                expired = True if sub is None else bool(sub.is_expired)
+            except Exception:
+                expired = True
+            if expired:
+                return redirect("reports:subscription_expired")
     except Exception:
         messages.error(request, "تعذّر تبديل المدرسة. تأكد من الصلاحيات.")
 
@@ -2156,8 +2232,26 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
+    today = timezone.now().date()
+    status = (request.GET.get("status") or "all").strip().lower()
+    plan_id = (request.GET.get("plan") or "").strip()
+
     subscriptions = SchoolSubscription.objects.select_related('school', 'plan').order_by('-start_date')
-    return render(request, "reports/platform_subscriptions.html", {"subscriptions": subscriptions})
+    if status == "active":
+        subscriptions = subscriptions.filter(is_active=True, end_date__gte=today)
+    elif status == "expired":
+        subscriptions = subscriptions.filter(Q(is_active=False) | Q(end_date__lt=today))
+
+    if plan_id:
+        subscriptions = subscriptions.filter(plan_id=plan_id)
+
+    plans = SubscriptionPlan.objects.all().order_by("price", "name")
+
+    return render(
+        request,
+        "reports/platform_subscriptions.html",
+        {"subscriptions": subscriptions, "status": status, "plans": plans, "plan_id": plan_id},
+    )
 
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
@@ -3414,6 +3508,31 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
         pass
 
     page = Paginator(qs, 12).get_page(request.GET.get("page") or 1)
+
+    # عند فتح تبويب "إشعاراتي" غالباً يتوقع المستخدم أن تصبح الإشعارات المعروضة كمقروءة.
+    # لا يمكن الاعتماد على "إغلاق التبويب" كإشارة مؤكدة من المتصفح، لذا نُحدّثها هنا.
+    try:
+        items = list(page.object_list)
+        unread_ids = [x.pk for x in items if hasattr(x, "is_read") and not bool(getattr(x, "is_read", False))]
+        if unread_ids:
+            now = timezone.now()
+            fields = {f.name for f in NotificationRecipient._meta.get_fields()}
+            upd: dict = {}
+            if "is_read" in fields:
+                upd["is_read"] = True
+            if "read_at" in fields:
+                upd["read_at"] = now
+            if upd:
+                NotificationRecipient.objects.filter(pk__in=unread_ids, teacher=request.user).update(**upd)
+                for x in items:
+                    if x.pk in unread_ids:
+                        if "is_read" in upd:
+                            setattr(x, "is_read", True)
+                        if "read_at" in upd:
+                            setattr(x, "read_at", now)
+            page.object_list = items
+    except Exception:
+        pass
     return render(request, "reports/my_notifications.html", {"page_obj": page})
 
 @login_required(login_url="reports:login")
@@ -3648,6 +3767,18 @@ def subscription_expired(request):
                 school = membership.school
                 is_manager = membership.role_type == SchoolMembership.RoleType.MANAGER
                 subscription = getattr(school, "subscription", None)
+
+                # لو أصبحت المدرسة النشطة اشتراكها ساري (بعد التبديل مثلاً)،
+                # لا معنى لإظهار صفحة الانتهاء.
+                try:
+                    if subscription is not None and not bool(subscription.is_expired):
+                        if getattr(request.user, "is_superuser", False):
+                            return redirect("reports:platform_admin_dashboard")
+                        if _is_staff(request.user):
+                            return redirect("reports:admin_dashboard")
+                        return redirect("reports:home")
+                except Exception:
+                    pass
     except Exception:
         # لا نكسر الصفحة لو كانت هناك مشكلة في العضويات
         school = None

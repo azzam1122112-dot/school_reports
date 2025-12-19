@@ -4,56 +4,68 @@
 {% block title %}الاشتراك منتهي{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8 text-center">
-        <div>
-            <div class="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-red-100">
-                <svg class="h-12 w-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+<div class="container" dir="rtl">
+    <section class="card" style="max-width:820px;margin: 0 auto;">
+        <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+            <div
+                aria-hidden="true"
+                style="width:64px;height:64px;border-radius:18px;display:grid;place-items:center;
+                             background:var(--brand-ghost);border:1px solid var(--line);font-size:30px;flex:0 0 auto;">
+                ⛔
             </div>
-            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
-                عفواً، انتهت فترة الاشتراك
-            </h2>
-            <p class="mt-2 text-sm text-gray-600">
-                {% if school %}
-                    لقد انتهت صلاحية اشتراك مدرسة <strong>{{ school.name }}</strong> في النظام.
-                {% else %}
-                    لقد انتهت صلاحية اشتراك مدرستكم في النظام.
+
+            <div style="flex:1 1 320px;min-width:260px">
+                <h1 class="page-title" style="margin:0">عفوًا، انتهت فترة الاشتراك</h1>
+                <p class="page-subtitle" style="margin-top:6px">
+                    {% if school %}
+                        انتهت صلاحية اشتراك مدرسة <b>{{ school.name }}</b>.
+                    {% else %}
+                        انتهت صلاحية اشتراك المدرسة.
+                    {% endif %}
+                    {% if user.is_authenticated and is_manager %}
+                        يمكنك تجديد الاشتراك لاستعادة الوصول.
+                    {% else %}
+                        لا يمكن استخدام المنصة حتى يتم تجديد الاشتراك.
+                    {% endif %}
+                </p>
+
+                <div class="card" style="margin-top:12px;padding:14px">
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center">
+                        <div class="muted" style="font-weight:900">تفاصيل الاشتراك</div>
+                        {% if subscription and subscription.end_date %}
+                            <div style="font-weight:950">
+                                تاريخ الانتهاء:
+                                <span dir="ltr">{{ subscription.end_date|date:"Y-m-d" }}</span>
+                            </div>
+                        {% else %}
+                            <div class="muted" style="font-weight:850">لا تتوفر تفاصيل اشتراك</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if user.is_authenticated and not is_manager %}
+                    <div class="muted" style="margin-top:10px;font-weight:850">
+                        تواصل مع <b>مدير المدرسة</b> لتجديد الاشتراك.
+                    </div>
                 {% endif %}
-                {% if subscription and subscription.end_date %}
-                    <span class="block mt-1" dir="rtl">
-                        تاريخ الانتهاء:
-                        <span dir="ltr">{{ subscription.end_date|date:"Y-m-d" }}</span>
-                    </span>
-                {% endif %}
-                يرجى التواصل مع إدارة المدرسة لتجديد الاشتراك لاستعادة الوصول للخدمات.
-            </p>
+            </div>
         </div>
-        
-        <div class="mt-8 space-y-4">
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
             {% if user.is_authenticated %}
                 {% if is_manager %}
-                    <a href="{% url 'reports:my_subscription' %}" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        تجديد الاشتراك الآن
-                    </a>
+                    <a href="{% url 'reports:my_subscription' %}" class="btn btn-primary">تجديد الاشتراك</a>
                 {% endif %}
-                
-                <a href="{% url 'reports:logout' %}" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    تسجيل الخروج
-                </a>
+                <a href="{% url 'reports:logout' %}" class="btn btn-outline">تسجيل الخروج</a>
             {% else %}
-                <a href="{% url 'reports:login' %}" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    تسجيل الدخول
-                </a>
+                <a href="{% url 'reports:login' %}" class="btn btn-primary">تسجيل الدخول</a>
             {% endif %}
         </div>
-        
-        <div class="mt-6">
-            <p class="text-xs text-gray-500">
-                للمساعدة، يرجى التواصل مع الدعم الفني عبر البريد الإلكتروني xmansx1122@gmail.com
-            </p>
+
+        <div class="muted" style="margin-top:14px;font-weight:850;text-align:center">
+            للمساعدة: تواصل مع الدعم الفني عبر البريد الإلكتروني
+            <span dir="ltr">xmansx1122@gmail.com</span>
         </div>
-    </div>
+    </section>
 </div>
 {% endblock %}

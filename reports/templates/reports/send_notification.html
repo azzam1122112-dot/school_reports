@@ -300,6 +300,52 @@
     text-decoration:underline;
   }
 
+  /* قائمة المستلمين (المعلّمين): صندوق قابل للتمرير لتجنب إطالة الصفحة */
+  .teacher-list {
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    padding: 10px 12px;
+    max-height: 360px;
+    overflow: auto;
+  }
+  .teacher-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .teacher-list li {
+    background: var(--card);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .teacher-list li:hover {
+    border-color: rgba(67, 97, 238, 0.25);
+    background: rgba(67, 97, 238, 0.06);
+  }
+  .teacher-list label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+  }
+  .teacher-list input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+  }
+
+  /* شريط أزرار أعلى النموذج لتسهيل الإرسال بدون نزول */
+  .actions--top {
+    margin-top: 0;
+    margin-bottom: 18px;
+  }
+
   /* المعاينة */
   .preview {
     background: linear-gradient(180deg, #f9fbff, #ffffff);
@@ -522,6 +568,15 @@
               <div class="errors">{{ form.non_field_errors }}</div>
             {% endif %}
 
+            <div class="actions actions--top">
+              <button class="btn btn-primary" type="submit">
+                <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
+              </button>
+              <a class="btn" href="{% url 'reports:home' %}">
+                <i class="fa-solid fa-home"></i> الرجوع للرئيسية
+              </a>
+            </div>
+
             <div class="form-grid">
               {# تخصيص حقل المستلمين ليحصل على أدوات (تحديد الكل/إلغاء) وبحث #}
               {% for field in form.visible_fields %}
@@ -544,7 +599,9 @@
                       <span class="mini">المحدّد: <span class="count" id="selCount">0</span></span>
                     </div>
 
-                    {{ field }}
+                    <div class="teacher-list" id="teacherList">
+                      {{ field }}
+                    </div>
                     {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
                     {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
                   </div>
@@ -563,7 +620,7 @@
             </div>
 
             <div class="actions">
-              <button class="btn btn-primary" type="submit" id="submitBtn">
+              <button class="btn btn-primary" type="submit">
                 <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
               </button>
               <a class="btn" href="{% url 'reports:home' %}">
@@ -575,6 +632,16 @@
           {# فالباك بسيط إذا لم يُمرر فورم من الـ view #}
           <form method="post" enctype="multipart/form-data" action="" id="notifyForm" novalidate>
             {% csrf_token %}
+
+            <div class="actions actions--top">
+              <button class="btn btn-primary" type="submit">
+                <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
+              </button>
+              <a class="btn" href="{% url 'reports:home' %}">
+                <i class="fa-solid fa-home"></i> الرجوع للرئيسية
+              </a>
+            </div>
+
             <div class="form-grid">
               <div class="field full">
                 <label for="id_title">
@@ -616,7 +683,7 @@
             </div>
 
             <div class="actions">
-              <button class="btn btn-primary" type="submit" id="submitBtn">
+              <button class="btn btn-primary" type="submit">
                 <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
               </button>
               <a class="btn" href="{% url 'reports:home' %}">
@@ -806,11 +873,11 @@
     const form = document.getElementById('notifyForm');
     if(form){
       form.addEventListener('submit', function(){
-        const btn = form.querySelector('button[type="submit"]');
-        if(btn){ 
-          btn.disabled = true; 
-          btn.innerHTML = '<span class="loading"></span> جارٍ الإرسال…'; 
-        }
+        const btns = Array.from(form.querySelectorAll('button[type="submit"]'));
+        btns.forEach(btn => {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="loading"></span> جارٍ الإرسال…';
+        });
       });
     }
   })();

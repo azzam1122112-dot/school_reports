@@ -19,6 +19,22 @@
       <div class="section-title">قائمة المدراء</div>
 
       {% if managers %}
+      <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px">
+        <div style="flex:1 1 320px;min-width:240px">
+          <label class="muted" for="managerSearch" style="display:block;font-weight:900;margin-bottom:6px">بحث</label>
+          <input id="managerSearch" class="input" type="search" placeholder="ابحث باسم المدير / الجوال / اسم المدرسة…" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="muted" style="font-weight:900;white-space:nowrap">
+          <span id="managerCount">{{ managers|length }}</span>
+          مدير
+        </div>
+      </div>
+      <div id="managerNoResults" class="card" style="display:none;margin-top:12px;padding:14px;text-align:center">
+        <span class="muted" style="font-weight:900">لا توجد نتائج مطابقة.</span>
+      </div>
+      {% endif %}
+
+      {% if managers %}
       <div class="table-responsive">
         <table class="rtable">
           <thead>
@@ -33,7 +49,7 @@
           <tbody>
             {% for item in managers %}
               {% with m=item.manager schools=item.schools %}
-              <tr>
+              <tr data-search="{{ m.name|lower }} {{ m.phone|lower }}{% for s in schools %} {{ s.name|lower }} {{ s.code|lower }}{% endfor %}">
                 <td data-label="المدير"><b>{{ m.name }}</b></td>
                 <td data-label="رقم الجوال">{{ m.phone }}</td>
                 <td data-label="الحالة">
@@ -74,4 +90,32 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function(){
+    const input = document.getElementById('managerSearch');
+    const rows = Array.from(document.querySelectorAll('table.rtable tbody tr'));
+    const count = document.getElementById('managerCount');
+    const empty = document.getElementById('managerNoResults');
+
+    function applyFilter(){
+      if(!input) return;
+      const q = (input.value || '').trim().toLowerCase();
+      let visible = 0;
+      rows.forEach((row)=>{
+        const hay = (row.getAttribute('data-search') || '').toLowerCase();
+        const ok = !q || hay.includes(q);
+        row.style.display = ok ? '' : 'none';
+        if(ok) visible += 1;
+      });
+      if(count) count.textContent = String(visible);
+      if(empty) empty.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    if(input){
+      input.addEventListener('input', applyFilter);
+      applyFilter();
+    }
+  })();
+</script>
 {% endblock %}

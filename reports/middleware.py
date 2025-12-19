@@ -104,66 +104,90 @@ class SubscriptionMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # 1. تجاوز الفحص للمستخدمين غير المسجلين أو المدراء النظام (Superusers)
-        if not request.user.is_authenticated or request.user.is_superuser:
+        # 1) تجاوز الفحص للمستخدمين غير المسجلين أو المدراء النظام (Superusers)
+        if not request.user.is_authenticated or getattr(request.user, "is_superuser", False):
             return self.get_response(request)
 
-        # 2. تحديد المسارات المسموح بها دائماً (Logout, Expired Page, Payments, Support)
-        allowed_paths = [
-            reverse('reports:logout'),
-            reverse('reports:subscription_expired'),
-            # سنضيف مسارات الدفع والدعم لاحقاً هنا إذا لزم الأمر
-            # لكن مبدئياً سنسمح للمدير فقط بالوصول لها
-        ]
-        
-        # السماح بمسارات الدفع والدعم الفني لمدير المدرسة فقط
-        # سنفترض أن أسماء الـ URL ستكون كالتالي (سننشئها لاحقاً)
-        try:
-            allowed_paths.append(reverse('reports:my_subscription'))
-            allowed_paths.append(reverse('reports:payment_create'))
-            allowed_paths.append(reverse('reports:my_support_tickets')) # الدعم الفني
-            allowed_paths.append(reverse('reports:support_ticket_create'))
-        except:
-            pass # قد لا تكون الروابط موجودة بعد
-
-        if request.path in allowed_paths:
-            return self.get_response(request)
-            
-        # السماح بالملفات الثابتة والوسائط
+        # 2) السماح بالملفات الثابتة والوسائط
         if request.path.startswith('/static/') or request.path.startswith('/media/'):
             return self.get_response(request)
 
-        # 3. جلب اشتراك المدرسة
-        # نفترض أن المستخدم مرتبط بمدرسة واحدة نشطة عبر SchoolMembership
-        # أو نستخدم أول مدرسة نشطة يجدها
-        
-        # استيراد النماذج هنا لتجنب Circular Import
-        from .models import SchoolMembership
+        # 3) تحديد المسارات المسموح بها عند انتهاء الاشتراك
+        #    - للجميع: صفحة انتهاء الاشتراك + تسجيل الخروج
+        #    - للمدير فقط: صفحات التجديد/رفع الإيصال
+        base_allowed = {
+            reverse('reports:logout'),
+            reverse('reports:subscription_expired'),
+            # السماح بالتبديل حتى لا يعلق المستخدم على مدرسة منتهية
+            reverse('reports:switch_school'),
+        }
 
-        membership = SchoolMembership.objects.filter(
-            teacher=request.user, 
-            is_active=True
-        ).select_related('school__subscription').first()
+        # 4) جلب المدرسة النشطة (إن وُجدت) ثم عضوية المستخدم داخلها.
+        #    هذا مهم لمنع ثغرة: مدير لديه أكثر من مدرسة، يجدد واحدة ثم يبدّل لأخرى منتهية.
+        #    عدم وجود اشتراك يُعامل كمنتهي.
+        from .models import SchoolMembership, School
 
-        if membership and hasattr(membership.school, 'subscription'):
-            subscription = membership.school.subscription
-            
-            # 4. فحص الانتهاء
-            if subscription.is_expired:
-                # إذا كان المستخدم مدير مدرسة، نسمح له بالوصول لصفحات التجديد والدعم
-                is_manager = (membership.role_type == SchoolMembership.RoleType.MANAGER)
-                
-                if is_manager:
-                    # إذا كان المسار الحالي هو أحد مسارات الإدارة المسموحة، دعه يمر
-                    # (تمت إضافتها في allowed_paths أعلاه، لكن يمكننا التدقيق أكثر هنا)
-                    pass 
-                else:
-                    # المعلمون: حجب كامل وتوجيه لصفحة الانتهاء
-                    return redirect('reports:subscription_expired')
+        active_school = None
+        try:
+            sid = request.session.get("active_school_id")
+            if sid:
+                active_school = School.objects.filter(pk=sid, is_active=True).first()
+        except Exception:
+            active_school = None
 
-                # للمدير أيضاً، إذا حاول دخول صفحات أخرى (مثل التقارير)، نوجهه لصفحة الانتهاء
-                # إلا إذا كان في المسارات المسموحة
-                if request.path not in allowed_paths:
-                     return redirect('reports:subscription_expired')
+        memberships_qs = (
+            SchoolMembership.objects.filter(teacher=request.user, is_active=True)
+            .select_related('school')
+        )
+
+        membership = None
+        if active_school is not None:
+            membership = memberships_qs.filter(school=active_school).first()
+        if membership is None:
+            membership = memberships_qs.first()
+
+        # إن لم تكن لديه عضوية مدرسة، لا نطبق هذا المنع (نترك الصلاحيات الأخرى تتعامل)
+        if membership is None:
+            return self.get_response(request)
+
+        # المدرسة التي سنفحص اشتراكها (المدرسة النشطة إن أمكن وإلا مدرسة العضوية الأولى)
+        school = membership.school
+        is_manager = membership.role_type == SchoolMembership.RoleType.MANAGER
+        allowed_paths = set(base_allowed)
+        if is_manager:
+            allowed_paths |= {
+                reverse('reports:my_subscription'),
+                reverse('reports:payment_create'),
+            }
+
+        # السماح بهذه المسارات دائمًا لتجنب حلقات redirect
+        if request.path in allowed_paths:
+            return self.get_response(request)
+
+        # 5) فحص انتهاء الاشتراك/غيابه
+        subscription = None
+        try:
+            subscription = school.subscription
+        except Exception:
+            subscription = None
+
+        is_expired = True
+        try:
+            if subscription is not None:
+                is_expired = bool(subscription.is_expired)
+        except Exception:
+            is_expired = True
+
+        if is_expired:
+            # لو كان الطلب JSON/AJAX نرجع 403 بدل redirect
+            try:
+                accept = (request.headers.get("Accept") or "").lower()
+                xrw = (request.headers.get("X-Requested-With") or "").lower()
+                wants_json = "application/json" in accept or xrw == "xmlhttprequest"
+            except Exception:
+                wants_json = False
+            if wants_json:
+                return JsonResponse({"detail": "subscription_expired"}, status=403)
+            return redirect('reports:subscription_expired')
 
         return self.get_response(request)

@@ -7,6 +7,12 @@
   .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);padding:20px;box-shadow:0 10px 26px rgba(15,23,42,.08)}
   .card h1{margin-top:0;font-size:1.4rem;font-weight:900;color:var(--ink-soft,#111827)}
   .card p{color:var(--muted,#6b7280);font-weight:700;margin-top:4px}
+  .toolbar{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .field{flex:1 1 260px;min-width:220px}
+  .label{display:block;font-weight:900;color:var(--muted,#6b7280);margin-bottom:6px}
+  .search{width:100%;min-height:46px;border-radius:14px;border:1px solid var(--line,#e5e7eb);padding:10px 12px;font-weight:900;outline:none}
+  .search:focus{box-shadow:0 0 0 3px rgba(37,99,235,.18);border-color:rgba(37,99,235,.45)}
+  .meta{color:var(--muted,#6b7280);font-size:.9rem;font-weight:900;white-space:nowrap}
   .schools{display:grid;gap:10px;margin-top:18px}
   .school-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:12px;border:1px solid var(--line,#e5e7eb);background:#fff;cursor:pointer;transition:all .18s ease}
   .school-row:hover{border-color:#bfdbfe;background:#eff6ff}
@@ -18,6 +24,7 @@
   .actions{margin-top:18px;display:flex;gap:10px;justify-content:flex-start;flex-wrap:wrap}
   .btn-main{padding:10px 16px;border-radius:999px;border:none;background:var(--brand,#2563eb);color:#fff;font-weight:800;cursor:pointer;min-width:140px}
   .hint{margin-top:10px;color:var(--muted,#6b7280);font-size:.85rem}
+  .empty{display:none;margin-top:12px;padding:14px;border-radius:14px;border:1px dashed var(--line,#e5e7eb);background:rgba(37,99,235,.04);font-weight:900;color:var(--muted,#6b7280);text-align:center}
 </style>
 {% endblock %}
 
@@ -30,9 +37,28 @@
     {% if schools %}
       <form method="post" id="schoolForm">
         {% csrf_token %}
+
+        <div class="toolbar">
+          <div class="field">
+            <label class="label" for="schoolSearch">بحث سريع</label>
+            <input
+              id="schoolSearch"
+              class="search"
+              type="search"
+              placeholder="ابحث باسم المدرسة أو الكود…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <div class="meta" aria-live="polite">
+            <span id="schoolCount">{{ schools|length }}</span>
+            مدرسة
+          </div>
+        </div>
+
         <div class="schools">
           {% for s in schools %}
-          <label class="school-row">
+          <label class="school-row" data-name="{{ s.name|lower }}" data-code="{{ s.code|lower }}">
             <div class="school-main">
               <div class="school-logo">
                   {% if s.logo_file %}
@@ -52,6 +78,9 @@
           </label>
           {% endfor %}
         </div>
+
+        <div id="noResults" class="empty">لا توجد نتائج مطابقة للبحث.</div>
+
         <div class="actions">
           <button type="submit" class="btn-main">دخول لوحة المدير</button>
         </div>
@@ -61,4 +90,44 @@
     {% endif %}
   </div>
 </div>
+
+<script>
+  (function(){
+    const input = document.getElementById('schoolSearch');
+    const rows = Array.from(document.querySelectorAll('.school-row'));
+    const count = document.getElementById('schoolCount');
+    const empty = document.getElementById('noResults');
+
+    function applyFilter(){
+      const q = (input && input.value ? input.value : '').trim().toLowerCase();
+      let visible = 0;
+
+      rows.forEach((row)=>{
+        const name = (row.getAttribute('data-name') || '');
+        const code = (row.getAttribute('data-code') || '');
+        const ok = !q || name.includes(q) || code.includes(q);
+        row.style.display = ok ? '' : 'none';
+        if(ok) visible += 1;
+      });
+
+      if(count) count.textContent = String(visible);
+      if(empty) empty.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    if(input){
+      input.addEventListener('input', applyFilter);
+      // Ctrl+K / Cmd+K to focus search
+      document.addEventListener('keydown', function(e){
+        const isMac = navigator.platform.toLowerCase().includes('mac');
+        const meta = isMac ? e.metaKey : e.ctrlKey;
+        if(meta && (e.key || '').toLowerCase() === 'k'){
+          e.preventDefault();
+          input.focus();
+        }
+      });
+    }
+
+    applyFilter();
+  })();
+</script>
 {% endblock %}

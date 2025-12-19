@@ -19,6 +19,22 @@
       <div class="section-title">قائمة المدارس</div>
 
       {% if schools %}
+      <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px">
+        <div style="flex:1 1 320px;min-width:240px">
+          <label class="muted" for="schoolSearch" style="display:block;font-weight:900;margin-bottom:6px">بحث</label>
+          <input id="schoolSearch" class="input" type="search" placeholder="ابحث باسم المدرسة / الكود / الجوال / المدينة…" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="muted" style="font-weight:900;white-space:nowrap">
+          <span id="schoolCount">{{ schools|length }}</span>
+          مدرسة
+        </div>
+      </div>
+      <div id="schoolNoResults" class="card" style="display:none;margin-top:12px;padding:14px;text-align:center">
+        <span class="muted" style="font-weight:900">لا توجد نتائج مطابقة.</span>
+      </div>
+      {% endif %}
+
+      {% if schools %}
       <div class="table-responsive">
         <table class="rtable">
           <thead>
@@ -36,7 +52,7 @@
           <tbody>
             {% for item in schools %}
               {% with s=item.school managers=item.managers %}
-              <tr>
+              <tr data-search="{{ s.name|lower }} {{ s.code|lower }} {{ s.city|default:''|lower }} {{ s.phone|default:''|lower }}{% if managers %} {{ managers|join:' '|lower }}{% endif %}">
                 <td data-label="المدرسة"><b>{{ s.name }}</b></td>
                 <td data-label="المرحلة">{{ s.get_stage_display }}</td>
                 <td data-label="بنين/بنات">{{ s.get_gender_display }}</td>
@@ -79,4 +95,32 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function(){
+    const input = document.getElementById('schoolSearch');
+    const rows = Array.from(document.querySelectorAll('table.rtable tbody tr'));
+    const count = document.getElementById('schoolCount');
+    const empty = document.getElementById('schoolNoResults');
+
+    function applyFilter(){
+      if(!input) return;
+      const q = (input.value || '').trim().toLowerCase();
+      let visible = 0;
+      rows.forEach((row)=>{
+        const hay = (row.getAttribute('data-search') || '').toLowerCase();
+        const ok = !q || hay.includes(q);
+        row.style.display = ok ? '' : 'none';
+        if(ok) visible += 1;
+      });
+      if(count) count.textContent = String(visible);
+      if(empty) empty.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    if(input){
+      input.addEventListener('input', applyFilter);
+      applyFilter();
+    }
+  })();
+</script>
 {% endblock %}
