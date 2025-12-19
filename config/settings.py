@@ -72,6 +72,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "reports.middleware.IdleLogoutMiddleware",  # تسجيل خروج تلقائي بعد الخمول
     "reports.middleware.SubscriptionMiddleware",  # <--- تم الإضافة
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -230,6 +231,17 @@ AUTH_USER_MODEL = "reports.Teacher"
 LOGIN_URL = "reports:login"
 LOGIN_REDIRECT_URL = "reports:home"
 LOGOUT_REDIRECT_URL = "reports:login"
+
+# ----------------- الخمول/الجلسات -----------------
+# 30 دقيقة خمول => تسجيل خروج عند أول طلب بعد انتهاء المدة.
+# يمكن تعديلها عبر متغير البيئة IDLE_LOGOUT_SECONDS
+IDLE_LOGOUT_SECONDS = int(os.getenv("IDLE_LOGOUT_SECONDS", str(30 * 60)))
+
+# جلسة منزلقة (sliding): أي تفاعل يعيد ضبط مؤقت الجلسة
+SESSION_COOKIE_AGE = IDLE_LOGOUT_SECONDS
+# لا نريد تمديد الجلسة مع أي طلب (خصوصاً polling/AJAX).
+# الـ IdleLogoutMiddleware يقوم بتحديث الصلاحية عند التفاعل فقط.
+SESSION_SAVE_EVERY_REQUEST = False
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
