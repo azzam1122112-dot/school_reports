@@ -405,6 +405,56 @@ class SchoolMembership(models.Model):
     def __str__(self) -> str:
         return f"{self.teacher} @ {self.school} ({self.role_type})"
 
+    def save(self, *args, **kwargs):
+        """فرض حد المعلمين حسب باقة المدرسة.
+
+        المتطلبات:
+        - لا يُحسب مدير المدرسة ضمن الحد (role_type=MANAGER).
+        - الحد يُحسب على عدد حسابات المعلمين المرتبطين بالمدرسة (عضويات SchoolMembership بدور TEACHER)
+          بغض النظر عن is_active.
+        - الحذف يفتح مقعدًا (بما أنه يزيل العضوية).
+
+        ملاحظة مهمة:
+        - نطبق المنع فقط عند إنشاء عضوية TEACHER جديدة، أو عند تحويل/نقل عضوية إلى TEACHER/مدرسة أخرى.
+          لا نمنع تحديثات بسيطة لعضوية موجودة (مثل تغيير is_active) حتى لو كانت المدرسة متجاوزة للحد تاريخيًا.
+        """
+        from django.core.exceptions import ValidationError
+
+        should_enforce = self.pk is None
+        if not should_enforce and self.pk is not None:
+            try:
+                prev = (
+                    SchoolMembership.objects.filter(pk=self.pk)
+                    .only("role_type", "school_id")
+                    .first()
+                )
+                if prev is not None and (prev.role_type != self.role_type or prev.school_id != self.school_id):
+                    should_enforce = True
+            except Exception:
+                # إن تعذرت المقارنة، لا نطبق المنع على تحديث عضوية موجودة
+                should_enforce = False
+
+        if should_enforce and self.role_type == self.RoleType.TEACHER:
+            subscription = getattr(self.school, "subscription", None)
+            if subscription is None or bool(getattr(subscription, "is_expired", True)):
+                raise ValidationError("لا يوجد اشتراك فعّال لهذه المدرسة.")
+
+            plan = getattr(subscription, "plan", None)
+            max_teachers = int(getattr(plan, "max_teachers", 0) or 0)
+            if max_teachers > 0:
+                current_count = (
+                    SchoolMembership.objects.filter(
+                        school=self.school,
+                        role_type=self.RoleType.TEACHER,
+                    )
+                    .exclude(pk=self.pk)
+                    .count()
+                )
+                if current_count >= max_teachers:
+                    raise ValidationError(f"لا يمكن إضافة أكثر من {max_teachers} معلّم لهذه المدرسة حسب الباقة.")
+
+        return super().save(*args, **kwargs)
+
 
 # =========================
 # مرجع أنواع التقارير الديناميكي
@@ -968,6 +1018,11 @@ class SubscriptionPlan(models.Model):
     description = models.TextField("المميزات", blank=True)
     is_active = models.BooleanField("نشطة", default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    max_teachers = models.PositiveIntegerField(
+        "حد المعلمين",
+        default=0,
+        help_text="الحد الأقصى لعدد حسابات المعلمين داخل المدرسة. 0 = غير محدود.",
+    )
 
     class Meta:
         verbose_name = "باقة اشتراك"
@@ -1009,6 +1064,41 @@ class SchoolSubscription(models.Model):
 
     def __str__(self):
         return f"اشتراك {self.school.name} - ينتهي في {self.end_date}"
+
+    def save(self, *args, **kwargs):
+        """ضبط تواريخ الاشتراك تلقائياً.
+
+        المطلوب:
+        - عند إنشاء اشتراك جديد: start_date = اليوم (ميلادي) و end_date حسب plan.days_duration.
+        - عند تغيير الباقة (plan) في أي مكان (بما فيه Django admin): نعتبره تجديداً ونُعيد حساب التواريخ من اليوم.
+
+        ملاحظة: لا نُعيد حساب التواريخ عند أي تعديل آخر (مثل تغيير is_active فقط)
+        حتى لا يتم تمديد/تجديد الاشتراك بالخطأ.
+        """
+        from datetime import timedelta
+
+        today = timezone.localdate()
+
+        should_recalc = self.pk is None
+        if not should_recalc and self.pk is not None:
+            try:
+                prev = SchoolSubscription.objects.filter(pk=self.pk).only("plan_id").first()
+                if prev is not None and prev.plan_id != self.plan_id:
+                    should_recalc = True
+            except Exception:
+                # في حال تعذّر مقارنة التغيير، لا نغيّر التواريخ على اشتراك موجود
+                should_recalc = False
+
+        if should_recalc:
+            self.start_date = today
+            days = int(getattr(self.plan, "days_duration", 0) or 0)
+            if days <= 0:
+                self.end_date = today
+            else:
+                # end_date = اليوم + (المدة - 1) حتى تكون الأيام الفعلية = days_duration
+                self.end_date = today + timedelta(days=days - 1)
+
+        return super().save(*args, **kwargs)
 
     @property
     def is_expired(self):

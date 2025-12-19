@@ -304,7 +304,7 @@ class NotificationRecipientAdmin(admin.ModelAdmin):
 # =========================
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(admin.ModelAdmin):
-    list_display = ("name", "price", "days_duration", "is_active", "created_at")
+    list_display = ("name", "price", "days_duration", "max_teachers", "is_active", "created_at")
     list_filter = ("is_active", "created_at")
     search_fields = ("name", "description")
     ordering = ("price",)

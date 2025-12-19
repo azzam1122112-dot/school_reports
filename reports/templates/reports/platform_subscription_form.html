@@ -6,7 +6,7 @@
   <div class="page-head" style="max-width:720px;margin-inline:auto">
     <div>
       <h1 class="page-title">{% if subscription %}تعديل اشتراك: {{ subscription.school.name }}{% else %}إضافة اشتراك مدرسة جديد{% endif %}</h1>
-      <p class="page-subtitle">ربط المدارس بخطط الاشتراك وإدارة المدة والحالة.</p>
+      <p class="page-subtitle">ربط المدارس بخطط الاشتراك. يتم حساب تاريخ البدء والانتهاء تلقائياً حسب مدة الباقة (بالتاريخ الميلادي).</p>
     </div>
     <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn btn-outline">إلغاء</a>
   </div>

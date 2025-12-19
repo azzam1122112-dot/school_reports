@@ -69,6 +69,11 @@
             {% endif %}
           </td>
           <td data-label="إجراء">
+            <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}" style="display:inline">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-primary" style="min-height:38px;padding:8px 10px">تجديد</button>
+            </form>
             <a href="{% url 'reports:platform_subscription_edit' sub.id %}" class="btn btn-outline" style="min-height:38px;padding:8px 10px">تعديل</a>
           </td>
         </tr>

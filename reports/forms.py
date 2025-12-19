@@ -13,6 +13,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.db.models import Q
 from django.utils.text import slugify
+from django.utils import timezone
 
 # ==============================
 # استيراد الموديلات (من models.py فقط)
@@ -1249,12 +1250,13 @@ class SupportTicketForm(forms.ModelForm):
 class SubscriptionPlanForm(forms.ModelForm):
     class Meta:
         model = SubscriptionPlan
-        fields = ["name", "description", "price", "days_duration", "is_active"]
+        fields = ["name", "description", "price", "days_duration", "max_teachers", "is_active"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "اسم الخطة (مثلاً: باقة سنوية)"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "وصف مميزات الخطة..."}),
             "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "days_duration": forms.NumberInput(attrs={"class": "form-control"}),
+            "max_teachers": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {
@@ -1262,25 +1264,50 @@ class SubscriptionPlanForm(forms.ModelForm):
             "description": "الوصف",
             "price": "السعر (ريال)",
             "days_duration": "المدة (بالأيام)",
+            "max_teachers": "حد المعلمين",
             "is_active": "نشط؟",
         }
 
 
 class SchoolSubscriptionForm(forms.ModelForm):
+    """نموذج اشتراك المدرسة (للوحة المنصة).
+
+    المطلوب: حساب التواريخ تلقائياً حسب مدة الباقة (days_duration) اعتماداً على التاريخ الميلادي.
+    - start_date = اليوم
+    - end_date = اليوم + (days_duration - 1)
+    """
+
     class Meta:
         model = SchoolSubscription
-        fields = ["school", "plan", "start_date", "end_date", "is_active"]
+        fields = ["school", "plan", "is_active"]
         widgets = {
             "school": forms.Select(attrs={"class": "form-select"}),
             "plan": forms.Select(attrs={"class": "form-select"}),
-            "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "end_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {
             "school": "المدرسة",
             "plan": "الباقة",
-            "start_date": "تاريخ البدء",
-            "end_date": "تاريخ الانتهاء",
             "is_active": "نشط؟",
         }
+
+    def save(self, commit=True):
+        from datetime import timedelta
+
+        subscription: SchoolSubscription = super().save(commit=False)
+        plan = self.cleaned_data.get("plan")
+        today = timezone.now().date()
+
+        # تجديد/إنشاء: نبدأ من اليوم دائماً
+        subscription.start_date = today
+
+        days = int(getattr(plan, "days_duration", 0) or 0)
+        if days <= 0:
+            subscription.end_date = today
+        else:
+            # end_date = اليوم + (المدة - 1) حتى تكون الأيام الفعلية = days_duration
+            subscription.end_date = today + timedelta(days=days - 1)
+
+        if commit:
+            subscription.save()
+        return subscription

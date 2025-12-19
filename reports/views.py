@@ -39,6 +39,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
+from django.db.models.deletion import ProtectedError
 
 # ===== فورمات =====
 from .forms import (
@@ -1215,6 +1216,28 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         # إنشاء معلّم فقط: بدون قسم/بدون دور داخل قسم. التكاليف تتم من صفحة أعضاء القسم.
         form = TeacherCreateForm(request.POST)
+
+        # ✅ منع إضافة معلّم إذا تجاوزت المدرسة حد الباقة (يشمل غير النشط)
+        try:
+            if active_school is not None:
+                sub = getattr(active_school, "subscription", None)
+                if sub is None or bool(getattr(sub, "is_expired", True)):
+                    messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
+                    return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
+
+                max_teachers = int(getattr(getattr(sub, "plan", None), "max_teachers", 0) or 0)
+                if max_teachers > 0:
+                    current_count = SchoolMembership.objects.filter(
+                        school=active_school,
+                        role_type=SchoolMembership.RoleType.TEACHER,
+                    ).count()
+                    if current_count >= max_teachers:
+                        messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} معلّم لهذه المدرسة حسب الباقة.")
+                        return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
+        except Exception:
+            # في حال خطأ غير متوقع، نكمل المسار الطبيعي (وسيمنعنا model validation عند الحفظ)
+            pass
+
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -1232,6 +1255,9 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                 return redirect(next_url or "reports:manage_teachers")
             except IntegrityError:
                 messages.error(request, "تعذّر الحفظ: قد يكون رقم الجوال أو الهوية مستخدمًا مسبقًا.")
+            except ValidationError as e:
+                # مثال: تجاوز حد المعلمين حسب الباقة أو عدم وجود اشتراك فعّال
+                messages.error(request, " ".join(getattr(e, "messages", []) or [str(e)]))
             except Exception:
                 logger.exception("add_teacher failed")
                 messages.error(request, "حدث خطأ غير متوقع أثناء الحفظ. جرّب لاحقًا.")
@@ -3897,6 +3923,26 @@ def platform_plan_form(request: HttpRequest, pk: Optional[int] = None) -> HttpRe
 
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["POST"])
+def platform_plan_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    plan = get_object_or_404(SubscriptionPlan, pk=pk)
+
+    try:
+        plan_name = plan.name
+        plan.delete()
+        messages.success(request, f"تم حذف الخطة: {plan_name}.")
+    except ProtectedError:
+        messages.error(request, "لا يمكن حذف هذه الخطة لأنها مرتبطة باشتراكات مدارس حالياً.")
+    except Exception:
+        logger.exception("platform_plan_delete failed")
+        messages.error(request, "حدث خطأ غير متوقع أثناء حذف الخطة.")
+
+    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+    return redirect(next_url or "reports:platform_plans_list")
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_subscription_form(request: HttpRequest, pk: Optional[int] = None) -> HttpResponse:
     """إضافة أو تعديل اشتراك مدرسة"""
     subscription = None
@@ -3915,3 +3961,35 @@ def platform_subscription_form(request: HttpRequest, pk: Optional[int] = None) -
         form = SchoolSubscriptionForm(instance=subscription)
     
     return render(request, "reports/platform_subscription_form.html", {"form": form, "subscription": subscription})
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["POST"])
+def platform_subscription_renew(request: HttpRequest, pk: int) -> HttpResponse:
+    """تجديد اشتراك مدرسة مباشرةً من اليوم (ميلادي).
+
+    - يضبط start_date = اليوم
+    - يضبط end_date = اليوم + (plan.days_duration - 1)
+    - يفعّل is_active=True
+
+    هذا المسار مخصص للمشرف العام فقط لتسهيل التجديد من صفحة الاشتراكات.
+    """
+    subscription = get_object_or_404(SchoolSubscription.objects.select_related("plan", "school"), pk=pk)
+
+    from datetime import timedelta
+
+    today = timezone.localdate()
+    subscription.start_date = today
+    days = int(getattr(subscription.plan, "days_duration", 0) or 0)
+    if days <= 0:
+        subscription.end_date = today
+    else:
+        subscription.end_date = today + timedelta(days=days - 1)
+
+    subscription.is_active = True
+    subscription.save()
+    messages.success(request, f"تم تجديد اشتراك مدرسة {subscription.school.name} حتى {subscription.end_date:%Y-%m-%d}.")
+
+    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+    return redirect(next_url or "reports:platform_subscriptions_list")
