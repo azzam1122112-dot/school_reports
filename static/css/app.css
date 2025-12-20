@@ -67,6 +67,7 @@ html[data-theme="dark"]{
 html,body{margin:0;padding:0;height:100%}
 body{
   font-family: var(--font);
+  font-size: 0.94rem;
   background: var(--bg);
   color: var(--ink);
   line-height: 1.7;
@@ -211,7 +212,7 @@ body.page{
   margin:0;
   font-weight: 950;
   color: var(--ink-soft);
-  font-size: 1.3rem;
+  font-size: 1.18rem;
 }
 .page-head .page-subtitle{
   margin:4px 0 0;
