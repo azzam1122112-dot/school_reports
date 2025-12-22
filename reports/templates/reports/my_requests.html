@@ -313,7 +313,7 @@
 
           <a class="btnx primary" href="{% url 'reports:request_create' %}"><i class="fa-solid fa-plus"></i> طلب جديد</a>
 
-          {% if request.GET.q or request.GET.status or request.GET.order %}
+          {% if request.GET.q or request.GET.status or request.GET.order or request.GET.view %}
             <a class="btnx" href="?view={{ view_mode|default:'list' }}"><i class="fa-solid fa-rotate-left"></i> مسح</a>
           {% endif %}
         </div>
@@ -323,7 +323,9 @@
           <select id="status" class="select" name="status">
             <option value="">جميع الحالات</option>
             <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>جديدة</option>
+            <option value="new" {% if request.GET.status == "new" %}selected{% endif %}>جديدة (NEW)</option>
             <option value="in_progress" {% if request.GET.status == "in_progress" %}selected{% endif %}>قيد المعالجة</option>
+            <option value="pending" {% if request.GET.status == "pending" %}selected{% endif %}>قيد المعالجة (PENDING)</option>
             <option value="done" {% if request.GET.status == "done" %}selected{% endif %}>مكتملة</option>
             <option value="rejected" {% if request.GET.status == "rejected" %}selected{% endif %}>مرفوضة</option>
           </select>
@@ -388,7 +390,13 @@
                 <td>{{ t.created_at|date:"Y-m-d H:i" }}</td>
                 <td>{{ t.get_department_display|default:t.department|default:"—" }}</td>
                 <td>{% firstof t.assignee.name t.assignee "—" %}</td>
-                <td class="tbl-title"><a href="{% url 'reports:ticket_detail' t.pk %}">{{ t.title|default:"عرض التفاصيل / إضافة ملاحظة" }}</a></td>
+
+                <td class="tbl-title">
+                  <a href="{% url 'reports:ticket_detail' t.pk %}">
+                    {{ t.title|default:"عرض التفاصيل / إضافة ملاحظة" }}
+                  </a>
+                </td>
+
                 <td>
                   <span class="badge2
                     {% if t.status == 'open' or t.status == 'new' %}b-open
@@ -398,15 +406,21 @@
                     {{ t.get_status_display|default:t.status }}
                   </span>
                 </td>
+
                 <td style="min-width:260px;max-width:560px;">
                   {% if t.pub_notes %}
-                    {% with n=t.pub_notes.0 %}
-                      {% if n %}
-                        <div class="note-preview"><b>{{ n.author.name|default:"—" }}</b> • {{ n.created_at|date:"Y-m-d H:i" }} — {{ n.body|default:"—"|truncatechars:100 }}</div>
-                      {% else %}—{% endif %}
-                    {% endwith %}
-                  {% else %}—{% endif %}
+                    {% for n in t.pub_notes|slice:":1" %}
+                      <div class="note-preview">
+                        <b>{{ n.author.name|default:"—" }}</b>
+                        • {{ n.created_at|date:"Y-m-d H:i" }}
+                        — {{ n.body|default:"—"|truncatechars:100 }}
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    —
+                  {% endif %}
                 </td>
+
                 <td>
                   <a class="btnx sm" href="{% url 'reports:ticket_detail' t.pk %}">عرض</a>
                 </td>
@@ -437,20 +451,18 @@
 
               <div class="meta">
                 <span class="pill"><span class="dot b"></span> القسم: {{ t.get_department_display|default:t.department|default:"—" }}</span>
-                <span class="pill"><span class="dot a"></span> المستلم: {% firstof t.assignee.name "—" %}</span>
+                <span class="pill"><span class="dot a"></span> المستلم: {% firstof t.assignee.name t.assignee "—" %}</span>
                 <span class="pill"><span class="dot c"></span> {{ t.created_at|date:"Y-m-d H:i" }}</span>
               </div>
 
               {% if t.pub_notes %}
-                {% with n=t.pub_notes.0 %}
-                  {% if n %}
+                {% for n in t.pub_notes|slice:":1" %}
                   <div class="last-note">
                     <b>آخر إجراء:</b>
                     {{ n.author.name|default:"—" }} • {{ n.created_at|date:"Y-m-d H:i" }} —
                     {{ n.body|default:"—"|truncatechars:120 }}
                   </div>
-                  {% endif %}
-                {% endwith %}
+                {% endfor %}
               {% endif %}
             </div>
 

@@ -13,6 +13,9 @@
     --h-radius: 18px;
     --h-shadow: 0 18px 50px rgba(2,6,23,.10);
     --h-ring: 0 0 0 4px rgba(37,99,235,.20);
+
+    /* Fix: base.html يوفّر --t-fast، هنا نعرّف --t لتعمل الانتقالات */
+    --t: var(--t-fast);
   }
 
   .home-hero{
@@ -234,7 +237,8 @@
     font-size: .95rem;
   }
 
-  .pill{
+  /* Fix: لا نستخدم .pill لأنها مستخدمة في base.html */
+  .hpill{
     align-self:center;
     justify-self:end;
     border-radius: 999px;
@@ -244,11 +248,11 @@
     color:#fff;
     white-space:nowrap;
   }
-  .p-blue{ background:#2563eb; }
-  .p-green{ background:#10b981; }
-  .p-amber{ background:#f59e0b; }
-  .p-red{ background:#ef4444; }
-  .p-gray{ background:#64748b; }
+  .hp-blue{ background:#2563eb; }
+  .hp-green{ background:#10b981; }
+  .hp-amber{ background:#f59e0b; }
+  .hp-red{ background:#ef4444; }
+  .hp-gray{ background:#64748b; }
 
   /* Empty state */
   .empty{
@@ -261,29 +265,10 @@
   }
   .empty b{ color: var(--ink); }
 
-  /* Motivator button (subtle) */
-  .motivate{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    font-weight: 950;
-    margin-top: 8px;
-    border:0;
-    background: transparent;
-    color: rgba(255,255,255,.95);
-    cursor:pointer;
-    opacity:.95;
-    transition: var(--t);
-    padding: 6px 0;
-    text-align:start;
-  }
-  .motivate:hover{ opacity:1; transform: translateY(-1px); }
-  .motivate i{ color:#fbbf24; }
-
   /* Reduce motion */
   @media (prefers-reduced-motion: reduce){
-    .kpi, .item, .hero-actions .btn, .motivate{ transition:none !important; }
-    .kpi:hover, .item:hover, .hero-actions .btn:hover, .motivate:hover{ transform:none !important; }
+    .kpi, .item, .hero-actions .btn{ transition:none !important; }
+    .kpi:hover, .item:hover, .hero-actions .btn:hover{ transform:none !important; }
   }
 
   /* ===== Home Notification Modal (center) ===== */
@@ -291,7 +276,7 @@
     position: fixed;
     inset: 0;
     background: rgba(2,6,23,.55);
-    z-index: 12000;
+    z-index: 12500; /* أعلى من school modal */
     display: none;
     place-items: center;
     padding: 12px;
@@ -334,7 +319,7 @@
   }
   .hn-bd{ padding: 14px 16px; }
   .hn-title{ font-weight: 950; margin: 0 0 8px 0; color: var(--ink); }
-  .hn-body{ color: var(--ink); font-weight: 800; line-height: 1.8; white-space: pre-wrap; }
+  .hn-body{ color: var(--ink); font-weight: 800; line-height: 1.8; }
   .hn-meta{ margin-top: 10px; color: var(--muted); font-weight: 800; font-size: .95rem; display:flex; gap:10px; flex-wrap:wrap; }
 </style>
 {% endblock %}
@@ -349,7 +334,7 @@
           <h3 class="ttl">
             <i class="fa-solid fa-bell" style="opacity:.9"></i>
             رسالة جديدة
-            {% if home_notification.is_important %}<span class="pill p-red">هام</span>{% endif %}
+            {% if home_notification.is_important %}<span class="hpill hp-red">هام</span>{% endif %}
           </h3>
           <button type="button" class="hn-close" id="homeNotifClose" aria-label="إغلاق">✕</button>
         </div>
@@ -376,8 +361,6 @@
           <p class="hero-sub">
             مرحباً بعودتك! وثّق إنجازاتك، تابع طلباتك، واطّلع على آخر المستجدات بسرعة.
           </p>
-
-
         </div>
 
         <div class="hero-meta" aria-label="معلومات سريعة">
@@ -464,8 +447,7 @@
                   <div class="meta">بتاريخ {{ r.report_date }} — {{ r.day_name }}</div>
                 </div>
 
-                {# لو ما فيه category.name نخليها افتراضي #}
-                <span class="pill p-blue">{% if r.category and r.category.name %}{{ r.category.name }}{% else %}—{% endif %}</span>
+                <span class="hpill hp-blue">{% if r.category and r.category.name %}{{ r.category.name }}{% else %}—{% endif %}</span>
               </a>
             {% endfor %}
           </div>
@@ -501,12 +483,12 @@
         <div class="list" role="list">
           <div class="item" role="listitem" style="cursor:default">
             <div><strong>مكتملة</strong></div>
-            <span class="pill p-green">{{ req_stats.done|default:"0" }}</span>
+            <span class="hpill hp-green">{{ req_stats.done|default:"0" }}</span>
           </div>
 
           <div class="item" role="listitem" style="cursor:default">
             <div><strong>مرفوضة</strong></div>
-            <span class="pill p-red">{{ req_stats.rejected|default:"0" }}</span>
+            <span class="hpill hp-red">{{ req_stats.rejected|default:"0" }}</span>
           </div>
         </div>
 
@@ -533,7 +515,6 @@
           <a class="btn btn-primary" href="{% url 'reports:add_report' %}">
             <i class="fa-solid fa-plus"></i> توثيق إنجاز
           </a>
-
         </div>
       </div>
     </div>
@@ -581,11 +562,9 @@
       }
     }
 
-    // إذا المستخدم أغلق هذا الإشعار سابقاً، لا تظهره مرة أخرى.
     try{
       if(storageKey && window.localStorage && localStorage.getItem(storageKey) === '1'){
         hide();
-        // محاولة تعليم كمقروء بالخلفية (بدون إعادة فتح الرسالة)
         markRead();
         return;
       }

@@ -1,358 +1,558 @@
 {% extends "base.html" %}
 {% block title %}لوحة المسؤول - تقارير قسمي{% endblock %}
 
-{% block content %}
-<div class="admin-container" dir="rtl">
-  <!-- العنوان -->
-  <div class="admin-header">
-    <h1 class="admin-title"><i class="fas fa-chart-bar"></i> لوحة المسؤول – تقارير قسمي</h1>
-    <p class="admin-subtitle">
-      عرض وإدارة تقارير القسم:
-      <b>{% if department %}{{ department.name }}{% else %}—{% endif %}</b>
-    </p>
-  </div>
-
-  <div class="admin-card">
-    <!-- ✅ فلاتر البحث (محدودة على القسم المصرّح) -->
-    <form method="GET" class="filters-form" novalidate>
-      <div class="filters-grid">
-        <div class="filter-group">
-          <label>📅 من تاريخ</label>
-          <input type="date" name="start_date" value="{{ start_date }}" class="filter-input">
-        </div>
-        <div class="filter-group">
-          <label>📅 إلى تاريخ</label>
-          <input type="date" name="end_date" value="{{ end_date }}" class="filter-input">
-        </div>
-        <div class="filter-group">
-          <label>👨‍🏫 اسم المعلم</label>
-          <input type="text" name="teacher_name"
-                 value="{{ teacher_name }}"
-                 placeholder="اكتب اسم المعلم أو جزء منه"
-                 class="filter-input"/>
-        </div>
-
-        {% if categories %}
-        <div class="filter-group">
-          <label>🏷️ التصنيف (خاص بقسمي)</label>
-          <select name="category" class="filter-input">
-            <option value="">كل تصنيفات قسمي</option>
-            {% for c_val, c_label in categories %}
-              <option value="{{ c_val }}" {% if category == c_val %}selected{% endif %}>{{ c_label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="filter-actions">
-        <button class="btn btn-primary" type="submit"><i class="fas fa-check"></i> تطبيق الفلاتر</button>
-        {% if start_date or end_date or teacher_name or category %}
-          <a href="{{ request.path }}" class="btn btn-outline"><i class="fas fa-times"></i> مسح الفلاتر</a>
-        {% endif %}
-      </div>
-    </form>
-
-    <!-- ✅ جدول (ديسكتوب) -->
-    <div class="table-responsive desktop-only">
-      <table class="reports-table">
-        <thead>
-          <tr>
-            <th>📅 التاريخ</th>
-            <th>👨‍🏫 المعلم</th>
-            <th>📖 العنوان</th>
-            <th>🏷️ التصنيف</th>
-            <th>👥 المستفيدون</th>
-            <th>💡 الفكرة</th>
-            <th>🖼 الصور</th>
-            <th>⚙️ الإجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in reports %}
-          <tr>
-            <td>
-              {{ r.report_date|date:"Y-m-d" }}<br>
-              <small class="text-muted">{{ r.day_name }}</small>
-            </td>
-            <td>{% firstof r.teacher_name r.teacher.name %}</td>
-            <td>{{ r.title }}</td>
-            <td>{% if r.category %}{{ r.category.name }}{% else %}{{ r.get_category_display }}{% endif %}</td>
-            <td class="text-center">{{ r.beneficiaries_count }}</td>
-
-            <td>
-              <!-- نخزن نص التقرير الخام داخل textarea مخفية -->
-              <textarea id="idea-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
-              {{ r.idea|truncatewords:12 }}
-            </td>
-
-            <td>
-              <div class="table-images">
-                {% if r.image1 %}<img src="{{ r.image1.url }}" alt="صورة 1">{% endif %}
-                {% if r.image2 %}<img src="{{ r.image2.url }}" alt="صورة 2">{% endif %}
-                {% if r.image3 %}<img src="{{ r.image3.url }}" alt="صورة 3">{% endif %}
-                {% if r.image4 %}<img src="{{ r.image4.url }}" alt="صورة 4">{% endif %}
-              </div>
-            </td>
-            <td>
-              <div class="action-buttons">
-                <button class="btn btn-show-idea"
-                        data-idea-id="idea-{{ r.pk }}"
-                        data-teacher="{{ r.teacher_name|default_if_none:''|escapejs }}{% if not r.teacher_name %}{{ r.teacher.name|escapejs }}{% endif %}"
-                        data-program="{{ r.title|escapejs }}"
-                        data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
-                        data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}">
-                  <i class="fas fa-eye"></i>
-                </button>
-                <a href="{% url 'reports:report_print' r.pk %}" target="_blank" class="btn btn-print"><i class="fas fa-print"></i></a>
-                <!-- ✅ حذف عبر مسار الضابط -->
-                <form method="POST" action="{% url 'reports:officer_delete_report' r.pk %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <button class="btn btn-danger" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟')"><i class="fas fa-trash"></i></button>
-                </form>
-              </div>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="8" class="text-center">لا توجد تقارير ضمن قسمك.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ✅ عرض كبطاقات (موبايل) -->
-    <div class="cards-view mobile-only">
-      {% for r in reports %}
-      <div class="report-card">
-        <div class="report-header">
-          <span>📅 {{ r.report_date|date:"Y-m-d" }} – {{ r.day_name }}</span>
-          <span>👨‍🏫 {% firstof r.teacher_name r.teacher.name %}</span>
-        </div>
-        <p class="report-program">📖 {{ r.title }} | 🏷️ {% if r.category %}{{ r.category.name }}{% else %}{{ r.get_category_display }}{% endif %} | 👥 {{ r.beneficiaries_count }}</p>
-
-        <!-- نسخة الموبايل من textarea المخفية -->
-        <textarea id="idea-m-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
-        <p class="report-idea">{{ r.idea|truncatewords:20 }}</p>
-
-        <div class="report-images">
-          {% if r.image1 %}<img src="{{ r.image1.url }}" alt="img">{% endif %}
-          {% if r.image2 %}<img src="{{ r.image2.url }}" alt="img">{% endif %}
-          {% if r.image3 %}<img src="{{ r.image3.url }}" alt="img">{% endif %}
-          {% if r.image4 %}<img src="{{ r.image4.url }}" alt="img">{% endif %}
-        </div>
-        <div class="card-actions">
-          <button class="btn btn-show-idea"
-                  data-idea-id="idea-m-{{ r.pk }}"
-                  data-teacher="{{ r.teacher_name|default_if_none:''|escapejs }}{% if not r.teacher_name %}{{ r.teacher.name|escapejs }}{% endif %}"
-                  data-program="{{ r.title|escapejs }}"
-                  data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
-                  data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}">
-            👁 عرض
-          </button>
-          <a href="{% url 'reports:report_print' r.pk %}" target="_blank" class="btn btn-print">🖨 طباعة</a>
-          <!-- ✅ حذف عبر مسار الضابط -->
-          <form method="POST" action="{% url 'reports:officer_delete_report' r.pk %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button class="btn btn-danger" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟')">🗑 حذف</button>
-          </form>
-        </div>
-      </div>
-      {% empty %}
-      <p class="text-center">لا توجد تقارير ضمن قسمك.</p>
-      {% endfor %}
-    </div>
-
-    <!-- ✅ ترقيم الصفحات -->
-    {% if reports.paginator.num_pages > 1 %}
-    <div class="pagination">
-      {% if reports.has_previous %}
-        <a class="page-btn" href="?page={{ reports.previous_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if teacher_name %}&teacher_name={{ teacher_name }}{% endif %}{% if category %}&category={{ category }}{% endif %}">السابق</a>
-      {% endif %}
-      <span class="page-current">صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}</span>
-      {% if reports.has_next %}
-        <a class="page-btn" href="?page={{ reports.next_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if teacher_name %}&teacher_name={{ teacher_name }}{% endif %}{% if category %}&category={{ category }}{% endif %}">التالي</a>
-      {% endif %}
-    </div>
-    {% endif %}
-  </div>
-</div>
-
-<!-- ✅ المودال -->
-<div id="ideaModal" class="modern-modal">
-  <div class="modal-dialog">
-    <button class="modal-close"><i class="fas fa-times"></i></button>
-    <h2 style="margin:0 0 8px 0; font-weight:800;">💡 التقرير كامل</h2>
-
-    <!-- النص بأسطره -->
-    <div id="modalIdea" class="modal-idea"></div>
-
-    <div class="modal-meta">
-      <p>👨‍🏫 <b>المعلم:</b> <span id="modalTeacher"></span></p>
-      <p>📖 <b>العنوان:</b> <span id="modalProgram"></span></p>
-      <p>📅 <b>التاريخ:</b> <span id="modalDate"></span></p>
-    </div>
-    <div id="modalImages" class="modal-images"></div>
-  </div>
-</div>
-
+{% block head %}
 <style>
-/* ✅ الحاوية */
-.admin-container { padding:20px; max-width:1400px; margin:auto; }
-.admin-title { font-size:24px; font-weight:800; display:flex; gap:8px; color:#1e293b; }
-.admin-subtitle { color:#64748b; margin-top:4px; }
-
-/* ✅ الكارت */
-.admin-card { background:#fff; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.08); padding:20px; }
-
-/* ✅ الفلاتر */
-.filters-form { margin-bottom:20px; }
-.filters-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:12px; }
-.filter-input { padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; }
-.filter-actions { margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; }
-
-/* ✅ الجدول */
-.reports-table { width:100%; border-collapse:collapse; font-size:14px; }
-.reports-table th, .reports-table td { padding:12px; border-bottom:1px solid #e5e7eb; }
-.reports-table th { background:#f9fafb; text-align:right; }
-.reports-table tr:hover { background:#f3f4f6; }
-
-/* ✅ الصور */
-.table-images img, .report-images img { width:48px; height:48px; object-fit:cover; border-radius:6px; }
-
-/* ✅ الأزرار */
-.btn { padding:6px 12px; border-radius:6px; font-size:13px; cursor:pointer; border:none; }
-.btn-primary { background:#3b82f6; color:#fff; }
-.btn-outline { background:#fff; color:#1f2937; border:1px solid #cbd5e1; }
-.btn-show-idea { background:#3b82f6; color:#fff; }
-.btn-print { background:#10b981; color:#fff; }
-.btn-danger { background:#ef4444; color:#fff; }
-.btn:hover { opacity:0.9; }
-.action-buttons { display:flex; gap:6px; }
-
-/* ✅ بطاقات الموبايل */
-.cards-view { display:grid; gap:15px; }
-.report-card { background:#fff; padding:15px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
-.report-header { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:8px; }
-.report-program { font-size:13px; margin:4px 0; color:#475569; }
-.report-idea { font-size:14px; margin:6px 0; color:#1e293b; }
-.report-images { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
-.card-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
-
-/* ✅ المودال */
-.modern-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:2000; justify-content:center; align-items:center; overflow-y:auto; }
-.modal-dialog { background:#fff; padding:20px; border-radius:16px; width:95%; max-width:650px; position:relative; }
-.modal-close { position:absolute; top:10px; left:10px; background:#ef4444; color:#fff; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer; }
-
-/* ✅ نص التقرير داخل المودال — يحافظ على الأسطر */
-.modal-idea {
-  white-space: pre-line;
-  margin: 12px 0;
-  font-size: 15px;
-  line-height: 1.8;
-  color: #1e293b;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-}
-
-.modal-meta p { margin:4px 0; font-size:14px; color:#475569; }
-
-/* ✅ صور المودال */
-.modal-images {
-  margin-top:20px;
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(140px,1fr));
-  gap:12px;
-}
-.modal-images img {
-  width:100%;
-  height:140px;
-  object-fit:cover;
-  border-radius:12px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.15);
-  cursor:pointer;
-  transition:transform 0.3s, box-shadow 0.3s;
-}
-.modal-images img:hover { transform:scale(1.08); box-shadow:0 8px 20px rgba(0,0,0,0.25); }
-
-/* ✅ الترقيم */
-.pagination { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:16px; }
-.page-btn { padding:6px 12px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; color:#111827; text-decoration:none; }
-.page-current { color:#374151; font-size:13px; }
-
-/* ✅ التجاوب */
-.desktop-only { display:block; }
-.mobile-only { display:none; }
-@media (max-width: 768px) {
-  .desktop-only { display:none; }
-  .mobile-only { display:block; }
-}
-</style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const modal = document.getElementById("ideaModal");
-  const modalIdea = document.getElementById("modalIdea");
-  const modalTeacher = document.getElementById("modalTeacher");
-  const modalProgram = document.getElementById("modalProgram");
-  const modalDate = document.getElementById("modalDate");
-  const modalImages = document.getElementById("modalImages");
-  const closeBtn = document.querySelector(".modal-close");
-
-  function openModalFromBtn(btn) {
-    const ideaId = btn.dataset.ideaId;
-    const ta = ideaId ? document.getElementById(ideaId) : null;
-    let idea = ta ? ta.value : "";
-    idea = idea.replace(/\\r/g, "");
-    modalIdea.innerText = idea;
-
-    modalTeacher.innerText = btn.dataset.teacher || "";
-    modalProgram.innerText = btn.dataset.program || "";
-    modalDate.innerText = btn.dataset.date || "";
-
-    modalImages.innerHTML = "";
-    (btn.dataset.images || "").split("|").map(s => s.trim()).filter(Boolean).forEach(url => {
-      const img = document.createElement("img");
-      img.src = url;
-      modalImages.appendChild(img);
-    });
-
-    modal.style.display = "flex";
+  /* ===== Scoped Officer Reports ===== */
+  .or-scope{
+    --ink: var(--ink, #0f172a);
+    --ink-soft: var(--ink-soft, #334155);
+    --muted: var(--muted, #64748b);
+    --line: var(--line, #e5e7eb);
+    --card: var(--card, #ffffff);
+    --bg: var(--bg, #f8fafc);
+    --brand: var(--brand, #2563eb);
+    --accent: var(--accent, #10b981);
+    --danger: var(--danger, #ef4444);
+    --shadow: var(--shadow, 0 10px 28px rgba(2,6,23,.08));
   }
 
-  document.querySelectorAll(".btn-show-idea").forEach(btn => {
-    btn.addEventListener("click", () => openModalFromBtn(btn));
-  });
+  .or-scope .wrap{max-width:1400px;margin-inline:auto;padding:18px 14px}
+  .or-scope .page-head{margin-bottom:14px}
+  .or-scope .title{
+    margin:0;
+    font-weight:900;
+    font-size:1.35rem;
+    color:var(--ink);
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .or-scope .subtitle{
+    margin:6px 0 0;
+    color:var(--muted);
+    font-weight:800;
+    line-height:1.7;
+  }
 
-  closeBtn.addEventListener("click", () => modal.style.display = "none");
-  window.addEventListener("click", e => { if (e.target === modal) modal.style.display = "none"; });
+  .or-scope .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:18px;
+  }
 
-  // Lightbox بسيط لصور المودال
-  document.addEventListener("click", function(e) {
-    if (e.target.matches(".modal-images img")) {
-      const img = e.target;
-      const overlay = document.createElement("div");
-      overlay.style.position = "fixed";
-      overlay.style.inset = 0;
-      overlay.style.background = "rgba(0,0,0,0.85)";
-      overlay.style.display = "flex";
-      overlay.style.alignItems = "center";
-      overlay.style.justifyContent = "center";
-      overlay.style.zIndex = 3000;
-      overlay.innerHTML = `
-        <img src="${img.src}" style="max-width:90%; max-height:90%;
-                                     border-radius:12px;
-                                     box-shadow:0 6px 30px rgba(0,0,0,0.5);">
-      `;
-      overlay.addEventListener("click", () => overlay.remove());
-      document.body.appendChild(overlay);
+  /* ===== Filters ===== */
+  .or-scope .filters-form{margin-bottom:16px}
+  .or-scope .filters-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:12px;
+  }
+  .or-scope .filter-group{display:flex;flex-direction:column;gap:6px}
+  .or-scope .filter-group label{font-weight:900;color:var(--muted)}
+  .or-scope .filter-input{
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    font:inherit;
+    background:#fff;
+    color:var(--ink);
+    min-height:44px;
+  }
+  .or-scope .filter-actions{
+    margin-top:12px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:flex-start;
+  }
+
+  /* ===== Buttons ===== */
+  .or-scope .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:10px 14px;border-radius:12px;
+    font-weight:900;text-decoration:none;
+    border:1px solid var(--line);
+    background:#fff;color:var(--ink);
+    cursor:pointer;
+    transition:transform .15s ease, filter .15s ease, background .15s ease;
+    min-height:44px;
+  }
+  .or-scope .btn:hover{transform:translateY(-1px)}
+  .or-scope .btn-primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .or-scope .btn-outline{background:#fff;border-color:#cbd5e1;color:var(--ink)}
+  .or-scope .btn-print{background:var(--accent);border-color:var(--accent);color:#fff}
+  .or-scope .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
+  .or-scope .btn-ico{padding:10px 12px;min-width:44px}
+
+  /* ===== Table ===== */
+  .or-scope .table-responsive{overflow:auto;border:1px solid var(--line);border-radius:16px;margin-top:10px}
+  .or-scope table{width:100%;border-collapse:collapse;min-width:1100px;background:#fff}
+  .or-scope thead th{
+    background:#f8fafc;
+    border-bottom:1px solid var(--line);
+    padding:12px 10px;
+    text-align:right;
+    color:var(--ink);
+    font-weight:900;
+    white-space:nowrap;
+  }
+  .or-scope tbody td{
+    border-bottom:1px solid var(--line);
+    padding:12px 10px;
+    vertical-align:top;
+    color:var(--ink-soft);
+    font-weight:800;
+  }
+  .or-scope tbody tr:hover{background:#f8fafc}
+  .or-scope .muted{color:var(--muted);font-weight:800}
+  .or-scope .text-center{text-align:center}
+
+  /* Images in table */
+  .or-scope .table-images{display:flex;gap:8px;flex-wrap:wrap}
+  .or-scope .table-images img{
+    width:54px;height:54px;object-fit:cover;border-radius:10px;
+    border:1px solid var(--line);
+    cursor:zoom-in;
+    background:#f8fafc;
+  }
+
+  /* ===== Mobile Cards ===== */
+  .or-scope .cards-view{display:grid;gap:12px;margin-top:10px}
+  .or-scope .report-card{
+    background:#fff;border:1px solid var(--line);
+    border-radius:16px;box-shadow:var(--shadow);
+    padding:14px;
+    display:grid;
+    gap:10px;
+  }
+  .or-scope .report-header{
+    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    font-weight:900;color:var(--ink);
+  }
+  .or-scope .report-program{margin:0;color:var(--muted);font-weight:900;line-height:1.7}
+  .or-scope .report-idea{margin:0;color:var(--ink-soft);font-weight:800;line-height:1.9}
+  .or-scope .report-images{display:flex;gap:8px;flex-wrap:wrap}
+  .or-scope .report-images img{
+    width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid var(--line);cursor:zoom-in
+  }
+  .or-scope .card-actions{
+    display:flex;gap:8px;flex-wrap:wrap;align-items:center
+  }
+
+  /* ===== Pagination ===== */
+  .or-scope .pagination{
+    display:flex;gap:10px;align-items:center;justify-content:center;
+    margin-top:16px;flex-wrap:wrap
+  }
+  .or-scope .page-btn{
+    padding:9px 14px;border:1px solid var(--line);
+    border-radius:12px;background:#fff;color:var(--ink);
+    text-decoration:none;font-weight:900;
+  }
+  .or-scope .page-current{color:var(--muted);font-weight:900}
+
+  /* ===== Modal ===== */
+  .or-scope .modal{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.6);
+    z-index:2000;
+    justify-content:center;align-items:center;
+    padding:18px;
+    overflow:auto;
+  }
+  .or-scope .modal-dialog{
+    width:min(820px, 100%);
+    background:#fff;
+    border-radius:18px;
+    border:1px solid var(--line);
+    box-shadow:0 24px 80px rgba(0,0,0,.35);
+    position:relative;
+    padding:16px;
+  }
+  .or-scope .modal-close{
+    position:absolute;top:12px;left:12px;
+    width:42px;height:42px;border-radius:999px;
+    border:1px solid #fecaca;
+    background:#fee2e2;color:#991b1b;
+    cursor:pointer;font-weight:900;
+    display:grid;place-items:center;
+  }
+  .or-scope .modal-title{margin:0 0 10px 0;font-weight:900;color:var(--ink)}
+  .or-scope .modal-idea{
+    white-space:pre-line;
+    margin:10px 0;
+    font-size:15px;
+    line-height:1.9;
+    color:var(--ink-soft);
+    padding:12px;
+    background:#f8fafc;
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow-wrap:anywhere;
+  }
+  .or-scope .modal-meta{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:6px;
+    margin-top:8px;
+    color:var(--muted);
+    font-weight:900;
+  }
+  @media(min-width:720px){
+    .or-scope .modal-meta{grid-template-columns:1fr 1fr}
+  }
+  .or-scope .modal-images{
+    margin-top:14px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+    gap:12px;
+  }
+  .or-scope .modal-images img{
+    width:100%;height:140px;object-fit:cover;border-radius:14px;
+    border:1px solid var(--line);
+    box-shadow:0 6px 16px rgba(0,0,0,.12);
+    cursor:zoom-in;
+    transition:transform .2s ease;
+    background:#f8fafc;
+  }
+  .or-scope .modal-images img:hover{transform:scale(1.03)}
+
+  /* ===== Responsive: hide/show ===== */
+  .or-scope .desktop-only{display:block}
+  .or-scope .mobile-only{display:none}
+  @media(max-width: 860px){
+    .or-scope .desktop-only{display:none}
+    .or-scope .mobile-only{display:block}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="or-scope" dir="rtl">
+  <div class="wrap">
+
+    <!-- Header -->
+    <header class="page-head">
+      <h1 class="title">📊 لوحة المسؤول – تقارير قسمي</h1>
+      <p class="subtitle">
+        عرض وإدارة تقارير القسم:
+        <b>{% if department %}{{ department.name }}{% else %}—{% endif %}</b>
+      </p>
+    </header>
+
+    <div class="card">
+
+      <!-- Filters -->
+      <form method="get" class="filters-form" novalidate>
+        <div class="filters-grid">
+          <div class="filter-group">
+            <label>📅 من تاريخ</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="filter-input">
+          </div>
+          <div class="filter-group">
+            <label>📅 إلى تاريخ</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="filter-input">
+          </div>
+          <div class="filter-group">
+            <label>👨‍🏫 اسم المعلم</label>
+            <input type="text" name="teacher_name" value="{{ teacher_name }}"
+                   placeholder="اكتب اسم المعلم أو جزء منه" class="filter-input">
+          </div>
+
+          {% if categories %}
+          <div class="filter-group">
+            <label>🏷️ التصنيف (خاص بقسمي)</label>
+            <select name="category" class="filter-input">
+              <option value="">كل تصنيفات قسمي</option>
+              {% for c_val, c_label in categories %}
+                <option value="{{ c_val }}" {% if category == c_val %}selected{% endif %}>{{ c_label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="filter-actions">
+          <button class="btn btn-primary" type="submit">✅ تطبيق الفلاتر</button>
+          {% if start_date or end_date or teacher_name or category %}
+            <a href="{{ request.path }}" class="btn btn-outline">🧹 مسح الفلاتر</a>
+          {% endif %}
+        </div>
+      </form>
+
+      {# نحافظ على querystring للترقيم #}
+      {% with qs="" %}
+        {% if start_date %}{% with qs=qs|add:"&start_date="|add:start_date %}{% endwith %}{% endif %}
+      {% endwith %}
+
+      {% with qsp="" %}
+        {% if start_date %}{% with qsp=qsp|add:"&start_date="|add:start_date %}{% endwith %}{% endif %}
+        {% if end_date %}{% with qsp=qsp|add:"&end_date="|add:end_date %}{% endwith %}{% endif %}
+        {% if teacher_name %}{% with qsp=qsp|add:"&teacher_name="|add:teacher_name|urlencode %}{% endwith %}{% endif %}
+        {% if category %}{% with qsp=qsp|add:"&category="|add:category %}{% endwith %}{% endif %}
+
+        <!-- Desktop Table -->
+        <div class="table-responsive desktop-only">
+          <table class="reports-table">
+            <thead>
+              <tr>
+                <th>📅 التاريخ</th>
+                <th>👨‍🏫 المعلم</th>
+                <th>📖 العنوان</th>
+                <th>🏷️ التصنيف</th>
+                <th>👥 المستفيدون</th>
+                <th>💡 الفكرة</th>
+                <th>🖼 الصور</th>
+                <th>⚙️ الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in reports %}
+              <tr>
+                <td>
+                  {{ r.report_date|date:"Y-m-d" }}<br>
+                  <small class="muted">{{ r.day_name|default_if_none:"" }}</small>
+                </td>
+                <td>{% firstof r.teacher_name r.teacher.name "—" %}</td>
+                <td>{{ r.title|default:"—" }}</td>
+                <td>
+                  {% if r.category %}{{ r.category.name }}
+                  {% else %}{{ r.get_category_display|default:r.category|default:"—" }}
+                  {% endif %}
+                </td>
+                <td class="text-center">{{ r.beneficiaries_count|default_if_none:"—" }}</td>
+                <td>
+                  <textarea id="idea-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
+                  {{ r.idea|default_if_none:""|truncatewords:12 }}
+                </td>
+                <td>
+                  <div class="table-images">
+                    {% if r.image1 %}<img src="{{ r.image1.url }}" alt="صورة 1" data-full="{{ r.image1.url }}">{% endif %}
+                    {% if r.image2 %}<img src="{{ r.image2.url }}" alt="صورة 2" data-full="{{ r.image2.url }}">{% endif %}
+                    {% if r.image3 %}<img src="{{ r.image3.url }}" alt="صورة 3" data-full="{{ r.image3.url }}">{% endif %}
+                    {% if r.image4 %}<img src="{{ r.image4.url }}" alt="صورة 4" data-full="{{ r.image4.url }}">{% endif %}
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <button class="btn btn-primary btn-ico js-show"
+                            type="button"
+                            data-idea-id="idea-{{ r.pk }}"
+                            data-teacher="{% firstof r.teacher_name r.teacher.name '' %}"
+                            data-program="{{ r.title|default_if_none:''|escapejs }}"
+                            data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
+                            data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}">
+                      👁
+                    </button>
+
+                    <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="btn btn-print btn-ico">🖨</a>
+
+                    <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button class="btn btn-danger btn-ico" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');">🗑</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" class="text-center muted" style="padding:18px">لا توجد تقارير ضمن قسمك.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="cards-view mobile-only">
+          {% for r in reports %}
+          <article class="report-card">
+            <div class="report-header">
+              <span>📅 {{ r.report_date|date:"Y-m-d" }} – {{ r.day_name|default_if_none:"" }}</span>
+              <span>👨‍🏫 {% firstof r.teacher_name r.teacher.name "—" %}</span>
+            </div>
+
+            <p class="report-program">
+              📖 {{ r.title|default:"—" }}
+              | 🏷️ {% if r.category %}{{ r.category.name }}{% else %}{{ r.get_category_display|default:r.category|default:"—" }}{% endif %}
+              | 👥 {{ r.beneficiaries_count|default_if_none:"—" }}
+            </p>
+
+            <textarea id="idea-m-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
+            <p class="report-idea">{{ r.idea|default_if_none:""|truncatewords:20 }}</p>
+
+            <div class="report-images">
+              {% if r.image1 %}<img src="{{ r.image1.url }}" alt="img" data-full="{{ r.image1.url }}">{% endif %}
+              {% if r.image2 %}<img src="{{ r.image2.url }}" alt="img" data-full="{{ r.image2.url }}">{% endif %}
+              {% if r.image3 %}<img src="{{ r.image3.url }}" alt="img" data-full="{{ r.image3.url }}">{% endif %}
+              {% if r.image4 %}<img src="{{ r.image4.url }}" alt="img" data-full="{{ r.image4.url }}">{% endif %}
+            </div>
+
+            <div class="card-actions">
+              <button class="btn btn-primary js-show" type="button"
+                      data-idea-id="idea-m-{{ r.pk }}"
+                      data-teacher="{% firstof r.teacher_name r.teacher.name '' %}"
+                      data-program="{{ r.title|default_if_none:''|escapejs }}"
+                      data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
+                      data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}">
+                👁 عرض
+              </button>
+
+              <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="btn btn-print">🖨 طباعة</a>
+
+              <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="btn btn-danger" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');">🗑 حذف</button>
+              </form>
+            </div>
+          </article>
+          {% empty %}
+            <div class="muted" style="text-align:center;padding:18px">لا توجد تقارير ضمن قسمك.</div>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if reports.paginator and reports.paginator.num_pages > 1 %}
+        <nav class="pagination" aria-label="ترقيم الصفحات">
+          {% if reports.has_previous %}
+            <a class="page-btn" href="?page={{ reports.previous_page_number }}{{ qsp }}">السابق</a>
+          {% endif %}
+          <span class="page-current">صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}</span>
+          {% if reports.has_next %}
+            <a class="page-btn" href="?page={{ reports.next_page_number }}{{ qsp }}">التالي</a>
+          {% endif %}
+        </nav>
+        {% endif %}
+      {% endwith %}
+
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="ideaModal" class="modal" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="تفاصيل التقرير">
+      <button class="modal-close" type="button" aria-label="إغلاق">✕</button>
+      <h2 class="modal-title">💡 التقرير كامل</h2>
+
+      <div id="modalIdea" class="modal-idea"></div>
+
+      <div class="modal-meta">
+        <div>👨‍🏫 <b>المعلم:</b> <span id="modalTeacher"></span></div>
+        <div>📖 <b>العنوان:</b> <span id="modalProgram"></span></div>
+        <div>📅 <b>التاريخ:</b> <span id="modalDate"></span></div>
+      </div>
+
+      <div id="modalImages" class="modal-images"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function(){
+    const modal = document.getElementById('ideaModal');
+    const closeBtn = modal ? modal.querySelector('.modal-close') : null;
+    const modalIdea = document.getElementById('modalIdea');
+    const modalTeacher = document.getElementById('modalTeacher');
+    const modalProgram = document.getElementById('modalProgram');
+    const modalDate = document.getElementById('modalDate');
+    const modalImages = document.getElementById('modalImages');
+
+    if(!modal) return;
+
+    function openModalFromBtn(btn){
+      const ideaId = btn.getAttribute('data-idea-id');
+      const ta = ideaId ? document.getElementById(ideaId) : null;
+      let idea = ta ? ta.value : '';
+      idea = (idea || '').replace(/\r/g, '');
+      if(modalIdea) modalIdea.textContent = idea;
+
+      if(modalTeacher) modalTeacher.textContent = btn.getAttribute('data-teacher') || '';
+      if(modalProgram) modalProgram.textContent = btn.getAttribute('data-program') || '';
+      if(modalDate) modalDate.textContent = btn.getAttribute('data-date') || '';
+
+      if(modalImages){
+        modalImages.innerHTML = '';
+        const imgs = (btn.getAttribute('data-images') || '').split('|').map(s => (s || '').trim()).filter(Boolean);
+        imgs.forEach(url => {
+          const im = document.createElement('img');
+          im.src = url;
+          im.alt = 'صورة';
+          im.loading = 'lazy';
+          im.setAttribute('data-full', url);
+          modalImages.appendChild(im);
+        });
+      }
+
+      modal.style.display = 'flex';
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
     }
-  });
-});
-</script>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    function closeModal(){
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = 'auto';
+      if(modalImages) modalImages.innerHTML = '';
+    }
+
+    document.querySelectorAll('.or-scope .js-show').forEach(btn => {
+      btn.addEventListener('click', function(){ openModalFromBtn(btn); });
+    });
+
+    if(closeBtn) closeBtn.addEventListener('click', closeModal);
+    window.addEventListener('click', function(e){
+      if(e.target === modal) closeModal();
+    });
+    window.addEventListener('keydown', function(e){
+      if(modal.style.display === 'flex' && e.key === 'Escape') closeModal();
+    });
+
+    // Lightbox for modal images
+    document.addEventListener('click', function(e){
+      const img = e.target;
+      if(!img) return;
+      if(!img.matches('#modalImages img')) return;
+
+      const full = img.getAttribute('data-full') || img.src;
+      const overlay = document.createElement('div');
+      overlay.style.position = 'fixed';
+      overlay.style.inset = '0';
+      overlay.style.background = 'rgba(0,0,0,0.88)';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.zIndex = '3000';
+      overlay.innerHTML = '<img src="' + full + '" alt="preview" style="max-width:92%;max-height:92%;border-radius:14px;box-shadow:0 16px 60px rgba(0,0,0,.55)">';
+      overlay.addEventListener('click', function(){ overlay.remove(); });
+      document.body.appendChild(overlay);
+    });
+
+    // Click-to-zoom for thumbs in table/cards (optional)
+    document.addEventListener('click', function(e){
+      const img = e.target;
+      if(!img) return;
+      if(!img.matches('.table-images img') && !img.matches('.report-images img')) return;
+
+      const full = img.getAttribute('data-full') || img.src;
+      const overlay = document.createElement('div');
+      overlay.style.position = 'fixed';
+      overlay.style.inset = '0';
+      overlay.style.background = 'rgba(0,0,0,0.88)';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.zIndex = '3000';
+      overlay.innerHTML = '<img src="' + full + '" alt="preview" style="max-width:92%;max-height:92%;border-radius:14px;box-shadow:0 16px 60px rgba(0,0,0,.55)">';
+      overlay.addEventListener('click', function(){ overlay.remove(); });
+      document.body.appendChild(overlay);
+    });
+  })();
+</script>
 {% endblock %}

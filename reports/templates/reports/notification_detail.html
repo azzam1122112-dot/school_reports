@@ -4,134 +4,207 @@
 
 {% block head %}
 <style>
-  .wrap{max-width:1100px;margin:0 auto;padding:18px}
-  .page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-  .title{margin:0;font-weight:900;color:#0b1b3a}
-  .hint{color:#64748b;font-weight:700}
+  /* ===== Scoped: Notification Detail ===== */
+  .nd-scope{
+    --ink: var(--ink, #0f172a);
+    --muted: var(--muted, #64748b);
+    --line: var(--line, #e5e7eb);
+    --card: var(--card, #ffffff);
+    --shadow: var(--shadow, 0 10px 26px rgba(2,6,23,.08));
+    --brand: var(--brand, #2563eb);
+    --brand-ghost: var(--brand-ghost, #eef2ff);
+  }
 
-  .grid{display:grid;gap:18px}
-  @media(min-width:1000px){.grid{grid-template-columns:1.1fr .9fr}}
+  .nd-scope .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .nd-scope .page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .nd-scope .page-title{margin:0;font-weight:900;color:var(--ink)}
+  .nd-scope .hint{color:var(--muted);font-weight:800}
 
-  .card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
-  .card-hd{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .card-bd{padding:16px}
+  .nd-scope .grid{display:grid;gap:18px}
+  @media(min-width:1000px){.nd-scope .grid{grid-template-columns:1.1fr .9fr}}
 
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--line);background:#f8fbff;color:#0b1b3a;border-radius:999px;font-weight:800;font-size:.86rem}
-  .pill.important{background:#fff5f5;border-color:#ffe0e0;color:#b91c1c}
-  .pill.blue{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
-  .time{color:#64748b;font-weight:800}
-  .body{white-space:pre-wrap;line-height:1.95;color:#334155;font-weight:700}
+  .nd-scope .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .nd-scope .card-hd{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .nd-scope .card-bd{padding:16px}
 
-  .tools{display:flex;gap:10px;flex-wrap:wrap}
-  .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:800;text-decoration:none;color:#1e293b}
-  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-  .btn.danger{background:#fff0f0;border-color:#fecaca;color:#b91c1c}
+  .nd-scope .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);background:#f8fbff;color:#0b1b3a;border-radius:999px;font-weight:900;font-size:.86rem}
+  .nd-scope .pill.important{background:#fff5f5;border-color:#ffe0e0;color:#b91c1c}
+  .nd-scope .pill.blue{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
+  .nd-scope .time{color:var(--muted);font-weight:900}
 
-  .table-wrap{overflow:auto}
-  table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  thead th{background:#f8fbff;color:#0b1b3a;font-weight:900;text-align:right;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}
-  tbody td{padding:10px;border-bottom:1px solid var(--line);color:#334155;font-weight:700;white-space:nowrap}
-  tbody tr:nth-child(even){background:#fafcff}
+  .nd-scope .body{
+    white-space:pre-wrap;
+    line-height:1.95;
+    color:#334155;
+    font-weight:800;
+    background:linear-gradient(180deg,#ffffff,#fbfdff);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px;
+  }
 
-  .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-weight:900}
-  .chip.read{background:#ecfdf5;border:1px solid #bbf7d0;color:#166534}      /* أخضر ناعم */
-  .chip.unread{background:#f1f5f9;border:1px solid #e2e8f0;color:#334155}   /* رمادي */
+  .nd-scope .tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .nd-scope .btn{
+    padding:10px 12px;border-radius:12px;border:1px solid var(--line);
+    background:#fff;font-weight:900;text-decoration:none;color:#1e293b;
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .nd-scope .btn:hover{transform:translateY(-1px);box-shadow:0 10px 20px rgba(2,6,23,.08);border-color:#c7d2fe}
+  .nd-scope .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .nd-scope .btn.danger{background:#fff0f0;border-color:#fecaca;color:#b91c1c}
 
-  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-  .toolbar input[type="search"]{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;width:100%}
-  .toggle{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .toggle button{padding:7px 10px;border:0;background:#fff;font-weight:800;cursor:pointer}
-  .toggle button.on{background:var(--brand-ghost);color:var(--brand)}
+  .nd-scope .table-wrap{overflow:auto}
+  .nd-scope table{
+    width:100%;
+    border-collapse:separate;border-spacing:0;
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+    background:#fff;
+  }
+  .nd-scope thead th{
+    background:#f8fbff;color:#0b1b3a;font-weight:900;
+    text-align:right;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap
+  }
+  .nd-scope tbody td{
+    padding:10px;border-bottom:1px solid var(--line);
+    color:#334155;font-weight:800;white-space:nowrap
+  }
+  .nd-scope tbody tr:nth-child(even){background:#fafcff}
+
+  .nd-scope .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-weight:900;border:1px solid transparent}
+  .nd-scope .chip.read{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
+  .nd-scope .chip.unread{background:#f1f5f9;border-color:#e2e8f0;color:#334155}
+
+  .nd-scope .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .nd-scope .toolbar input[type="search"]{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px 12px;
+    font:inherit;
+    width:100%;
+    min-height:44px;
+    background:#fff;
+  }
+  .nd-scope .toggle{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+  .nd-scope .toggle button{
+    padding:10px 12px;border:0;background:#fff;font-weight:900;cursor:pointer;
+    min-height:44px;
+  }
+  .nd-scope .toggle button.on{background:var(--brand-ghost);color:var(--brand)}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <header class="page-head">
-    <h1 class="title">تفاصيل الإشعار</h1>
-    <a class="btn" href="{% url 'reports:notifications_sent' %}">↩︎ رجوع إلى المرسلة</a>
-  </header>
+<div class="nd-scope">
+  <div class="wrap" dir="rtl">
+    <header class="page-head">
+      <div>
+        <h1 class="page-title">تفاصيل الإشعار</h1>
+        <div class="hint">عرض الرسالة + حالة وصولها للمستلمين</div>
+      </div>
+      <a class="btn" href="{% url 'reports:notifications_sent' %}">↩︎ رجوع إلى المرسلة</a>
+    </header>
 
-  <div class="grid">
-    <!-- بطاقة الإشعار -->
-    <section class="card">
-      <div class="card-hd">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <strong style="font-weight:900">{{ n.title|default:"رسالة" }}</strong>
-          {% if n.is_important %}<span class="pill important">هام</span>{% endif %}
-          {% if n.is_broadcast %}<span class="pill blue">للجميع</span>{% endif %}
-        </div>
-        <div class="time">{{ n.created_at|date:"Y-m-d H:i" }}</div>
-      </div>
-      <div class="card-bd">
-        {% if body %}<div class="body">{{ body|linebreaksbr }}</div>{% else %}<div class="hint">لا يوجد محتوى نصي.</div>{% endif %}
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-          {% if n.expires_at %}<span class="pill">ينتهي: {{ n.expires_at|date:"Y-m-d H:i" }}</span>{% endif %}
-          {% if n.created_by and n.created_by.name %}<span class="pill">مرسِل: {{ n.created_by.name }}</span>{% endif %}
-        </div>
-        <div class="tools" style="margin-top:12px">
-          {% if n.action_url %}<a class="btn primary" href="{{ n.action_url }}" rel="noopener">فتح الرابط</a>{% endif %}
-          {% url 'reports:notification_delete' n.id as del_url %}
-          {% if del_url %}
-            <form method="post" action="{{ del_url }}" onsubmit="return confirm('حذف الإشعار نهائيًا؟');">
-              {% csrf_token %}
-              <button class="btn danger" type="submit">حذف</button>
-            </form>
-          {% endif %}
-        </div>
-      </div>
-    </section>
+    <div class="grid">
 
-    <!-- بطاقة المستلمين -->
-    <aside class="card">
-      <div class="card-hd">
-        <strong>المستلمون</strong>
-        <span class="hint">الاسم — الدور — الحالة</span>
-      </div>
-      <div class="card-bd">
-        {% if recipients %}
-          <div class="toolbar">
-            <input type="search" id="recSearch" placeholder="ابحث بالاسم أو الدور…">
-            <div class="toggle" role="tablist" aria-label="تصفية">
-              <button id="toggleAll"   class="on"  type="button">الكل</button>
-              <button id="toggleUnread"        type="button">غير المقروء فقط</button>
-            </div>
+      <!-- بطاقة الإشعار -->
+      <section class="card" aria-label="الإشعار">
+        <div class="card-hd">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <strong style="font-weight:900">{{ n.title|default:"رسالة" }}</strong>
+            {% if n.is_important %}<span class="pill important">هام</span>{% endif %}
+            {% if n.is_broadcast %}<span class="pill blue">للجميع</span>{% endif %}
           </div>
-          <div class="table-wrap">
-            <table id="recTable">
-              <thead>
-                <tr>
-                  <th style="width:45%">الاسم</th>
-                  <th style="width:25%">الدور</th>
-                  <th style="width:30%">الحالة</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for r in recipients %}
-                  <tr data-read="{{ r.read|yesno:'1,0' }}">
-                    <td>{{ r.name }}</td>
-                    <td>{{ r.role }}</td>
-                    <td>
-                      {% if r.read %}
-                        <span class="chip read" title="{% if r.read_at %}{{ r.read_at }}{% else %}مقروء{% endif %}">مقروء</span>
-                      {% else %}
-                        <span class="chip unread" title="غير مقروء">غير مقروء</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          {% if n.is_broadcast %}
-            <div class="hint">هذا الإشعار مُرسل للجميع.</div>
+          <div class="time">{{ n.created_at|date:"Y-m-d H:i" }}</div>
+        </div>
+
+        <div class="card-bd">
+          {% if body %}
+            <div class="body">{{ body|linebreaksbr }}</div>
           {% else %}
-            <div class="hint">لا يوجد مستلمون مسجّلون.</div>
+            <div class="hint">لا يوجد محتوى نصي.</div>
           {% endif %}
-        {% endif %}
-      </div>
-    </aside>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            {% if n.expires_at %}<span class="pill">ينتهي: {{ n.expires_at|date:"Y-m-d H:i" }}</span>{% endif %}
+            {% if n.created_by and n.created_by.name %}<span class="pill">المرسِل: {{ n.created_by.name }}</span>{% endif %}
+          </div>
+
+          <div class="tools">
+            {% if n.action_url %}
+              <a class="btn primary" href="{{ n.action_url }}" rel="noopener">
+                <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i> فتح الرابط
+              </a>
+            {% endif %}
+
+            {% if n.id %}
+              <form method="post" action="{% url 'reports:notification_delete' n.id %}" onsubmit="return confirm('حذف الإشعار نهائيًا؟');">
+                {% csrf_token %}
+                <button class="btn danger" type="submit">
+                  <i class="fa-solid fa-trash" aria-hidden="true"></i> حذف
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+      <!-- بطاقة المستلمين -->
+      <aside class="card" aria-label="المستلمون">
+        <div class="card-hd">
+          <strong style="font-weight:900">المستلمون</strong>
+          <span class="hint">الاسم — الدور — الحالة</span>
+        </div>
+
+        <div class="card-bd">
+          {% if recipients %}
+            <div class="toolbar">
+              <input type="search" id="recSearch" placeholder="ابحث بالاسم أو الدور…">
+              <div class="toggle" role="tablist" aria-label="تصفية">
+                <button id="toggleAll" class="on" type="button">الكل</button>
+                <button id="toggleUnread" type="button">غير المقروء فقط</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table id="recTable">
+                <thead>
+                  <tr>
+                    <th style="width:45%">الاسم</th>
+                    <th style="width:25%">الدور</th>
+                    <th style="width:30%">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for r in recipients %}
+                    <tr data-read="{{ r.read|yesno:'1,0' }}">
+                      <td>{{ r.name }}</td>
+                      <td>{{ r.role }}</td>
+                      <td>
+                        {% if r.read %}
+                          <span class="chip read" title="{% if r.read_at %}{{ r.read_at }}{% else %}مقروء{% endif %}">مقروء</span>
+                        {% else %}
+                          <span class="chip unread" title="غير مقروء">غير مقروء</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            {% if n.is_broadcast %}
+              <div class="hint">هذا الإشعار مُرسل للجميع.</div>
+            {% else %}
+              <div class="hint">لا يوجد مستلمون مسجّلون.</div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </aside>
+
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -146,22 +219,35 @@
     if(!tbl) return;
 
     const rows = Array.from(tbl.querySelectorAll('tbody tr'));
+
     function applyFilter(){
       const term = (q && q.value || '').trim().toLowerCase();
       const unreadOnly = btnUn && btnUn.classList.contains('on');
-      rows.forEach(tr=>{
+
+      rows.forEach(function(tr){
         const txt = tr.textContent.toLowerCase();
         const isRead = tr.getAttribute('data-read') === '1';
-        const match = !term || txt.includes(term);
-        const pass  = (!unreadOnly || !isRead);
+        const match = !term || txt.indexOf(term) !== -1;
+        const pass  = !unreadOnly || !isRead;
         tr.style.display = (match && pass) ? '' : 'none';
       });
     }
 
-    if(q){ q.addEventListener('input', applyFilter); }
+    if(q){
+      q.addEventListener('input', applyFilter);
+    }
+
     if(btnAll && btnUn){
-      btnAll.addEventListener('click', ()=>{ btnAll.classList.add('on'); btnUn.classList.remove('on'); applyFilter(); });
-      btnUn .addEventListener('click', ()=>{ btnUn.classList.add('on');  btnAll.classList.remove('on'); applyFilter(); });
+      btnAll.addEventListener('click', function(){
+        btnAll.classList.add('on');
+        btnUn.classList.remove('on');
+        applyFilter();
+      });
+      btnUn.addEventListener('click', function(){
+        btnUn.classList.add('on');
+        btnAll.classList.remove('on');
+        applyFilter();
+      });
     }
   })();
 </script>

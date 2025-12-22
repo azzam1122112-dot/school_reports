@@ -10,9 +10,9 @@
     --ar-accent: var(--accent, #059669);
     --ar-ink: var(--ink, #0f172a);
     --ar-muted: var(--muted, #64748b);
-    --ar-line: var(--line, #e2e8f0);
+    --ar-line: var(--line-2, #e2e8f0);
     --ar-bg: var(--bg, #f5f7fb);
-    --ar-card: #fff;
+    --ar-card: var(--card, #fff);
     --ar-shadow: 0 10px 40px rgba(2, 6, 23, 0.08);
     --ar-grad: linear-gradient(135deg, var(--ar-primary) 0%, #4f46e5 60%, var(--ar-accent) 100%);
     min-height: 100dvh;
@@ -71,6 +71,11 @@
     font-family: inherit;
     transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
   }
+  html[data-theme="dark"] .add-report input,
+  html[data-theme="dark"] .add-report textarea,
+  html[data-theme="dark"] .add-report select{
+    background: rgba(11,18,32,.65);
+  }
   .add-report textarea{min-height:140px;resize:vertical;line-height:1.7}
   .add-report input:focus,
   .add-report textarea:focus,
@@ -79,6 +84,11 @@
     border-color: var(--ar-primary);
     box-shadow: 0 0 0 3px rgba(37,99,235,.18);
     background:#fff;
+  }
+  html[data-theme="dark"] .add-report input:focus,
+  html[data-theme="dark"] .add-report textarea:focus,
+  html[data-theme="dark"] .add-report select:focus{
+    background: rgba(15,22,41,.75);
   }
 
   .add-report .ar-help{
@@ -91,7 +101,7 @@
     font-weight: 800;
   }
 
-  /* رسائل */
+  /* أخطاء */
   .add-report .ar-alert{
     border-radius: 14px;
     padding: 12px 14px;
@@ -100,6 +110,12 @@
     background: rgba(254,242,242,.95);
     color: #b91c1c;
     margin-bottom: 10px;
+    white-space: pre-line;
+  }
+  html[data-theme="dark"] .add-report .ar-alert{
+    background: rgba(127,29,29,.22);
+    border-color: rgba(239,68,68,.22);
+    color: #fecaca;
   }
   .add-report .ar-invalid{
     border-color: rgba(239,68,68,.45) !important;
@@ -125,6 +141,7 @@
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
     min-height: 110px;
   }
+  html[data-theme="dark"] .add-report .ar-drop{background: rgba(11,18,32,.55)}
   .add-report .ar-drop:hover{
     border-color: rgba(37,99,235,.45);
     background: rgba(37,99,235,.06);
@@ -153,6 +170,7 @@
     overflow:hidden;
     display:flex; align-items:center; justify-content:center;
   }
+  html[data-theme="dark"] .add-report .ar-prev{background: rgba(11,18,32,.55)}
   .add-report .ar-prev img{width:100%;height:100%;object-fit:cover}
   .add-report .ar-x{
     position:absolute; top:8px; right:8px;
@@ -177,7 +195,7 @@
     text-decoration:none;
     cursor:pointer;
     border: 1px solid transparent;
-    transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+    transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
   }
   .add-report .ar-btn-primary{
     background: var(--ar-grad);
@@ -211,11 +229,19 @@
     box-shadow: 0 25px 60px rgba(0,0,0,.3);
     text-align:center;
   }
+  html[data-theme="dark"] .add-report .ar-up{
+    background: #0f1629;
+    border-color: rgba(27,39,68,.7);
+    color: #e6ebff;
+  }
   .add-report .ar-up h3{margin:0 0 8px;font-weight:900}
   .add-report .ar-up p{margin:0 0 14px;color:#475569;font-weight:800}
+  html[data-theme="dark"] .add-report .ar-up p{color:#a9b8de}
   .add-report .ar-bar{height:12px;border-radius:999px;background:#eef2ff;overflow:hidden;border:1px solid #e2e8f0}
+  html[data-theme="dark"] .add-report .ar-bar{background:#0b1220;border-color:rgba(27,39,68,.7)}
   .add-report .ar-fill{height:100%;width:0;background: var(--ar-grad);transition: width .25s ease}
   .add-report .ar-mini{display:flex;justify-content:space-between;margin-top:10px;color:#64748b;font-weight:900}
+  html[data-theme="dark"] .add-report .ar-mini{color:#a9b8de}
 
   /* Responsive */
   @media (max-width: 900px){
@@ -230,22 +256,14 @@
 {% endblock %}
 
 {% block content %}
-{{ block.super }}
-
 <div class="add-report">
   <div class="ar-wrap">
     <div class="ar-card">
       <h2 class="ar-title"><i class="fa-solid fa-plus"></i> إضافة تقرير جديد</h2>
 
-      {% if messages %}
-        {% for message in messages %}
-          <div class="ar-alert">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-
       {% if form.non_field_errors %}
         <div class="ar-alert">
-          {% for e in form.non_field_errors %}• {{ e }}<br>{% endfor %}
+          {% for e in form.non_field_errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}
         </div>
       {% endif %}
 
@@ -270,7 +288,7 @@
           </select>
 
           {% if form.category.errors %}
-            <div class="ar-alert">{% for e in form.category.errors %}• {{ e }}<br>{% endfor %}</div>
+            <div class="ar-alert">{% for e in form.category.errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}</div>
           {% endif %}
         </div>
 
@@ -293,7 +311,7 @@
           <label for="{{ form.title.id_for_label }}"><i class="fa-solid fa-heading"></i> العنوان</label>
           {{ form.title }}
           {% if form.title.errors %}
-            <div class="ar-alert">{% for e in form.title.errors %}• {{ e }}<br>{% endfor %}</div>
+            <div class="ar-alert">{% for e in form.title.errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}</div>
           {% endif %}
         </div>
 
@@ -303,7 +321,7 @@
           {{ form.report_date }}
           <div class="ar-alert" id="futureDateErr" style="display:none">لا يُسمح بتاريخ مستقبلي. اختر تاريخ اليوم أو سابقًا.</div>
           {% if form.report_date.errors %}
-            <div class="ar-alert">{% for e in form.report_date.errors %}• {{ e }}<br>{% endfor %}</div>
+            <div class="ar-alert">{% for e in form.report_date.errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}</div>
           {% endif %}
         </div>
 
@@ -324,7 +342,7 @@
           <label for="{{ form.idea.id_for_label }}"><i class="fa-solid fa-file-lines"></i> الوصف</label>
           {{ form.idea }}
           {% if form.idea.errors %}
-            <div class="ar-alert">{% for e in form.idea.errors %}• {{ e }}<br>{% endfor %}</div>
+            <div class="ar-alert">{% for e in form.idea.errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}</div>
           {% endif %}
         </div>
 
@@ -373,7 +391,7 @@
   </div>
 
   <!-- Overlay -->
-  <div class="ar-overlay" id="uploadOverlay" aria-hidden="true">
+  <div class="ar-overlay" id="uploadOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="جاري رفع الصور">
     <div class="ar-up">
       <h3><i class="fa-solid fa-cloud-arrow-up"></i> يتم رفع الصور…</h3>
       <p>يرجى الانتظار وعدم إغلاق الصفحة.</p>
@@ -399,18 +417,31 @@
     return isNaN(dt) ? null : dt;
   }
 
-  // منع التاريخ المستقبلي + توليد اسم اليوم
+  // منع التاريخ المستقبلي + توليد اسم اليوم + جعل day_name readonly
   (function(){
     const d = document.getElementById("id_report_date");
     const day = document.getElementById("id_day_name");
     const err = document.getElementById("futureDateErr");
 
+    if(day){
+      day.setAttribute('readonly', 'readonly');
+      day.setAttribute('tabindex', '-1');
+    }
+
     if(d){
       d.setAttribute("max", todayYYYYMMDD());
       if(!d.value){ d.value = todayYYYYMMDD(); }
 
+      const applyDay = ()=>{
+        if(!day) return;
+        const dt = parseDateInput(d.value);
+        if(!dt){ day.value=""; return; }
+        const days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+        day.value = days[dt.getDay()];
+      };
+
       d.addEventListener("change", function(){
-        err.style.display = "none";
+        if(err) err.style.display = "none";
         d.classList.remove("ar-invalid");
 
         const dt = parseDateInput(this.value);
@@ -418,33 +449,32 @@
 
         const now = parseDateInput(todayYYYYMMDD());
         if(dt.getTime() > now.getTime()){
-          err.style.display = "block";
+          if(err) err.style.display = "block";
           d.classList.add("ar-invalid");
           if(day) day.value = "";
           return;
         }
 
-        if(day){
-          const days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-          day.value = days[dt.getDay()];
-        }
+        applyDay();
       });
+
+      // أول تحميل
+      d.dispatchEvent(new Event('change'));
     }
   })();
 
-  // مدخلات الصور: accept فقط للسماح بالاختيار
+  // مدخلات الصور
   (function(){
     const ids = ["id_image1","id_image2","id_image3","id_image4"];
     ids.forEach((id)=>{
       const inp = document.getElementById(id);
       if(!inp) return;
-      // إزالة capture لضمان ظهور خيار (الكاميرا / الاستديو) في الجوال
       inp.removeAttribute("capture");
       inp.setAttribute("accept","image/*");
     });
   })();
 
-  // معاينة صور: استبدال المعاينة الخاصة بكل خانة بدل التكرار
+  // معاينات الصور (استبدال حسب slot)
   (function(){
     const slots = [
       {id:"id_image1", slot:"1"},
@@ -555,7 +585,7 @@
     return true;
   }
 
-  // Compress + Upload progress
+  // Compress + Upload progress + عرض HTML عند فشل 400
   (function(){
     const form = document.getElementById('report-form');
     const overlay = document.getElementById('uploadOverlay');
@@ -566,6 +596,12 @@
 
     const MAX_DIM = 1600;
     const JPEG_QUALITY = 0.82;
+
+    function setOverlay(on){
+      if(!overlay) return;
+      overlay.style.display = on ? 'flex' : 'none';
+      overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+    }
 
     function compressImage(file){
       return new Promise((resolve)=>{
@@ -624,6 +660,7 @@
 
     async function buildCompressedFormData(formEl){
       const fd = new FormData();
+
       for (const el of formEl.elements){
         if(!el.name || el.disabled) continue;
         if(el.type === 'file') continue;
@@ -648,11 +685,10 @@
       ev.preventDefault();
       if(!validateForm(form)) return;
 
-      overlay.style.display = 'flex';
-      overlay.setAttribute('aria-hidden', 'false');
-      fill.style.width = '0%';
-      pctEl.textContent = '0%';
-      label.textContent = 'تحضير الملفات…';
+      setOverlay(true);
+      if(fill) fill.style.width = '0%';
+      if(pctEl) pctEl.textContent = '0%';
+      if(label) label.textContent = 'تحضير الملفات…';
 
       if(submitBtn){
         submitBtn.disabled = true;
@@ -672,60 +708,60 @@
         xhr.upload.onprogress = function(e){
           if(e.lengthComputable){
             const p = Math.round((e.loaded / e.total) * 100);
-            fill.style.width = p + '%';
-            pctEl.textContent = p + '%';
-            label.textContent = p < 100 ? 'جاري الرفع…' : 'معالجة الطلب…';
+            if(fill) fill.style.width = p + '%';
+            if(pctEl) pctEl.textContent = p + '%';
+            if(label) label.textContent = p < 100 ? 'جاري الرفع…' : 'معالجة الطلب…';
           }
         };
 
         xhr.onreadystatechange = function(){
-          if(xhr.readyState === 4){
-            if(xhr.status >= 200 && xhr.status < 400){
-              if(xhr.responseURL && xhr.responseURL !== window.location.href){
-                window.location.href = xhr.responseURL;
-              } else {
-                window.location.href = "{% url 'reports:my_reports' %}";
-              }
-              return;
+          if(xhr.readyState !== 4) return;
+
+          if(xhr.status >= 200 && xhr.status < 400){
+            if(xhr.responseURL && xhr.responseURL !== window.location.href){
+              window.location.href = xhr.responseURL;
+            } else {
+              window.location.href = "{% url 'reports:my_reports' %}";
             }
-
-            overlay.style.display = 'none';
-            overlay.setAttribute('aria-hidden', 'true');
-
-            if(submitBtn){
-              submitBtn.disabled = false;
-              submitBtn.style.opacity = '';
-              submitBtn.style.cursor = '';
-            }
-
-            alert('تعذّر إكمال الرفع. حاول لاحقًا.');
+            return;
           }
-        };
 
-        xhr.onerror = function(){
-          overlay.style.display = 'none';
-          overlay.setAttribute('aria-hidden', 'true');
+          // فشل: لو السيرفر رجّع HTML (عادة صفحة النموذج مع الأخطاء) اعرضه مباشرة
+          const ct = (xhr.getResponseHeader('Content-Type') || '').toLowerCase();
+          if(ct.includes('text/html') && xhr.responseText){
+            document.open();
+            document.write(xhr.responseText);
+            document.close();
+            return;
+          }
 
+          setOverlay(false);
           if(submitBtn){
             submitBtn.disabled = false;
             submitBtn.style.opacity = '';
             submitBtn.style.cursor = '';
           }
+          alert('تعذّر إكمال الحفظ. تأكد من الحقول ثم حاول مجددًا.');
+        };
 
+        xhr.onerror = function(){
+          setOverlay(false);
+          if(submitBtn){
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '';
+            submitBtn.style.cursor = '';
+          }
           alert('حدث خطأ بالشبكة أثناء الرفع.');
         };
 
         xhr.send(fd);
       }catch(e){
-        overlay.style.display = 'none';
-        overlay.setAttribute('aria-hidden', 'true');
-
+        setOverlay(false);
         if(submitBtn){
           submitBtn.disabled = false;
           submitBtn.style.opacity = '';
           submitBtn.style.cursor = '';
         }
-
         alert('تعذّر ضغط/رفع الصور. حاول مجددًا.');
       }
     });

@@ -5,65 +5,215 @@
 
 {% block head %}
 <style>
-  .pay-scope .row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line-2)}
-  .pay-scope .row:last-child{border-bottom:none}
-  .pay-scope .label{font-weight:900;color:var(--muted)}
-  .pay-scope .value{font-weight:950;color:var(--ink)}
-  .pay-scope .img-preview{max-width:100%;border-radius:12px;border:1px solid var(--line-2);margin-top:10px;box-shadow:var(--shadow-sm)}
+  /* ✅ Scoped فقط لهذه الصفحة */
+  .pay-detail{
+    --pd-brand: var(--brand, #2563eb);
+    --pd-accent: var(--accent, #10b981);
+    --pd-danger: var(--danger, #ef4444);
+    --pd-ink: var(--ink, #0f172a);
+    --pd-muted: var(--muted, #64748b);
+    --pd-line: var(--line-2, var(--line, #e5e7eb));
+    --pd-card: var(--card, #fff);
+    --pd-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
+    --pd-shadow-sm: var(--shadow-sm, 0 10px 26px rgba(2,6,23,.08));
+  }
+
+  .pay-detail .wrap{max-width:980px;margin-inline:auto}
+
+  /* Hero */
+  .pay-detail .hero{
+    margin-top: 10px;
+    margin-bottom: 14px;
+    padding: 14px 18px;
+    border: none;
+    color:#fff;
+    background:
+      radial-gradient(900px 240px at 20% 0%, rgba(37,99,235,.22), transparent 55%),
+      radial-gradient(700px 260px at 85% 75%, rgba(16,185,129,.16), transparent 60%),
+      linear-gradient(135deg, rgba(37,99,235,.96), rgba(14,165,233,.88));
+  }
+  .pay-detail .hero-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .pay-detail .hero h1{margin:0;font-weight:950;font-size:clamp(1.15rem,2.2vw,1.45rem)}
+  .pay-detail .hero p{margin:6px 0 0;opacity:.95;font-weight:850}
+
+  /* Cards */
+  .pay-detail .card{box-shadow: var(--pd-shadow)}
+  .pay-detail .section-title{
+    display:flex;align-items:center;justify-content:space-between;
+    font-weight:950;
+    padding-bottom:10px;
+    margin-bottom:10px;
+    border-bottom:1px solid var(--pd-line);
+  }
+
+  /* Rows */
+  .pay-detail .rows{display:grid;gap:0}
+  .pay-detail .row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px;
+    padding:12px 0;
+    border-bottom:1px solid var(--pd-line);
+  }
+  .pay-detail .row:last-child{border-bottom:none}
+  .pay-detail .label{font-weight:900;color:var(--pd-muted)}
+  .pay-detail .value{font-weight:950;color:var(--pd-ink);text-align:start}
+  .pay-detail .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+
+  .pay-detail .amount{
+    color: var(--pd-brand);
+    font-size: 1.15rem;
+    letter-spacing: .2px;
+  }
+
+  /* Receipt */
+  .pay-detail .receipt{
+    display:block;
+    border-radius:14px;
+    border:1px solid var(--pd-line);
+    overflow:hidden;
+    background: rgba(248,250,252,.75);
+  }
+  .pay-detail .img-preview{
+    width:100%;
+    max-width:100%;
+    display:block;
+    border-radius:0;
+  }
+
+  /* Status badge (إن لم تكن موجودة في base/app.css نوفّرها هنا) */
+  .pay-detail .badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .86rem;
+    border: 1px solid transparent;
+    white-space:nowrap;
+  }
+  .pay-detail .badge.success{background: rgba(16,185,129,.12); color: #047857; border-color: rgba(16,185,129,.22)}
+  .pay-detail .badge.warning{background: rgba(245,158,11,.14); color: #92400e; border-color: rgba(245,158,11,.24)}
+  .pay-detail .badge.danger{background: rgba(239,68,68,.12); color: #b91c1c; border-color: rgba(239,68,68,.24)}
+  html[data-theme="dark"] .pay-detail .badge.success{color:#34d399}
+  html[data-theme="dark"] .pay-detail .badge.warning{color:#fbbf24}
+  html[data-theme="dark"] .pay-detail .badge.danger{color:#fca5a5}
+
+  /* Form */
+  .pay-detail .form-grid{
+    display:grid;
+    gap: 14px;
+  }
+  .pay-detail label{display:block;font-weight:950;margin-bottom:6px;color:var(--pd-ink)}
+  .pay-detail .actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .pay-detail .actions .btn{min-height:44px}
+  .pay-detail .actions .btn-primary{flex:1}
+
+  @media(max-width:520px){
+    .pay-detail .hero{padding:14px}
+    .pay-detail .row{flex-direction:column;align-items:stretch}
+    .pay-detail .value{text-align:start}
+    .pay-detail .actions{flex-direction:column}
+    .pay-detail .actions .btn,
+    .pay-detail .actions .btn-primary{width:100%}
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container pay-scope" dir="rtl">
-  <div class="page-head" style="max-width:980px;margin-inline:auto">
-    <div>
-      <h1 class="page-title">تفاصيل عملية الدفع #{{ payment.id }}</h1>
-      <p class="page-subtitle">مراجعة بيانات الدفع واتخاذ الإجراء المناسب.</p>
-    </div>
-    <a href="{% url 'reports:platform_payments_list' %}" class="btn btn-outline">عودة للقائمة</a>
-  </div>
+<div class="container pay-detail" dir="rtl">
+  <div class="wrap">
 
-  <div style="max-width:980px;margin-inline:auto">
-    <div class="card">
-      <div class="section-title">معلومات الدفع</div>
-      <div class="row"><span class="label">المدرسة</span><span class="value">{{ payment.school.name }}</span></div>
-      <div class="row"><span class="label">المبلغ</span><span class="value" style="color:var(--brand);font-size:1.15rem">{{ payment.amount }} ريال</span></div>
-      <div class="row"><span class="label">التاريخ</span><span class="value">{{ payment.payment_date|date:"Y-m-d" }}</span></div>
-      <div class="row"><span class="label">رقم العملية</span><span class="value" style="font-family:monospace">{{ payment.transaction_id|default:"-" }}</span></div>
-      <div class="row">
-        <span class="label">الحالة الحالية</span>
-        <span class="value">
-          {% if payment.status == 'approved' %}
-            <span class="badge success">مقبول</span>
-          {% elif payment.status == 'rejected' %}
-            <span class="badge danger">مرفوض</span>
-          {% else %}
-            <span class="badge warning">قيد المراجعة</span>
-          {% endif %}
-        </span>
-      </div>
-      <div class="row"><span class="label">ملاحظات</span><span class="value">{{ payment.notes|default:"-" }}</span></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">صورة الإيصال</div>
-      {% if payment.receipt_image %}
-        <a href="{{ payment.receipt_image.url }}" target="_blank" rel="noopener">
-          <img src="{{ payment.receipt_image.url }}" class="img-preview" alt="إيصال الدفع">
+    <section class="card hero" aria-label="رأس صفحة الدفع">
+      <div class="hero-head">
+        <div>
+          <h1>تفاصيل عملية الدفع #{{ payment.id }}</h1>
+          <p>مراجعة بيانات الدفع واتخاذ الإجراء المناسب.</p>
+        </div>
+        <a href="{% url 'reports:platform_payments_list' %}" class="btn btn-outline" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:#fff">
+          <i class="fa-solid fa-arrow-right"></i> عودة للقائمة
         </a>
+      </div>
+    </section>
+
+    <div class="card">
+      <div class="section-title">
+        <span><i class="fa-solid fa-receipt"></i> معلومات الدفع</span>
+      </div>
+
+      <div class="rows">
+        <div class="row">
+          <span class="label">المدرسة</span>
+          <span class="value">{{ payment.school.name }}</span>
+        </div>
+
+        <div class="row">
+          <span class="label">المبلغ</span>
+          <span class="value amount">{{ payment.amount }} ريال</span>
+        </div>
+
+        <div class="row">
+          <span class="label">التاريخ</span>
+          <span class="value">{{ payment.payment_date|date:"Y-m-d" }}</span>
+        </div>
+
+        <div class="row">
+          <span class="label">رقم العملية</span>
+          <span class="value mono">{{ payment.transaction_id|default:"-" }}</span>
+        </div>
+
+        <div class="row">
+          <span class="label">الحالة الحالية</span>
+          <span class="value">
+            {% if payment.status == 'approved' %}
+              <span class="badge success"><i class="fa-solid fa-circle-check"></i> مقبول</span>
+            {% elif payment.status == 'rejected' %}
+              <span class="badge danger"><i class="fa-solid fa-circle-xmark"></i> مرفوض</span>
+            {% else %}
+              <span class="badge warning"><i class="fa-solid fa-hourglass-half"></i> قيد المراجعة</span>
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="row">
+          <span class="label">ملاحظات</span>
+          <span class="value">{{ payment.notes|default:"-" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="section-title">
+        <span><i class="fa-solid fa-image"></i> صورة الإيصال</span>
+      </div>
+
+      {% if payment.receipt_image %}
+        <a class="receipt" href="{{ payment.receipt_image.url }}" target="_blank" rel="noopener">
+          <img src="{{ payment.receipt_image.url }}" class="img-preview" alt="إيصال الدفع" loading="lazy" decoding="async">
+        </a>
+        <div class="muted" style="margin-top:10px;font-weight:900">
+          اضغط على الصورة لفتحها بحجم كامل.
+        </div>
       {% else %}
         <div class="muted" style="padding:14px;text-align:center;font-weight:900">لا توجد صورة مرفقة</div>
       {% endif %}
     </div>
 
-    <div class="card">
-      <div class="section-title">إجراءات الإدارة</div>
-      <form method="post" class="form-grid">
+    <div class="card" style="margin-top:12px">
+      <div class="section-title">
+        <span><i class="fa-solid fa-screwdriver-wrench"></i> إجراءات الإدارة</span>
+      </div>
+
+      <form method="post" class="form-grid" novalidate>
         {% csrf_token %}
 
         <div>
-          <label style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">تحديث الحالة</label>
-          <select name="status" class="select">
+          <label for="id_status">تحديث الحالة</label>
+          <select id="id_status" name="status" class="select">
             <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>قيد المراجعة</option>
             <option value="approved" {% if payment.status == 'approved' %}selected{% endif %}>قبول الدفع</option>
             <option value="rejected" {% if payment.status == 'rejected' %}selected{% endif %}>رفض الدفع</option>
@@ -71,16 +221,38 @@
         </div>
 
         <div>
-          <label style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">ملاحظات الإدارة (تظهر للمدرسة)</label>
-          <textarea name="notes" class="textarea" rows="3">{{ payment.notes }}</textarea>
+          <label for="id_notes">ملاحظات الإدارة (تظهر للمدرسة)</label>
+          <textarea id="id_notes" name="notes" class="textarea" rows="3">{{ payment.notes }}</textarea>
         </div>
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button type="submit" class="btn btn-primary" style="flex:1">حفظ التغييرات</button>
-          <a href="{% url 'reports:platform_payments_list' %}" class="btn btn-outline">رجوع</a>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <i class="fa-solid fa-floppy-disk"></i> حفظ التغييرات
+          </button>
+          <a href="{% url 'reports:platform_payments_list' %}" class="btn btn-outline">
+            رجوع
+          </a>
         </div>
       </form>
     </div>
+
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // منع الإرسال المزدوج (لطيف وآمن)
+  document.addEventListener("DOMContentLoaded", function(){
+    const form = document.querySelector(".pay-detail form");
+    const btn = document.getElementById("submitBtn");
+    if(form && btn){
+      form.addEventListener("submit", function(){
+        btn.disabled = true;
+        btn.style.opacity = ".75";
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جارٍ الحفظ...';
+      });
+    }
+  });
+</script>
 {% endblock %}

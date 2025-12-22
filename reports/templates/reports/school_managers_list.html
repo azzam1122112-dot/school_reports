@@ -11,6 +11,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <a class="btn btn-primary" href="{% url 'reports:school_manager_create' %}">+ إنشاء مدير مدرسة جديد</a>
       <a class="btn btn-outline" href="{% url 'reports:schools_admin_list' %}">إدارة المدارس</a>
+      <a class="btn btn-outline" href="{% url 'reports:manage_teachers' %}">قائمة المعلّمين</a>
     </div>
   </div>
 
@@ -23,6 +24,7 @@
         <div style="flex:1 1 320px;min-width:240px">
           <label class="muted" for="managerSearch" style="display:block;font-weight:900;margin-bottom:6px">بحث</label>
           <input id="managerSearch" class="input" type="search" placeholder="ابحث باسم المدير / الجوال / اسم المدرسة…" autocomplete="off" spellcheck="false">
+          <div class="muted" style="margin-top:6px;font-weight:850">تلميح: يمكنك كتابة أكثر من كلمة (مثال: “أحمد الرياض”).</div>
         </div>
         <div class="muted" style="font-weight:900;white-space:nowrap">
           <span id="managerCount">{{ managers|length }}</span>
@@ -71,10 +73,9 @@
                 <td data-label="إجراءات">
                   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start">
                     <a class="btn btn-outline" href="{% url 'reports:school_manager_update' m.id %}" style="padding:8px 10px">تعديل المدير</a>
-                    <a class="btn btn-outline" href="{% url 'reports:manage_teachers' %}" style="padding:8px 10px">قائمة المعلّمين</a>
-                    <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" style="display:inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا المدير؟ سيتم إيقاف حسابه وإلغاء صلاحياته.');">
+                    <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" style="display:inline" onsubmit="return confirm('هل أنت متأكد؟ سيتم تعطيل الحساب وإلغاء روابط المدارس (بدون حذف نهائي).');">
                       {% csrf_token %}
-                      <button type="submit" class="btn btn-danger" style="padding:8px 10px">حذف المدير</button>
+                      <button type="submit" class="btn btn-danger" style="padding:8px 10px">تعطيل المدير</button>
                     </form>
                   </div>
                 </td>
@@ -92,30 +93,36 @@
 </div>
 
 <script>
-  (function(){
-    const input = document.getElementById('managerSearch');
-    const rows = Array.from(document.querySelectorAll('table.rtable tbody tr'));
-    const count = document.getElementById('managerCount');
-    const empty = document.getElementById('managerNoResults');
+(function(){
+  const input = document.getElementById('managerSearch');
+  const rows = Array.from(document.querySelectorAll('table.rtable tbody tr'));
+  const count = document.getElementById('managerCount');
+  const empty = document.getElementById('managerNoResults');
 
-    function applyFilter(){
-      if(!input) return;
-      const q = (input.value || '').trim().toLowerCase();
-      let visible = 0;
-      rows.forEach((row)=>{
-        const hay = (row.getAttribute('data-search') || '').toLowerCase();
-        const ok = !q || hay.includes(q);
-        row.style.display = ok ? '' : 'none';
-        if(ok) visible += 1;
-      });
-      if(count) count.textContent = String(visible);
-      if(empty) empty.style.display = visible === 0 ? 'block' : 'none';
-    }
+  function matchAllWords(hay, query){
+    const words = (query || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return true;
+    return words.every(w => hay.includes(w));
+  }
 
-    if(input){
-      input.addEventListener('input', applyFilter);
-      applyFilter();
-    }
-  })();
+  function applyFilter(){
+    if(!input) return;
+    const q = (input.value || '').trim().toLowerCase();
+    let visible = 0;
+    rows.forEach((row)=>{
+      const hay = (row.getAttribute('data-search') || '').toLowerCase();
+      const ok = matchAllWords(hay, q);
+      row.style.display = ok ? '' : 'none';
+      if(ok) visible += 1;
+    });
+    if(count) count.textContent = String(visible);
+    if(empty) empty.style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  if(input){
+    input.addEventListener('input', applyFilter);
+    applyFilter();
+  }
+})();
 </script>
 {% endblock %}

@@ -15,6 +15,7 @@ from django.utils import timezone
 
 # تخزين Cloudinary العام لملفات raw (PDF/DOCX/ZIP/صور)
 from .storage import PublicRawMediaStorage
+from .validators import validate_image_file
 
 # =========================
 # ثوابت عامة
@@ -66,6 +67,7 @@ class School(models.Model):
         upload_to="schools/logos/",
         blank=True,
         null=True,
+        validators=[validate_image_file],
     )
     print_primary_color = models.CharField(
         "لون قالب الطباعة",
@@ -561,10 +563,10 @@ class Report(models.Model):
         db_index=True,
     )
 
-    image1 = models.ImageField(upload_to="reports/", blank=True, null=True)
-    image2 = models.ImageField(upload_to="reports/", blank=True, null=True)
-    image3 = models.ImageField(upload_to="reports/", blank=True, null=True)
-    image4 = models.ImageField(upload_to="reports/", blank=True, null=True)
+    image1 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
+    image2 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
+    image3 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
+    image4 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
 
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
 
@@ -992,6 +994,7 @@ class TicketImage(models.Model):
         upload_to="tickets/images/%Y/%m/%d/",
         blank=False,
         null=False,
+        validators=[validate_image_file],
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -1135,7 +1138,8 @@ class Payment(models.Model):
     receipt_image = models.ImageField(
         "صورة الإيصال",
         upload_to="payments/receipts/%Y/%m/",
-        help_text="يرجى إرفاق صورة التحويل البنكي"
+        help_text="يرجى إرفاق صورة التحويل البنكي",
+        validators=[validate_image_file],
     )
     payment_date = models.DateField("تاريخ التحويل", default=timezone.now)
     status = models.CharField(

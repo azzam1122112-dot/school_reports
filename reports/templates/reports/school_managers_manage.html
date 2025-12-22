@@ -32,11 +32,14 @@
               <tr>
                 <td data-label="المدير"><b>{{ m.name }}</b></td>
                 <td data-label="إجراء">
-                  <form method="post" style="margin:0">
+                  <form method="post" style="margin:0" class="js-once">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="remove">
                     <input type="hidden" name="teacher_id" value="{{ m.id }}">
-                    <button type="submit" class="btn btn-danger" style="padding:8px 10px">إزالة من المدراء</button>
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-danger" style="padding:8px 10px" onclick="return confirm('هل تريد إزالة هذا المدير من المدرسة؟');">
+                      إزالة من المدراء
+                    </button>
                   </form>
                 </td>
               </tr>
@@ -51,21 +54,23 @@
       <div style="height:12px"></div>
 
       <div class="section-title">إضافة مدير جديد</div>
-      <form method="post" class="form-grid">
+      <form method="post" class="form-grid js-once" id="addManagerForm">
         {% csrf_token %}
         <input type="hidden" name="action" value="add">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <div style="flex:1;min-width:220px">
-            <input type="search" id="managerSearch" placeholder="ابحث باسم المدير">
+            <input type="search" id="managerSearch" class="input" placeholder="ابحث باسم المدير" autocomplete="off" spellcheck="false">
           </div>
           <div style="flex:2;min-width:260px">
-            <select name="teacher_id" id="managerSelect" required>
+            <select name="teacher_id" id="managerSelect" class="input" required>
               <option value="" disabled selected>اختر المعلّم ليصبح مديراً...</option>
               {% for t in teachers %}
                 <option value="{{ t.id }}">{{ t.name }}</option>
               {% endfor %}
             </select>
+            <div class="muted" style="font-weight:850;margin-top:6px">نصيحة: اكتب جزءًا من الاسم لتصفية القائمة.</div>
           </div>
           <button type="submit" class="btn btn-primary">إضافة كمدير</button>
         </div>
@@ -75,33 +80,78 @@
 </div>
 {% endblock %}
 
-  {% block scripts %}
-  {{ block.super }}
-  <script>
-    (function(){
-      const input = document.getElementById('managerSearch');
-      const select = document.getElementById('managerSelect');
-      if (!input || !select) return;
-      const allOptions = Array.from(select.options).slice(1); // تخطي خيار العنوان
+{% block scripts %}
+{{ block.super }}
+<script>
+  (function(){
+    const input = document.getElementById('managerSearch');
+    const select = document.getElementById('managerSelect');
+    if (!input || !select) return;
 
-      input.addEventListener('input', function(){
-        const q = (this.value || '').toLowerCase().trim();
-        // إعادة جميع الخيارات ثم إخفاء غير المطابق
-        select.innerHTML = '';
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.disabled = true;
-        placeholder.selected = true;
-        placeholder.textContent = 'اختر المعلّم ليصبح مديراً...';
-        select.appendChild(placeholder);
+    // خذ نسخة ثابتة من الخيارات (باستثناء placeholder)
+    const originalOptions = Array.from(select.options).slice(1).map(o => ({
+      value: o.value,
+      text: o.textContent || ''
+    }));
 
-        allOptions.forEach(function(opt){
-          const txt = (opt.textContent || '').toLowerCase();
-          if (!q || txt.includes(q)) {
-            select.appendChild(opt);
-          }
-        });
+    function rebuildOptions(query){
+      const current = select.value;
+      const q = (query || '').trim().toLowerCase();
+
+      // placeholder
+      select.innerHTML = '';
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.disabled = true;
+      ph.selected = true;
+      ph.textContent = 'اختر المعلّم ليصبح مديراً...';
+      select.appendChild(ph);
+
+      let firstMatchValue = null;
+
+      originalOptions.forEach(opt => {
+        const txt = (opt.text || '').toLowerCase();
+        if (!q || txt.includes(q)){
+          const o = document.createElement('option');
+          o.value = opt.value;
+          o.textContent = opt.text;
+
+          // Hook: هنا تقدر تعطل خيارات المدراء الحاليين لو مرّرت قائمة ids من الـview
+          // مثال: لو عندك manager_ids في السياق
+          // const isManager = (window.managerIds || []).includes(String(opt.value));
+          // if (isManager) { o.disabled = true; o.textContent = opt.text + ' (مدير حالياً)'; }
+
+          select.appendChild(o);
+          if (!firstMatchValue) firstMatchValue = opt.value;
+        }
       });
-    })();
-  </script>
-  {% endblock %}
+
+      // حافظ على الاختيار إن كان ما زال موجودًا
+      const stillExists = Array.from(select.options).some(o => o.value === current && !o.disabled);
+      if (stillExists) {
+        select.value = current;
+      } else {
+        // لا تغيّر شيء؛ خلّه على placeholder
+        select.value = '';
+      }
+    }
+
+    input.addEventListener('input', function(){
+      rebuildOptions(this.value);
+    });
+  })();
+
+  // منع double submit (إضافة/إزالة)
+  (function(){
+    document.querySelectorAll('form.js-once').forEach(form => {
+      form.addEventListener('submit', function(){
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn) {
+          btn.disabled = true;
+          btn.style.opacity = '0.8';
+        }
+      }, {once:true});
+    });
+  })();
+</script>
+{% endblock %}

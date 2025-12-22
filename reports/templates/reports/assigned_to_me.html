@@ -5,127 +5,183 @@
 
 {% block head %}
 <style>
-  /* تخصيصات بسيطة جداً خاصة بهذه الصفحة فقط */
-  
-  /* Hero Gradient Special Override */
-  .page-hero {
-    background: linear-gradient(135deg, var(--brand-700), var(--info));
-    color: #fff;
-    border: none;
-  }
-  .page-hero .user-badge {
-    background: rgba(255,255,255,.15);
-    border: 1px solid rgba(255,255,255,.25);
-    padding: 6px 12px;
-    border-radius: 50px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  /* ✅ Scoped فقط داخل هذه الصفحة */
+  .assigned-page{
+    --ap-brand: var(--brand, #2563eb);
+    --ap-accent: var(--accent, #10b981);
+    --ap-danger: var(--danger, #ef4444);
+    --ap-ink: var(--ink, #0f172a);
+    --ap-muted: var(--muted, #64748b);
+    --ap-line: var(--line-2, var(--line, #e5e7eb));
+    --ap-card: var(--card, #fff);
+    --ap-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
   }
 
-  /* Stats Grid Custom Layout */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  /* Hero (بدون كسر هوية المنصة) */
+  .assigned-page .page-hero{
+    background:
+      radial-gradient(900px 240px at 20% 0%, rgba(37,99,235,.22), transparent 55%),
+      radial-gradient(700px 260px at 85% 75%, rgba(16,185,129,.16), transparent 60%),
+      linear-gradient(135deg, rgba(37,99,235,.95), rgba(14,165,233,.88));
+    color:#fff;
+    border:none;
+  }
+  .assigned-page .user-badge{
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.22);
+    padding: 8px 12px;
+    border-radius: 999px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    backdrop-filter: blur(10px);
+  }
+
+  /* Stats */
+  .assigned-page .stats-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
-  .stat-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px;
+  .assigned-page .stat-card{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px;
   }
-  .stat-icon {
-    width: 42px; height: 42px;
-    border-radius: 12px;
-    display: grid; place-items: center;
-    font-size: 1.2rem;
+  .assigned-page .stat-icon{
+    width:42px;height:42px;border-radius:12px;
+    display:grid;place-items:center;
+    font-size:1.2rem;
   }
-  /* Status Colors Helpers using app.css vars */
-  .st-new { background: #ecfdf5; color: var(--accent); }
-  .st-pro { background: #f5f3ff; color: #7c3aed; }
-  .st-don { background: #e0f2fe; color: var(--brand); }
-  .st-rej { background: #fee2e2; color: var(--danger); }
+  .assigned-page .st-new{background:#ecfdf5;color:var(--ap-accent)}
+  .assigned-page .st-pro{background:#f5f3ff;color:#7c3aed}
+  .assigned-page .st-don{background:#e0f2fe;color:var(--ap-brand)}
+  .assigned-page .st-rej{background:#fee2e2;color:var(--ap-danger)}
 
-  /* View Switcher Active State */
-  .view-btn.active {
-    background: var(--brand);
-    color: #fff;
-    border-color: var(--brand);
+  /* Filters card tweaks */
+  .assigned-page .filters .actions{
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .assigned-page .filters .actions .select{width:auto}
+
+  /* View switch */
+  .assigned-page .view-switch{
+    margin-top:12px;
+    border-top:1px solid var(--ap-line);
+    padding-top:12px;
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .assigned-page .view-btn.active{
+    background: var(--ap-brand);
+    color:#fff;
+    border-color: var(--ap-brand);
   }
 
-  /* List Item Specifics */
-  .ticket-item {
-    display: grid;
+  /* List item */
+  .assigned-page .ticket-item{
+    display:grid;
     grid-template-columns: 1fr auto;
     gap: 16px;
-    transition: var(--t);
+    transition: var(--t, all .2s ease);
   }
-  @media (max-width: 768px) {
-    .ticket-item { grid-template-columns: 1fr; }
+  @media (max-width:768px){
+    .assigned-page .ticket-item{grid-template-columns:1fr}
   }
-  
-  /* Meter (Progress Bar) */
-  .meter {
-    height: 6px; width: 100px;
-    background: var(--line-2);
-    border-radius: 99px;
-    overflow: hidden;
-    margin-top: 8px;
-  }
-  .meter-fill { height: 100%; display: block; border-radius: 99px; }
-  
-  /* Status Badges */
-  .badge {
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 800;
-    display: inline-block;
-  }
-  .bg-new { background: #ecfdf5; color: var(--accent); border: 1px solid rgba(16,185,129,.2); }
-  .bg-pro { background: #f5f3ff; color: #7c3aed; border: 1px solid rgba(124,58,237,.2); }
-  .bg-don { background: #e0f2fe; color: var(--brand); border: 1px solid rgba(37,99,235,.2); }
-  .bg-rej { background: #fee2e2; color: var(--danger); border: 1px solid rgba(239,68,68,.2); }
 
-  /* Mobile tweaks (scoped) */
-  @media (max-width: 520px) {
-    .assigned-scope .filters > div { grid-column: 1 / -1 !important; }
-    .assigned-scope .filters .actions { width: 100%; flex-direction: column; align-items: stretch; }
-    .assigned-scope .filters .actions .select,
-    .assigned-scope .filters .actions .btn { width: 100%; justify-content: center; }
+  /* Meter */
+  .assigned-page .meter{
+    height:6px;
+    width:110px;
+    background: var(--ap-line);
+    border-radius: 999px;
+    overflow:hidden;
+    margin-top:8px;
+  }
+  .assigned-page .meter-fill{height:100%;display:block;border-radius:999px}
 
-    .assigned-scope .view-switch { width: 100%; justify-content: stretch; flex-wrap: wrap; }
-    .assigned-scope .view-switch .btn { flex: 1; justify-content: center; }
+  /* Badges */
+  .assigned-page .badge{
+    padding:4px 10px;
+    border-radius:10px;
+    font-size:.85rem;
+    font-weight:900;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    border:1px solid transparent;
+  }
+  .assigned-page .bg-new{background:#ecfdf5;color:var(--ap-accent);border-color:rgba(16,185,129,.2)}
+  .assigned-page .bg-pro{background:#f5f3ff;color:#7c3aed;border-color:rgba(124,58,237,.2)}
+  .assigned-page .bg-don{background:#e0f2fe;color:var(--ap-brand);border-color:rgba(37,99,235,.2)}
+  .assigned-page .bg-rej{background:#fee2e2;color:var(--ap-danger);border-color:rgba(239,68,68,.2)}
 
-    .assigned-scope .ticket-item > div:last-child { align-items: stretch !important; }
-    .assigned-scope .btn-detail { width: 100%; justify-content: center; }
+  /* Table polish */
+  .assigned-page .table-wrap table{width:100%;border-collapse:collapse}
+  .assigned-page .table-wrap th,
+  .assigned-page .table-wrap td{
+    padding:12px;
+    border-bottom:1px solid var(--ap-line);
+    text-align:center;
+    vertical-align:middle;
+  }
+  .assigned-page .table-wrap th{font-weight:900}
+  .assigned-page .table-wrap td.title{text-align:right;font-weight:800}
+  .assigned-page .table-wrap tr:hover{background:rgba(37,99,235,.04)}
+
+  /* Mobile tweaks */
+  @media (max-width:520px){
+    .assigned-page .filters > div{grid-column:1 / -1 !important}
+    .assigned-page .filters .actions{width:100%;flex-direction:column;align-items:stretch}
+    .assigned-page .filters .actions .select,
+    .assigned-page .filters .actions .btn{width:100%;justify-content:center}
+    .assigned-page .view-switch{width:100%;justify-content:stretch}
+    .assigned-page .view-switch .btn{flex:1;justify-content:center}
+    .assigned-page .ticket-item > div:last-child{align-items:stretch !important}
+    .assigned-page .btn-detail{width:100%;justify-content:center}
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container assigned-scope">
+<div class="container assigned-page" dir="rtl">
 
-  <section class="card page-hero row-between" style="margin-bottom: 20px;">
+  <section class="card page-hero row-between" style="margin-bottom: 18px;">
     <div>
-      <h1 style="margin:0; font-weight:900; font-size:1.4rem;">🎟️ التذاكر المعيّنة لي</h1>
+      <h1 style="margin:0; font-weight:950; font-size:1.45rem;">🎟️ التذاكر المعيّنة لي</h1>
     </div>
+
     <div class="user-badge">
-      <div style="width:32px; height:32px; background:#fff; color:var(--brand); border-radius:50%; display:grid; place-items:center;">
+      <div style="width:34px;height:34px;background:#fff;color:var(--ap-brand);border-radius:50%;display:grid;place-items:center;">
         <i class="fa-solid fa-user"></i>
       </div>
       <div>
-        <div style="font-weight:800; line-height:1;">{{ request.user.name|default:"المستخدم" }}</div>
-        <small style="opacity:0.9;">{{ request.user.get_role_display|default:request.user.role }}</small>
+        <div style="font-weight:900; line-height:1;">
+          {{ request.user.name|default:"المستخدم" }}
+        </div>
+        <small style="opacity:.92;">
+          {{ request.user.get_role_display|default:request.user.role }}
+        </small>
       </div>
     </div>
   </section>
 
-  <div class="card" style="margin-bottom: 20px;">
-    <form method="get" class="filters">
-      <div style="grid-column: span 2;"> <input type="search" name="q" class="input" placeholder="بحث برقم التذكرة أو العنوان..." value="{{ request.GET.q }}">
+  <div class="card" style="margin-bottom: 16px;">
+    <form method="get" class="filters" novalidate>
+      <div style="grid-column: span 2;">
+        <input type="search"
+               name="q"
+               class="input"
+               placeholder="بحث برقم التذكرة أو العنوان..."
+               value="{{ request.GET.q }}">
       </div>
 
       <div>
@@ -139,54 +195,63 @@
       </div>
 
       <div class="actions">
-        <select name="order" class="select" style="width:auto">
-          <option value="-created_at">الأحدث</option>
+        <select name="order" class="select">
+          <option value="-created_at" {% if request.GET.order == "-created_at" or not request.GET.order %}selected{% endif %}>الأحدث</option>
           <option value="created_at" {% if request.GET.order == "created_at" %}selected{% endif %}>الأقدم</option>
         </select>
-        <button type="submit" class="btn btn-primary">بحث</button>
+
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-magnifying-glass"></i> بحث
+        </button>
       </div>
     </form>
 
-    <div class="view-switch" style="margin-top:12px; border-top:1px solid var(--line-2); padding-top:12px; display:flex; justify-content:flex-end; gap:8px;">
-        {% with bq=request.GET.q|urlencode bs=request.GET.status bo=request.GET.order %}
-          <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=list"
-             class="btn btn-outline view-btn {% if view_mode != 'table' %}active{% endif %}" style="min-height:36px; padding:6px 12px;">
-             <i class="fa-solid fa-list"></i> قائمة
-          </a>
-          <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=table"
-             class="btn btn-outline view-btn {% if view_mode == 'table' %}active{% endif %}" style="min-height:36px; padding:6px 12px;">
-             <i class="fa-solid fa-table"></i> جدول
-          </a>
-        {% endwith %}
+    <div class="view-switch">
+      {% with bq=request.GET.q|urlencode bs=request.GET.status bo=request.GET.order %}
+        <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=list"
+           class="btn btn-outline view-btn {% if view_mode != 'table' %}active{% endif %}"
+           style="min-height:36px; padding:6px 12px;">
+          <i class="fa-solid fa-list"></i> قائمة
+        </a>
+
+        <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=table"
+           class="btn btn-outline view-btn {% if view_mode == 'table' %}active{% endif %}"
+           style="min-height:36px; padding:6px 12px;">
+          <i class="fa-solid fa-table"></i> جدول
+        </a>
+      {% endwith %}
     </div>
   </div>
 
   <div class="stats-grid">
     <div class="card stat-card">
       <div>
-        <div style="font-size:1.5rem; font-weight:950; color:var(--ink)">{{ stats.open }}</div>
-        <div class="muted" style="font-weight:700">جديدة</div>
+        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.open }}</div>
+        <div class="muted" style="font-weight:800">جديدة</div>
       </div>
       <div class="stat-icon st-new"><i class="fa-solid fa-envelope-open-text"></i></div>
     </div>
+
     <div class="card stat-card">
       <div>
-        <div style="font-size:1.5rem; font-weight:950; color:var(--ink)">{{ stats.in_progress }}</div>
-        <div class="muted" style="font-weight:700">جارية</div>
+        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.in_progress }}</div>
+        <div class="muted" style="font-weight:800">جارية</div>
       </div>
       <div class="stat-icon st-pro"><i class="fa-solid fa-spinner fa-spin-pulse"></i></div>
     </div>
+
     <div class="card stat-card">
       <div>
-        <div style="font-size:1.5rem; font-weight:950; color:var(--ink)">{{ stats.done }}</div>
-        <div class="muted" style="font-weight:700">مكتملة</div>
+        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.done }}</div>
+        <div class="muted" style="font-weight:800">مكتملة</div>
       </div>
       <div class="stat-icon st-don"><i class="fa-solid fa-check-double"></i></div>
     </div>
+
     <div class="card stat-card">
       <div>
-        <div style="font-size:1.5rem; font-weight:950; color:var(--ink)">{{ stats.rejected }}</div>
-        <div class="muted" style="font-weight:700">مرفوضة</div>
+        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.rejected }}</div>
+        <div class="muted" style="font-weight:800">مرفوضة</div>
       </div>
       <div class="stat-icon st-rej"><i class="fa-solid fa-xmark"></i></div>
     </div>
@@ -209,15 +274,24 @@
         <tbody>
           {% for t in page_obj.object_list %}
             <tr>
-              <td style="color:var(--brand); font-weight:800;">#{{ t.id }}</td>
-              <td style="text-align:right; font-weight:700;">
-                <a href="{% url 'reports:ticket_detail' t.id %}" style="text-decoration:none">{{ t.title|default:"—" }}</a>
+              <td style="color:var(--ap-brand);font-weight:900;">#{{ t.id }}</td>
+
+              <td class="title">
+                <a href="{% url 'reports:ticket_detail' t.id %}" style="text-decoration:none">
+                  {{ t.title|default:"—" }}
+                </a>
               </td>
+
               <td>{% firstof t.creator.name t.creator "—" %}</td>
-              <td>{{ t.get_department_display|default:t.department|default:"—" }}</td>
-              <td class="muted">{{ t.created_at|date:"Y-m-d" }}</td>
+
               <td>
-                <span class="badge 
+                {{ t.get_department_display|default:t.department|default:"—" }}
+              </td>
+
+              <td class="muted">{{ t.created_at|date:"Y-m-d" }}</td>
+
+              <td>
+                <span class="badge
                   {% if t.status == 'open' %}bg-new
                   {% elif t.status == 'in_progress' %}bg-pro
                   {% elif t.status == 'done' %}bg-don
@@ -225,66 +299,82 @@
                   {{ t.get_status_display|default:t.status }}
                 </span>
               </td>
+
               <td>
-                <a href="{% url 'reports:ticket_detail' t.id %}" class="btn btn-outline" style="min-height:32px; padding:4px 10px; font-size:0.85rem;">
+                <a href="{% url 'reports:ticket_detail' t.id %}"
+                   class="btn btn-outline"
+                   style="min-height:32px;padding:4px 10px;font-size:.85rem;">
                   عرض
                 </a>
               </td>
             </tr>
           {% empty %}
-            <tr><td colspan="7" style="padding:40px;">لا توجد تذاكر مطابقة للبحث.</td></tr>
+            <tr>
+              <td colspan="7" style="padding:34px;text-align:center" class="muted">
+                لا توجد تذاكر مطابقة للبحث.
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
   {% else %}
-    <div class="cards" style="display:grid; gap:12px;"> {% for t in page_obj.object_list %}
+    <div class="cards" style="display:grid; gap:12px;">
+      {% for t in page_obj.object_list %}
         <div class="card ticket-item">
-          
+
           <div>
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-              <span style="background:var(--line-2); color:var(--brand); padding:2px 8px; border-radius:6px; font-weight:800; font-size:0.8rem;">#{{ t.id }}</span>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:900;">
-                <a href="{% url 'reports:ticket_detail' t.id %}" style="text-decoration:none">{{ t.title|default:"بدون عنوان" }}</a>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+              <span style="background:var(--ap-line);color:var(--ap-brand);padding:2px 8px;border-radius:8px;font-weight:900;font-size:.82rem;">
+                #{{ t.id }}
+              </span>
+              <h3 style="margin:0;font-size:1.1rem;font-weight:950;">
+                <a href="{% url 'reports:ticket_detail' t.id %}" style="text-decoration:none">
+                  {{ t.title|default:"بدون عنوان" }}
+                </a>
               </h3>
             </div>
-            
-            <div style="display:flex; flex-wrap:wrap; gap:12px; color:var(--muted); font-size:0.9rem; font-weight:700;">
+
+            <div style="display:flex;flex-wrap:wrap;gap:12px;color:var(--ap-muted);font-size:.92rem;font-weight:800;">
               <span><i class="fa-regular fa-user"></i> {% firstof t.creator.name t.creator "—" %}</span>
-              <span><i class="fa-solid fa-building"></i> {{ t.get_department_display|default:t.department }}</span>
+              <span><i class="fa-solid fa-building"></i> {{ t.get_department_display|default:t.department|default:"—" }}</span>
               <span><i class="fa-regular fa-clock"></i> {{ t.created_at|date:"Y-m-d H:i" }}</span>
             </div>
           </div>
 
-          <div style="display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:8px;">
-             <span class="badge 
+          <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:8px;">
+            <span class="badge
               {% if t.status == 'open' %}bg-new
               {% elif t.status == 'in_progress' %}bg-pro
               {% elif t.status == 'done' %}bg-don
               {% else %}bg-rej{% endif %}">
               {{ t.get_status_display|default:t.status }}
             </span>
-            
-            <div class="meter">
+
+            <div class="meter" aria-hidden="true">
               <span class="meter-fill" style="
-                {% if t.status == 'open' %}width:33%; background:var(--accent);
+                {% if t.status == 'open' %}width:33%; background:var(--ap-accent);
                 {% elif t.status == 'in_progress' %}width:66%; background:#7c3aed;
-                {% elif t.status == 'done' %}width:100%; background:var(--brand);
-                {% else %}width:100%; background:var(--danger);{% endif %}
+                {% elif t.status == 'done' %}width:100%; background:var(--ap-brand);
+                {% else %}width:100%; background:var(--ap-danger);{% endif %}
               "></span>
             </div>
 
-            <a href="{% url 'reports:ticket_detail' t.id %}" class="btn btn-outline btn-detail" style="min-height:36px; padding:6px 12px; font-size:.9rem;">
+            <a href="{% url 'reports:ticket_detail' t.id %}"
+               class="btn btn-outline btn-detail"
+               style="min-height:36px;padding:6px 12px;font-size:.9rem;">
               التفاصيل <i class="fa-solid fa-arrow-left"></i>
             </a>
           </div>
 
         </div>
       {% empty %}
-        <div class="card" style="text-align:center; padding:40px;">
-           <div style="font-size:3rem; color:var(--line); margin-bottom:10px;"><i class="fa-regular fa-folder-open"></i></div>
-           <div class="muted">لا توجد تذاكر حالياً.</div>
+        <div class="card" style="text-align:center;padding:40px;">
+          <div style="font-size:3rem;color:var(--ap-line);margin-bottom:10px;">
+            <i class="fa-regular fa-folder-open"></i>
+          </div>
+          <div class="muted" style="font-weight:900">لا توجد تذاكر حالياً.</div>
         </div>
       {% endfor %}
     </div>
@@ -293,13 +383,17 @@
   {% if page_obj.paginator.num_pages > 1 %}
     <div class="pgn">
       {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&view={{ view_mode }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">السابق</a>
+        <a href="?page={{ page_obj.previous_page_number }}&view={{ view_mode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}{% if request.GET.order %}&order={{ request.GET.order|urlencode }}{% endif %}">
+          السابق
+        </a>
       {% endif %}
-      
+
       <span class="active">{{ page_obj.number }}</span>
-      
+
       {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&view={{ view_mode }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">التالي</a>
+        <a href="?page={{ page_obj.next_page_number }}&view={{ view_mode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}{% if request.GET.order %}&order={{ request.GET.order|urlencode }}{% endif %}">
+          التالي
+        </a>
       {% endif %}
     </div>
   {% endif %}

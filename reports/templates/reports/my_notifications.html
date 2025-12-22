@@ -1,10 +1,12 @@
+{# templates/reports/notifications_list.html (أو اسم ملفك الحالي) #}
 {% extends "base.html" %}
 {% load static %}
 {% block title %}إشعاراتي{% endblock %}
 
 {% block head %}
 <style>
-  :root{
+  /* Scope لمنع أي تعارض مع بقية الصفحات */
+  .notif-scope{
     --primary:#4361ee; --secondary:#7209b7; --success:#10b981;
     --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --text-light:#64748b; --border:#e2e8f0;
     --radius-lg:20px; --radius-md:12px; --shadow:0 10px 40px rgba(2,6,23,.08);
@@ -13,223 +15,287 @@
     --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
   }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#0f172a; --card:#1e293b; --text:#e5e7eb; --text-light:#a3b2c7; --border:#334155 }
+    .notif-scope{ --bg:#0f172a; --card:#1e293b; --text:#e5e7eb; --text-light:#a3b2c7; --border:#334155 }
   }
 
-  .container{max-width:1400px;margin-inline:auto;padding:20px}
+  .notif-scope .container{max-width:1400px;margin-inline:auto;padding:20px}
 
-  .page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 28px;flex-wrap:wrap}
-  .page-title{margin:0;font-size:2rem;font-weight:900;display:flex;align-items:center;gap:12px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;font-weight:900;font-size:.9rem}
-  .chip.badge{background:#eef2ff;border:1px solid var(--border);color:#1e40af}
-  .chip.danger{background:#fff5f5;border:1px solid #ffe0e0;color:#b91c1c}
-  .chip.muted{background:#f8fafc;border:1px solid var(--border);color:#475569}
+  .notif-scope .page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 28px;flex-wrap:wrap}
+  .notif-scope .page-title{margin:0;font-size:2rem;font-weight:950;display:flex;align-items:center;gap:12px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .notif-scope .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;font-weight:950;font-size:.9rem}
+  .notif-scope .chip.badge{background:#eef2ff;border:1px solid var(--border);color:#1e40af}
+  .notif-scope .chip.danger{background:#fff5f5;border:1px solid #ffe0e0;color:#b91c1c}
+  .notif-scope .chip.muted{background:#f8fafc;border:1px solid var(--border);color:#475569}
 
-  .head-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-  .btn-outline{padding:12px 18px;border-radius:var(--radius-md);border:2px solid var(--border);background:var(--card);font-weight:800;color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:var(--t)}
-  .btn-outline:hover{border-color:var(--primary);color:var(--primary);box-shadow:0 4px 14px rgba(2,6,23,.08);transform:translateY(-2px)}
-  .toggle{display:inline-flex;align-items:center;gap:8px;font-weight:800;color:var(--text)}
-  .toggle input{width:18px;height:18px}
+  .notif-scope .head-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .notif-scope .btn-outline{
+    padding:12px 18px;border-radius:var(--radius-md);border:2px solid var(--border);
+    background:var(--card);font-weight:900;color:var(--text);cursor:pointer;text-decoration:none;
+    display:inline-flex;align-items:center;gap:8px;transition:var(--t)
+  }
+  .notif-scope .btn-outline:hover{border-color:var(--primary);color:var(--primary);box-shadow:0 4px 14px rgba(2,6,23,.08);transform:translateY(-2px)}
+  .notif-scope .toggle{display:inline-flex;align-items:center;gap:8px;font-weight:900;color:var(--text)}
+  .notif-scope .toggle input{width:18px;height:18px}
 
-  .cards{display:grid;gap:20px}
-  @media (min-width:768px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media (min-width:1200px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .notif-scope .cards{display:grid;gap:20px}
+  @media (min-width:768px){.notif-scope .cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (min-width:1200px){.notif-scope .cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
-  .n-card{position:relative;display:flex;flex-direction:column;gap:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);transition:var(--t);overflow:hidden}
-  .n-card::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--gradient)}
-  .n-card:hover{transform:translateY(-4px);box-shadow:0 18px 50px rgba(2,6,23,.12);border-color:#dfe7ff}
-  .n-card.read{background:linear-gradient(180deg,rgba(99,102,241,.06),transparent),var(--card)}
+  .notif-scope .n-card{
+    position:relative;display:flex;flex-direction:column;gap:16px;background:var(--card);
+    border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);
+    transition:var(--t);overflow:hidden
+  }
+  .notif-scope .n-card::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--gradient)}
+  .notif-scope .n-card:hover{transform:translateY(-4px);box-shadow:0 18px 50px rgba(2,6,23,.12);border-color:#dfe7ff}
+  .notif-scope .n-card.read{background:linear-gradient(180deg,rgba(99,102,241,.06),transparent),var(--card)}
 
-  .n-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-  .n-title{margin:0;font-weight:900;color:var(--text);display:flex;align-items:center;gap:10px;font-size:1.15rem}
-  .n-time{white-space:nowrap;color:var(--text-light);font-weight:700;font-size:.9rem;display:flex;align-items:center;gap:6px}
+  .notif-scope .n-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .notif-scope .n-title{margin:0;font-weight:950;color:var(--text);display:flex;align-items:center;gap:10px;font-size:1.15rem}
+  .notif-scope .n-time{white-space:nowrap;color:var(--text-light);font-weight:800;font-size:.9rem;display:flex;align-items:center;gap:6px}
 
-  .n-body{color:var(--text);font-weight:600;line-height:1.85;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;--lines:6;-webkit-line-clamp:var(--lines);overflow:hidden;margin:2px 0 4px;background:var(--bg);padding:12px;border-radius:12px;border-inline-start:4px solid var(--primary)}
-  @media (max-width:900px){.n-body{--lines:5}} @media (max-width:600px){.n-body{--lines:4}}
+  /* محتوى مختصر داخل البطاقة — آمن لأن المودال يعرض textContent */
+  .notif-scope .n-body{
+    color:var(--text);font-weight:700;line-height:1.85;overflow-wrap:anywhere;
+    display:-webkit-box;-webkit-box-orient:vertical;--lines:6;-webkit-line-clamp:var(--lines);
+    overflow:hidden;margin:2px 0 4px;background:var(--bg);padding:12px;border-radius:12px;border-inline-start:4px solid var(--primary)
+  }
+  @media (max-width:900px){.notif-scope .n-body{--lines:5}}
+  @media (max-width:600px){.notif-scope .n-body{--lines:4}}
 
-  .sender{display:flex;align-items:center;gap:12px;color:var(--text);flex-wrap:wrap}
-  .avatar-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 3px rgba(67,97,238,.2)}
-  .read .avatar-dot{background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.2)}
-  .sender-name{font-weight:800}.sender-role{color:var(--text-light);font-weight:700;font-size:.9rem}
+  .notif-scope .sender{display:flex;align-items:center;gap:12px;color:var(--text);flex-wrap:wrap}
+  .notif-scope .avatar-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 3px rgba(67,97,238,.2)}
+  .notif-scope .read .avatar-dot{background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.2)}
+  .notif-scope .sender-name{font-weight:900}
+  .notif-scope .sender-role{color:var(--text-light);font-weight:800;font-size:.9rem}
 
-  .n-actions{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .n-actions .left{display:flex;gap:10px;flex-wrap:wrap}
-  .btn-sm{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--card);font-weight:800;text-decoration:none;color:var(--text);display:inline-flex;align-items:center;gap:8px;transition:var(--t);font-size:.9rem;cursor:pointer}
-  .btn-sm:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
-  .btn-sm.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-  .btn-sm.ghost{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
-  .btn-sm.success{background:#ecfdf5;border-color:#d1fae5;color:#065f46}
-  .time-badge{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:999px;background:#f1f5ff;border:1px solid #e5edff;color:#1e3a8a;font-weight:800;font-size:.9rem}
+  .notif-scope .n-actions{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .notif-scope .n-actions .left{display:flex;gap:10px;flex-wrap:wrap}
+  .notif-scope .btn-sm{
+    padding:10px 14px;border-radius:12px;border:1px solid var(--border);
+    background:var(--card);font-weight:900;text-decoration:none;color:var(--text);
+    display:inline-flex;align-items:center;gap:8px;transition:var(--t);font-size:.9rem;cursor:pointer
+  }
+  .notif-scope .btn-sm:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+  .notif-scope .btn-sm.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .notif-scope .btn-sm.ghost{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
+  .notif-scope .btn-sm.success{background:#ecfdf5;border-color:#d1fae5;color:#065f46}
+  .notif-scope .time-badge{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:999px;background:#f1f5ff;border:1px solid #e5edff;color:#1e3a8a;font-weight:900;font-size:.9rem}
 
-  .empty{padding:40px 20px;border:2px dashed var(--border);border-radius:var(--radius-lg);background:var(--card);text-align:center;color:var(--text-light);font-weight:800;font-size:1.1rem}
-  .empty i{font-size:3rem;margin-bottom:16px;opacity:.5;display:block}
+  .notif-scope .empty{
+    padding:40px 20px;border:2px dashed var(--border);border-radius:var(--radius-lg);
+    background:var(--card);text-align:center;color:var(--text-light);font-weight:900;font-size:1.1rem
+  }
+  .notif-scope .empty i{font-size:3rem;margin-bottom:16px;opacity:.5;display:block}
 
-  .pager{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:28px;flex-wrap:wrap}
-  .pager a,.pager span{padding:10px 16px;border:1px solid var(--border);border-radius:12px;background:var(--card);font-weight:800;text-decoration:none;color:var(--text);transition:var(--t)}
-  .pager a:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .pager .on{background:var(--gradient);color:#fff;border-color:var(--primary)}
+  .notif-scope .pager{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:28px;flex-wrap:wrap}
+  .notif-scope .pager a,.notif-scope .pager span{
+    padding:10px 16px;border:1px solid var(--border);border-radius:12px;background:var(--card);
+    font-weight:900;text-decoration:none;color:var(--text);transition:var(--t)
+  }
+  .notif-scope .pager a:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .notif-scope .pager .on{background:var(--gradient);color:#fff;border-color:var(--primary)}
 
   /* ===== المودال ===== */
-  .modal-overlay{
+  .notif-scope .modal-overlay{
     position:fixed; inset:0; z-index:2147483000; display:grid; place-items:center;
     padding:20px; padding-top:calc(20px + var(--safe-top)); padding-bottom:calc(20px + var(--safe-bottom));
     opacity:0; visibility:hidden; transition:opacity .25s ease, visibility .25s ease;
   }
-  .modal-overlay::before{content:""; position:absolute; inset:0; background:rgba(2,6,23,.58); backdrop-filter:blur(3px); pointer-events:none}
-  .modal-overlay.open{opacity:1;visibility:visible}
-  .modal{position:relative; z-index:1; width:min(760px,96vw); max-height:90vh; overflow:auto; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:0 24px 80px rgba(2,6,23,.35); transform:translateY(16px) scale(.98); opacity:0; transition:transform .25s ease, opacity .25s ease}
-  .modal-overlay.open .modal{transform:none; opacity:1}
-  .m-close{position:absolute; inset-block-start:16px; inset-inline-start:16px; width:40px; height:40px; border-radius:50%; border:0; cursor:pointer; background:#ef4444; color:#fff; font-size:18px; display:grid; place-items:center; transition:var(--t)}
-  .m-close:hover{transform:scale(1.08)}
-  .m-header{padding:22px; border-bottom:1px solid var(--border); background:linear-gradient(135deg,#f8fafc,#eef2ff)}
-  .m-title{margin:0 0 10px; font-weight:900; color:var(--text); font-size:1.4rem}
-  .m-meta{display:flex; flex-wrap:wrap; gap:10px}
-  .m-chip{display:inline-flex; align-items:center; gap:6px; background:#eef2ff; border:1px solid #e5edff; color:#1e40af; border-radius:999px; padding:8px 12px; font-weight:800; font-size:.9rem}
-  .m-body{padding:22px; color:var(--text); line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; background:var(--bg)}
-  .m-actions{padding:16px 22px; display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end; border-top:1px solid var(--border); background:var(--bg)}
-  .btn{padding:12px 18px; border-radius:12px; border:1px solid var(--border); background:var(--card); font-weight:800; cursor:pointer; transition:var(--t); display:inline-flex; align-items:center; gap:8px; text-decoration:none}
-  .btn-primary{background:var(--gradient); color:#fff; border:none}
-  .btn-ghost{background:#eef2ff; border-color:#e5e7eb; color:#1e40af}
-  .btn:hover{transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.1)}
+  .notif-scope .modal-overlay::before{content:""; position:absolute; inset:0; background:rgba(2,6,23,.58); backdrop-filter:blur(3px); pointer-events:none}
+  .notif-scope .modal-overlay.open{opacity:1;visibility:visible}
+  .notif-scope .modal{
+    position:relative; z-index:1; width:min(760px,96vw); max-height:90vh; overflow:auto;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg);
+    box-shadow:0 24px 80px rgba(2,6,23,.35);
+    transform:translateY(16px) scale(.98); opacity:0; transition:transform .25s ease, opacity .25s ease
+  }
+  .notif-scope .modal-overlay.open .modal{transform:none; opacity:1}
+  .notif-scope .m-close{
+    position:absolute; inset-block-start:16px; inset-inline-start:16px; width:40px; height:40px; border-radius:50%;
+    border:0; cursor:pointer; background:#ef4444; color:#fff; font-size:18px; display:grid; place-items:center; transition:var(--t)
+  }
+  .notif-scope .m-close:hover{transform:scale(1.08)}
+  .notif-scope .m-header{padding:22px; border-bottom:1px solid var(--border); background:linear-gradient(135deg,#f8fafc,#eef2ff)}
+  .notif-scope .m-title{margin:0 0 10px; font-weight:950; color:var(--text); font-size:1.4rem}
+  .notif-scope .m-meta{display:flex; flex-wrap:wrap; gap:10px}
+  .notif-scope .m-chip{
+    display:inline-flex; align-items:center; gap:6px; background:#eef2ff; border:1px solid #e5edff; color:#1e40af;
+    border-radius:999px; padding:8px 12px; font-weight:900; font-size:.9rem
+  }
+  .notif-scope .m-body{
+    padding:22px; color:var(--text); line-height:1.85; white-space:pre-wrap; overflow-wrap:anywhere; background:var(--bg)
+  }
+  .notif-scope .m-actions{
+    padding:16px 22px; display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end;
+    border-top:1px solid var(--border); background:var(--bg)
+  }
+  .notif-scope .btn{
+    padding:12px 18px; border-radius:12px; border:1px solid var(--border); background:var(--card);
+    font-weight:900; cursor:pointer; transition:var(--t); display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--text)
+  }
+  .notif-scope .btn-primary{background:var(--gradient); color:#fff; border:none}
+  .notif-scope .btn-ghost{background:#eef2ff; border-color:#e5e7eb; color:#1e40af}
+  .notif-scope .btn:hover{transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.1)}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container" dir="rtl">
+<div class="notif-scope">
+  <div class="container" dir="rtl">
 
-  <header class="page-head">
-    <h1 class="page-title">
-      <i class="fa-solid fa-bell" aria-hidden="true"></i> إشعاراتي
-      {% if NAV_NOTIFICATIONS_UNREAD|default:0 > 0 %}
-        <span class="chip badge" id="unreadCount" aria-live="polite">
-          <i class="fa-solid fa-envelope"></i> {{ NAV_NOTIFICATIONS_UNREAD }} غير مقروءة
-        </span>
-      {% else %}
-        <span class="chip badge" id="unreadCount" aria-live="polite" style="display:none">
-          <i class="fa-solid fa-envelope"></i> 0 غير مقروءة
-        </span>
-      {% endif %}
-    </h1>
+    <header class="page-head">
+      <h1 class="page-title">
+        <i class="fa-solid fa-bell" aria-hidden="true"></i> إشعاراتي
 
-    <div class="head-actions">
-      <label class="toggle" for="onlyUnread">
-        <input type="checkbox" id="onlyUnread"> إظهار غير المقروء فقط
-      </label>
+        {% if NAV_NOTIFICATIONS_UNREAD|default:0 > 0 %}
+          <span class="chip badge" id="unreadCount" aria-live="polite">
+            <i class="fa-solid fa-envelope"></i> {{ NAV_NOTIFICATIONS_UNREAD }} غير مقروءة
+          </span>
+        {% else %}
+          <span class="chip badge" id="unreadCount" aria-live="polite" style="display:none">
+            <i class="fa-solid fa-envelope"></i> 0 غير مقروءة
+          </span>
+        {% endif %}
+      </h1>
 
-      <form class="head-actions mark-all" method="post" action="{% url 'reports:notifications_mark_all_read' %}">
-        {% csrf_token %}
-        <button class="btn-outline" type="submit" id="markAllBtn">
-          <i class="fa-solid fa-check-double"></i> تحديد الكل كمقروء
-        </button>
-      </form>
-    </div>
-  </header>
+      <div class="head-actions">
+        <label class="toggle" for="onlyUnread">
+          <input type="checkbox" id="onlyUnread"> إظهار غير المقروء فقط
+        </label>
 
-  {% if page_obj and page_obj.object_list %}
-    <section class="cards" id="cards">
-      {% for r in page_obj %}
-        {% with n=r.notification %}
-        <article class="n-card {% if r.is_read %}read{% endif %}" data-read="{{ r.is_read|yesno:'1,0' }}">
-          <div class="n-head">
-            <h3 class="n-title">
-              {% if n.is_important %}<span class="chip danger"><i class="fa-solid fa-exclamation-circle"></i> هام</span>{% endif %}
-              {{ n.title|default:"رسالة من الإدارة" }}
-            </h3>
-            <time class="n-time" datetime="{{ r.created_at|date:'c' }}"><i class="fa-regular fa-clock"></i> {{ r.created_at|date:"Y-m-d H:i" }}</time>
-          </div>
-
-          {% firstof n.message n.body n.content n.text n.details as body %}
-          {% if body %}<div class="n-body">{{ body|linebreaksbr }}</div>{% endif %}
-
-          <div class="sender" aria-label="المرسِل">
-            <span class="avatar-dot" aria-hidden="true"></span>
-            <span class="sender-name">{% with s=n.created_by %}{% firstof s.name s.phone s.username "الإدارة" %}{% endwith %}</span>
-            <span class="sender-role">{% with s=n.created_by %}{% if s and s.role %}— {% firstof s.role.name s.role.slug %}{% endif %}{% endwith %}</span>
-          </div>
-
-          <div class="n-actions">
-            <div class="left">
-              <span class="time-badge"><i class="fa-regular fa-clock"></i> {{ r.created_at|date:"Y-m-d H:i" }}</span>
-
-              <button type="button"
-                      class="btn-sm ghost btn-view"
-                      aria-label="عرض الإشعار كاملًا"
-                      data-title="{{ n.title|default:'رسالة من الإدارة'|escape }}"
-                      data-body="{{ body|default_if_none:''|striptags|escape }}"
-                      data-sender="{% with s=n.created_by %}{% firstof s.name|escape s.phone|escape s.username|escape 'الإدارة' %}{% endwith %}{% with s=n.created_by %}{% if s and s.role %} — {% firstof s.role.name|escape s.role.slug|escape %}{% endif %}{% endwith %}"
-                      data-time="{{ r.created_at|date:'Y-m-d H:i' }}"
-                      {% if n.action_url %}data-url="{{ n.action_url|escape }}"{% endif %}>
-                <i class="fa-regular fa-eye"></i> عرض
-              </button>
-
-              {% if n.action_url %}
-                <a class="btn-sm primary" href="{{ n.action_url }}" rel="noopener">
-                  <i class="fa-solid fa-up-right-from-square"></i> فتح الرابط
-                </a>
-              {% endif %}
-            </div>
-
-            <div class="right">
-              {% if r.is_read %}
-                <span class="btn-sm success"><i class="fa-solid fa-circle-check"></i> مقروء</span>
-                {% if r.read_at %}<span class="chip muted"><i class="fa-regular fa-clock"></i> {{ r.read_at|date:"Y-m-d H:i" }}</span>{% endif %}
-              {% else %}
-                <form method="post" action="{% url 'reports:notification_mark_read' r.pk %}" class="mark-one-form">
-                  {% csrf_token %}
-                  <button class="btn-sm mark-one" type="submit"><i class="fa-solid fa-check"></i> تمت القراءة</button>
-                </form>
-              {% endif %}
-            </div>
-          </div>
-        </article>
-        {% endwith %}
-      {% endfor %}
-    </section>
-
-    {% if page_obj.paginator.num_pages > 1 %}
-      <nav class="pager" aria-label="التنقل بين الصفحات">
-        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-arrow-right"></i> السابق</a>{% endif %}
-        <span class="on">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">التالي <i class="fa-solid fa-arrow-left"></i></a>{% endif %}
-      </nav>
-    {% endif %}
-  {% else %}
-    <div class="empty"><i class="fa-regular fa-bell"></i><p>لا توجد إشعارات حتى الآن.</p></div>
-  {% endif %}
-</div>
-
-<!-- المودال -->
-<div class="modal-overlay" id="nModal" aria-hidden="true">
-  <div class="modal" id="nModalCard" role="dialog" aria-modal="true" aria-labelledby="mTitle" aria-describedby="mBody" tabindex="-1">
-    <button class="m-close" id="mClose" type="button" aria-label="إغلاق">×</button>
-
-    <div class="m-header">
-      <h3 class="m-title" id="mTitle">عنوان الإشعار</h3>
-      <div class="m-meta">
-        <span class="m-chip" id="mSender">الإدارة</span>
-        <span class="m-chip" id="mTime"><i class="fa-regular fa-clock"></i> —</span>
+        <form class="head-actions mark-all" method="post" action="{% url 'reports:notifications_mark_all_read' %}">
+          {% csrf_token %}
+          <button class="btn-outline" type="submit" id="markAllBtn">
+            <i class="fa-solid fa-check-double"></i> تحديد الكل كمقروء
+          </button>
+        </form>
       </div>
-    </div>
+    </header>
 
-    <div class="m-body" id="mBody">—</div>
+    {% if page_obj and page_obj.object_list %}
+      <section class="cards" id="cards">
+        {% for r in page_obj %}
+          {% with n=r.notification %}
+          <article class="n-card {% if r.is_read %}read{% endif %}">
+            <div class="n-head">
+              <h3 class="n-title">
+                {% if n.is_important %}<span class="chip danger"><i class="fa-solid fa-exclamation-circle"></i> هام</span>{% endif %}
+                {{ n.title|default:"رسالة من الإدارة" }}
+              </h3>
+              <time class="n-time" datetime="{{ r.created_at|date:'c' }}">
+                <i class="fa-regular fa-clock"></i> {{ r.created_at|date:"Y-m-d H:i" }}
+              </time>
+            </div>
 
-    <div class="m-actions">
-      <a class="btn btn-primary" id="mAction" href="#" target="_blank" rel="noopener" style="display:none">
-        <i class="fa-solid fa-up-right-from-square"></i> فتح الرابط
-      </a>
-      <button class="btn btn-ghost" id="mOk" type="button">إغلاق</button>
+            {% firstof n.message n.body n.content n.text n.details as body %}
+            {% if body %}
+              <div class="n-body">{{ body|linebreaksbr }}</div>
+            {% endif %}
+
+            <div class="sender" aria-label="المرسِل">
+              <span class="avatar-dot" aria-hidden="true"></span>
+              <span class="sender-name">
+                {% with s=n.created_by %}{% firstof s.name s.phone s.username "الإدارة" %}{% endwith %}
+              </span>
+              <span class="sender-role">
+                {% with s=n.created_by %}
+                  {% if s and s.role %}— {% firstof s.role.name s.role.slug %}{% endif %}
+                {% endwith %}
+              </span>
+            </div>
+
+            <div class="n-actions">
+              <div class="left">
+                <span class="time-badge"><i class="fa-regular fa-clock"></i> {{ r.created_at|date:"Y-m-d H:i" }}</span>
+
+                <button type="button"
+                        class="btn-sm ghost btn-view"
+                        aria-label="عرض الإشعار كاملًا"
+                        data-title="{{ n.title|default:'رسالة من الإدارة'|escape }}"
+                        data-body="{{ body|default_if_none:''|striptags|escape }}"
+                        data-sender="{% with s=n.created_by %}{% firstof s.name|escape s.phone|escape s.username|escape 'الإدارة' %}{% endwith %}{% with s=n.created_by %}{% if s and s.role %} — {% firstof s.role.name|escape s.role.slug|escape %}{% endif %}{% endwith %}"
+                        data-time="{{ r.created_at|date:'Y-m-d H:i' }}"
+                        {% if n.action_url %}data-url="{{ n.action_url|escape }}"{% endif %}>
+                  <i class="fa-regular fa-eye"></i> عرض
+                </button>
+
+                {% if n.action_url %}
+                  <a class="btn-sm primary" href="{{ n.action_url }}" rel="noopener">
+                    <i class="fa-solid fa-up-right-from-square"></i> فتح الرابط
+                  </a>
+                {% endif %}
+              </div>
+
+              <div class="right">
+                {% if r.is_read %}
+                  <span class="btn-sm success"><i class="fa-solid fa-circle-check"></i> مقروء</span>
+                  {% if r.read_at %}
+                    <span class="chip muted"><i class="fa-regular fa-clock"></i> {{ r.read_at|date:"Y-m-d H:i" }}</span>
+                  {% endif %}
+                {% else %}
+                  <form method="post" action="{% url 'reports:notification_mark_read' r.pk %}" class="mark-one-form">
+                    {% csrf_token %}
+                    <button class="btn-sm mark-one" type="submit"><i class="fa-solid fa-check"></i> تمت القراءة</button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+          {% endwith %}
+        {% endfor %}
+      </section>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pager" aria-label="التنقل بين الصفحات">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-arrow-right"></i> السابق</a>
+          {% endif %}
+          <span class="on">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">التالي <i class="fa-solid fa-arrow-left"></i></a>
+          {% endif %}
+        </nav>
+      {% endif %}
+
+    {% else %}
+      <div class="empty"><i class="fa-regular fa-bell"></i><p>لا توجد إشعارات حتى الآن.</p></div>
+    {% endif %}
+  </div>
+
+  <!-- المودال -->
+  <div class="modal-overlay" id="nModal" aria-hidden="true">
+    <div class="modal" id="nModalCard" role="dialog" aria-modal="true" aria-labelledby="mTitle" aria-describedby="mBody" tabindex="-1">
+      <button class="m-close" id="mClose" type="button" aria-label="إغلاق">×</button>
+
+      <div class="m-header">
+        <h3 class="m-title" id="mTitle">عنوان الإشعار</h3>
+        <div class="m-meta">
+          <span class="m-chip" id="mSender">الإدارة</span>
+          <span class="m-chip" id="mTime"><i class="fa-regular fa-clock"></i> —</span>
+        </div>
+      </div>
+
+      <div class="m-body" id="mBody">—</div>
+
+      <div class="m-actions">
+        <a class="btn btn-primary" id="mAction" href="#" target="_blank" rel="noopener" style="display:none">
+          <i class="fa-solid fa-up-right-from-square"></i> فتح الرابط
+        </a>
+        <button class="btn btn-ghost" id="mOk" type="button">إغلاق</button>
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+{{ block.super }}
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   const $  = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
 
-  // ===== عداد غير المقروء =====
   const unreadCountEl = $('#unreadCount');
   function countUnread(){
     return $$('.n-card').filter(c => !c.classList.contains('read')).length;
@@ -245,7 +311,6 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  // ===== إظهار غير المقروء فقط =====
   const onlyUnread = $('#onlyUnread');
   function applyOnlyUnread(){
     const only = onlyUnread && onlyUnread.checked;
@@ -258,33 +323,36 @@ document.addEventListener('DOMContentLoaded', function(){
     onlyUnread.addEventListener('change', ()=>{ applyOnlyUnread(); });
   }
 
-  // ===== "تحديد الكل كمقروء" — عطّل عند submit وليس click =====
+  // ✅ تعطيل زر "تحديد الكل" عند submit
   const markAllForm = document.querySelector('form.mark-all');
   const markAllBtn  = $('#markAllBtn');
   if(markAllForm && markAllBtn){
     markAllForm.addEventListener('submit', ()=>{
       markAllBtn.disabled = true;
       markAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري المعالجة...';
-      // تحسين بصري: وسم كل البطاقات كمقروء محليًا
+      // تحسين بصري محلي
       $$('.n-card').forEach(c=> c.classList.add('read'));
       renderUnread();
       applyOnlyUnread();
     });
   }
 
-  // ===== وسم رسالة واحدة كمقروء (تحسين بصري + منع النقر المزدوج) =====
+  // ✅ وسم إشعار واحد محليًا + منع النقر المزدوج
   $$('.mark-one-form').forEach(f=>{
     f.addEventListener('submit', ()=>{
       const btn = f.querySelector('.mark-one');
-      if(btn){ btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري المعالجة...'; }
+      if(btn){
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري المعالجة...';
+      }
       const card = f.closest('.n-card');
-      if(card){ card.classList.add('read'); }
+      if(card) card.classList.add('read');
       renderUnread();
       applyOnlyUnread();
-    }, {passive:false});
+    });
   });
 
-  // ===== المودال =====
+  // ===== المودال (آمن: textContent) =====
   const overlay = $('#nModal');
   const card    = $('#nModalCard');
   const mTitle  = $('#mTitle');
@@ -295,7 +363,6 @@ document.addEventListener('DOMContentLoaded', function(){
   const mClose  = $('#mClose');
   const mOk     = $('#mOk');
 
-  // Portal إلى body
   if (overlay && overlay.parentElement !== document.body) document.body.appendChild(overlay);
 
   const root = document.documentElement;
@@ -311,24 +378,36 @@ document.addEventListener('DOMContentLoaded', function(){
   function setModalData(d){
     mTitle.textContent  = d.title || 'إشعار';
     mSender.textContent = d.sender || 'الإدارة';
-    mTime.innerHTML     = '<i class="fa-regular fa-clock" aria-hidden="true"></i> ' + (d.time ? String(d.time).replace(/[<>&]/g,'') : '');
+    mTime.innerHTML     = '<i class="fa-regular fa-clock" aria-hidden="true"></i> ' + (d.time || '');
     mBody.textContent   = d.body || '';
-    if(d.url){ mAction.href=d.url; mAction.style.display='inline-flex'; } else { mAction.style.display='none'; }
+    if(d.url){
+      mAction.href = d.url;
+      mAction.style.display = 'inline-flex';
+    }else{
+      mAction.style.display = 'none';
+    }
   }
 
   function openModal(data){
+    if(!overlay || !card) return;
     lastFocus = document.activeElement;
     setModalData(data);
+
     overlay.classList.add('open');
     overlay.removeAttribute('aria-hidden');
-    lockScroll(); setInert(main,true); setInert(headerEl,true); setInert(footerEl,true);
+
+    lockScroll();
+    setInert(main,true); setInert(headerEl,true); setInert(footerEl,true);
+
     card.focus({preventScroll:true});
 
     const focusables = overlay.querySelectorAll('a,button,input,select,textarea,[tabindex]:not([tabindex="-1"])');
-    const first = focusables[0], last = focusables[focusables.length-1] || first;
+    const first = focusables[0];
+    const last  = focusables[focusables.length - 1] || first;
+
     overlay._trap = function(e){
       if(e.key !== 'Tab') return;
-      if(focusables.length === 0){ e.preventDefault(); return; }
+      if(!first){ e.preventDefault(); return; }
       if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
       else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
     };
@@ -336,14 +415,22 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function closeModal(){
+    if(!overlay) return;
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden','true');
-    unlockScroll(); setInert(main,false); setInert(headerEl,false); setInert(footerEl,false);
-    if(overlay._trap){ overlay.removeEventListener('keydown', overlay._trap); overlay._trap=null; }
-    if(lastFocus && typeof lastFocus.focus === 'function'){ lastFocus.focus({preventScroll:true}); }
+
+    unlockScroll();
+    setInert(main,false); setInert(headerEl,false); setInert(footerEl,false);
+
+    if(overlay._trap){
+      overlay.removeEventListener('keydown', overlay._trap);
+      overlay._trap = null;
+    }
+    if(lastFocus && typeof lastFocus.focus === 'function'){
+      lastFocus.focus({preventScroll:true});
+    }
   }
 
-  // فتح من “عرض”
   $$('.btn-view').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       openModal({
@@ -356,13 +443,11 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 
-  // إغلاقات
-  mClose && mClose.addEventListener('click', (e)=>{ e.preventDefault(); closeModal(); });
-  mOk    && mOk.addEventListener('click',    (e)=>{ e.preventDefault(); closeModal(); });
-  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
-  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal(); });
+  if(mClose) mClose.addEventListener('click', (e)=>{ e.preventDefault(); closeModal(); });
+  if(mOk)    mOk.addEventListener('click',    (e)=>{ e.preventDefault(); closeModal(); });
+  if(overlay) overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && overlay && overlay.classList.contains('open')) closeModal(); });
 
-  // تهيئة أولية
   renderUnread();
   applyOnlyUnread();
 });

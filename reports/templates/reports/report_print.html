@@ -434,6 +434,34 @@
 
   const h = el => el ? el.getBoundingClientRect().height : 0;
 
+  function isVisible(el){
+    if(!el) return false;
+    const cs = getComputedStyle(el);
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && !el.hidden;
+  }
+
+  function setPhotoSlotHeightForPage(pageEl, heroEl, contentEl, photosWrapEl, photosEl, signEl){
+    if(!pageEl || !photosWrapEl || !photosEl || !isVisible(photosWrapEl)) return;
+
+    const figsCount = photosEl.querySelectorAll('figure').length;
+    if(figsCount === 0) return;
+
+    // شبكتنا ثابتة على عمودين، إذن عدد الصفوف = ceil(count/2)
+    const rows = Math.ceil(figsCount / 2);
+    const titleEl = photosWrapEl.querySelector('.section-title');
+
+    const gapStr = (getComputedStyle(photosEl).rowGap || getComputedStyle(photosEl).gap || '0px');
+    const gapY = Number.parseFloat(gapStr) || 0;
+
+    // المساحة المتاحة للصور داخل صفحة A4 (بعد الرأس + المحتوى + التواقيع)
+    const safetyPad = 10; // px هامش أمان صغير لتجنب أي اختلافات في المقاسات
+    const available = A4H - h(heroEl) - h(contentEl) - h(signEl) - h(titleEl) - safetyPad;
+    if(available <= 0) return;
+
+    const slotH = Math.max(70, Math.floor((available - (rows - 1) * gapY) / rows));
+    pageEl.style.setProperty('--slot-h', slotH + 'px');
+  }
+
   // تقسيم النص الطويل
   function splitLongText(textElement, maxHeight) {
     const originalText = textElement.textContent;
@@ -480,7 +508,7 @@
 
   // التحقق مما إذا كان المحتوى يتناسب في صفحة واحدة
   function fitsInOnePage() {
-    const contentHeight = h(hero1) + h(content1) + (photosWrap1.offsetParent ? h(photosWrap1) : 0) + h(sign1);
+    const contentHeight = h(hero1) + h(content1) + (isVisible(photosWrap1) ? h(photosWrap1) : 0) + h(sign1);
     return contentHeight <= A4H;
   }
 
@@ -528,6 +556,12 @@
           photos2.appendChild(fig);
         });
       }
+    }
+
+    // بعد توزيع الصور، اضبط ارتفاع الخانات حتى تظهر الصور كاملة وتملأ المساحة المتاحة
+    setPhotoSlotHeightForPage(page1, hero1, content1, photosWrap1, photos1, sign1);
+    if(!page2.hidden){
+      setPhotoSlotHeightForPage(page2, hero2, content2, photosWrap2, photos2, sign2);
     }
   }
 

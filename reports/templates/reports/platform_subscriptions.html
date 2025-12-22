@@ -1,89 +1,291 @@
 {% extends "base.html" %}
+
 {% block title %}إدارة الاشتراكات{% endblock %}
 
+{% block head %}
+<style>
+  /* ✅ Scoped فقط لهذه الصفحة */
+  .subslist-scope{
+    --sl-brand: var(--brand, #2563eb);
+    --sl-ink: var(--ink, #0f172a);
+    --sl-muted: var(--muted, #64748b);
+    --sl-line: var(--line-2, var(--line, #e5e7eb));
+    --sl-card: var(--card, #fff);
+    --sl-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
+    --sl-danger: var(--danger, #ef4444);
+    --sl-ok: var(--accent, #10b981);
+    --sl-grad: linear-gradient(135deg, rgba(37,99,235,.95), rgba(59,130,246,.88));
+  }
+
+  .subslist-scope .wrap{max-width:1100px;margin-inline:auto}
+
+  /* Hero */
+  .subslist-scope .hero{
+    padding: 16px 18px;
+    border-radius: 16px;
+    color:#fff;
+    background:
+      radial-gradient(900px 240px at 15% 0%, rgba(16,185,129,.16), transparent 55%),
+      radial-gradient(700px 220px at 90% 70%, rgba(255,255,255,.14), transparent 60%),
+      var(--sl-grad);
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: var(--sl-shadow);
+    margin-bottom: 12px;
+  }
+  .subslist-scope .hero-head{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
+  }
+  .subslist-scope .hero h1{margin:0;font-weight:950;font-size:clamp(1.15rem,2.4vw,1.55rem)}
+  .subslist-scope .hero p{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65;max-width:68ch}
+  .subslist-scope .hero-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .subslist-scope .hero-actions .btn{
+    border-radius: 14px;
+  }
+  .subslist-scope .hero-actions .btn-outline{
+    background: rgba(255,255,255,.12);
+    border-color: rgba(255,255,255,.22);
+    color:#fff;
+  }
+  .subslist-scope .hero-actions .btn-outline:hover{
+    background: rgba(255,255,255,.16);
+    border-color: rgba(255,255,255,.28);
+  }
+
+  /* Filter card */
+  .subslist-scope .fcard{
+    border:1px solid var(--sl-line);
+    border-radius: 16px;
+    box-shadow: var(--sl-shadow);
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .subslist-scope .filters{
+    display:grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    align-items:end;
+  }
+  .subslist-scope .filters .f-actions{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content:flex-start;
+  }
+  @media(max-width:860px){
+    .subslist-scope .filters{grid-template-columns:1fr}
+  }
+
+  .subslist-scope .f-label{
+    display:block;
+    margin-bottom: 6px;
+    color: var(--sl-muted);
+    font-weight: 900;
+  }
+  .subslist-scope .filters select{
+    width:100%;
+    min-height: 44px;
+  }
+  .subslist-scope .filters .btn{
+    min-height: 44px;
+    justify-content:center;
+    border-radius: 14px;
+  }
+
+  /* Table card */
+  .subslist-scope .tcard{
+    border:1px solid var(--sl-line);
+    border-radius: 16px;
+    box-shadow: var(--sl-shadow);
+    overflow:hidden;
+  }
+
+  /* نترك rtable الموجود في app.css، ونضيف تحسينات خفيفة */
+  .subslist-scope .rtable thead th{
+    font-weight: 950;
+  }
+  .subslist-scope .school{
+    font-weight: 950;
+    color: var(--sl-ink);
+  }
+
+  /* actions */
+  .subslist-scope .row-actions{
+    display:flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content:flex-start;
+  }
+  .subslist-scope .row-actions .btn{
+    min-height: 38px;
+    padding: 8px 10px;
+    border-radius: 12px;
+  }
+
+  /* badges fallback (لو badges موجودة في base/app.css ما راح تتعارض) */
+  .subslist-scope .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: .86rem;
+    border: 1px solid rgba(15,23,42,.08);
+    background: rgba(148,163,184,.15);
+    color: var(--sl-ink);
+    white-space:nowrap;
+  }
+  .subslist-scope .badge.success{
+    background: rgba(16,185,129,.12);
+    border-color: rgba(16,185,129,.22);
+    color: var(--sl-ok);
+  }
+  .subslist-scope .badge.danger{
+    background: rgba(239,68,68,.12);
+    border-color: rgba(239,68,68,.22);
+    color: var(--sl-danger);
+  }
+
+  /* mobile tweaks */
+  @media(max-width:520px){
+    .subslist-scope .hero{padding:14px}
+    .subslist-scope .hero-actions .btn{width:100%;justify-content:center}
+    .subslist-scope .row-actions .btn{width:100%}
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container" dir="rtl">
-  <div class="page-head">
-    <div>
-      <h1 class="page-title">إدارة الاشتراكات</h1>
-      <p class="page-subtitle">تجديد وتعديل اشتراكات المدارس على مستوى المنصة.</p>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <a href="{% url 'reports:platform_subscription_add' %}" class="btn btn-primary">إضافة اشتراك</a>
-      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">عودة للوحة المنصة</a>
-    </div>
-  </div>
+<div class="container subslist-scope" dir="rtl">
+  <div class="wrap">
 
-  <div class="card" style="padding:14px;margin-bottom:14px">
-    <form method="get" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
-      <div>
-        <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">فلترة حسب الاشتراك</label>
-        <select name="status" class="input" style="min-width:220px">
-          <option value="all" {% if status == 'all' or not status %}selected{% endif %}>الكل</option>
-          <option value="active" {% if status == 'active' %}selected{% endif %}>ساري</option>
-          <option value="expired" {% if status == 'expired' %}selected{% endif %}>منتهي</option>
-        </select>
+    <section class="hero" aria-label="رأس إدارة الاشتراكات">
+      <div class="hero-head">
+        <div>
+          <h1>إدارة الاشتراكات</h1>
+          <p>تجديد وتعديل اشتراكات المدارس على مستوى المنصة.</p>
+        </div>
+        <div class="hero-actions">
+          <a href="{% url 'reports:platform_subscription_add' %}" class="btn btn-primary">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            إضافة اشتراك
+          </a>
+          <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            عودة للوحة المنصة
+          </a>
+        </div>
       </div>
+    </section>
 
-      <div>
-        <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">حسب الباقة</label>
-        <select name="plan" class="input" style="min-width:240px">
-          <option value="" {% if not plan_id %}selected{% endif %}>كل الباقات</option>
-          {% for p in plans %}
-            <option value="{{ p.id }}" {% if plan_id|stringformat:'s' == p.id|stringformat:'s' %}selected{% endif %}>{{ p.name }}</option>
+    <div class="card fcard">
+      <form method="get" class="filters" novalidate>
+        <div>
+          <label class="f-label">فلترة حسب الاشتراك</label>
+          <select name="status" class="input">
+            <option value="all" {% if status == 'all' or not status %}selected{% endif %}>الكل</option>
+            <option value="active" {% if status == 'active' %}selected{% endif %}>ساري</option>
+            <option value="expired" {% if status == 'expired' %}selected{% endif %}>منتهي</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="f-label">حسب الباقة</label>
+          <select name="plan" class="input">
+            <option value="" {% if not plan_id %}selected{% endif %}>كل الباقات</option>
+            {% for p in plans %}
+              <option value="{{ p.id }}" {% if plan_id|stringformat:'s' == p.id|stringformat:'s' %}selected{% endif %}>
+                {{ p.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="f-actions">
+          <button type="submit" class="btn btn-outline">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i>
+            تطبيق
+          </button>
+
+          {% if plan_id or status and status != 'all' %}
+            <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn btn-outline">
+              <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+              مسح الفلتر
+            </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+    <div class="card tcard table-responsive">
+      <table class="rtable">
+        <thead>
+          <tr>
+            <th style="text-align:right">المدرسة</th>
+            <th style="text-align:right">الخطة</th>
+            <th>تاريخ البدء</th>
+            <th>تاريخ الانتهاء</th>
+            <th>الحالة</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in subscriptions %}
+            <tr>
+              <td data-label="المدرسة" style="text-align:right">
+                <span class="school">{{ sub.school.name }}</span>
+              </td>
+
+              <td data-label="الخطة" style="text-align:right">
+                {{ sub.plan.name }}
+              </td>
+
+              <td data-label="البدء">
+                {{ sub.start_date|date:"Y-m-d" }}
+              </td>
+
+              <td data-label="الانتهاء">
+                {{ sub.end_date|date:"Y-m-d" }}
+              </td>
+
+              <td data-label="الحالة">
+                {% if sub.is_expired %}
+                  <span class="badge danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> منتهي</span>
+                {% else %}
+                  <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ساري</span>
+                {% endif %}
+              </td>
+
+              <td data-label="إجراء">
+                <div class="row-actions">
+                  <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}" style="display:inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('تأكيد تجديد الاشتراك؟')">
+                      <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                      تجديد
+                    </button>
+                  </form>
+
+                  <a href="{% url 'reports:platform_subscription_edit' sub.id %}" class="btn btn-outline">
+                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                    تعديل
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" style="padding:20px;text-align:center" class="muted">
+                لا توجد اشتراكات مسجلة.
+              </td>
+            </tr>
           {% endfor %}
-        </select>
-      </div>
+        </tbody>
+      </table>
+    </div>
 
-      <button type="submit" class="btn btn-outline" style="min-height:44px">تطبيق</button>
-      {% if plan_id or status and status != 'all' %}
-        <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn btn-outline" style="min-height:44px">مسح الفلتر</a>
-      {% endif %}
-    </form>
-  </div>
-
-  <div class="card table-responsive">
-    <table class="rtable">
-      <thead>
-        <tr>
-          <th style="text-align:right">المدرسة</th>
-          <th style="text-align:right">الخطة</th>
-          <th>تاريخ البدء</th>
-          <th>تاريخ الانتهاء</th>
-          <th>الحالة</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for sub in subscriptions %}
-        <tr>
-          <td data-label="المدرسة" style="text-align:right;font-weight:950">{{ sub.school.name }}</td>
-          <td data-label="الخطة" style="text-align:right">{{ sub.plan.name }}</td>
-          <td data-label="البدء">{{ sub.start_date|date:"Y-m-d" }}</td>
-          <td data-label="الانتهاء">{{ sub.end_date|date:"Y-m-d" }}</td>
-          <td data-label="الحالة">
-            {% if sub.is_expired %}
-              <span class="badge danger">منتهي</span>
-            {% else %}
-              <span class="badge success">ساري</span>
-            {% endif %}
-          </td>
-          <td data-label="إجراء">
-            <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}" style="display:inline">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button type="submit" class="btn btn-primary" style="min-height:38px;padding:8px 10px">تجديد</button>
-            </form>
-            <a href="{% url 'reports:platform_subscription_edit' sub.id %}" class="btn btn-outline" style="min-height:38px;padding:8px 10px">تعديل</a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="6" style="padding:20px;text-align:center" class="muted">لا توجد اشتراكات مسجلة.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
   </div>
 </div>
 {% endblock %}

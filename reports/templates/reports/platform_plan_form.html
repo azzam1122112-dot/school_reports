@@ -1,46 +1,182 @@
 {% extends "base.html" %}
+
 {% block title %}{% if plan %}تعديل خطة{% else %}إضافة خطة جديدة{% endif %}{% endblock %}
 
+{% block head %}
+<style>
+  /* ✅ Scoped فقط لهذه الصفحة */
+  .plan-form{
+    --pf-brand: var(--brand, #2563eb);
+    --pf-ink: var(--ink, #0f172a);
+    --pf-muted: var(--muted, #64748b);
+    --pf-line: var(--line-2, var(--line, #e5e7eb));
+    --pf-card: var(--card, #fff);
+    --pf-danger: var(--danger, #ef4444);
+    --pf-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
+  }
+  .plan-form .wrap{max-width:780px;margin-inline:auto}
+  .plan-form .card{box-shadow:var(--pf-shadow)}
+  .plan-form .hero{
+    margin-top: 10px;
+    margin-bottom: 12px;
+    border: none;
+    color:#fff;
+    background:
+      radial-gradient(900px 240px at 20% 0%, rgba(37,99,235,.22), transparent 55%),
+      radial-gradient(700px 260px at 85% 75%, rgba(16,185,129,.16), transparent 60%),
+      linear-gradient(135deg, rgba(37,99,235,.96), rgba(14,165,233,.88));
+    padding: 14px 18px;
+  }
+  .plan-form .hero-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .plan-form .hero h1{margin:0;font-weight:950;font-size:clamp(1.1rem,2.1vw,1.45rem)}
+  .plan-form .hero p{margin:6px 0 0;opacity:.95;font-weight:850}
+
+  .plan-form .form-grid{display:grid;gap:14px}
+  @media(min-width: 760px){.plan-form .form-grid{grid-template-columns:1fr 1fr}}
+  .plan-form .field{min-width:0}
+  .plan-form label{
+    display:flex;align-items:center;gap:8px;
+    font-weight:950;margin-bottom:6px;color:var(--pf-ink);
+  }
+  .plan-form .help{margin-top:6px;color:var(--pf-muted);font-size:.88rem;font-weight:850}
+  .plan-form .err{margin-top:6px;color:var(--pf-danger);font-size:.88rem;font-weight:950}
+
+  /* توحيد مظهر المدخلات (بدون تغيير Widgets في الـForm) */
+  .plan-form input:not([type="checkbox"]):not([type="radio"]),
+  .plan-form select,
+  .plan-form textarea{
+    width:100%;
+    min-height:var(--tap, 44px);
+    border-radius:14px;
+    border:1px solid var(--pf-line);
+    padding:12px 14px;
+    background: rgba(248,250,252,.85);
+    font-weight:850;
+    transition: box-shadow .18s ease, border-color .18s ease;
+  }
+  html[data-theme="dark"] .plan-form input:not([type="checkbox"]):not([type="radio"]),
+  html[data-theme="dark"] .plan-form select,
+  html[data-theme="dark"] .plan-form textarea{
+    background: rgba(255,255,255,.04);
+    border-color: rgba(148,163,184,.16);
+  }
+  .plan-form input:focus,
+  .plan-form select:focus,
+  .plan-form textarea:focus{
+    outline:none;
+    border-color: var(--pf-brand);
+    box-shadow: var(--ring, 0 0 0 4px rgba(37,99,235,.16));
+  }
+
+  .plan-form .nferr{
+    margin-bottom:12px;
+    padding:12px 14px;
+    border-radius:16px;
+    border:1px solid rgba(254,202,202,.9);
+    background:rgba(254,242,242,.92);
+    color:#991b1b;
+    font-weight:950;
+  }
+  html[data-theme="dark"] .plan-form .nferr{color:#fecaca}
+
+  .plan-form .actions{
+    margin-top:16px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .plan-form .actions .btn{min-height:44px}
+  .plan-form .actions .btn-primary{flex:1}
+
+  @media(max-width:560px){
+    .plan-form .form-grid{grid-template-columns:1fr}
+    .plan-form .actions{flex-direction:column}
+    .plan-form .actions .btn,
+    .plan-form .actions .btn-primary{width:100%}
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container" dir="rtl">
-  <div class="page-head" style="max-width:720px;margin-inline:auto">
-    <div>
-      <h1 class="page-title">{% if plan %}تعديل خطة: {{ plan.name }}{% else %}إضافة خطة اشتراك جديدة{% endif %}</h1>
-      <p class="page-subtitle">إدارة باقات الأسعار الخاصة بالمنصة.</p>
-    </div>
-    <a href="{% url 'reports:platform_plans_list' %}" class="btn btn-outline">إلغاء</a>
-  </div>
+<div class="container plan-form" dir="rtl">
+  <div class="wrap">
 
-  <div class="card" style="max-width:720px;margin-inline:auto">
-    <form method="post">
-      {% csrf_token %}
-
-      {% if form.non_field_errors %}
-      <div class="msg error" data-autohide="false" style="margin-bottom:12px">
-        {{ form.non_field_errors }}
-      </div>
-      {% endif %}
-
-      <div class="form-grid">
-        {% for field in form %}
+    <section class="card hero" aria-label="رأس نموذج الخطة">
+      <div class="hero-head">
         <div>
-          <label style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">{{ field.label }}</label>
-          {{ field }}
-          {% if field.help_text %}
-            <div class="muted" style="font-size:.88rem;font-weight:850;margin-top:6px">{{ field.help_text }}</div>
-          {% endif %}
-          {% if field.errors %}
-            <div style="color:var(--danger);font-size:.88rem;margin-top:6px;font-weight:950">{{ field.errors.0 }}</div>
-          {% endif %}
+          <h1>
+            {% if plan %}تعديل خطة: {{ plan.name }}{% else %}إضافة خطة اشتراك جديدة{% endif %}
+          </h1>
+          <p>إدارة باقات الأسعار الخاصة بالمنصة.</p>
         </div>
-        {% endfor %}
-      </div>
 
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-        <button type="submit" class="btn btn-primary" style="flex:1">حفظ الخطة</button>
-        <a href="{% url 'reports:platform_plans_list' %}" class="btn btn-outline">رجوع</a>
+        <a href="{% url 'reports:platform_plans_list' %}" class="btn btn-outline" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:#fff">
+          <i class="fa-solid fa-xmark"></i> إلغاء
+        </a>
       </div>
-    </form>
+    </section>
+
+    <div class="card">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="nferr" role="alert">
+            {% for e in form.non_field_errors %}
+              {{ e }}{% if not forloop.last %}<br>{% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="form-grid">
+          {% for field in form %}
+            <div class="field">
+              <label for="{{ field.id_for_label }}">
+                <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
+                {{ field.label }}
+              </label>
+
+              {{ field }}
+
+              {% if field.help_text %}
+                <div class="help">{{ field.help_text }}</div>
+              {% endif %}
+
+              {% if field.errors %}
+                <div class="err">{{ field.errors.0 }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <i class="fa-solid fa-floppy-disk"></i> حفظ الخطة
+          </button>
+          <a href="{% url 'reports:platform_plans_list' %}" class="btn btn-outline">
+            رجوع
+          </a>
+        </div>
+      </form>
+    </div>
+
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // منع الإرسال المزدوج
+  document.addEventListener("DOMContentLoaded", function(){
+    const form = document.querySelector(".plan-form form");
+    const btn = document.getElementById("submitBtn");
+    if(form && btn){
+      form.addEventListener("submit", function(){
+        btn.disabled = true;
+        btn.style.opacity = ".75";
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جارٍ الحفظ...';
+      });
+    }
+  });
+</script>
 {% endblock %}

@@ -70,7 +70,7 @@
   .mini-del{background:#fee2e2;border-color:#fecaca;color:#991b1b}
 
   /* Pager */
-  .pager{display:flex;gap:8px;justify-content:center;margin-top:14px}
+  .pager{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
   .pager a,.pager span{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;text-decoration:none;color:#111827}
   .pager .current{background:#eef2ff;border-color:#c7d2fe;color:#1e3a8a;font-weight:800}
 
@@ -82,7 +82,7 @@
   @media(max-width:520px){
     .container{padding:16px 12px}
     .filters{gap:10px}
-    .fg{flex:1;min-width: min(220px, 100%)}
+    .fg{flex:1;min-width:min(220px, 100%)}
     .input{min-width:0}
     .filters-actions{width:100%;margin-inline-start:0}
     .filters-actions .btn{flex:1;justify-content:center}
@@ -188,7 +188,7 @@
             <td>{{ report.title|default:"—" }}</td>
             <td>{{ report.get_category_display|default:report.category|default:"—" }}</td>
             <td>{{ report.beneficiaries_count|default_if_none:"—" }}</td>
-            <td class="idea-preview" title="{{ report.idea|default_if_none:'' }}">
+            <td class="idea-preview" title="{{ report.idea|default_if_none:''|escape }}">
               <span>{{ report.idea|default_if_none:""|truncatechars:120 }}</span>
             </td>
             <td>
@@ -226,15 +226,13 @@
 
     {% if reports.paginator and reports.paginator.num_pages > 1 %}
     <nav class="pager" aria-label="ترقيم الصفحات">
-      {% with qs="&start_date="|add:start_date|default_if_none:""|add:"&end_date="|add:end_date|default_if_none:"" %}
-        {% if reports.has_previous %}
-          <a href="?page={{ reports.previous_page_number }}{{ qs }}">السابق</a>
-        {% endif %}
-        <span class="current">صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}</span>
-        {% if reports.has_next %}
-          <a href="?page={{ reports.next_page_number }}{{ qs }}">التالي</a>
-        {% endif %}
-      {% endwith %}
+      {% if reports.has_previous %}
+        <a href="?page={{ reports.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">السابق</a>
+      {% endif %}
+      <span class="current">صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}</span>
+      {% if reports.has_next %}
+        <a href="?page={{ reports.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">التالي</a>
+      {% endif %}
     </nav>
     {% endif %}
 
@@ -246,7 +244,7 @@
 <div id="imageModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.92);place-items:center">
   <button type="button" aria-label="إغلاق"
           style="position:absolute;top:18px;right:24px;font-size:38px;color:#fff;background:transparent;border:0;cursor:pointer"
-          onclick="closeModal()">&times;</button>
+          onclick="window.myReportsCloseModal()">&times;</button>
 
   <button id="prevBtn" type="button" aria-label="السابق"
           style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:28px;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;cursor:pointer">‹</button>
@@ -258,12 +256,14 @@
 </div>
 
 <script>
-  // جمع الصور في كل جاليري وتشغيل العارض كسلايدر
+  // معرض الصور (Modal Carousel) — بدون تكرار closeModal
   (function(){
     const modal   = document.getElementById('imageModal');
     const imgEl   = document.getElementById('modalImage');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
+
+    if(!modal || !imgEl || !prevBtn || !nextBtn) return;
 
     let currentList = []; // urls
     let index = 0;
@@ -282,20 +282,32 @@
       document.body.style.overflow = 'hidden';
     }
 
-    window.closeModal = function(){
+    function close(){
       modal.style.display = 'none';
       document.body.style.overflow = 'auto';
+      imgEl.src = '';
       currentList = [];
+      index = 0;
     }
+
+    // تصدير دالة واحدة فقط للاستخدام من زر الإغلاق
+    window.myReportsCloseModal = close;
 
     prevBtn.addEventListener('click', () => show(index-1));
     nextBtn.addEventListener('click', () => show(index+1));
+
+    // كيبورد
     window.addEventListener('keydown', (e)=>{
       if (modal.style.display === 'grid'){
-        if (e.key === 'Escape') closeModal();
+        if (e.key === 'Escape') close();
         if (e.key === 'ArrowLeft')  show(index-1);
         if (e.key === 'ArrowRight') show(index+1);
       }
+    });
+
+    // إغلاق عند الضغط على الخلفية
+    modal.addEventListener('click', (e)=>{
+      if(e.target === modal) close();
     });
 
     // سحب باللمس
@@ -304,29 +316,18 @@
     modal.addEventListener('touchend', e=>{
       if(sx==null) return;
       const dx = (e.changedTouches[0]?.clientX||0) - sx;
-      if(Math.abs(dx) > 40) (dx>0?prevBtn:nextBtn).click();
+      if(Math.abs(dx) > 40) (dx>0 ? prevBtn : nextBtn).click();
       sx=null;
     }, {passive:true});
 
     // اربط كل المعارض
     document.querySelectorAll('.js-gallery').forEach(gal=>{
       const images = Array.from(gal.querySelectorAll('img[data-full]'));
-      const urls   = images.map(im=>im.getAttribute('data-full'));
+      const urls   = images.map(im=>im.getAttribute('data-full')).filter(Boolean);
       images.forEach((im, i)=>{
         im.addEventListener('click', ()=> open(urls, i));
       });
     });
   })();
-
-  // فتح قديم (احتياطي)
-  function openModal(src){ 
-    const modal=document.getElementById('imageModal');
-    const img=document.getElementById('modalImage');
-    img.src=src; modal.style.display='grid'; document.body.style.overflow='hidden';
-  }
-  function closeModal(){
-    document.getElementById('imageModal').style.display='none';
-    document.body.style.overflow='auto';
-  }
 </script>
 {% endblock %}

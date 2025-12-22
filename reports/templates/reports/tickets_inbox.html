@@ -31,9 +31,17 @@
   /* شارة القسم */
   .dept-chip{display:inline-block;background:#eef2ff;color:#1e40af;border:1px solid #dbeafe;border-radius:999px;padding:3px 10px;font-weight:800;font-size:.8rem}
 
+  /* مصغّر المرفق (صورة فقط) */
+  .att-thumb{
+    width:42px;height:42px;border-radius:10px;object-fit:cover;
+    border:1px solid #e5e7eb; box-shadow:0 2px 10px rgba(2,6,23,.06);
+    background:#f8fafc; display:inline-block;
+  }
+  .att-empty{color:#94a3b8;font-weight:900}
+
   /* الجدول */
   .tbl{width:100%;border-collapse:collapse;font-size:14px}
-  .tbl th,.tbl td{padding:10px;border-bottom:1px solid #f1f5f9;text-align:right}
+  .tbl th,.tbl td{padding:10px;border-bottom:1px solid #f1f5f9;text-align:right;vertical-align:middle}
   .tbl thead th{background:#f9fafb;border-bottom:1px solid #e5e7eb;color:#0f172a;font-weight:900}
   .actions .btn-open{padding:6px 10px;border-radius:8px;background:#10b981;color:#fff;text-decoration:none;display:inline-block}
 
@@ -41,24 +49,24 @@
   @media(max-width:860px){
     .tbl thead{display:none}
     .tbl, .tbl tbody, .tbl tr, .tbl td{display:block;width:100%}
-    .tbl tr{border:1px solid #e5e7eb;border-radius:12px;margin:10px 0;background:#fff}
+    .tbl tr{border:1px solid #e5e7eb;border-radius:12px;margin:10px 0;background:#fff;overflow:hidden}
     .tbl td{border-bottom:1px dashed #e5e7eb}
     .tbl td:last-child{border-bottom:0}
     .tbl td[data-label]::before{
       content:attr(data-label);
       font-weight:900;color:#1f2937;display:inline-block;margin-inline-start:6px
     }
-    .actions{display:flex;justify-content:flex-start}
+    .actions{display:flex;justify-content:flex-start;gap:8px}
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container inbox-wrap">
+<div class="container inbox-wrap" dir="rtl">
   <div class="card">
     <h2 class="title">📥 صندوق الطلبات</h2>
 
-    <form method="get" class="inbox-filters" aria-label="فلترة الطلبات">
+    <form method="get" class="inbox-filters" aria-label="فلترة الطلبات" novalidate>
       <div class="grid">
         <input type="text" name="q" value="{{ q }}" class="input" placeholder="بحث في العنوان/التفاصيل">
         <select name="status" class="select">
@@ -72,6 +80,7 @@
           المعيّنة لي فقط
         </label>
       </div>
+
       <div class="actions">
         <button class="btn btn-primary" type="submit">تطبيق</button>
         {% if q or status or mine %}
@@ -90,10 +99,12 @@
             <th>القسم</th>
             <th>المستلم</th>
             <th>العنوان</th>
+            <th>المرفق</th>
             <th>الحالة</th>
             <th>إجراءات</th>
           </tr>
         </thead>
+
         <tbody>
           {% for t in tickets %}
             <tr>
@@ -113,6 +124,17 @@
               <td data-label="المستلم"> {{ t.assignee.name|default:"—" }} </td>
               <td data-label="العنوان"> {{ t.title }} </td>
 
+              {# ✅ المرفقات صور فقط: نعرض مصغّر لو وجد #}
+              <td data-label="المرفق">
+                {% if t.attachment %}
+                  <a href="{{ t.attachment.url }}" target="_blank" rel="noopener" title="فتح المرفق">
+                    <img class="att-thumb" src="{{ t.attachment.url }}" alt="مرفق الطلب" loading="lazy">
+                  </a>
+                {% else %}
+                  <span class="att-empty">—</span>
+                {% endif %}
+              </td>
+
               {# ✅ شارة الحالة الملونة #}
               <td data-label="الحالة">
                 <span class="status-badge s-{{ t.status|default:'open' }}">
@@ -125,11 +147,14 @@
               </td>
             </tr>
           {% empty %}
-            <tr><td colspan="8" style="text-align:center;padding:14px;">لا توجد طلبات</td></tr>
+            <tr>
+              <td colspan="9" style="text-align:center;padding:14px;">لا توجد طلبات</td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+
   </div>
 </div>
 {% endblock %}

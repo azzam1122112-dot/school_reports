@@ -1,83 +1,160 @@
 {% extends "base.html" %}
 {% block title %}{% if mode == "edit" %}تعديل نوع تقرير{% else %}إضافة نوع تقرير{% endif %}{% endblock %}
+
 {% block head %}
 <style>
-  .wrap{max-width:760px;margin:24px auto;padding:0 16px}
-  .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 6px 20px rgba(2,6,23,.06);padding:22px}
-  .grid{display:grid;gap:14px}
-  .row{display:grid;gap:14px}
-  @media(min-width:720px){.row{grid-template-columns:1fr 1fr}}
-  label{font-weight:800;margin-bottom:6px;display:block}
-  .control{width:100%;padding:12px 14px;border:1px solid #d1d5db;border-radius:10px}
-  .control:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.2)}
-  textarea.control{min-height:110px;resize:vertical}
-  .err{color:#991b1b;background:#fee2e2;border:1px solid #fecaca;padding:8px 10px;border-radius:10px}
-  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-  .btn{padding:10px 14px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-weight:800}
-  .btn-primary{background:linear-gradient(135deg,#2563eb,#3b82f6);border-color:transparent;color:#fff}
+  /* صفحة: إنشاء/تعديل نوع تقرير */
+  .rt-wrap{max-width:780px;margin:0 auto;padding:18px}
+  .rt-card{padding:18px}
+  .rt-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .rt-title{margin:0;font-weight:950;font-size:1.25rem;color:var(--ink)}
+  .rt-sub{margin:6px 0 0;color:var(--muted);font-weight:850}
+  .rt-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(37,99,235,.10);color:var(--brand);border:1px solid rgba(37,99,235,.18);font-weight:900}
+
+  .rt-alert{border-radius:14px;padding:12px 14px;font-weight:900;border:1px solid var(--line-2);background:rgba(239,68,68,.08);color:var(--danger)}
+  .rt-alert ul{margin:0;padding-right:18px}
+  .rt-alert li{margin:4px 0}
+
+  .rt-form{display:grid;gap:12px}
+  .rt-grid{display:grid;gap:12px}
+  @media(min-width:820px){.rt-grid{grid-template-columns:1fr 1fr}}
+
+  .rt-field label{display:block;font-weight:950;color:var(--ink);margin-bottom:6px}
+  .rt-help{margin-top:6px;color:var(--muted);font-weight:850;font-size:.88rem;line-height:1.4}
+  .rt-err{margin-top:6px;color:var(--danger);font-weight:950;font-size:.9rem}
+
+  /* توحيد شكل عناصر النموذج - نعتمد على تصميم base/app.css */
+  .rt-wrap .input,
+  .rt-wrap .select,
+  .rt-wrap .textarea{
+    width:100%;
+  }
+
+  .rt-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .rt-inline .check-label{font-weight:950;color:var(--ink)}
+  .rt-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .rt-actions .btn{min-height:42px}
+  .rt-actions .btn-primary{flex:1}
 </style>
-{% endblock head %}
+{% endblock %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div class="card">
-    <h2>{% if mode == "edit" %}✏️ تعديل نوع تقرير{% else %}➕ إضافة نوع تقرير{% endif %}</h2>
+<div class="container rt-wrap" dir="rtl">
+  <div class="card rt-card">
+
+    <div class="rt-head">
+      <div>
+        <h1 class="rt-title">
+          {% if mode == "edit" %}
+            ✏️ تعديل نوع تقرير
+          {% else %}
+            ➕ إضافة نوع تقرير
+          {% endif %}
+        </h1>
+        <p class="rt-sub">أنواع التقارير تظهر في نموذج إضافة التقرير وتُستخدم للفلاتر والتقارير الإدارية.</p>
+      </div>
+
+      <span class="rt-badge" aria-label="وضع الصفحة">
+        {% if mode == "edit" %}وضع التعديل{% else %}وضع الإضافة{% endif %}
+      </span>
+    </div>
 
     {% if form.non_field_errors %}
-      <div class="err">{% for e in form.non_field_errors %}• {{ e }}<br>{% endfor %}</div>
+      <div class="rt-alert" data-autohide="false" style="margin-bottom:12px">
+        <ul>
+          {% for e in form.non_field_errors %}
+            <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+      </div>
     {% endif %}
 
-    <form method="post" class="grid" novalidate>
+    <form method="post" class="rt-form" novalidate>
       {% csrf_token %}
 
-      <div class="row">
-        <div>
+      <div class="rt-grid">
+        <div class="rt-field">
           <label for="{{ form.name.id_for_label }}">الاسم</label>
+          {# نضمن class آمن بدون فلاتر: نلتزم بأن form يضبط widgets أو نضيفه بالـJS #}
           {{ form.name }}
-          {% for e in form.name.errors %}<div class="err">• {{ e }}</div>{% endfor %}
+          {% if form.name.errors %}
+            <div class="rt-err">{{ form.name.errors.0 }}</div>
+          {% endif %}
         </div>
-        <div>
+
+        <div class="rt-field">
           <label for="{{ form.code.id_for_label }}">الرمز (code)</label>
           {{ form.code }}
-          <div class="help">يُخزَّن داخل <code>Report.category</code> ويُستخدم في الفلاتر.</div>
-          {% for e in form.code.errors %}<div class="err">• {{ e }}</div>{% endfor %}
+          <div class="rt-help">
+            يُخزَّن داخل <code>Report.category</code> ويُستخدم في الفلاتر. يُفضّل أحرف إنجليزية صغيرة وشرطة سفلية.
+          </div>
+          {% if form.code.errors %}
+            <div class="rt-err">{{ form.code.errors.0 }}</div>
+          {% endif %}
         </div>
       </div>
 
       {% if form.description %}
-      <div>
-        <label for="{{ form.description.id_for_label }}">الوصف</label>
-        {{ form.description }}
-        {% for e in form.description.errors %}<div class="err">• {{ e }}</div>{% endfor %}
-      </div>
+        <div class="rt-field">
+          <label for="{{ form.description.id_for_label }}">الوصف</label>
+          {{ form.description }}
+          {% if form.description.errors %}
+            <div class="rt-err">{{ form.description.errors.0 }}</div>
+          {% endif %}
+        </div>
       {% endif %}
 
-      <div class="row">
-        <div>
+      <div class="rt-grid">
+        <div class="rt-field">
           <label for="{{ form.order.id_for_label }}">الترتيب</label>
           {{ form.order }}
-          {% for e in form.order.errors %}<div class="err">• {{ e }}</div>{% endfor %}
+          <div class="rt-help">كلما كان الرقم أقل ظهر النوع أولاً.</div>
+          {% if form.order.errors %}
+            <div class="rt-err">{{ form.order.errors.0 }}</div>
+          {% endif %}
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:28px">
-          {{ form.is_active }} <label for="{{ form.is_active.id_for_label }}">نشط (يظهر في النماذج)</label>
+
+        <div class="rt-field">
+          <label style="visibility:hidden">نشط</label>
+          <div class="rt-inline">
+            {{ form.is_active }}
+            <label class="check-label" for="{{ form.is_active.id_for_label }}">نشط (يظهر في النماذج)</label>
+          </div>
+          {% if form.is_active.errors %}
+            <div class="rt-err">{{ form.is_active.errors.0 }}</div>
+          {% endif %}
         </div>
       </div>
 
       {% for h in form.hidden_fields %}{{ h }}{% endfor %}
 
-      <div class="actions">
-        <button class="btn btn-primary" type="submit">💾 حفظ</button>
-        <a class="btn" href="{% url 'reports:reporttypes_list' %}">↩️ رجوع</a>
+      <div class="rt-actions">
+        <button type="submit" class="btn btn-primary">💾 حفظ</button>
+        <a class="btn btn-outline" href="{% url 'reports:reporttypes_list' %}">↩️ رجوع</a>
       </div>
     </form>
+
   </div>
 </div>
 
 <script>
-  // تجميل سريع لعناصر النموذج بدون فلاتر
   (function(){
-    const sel='input[type=text],input[type=number],textarea,select';
-    document.querySelectorAll(sel).forEach(el=>el.classList.add('control'));
+    // إضافة classات موحّدة لعناصر النموذج بدون فلاتر
+    const map = [
+      ['input[type="text"]', 'input'],
+      ['input[type="number"]', 'input'],
+      ['input[type="email"]', 'input'],
+      ['input[type="url"]', 'input'],
+      ['input[type="search"]', 'input'],
+      ['select', 'select'],
+      ['textarea', 'textarea'],
+    ];
+
+    map.forEach(([sel, cls]) => {
+      document.querySelectorAll('.rt-wrap ' + sel).forEach(el => {
+        if (!el.classList.contains(cls)) el.classList.add(cls);
+      });
+    });
   })();
 </script>
-{% endblock content %}
+{% endblock %}

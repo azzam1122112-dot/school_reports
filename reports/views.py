@@ -22,6 +22,7 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import (
     Count,
+    F,
     Prefetch,
     Q,
     ManyToManyField,
@@ -32,7 +33,7 @@ from django.db.models import (
     Sum,
 )
 from django.core.exceptions import ValidationError
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -147,8 +148,10 @@ def _is_staff(user) -> bool:
 
 def _is_staff_or_officer(user) -> bool:
     """يسمح للموظّفين (is_staff) أو لمسؤولي الأقسام (Officer)."""
-    return bool(getattr(user, "is_authenticated", False) and
-                (getattr(user, "is_staff", False) or is_officer(user)))
+    return bool(
+        getattr(user, "is_authenticated", False)
+        and (_is_staff(user) or is_officer(user))
+    )
 
 def _safe_next_url(next_url: str | None) -> str | None:
     if not next_url:
@@ -190,6 +193,16 @@ def _filter_by_school(qs, school: Optional[School]):
     except Exception:
         return qs
     return qs
+
+
+def _model_has_field(model, field_name: str) -> bool:
+    """تحقق آمن: هل الموديل يحتوي على حقل باسم معين؟"""
+    if model is None:
+        return False
+    try:
+        return field_name in {f.name for f in model._meta.get_fields()}
+    except Exception:
+        return False
 
 
 def _get_active_school(request: HttpRequest) -> Optional[School]:
@@ -639,11 +652,17 @@ def my_reports(request: HttpRequest) -> HttpResponse:
     except EmptyPage:
         reports_page = paginator.page(paginator.num_pages)
 
+    params = request.GET.copy()
+    if "page" in params:
+        params.pop("page")
+    qs_params = params.urlencode()
+
     return render(
         request,
         "reports/my_reports.html",
         {
             "reports": reports_page,
+            "qs": qs_params,
             "start_date": request.GET.get("start_date", ""),
             "end_date": request.GET.get("end_date", ""),
         },
@@ -1164,28 +1183,26 @@ def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
 # إدارة المعلّمين (مدير فقط)
 # =========================
 @login_required(login_url="reports:login")
-@role_required({"manager"})
+@role_required({"manager"})  # إن كنت تبغى السماح للسوبر دائمًا، خلي role_required يتجاوز للسوبر أو أضف دور admin
 @require_http_methods(["GET"])
 def manage_teachers(request: HttpRequest) -> HttpResponse:
-    # يَعرض المدير فقط المعلّمين المرتبطين بمدرسته النشطة
     active_school = _get_active_school(request)
-    if School.objects.filter(is_active=True).exists():
+
+    # ✅ اجبار اختيار مدرسة لغير السوبر (أوضح وأأمن)
+    if not request.user.is_superuser:
         if active_school is None:
             messages.error(request, "فضلاً اختر مدرسة أولاً.")
             return redirect("reports:select_school")
-        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+
+        if active_school not in _user_manager_schools(request.user):
             messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
             return redirect("reports:select_school")
 
     term = (request.GET.get("q") or "").strip()
 
-    if Department is not None:
-        dept_name_sq = Department.objects.filter(slug=OuterRef("role__slug")).values("name")[:1]
-        qs = Teacher.objects.select_related("role").annotate(role_dept_name=Subquery(dept_name_sq)).order_by("-id")
-    else:
-        qs = Teacher.objects.select_related("role").order_by("-id")
+    qs = Teacher.objects.select_related("role").order_by("-id")
 
-    # حصر المعلمين على عضويات المدرسة الحالية فقط
+    # ✅ عزل حسب المدرسة (حتى لو السوبر اختار مدرسة نقدر نقيده اختياريًا)
     if active_school is not None:
         qs = qs.filter(
             school_memberships__school=active_school,
@@ -1193,8 +1210,40 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
             school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
         ).distinct()
 
+    # ✅ بحث
     if term:
-        qs = qs.filter(Q(name__icontains=term) | Q(phone__icontains=term) | Q(national_id__icontains=term))
+        qs = qs.filter(
+            Q(name__icontains=term) |
+            Q(phone__icontains=term) |
+            Q(national_id__icontains=term)
+        )
+
+    # ✅ annotate: role_slug/label
+    qs = qs.annotate(
+        role_slug=F("role__slug"),
+        role_label=F("role__name"),
+    )
+
+    # ✅ اسم القسم من Department حسب slug مع تقييد المدرسة (إن كان Department فيه FK school)
+    if Department is not None:
+        dept_qs = Department.objects.filter(slug=OuterRef("role__slug"))
+        if active_school is not None and _model_has_field(Department, "school"):
+            dept_qs = dept_qs.filter(Q(school=active_school) | Q(school__isnull=True))
+        dept_name_sq = dept_qs.values("name")[:1]
+        qs = qs.annotate(role_dept_name=Subquery(dept_name_sq))
+
+    # ✅ منع N+1: Prefetch عضويات الأقسام مرة واحدة وبحقول أقل
+    if DepartmentMembership is not None:
+        dm_qs = (
+            DepartmentMembership.objects
+            .select_related("department")
+            .only("id", "teacher_id", "role_type", "department__id", "department__name", "department__slug")
+            .order_by("department__name")
+        )
+        if active_school is not None and _model_has_field(Department, "school"):
+            dm_qs = dm_qs.filter(Q(department__school=active_school) | Q(department__school__isnull=True))
+
+        qs = qs.prefetch_related(Prefetch("dept_memberships", queryset=dm_qs))
 
     page = Paginator(qs, 20).get_page(request.GET.get("page"))
     return render(request, "reports/manage_teachers.html", {"teachers_page": page, "term": term})
@@ -1293,7 +1342,8 @@ def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
                 with transaction.atomic():
                     form.save(commit=True)
                 messages.success(request, "✏️ تم تحديث بيانات المستخدم بنجاح.")
-                return redirect("reports:manage_teachers")
+                next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+                return redirect(next_url or "reports:manage_teachers")
             except Exception:
                 logger.exception("edit_teacher failed")
                 messages.error(request, "حدث خطأ غير متوقع أثناء التحديث.")

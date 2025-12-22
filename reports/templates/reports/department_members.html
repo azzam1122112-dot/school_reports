@@ -1,172 +1,246 @@
+{# templates/reports/department_members.html (أو اسم ملفك الحالي) #}
 {% extends "base.html" %}
 {% load static %}
 {% block title %}أعضاء القسم{% endblock %}
 
 {% block head %}
 <style>
-  /* تخطيط عام */
-  .wrap{max-width:1100px;margin-inline:auto;padding:16px}
-  .header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
-  .breadcrumbs{font-size:.9rem;color:var(--muted-foreground,#6b7280)}
-  .breadcrumbs a{color:inherit;text-decoration:none}
-  .title{font-size:1.4rem;font-weight:700;margin:.25rem 0}
-  .sub{font-size:.95rem;color:var(--muted-foreground,#6b7280)}
+  /* A11y */
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-  /* لوحة علوية */
-  .bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;background:var(--card,#fff);
-       border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:12px}
-  .stat{display:flex;gap:10px;align-items:center}
-  .badge{background:var(--accent,#eef2ff);color:var(--accent-foreground,#3730a3);border-radius:999px;padding:4px 10px;font-size:.85rem}
+  /* Scope tokens */
+  .dept-scope{
+    --ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--card:#ffffff;--bg:#f8fafc;
+    --brand:#2563eb;--brand2:#3b82f6;--danger:#b91c1c;--ok:#16a34a;--warn:#d97706;
+    --shadow:0 10px 30px rgba(2,6,23,.08);
+    --r:16px;--rsm:12px;--t:all .2s ease;
+  }
+  .dept-scope .wrap{max-width:1100px;margin-inline:auto;padding:16px}
+  .dept-scope .header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .dept-scope .breadcrumbs{font-size:.9rem;color:var(--muted)}
+  .dept-scope .breadcrumbs a{color:inherit;text-decoration:none}
+  .dept-scope .title{font-size:1.35rem;font-weight:950;margin:.25rem 0;color:var(--ink)}
+  .dept-scope .sub{font-size:.95rem;color:var(--muted)}
 
-  /* النموذج */
-  .hform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  .hform select,.hform button{height:40px}
-  .hform select{min-width:220px;border:1px solid var(--line,#e5e7eb);border-radius:10px;padding:0 10px;background:var(--card,#fff)}
-  .btn{border:1px solid var(--line,#e5e7eb);background:var(--btn,#111827);color:#fff;border-radius:10px;padding:0 14px;cursor:pointer}
-  .btn-secondary{background:var(--muted,#f3f4f6);color:#111827}
-  .btn-danger{background:#b91c1c}
-  .btn:disabled{opacity:.6;cursor:not-allowed}
+  /* Stats pills */
+  .dept-scope .stats{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+  .dept-scope .badge{
+    display:inline-flex;align-items:center;gap:8px;
+    background:#eef2ff;color:#3730a3;border:1px solid rgba(55,48,163,.18);
+    border-radius:999px;padding:6px 10px;font-size:.85rem;font-weight:900
+  }
 
-  /* أدوات */
-  .tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .search{position:relative}
-  .search input{height:40px;border:1px solid var(--line,#e5e7eb);border-radius:10px;padding:0 36px 0 12px;min-width:240px;background:var(--card,#fff)}
-  .search svg{position:absolute;inset-inline-end:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;opacity:.6}
+  /* Bar */
+  .dept-scope .bar{
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    padding:12px;box-shadow:0 6px 18px rgba(2,6,23,.06)
+  }
 
-  /* شبكة الأعضاء */
-  .grid{display:grid;gap:12px;margin-top:14px}
-  @media (min-width:640px){.grid{grid-template-columns:repeat(2,1fr)}}
-  @media (min-width:980px){.grid{grid-template-columns:repeat(3,1fr)}}
-  .card{display:flex;align-items:center;gap:12px;background:var(--card,#fff);border:1px solid var(--line,#e5e7eb);
-        border-radius:14px;padding:12px}
-  .avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--muted,#eef2ff)}
-  .name{font-weight:700}
-  .meta{font-size:.85rem;color:var(--muted-foreground,#6b7280)}
-  .card .actions{margin-inline-start:auto;display:flex;gap:6px}
-  .empty{border:1px dashed var(--line,#e5e7eb);border-radius:14px;padding:20px;text-align:center;color:var(--muted-foreground,#6b7280)}
+  /* Forms */
+  .dept-scope .hform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .dept-scope .hform select,.dept-scope .hform button,.dept-scope .hform a{height:40px}
+  .dept-scope select{
+    min-width:240px;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--card);
+    outline:none;transition:var(--t)
+  }
+  .dept-scope select:focus{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(59,130,246,.14)}
+  .dept-scope .btn{
+    border:1px solid var(--line);background:#111827;color:#fff;border-radius:12px;padding:0 14px;
+    cursor:pointer;transition:var(--t);display:inline-flex;align-items:center;gap:8px;font-weight:900;text-decoration:none
+  }
+  .dept-scope .btn:hover{transform:translateY(-1px);filter:saturate(1.05)}
+  .dept-scope .btn-secondary{background:#f3f4f6;color:#111827}
+  .dept-scope .btn-secondary:hover{background:#e5e7eb}
+  .dept-scope .btn-danger{background:var(--danger);border-color:transparent}
+  .dept-scope .btn-danger:hover{filter:brightness(.95)}
+  .dept-scope .btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+  /* Tools */
+  .dept-scope .tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .dept-scope .search{position:relative}
+  .dept-scope .search input{
+    height:40px;border:1px solid var(--line);border-radius:12px;padding:0 40px 0 12px;min-width:260px;background:var(--card);
+    outline:none;transition:var(--t)
+  }
+  .dept-scope .search input:focus{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(59,130,246,.14)}
+  .dept-scope .search svg{position:absolute;inset-inline-end:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;opacity:.6}
+  .dept-scope .hint{font-size:.88rem;color:var(--muted);font-weight:850;margin-top:6px}
+
+  /* Grid */
+  .dept-scope .grid{display:grid;gap:12px;margin-top:14px}
+  @media (min-width:640px){.dept-scope .grid{grid-template-columns:repeat(2,1fr)}}
+  @media (min-width:980px){.dept-scope .grid{grid-template-columns:repeat(3,1fr)}}
+
+  .dept-scope .member-card{
+    display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--r);padding:12px;box-shadow:0 6px 18px rgba(2,6,23,.05)
+  }
+  .dept-scope .avatar{
+    width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:950;
+    background:#eef2ff;color:#3730a3;border:1px solid rgba(55,48,163,.18)
+  }
+  .dept-scope .name{font-weight:950;color:var(--ink);line-height:1.2}
+  .dept-scope .meta{font-size:.85rem;color:var(--muted);font-weight:800}
+  .dept-scope .role-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    border-radius:999px;padding:6px 10px;font-size:.82rem;font-weight:950;border:1px solid rgba(0,0,0,.06)
+  }
+  .dept-scope .role-officer{background:#eef2ff;color:#3730a3}
+  .dept-scope .role-member{background:#ecfeff;color:#155e75}
+  .dept-scope .actions{margin-inline-start:auto;display:flex;gap:6px;flex-wrap:wrap}
+
+  .dept-scope .empty{
+    border:1px dashed var(--line);border-radius:var(--r);padding:20px;text-align:center;color:var(--muted);
+    background:rgba(148,163,184,.08);font-weight:900
+  }
+
+  /* Mobile polish */
+  @media (max-width:560px){
+    .dept-scope .search input{min-width:220px;width:100%}
+    .dept-scope select{min-width:220px;width:100%}
+    .dept-scope .hform{width:100%}
+  }
 </style>
 {% endblock head %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div class="header">
-    <div>
-      <div class="breadcrumbs">
-        <a href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a> ·
-        <a href="{% url 'reports:departments_list' %}">الأقسام</a> ·
-        <span>الأعضاء</span>
-      </div>
-      <h1 class="title">👥 أعضاء القسم: {% firstof department.name dept_label dept_code "-" %}</h1>
-      <div class="sub">
-        {% if has_dept_model %}وضع الأقسام المُهيكل (Department/Member){% else %}وضع الأدوار التراثي (Teacher.role){% endif %}
-      </div>
-    </div>
-
-    <div class="stat">
-      <span class="badge">مسؤول القسم: {{ officers|length }}</span>
-      <span class="badge">الأعضاء الحاليون: {{ teachers|length }}</span>
-      <span class="badge">إجمالي المعلّمين: {{ all_teachers|length }}</span>
-    </div>
-  </div>
-
-  <div class="bar">
-    <form class="hform" method="post" action="">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="add">
-      <label for="teacher_id" class="sr-only">إسناد لمعلّم</label>
-      <select id="teacher_id" name="teacher_id" required>
-        <option value="" disabled selected>اختر المعلّم</option>
-        {% for t in available_teachers %}
-          <option value="{{ t.id }}">{{ t.name }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="btn">إسناد</button>
-      <a href="{% url 'reports:departments_list' %}" class="btn btn-secondary" style="display:inline-grid;place-items:center">رجوع</a>
-    </form>
-
-    <form class="hform" method="post" action="">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="set_officer">
-      <label for="officer_id" class="sr-only">تعيين مسؤول القسم</label>
-      <select id="officer_id" name="teacher_id" required>
-        <option value="" disabled selected>اختر مسؤول القسم</option>
-        {% for t in all_teachers %}
-          <option value="{{ t.id }}">{{ t.name }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="btn">تعيين مسؤول</button>
-    </form>
-
-    <div class="tools">
-      <div class="search">
-        <input id="q" type="search" placeholder="ابحث داخل الأعضاء…" autocomplete="off">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.2-4.2M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      </div>
-    </div>
-  </div>
-
-  {% if officers or teachers %}
-    <div id="membersGrid" class="grid" aria-live="polite">
-      {% for m in officers %}
-        <div class="card" data-name="{{ m.name|default_if_none:'' }}" data-type="officer">
-          <div class="avatar" aria-hidden="true">{{ m.name|default:"؟"|slice:":2" }}</div>
-          <div>
-            <div class="name">{{ m.name }}</div>
-            <div class="meta">مسؤول القسم</div>
-          </div>
-          <div class="actions">
-            <form method="post" onsubmit="return confirm('إلغاء تكليف {{ m.name }} من هذا القسم؟');">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="remove">
-              <input type="hidden" name="teacher_id" value="{{ m.id }}">
-              <button type="submit" class="btn btn-danger">إلغاء</button>
-            </form>
-          </div>
+<div class="dept-scope">
+  <div class="wrap" dir="rtl">
+    <div class="header">
+      <div>
+        <div class="breadcrumbs">
+          <a href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a> ·
+          <a href="{% url 'reports:departments_list' %}">الأقسام</a> ·
+          <span>الأعضاء</span>
         </div>
-      {% endfor %}
-
-      {% for m in teachers %}
-        <div class="card" data-name="{{ m.name|default_if_none:'' }}" data-type="member">
-          <div class="avatar" aria-hidden="true">{{ m.name|default:"؟"|slice:":2" }}</div>
-          <div>
-            <div class="name">{{ m.name }}</div>
-            <div class="meta">عضو</div>
-          </div>
-          <div class="actions">
-            <form method="post" onsubmit="return confirm('إلغاء تكليف {{ m.name }} من هذا القسم؟');">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="remove">
-              <input type="hidden" name="teacher_id" value="{{ m.id }}">
-              <button type="submit" class="btn btn-danger">إلغاء</button>
-            </form>
-          </div>
+        <h1 class="title">👥 أعضاء القسم: {% firstof department.name dept_label dept_code "-" %}</h1>
+        <div class="sub">
+          {% if has_dept_model %}وضع الأقسام المُهيكل (Department/Member){% else %}وضع الأدوار التراثي (Teacher.role){% endif %}
         </div>
-      {% endfor %}
+      </div>
+
+      <div class="stats" aria-label="إحصاءات القسم">
+        <span class="badge">مسؤول القسم: {{ officers|length }}</span>
+        <span class="badge">الأعضاء الحاليون: {{ teachers|length }}</span>
+        <span class="badge">إجمالي المعلّمين: {{ all_teachers|length }}</span>
+      </div>
     </div>
-  {% else %}
-    <div class="empty">لا توجد عضويات بعد. استخدم النموذج أعلاه لإسناد أول معلّم.</div>
-  {% endif %}
+
+    <div class="bar">
+      <form class="hform" method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add">
+        <label for="teacher_id" class="sr-only">إسناد لمعلّم</label>
+        <select id="teacher_id" name="teacher_id" required>
+          <option value="" disabled selected>اختر المعلّم</option>
+          {% for t in available_teachers %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn">إسناد</button>
+        <a href="{% url 'reports:departments_list' %}" class="btn btn-secondary">رجوع</a>
+      </form>
+
+      <form class="hform" method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_officer">
+        <label for="officer_id" class="sr-only">تعيين مسؤول القسم</label>
+        <select id="officer_id" name="teacher_id" required>
+          <option value="" disabled selected>اختر مسؤول القسم</option>
+          {% for t in all_teachers %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn">تعيين مسؤول</button>
+      </form>
+
+      <div class="tools">
+        <div class="search">
+          <input id="q" type="search" placeholder="ابحث داخل الأعضاء…" autocomplete="off" spellcheck="false" aria-label="بحث داخل الأعضاء">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M21 21l-4.2-4.2M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    {% if officers or teachers %}
+      <div id="membersGrid" class="grid" aria-live="polite" aria-label="قائمة أعضاء القسم">
+        {% for m in officers %}
+          <div class="member-card" data-name="{{ m.name|default_if_none:'' }}" data-type="officer">
+            <div class="avatar" aria-hidden="true">{{ m.name|default:"؟"|slice:":2" }}</div>
+            <div>
+              <div class="name">{{ m.name }}</div>
+              <div class="meta">
+                <span class="role-pill role-officer"><i class="fas fa-user-shield"></i> مسؤول القسم</span>
+              </div>
+            </div>
+            <div class="actions">
+              <form method="post" onsubmit="return confirm('إلغاء تكليف {{ m.name }} من هذا القسم؟');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="remove">
+                <input type="hidden" name="teacher_id" value="{{ m.id }}">
+                <button type="submit" class="btn btn-danger">إلغاء</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+
+        {% for m in teachers %}
+          <div class="member-card" data-name="{{ m.name|default_if_none:'' }}" data-type="member">
+            <div class="avatar" aria-hidden="true">{{ m.name|default:"؟"|slice:":2" }}</div>
+            <div>
+              <div class="name">{{ m.name }}</div>
+              <div class="meta">
+                <span class="role-pill role-member"><i class="fas fa-id-badge"></i> عضو</span>
+              </div>
+            </div>
+            <div class="actions">
+              <form method="post" onsubmit="return confirm('إلغاء تكليف {{ m.name }} من هذا القسم؟');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="remove">
+                <input type="hidden" name="teacher_id" value="{{ m.id }}">
+                <button type="submit" class="btn btn-danger">إلغاء</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="hint" id="resultHint" aria-live="polite"></div>
+    {% else %}
+      <div class="empty">لا توجد عضويات بعد. استخدم النموذج أعلاه لإسناد أول معلّم.</div>
+    {% endif %}
+  </div>
 </div>
 
 <script>
-  // فلترة فورية على الاسم
+  // فلترة فورية على الاسم (بدون طلبات للشبكة)
   (function(){
     const input = document.getElementById('q');
     const grid  = document.getElementById('membersGrid');
+    const hint  = document.getElementById('resultHint');
     if(!input || !grid) return;
-    input.addEventListener('input', function(){
-      const q = this.value.trim().toLowerCase();
-      const cards = grid.querySelectorAll('.card');
+
+    function apply(){
+      const q = (input.value || '').trim().toLowerCase();
+      const cards = Array.from(grid.querySelectorAll('.member-card'));
       let shown = 0;
-      cards.forEach(c=>{
+      cards.forEach(function(c){
         const name = (c.dataset.name || '').toLowerCase();
         const ok = !q || name.includes(q);
         c.style.display = ok ? '' : 'none';
-        if(ok) shown++;
+        if(ok) shown += 1;
       });
-      grid.setAttribute('aria-busy','false');
+      if(hint){
+        hint.textContent = q ? ('النتائج: ' + shown) : ('الإجمالي: ' + shown);
+      }
       grid.setAttribute('aria-label', 'عدد النتائج: ' + shown);
-    });
+    }
+
+    input.addEventListener('input', apply);
+    apply();
   })();
 </script>
 {% endblock content %}

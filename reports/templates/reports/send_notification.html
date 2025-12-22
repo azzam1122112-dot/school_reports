@@ -5,727 +5,357 @@
 
 {% block head %}
 <style>
-  :root {
-    --primary: #4361ee;
-    --primary-dark: #3a56d4;
-    --secondary: #7209b7;
-    --accent: #f72585;
-    --success: #4cc9f0;
-    --bg: #f8fafc;
-    --card: #ffffff;
-    --text: #1e293b;
-    --text-light: #64748b;
-    --border: #e2e8f0;
-    --radius-lg: 20px;
-    --radius-md: 12px;
-    --radius-sm: 8px;
-    --shadow: 0 10px 40px rgba(2, 6, 23, 0.08);
-    --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    --transition: all 0.3s ease;
+  /* ===== Scoped Notification Create ===== */
+  .notify-scope{
+    --primary:#4361ee;
+    --primary-dark:#3a56d4;
+    --secondary:#7209b7;
+    --accent:#f72585;
+    --success:#4cc9f0;
+
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --text:#1e293b;
+    --text-light:#64748b;
+    --border:#e2e8f0;
+
+    --radius-lg:20px;
+    --radius-md:12px;
+    --radius-sm:8px;
+    --shadow:0 10px 40px rgba(2, 6, 23, 0.08);
+    --gradient:linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    --transition:all .3s ease;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --text: #f1f5f9;
-      --text-light: #94a3b8;
-      --border: #334155;
-    }
-  }
-
-  .wrap {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-
-  .page-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-  }
-  
-  .title {
-    margin: 0;
-    font-weight: 900;
-    font-size: 2rem;
-    background: var(--gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    position: relative;
-    padding-bottom: 8px;
-  }
-  
-  .title::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 80px;
-    height: 4px;
-    background: var(--gradient);
-    border-radius: 2px;
-  }
-  
-  .hint {
-    color: var(--text-light);
-    font-weight: 600;
-    margin-top: 8px;
-    font-size: 1.1rem;
-  }
-
-  .grid {
-    display: grid;
-    gap: 24px;
-  }
-  
-  @media (min-width: 1040px) {
-    .grid {
-      grid-template-columns: 1.15fr 0.85fr;
+  @media (prefers-color-scheme: dark){
+    .notify-scope{
+      --bg:#0f172a;
+      --card:#1e293b;
+      --text:#f1f5f9;
+      --text-light:#94a3b8;
+      --border:#334155;
     }
   }
 
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
+  .notify-scope .wrap{max-width:1400px;margin:0 auto;padding:20px}
+  .notify-scope .page-head{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    margin-bottom:24px;flex-wrap:wrap
   }
-  
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 5px;
-    background: var(--gradient);
+  .notify-scope .title{
+    margin:0;font-weight:900;font-size:2rem;
+    background:var(--gradient);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    position:relative;padding-bottom:8px
   }
-  
-  .card-hd {
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    background: var(--bg);
+  .notify-scope .title::after{
+    content:'';position:absolute;bottom:0;right:0;width:80px;height:4px;
+    background:var(--gradient);border-radius:2px
   }
-  
-  .card-hd strong {
-    font-weight: 900;
-    color: var(--text);
-    font-size: 1.2rem;
+  .notify-scope .hint{color:var(--text-light);font-weight:700;margin-top:8px;font-size:1.05rem}
+
+  .notify-scope .grid{display:grid;gap:24px}
+  @media (min-width:1040px){.notify-scope .grid{grid-template-columns:1.15fr .85fr}}
+
+  .notify-scope .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+    transition:var(--transition);
+    position:relative;overflow:hidden
   }
-  
-  .card-bd {
-    padding: 20px;
+  .notify-scope .card::before{
+    content:'';position:absolute;top:0;right:0;width:100%;height:5px;background:var(--gradient)
+  }
+  .notify-scope .card-hd{
+    padding:16px 20px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--bg)
+  }
+  .notify-scope .card-hd strong{font-weight:900;color:var(--text);font-size:1.15rem}
+  .notify-scope .card-bd{padding:20px}
+  .notify-scope .help{color:var(--text-light);font-size:.9rem;font-weight:700}
+
+  .notify-scope .form-grid{display:grid;gap:20px}
+  @media (min-width:640px){.notify-scope .form-grid{grid-template-columns:1fr 1fr}}
+  .notify-scope .field{display:flex;flex-direction:column;gap:8px}
+  .notify-scope .field.full{grid-column:1/-1}
+
+  .notify-scope label{font-weight:900;color:var(--text);display:flex;align-items:center;gap:8px}
+  .notify-scope input[type="text"],
+  .notify-scope input[type="url"],
+  .notify-scope input[type="datetime-local"],
+  .notify-scope textarea,
+  .notify-scope select{
+    border:2px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:12px 16px;
+    font:inherit;background:var(--bg);color:var(--text);
+    transition:var(--transition)
+  }
+  .notify-scope textarea{min-height:180px;resize:vertical;line-height:1.7}
+  .notify-scope input:focus,
+  .notify-scope textarea:focus,
+  .notify-scope select:focus{
+    outline:none;border-color:var(--primary);
+    box-shadow:0 0 0 3px rgba(67, 97, 238, .2)
   }
 
-  .form-grid {
-    display: grid;
-    gap: 20px;
+  .notify-scope .errors{color:#ef4444;font-weight:800;font-size:.9rem;margin-top:4px}
+
+  .notify-scope .actions{
+    display:flex;gap:12px;flex-wrap:wrap;margin-top:24px
   }
-  
-  @media (min-width: 640px) {
-    .form-grid {
-      grid-template-columns: 1fr 1fr;
-    }
+  .notify-scope .actions--top{margin-top:0;margin-bottom:18px}
+  .notify-scope .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:12px 20px;border-radius:var(--radius-md);
+    border:1px solid var(--border);
+    background:var(--card);
+    font-weight:900;cursor:pointer;text-decoration:none;color:var(--text);
+    transition:var(--transition)
   }
-  
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  .notify-scope .btn:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,.1)}
+  .notify-scope .btn-primary{
+    background:var(--gradient);border:none;color:#fff;
+    box-shadow:0 8px 25px rgba(67, 97, 238, .3)
   }
-  
-  .field.full {
-    grid-column: 1 / -1;
+  .notify-scope .btn-primary:hover{box-shadow:0 12px 30px rgba(67, 97, 238, .4)}
+  .notify-scope .btn-ghost{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
+  .notify-scope .btn:disabled{opacity:.7;cursor:not-allowed}
+
+  /* Teachers tools */
+  .notify-scope .teacher-tools{
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0 12px
   }
-  
-  label {
-    font-weight: 800;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .notify-scope .teacher-tools input[type="search"]{
+    flex:1 1 260px;border:2px solid var(--border);
+    border-radius:var(--radius-md);padding:10px 14px;background:var(--card)
   }
-  
-  input[type="text"],
-  input[type="url"],
-  input[type="datetime-local"],
-  textarea,
-  select {
-    border: 2px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 12px 16px;
-    font: inherit;
-    background: var(--bg);
-    color: var(--text);
-    transition: var(--transition);
+  .notify-scope .teacher-tools .mini{font-weight:900;color:var(--text)}
+  .notify-scope .teacher-tools .count{
+    background:var(--primary);color:#fff;border-radius:999px;
+    padding:6px 12px;font-weight:900;font-size:.9rem
   }
-  
-  input[type="text"]:focus,
-  input[type="url"]:focus,
-  input[type="datetime-local"]:focus,
-  textarea:focus,
-  select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+  .notify-scope .teacher-actions{display:flex;align-items:center;gap:8px;font-size:.9rem}
+  .notify-scope .teacher-actions button{
+    background:none;border:0;padding:0;color:var(--primary);
+    cursor:pointer;font-weight:900
   }
-  
-  input[type="file"] {
-    font: inherit;
+  .notify-scope .teacher-actions button:hover{text-decoration:underline}
+
+  /* If teachers render as checkboxes list */
+  .notify-scope .teacher-list{
+    border:2px solid var(--border);
+    border-radius:var(--radius-md);
+    background:var(--bg);
+    padding:10px 12px;
+    max-height:360px;overflow:auto
   }
-  
-  textarea {
-    min-height: 180px;
-    resize: vertical;
-    line-height: 1.6;
+  .notify-scope .teacher-list ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+  .notify-scope .teacher-list li{
+    background:var(--card);
+    border:1px solid transparent;
+    border-radius:var(--radius-sm);
+    padding:10px 12px
   }
-  
-  .help {
-    color: var(--text-light);
-    font-size: 0.9rem;
-    font-weight: 600;
+  .notify-scope .teacher-list li:hover{
+    border-color:rgba(67, 97, 238, .25);
+    background:rgba(67, 97, 238, .06)
   }
-  
-  .errors {
-    color: #ef4444;
-    font-weight: 700;
-    font-size: 0.9rem;
-    margin-top: 4px;
+  .notify-scope .teacher-list label{display:flex;align-items:center;gap:10px;margin:0;cursor:pointer}
+  .notify-scope .teacher-list input[type="checkbox"]{width:18px;height:18px;accent-color:var(--primary)}
+
+  /* Preview */
+  .notify-scope .preview{
+    background:linear-gradient(180deg,#f9fbff,#ffffff)
+  }
+  @media (prefers-color-scheme: dark){
+    .notify-scope .preview{background:linear-gradient(180deg,#0f172a,#0b1326)}
+  }
+  .notify-scope .notif{
+    border:2px dashed #dbeafe;border-radius:var(--radius-lg);
+    padding:20px;background:var(--card);
+    box-shadow:0 5px 15px rgba(0,0,0,.05)
+  }
+  .notify-scope .nt-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+  .notify-scope .nt-title{margin:0;font-weight:900;color:var(--text);font-size:1.25rem}
+  .notify-scope .nt-body{
+    white-space:pre-wrap;margin:16px 0;color:var(--text);
+    font-weight:700;line-height:1.8;padding:16px;background:var(--bg);
+    border-radius:var(--radius-md);border-left:4px solid var(--primary)
+  }
+  .notify-scope .nt-meta{
+    margin-top:16px;color:var(--text-light);font-weight:800;
+    display:flex;gap:12px;flex-wrap:wrap
+  }
+  .notify-scope .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:8px 14px;border:1px solid var(--border);
+    background:var(--bg);color:var(--text);
+    border-radius:999px;font-weight:900;font-size:.9rem
   }
 
-  .actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 24px;
+  /* Loading */
+  .notify-scope .loading{
+    display:inline-block;width:20px;height:20px;
+    border:3px solid rgba(255,255,255,.3);
+    border-radius:50%;border-top-color:#fff;
+    animation:spin 1s ease-in-out infinite
   }
-  
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-    background: var(--card);
-    font-weight: 800;
-    cursor: pointer;
-    text-decoration: none;
-    color: var(--text);
-    transition: var(--transition);
-  }
-  
-  .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  }
-  
-  .btn-primary {
-    background: var(--gradient);
-    border: none;
-    color: #fff;
-    box-shadow: 0 8px 25px rgba(67, 97, 238, 0.3);
-  }
-  
-  .btn-primary:hover {
-    box-shadow: 0 12px 30px rgba(67, 97, 238, 0.4);
-  }
-  
-  .btn-ghost {
-    background: #eef2ff;
-    border-color: #e5e7eb;
-    color: #1e40af;
-  }
-  
-  .btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
+  @keyframes spin{to{transform:rotate(360deg)}}
 
-  /* حقل المعلّمين: أدوات البحث والتحديد */
-  .teacher-tools {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-    margin: 10px 0 12px;
+  @media (max-width:768px){
+    .notify-scope .wrap{padding:16px}
+    .notify-scope .page-head{flex-direction:column;align-items:flex-start}
+    .notify-scope .title{font-size:1.6rem}
+    .notify-scope .card-hd{flex-direction:column;align-items:flex-start;gap:8px}
+    .notify-scope .teacher-tools{flex-direction:column;align-items:stretch}
+    .notify-scope .actions{flex-direction:column;align-items:stretch}
+    .notify-scope .btn{justify-content:center}
   }
-  .teacher-tools input[type="search"] {
-    flex: 1 1 260px;
-    border: 2px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 10px 14px;
-    background: var(--card);
-  }
-  .teacher-tools .mini {
-    font-weight: 800;
-    color: var(--text);
-  }
-  .teacher-tools .count {
-    background: var(--primary);
-    color: #fff;
-    border-radius: 999px;
-    padding: 6px 12px;
-    font-weight: 900;
-    font-size: 0.9rem;
-  }
-
-  .teacher-actions {
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-size:0.9rem;
-  }
-  .teacher-actions button {
-    background:none;
-    border:0;
-    padding:0;
-    color:var(--primary);
-    cursor:pointer;
-    font-weight:800;
-  }
-  .teacher-actions button:hover {
-    text-decoration:underline;
-  }
-
-  /* قائمة المستلمين (المعلّمين): صندوق قابل للتمرير لتجنب إطالة الصفحة */
-  .teacher-list {
-    border: 2px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--bg);
-    padding: 10px 12px;
-    max-height: 360px;
-    overflow: auto;
-  }
-  .teacher-list ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 8px;
-  }
-  .teacher-list li {
-    background: var(--card);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-  }
-  .teacher-list li:hover {
-    border-color: rgba(67, 97, 238, 0.25);
-    background: rgba(67, 97, 238, 0.06);
-  }
-  .teacher-list label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0;
-    cursor: pointer;
-    user-select: none;
-  }
-  .teacher-list input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--primary);
-  }
-
-  /* شريط أزرار أعلى النموذج لتسهيل الإرسال بدون نزول */
-  .actions--top {
-    margin-top: 0;
-    margin-bottom: 18px;
-  }
-
-  /* المعاينة */
-  .preview {
-    background: linear-gradient(180deg, #f9fbff, #ffffff);
-  }
-  
-  @media (prefers-color-scheme: dark) {
-    .preview {
-      background: linear-gradient(180deg, #0f172a, #0b1326);
-    }
-  }
-  
-  .notif {
-    border: 2px dashed #dbeafe;
-    border-radius: var(--radius-lg);
-    padding: 20px;
-    background: var(--card);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-  }
-  
-  .nt-h {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  
-  .nt-title {
-    margin: 0;
-    font-weight: 900;
-    color: var(--text);
-    font-size: 1.3rem;
-  }
-  
-  .nt-ico {
-    font-size: 1.5rem;
-  }
-  
-  .nt-body {
-    white-space: pre-wrap;
-    margin: 16px 0;
-    color: var(--text);
-    font-weight: 500;
-    line-height: 1.8;
-    padding: 16px;
-    background: var(--bg);
-    border-radius: var(--radius-md);
-    border-left: 4px solid var(--primary);
-  }
-  
-  .nt-meta {
-    margin-top: 16px;
-    color: var(--text-light);
-    font-weight: 700;
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-    border-radius: 999px;
-    font-weight: 800;
-    font-size: 0.9rem;
-  }
-  
-  .pill.important {
-    background: #fff5f5;
-    border-color: #ffe0e0;
-    color: #b91c1c;
-  }
-  
-  .pill.blue {
-    background: #eef2ff;
-    border-color: #e5e7eb;
-    color: #1e40af;
-  }
-  
-  .badge {
-    display: inline-grid;
-    place-items: center;
-    min-width: 24px;
-    height: 24px;
-    padding: 0 8px;
-    border-radius: 999px;
-    background: var(--primary);
-    color: #fff;
-    font-size: 0.85rem;
-    font-weight: 900;
-  }
-
-  /* حالة التحميل */
-  .loading {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 1s ease-in-out infinite;
-  }
-  
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* تحسينات التجاوب */
-  @media (max-width: 768px) {
-    .wrap {
-      padding: 16px;
-    }
-    
-    .page-head {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    
-    .title {
-      font-size: 1.6rem;
-    }
-    
-    .card-hd {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    
-    .teacher-tools {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .teacher-tools input[type="search"] {
-      flex: 1 1 auto;
-    }
-    
-    .actions {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .btn {
-      justify-content: center;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .title {
-      font-size: 1.4rem;
-    }
-    
-    .form-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .nt-meta {
-      flex-direction: column;
-      gap: 8px;
-    }
-  }
-
-  /* تأثيرات للوضع الداكن */
-  @media (prefers-color-scheme: dark) {
-    .pill.important {
-      background: rgba(185, 28, 28, 0.15);
-      border-color: rgba(185, 28, 28, 0.4);
-    }
-    
-    .pill.blue {
-      background: rgba(30, 64, 175, 0.15);
-      border-color: rgba(30, 64, 175, 0.4);
-    }
-    
-    .btn-ghost {
-      background: rgba(30, 64, 175, 0.15);
-      border-color: rgba(30, 64, 175, 0.4);
-      color: #e0e7ff;
-    }
+  @media (max-width:480px){
+    .notify-scope .title{font-size:1.4rem}
+    .notify-scope .form-grid{grid-template-columns:1fr}
+    .notify-scope .nt-meta{flex-direction:column;gap:8px}
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wrap">
+<div class="notify-scope" dir="rtl">
+  <div class="wrap">
 
-  <header class="page-head">
-    <div>
-      <h1 class="title">إرسال إشعار</h1>
-      <div class="hint">اكتب عنوانًا جذابًا ومحتوى واضحًا. يمكنك معاينة الشكل قبل الإرسال.</div>
-    </div>
-    <div>
-      <a class="btn btn-ghost" href="{% url 'reports:notifications_sent' %}">
-        <i class="fa-solid fa-list"></i> الإشعارات المرسلة
-      </a>
-    </div>
-  </header>
-
-  <div class="grid">
-
-    {# ————————————— العمود الأيسر: النموذج ————————————— #}
-    <section class="card" aria-labelledby="form-title">
-      <div class="card-hd">
-        <strong id="form-title">نموذج الإشعار</strong>
-        <span class="help">يظهر هذا الخيار للمصرّح لهم فقط</span>
+    <header class="page-head">
+      <div>
+        <h1 class="title">إرسال إشعار</h1>
+        <div class="hint">اكتب عنوانًا جذابًا ومحتوى واضحًا. يمكنك معاينة الشكل قبل الإرسال.</div>
       </div>
-      <div class="card-bd">
+      <div>
+        <a class="btn btn-ghost" href="{% url 'reports:notifications_sent' %}">
+          <i class="fa-solid fa-list"></i> الإشعارات المرسلة
+        </a>
+      </div>
+    </header>
 
-        {% if form %}
-          {% if form.media %}{{ form.media }}{% endif %}
-          <form method="post" enctype="multipart/form-data" action="" id="notifyForm" novalidate>
-            {% csrf_token %}
+    <div class="grid">
 
-            {% if form.non_field_errors %}
-              <div class="errors">{{ form.non_field_errors }}</div>
-            {% endif %}
+      <!-- العمود الأيسر: النموذج -->
+      <section class="card" aria-labelledby="form-title">
+        <div class="card-hd">
+          <strong id="form-title">نموذج الإشعار</strong>
+          <span class="help">يظهر هذا الخيار للمصرّح لهم فقط</span>
+        </div>
 
-            <div class="actions actions--top">
-              <button class="btn btn-primary" type="submit">
-                <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
-              </button>
-              <a class="btn" href="{% url 'reports:home' %}">
-                <i class="fa-solid fa-home"></i> الرجوع للرئيسية
-              </a>
-            </div>
+        <div class="card-bd">
+          {% if form %}
+            {% if form.media %}{{ form.media }}{% endif %}
+            <form method="post" enctype="multipart/form-data" action="" id="notifyForm" novalidate>
+              {% csrf_token %}
 
-            <div class="form-grid">
-              {# تخصيص حقل المستلمين ليحصل على أدوات (تحديد الكل/إلغاء) وبحث #}
-              {% for field in form.visible_fields %}
-                {% if field.name == "teachers" %}
-                  <div class="field" data-name="{{ field.html_name|lower }}">
-                    <label for="{{ field.id_for_label }}" class="row" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                      <span>
+              {% if form.non_field_errors %}
+                <div class="errors">{{ form.non_field_errors }}</div>
+              {% endif %}
+
+              <div class="actions actions--top">
+                <button class="btn btn-primary" type="submit">
+                  <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
+                </button>
+                <a class="btn" href="{% url 'reports:home' %}">
+                  <i class="fa-solid fa-home"></i> الرجوع للرئيسية
+                </a>
+              </div>
+
+              <div class="form-grid">
+                {% for field in form.visible_fields %}
+                  {% if field.name == "teachers" %}
+                    <div class="field full" data-name="{{ field.html_name|lower }}">
+                      <label for="{{ field.id_for_label }}" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                        <span>
+                          {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
+                          {{ field.label|default:"المستلمون" }}
+                        </span>
+                        <span class="teacher-actions">
+                          <button type="button" id="selectAllTeachers">تحديد الكل</button>
+                          <span>/</span>
+                          <button type="button" id="clearAllTeachers">إلغاء التحديد</button>
+                        </span>
+                      </label>
+
+                      <div class="teacher-tools">
+                        <input id="teacherSearch" type="search" placeholder="ابحث باسم المعلّم…" aria-label="البحث عن معلّم">
+                        <span class="mini">المحدّد: <span class="count" id="selCount">0</span></span>
+                      </div>
+
+                      <div class="teacher-list" id="teacherList">
+                        {{ field }}
+                      </div>
+
+                      {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+                      {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="field" data-name="{{ field.html_name|lower }}">
+                      <label for="{{ field.id_for_label }}">
                         {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
                         {{ field.label|default:"الحقل" }}
-                      </span>
-                      <span class="teacher-actions">
-                        <button type="button" id="selectAllTeachers">تحديد الكل</button>
-                        <span>/</span>
-                        <button type="button" id="clearAllTeachers">إلغاء التحديد</button>
-                      </span>
-                    </label>
-
-                    <div class="teacher-tools">
-                      <input id="teacherSearch" type="search" placeholder="ابحث باسم المعلّم…" aria-label="البحث عن معلّم">
-                      <span class="mini">المحدّد: <span class="count" id="selCount">0</span></span>
-                    </div>
-
-                    <div class="teacher-list" id="teacherList">
+                      </label>
                       {{ field }}
+                      {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+                      {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
                     </div>
-                    {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
-                    {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
-                  </div>
-                {% else %}
-                  <div class="field" data-name="{{ field.html_name|lower }}">
-                    <label for="{{ field.id_for_label }}">
-                      {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
-                      {{ field.label|default:"الحقل" }}
-                    </label>
-                    {{ field }}
-                    {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
-                    {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
-                  </div>
-                {% endif %}
-              {% endfor %}
-            </div>
-
-            <div class="actions">
-              <button class="btn btn-primary" type="submit">
-                <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
-              </button>
-              <a class="btn" href="{% url 'reports:home' %}">
-                <i class="fa-solid fa-home"></i> الرجوع للرئيسية
-              </a>
-            </div>
-          </form>
-        {% else %}
-          {# فالباك بسيط إذا لم يُمرر فورم من الـ view #}
-          <form method="post" enctype="multipart/form-data" action="" id="notifyForm" novalidate>
-            {% csrf_token %}
-
-            <div class="actions actions--top">
-              <button class="btn btn-primary" type="submit">
-                <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
-              </button>
-              <a class="btn" href="{% url 'reports:home' %}">
-                <i class="fa-solid fa-home"></i> الرجوع للرئيسية
-              </a>
-            </div>
-
-            <div class="form-grid">
-              <div class="field full">
-                <label for="id_title">
-                  <span style="color:#ef4444">*</span> العنوان
-                </label>
-                <input type="text" id="id_title" name="title" maxlength="120" placeholder="عنوان الإشعار" required>
-                <div class="help">حتى 120 حرفًا</div>
+                  {% endif %}
+                {% endfor %}
               </div>
 
-              <div class="field full">
-                <label for="id_message">
-                  <span style="color:#ef4444">*</span> المحتوى
-                </label>
-                <textarea id="id_message" name="message" placeholder="نص الإشعار" required></textarea>
+              <div class="actions">
+                <button class="btn btn-primary" type="submit">
+                  <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
+                </button>
+                <a class="btn" href="{% url 'reports:home' %}">
+                  <i class="fa-solid fa-home"></i> الرجوع للرئيسية
+                </a>
               </div>
+            </form>
+          {% else %}
+            <div class="errors">لم يتم تمرير الفورم من الـ view.</div>
+          {% endif %}
+        </div>
+      </section>
 
-              <div class="field">
-                <label for="id_action_url">رابط إجراء (اختياري)</label>
-                <input type="url" id="id_action_url" name="action_url" placeholder="https://...">
-              </div>
-
-              <div class="field">
-                <label class="row" style="display:flex;align-items:center;gap:8px">
-                  <input type="checkbox" id="id_is_important" name="is_important" value="1">
-                  <span>وضعه كهام</span>
-                </label>
-              </div>
-
-              <div class="field">
-                <label for="id_expires_at">ينتهي في (اختياري)</label>
-                <input type="datetime-local" id="id_expires_at" name="expires_at">
-              </div>
-
-              <div class="field full">
-                <label for="id_recipients">المستلمون (اختياري)</label>
-                <input type="text" id="id_recipients" name="recipients" placeholder="معرّفات/أسماء/أرقام مفصولة بفواصل">
-                <div class="help">اتركه فارغاً لإرساله وفق سياسة الاستهداف في النموذج الفعلي.</div>
+      <!-- العمود الأيمن: المعاينة -->
+      <aside class="card preview" aria-labelledby="preview-title">
+        <div class="card-hd">
+          <strong id="preview-title">معاينة فورية</strong>
+          <span class="help">تحدَّث تلقائيًا</span>
+        </div>
+        <div class="card-bd">
+          <div class="notif">
+            <div class="nt-h">
+              <h3 class="nt-title" id="pv_title">عنوان الإشعار</h3>
+              <div id="pv_important" title="هام" style="display:none">
+                <i class="fa-solid fa-circle-exclamation" style="color:#ef4444"></i>
               </div>
             </div>
-
-            <div class="actions">
-              <button class="btn btn-primary" type="submit">
-                <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
-              </button>
-              <a class="btn" href="{% url 'reports:home' %}">
-                <i class="fa-solid fa-home"></i> الرجوع للرئيسية
-              </a>
+            <div class="nt-body" id="pv_body">سيظهر نص الإشعار هنا…</div>
+            <div class="nt-meta">
+              <span class="pill">
+                <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
+                <span>مرسل: {% firstof request.user.name request.user.phone "الإدارة" %}</span>
+              </span>
+              <span class="pill" id="pv_action" style="display:none">
+                <i class="fa-solid fa-link"></i> يحتوي على رابط إجراء
+              </span>
+              <span class="pill" id="pv_expires" style="display:none">
+                <i class="fa-solid fa-clock"></i> ينتهي لاحقًا
+              </span>
             </div>
-          </form>
-        {% endif %}
-      </div>
-    </section>
-
-    {# ————————————— العمود الأيمن: المعاينة ————————————— #}
-    <aside class="card preview" aria-labelledby="preview-title">
-      <div class="card-hd">
-        <strong id="preview-title">معاينة فورية</strong>
-        <span class="help">تحدَّث تلقائيًا</span>
-      </div>
-      <div class="card-bd">
-        <div class="notif">
-          <div class="nt-h">
-            <h3 class="nt-title" id="pv_title">عنوان الإشعار</h3>
-            <div class="nt-ico" id="pv_important" title="هام" style="display:none">
-              <i class="fa-solid fa-circle-exclamation" style="color:#ef4444"></i>
-            </div>
-          </div>
-          <div class="nt-body" id="pv_body">سيظهر نص الإشعار هنا…</div>
-          <div class="nt-meta">
-            <span class="pill">
-              <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
-              <span>مرسل: {% firstof request.user.name request.user.phone "الإدارة" %}</span>
-            </span>
-            <span class="pill" id="pv_action" style="display:none">
-              <i class="fa-solid fa-link"></i> يحتوي على رابط إجراء
-            </span>
-            <span class="pill" id="pv_expires" style="display:none">
-              <i class="fa-solid fa-clock"></i> ينتهي لاحقًا
-            </span>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
 
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -736,12 +366,26 @@
     const $ = s => document.querySelector(s);
     const $$ = s => Array.from(document.querySelectorAll(s));
 
-    // عناصر حقول متوقعة (من الفورم أو الفالباك)
-    const titleInput = $("#id_title") || document.querySelector('[name*="title"],[name*="subject"],[name*="heading"]');
-    const msgInput   = $("#id_message") || document.querySelector('textarea[name*="message"],textarea[name*="body"],textarea[name*="content"],textarea[name*="text"],textarea[name*="details"]');
-    const urlInput   = $("#id_action_url") || document.querySelector('input[type="url"],input[name*="action_url"]');
-    const impInput   = $("#id_is_important") || document.querySelector('input[name*="is_important"]');
-    const expInput   = $("#id_expires_at") || document.querySelector('input[name*="expires_at"],input[name*="ends_at"]');
+    // ===== Preview bindings (try to be flexible with field names) =====
+    const titleInput =
+      $("#id_title") ||
+      document.querySelector('[name$="title"],[name*="title"],[name*="subject"],[name*="heading"]');
+
+    const msgInput =
+      $("#id_message") ||
+      document.querySelector('textarea[name*="message"],textarea[name*="body"],textarea[name*="content"],textarea[name*="text"],textarea[name*="details"]');
+
+    const urlInput =
+      $("#id_action_url") ||
+      document.querySelector('input[type="url"][name*="action_url"],input[type="url"]');
+
+    const impInput =
+      $("#id_is_important") ||
+      document.querySelector('input[type="checkbox"][name*="is_important"]');
+
+    const expInput =
+      $("#id_expires_at") ||
+      document.querySelector('input[type="datetime-local"][name*="expires_at"],input[name*="expires_at"]');
 
     const pvTitle = $("#pv_title");
     const pvBody  = $("#pv_body");
@@ -750,34 +394,31 @@
     const pvExpires = $("#pv_expires");
 
     function updatePreview(){
-      if(pvTitle && titleInput){ pvTitle.textContent = (titleInput.value || "").trim() || "عنوان الإشعار"; }
-      if(pvBody  && msgInput ){ pvBody.textContent  = (msgInput.value  || "").trim() || "سيظهر نص الإشعار هنا…"; }
-      if(pvImportant && impInput){ pvImportant.style.display = impInput && impInput.checked ? "block" : "none"; }
-      if(pvAction && urlInput){ const has = !!(urlInput.value || "").trim(); pvAction.style.display = has ? "inline-flex" : "none"; }
-      if(pvExpires && expInput){ pvExpires.style.display = (expInput && expInput.value || "").trim() ? "inline-flex" : "none"; }
+      if(pvTitle && titleInput){
+        pvTitle.textContent = (titleInput.value || "").trim() || "عنوان الإشعار";
+      }
+      if(pvBody && msgInput){
+        pvBody.textContent = (msgInput.value || "").trim() || "سيظهر نص الإشعار هنا…";
+      }
+      if(pvImportant && impInput){
+        pvImportant.style.display = impInput.checked ? "block" : "none";
+      }
+      if(pvAction && urlInput){
+        pvAction.style.display = (urlInput.value || "").trim() ? "inline-flex" : "none";
+      }
+      if(pvExpires && expInput){
+        pvExpires.style.display = (expInput.value || "").trim() ? "inline-flex" : "none";
+      }
     }
     [titleInput, msgInput, urlInput, impInput, expInput].forEach(el=>{
-      if(el){ el.addEventListener("input", updatePreview); el.addEventListener("change", updatePreview); }
+      if(el){
+        el.addEventListener("input", updatePreview);
+        el.addEventListener("change", updatePreview);
+      }
     });
     updatePreview();
 
-    // اجعل بعض الحقول تمتد بعرض الشبكة
-    $$('.form-grid .field').forEach(box=>{
-      const input = box.querySelector('input, textarea, select');
-      if(!input) return;
-      const nm = (input.getAttribute('name') || '').toLowerCase();
-      if(input.tagName === 'TEXTAREA' ||
-         nm.includes('title') || nm.includes('subject') || nm.includes('heading') ||
-         nm.includes('message') || nm.includes('body') || nm.includes('content') ||
-         nm.includes('text') || nm.includes('details')){
-        box.classList.add('full');
-      }
-    });
-
-    // =========================
-    // بحث بالاسم + تحديد/إلغاء تحديد كل المعلّمين (المستلمون)
-    // =========================
-
+    // ===== Teachers filter/select-all (checkboxes OR select[multiple]) =====
     const teacherField = document.querySelector('.form-grid .field[data-name="teachers"]');
     if(teacherField){
       const searchInput = $('#teacherSearch');
@@ -785,91 +426,73 @@
       const btnSelectAll = $('#selectAllTeachers');
       const btnClearAll = $('#clearAllTeachers');
 
-      // اجمع العناصر القابلة للتصفية
-      function getTeacherItems(){
-        const items = [];
-        
-        // 1. البحث عن Checkboxes
-        const cbs = teacherField.querySelectorAll('input[type="checkbox"]');
-        if(cbs.length > 0){
-          cbs.forEach(cb => {
-            // نحدد العنصر الحاوي الذي سنقوم بإخفائه عند البحث
-            // الأولوية لـ li (إذا كانت قائمة) أو .form-check أو label
-            let wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
-            items.push({wrap: wrap, input: cb});
-          });
-        } 
-        // 2. دعم select[multiple] إن وُجد
-        else {
-          const sel = teacherField.querySelector('select[multiple]');
-          if(sel){
-            Array.from(sel.options).forEach(op=>{
-              items.push({wrap:op, option:op});
-            });
-          }
-        }
-        return items;
-      }
-
-      let teacherItems = getTeacherItems();
-
-      function isVisible(el){
-        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
-      }
+      const checkboxInputs = Array.from(teacherField.querySelectorAll('input[type="checkbox"]'));
+      const multiSelect = teacherField.querySelector('select[multiple]');
 
       function updateCount(){
         let count = 0;
-        teacherItems.forEach(it=>{
-          if(it.input && it.input.checked) count++;
-          if(it.option && it.option.selected) count++;
-        });
+        if(checkboxInputs.length){
+          checkboxInputs.forEach(cb => { if(cb.checked) count++; });
+        } else if(multiSelect){
+          Array.from(multiSelect.options).forEach(op => { if(op.selected) count++; });
+        }
         if(selCount) selCount.textContent = String(count);
       }
 
-      function filterByQuery(q){
-        const query = q.trim().toLowerCase();
-        teacherItems.forEach(it=>{
-          const text = (it.wrap.textContent || '').toLowerCase().trim();
-          const show = !query || text.includes(query);
-          it.wrap.style.display = show ? '' : 'none';
-        });
+      function applyFilter(term){
+        const q = (term || "").trim().toLowerCase();
+
+        if(checkboxInputs.length){
+          checkboxInputs.forEach(cb => {
+            const wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
+            const txt = (wrap && wrap.textContent || "").toLowerCase();
+            const show = !q || txt.includes(q);
+            if(wrap) wrap.style.display = show ? "" : "none";
+          });
+        } else if(multiSelect){
+          Array.from(multiSelect.options).forEach(op => {
+            const txt = (op.textContent || "").toLowerCase();
+            op.hidden = !!q && !txt.includes(q);
+          });
+        }
+
         updateCount();
       }
 
-      function toggleAllVisible(select=true){
-        teacherItems.forEach(it=>{
-          if(!isVisible(it.wrap)) return;
-          if(it.input){ it.input.checked = !!select; it.input.dispatchEvent(new Event('change', {bubbles:true})); }
-          if(it.option){ it.option.selected = !!select; }
-        });
+      function toggleAll(select){
+        if(checkboxInputs.length){
+          checkboxInputs.forEach(cb => {
+            const wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
+            const hidden = wrap && wrap.style.display === "none";
+            if(hidden) return;
+            cb.checked = !!select;
+          });
+        } else if(multiSelect){
+          Array.from(multiSelect.options).forEach(op => {
+            if(op.hidden) return;
+            op.selected = !!select;
+          });
+        }
         updateCount();
       }
 
-      // مستمعو الأحداث
       if(searchInput){
-        searchInput.addEventListener('input', () => filterByQuery(searchInput.value));
+        searchInput.addEventListener('input', () => applyFilter(searchInput.value));
       }
       if(btnSelectAll){
-        btnSelectAll.addEventListener('click', () => toggleAllVisible(true));
+        btnSelectAll.addEventListener('click', () => toggleAll(true));
       }
       if(btnClearAll){
-        btnClearAll.addEventListener('click', () => toggleAllVisible(false));
+        btnClearAll.addEventListener('click', () => toggleAll(false));
       }
 
-      // عدّاد يتحدّث عند تغيّر أي اختيار
-      teacherField.addEventListener('change', (e)=>{
-        const t = e.target;
-        if(t && (t.matches('input[type="checkbox"]') || t.matches('select[multiple]'))){
-          updateCount();
-        }
-      });
+      teacherField.addEventListener('change', updateCount);
 
-      // تهيئة أولية
-      filterByQuery('');
+      applyFilter('');
       updateCount();
     }
 
-    // منع الإرسال المزدوج
+    // ===== Prevent double submit =====
     const form = document.getElementById('notifyForm');
     if(form){
       form.addEventListener('submit', function(){

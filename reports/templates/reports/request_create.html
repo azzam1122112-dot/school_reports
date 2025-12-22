@@ -26,8 +26,8 @@
   .ticket-page select:disabled{background:#f3f4f6;color:#9ca3af;cursor:not-allowed}
   .ticket-page input:focus,.ticket-page select:focus,.ticket-page textarea:focus{outline:none;border-color:var(--brand-light);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
   .ticket-page textarea{min-height:140px;resize:vertical}
-  .ticket-page .help{font-size:.9rem;color:var(--muted)}
-  .ticket-page .field-error{color:var(--error);background:var(--error-bg);border:1px solid #fecaca;padding:10px 12px;border-radius:var(--rsm);font-size:.92rem}
+  .ticket-page .help{font-size:.9rem;color:var(--muted);font-weight:850;line-height:1.45}
+  .ticket-page .field-error{color:var(--error);background:var(--error-bg);border:1px solid #fecaca;padding:10px 12px;border-radius:var(--rsm);font-size:.92rem;font-weight:900}
 
   /* معاينات الصور */
   .ticket-page .previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px}
@@ -37,7 +37,7 @@
 
   .ticket-page .form-actions{display:grid;gap:12px}
   @media(min-width:560px){ .ticket-page .form-actions{grid-template-columns:1fr 1fr} }
-  .ticket-page .btn{padding:14px 18px;border:0;border-radius:12px;font-weight:800;cursor:pointer;transition:var(--t);display:inline-flex;justify-content:center;align-items:center;gap:8px;text-decoration:none}
+  .ticket-page .btn{padding:14px 18px;border:0;border-radius:12px;font-weight:900;cursor:pointer;transition:var(--t);display:inline-flex;justify-content:center;align-items:center;gap:8px;text-decoration:none}
   .ticket-page .btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff}
   .ticket-page .btn-accent:hover{transform:translateY(-2px)}
   .ticket-page .btn-outline{background:#fff;border:1px solid var(--line);color:var(--ink-soft)}
@@ -45,12 +45,10 @@
 
   .ticket-page #dynamic-msg{min-height:22px}
 
-  /* Mobile polish */
   @media(max-width:520px){
     .ticket-page .ticket-container{padding:14px 12px}
     .ticket-page .ticket-card{padding:16px}
     .ticket-page .section-title{font-size:1.18rem}
-    /* منع تكبير iOS عند التركيز */
     .ticket-page input[type="text"], .ticket-page select, .ticket-page textarea{font-size:16px}
     .ticket-page .form-actions{grid-template-columns:1fr}
     .ticket-page .btn{width:100%}
@@ -59,7 +57,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="ticket-page">
+<div class="ticket-page" dir="rtl">
   <div class="ticket-container">
     <div class="ticket-card">
       <h2 class="section-title">📝 إنشاء طلب جديد</h2>
@@ -70,11 +68,10 @@
         </div>
       {% endif %}
 
-      <form method="POST" enctype="multipart/form-data" class="form-grid" id="ticket-form" novalidate>
+      <form method="post" enctype="multipart/form-data" class="form-grid" id="ticket-form" novalidate>
         {% csrf_token %}
 
         <div class="form-row">
-          <!-- القسم: يرسل slug كما يتوقعه الـForm -->
           <div class="form-group">
             <label for="{{ form.department.id_for_label }}">القسم <span aria-hidden="true" style="color:#ef4444">*</span></label>
             <select id="{{ form.department.id_for_label }}" name="{{ form.department.html_name }}" required>
@@ -94,11 +91,11 @@
             {% for e in form.department.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
           </div>
 
-          <!-- المستلم -->
           <div class="form-group">
             <label for="{{ form.assignee.id_for_label }}">المستلم <span aria-hidden="true" style="color:#ef4444">*</span></label>
             <select id="{{ form.assignee.id_for_label }}" name="{{ form.assignee.html_name }}" required disabled>
               <option value="" selected>— اختر الموظف —</option>
+
               {% if form.is_bound and form.fields.assignee.queryset %}
                 {% for u in form.fields.assignee.queryset %}
                   <option value="{{ u.pk }}"
@@ -112,27 +109,31 @@
           </div>
         </div>
 
-        <!-- عنوان الطلب -->
         <div class="form-group">
           <label for="{{ form.title.id_for_label }}">عنوان الطلب <span aria-hidden="true" style="color:#ef4444">*</span></label>
           {{ form.title }}
           {% for e in form.title.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
         </div>
 
-        <!-- تفاصيل -->
         <div class="form-group">
           <label for="{{ form.body.id_for_label }}">تفاصيل الطلب</label>
           {{ form.body }}
           {% for e in form.body.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
         </div>
 
-        <!-- صور متعددة حتى 4 -->
         <div class="form-group">
           <label for="id_images">الصور (حتى 4)</label>
           <input id="id_images" name="images" type="file" accept="image/*" multiple>
           <div class="help">المسموح: JPG / PNG / WebP — سيتم ضغط الصور تلقائيًا قبل الإرسال. الحد الأقصى 4 صور.</div>
+
+          {# عرض أخطاء الصور بشكل آمن حتى لو الحقل غير موجود داخل الـForm #}
+          {% if form.errors %}
+            {% if 'images' in form.errors %}
+              <div class="field-error" style="margin-top:8px">• {{ form.errors.images.0 }}</div>
+            {% endif %}
+          {% endif %}
+
           <div class="previews" id="previews"></div>
-          {% for e in form.images.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
         </div>
 
         <div id="dynamic-msg" class="help" aria-live="polite"></div>
@@ -149,22 +150,28 @@
 <script>
 (function(){
   const form = document.getElementById('ticket-form');
-  const dept = document.getElementById('id_department');
-  const assignee = document.getElementById('id_assignee');
+  const dept = document.getElementById('{{ form.department.id_for_label }}');
+  const assignee = document.getElementById('{{ form.assignee.id_for_label }}');
   const msg = document.getElementById('dynamic-msg');
   const input = document.getElementById('id_images');
   const previews = document.getElementById('previews');
 
+  const MAX_FILES = 4;
+  const MAX_FILE_MB = 6; // قبل الضغط
+  const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
+
   function getCookie(name){
-    const v = `; ${document.cookie}`.split(`; ${name}=`); 
+    const v = `; ${document.cookie}`.split(`; ${name}=`);
     if (v.length===2) return decodeURIComponent(v.pop().split(';').shift());
   }
-  const CSRF = (window.csrfToken || getCookie('csrftoken') || '');
+  const CSRF = window.csrfToken || getCookie('csrftoken') || '';
 
-  function setMsg(text, type='info'){
+  function setMsg(text, type){
     if(!msg) return;
     msg.textContent = text || '';
-    msg.style.color = (type==='error') ? '#b91c1c' : (type==='ok'? '#065f46' : '#64748b');
+    if(type === 'error') msg.style.color = '#b91c1c';
+    if(type === 'ok') msg.style.color = '#065f46';
+    if(!type) msg.style.color = '#64748b';
   }
 
   function setAssigneeDisabled(disabled){
@@ -175,137 +182,210 @@
     }
   }
 
-  // ==== تحميل أعضاء القسم حسب الـ slug (القيمة مباشرة من الـselect) ====
-  async function loadMembers(roleSlug){
+  async function loadMembers(deptSlug){
     if(!assignee) return;
     setAssigneeDisabled(true);
     setMsg('...جاري تحميل الموظفين');
+
     try{
-      const url = "{% url 'reports:api_department_members' %}" + "?department=" + encodeURIComponent(roleSlug);
+      const baseUrl = "{% url 'reports:api_department_members' %}";
+      const url = baseUrl + "?department=" + encodeURIComponent(deptSlug);
+
       const res = await fetch(url, {
+        method: 'GET',
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': CSRF },
         credentials: 'same-origin'
       });
-      if(!res.ok) throw new Error('HTTP '+res.status);
+
+      if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
-      assignee.innerHTML = '<option value="">— اختر الموظف —</option>';
       const list = Array.isArray(data.results) ? data.results : [];
+      assignee.innerHTML = '<option value="">— اختر الموظف —</option>';
+
       list.forEach(u=>{
         const opt = document.createElement('option');
-        opt.value = u.id; opt.textContent = u.name;
+        opt.value = String(u.id);
+        opt.textContent = u.name;
         assignee.appendChild(opt);
       });
-      if(list.length === 1){ assignee.value = String(list[0].id); }
+
       setAssigneeDisabled(false);
-      setMsg(list.length ? `تم تحميل ${list.length} موظف` : 'لا يوجد موظفون لهذا القسم', list.length ? 'ok' : 'info');
-    }catch(err){
+
+      if(list.length === 1){
+        assignee.value = String(list[0].id);
+        setMsg('تم اختيار الموظف تلقائيًا لأن القسم يحتوي موظفًا واحدًا', 'ok');
+        return;
+      }
+
+      if(list.length){
+        setMsg('تم تحميل ' + list.length + ' موظف', 'ok');
+      } else {
+        setMsg('لا يوجد موظفون لهذا القسم');
+      }
+    } catch(err){
       console.error(err);
       setMsg('تعذر تحميل الموظفين. حاول مجددًا.', 'error');
       setAssigneeDisabled(true);
     }
   }
 
-  // عند تغيير القسم: استخدم القيمة (slug)
+  // تغيير القسم
   if(dept && assignee){
     dept.addEventListener('change', (e)=>{
-      const slug = e.target.value;
-      if(!slug){ setAssigneeDisabled(true); setMsg('اختر قسمًا أولاً'); return; }
+      const slug = (e.target.value || '').trim();
+      if(!slug){
+        setAssigneeDisabled(true);
+        setMsg('اختر قسمًا أولاً');
+        return;
+      }
       loadMembers(slug);
     });
 
-    // عند تحميل الصفحة: إن كان هناك اختيار قسم مسبقًا، حمّل الموظفين
+    // عند تحميل الصفحة: لو في قيمة مسبقة
     {% if form.is_bound and form.fields.assignee.queryset %}
       setAssigneeDisabled(false);
-      setMsg('تم استعادة القائمة من المحاولة السابقة', 'ok');
+      setMsg('تم استعادة القيم من المحاولة السابقة', 'ok');
     {% else %}
-      if(dept && dept.value){ loadMembers(dept.value); } else { setAssigneeDisabled(true); }
+      if(dept.value){ loadMembers(dept.value); }
+      else { setAssigneeDisabled(true); }
     {% endif %}
   }
 
-  // ==== معاينات + تحقق من الحد الأقصى ====
-  if(input){
-    input.addEventListener('change', () => {
-      previews.innerHTML = '';
-      setMsg('');
-      const files = Array.from(input.files || []);
-      if (files.length > 4) {
-        setMsg('يمكن رفع 4 صور كحد أقصى.', 'error');
-        input.value = ''; return;
-      }
-      const okExt = /\.(jpe?g|png|webp)$/i;
-      let bad = false;
-      files.forEach((f, idx) => {
-        if (!(okExt.test((f.name||'').toLowerCase()) || (f.type||'').startsWith('image/'))) bad = true;
-        const url = URL.createObjectURL(f);
-        const box = document.createElement('div');
-        box.className = 'thumb';
-        box.innerHTML = `<span class="badge">#${idx+1}</span><img src="${url}" alt="preview">`;
-        previews.appendChild(box);
-        box.querySelector('img').onload = () => URL.revokeObjectURL(url);
-      });
-      if (bad){
-        setMsg('يُسمح فقط بصور JPG/PNG/WebP.', 'error');
-        input.value = ''; previews.innerHTML=''; return;
-      }
+  function clearPreviews(){
+    if(previews) previews.innerHTML = '';
+  }
+
+  function renderPreviews(files){
+    clearPreviews();
+    files.forEach((f, idx) => {
+      const url = URL.createObjectURL(f);
+      const box = document.createElement('div');
+      box.className = 'thumb';
+      box.innerHTML = '<span class="badge">#' + (idx+1) + '</span><img src="' + url + '" alt="preview">';
+      previews.appendChild(box);
+      box.querySelector('img').addEventListener('load', ()=>URL.revokeObjectURL(url), {once:true});
     });
   }
 
-  // ==== ضغط الصور قبل الإرسال (اختياري لتحسين الأداء) ====
-  async function compressImage(file, {maxW=1600, maxH=1600, quality=0.82, format='image/webp'} = {}){
+  function validateFiles(files){
+    if(files.length > MAX_FILES){
+      setMsg('يمكن رفع ' + MAX_FILES + ' صور كحد أقصى.', 'error');
+      return false;
+    }
+
+    for(const f of files){
+      const name = (f.name || '').toLowerCase();
+      const type = (f.type || '').toLowerCase();
+
+      const isImage = type.startsWith('image/');
+      const okExt = name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.webp');
+
+      if(!isImage){
+        setMsg('الملفات المرفوعة يجب أن تكون صورًا فقط.', 'error');
+        return false;
+      }
+      if(!okExt){
+        setMsg('يُسمح فقط بصور JPG/PNG/WebP.', 'error');
+        return false;
+      }
+      if(f.size > MAX_FILE_BYTES){
+        setMsg('حجم الصورة كبير. الحد قبل الضغط: ' + MAX_FILE_MB + 'MB لكل صورة.', 'error');
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  if(input){
+    input.addEventListener('change', ()=>{
+      setMsg('');
+      const files = Array.from(input.files || []);
+      if(!files.length){ clearPreviews(); return; }
+      if(!validateFiles(files)){ input.value=''; clearPreviews(); return; }
+      renderPreviews(files);
+    });
+  }
+
+  async function compressImage(file, opts){
+    const maxW = opts.maxW || 1600;
+    const maxH = opts.maxH || 1600;
+    const quality = opts.quality || 0.82;
+    const format = opts.format || 'image/webp';
+
     const img = document.createElement('img');
     const src = URL.createObjectURL(file);
-    await new Promise((res, rej)=>{ img.onload=()=>res(); img.onerror=rej; img.src=src; });
-    const w = img.naturalWidth, h = img.naturalHeight;
+
+    await new Promise((res, rej)=>{
+      img.onload = res;
+      img.onerror = rej;
+      img.src = src;
+    });
+
+    const w = img.naturalWidth || 1;
+    const h = img.naturalHeight || 1;
     const r = Math.min(maxW / w, maxH / h, 1);
-    const tw = Math.round(w*r), th = Math.round(h*r);
+
+    const tw = Math.max(1, Math.round(w * r));
+    const th = Math.max(1, Math.round(h * r));
 
     const canvas = document.createElement('canvas');
-    canvas.width = tw; canvas.height = th;
-    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, tw, th);
+    canvas.width = tw;
+    canvas.height = th;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, tw, th);
 
-    const blob = await new Promise(res => canvas.toBlob(res, format, quality));
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
     URL.revokeObjectURL(src);
 
-    if (!blob) {
-      const blob2 = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
-      return new File([blob2], (file.name.replace(/\.\w+$/, '')||'image') + '.jpg', {type:'image/jpeg'});
-    }
-    const ext = (format==='image/webp')? '.webp' : '.jpg';
-    return new File([blob], (file.name.replace(/\.\w+$/, '')||'image') + ext, {type: blob.type});
+    if(!blob) return file;
+
+    const ext = blob.type === 'image/webp' ? '.webp' : '.jpg';
+    const base = (file.name || 'image').replace(/\.\w+$/, '');
+    return new File([blob], base + ext, {type: blob.type});
   }
 
   async function replaceWithCompressed(files){
-    const dataT = new DataTransfer();
-    for (const f of files){
-      const compressed = await compressImage(f, {maxW:1600, maxH:1600, quality:0.82, format:'image/webp'});
-      if (compressed.size > 1.2 * 1024 * 1024){
-        const retry = await compressImage(f, {maxW:1600, maxH:1600, quality:0.7, format:'image/webp'});
-        dataT.items.add(retry);
+    const dt = new DataTransfer();
+    for(const f of files){
+      const c1 = await compressImage(f, {maxW:1600, maxH:1600, quality:0.82, format:'image/webp'});
+      if(c1.size > 1.2 * 1024 * 1024){
+        const c2 = await compressImage(f, {maxW:1600, maxH:1600, quality:0.70, format:'image/webp'});
+        dt.items.add(c2);
       } else {
-        dataT.items.add(compressed);
+        dt.items.add(c1);
       }
     }
-    input.files = dataT.files;
+    input.files = dt.files;
   }
 
   form.addEventListener('submit', async (e)=>{
-    // تحقق الحقول الأساسية
     if(dept && !dept.value){
-      e.preventDefault(); setMsg('الرجاء اختيار القسم.', 'error'); dept.focus(); return;
+      e.preventDefault();
+      setMsg('الرجاء اختيار القسم.', 'error');
+      dept.focus();
+      return;
     }
     if(assignee && assignee.disabled){
-      e.preventDefault(); setMsg('الرجاء الانتظار حتى يتم تحميل الموظفين.', 'error'); return;
+      e.preventDefault();
+      setMsg('الرجاء الانتظار حتى يتم تحميل الموظفين.', 'error');
+      return;
     }
     if(assignee && !assignee.value){
-      e.preventDefault(); setMsg('الرجاء اختيار الموظف.', 'error'); assignee.focus(); return;
+      e.preventDefault();
+      setMsg('الرجاء اختيار الموظف.', 'error');
+      assignee.focus();
+      return;
     }
 
-    // ضغط الصور (إن وُجدت)
     if(input){
       const files = Array.from(input.files || []);
-      if (files.length > 4){ e.preventDefault(); setMsg('يمكن رفع 4 صور كحد أقصى.', 'error'); return; }
-      if (files.length){
+      if(files.length){
+        if(!validateFiles(files)){
+          e.preventDefault();
+          return;
+        }
         e.preventDefault();
         setMsg('...جاري ضغط الصور');
         try{

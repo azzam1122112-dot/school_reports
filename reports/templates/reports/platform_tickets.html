@@ -1,60 +1,197 @@
 {% extends "base.html" %}
+
 {% block title %}تذاكر الدعم الفني (المنصة){% endblock %}
 
-{% block content %}
-<div class="container" dir="rtl">
-  <div class="page-head">
-    <div>
-      <h1 class="page-title">تذاكر الدعم الفني (المنصة)</h1>
-      <p class="page-subtitle">متابعة تذاكر الدعم للمدارس على مستوى المنصة.</p>
-    </div>
-    <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">عودة للوحة المنصة</a>
-  </div>
+{% block head %}
+<style>
+  /* ✅ Scoped فقط لهذه الصفحة */
+  .plat-tickets-scope{
+    --pt-brand: var(--brand, #2563eb);
+    --pt-ink: var(--ink, #0f172a);
+    --pt-muted: var(--muted, #64748b);
+    --pt-line: var(--line-2, var(--line, #e5e7eb));
+    --pt-card: var(--card, #fff);
+    --pt-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
+    --pt-danger: var(--danger, #ef4444);
+    --pt-ok: var(--accent, #10b981);
+    --pt-grad: linear-gradient(135deg, rgba(37,99,235,.95), rgba(59,130,246,.88));
+  }
 
-  <div class="card table-responsive">
-    <table class="rtable">
-      <thead>
-        <tr>
-          <th style="text-align:right">رقم التذكرة</th>
-          <th style="text-align:right">العنوان</th>
-          <th style="text-align:right">المرسل</th>
-          <th>التاريخ</th>
-          <th>الحالة</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for ticket in tickets %}
-        <tr>
-          <td data-label="#" style="text-align:right;font-family:monospace;font-weight:950">#{{ ticket.id }}</td>
-          <td data-label="العنوان" style="text-align:right;font-weight:900">{{ ticket.title }}</td>
-          <td data-label="المرسل" style="text-align:right">
-            <div style="font-weight:900">{{ ticket.creator.name }}</div>
-            <div class="muted" style="font-weight:850;font-size:.9rem">{{ ticket.creator.phone }}</div>
-          </td>
-          <td data-label="التاريخ">{{ ticket.created_at|date:"Y-m-d H:i" }}</td>
-          <td data-label="الحالة">
-            {% if ticket.status == 'open' %}
-              <span class="badge info">جديد</span>
-            {% elif ticket.status == 'in_progress' %}
-              <span class="badge warning">قيد المعالجة</span>
-            {% elif ticket.status == 'done' %}
-              <span class="badge success">مكتمل</span>
-            {% else %}
-              <span class="badge danger">مرفوض</span>
-            {% endif %}
-          </td>
-          <td data-label="إجراء">
-            <a href="{% url 'reports:ticket_detail' ticket.id %}" class="btn btn-outline" style="min-height:38px;padding:8px 10px">عرض</a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="6" style="padding:20px;text-align:center" class="muted">لا توجد تذاكر دعم فني.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  .plat-tickets-scope .wrap{max-width:1100px;margin-inline:auto}
+
+  /* Hero */
+  .plat-tickets-scope .hero{
+    padding: 16px 18px;
+    border-radius: 16px;
+    color:#fff;
+    background:
+      radial-gradient(900px 240px at 15% 0%, rgba(16,185,129,.16), transparent 55%),
+      radial-gradient(700px 220px at 90% 70%, rgba(255,255,255,.14), transparent 60%),
+      var(--pt-grad);
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: var(--pt-shadow);
+    margin-bottom: 12px;
+  }
+  .plat-tickets-scope .hero-head{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;
+  }
+  .plat-tickets-scope .hero h1{margin:0;font-weight:950;font-size:clamp(1.15rem,2.4vw,1.55rem)}
+  .plat-tickets-scope .hero p{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65;max-width:70ch}
+  .plat-tickets-scope .hero-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .plat-tickets-scope .hero-actions .btn{border-radius:14px}
+  .plat-tickets-scope .hero-actions .btn-outline{
+    background: rgba(255,255,255,.12);
+    border-color: rgba(255,255,255,.22);
+    color:#fff;
+  }
+  .plat-tickets-scope .hero-actions .btn-outline:hover{
+    background: rgba(255,255,255,.16);
+    border-color: rgba(255,255,255,.28);
+  }
+
+  /* Table card */
+  .plat-tickets-scope .tcard{
+    border: 1px solid var(--pt-line);
+    border-radius: 16px;
+    box-shadow: var(--pt-shadow);
+    overflow: hidden;
+  }
+  .plat-tickets-scope .rtable thead th{font-weight:950}
+
+  /* Ticket bits */
+  .plat-tickets-scope .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  .plat-tickets-scope .t-title{font-weight:950;color:var(--pt-ink)}
+  .plat-tickets-scope .sender{display:grid;gap:2px}
+  .plat-tickets-scope .sender b{font-weight:950}
+  .plat-tickets-scope .sender small{color:var(--pt-muted);font-weight:850}
+
+  /* badges fallback (لو موجودة في base/app.css ما راح تتعارض) */
+  .plat-tickets-scope .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: .86rem;
+    border: 1px solid rgba(15,23,42,.08);
+    background: rgba(148,163,184,.15);
+    color: var(--pt-ink);
+    white-space:nowrap;
+  }
+  .plat-tickets-scope .badge.info{
+    background: rgba(37,99,235,.12);
+    border-color: rgba(37,99,235,.22);
+    color: var(--pt-brand);
+  }
+  .plat-tickets-scope .badge.warning{
+    background: rgba(245,158,11,.14);
+    border-color: rgba(245,158,11,.22);
+    color: #b45309;
+  }
+  .plat-tickets-scope .badge.success{
+    background: rgba(16,185,129,.12);
+    border-color: rgba(16,185,129,.22);
+    color: var(--pt-ok);
+  }
+  .plat-tickets-scope .badge.danger{
+    background: rgba(239,68,68,.12);
+    border-color: rgba(239,68,68,.22);
+    color: var(--pt-danger);
+  }
+
+  /* Mobile tweaks */
+  @media(max-width:520px){
+    .plat-tickets-scope .hero{padding:14px}
+    .plat-tickets-scope .hero-actions .btn{width:100%;justify-content:center}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container plat-tickets-scope" dir="rtl">
+  <div class="wrap">
+
+    <section class="hero" aria-label="رأس تذاكر الدعم الفني">
+      <div class="hero-head">
+        <div>
+          <h1>تذاكر الدعم الفني (المنصة)</h1>
+          <p>متابعة تذاكر الدعم للمدارس على مستوى المنصة.</p>
+        </div>
+        <div class="hero-actions">
+          <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            عودة للوحة المنصة
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="card tcard table-responsive">
+      <table class="rtable">
+        <thead>
+          <tr>
+            <th style="text-align:right">رقم التذكرة</th>
+            <th style="text-align:right">العنوان</th>
+            <th style="text-align:right">المرسل</th>
+            <th>التاريخ</th>
+            <th>الحالة</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ticket in tickets %}
+            <tr>
+              <td data-label="#" style="text-align:right">
+                <span class="mono" style="font-weight:950;color:var(--pt-brand)">#{{ ticket.id }}</span>
+              </td>
+
+              <td data-label="العنوان" style="text-align:right">
+                <span class="t-title">{{ ticket.title }}</span>
+              </td>
+
+              <td data-label="المرسل" style="text-align:right">
+                <div class="sender">
+                  <b>{% firstof ticket.creator.name ticket.creator.phone "—" %}</b>
+                  <small class="mono">{% firstof ticket.creator.phone "—" %}</small>
+                </div>
+              </td>
+
+              <td data-label="التاريخ" class="muted" style="font-weight:850">
+                {{ ticket.created_at|date:"Y-m-d H:i" }}
+              </td>
+
+              <td data-label="الحالة">
+                {% if ticket.status == 'open' %}
+                  <span class="badge info"><i class="fa-regular fa-circle-dot" aria-hidden="true"></i> جديد</span>
+                {% elif ticket.status == 'in_progress' %}
+                  <span class="badge warning"><i class="fa-solid fa-spinner" aria-hidden="true"></i> قيد المعالجة</span>
+                {% elif ticket.status == 'done' %}
+                  <span class="badge success"><i class="fa-solid fa-check" aria-hidden="true"></i> مكتمل</span>
+                {% else %}
+                  <span class="badge danger"><i class="fa-solid fa-xmark" aria-hidden="true"></i> مرفوض</span>
+                {% endif %}
+              </td>
+
+              <td data-label="إجراء">
+                <a href="{% url 'reports:ticket_detail' ticket.id %}" class="btn btn-outline" style="min-height:38px;padding:8px 10px;border-radius:12px">
+                  <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                  عرض
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" style="padding:22px;text-align:center" class="muted">
+                <div style="font-weight:950">لا توجد تذاكر دعم فني.</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
   </div>
 </div>
 {% endblock %}

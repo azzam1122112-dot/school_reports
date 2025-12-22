@@ -55,7 +55,7 @@
   .label i{color:rgba(37,99,235,.95)}
   .hint{margin-top:6px;color:var(--muted);font-weight:800;font-size:.88rem}
 
-  /* Inputs: نستخدم أسلوب المنصة (نفس app.css) */
+  /* Inputs */
   .teacher-body input:not([type="checkbox"]),
   .teacher-body select,
   .teacher-body textarea{
@@ -84,7 +84,7 @@
 
   /* Password control */
   .pw-wrap{position:relative}
-  .pw-wrap input{padding-inline:44px} /* يمين ويسار */
+  .pw-wrap input{padding-inline:44px}
   .pw-ico{
     position:absolute;right:12px;top:50%;transform:translateY(-50%);
     color:rgba(100,116,139,.95);
@@ -114,12 +114,12 @@
   }
   .slider:before{
     content:"";
-    position:absolute;top:5px;right:5px; /* RTL: تبدأ من اليمين */
+    position:absolute;top:5px;right:5px;
     width:22px;height:22px;border-radius:50%;
     background:#fff;transition:.25s;
   }
   .switch input:checked + .slider{background:var(--brand)}
-  .switch input:checked + .slider:before{transform:translateX(-24px)} /* RTL */
+  .switch input:checked + .slider:before{transform:translateX(-24px)}
   .switch-meta{display:grid;gap:4px}
   .switch-meta b{font-weight:900}
 
@@ -136,7 +136,6 @@
   .field-error{margin-top:6px;color:#b91c1c;font-weight:900;font-size:.9rem}
   html[data-theme="dark"] .field-error{color:#fecaca}
 
-  /* non-field error box */
   .nferr{
     margin-bottom:12px;
     padding:12px 14px;
@@ -207,6 +206,19 @@
             <div class="hint">الاسم الكامل للمعلم كما سيظهر في النظام</div>
           </div>
 
+          <!-- الدور (مهم للصلاحيات) -->
+          <div class="group">
+            <label class="label" for="{{ form.role.id_for_label }}">
+              <i class="fas fa-user-gear" aria-hidden="true"></i> الدور
+            </label>
+            <div class="select-wrap">
+              {{ form.role }}
+              <span class="caret" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+            </div>
+            {% for e in form.role.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+            <div class="hint">حدد دور المعلم/الموظف لتطبيق الصلاحيات تلقائيًا</div>
+          </div>
+
           <!-- الهوية -->
           <div class="group">
             <label class="label" for="{{ form.national_id.id_for_label }}">
@@ -240,17 +252,22 @@
               </button>
             </div>
             {% for e in form.password.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">اتركها فارغة عند التعديل إذا لا تريد تغييرها</div>
+
+            {% if form.instance.pk %}
+              <div class="hint">اتركها فارغة إذا لا تريد تغيير كلمة المرور</div>
+            {% else %}
+              <div class="hint">اختر كلمة مرور قوية (8 أحرف فأكثر) — يمكن تغييرها لاحقًا</div>
+            {% endif %}
           </div>
 
           <!-- نشط -->
           <div class="group">
             <div class="label"><i class="fas fa-toggle-on" aria-hidden="true"></i> حالة الحساب</div>
             <div class="switch-row">
-              <span class="switch">
+              <label class="switch" aria-label="تفعيل حساب المعلم">
                 {{ form.is_active }}
                 <span class="slider"></span>
-              </span>
+              </label>
               <span class="switch-meta">
                 <b>نشط</b>
                 <span class="hint">تفعيل حساب المعلم للنظام</span>
@@ -280,38 +297,43 @@
 {% block scripts %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // تحسين الإدخال للجوال/الهوية بدون تعديل الـ Form widgets
     const national = document.getElementById('{{ form.national_id.id_for_label }}') || document.getElementById('id_national_id');
     const phone = document.getElementById('{{ form.phone.id_for_label }}') || document.getElementById('id_phone');
 
     if(national){
       national.setAttribute('inputmode','numeric');
-      national.setAttribute('pattern','\\d{10}');
+      national.setAttribute('pattern','^\\d{10}$');
       national.setAttribute('maxlength','10');
       national.dir='ltr';
       national.style.textAlign='left';
+      national.setAttribute('autocomplete','off');
     }
     if(phone){
       phone.setAttribute('inputmode','tel');
-      phone.setAttribute('pattern','05\\d{8}');
+      phone.setAttribute('pattern','^05\\d{8}$');
       phone.setAttribute('maxlength','10');
       phone.dir='ltr';
       phone.style.textAlign='left';
+      phone.setAttribute('autocomplete','tel');
     }
 
-    // إظهار/إخفاء كلمة المرور
     const toggle = document.getElementById("togglePassword");
-    const pwd = document.getElementById('{{ form.password.id_for_label }}') || document.getElementById('id_password') || document.querySelector('input[type="password"]');
+    const pwd = document.getElementById('{{ form.password.id_for_label }}') || document.getElementById('id_password') || document.querySelector('input[type="password"],input[name="password"]');
+    if(pwd && pwd.type !== 'password'){
+      // احتياطًا لو الودجت رجّع type مختلف
+      pwd.type = 'password';
+    }
     if(toggle && pwd){
       toggle.addEventListener("click", function(){
         const isPwd = pwd.type === "password";
         pwd.type = isPwd ? "text" : "password";
         toggle.setAttribute('aria-label', isPwd ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
-        toggle.innerHTML = isPwd ? '<i class="fa-regular fa-eye-slash" aria-hidden="true"></i>' : '<i class="fa-regular fa-eye" aria-hidden="true"></i>';
+        toggle.innerHTML = isPwd
+          ? '<i class="fa-regular fa-eye-slash" aria-hidden="true"></i>'
+          : '<i class="fa-regular fa-eye" aria-hidden="true"></i>';
       });
     }
 
-    // منع الإرسال المزدوج (بدون فقدان الأيقونة)
     const form = document.querySelector(".teacher-body form");
     const btn = document.getElementById("submitBtn");
     if(form && btn){
@@ -321,7 +343,6 @@
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جارٍ الحفظ...';
       });
     }
-
   });
 </script>
 {% endblock %}

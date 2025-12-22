@@ -79,7 +79,7 @@
   .thumb img{width:100%; height:100%; object-fit:cover; aspect-ratio:4/3}
   .thumb:hover{box-shadow:0 4px 16px rgba(2,6,23,.12)}
   .thumb .cap{display:block; padding:6px 8px; font-size:.85rem; color:#6b7280}
-  
+
   /* Sticky hint on mobile */
   @media(max-width:720px){
     .sticky-hint{position:sticky; bottom:0; background:linear-gradient(0deg,rgba(248,250,252,.98),rgba(248,250,252,.75));
@@ -104,7 +104,7 @@
 <div class="wrap">
 
   <!-- Top bar -->
-  <section class="bar" aria-label="شريط الصفحة">
+  <section class="bar" aria-label="شريط الصفحة" dir="rtl">
     <div>
       <h1>تفاصيل الطلب #{{ t.id }}</h1>
       <div class="minor">
@@ -119,43 +119,45 @@
       {% else %}
         <a class="btn" href="{% url 'reports:my_requests' %}">← العودة لطلباتي</a>
       {% endif %}
-      
+
       {% if request.user.is_staff and not t.is_platform %}
         <a class="btn" href="{% url 'reports:tickets_inbox' %}">صندوق الطلبات</a>
       {% endif %}
     </div>
   </section>
 
-  <section class="grid" aria-label="تفاصيل وملاحظات">
+  <section class="grid" aria-label="تفاصيل وملاحظات" dir="rtl">
 
     <!-- Details -->
     <article class="card" aria-labelledby="details-h">
       <div class="hd"><h2 id="details-h" class="title">تفاصيل الطلب</h2></div>
+
       <div class="body summary">
         <div class="row"><div class="k">العنوان</div><div class="v">{{ t.title|default:"—" }}</div></div>
         <div class="row"><div class="k">القسم</div><div class="v">{{ t.get_department_display|default:t.department|default:"—" }}</div></div>
         <div class="row"><div class="k">المستلم</div><div class="v">{% firstof t.assignee.name t.assignee "—" %}</div></div>
         <div class="row"><div class="k">المرسل</div><div class="v">{{ t.creator.name|default:"—" }}</div></div>
 
-        <!-- مرفق واحد (إن وُجد) -->
+        <!-- ✅ المرفق (صورة فقط) -->
         <div class="row">
           <div class="k">المرفق</div>
           <div class="v">
             {% if t.attachment %}
-              {% if t.attachment_is_pdf %}
-                <a class="btn btn-primary"
-                   href="{{ t.attachment_download_url|default:t.attachment.url }}{% if '?' not in t.attachment_download_url|default:t.attachment.url %}?{% else %}&{% endif %}fl_attachment=1"
-                   download rel="nofollow">تنزيل المرفق (PDF)</a>
-              {% else %}
-                <a class="btn" href="{{ t.attachment.url }}" target="_blank" rel="noopener">فتح المرفق</a>
-              {% endif %}
-            {% else %} — {% endif %}
+              <div class="gallery">
+                <a class="thumb" href="{{ t.attachment.url }}" target="_blank" rel="noopener">
+                  <img src="{{ t.attachment.url }}" alt="مرفق الطلب" loading="lazy">
+                  <span class="cap">الصورة الرئيسية</span>
+                </a>
+              </div>
+            {% else %}
+              <span class="help">لا يوجد مرفق.</span>
+            {% endif %}
           </div>
         </div>
 
         <!-- الصور المرفقة المتعددة (تُمرَّر من الفيو في المتغيّر images) -->
         <div class="row">
-          <div class="k">الصور</div>
+          <div class="k">صور إضافية</div>
           <div class="v">
             {% if images and images|length %}
               <div class="gallery">
@@ -168,17 +170,21 @@
                 {% endfor %}
               </div>
             {% else %}
-              <span class="help">لا توجد صور مرفقة.</span>
+              <span class="help">لا توجد صور إضافية.</span>
             {% endif %}
           </div>
         </div>
 
-        <div class="row"><div class="k">المحتوى</div><div class="content-pre">{{ t.body|default_if_none:"—"|linebreaksbr }}</div></div>
+        <div class="row">
+          <div class="k">المحتوى</div>
+          <div class="content-pre">{{ t.body|default_if_none:"—"|linebreaksbr }}</div>
+        </div>
       </div>
 
-      {# ✅ استخدم and بدل && #}
       {% if is_owner and not can_act and not t.is_platform %}
-        <div class="sticky-hint"><span class="help">أضِف ملاحظة للتواصل — ستتحوّل الحالة تلقائيًا إلى <b>جــديد</b>.</span></div>
+        <div class="sticky-hint">
+          <span class="help">أضِف ملاحظة للتواصل — ستتحوّل الحالة تلقائيًا إلى <b>جــديد</b>.</span>
+        </div>
       {% endif %}
     </article>
 
@@ -202,49 +208,52 @@
     </article>
 
     {% if can_act and form %}
-    <!-- Assignee action form -->
-    <article class="card" id="act" aria-labelledby="act-h">
-      <div class="hd"><h2 id="act-h" class="title">إجراء على الطلب</h2></div>
-      <div class="body">
-        <form method="post" class="form" novalidate>
-          {% csrf_token %}
-          <div>
-            <label class="help">الحالة</label>
-            <select name="status" class="select">
-              {% for value,label in form.fields.status.choices %}
-                <option value="{{ value }}" {% if value == t.status %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label class="help">ملاحظة (تظهر للمرسل)</label>
-            <textarea name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك (اختياري)"></textarea>
-          </div>
-          <div class="btns">
-            <button type="submit" class="btn btn-primary">حفظ</button>
-            <a class="btn" href="{% url 'reports:ticket_detail' t.id %}">إلغاء</a>
-          </div>
-        </form>
-      </div>
-    </article>
+      <!-- Assignee action form -->
+      <article class="card" id="act" aria-labelledby="act-h">
+        <div class="hd"><h2 id="act-h" class="title">إجراء على الطلب</h2></div>
+        <div class="body">
+          <form method="post" class="form" novalidate>
+            {% csrf_token %}
+
+            <div>
+              <label class="help">الحالة</label>
+              <select name="status" class="select">
+                {% for value,label in form.fields.status.choices %}
+                  <option value="{{ value }}" {% if value == t.status %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div>
+              <label class="help">ملاحظة (تظهر للمرسل)</label>
+              <textarea name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك (اختياري)"></textarea>
+            </div>
+
+            <div class="btns">
+              <button type="submit" class="btn btn-primary">حفظ</button>
+              <a class="btn" href="{% url 'reports:ticket_detail' t.id %}">إلغاء</a>
+            </div>
+          </form>
+        </div>
+      </article>
 
     {% elif is_owner and not can_act %}
-    <!-- Creator note-only form -->
-    <article class="card" id="note-only" aria-labelledby="note-h">
-      <div class="hd"><h2 id="note-h" class="title">إضافة ملاحظة</h2></div>
-      <div class="body">
-        <form method="post" class="form" novalidate>
-          {% csrf_token %}
-          <div>
-            <textarea name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك هنا…"></textarea>
-          </div>
-          <div class="btns">
-            <button type="submit" class="btn btn-primary">إضافة الملاحظة</button>
-            <a class="btn" href="{% url 'reports:ticket_detail' t.id %}">إلغاء</a>
-          </div>
-        </form>
-      </div>
-    </article>
+      <!-- Creator note-only form -->
+      <article class="card" id="note-only" aria-labelledby="note-h">
+        <div class="hd"><h2 id="note-h" class="title">إضافة ملاحظة</h2></div>
+        <div class="body">
+          <form method="post" class="form" novalidate>
+            {% csrf_token %}
+            <div>
+              <textarea name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك هنا…"></textarea>
+            </div>
+            <div class="btns">
+              <button type="submit" class="btn btn-primary">إضافة الملاحظة</button>
+              <a class="btn" href="{% url 'reports:ticket_detail' t.id %}">إلغاء</a>
+            </div>
+          </form>
+        </div>
+      </article>
     {% endif %}
 
   </section>

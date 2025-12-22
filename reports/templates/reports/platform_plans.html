@@ -1,64 +1,225 @@
 {% extends "base.html" %}
+
 {% block title %}خطط الاشتراك{% endblock %}
 
+{% block head %}
+<style>
+  /* ✅ Scoped فقط لهذه الصفحة */
+  .plans-scope{
+    --pl-brand: var(--brand, #2563eb);
+    --pl-ink: var(--ink, #0f172a);
+    --pl-muted: var(--muted, #64748b);
+    --pl-line: var(--line-2, var(--line, #e5e7eb));
+    --pl-card: var(--card, #fff);
+    --pl-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
+    --pl-danger: var(--danger, #ef4444);
+    --pl-ok: var(--accent, #10b981);
+  }
+
+  .plans-scope .page-head{
+    align-items:flex-start;
+    gap:10px;
+  }
+  .plans-scope .head-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:flex-start;
+  }
+  @media(max-width:560px){
+    .plans-scope .head-actions{width:100%}
+    .plans-scope .head-actions .btn{width:100%; justify-content:center}
+  }
+
+  /* Grid */
+  .plans-scope .plans-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+    gap:12px;
+  }
+
+  /* Card */
+  .plans-scope .p-card{
+    position:relative;
+    overflow:hidden;
+    border-radius:16px;
+    box-shadow: var(--pl-shadow);
+    border:1px solid var(--pl-line);
+  }
+  .plans-scope .p-card::before{
+    content:"";
+    position:absolute;
+    inset:0 0 auto 0;
+    height:4px;
+    background: linear-gradient(135deg, var(--pl-brand), #4f46e5 65%, var(--pl-ok));
+    opacity:.95;
+  }
+
+  .plans-scope .p-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .plans-scope .p-name{
+    margin:0;
+    font-weight:950;
+    font-size:1.05rem;
+    color:var(--pl-ink);
+  }
+  .plans-scope .p-meta{
+    margin-top:8px;
+    display:grid;
+    gap:4px;
+    color:var(--pl-muted);
+    font-weight:850;
+  }
+
+  .plans-scope .price{
+    margin-top:12px;
+    font-size:1.55rem;
+    font-weight:950;
+    color:var(--pl-brand);
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  .plans-scope .price small{
+    font-weight:900;
+    color:var(--pl-muted);
+    font-size:.9rem;
+  }
+
+  .plans-scope .desc{
+    margin-top:10px;
+    color:var(--pl-muted);
+    font-weight:850;
+    min-height:44px;
+    line-height:1.7;
+  }
+
+  .plans-scope .p-actions{margin-top:14px; display:grid; gap:10px}
+  .plans-scope .btn-block{width:100%; justify-content:center}
+
+  /* Badge tweaks (لو ما كانت موجودة في app.css تظل آمنة) */
+  .plans-scope .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(15,23,42,.08);
+    background: rgba(148,163,184,.10);
+    color: var(--pl-ink);
+    font-weight:900;
+    font-size:.85rem;
+    white-space:nowrap;
+  }
+  .plans-scope .badge.success{
+    background: rgba(16,185,129,.12);
+    color: var(--pl-ok);
+    border-color: rgba(16,185,129,.22);
+  }
+
+  /* Empty */
+  .plans-scope .empty{
+    grid-column:1/-1;
+    text-align:center;
+    padding:22px;
+    font-weight:900;
+    color:var(--pl-muted);
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container" dir="rtl">
+<div class="container plans-scope" dir="rtl">
   <div class="page-head">
     <div>
       <h1 class="page-title">خطط الاشتراك</h1>
       <p class="page-subtitle">إدارة باقات الأسعار المتاحة للمدارس.</p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <a href="{% url 'reports:platform_plan_add' %}" class="btn btn-primary">إضافة خطة جديدة</a>
-      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">عودة للوحة المنصة</a>
+
+    <div class="head-actions">
+      <a href="{% url 'reports:platform_plan_add' %}" class="btn btn-primary">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        إضافة خطة جديدة
+      </a>
+      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        عودة للوحة المنصة
+      </a>
     </div>
   </div>
 
-  <div class="cards" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));">
+  <div class="plans-grid">
     {% for plan in plans %}
-    <div class="card">
-      <div class="row-between" style="align-items:flex-start">
-        <div>
-          <div style="font-weight:950;font-size:1.08rem">{{ plan.name }}</div>
-          <div class="muted" style="font-weight:850;margin-top:4px">⏱️ المدة: {{ plan.days_duration }} يوم</div>
-          <div class="muted" style="font-weight:850;margin-top:4px">
-            👥 حد المعلمين:
-            {% if plan.max_teachers and plan.max_teachers > 0 %}
-              {{ plan.max_teachers }}
-            {% else %}
-              غير محدود
-            {% endif %}
+      <div class="card p-card">
+        <div class="p-top">
+          <div>
+            <h3 class="p-name">{{ plan.name }}</h3>
+
+            <div class="p-meta">
+              <div>⏱️ المدة: <b style="color:var(--pl-ink)">{{ plan.days_duration }}</b> يوم</div>
+              <div>
+                👥 حد المعلمين:
+                {% if plan.max_teachers and plan.max_teachers > 0 %}
+                  <b style="color:var(--pl-ink)">{{ plan.max_teachers }}</b>
+                {% else %}
+                  <b style="color:var(--pl-ink)">غير محدود</b>
+                {% endif %}
+              </div>
+            </div>
           </div>
+
+          {% if plan.is_active %}
+            <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> فعال</span>
+          {% else %}
+            <span class="badge"><i class="fa-regular fa-circle" aria-hidden="true"></i> غير فعال</span>
+          {% endif %}
         </div>
-        {% if plan.is_active %}
-          <span class="badge success">فعال</span>
-        {% else %}
-          <span class="badge">غير فعال</span>
-        {% endif %}
-      </div>
 
-      <div style="font-size:1.55rem;font-weight:950;color:var(--brand);margin-top:12px">
-        {{ plan.price }} ريال
-      </div>
+        <div class="price">
+          {{ plan.price }} <small>ريال</small>
+        </div>
 
-      <div class="muted" style="margin-top:10px;font-weight:850;min-height:44px">
-        {{ plan.description|truncatechars:100 }}
-      </div>
+        <div class="desc">
+          {{ plan.description|default:"—"|truncatechars:120 }}
+        </div>
 
-      <div style="margin-top:14px">
-        <a href="{% url 'reports:platform_plan_edit' plan.id %}" class="btn btn-outline btn-block">تعديل الخطة</a>
-        <form method="post" action="{% url 'reports:platform_plan_delete' plan.id %}" style="margin-top:10px">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button type="submit" class="btn btn-danger btn-block" onclick="return confirm('هل أنت متأكد من حذف هذه الخطة؟')">حذف الخطة</button>
-        </form>
+        <div class="p-actions">
+          <a href="{% url 'reports:platform_plan_edit' plan.id %}" class="btn btn-outline btn-block">
+            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+            تعديل الخطة
+          </a>
+
+          <form method="post" action="{% url 'reports:platform_plan_delete' plan.id %}" data-confirm="1">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn btn-danger btn-block">
+              <i class="fa-solid fa-trash" aria-hidden="true"></i>
+              حذف الخطة
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
     {% empty %}
-    <div class="card" style="grid-column:1/-1;text-align:center" class="muted">
-      لا توجد خطط اشتراك مضافة.
-    </div>
+      <div class="card empty">لا توجد خطط اشتراك مضافة.</div>
     {% endfor %}
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // تأكيد حذف بدون inline onclick (أنظف وأسهل صيانة)
+  document.addEventListener("DOMContentLoaded", function(){
+    document.querySelectorAll('form[data-confirm="1"]').forEach(function(f){
+      f.addEventListener("submit", function(e){
+        const ok = confirm("هل أنت متأكد من حذف هذه الخطة؟");
+        if(!ok) e.preventDefault();
+      });
+    });
+  });
+</script>
 {% endblock %}

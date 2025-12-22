@@ -3,52 +3,125 @@
 
 {% block head %}
 <style>
-  /* تخصيص طفيف للوحة مدير النظام لتقليل الفراغات */
-  .plat-scope .page-hero{
+  /* ✅ Scoped فقط لهذه الصفحة — بدون لمس :root */
+  .platform-admin{
+    --pa-brand: var(--brand, #2563eb);
+    --pa-accent: var(--accent, #10b981);
+    --pa-danger: var(--danger, #ef4444);
+    --pa-ink: var(--ink, #0f172a);
+    --pa-muted: var(--muted, #64748b);
+    --pa-line: var(--line-2, var(--line, #e5e7eb));
+    --pa-card: var(--card, #fff);
+    --pa-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
+  }
+
+  /* Hero: أقل فراغات + شكل احترافي */
+  .platform-admin .page-hero{
     padding: 14px 18px;
     margin-top: 10px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    border: none;
+    background:
+      radial-gradient(900px 240px at 20% 0%, rgba(37,99,235,.22), transparent 55%),
+      radial-gradient(700px 260px at 85% 75%, rgba(16,185,129,.16), transparent 60%),
+      linear-gradient(135deg, rgba(37,99,235,.96), rgba(14,165,233,.88));
+    color:#fff;
   }
 
-  .plat-scope .page-head{
-    gap: 8px;
+  .platform-admin .page-head{gap:10px}
+
+  /* Badge */
+  .platform-admin .hero-badge{
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.22);
+    backdrop-filter: blur(10px);
+  }
+  .platform-admin .hero-ava{
+    background: rgba(255,255,255,.92);
+    color: var(--pa-brand);
+    font-weight: 950;
   }
 
-  .plat-scope .actions-grid{display:grid;gap:12px;margin-top:14px}
-  @media(min-width: 900px){.plat-scope .actions-grid{grid-template-columns:1fr 1fr}}
+  /* KPI spacing */
+  .platform-admin .kpi-grid{
+    margin-top: 12px;
+  }
+  .platform-admin .kpi{
+    box-shadow: var(--pa-shadow);
+  }
 
-  .plat-scope .tile{
+  /* Actions */
+  .platform-admin .actions-grid{
+    display:grid;
+    gap:12px;
+    margin-top:14px;
+  }
+  @media(min-width: 900px){
+    .platform-admin .actions-grid{grid-template-columns:1fr 1fr}
+  }
+
+  .platform-admin .tile{
     display:flex;
     gap:12px;
     align-items:center;
     text-decoration:none;
     color: inherit;
     padding: 14px;
+    transition: var(--t, all .2s ease);
   }
-  .plat-scope .tile:hover{background: rgba(37,99,235,.04); border-color: rgba(37,99,235,.20)}
-  .plat-scope .tile .ico{
+  .platform-admin .tile:hover{
+    background: rgba(37,99,235,.04);
+    border-color: rgba(37,99,235,.20);
+    transform: translateY(-1px);
+  }
+
+  .platform-admin .tile .ico{
     width:46px;height:46px;
     border-radius: 14px;
     display:grid;
     place-items:center;
     font-weight: 950;
     border: 1px solid rgba(15,23,42,.06);
-    background: rgba(37,99,235,.10);
-    color: var(--brand);
+    background: rgba(255,255,255,.70);
+    color: var(--pa-brand);
     flex: 0 0 auto;
   }
-  .plat-scope .tile .t-title{margin:0;font-weight:950;color:var(--ink);font-size:1.02rem}
-  .plat-scope .tile .t-sub{margin-top:4px;color:var(--muted);font-weight:850}
+  html[data-theme="dark"] .platform-admin .tile .ico{
+    background: rgba(255,255,255,.06);
+    border-color: rgba(148,163,184,.18);
+  }
+
+  .platform-admin .tile .t-title{
+    margin:0;
+    font-weight:950;
+    color: var(--pa-ink);
+    font-size: 1.02rem;
+  }
+  .platform-admin .tile .t-sub{
+    margin-top:4px;
+    color: var(--pa-muted);
+    font-weight: 850;
+  }
+
+  /* Mobile */
+  @media(max-width:520px){
+    .platform-admin .page-hero{padding:14px}
+    .platform-admin .actions-grid{grid-template-columns:1fr}
+    .platform-admin .tile{align-items:flex-start}
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container plat-scope" dir="rtl">
+<div class="container platform-admin" dir="rtl">
+
   <section class="card page-hero" aria-label="رأس لوحة المنصة">
     <div class="page-head" style="margin:0">
       <div>
-        <h1 class="page-title">لوحة مدير النظام</h1>
-        <p class="page-subtitle">إحصائيات عامة وإجراءات خاصة بالمشرف العام فقط.</p>
+        <h1 class="page-title" style="color:#fff">لوحة مدير النظام</h1>
+        <p class="page-subtitle" style="color:rgba(255,255,255,.92)">
+          إحصائيات عامة وإجراءات خاصة بالمشرف العام فقط.
+        </p>
       </div>
 
       <div class="hero-badge" title="مستخدم حالي">
@@ -62,15 +135,70 @@
     </div>
   </section>
 
-  <section class="kpi-grid" aria-label="مؤشرات سريعة" style="margin-top:12px">
-    <div class="kpi"><div><div class="num">{{ platform_schools_active }}</div><div class="lbl">مدارس نشطة</div></div><div class="kpi-ico ok">🏫</div></div>
-    <div class="kpi"><div><div class="num">{{ platform_schools_total }}</div><div class="lbl">إجمالي المدارس</div></div><div class="kpi-ico info">🏷️</div></div>
-    <div class="kpi"><div><div class="num">{{ subscriptions_expiring_soon }}</div><div class="lbl">تنتهي قريباً</div></div><div class="kpi-ico warn">⏳</div></div>
-    <div class="kpi"><div><div class="num">{{ subscriptions_expired }}</div><div class="lbl">منتهية</div></div><div class="kpi-ico danger">⛔</div></div>
-    <div class="kpi"><div><div class="num">{{ pending_payments }}</div><div class="lbl">مدفوعات معلّقة</div></div><div class="kpi-ico warn">💳</div></div>
-    <div class="kpi"><div><div class="num">{{ total_revenue }}</div><div class="lbl">إجمالي الإيرادات</div></div><div class="kpi-ico ok">💰</div></div>
-    <div class="kpi"><div><div class="num">{{ tickets_open }}</div><div class="lbl">تذاكر دعم فني</div></div><div class="kpi-ico info">🎧</div></div>
-    <div class="kpi"><div><div class="num">{{ reports_count }}</div><div class="lbl">إجمالي التقارير</div></div><div class="kpi-ico info">📄</div></div>
+  <section class="kpi-grid" aria-label="مؤشرات سريعة">
+    <div class="kpi">
+      <div>
+        <div class="num">{{ platform_schools_active }}</div>
+        <div class="lbl">مدارس نشطة</div>
+      </div>
+      <div class="kpi-ico ok">🏫</div>
+    </div>
+
+    <div class="kpi">
+      <div>
+        <div class="num">{{ platform_schools_total }}</div>
+        <div class="lbl">إجمالي المدارس</div>
+      </div>
+      <div class="kpi-ico info">🏷️</div>
+    </div>
+
+    <div class="kpi">
+      <div>
+        <div class="num">{{ subscriptions_expiring_soon }}</div>
+        <div class="lbl">تنتهي قريباً</div>
+      </div>
+      <div class="kpi-ico warn">⏳</div>
+    </div>
+
+    <div class="kpi">
+      <div>
+        <div class="num">{{ subscriptions_expired }}</div>
+        <div class="lbl">منتهية</div>
+      </div>
+      <div class="kpi-ico danger">⛔</div>
+    </div>
+
+    <div class="kpi">
+      <div>
+        <div class="num">{{ pending_payments }}</div>
+        <div class="lbl">مدفوعات معلّقة</div>
+      </div>
+      <div class="kpi-ico warn">💳</div>
+    </div>
+
+    <div class="kpi">
+      <div>
+        <div class="num">{{ total_revenue }}</div>
+        <div class="lbl">إجمالي الإيرادات</div>
+      </div>
+      <div class="kpi-ico ok">💰</div>
+    </div>
+
+    <div class="kpi">
+      <div>
+        <div class="num">{{ tickets_open }}</div>
+        <div class="lbl">تذاكر دعم فني</div>
+      </div>
+      <div class="kpi-ico info">🎧</div>
+    </div>
+
+    <div class="kpi">
+      <div>
+        <div class="num">{{ reports_count }}</div>
+        <div class="lbl">إجمالي التقارير</div>
+      </div>
+      <div class="kpi-ico info">📄</div>
+    </div>
   </section>
 
   <section class="actions-grid" aria-label="إجراءات مدير النظام">
@@ -138,5 +266,6 @@
       </div>
     </a>
   </section>
+
 </div>
 {% endblock %}

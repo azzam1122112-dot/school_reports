@@ -1,90 +1,249 @@
 {% extends "base.html" %}
 {% block title %}بروفايل المدرسة{% endblock %}
 
+{% block head %}
+<style>
+  /* ✅ Scoped styles فقط لهذه الصفحة */
+  .schoolp-page{max-width:1100px;margin:0 auto;padding:clamp(10px,2.2vw,18px)}
+  .schoolp-shell{
+    background:var(--card);
+    border:1px solid var(--line-2);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+
+  /* Header */
+  .schoolp-head{
+    padding:clamp(16px,2.2vw,22px) clamp(16px,3vw,26px);
+    background:
+      radial-gradient(900px 220px at 18% 0%, rgba(37,99,235,.18), transparent 55%),
+      radial-gradient(700px 220px at 85% 90%, rgba(16,185,129,.14), transparent 60%),
+      linear-gradient(135deg, rgba(37,99,235,.92), rgba(59,130,246,.86));
+    color:#fff;
+  }
+  .schoolp-head-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .schoolp-title{
+    margin:0;
+    font-weight:950;
+    font-size:clamp(1.15rem,2.4vw,1.6rem);
+    display:flex;align-items:center;gap:10px;
+  }
+  .schoolp-sub{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65}
+
+  .schoolp-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+  .schoolp-actions .btn{border-radius:14px}
+  .schoolp-actions .btn-outline{
+    background:rgba(255,255,255,.10);
+    border:1px solid rgba(255,255,255,.20);
+    color:#fff;
+  }
+
+  /* Body */
+  .schoolp-body{padding:clamp(14px,2.6vw,22px)}
+  .grid{display:grid;gap:14px}
+  @media(min-width:980px){.grid{grid-template-columns:1.15fr .85fr}}
+
+  .cardish{
+    background:var(--card);
+    border:1px solid var(--line-2);
+    border-radius:18px;
+    box-shadow:var(--shadow-sm);
+    padding:14px;
+  }
+
+  .block-title{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    margin:0 0 10px;
+    font-weight:950;
+    color:var(--ink);
+  }
+  .block-title small{color:var(--muted);font-weight:850}
+
+  .rows{display:grid;gap:10px}
+  .row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid var(--line-2);
+    background:rgba(248,250,252,.65);
+  }
+  html[data-theme="dark"] .row{background:rgba(255,255,255,.03)}
+  .row span{color:var(--muted);font-weight:900}
+  .row b{color:var(--ink);font-weight:950}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+
+  .status{
+    margin-top:10px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+
+  /* KPIs */
+  .kpis{display:grid;gap:12px}
+  @media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
+  .kpi{
+    background:var(--card);
+    border:1px solid var(--line-2);
+    border-radius:16px;
+    box-shadow:var(--shadow-sm);
+    padding:14px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .kpi .num{font-weight:950;font-size:1.35rem;color:var(--brand)}
+  .kpi .lbl{color:var(--muted);font-weight:850;margin-top:2px}
+  .kpi-ico{
+    width:44px;height:44px;border-radius:14px;
+    display:grid;place-items:center;
+    font-weight:950;
+    border:1px solid rgba(15,23,42,.06);
+    background:rgba(37,99,235,.10);
+    color:var(--brand);
+    flex:0 0 auto;
+  }
+  html[data-theme="dark"] .kpi-ico{border-color:rgba(148,163,184,.14)}
+
+  /* Lists */
+  .two{display:grid;gap:14px}
+  @media(min-width:980px){.two{grid-template-columns:1fr 1fr}}
+  .list{
+    margin:0;
+    padding-right:18px;
+  }
+  .list li{margin:6px 0;color:var(--ink);font-weight:850}
+  .muted{color:var(--muted);font-weight:900}
+
+  @media(max-width:520px){
+    .schoolp-actions{width:100%}
+    .schoolp-actions .btn{width:100%;justify-content:center}
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container" dir="rtl">
-  <div class="page-head" style="max-width:980px;margin-inline:auto">
-    <div>
-      <h1 class="page-title">بروفايل المدرسة</h1>
-      <p class="page-subtitle">نظرة عامة على بيانات المدرسة وإحصائياتها.</p>
-    </div>
-    <a href="{% url 'reports:schools_admin_list' %}" class="btn btn-outline">عودة للقائمة</a>
-  </div>
+<div class="schoolp-page" dir="rtl">
+  <div class="schoolp-shell">
+    <div class="schoolp-head">
+      <div class="schoolp-head-top">
+        <div>
+          <h1 class="schoolp-title">
+            <i class="fa-solid fa-id-badge" aria-hidden="true"></i>
+            بروفايل المدرسة
+          </h1>
+          <p class="schoolp-sub">نظرة عامة على بيانات المدرسة وإحصائياتها.</p>
+        </div>
 
-  <div style="max-width:980px;margin-inline:auto">
-    <div class="card">
-      <div class="section-title">بيانات المدرسة</div>
-      <div class="card-row"><span>اسم المدرسة</span><b>{{ school.name }}</b></div>
-      <div class="card-row"><span>المرحلة</span><b>{{ school.get_stage_display }}</b></div>
-      <div class="card-row"><span>بنين / بنات</span><b>{{ school.get_gender_display }}</b></div>
-      <div class="card-row"><span>المدينة</span><b>{{ school.city|default:"-" }}</b></div>
-      <div class="card-row"><span>رقم الجوال</span><b>{{ school.phone|default:"-" }}</b></div>
-      <div style="margin-top:10px">
-        {% if school.is_active %}
-          <span class="badge success">نشطة</span>
-        {% else %}
-          <span class="badge danger">موقوفة</span>
-        {% endif %}
+        <div class="schoolp-actions">
+          <a href="{% url 'reports:schools_admin_list' %}" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            عودة للقائمة
+          </a>
+        </div>
       </div>
     </div>
 
-    <div style="height:12px"></div>
+    <div class="schoolp-body">
+      <div class="grid">
+        <!-- بيانات المدرسة -->
+        <div class="cardish">
+          <div class="block-title">
+            <span>بيانات المدرسة</span>
+            <small>{% if school.code %}<span class="mono">#{{ school.code }}</span>{% else %}—{% endif %}</small>
+          </div>
 
-    <div class="kpi-grid">
-      <div class="kpi">
-        <div><div class="num">{{ reports_count }}</div><div class="lbl">عدد التقارير</div></div>
-        <div class="kpi-ico info">R</div>
-      </div>
-      <div class="kpi">
-        <div><div class="num">{{ tickets_total }}</div><div class="lbl">التذاكر (الكل)</div></div>
-        <div class="kpi-ico warn">T</div>
-      </div>
-      <div class="kpi">
-        <div><div class="num">{{ departments_count }}</div><div class="lbl">الأقسام</div></div>
-        <div class="kpi-ico info">D</div>
-      </div>
-      <div class="kpi">
-        <div><div class="num">{{ teachers_count }}</div><div class="lbl">المعلمين</div></div>
-        <div class="kpi-ico ok">M</div>
-      </div>
-    </div>
+          <div class="rows">
+            <div class="row"><span>اسم المدرسة</span><b>{{ school.name }}</b></div>
+            <div class="row"><span>المرحلة</span><b>{{ school.get_stage_display }}</b></div>
+            <div class="row"><span>بنين / بنات</span><b>{{ school.get_gender_display }}</b></div>
+            <div class="row"><span>المدينة</span><b>{{ school.city|default:"-" }}</b></div>
+            <div class="row"><span>رقم الجوال</span><b class="mono">{{ school.phone|default:"-" }}</b></div>
+          </div>
 
-    <div style="height:12px"></div>
+          <div class="status">
+            {% if school.is_active %}
+              <span class="badge success">نشطة</span>
+            {% else %}
+              <span class="badge danger">موقوفة</span>
+            {% endif %}
+          </div>
+        </div>
 
-    <div class="card">
-      <div class="section-title">تفاصيل التذاكر</div>
-      <div class="card-row"><span>مفتوحة / تحت المعالجة</span><b>{{ tickets_open }}</b></div>
-      <div class="card-row"><span>مغلقة</span><b>{{ tickets_done }}</b></div>
-      <div class="card-row"><span>مرفوضة</span><b>{{ tickets_rejected }}</b></div>
-    </div>
+        <!-- تفاصيل التذاكر -->
+        <div class="cardish">
+          <div class="block-title">
+            <span>تفاصيل التذاكر</span>
+            <small>ملخص الحالة</small>
+          </div>
 
-    <div style="height:12px"></div>
-
-    <div style="display:grid;grid-template-columns:1fr;gap:12px">
-      <div class="card">
-        <div class="section-title">أمثلة أقسام (بحد أقصى 20)</div>
-        {% if departments %}
-          <ul style="margin:0;padding-right:18px">
-            {% for d in departments %}
-              <li>{{ d.name }}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <div class="muted" style="font-weight:900">لا توجد أقسام لعرضها.</div>
-        {% endif %}
+          <div class="rows">
+            <div class="row"><span>مفتوحة / تحت المعالجة</span><b>{{ tickets_open }}</b></div>
+            <div class="row"><span>مغلقة</span><b>{{ tickets_done }}</b></div>
+            <div class="row"><span>مرفوضة</span><b>{{ tickets_rejected }}</b></div>
+          </div>
+        </div>
       </div>
-      <div class="card">
-        <div class="section-title">أمثلة معلمين (بحد أقصى 20)</div>
-        {% if teachers %}
-          <ul style="margin:0;padding-right:18px">
-            {% for t in teachers %}
-              <li>{{ t.name }}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <div class="muted" style="font-weight:900">لا يوجد معلمين لعرضهم.</div>
-        {% endif %}
+
+      <div style="height:14px"></div>
+
+      <!-- KPIs -->
+      <div class="kpis" aria-label="مؤشرات سريعة">
+        <div class="kpi">
+          <div><div class="num">{{ reports_count }}</div><div class="lbl">عدد التقارير</div></div>
+          <div class="kpi-ico">📄</div>
+        </div>
+        <div class="kpi">
+          <div><div class="num">{{ tickets_total }}</div><div class="lbl">التذاكر (الكل)</div></div>
+          <div class="kpi-ico">🎟️</div>
+        </div>
+        <div class="kpi">
+          <div><div class="num">{{ departments_count }}</div><div class="lbl">الأقسام</div></div>
+          <div class="kpi-ico">🏷️</div>
+        </div>
+        <div class="kpi">
+          <div><div class="num">{{ teachers_count }}</div><div class="lbl">المعلّمين</div></div>
+          <div class="kpi-ico">👩‍🏫</div>
+        </div>
       </div>
+
+      <div style="height:14px"></div>
+
+      <!-- Lists -->
+      <div class="two">
+        <div class="cardish">
+          <div class="block-title">
+            <span>أمثلة أقسام</span>
+            <small>بحد أقصى 20</small>
+          </div>
+          {% if departments %}
+            <ul class="list">
+              {% for d in departments %}
+                <li>{{ d.name }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="muted">لا توجد أقسام لعرضها.</div>
+          {% endif %}
+        </div>
+
+        <div class="cardish">
+          <div class="block-title">
+            <span>أمثلة معلمين</span>
+            <small>بحد أقصى 20</small>
+          </div>
+          {% if teachers %}
+            <ul class="list">
+              {% for t in teachers %}
+                <li>{{ t.name }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="muted">لا يوجد معلمين لعرضهم.</div>
+          {% endif %}
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

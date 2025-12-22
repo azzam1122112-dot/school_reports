@@ -4,114 +4,305 @@
 
 {% block head %}
 <style>
-:root{
-  --ink:#0f172a; --muted:#64748b; --line:#e5e7eb; --card:#fff; --bg:#f8fafc;
-  --brand:#2563eb; --accent:#10b981; --danger:#ef4444;
-  --radius:16px; --shadow:0 14px 36px rgba(2,6,23,.10); --t:all .22s ease;
+/* ✅ Scoped: لا نلمس :root نهائيًا */
+.admin25{
+  --ink: var(--ink, #0f172a);
+  --muted: var(--muted, #64748b);
+  --line: var(--line, #e5e7eb);
+  --card: var(--card, #fff);
+  --bg: var(--bg, #f8fafc);
+
+  --brand: var(--brand, #2563eb);
+  --accent: var(--accent, #10b981);
+  --danger: var(--danger, #ef4444);
+
+  --radius: 16px;
+  --shadow: 0 14px 36px rgba(2,6,23,.10);
+  --t: all .22s ease;
+
+  max-width: 1400px;
+  margin: auto;
+  padding: 18px;
 }
-@media (prefers-color-scheme:dark){
-  :root{ --ink:#e6ebff; --muted:#9fb0d9; --line:#1b2744; --card:#0f1629; --bg:#0b1220 }
+
+html[data-theme="dark"] .admin25{
+  --ink:#e6ebff;
+  --muted:#9fb0d9;
+  --line:#1b2744;
+  --card:#0f1629;
+  --bg:#0b1220;
 }
 
 /* إطار عام */
-.admin25{max-width:1400px;margin:auto;padding:18px}
-.h1{margin:0 0 6px;font-size:clamp(1.15rem,2.4vw,1.5rem);font-weight:900;color:var(--ink);display:flex;gap:10px;align-items:center}
-.sub{color:var(--muted);font-weight:800}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+.admin25 .h1{
+  margin:0 0 6px;
+  font-size:clamp(1.15rem,2.4vw,1.5rem);
+  font-weight:900;
+  color:var(--ink);
+  display:flex;
+  gap:10px;
+  align-items:center
+}
+.admin25 .sub{color:var(--muted);font-weight:800}
+.admin25 .card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:14px
+}
+.admin25 .text-center{text-align:center}
 
 /* شريط فلاتر */
-.filters{display:grid;gap:12px;margin-bottom:12px}
-.filters-bar{
-  display:grid;align-items:end;gap:10px;
+.admin25 .filters{display:grid;gap:12px;margin-bottom:12px}
+.admin25 .filters-bar{
+  display:grid;
+  align-items:end;
+  gap:10px;
   grid-template-columns:minmax(160px,1fr) minmax(160px,1fr) minmax(220px,1.4fr) minmax(160px,.9fr) auto;
 }
-.f{min-width:0}
-.f .label{display:block;color:var(--muted);font-weight:900;font-size:.9rem;margin:0 0 6px}
-.field{position:relative}
-.input,.select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit}
-.has-icon{padding-inline-start:38px}
-.field i{position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);opacity:.7;font-size:.95rem}
-.f-actions{display:flex;gap:8px;flex-wrap:wrap}
-@media (max-width:1200px){.filters-bar{grid-template-columns:repeat(3,minmax(180px,1fr))}.f-actions{grid-column:1/-1}}
-@media (max-width:820px){.filters-bar{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:520px){.filters-bar{grid-template-columns:1fr}}
+.admin25 .f{min-width:0}
+.admin25 .f .label{display:block;color:var(--muted);font-weight:900;font-size:.9rem;margin:0 0 6px}
+.admin25 .field{position:relative}
+.admin25 .input,
+.admin25 .select{
+  width:100%;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--card);
+  color:var(--ink);
+  font:inherit
+}
+.admin25 .has-icon{padding-inline-start:38px}
+.admin25 .field i{
+  position:absolute;
+  inset-inline-start:12px;
+  top:50%;
+  transform:translateY(-50%);
+  opacity:.7;
+  font-size:.95rem
+}
+.admin25 .f-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:1200px){
+  .admin25 .filters-bar{grid-template-columns:repeat(3,minmax(180px,1fr))}
+  .admin25 .f-actions{grid-column:1/-1}
+}
+@media (max-width:820px){
+  .admin25 .filters-bar{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:520px){
+  .admin25 .filters-bar{grid-template-columns:1fr}
+}
 
 /* جدول */
-.table-wrap{overflow:auto}
-.table{width:100%;border-collapse:collapse;font-size:14px}
-.table th,.table td{padding:12px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
-.table thead th{background:linear-gradient(180deg,#f8fbff,#eef5ff);font-weight:900}
-.table tbody tr:hover{background:#f8fafc}
-@media (prefers-color-scheme:dark){
-  .table thead th{background:linear-gradient(180deg,#0f1b36,#0d1830)}
-  .table tbody tr:hover{background:#0f1528}
+.admin25 .table-wrap{overflow:auto}
+.admin25 .table{width:100%;border-collapse:collapse;font-size:14px}
+.admin25 .table th,
+.admin25 .table td{
+  padding:12px;
+  border-bottom:1px solid var(--line);
+  text-align:right;
+  vertical-align:top
 }
-.imgs{display:flex;gap:6px;flex-wrap:wrap}
-.imgs img{width:48px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.admin25 .table thead th{
+  background:linear-gradient(180deg,#f8fbff,#eef5ff);
+  font-weight:900
+}
+.admin25 .table tbody tr:hover{background:#f8fafc}
+html[data-theme="dark"] .admin25 .table thead th{
+  background:linear-gradient(180deg,#0f1b36,#0d1830)
+}
+html[data-theme="dark"] .admin25 .table tbody tr:hover{background:#0f1528}
+
+.admin25 .imgs{display:flex;gap:6px;flex-wrap:wrap}
+.admin25 .imgs img{
+  width:48px;height:48px;
+  object-fit:cover;
+  border-radius:8px;
+  border:1px solid var(--line);
+  cursor:zoom-in
+}
 
 /* بطاقات للجوال */
-.desktop-only{display:block}
-.mobile-only{display:none}
-@media(max-width:820px){.desktop-only{display:none}.mobile-only{display:grid;gap:12px}}
-.mcard{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:12px}
-.mhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:13px}
-.midea{margin:6px 0;color:var(--ink);font-size:14px}
-.mimgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.mimgs img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
-.mactions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.admin25 .desktop-only{display:block}
+.admin25 .mobile-only{display:none}
+@media(max-width:820px){
+  .admin25 .desktop-only{display:none}
+  .admin25 .mobile-only{display:grid;gap:12px}
+}
+.admin25 .mcard{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  padding:12px
+}
+.admin25 .mhead{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  color:var(--muted);
+  font-size:13px
+}
+.admin25 .midea{margin:6px 0;color:var(--ink);font-size:14px}
+.admin25 .mimgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.admin25 .mimgs img{
+  width:72px;height:72px;
+  object-fit:cover;
+  border-radius:10px;
+  border:1px solid var(--line);
+  cursor:zoom-in
+}
+.admin25 .mactions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 
 /* أزرار */
-.actions-row{display:flex;gap:6px;flex-wrap:wrap}
-.btn{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);cursor:pointer}
-.btn-show{background:#3b82f6;color:#fff;border-color:#3b82f6}
-.btn-print{background:#10b981;color:#fff;border-color:#10b981}
-.btn-del{background:#ef4444;color:#fff;border-color:#ef4444}
+.admin25 .actions-row{display:flex;gap:6px;flex-wrap:wrap}
+.admin25 .btn{
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:var(--card);
+  cursor:pointer;
+  color:inherit;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.admin25 .btn-show{background:#3b82f6;color:#fff;border-color:#3b82f6}
+.admin25 .btn-print{background:#10b981;color:#fff;border-color:#10b981}
+.admin25 .btn-del{background:#ef4444;color:#fff;border-color:#ef4444}
 
 /* كابسولات التصنيف */
-.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid #e2e8f0;background:#f1f5f9;color:#334155;font-weight:800;font-size:.85rem}
-.tone-blue{background:#e0ف2fe;color:#075985;border-color:#bae6fd}
-.tone-amber{background:#fef3c7;color:#92400e;border-color:#fde68a}
-.tone-red{background:#fee2e2;color:#7f1d1d;border-color:#fecaca}
-.tone-violet{background:#ede9fe;color:#5b21b6;border-color:#ddd6fe}
-.tone-slate{background:#e2e8f0;color:#1e293b;border-color:#cbd5e1}
-.tone-green{background:#dcfce7;color:#065f46;border-color:#bbf7d0}
-.tone-fuchsia{background:#fae8ff;color:#86198f;border-color:#f5d0fe}
-.tone-rose{background:#ffe4e6;color:#be123c;border-color:#fecdd3}
-.tone-teal{background:#ccfbf1;color:#134e4a;border-color:#99f6e4}
-.tone-emerald{background:#d1fae5;color:#065f46;border-color:#a7f3d0}
-.tone-orange{background:#ffedd5;color:#9a3412;border-color:#fed7aa}
-.tone-gray{background:#f1f5f9;color:#334155;border-color:#e2e8f0}
+.admin25 .pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid #e2e8f0;
+  background:#f1f5f9;
+  color:#334155;
+  font-weight:800;
+  font-size:.85rem
+}
+.admin25 .tone-blue{background:#e0f2fe;color:#075985;border-color:#bae6fd} /* ✅ إصلاح اللون */
+.admin25 .tone-amber{background:#fef3c7;color:#92400e;border-color:#fde68a}
+.admin25 .tone-red{background:#fee2e2;color:#7f1d1d;border-color:#fecaca}
+.admin25 .tone-violet{background:#ede9fe;color:#5b21b6;border-color:#ddd6fe}
+.admin25 .tone-slate{background:#e2e8f0;color:#1e293b;border-color:#cbd5e1}
+.admin25 .tone-green{background:#dcfce7;color:#065f46;border-color:#bbf7d0}
+.admin25 .tone-fuchsia{background:#fae8ff;color:#86198f;border-color:#f5d0fe}
+.admin25 .tone-rose{background:#ffe4e6;color:#be123c;border-color:#fecdd3}
+.admin25 .tone-teal{background:#ccfbf1;color:#134e4a;border-color:#99f6e4}
+.admin25 .tone-emerald{background:#d1fae5;color:#065f46;border-color:#a7f3d0}
+.admin25 .tone-orange{background:#ffedd5;color:#9a3412;border-color:#fed7aa}
+.admin25 .tone-gray{background:#f1f5f9;color:#334155;border-color:#e2e8f0}
 
 /* ===== حوار التقرير <dialog> ===== */
 dialog.report-dialog{
-  border:1px solid var(--line); border-radius:14px; padding:0; width:clamp(320px,92vw,620px);
-  color:var(--ink); background:var(--card); box-shadow:0 24px 80px rgba(2,6,23,.25);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:0;
+  width:clamp(320px,92vw,620px);
+  color:var(--ink);
+  background:var(--card);
+  box-shadow:0 24px 80px rgba(2,6,23,.25);
 }
-dialog.report-dialog::backdrop{ background:rgba(2,6,23,.45); backdrop-filter:blur(2px) }
-.dialog-head{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px}
-.dialog-head h2{margin:0;font-weight:900;font-size:1rem}
-.dialog-close{background:#ef4444;color:#fff;border:0;width:30px;height:30px;border-radius:999px;cursor:pointer;display:grid;place-items:center}
-.dialog-body{padding:12px;max-height:70svh;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-.idea{white-space:pre-line;margin:8px 0;font-size:14px;line-height:1.7;padding:10px;background:#f9fafb;border:1px solid var(--line);border-radius:10px}
-.meta p{margin:3px 0;color:var(--muted);font-size:13px}
-.gal{margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
-.gal img{width:100%;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--line);box-shadow:0 3px 10px rgba(0,0,0,.12);cursor:pointer;transition:transform .2s,box-shadow .2s}
-.gal img:hover{transform:scale(1.04);box-shadow:0 6px 16px rgba(0,0,0,.18)}
+dialog.report-dialog::backdrop{
+  background:rgba(2,6,23,.45);
+  backdrop-filter:blur(2px)
+}
+.admin25 .dialog-head{
+  position:sticky;
+  top:0;
+  background:var(--card);
+  border-bottom:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:12px
+}
+.admin25 .dialog-head h2{margin:0;font-weight:900;font-size:1rem}
+.admin25 .dialog-close{
+  background:#ef4444;color:#fff;border:0;width:30px;height:30px;
+  border-radius:999px;cursor:pointer;display:grid;place-items:center
+}
+.admin25 .dialog-body{
+  padding:12px;
+  max-height:70svh;
+  overflow:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch
+}
+.admin25 .idea{
+  white-space:pre-line;
+  margin:8px 0;
+  font-size:14px;
+  line-height:1.7;
+  padding:10px;
+  background:#f9fafb;
+  border:1px solid var(--line);
+  border-radius:10px
+}
+html[data-theme="dark"] .admin25 .idea{background:rgba(255,255,255,.04)}
+.admin25 .meta p{margin:3px 0;color:var(--muted);font-size:13px}
+.admin25 .gal{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+  gap:8px
+}
+.admin25 .gal img{
+  width:100%;
+  height:120px;
+  object-fit:cover;
+  border-radius:10px;
+  border:1px solid var(--line);
+  box-shadow:0 3px 10px rgba(0,0,0,.12);
+  cursor:zoom-in;
+  transition:transform .2s,box-shadow .2s
+}
+.admin25 .gal img:hover{transform:scale(1.04);box-shadow:0 6px 16px rgba(0,0,0,.18)}
 @media (max-width:820px){
-  dialog.report-dialog{ width:100vw; max-width:none; margin:0; border-radius:16px 16px 0 0 }
+  dialog.report-dialog{
+    width:100vw;
+    max-width:none;
+    margin:0;
+    border-radius:16px 16px 0 0
+  }
   dialog.report-dialog[open]{ inset:auto 0 0 0 } /* Bottom sheet */
-  .dialog-body{ max-height:66svh }
+  .admin25 .dialog-body{ max-height:66svh }
 }
 
 /* ===== حوار الصور (Lightbox) أعلى كل شيء ===== */
 dialog.imgbox{
-  padding:0; border:0; background:transparent;
-  width:auto; max-width:none;
+  padding:0;
+  border:0;
+  background:transparent;
+  width:auto;
+  max-width:none;
 }
 dialog.imgbox[open]{ inset:0; width:100vw; height:100svh }
 dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
-.imgbox figure{margin:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center}
-.imgbox img{max-width:94vw; max-height:94svh; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.6); cursor:zoom-out}
+dialog.imgbox figure{
+  margin:0;
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center
+}
+dialog.imgbox img{
+  max-width:94vw;
+  max-height:94svh;
+  border-radius:12px;
+  box-shadow:0 8px 30px rgba(0,0,0,.6);
+  cursor:zoom-out
+}
 </style>
 {% endblock %}
 
@@ -130,12 +321,14 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
             <input class="input has-icon" type="date" name="start_date" value="{{ start_date }}">
           </div>
         </div>
+
         <div class="f f-date-to">
           <label class="label">إلى تاريخ <i class="fa-regular fa-calendar-days" style="opacity:.7"></i></label>
           <div class="field"><i class="fa-regular fa-calendar-days"></i>
             <input class="input has-icon" type="date" name="end_date" value="{{ end_date }}">
           </div>
         </div>
+
         <div class="f f-teacher">
           <label class="label">اسم المعلم <i class="fa-solid fa-user-tie" style="opacity:.7"></i></label>
           <div class="field"><i class="fa-solid fa-user"></i>
@@ -158,9 +351,14 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
         {% endif %}
 
         <div class="f f-actions">
-          <button class="btn" style="background:var(--brand);color:#fff;border-color:var(--brand)" type="submit"><i class="fa-solid fa-check"></i> تطبيق</button>
+          <button class="btn" style="background:var(--brand);color:#fff;border-color:var(--brand)" type="submit">
+            <i class="fa-solid fa-check"></i> تطبيق
+          </button>
+
           {% if start_date or end_date or teacher_name or category %}
-            <a class="btn" style="background:#eef2ff;border-color:#e5e7eb;color:#1e40af" href="{% url 'reports:admin_reports' %}"><i class="fa-solid fa-rotate-left"></i> مسح</a>
+            <a class="btn" style="background:#eef2ff;border-color:#e5e7eb;color:#1e40af" href="{% url 'reports:admin_reports' %}">
+              <i class="fa-solid fa-rotate-left"></i> مسح
+            </a>
           {% endif %}
         </div>
       </div>
@@ -175,7 +373,7 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
             <th>👨‍🏫 المعلم</th>
             <th>📖 العنوان</th>
             <th>🏷️ التصنيف</th>
-            <th>👥 المستفيدون</th>
+            <th class="text-center">👥 المستفيدون</th>
             <th>💡 الفكرة</th>
             <th>🖼 الصور</th>
             <th>⚙️ الإجراءات</th>
@@ -184,17 +382,30 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
         <tbody>
           {% for r in reports %}
           <tr>
-            <td>{{ r.report_date|date:"Y-m-d" }}<br><small class="sub" style="font-weight:800">{{ r.day_name }}</small></td>
+            <td>
+              {{ r.report_date|date:"Y-m-d" }}
+              <br>
+              <small class="sub" style="font-weight:800">{{ r.day_name }}</small>
+            </td>
+
             <td>{{ r.teacher_display_name }}</td>
             <td>{{ r.title }}</td>
+
             <td>
-              <span class="pill" data-code="{{ r.category.code|default_if_none:'' }}"><i class="fa-solid fa-tag"></i>{{ r.category.name|default_if_none:'-' }}</span>
+              <span class="pill"
+                    data-code="{% if r.category %}{{ r.category.code|default_if_none:'' }}{% endif %}">
+                <i class="fa-solid fa-tag"></i>
+                {% if r.category %}{{ r.category.name|default_if_none:"-" }}{% else %}-{% endif %}
+              </span>
             </td>
+
             <td class="text-center">{{ r.beneficiaries_count }}</td>
+
             <td>
-              <textarea id="idea-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
+              <textarea id="idea-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:""|escape }}</textarea>
               {{ r.idea|truncatewords:12 }}
             </td>
+
             <td>
               <div class="imgs">
                 {% if r.image1 %}<img src="{{ r.image1.url }}" alt="صورة 1" decoding="async" loading="lazy">{% endif %}
@@ -203,29 +414,38 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
                 {% if r.image4 %}<img src="{{ r.image4.url }}" alt="صورة 4" decoding="async" loading="lazy">{% endif %}
               </div>
             </td>
+
             <td>
               <div class="actions-row">
                 <button class="btn btn-show" type="button"
                         data-idea-id="idea-{{ r.pk }}"
-                        data-teacher="{{ r.teacher.name|escapejs }}"
-                        data-program="{{ r.title|escapejs }}"
+                        data-teacher="{{ r.teacher_display_name|default_if_none:''|escapejs }}"
+                        data-program="{{ r.title|default_if_none:''|escapejs }}"
                         data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
-                        data-category="{{ r.category.name|default_if_none:''|escapejs }}"
+                        data-category="{% if r.category %}{{ r.category.name|escapejs }}{% endif %}"
                         data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
                         data-print-url="{% url 'reports:report_print' r.pk %}">
-                  <i class="fa-solid fa-eye"></i>
+                  <i class="fa-solid fa-eye"></i> عرض
                 </button>
-                <a class="btn btn-print" href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-print"></i></a>
+
+                <a class="btn btn-print" href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener">
+                  <i class="fa-solid fa-print"></i> طباعة
+                </a>
+
                 <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" onsubmit="return confirm('تأكيد الحذف؟')" style="display:inline">
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <button class="btn btn-del" type="submit"><i class="fa-solid fa-trash"></i></button>
+                  <button class="btn btn-del" type="submit">
+                    <i class="fa-solid fa-trash"></i> حذف
+                  </button>
                 </form>
               </div>
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:14px">لا توجد تقارير</td></tr>
+          <tr>
+            <td colspan="8" style="text-align:center;color:var(--muted);padding:14px">لا توجد تقارير</td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -239,34 +459,48 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
           <span>📅 {{ r.report_date|date:"Y-m-d" }} – {{ r.day_name }}</span>
           <span>👨‍🏫 {{ r.teacher_display_name }}</span>
         </div>
-        <p>📖 {{ r.title }} •
-          <span class="pill" data-code="{{ r.category.code|default_if_none:'' }}"><i class="fa-solid fa-tag"></i>{{ r.category.name|default_if_none:'-' }}</span>
+
+        <p>
+          📖 {{ r.title }} •
+          <span class="pill" data-code="{% if r.category %}{{ r.category.code|default_if_none:'' }}{% endif %}">
+            <i class="fa-solid fa-tag"></i>
+            {% if r.category %}{{ r.category.name|default_if_none:"-" }}{% else %}-{% endif %}
+          </span>
           • 👥 {{ r.beneficiaries_count }}
         </p>
-        <textarea id="idea-m-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
+
+        <textarea id="idea-m-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:""|escape }}</textarea>
         <p class="midea">{{ r.idea|truncatewords:22 }}</p>
+
         <div class="mimgs">
-          {% if r.image1 %}<img src="{{ r.image1.url }}" alt="img">{% endif %}
-          {% if r.image2 %}<img src="{{ r.image2.url }}" alt="img">{% endif %}
-          {% if r.image3 %}<img src="{{ r.image3.url }}" alt="img">{% endif %}
-          {% if r.image4 %}<img src="{{ r.image4.url }}" alt="img">{% endif %}
+          {% if r.image1 %}<img src="{{ r.image1.url }}" alt="صورة التقرير">{% endif %}
+          {% if r.image2 %}<img src="{{ r.image2.url }}" alt="صورة التقرير">{% endif %}
+          {% if r.image3 %}<img src="{{ r.image3.url }}" alt="صورة التقرير">{% endif %}
+          {% if r.image4 %}<img src="{{ r.image4.url }}" alt="صورة التقرير">{% endif %}
         </div>
+
         <div class="mactions">
           <button class="btn btn-show" type="button"
                   data-idea-id="idea-m-{{ r.pk }}"
-                  data-teacher="{{ r.teacher.name|escapejs }}"
-                  data-program="{{ r.title|escapejs }}"
+                  data-teacher="{{ r.teacher_display_name|default_if_none:''|escapejs }}"
+                  data-program="{{ r.title|default_if_none:''|escapejs }}"
                   data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
-                  data-category="{{ r.category.name|default_if_none:''|escapejs }}"
+                  data-category="{% if r.category %}{{ r.category.name|escapejs }}{% endif %}"
                   data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
                   data-print-url="{% url 'reports:report_print' r.pk %}">
             👁 عرض
           </button>
-          <a class="btn btn-print" href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener">🖨 طباعة</a>
+
+          <a class="btn btn-print" href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener">
+            🖨 طباعة
+          </a>
+
           <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button class="btn btn-del" type="submit" onclick="return confirm('تأكيد الحذف؟')">🗑 حذف</button>
+            <button class="btn btn-del" type="submit" onclick="return confirm('تأكيد الحذف؟')">
+              🗑 حذف
+            </button>
           </form>
         </div>
       </div>
@@ -276,13 +510,19 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
     </div>
 
     {% if reports.paginator.num_pages > 1 %}
-    <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:10px">
+    <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap">
       {% if reports.has_previous %}
-        <a class="btn" href="?page={{ reports.previous_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if teacher_name %}&teacher_name={{ teacher_name }}{% endif %}{% if category %}&category={{ category }}{% endif %}">السابق</a>
+        <a class="btn" href="?page={{ reports.previous_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if teacher_name %}&teacher_name={{ teacher_name }}{% endif %}{% if category %}&category={{ category }}{% endif %}">
+          السابق
+        </a>
       {% endif %}
+
       <span class="sub" style="font-weight:800">صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}</span>
+
       {% if reports.has_next %}
-        <a class="btn" href="?page={{ reports.next_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if teacher_name %}&teacher_name={{ teacher_name }}{% endif %}{% if category %}&category={{ category }}{% endif %}">التالي</a>
+        <a class="btn" href="?page={{ reports.next_page_number }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if teacher_name %}&teacher_name={{ teacher_name }}{% endif %}{% if category %}&category={{ category }}{% endif %}">
+          التالي
+        </a>
       {% endif %}
     </div>
     {% endif %}
@@ -293,16 +533,21 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
 <dialog id="reportDialog" class="report-dialog" aria-labelledby="reportTitle" aria-describedby="reportDesc">
   <div class="dialog-head">
     <h2 id="reportTitle">💡 التقرير</h2>
-    <button class="dialog-close" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+    <button class="dialog-close" type="button" aria-label="إغلاق">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
+
   <div class="dialog-body" id="reportDesc">
     <div id="mIdea" class="idea"></div>
+
     <div class="meta">
       <p>👨‍🏫 <b>المعلم:</b> <span id="mTeacher"></span></p>
       <p>📖 <b>العنوان:</b> <span id="mProgram"></span></p>
       <p>🏷️ <b>التصنيف:</b> <span id="mCategory"></span></p>
       <p>📅 <b>التاريخ:</b> <span id="mDate"></span></p>
     </div>
+
     <div id="mImages" class="gal"></div>
   </div>
 </dialog>
@@ -319,55 +564,79 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
 <script>
 (function(){
   /* تلوين التصنيف */
-  const toneMap={activity:"blue",volunteer:"amber",affairs:"violet",admin:"red",manager:"slate",
-                 sports:"green",cultural:"fuchsia",culture:"fuchsia",social:"rose",
-                 scientific:"teal",science:"teal",health:"emerald",safety:"orange",
-                 other:"gray",general:"gray"};
+  const toneMap = {
+    activity:"blue",
+    volunteer:"amber",
+    affairs:"violet",
+    admin:"red",
+    manager:"slate",
+    sports:"green",
+    cultural:"fuchsia",
+    culture:"fuchsia",
+    social:"rose",
+    scientific:"teal",
+    science:"teal",
+    health:"emerald",
+    safety:"orange",
+    other:"gray",
+    general:"gray"
+  };
+
   document.querySelectorAll('.pill').forEach(el=>{
-    const code=(el.dataset.code||"").trim().toLowerCase();
-    el.classList.add('tone-'+(toneMap[code]||'gray'));
+    const code = (el.dataset.code || "").trim().toLowerCase();
+    el.classList.add('tone-' + (toneMap[code] || 'gray'));
   });
 
   const dlg = document.getElementById('reportDialog');
   const closeBtn = dlg.querySelector('.dialog-close');
-  const mIdea   = document.getElementById('mIdea');
-  const mTeacher= document.getElementById('mTeacher');
-  const mProgram= document.getElementById('mProgram');
-  const mDate   = document.getElementById('mDate');
-  const mCat    = document.getElementById('mCategory');
-  const mImages = document.getElementById('mImages');
+
+  const mIdea    = document.getElementById('mIdea');
+  const mTeacher = document.getElementById('mTeacher');
+  const mProgram = document.getElementById('mProgram');
+  const mDate    = document.getElementById('mDate');
+  const mCat     = document.getElementById('mCategory');
+  const mImages  = document.getElementById('mImages');
 
   const imgDlg   = document.getElementById('imgDialog');
   const imgDlgEl = document.getElementById('imgDialogSrc');
 
   function openImage(url){
+    if(!url) return;
     if('showModal' in imgDlg){
       imgDlgEl.src = url;
-      imgDlg.showModal();  // يوضع في Top Layer فوق حوار التقرير
+      imgDlg.showModal(); // Top layer
     }else{
       window.open(url, '_blank', 'noopener');
     }
   }
+
   imgDlg.addEventListener('click', ()=> imgDlg.close());
   imgDlg.addEventListener('cancel', (e)=>{ e.preventDefault(); imgDlg.close(); });
 
   function openFrom(btn){
     const ta = document.getElementById(btn.dataset.ideaId);
     const idea = (ta ? ta.value : '').replace(/\r/g,'');
-    mIdea.textContent   = idea;
-    mTeacher.textContent= btn.dataset.teacher || '';
-    mProgram.textContent= btn.dataset.program || '';
-    mDate.textContent   = btn.dataset.date || '';
-    mCat.textContent    = btn.dataset.category || '';
-    mImages.innerHTML   = '';
 
-    (btn.dataset.images||'').split('|').map(s=>s.trim()).filter(Boolean).forEach(url=>{
-      const img=new Image(); img.src=url; img.alt='صورة التقرير';
-      img.addEventListener('click', ()=> openImage(url));
-      mImages.appendChild(img);
-    });
+    mIdea.textContent    = idea;
+    mTeacher.textContent = btn.dataset.teacher || '';
+    mProgram.textContent = btn.dataset.program || '';
+    mDate.textContent    = btn.dataset.date || '';
+    mCat.textContent     = btn.dataset.category || '';
+    mImages.innerHTML    = '';
 
-    if ('showModal' in dlg){
+    (btn.dataset.images || '')
+      .split('|')
+      .map(s=>s.trim())
+      .filter(Boolean)
+      .forEach(url=>{
+        const img = new Image();
+        img.src = url;
+        img.alt = 'صورة التقرير';
+        img.addEventListener('click', ()=> openImage(url));
+        mImages.appendChild(img);
+      });
+
+    if('showModal' in dlg){
       dlg.showModal();
       requestAnimationFrame(()=> closeBtn.focus({preventScroll:true}));
     }else{
@@ -383,6 +652,7 @@ dialog.imgbox::backdrop{ background:rgba(0,0,0,.86) }
     openFrom(b);
   });
 
+  /* إغلاق حوار التقرير */
   closeBtn.addEventListener('click', ()=> dlg.close());
   dlg.addEventListener('click', (e)=>{ if(e.target === dlg) dlg.close(); });
   dlg.addEventListener('cancel', (e)=>{ e.preventDefault(); dlg.close(); });

@@ -1,41 +1,250 @@
 {% extends "base.html" %}
 {% block title %}رفع إيصال دفع{% endblock %}
 
+{% block head %}
+<style>
+  /* ✅ Scoped styles (بدون لمس :root) */
+  .payup-scope{max-width:980px;margin-inline:auto;padding:clamp(10px,2.2vw,18px)}
+  .payup-shell{
+    background:var(--card);
+    border:1px solid var(--line-2);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+
+  /* Hero */
+  .payup-hero{
+    padding:clamp(14px,2.2vw,20px) clamp(14px,3vw,24px);
+    background:
+      radial-gradient(900px 200px at 20% 0%, rgba(37,99,235,.18), transparent 55%),
+      radial-gradient(700px 220px at 85% 80%, rgba(16,185,129,.14), transparent 60%),
+      linear-gradient(135deg, rgba(37,99,235,.92), rgba(59,130,246,.86));
+    color:#fff;
+  }
+  .payup-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .payup-title{margin:0;font-weight:950;font-size:clamp(1.15rem,2.4vw,1.55rem);display:flex;align-items:center;gap:10px}
+  .payup-sub{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.6}
+  .payup-chip{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 12px;border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.22);
+    backdrop-filter: blur(10px);
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  /* Body */
+  .payup-body{padding:clamp(14px,2.6vw,22px)}
+  .payup-grid{display:grid;gap:14px}
+  .group{display:block}
+  .label{
+    display:flex;align-items:center;gap:10px;
+    margin:0 0 8px;
+    font-weight:900;
+    color:var(--ink);
+  }
+  .label i{color:rgba(37,99,235,.95)}
+  .hint{margin-top:6px;color:var(--muted);font-weight:800;font-size:.88rem}
+
+  /* Inputs aligned with app.css feel */
+  .payup-body input,
+  .payup-body textarea{
+    width:100%;
+    min-height:var(--tap);
+    border-radius:14px;
+    border:1px solid var(--line);
+    padding:12px 14px;
+    background:rgba(248,250,252,.85);
+    font-weight:800;
+    transition: box-shadow .18s ease, border-color .18s ease;
+  }
+  html[data-theme="dark"] .payup-body input,
+  html[data-theme="dark"] .payup-body textarea{
+    background: rgba(255,255,255,.04);
+    border-color: rgba(148,163,184,.16);
+  }
+  .payup-body input:focus,
+  .payup-body textarea:focus{
+    outline:none;
+    border-color:var(--brand);
+    box-shadow:var(--ring);
+  }
+
+  /* File preview */
+  .preview{
+    display:none;
+    margin-top:10px;
+    border:1px solid var(--line-2);
+    border-radius:14px;
+    overflow:hidden;
+    background:rgba(248,250,252,.5);
+  }
+  .preview img{
+    display:block;
+    width:100%;
+    max-height:320px;
+    object-fit:contain;
+    background:#fff;
+  }
+  html[data-theme="dark"] .preview img{background:rgba(255,255,255,.02)}
+  .preview-meta{
+    padding:10px 12px;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    color:var(--muted);
+    font-weight:850;
+    font-size:.88rem;
+  }
+
+  /* Errors (اختياري لو حبيت تستخدمها لاحقاً) */
+  .field-error{margin-top:6px;color:#b91c1c;font-weight:900;font-size:.9rem}
+  html[data-theme="dark"] .field-error{color:#fecaca}
+
+  /* Actions */
+  .actions{
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px solid var(--line-2);
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .actions .btn{border-radius:14px}
+  .actions .btn-primary{min-width:220px}
+  @media(max-width:560px){
+    .actions{flex-direction:column}
+    .actions .btn,
+    .actions .btn-primary{width:100%}
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div style="max-width:600px;margin:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h1 class="title">رفع إيصال دفع / تجديد اشتراك</h1>
-      <a href="{% url 'reports:my_subscription' %}" class="btn">إلغاء</a>
+<div class="payup-scope" dir="rtl">
+  <div class="payup-shell">
+    <div class="payup-hero">
+      <div class="payup-hero-top">
+        <div>
+          <h1 class="payup-title">
+            <i class="fa-solid fa-receipt" aria-hidden="true"></i>
+            رفع إيصال دفع / تجديد اشتراك
+          </h1>
+          <p class="payup-sub">ارفع صورة واضحة للإيصال مع مبلغ التحويل لتتم مراجعة الطلب واعتماده.</p>
+        </div>
+
+        <a href="{% url 'reports:my_subscription' %}" class="payup-chip">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          إلغاء والعودة
+        </a>
+      </div>
     </div>
 
-    <div class="card" style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:var(--shadow)">
-      <form method="post" enctype="multipart/form-data">
+    <div class="payup-body">
+      <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
-        
-        <div style="display:grid;gap:16px">
-          <div>
-            <label style="display:block;font-weight:bold;margin-bottom:6px;color:var(--ink)">المبلغ المحول (ريال)</label>
-            <input type="number" name="amount" step="0.01" class="form-control" required>
+
+        <div class="payup-grid">
+          <div class="group">
+            <label class="label" for="id_amount">
+              <i class="fa-solid fa-coins" aria-hidden="true"></i>
+              المبلغ المحول (ريال)
+            </label>
+            <input id="id_amount" type="number" name="amount" step="0.01" min="0" inputmode="decimal" required>
+            <div class="hint">اكتب مبلغ التحويل كما هو في الإيصال.</div>
           </div>
 
-          <div>
-            <label style="display:block;font-weight:bold;margin-bottom:6px;color:var(--ink)">صورة الإيصال</label>
-            <input type="file" name="receipt_image" class="form-control" accept="image/*" required>
-            <div style="font-size:0.85rem;color:var(--muted);margin-top:4px">يرجى إرفاق صورة واضحة للتحويل البنكي.</div>
+          <div class="group">
+            <label class="label" for="id_receipt">
+              <i class="fa-solid fa-image" aria-hidden="true"></i>
+              صورة الإيصال
+            </label>
+            <input id="id_receipt" type="file" name="receipt_image" accept="image/*" required>
+            <div class="hint">يفضّل صورة واضحة. الحد الأقصى يعتمد على إعدادات السيرفر.</div>
+
+            <div class="preview" id="previewBox" aria-live="polite">
+              <img id="previewImg" alt="معاينة الإيصال">
+              <div class="preview-meta">
+                <span id="previewName">—</span>
+                <span id="previewSize">—</span>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label style="display:block;font-weight:bold;margin-bottom:6px;color:var(--ink)">ملاحظات (اختياري)</label>
-            <textarea name="notes" class="form-control" rows="3" placeholder="أي تفاصيل إضافية..."></textarea>
+          <div class="group">
+            <label class="label" for="id_notes">
+              <i class="fa-regular fa-note-sticky" aria-hidden="true"></i>
+              ملاحظات (اختياري)
+            </label>
+            <textarea id="id_notes" name="notes" rows="3" placeholder="أي تفاصيل إضافية..."></textarea>
           </div>
         </div>
 
-        <div style="margin-top:24px;display:flex;gap:10px">
-          <button type="submit" class="btn btn-primary" style="flex:1">إرسال الطلب</button>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1">
+            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+            إرسال الطلب
+          </button>
         </div>
       </form>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const fileInput = document.getElementById('id_receipt');
+  const box = document.getElementById('previewBox');
+  const img = document.getElementById('previewImg');
+  const nameEl = document.getElementById('previewName');
+  const sizeEl = document.getElementById('previewSize');
+
+  function prettySize(bytes){
+    if(!bytes && bytes !== 0) return '—';
+    const units = ['B','KB','MB','GB'];
+    let i = 0, n = bytes;
+    while(n >= 1024 && i < units.length-1){ n = n/1024; i++; }
+    return (i === 0 ? n.toFixed(0) : n.toFixed(1)) + ' ' + units[i];
+  }
+
+  if(fileInput){
+    fileInput.addEventListener('change', function(){
+      const f = this.files && this.files[0];
+      if(!f){
+        box.style.display = 'none';
+        img.removeAttribute('src');
+        return;
+      }
+      nameEl.textContent = f.name || '—';
+      sizeEl.textContent = prettySize(f.size);
+
+      if(f.type && f.type.startsWith('image/')){
+        const url = URL.createObjectURL(f);
+        img.src = url;
+        box.style.display = 'block';
+        img.onload = () => URL.revokeObjectURL(url);
+      }else{
+        box.style.display = 'none';
+        img.removeAttribute('src');
+      }
+    });
+  }
+
+  // منع الإرسال المزدوج
+  const form = document.querySelector('.payup-body form');
+  const btn = document.getElementById('submitBtn');
+  if(form && btn){
+    form.addEventListener('submit', function(){
+      btn.disabled = true;
+      btn.style.opacity = ".75";
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جارٍ الإرسال...';
+    });
+  }
+})();
+</script>
 {% endblock %}
