@@ -312,16 +312,38 @@ def login_view(request: HttpRequest) -> HttpResponse:
                         .order_by("id")
                     )
 
+                    # إن لم تكن هناك أي عضوية مدرسة، لا نمنع تسجيل الدخول برسالة اشتراك (لأننا لا نستطيع ربطه بمدرسة).
+                    # هذا يحدث أحياناً لحسابات قديمة أو حسابات لم تُربط بعد.
+                    if not memberships.exists():
+                        login(request, user)
+                        messages.warning(request, "تنبيه: حسابك غير مرتبط بمدرسة فعّالة. تواصل مع إدارة النظام لربط الحساب بالمدرسة.")
+                        next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+                        if getattr(user, "is_superuser", False):
+                            default_name = "reports:platform_admin_dashboard"
+                        elif _is_staff(user):
+                            default_name = "reports:admin_dashboard"
+                        else:
+                            default_name = "reports:home"
+                        return redirect(next_url or default_name)
+
                     active_school = None
                     any_active_subscription = False
                     is_any_manager = False
                     manager_school = None
                     first_school_name = None
 
+                    role_slug = getattr(getattr(user, "role", None), "slug", None)
+
                     for m in memberships:
                         if first_school_name is None:
                             first_school_name = getattr(getattr(m, "school", None), "name", None)
                         if m.role_type == SchoolMembership.RoleType.MANAGER:
+                            is_any_manager = True
+                            if manager_school is None:
+                                manager_school = m.school
+
+                        # دعم حسابات مدير قديمة تعتمد على Role(slug='manager') حتى لو role_type مختلف.
+                        if not is_any_manager and role_slug == "manager":
                             is_any_manager = True
                             if manager_school is None:
                                 manager_school = m.school
