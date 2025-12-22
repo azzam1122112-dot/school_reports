@@ -206,19 +206,6 @@
             <div class="hint">الاسم الكامل للمعلم كما سيظهر في النظام</div>
           </div>
 
-          <!-- الدور (مهم للصلاحيات) -->
-          <div class="group">
-            <label class="label" for="{{ form.role.id_for_label }}">
-              <i class="fas fa-user-gear" aria-hidden="true"></i> الدور
-            </label>
-            <div class="select-wrap">
-              {{ form.role }}
-              <span class="caret" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
-            </div>
-            {% for e in form.role.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">حدد دور المعلم/الموظف لتطبيق الصلاحيات تلقائيًا</div>
-          </div>
-
           <!-- الهوية -->
           <div class="group">
             <label class="label" for="{{ form.national_id.id_for_label }}">
