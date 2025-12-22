@@ -2604,12 +2604,10 @@ def school_managers_list(request: HttpRequest) -> HttpResponse:
     #   أو
     # - لديه عضوية SchoolMembership كمدير في أي مدرسة.
     managers_qs = (
-        Teacher.objects.filter(is_active=True)
-        .filter(
+        Teacher.objects.filter(
             Q(role__slug__iexact=MANAGER_SLUG)
             | Q(
-                school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
-                school_memberships__is_active=True,
+                school_memberships__role_type=SchoolMembership.RoleType.MANAGER
             )
         )
         .distinct()
@@ -2619,10 +2617,12 @@ def school_managers_list(request: HttpRequest) -> HttpResponse:
 
     items: list[dict] = []
     for t in managers_qs:
+        # نعرض المدارس التي ارتبط بها كمدير (سواء كانت العضوية نشطة أم لا في هذا السياق، 
+        # لكننا نفضل عرض المدارس التي كان مديراً لها)
         schools = [
             m.school
             for m in t.school_memberships.all()
-            if m.school and m.role_type == SchoolMembership.RoleType.MANAGER and m.is_active
+            if m.school and m.role_type == SchoolMembership.RoleType.MANAGER
         ]
         items.append({"manager": t, "schools": schools})
 
@@ -2633,11 +2633,9 @@ def school_managers_list(request: HttpRequest) -> HttpResponse:
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 @require_http_methods(["POST"])
 def school_manager_delete(request: HttpRequest, pk: int) -> HttpResponse:
-    """إيقاف مدير مدرسة وتعطيل عضوياته كمدير.
+    """تبديل حالة مدير مدرسة (تفعيل/تعطيل).
 
-    لا نحذف السجل نهائيًا للحفاظ على السجلات المرتبطة، وإنما:
-      - نضع is_active=False على المستخدم.
-      - نعطّل جميع عضويات SchoolMembership الخاصة به كمدير.
+    لا نحذف السجل نهائيًا للحفاظ على السجلات المرتبطة.
     """
 
     manager = get_object_or_404(Teacher, pk=pk)
@@ -2646,17 +2644,24 @@ def school_manager_delete(request: HttpRequest, pk: int) -> HttpResponse:
         with transaction.atomic():
             if manager.is_active:
                 manager.is_active = False
-                manager.save(update_fields=["is_active"])
+                msg = "🗑️ تم إيقاف حساب المدير وإلغاء صلاحياته في المدارس."
+                # عند التعطيل، نعطّل العضويات أيضاً
+                SchoolMembership.objects.filter(
+                    teacher=manager,
+                    role_type=SchoolMembership.RoleType.MANAGER,
+                ).update(is_active=False)
+            else:
+                manager.is_active = True
+                msg = "✅ تم إعادة تفعيل حساب المدير بنجاح."
+                # ملاحظة: لا نفعّل العضويات تلقائياً هنا لأننا لا نعرف أي مدرسة يجب تفعيلها 
+                # يفضل أن يقوم المدير بتعديل المدارس من صفحة التعديل.
 
-            SchoolMembership.objects.filter(
-                teacher=manager,
-                role_type=SchoolMembership.RoleType.MANAGER,
-            ).update(is_active=False)
+            manager.save(update_fields=["is_active"])
 
-        messages.success(request, "🗑️ تم إيقاف حساب المدير وإلغاء صلاحياته في المدارس.")
+        messages.success(request, msg)
     except Exception:
-        logger.exception("school_manager_delete failed")
-        messages.error(request, "تعذّر حذف المدير. حاول لاحقًا.")
+        logger.exception("school_manager_toggle failed")
+        messages.error(request, "تعذّر تغيير حالة المدير. حاول لاحقًا.")
 
     return redirect("reports:school_managers_list")
 

@@ -73,9 +73,14 @@
                 <td data-label="إجراءات">
                   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start">
                     <a class="btn btn-outline" href="{% url 'reports:school_manager_update' m.id %}" style="padding:8px 10px">تعديل المدير</a>
-                    <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" style="display:inline" onsubmit="return confirm('هل أنت متأكد؟ سيتم تعطيل الحساب وإلغاء روابط المدارس (بدون حذف نهائي).');">
+                    <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" style="display:inline" 
+                          onsubmit="return confirm('{% if m.is_active %}هل أنت متأكد من تعطيل هذا المدير؟{% else %}هل أنت متأكد من إعادة تفعيل هذا المدير؟{% endif %}');">
                       {% csrf_token %}
-                      <button type="submit" class="btn btn-danger" style="padding:8px 10px">تعطيل المدير</button>
+                      {% if m.is_active %}
+                        <button type="submit" class="btn btn-danger" style="padding:8px 10px">تعطيل المدير</button>
+                      {% else %}
+                        <button type="submit" class="btn btn-accent" style="padding:8px 10px">تفعيل المدير</button>
+                      {% endif %}
                     </form>
                   </div>
                 </td>
