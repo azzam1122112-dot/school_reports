@@ -24,6 +24,13 @@
 
   <!-- Minimal base-only helpers (لا تعيد تعريف نظام التصميم الموجود في app.css) -->
   <style>
+    /* Prevent horizontal overflow and fix mobile layout */
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      position: relative;
+    }
+
     /* Skip link */
     .skip-link{
       position: absolute;
@@ -247,11 +254,12 @@
       position: fixed;
       top: 0;
       right: 0;
+      left: auto !important;
       bottom: 0;
       width: min(340px, 88vw);
       background: var(--card);
       border-left: 1px solid var(--line-2);
-      z-index: calc(var(--z-header) + 2);
+      z-index: calc(var(--z-header) + 100);
       transform: translateX(100%);
       visibility: hidden;
       transition: transform .3s var(--ease), visibility 0s .3s;
@@ -259,6 +267,15 @@
       flex-direction:column;
       overflow:auto;
       padding-bottom: var(--safe-bottom);
+    }
+    /* RTL fix: ensure drawer hides to the right */
+    html[dir="rtl"] .drawer {
+      transform: translateX(100%);
+      right: 0;
+      left: auto !important;
+    }
+    html[dir="rtl"] .drawer.open {
+      transform: translateX(0);
     }
     .drawer.open{
       transform: translateX(0);

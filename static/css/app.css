@@ -88,7 +88,14 @@ html[data-theme="dark"]{
 
 /* ========== 2) Reset / Base ========== */
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;height:100%}
+html,body{
+  margin:0;
+  padding:0;
+  height:100%;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  width: 100%;
+  position: relative;
+}
 
 body{
   font-family: var(--font);
@@ -899,8 +906,8 @@ html[data-theme="dark"] .sticky-actions{
 html[data-theme="dark"] .bottom-nav{background: rgba(10,16,32,.72)}
 @media (max-width: 820px){
   .bottom-nav{display:block}
-  /* ارفع محتوى الصفحة فقط إذا كان bottom nav موجود فعلاً */
-  body.has-bottom-nav .page-main{padding-bottom: 86px}
+  /* ارفع محتوى الفوتر فقط إذا كان bottom nav موجود فعلاً لتجنب الفراغ الأبيض */
+  body.has-bottom-nav .site-footer{padding-bottom: 86px}
 }
 
 /* (H) Skeleton (اختياري لقوائم loading) */

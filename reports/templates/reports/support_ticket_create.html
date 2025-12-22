@@ -54,7 +54,7 @@
         {# لو تقدر عدّل widget في الفورم أفضل، لكن هنا فالباك بسيط إن كان input file #}
         {{ form.attachment }}
         <div style="font-size:0.85em;color:#6b7280;margin-top:6px;font-weight:700">
-          يمكنك إرفاق صورة أو ملف PDF لشرح المشكلة.
+          يمكنك إرفاق صورة فقط (JPG أو PNG) لشرح المشكلة.
         </div>
         {% if form.attachment.errors %}<div class="err">{{ form.attachment.errors.0 }}</div>{% endif %}
       </div>

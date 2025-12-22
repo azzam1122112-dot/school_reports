@@ -1223,6 +1223,17 @@ class SupportTicketForm(forms.ModelForm):
     """
     نموذج إنشاء تذكرة دعم فني للمنصة.
     """
+
+    # نستخدم ImageField هنا لضمان التحقق من أنه صورة قبل الحفظ،
+    # وللسماح بضغط الصورة قبل التحقق من حد الحجم النهائي.
+    attachment = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={
+            "class": "form-control",
+            "accept": "image/*",
+        }),
+    )
+
     class Meta:
         model = Ticket
         fields = ["title", "body", "attachment"]
@@ -1231,8 +1242,59 @@ class SupportTicketForm(forms.ModelForm):
                 "class": "form-control", "placeholder": "عنوان المشكلة أو الاستفسار", "maxlength": "255"
             }),
             "body": forms.Textarea(attrs={"class": "form-control", "rows": 5, "placeholder": "اشرح المشكلة بالتفصيل..."}),
-            "attachment": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
+
+    def clean_attachment(self):
+        f = self.cleaned_data.get("attachment")
+        if not f:
+            return f
+
+        # ضغط/تصغير قبل الرفع
+        try:
+            from PIL import Image, ImageOps, UnidentifiedImageError
+
+            img = Image.open(f)
+            img = ImageOps.exif_transpose(img)
+        except (UnidentifiedImageError, OSError, ValueError):
+            raise ValidationError("الملف المرفق ليس صورة صالحة.")
+
+        has_alpha = img.mode in ("RGBA", "LA", "P")
+        img = img.convert("RGBA" if has_alpha else "RGB")
+
+        max_px = 1600
+        if max(img.size) > max_px:
+            img.thumbnail((max_px, max_px), Image.LANCZOS)
+
+        buf = BytesIO()
+        base = os.path.splitext(getattr(f, "name", "image"))[0]
+
+        if has_alpha:
+            # PNG للصور ذات الشفافية
+            img.save(buf, format="PNG", optimize=True, compress_level=9)
+            new_name = f"{base}.png"
+            ctype = "image/png"
+        else:
+            # JPEG للصور العادية (ضغط أعلى)
+            img.save(buf, format="JPEG", quality=82, optimize=True, progressive=True)
+            new_name = f"{base}.jpg"
+            ctype = "image/jpeg"
+
+        buf.seek(0)
+        out = InMemoryUploadedFile(
+            buf,
+            getattr(f, "field_name", None) or "attachment",
+            new_name,
+            ctype,
+            buf.getbuffer().nbytes,
+            None,
+        )
+
+        # حد الحجم بعد الضغط (مطابق للحد في الموديل: 5MB)
+        max_bytes = 5 * 1024 * 1024
+        if out.size > max_bytes:
+            raise ValidationError("حجم الصورة بعد الضغط ما يزال كبيرًا (الحد الأقصى 5MB).")
+
+        return out
 
     def save(self, commit=True, user=None):
         ticket = super().save(commit=False)
