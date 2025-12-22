@@ -406,7 +406,16 @@ def login_view(request: HttpRequest) -> HttpResponse:
             else:
                 default_name = "reports:home"
             return redirect(next_url or default_name)
-        messages.error(request, "رقم الجوال أو كلمة المرور غير صحيحة")
+
+        # فشل المصادقة: نتحقق هل السبب هو أن الحساب موقوف (is_active=False)
+        try:
+            potential_user = Teacher.objects.get(phone=phone)
+            if not potential_user.is_active and potential_user.check_password(password):
+                messages.error(request, "عذرًا، حسابك موقوف. يرجى التواصل مع الإدارة.")
+            else:
+                messages.error(request, "رقم الجوال أو كلمة المرور غير صحيحة")
+        except Teacher.DoesNotExist:
+            messages.error(request, "رقم الجوال أو كلمة المرور غير صحيحة")
 
     context = {"next": _safe_next_url(request.GET.get("next"))}
     return render(request, "reports/login.html", context)
