@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def run_task_safe(task_func, *args, **kwargs):
+def run_task_safe(task_func, *args, force_thread: bool = False, **kwargs):
     """
     محاولة تشغيل المهمة عبر Celery، وإذا فشل (بسبب عدم وجود Redis مثلاً) 
     يتم تشغيلها في Thread خلفي لضمان عدم توقف النظام.
@@ -23,11 +23,11 @@ def run_task_safe(task_func, *args, **kwargs):
             connections.close_all()
 
     def _execute():
-        # في بيئة التطوير (DEBUG=True)، نفضل استخدام Thread مباشرة لتجنب مشاكل عدم تشغيل Worker
-        # إلا إذا كنا متأكدين من وجود Celery
-        force_thread = getattr(settings, 'DEBUG', False)
+        # في بيئة التطوير (DEBUG=True)، نفضل استخدام Thread مباشرة لتجنب مشاكل عدم تشغيل Worker.
+        # ويمكن إجبار الـ Thread صراحةً عبر force_thread=True لبعض المهام الحرجة (مثل توليد PDF).
+        _force_thread = bool(force_thread) or bool(getattr(settings, 'DEBUG', False))
         
-        if not force_thread:
+        if not _force_thread:
             try:
                 # محاولة الإرسال لـ Celery
                 task_func.delay(*args, **kwargs)

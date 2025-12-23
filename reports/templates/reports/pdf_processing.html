@@ -20,7 +20,7 @@
             عذراً، فشل توليد ملف PDF. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.
         </div>
         <div class="mt-3">
-            <a href="{% url 'reports:report_pdf' r.pk %}" class="btn btn-danger">
+            <a href="{% url 'reports:report_pdf' r.pk %}?retry=1" class="btn btn-danger">
                 <i class="fas fa-sync me-2"></i> إعادة المحاولة
             </a>
         </div>

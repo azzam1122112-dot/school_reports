@@ -1091,12 +1091,19 @@ def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
             # If file missing or error, fall back to generation
             pass
 
-    # If not generated or failed, trigger task if not already processing
+    retry = (request.GET.get("retry") or "").strip() in {"1", "true", "yes"}
+
+    # If generation previously failed, show the failure state unless user explicitly retries.
+    if r.pdf_status == 'failed' and not retry:
+        return render(request, "reports/pdf_processing.html", {"r": r})
+
+    # If not generated, trigger task if not already processing
     if r.pdf_status not in ['processing', 'pending']:
         from .tasks import generate_report_pdf_task
         r.pdf_status = 'pending'
         r.save(update_fields=['pdf_status'])
-        run_task_safe(generate_report_pdf_task, r.pk)
+        # Force thread execution so PDF generation works even if Celery worker isn't running.
+        run_task_safe(generate_report_pdf_task, r.pk, force_thread=True)
 
     # Show a "Processing" page
     return render(request, "reports/pdf_processing.html", {"r": r})
