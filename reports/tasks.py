@@ -152,7 +152,14 @@ def generate_report_pdf_task(report_id):
             }
         )
 
-        from weasyprint import CSS, HTML
+        try:
+            from weasyprint import CSS, HTML
+        except (ImportError, OSError) as e:
+            logger.error(f"WeasyPrint import failed (missing dependencies?): {e}")
+            r.pdf_status = 'failed'
+            r.save(update_fields=['pdf_status'])
+            return False
+
         css = CSS(string="@page { size: A4; margin: 14mm 12mm; }")
         
         # Generate PDF

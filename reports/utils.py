@@ -23,17 +23,23 @@ def run_task_safe(task_func, *args, **kwargs):
             connections.close_all()
 
     def _execute():
-        try:
-            # محاولة الإرسال لـ Celery
-            task_func.delay(*args, **kwargs)
-            logger.info(f"Task {task_func.__name__} queued via Celery.")
-        except Exception as e:
-            # إذا فشل Celery (مثلاً Redis غير موجود)، نشغلها في Thread
-            logger.warning(f"Celery failed: {e}. Falling back to Thread for {task_func.__name__}.")
-            
-            thread = threading.Thread(target=_thread_wrapper, args=(task_func, *args), kwargs=kwargs)
-            thread.daemon = True
-            thread.start()
+        # في بيئة التطوير (DEBUG=True)، نفضل استخدام Thread مباشرة لتجنب مشاكل عدم تشغيل Worker
+        # إلا إذا كنا متأكدين من وجود Celery
+        force_thread = getattr(settings, 'DEBUG', False)
+        
+        if not force_thread:
+            try:
+                # محاولة الإرسال لـ Celery
+                task_func.delay(*args, **kwargs)
+                logger.info(f"Task {task_func.__name__} queued via Celery.")
+                return
+            except Exception as e:
+                logger.warning(f"Celery failed: {e}. Falling back to Thread for {task_func.__name__}.")
+
+        # Fallback or forced thread
+        thread = threading.Thread(target=_thread_wrapper, args=(task_func, *args), kwargs=kwargs)
+        thread.daemon = True
+        thread.start()
 
     # تنفيذ العملية بعد التأكد من حفظ البيانات في قاعدة البيانات
     transaction.on_commit(_execute)
