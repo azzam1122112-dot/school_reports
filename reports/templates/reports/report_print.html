@@ -42,6 +42,59 @@
         size: A4;
         margin: 10mm;
       }
+
+      /*
+        ملاحظة: Chrome أحياناً يواجه مشاكل مع CSS Grid أثناء الطباعة (اختفاء عناصر/تواقيع).
+        لذلك نحول الشبكات إلى Flex داخل الطباعة لضمان ثبات الشكل.
+      */
+      .report-wrapper{
+        min-height: 277mm; /* 297 - (10mm*2) */
+        display: flex;
+        flex-direction: column;
+      }
+      .main-content{ flex: 1 1 auto; }
+
+      .details-grid{ gap: 8px; margin-bottom: 14px; }
+      .info-card{ padding: 10px 12px; }
+
+      .section-header{ margin: 14px 0 10px; }
+      .description-box{
+        padding: 12px;
+        margin-bottom: 12px;
+        break-inside: auto;
+        page-break-inside: auto;
+      }
+
+      /* الصور: 4 صور + نص طويل بدون كسر التصميم */
+      .photos-grid{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .photo-item{
+        width: calc(50% - 5px);
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .photo-item img{ height: 150px; }
+      .photo-caption{ font-size: 0.8rem; padding: 6px; }
+
+      /* التواقيع: تُدفع للأسفل إن وُجدت مساحة، وإلا تنتقل لصفحة جديدة بدون اختفاء */
+      .signatures-area{
+        margin-top: auto;
+        padding-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .sign-box{
+        width: calc(33.333% - 7px);
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
     }
 
     /* ===== حاوية التقرير ===== */
@@ -163,7 +216,7 @@
   <button class="btn btn-primary" onclick="window.print()">
     <i class="fas fa-print"></i> طباعة التقرير
   </button>
-  <a href="{% url 'reports:report_pdf' r.pk %}" class="btn">
+  <a href="{% url 'reports:report_pdf' r.pk %}?download=1" class="btn">
     <i class="fas fa-file-pdf"></i> تحميل PDF
   </a>
   <span class="hint">يفضل استخدام متصفح Chrome للطباعة</span>

@@ -1079,14 +1079,20 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
 def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
     r = _get_report_for_user_or_404(request, pk)
 
+    download = (request.GET.get("download") or "").strip() in {"1", "true", "yes"}
+
     # If PDF is already generated, serve it
     if r.pdf_file and r.pdf_status == 'completed':
         try:
-            # Check if file exists on storage
-            if r.pdf_file.size > 0:
-                resp = HttpResponse(r.pdf_file.read(), content_type="application/pdf")
-                resp["Content-Disposition"] = f'inline; filename="report-{r.pk}.pdf"'
-                return resp
+            from django.http import FileResponse
+
+            f = r.pdf_file.open("rb")
+            return FileResponse(
+                f,
+                content_type="application/pdf",
+                as_attachment=download,
+                filename=f"report-{r.pk}.pdf",
+            )
         except Exception:
             # If file missing or error, fall back to generation
             pass
@@ -1097,13 +1103,27 @@ def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
     if r.pdf_status == 'failed' and not retry:
         return render(request, "reports/pdf_processing.html", {"r": r})
 
-    # If not generated, trigger task if not already processing
+    # If user explicitly requests download, generate synchronously and return the PDF immediately.
+    # This avoids the "processing" page and makes the button feel like a real download.
+    if download:
+        from .tasks import generate_report_pdf_task
+        pdf_bytes = generate_report_pdf_task(r.pk, return_bytes=True)
+        if not pdf_bytes:
+            # Show failure message page
+            r.refresh_from_db(fields=["pdf_status"])
+            return render(request, "reports/pdf_processing.html", {"r": r})
+
+        resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+        resp["Content-Disposition"] = f'attachment; filename="report-{r.pk}.pdf"'
+        return resp
+
+    # If not generated, trigger async task if not already processing
     if r.pdf_status not in ['processing', 'pending']:
         from .tasks import generate_report_pdf_task
         r.pdf_status = 'pending'
         r.save(update_fields=['pdf_status'])
-        # Force thread execution so PDF generation works even if Celery worker isn't running.
-        run_task_safe(generate_report_pdf_task, r.pk, force_thread=True)
+        # In production, prefer Celery so generation isn't lost if the web worker restarts.
+        run_task_safe(generate_report_pdf_task, r.pk)
 
     # Show a "Processing" page
     return render(request, "reports/pdf_processing.html", {"r": r})
