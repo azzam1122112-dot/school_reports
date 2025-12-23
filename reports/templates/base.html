@@ -261,6 +261,59 @@
     .menu .mi:hover{background: var(--line-2)}
     .menu .meta{color: var(--muted); font-weight: 800; font-size: .9rem}
 
+    /* PWA install banner */
+    .pwa-banner{
+      position: fixed;
+      right: 14px;
+      left: 14px;
+      bottom: calc(14px + var(--safe-bottom));
+      z-index: var(--z-toast);
+      display: none;
+    }
+    .pwa-banner.open{display:block}
+    .pwa-card{
+      background: var(--card);
+      border: 1px solid var(--line-2);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 12px;
+      display:flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .pwa-text{min-width:0}
+    .pwa-title{font-weight:950;margin:0;color:var(--ink)}
+    .pwa-sub{margin:2px 0 0;color:var(--muted);font-weight:800;font-size:.92rem}
+    .pwa-actions{display:flex;gap:10px;align-items:center;flex:0 0 auto}
+    .pwa-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      min-height:44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      cursor:pointer;
+      font-weight:950;
+      text-decoration:none;
+      background: var(--brand);
+      color: #fff;
+    }
+    .pwa-btn:hover{filter:saturate(1.05) brightness(.98)}
+    .pwa-close{
+      width:44px;height:44px;
+      border-radius: 12px;
+      border: 1px solid var(--line-2);
+      background: var(--card);
+      color: var(--ink);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+    }
+    .pwa-close:hover{box-shadow: var(--shadow-sm)}
+
     /* Drawer */
     .drawer-overlay{
       position: fixed;
@@ -1050,15 +1103,92 @@
     })();
   </script>
 
+  <!-- PWA Install Banner (shown only when eligible or on iOS) -->
+  <div id="pwaInstallBanner" class="pwa-banner" role="region" aria-label="تثبيت التطبيق">
+    <div class="pwa-card">
+      <div class="pwa-text">
+        <p class="pwa-title">ثبت منصة توثيق على جهازك</p>
+        <p id="pwaInstallHint" class="pwa-sub">يمكنك تثبيت التطبيق للوصول السريع والعمل بشكل أفضل.</p>
+      </div>
+      <div class="pwa-actions">
+        <button id="pwaInstallBtn" class="pwa-btn" type="button" style="display:none">تثبيت</button>
+        <button id="pwaInstallClose" class="pwa-close" type="button" aria-label="إغلاق">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('{% static "sw.js" %}')
+        // Register from root so the SW can control the whole site.
+        navigator.serviceWorker.register('/sw.js')
           .then(reg => console.log('Service Worker registered'))
           .catch(err => console.error('Service Worker registration failed:', err));
       });
     }
+
+    // PWA Install Prompt (Chrome/Edge/Android) + iOS guidance
+    (function(){
+      const banner = document.getElementById('pwaInstallBanner');
+      const btn = document.getElementById('pwaInstallBtn');
+      const closeBtn = document.getElementById('pwaInstallClose');
+      const hint = document.getElementById('pwaInstallHint');
+      if (!banner || !btn || !closeBtn || !hint) return;
+
+      const dismissedKey = 'pwa_install_dismissed_v1';
+      const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isSafari = isIOS && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
+      const iosStandalone = Boolean(window.navigator.standalone);
+
+      try {
+        if (localStorage.getItem(dismissedKey) === '1') return;
+      } catch (e) {}
+      if (isStandalone || iosStandalone) return;
+
+      function openBanner(){ banner.classList.add('open'); }
+      function closeBanner(){
+        banner.classList.remove('open');
+        try{ localStorage.setItem(dismissedKey, '1'); }catch(e){}
+      }
+
+      closeBtn.addEventListener('click', closeBanner);
+
+      let deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Save the event for triggering on user gesture.
+        e.preventDefault();
+        deferredPrompt = e;
+        btn.style.display = '';
+        hint.textContent = 'اضغط تثبيت لإضافة التطبيق للشاشة الرئيسية.';
+        openBanner();
+      });
+
+      btn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        try {
+          await deferredPrompt.userChoice;
+        } finally {
+          deferredPrompt = null;
+          closeBanner();
+        }
+      });
+
+      window.addEventListener('appinstalled', () => {
+        closeBanner();
+      });
+
+      // iOS: no beforeinstallprompt, show guidance on Safari.
+      if (isSafari) {
+        hint.textContent = 'على iPhone: من زر المشاركة ثم "إضافة إلى الشاشة الرئيسية".';
+        btn.style.display = 'none';
+        openBanner();
+      }
+    })();
 
     // Notification Polling
     (function() {
