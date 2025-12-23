@@ -1284,3 +1284,118 @@ def trigger_ticket_image_processing(sender, instance, created, **kwargs):
     if instance.image:
         transaction.on_commit(lambda: process_ticket_image.delay(instance.pk))
 
+
+# =========================
+# سجل العمليات (Audit Logs)
+# =========================
+class AuditLog(models.Model):
+    class Action(models.TextChoices):
+        CREATE = "create", "إنشاء"
+        UPDATE = "update", "تعديل"
+        DELETE = "delete", "حذف"
+        LOGIN = "login", "تسجيل دخول"
+        LOGOUT = "logout", "تسجيل خروج"
+
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="audit_logs",
+        verbose_name="المدرسة",
+        null=True,
+        blank=True
+    )
+    teacher = models.ForeignKey(
+        "Teacher",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        verbose_name="المستخدم"
+    )
+    action = models.CharField("العملية", max_length=20, choices=Action.choices)
+    model_name = models.CharField("اسم النموذج", max_length=100, blank=True)
+    object_id = models.PositiveIntegerField("معرف السجل", null=True, blank=True)
+    object_repr = models.CharField("وصف السجل", max_length=255, blank=True)
+    changes = models.JSONField("التغييرات", null=True, blank=True)
+    ip_address = models.GenericIPAddressField("عنوان IP", null=True, blank=True)
+    user_agent = models.TextField("متصفح المستخدم", blank=True)
+    timestamp = models.DateTimeField("الوقت", auto_now_add=True)
+
+    class Meta:
+        ordering = ("-timestamp",)
+        verbose_name = "سجل عمليات"
+        verbose_name_plural = "سجلات العمليات"
+        indexes = [
+            models.Index(fields=["school", "timestamp"]),
+            models.Index(fields=["teacher", "timestamp"]),
+        ]
+
+    def __str__(self):
+        return f"{self.teacher} - {self.get_action_display()} - {self.model_name} ({self.timestamp})"
+
+
+# =========================
+# Audit Log Signals
+# =========================
+@receiver(post_save)
+def audit_log_save(sender, instance, created, **kwargs):
+    # قائمة النماذج التي نريد مراقبتها
+    monitored_models = ["Report", "Teacher", "School", "Department", "Ticket", "SchoolSubscription"]
+    if sender.__name__ not in monitored_models:
+        return
+
+    from .middleware import get_current_request
+    request = get_current_request()
+    if not request or not request.user.is_authenticated:
+        return
+
+    action = AuditLog.Action.CREATE if created else AuditLog.Action.UPDATE
+    
+    # محاولة تحديد المدرسة
+    school = getattr(instance, "school", None)
+    if not school and sender.__name__ == "School":
+        school = instance
+
+    # تسجيل التغييرات (بشكل مبسط)
+    changes = {}
+    if not created:
+        # في حالة التعديل، يمكننا لاحقاً إضافة منطق لمقارنة القيم القديمة والجديدة
+        pass
+
+    AuditLog.objects.create(
+        school=school,
+        teacher=request.user,
+        action=action,
+        model_name=sender.__name__,
+        object_id=instance.pk if hasattr(instance, "pk") else None,
+        object_repr=str(instance)[:255],
+        changes=changes,
+        ip_address=request.META.get("REMOTE_ADDR"),
+        user_agent=request.META.get("HTTP_USER_AGENT", "")[:500]
+    )
+
+
+@receiver(models.signals.post_delete)
+def audit_log_delete(sender, instance, **kwargs):
+    monitored_models = ["Report", "Teacher", "School", "Department", "Ticket"]
+    if sender.__name__ not in monitored_models:
+        return
+
+    from .middleware import get_current_request
+    request = get_current_request()
+    if not request or not request.user.is_authenticated:
+        return
+
+    school = getattr(instance, "school", None)
+    
+    AuditLog.objects.create(
+        school=school,
+        teacher=request.user,
+        action=AuditLog.Action.DELETE,
+        model_name=sender.__name__,
+        object_id=instance.pk if hasattr(instance, "pk") else None,
+        object_repr=str(instance)[:255],
+        ip_address=request.META.get("REMOTE_ADDR"),
+        user_agent=request.META.get("HTTP_USER_AGENT", "")[:500]
+    )
+

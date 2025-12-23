@@ -22,6 +22,7 @@ from .models import (
     SubscriptionPlan,
     SchoolSubscription,
     Payment,
+    AuditLog,
 )
 
 # =========================
@@ -327,4 +328,23 @@ class PaymentAdmin(admin.ModelAdmin):
     autocomplete_fields = ("school",)
     date_hierarchy = "created_at"
     readonly_fields = ("created_at",)
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ("timestamp", "teacher", "action", "model_name", "object_repr", "school", "ip_address")
+    list_filter = ("action", "model_name", "timestamp", "school")
+    search_fields = ("teacher__name", "object_repr", "ip_address", "changes")
+    readonly_fields = ("timestamp", "teacher", "action", "model_name", "object_id", "object_repr", "changes", "ip_address", "user_agent", "school")
+    date_hierarchy = "timestamp"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        # فقط السوبر يوزر يمكنه الحذف (اختياري)
+        return request.user.is_superuser
 

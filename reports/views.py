@@ -2085,7 +2085,10 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
 
     # محاولة جلب البيانات من الكاش
     cache_key = f"admin_stats_{active_school.id if active_school else 'global'}"
-    stats = cache.get(cache_key)
+    try:
+        stats = cache.get(cache_key)
+    except Exception:
+        stats = None
 
     if not stats:
         # عدد المعلّمين داخل المدرسة النشطة فقط (عزل حسب المدرسة)
@@ -2105,7 +2108,10 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             "tickets_rejected": _filter_by_school(Ticket.objects.filter(status="rejected", is_platform=False), active_school).count(),
         }
         # تخزين في الكاش لمدة 5 دقائق
-        cache.set(cache_key, stats, 300)
+        try:
+            cache.set(cache_key, stats, 300)
+        except Exception:
+            pass
 
     ctx = {
         **stats,
@@ -2151,7 +2157,10 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     from django.core.cache import cache
     
     cache_key = "platform_admin_stats"
-    ctx = cache.get(cache_key)
+    try:
+        ctx = cache.get(cache_key)
+    except Exception:
+        ctx = None
 
     if not ctx:
         reports_count = Report.objects.count()
@@ -2211,7 +2220,10 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             "total_revenue": Payment.objects.filter(status=Payment.Status.APPROVED).aggregate(total=Sum('amount'))['total'] or 0,
         }
         # تخزين في الكاش لمدة 10 دقائق للمشرف العام
-        cache.set(cache_key, ctx, 600)
+        try:
+            cache.set(cache_key, ctx, 600)
+        except Exception:
+            pass
 
     return render(request, "reports/platform_admin_dashboard.html", ctx)
 

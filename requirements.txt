@@ -33,3 +33,7 @@ dj-database-url
 # Redis & Caching
 django-redis==5.4.0
 redis==5.0.1
+
+# Celery
+celery==5.4.0
+django-celery-results==2.5.1

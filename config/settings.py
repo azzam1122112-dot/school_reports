@@ -26,6 +26,9 @@ def _split_env_list(val: str) -> list[str]:
 SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret")
 ENV = os.getenv("ENV", "development").strip().lower()
 
+# ----------------- Celery Broker URL -----------------
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+
 # كشف تلقائي لـ Render
 if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):
     ENV = "production"
@@ -73,6 +76,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "reports.middleware.AuditLogMiddleware",  # <--- تم الإضافة
     "reports.middleware.IdleLogoutMiddleware",  # تسجيل خروج تلقائي بعد الخمول
     "reports.middleware.SubscriptionMiddleware",  # <--- تم الإضافة
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -109,6 +113,7 @@ CACHES = {
         "LOCATION": CELERY_BROKER_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,  # تجاهل أخطاء الاتصال بـ Redis
         }
     }
 }
@@ -182,6 +187,15 @@ LANGUAGE_CODE = "ar"
 TIME_ZONE = "Asia/Riyadh"
 USE_I18N = True
 USE_TZ = True
+
+# ----------------- Celery Configuration -----------------
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 
 # ----------------- الملفات الثابتة -----------------
 STATIC_URL = "/static/"
@@ -271,13 +285,3 @@ PRINT_MULTIHEAD_POLICY = "blank"  # أو "dept"
 
 # كيف نحدد رؤساء القسم؟
 DEPARTMENT_HEAD_ROLE_SLUG = "department_head"  # غيّرها لو اسم السلاج مختلف
-
-# ----------------- Celery Configuration -----------------
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = "django-db"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
