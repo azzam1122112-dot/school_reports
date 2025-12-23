@@ -27,7 +27,8 @@ SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret")
 ENV = os.getenv("ENV", "development").strip().lower()
 
 # ----------------- Celery Broker URL -----------------
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+# في Render، إذا لم يكن لديك Redis، سيتم استخدام Threading تلقائياً بفضل التعديلات الأخيرة
+CELERY_BROKER_URL = os.getenv("REDIS_URL", os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"))
 
 # كشف تلقائي لـ Render
 if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):

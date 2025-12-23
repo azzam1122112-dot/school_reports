@@ -1,9 +1,32 @@
+import threading
+from django.db import transaction
 from django.conf import settings
 from django.apps import apps
 from django.db.models import Q
 import logging
 
 logger = logging.getLogger(__name__)
+
+def run_task_safe(task_func, *args, **kwargs):
+    """
+    محاولة تشغيل المهمة عبر Celery، وإذا فشل (بسبب عدم وجود Redis مثلاً) 
+    يتم تشغيلها في Thread خلفي لضمان عدم توقف النظام.
+    """
+    def _execute():
+        try:
+            # محاولة الإرسال لـ Celery
+            task_func.delay(*args, **kwargs)
+            logger.info(f"Task {task_func.__name__} queued via Celery.")
+        except Exception as e:
+            # إذا فشل Celery (مثلاً Redis غير موجود)، نشغلها في Thread
+            logger.warning(f"Celery failed: {e}. Falling back to Thread for {task_func.__name__}.")
+            
+            thread = threading.Thread(target=task_func, args=args, kwargs=kwargs)
+            thread.daemon = True
+            thread.start()
+
+    # تنفيذ العملية بعد التأكد من حفظ البيانات في قاعدة البيانات
+    transaction.on_commit(_execute)
 
 def _resolve_department_for_category(cat):
     """يستخرج كائن القسم المرتبط بالتصنيف (إن وُجد)."""
@@ -79,5 +102,5 @@ def create_system_notification(title, message, school=None, teacher_ids=None, is
         is_important=is_important
     )
     
-    transaction.on_commit(lambda: send_notification_task.delay(n.pk, teacher_ids))
+    run_task_safe(send_notification_task, n.pk, teacher_ids)
     return n

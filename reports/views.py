@@ -948,7 +948,7 @@ def _get_report_for_user_or_404(request: HttpRequest, pk: int):
 
     return get_object_or_404(qs, pk=pk, teacher=user)
 
-from .utils import _resolve_department_for_category, _build_head_decision
+from .utils import _resolve_department_for_category, _build_head_decision, run_task_safe
 
 # =========================
 # طباعة التقرير (نسخة مُحسّنة)
@@ -1069,7 +1069,7 @@ def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
         from .tasks import generate_report_pdf_task
         r.pdf_status = 'pending'
         r.save(update_fields=['pdf_status'])
-        transaction.on_commit(lambda: generate_report_pdf_task.delay(r.pk))
+        run_task_safe(generate_report_pdf_task, r.pk)
 
     # Show a "Processing" page
     return render(request, "reports/pdf_processing.html", {"r": r})

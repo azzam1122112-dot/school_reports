@@ -1204,23 +1204,17 @@ def trigger_report_background_tasks(sender, instance, created, **kwargs):
     cache.delete("platform_admin_stats")
 
     from .tasks import process_report_images, generate_report_pdf_task
-    
-    def safe_delay(task, *args, **kwargs):
-        try:
-            transaction.on_commit(lambda: task.delay(*args, **kwargs))
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Celery error: {e}")
+    from .utils import run_task_safe
 
     # 1. معالجة الصور (إذا وجدت)
     has_images = any([instance.image1, instance.image2, instance.image3, instance.image4])
     
     if has_images:
         # مهمة معالجة الصور ستقوم بدورها بتشغيل مهمة الـ PDF عند الانتهاء
-        safe_delay(process_report_images, instance.pk)
+        run_task_safe(process_report_images, instance.pk)
     else:
         # إذا لم توجد صور، نشغل مهمة الـ PDF مباشرة
-        safe_delay(generate_report_pdf_task, instance.pk)
+        run_task_safe(generate_report_pdf_task, instance.pk)
 
 
 @receiver(post_save, sender=Ticket)

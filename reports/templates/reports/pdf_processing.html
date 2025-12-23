@@ -14,6 +14,17 @@
             نحن نقوم الآن بتوليد ملف PDF الخاص بتقريرك. قد يستغرق ذلك بضع ثوانٍ.
         </p>
         
+        {% if r.pdf_status == 'failed' %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            عذراً، فشل توليد ملف PDF. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.
+        </div>
+        <div class="mt-3">
+            <a href="{% url 'reports:report_pdf' r.pk %}" class="btn btn-danger">
+                <i class="fas fa-sync me-2"></i> إعادة المحاولة
+            </a>
+        </div>
+        {% else %}
         <div class="progress mb-4" style="height: 10px;">
             <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" role="progressbar" style="width: 100%"></div>
         </div>
@@ -22,6 +33,7 @@
             <i class="fas fa-info-circle me-2"></i>
             سيتم تحديث هذه الصفحة تلقائياً بمجرد اكتمال الملف.
         </div>
+        {% endif %}
 
         <div class="mt-3">
             <a href="{% url 'reports:my_reports' %}" class="btn btn-outline-secondary">
@@ -32,10 +44,12 @@
 </div>
 
 <script>
-    // Refresh the page every 3 seconds
+    // Refresh the page every 3 seconds if not failed
+    {% if r.pdf_status != 'failed' %}
     setTimeout(function() {
         location.reload();
     }, 3000);
+    {% endif %}
 </script>
 
 <style>

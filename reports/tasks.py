@@ -37,7 +37,8 @@ def process_report_images(report_id):
         logger.info(f"Successfully processed images for report {report_id}.")
     
     # Trigger PDF generation after image processing
-    generate_report_pdf_task.delay(report_id)
+    from .utils import run_task_safe
+    run_task_safe(generate_report_pdf_task, report_id)
     
     return True
 

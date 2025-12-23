@@ -6,6 +6,10 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 python manage.py runserver
 
+# لتشغيل المهام الخلفية (مثل توليد PDF) محلياً:
+# افتح نافذة Terminal جديدة وشغل:
+celery -A config worker --loglevel=info --pool=solo
+
 
 -----------------------------
 
