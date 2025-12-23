@@ -23,6 +23,7 @@
       font-family:'Tajawal',system-ui,-apple-system,sans-serif;
       color:var(--ink);background:#fff;
       line-height:1.6;
+      text-align: right;
     }
 
     /* ===== شريط أدوات (لا يُطبع) ===== */
@@ -42,6 +43,9 @@
         size: A4;
         margin: 8mm;
       }
+
+      /* ثبات طباعة الألوان/الحدود حيثما يدعم المتصفح */
+      *{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
       /*
         ملاحظة: Chrome أحياناً يواجه مشاكل مع CSS Grid أثناء الطباعة (اختفاء عناصر/تواقيع).
@@ -97,6 +101,9 @@
         break-inside: auto;
         page-break-inside: auto;
         border: 1px solid var(--line);
+        color: #0f172a;
+        text-align: right;
+        word-break: break-word;
       }
 
       /* الصور: 4 صور + نص طويل بدون كسر التصميم */
@@ -105,15 +112,27 @@
         flex-wrap: wrap;
         gap: 10px;
         margin-top: 10px;
+        align-items: stretch;
       }
       .photo-item{
         width: calc(50% - 5px);
         break-inside: avoid;
         page-break-inside: avoid;
         border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
       }
       .photo-item img{ height: 115px; }
       .photo-caption{ font-size: 0.72rem; padding: 5px; }
+
+      /* 4 صور: 4 في صف */
+      .photos-grid--4 .photo-item{ width: calc(25% - 8px); }
+      .photos-grid--4 .photo-item img{ height: 92px; }
+      .photos-grid--4 .photo-caption{ font-size: 0.68rem; padding: 4px; }
+
+      /* صورة واحدة: بعرض كامل */
+      .photos-grid--1 .photo-item{ width: 100%; }
+      .photos-grid--1 .photo-item img{ height: 160px; }
 
       /* التواقيع: تُدفع للأسفل إن وُجدت مساحة، وإلا تنتقل لصفحة جديدة بدون اختفاء */
       .signatures-area{
@@ -124,6 +143,7 @@
         gap: 8px;
         break-inside: avoid;
         page-break-inside: avoid;
+        align-items: stretch;
       }
       .sign-box{
         width: calc(33.333% - 7px);
@@ -132,10 +152,15 @@
         background: #fff !important;
         border: 1px solid var(--line) !important;
         padding: 10px;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 78px;
       }
       .sign-box .role{ font-size: 0.78rem; margin-bottom: 8px; }
       .sign-box .name{ font-size: 0.85rem; }
-      .sign-box .sign-line{ border-bottom: 1px solid #cbd5e1; }
+      .sign-box .sign-line{ border-bottom: 1px solid #cbd5e1; margin-top: 10px; }
     }
 
     /* ===== حاوية التقرير ===== */
@@ -193,6 +218,7 @@
       display:flex;align-items:center;gap:10px;margin:25px 0 12px;
       color:var(--brand);font-weight:900;font-size:1.1rem;
       border-bottom:2px solid var(--chip);padding-bottom:8px;
+      justify-content: flex-start;
     }
     
     .description-box{
@@ -200,6 +226,8 @@
       white-space:pre-wrap;font-size:1rem;color:#334155;
       margin-bottom: 20px;
       line-height: 1.8;
+      text-align: right;
+      word-break: break-word;
     }
 
     /* الصور */
@@ -245,6 +273,9 @@
       border-radius: 12px;
       padding: 15px;
       background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .sign-box .role { font-weight: 800; display: block; margin-bottom: 10px; color: var(--brand); }
     .sign-box .name { display: block; margin-bottom: 5px; min-height: 1.2em; font-weight: 700; }
@@ -318,7 +349,14 @@
     <div class="section-header">
       <i class="fa-solid fa-images"></i> الصور المرفقة
     </div>
-    <div class="photos-grid">
+    <div class="photos-grid
+      {% if r.image1 and r.image2 and r.image3 and r.image4 %} photos-grid--4
+      {% elif r.image1 and not r.image2 and not r.image3 and not r.image4 %} photos-grid--1
+      {% elif not r.image1 and r.image2 and not r.image3 and not r.image4 %} photos-grid--1
+      {% elif not r.image1 and not r.image2 and r.image3 and not r.image4 %} photos-grid--1
+      {% elif not r.image1 and not r.image2 and not r.image3 and r.image4 %} photos-grid--1
+      {% endif %}
+    ">
       {% if r.image1 %}
       <div class="photo-item">
         <img src="{{ r.image1.url }}" alt="صورة 1">
