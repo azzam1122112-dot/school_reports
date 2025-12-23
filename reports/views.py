@@ -972,96 +972,107 @@ from .utils import _resolve_department_for_category, _build_head_decision, run_t
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def report_print(request: HttpRequest, pk: int) -> HttpResponse:
-    r = _get_report_for_user_or_404(request, pk)
+    try:
+        r = _get_report_for_user_or_404(request, pk)
 
-    active_school = _get_active_school(request)
-    school_scope = getattr(r, "school", None) or active_school
+        active_school = _get_active_school(request)
+        school_scope = getattr(r, "school", None) or active_school
 
-    # اختيار القسم يدويًا عبر ?dept=slug-or-id (اختياري)
-    dept = None
-    if Department is not None:
-        pref = request.GET.get("dept")
-        if pref:
-            dept_qs = Department.objects.all()
-            try:
-                if school_scope is not None and "school" in [f.name for f in Department._meta.get_fields()]:
-                    dept_qs = dept_qs.filter(school=school_scope)
-            except Exception:
-                pass
-
-            dept = dept_qs.filter(Q(slug=pref) | Q(id=pref)).first() or dept
-
-            # لا نسمح باختيار قسم لا يرتبط بتصنيف التقرير
-            cat = getattr(r, "category", None)
-            if dept is not None and cat is not None:
+        # اختيار القسم يدويًا عبر ?dept=slug-or-id (اختياري)
+        dept = None
+        if Department is not None:
+            pref = request.GET.get("dept")
+            if pref:
+                dept_qs = Department.objects.all()
                 try:
-                    if hasattr(dept, "reporttypes") and getattr(cat, "pk", None) is not None:
-                        if not dept.reporttypes.filter(pk=cat.pk).exists():
-                            dept = None
+                    if school_scope is not None and "school" in [f.name for f in Department._meta.get_fields()]:
+                        dept_qs = dept_qs.filter(school=school_scope)
+                except Exception:
+                    pass
+
+                dept = dept_qs.filter(Q(slug=pref) | Q(id=pref)).first() or dept
+
+                # لا نسمح باختيار قسم لا يرتبط بتصنيف التقرير
+                cat = getattr(r, "category", None)
+                if dept is not None and cat is not None:
+                    try:
+                        if hasattr(dept, "reporttypes") and getattr(cat, "pk", None) is not None:
+                            if not dept.reporttypes.filter(pk=cat.pk).exists():
+                                dept = None
+                    except Exception:
+                        dept = None
+
+        if dept is None:
+            cat = getattr(r, "category", None)
+            dept = _resolve_department_for_category(cat)
+            # حماية إضافية: تأكد أن القسم من نفس مدرسة التقرير/المدرسة النشطة
+            if dept is not None and school_scope is not None:
+                try:
+                    dept_school = getattr(dept, "school", None)
+                    if dept_school is not None and dept_school != school_scope:
+                        dept = None
                 except Exception:
                     dept = None
 
-    if dept is None:
-        cat = getattr(r, "category", None)
-        dept = _resolve_department_for_category(cat)
-        # حماية إضافية: تأكد أن القسم من نفس مدرسة التقرير/المدرسة النشطة
-        if dept is not None and school_scope is not None:
-            try:
-                dept_school = getattr(dept, "school", None)
-                if dept_school is not None and dept_school != school_scope:
-                    dept = None
-            except Exception:
-                dept = None
+        head_decision = _build_head_decision(dept)
 
-    head_decision = _build_head_decision(dept)
-
-    # اسم مدير المدرسة: نبحث عن مدير مفعّل للمدرسة المرتبطة بالتقرير،
-    # أو نستخدم المدرسة النشطة كاحتياط، ثم نرجع لإعدادات النظام إذا لم نجد.
-    school_principal = ""
-    try:
-        school_for_principal = getattr(r, "school", None) or _get_active_school(request)
-        if school_for_principal is not None:
-            principal_membership = (
-                SchoolMembership.objects.select_related("teacher")
-                .filter(
-                    school=school_for_principal,
-                    role_type=SchoolMembership.RoleType.MANAGER,
-                    is_active=True,
-                )
-                .order_by("-id")
-                .first()
-            )
-            if principal_membership and principal_membership.teacher:
-                school_principal = getattr(principal_membership.teacher, "name", "") or ""
-    except Exception:
+        # اسم مدير المدرسة
         school_principal = ""
+        try:
+            school_for_principal = getattr(r, "school", None) or _get_active_school(request)
+            if school_for_principal is not None:
+                principal_membership = (
+                    SchoolMembership.objects.select_related("teacher")
+                    .filter(
+                        school=school_for_principal,
+                        role_type=SchoolMembership.RoleType.MANAGER,
+                        is_active=True,
+                    )
+                    .order_by("-id")
+                    .first()
+                )
+                if principal_membership and principal_membership.teacher:
+                    school_principal = getattr(principal_membership.teacher, "name", "") or ""
+        except Exception:
+            school_principal = ""
 
-    if not school_principal:
-        school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
+        if not school_principal:
+            school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
 
-    # لون قالب الطباعة: من إعدادات المدرسة إن وُجد، وإلا من إعدادات النظام أو قيمة افتراضية
-    print_color = "#2563eb"
-    try:
-        school_for_color = getattr(r, "school", None) or _get_active_school(request)
-        if school_for_color is not None:
-            color_val = getattr(school_for_color, "print_primary_color", "") or ""
-            if color_val:
-                print_color = color_val
-        else:
-            print_color = getattr(settings, "SCHOOL_PRINT_COLOR", print_color)
-    except Exception:
-        print_color = getattr(settings, "SCHOOL_PRINT_COLOR", print_color)
+        # إعدادات المدرسة (الاسم والشعار واللون)
+        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+        school_logo_url = ""
+        print_color = "#2563eb"
 
-    return render(
-        request,
-        "reports/report_print.html",
-        {
-            "r": r,
-            "head_decision": head_decision,   # ← القالب يعتمد عليه
-            "SCHOOL_PRINCIPAL": school_principal,
-            "PRINT_PRIMARY_COLOR": print_color,
-        },
-    )
+        if school_scope:
+            try:
+                if school_scope.logo_file:
+                    school_logo_url = school_scope.logo_file.url
+                
+                color_val = getattr(school_scope, "print_primary_color", "")
+                if color_val:
+                    print_color = color_val
+            except Exception:
+                pass
+        
+        if not print_color or print_color == "#2563eb":
+            print_color = getattr(settings, "SCHOOL_PRINT_COLOR", "#2563eb")
+
+        return render(
+            request,
+            "reports/report_print.html",
+            {
+                "r": r,
+                "head_decision": head_decision,
+                "SCHOOL_PRINCIPAL": school_principal,
+                "PRINT_PRIMARY_COLOR": print_color,
+                "SCHOOL_NAME": school_name,
+                "SCHOOL_LOGO_URL": school_logo_url,
+            },
+        )
+    except Exception as e:
+        logger.exception(f"Error in report_print view for report {pk}: {e}")
+        return render(request, "500.html", {"error": str(e)}, status=500)
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
