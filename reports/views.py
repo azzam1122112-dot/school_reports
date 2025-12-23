@@ -9,6 +9,7 @@ from .models import (
 import logging
 import os
 import traceback
+import openpyxl
 from datetime import date, timedelta
 from typing import Optional, Tuple
 from urllib.parse import urlparse
@@ -16,8 +17,9 @@ from urllib.parse import urlparse
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.hashers import make_password
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import (
@@ -1160,14 +1162,6 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @role_required({"manager"})
 @require_http_methods(["GET", "POST"])
-import openpyxl
-from django.db import transaction, IntegrityError
-from django.core.exceptions import ValidationError
-from django.contrib.auth.hashers import make_password
-
-@login_required(login_url="reports:login")
-@role_required({"manager"})
-@require_http_methods(["GET", "POST"])
 def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
     if active_school is None:
@@ -1226,13 +1220,17 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                     if not teacher:
                         try:
                             teacher = Teacher.objects.create(
-                                first_name=name,
+                                name=name,
                                 phone=phone,
                                 national_id=national_id,
-                                specialty=specialty or "",
-                                username=phone,
                                 password=make_password(phone), # كلمة المرور الافتراضية هي رقم الجوال
                             )
+                            # ضبط الدور الافتراضي للتوافق
+                            try:
+                                teacher.role = Role.objects.filter(slug="teacher").first()
+                                teacher.save(update_fields=['role'])
+                            except Exception:
+                                pass
                         except IntegrityError:
                             errors.append(f"الصف {idx}: رقم الجوال أو الهوية مستخدم مسبقاً.")
                             continue
