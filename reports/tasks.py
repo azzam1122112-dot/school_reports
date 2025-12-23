@@ -114,8 +114,10 @@ def generate_report_pdf_task(self, report_id: int, return_bytes: bool = False):
 
     # منع التكرار: لو جاري التوليد أو مكتمل وفيه ملف
     try:
-        if getattr(r, "pdf_status", "") in {"processing", "pending"}:
-            return b"" if return_bytes else True
+        # If the caller asked for bytes (sync download), don't prematurely return empty bytes
+        # just because status says processing/pending. We'll attempt generation below.
+        if getattr(r, "pdf_status", "") in {"processing", "pending"} and not return_bytes:
+            return True
 
         if getattr(r, "pdf_status", "") == "completed" and getattr(r, "pdf_file", None):
             if return_bytes:

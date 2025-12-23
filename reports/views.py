@@ -1105,27 +1105,23 @@ def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
 
     retry = (request.GET.get("retry") or "").strip() in {"1", "true", "yes"}
 
-    # If generation previously failed and user didn't retry, return a clear error (no processing page).
-    if r.pdf_status == 'failed' and not retry:
-        return HttpResponse(
-            "تعذّر توليد ملف PDF لهذا التقرير. اضغط إعادة المحاولة أو تواصل مع الدعم.",
-            status=500,
-            content_type="text/plain; charset=utf-8",
-        )
+    # If caller explicitly asked for the processing page, show it (including failed state).
+    if processing:
+        r.refresh_from_db(fields=["pdf_status", "pdf_file"])
+        return render(request, "reports/pdf_processing.html", {"r": r})
+
+    # Otherwise, for direct download, always attempt generation even if it failed previously.
 
     # Default: generate synchronously and return the PDF immediately (download).
     from .tasks import generate_report_pdf_task
-    pdf_bytes = generate_report_pdf_task(r.pk, return_bytes=True)
+    # NOTE: generate_report_pdf_task is a Celery Task (bind=True). Calling it directly will
+    # shift arguments and break generation. Use .run() to execute synchronously in-process.
+    pdf_bytes = generate_report_pdf_task.run(r.pk, return_bytes=True)
     if pdf_bytes:
         resp = HttpResponse(pdf_bytes, content_type="application/pdf")
         disp = "attachment" if download else "inline"
         resp["Content-Disposition"] = f'{disp}; filename="report-{r.pk}.pdf"'
         return resp
-
-    # If caller explicitly wants the processing page, allow it.
-    if processing:
-        r.refresh_from_db(fields=["pdf_status", "pdf_file"])
-        return render(request, "reports/pdf_processing.html", {"r": r})
 
     # Otherwise return a clear failure (no redirect/page).
     r.refresh_from_db(fields=["pdf_status"])

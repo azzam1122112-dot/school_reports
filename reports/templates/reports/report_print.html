@@ -40,7 +40,7 @@
       body { background: #fff; }
       @page {
         size: A4;
-        margin: 10mm;
+        margin: 8mm;
       }
 
       /*
@@ -48,7 +48,7 @@
         لذلك نحول الشبكات إلى Flex داخل الطباعة لضمان ثبات الشكل.
       */
       .report-wrapper{
-        min-height: 277mm; /* 297 - (10mm*2) */
+        min-height: 281mm; /* 297 - (8mm*2) */
         display: flex;
         flex-direction: column;
       }
@@ -77,20 +77,23 @@
         font-size: 0.8rem;
       }
 
-      .details-grid{ gap: 8px; margin-bottom: 14px; }
+      .details-grid{ grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
       .info-card{
-        padding: 10px 12px;
+        padding: 8px 10px;
         background: #fff !important;
         border: 1px solid var(--line);
       }
-      .info-card .label{ font-size: 0.8rem; }
-      .info-card .value{ font-size: 0.95rem; }
+      .info-card .label{ font-size: 0.72rem; }
+      .info-card .value{ font-size: 0.85rem; }
+      .info-card--wide{ grid-column: span 4; }
 
-      .section-header{ margin: 14px 0 10px; }
+      .section-header{ margin: 10px 0 8px; font-size: 1rem; }
       .section-header{ border-bottom-color: var(--line); }
       .description-box{
-        padding: 12px;
-        margin-bottom: 12px;
+        padding: 10px;
+        margin-bottom: 10px;
+        font-size: 0.92rem;
+        line-height: 1.6;
         break-inside: auto;
         page-break-inside: auto;
         border: 1px solid var(--line);
@@ -109,16 +112,16 @@
         page-break-inside: avoid;
         border: 1px solid var(--line);
       }
-      .photo-item img{ height: 150px; }
-      .photo-caption{ font-size: 0.8rem; padding: 6px; }
+      .photo-item img{ height: 115px; }
+      .photo-caption{ font-size: 0.72rem; padding: 5px; }
 
       /* التواقيع: تُدفع للأسفل إن وُجدت مساحة، وإلا تنتقل لصفحة جديدة بدون اختفاء */
       .signatures-area{
         margin-top: auto;
-        padding-top: 14px;
+        padding-top: 10px;
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
         break-inside: avoid;
         page-break-inside: avoid;
       }
@@ -128,9 +131,10 @@
         page-break-inside: avoid;
         background: #fff !important;
         border: 1px solid var(--line) !important;
+        padding: 10px;
       }
-      .sign-box .role{ font-size: 0.85rem; }
-      .sign-box .name{ font-size: 0.9rem; }
+      .sign-box .role{ font-size: 0.78rem; margin-bottom: 8px; }
+      .sign-box .name{ font-size: 0.85rem; }
       .sign-box .sign-line{ border-bottom: 1px solid #cbd5e1; }
     }
 
@@ -176,6 +180,7 @@
     .details-grid{
       display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;margin-bottom:25px;
     }
+    .info-card--wide{ grid-column: span 2; }
     .info-card{
       padding:12px 15px;border:1px solid var(--line);border-radius:10px;background:var(--bg);
       display:flex;flex-direction:column;gap:4px;
@@ -293,7 +298,7 @@
         <span class="value">{{ r.beneficiaries_count|default:"0" }}</span>
       </div>
       {% if r.department %}
-      <div class="info-card" style="grid-column: span 2">
+      <div class="info-card info-card--wide">
         <span class="label">القسم / الجهة</span>
         <span class="value">{{ r.department.name }}</span>
       </div>
