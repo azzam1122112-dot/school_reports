@@ -669,10 +669,21 @@ def my_reports(request: HttpRequest) -> HttpResponse:
     )
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
+    q = request.GET.get("q", "").strip()
+
     if start_date:
         qs = qs.filter(report_date__gte=start_date)
     if end_date:
         qs = qs.filter(report_date__lte=end_date)
+    if q:
+        qs = qs.filter(Q(title__icontains=q) | Q(idea__icontains=q))
+
+    # إحصائيات سريعة للمعلم
+    today = date.today()
+    stats = {
+        'total': qs.count(),
+        'this_month': qs.filter(report_date__month=today.month, report_date__year=today.year).count(),
+    }
 
     page = request.GET.get("page", 1)
     paginator = Paginator(qs, 10)
@@ -696,6 +707,8 @@ def my_reports(request: HttpRequest) -> HttpResponse:
             "qs": qs_params,
             "start_date": request.GET.get("start_date", ""),
             "end_date": request.GET.get("end_date", ""),
+            "q": q,
+            "stats": stats,
         },
     )
 
