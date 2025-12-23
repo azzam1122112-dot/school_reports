@@ -1114,9 +1114,12 @@ class NotificationCreateForm(forms.Form):
 
         is_superuser = bool(getattr(user, "is_superuser", False))
         
-        # التحقق مما إذا كان المستخدم مديراً للمدرسة
-        from .views import _is_staff
-        is_manager = _is_staff(user)
+        # التحقق مما إذا كان المستخدم مديراً ضمن المدرسة النشطة (عزل مدارس)
+        try:
+            from .views import _is_manager_in_school
+            is_manager = bool(_is_manager_in_school(user, active_school))
+        except Exception:
+            is_manager = False
 
         # إعداد حقول نطاق الإرسال/المدرسة حسب نوع المستخدم
         if is_superuser:
@@ -1143,8 +1146,13 @@ class NotificationCreateForm(forms.Form):
         try:
             role_slug = getattr(getattr(user, "role", None), "slug", None)
             if role_slug and role_slug not in (None, "manager"):
-                from .views import _user_department_codes  # تفادِ الاستيراد في أعلى الملف
-                codes = _user_department_codes(user)
+                # عزل: اجلب أقسام الضابط داخل المدرسة النشطة فقط
+                try:
+                    from .permissions import get_officer_departments
+                    officer_depts = get_officer_departments(user, active_school=active_school)
+                    codes = [d.slug for d in officer_depts if getattr(d, "slug", None)]
+                except Exception:
+                    codes = []
                 if codes:
                     qs = qs.filter(
                         models.Q(role__slug__in=codes)

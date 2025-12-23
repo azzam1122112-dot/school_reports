@@ -44,17 +44,38 @@ def run_task_safe(task_func, *args, force_thread: bool = False, **kwargs):
     # تنفيذ العملية بعد التأكد من حفظ البيانات في قاعدة البيانات
     transaction.on_commit(_execute)
 
-def _resolve_department_for_category(cat):
-    """يستخرج كائن القسم المرتبط بالتصنيف (إن وُجد)."""
+def _resolve_department_for_category(cat, school=None):
+    """يستخرج كائن القسم المرتبط بالتصنيف (إن وُجد) مع مراعاة عزل المدارس.
+
+    عند وجود أكثر من مدرسة، قد تكون نفس أنواع التقارير/العلاقات موجودة في أكثر من مدرسة.
+    لذلك إن كان لدينا school (أو كان cat مرتبطًا بحقل school) سنحاول أولاً حل القسم داخل هذه المدرسة،
+    ثم نسمح بالرجوع لقسم عام (school=NULL) كخيار احتياطي.
+    """
     Department = apps.get_model('reports', 'Department')
     if not cat or Department is None:
         return None
+
+    school_scope = school
+    try:
+        if school_scope is None:
+            school_scope = getattr(cat, "school", None)
+    except Exception:
+        school_scope = school
 
     # 1) علاقة مباشرة cat.department (إن وُجدت)
     try:
         d = getattr(cat, "department", None)
         if d:
-            return d
+            if school_scope is not None and hasattr(d, "school"):
+                try:
+                    ds = getattr(d, "school", None)
+                    # إن كان القسم يخص مدرسة أخرى، نتجاهله
+                    if ds is not None and ds != school_scope:
+                        d = None
+                except Exception:
+                    d = None
+            if d:
+                return d
     except Exception:
         pass
 
@@ -63,7 +84,12 @@ def _resolve_department_for_category(cat):
         rel = getattr(cat, rel_name, None)
         if rel is not None:
             try:
-                d = rel.all().first()
+                qs = rel.all()
+                if school_scope is not None and hasattr(Department, "school"):
+                    # نفضّل قسم المدرسة، ثم قسم عام
+                    d = qs.filter(school=school_scope).first() or qs.filter(school__isnull=True).first()
+                else:
+                    d = qs.first()
                 if d:
                     return d
             except Exception:
@@ -71,7 +97,10 @@ def _resolve_department_for_category(cat):
 
     # 3) استعلام احتياطي
     try:
-        return Department.objects.filter(reporttypes=cat).first()
+        qs = Department.objects.filter(reporttypes=cat)
+        if school_scope is not None and hasattr(Department, "school"):
+            return qs.filter(school=school_scope).first() or qs.filter(school__isnull=True).first()
+        return qs.first()
     except Exception:
         return None
 

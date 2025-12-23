@@ -1,410 +1,556 @@
 {% load static %}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>تقرير {{ r.title }}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  {# ملاحظة: الروابط الخارجية قد تُربك WeasyPrint أحيانًا على Render #}
+  {% if not for_pdf %}
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  {% endif %}
+
   <style>
     :root{
-      --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
       --brand: {{ PRINT_PRIMARY_COLOR|default:"#2563eb" }};
-      --accent: {{ PRINT_PRIMARY_COLOR|default:"#2563eb" }};
-      --bg:#f8fafc; --card:#ffffff;
-      --chip:#eef2ff; --chip-ink:#1e40af;
-      --radius:12px; --print-margin:15mm;
+      --bg:#f8fafc;
+      --card:#ffffff;
+      --radius:12px;
+      --print-margin:15mm;
     }
 
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;padding:0}
+    html,body{margin:0;padding:0}
     body{
-      font-family:'Tajawal',system-ui,-apple-system,sans-serif;
-      color:var(--ink);background:#fff;
-      line-height:1.6;
-      text-align: right;
+      font-family: {% if not for_pdf %}'Tajawal',{% endif %} system-ui,-apple-system,sans-serif;
+      color:var(--ink);
+      background:#fff;
+      line-height:1.65;
+      text-align:right;
     }
+    img{max-width:100%;height:auto;display:block}
 
-    /* ===== شريط أدوات (لا يُطبع) ===== */
+    /* ===== شريط الأدوات (لا يُطبع) ===== */
     .toolbar{
-      display:flex;gap:12px;justify-content:center;align-items:center;
-      padding:15px;background:#fff;border-bottom:1px solid var(--line);
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      align-items:center;
+      padding:15px;
+      background:#fff;
+      border-bottom:1px solid var(--line);
       z-index:99;
     }
-    .btn{padding:10px 20px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink)}
-    .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
-    .hint{font-size:0.9rem;color:var(--muted)}
-
-    @media print {
-      .toolbar { display: none !important; }
-      body { background: #fff; }
-      @page {
-        size: A4;
-        margin: 8mm;
-      }
-
-      /* ثبات طباعة الألوان/الحدود حيثما يدعم المتصفح */
-      *{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
-      /*
-        ملاحظة: Chrome أحياناً يواجه مشاكل مع CSS Grid أثناء الطباعة (اختفاء عناصر/تواقيع).
-        لذلك نحول الشبكات إلى Flex داخل الطباعة لضمان ثبات الشكل.
-      */
-      .report-wrapper{
-        min-height: 281mm; /* 297 - (8mm*2) */
-        display: flex;
-        flex-direction: column;
-      }
-      .main-content{ flex: 1 1 auto; }
-
-      /* مظهر احترافي للطباعة (بدون الاعتماد على طباعة الخلفيات) */
-      body{ line-height: 1.5; color: #0f172a; }
-      .report-wrapper{ box-shadow: none !important; }
-
-      .hero{
-        background: none !important;
-        flex-wrap: nowrap;
-        gap: 6px;
-        border-right: 6px solid var(--brand);
-        padding: 12px;
-        margin-bottom: 12px;
-        border-radius: 10px;
-        width: auto;
-        flex: 1 1 0;
-      .hero .logo{ width: 52px; height: 52px; padding: 6px; }
-      .hero .title{ font-size: 1.15rem; }
-      .hero .sub{ font-size: 0.9rem; color: var(--muted) !important; opacity: 1; }
-      .cat-badge{
-        background: none !important;
-        border: 1px solid var(--line);
-      .photo-item img{ height: 92px; }
-      .photo-caption{ font-size: 0.68rem; padding: 4px; }
-
-      /* مهما كان عدد الصور: تبقى كلها في صف واحد */
-      .photos-grid--4 .photo-item,
-      .photos-grid--1 .photo-item{ width: auto; flex: 1 1 0; }
-      .info-card .value{ font-size: 0.85rem; }
-      .info-card--wide{ grid-column: span 4; }
-
-      .section-header{ margin: 10px 0 8px; font-size: 1rem; }
-      .section-header{ border-bottom-color: var(--line); }
-      .description-box{
-        padding: 10px;
-        margin-bottom: 10px;
-        font-size: 0.92rem;
-        line-height: 1.6;
-        break-inside: auto;
-        page-break-inside: auto;
-        border: 1px solid var(--line);
-        color: #0f172a;
-        text-align: right;
-        word-break: break-word;
-      }
-
-      /* الصور: 4 صور + نص طويل بدون كسر التصميم */
-      .photos-grid{
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 10px;
-        align-items: stretch;
-      }
-      .photo-item{
-        width: calc(50% - 5px);
-        break-inside: avoid;
-        page-break-inside: avoid;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        overflow: hidden;
-      }
-      .photo-item img{ height: 115px; }
-      .photo-caption{ font-size: 0.72rem; padding: 5px; }
-
-      /* 4 صور: 4 في صف */
-      .photos-grid--4 .photo-item{ width: calc(25% - 8px); }
-      .photos-grid--4 .photo-item img{ height: 92px; }
-      .photos-grid--4 .photo-caption{ font-size: 0.68rem; padding: 4px; }
-
-      /* صورة واحدة: بعرض كامل */
-      .photos-grid--1 .photo-item{ width: 100%; }
-      .photos-grid--1 .photo-item img{ height: 160px; }
-
-      /* التواقيع: تُدفع للأسفل إن وُجدت مساحة، وإلا تنتقل لصفحة جديدة بدون اختفاء */
-      .signatures-area{
-        margin-top: auto;
-        padding-top: 10px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        break-inside: avoid;
-        page-break-inside: avoid;
-        align-items: stretch;
-      }
-      .sign-box{
-        width: calc(33.333% - 7px);
-        break-inside: avoid;
-        page-break-inside: avoid;
-        background: #fff !important;
-        border: 1px solid var(--line) !important;
-        padding: 10px;
-        border-radius: 10px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        min-height: 78px;
-      }
-      .sign-box .role{ font-size: 0.78rem; margin-bottom: 8px; }
-      .sign-box .name{ font-size: 0.85rem; }
-      .sign-box .sign-line{ border-bottom: 1px solid #cbd5e1; margin-top: 10px; }
+    .btn{
+      padding:10px 18px;
+      border-radius:10px;
+      border:1px solid #cbd5e1;
+      background:#fff;
+      cursor:pointer;
+      font-weight:800;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+      color:var(--ink)
     }
+    .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .hint{font-size:.9rem;color:var(--muted)}
 
     /* ===== حاوية التقرير ===== */
-    .report-wrapper {
-      max-width: 210mm;
-      margin: 0 auto;
-      padding: 0;
-      background: #fff;
+    .report-wrapper{
+      max-width:210mm;
+      margin:0 auto;
+      background:#fff;
     }
 
     @media screen {
-      body { background: #f1f5f9; padding: 20px 0; }
-      .report-wrapper {
-        box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        padding: var(--print-margin);
-        min-height: 297mm;
+      body{background:#f1f5f9;padding:20px 0}
+      .report-wrapper{
+        padding:var(--print-margin);
+        min-height:297mm;
+        box-shadow:0 0 20px rgba(0,0,0,.1);
+        border-radius:14px;
       }
-      .toolbar {
-        position: sticky;
-        top: 0;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      .toolbar{
+        position:sticky;
+        top:0;
+        margin-bottom:20px;
+        box-shadow:0 2px 10px rgba(0,0,0,.05);
       }
     }
 
-    /* الرأس */
+    /* ===== Header ===== */
     .hero{
-      display:flex;align-items:center;gap:20px;
-      background:linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
-      color:#fff;padding:20px;border-radius:var(--radius);
-      margin-bottom:25px;
+      display:flex;
+      align-items:center;
+      gap:16px;
+      padding:18px;
+      border-radius:var(--radius);
+      margin-bottom:18px;
+      background: linear-gradient(135deg, var(--brand) 0%, #1d4ed8 100%);
+      color:#fff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .hero .logo{width:65px;height:65px;object-fit:contain;background:#fff;border-radius:12px;padding:8px}
-    .hero .title-box{flex:1}
-    .hero .title{font-size:1.4rem;font-weight:900;margin:0}
-    .hero .sub{opacity:0.9;font-size:0.95rem;margin-top:4px}
-    .cat-badge{background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:0.85rem}
+    .hero .logo{
+      width:62px;
+      height:62px;
+      object-fit:contain;
+      background:#fff;
+      border-radius:12px;
+      padding:8px;
+      flex:0 0 auto;
+    }
+    .hero .title-box{flex:1;min-width:0}
+    .hero .title{
+      font-size:1.35rem;
+      font-weight:900;
+      margin:0;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .hero .sub{
+      opacity:.95;
+      font-size:.95rem;
+      margin-top:6px;
+    }
+    .cat-badge{
+      background: rgba(255,255,255,.18);
+      padding:4px 12px;
+      border-radius:999px;
+      font-size:.85rem;
+      font-weight:800;
+      border:1px solid rgba(255,255,255,.25);
+    }
 
-    /* المحتوى */
+    /* ===== Cards ===== */
     .details-grid{
-      display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;margin-bottom:25px;
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:12px;
+      margin-bottom:16px;
     }
-    .info-card--wide{ grid-column: span 2; }
+    .info-card--wide{grid-column:span 2}
     .info-card{
-      padding:12px 15px;border:1px solid var(--line);border-radius:10px;background:var(--bg);
-      display:flex;flex-direction:column;gap:4px;
-      break-inside: avoid;
+      padding:12px 14px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:var(--bg);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      break-inside:avoid;
+      page-break-inside:avoid;
     }
-    .info-card .label{color:var(--muted);font-size:0.85rem;font-weight:700}
-    .info-card .value{font-weight:800;font-size:1rem}
+    .info-card .label{color:var(--muted);font-size:.85rem;font-weight:800}
+    .info-card .value{font-weight:900;font-size:1rem}
 
     .section-header{
-      display:flex;align-items:center;gap:10px;margin:25px 0 12px;
-      color:var(--brand);font-weight:900;font-size:1.1rem;
-      border-bottom:2px solid var(--chip);padding-bottom:8px;
-      justify-content: flex-start;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin:18px 0 10px;
+      color:var(--brand);
+      font-weight:900;
+      font-size:1.08rem;
+      border-bottom:2px solid #dbeafe;
+      padding-bottom:8px;
     }
-    
+
     .description-box{
-      padding:15px;background:#fff;border:1px solid var(--line);border-radius:10px;
-      white-space:pre-wrap;font-size:1rem;color:#334155;
-      margin-bottom: 20px;
-      line-height: 1.8;
-      text-align: right;
-      word-break: break-word;
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      white-space:pre-wrap;
+      font-size:1rem;
+      color:#0f172a;
+      line-height:1.9;
+      word-break:break-word;
+      margin-bottom:14px;
+
+      /* مهم: لا تمنع كسر النص بالكامل */
+      break-inside:auto;
+      page-break-inside:auto;
     }
 
-    /* الصور */
-    .photos-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
-      margin-top: 15px;
+    /* ===== Media Block (الصور + التواقيع) =====
+       نعاملها كـ Block واحد حتى لا تختفي التواقيع أو تنقسم */
+    .media-block{
+      margin-top:12px;
+      break-inside:avoid;
+      page-break-inside:avoid;
     }
-    .photo-item {
-      break-inside: avoid;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: #fff;
-    }
-    .photo-item img {
-      width: 100%;
-      height: 220px;
-      object-fit: cover;
-      display: block;
-    }
-    .photo-caption {
-      padding: 8px;
-      font-size: 0.85rem;
-      text-align: center;
-      background: var(--bg);
-      border-top: 1px solid var(--line);
-      color: var(--muted);
+    /* إذا فعّلنا media-block--newpage تبدأ صفحة جديدة */
+    .media-block--newpage{
+      page-break-before:always;
+      break-before:page;
     }
 
-    /* التواقيع */
-    .signatures-area {
-      margin-top: 40px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      break-inside: avoid;
+    /* ===== Photos ===== */
+    .photos-grid{
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:14px;
+      margin-top:12px;
     }
-    .sign-box {
-      text-align: center;
-      border: 1px dashed var(--line);
-      border-radius: 12px;
-      padding: 15px;
-      background: var(--bg);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+    .photo-item{
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:hidden;
+      background:#fff;
+      break-inside:avoid;
+      page-break-inside:avoid;
     }
-    .sign-box .role { font-weight: 800; display: block; margin-bottom: 10px; color: var(--brand); }
-    .sign-box .name { display: block; margin-bottom: 5px; min-height: 1.2em; font-weight: 700; }
-    .sign-box .sign-line { border-bottom: 1px solid var(--line); width: 80%; margin: 10px auto 0; }
+    .photo-item img{
+      width:100%;
+      height:220px;
+      object-fit:cover;
+    }
+    .photo-caption{
+      padding:8px;
+      font-size:.85rem;
+      text-align:center;
+      background:var(--bg);
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-weight:800;
+    }
 
+    /* 4 صور: 4 في صف (للشاشات الكبيرة) */
+    .photos-grid--4{grid-template-columns:repeat(4, 1fr)}
+    .photos-grid--4 .photo-item img{height:110px}
+    /* صورة واحدة */
+    .photos-grid--1{grid-template-columns:1fr}
+    .photos-grid--1 .photo-item img{height:260px}
+
+    /* ===== Signatures (مُحسّنة) ===== */
+    .signatures-area{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:12px;
+      break-inside:avoid;
+      page-break-inside:avoid;
+    }
+
+    .sign-card{
+      border:1px solid var(--line);
+      border-radius:14px;
+      overflow:hidden;
+      background:#fff;
+      break-inside:avoid;
+      page-break-inside:avoid;
+      box-shadow: 0 4px 14px rgba(2,6,23,.06);
+    }
+
+    .sign-card .head{
+      padding:10px 12px;
+      background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(37,99,235,.04));
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      color: var(--brand);
+      font-weight:900;
+      font-size:.95rem;
+      text-align:center;
+    }
+    .sign-card .body{
+      padding:12px;
+      text-align:center;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      min-height:110px;
+    }
+    .sign-card .name{
+      font-weight:900;
+      color:#0f172a;
+      min-height:1.2em;
+    }
+    .sign-card .meta{
+      margin-top:10px;
+      color:var(--muted);
+      font-weight:800;
+      font-size:.85rem;
+    }
+    .sign-card .line{
+      margin:16px auto 0;
+      width:82%;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    /* ===== Print rules ===== */
+    @media print {
+      @page { size: A4; margin: 10mm; }
+      *{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      .toolbar{display:none !important}
+      body{background:#fff}
+
+      .report-wrapper{
+        padding:0 !important;
+        box-shadow:none !important;
+        border-radius:0 !important;
+      }
+
+      /* رأس أخف للطباعة لتجنب التمدد */
+      .hero{
+        background:none !important;
+        color:#0f172a !important;
+        border:1px solid var(--line);
+        border-right:6px solid var(--brand);
+        padding:12px;
+        margin-bottom:12px;
+      }
+      .hero .logo{
+        width:54px;
+        height:54px;
+        padding:6px;
+        border:1px solid var(--line);
+      }
+      .hero .sub{color:var(--muted) !important; opacity:1}
+      .cat-badge{background:#fff !important;border-color:var(--line) !important;color:#0f172a !important}
+
+      .details-grid{gap:10px;margin-bottom:12px}
+      .info-card{background:#fff;border:1px solid var(--line)}
+      .info-card .value{font-size:.92rem}
+
+      .section-header{margin:12px 0 8px;font-size:1rem;border-bottom-color:var(--line)}
+      .description-box{padding:10px;margin-bottom:10px;font-size:.95rem}
+
+      /* مهم: تجنب مشاكل Grid في الطباعة (Chrome) -> Flex */
+      .photos-grid{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+      }
+      .photo-item{
+        width: calc(50% - 5px);
+      }
+      .photo-item img{height:140px}
+      .photos-grid--4 .photo-item{
+        width: calc(25% - 8px);
+      }
+      .photos-grid--4 .photo-item img{height:95px}
+      .photos-grid--1 .photo-item{
+        width: 100%;
+      }
+      .photos-grid--1 .photo-item img{height:165px}
+
+      /* التواقيع: لا تختفي ولا تنقسم */
+      .signatures-area{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        page-break-inside:avoid;
+        break-inside:avoid;
+      }
+      .sign-card{
+        box-shadow:none !important;
+        width: calc(33.333% - 7px);
+      }
+      .sign-card .head{
+        background:none !important;
+        border-bottom:1px solid var(--line);
+      }
+      .sign-card .body{min-height:88px;padding:10px}
+      .sign-card .name{font-size:.92rem}
+      .sign-card .meta{font-size:.78rem}
+    }
+
+    /* Responsive signatures on small screens */
+    @media (max-width: 720px){
+      .details-grid{grid-template-columns:1fr}
+      .info-card--wide{grid-column:auto}
+      .signatures-area{grid-template-columns:1fr;gap:10px}
+    }
   </style>
 </head>
+
 <body>
 
-<div class="toolbar">
-  <button class="btn btn-primary" onclick="window.print()">
-    <i class="fas fa-print"></i> طباعة التقرير
-  </button>
-  <a href="{% url 'reports:report_pdf' r.pk %}?download=1" class="btn">
-    <i class="fas fa-file-pdf"></i> تحميل PDF
-  </a>
-  <span class="hint">يفضل استخدام متصفح Chrome للطباعة</span>
-</div>
+{% if not for_pdf %}
+  <div class="toolbar">
+    <button class="btn btn-primary" onclick="window.print()">
+      <i class="fas fa-print"></i> طباعة التقرير
+    </button>
+    <a href="{% url 'reports:report_pdf' r.pk %}?download=1" class="btn">
+      <i class="fas fa-file-pdf"></i> تحميل PDF
+    </a>
+    <span class="hint">يفضل استخدام Chrome للطباعة</span>
+  </div>
+{% endif %}
 
 <div class="report-wrapper">
-  <!-- الرأس -->
   <header class="hero">
-    <img class="logo" 
-         src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" 
+    <img class="logo"
+         src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}"
          alt="Logo">
     <div class="title-box">
       <h1 class="title">
-        تقرير <span class="cat-badge">{{ r.category.name|default:"عام" }}</span>
+        تقرير
+        <span class="cat-badge">{{ r.category.name|default:"عام" }}</span>
       </h1>
       <div class="sub">{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير المدرسية{% endif %}</div>
     </div>
   </header>
 
   <main class="main-content">
-    <!-- تفاصيل أساسية -->
+
     <div class="details-grid">
       <div class="info-card">
         <span class="label">عنوان التقرير</span>
         <span class="value">{{ r.title }}</span>
       </div>
+
       <div class="info-card">
         <span class="label">التاريخ واليوم</span>
         <span class="value">{{ r.report_date|date:"Y-m-d" }} - {{ r.day_name|default:"" }}</span>
       </div>
+
       <div class="info-card">
         <span class="label">معد التقرير</span>
         <span class="value">{{ r.teacher_display_name }}</span>
       </div>
+
       <div class="info-card">
         <span class="label">عدد المستفيدين</span>
         <span class="value">{{ r.beneficiaries_count|default:"0" }}</span>
       </div>
+
       {% if r.department %}
-      <div class="info-card info-card--wide">
-        <span class="label">القسم / الجهة</span>
-        <span class="value">{{ r.department.name }}</span>
-      </div>
+        <div class="info-card info-card--wide">
+          <span class="label">القسم / الجهة</span>
+          <span class="value">{{ r.department.name }}</span>
+        </div>
       {% endif %}
     </div>
 
-    <!-- الوصف -->
     <div class="section-header">
-      <i class="fa-solid fa-file-lines"></i> تفاصيل ومحتوى التقرير
-    </div>
-    <div class="description-box">
-      {{ r.idea|default:"لا يوجد وصف مضاف." }}
+      {% if not for_pdf %}<i class="fa-solid fa-file-lines"></i>{% endif %}
+      تفاصيل ومحتوى التقرير
     </div>
 
-    <!-- الصور -->
-    {% if r.image1 or r.image2 or r.image3 or r.image4 %}
-    <div class="section-header">
-      <i class="fa-solid fa-images"></i> الصور المرفقة
-    </div>
-    <div class="photos-grid
-      {% if r.image1 and r.image2 and r.image3 and r.image4 %} photos-grid--4
-      {% elif r.image1 and not r.image2 and not r.image3 and not r.image4 %} photos-grid--1
-      {% elif not r.image1 and r.image2 and not r.image3 and not r.image4 %} photos-grid--1
-      {% elif not r.image1 and not r.image2 and r.image3 and not r.image4 %} photos-grid--1
-      {% elif not r.image1 and not r.image2 and not r.image3 and r.image4 %} photos-grid--1
-      {% endif %}
-    ">
-      {% if r.image1 %}
-      <div class="photo-item">
-        <img src="{{ r.image1.url }}" alt="صورة 1">
-        <div class="photo-caption">صورة توثيقية (1)</div>
-      </div>
-      {% endif %}
-      {% if r.image2 %}
-      <div class="photo-item">
-        <img src="{{ r.image2.url }}" alt="صورة 2">
-        <div class="photo-caption">صورة توثيقية (2)</div>
-      </div>
-      {% endif %}
-      {% if r.image3 %}
-      <div class="photo-item">
-        <img src="{{ r.image3.url }}" alt="صورة 3">
-        <div class="photo-caption">صورة توثيقية (3)</div>
-      </div>
-      {% endif %}
-      {% if r.image4 %}
-      <div class="photo-item">
-        <img src="{{ r.image4.url }}" alt="صورة 4">
-        <div class="photo-caption">صورة توثيقية (4)</div>
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
-  </main>
+    {% with idea_text=r.idea|default:"" %}
+      {% with idea_len=idea_text|length %}
+        <div class="description-box">{{ idea_text|default:"لا يوجد وصف مضاف." }}</div>
 
-  <!-- التواقيع -->
-  <footer class="signatures-area">
-    <div class="sign-box">
-      <span class="role">معد التقرير</span>
-      <span class="name">{{ r.teacher_display_name }}</span>
-      <div class="sign-line"></div>
-    </div>
+        {# ==========
+           منطق فصل الصور+التواقيع لصفحة جديدة إذا المحتوى طويل
+           - غيّر الأرقام حسب تفضيلك
+           - الحالة 1: إذا النص طويل جدًا -> فصل
+           - الحالة 2: إذا النص متوسط وعندك 3 صور فأكثر -> فصل
+        ========== #}
 
-    {% with hd=head_decision %}
-    <div class="sign-box">
-      <span class="role">
-        {% if hd.multi_dept %}رئيس قسم {{ hd.dept_name }}{% else %}رئيس القسم{% endif %}
-      </span>
-      <span class="name">{% if hd.single %}{{ hd.name }}{% endif %}</span>
-      <div class="sign-line"></div>
-    </div>
+        <div class="media-block
+          {% if idea_len > 850 %} media-block--newpage{% endif %}
+          {% if idea_len > 520 %}
+            {% if r.image1 and r.image2 and r.image3 %} media-block--newpage{% endif %}
+          {% endif %}
+        ">
+
+          {% if r.image1 or r.image2 or r.image3 or r.image4 %}
+            <div class="section-header">
+              {% if not for_pdf %}<i class="fa-solid fa-images"></i>{% endif %}
+              الصور المرفقة
+            </div>
+
+            <div class="photos-grid
+              {% if r.image1 and r.image2 and r.image3 and r.image4 %} photos-grid--4{% endif %}
+              {% if r.image1 and not r.image2 and not r.image3 and not r.image4 %} photos-grid--1{% endif %}
+              {% if not r.image1 and r.image2 and not r.image3 and not r.image4 %} photos-grid--1{% endif %}
+              {% if not r.image1 and not r.image2 and r.image3 and not r.image4 %} photos-grid--1{% endif %}
+              {% if not r.image1 and not r.image2 and not r.image3 and r.image4 %} photos-grid--1{% endif %}
+            ">
+              {% if r.image1 %}
+                <div class="photo-item">
+                  <img src="{{ r.image1.url }}" alt="صورة 1">
+                  <div class="photo-caption">صورة توثيقية (1)</div>
+                </div>
+              {% endif %}
+              {% if r.image2 %}
+                <div class="photo-item">
+                  <img src="{{ r.image2.url }}" alt="صورة 2">
+                  <div class="photo-caption">صورة توثيقية (2)</div>
+                </div>
+              {% endif %}
+              {% if r.image3 %}
+                <div class="photo-item">
+                  <img src="{{ r.image3.url }}" alt="صورة 3">
+                  <div class="photo-caption">صورة توثيقية (3)</div>
+                </div>
+              {% endif %}
+              {% if r.image4 %}
+                <div class="photo-item">
+                  <img src="{{ r.image4.url }}" alt="صورة 4">
+                  <div class="photo-caption">صورة توثيقية (4)</div>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          <div class="section-header">
+            {% if not for_pdf %}<i class="fa-solid fa-pen-fancy"></i>{% endif %}
+            التواقيع
+          </div>
+
+          <footer class="signatures-area">
+
+            <div class="sign-card">
+              <div class="head">
+                {% if not for_pdf %}<i class="fa-solid fa-user-pen"></i>{% endif %}
+                معد التقرير
+              </div>
+              <div class="body">
+                <div class="name">{{ r.teacher_display_name }}</div>
+                <div class="meta">التوقيع</div>
+                <div class="line"></div>
+              </div>
+            </div>
+
+            {% with hd=head_decision %}
+              <div class="sign-card">
+                <div class="head">
+                  {% if not for_pdf %}<i class="fa-solid fa-user-tie"></i>{% endif %}
+                  {% if hd.multi_dept %}رئيس قسم {{ hd.dept_name }}{% else %}رئيس القسم{% endif %}
+                </div>
+                <div class="body">
+                  <div class="name">{% if hd.single %}{{ hd.name }}{% endif %}</div>
+                  <div class="meta">التوقيع</div>
+                  <div class="line"></div>
+                </div>
+              </div>
+            {% endwith %}
+
+            <div class="sign-card">
+              <div class="head">
+                {% if not for_pdf %}<i class="fa-solid fa-school"></i>{% endif %}
+                مدير المدرسة
+              </div>
+              <div class="body">
+                <div class="name">{% firstof SCHOOL_PRINCIPAL "____________________" %}</div>
+                <div class="meta">الختم / التوقيع</div>
+                <div class="line"></div>
+              </div>
+            </div>
+
+          </footer>
+        </div>
+      {% endwith %}
     {% endwith %}
 
-    <div class="sign-box">
-      <span class="role">مدير المدرسة</span>
-      <span class="name">{% firstof SCHOOL_PRINCIPAL "____________________" %}</span>
-      <div class="sign-line"></div>
-    </div>
-  </footer>
+  </main>
 </div>
 
 </body>

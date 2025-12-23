@@ -164,15 +164,51 @@ def _safe_next_url(next_url: str | None) -> str | None:
         return next_url
     return None
 
-def _role_display_map() -> dict:
+def _role_display_map(active_school: Optional[School] = None) -> dict:
+    """خريطة عرض عربية للأدوار/الأقسام.
+
+    ملاحظة مهمة للتوسع (Multi-tenant): قد تتكرر slugs للأقسام بين المدارس،
+    لذا عندما تتوفر مدرسة نشطة نُقيّد القراءة عليها (مع السماح بالأقسام العامة school=NULL).
+    """
     base = {"teacher": "المعلم", "manager": "المدير", "officer": "مسؤول قسم"}
     if Department is not None:
         try:
-            for d in Department.objects.filter(is_active=True).only("slug", "role_label", "name"):
+            qs = Department.objects.filter(is_active=True).only("slug", "role_label", "name")
+            if active_school is not None and _model_has_field(Department, "school"):
+                qs = qs.filter(Q(school=active_school) | Q(school__isnull=True))
+            for d in qs:
                 base[d.slug] = d.role_label or d.name or d.slug
         except Exception:
             pass
     return base
+
+
+def _is_manager_in_school(user, active_school: Optional[School]) -> bool:
+    """هل المستخدم مدير داخل المدرسة النشطة؟
+
+    - السوبر: نعم
+    - role.slug == manager: نعم (توافق خلفي)
+    - أو SchoolMembership(RoleType.MANAGER) داخل active_school
+    """
+    if getattr(user, "is_superuser", False):
+        return True
+    try:
+        if getattr(getattr(user, "role", None), "slug", None) == "manager":
+            return True
+    except Exception:
+        pass
+
+    if active_school is None:
+        return False
+    try:
+        return SchoolMembership.objects.filter(
+            teacher=user,
+            school=active_school,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True,
+        ).exists()
+    except Exception:
+        return False
 
 def _safe_redirect(request: HttpRequest, fallback_name: str) -> HttpResponse:
     nxt = request.POST.get("next") or request.GET.get("next")
@@ -1004,7 +1040,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
 
         if dept is None:
             cat = getattr(r, "category", None)
-            dept = _resolve_department_for_category(cat)
+            dept = _resolve_department_for_category(cat, school_scope)
             # حماية إضافية: تأكد أن القسم من نفس مدرسة التقرير/المدرسة النشطة
             if dept is not None and school_scope is not None:
                 try:
@@ -1792,7 +1828,19 @@ def _arabic_label_for(dept_obj_or_code) -> str:
         or getattr(dept_obj_or_code, "code", None)
         or (dept_obj_or_code if isinstance(dept_obj_or_code, str) else "")
     )
-    return _role_display_map().get(code, code or "—")
+    return _role_display_map(None).get(code, code or "—")
+
+
+def _arabic_label_for_in_school(dept_obj_or_code, active_school: Optional[School] = None) -> str:
+    """نسخة آمنة من _arabic_label_for تربط التسمية بالمدرسة النشطة لتجنب تداخل slugs بين المدارس."""
+    if hasattr(dept_obj_or_code, "name") and getattr(dept_obj_or_code, "name"):
+        return dept_obj_or_code.name
+    code = (
+        getattr(dept_obj_or_code, "slug", None)
+        or getattr(dept_obj_or_code, "code", None)
+        or (dept_obj_or_code if isinstance(dept_obj_or_code, str) else "")
+    )
+    return _role_display_map(active_school).get(code, code or "—")
 
 def _resolve_department_by_code_or_pk(code_or_pk: str, school: Optional[School] = None) -> Tuple[Optional[object], str, str]:
     dept_obj = None
@@ -1801,7 +1849,7 @@ def _resolve_department_by_code_or_pk(code_or_pk: str, school: Optional[School] 
     if Department is not None:
         try:
             qs = Department.objects.all()
-            if school is not None and hasattr(Department, "school"):
+            if school is not None and _model_has_field(Department, "school"):
                 qs = qs.filter(school=school)
             dept_obj = qs.filter(slug__iexact=dept_code).first()
             if not dept_obj:
@@ -1815,7 +1863,7 @@ def _resolve_department_by_code_or_pk(code_or_pk: str, school: Optional[School] 
         if dept_obj:
             dept_code = getattr(dept_obj, "slug", dept_code)
 
-    dept_label = _arabic_label_for(dept_obj or dept_code)
+    dept_label = _arabic_label_for_in_school(dept_obj or dept_code, school)
     return dept_obj, dept_code, dept_label
 
 def _members_for_department(dept_code: str, school: Optional[School] = None):
@@ -1871,7 +1919,19 @@ def _all_departments(active_school: Optional[School] = None):
         for d in qs:
             code = _dept_code_for(d)
             stats = _tickets_stats_for_department(code, active_school)
-            role_ids = set(Teacher.objects.filter(role__slug=code, is_active=True).values_list("id", flat=True))
+            # ملاحظة للتوسع: الاعتماد على role.slug وحده يخلط المدارس عند تكرار slugs.
+            # نُقيّد العد داخل المدرسة النشطة عبر SchoolMembership.
+            if active_school is not None:
+                role_ids = set(
+                    SchoolMembership.objects.filter(
+                        school=active_school,
+                        is_active=True,
+                        teacher__is_active=True,
+                        teacher__role__slug=code,
+                    ).values_list("teacher_id", flat=True)
+                )
+            else:
+                role_ids = set(Teacher.objects.filter(role__slug=code, is_active=True).values_list("id", flat=True))
             member_ids = set()
             if DepartmentMembership is not None:
                 member_ids = set(DepartmentMembership.objects.filter(department=d).values_list("teacher_id", flat=True))
@@ -1880,7 +1940,7 @@ def _all_departments(active_school: Optional[School] = None):
                 {
                     "pk": d.pk,
                     "code": code,
-                    "name": _arabic_label_for(d),
+                    "name": _arabic_label_for_in_school(d, active_school),
                     "is_active": getattr(d, "is_active", True),
                     "members_count": members_count,
                     "stats": stats,
@@ -3392,6 +3452,27 @@ def api_department_members(request: HttpRequest) -> HttpResponse:
     if not dept:
         return JsonResponse({"results": []})
 
+    # عزل صارم: في وضع تعدد المدارس يجب أن تكون هناك مدرسة نشطة لغير السوبر.
+    try:
+        has_active_schools = School.objects.filter(is_active=True).exists()
+    except Exception:
+        has_active_schools = False
+
+    if has_active_schools and active_school is None and not getattr(request.user, "is_superuser", False):
+        return JsonResponse({"detail": "active_school_required", "results": []}, status=403)
+
+    # تحقق عضوية المستخدم في المدرسة النشطة (حتى لا تُحقن session لمدرسة لا ينتمي لها المستخدم)
+    if active_school is not None and not getattr(request.user, "is_superuser", False):
+        try:
+            if not SchoolMembership.objects.filter(
+                teacher=request.user,
+                school=active_school,
+                is_active=True,
+            ).exists():
+                return JsonResponse({"detail": "forbidden", "results": []}, status=403)
+        except Exception:
+            return JsonResponse({"detail": "forbidden", "results": []}, status=403)
+
     users = _members_for_department(dept, active_school).values("id", "name")
     return JsonResponse({"results": list(users)})
 
@@ -3412,7 +3493,7 @@ def tickets_inbox(request: HttpRequest) -> HttpResponse:
     # استبعاد تذاكر الدعم الفني للمنصة (لأنها خاصة بالإدارة العليا)
     qs = qs.filter(is_platform=False)
 
-    is_manager = bool(getattr(getattr(request.user, "role", None), "slug", None) == "manager")
+    is_manager = _is_manager_in_school(request.user, active_school)
     if not is_manager:
         user_codes = _user_department_codes(request.user)
         qs = qs.filter(Q(assignee=request.user) | Q(department__slug__in=user_codes))
@@ -3575,9 +3656,8 @@ def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("reports:home")
 
     n = get_object_or_404(Notification, pk=pk)
-    role_slug = getattr(getattr(request.user, "role", None), "slug", None)
     is_owner = getattr(n, "created_by_id", None) == request.user.id
-    is_manager = bool(request.user.is_superuser or role_slug == "manager")
+    is_manager = _is_manager_in_school(request.user, active_school)
     if not (is_manager or is_owner):
         messages.error(request, "لا تملك صلاحية حذف هذا الإشعار.")
         return redirect("reports:notifications_sent")
@@ -3624,8 +3704,8 @@ def _recipient_is_read(rec) -> tuple[bool, str | None]:
             pass
     return (False, None)
 
-def _arabic_role_label(role_slug: str) -> str:
-    return _role_display_map().get((role_slug or "").lower(), role_slug or "")
+def _arabic_role_label(role_slug: str, active_school: Optional[School] = None) -> str:
+    return _role_display_map(active_school).get((role_slug or "").lower(), role_slug or "")
 
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff_or_officer, login_url="reports:login")
@@ -3654,8 +3734,7 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
     except Exception:
         pass
 
-    role_slug = getattr(getattr(request.user, "role", None), "slug", None)
-    if not (request.user.is_superuser or role_slug == "manager"):
+    if not _is_manager_in_school(request.user, active_school):
         if getattr(n, "created_by_id", None) != request.user.id:
             messages.error(request, "لا تملك صلاحية عرض هذا الإشعار.")
             return redirect("reports:notifications_sent")
@@ -3694,7 +3773,7 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     continue
                 name = getattr(t, "name", None) or getattr(t, "phone", None) or getattr(t, "username", None) or f"مستخدم #{getattr(t, 'pk', '')}"
                 rslug = getattr(getattr(t, "role", None), "slug", "") or ""
-                role_label = _arabic_role_label(rslug)
+                role_label = _arabic_role_label(rslug, active_school)
                 is_read, read_at_str = _recipient_is_read(r)
                 recipients.append({
                     "name": str(name),
@@ -3806,8 +3885,7 @@ def notifications_sent(request: HttpRequest) -> HttpResponse:
     except Exception:
         pass
 
-    role_slug = getattr(getattr(request.user, "role", None), "slug", None)
-    if role_slug and role_slug != "manager" and not request.user.is_superuser:
+    if not request.user.is_superuser and not _is_manager_in_school(request.user, active_school):
         qs = qs.filter(created_by=request.user)
 
     qs = qs.select_related("created_by")

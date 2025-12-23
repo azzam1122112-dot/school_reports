@@ -66,7 +66,7 @@ def _officer_role_values(membership_model) -> Iterable:
     return values
 
 
-def _detect_officer_departments(user) -> List[Department]:
+def _detect_officer_departments(user, active_school: Optional[School] = None) -> List[Department]:
     Membership = _get_membership_model()
     if Membership is None:
         return []
@@ -76,6 +76,12 @@ def _detect_officer_departments(user) -> List[Department]:
             Membership.objects.select_related("department")
             .filter(teacher=user, role_type__in=officer_values, department__is_active=True)
         )
+        # عزل حسب المدرسة النشطة إن وُجدت
+        try:
+            if active_school is not None and "school" in _model_fields(Department):
+                membs = membs.filter(department__school=active_school)
+        except Exception:
+            pass
         seen, unique = set(), []
         for m in membs:
             d = m.department
@@ -87,15 +93,18 @@ def _detect_officer_departments(user) -> List[Department]:
         return []
 
 
-def _user_department_codes(user) -> List[str]:
+def _user_department_codes(user, active_school: Optional[School] = None) -> List[str]:
     Membership = _get_membership_model()
     if Membership is None:
         return []
     try:
-        codes = list(
-            Membership.objects.filter(teacher=user, department__is_active=True)
-            .values_list("department__slug", flat=True)
-        )
+        qs = Membership.objects.filter(teacher=user, department__is_active=True)
+        try:
+            if active_school is not None and "school" in _model_fields(Department):
+                qs = qs.filter(department__school=active_school)
+        except Exception:
+            pass
+        codes = list(qs.values_list("department__slug", flat=True))
         return [c for c in codes if c]
     except Exception:
         return []
@@ -544,7 +553,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         assigned_open = 0
 
-    officer_depts = _detect_officer_departments(u)
+    officer_depts = _detect_officer_departments(u, active_school=active_school)
     is_officer = bool(officer_depts)
     show_officer_link = bool(getattr(u, "is_superuser", False) or is_officer)
 
@@ -591,21 +600,32 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         role_slug = None
     
+    any_school_manager = False
     is_school_manager = False
     try:
         if getattr(u, "is_authenticated", False):
-             is_school_manager = SchoolMembership.objects.filter(
-                teacher=u, 
+            any_school_manager = SchoolMembership.objects.filter(
+                teacher=u,
                 role_type=SchoolMembership.RoleType.MANAGER,
-                is_active=True
+                is_active=True,
             ).exists()
+            if active_school is not None:
+                is_school_manager = SchoolMembership.objects.filter(
+                    teacher=u,
+                    school=active_school,
+                    role_type=SchoolMembership.RoleType.MANAGER,
+                    is_active=True,
+                ).exists()
+            else:
+                is_school_manager = any_school_manager
     except Exception:
         pass
 
-    show_admin_link = bool(getattr(u, "is_staff", False)) or is_school_manager
+    show_admin_link = bool(getattr(u, "is_staff", False)) or any_school_manager
 
     # من يحق له إرسال إشعارات؟
-    can_send_notifications = bool(getattr(u, "is_superuser", False) or role_slug == "manager" or is_officer or is_school_manager)
+    # الإرسال يجب أن يكون ضمن مدرسة محددة لغير السوبر
+    can_send_notifications = bool(getattr(u, "is_superuser", False) or (active_school is not None and (is_officer or is_school_manager)))
 
     # اختر الرابط الأنسب الذي يملك إذن الدخول إليه
     send_notification_url = None

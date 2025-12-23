@@ -125,10 +125,28 @@ def role_required(allowed_roles: Iterable[str]):
             # ✅ دعم مدير المدرسة (School Manager) إذا كان الدور المطلوب "manager"
             if "manager" in allowed and SchoolMembership is not None:
                 try:
+                    # إن كان النظام متعدد المدارس، نُلزم مدرسة نشطة لتحديد نطاق الصلاحية.
+                    has_active_schools = False
+                    try:
+                        has_active_schools = School.objects.filter(is_active=True).exists()
+                    except Exception:
+                        has_active_schools = False
+
+                    active_school_id = None
+                    try:
+                        active_school_id = request.session.get("active_school_id")
+                    except Exception:
+                        active_school_id = None
+
+                    if has_active_schools and not active_school_id:
+                        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+                        return redirect("reports:select_school")
+
                     is_school_manager = SchoolMembership.objects.filter(
                         teacher=user,
-                        role_type="manager",
-                        is_active=True
+                        role_type=SchoolMembership.RoleType.MANAGER,
+                        is_active=True,
+                        **({"school_id": active_school_id} if active_school_id else {}),
                     ).exists()
                     if is_school_manager:
                         return view_func(request, *args, **kwargs)

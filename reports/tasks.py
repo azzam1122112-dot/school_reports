@@ -137,14 +137,7 @@ def generate_report_pdf_task(self, report_id: int, return_bytes: bool = False):
     try:
         school_scope = getattr(r, "school", None)
 
-        dept = _resolve_department_for_category(r.category)
-        if dept is not None and school_scope is not None:
-            try:
-                dept_school = getattr(dept, "school", None)
-                if dept_school is not None and dept_school != school_scope:
-                    dept = None
-            except Exception:
-                dept = None
+        dept = _resolve_department_for_category(r.category, school_scope)
 
         head_decision = _build_head_decision(dept)
 
