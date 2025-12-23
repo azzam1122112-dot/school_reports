@@ -11,6 +11,11 @@ services:
         generateValue: true
       - key: DATABASE_URL
         sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: school-redis
+          property: connectionString
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
@@ -26,11 +31,19 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
-      - key: CELERY_BROKER_URL
-        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: school-redis
+          property: connectionString
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+
+  - type: redis
+    name: school-redis
+    ipAllowList: [] # Only allow internal connections
+    plan: free # Or starter
