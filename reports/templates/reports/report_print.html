@@ -54,15 +54,46 @@
       }
       .main-content{ flex: 1 1 auto; }
 
+      /* مظهر احترافي للطباعة (بدون الاعتماد على طباعة الخلفيات) */
+      body{ line-height: 1.5; color: #0f172a; }
+      .report-wrapper{ box-shadow: none !important; }
+
+      .hero{
+        background: none !important;
+        color: var(--ink) !important;
+        border: 2px solid var(--line);
+        border-right: 6px solid var(--brand);
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 10px;
+      }
+      .hero .logo{ width: 52px; height: 52px; padding: 6px; }
+      .hero .title{ font-size: 1.15rem; }
+      .hero .sub{ font-size: 0.9rem; color: var(--muted) !important; opacity: 1; }
+      .cat-badge{
+        background: none !important;
+        border: 1px solid var(--line);
+        color: var(--ink) !important;
+        font-size: 0.8rem;
+      }
+
       .details-grid{ gap: 8px; margin-bottom: 14px; }
-      .info-card{ padding: 10px 12px; }
+      .info-card{
+        padding: 10px 12px;
+        background: #fff !important;
+        border: 1px solid var(--line);
+      }
+      .info-card .label{ font-size: 0.8rem; }
+      .info-card .value{ font-size: 0.95rem; }
 
       .section-header{ margin: 14px 0 10px; }
+      .section-header{ border-bottom-color: var(--line); }
       .description-box{
         padding: 12px;
         margin-bottom: 12px;
         break-inside: auto;
         page-break-inside: auto;
+        border: 1px solid var(--line);
       }
 
       /* الصور: 4 صور + نص طويل بدون كسر التصميم */
@@ -76,6 +107,7 @@
         width: calc(50% - 5px);
         break-inside: avoid;
         page-break-inside: avoid;
+        border: 1px solid var(--line);
       }
       .photo-item img{ height: 150px; }
       .photo-caption{ font-size: 0.8rem; padding: 6px; }
@@ -94,7 +126,12 @@
         width: calc(33.333% - 7px);
         break-inside: avoid;
         page-break-inside: avoid;
+        background: #fff !important;
+        border: 1px solid var(--line) !important;
       }
+      .sign-box .role{ font-size: 0.85rem; }
+      .sign-box .name{ font-size: 0.9rem; }
+      .sign-box .sign-line{ border-bottom: 1px solid #cbd5e1; }
     }
 
     /* ===== حاوية التقرير ===== */

@@ -1079,7 +1079,13 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
 def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
     r = _get_report_for_user_or_404(request, pk)
 
-    download = (request.GET.get("download") or "").strip() in {"1", "true", "yes"}
+    # Default behavior: start a real download.
+    # `download=0` can be used if you want inline preview.
+    download_raw = (request.GET.get("download") or "").strip().lower()
+    download = False if download_raw in {"0", "false", "no"} else True
+
+    # Optional: allow explicitly showing the processing page if needed.
+    processing = (request.GET.get("processing") or "").strip() in {"1", "true", "yes"}
 
     # If PDF is already generated, serve it
     if r.pdf_file and r.pdf_status == 'completed':
@@ -1099,34 +1105,35 @@ def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
 
     retry = (request.GET.get("retry") or "").strip() in {"1", "true", "yes"}
 
-    # If generation previously failed, show the failure state unless user explicitly retries.
+    # If generation previously failed and user didn't retry, return a clear error (no processing page).
     if r.pdf_status == 'failed' and not retry:
-        return render(request, "reports/pdf_processing.html", {"r": r})
+        return HttpResponse(
+            "تعذّر توليد ملف PDF لهذا التقرير. اضغط إعادة المحاولة أو تواصل مع الدعم.",
+            status=500,
+            content_type="text/plain; charset=utf-8",
+        )
 
-    # If user explicitly requests download, generate synchronously and return the PDF immediately.
-    # This avoids the "processing" page and makes the button feel like a real download.
-    if download:
-        from .tasks import generate_report_pdf_task
-        pdf_bytes = generate_report_pdf_task(r.pk, return_bytes=True)
-        if not pdf_bytes:
-            # Show failure message page
-            r.refresh_from_db(fields=["pdf_status"])
-            return render(request, "reports/pdf_processing.html", {"r": r})
-
+    # Default: generate synchronously and return the PDF immediately (download).
+    from .tasks import generate_report_pdf_task
+    pdf_bytes = generate_report_pdf_task(r.pk, return_bytes=True)
+    if pdf_bytes:
         resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-        resp["Content-Disposition"] = f'attachment; filename="report-{r.pk}.pdf"'
+        disp = "attachment" if download else "inline"
+        resp["Content-Disposition"] = f'{disp}; filename="report-{r.pk}.pdf"'
         return resp
 
-    # If not generated, trigger async task if not already processing
-    if r.pdf_status not in ['processing', 'pending']:
-        from .tasks import generate_report_pdf_task
-        r.pdf_status = 'pending'
-        r.save(update_fields=['pdf_status'])
-        # In production, prefer Celery so generation isn't lost if the web worker restarts.
-        run_task_safe(generate_report_pdf_task, r.pk)
+    # If caller explicitly wants the processing page, allow it.
+    if processing:
+        r.refresh_from_db(fields=["pdf_status", "pdf_file"])
+        return render(request, "reports/pdf_processing.html", {"r": r})
 
-    # Show a "Processing" page
-    return render(request, "reports/pdf_processing.html", {"r": r})
+    # Otherwise return a clear failure (no redirect/page).
+    r.refresh_from_db(fields=["pdf_status"])
+    return HttpResponse(
+        "لم يتم توليد ملف PDF. حاول مرة أخرى بعد قليل.",
+        status=500,
+        content_type="text/plain; charset=utf-8",
+    )
 
 # =========================
 # إدارة المعلّمين (مدير فقط)
