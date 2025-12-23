@@ -598,8 +598,7 @@
 {% block scripts %}
 <script>
     function showReportDetails(id) {
-        const container = document.getElementById(
-eport-data-);
+    const container = document.getElementById('report-data-' + id);
         if (!container) return;
 
         document.getElementById('dlg-title').textContent = container.querySelector('.d-title').textContent;
