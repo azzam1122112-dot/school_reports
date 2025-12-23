@@ -1092,6 +1092,12 @@ class NotificationCreateForm(forms.Form):
         label="المدرسة المستهدفة",
         help_text="اختر المدرسة التي سيتم إرسال الإشعار لمستخدميها.",
     )
+    target_department = forms.ModelChoiceField(
+        queryset=Department.objects.none(),
+        required=False,
+        label="إرسال إلى قسم كامل",
+        help_text="اختر قسماً لإرسال الإشعار لجميع منسوبيه (رئيس القسم والمكلفين).",
+    )
     teachers = forms.ModelMultipleChoiceField(
         queryset=Teacher.objects.none(),
         required=False,
@@ -1107,14 +1113,29 @@ class NotificationCreateForm(forms.Form):
         self.user = user
 
         is_superuser = bool(getattr(user, "is_superuser", False))
+        
+        # التحقق مما إذا كان المستخدم مديراً للمدرسة
+        from .views import _is_staff
+        is_manager = _is_staff(user)
 
         # إعداد حقول نطاق الإرسال/المدرسة حسب نوع المستخدم
         if is_superuser:
             self.fields["target_school"].queryset = School.objects.filter(is_active=True).order_by("name")
+            # السوبر يوزر يمكنه اختيار أي قسم في المنصة
+            self.fields["target_department"].queryset = Department.objects.filter(is_active=True).order_by("name")
         else:
             # لا يحتاج المدير/الضابط لاختيار النطاق أو المدرسة؛ نستخدم المدرسة النشطة تلقائياً
             self.fields.pop("audience_scope", None)
             self.fields.pop("target_school", None)
+            
+            # جلب أقسام المدرسة النشطة فقط (للمدير فقط حسب الطلب)
+            if is_manager and active_school:
+                self.fields["target_department"].queryset = Department.objects.filter(
+                    models.Q(school=active_school) | models.Q(school__isnull=True),
+                    is_active=True
+                ).order_by("name")
+            else:
+                self.fields.pop("target_department", None)
 
         qs = Teacher.objects.filter(is_active=True).order_by("name")
 
@@ -1188,8 +1209,24 @@ class NotificationCreateForm(forms.Form):
             school=school_for_notification,
         )
         
-        selected_teachers = list(cleaned.get("teachers") or [])
-        teacher_ids = [t.pk for t in selected_teachers] if selected_teachers else None
+        # تجميع المعلمين المستهدفين
+        teacher_ids_set = set()
+        
+        # 1. المعلمون المختارون يدوياً
+        selected_teachers = cleaned.get("teachers")
+        if selected_teachers:
+            teacher_ids_set.update([t.pk for t in selected_teachers])
+            
+        # 2. معلمو القسم المختار (إن وجد)
+        target_dept = cleaned.get("target_department")
+        if target_dept:
+            from .models import DepartmentMembership
+            dept_teachers = DepartmentMembership.objects.filter(
+                department=target_dept
+            ).values_list('teacher_id', flat=True)
+            teacher_ids_set.update(dept_teachers)
+        
+        teacher_ids = list(teacher_ids_set) if teacher_ids_set else None
         
         # Trigger background task to create recipients
         transaction.on_commit(lambda: send_notification_task.delay(n.pk, teacher_ids))

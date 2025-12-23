@@ -269,28 +269,34 @@
 
               <div class="form-grid">
                 {% for field in form.visible_fields %}
-                  {% if field.name == "teachers" %}
+                  {% if field.name == "teachers" or field.name == "target_department" %}
                     <div class="field full" data-name="{{ field.html_name|lower }}">
                       <label for="{{ field.id_for_label }}" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
                         <span>
                           {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
-                          {{ field.label|default:"المستلمون" }}
+                          {{ field.label }}
                         </span>
+                        {% if field.name == "teachers" %}
                         <span class="teacher-actions">
                           <button type="button" id="selectAllTeachers">تحديد الكل</button>
                           <span>/</span>
                           <button type="button" id="clearAllTeachers">إلغاء التحديد</button>
                         </span>
+                        {% endif %}
                       </label>
 
-                      <div class="teacher-tools">
-                        <input id="teacherSearch" type="search" placeholder="ابحث باسم المعلّم…" aria-label="البحث عن معلّم">
-                        <span class="mini">المحدّد: <span class="count" id="selCount">0</span></span>
-                      </div>
+                      {% if field.name == "teachers" %}
+                        <div class="teacher-tools">
+                          <input id="teacherSearch" type="search" placeholder="ابحث باسم المعلّم…" aria-label="البحث عن معلّم">
+                          <span class="mini">المحدّد: <span class="count" id="selCount">0</span></span>
+                        </div>
 
-                      <div class="teacher-list" id="teacherList">
+                        <div class="teacher-list" id="teacherList">
+                          {{ field }}
+                        </div>
+                      {% else %}
                         {{ field }}
-                      </div>
+                      {% endif %}
 
                       {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
                       {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
