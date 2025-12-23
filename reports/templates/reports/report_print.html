@@ -64,30 +64,26 @@
 
       .hero{
         background: none !important;
-        color: var(--ink) !important;
-        border: 2px solid var(--line);
+        flex-wrap: nowrap;
+        gap: 6px;
         border-right: 6px solid var(--brand);
         padding: 12px;
         margin-bottom: 12px;
         border-radius: 10px;
-      }
+        width: auto;
+        flex: 1 1 0;
       .hero .logo{ width: 52px; height: 52px; padding: 6px; }
       .hero .title{ font-size: 1.15rem; }
       .hero .sub{ font-size: 0.9rem; color: var(--muted) !important; opacity: 1; }
       .cat-badge{
         background: none !important;
         border: 1px solid var(--line);
-        color: var(--ink) !important;
-        font-size: 0.8rem;
-      }
+      .photo-item img{ height: 92px; }
+      .photo-caption{ font-size: 0.68rem; padding: 4px; }
 
-      .details-grid{ grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
-      .info-card{
-        padding: 8px 10px;
-        background: #fff !important;
-        border: 1px solid var(--line);
-      }
-      .info-card .label{ font-size: 0.72rem; }
+      /* مهما كان عدد الصور: تبقى كلها في صف واحد */
+      .photos-grid--4 .photo-item,
+      .photos-grid--1 .photo-item{ width: auto; flex: 1 1 0; }
       .info-card .value{ font-size: 0.85rem; }
       .info-card--wide{ grid-column: span 4; }
 
