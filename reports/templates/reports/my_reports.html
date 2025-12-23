@@ -334,12 +334,4 @@
     imgEl.onclick = (e) => e.stopPropagation();
   })();
 </script>
-      const images = Array.from(gal.querySelectorAll('img[data-full]'));
-      const urls   = images.map(im=>im.getAttribute('data-full')).filter(Boolean);
-      images.forEach((im, i)=>{
-        im.addEventListener('click', ()=> open(urls, i));
-      });
-    });
-  })();
-</script>
 {% endblock %}
