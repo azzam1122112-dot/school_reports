@@ -31,15 +31,16 @@
       padding:15px;background:#fff;border-bottom:1px solid var(--line);
       z-index:99;
     }
-    .btn{padding:10px 20px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px}
+    .btn{padding:10px 20px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink)}
     .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
-    
+    .hint{font-size:0.9rem;color:var(--muted)}
+
     @media print {
       .toolbar { display: none !important; }
       body { background: #fff; }
       @page {
         size: A4;
-        margin: 15mm;
+        margin: 10mm;
       }
     }
 
@@ -79,6 +80,7 @@
     .hero .title-box{flex:1}
     .hero .title{font-size:1.4rem;font-weight:900;margin:0}
     .hero .sub{opacity:0.9;font-size:0.95rem;margin-top:4px}
+    .cat-badge{background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:0.85rem}
 
     /* المحتوى */
     .details-grid{
@@ -102,6 +104,7 @@
       padding:15px;background:#fff;border:1px solid var(--line);border-radius:10px;
       white-space:pre-wrap;font-size:1rem;color:#334155;
       margin-bottom: 20px;
+      line-height: 1.8;
     }
 
     /* الصور */
@@ -120,7 +123,7 @@
     }
     .photo-item img {
       width: 100%;
-      height: 200px;
+      height: 220px;
       object-fit: cover;
       display: block;
     }
@@ -130,37 +133,32 @@
       text-align: center;
       background: var(--bg);
       border-top: 1px solid var(--line);
+      color: var(--muted);
     }
 
     /* التواقيع */
-    .signatures {
+    .signatures-area {
       margin-top: 40px;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 40px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
       break-inside: avoid;
     }
     .sign-box {
       text-align: center;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      padding: 15px;
+      background: var(--bg);
     }
-    .sign-box .role { font-weight: 800; display: block; margin-bottom: 10px; }
-    .sign-box .name { display: block; margin-bottom: 5px; min-height: 1.2em; }
-    .sign-box .line { border-bottom: 2px solid var(--line); width: 80%; margin: 0 auto; }
+    .sign-box .role { font-weight: 800; display: block; margin-bottom: 10px; color: var(--brand); }
+    .sign-box .name { display: block; margin-bottom: 5px; min-height: 1.2em; font-weight: 700; }
+    .sign-box .sign-line { border-bottom: 1px solid var(--line); width: 80%; margin: 10px auto 0; }
 
-    /* تحسينات WeasyPrint */
-    @page {
-      @bottom-right {
-        content: "صفحة " counter(page) " من " counter(pages);
-        font-family: 'Tajawal', sans-serif;
-        font-size: 9pt;
-        color: #64748b;
-      }
-    }
   </style>
 </head>
 <body>
 
-{% if not for_pdf %}
 <div class="toolbar">
   <button class="btn btn-primary" onclick="window.print()">
     <i class="fas fa-print"></i> طباعة التقرير
@@ -169,135 +167,6 @@
     <i class="fas fa-file-pdf"></i> تحميل PDF
   </a>
   <span class="hint">يفضل استخدام متصفح Chrome للطباعة</span>
-</div>
-{% endif %}
-
-<div class="report-wrapper">
-  <header class="hero">
-    {% if SCHOOL_LOGO_URL %}
-      <img src="{{ SCHOOL_LOGO_URL }}" class="logo" alt="Logo">
-    {% else %}
-      <div class="logo" style="display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--brand)">LOGO</div>
-    {% endif %}
-    <div class="title-box">
-      <h1 class="title">{{ r.title }}</h1>
-      <div class="sub">{{ SCHOOL_NAME|default:"منصة التقارير المدرسية" }}</div>
-    </div>
-    <div class="cat-badge">{{ r.category.name }}</div>
-  </header>
-
-  <div class="details-grid">
-    <div class="info-card">
-      <span class="label">معد التقرير</span>
-      <span class="value">{{ r.teacher.name }}</span>
-    </div>
-    <div class="info-card">
-      <span class="label">التاريخ</span>
-      <span class="value">{{ r.created_at|date:"Y/m/d" }}</span>
-    </div>
-    {% if r.target_group %}
-    <div class="info-card">
-      <span class="label">الفئة المستهدفة</span>
-      <span class="value">{{ r.target_group }}</span>
-    </div>
-    {% endif %}
-    {% if r.location %}
-    <div class="info-card">
-      <span class="label">المكان</span>
-      <span class="value">{{ r.location }}</span>
-    </div>
-    {% endif %}
-  </div>
-
-  <div class="section-header">وصف الفعالية / التقرير</div>
-  <div class="description-box">{{ r.idea }}</div>
-
-  {% if r.image1 or r.image2 or r.image3 or r.image4 %}
-  <div class="section-header">الصور والتوثيق</div>
-  <div class="photos-grid">
-    {% if r.image1 %}<div class="photo-item"><img src="{{ r.image1.url }}"><div class="photo-caption">صورة (1)</div></div>{% endif %}
-    {% if r.image2 %}<div class="photo-item"><img src="{{ r.image2.url }}"><div class="photo-caption">صورة (2)</div></div>{% endif %}
-    {% if r.image3 %}<div class="photo-item"><img src="{{ r.image3.url }}"><div class="photo-caption">صورة (3)</div></div>{% endif %}
-    {% if r.image4 %}<div class="photo-item"><img src="{{ r.image4.url }}"><div class="photo-caption">صورة (4)</div></div>{% endif %}
-  </div>
-  {% endif %}
-
-  <div class="signatures">
-    <div class="sign-box">
-      <span class="role">
-        {% if head_decision.multi_dept %}رئيس قسم {{ head_decision.dept_name }}{% else %}رئيس القسم{% endif %}
-      </span>
-      <span class="name">{{ head_decision.name|default:"________________" }}</span>
-      <div class="line"></div>
-    </div>
-    <div class="sign-box">
-      <span class="role">مدير المدرسة</span>
-      <span class="name">{{ SCHOOL_PRINCIPAL|default:"________________" }}</span>
-      <div class="line"></div>
-    </div>
-  </div>
-</div>
-
-</body>
-</html>
-    .photos-grid{
-      display:grid;grid-template-columns:repeat(2, 1fr);gap:15px;margin-top:15px;
-    }
-    .photo-item{
-      border:1px solid var(--line);border-radius:12px;overflow:hidden;
-      background:#fff;break-inside:avoid;page-break-inside:avoid;
-    }
-    .photo-item img{
-      width:100%;height:220px;object-fit:cover;display:block;
-    }
-    .photo-caption{
-      padding:8px;text-align:center;font-size:0.8rem;color:var(--muted);background:var(--bg);border-top:1px solid var(--line);
-    }
-
-    /* التواقيع */
-    .signatures-area{
-      margin-top:40px;
-      display:grid;grid-template-columns:repeat(3, 1fr);gap:15px;
-      break-inside:avoid;page-break-inside:avoid;
-    }
-    .sign-box{
-      border:1px dashed var(--line);border-radius:12px;padding:15px;
-      text-align:center;background:var(--bg);display:flex;flex-direction:column;gap:10px;
-    }
-    .sign-box .role{font-weight:900;font-size:0.95rem;color:var(--brand)}
-    .sign-box .name{font-weight:700;font-size:0.9rem;min-height:20px}
-    .sign-line{height:1px;background:var(--line);margin:15px 10px 5px;border-top:1px dashed #94a3b8}
-
-    /* ===== إعدادات الطباعة ===== */
-    @media print {
-      @page {
-        size: A4;
-        margin: 0; /* نتحكم بالهوامش عبر padding الـ wrapper */
-      }
-      body { background: #fff; }
-      .toolbar { display: none !important; }
-      .report-wrapper {
-        margin: 0;
-        width: 210mm;
-        min-height: 297mm;
-        page-break-after: always;
-      }
-      .report-wrapper:last-child { page-break-after: auto; }
-      
-      /* ضمان بقاء التواقيع في الأسفل إذا كانت الصفحة واحدة */
-      .signatures-area {
-        margin-top: auto;
-      }
-    }
-  </style>
-</head>
-<body>
-
-<div class="toolbar no-print">
-  <button class="btn btn-primary" onclick="window.print()">
-    <i class="fa-solid fa-print"></i> طباعة التقرير
-  </button>
-  <span class="hint">يفضل تعطيل "Headers and footers" في إعدادات المتصفح.</span>
 </div>
 
 <div class="report-wrapper">
@@ -408,237 +277,6 @@
     </div>
   </footer>
 </div>
-
-</body>
-</html>
-
-<script>
-/*
- * توزيع المحتوى على صفحة واحدة أو صفحتين مع الحفاظ على التواقيع
- */
-(function(){
-  const mmToPx = v => v * 3.7795275591; // ~96dpi
-  const PRINT_MARGIN_MM = 15;
-  const PAGE_H_MM = 297;
-  const PAGE_W_MM = 210;
-  const A4H = mmToPx(PAGE_H_MM - 2 * PRINT_MARGIN_MM);
-
-  const page1 = document.getElementById('page1');
-  const page2 = document.getElementById('page2');
-
-  const hero1 = document.getElementById('hero1');
-  const content1 = document.getElementById('content1');
-  const photosWrap1 = document.getElementById('photosWrap1');
-  const photos1 = document.getElementById('photos1');
-  const sign1 = document.getElementById('sign1');
-
-  const hero2 = document.getElementById('hero2');
-  const content2 = document.getElementById('content2');
-  const photosWrap2 = document.getElementById('photosWrap2');
-  const photos2 = document.getElementById('photos2');
-  const sign2 = document.getElementById('sign2');
-
-  const descriptionContent = document.getElementById('descriptionContent');
-  const descriptionContinuation = document.getElementById('descriptionContinuation');
-
-  const photosTpl = document.getElementById('allPhotos');
-
-  const h = el => el ? el.getBoundingClientRect().height : 0;
-
-  function isVisible(el){
-    if(!el) return false;
-    const cs = getComputedStyle(el);
-    return cs.display !== 'none' && cs.visibility !== 'hidden' && !el.hidden;
-  }
-
-  function setPhotoSlotHeightForPage(pageEl, heroEl, contentEl, photosWrapEl, photosEl, signEl){
-    if(!pageEl || !photosWrapEl || !photosEl || !isVisible(photosWrapEl)) return;
-
-    const figsCount = photosEl.querySelectorAll('figure').length;
-    if(figsCount === 0) return;
-
-    // شبكتنا ثابتة على عمودين، إذن عدد الصفوف = ceil(count/2)
-    const rows = Math.ceil(figsCount / 2);
-    const titleEl = photosWrapEl.querySelector('.section-title');
-
-    const gapStr = (getComputedStyle(photosEl).rowGap || getComputedStyle(photosEl).gap || '0px');
-    const gapY = Number.parseFloat(gapStr) || 0;
-
-    // المساحة المتاحة للصور داخل صفحة A4 (بعد الرأس + المحتوى + التواقيع)
-    const safetyPad = 10; // px هامش أمان صغير لتجنب أي اختلافات في المقاسات
-    const available = A4H - h(heroEl) - h(contentEl) - h(signEl) - h(titleEl) - safetyPad;
-    if(available <= 0) return;
-
-    const slotH = Math.max(70, Math.floor((available - (rows - 1) * gapY) / rows));
-    pageEl.style.setProperty('--slot-h', slotH + 'px');
-  }
-
-  // تقسيم النص الطويل
-  function splitLongText(textElement, maxHeight) {
-    const originalText = textElement.textContent;
-    if (h(textElement) <= maxHeight) {
-      return { left: originalText, right: '' };
-    }
-    
-    const words = originalText.split(' ');
-    let leftPart = '';
-    let rightPart = '';
-    
-    // إنشاء عنصر اختبار لقياس الارتفاع
-    const testElement = textElement.cloneNode(true);
-    testElement.style.visibility = 'hidden';
-    testElement.style.position = 'absolute';
-    testElement.style.width = textElement.offsetWidth + 'px';
-    document.body.appendChild(testElement);
-    
-    // البحث عن نقطة التقسيم المناسبة
-    for (let i = Math.floor(words.length / 2); i < words.length; i++) {
-      leftPart = words.slice(0, i).join(' ');
-      rightPart = words.slice(i).join(' ');
-      
-      testElement.textContent = leftPart + '...';
-      if (h(testElement) <= maxHeight) {
-        break;
-      }
-    }
-    
-    document.body.removeChild(testElement);
-    
-    return { 
-      left: leftPart + '...', 
-      right: '...' + rightPart 
-    };
-  }
-
-  // جهّز كل الصور كعناصر قابلة للتوزيع
-  function collectFigures() {
-    if (!photosTpl) return [];
-    const frag = photosTpl.content.cloneNode(true);
-    return Array.from(frag.querySelectorAll('figure'));
-  }
-
-  // التحقق مما إذا كان المحتوى يتناسب في صفحة واحدة
-  function fitsInOnePage() {
-    const contentHeight = h(hero1) + h(content1) + (isVisible(photosWrap1) ? h(photosWrap1) : 0) + h(sign1);
-    return contentHeight <= A4H;
-  }
-
-  // توزيع المحتوى
-  function distributeContent() {
-    const figures = collectFigures();
-    
-    // تنظيف الصور
-    photos1.innerHTML = '';
-    photos2.innerHTML = '';
-    
-    // إخفاء الصفحة 2 مبدئياً
-    page2.hidden = true;
-    content2.hidden = true;
-    
-    // استعادة النص الأصلي للوصف
-    descriptionContent.textContent = `{{ r.idea|default_if_none:"" }}`;
-    
-    // إذا كان هناك صور، أضفها للصفحة 1
-    if (figures.length > 0) {
-      figures.forEach(fig => photos1.appendChild(fig));
-    } else {
-      photosWrap1.style.display = 'none';
-    }
-    
-    // التحقق مما إذا كنا نحتاج صفحة ثانية
-    if (!fitsInOnePage()) {
-      page2.hidden = false;
-      
-      // تقسيم النص إذا كان طويلاً
-      const maxDescHeight = A4H * 0.4; // 40% من ارتفاع الصفحة
-      const descSplit = splitLongText(descriptionContent, maxDescHeight);
-      
-      if (descSplit.right) {
-        descriptionContent.textContent = descSplit.left;
-        content2.hidden = false;
-        descriptionContinuation.textContent = descSplit.right;
-      }
-      
-      // إذا كان هناك أكثر من صورتين، انقل البعض للصفحة 2
-      if (figures.length > 2) {
-        const photosToMove = figures.slice(2);
-        photosToMove.forEach(fig => {
-          photos1.removeChild(fig);
-          photos2.appendChild(fig);
-        });
-      }
-    }
-
-    // بعد توزيع الصور، اضبط ارتفاع الخانات حتى تظهر الصور كاملة وتملأ المساحة المتاحة
-    setPhotoSlotHeightForPage(page1, hero1, content1, photosWrap1, photos1, sign1);
-    if(!page2.hidden){
-      setPhotoSlotHeightForPage(page2, hero2, content2, photosWrap2, photos2, sign2);
-    }
-  }
-
-  function beforePrintSafe(){
-    try { 
-      // تطبيق إعدادات الطباعة (تصغير الخطوط)
-      document.body.classList.add('printing');
-      distributeContent(); 
-    } catch(e){ console.error(e); }
-  }
-
-  // عند تحميل الصور: أعد الحساب لضمان عدم التداخل
-  function afterImages(){
-    const imgs = Array.from(document.images);
-    if (imgs.length === 0) { 
-      beforePrintSafe(); 
-      return; 
-    }
-    
-    let done = 0;
-    const once = () => { 
-      if (++done === imgs.length) setTimeout(beforePrintSafe, 100); 
-    };
-    
-    imgs.forEach(img => {
-      if (img.complete) return once();
-      img.addEventListener('load', once, {once:true});
-      img.addEventListener('error', once, {once:true});
-    });
-  }
-
-  // مستمعو الطباعة
-  if (window.matchMedia) {
-    const mql = window.matchMedia('print');
-    if (typeof mql.addEventListener === 'function') {
-      mql.addEventListener('change', e => e.matches ? beforePrintSafe() : null);
-    } else if (typeof mql.addListener === 'function') {
-      mql.addListener(e => e.matches ? beforePrintSafe() : null);
-    }
-  }
-  
-  window.addEventListener('beforeprint', beforePrintSafe);
-
-  // زر الطباعة
-  const printBtn = document.getElementById('printBtn');
-  let printing = false;
-  
-  printBtn?.addEventListener('click', () => {
-    if (printing) return;
-    printing = true;
-    beforePrintSafe();
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        printing = false;
-        document.body.classList.remove('printing');
-      }, 400);
-    }, 100);
-  });
-
-  // بدء التشغيل
-  window.addEventListener('load', () => {
-    setTimeout(afterImages, 100);
-  });
-})();
-</script>
 
 </body>
 </html>
