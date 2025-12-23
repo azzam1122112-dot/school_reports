@@ -444,9 +444,6 @@
                                 <a href="{% url 'reports:report_print' r.pk %}" target="_blank" class="btn-icon" title="طباعة">
                                     <i class="fa-solid fa-print"></i>
                                 </a>
-                                <a href="{% url 'reports:report_pdf' r.pk %}?download=1" target="_blank" class="btn-icon" title="PDF">
-                                    <i class="fa-solid fa-file-pdf"></i>
-                                </a>
                                 <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" onsubmit="return confirm('هل أنت متأكد من الحذف؟');" style="display:inline;">
                                     {% csrf_token %}
                                     <input type="hidden" name="next" value="{{ request.get_full_path }}">

@@ -164,7 +164,7 @@
                 <label for="id_teacher_name">اسم المعلم</label>
                 <input class="control" type="text" id="id_teacher_name" name="teacher_name" maxlength="120"
                        value="{{ form.data.teacher_name|default:report.teacher_name|default:request.user.name }}">
-                <div class="help">يظهر هذا الاسم داخل الطباعة/الـPDF إن كان النظام يدعم ذلك.</div>
+                <div class="help">يظهر هذا الاسم داخل الطباعة.</div>
               </div>
             {% endif %}
 

@@ -288,4 +288,3 @@ PRINT_MULTIHEAD_POLICY = "blank"  # أو "dept"
 DEPARTMENT_HEAD_ROLE_SLUG = "department_head"  # غيّرها لو اسم السلاج مختلف
 
 SITE_URL = "https://school-reports.onrender.com"
-WEASYPRINT_BASE_URL = SITE_URL

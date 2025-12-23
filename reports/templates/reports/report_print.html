@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>تقرير {{ r.title }}</title>
 
-  {# ملاحظة: الروابط الخارجية قد تُربك WeasyPrint أحيانًا على Render #}
   {% if not for_pdf %}
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -308,11 +307,7 @@
         border-radius:0 !important;
       }
 
-      /*
-        فرق مهم:
-        - للمتصفح أثناء الطباعة (for-screen): نستخدم رأس خفيف لتقليل مشاكل الطباعة.
-        - للـ PDF (for-pdf عبر WeasyPrint): نحافظ على الشكل الحديث قدر الإمكان.
-      */
+      /* فرق مهم بين وضعَي العرض: for-screen و for-pdf */
       .for-screen .hero{
         background:none !important;
         color:#0f172a !important;
@@ -322,7 +317,6 @@
         margin-bottom:12px;
       }
       .for-pdf .report-wrapper{
-        /* نعيد padding لأن WeasyPrint يطبق @media print وليس @media screen */
         padding: var(--print-margin) !important;
       }
       .for-pdf .hero{
@@ -344,11 +338,7 @@
       .for-pdf .hero .sub{color:rgba(255,255,255,.92) !important;}
       .for-pdf .cat-badge{background: rgba(255,255,255,.18) !important; border-color: rgba(255,255,255,.25) !important; color:#fff !important;}
 
-      /*
-        ضبط قياسات PDF على A4 (WeasyPrint):
-        - استخدم mm بدل px لثبات القياس داخل PDF
-        - اجعل الصور "مصغّرة كاملة" بدون قص
-      */
+      /* ضبط قياسات A4 للطباعة وتحجيم الصور بدون قص */
       .for-pdf .details-grid{gap:9px;margin-bottom:12px}
       .for-pdf .section-header{margin:12px 0 8px}
       .for-pdf .description-box{padding:10px;margin-bottom:10px}
@@ -423,9 +413,6 @@
     <button class="btn btn-primary" onclick="window.print()">
       <i class="fas fa-print"></i> طباعة التقرير
     </button>
-    <a href="{% url 'reports:report_pdf' r.pk %}?download=1" class="btn">
-      <i class="fas fa-file-pdf"></i> تحميل PDF
-    </a>
     <span class="hint">يفضل استخدام Chrome للطباعة</span>
   </div>
 {% endif %}

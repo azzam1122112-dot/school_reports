@@ -27,7 +27,6 @@ urlpatterns = [
 
     # الطباعة والتصدير
     path("reports/<int:pk>/print/", views.report_print, name="report_print"),
-    path("reports/<int:pk>/pdf/", views.report_pdf, name="report_pdf"),
 
     # =========================
     # تقارير الإدارة (Staff/Manager)

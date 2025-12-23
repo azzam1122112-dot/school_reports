@@ -569,19 +569,6 @@ class Report(models.Model):
     image3 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
     image4 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
 
-    pdf_file = models.FileField(upload_to="reports/pdfs/", blank=True, null=True, verbose_name="ملف PDF")
-    pdf_status = models.CharField(
-        max_length=20,
-        choices=[
-            ("none", "لم يتم التوليد"),
-            ("pending", "في الانتظار"),
-            ("processing", "جاري التوليد"),
-            ("completed", "مكتمل"),
-            ("failed", "فشل"),
-        ],
-        default="none",
-        verbose_name="حالة الـ PDF"
-    )
 
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
 
@@ -626,12 +613,6 @@ class Report(models.Model):
                 self.teacher_name = getattr(self.teacher, "name", "") or ""
             except Exception:
                 pass
-
-        # إعادة تعيين حالة الـ PDF عند التعديل ليتم توليده مجدداً
-        if self.pk:
-            # نتحقق إذا كان هناك تغيير في الحقول الأساسية (اختياري، لكن للتبسيط سنعيد التوليد دائماً)
-            if self.pdf_status == 'completed':
-                self.pdf_status = 'pending'
 
         super().save(*args, **kwargs)
 
@@ -1203,18 +1184,16 @@ def trigger_report_background_tasks(sender, instance, created, **kwargs):
         cache.delete(f"admin_stats_{instance.school_id}")
     cache.delete("platform_admin_stats")
 
-    from .tasks import process_report_images, generate_report_pdf_task
+    from .tasks import process_report_images
     from .utils import run_task_safe
 
     # 1. معالجة الصور (إذا وجدت)
     has_images = any([instance.image1, instance.image2, instance.image3, instance.image4])
     
     if has_images:
-        # مهمة معالجة الصور ستقوم بدورها بتشغيل مهمة الـ PDF عند الانتهاء
+        # معالجة الصور فقط (لا نقوم بتوليد PDF)
         run_task_safe(process_report_images, instance.pk)
-    else:
-        # إذا لم توجد صور، نشغل مهمة الـ PDF مباشرة
-        run_task_safe(generate_report_pdf_task, instance.pk)
+    # إذا لم توجد صور: لا يوجد أي مهام مطلوبة هنا
 
 
 @receiver(post_save, sender=Ticket)

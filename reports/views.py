@@ -460,6 +460,14 @@ def login_view(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/login.html", context)
 
 
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def logout_view(request: HttpRequest) -> HttpResponse:
+    _set_active_school(request, None)
+    logout(request)
+    return redirect("reports:login")
+
+
 @require_http_methods(["GET"])
 def platform_landing(request: HttpRequest) -> HttpResponse:
     """الصفحة الرئيسية العامة للمنصة (تعريف + مميزات + زر دخول).
@@ -475,54 +483,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             return redirect("reports:admin_dashboard")
         return redirect("reports:home")
 
-    return render(request, "reports/landing.html", {})
-
-@require_http_methods(["GET", "POST"])
-def logout_view(request: HttpRequest) -> HttpResponse:
-    if request.user.is_authenticated:
-        logout(request)
-        messages.success(request, "تم تسجيل الخروج بنجاح.")
-    return redirect("reports:login")
-
-
-@login_required(login_url="reports:login")
-@require_http_methods(["POST"])
-def switch_school(request: HttpRequest) -> HttpResponse:
-    """تبديل المدرسة من الهيدر لأي مستخدم يملك عضوية في أكثر من مدرسة."""
-
-    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "reports:home"
-    sid = request.POST.get("school_id")
-    try:
-        if request.user.is_superuser:
-            school = School.objects.get(pk=sid, is_active=True)
-        else:
-            allowed = _user_schools(request.user)
-            school = next((s for s in allowed if str(s.pk) == str(sid)), None)
-            if school is None:
-                raise School.DoesNotExist
-        _set_active_school(request, school)
-        messages.success(request, f"تم التبديل إلى: {school.name}")
-
-        # ✅ حماية الاشتراك: إذا كانت المدرسة المختارة اشتراكها منتهي/غير موجود
-        # نوجّه مباشرةً لصفحة (انتهاء الاشتراك). المدير سيُسمح له فقط بصفحات التجديد.
-        if not request.user.is_superuser:
-            sub = None
-            try:
-                sub = school.subscription
-            except Exception:
-                sub = None
-            try:
-                expired = True if sub is None else bool(sub.is_expired)
-            except Exception:
-                expired = True
-            if expired:
-                return redirect("reports:subscription_expired")
-    except Exception:
-        messages.error(request, "تعذّر تبديل المدرسة. تأكد من الصلاحيات.")
-
-    if isinstance(next_url, str) and not next_url.startswith("http"):
-        return redirect(next_url)
-    return redirect("reports:home")
+    return render(request, "reports/landing.html")
 
 
 @login_required(login_url="reports:login")
@@ -558,6 +519,39 @@ def select_school(request: HttpRequest) -> HttpResponse:
         "current_school": _get_active_school(request),
     }
     return render(request, "reports/select_school.html", context)
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(_is_staff, login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def switch_school(request: HttpRequest) -> HttpResponse:
+    """تبديل المدرسة النشطة بسرعة من الهيدر/القائمة."""
+    if request.method == "POST":
+        sid = request.POST.get("school_id")
+        next_raw = request.POST.get("next")
+    else:
+        sid = request.GET.get("school_id")
+        next_raw = request.GET.get("next")
+
+    next_url = _safe_next_url(next_raw) or "reports:admin_dashboard"
+
+    if not sid:
+        return redirect(next_url)
+
+    if request.user.is_superuser:
+        schools_qs = School.objects.filter(is_active=True)
+    else:
+        manager_schools = _user_manager_schools(request.user)
+        schools_qs = School.objects.filter(id__in=[s.id for s in manager_schools], is_active=True)
+
+    try:
+        school = schools_qs.get(pk=sid)
+        _set_active_school(request, school)
+        messages.success(request, f"تم اختيار المدرسة: {school.name}")
+    except (School.DoesNotExist, ValueError, TypeError):
+        messages.error(request, "تعذّر تبديل المدرسة. فضلاً اختر مدرسة صحيحة.")
+
+    return redirect(next_url)
 
 # =========================
 # الرئيسية (لوحة المعلم)
@@ -1114,58 +1108,9 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
 @require_http_methods(["GET"])
 def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
     r = _get_report_for_user_or_404(request, pk)
-
-    # Default behavior: start a real download.
-    # `download=0` can be used if you want inline preview.
-    download_raw = (request.GET.get("download") or "").strip().lower()
-    download = False if download_raw in {"0", "false", "no"} else True
-
-    # Optional: allow explicitly showing the processing page if needed.
-    processing = (request.GET.get("processing") or "").strip() in {"1", "true", "yes"}
-
-    # If PDF is already generated, serve it
-    if r.pdf_file and r.pdf_status == 'completed':
-        try:
-            from django.http import FileResponse
-
-            f = r.pdf_file.open("rb")
-            return FileResponse(
-                f,
-                content_type="application/pdf",
-                as_attachment=download,
-                filename=f"report-{r.pk}.pdf",
-            )
-        except Exception:
-            # If file missing or error, fall back to generation
-            pass
-
-    retry = (request.GET.get("retry") or "").strip() in {"1", "true", "yes"}
-
-    # If caller explicitly asked for the processing page, show it (including failed state).
-    if processing:
-        r.refresh_from_db(fields=["pdf_status", "pdf_file"])
-        return render(request, "reports/pdf_processing.html", {"r": r})
-
-    # Otherwise, for direct download, always attempt generation even if it failed previously.
-
-    # Default: generate synchronously and return the PDF immediately (download).
-    from .tasks import generate_report_pdf_task
-    # NOTE: generate_report_pdf_task is a Celery Task (bind=True). Calling it directly will
-    # shift arguments and break generation. Use .run() to execute synchronously in-process.
-    pdf_bytes = generate_report_pdf_task.run(r.pk, return_bytes=True)
-    if pdf_bytes:
-        resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-        disp = "attachment" if download else "inline"
-        resp["Content-Disposition"] = f'{disp}; filename="report-{r.pk}.pdf"'
-        return resp
-
-    # Otherwise return a clear failure (no redirect/page).
-    r.refresh_from_db(fields=["pdf_status"])
-    return HttpResponse(
-        "لم يتم توليد ملف PDF. حاول مرة أخرى بعد قليل.",
-        status=500,
-        content_type="text/plain; charset=utf-8",
-    )
+    # ميزة PDF أُلغيت من واجهة المستخدم وتم تعطيل رابطها في urls.py
+    # إن تم الوصول لها مباشرة نرجع 404.
+    raise Http404()
 
 # =========================
 # إدارة المعلّمين (مدير فقط)
@@ -2343,19 +2288,10 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         except Exception:
             pass
 
-    # Check for WeasyPrint availability
-    pdf_ready = False
-    try:
-        import weasyprint
-        pdf_ready = True
-    except (ImportError, OSError):
-        pdf_ready = False
-
     ctx = {
         **stats,
         "has_dept_model": Department is not None,
         "active_school": active_school,
-        "pdf_ready": pdf_ready,
     }
 
     has_reporttype = False
