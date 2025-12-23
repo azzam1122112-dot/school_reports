@@ -1205,15 +1205,22 @@ def trigger_report_background_tasks(sender, instance, created, **kwargs):
 
     from .tasks import process_report_images, generate_report_pdf_task
     
+    def safe_delay(task, *args, **kwargs):
+        try:
+            transaction.on_commit(lambda: task.delay(*args, **kwargs))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Celery error: {e}")
+
     # 1. معالجة الصور (إذا وجدت)
     has_images = any([instance.image1, instance.image2, instance.image3, instance.image4])
     
     if has_images:
         # مهمة معالجة الصور ستقوم بدورها بتشغيل مهمة الـ PDF عند الانتهاء
-        transaction.on_commit(lambda: process_report_images.delay(instance.pk))
+        safe_delay(process_report_images, instance.pk)
     else:
         # إذا لم توجد صور، نشغل مهمة الـ PDF مباشرة
-        transaction.on_commit(lambda: generate_report_pdf_task.delay(instance.pk))
+        safe_delay(generate_report_pdf_task, instance.pk)
 
 
 @receiver(post_save, sender=Ticket)
@@ -1282,7 +1289,10 @@ def trigger_ticket_image_processing(sender, instance, created, **kwargs):
     """
     from .tasks import process_ticket_image
     if instance.image:
-        transaction.on_commit(lambda: process_ticket_image.delay(instance.pk))
+        try:
+            transaction.on_commit(lambda: process_ticket_image.delay(instance.pk))
+        except Exception:
+            pass
 
 
 # =========================
