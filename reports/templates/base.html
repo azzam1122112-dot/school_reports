@@ -191,7 +191,24 @@
     .hamburger.active span:nth-child(1){transform:translateY(4px) rotate(45deg)}
     .hamburger.active span:nth-child(2){opacity:0}
     .hamburger.active span:nth-child(3){transform:translateY(-4px) rotate(-45deg)}
-    @media(max-width:1024px){.hamburger{display:flex}}
+    @media(max-width:1024px){
+      .hamburger{display:flex}
+      .hdr-actions .icon-btn,
+      .hdr-actions #openSchoolModal { display: none; }
+    }
+
+    /* Drawer Actions */
+    .drawer-actions{
+      display: none;
+      padding: 16px;
+      gap: 12px;
+      justify-content: center;
+      border-bottom: 1px solid var(--line-2);
+      background: rgba(2,6,23,.02);
+    }
+    @media(max-width:1024px){
+      .drawer-actions{ display: flex; }
+    }
 
     /* User menu */
     .userbox{position:relative}
@@ -528,7 +545,7 @@
             </a>
           {% endif %}
 
-          <button class="icon-btn" id="themeToggle" type="button" aria-label="تبديل الثيم" title="تبديل الثيم">
+          <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="تبديل الثيم" title="تبديل الثيم">
             <i class="fa-solid fa-moon"></i>
           </button>
 
@@ -561,6 +578,28 @@
       <div id="drawerTitle" class="drawer-title">القائمة</div>
       <button class="btn btn-sm" id="drawerClose" aria-label="إغلاق">إغلاق</button>
     </div>
+
+    {% if request.user.is_authenticated %}
+      <div class="drawer-actions">
+        {% url 'reports:my_notifications' as myNotificationsUrlMobile %}
+        {% if myNotificationsUrlMobile %}
+          <a class="icon-btn" href="{{ myNotificationsUrlMobile }}" aria-label="الإشعارات">
+            <i class="fa-solid fa-bell"></i>
+            {% if NAV_NOTIFICATIONS_UNREAD %}<span class="dot">{{ NAV_NOTIFICATIONS_UNREAD }}</span>{% endif %}
+          </a>
+        {% endif %}
+
+        {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
+          <a class="icon-btn" href="{{ SEND_NOTIFICATION_URL }}" aria-label="إرسال إشعار" title="إرسال إشعار">
+            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+          </a>
+        {% endif %}
+
+        <button class="icon-btn theme-toggle" type="button" aria-label="تبديل الثيم" title="تبديل الثيم">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    {% endif %}
 
     {% with active=request.resolver_match.url_name %}
     <nav class="drawer-nav" aria-label="القائمة الجانبية">
@@ -598,13 +637,6 @@
               <i class="fa-solid fa-gauge"></i>
             </a>
           {% endif %}
-        {% endif %}
-
-        {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
-          <a class="{% if active == 'notifications_create' %}is-active{% endif %}" href="{{ SEND_NOTIFICATION_URL }}">
-            <span>إرسال إشعار</span>
-            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-          </a>
         {% endif %}
 
         <div class="drawer-footer">
@@ -797,18 +829,18 @@
     // ===== Theme (data-theme) =====
     (function(){
       const root = document.documentElement;
-      const btn = document.getElementById('themeToggle');
+      const btns = document.querySelectorAll('.theme-toggle');
 
       const apply = (theme)=>{
         root.setAttribute('data-theme', theme);
         window.setCookie('theme', theme, 365);
-        // تحديث الأيقونة
-        if(btn){
+        // تحديث الأيقونة لجميع الأزرار
+        btns.forEach(btn => {
           const icon = btn.querySelector('i');
           if(icon){
             icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
           }
-        }
+        });
       };
 
       const saved = window.getCookie('theme');
@@ -818,16 +850,19 @@
         // افتراضي: اتبع النظام (لكن نخزن أول مرة عند التبديل فقط)
         if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
           root.setAttribute('data-theme', 'dark');
-          if(btn && btn.querySelector('i')) btn.querySelector('i').className = 'fa-solid fa-sun';
+          btns.forEach(btn => {
+            const icon = btn.querySelector('i');
+            if(icon) icon.className = 'fa-solid fa-sun';
+          });
         }
       }
 
-      if(btn){
+      btns.forEach(btn => {
         btn.addEventListener('click', ()=>{
           const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
           apply(current === 'dark' ? 'light' : 'dark');
         });
-      }
+      });
     })();
 
     // ===== Progress + Header shadow =====
