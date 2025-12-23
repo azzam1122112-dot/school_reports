@@ -129,7 +129,7 @@ if DATABASE_URL and dj_database_url:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
-            conn_max_age=600,
+            conn_max_age=0,  # تقليل العمر لتجنب SSL SYSCALL error على Render
             ssl_require=DB_SSL,
         )
     }

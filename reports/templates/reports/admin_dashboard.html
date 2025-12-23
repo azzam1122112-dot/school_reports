@@ -200,6 +200,14 @@
       </div>
     </a>
 
+    <a class="tile" href="{% url 'reports:school_audit_logs' %}">
+      <div class="ico b7" aria-hidden="true">📜</div>
+      <div>
+        <div class="tile-title">سجل العمليات</div>
+        <div class="muted">مراقبة التغييرات والحذف</div>
+      </div>
+    </a>
+
     {% if has_reporttype %}
       <a class="tile" href="{% url 'reports:reporttypes_list' %}">
         <div class="ico b5" aria-hidden="true">🧩</div>

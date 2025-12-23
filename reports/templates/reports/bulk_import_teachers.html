@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">استيراد معلمين من ملف Excel</h2>
+        <a href="{% url 'reports:manage_teachers' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-right me-1"></i> عودة لإدارة المعلمين
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <h5 class="card-title mb-3">تعليمات الاستيراد</h5>
+            <ul class="text-muted small">
+                <li>يجب أن يكون الملف بصيغة <strong>.xlsx</strong> (Excel).</li>
+                <li>يجب أن يحتوي الصف الأول على عناوين الأعمدة (سيتم تجاهله).</li>
+                <li>ترتيب الأعمدة المطلوب:
+                    <ol class="mt-2">
+                        <li><strong>الاسم الكامل</strong> (مطلوب)</li>
+                        <li><strong>رقم الجوال</strong> (مطلوب - سيستخدم كاسم مستخدم وكلمة مرور افتراضية)</li>
+                        <li><strong>رقم الهوية</strong> (اختياري)</li>
+                        <li><strong>التخصص</strong> (اختياري)</li>
+                    </ol>
+                </li>
+                <li>إذا كان المعلم مسجلاً مسبقاً في النظام برقم الجوال، سيتم ربطه بمدرستك فقط دون تغيير بياناته.</li>
+            </ul>
+            
+            <hr>
+
+            <form method="post" enctype="multipart/form-data" class="mt-4">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="excel_file" class="form-label fw-bold">اختر ملف Excel</label>
+                    <input type="file" name="excel_file" id="excel_file" class="form-control form-control-lg" accept=".xlsx" required>
+                    <div class="form-text">تأكد من مطابقة الملف للتعليمات أعلاه.</div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-upload me-2"></i> بدء الاستيراد الآن
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="alert alert-info border-0 shadow-sm">
+        <div class="d-flex">
+            <div class="me-3">
+                <i class="fas fa-info-circle fa-2x"></i>
+            </div>
+            <div>
+                <h6 class="alert-heading fw-bold">نصيحة تقنية</h6>
+                <p class="mb-0 small">استخدام الاستيراد الجماعي يوفر عليك الوقت عند إعداد المدرسة لأول مرة أو عند بداية العام الدراسي الجديد.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

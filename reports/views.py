@@ -75,6 +75,7 @@ from .models import (
     SubscriptionPlan,
     SchoolSubscription,
     Payment,
+    AuditLog,
 )
 
 # موديلات الإشعارات (اختياري)
@@ -1159,6 +1160,113 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @role_required({"manager"})
 @require_http_methods(["GET", "POST"])
+import openpyxl
+from django.db import transaction, IntegrityError
+from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password
+
+@login_required(login_url="reports:login")
+@role_required({"manager"})
+@require_http_methods(["GET", "POST"])
+def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:select_school")
+
+    if request.method == "POST":
+        excel_file = request.FILES.get("excel_file")
+        if not excel_file:
+            messages.error(request, "الرجاء اختيار ملف Excel.")
+            return render(request, "reports/bulk_import_teachers.html")
+
+        try:
+            wb = openpyxl.load_workbook(excel_file)
+            sheet = wb.active
+            
+            # توقع الأعمدة: الاسم، رقم الجوال، رقم الهوية (اختياري)، التخصص (اختياري)
+            # الصف الأول عناوين
+            rows = list(sheet.iter_rows(min_row=2, values_only=True))
+            if not rows:
+                messages.error(request, "الملف فارغ أو لا يحتوي على بيانات.")
+                return render(request, "reports/bulk_import_teachers.html")
+
+            # التحقق من حد الباقة
+            sub = getattr(active_school, "subscription", None)
+            max_teachers = 0
+            if sub and not sub.is_expired:
+                max_teachers = int(getattr(getattr(sub, "plan", None), "max_teachers", 0) or 0)
+            
+            current_count = SchoolMembership.objects.filter(
+                school=active_school,
+                role_type=SchoolMembership.RoleType.TEACHER,
+            ).count()
+
+            if max_teachers > 0 and (current_count + len(rows)) > max_teachers:
+                messages.error(request, f"لا يمكن استيراد {len(rows)} معلّم. الحد المتبقي في باقتك هو {max_teachers - current_count}.")
+                return render(request, "reports/bulk_import_teachers.html")
+
+            created_count = 0
+            errors = []
+
+            with transaction.atomic():
+                for idx, row in enumerate(rows, start=2):
+                    name, phone, national_id, specialty = (row + (None, None, None, None))[:4]
+                    
+                    if not name or not phone:
+                        errors.append(f"الصف {idx}: الاسم ورقم الجوال مطلوبان.")
+                        continue
+                    
+                    phone = str(phone).strip()
+                    if national_id:
+                        national_id = str(national_id).strip()
+                    
+                    # التحقق من وجود المعلم مسبقاً
+                    teacher = Teacher.objects.filter(phone=phone).first()
+                    if not teacher:
+                        try:
+                            teacher = Teacher.objects.create(
+                                first_name=name,
+                                phone=phone,
+                                national_id=national_id,
+                                specialty=specialty or "",
+                                username=phone,
+                                password=make_password(phone), # كلمة المرور الافتراضية هي رقم الجوال
+                            )
+                        except IntegrityError:
+                            errors.append(f"الصف {idx}: رقم الجوال أو الهوية مستخدم مسبقاً.")
+                            continue
+                    
+                    # ربط المعلم بالمدرسة
+                    membership, created = SchoolMembership.objects.get_or_create(
+                        school=active_school,
+                        teacher=teacher,
+                        defaults={
+                            "role_type": SchoolMembership.RoleType.TEACHER,
+                            "is_active": True
+                        }
+                    )
+                    if created:
+                        created_count += 1
+                    else:
+                        errors.append(f"الصف {idx}: المعلم {name} مرتبط بالفعل بهذه المدرسة.")
+
+            if created_count > 0:
+                messages.success(request, f"✅ تم استيراد {created_count} معلّم بنجاح.")
+            if errors:
+                for err in errors[:10]: # عرض أول 10 أخطاء فقط
+                    messages.warning(request, err)
+                if len(errors) > 10:
+                    messages.warning(request, f"... وهناك {len(errors)-10} أخطاء أخرى.")
+            
+            return redirect("reports:manage_teachers")
+
+        except Exception as e:
+            logger.exception("Bulk import failed")
+            messages.error(request, f"حدث خطأ أثناء معالجة الملف: {str(e)}")
+
+    return render(request, "reports/bulk_import_teachers.html")
+
 def add_teacher(request: HttpRequest) -> HttpResponse:
     # كل معلم جديد يُربط تلقائياً بالمدرسة النشطة لهذا المدير
     active_school = _get_active_school(request)
@@ -2161,6 +2269,62 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     })
 
     return render(request, "reports/admin_dashboard.html", ctx)
+
+@login_required(login_url="reports:login")
+@user_passes_test(_is_staff, login_url="reports:login")
+@role_required({"manager"})
+def school_audit_logs(request: HttpRequest) -> HttpResponse:
+    """عرض سجل العمليات الخاص بالمدرسة للمدير."""
+    active_school = _get_active_school(request)
+    if active_school is None:
+        return redirect("reports:select_school")
+    
+    if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+        messages.error(request, "ليست لديك صلاحية كمدير على هذه المدرسة.")
+        return redirect("reports:select_school")
+
+    logs_qs = AuditLog.objects.filter(school=active_school).select_related('teacher')
+
+    # تصفية حسب المعلم
+    teacher_id = request.GET.get('teacher')
+    if teacher_id:
+        logs_qs = logs_qs.filter(teacher_id=teacher_id)
+
+    # تصفية حسب العملية
+    action = request.GET.get('action')
+    if action:
+        logs_qs = logs_qs.filter(action=action)
+
+    # تصفية حسب التاريخ
+    start_date = request.GET.get('start_date')
+    if start_date:
+        logs_qs = logs_qs.filter(timestamp__date__gte=start_date)
+    
+    end_date = request.GET.get('end_date')
+    if end_date:
+        logs_qs = logs_qs.filter(timestamp__date__lte=end_date)
+
+    paginator = Paginator(logs_qs, 50)
+    page = request.GET.get('page')
+    logs = paginator.get_page(page)
+
+    # قائمة المعلمين في المدرسة للتصفية
+    teachers = Teacher.objects.filter(
+        school_memberships__school=active_school,
+        school_memberships__is_active=True
+    ).distinct()
+
+    ctx = {
+        "logs": logs,
+        "teachers": teachers,
+        "actions": AuditLog.Action.choices,
+        "active_school": active_school,
+        "q_teacher": teacher_id,
+        "q_action": action,
+        "q_start": start_date,
+        "q_end": end_date,
+    }
+    return render(request, "reports/audit_logs.html", ctx)
 
 
 @login_required(login_url="reports:login")

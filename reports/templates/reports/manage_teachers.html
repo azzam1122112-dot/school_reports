@@ -21,6 +21,11 @@
           <button class="btn btn-primary" type="submit">بحث</button>
         </form>
 
+        <a class="btn btn-outline-primary btn-add" href="{% url 'reports:bulk_import_teachers' %}">
+          <i class="fas fa-file-excel"></i>
+          استيراد جماعي
+        </a>
+
         <a class="btn btn-primary btn-add" href="{% url 'reports:add_teacher' %}">
           <i class="fas fa-plus-circle"></i>
           إضافة معلم جديد

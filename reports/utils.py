@@ -12,6 +12,16 @@ def run_task_safe(task_func, *args, **kwargs):
     محاولة تشغيل المهمة عبر Celery، وإذا فشل (بسبب عدم وجود Redis مثلاً) 
     يتم تشغيلها في Thread خلفي لضمان عدم توقف النظام.
     """
+    def _thread_wrapper(func, *f_args, **f_kwargs):
+        from django.db import connections
+        # إغلاق أي اتصالات قديمة موروثة لضمان فتح اتصال جديد نظيف في هذا الـ Thread
+        connections.close_all()
+        try:
+            func(*f_args, **f_kwargs)
+        finally:
+            # إغلاق الاتصال بعد الانتهاء لتجنب تسريب الاتصالات (Connection Leaks)
+            connections.close_all()
+
     def _execute():
         try:
             # محاولة الإرسال لـ Celery
@@ -21,7 +31,7 @@ def run_task_safe(task_func, *args, **kwargs):
             # إذا فشل Celery (مثلاً Redis غير موجود)، نشغلها في Thread
             logger.warning(f"Celery failed: {e}. Falling back to Thread for {task_func.__name__}.")
             
-            thread = threading.Thread(target=task_func, args=args, kwargs=kwargs)
+            thread = threading.Thread(target=_thread_wrapper, args=(task_func, *args), kwargs=kwargs)
             thread.daemon = True
             thread.start()
 

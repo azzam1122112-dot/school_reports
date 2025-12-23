@@ -40,6 +40,7 @@ urlpatterns = [
     # =========================
     path("staff/teachers/", views.manage_teachers, name="manage_teachers"),
     path("staff/teachers/add/", views.add_teacher, name="add_teacher"),
+    path("staff/teachers/import/", views.bulk_import_teachers, name="bulk_import_teachers"),
     path("staff/teachers/<int:pk>/edit/", views.edit_teacher, name="edit_teacher"),
     path("staff/teachers/<int:pk>/delete/", views.delete_teacher, name="delete_teacher"),
 
@@ -81,6 +82,7 @@ urlpatterns = [
     path("staff/schools/managers/<int:pk>/delete/", views.school_manager_delete, name="school_manager_delete"),
     path("staff/schools/managers/add/", views.school_manager_create, name="school_manager_create"),
     path("staff/schools/<int:pk>/managers/", views.school_managers_manage, name="school_managers_manage"),
+    path("staff/audit-logs/", views.school_audit_logs, name="school_audit_logs"),
     path("platform-dashboard/", views.platform_admin_dashboard, name="platform_admin_dashboard"),
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("manager/", views.admin_dashboard, name="manager_dashboard"),  # alias قديم

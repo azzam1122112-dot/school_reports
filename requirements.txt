@@ -34,6 +34,9 @@ dj-database-url
 django-redis==5.4.0
 redis==5.0.1
 
+# Excel handling
+openpyxl==3.1.5
+
 # Celery
 celery==5.4.0
 django-celery-results==2.5.1
