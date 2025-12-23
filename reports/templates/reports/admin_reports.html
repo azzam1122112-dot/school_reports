@@ -432,6 +432,17 @@ dialog.imgbox img{
                   <i class="fa-solid fa-print"></i> طباعة
                 </a>
 
+                <a class="btn" href="{% url 'reports:report_pdf' r.pk %}" target="_blank" rel="noopener" style="background: #ef4444; color: #fff; border-color: #ef4444;">
+                  <i class="fa-solid fa-file-pdf"></i>
+                  {% if r.pdf_status == 'completed' %}
+                    PDF
+                  {% elif r.pdf_status == 'processing' or r.pdf_status == 'pending' %}
+                    جاري...
+                  {% else %}
+                    PDF
+                  {% endif %}
+                </a>
+
                 <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" onsubmit="return confirm('تأكيد الحذف؟')" style="display:inline">
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{{ request.get_full_path }}">

@@ -1165,6 +1165,9 @@ class NotificationCreateForm(forms.Form):
         return cleaned
 
     def save(self, creator, default_school=None):
+        from .tasks import send_notification_task
+        from django.db import transaction
+
         cleaned = self.cleaned_data
 
         # تحديد المدرسة المرتبطة بالإشعار
@@ -1184,38 +1187,13 @@ class NotificationCreateForm(forms.Form):
             created_by=creator,
             school=school_for_notification,
         )
+        
         selected_teachers = list(cleaned.get("teachers") or [])
-        if selected_teachers:
-            NotificationRecipient.objects.bulk_create(
-                [NotificationRecipient(notification=n, teacher=t) for t in selected_teachers],
-                ignore_conflicts=True,
-            )
-        else:
-            # إذا لم يتم اختيار مستلمين: نرسل تلقائياً حسب نطاق الإرسال
-            # - مدرسة معيّنة: كل مستخدمي المدرسة
-            # - كل المدارس: كل المستخدمين المرتبطين بأي مدرسة نشطة
-            qs = Teacher.objects.filter(is_active=True)
-
-            # حصر على عضويات مدرسة نشطة لتفادي إرسال لمستخدمين بدون مدرسة
-            qs = qs.filter(
-                school_memberships__is_active=True,
-                school_memberships__school__is_active=True,
-            ).distinct()
-
-            if getattr(creator, "is_superuser", False):
-                scope = cleaned.get("audience_scope") or "school"
-                if scope != "all":
-                    if school_for_notification is not None:
-                        qs = qs.filter(school_memberships__school=school_for_notification).distinct()
-            else:
-                # المدير/المسؤول: لا يسمح بالإرسال خارج المدرسة النشطة
-                if school_for_notification is not None:
-                    qs = qs.filter(school_memberships__school=school_for_notification).distinct()
-
-            NotificationRecipient.objects.bulk_create(
-                [NotificationRecipient(notification=n, teacher=t) for t in qs],
-                ignore_conflicts=True,
-            )
+        teacher_ids = [t.pk for t in selected_teachers] if selected_teachers else None
+        
+        # Trigger background task to create recipients
+        transaction.on_commit(lambda: send_notification_task.delay(n.pk, teacher_ids))
+        
         return n
 
 

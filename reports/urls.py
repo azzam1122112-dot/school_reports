@@ -119,6 +119,7 @@ urlpatterns = [
     # =========================
     # الإشعارات
     # =========================
+    path("notifications/unread-count/", views.unread_notifications_count, name="unread_notifications_count"),
     path("notifications/<int:pk>/", views.notification_detail, name="notification_detail"),
     path("notifications/<int:pk>/delete/", views.notification_delete, name="notification_delete"),
     path("notifications/send/", views.send_notification, name="send_notification"),  # تحويل للإنشاء (توافق قديم)

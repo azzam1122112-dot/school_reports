@@ -153,6 +153,15 @@
         <div class="actions">
           <a class="act act-edit" href="{% url 'reports:edit_my_report' report.pk %}?next={{ request.get_full_path|urlencode }}">تعديل</a>
           <a class="act act-print" href="{% url 'reports:report_print' report.pk %}" target="_blank" rel="noopener">طباعة</a>
+          <a class="act act-pdf" href="{% url 'reports:report_pdf' report.pk %}" target="_blank" rel="noopener" style="background: #ef4444; color: #fff;">
+            {% if report.pdf_status == 'completed' %}
+              📄 PDF
+            {% elif report.pdf_status == 'processing' or report.pdf_status == 'pending' %}
+              ⏳ جاري التجهيز
+            {% else %}
+              📄 طلب PDF
+            {% endif %}
+          </a>
           <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" onsubmit="return confirm('هل تريد حذف هذا التقرير نهائيًا؟');">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -210,6 +219,15 @@
             <td class="td-actions">
               <a class="mini mini-edit" href="{% url 'reports:edit_my_report' report.pk %}?next={{ request.get_full_path|urlencode }}">تعديل</a>
               <a class="mini mini-print" href="{% url 'reports:report_print' report.pk %}" target="_blank" rel="noopener">طباعة</a>
+              <a class="mini mini-pdf" href="{% url 'reports:report_pdf' report.pk %}" target="_blank" rel="noopener" style="background: #ef4444; color: #fff; border-color: #ef4444;">
+                {% if report.pdf_status == 'completed' %}
+                  📄 PDF
+                {% elif report.pdf_status == 'processing' or report.pdf_status == 'pending' %}
+                  ⏳ جاري...
+                {% else %}
+                  📄 PDF
+                {% endif %}
+              </a>
               <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" style="display:inline" onsubmit="return confirm('حذف هذا التقرير؟');">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">

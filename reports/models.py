@@ -8,10 +8,11 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, FileExtensionValidator
 from django.db import models, transaction
-from django.db.models.signals import m2m_changed, post_migrate
+from django.db.models.signals import m2m_changed, post_migrate, post_save
 from django.dispatch import receiver
 from django.utils.text import slugify
 from django.utils import timezone
+from django.db import transaction
 
 # تخزين Cloudinary العام لملفات raw (PDF/DOCX/ZIP/صور)
 from .storage import PublicRawMediaStorage
@@ -568,6 +569,20 @@ class Report(models.Model):
     image3 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
     image4 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
 
+    pdf_file = models.FileField(upload_to="reports/pdfs/", blank=True, null=True, verbose_name="ملف PDF")
+    pdf_status = models.CharField(
+        max_length=20,
+        choices=[
+            ("none", "لم يتم التوليد"),
+            ("pending", "في الانتظار"),
+            ("processing", "جاري التوليد"),
+            ("completed", "مكتمل"),
+            ("failed", "فشل"),
+        ],
+        default="none",
+        verbose_name="حالة الـ PDF"
+    )
+
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
 
     class Meta:
@@ -611,6 +626,12 @@ class Report(models.Model):
                 self.teacher_name = getattr(self.teacher, "name", "") or ""
             except Exception:
                 pass
+
+        # إعادة تعيين حالة الـ PDF عند التعديل ليتم توليده مجدداً
+        if self.pk:
+            # نتحقق إذا كان هناك تغيير في الحقول الأساسية (اختياري، لكن للتبسيط سنعيد التوليد دائماً)
+            if self.pdf_status == 'completed':
+                self.pdf_status = 'pending'
 
         super().save(*args, **kwargs)
 
@@ -1167,4 +1188,99 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"دفع #{self.id} - {self.school.name} - {self.amount}"
+
+
+# =========================
+# إشارات معالجة الصور (Celery)
+# =========================
+@receiver(post_save, sender=Report)
+def trigger_report_background_tasks(sender, instance, created, **kwargs):
+    """
+    عند إنشاء تقرير جديد أو تحديثه، نقوم بجدولة المهام في الخلفية وتحديث الكاش.
+    """
+    from django.core.cache import cache
+    if instance.school_id:
+        cache.delete(f"admin_stats_{instance.school_id}")
+    cache.delete("platform_admin_stats")
+
+    from .tasks import process_report_images, generate_report_pdf_task
+    
+    # 1. معالجة الصور (إذا وجدت)
+    has_images = any([instance.image1, instance.image2, instance.image3, instance.image4])
+    
+    if has_images:
+        # مهمة معالجة الصور ستقوم بدورها بتشغيل مهمة الـ PDF عند الانتهاء
+        transaction.on_commit(lambda: process_report_images.delay(instance.pk))
+    else:
+        # إذا لم توجد صور، نشغل مهمة الـ PDF مباشرة
+        transaction.on_commit(lambda: generate_report_pdf_task.delay(instance.pk))
+
+
+@receiver(post_save, sender=Ticket)
+def trigger_ticket_notifications(sender, instance, created, **kwargs):
+    """
+    عند إنشاء تذكرة جديدة، نقوم بإرسال إشعارات للمسؤولين المعنيين وتحديث الكاش.
+    """
+    from django.core.cache import cache
+    if instance.school_id:
+        cache.delete(f"admin_stats_{instance.school_id}")
+    cache.delete("platform_admin_stats")
+
+    if not created:
+        return
+
+    from .utils import create_system_notification
+    from .models import SchoolMembership, DepartmentMembership, Teacher
+
+    title = f"تذكرة جديدة: {instance.title}"
+    message = f"تم إنشاء طلب جديد بواسطة {instance.creator.name}. الحالة: {instance.get_status_display()}"
+
+    if instance.is_platform:
+        # تذكرة منصة: إشعار للسوبر يوزر
+        superusers = Teacher.objects.filter(is_superuser=True).values_list('id', flat=True)
+        if superusers:
+            create_system_notification(
+                title=f"🆘 دعم فني: {instance.title}",
+                message=message,
+                teacher_ids=list(superusers),
+                is_important=True
+            )
+    else:
+        # تذكرة مدرسة: إشعار للمدير ومسؤول القسم
+        recipients = set()
+        
+        # 1. مدير المدرسة
+        if instance.school:
+            managers = SchoolMembership.objects.filter(
+                school=instance.school,
+                role_type=SchoolMembership.RoleType.MANAGER,
+                is_active=True
+            ).values_list('teacher_id', flat=True)
+            recipients.update(managers)
+
+        # 2. مسؤول القسم (إذا تم تحديد قسم)
+        if instance.department:
+            officers = DepartmentMembership.objects.filter(
+                department=instance.department,
+                role_type=DepartmentMembership.OFFICER
+            ).values_list('teacher_id', flat=True)
+            recipients.update(officers)
+
+        if recipients:
+            create_system_notification(
+                title=title,
+                message=message,
+                school=instance.school,
+                teacher_ids=list(recipients)
+            )
+
+
+@receiver(post_save, sender=TicketImage)
+def trigger_ticket_image_processing(sender, instance, created, **kwargs):
+    """
+    عند رفع صورة تذكرة، نقوم بجدولة معالجتها في الخلفية.
+    """
+    from .tasks import process_ticket_image
+    if instance.image:
+        transaction.on_commit(lambda: process_ticket_image.delay(instance.pk))
 

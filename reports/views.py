@@ -948,69 +948,11 @@ def _get_report_for_user_or_404(request: HttpRequest, pk: int):
 
     return get_object_or_404(qs, pk=pk, teacher=user)
 
+from .utils import _resolve_department_for_category, _build_head_decision
+
 # =========================
 # طباعة التقرير (نسخة مُحسّنة)
 # =========================
-def _resolve_department_for_category(cat):
-    """يستخرج كائن القسم المرتبط بالتصنيف (إن وُجد)."""
-    if not cat or Department is None:
-        return None
-
-    # 1) علاقة مباشرة cat.department (إن وُجدت)
-    try:
-        d = getattr(cat, "department", None)
-        if d:
-            return d
-    except Exception:
-        pass
-
-    # 2) علاقات M2M شائعة: departments / depts / dept_list
-    for rel_name in ("departments", "depts", "dept_list"):
-        rel = getattr(cat, rel_name, None)
-        if rel is not None:
-            try:
-                d = rel.all().first()
-                if d:
-                    return d
-            except Exception:
-                pass
-
-    # 3) استعلام احتياطي
-    try:
-        return Department.objects.filter(reporttypes=cat).first()
-    except Exception:
-        return None
-
-def _build_head_decision(dept):
-    """
-    يُرجع dict يحدّد ماذا نطبع في خانة (اعتماد رئيس القسم).
-    - بدون قسم: لا نعرض شيئًا.
-    - رئيس واحد: نعرض اسمه.
-    - أكثر من رئيس: حسب السياسة PRINT_MULTIHEAD_POLICY = "blank" أو "dept".
-    """
-    if not dept or DepartmentMembership is None:
-        return {"no_render": True}
-
-    try:
-        role_officer = getattr(DepartmentMembership, "OFFICER", "officer")
-        qs = (DepartmentMembership.objects
-              .select_related("teacher")
-              .filter(department=dept, role_type=role_officer, teacher__is_active=True))
-        heads = [m.teacher for m in qs]
-    except Exception:
-        heads = []
-
-    count = len(heads)
-    policy = getattr(settings, "PRINT_MULTIHEAD_POLICY", "blank")  # "blank" أو "dept"
-
-    if count == 1:
-        return {"single": True, "name": getattr(heads[0], "name", str(heads[0]))}
-
-    if policy == "dept":
-        return {"multi_dept": True, "dept_name": getattr(dept, "name", "")}
-
-    return {"multi_blank": True}
-
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def report_print(request: HttpRequest, pk: int) -> HttpResponse:
@@ -1108,107 +1050,29 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
-    try:
-        from weasyprint import CSS, HTML
-    except Exception:
-        return HttpResponse("WeasyPrint غير مثبت. ثبّت الحزمة وشغّل مجددًا.", status=500)
-
     r = _get_report_for_user_or_404(request, pk)
 
-    active_school = _get_active_school(request)
-    school_scope = getattr(r, "school", None) or active_school
+    # If PDF is already generated, serve it
+    if r.pdf_file and r.pdf_status == 'completed':
+        try:
+            # Check if file exists on storage
+            if r.pdf_file.size > 0:
+                resp = HttpResponse(r.pdf_file.read(), content_type="application/pdf")
+                resp["Content-Disposition"] = f'inline; filename="report-{r.pk}.pdf"'
+                return resp
+        except Exception:
+            # If file missing or error, fall back to generation
+            pass
 
-    dept = None
-    if Department is not None:
-        pref = request.GET.get("dept")
-        if pref:
-            dept_qs = Department.objects.all()
-            try:
-                if school_scope is not None and "school" in [f.name for f in Department._meta.get_fields()]:
-                    dept_qs = dept_qs.filter(school=school_scope)
-            except Exception:
-                pass
+    # If not generated or failed, trigger task if not already processing
+    if r.pdf_status not in ['processing', 'pending']:
+        from .tasks import generate_report_pdf_task
+        r.pdf_status = 'pending'
+        r.save(update_fields=['pdf_status'])
+        transaction.on_commit(lambda: generate_report_pdf_task.delay(r.pk))
 
-            dept = dept_qs.filter(Q(slug=pref) | Q(id=pref)).first() or dept
-
-            cat = getattr(r, "category", None)
-            if dept is not None and cat is not None:
-                try:
-                    if hasattr(dept, "reporttypes") and getattr(cat, "pk", None) is not None:
-                        if not dept.reporttypes.filter(pk=cat.pk).exists():
-                            dept = None
-                except Exception:
-                    dept = None
-
-    if dept is None:
-        cat = getattr(r, "category", None)
-        dept = _resolve_department_for_category(cat)
-        if dept is not None and school_scope is not None:
-            try:
-                dept_school = getattr(dept, "school", None)
-                if dept_school is not None and dept_school != school_scope:
-                    dept = None
-            except Exception:
-                dept = None
-
-    head_decision = _build_head_decision(dept)
-
-    # إعادة استخدام نفس منطق اسم مدير المدرسة لضمان تطابق الطباعة و PDF
-    school_principal = ""
-    try:
-        school_for_principal = getattr(r, "school", None)
-        if school_for_principal is None:
-            # لا توجد request في _get_active_school هنا بسهولة، لكن في PDF نفضل مدرسة التقرير نفسها فقط
-            school_for_principal = getattr(r, "school", None)
-        if school_for_principal is not None:
-            principal_membership = (
-                SchoolMembership.objects.select_related("teacher")
-                .filter(
-                    school=school_for_principal,
-                    role_type=SchoolMembership.RoleType.MANAGER,
-                    is_active=True,
-                )
-                .order_by("-id")
-                .first()
-            )
-            if principal_membership and principal_membership.teacher:
-                school_principal = getattr(principal_membership.teacher, "name", "") or ""
-    except Exception:
-        school_principal = ""
-
-    if not school_principal:
-        school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
-
-    # نفس منطق لون قالب الطباعة كما في report_print
-    print_color = "#2563eb"
-    try:
-        school_for_color = getattr(r, "school", None)
-        if school_for_color is not None:
-            color_val = getattr(school_for_color, "print_primary_color", "") or ""
-            if color_val:
-                print_color = color_val
-        else:
-            print_color = getattr(settings, "SCHOOL_PRINT_COLOR", print_color)
-    except Exception:
-        print_color = getattr(settings, "SCHOOL_PRINT_COLOR", print_color)
-
-    html = render_to_string(
-        "reports/report_print.html",
-        {
-            "r": r,
-            "for_pdf": True,
-            "head_decision": head_decision,
-            "SCHOOL_PRINCIPAL": school_principal,
-            "PRINT_PRIMARY_COLOR": print_color,
-        },
-        request=request,
-    )
-    css = CSS(string="@page { size: A4; margin: 14mm 12mm; }")
-    pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf(stylesheets=[css])
-
-    resp = HttpResponse(pdf, content_type="application/pdf")
-    resp["Content-Disposition"] = f'inline; filename="report-{r.pk}.pdf"'
-    return resp
+    # Show a "Processing" page
+    return render(request, "reports/pdf_processing.html", {"r": r})
 
 # =========================
 # إدارة المعلّمين (مدير فقط)
@@ -2204,7 +2068,11 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff, login_url="reports:login")
 @role_required({"manager"})
+@login_required(login_url="reports:login")
+@user_passes_test(_is_staff, login_url="reports:login")
 def admin_dashboard(request: HttpRequest) -> HttpResponse:
+    from django.core.cache import cache
+    
     # إذا لم يكن هناك مدرسة مختارة نوجّه لاختيار مدرسة أولاً
     active_school = _get_active_school(request)
     # السوبر يوزر يمكنه رؤية أي مدرسة، المدير مقيد بمدارسه فقط
@@ -2215,22 +2083,32 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             messages.error(request, "ليست لديك صلاحية كمدير على هذه المدرسة.")
             return redirect("reports:select_school")
 
-    # عدد المعلّمين داخل المدرسة النشطة فقط (عزل حسب المدرسة)
-    teachers_qs = Teacher.objects.all()
-    if active_school is not None:
-        teachers_qs = teachers_qs.filter(
-            school_memberships__school=active_school,
-            school_memberships__is_active=True,
-        ).distinct()
+    # محاولة جلب البيانات من الكاش
+    cache_key = f"admin_stats_{active_school.id if active_school else 'global'}"
+    stats = cache.get(cache_key)
+
+    if not stats:
+        # عدد المعلّمين داخل المدرسة النشطة فقط (عزل حسب المدرسة)
+        teachers_qs = Teacher.objects.all()
+        if active_school is not None:
+            teachers_qs = teachers_qs.filter(
+                school_memberships__school=active_school,
+                school_memberships__is_active=True,
+            ).distinct()
+
+        stats = {
+            "reports_count": _filter_by_school(Report.objects.all(), active_school).count(),
+            "teachers_count": teachers_qs.count(),
+            "tickets_total": _filter_by_school(Ticket.objects.filter(is_platform=False), active_school).count(),
+            "tickets_open": _filter_by_school(Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=False), active_school).count(),
+            "tickets_done": _filter_by_school(Ticket.objects.filter(status="done", is_platform=False), active_school).count(),
+            "tickets_rejected": _filter_by_school(Ticket.objects.filter(status="rejected", is_platform=False), active_school).count(),
+        }
+        # تخزين في الكاش لمدة 5 دقائق
+        cache.set(cache_key, stats, 300)
 
     ctx = {
-        "reports_count": _filter_by_school(Report.objects.all(), active_school).count(),
-        "teachers_count": teachers_qs.count(),
-        # ✅ إصلاح: عرض التذاكر الداخلية فقط (is_platform=False)
-        "tickets_total": _filter_by_school(Ticket.objects.filter(is_platform=False), active_school).count(),
-        "tickets_open": _filter_by_school(Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=False), active_school).count(),
-        "tickets_done": _filter_by_school(Ticket.objects.filter(status="done", is_platform=False), active_school).count(),
-        "tickets_rejected": _filter_by_school(Ticket.objects.filter(status="rejected", is_platform=False), active_school).count(),
+        **stats,
         "has_dept_model": Department is not None,
         "active_school": active_school,
     }
@@ -2266,68 +2144,74 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/admin_dashboard.html", ctx)
 
 
-# ---- لوحة إدارة المنصة (سوبر آدمن) ----
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     """لوحة تحكم خاصة بالمشرف العام لإدارة المنصة بالكامل."""
-
-    reports_count = Report.objects.count()
-    teachers_count = Teacher.objects.count()
+    from django.core.cache import cache
     
-    # ✅ إصلاح: عرض تذاكر الدعم الفني فقط (is_platform=True)
-    tickets_total = Ticket.objects.filter(is_platform=True).count()
-    tickets_open = Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=True).count()
-    tickets_done = Ticket.objects.filter(status="done", is_platform=True).count()
-    tickets_rejected = Ticket.objects.filter(status="rejected", is_platform=True).count()
+    cache_key = "platform_admin_stats"
+    ctx = cache.get(cache_key)
 
-    platform_schools_total = School.objects.count()
-    platform_schools_active = School.objects.filter(is_active=True).count()
-    platform_managers_count = (
-        Teacher.objects.filter(
-            school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
-            school_memberships__is_active=True,
-        )
-        .distinct()
-        .count()
-    )
-
-    has_reporttype = False
-    reporttypes_count = 0
-    try:
-        from .models import ReportType  # type: ignore
-        has_reporttype = True
-        if hasattr(ReportType, "is_active"):
-            reporttypes_count = ReportType.objects.filter(is_active=True).count()
-        else:
-            reporttypes_count = ReportType.objects.count()
-    except Exception:
-        pass
-
-    ctx = {
-        "reports_count": reports_count,
-        "teachers_count": teachers_count,
-        "tickets_total": tickets_total,
-        "tickets_open": tickets_open,
-        "tickets_done": tickets_done,
-        "tickets_rejected": tickets_rejected,
-        "platform_schools_total": platform_schools_total,
-        "platform_schools_active": platform_schools_active,
-        "platform_managers_count": platform_managers_count,
-        "has_reporttype": has_reporttype,
-        "reporttypes_count": reporttypes_count,
+    if not ctx:
+        reports_count = Report.objects.count()
+        teachers_count = Teacher.objects.count()
         
-        # إحصائيات الاشتراكات والمالية
-        "subscriptions_active": SchoolSubscription.objects.filter(is_active=True, end_date__gte=timezone.now().date()).count(),
-        "subscriptions_expired": SchoolSubscription.objects.filter(Q(is_active=False) | Q(end_date__lt=timezone.now().date())).count(),
-        "subscriptions_expiring_soon": SchoolSubscription.objects.filter(
-            is_active=True,
-            end_date__gte=timezone.now().date(),
-            end_date__lte=timezone.now().date() + timedelta(days=30)
-        ).count(),
-        "pending_payments": Payment.objects.filter(status=Payment.Status.PENDING).count(),
-        "total_revenue": Payment.objects.filter(status=Payment.Status.APPROVED).aggregate(total=Sum('amount'))['total'] or 0,
-    }
+        tickets_total = Ticket.objects.filter(is_platform=True).count()
+        tickets_open = Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=True).count()
+        tickets_done = Ticket.objects.filter(status="done", is_platform=True).count()
+        tickets_rejected = Ticket.objects.filter(status="rejected", is_platform=True).count()
+
+        platform_schools_total = School.objects.count()
+        platform_schools_active = School.objects.filter(is_active=True).count()
+        platform_managers_count = (
+            Teacher.objects.filter(
+                school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
+                school_memberships__is_active=True,
+            )
+            .distinct()
+            .count()
+        )
+
+        has_reporttype = False
+        reporttypes_count = 0
+        try:
+            from .models import ReportType  # type: ignore
+            has_reporttype = True
+            if hasattr(ReportType, "is_active"):
+                reporttypes_count = ReportType.objects.filter(is_active=True).count()
+            else:
+                reporttypes_count = ReportType.objects.count()
+        except Exception:
+            pass
+
+        now = timezone.now()
+        ctx = {
+            "reports_count": reports_count,
+            "teachers_count": teachers_count,
+            "tickets_total": tickets_total,
+            "tickets_open": tickets_open,
+            "tickets_done": tickets_done,
+            "tickets_rejected": tickets_rejected,
+            "platform_schools_total": platform_schools_total,
+            "platform_schools_active": platform_schools_active,
+            "platform_managers_count": platform_managers_count,
+            "has_reporttype": has_reporttype,
+            "reporttypes_count": reporttypes_count,
+            
+            # إحصائيات الاشتراكات والمالية
+            "subscriptions_active": SchoolSubscription.objects.filter(is_active=True, end_date__gte=now.date()).count(),
+            "subscriptions_expired": SchoolSubscription.objects.filter(Q(is_active=False) | Q(end_date__lt=now.date())).count(),
+            "subscriptions_expiring_soon": SchoolSubscription.objects.filter(
+                is_active=True,
+                end_date__gte=now.date(),
+                end_date__lte=now.date() + timedelta(days=30)
+            ).count(),
+            "pending_payments": Payment.objects.filter(status=Payment.Status.PENDING).count(),
+            "total_revenue": Payment.objects.filter(status=Payment.Status.APPROVED).aggregate(total=Sum('amount'))['total'] or 0,
+        }
+        # تخزين في الكاش لمدة 10 دقائق للمشرف العام
+        cache.set(cache_key, ctx, 600)
 
     return render(request, "reports/platform_admin_dashboard.html", ctx)
 
@@ -3588,6 +3472,23 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "recipients": recipients,
     }
     return render(request, "reports/notification_detail.html", ctx)
+
+@login_required(login_url="reports:login")
+def unread_notifications_count(request: HttpRequest) -> HttpResponse:
+    """
+    إرجاع عدد الإشعارات غير المقروءة بتنسيق JSON لاستخدامه في الـ Polling.
+    """
+    from django.http import JsonResponse
+    
+    if NotificationRecipient is None:
+        return JsonResponse({"count": 0})
+        
+    count = NotificationRecipient.objects.filter(
+        teacher=request.user,
+        is_read=False
+    ).count()
+    
+    return JsonResponse({"count": count})
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])

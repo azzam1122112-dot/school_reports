@@ -7,6 +7,13 @@
   <meta name="theme-color" content="#2563eb" />
   <meta name="color-scheme" content="light dark" />
 
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="توثيق">
+  <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
+
   <title>{% block title %}نظام التقارير{% endblock %}</title>
 
   <!-- Performance -->
@@ -533,9 +540,11 @@
 
           {% url 'reports:my_notifications' as myNotificationsUrl %}
           {% if myNotificationsUrl %}
-            <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات">
+            <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات" id="notifBell">
               <i class="fa-solid fa-bell"></i>
-              {% if NAV_NOTIFICATIONS_UNREAD %}<span class="dot">{{ NAV_NOTIFICATIONS_UNREAD }}</span>{% endif %}
+              <span class="dot" id="notifDot" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
+                {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
+              </span>
             </a>
           {% endif %}
 
@@ -583,9 +592,11 @@
       <div class="drawer-actions">
         {% url 'reports:my_notifications' as myNotificationsUrlMobile %}
         {% if myNotificationsUrlMobile %}
-          <a class="icon-btn" href="{{ myNotificationsUrlMobile }}" aria-label="الإشعارات">
+          <a class="icon-btn" href="{{ myNotificationsUrlMobile }}" aria-label="الإشعارات" id="notifBellMobile">
             <i class="fa-solid fa-bell"></i>
-            {% if NAV_NOTIFICATIONS_UNREAD %}<span class="dot">{{ NAV_NOTIFICATIONS_UNREAD }}</span>{% endif %}
+            <span class="dot" id="notifDotMobile" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
+              {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
+            </span>
           </a>
         {% endif %}
 
@@ -1036,6 +1047,46 @@
           });
         });
       }
+    })();
+  </script>
+
+  <script>
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('{% static "sw.js" %}')
+          .then(reg => console.log('Service Worker registered'))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
+
+    // Notification Polling
+    (function() {
+      const notifDot = document.getElementById('notifDot');
+      const notifDotMobile = document.getElementById('notifDotMobile');
+      if (!notifDot && !notifDotMobile) return;
+
+      function checkNotifications() {
+        fetch('{% url "reports:unread_notifications_count" %}')
+          .then(response => response.json())
+          .then(data => {
+            const updateDot = (dot) => {
+              if (!dot) return;
+              if (data.count > 0) {
+                dot.textContent = data.count;
+                dot.style.display = 'flex';
+              } else {
+                dot.style.display = 'none';
+              }
+            };
+            updateDot(notifDot);
+            updateDot(notifDotMobile);
+          })
+          .catch(err => console.error('Error fetching notifications:', err));
+      }
+
+      // Check every 60 seconds
+      setInterval(checkNotifications, 60000);
     })();
   </script>
 

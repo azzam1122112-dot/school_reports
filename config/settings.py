@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     # طرف ثالث
     "cloudinary",
     "cloudinary_storage",
+    "django_celery_results",
 
     # تطبيقاتنا
     "reports",
@@ -100,6 +101,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+
+# ----------------- الكاش (Caching) -----------------
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": CELERY_BROKER_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
 
 # ----------------- قاعدة البيانات -----------------
 # الأولوية لـ DATABASE_URL إن وُجد وكان dj_database_url متاحًا
@@ -259,3 +271,13 @@ PRINT_MULTIHEAD_POLICY = "blank"  # أو "dept"
 
 # كيف نحدد رؤساء القسم؟
 DEPARTMENT_HEAD_ROLE_SLUG = "department_head"  # غيّرها لو اسم السلاج مختلف
+
+# ----------------- Celery Configuration -----------------
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
