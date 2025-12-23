@@ -5,6 +5,7 @@ from celery import shared_task
 from django.apps import apps
 from django.conf import settings
 from django.core.files.base import ContentFile
+from urllib.parse import urljoin
 
 from .storage import _compress_image_file
 
@@ -90,7 +91,7 @@ def process_ticket_image(self, ticket_image_id: int) -> bool:
         return False
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=3)
 def generate_report_pdf_task(self, report_id: int, return_bytes: bool = False):
     """
     Generate PDF for a report.
@@ -112,11 +113,10 @@ def generate_report_pdf_task(self, report_id: int, return_bytes: bool = False):
         logger.error("Report %s not found for PDF generation.", report_id)
         return b"" if return_bytes else False
 
-    # منع التكرار: لو جاري التوليد أو مكتمل وفيه ملف
+    # منع التكرار
     try:
-        # If the caller asked for bytes (sync download), don't prematurely return empty bytes
-        # just because status says processing/pending. We'll attempt generation below.
         if getattr(r, "pdf_status", "") in {"processing", "pending"} and not return_bytes:
+            # إذا كان هناك توليد جاري بالفعل، لا نعمل تكرار
             return True
 
         if getattr(r, "pdf_status", "") == "completed" and getattr(r, "pdf_file", None):
@@ -138,7 +138,6 @@ def generate_report_pdf_task(self, report_id: int, return_bytes: bool = False):
         school_scope = getattr(r, "school", None)
 
         dept = _resolve_department_for_category(r.category, school_scope)
-
         head_decision = _build_head_decision(dept)
 
         # Principal
@@ -169,12 +168,25 @@ def generate_report_pdf_task(self, report_id: int, return_bytes: bool = False):
         if not print_color or print_color == "#2563eb":
             print_color = getattr(settings, "SCHOOL_PRINT_COLOR", "#2563eb")
 
+        # base_url (مهم للـ static/media داخل WeasyPrint)
+        base_url = (
+            getattr(settings, "WEASYPRINT_BASE_URL", "") or
+            getattr(settings, "SITE_URL", "") or
+            ""
+        ).strip()
+
+        if base_url and not base_url.endswith("/"):
+            base_url += "/"
+        base_url = base_url or None
+
         # School Name & Logo
         school_name = getattr(school_scope, "name", None) if school_scope else None
         school_logo = None
         if school_scope and getattr(school_scope, "logo_file", None):
             try:
                 school_logo = school_scope.logo_file.url
+                if base_url and school_logo and school_logo.startswith("/"):
+                    school_logo = urljoin(base_url, school_logo)
             except Exception:
                 school_logo = None
 
@@ -199,15 +211,11 @@ def generate_report_pdf_task(self, report_id: int, return_bytes: bool = False):
             r.save(update_fields=["pdf_status"])
             return b"" if return_bytes else False
 
-        # ✅ مهم على Render: base_url للستايل والصور
-        base_url = (
-            getattr(settings, "WEASYPRINT_BASE_URL", "") or
-            getattr(settings, "SITE_URL", "") or
-            ""
-        ).strip() or None
-
         css = CSS(string="@page { size: A4; margin: 14mm 12mm; }")
-        pdf_content: bytes = HTML(string=html, base_url=base_url).write_pdf(stylesheets=[css])
+
+        # ✅ media_type='print' لتطبيق @media print كما تتوقع
+        doc = HTML(string=html, base_url=base_url, media_type="print")
+        pdf_content: bytes = doc.write_pdf(stylesheets=[css])
 
         filename = f"report-{r.pk}.pdf"
         r.pdf_file.save(filename, ContentFile(pdf_content), save=False)

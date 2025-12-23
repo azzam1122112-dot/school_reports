@@ -53,6 +53,13 @@ sa_phone = RegexValidator(r"^0\d{9}$", "رقم الجوال يجب أن يبدأ
 # ==============================
 # مساعدات داخلية للأقسام/المستخدمين
 # ==============================
+def _has_multi_active_schools() -> bool:
+    try:
+        return School.objects.filter(is_active=True).count() > 1
+    except Exception:
+        return False
+
+
 def _teachers_for_dept(dept_slug: str, school: Optional["School"] = None):
     """
     إرجاع QuerySet للمعلمين المنتمين لقسم معيّن.
@@ -61,6 +68,10 @@ def _teachers_for_dept(dept_slug: str, school: Optional["School"] = None):
     ملاحظة: لا نعتمد على Role.slug لأن الأقسام أصبحت مخصصة لكل مدرسة ويمكن تكرار slugs.
     """
     if not dept_slug:
+        return Teacher.objects.none()
+
+    # في وضع تعدد المدارس لا نسمح بحل قسم عبر slug بدون تحديد school
+    if school is None and hasattr(Department, "school") and _has_multi_active_schools():
         return Teacher.objects.none()
 
     dep_qs = Department.objects.filter(slug__iexact=dept_slug)
@@ -81,13 +92,20 @@ def _teachers_for_dept(dept_slug: str, school: Optional["School"] = None):
     return base_qs.filter(id__in=teacher_ids).only("id", "name").order_by("name").distinct()
 
 
-def _is_teacher_in_dept(teacher: Teacher, dept_slug: str) -> bool:
+def _is_teacher_in_dept(teacher: Teacher, dept_slug: str, school: Optional["School"] = None) -> bool:
     """هل المعلّم ينتمي للقسم؟"""
     if not teacher or not dept_slug:
         return False
 
+    # في وضع تعدد المدارس لا نسمح بحل قسم عبر slug بدون تحديد school
+    if school is None and hasattr(Department, "school") and _has_multi_active_schools():
+        return False
+
     dept_slug_norm = (dept_slug or "").strip().lower()
-    dep = Department.objects.filter(slug__iexact=dept_slug_norm).first()
+    dep_qs = Department.objects.filter(slug__iexact=dept_slug_norm)
+    if school is not None and hasattr(Department, "school"):
+        dep_qs = dep_qs.filter(school=school)
+    dep = dep_qs.first()
     if not dep:
         return False
 
@@ -262,7 +280,7 @@ class TeacherForm(forms.ModelForm):
 
     department = forms.ModelChoiceField(
         label="القسم",
-        queryset=Department.objects.filter(is_active=True).order_by("name"),
+        queryset=Department.objects.none(),
         required=True,
         empty_label="— اختر القسم —",
         to_field_name="slug",
@@ -341,9 +359,13 @@ class TeacherForm(forms.ModelForm):
         # حصر الأقسام على المدرسة النشطة فقط
         if Department is not None:
             dept_qs = Department.objects.filter(is_active=True)
-            if active_school is not None and hasattr(Department, "school"):
-                dept_qs = dept_qs.filter(school=active_school)
-            self.fields["department"].queryset = dept_qs.order_by("name")
+            if hasattr(Department, "school"):
+                if active_school is not None:
+                    dept_qs = dept_qs.filter(models.Q(school=active_school) | models.Q(school__isnull=True))
+                elif _has_multi_active_schools():
+                    # لا نعرض أقسامًا عشوائية عبر مدارس متعددة بدون active_school
+                    dept_qs = Department.objects.none()
+            self.fields["department"].queryset = dept_qs.order_by("name") if hasattr(dept_qs, "order_by") else dept_qs
         dep_slug = self._current_department_slug()
         if dep_slug and dep_slug in {s.lower() for s in TEACHERS_DEPT_SLUGS}:
             self.fields["membership_role"].choices = self.ROLE_CHOICES_TEACHERS_ONLY
@@ -711,7 +733,7 @@ class TicketCreateForm(forms.ModelForm):
 
     department = forms.ModelChoiceField(
         label="القسم",
-        queryset=Department.objects.filter(is_active=True).order_by("name"),
+        queryset=Department.objects.none(),
         required=True,
         empty_label="— اختر القسم —",
         to_field_name="slug",
@@ -753,9 +775,12 @@ class TicketCreateForm(forms.ModelForm):
         # عزل الأقسام حسب المدرسة النشطة
         if Department is not None:
             dept_qs = Department.objects.filter(is_active=True)
-            if active_school is not None and hasattr(Department, "school"):
-                dept_qs = dept_qs.filter(school=active_school)
-            self.fields["department"].queryset = dept_qs.order_by("name")
+            if hasattr(Department, "school"):
+                if active_school is not None:
+                    dept_qs = dept_qs.filter(models.Q(school=active_school) | models.Q(school__isnull=True))
+                elif _has_multi_active_schools():
+                    dept_qs = Department.objects.none()
+            self.fields["department"].queryset = dept_qs.order_by("name") if hasattr(dept_qs, "order_by") else dept_qs
 
         # تأكيد اختياريّة الصور (تحصين إضافي)
         self.fields["images"].required = False
@@ -1043,9 +1068,13 @@ class DepartmentForm(forms.ModelForm):
         if not slug:
             slug = "dept"
 
+        # في وضع تعدد المدارس لا نسمح بفحص/إنشاء slug بدون مدرسة نشطة محددة
+        active_school = getattr(self, "active_school", None)
+        if active_school is None and hasattr(Department, "school") and _has_multi_active_schools():
+            raise forms.ValidationError("فضلاً اختر مدرسة أولاً.")
+
         qs = Department.objects.filter(slug=slug)
         # حصر فحص التعارض داخل المدرسة النشطة عند توفرها
-        active_school = getattr(self, "active_school", None)
         if active_school is not None and hasattr(Department, "school"):
             qs = qs.filter(school=active_school)
         if self.instance.pk:

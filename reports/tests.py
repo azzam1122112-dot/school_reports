@@ -2,7 +2,16 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import School, Teacher, SchoolMembership, Department, SubscriptionPlan, SchoolSubscription
+from .models import (
+	Department,
+	DepartmentMembership,
+	School,
+	SchoolMembership,
+	SchoolSubscription,
+	SubscriptionPlan,
+	Teacher,
+	Ticket,
+)
 
 
 class ResolveDepartmentForCategoryTests(TestCase):
@@ -46,7 +55,17 @@ class TenantIsolationTests(TestCase):
 		)
 
 		# قسم في مدرسة A لضمان وجود slug صالح للاختبار
-		Department.objects.create(school=self.school_a, name="IT", slug="it", is_active=True)
+		self.dept_a = Department.objects.create(school=self.school_a, name="IT", slug="it", is_active=True)
+		DepartmentMembership.objects.create(department=self.dept_a, teacher=self.user)
+
+		# منشئ تذكرة في مدرسة B
+		self.creator_b = Teacher.objects.create_user(phone="0500000003", name="Creator B", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school_b,
+			teacher=self.creator_b,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
 
 	def test_api_department_members_requires_active_school_when_multi_school(self):
 		# مستخدم بدون أي عضوية مدرسة: يجب منع الوصول عندما توجد مدارس مفعّلة
@@ -75,3 +94,48 @@ class TenantIsolationTests(TestCase):
 		res = self.client.get(url)
 		self.assertEqual(res.status_code, 302)
 		self.assertIn(reverse("reports:select_school"), res["Location"])
+
+	def test_tickets_inbox_does_not_leak_by_slug_across_schools(self):
+		"""إذا كان للمستخدم عضوية قسم slug=it في مدرسة A ثم اختار مدرسة B، لا يجب أن تظهر تذاكر قسم it في مدرسة B."""
+		dept_b = Department.objects.create(school=self.school_b, name="IT B", slug="it", is_active=True)
+		ticket_b = Ticket.objects.create(
+			school=self.school_b,
+			creator=self.creator_b,
+			department=dept_b,
+			title="B-IT-TICKET-UNIQUE",
+			body="hello",
+			is_platform=False,
+		)
+
+		self.client.force_login(self.user)
+		session = self.client.session
+		session["active_school_id"] = self.school_b.id
+		session.save()
+
+		url = reverse("reports:tickets_inbox")
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
+		self.assertNotContains(res, ticket_b.title)
+
+	def test_assigned_to_me_does_not_leak_by_slug_across_schools(self):
+		"""نفس سيناريو التسريب عبر assigned_to_me (تذاكر غير مسندة + نفس slug)."""
+		dept_b = Department.objects.create(school=self.school_b, name="IT B", slug="it", is_active=True)
+		ticket_b = Ticket.objects.create(
+			school=self.school_b,
+			creator=self.creator_b,
+			department=dept_b,
+			title="B-ASSIGNED-LEAK-UNIQUE",
+			body="hello",
+			is_platform=False,
+			assignee=None,
+		)
+
+		self.client.force_login(self.user)
+		session = self.client.session
+		session["active_school_id"] = self.school_b.id
+		session.save()
+
+		url = reverse("reports:assigned_to_me")
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
+		self.assertNotContains(res, ticket_b.title)

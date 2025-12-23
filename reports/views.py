@@ -1885,14 +1885,24 @@ def _members_for_department(dept_code: str, school: Optional[School] = None):
         )
     return qs.order_by("name")
 
-def _user_department_codes(user) -> list[str]:
+def _user_department_codes(user, active_school: Optional[School] = None) -> list[str]:
     codes = set()
+
+    # في وضع تعدد المدارس، يجب تحديد المدرسة النشطة لتجنب تداخل slugs بين المدارس
+    try:
+        if active_school is None and School.objects.filter(is_active=True).count() > 1:
+            return []
+    except Exception:
+        # fail-closed إذا تعذر تحديد عدد المدارس
+        if active_school is None:
+            return []
+
     if DepartmentMembership is not None:
         try:
-            mem_codes = (
-                DepartmentMembership.objects.filter(teacher=user)
-                .values_list("department__slug", flat=True)
-            )
+            mem_qs = DepartmentMembership.objects.filter(teacher=user)
+            if active_school is not None:
+                mem_qs = mem_qs.filter(department__school=active_school)
+            mem_codes = mem_qs.values_list("department__slug", flat=True)
             for c in mem_codes:
                 if c:
                     codes.add(c)
@@ -3495,7 +3505,7 @@ def tickets_inbox(request: HttpRequest) -> HttpResponse:
 
     is_manager = _is_manager_in_school(request.user, active_school)
     if not is_manager:
-        user_codes = _user_department_codes(request.user)
+        user_codes = _user_department_codes(request.user, active_school)
         qs = qs.filter(Q(assignee=request.user) | Q(department__slug__in=user_codes))
 
     status = (request.GET.get("status") or "").strip()
@@ -3523,12 +3533,13 @@ def tickets_inbox(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def assigned_to_me(request: HttpRequest) -> HttpResponse:
     user = request.user
-    user_codes = _user_department_codes(user)
     active_school = _get_active_school(request)
 
     if School.objects.filter(is_active=True).exists() and active_school is None:
         messages.error(request, "فضلاً اختر مدرسة أولاً.")
         return redirect("reports:select_school")
+
+    user_codes = _user_department_codes(user, active_school)
 
     qs = Ticket.objects.select_related("creator", "assignee", "department").filter(
         Q(assignee=user) | Q(assignee__isnull=True, department__slug__in=user_codes)

@@ -207,13 +207,17 @@
       border-radius:12px;
       overflow:hidden;
       background:#fff;
+      display:flex;
+      flex-direction:column;
       break-inside:avoid;
       page-break-inside:avoid;
     }
     .photo-item img{
       width:100%;
       height:220px;
-      object-fit:cover;
+      object-fit:contain;
+      object-position:center;
+      background:#fff;
     }
     .photo-caption{
       padding:8px;
@@ -304,14 +308,29 @@
         border-radius:0 !important;
       }
 
-      /* رأس أخف للطباعة لتجنب التمدد */
-      .hero{
+      /*
+        فرق مهم:
+        - للمتصفح أثناء الطباعة (for-screen): نستخدم رأس خفيف لتقليل مشاكل الطباعة.
+        - للـ PDF (for-pdf عبر WeasyPrint): نحافظ على الشكل الحديث قدر الإمكان.
+      */
+      .for-screen .hero{
         background:none !important;
         color:#0f172a !important;
         border:1px solid var(--line);
         border-right:6px solid var(--brand);
         padding:12px;
         margin-bottom:12px;
+      }
+      .for-pdf .report-wrapper{
+        /* نعيد padding لأن WeasyPrint يطبق @media print وليس @media screen */
+        padding: var(--print-margin) !important;
+      }
+      .for-pdf .hero{
+        background: linear-gradient(135deg, var(--brand) 0%, #1d4ed8 100%) !important;
+        color:#fff !important;
+        border:none !important;
+        padding:18px !important;
+        margin-bottom:18px !important;
       }
       .hero .logo{
         width:54px;
@@ -321,6 +340,25 @@
       }
       .hero .sub{color:var(--muted) !important; opacity:1}
       .cat-badge{background:#fff !important;border-color:var(--line) !important;color:#0f172a !important}
+
+      .for-pdf .hero .sub{color:rgba(255,255,255,.92) !important;}
+      .for-pdf .cat-badge{background: rgba(255,255,255,.18) !important; border-color: rgba(255,255,255,.25) !important; color:#fff !important;}
+
+      /*
+        ضبط قياسات PDF على A4 (WeasyPrint):
+        - استخدم mm بدل px لثبات القياس داخل PDF
+        - اجعل الصور "مصغّرة كاملة" بدون قص
+      */
+      .for-pdf .details-grid{gap:9px;margin-bottom:12px}
+      .for-pdf .section-header{margin:12px 0 8px}
+      .for-pdf .description-box{padding:10px;margin-bottom:10px}
+
+      .for-pdf .photos-grid{gap:8px}
+      .for-pdf .photo-item{border-radius:10px}
+      .for-pdf .photo-item img{height:38mm; object-fit:contain; background:#fff}
+      .for-pdf .photos-grid--4 .photo-item img{height:22mm; object-fit:contain; background:#fff}
+      .for-pdf .photos-grid--1 .photo-item img{height:60mm; object-fit:contain; background:#fff}
+      .for-pdf .photo-caption{padding:6px 8px;font-size:.76rem}
 
       .details-grid{gap:10px;margin-bottom:12px}
       .info-card{background:#fff;border:1px solid var(--line)}
@@ -338,15 +376,15 @@
       .photo-item{
         width: calc(50% - 5px);
       }
-      .photo-item img{height:140px}
+      .photo-item img{height:140px; object-fit:contain; background:#fff}
       .photos-grid--4 .photo-item{
         width: calc(25% - 8px);
       }
-      .photos-grid--4 .photo-item img{height:95px}
+      .photos-grid--4 .photo-item img{height:95px; object-fit:contain; background:#fff}
       .photos-grid--1 .photo-item{
         width: 100%;
       }
-      .photos-grid--1 .photo-item img{height:165px}
+      .photos-grid--1 .photo-item img{height:165px; object-fit:contain; background:#fff}
 
       /* التواقيع: لا تختفي ولا تنقسم */
       .signatures-area{
@@ -378,7 +416,7 @@
   </style>
 </head>
 
-<body>
+<body class="{% if for_pdf %}for-pdf{% else %}for-screen{% endif %}">
 
 {% if not for_pdf %}
   <div class="toolbar">
@@ -446,12 +484,6 @@
       {% with idea_len=idea_text|length %}
         <div class="description-box">{{ idea_text|default:"لا يوجد وصف مضاف." }}</div>
 
-        {# ==========
-           منطق فصل الصور+التواقيع لصفحة جديدة إذا المحتوى طويل
-           - غيّر الأرقام حسب تفضيلك
-           - الحالة 1: إذا النص طويل جدًا -> فصل
-           - الحالة 2: إذا النص متوسط وعندك 3 صور فأكثر -> فصل
-        ========== #}
 
         <div class="media-block
           {% if idea_len > 850 %} media-block--newpage{% endif %}
