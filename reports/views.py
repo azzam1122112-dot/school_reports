@@ -2243,10 +2243,19 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         except Exception:
             pass
 
+    # Check for WeasyPrint availability
+    pdf_ready = False
+    try:
+        import weasyprint
+        pdf_ready = True
+    except (ImportError, OSError):
+        pdf_ready = False
+
     ctx = {
         **stats,
         "has_dept_model": Department is not None,
         "active_school": active_school,
+        "pdf_ready": pdf_ready,
     }
 
     has_reporttype = False

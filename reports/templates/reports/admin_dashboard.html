@@ -17,6 +17,20 @@
     font-weight:800;
   }
 
+  /* PDF Warning */
+  .pdf-warning {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+  }
+
   /* KPIs */
   .kpis{display:grid;gap:12px;margin-top:12px}
   @media(min-width:700px){.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
@@ -113,6 +127,17 @@
     <h1 class="dash-title">لوحة المدير</h1>
     <p class="dash-sub">نظرة سريعة على إحصاءات المدرسة وإدارة المحتوى</p>
   </header>
+
+  {% if not pdf_ready %}
+  <div class="pdf-warning">
+    <i class="fa-solid fa-triangle-exclamation fa-lg"></i>
+    <div>
+      تنبيه: نظام توليد PDF غير جاهز على هذا الخادم (مكتبات النظام مفقودة).
+      <br>
+      <small style="font-weight: 500; opacity: 0.9;">يرجى مراجعة الدعم الفني لتثبيت مكتبات GTK3/Pango.</small>
+    </div>
+  </div>
+  {% endif %}
 
   <section class="kpis" aria-label="مؤشرات سريعة">
     <div class="kpi">
