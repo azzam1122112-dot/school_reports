@@ -414,6 +414,7 @@
       .bento-large, .bento-tall { grid-column: span 1; grid-row: span 1; }
       .nav-links { display: none; } /* Simple hide for now, toggle logic below */
       .mobile-menu-btn { display: block; }
+      .mobile-nav-controls { display: flex; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 480px) {
@@ -429,6 +430,20 @@
       font-size: 1.5rem;
       cursor: pointer;
       color: var(--text-main);
+    }
+
+    .mobile-nav-controls {
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+    .mobile-login-btn {
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
   </style>
 </head>
@@ -453,9 +468,15 @@
           </a>
         </nav>
 
-        <button class="mobile-menu-btn" aria-label="القائمة">
-          <i class="fa-solid fa-bars"></i>
-        </button>
+        <div class="mobile-nav-controls">
+          <a href="{% url 'reports:login' %}" class="btn-primary mobile-login-btn">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            دخول
+          </a>
+          <button class="mobile-menu-btn" aria-label="القائمة">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+        </div>
       </div>
     </div>
   </header>
