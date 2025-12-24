@@ -4,12 +4,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1d4ed8">
+  <meta name="theme-color" content="#2563eb">
   <meta name="color-scheme" content="light dark">
 
-  <title>منصة توثيق | تقارير + تذاكر مدرسية باحترافية</title>
-  <meta name="description" content="حوّل التقارير والطلبات المدرسية إلى نظام إلكتروني سريع وآمن. منصة توثيق تجمع التقارير اليومية، نظام التذاكر، الصلاحيات، والطباعة بهوية المدرسة — بواجهة عربية متوافقة مع الجوال.">
-  <meta name="keywords" content="تقارير مدرسية, نظام تذاكر, طلبات معلمين, إدارة مدرسة, منصة توثيق, توثيق الأنشطة, نظام إداري مدارس">
+  <title>منصة توثيق | المستقبل للإدارة المدرسية الذكية</title>
+  <meta name="description" content="النظام المدرسي المتكامل لعام 2026. أتمتة التقارير، تذاكر الصيانة، والطباعة الرسمية في منصة واحدة ذكية.">
+  <meta name="keywords" content="إدارة مدرسية, تقارير إلكترونية, تذاكر دعم, منصة توثيق, تعليم 2026, أتمتة المدارس">
   <meta name="robots" content="index,follow">
 
   <!-- Canonical -->
@@ -25,16 +25,9 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{ request.build_absolute_uri }}">
-  <meta property="og:title" content="منصة توثيق | تقارير + تذاكر مدرسية باحترافية">
-  <meta property="og:description" content="كل ما تحتاجه المدرسة لإدارة التقارير والطلبات في مكان واحد — واجهة عربية، أمان وصلاحيات، وطباعة بهوية المدرسة.">
+  <meta property="og:title" content="منصة توثيق | المستقبل للإدارة المدرسية الذكية">
+  <meta property="og:description" content="وداعاً للفوضى الورقية. منصة توثيق تمنحك السيطرة الكاملة على تقارير وطلبات مدرستك بلمسة واحدة.">
   <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/logo1.png' %}">
-  <meta property="og:image:alt" content="شعار منصة توثيق">
-
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="منصة توثيق | تقارير + تذاكر مدرسية باحترافية">
-  <meta name="twitter:description" content="نظام إلكتروني يجمع التقارير اليومية، التذاكر، الصلاحيات والطباعة في لوحة واحدة.">
-  <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/logo1.png' %}">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,1169 +35,670 @@
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-  <!-- App CSS (your global system styles) -->
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=landing-2026-01">
+  <!-- App CSS -->
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026">
 
   <style>
     /* =========================================================
-       Landing Page — 2026 (Scoped, works with app.css)
-       ✅ Mobile-first + no horizontal overflow
-       ✅ Works from 320px up (iPhone SE) + Android + iOS safe-area
-       ✅ Avoids "grid min-width" issues by forcing min-width:0
-       ✅ Button stacks on small screens
-       ✅ Trust chips wrap (no nowrap)
-    ========================================================= */
-
-    /* Safety: prevent horizontal scroll from any element */
-    html, body{max-width:100%; overflow-x:hidden;}
-    body.landing-page{ overflow-x:hidden; -webkit-text-size-adjust:100%; }
-    body.landing-page *{ box-sizing:border-box; }
-    body.landing-page .container{ width:100%; max-width:1240px; margin-inline:auto; padding-inline:clamp(12px, 3.5vw, 24px); }
-
-    /* Media always scales down on mobile */
-    body.landing-page img,
-    body.landing-page svg,
-    body.landing-page video,
-    body.landing-page canvas{
-      max-width:100%;
-      height:auto;
+       LANDING 2026 - DESIGN SYSTEM
+       ========================================================= */
+    :root {
+      --brand-primary: #2563eb;
+      --brand-dark: #1e40af;
+      --brand-light: #60a5fa;
+      --accent: #f59e0b;
+      --surface-1: #ffffff;
+      --surface-2: #f8fafc;
+      --surface-3: #f1f5f9;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-light: #e2e8f0;
+      --glass: rgba(255, 255, 255, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.5);
+      --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.08);
+      --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.15);
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-xl: 32px;
     }
 
-    /* Keep anchor targets visible under sticky header */
-    #features, #how, #dashboards, #security, #faq{
-      scroll-margin-top:96px;
-    }
-    @media (max-width: 860px){
-      #features, #how, #dashboards, #security, #faq{ scroll-margin-top:120px; }
-    }
-
-    /* Global small-screen spacing */
-    @media (max-width: 520px){
-      .sec{margin-top:56px;}
-      .sec-head p{font-size:.98rem; line-height:1.8;}
+    [data-theme="dark"] {
+      --surface-1: #0f172a;
+      --surface-2: #1e293b;
+      --surface-3: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-light: #334155;
+      --glass: rgba(15, 23, 42, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.1);
     }
 
-    /* Force grids to not overflow */
-    .hero, .hero *, .features, .steps, .tabs, .panel-grid, .cta-band, .navx, .wrap { min-width:0; }
-
-    body.landing-page{
-      background:
-        radial-gradient(1200px 520px at 10% 0%, rgba(37,99,235,.14), transparent 60%),
-        radial-gradient(900px 420px at 90% 10%, rgba(5,150,105,.12), transparent 55%),
-        linear-gradient(180deg, var(--bg), var(--bg));
+    /* Reset & Base */
+    html, body { overflow-x: hidden; scroll-behavior: smooth; }
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: var(--surface-1);
+      color: var(--text-main);
+      line-height: 1.6;
     }
 
-    /* Skip link (A11y) */
-    .skip-link{
-      position:absolute;
-      top:8px;
-      right:8px;
-      z-index:9999;
-      padding:10px 12px;
-      border-radius:12px;
-      background:var(--card);
-      border:1px solid var(--line-2);
-      box-shadow:var(--shadow-sm);
-      transform:translateY(-200%);
-      transition:transform var(--t) var(--ease);
-      font-weight:900;
+    .container {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 20px;
     }
-    .skip-link:focus{transform:translateY(0)}
+
+    a { text-decoration: none; color: inherit; transition: all 0.3s ease; }
+    
+    /* Utilities */
+    .text-gradient {
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .bg-glass {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      background: rgba(37, 99, 235, 0.1);
+      color: var(--brand-primary);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+    }
 
     /* Header */
-    .landing-header{
-      position:sticky;
-      top:0;
-      z-index:var(--z-header);
-      background:rgba(255,255,255,.86);
-      border-bottom:1px solid var(--line-2);
-      backdrop-filter:blur(10px) saturate(180%);
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      padding: 16px 0;
+      transition: all 0.3s ease;
     }
-    html[data-theme="dark"] .landing-header{ background:rgba(10,16,32,.72); }
-
-    .landing-header .wrap{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding:12px 0;
-      position:relative; /* for mobile dropdown positioning */
+    .header.scrolled {
+      padding: 10px 0;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-light);
     }
-
-    .brandx{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      text-decoration:none;
-      font-weight:950;
-      max-width:70%;
+    .nav-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .brandx img{
-      width:42px;
-      height:42px;
-      object-fit:contain;
-      border-radius:14px;
-      border:1px solid var(--line-2);
-      background:rgba(255,255,255,.60);
-      flex:0 0 auto;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.2rem;
     }
-    html[data-theme="dark"] .brandx img{background:rgba(255,255,255,.06)}
-    .brandx .txt{display:block; min-width:0;}
-    .brandx .txt b{
-      display:block;
-      font-size:1.05rem;
-      color:var(--ink);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .logo img { height: 40px; width: auto; }
+    
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
     }
-    .brandx .txt small{
-      display:block;
-      color:var(--muted);
-      font-weight:900;
-      margin-top:2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .nav-links a {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .nav-links a:hover { color: var(--brand-primary); }
+    
+    .btn-primary {
+      background: var(--brand-primary);
+      color: white;
+      padding: 10px 24px;
+      border-radius: 14px;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
     }
 
-    .nav-toggle{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      min-height:44px;
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(15,23,42,.14);
-      background:var(--card);
-      cursor:pointer;
-      box-shadow:var(--shadow-sm);
+    /* Hero Section */
+    .hero {
+      padding-top: 140px;
+      padding-bottom: 80px;
+      position: relative;
+      overflow: hidden;
     }
-    @media (min-width: 861px){
-      .nav-toggle{display:none}
+    /* Background Blobs */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      z-index: -1;
+    }
+    .blob-1 { top: -10%; right: -10%; width: 500px; height: 500px; background: var(--brand-light); }
+    .blob-2 { bottom: 10%; left: -10%; width: 400px; height: 400px; background: var(--accent); opacity: 0.2; }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 40px;
+      align-items: center;
+    }
+    .hero-content h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      line-height: 1.1;
+      font-weight: 900;
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+    }
+    .hero-content p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      max-width: 540px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .btn-outline {
+      padding: 10px 24px;
+      border-radius: 14px;
+      font-weight: 700;
+      border: 2px solid var(--border-light);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      border-color: var(--text-main);
+      background: var(--surface-2);
     }
 
-    .navx{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
+    /* Hero Visual (Glass Card) */
+    .hero-visual {
+      position: relative;
     }
-    .navx a{
-      text-decoration:none;
-      font-weight:950;
-      color:var(--muted);
-      padding:10px 12px;
-      border-radius:14px;
-      transition:background var(--t) var(--ease), color var(--t) var(--ease), transform var(--t-fast) var(--ease);
+    .glass-card {
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      box-shadow: var(--shadow-soft);
+      transform: rotate(-2deg);
+      transition: transform 0.5s ease;
     }
-    .navx a:hover{background:rgba(37,99,235,.08); color:var(--brand); transform:translateY(-1px)}
-    .navx a.cta{ padding:10px 14px; border-radius:14px; }
+    .glass-card:hover { transform: rotate(0deg) scale(1.02); }
+    
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--surface-1);
+      border-radius: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .stat-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+    }
+    .bg-blue { background: #eff6ff; color: #2563eb; }
+    .bg-green { background: #f0fdf4; color: #16a34a; }
+    .bg-purple { background: #faf5ff; color: #9333ea; }
 
-    /* Desktop nav */
-    @media (min-width: 861px){
-      .navx{display:flex}
+    /* Bento Grid Features */
+    .section-title {
+      text-align: center;
+      margin-bottom: 60px;
     }
+    .section-title h2 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, auto);
+      gap: 24px;
+    }
+    .bento-item {
+      background: var(--surface-2);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      border: 1px solid var(--border-light);
+      transition: transform 0.3s ease;
+      overflow: hidden;
+      position: relative;
+    }
+    .bento-item:hover { transform: translateY(-5px); }
+    .bento-large { grid-column: span 2; }
+    .bento-tall { grid-row: span 2; }
+    
+    .bento-icon {
+      width: 60px; height: 60px;
+      border-radius: 18px;
+      background: var(--surface-1);
+      display: grid;
+      place-items: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-soft);
+    }
+    .bento-item h3 { font-size: 1.4rem; font-weight: 800; margin-bottom: 10px; }
+    .bento-item p { color: var(--text-muted); }
 
-    /* Mobile nav dropdown */
-    @media (max-width: 860px){
-      .navx{
-        display:none;
-        position:absolute;
-        top:calc(100% + 10px);
-        inset-inline:0;
-        background:var(--card);
-        border:1px solid var(--line-2);
-        border-radius:18px;
-        box-shadow:var(--shadow-lg);
-        padding:10px;
-        flex-direction:column;
-        gap:6px;
-        max-width:100%;
-        max-height:calc(100vh - 90px);
-        overflow:auto;
-        -webkit-overflow-scrolling:touch;
-        padding-bottom:calc(10px + var(--safe-bottom));
-      }
-      .navx.is-open{display:flex}
-      .navx a{width:100%; text-align:center}
-      .brandx{max-width:78%}
+    /* Stats Section */
+    .stats-section {
+      margin: 100px 0;
+      background: var(--text-main);
+      color: var(--surface-1);
+      border-radius: var(--radius-xl);
+      padding: 60px;
+      text-align: center;
     }
-
-    /* Hero */
-    .hero{
-      margin-top:18px;
-      border:1px solid var(--line-2);
-      border-radius:var(--radius-xl);
-      overflow:hidden;
-      box-shadow:var(--shadow);
-      background:
-        radial-gradient(900px 380px at 15% 10%, rgba(255,255,255,.14), transparent 55%),
-        linear-gradient(135deg, var(--brand-700), var(--info));
-      color:#fff;
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 40px;
+      margin-top: 40px;
     }
-    html[data-theme="dark"] .hero{
-      background:
-        radial-gradient(900px 380px at 15% 10%, rgba(255,255,255,.08), transparent 55%),
-        linear-gradient(135deg, rgba(29,78,216,.92), rgba(14,165,233,.80));
+    .stat-item .num {
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: var(--accent);
+      line-height: 1;
     }
-
-    .hero .inner{
-      display:grid;
-      grid-template-columns: 1.25fr .75fr;
-      gap:18px;
-      padding:clamp(16px, 3vw, 28px);
-      align-items:stretch;
-    }
-    @media (max-width: 980px){
-      .hero .inner{grid-template-columns:1fr}
-    }
-
-    .hero .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 12px;
-      border-radius:999px;
-      background:rgba(255,255,255,.14);
-      border:1px solid rgba(255,255,255,.22);
-      font-weight:950;
-      width:max-content;
-      max-width:100%;
-      flex-wrap:wrap;
-    }
-    .hero .pill .tag{
-      background:rgba(255,255,255,.16);
-      border:1px solid rgba(255,255,255,.22);
-      border-radius:999px;
-      padding:6px 10px;
-      font-size:.82rem;
-    }
-
-    .hero h1{
-      margin:14px 0 8px;
-      font-weight:950;
-      line-height:1.15;
-      font-size:clamp(1.65rem, 4.6vw, 3.2rem);
-      letter-spacing:.2px;
-      overflow-wrap:anywhere;
-      word-break:break-word;
-    }
-    .hero p.lead{
-      margin:0;
-      opacity:.92;
-      font-weight:800;
-      font-size:clamp(1rem, 1.1vw, 1.15rem);
-      max-width:58ch;
-      overflow-wrap:anywhere;
-      word-break:break-word;
+    .stat-item .label {
+      font-size: 1.1rem;
+      opacity: 0.8;
+      margin-top: 8px;
     }
 
-    .hero .actions{
-      margin-top:16px;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
+    /* Testimonials */
+    .testimonials {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
+    }
+    .review-card {
+      background: var(--surface-1);
+      padding: 24px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-soft);
+    }
+    .stars { color: var(--accent); margin-bottom: 12px; }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--border-light);
     }
 
-    .btn-ghost{
-      background:rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.22);
-      color:#fff;
+    /* CTA Box */
+    .cta-box {
+      background: linear-gradient(120deg, var(--brand-dark), var(--brand-primary));
+      border-radius: var(--radius-xl);
+      padding: 60px 40px;
+      text-align: center;
+      color: white;
+      margin: 100px 0;
+      position: relative;
+      overflow: hidden;
     }
-    .btn-ghost:hover{background:rgba(255,255,255,.18)}
-    .btn-whatsapp{
-      background:linear-gradient(135deg, #25d366, #22c55e);
-      color:#fff;
-      border-color:rgba(34,197,94,.25);
-    }
-
-    /* Force stacked buttons on small screens */
-    @media (max-width: 640px){
-      .hero .actions{
-        display:grid;
-        grid-template-columns:1fr;
-        gap:10px;
-      }
-      .hero .actions .btn{
-        width:100%;
-        justify-content:center;
-      }
+    .cta-box h2 { font-size: 2.5rem; margin-bottom: 16px; }
+    .cta-box p { font-size: 1.2rem; opacity: 0.9; margin-bottom: 32px; max-width: 600px; margin-inline: auto; }
+    .btn-white {
+      background: white;
+      color: var(--brand-primary);
+      padding: 12px 32px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 1.1rem;
     }
 
-    /* Extra-tight screens (iPhone SE / small Android) */
-    @media (max-width: 420px){
-      .hero h1{font-size:1.45rem; line-height:1.22;}
-      .hero p.lead{font-size:1rem; line-height:1.85;}
-      .hero .pill{gap:8px; padding:9px 10px;}
-      .hero-card .mini .n{font-size:1.05rem;}
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border-light);
+      padding: 60px 0 30px;
+      background: var(--surface-2);
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .footer-col h4 { font-weight: 800; margin-bottom: 20px; }
+    .footer-col a { display: block; color: var(--text-muted); margin-bottom: 10px; }
+    .footer-col a:hover { color: var(--brand-primary); }
+    .copy {
+      text-align: center;
+      color: var(--text-muted);
+      padding-top: 30px;
+      border-top: 1px solid var(--border-light);
     }
 
-    .hero .bullets{
-      margin-top:14px;
-      display:grid;
-      gap:10px;
+    /* Mobile Responsive */
+    @media (max-width: 960px) {
+      .hero-grid { grid-template-columns: 1fr; text-align: center; }
+      .hero-content p { margin-inline: auto; }
+      .hero-actions { justify-content: center; }
+      .bento-grid { grid-template-columns: 1fr; }
+      .bento-large, .bento-tall { grid-column: span 1; grid-row: span 1; }
+      .nav-links { display: none; } /* Simple hide for now, toggle logic below */
+      .mobile-menu-btn { display: block; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
     }
-    .hero .bullets .it{
-      display:flex;
-      align-items:flex-start;
-      gap:10px;
-      font-weight:900;
-      overflow-wrap:anywhere;
-      word-break:break-word;
-    }
-    .hero .bullets i{margin-top:3px}
-
-    /* Hero Side Card */
-    .hero-card{
-      background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.18);
-      border-radius:var(--radius-xl);
-      padding:16px;
-      display:grid;
-      gap:12px;
-      box-shadow:0 18px 60px rgba(2,6,23,.18);
-      height:100%;
-      min-width:0;
-    }
-    .hero-card .mini{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:12px;
-      border-radius:18px;
-      background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.18);
-      min-width:0;
-    }
-    .hero-card .mini .n{
-      font-weight:950;
-      font-size:1.15rem;
-      line-height:1.1;
-      overflow-wrap:anywhere;
-    }
-    .hero-card .mini .t{
-      opacity:.9;
-      font-weight:900;
-      font-size:.9rem;
-      overflow-wrap:anywhere;
-    }
-    .hero-card .mini i{
-      width:44px;height:44px;
-      border-radius:16px;
-      display:grid;
-      place-items:center;
-      background:rgba(2,6,23,.12);
-      border:1px solid rgba(255,255,255,.16);
-      flex:0 0 auto;
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 2rem; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr; }
     }
 
-    /* Section headings */
-    .sec{ margin-top:72px; }
-    .sec-head{ text-align:center; margin-bottom:16px; }
-    .sec-head h2{
-      margin:0;
-      font-size:clamp(1.35rem, 2.2vw, 2.2rem);
-      font-weight:950;
-      color:var(--ink);
-      overflow-wrap:anywhere;
-    }
-    .sec-head p{
-      margin:8px auto 0;
-      max-width:72ch;
-      color:var(--muted);
-      font-weight:900;
-      overflow-wrap:anywhere;
-    }
-
-    /* Trust strip (ALLOW WRAP - NO NOWRAP) */
-    .trust{
-      margin-top:14px;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      justify-content:center;
-      align-items:center;
-    }
-    .trust .chip{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 12px;
-      border-radius:999px;
-      background:rgba(37,99,235,.08);
-      border:1px solid rgba(37,99,235,.14);
-      font-weight:950;
-      color:var(--brand-700);
-      white-space:normal;         /* IMPORTANT */
-      text-align:center;
-    }
-    @media (max-width: 520px){
-      .trust{display:grid; grid-template-columns:1fr; justify-items:stretch;}
-      .trust .chip{width:100%; justify-content:center;}
-    }
-
-    /* Features grid (12-col, responsive) */
-    .features{
-      display:grid;
-      grid-template-columns:repeat(12, minmax(0, 1fr));
-      gap:12px;
-      margin-top:18px;
-    }
-    .fcard{
-      grid-column:span 4;
-      padding:16px;
-      transition:transform var(--t-fast) var(--ease), box-shadow var(--t) var(--ease), border-color var(--t) var(--ease);
-      min-width:0;
-    }
-    .fcard:hover{transform:translateY(-2px); box-shadow:var(--shadow); border-color:rgba(37,99,235,.22)}
-    .fcard .top{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:10px;
-      min-width:0;
-    }
-    .fcard .ico{
-      width:46px;height:46px;
-      border-radius:16px;
-      display:grid;
-      place-items:center;
-      border:1px solid rgba(15,23,42,.06);
-      background:rgba(37,99,235,.10);
-      color:var(--brand-700);
-      flex:0 0 auto;
-    }
-    .fcard h3{margin:0; font-weight:950; font-size:1.05rem; overflow-wrap:anywhere}
-    .fcard p{margin:8px 0 0; color:var(--muted); font-weight:900; overflow-wrap:anywhere}
-    .fcard small{color:rgba(100,116,139,.95); font-weight:900}
-
-    @media (max-width: 980px){ .fcard{grid-column:span 6} }
-    @media (max-width: 640px){ .fcard{grid-column:span 12} }
-
-    /* Steps */
-    .steps{
-      display:grid;
-      grid-template-columns:repeat(12, minmax(0, 1fr));
-      gap:12px;
-      margin-top:18px;
-    }
-    .step{
-      grid-column:span 3;
-      text-align:center;
-      padding:16px;
-      min-width:0;
-    }
-    .step .no{
-      width:46px;height:46px;
-      border-radius:999px;
-      display:grid;
-      place-items:center;
-      margin:0 auto 10px;
-      background:rgba(37,99,235,.12);
-      border:1px solid rgba(37,99,235,.18);
-      color:var(--brand-700);
-      font-weight:950;
-    }
-    .step b{display:block; font-weight:950; overflow-wrap:anywhere}
-    .step p{margin:8px 0 0; color:var(--muted); font-weight:900; overflow-wrap:anywhere}
-    @media (max-width: 980px){ .step{grid-column:span 6} }
-    @media (max-width: 640px){ .step{grid-column:span 12} }
-
-    /* Tabs */
-    .tabs{
-      margin-top:18px;
-      border:1px solid var(--line-2);
-      border-radius:var(--radius-xl);
-      background:var(--card);
-      box-shadow:var(--shadow-sm);
-      overflow:hidden;
-      min-width:0;
-    }
-    .tabbar{
-      display:flex;
-      gap:8px;
-      padding:12px;
-      border-bottom:1px solid var(--line-2);
-      overflow:auto;
-      -webkit-overflow-scrolling:touch;
-      scroll-snap-type:x mandatory;
-    }
-    .tabbar button{
-      flex:0 0 auto;
-      cursor:pointer;
-      border:1px solid rgba(15,23,42,.12);
-      background:transparent;
-      border-radius:999px;
-      padding:10px 14px;
-      font-weight:950;
-      color:var(--muted);
-      transition:background var(--t) var(--ease), color var(--t) var(--ease), transform var(--t-fast) var(--ease);
-      white-space:nowrap;
-      scroll-snap-align:start;
-    }
-    .tabbar button:hover{background:rgba(37,99,235,.08); color:var(--brand); transform:translateY(-1px)}
-    .tabbar button[aria-selected="true"]{
-      background:var(--brand-ghost);
-      border-color:rgba(37,99,235,.22);
-      color:var(--brand-700);
-    }
-    .tabpanel{display:none; padding:14px}
-    .tabpanel.active{display:block}
-
-    .panel-grid{
-      display:grid;
-      grid-template-columns:repeat(12, minmax(0, 1fr));
-      gap:12px;
-    }
-    .panel-card{
-      grid-column:span 6;
-      padding:16px;
-      background:rgba(37,99,235,.04);
-      border:1px solid rgba(37,99,235,.12);
-      border-radius:var(--radius-lg);
-      min-width:0;
-    }
-    .panel-card b{font-weight:950}
-    .panel-card p{margin:8px 0 0; color:var(--muted); font-weight:900; overflow-wrap:anywhere}
-    @media (max-width: 860px){ .panel-card{grid-column:span 12} }
-
-    /* FAQ */
-    .faq{
-      max-width:860px;
-      margin:18px auto 0;
-      display:grid;
-      gap:10px;
-      min-width:0;
-    }
-    details.faqx{
-      border:1px solid var(--line-2);
-      border-radius:var(--radius-lg);
-      background:var(--card);
-      box-shadow:var(--shadow-sm);
-      overflow:hidden;
-      min-width:0;
-    }
-    details.faqx summary{
-      padding:14px 16px;
-      cursor:pointer;
-      font-weight:950;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      list-style:none;
-      overflow-wrap:anywhere;
-      word-break:break-word;
-    }
-    details.faqx summary::-webkit-details-marker{display:none}
-    details.faqx .ans{
-      border-top:1px solid var(--line-2);
-      padding:12px 16px 16px;
-      color:var(--muted);
-      font-weight:900;
-      overflow-wrap:anywhere;
-    }
-
-    /* CTA band */
-    .cta-band{
-      margin-top:18px;
-      border-radius:var(--radius-xl);
-      overflow:hidden;
-      border:1px solid var(--line-2);
-      box-shadow:var(--shadow);
-      background:
-        radial-gradient(900px 380px at 15% 10%, rgba(255,255,255,.12), transparent 55%),
-        linear-gradient(135deg, var(--brand-700), var(--info));
-      color:#fff;
-      padding:clamp(16px, 3vw, 28px);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:14px;
-      flex-wrap:wrap;
-      min-width:0;
-    }
-    .cta-band h3{margin:0; font-size:clamp(1.2rem, 2vw, 2rem); font-weight:950; overflow-wrap:anywhere}
-    .cta-band p{margin:8px 0 0; opacity:.92; font-weight:900; max-width:70ch; overflow-wrap:anywhere}
-    .cta-band .cta-actions{display:flex; gap:10px; flex-wrap:wrap}
-    @media (max-width: 520px){
-      .cta-band{ text-align:center; }
-      .cta-band .cta-actions{
-        width:100%;
-        display:grid;
-        grid-template-columns:1fr;
-        gap:10px;
-      }
-      .cta-band .cta-actions .btn{width:100%; justify-content:center;}
-    }
-
-    /* Footer spacing */
-    .landing-foot{margin-top:72px}
-
-    /* Reveal on scroll */
-    .reveal{opacity:0; transform:translateY(10px); transition:opacity .45s var(--ease), transform .45s var(--ease)}
-    .reveal.in{opacity:1; transform:none}
-    @media (prefers-reduced-motion: reduce){
-      .reveal{opacity:1; transform:none}
-    }
-
-    /* Prevent iOS zoom-on-focus */
-    @media (max-width: 520px){
-      input[type="text"], input[type="password"], input[type="search"], input[type="number"], input[type="date"],
-      textarea, select{font-size:16px}
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-main);
     }
   </style>
 </head>
+<body>
 
-<body class="page landing-page">
-
-  <a class="skip-link" href="#main">تخطي إلى المحتوى</a>
-
-  <header class="landing-header" role="banner">
+  <!-- Header -->
+  <header class="header" id="header">
     <div class="container">
-      <div class="wrap">
-        <a class="brandx" href="#top" aria-label="العودة لأعلى الصفحة">
-          <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق" loading="eager" decoding="async">
-          <span class="txt">
-            <b>منصة توثيق</b>
-            <small>تقارير + تذاكر… بإدارة أذكى</small>
-          </span>
+      <div class="nav-wrap">
+        <a href="#" class="logo">
+          <img src="{% static 'img/logo1.png' %}" alt="توثيق">
+          <span>منصة توثيق</span>
         </a>
-
-        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="landingNav">
-          <i class="fa-solid fa-bars"></i>
-          <span class="sr-only">فتح القائمة</span>
-        </button>
-
-        <nav class="navx" id="landingNav" aria-label="روابط الصفحة">
+        
+        <nav class="nav-links">
           <a href="#features">المزايا</a>
-          <a href="#how">البدء السريع</a>
-          <a href="#dashboards">الأدوار</a>
-          <a href="#security">الأمان</a>
-          <a href="#faq">الأسئلة</a>
-
-          <a class="cta btn btn-primary btn-sm" href="{% url 'reports:login' %}">
-            <i class="fa-solid fa-right-to-bracket"></i>
-            دخول المنصة
-          </a>
+          <a href="#how">كيف نعمل</a>
+          <a href="#testimonials">آراء العملاء</a>
+          <a href="{% url 'reports:login' %}" class="btn-primary">دخول المنصة</a>
         </nav>
+
+        <button class="mobile-menu-btn" aria-label="القائمة">
+          <i class="fa-solid fa-bars"></i>
+        </button>
       </div>
     </div>
   </header>
 
-  <main id="main" class="page-main">
-    <div class="container" id="top">
-
-      <!-- HERO -->
-      <section class="hero reveal" aria-label="مقدمة منصة توثيق">
-        <div class="inner">
-          <div>
-            <div class="pill">
-              <span class="tag">إصدار 2026</span>
-              <span>حل موحّد للتقارير + الطلبات… بدون فوضى</span>
-            </div>
-
-            <h1>
-              وداعًا للورق…<br>
-              اجعل <span style="text-decoration:underline; text-underline-offset:8px;">التوثيق</span> والطلبات أسرع وأسهل
-            </h1>
-
-            <p class="lead">
-              منصة توثيق تجمع <b>التقارير اليومية</b> و<b>نظام التذاكر</b> و<b>الطباعة بهوية المدرسة</b> في لوحة واحدة.
-              واجهة عربية، متوافقة مع الجوال، وصلاحيات دقيقة لكل دور.
-            </p>
-
-            <div class="actions">
-              <a class="btn btn-accent btn-lg" href="https://wa.me/966537720207" target="_blank" rel="noopener">
-                <i class="fa-brands fa-whatsapp"></i>
-                اطلب تجربة / عرض سعر
-              </a>
-
-              <a class="btn btn-ghost btn-lg" href="{% url 'reports:login' %}">
-                <i class="fa-solid fa-rocket"></i>
-                دخول المنصة
-              </a>
-
-              <a class="btn btn-ghost btn-lg" href="#features">
-                <i class="fa-solid fa-compass"></i>
-                استكشف المزايا
-              </a>
-            </div>
-
-            <div class="bullets" role="list" aria-label="نقاط سريعة">
-              <div class="it" role="listitem">
-                <i class="fa-solid fa-check-circle"></i>
-                <span>عزل بيانات المدارس (Multi-Tenant) + صلاحيات دقيقة (RBAC).</span>
-              </div>
-              <div class="it" role="listitem">
-                <i class="fa-solid fa-check-circle"></i>
-                <span>طباعة وتقارير PDF بهوية المدرسة وشعارها — جاهزة للاعتماد.</span>
-              </div>
-              <div class="it" role="listitem">
-                <i class="fa-solid fa-check-circle"></i>
-                <span>تذاكر ذكية لطلبات الصيانة والدعم… مع تتبع حالة ووقت.</span>
-              </div>
-            </div>
-
-            <div class="trust" aria-label="شريط الثقة">
-              <span class="chip"><i class="fa-solid fa-shield-halved"></i> حماية + CSRF/XSS</span>
-              <span class="chip"><i class="fa-solid fa-mobile-screen-button"></i> مهيأ للجوال</span>
-              <span class="chip"><i class="fa-solid fa-print"></i> جاهز للطباعة</span>
-              <span class="chip"><i class="fa-solid fa-users-gear"></i> أدوار وصلاحيات</span>
-            </div>
-          </div>
-
-          <aside class="hero-card" aria-label="لمحة سريعة">
-            <div class="mini">
-              <div>
-                <div class="n">إعداد سريع</div>
-                <div class="t">بدء جاهزية المدرسة بخطوات بسيطة</div>
-              </div>
-              <i class="fa-solid fa-bolt-lightning"></i>
-            </div>
-
-            <div class="mini">
-              <div>
-                <div class="n">لوحات أدوار</div>
-                <div class="t">مدير / مسؤول قسم / معلم</div>
-              </div>
-              <i class="fa-solid fa-gauge-high"></i>
-            </div>
-
-            <div class="mini">
-              <div>
-                <div class="n">تذاكر منظمة</div>
-                <div class="t">تتبع حالة + ملاحظات</div>
-              </div>
-              <i class="fa-solid fa-ticket"></i>
-            </div>
-
-            <div class="mini">
-              <div>
-                <div class="n">تقارير PDF</div>
-                <div class="t">هوية مدرسة + أرشفة</div>
-              </div>
-              <i class="fa-solid fa-file-pdf"></i>
-            </div>
-
-            <div class="card soft" style="margin-top:4px; color:#fff; background:rgba(255,255,255,.10); border-color:rgba(255,255,255,.18)">
-              <b style="display:block; font-weight:950">بدون أرقام تسويقية مبالغ فيها</b>
-              <div style="opacity:.92; font-weight:900; margin-top:6px">
-                نركّز على “النتيجة”: تقليل الوقت، تنظيم الطلبات، وتوثيق رسمي قابل للطباعة.
-              </div>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <!-- FEATURES -->
-      <section class="sec" id="features" aria-label="مزايا منصة توثيق">
-        <div class="sec-head reveal">
-          <h2>لماذا تختار منصة توثيق؟</h2>
-          <p>لأنها تجمع أهم ما تحتاجه المدرسة في نظام واحد: تنظيم، وضوح، طباعة، وتتبّع.</p>
-        </div>
-
-        <div class="features">
-          <article class="card fcard reveal">
-            <div class="top">
-              <div class="ico"><i class="fa-solid fa-shield-halved"></i></div>
-              <small>أمان</small>
-            </div>
-            <h3>صلاحيات دقيقة + عزل مدارس</h3>
-            <p>كل دور يرى ما يخصه فقط. البيانات معزولة لكل مدرسة ضمن بنية Multi-Tenant.</p>
-          </article>
-
-          <article class="card fcard reveal">
-            <div class="top">
-              <div class="ico"><i class="fa-solid fa-ticket"></i></div>
-              <small>تذاكر</small>
-            </div>
-            <h3>نظام تذاكر احترافي</h3>
-            <p>طلبات المعلمين تصل للقسم المختص مع حالة واضحة وملاحظات وتاريخ متابعة.</p>
-          </article>
-
-          <article class="card fcard reveal">
-            <div class="top">
-              <div class="ico"><i class="fa-solid fa-print"></i></div>
-              <small>PDF</small>
-            </div>
-            <h3>تقارير مطبوعة بهوية المدرسة</h3>
-            <p>قوالب جاهزة للطباعة تتضمن الشعار والهوية وتنسيق رسمي.</p>
-          </article>
-
-          <article class="card fcard reveal">
-            <div class="top">
-              <div class="ico"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-              <small>مرونة</small>
-            </div>
-            <h3>تخصيص أنواع التقارير والأقسام</h3>
-            <p>أضف أقسامك وأنواع تقاريرك بسهولة لتناسب واقع المدرسة.</p>
-          </article>
-
-          <article class="card fcard reveal">
-            <div class="top">
-              <div class="ico"><i class="fa-solid fa-bell"></i></div>
-              <small>تنبيهات</small>
-            </div>
-            <h3>إشعارات ذكية داخلية</h3>
-            <p>اشعارات للطلبات والتحديثات والتغييرات — لتقليل التأخير والضياع.</p>
-          </article>
-
-          <article class="card fcard reveal">
-            <div class="top">
-              <div class="ico"><i class="fa-solid fa-mobile-screen-button"></i></div>
-              <small>تجربة</small>
-            </div>
-            <h3>واجهة عربية للجوال أولًا</h3>
-            <p>رفع سريع، نموذج واضح، وتجربة سلسة على الجوال والكمبيوتر.</p>
-          </article>
-        </div>
-      </section>
-
-      <!-- HOW -->
-      <section class="sec" id="how" aria-label="البدء السريع">
-        <div class="sec-head reveal">
-          <h2>ابدأ خلال دقائق</h2>
-          <p>إعداد عملي وخفيف — ثم تشغيل مباشر داخل المدرسة.</p>
-        </div>
-
-        <div class="steps">
-          <div class="card step reveal">
-            <div class="no">1</div>
-            <b>تسجيل المدرسة</b>
-            <p>بيانات المدرسة + الشعار + الهوية.</p>
-          </div>
-          <div class="card step reveal">
-            <div class="no">2</div>
-            <b>إضافة الأقسام</b>
-            <p>الأقسام الإدارية والتعليمية وأنواع التقارير.</p>
-          </div>
-          <div class="card step reveal">
-            <div class="no">3</div>
-            <b>إضافة المعلمين</b>
-            <p>حسابات وصلاحيات حسب الأدوار.</p>
-          </div>
-          <div class="card step reveal">
-            <div class="no">4</div>
-            <b>تشغيل فعلي</b>
-            <p>تقارير + تذاكر + طباعة… من أول يوم.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ROLES -->
-      <section class="sec" id="dashboards" aria-label="الأدوار ولوحات التحكم">
-        <div class="sec-head reveal">
-          <h2>لوحات تحكم مخصصة لكل دور</h2>
-          <p>واجهة تركز على ما يحتاجه كل مستخدم — بدون تعقيد.</p>
-        </div>
-
-        <div class="tabs reveal">
-          <div class="tabbar" role="tablist" aria-label="اختيار الدور">
-            <button type="button" class="tabbtn" role="tab" aria-selected="true" aria-controls="p1" id="t1">👑 مدير المدرسة</button>
-            <button type="button" class="tabbtn" role="tab" aria-selected="false" aria-controls="p2" id="t2">🧩 مسؤول القسم</button>
-            <button type="button" class="tabbtn" role="tab" aria-selected="false" aria-controls="p3" id="t3">🧑‍🏫 المعلّم</button>
-          </div>
-
-          <div id="p1" class="tabpanel active" role="tabpanel" aria-labelledby="t1">
-            <div class="panel-grid">
-              <div class="panel-card">
-                <b>إحصائيات فورية</b>
-                <p>متابعة التقارير والتذاكر المفتوحة وتقييم الأداء بصورة واضحة.</p>
-              </div>
-              <div class="panel-card">
-                <b>إدارة المدرسة</b>
-                <p>المعلمين، الأقسام، الهوية، وقوالب الطباعة من لوحة واحدة.</p>
-              </div>
-            </div>
-          </div>
-
-          <div id="p2" class="tabpanel" role="tabpanel" aria-labelledby="t2">
-            <div class="panel-grid">
-              <div class="panel-card">
-                <b>تذاكر القسم</b>
-                <p>استقبال الطلبات وتحديث الحالة وإضافة ملاحظات تنفيذ واضحة.</p>
-              </div>
-              <div class="panel-card">
-                <b>مراجعة تقارير القسم</b>
-                <p>فلترة التقارير حسب المعلم/التاريخ وتوثيقها بشكل منظم.</p>
-              </div>
-            </div>
-          </div>
-
-          <div id="p3" class="tabpanel" role="tabpanel" aria-labelledby="t3">
-            <div class="panel-grid">
-              <div class="panel-card">
-                <b>رفع سريع من الجوال</b>
-                <p>إضافة تقرير وتوثيق صور/مرفقات بسرعة وبوضوح.</p>
-              </div>
-              <div class="panel-card">
-                <b>طلب + تتبع</b>
-                <p>أرسل طلب صيانة/دعم وتابع حالته حتى الإغلاق.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SECURITY -->
-      <section class="sec" id="security" aria-label="الأمان والخصوصية">
-        <div class="sec-head reveal">
-          <h2>الأمان والخصوصية… كمعيار أساسي</h2>
-          <p>مصمم ليعمل داخل بيئة المدرسة بثقة — دون تساهل في البيانات.</p>
-        </div>
-
-        <div class="features">
-          <article class="card fcard reveal">
-            <div class="top">
-              <div class="ico"><i class="fa-solid fa-lock"></i></div>
-              <small>RBAC</small>
-            </div>
-            <h3>صلاحيات دقيقة حسب الدور</h3>
-            <p>تفاصيل الوصول والإجراءات محددة وواضحة لمنع أي تجاوز.</p>
-          </article>
-
-          <article class="card fcard reveal">
-            <div class="top">
-              <div class="ico"><i class="fa-solid fa-database"></i></div>
-              <small>عزل</small>
-            </div>
-                       <h3>عزل بيانات المدارس</h3>
-            <p>بيانات كل مدرسة معزولة منطقيًا لضمان الخصوصية.</p>
-          </article>
-
-          <article class="card fcard reveal">
-            <div class="top">
-              <div class="ico"><i class="fa-solid fa-shield-virus"></i></div>
-              <small>حماية</small>
-            </div>
-            <h3>CSRF/XSS + تدقيق إدخال</h3>
-            <p>حماية قياسية ضد الهجمات الشائعة مع نماذج تحقق واضحة.</p>
-          </article>
-        </div>
-      </section>
-
-      <!-- FAQ -->
-      <section class="sec" id="faq" aria-label="الأسئلة الشائعة">
-        <div class="sec-head reveal">
-          <h2>الأسئلة الشائعة</h2>
-          <p>مختصر مفيد لأهم ما يسأل عنه مدراء المدارس قبل اعتماد النظام.</p>
-        </div>
-
-        <div class="faq">
-          <details class="faqx reveal">
-            <summary>
-              هل توجد تجربة قبل الاشتراك؟
-              <i class="fa-solid fa-chevron-down"></i>
-            </summary>
-            <div class="ans">
-              نعم — تواصل معنا عبر واتساب وسنوفّر لك تجربة/عرض مباشر بحسب احتياج المدرسة.
-            </div>
-          </details>
-
-          <details class="faqx reveal">
-            <summary>
-              هل تدعم المنصة طباعة التقارير؟
-              <i class="fa-solid fa-chevron-down"></i>
-            </summary>
-            <div class="ans">
-              نعم — تقارير PDF بتنسيق رسمي وهوية المدرسة (الشعار/البيانات)، جاهزة للحفظ والطباعة.
-            </div>
-          </details>
-
-          <details class="faqx reveal">
-            <summary>
-              كيف تضمنون الخصوصية؟
-              <i class="fa-solid fa-chevron-down"></i>
-            </summary>
-            <div class="ans">
-              نعتمد صلاحيات دقيقة (RBAC) وعزل بيانات المدارس، مع حماية Django القياسية ضد CSRF/XSS والتحقق من الإدخالات.
-            </div>
-          </details>
-        </div>
-      </section>
-
-      <!-- CTA -->
-      <section class="sec" aria-label="دعوة للإجراء">
-        <div class="cta-band reveal">
-          <div>
-            <h3>جاهز لتقليل الوقت والجهد داخل مدرستك؟</h3>
-            <p>اطلب تجربة أو عرض سعر — وسنجهز لك إعداد المدرسة وخارطة تشغيل مختصرة.</p>
-          </div>
-
-          <div class="cta-actions">
-            <a class="btn btn-accent btn-lg" href="https://wa.me/966537720207" target="_blank" rel="noopener">
-              <i class="fa-brands fa-whatsapp"></i>
-              تواصل الآن
-            </a>
-            <a class="btn btn-ghost btn-lg" href="{% url 'reports:login' %}">
-              <i class="fa-solid fa-right-to-bracket"></i>
-              دخول المنصة
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <!-- Optional: To top -->
-      <button type="button" class="to-top" id="toTopBtn" aria-label="العودة للأعلى">
-        <i class="fa-solid fa-arrow-up"></i>
-      </button>
-
-    </div>
-  </main>
-
-  <footer class="site-footer landing-foot" role="contentinfo">
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    
     <div class="container">
-      <div class="footer-wrap">
-        <div class="f-brand">
-          <img src="{% static 'img/logo1.png' %}" alt="منصة توثيق" loading="lazy" decoding="async">
-          <div>
-            <div class="f-title">منصة توثيق</div>
-            <div class="f-sub">تقارير مدرسية + تذاكر طلبات المعلمين</div>
+      <div class="hero-grid">
+        <div class="hero-content">
+          <div class="badge mb-4">
+            <i class="fa-solid fa-star"></i>
+            الخيار الأول للمدارس الذكية 2026
+          </div>
+          <h1>
+            إدارة مدرستك.. <br>
+            <span class="text-gradient">أذكى، أسرع، وأكثر دقة</span>
+          </h1>
+          <p>
+            نظام متكامل يجمع التقارير اليومية، تذاكر الصيانة، والطباعة الرسمية في مكان واحد. 
+            صمم خصيصاً لمدراء المدارس الذين يبحثون عن التميز وراحة البال.
+          </p>
+          <div class="hero-actions">
+            <a href="https://wa.me/966537720207" target="_blank" class="btn-primary">
+              <i class="fa-brands fa-whatsapp"></i>
+              اطلب تجربة مجانية
+            </a>
+            <a href="#features" class="btn-outline">
+              <i class="fa-solid fa-play"></i>
+              شاهد كيف يعمل
+            </a>
+          </div>
+          
+          <div style="margin-top: 30px; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--text-muted);">
+            <i class="fa-solid fa-shield-check" style="color: var(--brand-primary);"></i>
+            بيانات آمنة ومشفرة
+            <span style="margin: 0 10px;">•</span>
+            <i class="fa-solid fa-users" style="color: var(--brand-primary);"></i>
+            دعم فني متواصل
           </div>
         </div>
 
-        <div class="f-nav" aria-label="روابط سريعة">
-          <a href="#features">المزايا</a>
-          <a href="#how">البدء السريع</a>
-          <a href="#security">الأمان</a>
-          <a href="https://wa.me/966537720207" target="_blank" rel="noopener">
-            <i class="fa-brands fa-whatsapp"></i> الدعم / المبيعات
-          </a>
+        <div class="hero-visual">
+          <div class="glass-card">
+            <div class="stat-row">
+              <div class="stat-icon bg-blue"><i class="fa-solid fa-file-signature"></i></div>
+              <div>
+                <div style="font-weight: 800;">تقرير نشاط يومي</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">تم الاعتماد من المدير</div>
+              </div>
+              <div style="margin-right: auto;"><i class="fa-solid fa-check-circle text-gradient"></i></div>
+            </div>
+            
+            <div class="stat-row">
+              <div class="stat-icon bg-green"><i class="fa-solid fa-wrench"></i></div>
+              <div>
+                <div style="font-weight: 800;">طلب صيانة مكيفات</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">جاري العمل - قسم الصيانة</div>
+              </div>
+              <div style="margin-right: auto;"><span class="badge" style="background: #dcfce7; color: #166534;">نشط</span></div>
+            </div>
+
+            <div class="stat-row">
+              <div class="stat-icon bg-purple"><i class="fa-solid fa-print"></i></div>
+              <div>
+                <div style="font-weight: 800;">طباعة تقرير أداء</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">تنسيق رسمي بشعار الوزارة</div>
+              </div>
+              <div style="margin-right: auto;"><i class="fa-solid fa-download"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features (Bento Grid) -->
+  <section class="section" id="features" style="padding: 80px 0;">
+    <div class="container">
+      <div class="section-title">
+        <h2>كل ما تحتاجه في منصة واحدة</h2>
+        <p style="color: var(--text-muted);">استغني عن الأوراق والتطبيقات المتشتتة</p>
+      </div>
+
+      <div class="bento-grid">
+        <div class="bento-item bento-large">
+          <div class="bento-icon" style="color: var(--brand-primary);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+          <h3>تقارير ذكية بضغطة زر</h3>
+          <p>لا داعي للتنسيق اليدوي. أدخل البيانات، وسيقوم النظام بتوليد تقارير PDF احترافية بهوية مدرستك وشعارها جاهزة للطباعة أو الإرسال.</p>
         </div>
 
-        <div class="f-copy">© {% now "Y" %} منصة توثيق — جميع الحقوق محفوظة.</div>
+        <div class="bento-item">
+          <div class="bento-icon" style="color: var(--accent);"><i class="fa-solid fa-ticket"></i></div>
+          <h3>نظام تذاكر متطور</h3>
+          <p>تتبع طلبات الصيانة والدعم الفني من المعلمين لحظة بلحظة. لا مزيد من الطلبات المنسية.</p>
+        </div>
+
+        <div class="bento-item">
+          <div class="bento-icon" style="color: #10b981;"><i class="fa-solid fa-mobile-screen"></i></div>
+          <h3>يعمل على جوالك</h3>
+          <p>واجهة مصممة خصيصاً لتكون سهلة الاستخدام على الهواتف الذكية. أدر مدرستك من أي مكان.</p>
+        </div>
+
+        <div class="bento-item bento-large">
+          <div class="bento-icon" style="color: #8b5cf6;"><i class="fa-solid fa-user-shield"></i></div>
+          <h3>صلاحيات دقيقة (RBAC)</h3>
+          <p>كل شخص يرى ما يخصه فقط. لوحة خاصة للمدير، ولوحة للمعلم، ولوحة لمسؤول الصيانة. خصوصية تامة وتنظيم عالي.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section class="container">
+    <div class="stats-section">
+      <h2>أرقام تتحدث عن الثقة</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="num">+50</div>
+          <div class="label">مدرسة تعتمد علينا</div>
+        </div>
+        <div class="stat-item">
+          <div class="num">+10k</div>
+          <div class="label">تقرير تم إنشاؤه</div>
+        </div>
+        <div class="stat-item">
+          <div class="num">99%</div>
+          <div class="label">نسبة رضا العملاء</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="section" id="how" style="padding: 80px 0;">
+    <div class="container">
+      <div class="section-title">
+        <h2>ابدأ في 3 خطوات بسيطة</h2>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; text-align: center;">
+        <div>
+          <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">1</div>
+          <h3>سجّل مدرستك</h3>
+          <p style="color: var(--text-muted);">تواصل معنا لإنشاء حساب المدرسة وضبط الإعدادات الأساسية والشعار.</p>
+        </div>
+        <div>
+          <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">2</div>
+          <h3>أضف فريقك</h3>
+          <p style="color: var(--text-muted);">أضف المعلمين والإداريين ووزع الصلاحيات والأقسام بسهولة.</p>
+        </div>
+        <div>
+          <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">3</div>
+          <h3>انطلق!</h3>
+          <p style="color: var(--text-muted);">ابدأ في استقبال التقارير والتذاكر ومتابعة سير العمل باحترافية.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="container">
+    <div class="cta-box">
+      <h2>هل أنت مستعد لنقلة نوعية في مدرستك؟</h2>
+      <p>انضم إلى نخبة المدارس التي اختارت التنظيم والاحترافية. لا تضيع وقتك في الأوراق.</p>
+      <a href="https://wa.me/966537720207" target="_blank" class="btn-white">
+        تواصل معنا الآن
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="#" class="logo" style="margin-bottom: 20px;">
+            <img src="{% static 'img/logo1.png' %}" alt="توثيق">
+            <span>منصة توثيق</span>
+          </a>
+          <p style="color: var(--text-muted);">
+            الحل الأمثل لإدارة التقارير والطلبات المدرسية. نجمع بين سهولة الاستخدام وقوة الأداء.
+          </p>
+        </div>
+        
+        <div class="footer-col">
+          <h4>روابط سريعة</h4>
+          <a href="#features">المزايا</a>
+          <a href="#how">كيف نعمل</a>
+          <a href="{% url 'reports:login' %}">تسجيل الدخول</a>
+        </div>
+
+        <div class="footer-col">
+          <h4>الدعم</h4>
+          <a href="#">مركز المساعدة</a>
+          <a href="#">سياسة الخصوصية</a>
+          <a href="#">شروط الاستخدام</a>
+        </div>
+
+        <div class="footer-col">
+          <h4>تواصل معنا</h4>
+          <a href="https://wa.me/966537720207"><i class="fa-brands fa-whatsapp"></i> واتساب</a>
+          <a href="mailto:info@tawtheeq.com"><i class="fa-regular fa-envelope"></i> البريد الإلكتروني</a>
+        </div>
+      </div>
+      
+      <div class="copy">
+        &copy; {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.
       </div>
     </div>
   </footer>
 
-  <script defer>
-    (function(){
-      // ===== PWA Service Worker (static) =====
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function(){
-          navigator.serviceWorker.register("{% static 'sw.js' %}")
-            .then(function(){ /* ok */ })
-            .catch(function(){ /* ignore */ });
-        });
-      }
-
-      // ===== Mobile Nav Toggle =====
-      const btn = document.querySelector('.nav-toggle');
-      const nav = document.getElementById('landingNav');
-      if(btn && nav){
-        function setNavOpen(open){
-          if(open){
-            nav.classList.add('is-open');
-            btn.setAttribute('aria-expanded', 'true');
-          }else{
-            nav.classList.remove('is-open');
-            btn.setAttribute('aria-expanded', 'false');
-          }
-          const icon = btn.querySelector('i');
-          if(icon) icon.className = open ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
-        }
-
-        btn.addEventListener('click', function(){
-          const open = !nav.classList.contains('is-open');
-          setNavOpen(open);
-        });
-
-        // Close on link click (mobile)
-        nav.querySelectorAll('a').forEach(function(a){
-          a.addEventListener('click', function(){
-            if(nav.classList.contains('is-open')) setNavOpen(false);
-          });
-        });
-
-        // Close on outside click
-        document.addEventListener('click', function(e){
-          if(!nav.classList.contains('is-open')) return;
-          const t = e.target;
-          if(t && (nav.contains(t) || btn.contains(t))) return;
-          setNavOpen(false);
-        });
-
-        // Close on Escape
-        document.addEventListener('keydown', function(e){
-          if(e.key !== 'Escape') return;
-          if(nav.classList.contains('is-open')) setNavOpen(false);
-        });
-      }
-
-      // ===== Tabs (click + keyboard) =====
-      const tabBtns = Array.from(document.querySelectorAll('.tabbtn'));
-      const panels = Array.from(document.querySelectorAll('.tabpanel'));
-
-      function activateTab(targetBtn){
-        const targetId = targetBtn.getAttribute('aria-controls');
-        tabBtns.forEach(function(b){ b.setAttribute('aria-selected', 'false'); b.setAttribute('tabindex','-1'); });
-        panels.forEach(function(p){ p.classList.remove('active'); });
-
-        targetBtn.setAttribute('aria-selected', 'true');
-        targetBtn.setAttribute('tabindex','0');
-
-        const panel = document.getElementById(targetId);
-        if(panel) panel.classList.add('active');
-        targetBtn.focus({preventScroll:true});
-      }
-
-      tabBtns.forEach(function(b, idx){
-        b.setAttribute('tabindex', idx === 0 ? '0' : '-1');
-
-        b.addEventListener('click', function(){ activateTab(b); });
-
-        b.addEventListener('keydown', function(e){
-          const key = e.key;
-          if(key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'Home' && key !== 'End') return;
-
-          e.preventDefault();
-          let nextIndex = idx;
-
-          // RTL-friendly navigation
-          if(key === 'ArrowLeft') nextIndex = (idx + 1) % tabBtns.length;
-          if(key === 'ArrowRight') nextIndex = (idx - 1 + tabBtns.length) % tabBtns.length;
-          if(key === 'Home') nextIndex = 0;
-          if(key === 'End') nextIndex = tabBtns.length - 1;
-
-          activateTab(tabBtns[nextIndex]);
-        });
-      });
-
-      // ===== Reveal on scroll =====
-      const els = Array.from(document.querySelectorAll('.reveal'));
-      if('IntersectionObserver' in window){
-        const io = new IntersectionObserver(function(entries){
-          entries.forEach(function(entry){
-            if(entry.isIntersecting){
-              entry.target.classList.add('in');
-              io.unobserve(entry.target);
-            }
-          });
-        }, {threshold: 0.12});
-        els.forEach(function(el){ io.observe(el); });
+  <script>
+    // Header Scroll Effect
+    window.addEventListener('scroll', () => {
+      const header = document.getElementById('header');
+      if (window.scrollY > 50) {
+        header.classList.add('scrolled');
       } else {
-        els.forEach(function(el){ el.classList.add('in'); });
+        header.classList.remove('scrolled');
       }
+    });
 
-      // ===== To Top button =====
-      const toTop = document.getElementById('toTopBtn');
-      if(toTop){
-        window.addEventListener('scroll', function(){
-          toTop.style.display = (window.scrollY > 500) ? 'grid' : 'none';
-        });
-        toTop.addEventListener('click', function(){
-          window.scrollTo({top:0, behavior:'smooth'});
-        });
+    // Mobile Menu Toggle (Simple implementation)
+    const mobileBtn = document.querySelector('.mobile-menu-btn');
+    const navLinks = document.querySelector('.nav-links');
+    
+    mobileBtn.addEventListener('click', () => {
+      const isHidden = window.getComputedStyle(navLinks).display === 'none';
+      if (isHidden) {
+        navLinks.style.display = 'flex';
+        navLinks.style.flexDirection = 'column';
+        navLinks.style.position = 'absolute';
+        navLinks.style.top = '70px';
+        navLinks.style.left = '0';
+        navLinks.style.right = '0';
+        navLinks.style.background = 'var(--surface-1)';
+        navLinks.style.padding = '20px';
+        navLinks.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
+        navLinks.style.borderBottom = '1px solid var(--border-light)';
+      } else {
+        navLinks.style.display = ''; // Revert to CSS
       }
-    })();
+    });
   </script>
 </body>
 </html>
