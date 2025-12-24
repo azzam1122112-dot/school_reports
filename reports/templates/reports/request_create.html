@@ -31,24 +31,50 @@
 
   /* مستلمون (Checkboxes) */
   .ticket-page .recipients-box{
+    border:0;
+    padding:0;
+    background:transparent;
+    min-height:52px;
+  }
+  .ticket-page .recipients-dd{
+    width:100%;
     border:1px solid var(--line);
     border-radius:var(--rsm);
-    padding:12px;
     background:#fff;
-    min-height:52px;
-    max-height: 320px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    overflow:hidden;
   }
+  .ticket-page .recipients-dd > summary{
+    list-style:none;
+    cursor:pointer;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    font-weight:900;
+    color:var(--ink-soft);
+  }
+  .ticket-page .recipients-dd > summary::-webkit-details-marker{display:none}
+  .ticket-page .recipients-dd > summary:focus{outline:none}
+  .ticket-page .recipients-dd[open] > summary{border-bottom:1px solid var(--line); background:#f8fafc}
+  .ticket-page .recipients-dd-title{display:flex;align-items:center;gap:10px;min-width:0}
+  .ticket-page .recipients-dd-title .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ticket-page .recipients-dd-title .count{font-size:.85rem;color:var(--muted);font-weight:900}
+  .ticket-page .recipients-dd-caret{color:var(--muted);font-size:1rem;flex:0 0 auto}
+
+  .ticket-page .recipients-panel{padding:10px 12px}
   .ticket-page .recipients-search {
     width: 100%;
-    padding: 10px;
+    padding: 10px 12px;
     border: 1px solid var(--line);
-    border-radius: 8px;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+  }
+  .ticket-page .recipients-scroll{
+    margin-top:10px;
+    max-height:320px;
+    overflow-y:auto;
+    padding-inline-end:4px;
   }
   .ticket-page .recipients-grid{display:grid;gap:10px}
   @media(min-width:720px){ .ticket-page .recipients-grid{grid-template-columns:1fr 1fr} }
@@ -145,9 +171,7 @@
             <label for="{{ form.recipients.id_for_label }}">المستلمون <span aria-hidden="true" style="color:#ef4444">*</span></label>
             <div id="id_recipients" class="recipients-box" aria-label="قائمة المستلمين"></div>
             <div class="help">
-              سيظهر الموظفون بعد اختيار القسم. يمكنك اختيار أكثر من شخص.
-              على الجوال: اضغط على أكثر من اسم (مربعات اختيار).
-              إن وُجد موظف واحد سيتم اختياره تلقائيًا.
+
             </div>
             {% for e in form.recipients.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
           </div>
@@ -232,6 +256,35 @@
       .map(el => String(el.value));
   }
 
+  function updateRecipientsSummary(){
+    if(!recipientsBox) return;
+    const details = recipientsBox.querySelector('details.recipients-dd');
+    if(!details) return;
+    const countEl = details.querySelector('.recipients-dd-title .count');
+    const txtEl = details.querySelector('.recipients-dd-title .txt');
+    if(!countEl || !txtEl) return;
+
+    const selected = Array.from(details.querySelectorAll('input[type="checkbox"][name="recipients"]:checked'));
+    const n = selected.length;
+
+    if(n === 0){
+      txtEl.textContent = 'اختر المستلمين';
+      countEl.textContent = 'غير محدد';
+      return;
+    }
+
+    if(n === 1){
+      const label = selected[0].closest('label');
+      const name = label ? (label.textContent || '').trim() : '';
+      txtEl.textContent = name || 'تم اختيار مستلم';
+      countEl.textContent = '1 مختار';
+      return;
+    }
+
+    txtEl.textContent = 'تم اختيار مستلمين';
+    countEl.textContent = n + ' مختار';
+  }
+
   function renderRecipients(list){
     if(!recipientsBox) return;
 
@@ -242,28 +295,42 @@
 
     recipientsBox.innerHTML = '';
 
-    // Add search if many items
-    if(list.length > 6) {
-      const searchInput = document.createElement('input');
-      searchInput.type = 'text';
-      searchInput.placeholder = 'بحث عن موظف...';
-      searchInput.className = 'recipients-search';
-      
-      searchInput.addEventListener('input', (e) => {
-        const val = e.target.value.toLowerCase();
-        const labels = recipientsBox.querySelectorAll('.rcpt');
-        labels.forEach(lbl => {
-          const name = lbl.textContent.toLowerCase();
-          if(name.includes(val)) lbl.style.display = 'flex';
-          else lbl.style.display = 'none';
-        });
-      });
-      
-      recipientsBox.appendChild(searchInput);
-    }
+    const details = document.createElement('details');
+    details.className = 'recipients-dd';
+    details.open = false;
+
+    const summary = document.createElement('summary');
+    const title = document.createElement('div');
+    title.className = 'recipients-dd-title';
+    title.innerHTML = '<span class="txt">اختر المستلمين</span><span class="count">غير محدد</span>';
+    const caret = document.createElement('span');
+    caret.className = 'recipients-dd-caret';
+    caret.textContent = '▾';
+    summary.appendChild(title);
+    summary.appendChild(caret);
+
+    const panel = document.createElement('div');
+    panel.className = 'recipients-panel';
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'بحث عن موظف...';
+    searchInput.className = 'recipients-search';
+
+    const scroll = document.createElement('div');
+    scroll.className = 'recipients-scroll';
 
     const grid = document.createElement('div');
     grid.className = 'recipients-grid';
+
+    searchInput.addEventListener('input', (e) => {
+      const val = (e.target.value || '').toLowerCase();
+      const labels = grid.querySelectorAll('.rcpt');
+      labels.forEach(lbl => {
+        const name = (lbl.textContent || '').toLowerCase();
+        lbl.style.display = name.includes(val) ? 'flex' : 'none';
+      });
+    });
 
     list.forEach(u => {
       const label = document.createElement('label');
@@ -278,6 +345,7 @@
       cb.addEventListener('change', () => {
         if(cb.checked) label.classList.add('selected');
         else label.classList.remove('selected');
+        updateRecipientsSummary();
       });
 
       const text = document.createElement('span');
@@ -288,7 +356,15 @@
       grid.appendChild(label);
     });
 
-    recipientsBox.appendChild(grid);
+    scroll.appendChild(grid);
+    panel.appendChild(searchInput);
+    panel.appendChild(scroll);
+    details.appendChild(summary);
+    details.appendChild(panel);
+    recipientsBox.appendChild(details);
+
+    // Reset summary state
+    updateRecipientsSummary();
   }
 
   async function loadMembers(deptSlug){
@@ -320,6 +396,7 @@
           first.checked = true;
           first.closest('label').classList.add('selected');
         }
+        updateRecipientsSummary();
         setMsg('تم اختيار الموظف تلقائيًا لأن القسم يحتوي موظفًا واحدًا', 'ok');
         return;
       }
