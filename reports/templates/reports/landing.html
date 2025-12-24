@@ -138,6 +138,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
     }
     .logo {
       display: flex;
@@ -145,8 +146,10 @@
       gap: 10px;
       font-weight: 800;
       font-size: 1.2rem;
+      min-width: 0;
     }
     .logo img { height: 40px; width: auto; }
+    .logo span { white-space: nowrap; }
     
     .nav-links {
       display: flex;
@@ -421,6 +424,9 @@
       .hero h1 { font-size: 2rem; }
       .footer-grid { grid-template-columns: 1fr; }
       .stats-grid { grid-template-columns: 1fr; }
+      .logo span { display: none; }
+      .logo img { height: 34px; }
+      .mobile-login-btn { padding: 8px 10px; }
     }
 
     .mobile-menu-btn {
@@ -436,6 +442,7 @@
       display: none;
       align-items: center;
       gap: 10px;
+      flex: 0 0 auto;
     }
     .mobile-login-btn {
       padding: 8px 14px;
