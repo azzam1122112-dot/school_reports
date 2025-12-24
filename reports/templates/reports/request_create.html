@@ -36,6 +36,19 @@
     padding:12px;
     background:#fff;
     min-height:52px;
+    max-height: 320px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ticket-page .recipients-search {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
   }
   .ticket-page .recipients-grid{display:grid;gap:10px}
   @media(min-width:720px){ .ticket-page .recipients-grid{grid-template-columns:1fr 1fr} }
@@ -227,6 +240,28 @@
       return;
     }
 
+    recipientsBox.innerHTML = '';
+
+    // Add search if many items
+    if(list.length > 6) {
+      const searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.placeholder = 'بحث عن موظف...';
+      searchInput.className = 'recipients-search';
+      
+      searchInput.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        const labels = recipientsBox.querySelectorAll('.rcpt');
+        labels.forEach(lbl => {
+          const name = lbl.textContent.toLowerCase();
+          if(name.includes(val)) lbl.style.display = 'flex';
+          else lbl.style.display = 'none';
+        });
+      });
+      
+      recipientsBox.appendChild(searchInput);
+    }
+
     const grid = document.createElement('div');
     grid.className = 'recipients-grid';
 
@@ -253,7 +288,6 @@
       grid.appendChild(label);
     });
 
-    recipientsBox.innerHTML = '';
     recipientsBox.appendChild(grid);
   }
 
