@@ -2351,36 +2351,55 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
         messages.error(request, "ليست لديك صلاحية كمدير على هذه المدرسة.")
         return redirect("reports:select_school")
 
-    logs_qs = AuditLog.objects.filter(school=active_school).select_related('teacher')
+    # ملاحظة: في بعض بيئات النشر قد لا تكون ترحيلات AuditLog مطبّقة بعد.
+    # بدلاً من 500، نظهر الصفحة مع تنبيه واضح.
+    try:
+        from django.db.utils import OperationalError, ProgrammingError
+    except Exception:  # pragma: no cover
+        OperationalError = Exception  # type: ignore
+        ProgrammingError = Exception  # type: ignore
 
-    # تصفية حسب المعلم
-    teacher_id = request.GET.get('teacher')
-    if teacher_id:
-        logs_qs = logs_qs.filter(teacher_id=teacher_id)
+    logs_qs = None
+    try:
+        logs_qs = AuditLog.objects.filter(school=active_school).select_related("teacher")
+    except (OperationalError, ProgrammingError):
+        messages.error(
+            request,
+            "ميزة سجل العمليات غير مفعّلة حالياً (لم يتم تطبيق الترحيلات بعد). "
+            "يرجى تشغيل migrate ثم إعادة المحاولة.",
+        )
 
-    # تصفية حسب العملية
-    action = request.GET.get('action')
-    if action:
-        logs_qs = logs_qs.filter(action=action)
+    # تصفية/عرض السجلات (لو كانت متاحة)
+    teacher_id = request.GET.get("teacher")
+    action = request.GET.get("action")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
 
-    # تصفية حسب التاريخ
-    start_date = request.GET.get('start_date')
-    if start_date:
-        logs_qs = logs_qs.filter(timestamp__date__gte=start_date)
-    
-    end_date = request.GET.get('end_date')
-    if end_date:
-        logs_qs = logs_qs.filter(timestamp__date__lte=end_date)
+    if logs_qs is not None:
+        if teacher_id:
+            logs_qs = logs_qs.filter(teacher_id=teacher_id)
+        if action:
+            logs_qs = logs_qs.filter(action=action)
+        if start_date:
+            logs_qs = logs_qs.filter(timestamp__date__gte=start_date)
+        if end_date:
+            logs_qs = logs_qs.filter(timestamp__date__lte=end_date)
 
-    paginator = Paginator(logs_qs, 50)
-    page = request.GET.get('page')
-    logs = paginator.get_page(page)
+        paginator = Paginator(logs_qs, 50)
+        page = request.GET.get("page")
+        logs = paginator.get_page(page)
+    else:
+        # لا نستخدم QuerySet هنا حتى لا نلمس قاعدة البيانات.
+        logs = Paginator([], 50).get_page(1)
 
     # قائمة المعلمين في المدرسة للتصفية
-    teachers = Teacher.objects.filter(
-        school_memberships__school=active_school,
-        school_memberships__is_active=True
-    ).distinct()
+    try:
+        teachers = Teacher.objects.filter(
+            school_memberships__school=active_school,
+            school_memberships__is_active=True,
+        ).distinct()
+    except Exception:
+        teachers = Teacher.objects.none()
 
     ctx = {
         "logs": logs,
