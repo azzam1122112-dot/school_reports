@@ -47,8 +47,24 @@
     background:#f8fafc;
     font-weight:900;
     color:var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-  .ticket-page .rcpt input{width:18px;height:18px}
+  .ticket-page .rcpt:hover {
+    background: #f1f5f9;
+    border-color: var(--brand-light);
+  }
+  .ticket-page .rcpt.selected {
+    background: #eff6ff;
+    border-color: var(--brand);
+    color: var(--brand);
+    box-shadow: 0 0 0 1px var(--brand);
+  }
+  .ticket-page .rcpt input{
+    width:20px;height:20px;
+    accent-color: var(--brand);
+    cursor: pointer;
+  }
 
   /* معاينات الصور */
   .ticket-page .previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px}
@@ -222,6 +238,12 @@
       cb.type = 'checkbox';
       cb.name = 'recipients';
       cb.value = String(u.id);
+      
+      // Toggle class for visual feedback
+      cb.addEventListener('change', () => {
+        if(cb.checked) label.classList.add('selected');
+        else label.classList.remove('selected');
+      });
 
       const text = document.createElement('span');
       text.textContent = u.name;
@@ -260,7 +282,10 @@
 
       if(list.length === 1){
         const first = recipientsBox.querySelector('input[type="checkbox"][name="recipients"]');
-        if(first) first.checked = true;
+        if(first) {
+          first.checked = true;
+          first.closest('label').classList.add('selected');
+        }
         setMsg('تم اختيار الموظف تلقائيًا لأن القسم يحتوي موظفًا واحدًا', 'ok');
         return;
       }
