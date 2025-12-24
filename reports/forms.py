@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Optional, List, Tuple
 from io import BytesIO
 import os
+import logging
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -34,6 +35,8 @@ from .models import (
     SubscriptionPlan,
     SchoolSubscription,
 )
+
+logger = logging.getLogger(__name__)
 
 # (تراثي – اختياري)
 try:
@@ -1268,9 +1271,19 @@ class NotificationCreateForm(forms.Form):
             teacher_ids_set.update(dept_teachers)
         
         teacher_ids = list(teacher_ids_set) if teacher_ids_set else None
-        
+
         # Trigger background task to create recipients
-        transaction.on_commit(lambda: send_notification_task.delay(n.pk, teacher_ids))
+        # - Prefer async (Celery)
+        # - Fallback to local execution if broker/worker is unavailable
+        def _dispatch():
+            try:
+                send_notification_task.delay(n.pk, teacher_ids)
+            except Exception:
+                logger.exception("Celery enqueue failed; running send_notification_task locally")
+                # Run in-process (does not require broker)
+                send_notification_task.apply(args=(n.pk, teacher_ids), throw=True)
+
+        transaction.on_commit(_dispatch)
         
         return n
 
