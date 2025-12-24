@@ -141,6 +141,34 @@
   .notif-scope .btn-primary{background:var(--gradient); color:#fff; border:none}
   .notif-scope .btn-ghost{background:#eef2ff; border-color:#e5e7eb; color:#1e40af}
   .notif-scope .btn:hover{transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.1)}
+
+  /* ===== Fix: modal moved to body on some layouts =====
+     The script may append #nModal to document.body.
+     These rules ensure the modal still works even خارج .notif-scope.
+  */
+  #nModal{
+    position:fixed; inset:0; z-index:2147483000; display:grid; place-items:center;
+    padding:20px;
+    padding-top:calc(20px + env(safe-area-inset-top,0px));
+    padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));
+    opacity:0; visibility:hidden;
+    transition:opacity .25s ease, visibility .25s ease;
+    display:none;
+  }
+  #nModal.open{display:grid; opacity:1; visibility:visible}
+  #nModal::before{content:""; position:absolute; inset:0; background:rgba(2,6,23,.58); backdrop-filter:blur(3px); pointer-events:none}
+  #nModal .modal{
+    position:relative; z-index:1; width:min(760px,96vw); max-height:90vh; overflow:auto;
+    background:var(--card, #ffffff); border:1px solid var(--border, #e2e8f0); border-radius:var(--radius-lg, 20px);
+    box-shadow:0 24px 80px rgba(2,6,23,.35);
+    transform:translateY(16px) scale(.98); opacity:0;
+    transition:transform .25s ease, opacity .25s ease;
+  }
+  #nModal.open .modal{transform:none; opacity:1}
+  #nModal .m-close{
+    position:absolute; inset-block-start:16px; inset-inline-start:16px; width:40px; height:40px; border-radius:50%;
+    border:0; cursor:pointer; background:#ef4444; color:#fff; font-size:18px; display:grid; place-items:center;
+  }
 </style>
 {% endblock %}
 
