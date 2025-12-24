@@ -58,9 +58,33 @@
     ========================================================= */
 
     /* Safety: prevent horizontal scroll from any element */
-    body.landing-page{ overflow-x:hidden; }
+    html, body{max-width:100%; overflow-x:hidden;}
+    body.landing-page{ overflow-x:hidden; -webkit-text-size-adjust:100%; }
     body.landing-page *{ box-sizing:border-box; }
     body.landing-page .container{ width:100%; max-width:1240px; margin-inline:auto; padding-inline:clamp(12px, 3.5vw, 24px); }
+
+    /* Media always scales down on mobile */
+    body.landing-page img,
+    body.landing-page svg,
+    body.landing-page video,
+    body.landing-page canvas{
+      max-width:100%;
+      height:auto;
+    }
+
+    /* Keep anchor targets visible under sticky header */
+    #features, #how, #dashboards, #security, #faq{
+      scroll-margin-top:96px;
+    }
+    @media (max-width: 860px){
+      #features, #how, #dashboards, #security, #faq{ scroll-margin-top:120px; }
+    }
+
+    /* Global small-screen spacing */
+    @media (max-width: 520px){
+      .sec{margin-top:56px;}
+      .sec-head p{font-size:.98rem; line-height:1.8;}
+    }
 
     /* Force grids to not overflow */
     .hero, .hero *, .features, .steps, .tabs, .panel-grid, .cta-band, .navx, .wrap { min-width:0; }
@@ -200,6 +224,10 @@
         flex-direction:column;
         gap:6px;
         max-width:100%;
+        max-height:calc(100vh - 90px);
+        overflow:auto;
+        -webkit-overflow-scrolling:touch;
+        padding-bottom:calc(10px + var(--safe-bottom));
       }
       .navx.is-open{display:flex}
       .navx a{width:100%; text-align:center}
@@ -296,7 +324,7 @@
     }
 
     /* Force stacked buttons on small screens */
-    @media (max-width: 520px){
+    @media (max-width: 640px){
       .hero .actions{
         display:grid;
         grid-template-columns:1fr;
@@ -306,6 +334,14 @@
         width:100%;
         justify-content:center;
       }
+    }
+
+    /* Extra-tight screens (iPhone SE / small Android) */
+    @media (max-width: 420px){
+      .hero h1{font-size:1.45rem; line-height:1.22;}
+      .hero p.lead{font-size:1rem; line-height:1.85;}
+      .hero .pill{gap:8px; padding:9px 10px;}
+      .hero-card .mini .n{font-size:1.05rem;}
     }
 
     .hero .bullets{
@@ -1064,23 +1100,42 @@
       const btn = document.querySelector('.nav-toggle');
       const nav = document.getElementById('landingNav');
       if(btn && nav){
-        btn.addEventListener('click', function(){
-          const open = nav.classList.toggle('is-open');
-          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        function setNavOpen(open){
+          if(open){
+            nav.classList.add('is-open');
+            btn.setAttribute('aria-expanded', 'true');
+          }else{
+            nav.classList.remove('is-open');
+            btn.setAttribute('aria-expanded', 'false');
+          }
           const icon = btn.querySelector('i');
           if(icon) icon.className = open ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
+        }
+
+        btn.addEventListener('click', function(){
+          const open = !nav.classList.contains('is-open');
+          setNavOpen(open);
         });
 
         // Close on link click (mobile)
         nav.querySelectorAll('a').forEach(function(a){
           a.addEventListener('click', function(){
-            if(nav.classList.contains('is-open')){
-              nav.classList.remove('is-open');
-              btn.setAttribute('aria-expanded','false');
-              const icon = btn.querySelector('i');
-              if(icon) icon.className = 'fa-solid fa-bars';
-            }
+            if(nav.classList.contains('is-open')) setNavOpen(false);
           });
+        });
+
+        // Close on outside click
+        document.addEventListener('click', function(e){
+          if(!nav.classList.contains('is-open')) return;
+          const t = e.target;
+          if(t && (nav.contains(t) || btn.contains(t))) return;
+          setNavOpen(false);
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', function(e){
+          if(e.key !== 'Escape') return;
+          if(nav.classList.contains('is-open')) setNavOpen(false);
         });
       }
 
