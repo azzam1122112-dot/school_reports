@@ -116,6 +116,8 @@ urlpatterns = [
     # API
     # =========================
     path("api/department-members/", views.api_department_members, name="api_department_members"),
+    path("api/notification-teachers/", views.api_notification_teachers, name="api_notification_teachers"),
+    path("api/school-departments/", views.api_school_departments, name="api_school_departments"),
 
     # =========================
     # الإشعارات

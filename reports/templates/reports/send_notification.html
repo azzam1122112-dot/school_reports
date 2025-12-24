@@ -372,6 +372,16 @@
     const $ = s => document.querySelector(s);
     const $$ = s => Array.from(document.querySelectorAll(s));
 
+    function escapeHtml(val){
+      return String(val ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[ch]);
+    }
+
     // ===== Preview bindings (try to be flexible with field names) =====
     const titleInput =
       $("#id_title") ||
@@ -432,11 +442,26 @@
       const btnSelectAll = $('#selectAllTeachers');
       const btnClearAll = $('#clearAllTeachers');
 
-      const checkboxInputs = Array.from(teacherField.querySelectorAll('input[type="checkbox"]'));
-      const multiSelect = teacherField.querySelector('select[multiple]');
+      const teacherListBox = document.getElementById('teacherList') || teacherField;
+      let isLoadingTeachers = false;
+
+      const scopeSel = document.getElementById('id_audience_scope');
+      const schoolSel = document.getElementById('id_target_school');
+      const deptSel = document.getElementById('id_target_department');
+      let isLoadingDepts = false;
+
+      function getCheckboxInputs(){
+        return Array.from(teacherField.querySelectorAll('input[type="checkbox"][name="teachers"]'));
+      }
+
+      function getMultiSelect(){
+        return teacherField.querySelector('select[multiple]');
+      }
 
       function updateCount(){
         let count = 0;
+        const checkboxInputs = getCheckboxInputs();
+        const multiSelect = getMultiSelect();
         if(checkboxInputs.length){
           checkboxInputs.forEach(cb => { if(cb.checked) count++; });
         } else if(multiSelect){
@@ -447,6 +472,9 @@
 
       function applyFilter(term){
         const q = (term || "").trim().toLowerCase();
+
+        const checkboxInputs = getCheckboxInputs();
+        const multiSelect = getMultiSelect();
 
         if(checkboxInputs.length){
           checkboxInputs.forEach(cb => {
@@ -466,6 +494,8 @@
       }
 
       function toggleAll(select){
+        const checkboxInputs = getCheckboxInputs();
+        const multiSelect = getMultiSelect();
         if(checkboxInputs.length){
           checkboxInputs.forEach(cb => {
             const wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
@@ -494,8 +524,148 @@
 
       teacherField.addEventListener('change', updateCount);
 
+      async function refreshTeachers(){
+        if(isLoadingTeachers) return;
+
+        if(!scopeSel && !schoolSel && !deptSel) return;
+
+        // Preserve current selections (best-effort)
+        const selected = new Set(getCheckboxInputs().filter(cb => cb.checked).map(cb => String(cb.value)));
+        const params = new URLSearchParams();
+        if(scopeSel && scopeSel.value) params.set('audience_scope', scopeSel.value);
+        if(schoolSel && schoolSel.value) params.set('target_school', schoolSel.value);
+        if(deptSel && deptSel.value) params.set('target_department', deptSel.value);
+
+        // If nothing is selected, keep server-rendered list (avoid extra request)
+        if(params.toString() === '') return;
+
+        const url = '{% url "reports:api_notification_teachers" %}?' + params.toString();
+        isLoadingTeachers = true;
+
+        const prevHtml = teacherListBox.innerHTML;
+        teacherListBox.innerHTML = '<div class="help">جارٍ تحديث قائمة المستلمين…</div>';
+        if(btnSelectAll) btnSelectAll.disabled = true;
+        if(btnClearAll) btnClearAll.disabled = true;
+
+        try{
+          const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          const payload = await res.json();
+          const results = Array.isArray(payload && payload.results) ? payload.results : [];
+
+          if(!results.length){
+            teacherListBox.innerHTML = '<div class="help">لا يوجد مستلمون مطابقون للاختيار الحالي.</div>';
+            updateCount();
+            return;
+          }
+
+          const items = ['<ul>'];
+          for(const t of results){
+            const id = String(t.id);
+            const nm = escapeHtml(t.name || '—');
+            const checked = selected.has(id) ? ' checked' : '';
+            items.push(
+              `<li><label><input type="checkbox" name="teachers" value="${escapeHtml(id)}"${checked}> <span>${nm}</span></label></li>`
+            );
+          }
+          items.push('</ul>');
+          teacherListBox.innerHTML = items.join('');
+
+          // Re-apply current search filter after re-render
+          if(searchInput) applyFilter(searchInput.value);
+          updateCount();
+        }catch(e){
+          teacherListBox.innerHTML = prevHtml;
+          updateCount();
+        }finally{
+          isLoadingTeachers = false;
+          if(btnSelectAll) btnSelectAll.disabled = false;
+          if(btnClearAll) btnClearAll.disabled = false;
+        }
+      }
+
+      async function refreshDepartments(opts){
+        const options = opts || {};
+        if(!deptSel) return;
+        if(isLoadingDepts) return;
+
+        const prevVal = String(deptSel.value || "");
+        const params = new URLSearchParams();
+
+        // If scope=all, do not filter by school.
+        const scopeVal = scopeSel ? String(scopeSel.value || "") : "";
+        if(scopeVal !== 'all' && schoolSel && schoolSel.value){
+          params.set('school', schoolSel.value);
+        }
+
+        const url = '{% url "reports:api_school_departments" %}' + (params.toString() ? ('?' + params.toString()) : '');
+        isLoadingDepts = true;
+        deptSel.disabled = true;
+
+        const oldOptions = Array.from(deptSel.options).map(o => ({value: o.value, text: o.text, selected: o.selected}));
+        deptSel.innerHTML = '<option value="">—</option>';
+
+        try{
+          const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          const payload = await res.json();
+          const results = Array.isArray(payload && payload.results) ? payload.results : [];
+
+          for(const d of results){
+            const opt = document.createElement('option');
+            opt.value = String(d.id);
+            opt.textContent = d.name || '—';
+            deptSel.appendChild(opt);
+          }
+
+          // restore previous selection if still available (unless forced clear)
+          if(options.clearSelection){
+            deptSel.value = '';
+          } else if(prevVal && Array.from(deptSel.options).some(o => o.value === prevVal)){
+            deptSel.value = prevVal;
+          } else {
+            deptSel.value = '';
+          }
+        }catch(e){
+          // fallback to previous options
+          deptSel.innerHTML = '';
+          for(const o of oldOptions){
+            const opt = document.createElement('option');
+            opt.value = o.value;
+            opt.textContent = o.text;
+            if(o.selected) opt.selected = true;
+            deptSel.appendChild(opt);
+          }
+        }finally{
+          deptSel.disabled = false;
+          isLoadingDepts = false;
+        }
+      }
+
+      // Trigger refresh when changing scope/school/department
+      if(scopeSel){
+        scopeSel.addEventListener('change', async () => {
+          await refreshDepartments({clearSelection: true});
+          await refreshTeachers();
+        });
+      }
+      if(schoolSel){
+        schoolSel.addEventListener('change', async () => {
+          await refreshDepartments({clearSelection: true});
+          await refreshTeachers();
+        });
+      }
+      if(deptSel){
+        deptSel.addEventListener('change', refreshTeachers);
+      }
+
       applyFilter('');
       updateCount();
+
+      // If there is already a pre-selected scope/school/department, sync on load
+      try{
+        if((scopeSel && scopeSel.value === 'all') || (schoolSel && schoolSel.value) || (deptSel && deptSel.value)){
+          Promise.resolve(refreshDepartments({clearSelection: false})).then(refreshTeachers);
+        }
+      }catch(e){ /* noop */ }
     }
 
     // ===== Prevent double submit =====

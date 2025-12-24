@@ -135,7 +135,18 @@
       <div class="body summary">
         <div class="row"><div class="k">العنوان</div><div class="v">{{ t.title|default:"—" }}</div></div>
         <div class="row"><div class="k">القسم</div><div class="v">{{ t.get_department_display|default:t.department|default:"—" }}</div></div>
-        <div class="row"><div class="k">المستلم</div><div class="v">{% firstof t.assignee.name t.assignee "—" %}</div></div>
+        <div class="row">
+          <div class="k">المستلمون</div>
+          <div class="v">
+            {% if t.recipients.exists %}
+              {% for u in t.recipients.all %}
+                {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
+              {% endfor %}
+            {% else %}
+              {% firstof t.assignee.name t.assignee "—" %}
+            {% endif %}
+          </div>
+        </div>
         <div class="row"><div class="k">المرسل</div><div class="v">{{ t.creator.name|default:"—" }}</div></div>
 
         <!-- ✅ المرفق (صورة فقط) -->

@@ -29,6 +29,27 @@
   .ticket-page .help{font-size:.9rem;color:var(--muted);font-weight:850;line-height:1.45}
   .ticket-page .field-error{color:var(--error);background:var(--error-bg);border:1px solid #fecaca;padding:10px 12px;border-radius:var(--rsm);font-size:.92rem;font-weight:900}
 
+  /* مستلمون (Checkboxes) */
+  .ticket-page .recipients-box{
+    border:1px solid var(--line);
+    border-radius:var(--rsm);
+    padding:12px;
+    background:#fff;
+    min-height:52px;
+  }
+  .ticket-page .recipients-grid{display:grid;gap:10px}
+  @media(min-width:720px){ .ticket-page .recipients-grid{grid-template-columns:1fr 1fr} }
+  .ticket-page .rcpt{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:#f8fafc;
+    font-weight:900;
+    color:var(--ink-soft);
+  }
+  .ticket-page .rcpt input{width:18px;height:18px}
+
   /* معاينات الصور */
   .ticket-page .previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px}
   .ticket-page .thumb{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
@@ -92,20 +113,14 @@
           </div>
 
           <div class="form-group">
-            <label for="{{ form.assignee.id_for_label }}">المستلم <span aria-hidden="true" style="color:#ef4444">*</span></label>
-            <select id="{{ form.assignee.id_for_label }}" name="{{ form.assignee.html_name }}" required disabled>
-              <option value="" selected>— اختر الموظف —</option>
-
-              {% if form.is_bound and form.fields.assignee.queryset %}
-                {% for u in form.fields.assignee.queryset %}
-                  <option value="{{ u.pk }}"
-                    {% if form.data.assignee|stringformat:"s" == u.pk|stringformat:"s" %}selected{% endif %}
-                  >{{ u.name }}</option>
-                {% endfor %}
-              {% endif %}
-            </select>
-            <div class="help">سيظهر الموظفون بعد اختيار القسم. إن وُجد موظف واحد سيتم اختياره تلقائيًا.</div>
-            {% for e in form.assignee.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+            <label for="{{ form.recipients.id_for_label }}">المستلمون <span aria-hidden="true" style="color:#ef4444">*</span></label>
+            <div id="id_recipients" class="recipients-box" aria-label="قائمة المستلمين"></div>
+            <div class="help">
+              سيظهر الموظفون بعد اختيار القسم. يمكنك اختيار أكثر من شخص.
+              على الجوال: اضغط على أكثر من اسم (مربعات اختيار).
+              إن وُجد موظف واحد سيتم اختياره تلقائيًا.
+            </div>
+            {% for e in form.recipients.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
           </div>
         </div>
 
@@ -151,7 +166,7 @@
 (function(){
   const form = document.getElementById('ticket-form');
   const dept = document.getElementById('{{ form.department.id_for_label }}');
-  const assignee = document.getElementById('{{ form.assignee.id_for_label }}');
+  const recipientsBox = document.getElementById('id_recipients');
   const msg = document.getElementById('dynamic-msg');
   const input = document.getElementById('id_images');
   const previews = document.getElementById('previews');
@@ -174,17 +189,55 @@
     if(!type) msg.style.color = '#64748b';
   }
 
-  function setAssigneeDisabled(disabled){
-    if(!assignee) return;
-    assignee.disabled = !!disabled;
+  function setRecipientsDisabled(disabled){
+    if(!recipientsBox) return;
+    recipientsBox.dataset.disabled = disabled ? '1' : '0';
     if(disabled){
-      assignee.innerHTML = '<option value="" selected>— اختر الموظف —</option>';
+      recipientsBox.innerHTML = '';
     }
   }
 
+  function getSelectedRecipientIds(){
+    if(!recipientsBox) return [];
+    return Array.from(recipientsBox.querySelectorAll('input[type="checkbox"][name="recipients"]:checked'))
+      .map(el => String(el.value));
+  }
+
+  function renderRecipients(list){
+    if(!recipientsBox) return;
+
+    if(!Array.isArray(list) || list.length === 0){
+      recipientsBox.innerHTML = '<div class="help">لا يوجد موظفون لهذا القسم</div>';
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'recipients-grid';
+
+    list.forEach(u => {
+      const label = document.createElement('label');
+      label.className = 'rcpt';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.name = 'recipients';
+      cb.value = String(u.id);
+
+      const text = document.createElement('span');
+      text.textContent = u.name;
+
+      label.appendChild(cb);
+      label.appendChild(text);
+      grid.appendChild(label);
+    });
+
+    recipientsBox.innerHTML = '';
+    recipientsBox.appendChild(grid);
+  }
+
   async function loadMembers(deptSlug){
-    if(!assignee) return;
-    setAssigneeDisabled(true);
+    if(!recipientsBox) return;
+    setRecipientsDisabled(true);
     setMsg('...جاري تحميل الموظفين');
 
     try{
@@ -201,41 +254,35 @@
       const data = await res.json();
 
       const list = Array.isArray(data.results) ? data.results : [];
-      assignee.innerHTML = '<option value="">— اختر الموظف —</option>';
+      renderRecipients(list);
 
-      list.forEach(u=>{
-        const opt = document.createElement('option');
-        opt.value = String(u.id);
-        opt.textContent = u.name;
-        assignee.appendChild(opt);
-      });
-
-      setAssigneeDisabled(false);
+      setRecipientsDisabled(false);
 
       if(list.length === 1){
-        assignee.value = String(list[0].id);
+        const first = recipientsBox.querySelector('input[type="checkbox"][name="recipients"]');
+        if(first) first.checked = true;
         setMsg('تم اختيار الموظف تلقائيًا لأن القسم يحتوي موظفًا واحدًا', 'ok');
         return;
       }
 
       if(list.length){
-        setMsg('تم تحميل ' + list.length + ' موظف', 'ok');
+        setMsg('تم تحميل ' + list.length + ' موظف. اختر المستلمين ثم أرسل الطلب.', 'ok');
       } else {
         setMsg('لا يوجد موظفون لهذا القسم');
       }
     } catch(err){
       console.error(err);
       setMsg('تعذر تحميل الموظفين. حاول مجددًا.', 'error');
-      setAssigneeDisabled(true);
+      setRecipientsDisabled(true);
     }
   }
 
   // تغيير القسم
-  if(dept && assignee){
+  if(dept && recipientsBox){
     dept.addEventListener('change', (e)=>{
       const slug = (e.target.value || '').trim();
       if(!slug){
-        setAssigneeDisabled(true);
+        setRecipientsDisabled(true);
         setMsg('اختر قسمًا أولاً');
         return;
       }
@@ -243,12 +290,14 @@
     });
 
     // عند تحميل الصفحة: لو في قيمة مسبقة
-    {% if form.is_bound and form.fields.assignee.queryset %}
-      setAssigneeDisabled(false);
+    {% if form.is_bound %}
+      // نعيد تحميل موظفي القسم المختار (إن وجد) بعد محاولة فاشلة حتى لا تختفي القائمة
+      if(dept.value){ loadMembers(dept.value); }
+      else { setRecipientsDisabled(true); }
       setMsg('تم استعادة القيم من المحاولة السابقة', 'ok');
     {% else %}
       if(dept.value){ loadMembers(dept.value); }
-      else { setAssigneeDisabled(true); }
+      else { setRecipientsDisabled(true); }
     {% endif %}
   }
 
@@ -367,15 +416,15 @@
       dept.focus();
       return;
     }
-    if(assignee && assignee.disabled){
+    if(recipientsBox && recipientsBox.dataset.disabled === '1'){
       e.preventDefault();
       setMsg('الرجاء الانتظار حتى يتم تحميل الموظفين.', 'error');
       return;
     }
-    if(assignee && !assignee.value){
+    if(recipientsBox && getSelectedRecipientIds().length === 0){
       e.preventDefault();
-      setMsg('الرجاء اختيار الموظف.', 'error');
-      assignee.focus();
+      setMsg('الرجاء اختيار مستلم واحد على الأقل.', 'error');
+      recipientsBox.scrollIntoView({behavior:'smooth', block:'center'});
       return;
     }
 

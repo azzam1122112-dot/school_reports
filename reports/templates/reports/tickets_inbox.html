@@ -97,7 +97,7 @@
             <th>التاريخ</th>
             <th>المرسل</th>
             <th>القسم</th>
-            <th>المستلم</th>
+            <th>المستلمون</th>
             <th>العنوان</th>
             <th>المرفق</th>
             <th>الحالة</th>
@@ -121,7 +121,15 @@
                 {% endif %}
               </td>
 
-              <td data-label="المستلم"> {{ t.assignee.name|default:"—" }} </td>
+              <td data-label="المستلمون">
+                {% if t.recipients.exists %}
+                  {% for u in t.recipients.all %}
+                    {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
+                  {% endfor %}
+                {% else %}
+                  {{ t.assignee.name|default:"—" }}
+                {% endif %}
+              </td>
               <td data-label="العنوان"> {{ t.title }} </td>
 
               {# ✅ المرفقات صور فقط: نعرض مصغّر لو وجد #}

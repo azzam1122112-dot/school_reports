@@ -727,7 +727,7 @@ class TicketCreateForm(forms.ModelForm):
     """
     إنشاء تذكرة جديدة مع رفع حتى 4 صور (JPG/PNG/WebP) بحجم أقصى 5MB للصورة.
     - department يُرسل slug (to_field_name="slug")
-    - assignee يُبنى ديناميكيًا
+    - recipients يُبنى ديناميكيًا (اختيار متعدد)
     - images اختيارية ومتعددة (MultiFileField)
     """
 
@@ -740,11 +740,12 @@ class TicketCreateForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "form-select", "id": "id_department"}),
     )
 
-    assignee = forms.ModelChoiceField(
-        label="المستلم",
+    recipients = forms.ModelMultipleChoiceField(
+        label="المستلمون",
         queryset=Teacher.objects.none(),
         required=False,
-        widget=forms.Select(attrs={"class": "form-select", "id": "id_assignee"}),
+        widget=forms.CheckboxSelectMultiple(attrs={"id": "id_recipients"}),
+        help_text="يمكن اختيار أكثر من مستلم واحد.",
     )
 
     # ✅ حقل متعدد ينسجم مع الـ multiple في القالب
@@ -757,7 +758,7 @@ class TicketCreateForm(forms.ModelForm):
 
     class Meta:
         model = Ticket
-        fields = ["department", "assignee", "title", "body"]
+        fields = ["department", "recipients", "title", "body"]
         widgets = {
             "title": forms.TextInput(attrs={
                 "class": "input", "placeholder": "عنوان الطلب", "maxlength": "255", "autocomplete": "off"
@@ -789,7 +790,7 @@ class TicketCreateForm(forms.ModelForm):
         dept_value = (self.data.get("department") or "").strip() if self.is_bound \
             else getattr(getattr(self.instance, "department", None), "slug", "") or ""
         base_qs = _teachers_for_dept(dept_value, active_school) if dept_value else Teacher.objects.none()
-        self.fields["assignee"].queryset = base_qs
+        self.fields["recipients"].queryset = base_qs
 
         # سنخزن النسخ المضغوطة بعد التحقق
         self._compressed_images: List[InMemoryUploadedFile] = []
@@ -825,19 +826,23 @@ class TicketCreateForm(forms.ModelForm):
         cleaned = super().clean()
 
         dept: Optional[Department] = cleaned.get("department")
-        assignee: Optional[Teacher] = cleaned.get("assignee")
+        recipients = list(cleaned.get("recipients") or [])
 
         if not dept:
             self.add_error("department", "الرجاء اختيار القسم.")
-        if dept and not assignee and self.fields["assignee"].queryset.count() > 1:
-            self.add_error("assignee", "يرجى اختيار الموظّف.")
-        if assignee and dept:
-            if self.active_school is not None:
-                is_allowed = _teachers_for_dept(dept.slug, self.active_school).filter(id=assignee.id).exists()
-            else:
-                is_allowed = _is_teacher_in_department(assignee, dept)
-            if not is_allowed:
-                self.add_error("assignee", "الموظّف المختار لا ينتمي إلى هذا القسم.")
+
+        # المستلمون: نطلب على الأقل مستلمًا واحدًا إذا وُجدت خيارات
+        if dept:
+            qs = self.fields["recipients"].queryset
+            if qs.count() > 0 and not recipients:
+                self.add_error("recipients", "يرجى اختيار مستلم واحد على الأقل.")
+
+            # تحصين: كل المستلمين يجب أن يكونوا ضمن QuerySet القسم
+            if recipients:
+                allowed_ids = set(qs.values_list("id", flat=True)) if hasattr(qs, "values_list") else set()
+                bad = [t for t in recipients if getattr(t, "id", None) not in allowed_ids]
+                if bad:
+                    self.add_error("recipients", "يوجد مستلم/مستلمون لا ينتمون إلى هذا القسم.")
 
         # الآن images هي list[UploadedFile] قادمة من الحقل نفسه
         files = self.cleaned_data.get("images") or []
@@ -865,28 +870,6 @@ class TicketCreateForm(forms.ModelForm):
     def save(self, commit: bool = True, user: Optional[Teacher] = None):
         obj: Ticket = super().save(commit=False)
 
-        if user is not None and not obj.pk:
-            obj.creator = user
-        if not getattr(obj, "status", None):
-            try:
-                obj.status = Ticket.Status.OPEN  # type: ignore[attr-defined]
-            except Exception:
-                pass
-
-        if commit:
-            obj.save()
-            if self._compressed_images:
-                from .models import TicketImage
-                for f in self._compressed_images:
-                    TicketImage.objects.create(ticket=obj, image=f)
-        return obj
-
-    # -----------------------------
-    # الحفظ وإنشاء سجلات الصور
-    # -----------------------------
-    def save(self, commit: bool = True, user: Optional[Teacher] = None):
-        obj: Ticket = super().save(commit=False)
-
         # تعيين المُنشئ لأول مرة
         if user is not None and not obj.pk:
             obj.creator = user
@@ -898,8 +881,29 @@ class TicketCreateForm(forms.ModelForm):
             except Exception:
                 pass
 
+        # تعيين assignee كمرجع/مسؤول رئيسي للتوافق الخلفي (أول مستلم)
+        try:
+            recipients = list(self.cleaned_data.get("recipients") or [])
+        except Exception:
+            recipients = []
+        if recipients:
+            obj.assignee = recipients[0]
+
         if commit:
             obj.save()
+
+            # حفظ المستلمين (ManyToMany through)
+            if recipients:
+                try:
+                    obj.recipients.set(recipients)
+                except Exception:
+                    # fallback آمن عبر through model (في حال قيود بيئية)
+                    from .models import TicketRecipient
+                    TicketRecipient.objects.bulk_create(
+                        [TicketRecipient(ticket=obj, teacher=t) for t in recipients],
+                        ignore_conflicts=True,
+                    )
+
             # حفظ الصور (إن وُجدت)
             if self._compressed_images:
                 from .models import TicketImage

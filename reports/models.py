@@ -675,6 +675,15 @@ class Ticket(models.Model):
         db_index=True,
     )
 
+    # ✅ مستلمون متعددون (مع بقاء assignee كمرجع/مسؤول رئيسي للتوافق الخلفي)
+    recipients = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through="TicketRecipient",
+        related_name="tickets_received",
+        blank=True,
+        verbose_name="المستلمون",
+    )
+
     title = models.CharField("عنوان الطلب", max_length=255)
     body = models.TextField("تفاصيل الطلب", blank=True, null=True)
 
@@ -723,6 +732,37 @@ class Ticket(models.Model):
 
     def __str__(self):
         return f"Ticket #{self.pk} - {self.title[:40]}"
+
+
+class TicketRecipient(models.Model):
+    """ربط التذكرة بمستلمين متعددين.
+
+    لا نخزن حالة لكل مستلم لأن الخيار (1) يعتمد حالة مشتركة للتذكرة.
+    """
+
+    ticket = models.ForeignKey(
+        Ticket,
+        on_delete=models.CASCADE,
+        related_name="ticket_recipients",
+        db_index=True,
+    )
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ticket_recipient_links",
+        db_index=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "مستلم تذكرة"
+        verbose_name_plural = "مستلمو التذاكر"
+        constraints = [
+            models.UniqueConstraint(fields=["ticket", "teacher"], name="uniq_ticket_recipient"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Ticket #{self.ticket_id} → {getattr(self.teacher, 'name', self.teacher_id)}"
 
     # ======== خصائص مساعدة للقوالب ========
     @property
