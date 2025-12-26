@@ -410,8 +410,11 @@
 
 {% if not for_pdf %}
   <div class="toolbar">
+    <button class="btn" onclick="window.close() || window.history.back()">
+      <i class="fas fa-times"></i> إغلاق
+    </button>
     <button class="btn btn-primary" onclick="window.print()">
-      <i class="fas fa-print"></i> حفظ PDF / طباعة (A4)
+      <i class="fas fa-print"></i> طباعة
     </button>
     <span class="hint">من نافذة الطباعة اختر “Save as PDF” وألغِ “Headers and footers” لنتيجة مطابقة</span>
   </div>
