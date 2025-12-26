@@ -410,9 +410,9 @@
 
 {% if not for_pdf %}
   <div class="toolbar">
-    <button class="btn" onclick="window.close() || window.history.back()">
-      <i class="fas fa-times"></i> إغلاق
-    </button>
+    <a href="{% url 'reports:my_reports' %}" class="btn">
+      <i class="fas fa-arrow-right"></i> رجوع
+    </a>
     <button class="btn btn-primary" onclick="window.print()">
       <i class="fas fa-print"></i> طباعة
     </button>
