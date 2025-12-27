@@ -196,6 +196,7 @@
                   <th>المدينة</th>
                   <th>الجوال</th>
                   <th>الحالة</th>
+                  <th>لديه اشتراك؟</th>
                   <th style="text-align:right">المدراء</th>
                   <th>إجراءات</th>
                 </tr>
@@ -221,6 +222,14 @@
                         <span class="badge success">نشطة</span>
                       {% else %}
                         <span class="badge danger">موقوفة</span>
+                      {% endif %}
+                    </td>
+
+                    <td data-label="لديه اشتراك؟">
+                      {% if s.subscription %}
+                        <span class="badge success">نعم</span>
+                      {% else %}
+                        <span class="badge danger">لا</span>
                       {% endif %}
                     </td>
 

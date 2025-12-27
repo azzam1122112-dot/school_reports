@@ -2078,6 +2078,7 @@ def school_delete(request: HttpRequest, pk: int) -> HttpResponse:
 def schools_admin_list(request: HttpRequest) -> HttpResponse:
     schools = (
         School.objects.all()
+        .select_related("subscription")
         .order_by("name")
         .prefetch_related(
             Prefetch(
