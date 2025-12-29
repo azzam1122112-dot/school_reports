@@ -80,6 +80,7 @@ MIDDLEWARE = [
     "reports.middleware.AuditLogMiddleware",  # <--- تم الإضافة
     "reports.middleware.IdleLogoutMiddleware",  # تسجيل خروج تلقائي بعد الخمول
     "reports.middleware.SubscriptionMiddleware",  # <--- تم الإضافة
+    "reports.middleware.ReportViewerAccessMiddleware",  # حسابات عرض فقط (مشرف تقارير)
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

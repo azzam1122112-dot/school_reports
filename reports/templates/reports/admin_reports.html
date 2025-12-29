@@ -444,6 +444,7 @@
                                 <a href="{% url 'reports:report_print' r.pk %}" target="_blank" class="btn-icon" title="طباعة">
                                     <i class="fa-solid fa-print"></i>
                                 </a>
+                                {% if can_delete %}
                                 <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" onsubmit="return confirm('هل أنت متأكد من الحذف؟');" style="display:inline;">
                                     {% csrf_token %}
                                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -451,6 +452,7 @@
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </form>
+                                {% endif %}
                             </div>
                             
                             <!-- Hidden Data for JS -->
@@ -517,6 +519,7 @@
                 <a href="{% url 'reports:report_print' r.pk %}" target="_blank" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
                     <i class="fa-solid fa-print"></i>
                 </a>
+                {% if can_delete %}
                 <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" onsubmit="return confirm('حذف؟');" style="display:inline;">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -524,6 +527,7 @@
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </form>
+                {% endif %}
             </div>
         </div>
         {% endfor %}

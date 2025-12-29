@@ -35,10 +35,19 @@ urlpatterns = [
     path("reports/admin/<int:pk>/delete/", views.admin_delete_report, name="admin_delete_report"),
 
     # =========================
+    # تقارير المدرسة (مشرف عرض فقط)
+    # =========================
+    path("reports/school/", views.school_reports_readonly, name="school_reports_readonly"),
+
+    # =========================
     # إدارة المعلّمين (للمدير)
     # =========================
     path("staff/teachers/", views.manage_teachers, name="manage_teachers"),
     path("staff/teachers/add/", views.add_teacher, name="add_teacher"),
+    path("staff/report-viewers/add/", views.report_viewer_create, name="report_viewer_create"),
+    path("staff/report-viewers/<int:pk>/edit/", views.report_viewer_update, name="report_viewer_update"),
+    path("staff/report-viewers/<int:pk>/toggle/", views.report_viewer_toggle, name="report_viewer_toggle"),
+    path("staff/report-viewers/<int:pk>/delete/", views.report_viewer_delete, name="report_viewer_delete"),
     path("staff/teachers/import/", views.bulk_import_teachers, name="bulk_import_teachers"),
     path("staff/teachers/<int:pk>/edit/", views.edit_teacher, name="edit_teacher"),
     path("staff/teachers/<int:pk>/delete/", views.delete_teacher, name="delete_teacher"),

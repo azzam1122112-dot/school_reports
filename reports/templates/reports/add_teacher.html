@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}إضافة معلم جديد{% endblock %}
+{% block title %}{{ page_title|default:"إضافة معلم جديد" }}{% endblock %}
 
 {% block head %}
 <style>
@@ -174,9 +174,9 @@
         <div>
           <h2 class="teacher-title">
             <i class="fas fa-user-plus" aria-hidden="true"></i>
-            إضافة معلم جديد
+            {{ page_title|default:"إضافة معلم جديد" }}
           </h2>
-          <p class="teacher-sub">أضف بيانات المعلم بدقة — يمكن تعديلها لاحقًا</p>
+          <p class="teacher-sub">{{ page_subtitle|default:"أضف بيانات المعلم بدقة — يمكن تعديلها لاحقًا" }}</p>
         </div>
         <div class="teacher-chip">
           <i class="fas fa-shield-halved" aria-hidden="true"></i>
@@ -267,12 +267,12 @@
         <div class="actions">
           <button type="submit" class="btn btn-primary" id="submitBtn">
             <i class="fas fa-save" aria-hidden="true"></i>
-            حفظ المعلم
+            {{ save_label|default:"حفظ المعلم" }}
           </button>
 
-          <a href="{% url 'reports:manage_teachers' %}" class="btn">
+          <a href="{% url back_url|default:'reports:manage_teachers' %}" class="btn">
             <i class="fas fa-arrow-right" aria-hidden="true"></i>
-            رجوع للقائمة
+            {{ back_label|default:"رجوع للقائمة" }}
           </a>
         </div>
       </form>

@@ -211,3 +211,105 @@ class SubscriptionMiddleware:
             return redirect('reports:subscription_expired')
 
         return self.get_response(request)
+
+
+class ReportViewerAccessMiddleware:
+    """يقيد حسابات (مشرف تقارير - عرض فقط) لمسارات القراءة فقط.
+
+    الهدف: منع أي وصول لصفحات الإدارة/المعلمين/الطلبات/الإشعارات...
+    والسماح فقط بعرض تقارير المدرسة (وقابلية الطباعة).
+
+    ملاحظة:
+    - لا نمنح is_staff ولا نخلط مع حسابات الأدمن.
+    - هذا المنع دفاعي (Defense-in-depth) حتى لو نُسي تقييد view.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def _wants_json(self, request) -> bool:
+        try:
+            accept = (request.headers.get("Accept") or "").lower()
+            xrw = (request.headers.get("X-Requested-With") or "").lower()
+            return ("application/json" in accept) or (xrw == "xmlhttprequest")
+        except Exception:
+            return False
+
+    def _is_report_viewer(self, request, active_school_id: int | None) -> bool:
+        user = getattr(request, "user", None)
+        if not getattr(user, "is_authenticated", False):
+            return False
+        if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+            return False
+        try:
+            from .models import SchoolMembership
+
+            qs = SchoolMembership.objects.filter(
+                teacher=user,
+                role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+                is_active=True,
+            )
+            if active_school_id:
+                qs = qs.filter(school_id=active_school_id)
+            return qs.exists()
+        except Exception:
+            return False
+
+    def __call__(self, request):
+        # السماح بالملفات الثابتة والوسائط
+        if request.path.startswith('/static/') or request.path.startswith('/media/'):
+            return self.get_response(request)
+
+        user = getattr(request, "user", None)
+        if not getattr(user, "is_authenticated", False):
+            return self.get_response(request)
+
+        # نحدد المدرسة النشطة (إن وجدت)
+        active_school_id = None
+        try:
+            active_school_id = request.session.get("active_school_id")
+        except Exception:
+            active_school_id = None
+
+        # إن لم يكن مشرف تقارير، لا نتدخل
+        if not self._is_report_viewer(request, active_school_id):
+            return self.get_response(request)
+
+        # منع أي عمليات كتابة تمامًا
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            if self._wants_json(request):
+                return JsonResponse({"detail": "read_only_account"}, status=403)
+            messages.error(request, "هذا الحساب للعرض فقط ولا يملك صلاحية تنفيذ عمليات.")
+            return redirect("reports:school_reports_readonly")
+
+        # مسارات مسموحة (قراءة فقط)
+        allowed_paths = set()
+        try:
+            allowed_paths |= {
+                reverse("reports:school_reports_readonly"),
+                reverse("reports:logout"),
+                reverse("reports:unread_notifications_count"),
+                reverse("reports:subscription_expired"),
+            }
+        except Exception:
+            pass
+
+        # السماح بطباعة التقرير: المسار متغير لذا نطابق بالبادئة
+        # /reports/<pk>/print/
+        allow_prefixes = [
+            "/reports/",  # سنقيدها باللاحقة print فقط أدناه
+        ]
+
+        path = request.path
+        if path in allowed_paths:
+            return self.get_response(request)
+
+        # السماح فقط بطباعة التقرير ضمن مسار reports/*/print/
+        if path.startswith("/reports/") and path.endswith("/print/"):
+            return self.get_response(request)
+
+        # أي شيء آخر: نعيد توجيه للصفحة المسموحة
+        if self._wants_json(request):
+            return JsonResponse({"detail": "forbidden"}, status=403)
+        messages.info(request, "تم تقييد هذا الحساب للعرض على تقارير المدرسة فقط.")
+        return redirect("reports:school_reports_readonly")

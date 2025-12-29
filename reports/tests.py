@@ -139,3 +139,73 @@ class TenantIsolationTests(TestCase):
 		res = self.client.get(url)
 		self.assertEqual(res.status_code, 200)
 		self.assertNotContains(res, ticket_b.title)
+
+
+class ReportViewerLimitTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="School", code="school")
+		# تفعيل اشتراك حتى لا تُرفض بعض المسارات/الإنشاءات في أماكن أخرى
+		plan = SubscriptionPlan.objects.create(name="Test", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+	def test_max_two_active_report_viewers_per_school(self):
+		v1 = Teacher.objects.create_user(phone="0500000101", name="V1", password="pass")
+		v2 = Teacher.objects.create_user(phone="0500000102", name="V2", password="pass")
+		v3 = Teacher.objects.create_user(phone="0500000103", name="V3", password="pass")
+
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=v1,
+			role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+			is_active=True,
+		)
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=v2,
+			role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+			is_active=True,
+		)
+
+		with self.assertRaises(Exception):
+			SchoolMembership.objects.create(
+				school=self.school,
+				teacher=v3,
+				role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+				is_active=True,
+			)
+
+	def test_reactivating_viewer_enforces_limit(self):
+		v1 = Teacher.objects.create_user(phone="0500000201", name="V1", password="pass")
+		v2 = Teacher.objects.create_user(phone="0500000202", name="V2", password="pass")
+		v3 = Teacher.objects.create_user(phone="0500000203", name="V3", password="pass")
+
+		m1 = SchoolMembership.objects.create(
+			school=self.school,
+			teacher=v1,
+			role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+			is_active=True,
+		)
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=v2,
+			role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+			is_active=True,
+		)
+		m3 = SchoolMembership.objects.create(
+			school=self.school,
+			teacher=v3,
+			role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+			is_active=False,
+		)
+
+		# تعطيل واحد ثم تفعيل الثالث يجب أن ينجح
+		m1.is_active = False
+		m1.save(update_fields=["is_active"])
+		m3.is_active = True
+		m3.save(update_fields=["is_active"])
+
+		# إعادة تفعيل الأول الآن يجب أن تفشل لأننا سنصبح 3 نشطين
+		m1.is_active = True
+		with self.assertRaises(Exception):
+			m1.save(update_fields=["is_active"])

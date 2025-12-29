@@ -365,6 +365,7 @@ class SchoolMembership(models.Model):
     class RoleType(models.TextChoices):
         TEACHER = "teacher", "معلم"
         MANAGER = "manager", "مدير مدرسة"
+        REPORT_VIEWER = "report_viewer", "مشرف تقارير (عرض فقط)"
 
     school = models.ForeignKey(
         School,
@@ -428,10 +429,14 @@ class SchoolMembership(models.Model):
             try:
                 prev = (
                     SchoolMembership.objects.filter(pk=self.pk)
-                    .only("role_type", "school_id")
+                    .only("role_type", "school_id", "is_active")
                     .first()
                 )
-                if prev is not None and (prev.role_type != self.role_type or prev.school_id != self.school_id):
+                if prev is not None and (
+                    prev.role_type != self.role_type
+                    or prev.school_id != self.school_id
+                    or (not bool(prev.is_active) and bool(self.is_active))
+                ):
                     should_enforce = True
             except Exception:
                 # إن تعذرت المقارنة، لا نطبق المنع على تحديث عضوية موجودة
@@ -455,6 +460,20 @@ class SchoolMembership(models.Model):
                 )
                 if current_count >= max_teachers:
                     raise ValidationError(f"لا يمكن إضافة أكثر من {max_teachers} معلّم لهذه المدرسة حسب الباقة.")
+
+        # ✅ حد أقصى لمشرفي التقارير (عرض فقط): 2 نشطين لكل مدرسة
+        if should_enforce and self.role_type == self.RoleType.REPORT_VIEWER and bool(self.is_active):
+            active_viewers = (
+                SchoolMembership.objects.filter(
+                    school=self.school,
+                    role_type=self.RoleType.REPORT_VIEWER,
+                    is_active=True,
+                )
+                .exclude(pk=self.pk)
+                .count()
+            )
+            if active_viewers >= 2:
+                raise ValidationError("لا يمكن إضافة أكثر من 2 مشرف تقارير (عرض فقط) لهذه المدرسة.")
 
         return super().save(*args, **kwargs)
 

@@ -182,7 +182,10 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
                 if SchoolMembership.objects.filter(
                     teacher=user,
                     school=active_school,
-                    role_type="manager",
+                    role_type__in=[
+                        SchoolMembership.RoleType.MANAGER,
+                        SchoolMembership.RoleType.REPORT_VIEWER,
+                    ],
                     is_active=True,
                 ).exists():
                     return {"all"}
@@ -225,7 +228,10 @@ def restrict_queryset_for_user(qs: QuerySet[Any], user, active_school: Optional[
             if SchoolMembership.objects.filter(
                 teacher=user,
                 school=active_school,
-                role_type="manager",
+                role_type__in=[
+                    SchoolMembership.RoleType.MANAGER,
+                    SchoolMembership.RoleType.REPORT_VIEWER,
+                ],
                 is_active=True,
             ).exists():
                 return qs
