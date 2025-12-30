@@ -307,6 +307,39 @@ def _user_manager_schools(user) -> list[School]:
     if not getattr(user, "is_authenticated", False):
         return []
 
+    # توافق خلفي: بعض الحسابات القديمة تعتمد على Role(slug='manager')
+    role_slug = None
+    try:
+        role_slug = getattr(getattr(user, "role", None), "slug", None)
+    except Exception:
+        role_slug = None
+
+    try:
+        if role_slug == "manager":
+            qs = (
+                School.objects.filter(
+                    memberships__teacher=user,
+                    memberships__is_active=True,
+                    is_active=True,
+                )
+                .distinct()
+                .order_by("name")
+            )
+        else:
+            qs = (
+                School.objects.filter(
+                    memberships__teacher=user,
+                    memberships__role_type=SchoolMembership.RoleType.MANAGER,
+                    memberships__is_active=True,
+                    is_active=True,
+                )
+                .distinct()
+                .order_by("name")
+            )
+        return list(qs)
+    except Exception:
+        return []
+
 
 def _is_report_viewer(user, active_school: Optional[School] = None) -> bool:
     """هل المستخدم مشرف تقارير (عرض فقط) داخل مدرسة معينة أو أي مدرسة؟"""
