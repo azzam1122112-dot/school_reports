@@ -409,7 +409,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
                         sub = None
                         try:
-                            sub = m.school.subscription
+                            sub = getattr(m.school, 'subscription', None)
                         except Exception:
                             sub = None
 

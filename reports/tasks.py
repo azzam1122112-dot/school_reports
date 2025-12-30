@@ -115,14 +115,26 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
         qs = (
             Teacher.objects.filter(is_active=True)
             .filter(
-                school_memberships__is_active=True,
                 school_memberships__school__is_active=True,
             )
             .distinct()
             .only("id")
         )
         if getattr(n, "school", None):
-            qs = qs.filter(school_memberships__school=n.school).distinct()
+            qs = qs.filter(
+                school_memberships__school=n.school,
+                school_memberships__role_type__in=[
+                    "teacher",
+                    "report_viewer",
+                ],
+            ).distinct()
+        else:
+            qs = qs.filter(
+                school_memberships__role_type__in=[
+                    "teacher",
+                    "report_viewer",
+                ]
+            ).distinct()
 
         teachers = qs
 

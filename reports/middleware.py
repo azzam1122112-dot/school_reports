@@ -187,7 +187,7 @@ class SubscriptionMiddleware:
         # 5) فحص انتهاء الاشتراك/غيابه
         subscription = None
         try:
-            subscription = school.subscription
+            subscription = getattr(school, 'subscription', None)
         except Exception:
             subscription = None
 
@@ -195,6 +195,9 @@ class SubscriptionMiddleware:
         try:
             if subscription is not None:
                 is_expired = bool(subscription.is_expired)
+            else:
+                # عدم وجود اشتراك يعني منتهي
+                is_expired = True
         except Exception:
             is_expired = True
 

@@ -700,12 +700,16 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         if not membership:
             membership = qs.first()
         
-        if membership and hasattr(membership.school, 'subscription'):
-            sub = membership.school.subscription
-            days = sub.days_remaining
-            if days <= 30: # تنبيه قبل 30 يوم
-                subscription_warning = True
-                subscription_days_left = days
+        if membership:
+            try:
+                sub = getattr(membership.school, 'subscription', None)
+                if sub:
+                    days = sub.days_remaining
+                    if days <= 30: # تنبيه قبل 30 يوم
+                        subscription_warning = True
+                        subscription_days_left = days
+            except Exception:
+                pass
     except Exception:
         pass
 
