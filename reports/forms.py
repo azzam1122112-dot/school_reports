@@ -88,7 +88,6 @@ def _teachers_for_dept(dept_slug: str, school: Optional["School"] = None):
     if school is not None:
         base_qs = base_qs.filter(
             school_memberships__school=school,
-            school_memberships__is_active=True,
         )
 
     teacher_ids = DepartmentMembership.objects.filter(department=dep).values_list("teacher_id", flat=True)
@@ -1201,7 +1200,6 @@ class NotificationCreateForm(forms.Form):
         if active_school is not None:
             qs = qs.filter(
                 school_memberships__school=active_school,
-                school_memberships__is_active=True,
             ).distinct()
 
         # للمشرف العام: لو اختار "مدرسة معيّنة" في الطلب، نقيّد القائمة بهذه المدرسة
@@ -1212,7 +1210,6 @@ class NotificationCreateForm(forms.Form):
                 try:
                     qs = qs.filter(
                         school_memberships__school_id=int(school_id),
-                        school_memberships__is_active=True,
                     ).distinct()
                 except ValueError:
                     pass

@@ -2179,7 +2179,6 @@ def _members_for_department(dept_code: str, school: Optional[School] = None):
     if school is not None:
         qs = qs.filter(
             school_memberships__school=school,
-            school_memberships__is_active=True,
         )
     return qs.order_by("name")
 
