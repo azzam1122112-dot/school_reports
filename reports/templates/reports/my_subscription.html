@@ -340,7 +340,7 @@
 
     <!-- Renewal Form -->
     <div class="card sub-card">
-      <h2 class="sub-title"><i class="fa-solid fa-receipt" style="opacity:.85"></i> رفع إيصال الاشتراك</h2>
+      <h2 class="sub-title"><i class="fa-solid fa-receipt" style="opacity:.85"></i> تجديد الاشتراك أو الاشتراك في باقة أخرى</h2>
 
       <form
         action="{% url 'reports:payment_create' %}"
@@ -359,13 +359,14 @@
               <option
                 value="{{ plan.pk }}"
                 data-price="{{ plan.price }}"
+                {% if subscription and subscription.plan_id == plan.id %}selected{% endif %}
                 {% if not plan.is_active %}disabled{% endif %}
               >
                 {{ plan.name }} - {{ plan.price }} ريال{% if not plan.is_active %} (غير نشطة){% endif %}
               </option>
             {% endfor %}
           </select>
-          <div class="help">سيتم تعبئة المبلغ تلقائيًا حسب الباقة (يمكنك تعديله إذا لزم).</div>
+          <div class="help">اختر نفس الباقة للتجديد، أو اختر باقة أخرى للاشتراك بها. سيتم تعبئة المبلغ تلقائيًا حسب الباقة (يمكنك تعديله إذا لزم).</div>
         </div>
 
         <div class="fg">
