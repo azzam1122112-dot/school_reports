@@ -324,7 +324,7 @@
     <a href="{% url 'reports:my_reports' %}" class="btn">
       <i class="fas fa-arrow-right"></i> رجوع
     </a>
-    <button class="btn btn-primary" type="button" onclick="window.print()">
+    <button class="btn btn-primary" type="button" id="printBtn">
       <i class="fas fa-print"></i> طباعة
     </button>
     <span class="hint">من نافذة الطباعة اختر “Save as PDF” وألغِ “Headers and footers” لنتيجة مطابقة</span>
@@ -468,6 +468,15 @@
 
   </main>
 </div>
+
+{% if not for_pdf %}
+  <script nonce="{{ CSP_NONCE }}">
+    (function(){
+      var btn = document.getElementById('printBtn');
+      if(btn) btn.addEventListener('click', function(){ window.print(); });
+    })();
+  </script>
+{% endif %}
 
 </body>
 </html>

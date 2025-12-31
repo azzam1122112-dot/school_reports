@@ -548,7 +548,7 @@
 
                 <td>
                   <div class="rd-actions">
-                    <button type="button" class="rd-iconbtn" title="عرض التفاصيل" onclick="rdShowDetails({{ r.pk }})">
+                    <button type="button" class="rd-iconbtn" title="عرض التفاصيل" data-rd-action="details" data-pk="{{ r.pk }}">
                       <i class="fa-solid fa-eye"></i>
                     </button>
 
@@ -557,8 +557,7 @@
                     </a>
 
                     {% if can_delete %}
-                      <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;"
-                            onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
+                      <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;" class="rd-delete-form">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
                         <button type="submit" class="rd-iconbtn rd-del" title="حذف">
@@ -633,7 +632,7 @@
           </div>
 
           <div class="rd-card-actions">
-            <button type="button" class="btn btn-ghost" onclick="rdShowDetails({{ r.pk }})" style="min-height:40px;">
+            <button type="button" class="btn btn-ghost" data-rd-action="details" data-pk="{{ r.pk }}" style="min-height:40px;">
               <i class="fa-solid fa-eye"></i>
             </button>
 
@@ -642,8 +641,7 @@
             </a>
 
             {% if can_delete %}
-              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;"
-                    onsubmit="return confirm('حذف؟');">
+              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;" class="rd-delete-form">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <button type="submit" class="btn btn-danger" style="min-height:40px;">
@@ -710,7 +708,7 @@
         <i class="fa-solid fa-clipboard-list" style="opacity:.85;"></i>
         تفاصيل التقرير
       </h3>
-      <button type="button" class="rd-iconbtn" onclick="rdCloseDetails()" aria-label="إغلاق">
+      <button type="button" class="rd-iconbtn" data-rd-action="close-details" aria-label="إغلاق">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
@@ -748,7 +746,7 @@
 
   <!-- Lightbox -->
   <dialog id="rdLightbox" aria-label="عرض الصورة">
-    <div class="rd-lb-wrap" onclick="rdCloseLightbox()">
+    <div class="rd-lb-wrap">
       <img id="rdLightboxImg" src="" alt="صورة مرفقة">
     </div>
   </dialog>
@@ -851,9 +849,37 @@
     }
     if(lightbox){
       lightbox.addEventListener('click', function(ev){
-        if(ev.target === lightbox) window.rdCloseLightbox();
+        // close when clicking the overlay OR the wrapper (not the image)
+        if(ev.target === lightbox) return window.rdCloseLightbox();
+        if(ev.target && ev.target.classList && ev.target.classList.contains('rd-lb-wrap')) return window.rdCloseLightbox();
       });
     }
+
+    // Bind actions without inline onclick (CSP-safe)
+    document.addEventListener('click', function(ev){
+      var t = ev.target;
+      if(!t) return;
+
+      var detailsBtn = t.closest ? t.closest('[data-rd-action="details"][data-pk]') : null;
+      if(detailsBtn){
+        ev.preventDefault();
+        window.rdShowDetails(detailsBtn.getAttribute('data-pk'));
+        return;
+      }
+
+      var closeDetailsBtn = t.closest ? t.closest('[data-rd-action="close-details"]') : null;
+      if(closeDetailsBtn){
+        ev.preventDefault();
+        window.rdCloseDetails();
+        return;
+      }
+    });
+
+    document.querySelectorAll('form.rd-delete-form').forEach(function(form){
+      form.addEventListener('submit', function(ev){
+        if(!confirm('هل أنت متأكد من الحذف؟')) ev.preventDefault();
+      });
+    });
   })();
 </script>
 {% endblock %}

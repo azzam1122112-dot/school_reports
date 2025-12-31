@@ -274,9 +274,16 @@
 
 <body>
   <div class="screen-only screen-bar">
-    <button class="btn" type="button" onclick="window.print()">طباعة / حفظ PDF</button>
+    <button class="btn" type="button" id="achievementPrintBtn">طباعة / حفظ PDF</button>
     <div class="hint">من نافذة الطباعة اختر “Save as PDF” وألغِ “Headers and footers” لنتيجة مطابقة</div>
   </div>
+
+  <script nonce="{{ CSP_NONCE }}">
+    (function(){
+      var btn = document.getElementById('achievementPrintBtn');
+      if(btn) btn.addEventListener('click', function(){ window.print(); });
+    })();
+  </script>
 
   <div class="paper">
     <header class="hero">
