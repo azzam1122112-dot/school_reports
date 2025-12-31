@@ -1,5 +1,5 @@
 // Bump cache version to force refresh after deployments
-const CACHE_NAME = 'tawtheeq-v4';
+const CACHE_NAME = 'tawtheeq-v5';
 
 // Avoid pre-caching '/' because it can be a redirect (login/dashboard) and can
 // cause stale HTML that references removed hashed assets after deployments.
@@ -41,6 +41,11 @@ function isStaticRequest(req) {
 // Fetch
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // IMPORTANT: Do NOT intercept cross-origin requests.
+  // If we `fetch()` them from the Service Worker, the request is governed by
+  // CSP `connect-src` (often 'self'), which can break loading external CSS/fonts.
+  if (!isSameOrigin(event.request.url)) return;
 
   // HTML navigations: network-first, fallback to cached '/'
   if (event.request.mode === 'navigate') {

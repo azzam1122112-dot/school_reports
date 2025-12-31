@@ -42,9 +42,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;800;900&display=swap" rel="stylesheet">
 
-  <!-- Icons (ممتاز الآن، والأفضل لاحقًا نقلها محليًا) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" referrerpolicy="no-referrer" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/v4-shims.min.css" referrerpolicy="no-referrer" crossorigin="anonymous">
+  <!-- Icons (محليًا لضمان ظهورها بالجوال حتى لو تعطل CDN) -->
+  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/v4-shims.min.css' %}">
 
   {% block head %}{% endblock %}
 </head>

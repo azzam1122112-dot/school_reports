@@ -379,7 +379,7 @@ class TeacherForm(forms.ModelForm):
             dept_qs = Department.objects.filter(is_active=True)
             if hasattr(Department, "school"):
                 if active_school is not None:
-                    dept_qs = dept_qs.filter(models.Q(school=active_school) | models.Q(school__isnull=True))
+                    dept_qs = dept_qs.filter(school=active_school)
                 elif _has_multi_active_schools():
                     # لا نعرض أقسامًا عشوائية عبر مدارس متعددة بدون active_school
                     dept_qs = Department.objects.none()
@@ -796,7 +796,7 @@ class TicketCreateForm(forms.ModelForm):
             dept_qs = Department.objects.filter(is_active=True)
             if hasattr(Department, "school"):
                 if active_school is not None:
-                    dept_qs = dept_qs.filter(models.Q(school=active_school) | models.Q(school__isnull=True))
+                    dept_qs = dept_qs.filter(school=active_school)
                 elif _has_multi_active_schools():
                     dept_qs = Department.objects.none()
             self.fields["department"].queryset = dept_qs.order_by("name") if hasattr(dept_qs, "order_by") else dept_qs
@@ -1185,7 +1185,7 @@ class NotificationCreateForm(forms.Form):
             # جلب أقسام المدرسة النشطة فقط (للمدير فقط حسب الطلب)
             if is_manager and active_school:
                 self.fields["target_department"].queryset = Department.objects.filter(
-                    models.Q(school=active_school) | models.Q(school__isnull=True),
+                    models.Q(school=active_school),
                     is_active=True
                 ).order_by("name")
             else:
