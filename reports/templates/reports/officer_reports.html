@@ -437,7 +437,7 @@
                   <td>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                       <button
-                        class="btn btn-primary btn-ico js-show"
+                        class="btn btn-primary js-show"
                         type="button"
                         data-idea-id="idea-{{ r.pk }}"
                         data-teacher="{% if r.teacher_name %}{{ r.teacher_name|escapejs }}{% else %}{% if r.teacher and r.teacher.name %}{{ r.teacher.name|escapejs }}{% endif %}{% endif %}"
@@ -445,22 +445,26 @@
                         data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
                         data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
                         aria-label="عرض التفاصيل"
-                      >👁</button>
+                        title="عرض التفاصيل"
+                      ><i class="fa-solid fa-eye" aria-hidden="true"></i> عرض</button>
 
                       <a
                         href="{% url 'reports:report_print' r.pk %}"
                         target="_blank"
                         rel="noopener"
-                        class="btn btn-print btn-ico"
+                        class="btn btn-print"
                         aria-label="طباعة"
-                      >🖨</a>
+                        title="طباعة"
+                      ><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</a>
 
                       {# حسب سياستك: المسؤول عرض/طباعة فقط — الحذف يظهر فقط إذا مررت can_delete=True #}
                       {% if can_delete %}
                         <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
                           {% csrf_token %}
                           <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                          <button class="btn btn-danger btn-ico" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');" aria-label="حذف">🗑</button>
+                          <button class="btn btn-danger" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');" aria-label="حذف" title="حذف">
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i> حذف
+                          </button>
                         </form>
                       {% endif %}
                     </div>
