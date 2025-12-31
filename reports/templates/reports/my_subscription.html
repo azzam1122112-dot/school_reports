@@ -126,6 +126,51 @@
     border: 1px solid var(--line);
     background: linear-gradient(180deg, var(--line-2), var(--card));
     text-align:center;
+
+  /* Bank details (page scoped) */
+  .bank-box{
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+  }
+  .bank-grid{
+    display:grid;
+    gap: 10px;
+  }
+  @media(min-width: 980px){
+    .bank-grid{ grid-template-columns: 1fr 1fr; }
+  }
+  .bank-item{
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    background: var(--card);
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 10px;
+  }
+  .bank-label{ color: var(--muted); font-weight: 950; margin-bottom: 6px; }
+  .bank-value{ color: var(--ink); font-weight: 950; word-break: break-word; }
+  .bank-mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  .copy-btn{
+    min-height: 40px;
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .bank-note{
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px dashed var(--line);
+    color: var(--muted);
+    font-weight: 900;
+    background: rgba(0,0,0,.02);
+  }
+  html[data-theme="dark"] .bank-note{ background: rgba(255,255,255,.04); }
   }
   html[data-theme="dark"] .stat{
     background: rgba(20,35,73,.35);
@@ -342,6 +387,62 @@
     <div class="card sub-card">
       <h2 class="sub-title"><i class="fa-solid fa-receipt" style="opacity:.85"></i> تجديد الاشتراك أو الاشتراك في باقة أخرى</h2>
 
+      <div class="bank-box" style="margin-bottom: 12px" aria-label="بيانات التحويل البنكي">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div style="font-weight:950;color:var(--ink)">
+            <i class="fa-solid fa-building-columns" style="opacity:.85"></i>
+            بيانات التحويل البنكي
+          </div>
+          <div class="note-dim">مصرف الراجحي</div>
+        </div>
+
+        <div class="bank-grid" style="margin-top: 10px">
+          <div class="bank-item">
+            <div>
+              <div class="bank-label">اسم المستفيد</div>
+              <div class="bank-value">منصور محمد بن حامد الغامدي برمجة و تطوير</div>
+            </div>
+            <button type="button" class="btn btn-ghost copy-btn" data-copy="منصور محمد بن حامد الغامدي برمجة و تطوير">
+              <i class="fa-regular fa-copy"></i> نسخ
+            </button>
+          </div>
+
+          <div class="bank-item">
+            <div>
+              <div class="bank-label">رقم الحساب</div>
+              <div class="bank-value bank-mono" dir="ltr">660000010006086220957</div>
+            </div>
+            <button type="button" class="btn btn-ghost copy-btn" data-copy="660000010006086220957">
+              <i class="fa-regular fa-copy"></i> نسخ
+            </button>
+          </div>
+
+          <div class="bank-item">
+            <div>
+              <div class="bank-label">الآيبان</div>
+              <div class="bank-value bank-mono" dir="ltr">SA8580000660608016220957</div>
+            </div>
+            <button type="button" class="btn btn-ghost copy-btn" data-copy="SA8580000660608016220957">
+              <i class="fa-regular fa-copy"></i> نسخ
+            </button>
+          </div>
+
+          <div class="bank-item">
+            <div>
+              <div class="bank-label">كود سويفت</div>
+              <div class="bank-value bank-mono" dir="ltr">RJHISARI</div>
+            </div>
+            <button type="button" class="btn btn-ghost copy-btn" data-copy="RJHISARI">
+              <i class="fa-regular fa-copy"></i> نسخ
+            </button>
+          </div>
+        </div>
+
+        <div class="bank-note">
+          فضلاً اكتب في تفاصيل الحوالة: <b>اسم المدرسة</b> + <b>اسم الباقة</b> + <b>رقم جوال المدير</b> (لتسريع اعتماد الاشتراك).
+        </div>
+      </div>
+
       <form
         action="{% url 'reports:payment_create' %}"
         method="POST"
@@ -502,6 +603,48 @@
         return;
       }
       alert(msg);
+    }
+
+    function copyText(text){
+      if(!text) return;
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){
+          toast('تم النسخ');
+        }).catch(function(){
+          fallbackCopy(text);
+        });
+        return;
+      }
+      fallbackCopy(text);
+    }
+
+    function fallbackCopy(text){
+      try{
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', 'readonly');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        ta.style.left = '-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('تم النسخ');
+      }catch(e){
+        toast('تعذر النسخ، انسخها يدويًا.');
+      }
+    }
+
+    // أزرار نسخ بيانات التحويل
+    var copyBtns = document.querySelectorAll('[data-copy].copy-btn');
+    if(copyBtns && copyBtns.length){
+      copyBtns.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var t = btn.getAttribute('data-copy') || '';
+          copyText(t);
+        });
+      });
     }
 
     function syncAmountFromPlan(force){
