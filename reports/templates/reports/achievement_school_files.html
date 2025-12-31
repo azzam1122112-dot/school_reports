@@ -259,19 +259,6 @@
                 <a class="btn" href="{% url 'reports:achievement_file_print' row.file.pk %}" target="_blank" rel="noopener">
                   <i class="fa-solid fa-print"></i> طباعة / حفظ PDF
                 </a>
-              {% else %}
-                {% if is_manager %}
-                  <form method="post" class="af-create-form" style="margin:0">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="create" />
-                    <input type="hidden" name="teacher_id" value="{{ row.teacher.id }}" />
-                    <input type="hidden" name="year" value="{{ year }}" />
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}" />
-                    <button class="btn btn-primary" type="submit" data-confirm="إنشاء ملف إنجاز لهذا المعلّم؟">
-                      <i class="fa-solid fa-plus"></i> إنشاء ملف
-                    </button>
-                  </form>
-                {% endif %}
               {% endif %}
             </div>
           </div>
@@ -291,22 +278,4 @@
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-  (function(){
-    // تأكيد إنشاء ملف (للإدارة فقط)
-    document.addEventListener('click', function(ev){
-      var btn = ev.target && ev.target.closest ? ev.target.closest('[data-confirm]') : null;
-      if(!btn) return;
-
-      var msg = btn.getAttribute('data-confirm') || 'هل أنت متأكد؟';
-      if(!window.confirm(msg)){
-        ev.preventDefault();
-        ev.stopPropagation();
-      }
-    }, { passive: false });
-  })();
-</script>
 {% endblock %}

@@ -5,6 +5,7 @@ from django.utils import timezone
 from .models import (
 	Department,
 	DepartmentMembership,
+	Report,
 	School,
 	SchoolMembership,
 	SchoolSubscription,
@@ -166,6 +167,35 @@ class TenantIsolationTests(TestCase):
 		res = self.client.get(url)
 		self.assertEqual(res.status_code, 200)
 		self.assertNotContains(res, ticket_b.title)
+
+	def test_manager_can_print_report_in_active_school(self):
+		"""Regression: طباعة التقرير يجب أن تعمل للمدير ضمن المدرسة النشطة."""
+		from .models import ReportType
+
+		rt = ReportType.objects.create(name="Type A", code="type-a", is_active=True, school=self.school_a)
+		teacher_a = Teacher.objects.create_user(phone="0500000009", name="Teacher A", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school_a,
+			teacher=teacher_a,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+		rep = Report.objects.create(
+			school=self.school_a,
+			teacher=teacher_a,
+			title="R1",
+			report_date=timezone.localdate(),
+			category=rt,
+		)
+
+		self.client.force_login(self.user)
+		session = self.client.session
+		session["active_school_id"] = self.school_a.id
+		session.save()
+
+		url = reverse("reports:report_print", args=[rep.pk])
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
 
 
 class ReportViewerLimitTests(TestCase):

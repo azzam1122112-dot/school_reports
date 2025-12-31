@@ -8,6 +8,7 @@ import os
 import logging
 
 from django import forms
+from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -55,6 +56,63 @@ except Exception:
 # ==============================
 digits10 = RegexValidator(r"^\d{10}$", "يجب أن يتكون من 10 أرقام.")
 sa_phone = RegexValidator(r"^0\d{9}$", "رقم الجوال يجب أن يبدأ بـ 0 ويتكون من 10 أرقام.")
+
+
+class MyProfilePhoneForm(forms.ModelForm):
+    """تحديث رقم جوال المستخدم الحالي.
+
+    مهم: phone هو USERNAME_FIELD، لذلك نتحقق من التفرد قبل الحفظ.
+    """
+
+    phone = forms.CharField(
+        label="رقم الجوال",
+        min_length=10,
+        max_length=10,
+        validators=[sa_phone],
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "05XXXXXXXX",
+                "maxlength": "10",
+                "inputmode": "numeric",
+                "pattern": r"0\d{9}",
+                "autocomplete": "tel",
+            }
+        ),
+    )
+
+    class Meta:
+        model = Teacher
+        fields = ["phone"]
+
+    def clean_phone(self):
+        phone = (self.cleaned_data.get("phone") or "").strip()
+        if not phone:
+            raise ValidationError("رقم الجوال مطلوب.")
+
+        qs = Teacher.objects.filter(phone=phone)
+        if getattr(self.instance, "pk", None):
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("هذا الرقم مستخدم بالفعل.")
+
+        return phone
+
+
+class MyPasswordChangeForm(PasswordChangeForm):
+    """نموذج تغيير كلمة المرور مع تحسين شكل الحقول."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, f in self.fields.items():
+            try:
+                f.widget.attrs.setdefault("class", "form-control")
+                if name == "old_password":
+                    f.widget.attrs.setdefault("autocomplete", "current-password")
+                else:
+                    f.widget.attrs.setdefault("autocomplete", "new-password")
+            except Exception:
+                pass
 
 
 def _validate_academic_year_hijri(value: str) -> str:

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}حسابي{% endblock %}
+
+{% block head %}
+<style>
+  .myp-wrap{max-width:1100px;margin:0 auto;padding:clamp(10px,2.2vw,18px)}
+  .myp-shell{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+  .myp-head{padding:18px 18px;border-bottom:1px solid var(--line)}
+  .myp-title{margin:0;font-weight:950;font-size:1.25rem;color:var(--ink);display:flex;align-items:center;gap:10px}
+  .myp-sub{margin:8px 0 0;color:var(--muted);font-weight:850;line-height:1.8}
+
+  .myp-body{padding:16px}
+  .myp-grid{display:grid;gap:14px}
+  @media(min-width:980px){.myp-grid{grid-template-columns:1fr 1fr}}
+
+  .myp-card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm);padding:14px}
+  .myp-card h2{margin:0 0 10px;font-weight:950;color:var(--ink);font-size:1.05rem;display:flex;align-items:center;gap:10px}
+
+  .myp-rows{display:grid;gap:10px}
+  .myp-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(248,250,252,.65)}
+  html[data-theme="dark"] .myp-row{background:rgba(255,255,255,.03)}
+  .myp-row span{color:var(--muted);font-weight:900}
+  .myp-row b{color:var(--ink);font-weight:950}
+
+  .myp-list{margin:0;padding-right:18px}
+  .myp-list li{margin:6px 0;color:var(--ink);font-weight:850}
+  .myp-muted{color:var(--muted);font-weight:900}
+
+  .myp-form{display:grid;gap:12px}
+  .myp-form label{font-weight:900;color:var(--ink);margin-bottom:6px;display:block}
+  .myp-errors{border:1px solid rgba(239,68,68,.25);background:rgba(239,68,68,.10);border-radius:14px;padding:12px;color:var(--ink);font-weight:850;line-height:1.8}
+  .myp-err{color:rgba(239,68,68,.95);margin-top:6px;font-weight:850}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="myp-wrap" dir="rtl">
+  <div class="myp-shell">
+    <div class="myp-head">
+      <h1 class="myp-title">
+        <i class="fa-solid fa-user" aria-hidden="true"></i>
+        حسابي
+      </h1>
+      <p class="myp-sub">تحديث رقم الجوال وكلمة المرور، وعرض المدارس المسندة لك.</p>
+    </div>
+
+    <div class="myp-body">
+      <div class="myp-grid">
+        <div class="myp-card">
+          <h2><i class="fa-solid fa-id-badge" aria-hidden="true"></i> بياناتي</h2>
+          <div class="myp-rows">
+            <div class="myp-row"><span>الاسم</span><b>{{ request.user.name|default:"-" }}</b></div>
+            <div class="myp-row"><span>رقم الجوال</span><b>{{ request.user.phone|default:"-" }}</b></div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <h2><i class="fa-solid fa-school" aria-hidden="true"></i> المدارس المسندة</h2>
+          {% if memberships %}
+            <ul class="myp-list">
+              {% for m in memberships %}
+                <li>
+                  {{ m.school.name }}
+                  {% if active_school and m.school_id == active_school.id %}
+                    <span class="myp-muted">(المدرسة النشطة)</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="myp-muted">لا توجد مدارس مسندة لهذا الحساب.</div>
+          {% endif %}
+        </div>
+
+        <div class="myp-card">
+          <h2><i class="fa-solid fa-pen" aria-hidden="true"></i> تحديث البيانات</h2>
+
+          <form method="post" class="myp-form" novalidate>
+            {% csrf_token %}
+            <div>
+              <label for="{{ phone_form.phone.id_for_label }}">{{ phone_form.phone.label }}</label>
+              {{ phone_form.phone }}
+              {% if phone_form.phone.errors %}
+                <div class="myp-err">{{ phone_form.phone.errors|striptags }}</div>
+              {% endif %}
+            </div>
+            <button type="submit" name="update_phone" class="btn btn-primary">
+              تحديث رقم الجوال
+            </button>
+          </form>
+
+          <div style="height:14px"></div>
+
+          <form method="post" class="myp-form" novalidate>
+            {% csrf_token %}
+
+            {% if pwd_form.non_field_errors %}
+              <div class="myp-errors">{{ pwd_form.non_field_errors|striptags }}</div>
+            {% endif %}
+
+            <div>
+              <label for="{{ pwd_form.old_password.id_for_label }}">{{ pwd_form.old_password.label }}</label>
+              {{ pwd_form.old_password }}
+              {% if pwd_form.old_password.errors %}
+                <div class="myp-err">{{ pwd_form.old_password.errors|striptags }}</div>
+              {% endif %}
+            </div>
+
+            <div>
+              <label for="{{ pwd_form.new_password1.id_for_label }}">{{ pwd_form.new_password1.label }}</label>
+              {{ pwd_form.new_password1 }}
+              {% if pwd_form.new_password1.errors %}
+                <div class="myp-err">{{ pwd_form.new_password1.errors|striptags }}</div>
+              {% endif %}
+            </div>
+
+            <div>
+              <label for="{{ pwd_form.new_password2.id_for_label }}">{{ pwd_form.new_password2.label }}</label>
+              {{ pwd_form.new_password2 }}
+              {% if pwd_form.new_password2.errors %}
+                <div class="myp-err">{{ pwd_form.new_password2.errors|striptags }}</div>
+              {% endif %}
+            </div>
+
+            <button type="submit" name="update_password" class="btn btn-primary">
+              تحديث كلمة المرور
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

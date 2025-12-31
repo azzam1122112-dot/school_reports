@@ -72,7 +72,7 @@
         <span></span><span></span><span></span>
       </button>
 
-      <a class="hdr-brand" href="{% url 'reports:home' %}">
+      <a class="hdr-brand" href="{% if IS_REPORT_VIEWER %}{% url 'reports:school_reports_readonly' %}{% else %}{% url 'reports:home' %}{% endif %}">
         <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="الشعار" width="42" height="42" loading="eager" decoding="async">
         <div class="hdr-brand-txt">
           <div class="hdr-brand-name">{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</div>
@@ -83,25 +83,30 @@
       {% with active=request.resolver_match.url_name %}
       <nav class="hdr-nav" aria-label="روابط">
         {% if request.user.is_authenticated %}
-          <a class="tab {% if active == 'home' %}is-active{% endif %}" href="{% url 'reports:home' %}">الرئيسية</a>
+          {% if IS_REPORT_VIEWER %}
+            <a class="tab {% if active == 'school_reports_readonly' %}is-active{% endif %}" href="{% url 'reports:school_reports_readonly' %}">التقارير</a>
+            <a class="tab {% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
+          {% else %}
+            <a class="tab {% if active == 'home' %}is-active{% endif %}" href="{% url 'reports:home' %}">الرئيسية</a>
 
-          {% url 'reports:assigned_to_me' as inboxUrl %}
-          {% if inboxUrl %}
-            <a class="tab {% if active == 'assigned_to_me' %}is-active{% endif %}" href="{{ inboxUrl }}">
-              الوارد
-              {% if NAV_ASSIGNED_TO_ME %}<span class="pill">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}
-            </a>
-          {% endif %}
+            {% url 'reports:assigned_to_me' as inboxUrl %}
+            {% if inboxUrl %}
+              <a class="tab {% if active == 'assigned_to_me' %}is-active{% endif %}" href="{{ inboxUrl }}">
+                الوارد
+                {% if NAV_ASSIGNED_TO_ME %}<span class="pill">{{ NAV_ASSIGNED_TO_ME }}</span>{% endif %}
+              </a>
+            {% endif %}
 
-          {% if SHOW_OFFICER_REPORTS_LINK %}
-            <a class="tab {% if active == 'officer_reports' %}is-active{% endif %}" href="{% url 'reports:officer_reports' %}">تقارير قسمي</a>
-          {% endif %}
+            {% if SHOW_OFFICER_REPORTS_LINK %}
+              <a class="tab {% if active == 'officer_reports' %}is-active{% endif %}" href="{% url 'reports:officer_reports' %}">تقارير قسمي</a>
+            {% endif %}
 
-          {% if SHOW_ADMIN_DASHBOARD_LINK %}
-            {% if request.user.is_superuser %}
-              <a class="tab {% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
-            {% else %}
-              <a class="tab {% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
+            {% if SHOW_ADMIN_DASHBOARD_LINK %}
+              {% if request.user.is_superuser %}
+                <a class="tab {% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
+              {% else %}
+                <a class="tab {% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
+              {% endif %}
             {% endif %}
           {% endif %}
         {% else %}
@@ -123,25 +128,27 @@
             </button>
           {% endif %}
 
-          {% url 'reports:my_notifications' as myNotificationsUrl %}
-          {% if myNotificationsUrl %}
-            <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات" id="notifBell">
-              <i class="fa-solid fa-bell"></i>
-              <span class="dot" id="notifDot" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
-                {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
-              </span>
-            </a>
-          {% endif %}
+          {% if not IS_REPORT_VIEWER %}
+            {% url 'reports:my_notifications' as myNotificationsUrl %}
+            {% if myNotificationsUrl %}
+              <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات" id="notifBell">
+                <i class="fa-solid fa-bell"></i>
+                <span class="dot" id="notifDot" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
+                  {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
+                </span>
+              </a>
+            {% endif %}
 
-          {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
-            <a class="icon-btn" href="{{ SEND_NOTIFICATION_URL }}" aria-label="إرسال إشعار" title="إرسال إشعار">
-              <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-            </a>
-          {% endif %}
+            {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
+              <a class="icon-btn" href="{{ SEND_NOTIFICATION_URL }}" aria-label="إرسال إشعار" title="إرسال إشعار">
+                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+              </a>
+            {% endif %}
 
-          <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="تبديل الثيم" title="تبديل الثيم">
-            <i class="fa-solid fa-moon"></i>
-          </button>
+            <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="تبديل الثيم" title="تبديل الثيم">
+              <i class="fa-solid fa-moon"></i>
+            </button>
+          {% endif %}
 
           <div class="userbox">
             {% firstof request.user.name request.user.phone request.user.national_id "حسابي" as display_name %}
@@ -156,15 +163,31 @@
                 </div>
               </div>
 
-              {% if request.user.is_superuser or SHOW_ADMIN_DASHBOARD_LINK %}
+              {% if IS_REPORT_VIEWER %}
+                <a href="{% url 'reports:school_reports_readonly' %}" class="mi" role="menuitem">
+                  <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                  التقارير
+                </a>
                 <a href="{% url 'reports:achievement_school_files' %}" class="mi" role="menuitem">
                   <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                   ملفات الإنجاز
                 </a>
               {% else %}
-                <a href="{% url 'reports:achievement_my_files' %}" class="mi" role="menuitem">
-                  <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
-                  ملف الإنجاز
+                {% if request.user.is_superuser or SHOW_ADMIN_DASHBOARD_LINK %}
+                  <a href="{% url 'reports:achievement_school_files' %}" class="mi" role="menuitem">
+                    <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                    ملفات الإنجاز
+                  </a>
+                {% else %}
+                  <a href="{% url 'reports:achievement_my_files' %}" class="mi" role="menuitem">
+                    <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                    ملف الإنجاز
+                  </a>
+                {% endif %}
+
+                <a href="{% url 'reports:my_profile' %}" class="mi" role="menuitem">
+                  <i class="fa-solid fa-user" aria-hidden="true"></i>
+                  حسابي
                 </a>
               {% endif %}
 
@@ -186,7 +209,7 @@
       <button class="btn btn-sm" id="drawerClose" aria-label="إغلاق">إغلاق</button>
     </div>
 
-    {% if request.user.is_authenticated %}
+    {% if request.user.is_authenticated and not IS_REPORT_VIEWER %}
       <div class="drawer-actions">
         {% url 'reports:my_notifications' as myNotificationsUrlMobile %}
         {% if myNotificationsUrlMobile %}
@@ -213,6 +236,21 @@
     {% with active=request.resolver_match.url_name %}
     <nav class="drawer-nav" aria-label="القائمة الجانبية">
       {% if request.user.is_authenticated %}
+
+        {% if IS_REPORT_VIEWER %}
+          <a class="{% if active == 'school_reports_readonly' %}is-active{% endif %}" href="{% url 'reports:school_reports_readonly' %}">
+            <span>التقارير</span>
+            <i class="fa-solid fa-file-lines"></i>
+          </a>
+          <a class="{% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">
+            <span>ملفات الإنجاز</span>
+            <i class="fa-solid fa-file-lines"></i>
+          </a>
+          <a href="{% url 'reports:logout' %}">
+            <span>تسجيل الخروج</span>
+            <i class="fa-solid fa-right-to-bracket"></i>
+          </a>
+        {% else %}
 
         <a class="{% if active == 'home' %}is-active{% endif %}" href="{% url 'reports:home' %}">
           <span>الرئيسية</span>
@@ -260,6 +298,11 @@
           </a>
         {% endif %}
 
+        <a class="{% if active == 'my_profile' %}is-active{% endif %}" href="{% url 'reports:my_profile' %}">
+          <span>حسابي</span>
+          <i class="fa-solid fa-user"></i>
+        </a>
+
         <div class="drawer-footer">
           {% if USER_SCHOOLS|length > 1 %}
             <button type="button" class="btn btn-primary btn-block" id="openSchoolModalMobile">
@@ -269,6 +312,8 @@
           {% endif %}
           <a class="btn btn-outline btn-block" href="{% url 'reports:logout' %}">تسجيل الخروج</a>
         </div>
+
+        {% endif %}
 
       {% else %}
         <a class="{% if active == 'login' %}is-active{% endif %}" href="{% url 'reports:login' %}">
@@ -311,9 +356,14 @@
 
         <nav style="display:flex;gap:10px;flex-wrap:wrap" aria-label="روابط سريعة">
           {% if request.user.is_authenticated %}
-            <a class="btn btn-sm btn-outline" href="{% url 'reports:home' %}">الرئيسية</a>
-            <a class="btn btn-sm btn-outline" href="{% url 'reports:my_reports' %}">تقاريري</a>
-            <a class="btn btn-sm btn-outline" href="{% url 'reports:my_requests' %}">طلباتي</a>
+            {% if IS_REPORT_VIEWER %}
+              <a class="btn btn-sm btn-outline" href="{% url 'reports:school_reports_readonly' %}">التقارير</a>
+              <a class="btn btn-sm btn-outline" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
+            {% else %}
+              <a class="btn btn-sm btn-outline" href="{% url 'reports:home' %}">الرئيسية</a>
+              <a class="btn btn-sm btn-outline" href="{% url 'reports:my_reports' %}">تقاريري</a>
+              <a class="btn btn-sm btn-outline" href="{% url 'reports:my_requests' %}">طلباتي</a>
+            {% endif %}
           {% else %}
             <a class="btn btn-sm btn-outline" href="{% url 'reports:login' %}">تسجيل الدخول</a>
           {% endif %}

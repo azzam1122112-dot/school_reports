@@ -14,7 +14,7 @@ import openpyxl
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password
 from django.core.paginator import Paginator
@@ -46,6 +46,8 @@ from .forms import (
     ReportForm,
     TeacherCreateForm,
     TeacherEditForm,
+    MyProfilePhoneForm,
+    MyPasswordChangeForm,
     TicketActionForm,
     TicketCreateForm,
     DepartmentForm,  # إن لم تكن موجودة في مشروعك سيتم استخدام بديل داخلي
@@ -534,6 +536,57 @@ def logout_view(request: HttpRequest) -> HttpResponse:
     return redirect("reports:login")
 
 
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def my_profile(request: HttpRequest) -> HttpResponse:
+    """بروفايل المستخدم الحالي.
+
+    - متاح لكل المستخدمين ما عدا (مشرف تقارير - عرض فقط).
+    - يعرض الاسم + المدارس المسندة.
+    - يسمح بتغيير رقم الجوال + تغيير كلمة المرور.
+    """
+
+    active_school = _get_active_school(request)
+    if _is_report_viewer(request.user, active_school) or _is_report_viewer(request.user):
+        messages.error(request, "هذا الحساب للعرض فقط ولا يملك صفحة بروفايل.")
+        return redirect("reports:school_reports_readonly")
+
+    memberships = (
+        SchoolMembership.objects.filter(teacher=request.user, is_active=True)
+        .select_related("school")
+        .order_by("school__name", "id")
+    )
+
+    phone_form = MyProfilePhoneForm(instance=request.user, prefix="phone")
+    pwd_form = MyPasswordChangeForm(request.user, prefix="pwd")
+
+    if request.method == "POST":
+        if "update_phone" in request.POST:
+            phone_form = MyProfilePhoneForm(request.POST, instance=request.user, prefix="phone")
+            if phone_form.is_valid():
+                try:
+                    phone_form.save()
+                    messages.success(request, "تم تحديث رقم الجوال بنجاح.")
+                    return redirect("reports:my_profile")
+                except IntegrityError:
+                    messages.error(request, "تعذر تحديث رقم الجوال (قد يكون مستخدمًا بالفعل).")
+        elif "update_password" in request.POST:
+            pwd_form = MyPasswordChangeForm(request.user, request.POST, prefix="pwd")
+            if pwd_form.is_valid():
+                user = pwd_form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "تم تحديث كلمة المرور بنجاح.")
+                return redirect("reports:my_profile")
+
+    ctx = {
+        "active_school": active_school,
+        "memberships": memberships,
+        "phone_form": phone_form,
+        "pwd_form": pwd_form,
+    }
+    return render(request, "reports/my_profile.html", ctx)
+
+
 @require_http_methods(["GET"])
 def platform_landing(request: HttpRequest) -> HttpResponse:
     """الصفحة الرئيسية العامة للمنصة (تعريف + مميزات + زر دخول).
@@ -972,7 +1025,6 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
 
     - تعرض جميع المعلمين في المدرسة النشطة.
     - بجانب كل معلم: فتح الملف + طباعة/حفظ PDF.
-    - إنشاء ملف للسنة المحددة (للمدير فقط) عند عدم وجوده.
     - الاعتماد/الرفض يكون داخل صفحة الملف نفسها.
     """
     active_school = _get_active_school(request)
@@ -1016,27 +1068,10 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
             return redirect(base_url)
         return redirect(f"{base_url}?{urlencode({'year': year_value})}")
 
-    # إنشاء ملف إنجاز لمعلم (من المدير فقط)
+    # إنشاء ملف إنجاز من صفحة المدرسة غير مسموح: المعلّم هو من ينشئ ملفه من (ملف الإنجاز)
     if request.method == "POST" and (request.POST.get("action") == "create"):
-        if not _can_manage_achievement(request.user, active_school):
-            return HttpResponse(status=403)
-
-        teacher_id = request.POST.get("teacher_id")
-        create_form = AchievementCreateYearForm({"academic_year": year})
-        if not teacher_id or not create_form.is_valid():
-            messages.error(request, "تأكد من اختيار السنة بصيغة صحيحة (مثال: 1447-1448).")
-            return _redirect_with_year(year)
-
-        t = get_object_or_404(Teacher, pk=int(teacher_id))
-        year_clean = create_form.cleaned_data["academic_year"]
-        ach_file, _ = TeacherAchievementFile.objects.get_or_create(
-            teacher=t,
-            school=active_school,
-            academic_year=year_clean,
-        )
-        _ensure_achievement_sections(ach_file)
-        messages.success(request, "تم إنشاء ملف الإنجاز ✅")
-        return _redirect_with_year(year_clean)
+        messages.error(request, "إنشاء ملف الإنجاز متاح للمعلّم فقط.")
+        return _redirect_with_year(year)
 
     teachers = (
         Teacher.objects.filter(
@@ -1751,9 +1786,20 @@ from .utils import _resolve_department_for_category, _build_head_decision
 @require_http_methods(["GET"])
 def report_print(request: HttpRequest, pk: int) -> HttpResponse:
     try:
-        r = _get_report_for_user_or_404(request, pk)
-
         active_school = _get_active_school(request)
+
+        # ✅ المدير/الموظف/السوبر يجب أن يستطيع طباعة أي تقرير ضمن نطاق المدرسة النشطة
+        if getattr(request.user, "is_superuser", False) or _is_staff(request.user):
+            qs = Report.objects.select_related("teacher", "category")
+            if (not getattr(request.user, "is_superuser", False)) and active_school is None:
+                messages.error(request, "فضلاً اختر مدرسة أولاً.")
+                return redirect("reports:select_school")
+            if active_school is not None and _model_has_field(Report, "school"):
+                qs = qs.filter(school=active_school)
+            r = get_object_or_404(qs, pk=pk)
+        else:
+            r = _get_report_for_user_or_404(request, pk)
+
         school_scope = getattr(r, "school", None) or active_school
 
         # اختيار القسم يدويًا عبر ?dept=slug-or-id (اختياري)
@@ -1844,6 +1890,8 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "SCHOOL_LOGO_URL": school_logo_url,
             },
         )
+    except Http404:
+        raise
     except Exception as e:
         logger.exception(f"Error in report_print view for report {pk}: {e}")
         return render(request, "500.html", {"error": str(e)}, status=500)

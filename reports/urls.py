@@ -11,6 +11,7 @@ urlpatterns = [
     path("", views.platform_landing, name="landing"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
+    path("profile/", views.my_profile, name="my_profile"),
 
     # =========================
     # الصفحة الرئيسية

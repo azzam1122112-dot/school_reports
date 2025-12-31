@@ -594,6 +594,19 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         nav_officer_reports = 0
 
+    # هل المستخدم مشرف تقارير (عرض فقط) ضمن المدرسة النشطة؟
+    is_report_viewer = False
+    try:
+        if getattr(u, "is_authenticated", False) and active_school is not None:
+            is_report_viewer = SchoolMembership.objects.filter(
+                teacher=u,
+                school=active_school,
+                role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+                is_active=True,
+            ).exists()
+    except Exception:
+        is_report_viewer = False
+
     # روابط لوحة المدير: تظهر لكل من لديه is_staff (مدير/سوبر أدمن) أو مدير مدرسة
     try:
         role_slug = getattr(getattr(u, "role", None), "slug", None)
@@ -725,6 +738,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SHOW_OFFICER_REPORTS_LINK": show_officer_link,
         "NAV_OFFICER_REPORTS": nav_officer_reports,
         "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,
+        "IS_REPORT_VIEWER": is_report_viewer,
         "NAV_NOTIFICATIONS_UNREAD": unread_count,
         "NAV_NOTIFICATION_HERO": hero,
         "CAN_SEND_NOTIFICATIONS": can_send_notifications,
