@@ -504,15 +504,29 @@
       alert(msg);
     }
 
-    // تعبئة المبلغ حسب الباقة
+    function syncAmountFromPlan(force){
+      if(!planSelect || !amountEl) return;
+
+      var opt = planSelect.options[planSelect.selectedIndex];
+      var price = opt ? opt.getAttribute('data-price') : '';
+
+      if(!planSelect.value || !price){
+        if(force) amountEl.value = '';
+        return;
+      }
+
+      if(force || !String(amountEl.value || '').trim()){
+        amountEl.value = price;
+      }
+    }
+
+    // تعبئة المبلغ حسب الباقة (عند التغيير) + تعبئة مبدئية عند فتح الصفحة
     if(planSelect && amountEl){
       planSelect.addEventListener('change', function(){
-        var opt = planSelect.options[planSelect.selectedIndex];
-        var price = opt ? opt.getAttribute('data-price') : '';
-        if(price){
-          amountEl.value = price;
-        }
+        syncAmountFromPlan(true);
       });
+      // في حال كانت الباقة محددة مسبقاً (الباقة الحالية)
+      syncAmountFromPlan(false);
     }
 
     function clearPreview(){
