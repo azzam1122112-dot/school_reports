@@ -322,10 +322,10 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("id", "school", "amount", "status", "payment_date", "created_at")
+    list_display = ("id", "school", "requested_plan", "amount", "status", "payment_date", "created_at")
     list_filter = ("status", "payment_date", "created_at")
     search_fields = ("school__name", "notes", "transaction_id")
-    autocomplete_fields = ("school",)
+    autocomplete_fields = ("school", "requested_plan")
     date_hierarchy = "created_at"
     readonly_fields = ("created_at",)
 

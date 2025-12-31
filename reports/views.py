@@ -5128,9 +5128,24 @@ def payment_create(request):
         return redirect('reports:home')
 
     if request.method == 'POST':
+        plan_id = request.POST.get('plan')
         amount = request.POST.get('amount')
         receipt = request.FILES.get('receipt_image')
         notes = request.POST.get('notes')
+
+        requested_plan = None
+        if plan_id:
+            try:
+                requested_plan = SubscriptionPlan.objects.filter(pk=plan_id).first()
+            except Exception:
+                requested_plan = None
+        if not requested_plan:
+            messages.error(request, "يرجى اختيار الباقة.")
+            return redirect('reports:my_subscription')
+
+        if not bool(getattr(requested_plan, 'is_active', True)):
+            messages.error(request, "هذه الباقة غير متاحة حالياً.")
+            return redirect('reports:my_subscription')
         
         if not amount or not receipt:
             messages.error(request, "يرجى إدخال المبلغ وإرفاق صورة الإيصال.")
@@ -5138,6 +5153,7 @@ def payment_create(request):
             Payment.objects.create(
                 school=membership.school,
                 subscription=getattr(membership.school, 'subscription', None),
+                requested_plan=requested_plan,
                 amount=amount,
                 receipt_image=receipt,
                 notes=notes,

@@ -436,6 +436,7 @@
         <thead>
           <tr>
             <th>التاريخ</th>
+            <th>الباقة</th>
             <th>المبلغ</th>
             <th>الحالة</th>
             <th>ملاحظات</th>
@@ -445,6 +446,7 @@
           {% for payment in payments %}
             <tr>
               <td><span dir="ltr">{{ payment.created_at|date:"Y-m-d" }}</span></td>
+              <td style="font-weight:850">{% if payment.requested_plan %}{{ payment.requested_plan.name }}{% else %}—{% endif %}</td>
               <td style="font-weight:950">{{ payment.amount }} ريال</td>
               <td>
                 {% if payment.status == 'approved' %}
@@ -459,7 +461,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="4">
+              <td colspan="5">
                 <div class="empty" style="margin: 6px 0">
                   <div class="ico">🧾</div>
                   لا توجد عمليات دفع سابقة
