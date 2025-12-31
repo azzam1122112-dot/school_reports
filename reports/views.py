@@ -1455,8 +1455,8 @@ def report_viewer_create(request: HttpRequest) -> HttpResponse:
         "reports/add_teacher.html",
         {
             "form": form,
-            "page_title": "إضافة مشرف تقارير (عرض فقط)",
-            "page_subtitle": "هذا الحساب يستطيع الاطلاع على تقارير المدرسة فقط",
+            "page_title": "إضافة مشرف  (عرض فقط)",
+            "page_subtitle": "هذا الحساب يستطيع الاطلاع على تقارير المدرسة و ملفات الإنجاز فقط",
             "save_label": "حفظ المشرف",
             "back_url": "reports:manage_teachers",
             "back_label": "رجوع لإدارة المعلمين",

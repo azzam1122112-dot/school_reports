@@ -286,7 +286,7 @@
       </div>
 
       <div class="hero-center">
-        <img class="ministry-logo" src="{% static 'img/UntiTtled-1.png' %}" alt="شعار الوزارة">
+        <img class="ministry-logo" src="{% if ministry_logo_src %}{{ ministry_logo_src }}{% else %}{% static 'img/UntiTtled-1.png' %}{% endif %}" alt="شعار الوزارة">
         <div class="hero-year">{{ file.academic_year }} هـ</div>
       </div>
 

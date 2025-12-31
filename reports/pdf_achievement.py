@@ -4,11 +4,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Tuple
+import base64
 
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.contrib.staticfiles import finders
 
 from .models import TeacherAchievementFile, AchievementSection
+
+
+def _static_png_as_data_uri(path: str) -> str | None:
+    try:
+        fpath = finders.find(path)
+        if not fpath:
+            return None
+        with open(fpath, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("ascii")
+        return f"data:image/png;base64,{b64}"
+    except Exception:
+        return None
 
 
 def generate_achievement_pdf(*, request, ach_file: TeacherAchievementFile) -> Tuple[bytes, str]:
@@ -38,6 +52,7 @@ def generate_achievement_pdf(*, request, ach_file: TeacherAchievementFile) -> Tu
         "sections": sections,
         "theme": {"brand": primary},
         "now": timezone.localtime(timezone.now()),
+        "ministry_logo_src": _static_png_as_data_uri("img/UntiTtled-1.png"),
     }
 
     html = render_to_string("reports/pdf/achievement_file.html", ctx)
