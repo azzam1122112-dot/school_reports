@@ -356,8 +356,12 @@
           <select id="plan_select" class="sel" name="plan" required>
             <option value="">-- اختر الباقة --</option>
             {% for plan in plans %}
-              <option value="{{ plan.pk }}" data-price="{{ plan.price }}">
-                {{ plan.name }} - {{ plan.price }} ريال
+              <option
+                value="{{ plan.pk }}"
+                data-price="{{ plan.price }}"
+                {% if not plan.is_active %}disabled{% endif %}
+              >
+                {{ plan.name }} - {{ plan.price }} ريال{% if not plan.is_active %} (غير نشطة){% endif %}
               </option>
             {% endfor %}
           </select>

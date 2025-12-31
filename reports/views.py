@@ -5096,10 +5096,12 @@ def my_subscription(request):
     payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:5]
     
     context = {
-        'subscription': subscription,
-        'school': membership.school,
-        'plans': SubscriptionPlan.objects.filter(is_active=True),
-        'payments': payments
+        "subscription": subscription,
+        "school": membership.school,
+        # ✅ أظهر كل الخطط (حتى لو غير نشطة) حتى لا تبدو "مفقودة".
+        # سيتم تعطيل غير النشطة في القالب.
+        "plans": SubscriptionPlan.objects.all().order_by("price", "name"),
+        "payments": payments,
     }
     return render(request, 'reports/my_subscription.html', context)
 
