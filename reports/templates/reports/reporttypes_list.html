@@ -1,143 +1,313 @@
+{# reports/templates/reports/reporttype_list.html #}
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}أنواع التقارير{% endblock %}
 
 {% block head %}
 <style>
-  /* ===== Scoped Report Types ===== */
+  /* =========================================================
+     Report Types (Scoped) — بدون لمس .btn / .card العامة
+     - RTL
+     - Table على الديسكتوب + Cards على الجوال
+     - دعم data-theme="dark"
+     ========================================================= */
+
   .rt-scope{
-    --ink: var(--ink, #0f172a);
-    --muted: var(--muted, #6b7280);
-    --line: var(--line, #e5e7eb);
-    --card: var(--card, #ffffff);
-    --brand: var(--brand, #2563eb);
-    --accent: var(--accent, #10b981);
-    --radius: 14px;
-    --shadow: var(--shadow, 0 10px 26px rgba(2,6,23,.08));
+    --rt-radius: 16px;
+    --rt-shadow: 0 14px 34px rgba(2,6,23,.10);
+    --rt-t: var(--t-fast);
   }
 
-  .rt-scope .wrap{max-width:1000px;margin:24px auto;padding:0 16px}
+  .rt-scope .wrap{
+    max-width: 1040px;
+    margin: 18px auto;
+    padding: 0 16px;
+  }
 
   .rt-scope .top{
-    display:flex;justify-content:space-between;align-items:center;gap:10px;
-    margin-bottom:12px;flex-wrap:wrap
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom: 12px;
   }
-  .rt-scope .top h1{
+
+  .rt-scope .title{
     margin:0;
-    font-size:clamp(1.15rem, 2.4vw, 1.45rem);
-    font-weight:900;
-    color:var(--ink);
+    font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+    font-weight: 950;
+    color: var(--ink);
+    letter-spacing: -.2px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .rt-scope .title i{ opacity:.85; }
+
+  .rt-scope .sub{
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-weight: 850;
+    line-height: 1.85;
+    max-width: 820px;
   }
 
-  .rt-scope .muted{color:var(--muted);font-weight:800;line-height:1.9;margin:10px 0 14px}
+  .rt-scope .top-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top: 2px;
+  }
 
-  .rt-scope .btn{
-    padding:10px 14px;border-radius:12px;border:1px solid var(--line);
-    background:var(--card);font-weight:900;cursor:pointer;
-    text-decoration:none;color:var(--ink);
-    display:inline-flex;align-items:center;gap:8px;
-    transition:transform .15s ease, filter .15s ease;
-    min-height:44px;
+  /* أزرار محلية داخل الصفحة فقط */
+  .rt-scope .rt-btn{
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    text-decoration:none;
+    font-weight: 950;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition: var(--rt-t);
+    cursor: pointer;
+    white-space: nowrap;
   }
-  .rt-scope .btn:hover{transform:translateY(-1px)}
-  .rt-scope .btn:active{transform:none}
+  .rt-scope .rt-btn:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(2,6,23,.08);
+    background: rgba(219,234,254,.55);
+  }
+  html[data-theme="dark"] .rt-scope .rt-btn:hover{
+    background: rgba(26,44,83,.60);
+  }
+  .rt-scope .rt-btn:active{ transform:none; box-shadow:none; }
 
-  .rt-scope .btn-primary{
-    background:linear-gradient(135deg,var(--brand),#3b82f6);
-    border-color:transparent;color:#fff
+  .rt-scope .rt-btn-primary{
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    border-color: transparent;
+    color:#fff;
   }
-  .rt-scope .btn-danger{
-    background:#b91c1c;color:#fff;border-color:transparent
+  .rt-scope .rt-btn-primary:hover{
+    filter: brightness(1.02);
+    box-shadow: 0 18px 40px rgba(37,99,235,.28);
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
   }
+
+  .rt-scope .rt-btn-danger{
+    background: #b91c1c;
+    border-color: transparent;
+    color:#fff;
+  }
+  .rt-scope .rt-btn-danger:hover{
+    filter: brightness(1.02);
+    box-shadow: 0 18px 40px rgba(185,28,28,.22);
+    transform: translateY(-2px);
+    background: #a31616;
+  }
+
+  .rt-scope .notice{
+    margin: 10px 0 14px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    color: var(--muted);
+    font-weight: 850;
+    line-height: 1.85;
+  }
+  .rt-scope .notice code{
+    font-weight: 950;
+    color: var(--ink);
+    background: rgba(148,163,184,.18);
+    padding: 2px 6px;
+    border-radius: 8px;
+  }
+  html[data-theme="dark"] .rt-scope .notice code{ background: rgba(148,163,184,.12); }
 
   /* Table wrapper */
   .rt-scope .table-wrap{
     border:1px solid var(--line);
-    border-radius:var(--radius);
+    border-radius: var(--rt-radius);
     overflow:auto;
-    background:transparent;
+    background: transparent;
+    box-shadow: var(--rt-shadow);
+  }
+  html[data-theme="dark"] .rt-scope .table-wrap{
+    box-shadow: 0 16px 50px rgba(0,0,0,.25);
   }
 
-  .rt-scope table{width:100%;border-collapse:separate;border-spacing:0;min-width:820px}
-  .rt-scope thead th{
-    position:sticky;top:0;z-index:1;
-    background:#f8fafc;
-    color:var(--muted);
-    font-weight:900;
-    text-align:right;
-    border-bottom:1px solid var(--line);
-    padding:12px 14px;
-    white-space:nowrap;
+  .rt-scope table{
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 860px;
   }
-  .rt-scope tbody tr{background:var(--card)}
-  .rt-scope tbody tr+tr td{border-top:1px solid #f3f4f6}
+
+  .rt-scope thead th{
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8fafc;
+    color: var(--muted);
+    font-weight: 950;
+    text-align: right;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 14px;
+    white-space: nowrap;
+  }
+  html[data-theme="dark"] .rt-scope thead th{
+    background: #0f1b33;
+    border-bottom-color: #1b2744;
+  }
+
+  .rt-scope tbody tr{
+    background: var(--card);
+    transition: var(--rt-t);
+  }
+  .rt-scope tbody tr:hover{
+    background: rgba(219,234,254,.45);
+  }
+  html[data-theme="dark"] .rt-scope tbody tr:hover{
+    background: rgba(26,44,83,.55);
+  }
+
+  .rt-scope tbody tr + tr td{
+    border-top: 1px solid rgba(148,163,184,.20);
+  }
+  html[data-theme="dark"] .rt-scope tbody tr + tr td{
+    border-top-color: rgba(27,39,68,.85);
+  }
+
   .rt-scope td{
-    padding:12px 14px;
-    color:var(--ink);
-    font-weight:800;
-    vertical-align:middle;
-    white-space:nowrap;
+    padding: 12px 14px;
+    color: var(--ink);
+    font-weight: 850;
+    vertical-align: middle;
+    white-space: nowrap;
   }
 
   .rt-scope .badge{
-    display:inline-flex;align-items:center;gap:6px;
-    border-radius:999px;
-    background:#eef2ff;
-    color:#1f2937;
-    padding:5px 10px;
-    font-size:.85rem;
-    font-weight:900;
-    border:1px solid rgba(30,58,138,.14);
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: .86rem;
+    font-weight: 950;
+    border: 1px solid rgba(30,58,138,.14);
+    background: #eef2ff;
+    color: #1f2937;
+  }
+  html[data-theme="dark"] .rt-scope .badge{
+    background: rgba(37,99,235,.14);
+    border-color: rgba(37,99,235,.28);
+    color: #e5e7eb;
   }
 
-  .rt-scope .actions{
-    display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;
+  .rt-scope .yes{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-weight: 950;
   }
-  .rt-scope .actions form{display:inline}
-  .rt-scope .actions .btn{min-height:40px;padding:8px 12px;border-radius:10px}
+  .rt-scope .dot{
+    width:10px;height:10px;border-radius:999px;
+    background:#94a3b8;
+  }
+  .rt-scope .dot.on{ background:#10b981; }
+  .rt-scope .dot.off{ background:#ef4444; }
+
+  .rt-scope .actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    justify-content:flex-start;
+    align-items:center;
+  }
+  .rt-scope .actions form{ display:inline; margin:0; }
+  .rt-scope .actions .rt-btn{
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: 12px;
+  }
 
   .rt-scope .empty{
     text-align:center;
-    padding:18px;
-    color:var(--muted);
-    font-weight:900;
+    padding: 16px;
+    color: var(--muted);
+    font-weight: 950;
+    white-space: normal;
   }
 
   /* Mobile stacked cards */
   @media (max-width: 640px){
-    .rt-scope .table-wrap{border:0}
-    .rt-scope table, .rt-scope thead, .rt-scope tbody, .rt-scope th, .rt-scope tr{display:block}
-    .rt-scope thead{display:none}
-    .rt-scope tbody{display:grid;gap:12px;min-width:unset}
-    .rt-scope tbody tr{
-      border:1px solid var(--line);
-      border-radius:16px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-    .rt-scope tbody tr td{
+    .rt-scope .table-wrap{ border:0; box-shadow:none; }
+    .rt-scope table,
+    .rt-scope thead,
+    .rt-scope tbody,
+    .rt-scope th,
+    .rt-scope tr{ display:block; }
+
+    .rt-scope thead{ display:none; }
+    .rt-scope tbody{
       display:grid;
-      grid-template-columns:8.5em 1fr;
+      gap:12px;
+      min-width: unset;
+    }
+    .rt-scope tbody tr{
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow:hidden;
+      box-shadow: var(--rt-shadow);
+      background: var(--card);
+    }
+    html[data-theme="dark"] .rt-scope tbody tr{
+      border-color:#1b2744;
+      box-shadow: 0 18px 55px rgba(0,0,0,.28);
+    }
+
+    .rt-scope tbody tr + tr td{ border-top:0; }
+    .rt-scope tbody tr:hover{ background: var(--card); }
+
+    .rt-scope td{
+      display:grid;
+      grid-template-columns: 8.8em 1fr;
       gap:10px;
       align-items:center;
-      padding:10px 12px;
+      padding: 10px 12px;
       border:0;
-      border-bottom:1px solid #f1f5f9;
-      white-space:normal;
+      border-bottom: 1px solid rgba(148,163,184,.18);
+      white-space: normal;
     }
-    .rt-scope tbody tr td:last-child{border-bottom:0}
+    html[data-theme="dark"] .rt-scope td{
+      border-bottom-color: rgba(27,39,68,.85);
+    }
 
+    .rt-scope td:last-child{ border-bottom:0; }
     .rt-scope td::before{
-      content:attr(data-label);
-      font-weight:900;
-      color:var(--muted);
+      content: attr(data-label);
+      font-weight: 950;
+      color: var(--muted);
     }
 
     .rt-scope td.actions{
-      grid-template-columns:1fr;
+      grid-template-columns: 1fr;
       gap:10px;
     }
-    .rt-scope td.actions .btn{width:100%;justify-content:center}
-    .rt-scope table{min-width:unset}
+    .rt-scope td.actions .rt-btn{
+      width:100%;
+      justify-content:center;
+    }
+
+    .rt-scope table{ min-width: unset; }
   }
 </style>
 {% endblock %}
@@ -147,18 +317,30 @@
   <div class="wrap">
 
     <div class="top">
-      <h1>أنواع التقارير</h1>
-      {% if db_backed %}
-        <a class="btn btn-primary" href="{% url 'reports:reporttype_create' %}">➕ إضافة نوع</a>
-      {% endif %}
-    </div>
+      <div>
+        <h1 class="title"><i class="fa-solid fa-tags"></i> أنواع التقارير</h1>
 
-    {% if not db_backed %}
-      <p class="muted">
-        تعذّر استخدام الإدارة الكاملة لأن موديل <code>ReportType</code> غير مفعّل.
-        تُعرض القائمة أدناه مرجعية فقط من الحقل الحالي.
-      </p>
-    {% endif %}
+        {% if not db_backed %}
+          <div class="notice" role="alert">
+            تعذّر استخدام الإدارة الكاملة لأن موديل <code>ReportType</code> غير مفعّل.
+            تُعرض القائمة أدناه <b>للمراجعة فقط</b> من الحقل الحالي.
+          </div>
+        {% else %}
+          <p class="sub">تحكّم في أنواع التقارير، ترتيبها، وتفعيلها/إيقافها — مع منع الحذف إذا كان النوع مستخدمًا.</p>
+        {% endif %}
+      </div>
+
+      <div class="top-actions">
+        {% if db_backed %}
+          <a class="rt-btn rt-btn-primary" href="{% url 'reports:reporttype_create' %}">
+            <i class="fa-solid fa-plus"></i> إضافة نوع
+          </a>
+        {% endif %}
+        <a class="rt-btn" href="{% url 'reports:home' %}">
+          <i class="fa-solid fa-house"></i> الرئيسية
+        </a>
+      </div>
+    </div>
 
     <div class="table-wrap" role="region" aria-label="جدول أنواع التقارير">
       <table>
@@ -176,24 +358,52 @@
           {% for it in items %}
             <tr>
               <td data-label="الترتيب">{{ it.order|default:"—" }}</td>
-              <td data-label="الرمز"><span class="badge">{{ it.code }}</span></td>
+
+              <td data-label="الرمز">
+                <span class="badge"><i class="fa-solid fa-hashtag" style="opacity:.75"></i> {{ it.code }}</span>
+              </td>
+
               <td data-label="الاسم">{{ it.name }}</td>
-              <td data-label="نشط">{% if it.is_active %}✅{% else %}⛔{% endif %}</td>
+
+              <td data-label="نشط">
+                {% if it.is_active %}
+                  <span class="yes"><span class="dot on" aria-hidden="true"></span> نعم</span>
+                {% else %}
+                  <span class="yes"><span class="dot off" aria-hidden="true"></span> لا</span>
+                {% endif %}
+              </td>
+
               <td data-label="تقارير مرتبطة">{{ it.count|default:0 }}</td>
 
               {% if db_backed %}
-              <td class="actions" data-label="إجراءات">
-                <a class="btn" href="{% url 'reports:reporttype_update' it.obj.pk %}">✏️ تعديل</a>
-                <form method="post" action="{% url 'reports:reporttype_delete' it.obj.pk %}"
-                      onsubmit="return confirm('حذف هذا النوع؟ لن يُسمح بالحذف إن كان مستخدمًا.');">
-                  {% csrf_token %}
-                  <button class="btn btn-danger" type="submit">🗑 حذف</button>
-                </form>
-              </td>
+                <td class="actions" data-label="إجراءات">
+                  <a class="rt-btn" href="{% url 'reports:reporttype_update' it.obj.pk %}">
+                    <i class="fa-solid fa-pen-to-square"></i> تعديل
+                  </a>
+
+                  <form method="post" action="{% url 'reports:reporttype_delete' it.obj.pk %}"
+                        onsubmit="return confirm('حذف هذا النوع؟ لن يُسمح بالحذف إن كان مستخدمًا.');">
+                    {% csrf_token %}
+                    <button class="rt-btn rt-btn-danger" type="submit">
+                      <i class="fa-solid fa-trash"></i> حذف
+                    </button>
+                  </form>
+                </td>
               {% endif %}
             </tr>
           {% empty %}
-            <tr><td colspan="{% if db_backed %}6{% else %}5{% endif %}" class="empty">لا توجد أنواع بعد.</td></tr>
+            <tr>
+              <td colspan="{% if db_backed %}6{% else %}5{% endif %}" class="empty">
+                لا توجد أنواع بعد.
+                {% if db_backed %}
+                  <div style="margin-top:10px">
+                    <a class="rt-btn rt-btn-primary" href="{% url 'reports:reporttype_create' %}">
+                      <i class="fa-solid fa-plus"></i> إضافة أول نوع
+                    </a>
+                  </div>
+                {% endif %}
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>

@@ -4,204 +4,374 @@
 
 {% block head %}
 <style>
+  /* =========================================================
+     TEACHER EDIT (page-only, scoped)
+     - بدون إعادة تعريف .btn / .card
+     - Dark mode عبر html[data-theme="dark"]
+     ========================================================= */
+
   .teacher-edit-scope{
-    --ink:#0f172a;--muted:#6b7280;--line:#e5e7eb;--card:#fff;
-    --brand:#2563eb;--brand2:#3b82f6;--danger:#b91c1c;--ok:#065f46;
-    --radius:16px;--shadow:0 10px 30px rgba(2,6,23,.08);--ring:0 0 0 3px rgba(37,99,235,.22);
-    --tap:48px;
-  }
-  @media (prefers-color-scheme:dark){
-    .teacher-edit-scope{--ink:#e5e7eb;--muted:#94a3b8;--line:#1f2937;--card:#0f172a;--shadow:0 14px 40px rgba(0,0,0,.45)}
+    --te-ink: var(--ink, #0f172a);
+    --te-muted: var(--muted, #6b7280);
+    --te-line: var(--line, #e5e7eb);
+    --te-card: var(--card, #ffffff);
+
+    --te-brand:#2563eb;
+    --te-brand2:#3b82f6;
+    --te-danger:#b91c1c;
+
+    --te-radius: 16px;
+    --te-shadow: 0 10px 30px rgba(2,6,23,.08);
+    --te-ring: 0 0 0 3px rgba(37,99,235,.22);
+    --te-tap: 48px;
   }
 
-  .teacher-edit-scope .wrap{max-width:900px;margin:0 auto;padding:clamp(10px,2.5vw,18px)}
-  .teacher-edit-scope .card{
-    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    box-shadow:var(--shadow);overflow:hidden
+  html[data-theme="dark"] .teacher-edit-scope{
+    --te-ink: var(--ink, #e5e7eb);
+    --te-muted: var(--muted, #94a3b8);
+    --te-line: var(--line, #1f2937);
+    --te-card: var(--card, #0f172a);
+    --te-shadow: 0 14px 40px rgba(0,0,0,.45);
   }
 
-  .teacher-edit-scope .card-header{
-    background:linear-gradient(135deg,#f59e0b,#fb923c);
-    color:#111827;padding:clamp(18px,2.2vw,26px) clamp(18px,3vw,30px);text-align:center
-  }
-  @media (prefers-color-scheme:dark){
-    .teacher-edit-scope .card-header{color:#0b1220}
+  .teacher-edit-scope .te-wrap{
+    max-width: 900px;
+    margin: 0 auto;
+    padding: clamp(10px, 2.5vw, 18px);
   }
 
-  .teacher-edit-scope .title{
-    margin:0 0 6px;font-weight:950;font-size:clamp(1.15rem,2vw,1.45rem);
-    display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap
-  }
-  .teacher-edit-scope .subtitle{margin:0;opacity:.95;font-weight:800;font-size:.95rem}
-
-  .teacher-edit-scope .form{padding:clamp(16px,3vw,26px)}
-  .teacher-edit-scope .grid{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:16px}
-  @media(max-width:820px){.teacher-edit-scope .grid{grid-template-columns:1fr}}
-
-  .teacher-edit-scope .group{display:block}
-  .teacher-edit-scope .group label{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:950;color:var(--ink)}
-  .teacher-edit-scope .icon{color:var(--brand)}
-  @media (prefers-color-scheme:dark){
-    .teacher-edit-scope .icon{color:#93c5fd}
+  .teacher-edit-scope .te-card{
+    background: var(--te-card);
+    border: 1px solid var(--te-line);
+    border-radius: var(--te-radius);
+    box-shadow: var(--te-shadow);
+    overflow: hidden;
   }
 
-  .teacher-edit-scope .control{
-    width:100%;min-height:var(--tap);padding:12px 14px;border:1px solid var(--line);border-radius:12px;
-    background:color-mix(in srgb, var(--card) 92%, #f8fafc 8%);color:var(--ink);
-    font-size:1rem;transition:box-shadow .18s ease,border-color .18s ease
+  .teacher-edit-scope .te-header{
+    background: linear-gradient(135deg, #f59e0b, #fb923c);
+    color: #111827;
+    padding: clamp(18px, 2.2vw, 26px) clamp(18px, 3vw, 30px);
+    text-align: center;
   }
-  .teacher-edit-scope .control:focus{outline:none;border-color:var(--brand);box-shadow:var(--ring)}
-  @media (prefers-color-scheme:dark){
-    .teacher-edit-scope .control{background:#0b1220;color:var(--ink)}
+  html[data-theme="dark"] .teacher-edit-scope .te-header{ color:#0b1220; }
+
+  .teacher-edit-scope .te-title{
+    margin: 0 0 6px;
+    font-weight: 950;
+    font-size: clamp(1.15rem, 2vw, 1.45rem);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .teacher-edit-scope .te-subtitle{
+    margin: 0;
+    opacity: .95;
+    font-weight: 800;
+    font-size: .95rem;
   }
 
-  .teacher-edit-scope .field-error{color:var(--danger);font-size:.92rem;margin-top:6px;font-weight:850}
-  .teacher-edit-scope .hint{color:var(--muted);font-size:.86rem;margin-top:6px;font-weight:800}
-
-  /* كلمة المرور */
-  .teacher-edit-scope .password-wrap{position:relative;display:flex;align-items:center}
-  .teacher-edit-scope .password-wrap .control{padding-right:46px}
-  .teacher-edit-scope .toggle{
-    position:absolute;inset-inline-end:10px;top:50%;transform:translateY(-50%);
-    width:36px;height:36px;border:1px solid var(--line);border-radius:10px;
-    background:color-mix(in srgb, var(--card) 92%, #f8fafc 8%);color:var(--muted);
-    cursor:pointer;display:grid;place-items:center
-  }
-  .teacher-edit-scope .toggle:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-  @media (prefers-color-scheme:dark){
-    .teacher-edit-scope .toggle{background:#0b1220}
+  .teacher-edit-scope .te-form{
+    padding: clamp(16px, 3vw, 26px);
   }
 
-  /* سويتش */
-  .teacher-edit-scope .switch-row{display:flex;align-items:center;gap:12px;margin-top:6px}
-  .teacher-edit-scope .switch{position:relative;display:inline-block;width:54px;height:30px;flex:0 0 auto}
-  .teacher-edit-scope .switch input{opacity:0;width:0;height:0}
-  .teacher-edit-scope .slider{position:absolute;cursor:pointer;inset:0;background:#cbd5e1;border-radius:999px;transition:.25s}
-  .teacher-edit-scope .slider:before{content:"";position:absolute;height:22px;width:22px;inset-inline-start:4px;top:4px;background:#fff;border-radius:50%;transition:.25s}
-  .teacher-edit-scope input:checked + .slider{background:var(--brand)}
-  .teacher-edit-scope input:checked + .slider:before{transform:translateX(-24px)}
-  .teacher-edit-scope .switch-text{flex:1}
-  .teacher-edit-scope .switch-text .hint{margin-top:4px}
-
-  /* رسائل */
-  .teacher-edit-scope .alert{
-    padding:12px 14px;border-radius:12px;margin-bottom:10px;border:1px solid var(--line);
-    background:color-mix(in srgb, var(--card) 92%, #eff6ff 8%);color:var(--ink);font-weight:850
+  .teacher-edit-scope .te-grid{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 16px;
   }
-  .teacher-edit-scope .alert.success{background:#ecfdf5;color:#065f46;border-color:color-mix(in srgb,#16a34a 25%, var(--line))}
-  .teacher-edit-scope .alert.error{background:#fef2f2;color:#991b1b;border-color:#fecaca}
-  .teacher-edit-scope .alert.warning{background:#fffbeb;color:#92400e;border-color:#fde68a}
-  .teacher-edit-scope .alert.info{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}
-  @media (prefers-color-scheme:dark){
-    .teacher-edit-scope .alert{background:#0b1220}
-    .teacher-edit-scope .alert.error{background:#2a0f14;color:#fecaca;border-color:#7f1d1d}
+  @media (max-width: 820px){
+    .teacher-edit-scope .te-grid{ grid-template-columns: 1fr; }
   }
 
-  /* أزرار */
-  .teacher-edit-scope .actions{
-    display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
-    margin-top:18px;padding-top:16px;border-top:1px solid var(--line)
+  .teacher-edit-scope .te-group{ display:block; }
+  .teacher-edit-scope .te-label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom: 8px;
+    font-weight: 950;
+    color: var(--te-ink);
   }
-  .teacher-edit-scope .btn{
-    display:inline-flex;align-items:center;gap:10px;justify-content:center;
-    min-height:var(--tap);padding:10px 16px;border-radius:12px;border:1px solid var(--line);
-    background:color-mix(in srgb, var(--card) 92%, #f8fafc 8%);font-weight:950;cursor:pointer;text-decoration:none;color:var(--ink);
-    transition:transform .12s ease, filter .12s ease
+  .teacher-edit-scope .te-icon{
+    color: var(--te-brand);
+    opacity: .95;
   }
-  .teacher-edit-scope .btn:hover{transform:translateY(-1px)}
-  .teacher-edit-scope .btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-  .teacher-edit-scope .btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff}
-  .teacher-edit-scope .btn-primary:hover{filter:brightness(1.03)}
-  .teacher-edit-scope .btn-outline{background:transparent}
-  @media (prefers-color-scheme:dark){
-    .teacher-edit-scope .btn{background:#0b1220;color:var(--ink)}
-    .teacher-edit-scope .btn-outline{background:transparent}
+  html[data-theme="dark"] .teacher-edit-scope .te-icon{ color:#93c5fd; }
+
+  .teacher-edit-scope .te-control{
+    width: 100%;
+    min-height: var(--te-tap);
+    padding: 12px 14px;
+    border: 1px solid var(--te-line);
+    border-radius: 12px;
+    background: var(--te-card);
+    background: color-mix(in srgb, var(--te-card) 92%, #f8fafc 8%);
+    color: var(--te-ink);
+    font-size: 1rem;
+    transition: box-shadow .18s ease, border-color .18s ease, transform .12s ease;
+  }
+  .teacher-edit-scope .te-control:focus{
+    outline: none;
+    border-color: var(--te-brand);
+    box-shadow: var(--te-ring);
+  }
+  html[data-theme="dark"] .teacher-edit-scope .te-control{
+    background: #0b1220;
+    color: var(--te-ink);
   }
 
-  @media(max-width:560px){
-    .teacher-edit-scope .form{padding:16px}
-    .teacher-edit-scope .actions{flex-direction:column}
-    .teacher-edit-scope .btn{width:100%}
+  .teacher-edit-scope .te-field-error{
+    color: var(--te-danger);
+    font-size: .92rem;
+    margin-top: 6px;
+    font-weight: 850;
+  }
+  .teacher-edit-scope .te-hint{
+    color: var(--te-muted);
+    font-size: .86rem;
+    margin-top: 6px;
+    font-weight: 800;
+  }
+
+  /* Password */
+  .teacher-edit-scope .te-password-wrap{
+    position: relative;
+    display:flex;
+    align-items:center;
+  }
+  .teacher-edit-scope .te-password-wrap .te-control{ padding-inline-end: 46px; }
+
+  .teacher-edit-scope .te-toggle{
+    position:absolute;
+    inset-inline-end: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--te-line);
+    border-radius: 10px;
+    background: var(--te-card);
+    background: color-mix(in srgb, var(--te-card) 92%, #f8fafc 8%);
+    color: var(--te-muted);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .teacher-edit-scope .te-toggle:focus-visible{
+    outline: 2px solid var(--te-brand);
+    outline-offset: 2px;
+  }
+  html[data-theme="dark"] .teacher-edit-scope .te-toggle{ background:#0b1220; }
+
+  /* Switch */
+  .teacher-edit-scope .te-switch-row{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    margin-top: 6px;
+  }
+  .teacher-edit-scope .te-switch{
+    position: relative;
+    display: inline-block;
+    width: 54px;
+    height: 30px;
+    flex: 0 0 auto;
+  }
+  .teacher-edit-scope .te-switch input{
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .teacher-edit-scope .te-slider{
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: 999px;
+    transition: .25s;
+  }
+  .teacher-edit-scope .te-slider:before{
+    content:"";
+    position:absolute;
+    height: 22px;
+    width: 22px;
+    inset-inline-start: 4px;
+    top: 4px;
+    background:#fff;
+    border-radius: 50%;
+    transition: .25s;
+  }
+  .teacher-edit-scope .te-switch input:checked + .te-slider{ background: var(--te-brand); }
+  .teacher-edit-scope .te-switch input:checked + .te-slider:before{ transform: translateX(-24px); }
+
+  .teacher-edit-scope .te-switch-text{ flex: 1; }
+  .teacher-edit-scope .te-switch-text .te-hint{ margin-top: 4px; }
+
+  /* Alerts */
+  .teacher-edit-scope .te-alert{
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    border: 1px solid var(--te-line);
+    background: var(--te-card);
+    background: color-mix(in srgb, var(--te-card) 92%, #eff6ff 8%);
+    color: var(--te-ink);
+    font-weight: 850;
+  }
+  .teacher-edit-scope .te-alert.success{ background:#ecfdf5; color:#065f46; border-color: color-mix(in srgb,#16a34a 25%, var(--te-line)); }
+  .teacher-edit-scope .te-alert.error{ background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+  .teacher-edit-scope .te-alert.warning{ background:#fffbeb; color:#92400e; border-color:#fde68a; }
+  .teacher-edit-scope .te-alert.info{ background:#eff6ff; color:#1e40af; border-color:#bfdbfe; }
+
+  html[data-theme="dark"] .teacher-edit-scope .te-alert{ background:#0b1220; }
+  html[data-theme="dark"] .teacher-edit-scope .te-alert.error{ background:#2a0f14; color:#fecaca; border-color:#7f1d1d; }
+
+  /* Actions */
+  .teacher-edit-scope .te-actions{
+    display:flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--te-line);
+  }
+
+  .teacher-edit-scope .te-btn{
+    display:inline-flex;
+    align-items:center;
+    gap: 10px;
+    justify-content:center;
+    min-height: var(--te-tap);
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--te-line);
+    background: var(--te-card);
+    background: color-mix(in srgb, var(--te-card) 92%, #f8fafc 8%);
+    font-weight: 950;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--te-ink);
+    transition: transform .12s ease, filter .12s ease, opacity .12s ease;
+  }
+  .teacher-edit-scope .te-btn:hover{ transform: translateY(-1px); }
+  .teacher-edit-scope .te-btn:focus-visible{ outline: 2px solid var(--te-brand); outline-offset: 2px; }
+
+  .teacher-edit-scope .te-btn-primary{
+    background: linear-gradient(135deg, var(--te-brand), var(--te-brand2));
+    border-color: transparent;
+    color: #fff;
+  }
+  .teacher-edit-scope .te-btn-primary:hover{ filter: brightness(1.03); }
+
+  .teacher-edit-scope .te-btn-outline{ background: transparent; }
+
+  html[data-theme="dark"] .teacher-edit-scope .te-btn{ background:#0b1220; color: var(--te-ink); }
+  html[data-theme="dark"] .teacher-edit-scope .te-btn-outline{ background: transparent; }
+
+  @media (max-width: 560px){
+    .teacher-edit-scope .te-form{ padding: 16px; }
+    .teacher-edit-scope .te-actions{ flex-direction: column; }
+    .teacher-edit-scope .te-btn{ width: 100%; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="teacher-edit-scope">
-  <div class="wrap" dir="rtl">
-    <div class="card">
-      <div class="card-header">
-        <h2 class="title"><i class="fas fa-user-edit" aria-hidden="true"></i> تعديل بيانات المعلم</h2>
-        <p class="subtitle">
+  <div class="te-wrap" dir="rtl">
+    <div class="te-card">
+      <div class="te-header">
+        <h2 class="te-title">
+          <i class="fa-solid fa-user-pen" aria-hidden="true"></i>
+          تعديل بيانات المعلم
+        </h2>
+        <p class="te-subtitle">
           قم بتعديل البيانات الخاصة بالمعلم
-          {% if teacher %}{{ teacher.name }}{% else %}{{ form.initial.name }}{% endif %}
+          {% firstof teacher.name form.initial.name "" %}
         </p>
       </div>
 
-      <form method="post" class="form" novalidate id="teacherEditForm">
+      <form method="post" class="te-form" novalidate id="teacherEditForm">
         {% csrf_token %}
 
         {% if messages %}
           <div id="flash">
             {% for m in messages %}
-              <div class="alert {{ m.tags }}">{{ m }}</div>
+              <div class="te-alert {{ m.tags }}">{{ m }}</div>
             {% endfor %}
           </div>
         {% endif %}
 
         {% if form.non_field_errors %}
-          <div class="alert error" role="alert">
+          <div class="te-alert error" role="alert">
             {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
           </div>
         {% endif %}
 
-        <div class="grid">
-          <div class="group">
-            <label for="{{ form.name.id_for_label }}"><i class="fas fa-user icon" aria-hidden="true"></i> اسم المعلم</label>
+        <div class="te-grid">
+          <div class="te-group">
+            <label class="te-label" for="{{ form.name.id_for_label }}">
+              <i class="fa-solid fa-user te-icon" aria-hidden="true"></i>
+              اسم المعلم
+            </label>
             {{ form.name }}
-            {% for e in form.name.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">الاسم الكامل للمعلم</div>
+            {% for e in form.name.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
+            <div class="te-hint">الاسم الكامل للمعلم</div>
           </div>
 
-          <div class="group">
-            <label for="{{ form.national_id.id_for_label }}"><i class="fas fa-id-card icon" aria-hidden="true"></i> رقم الهوية</label>
+          <div class="te-group">
+            <label class="te-label" for="{{ form.national_id.id_for_label }}">
+              <i class="fa-solid fa-id-card te-icon" aria-hidden="true"></i>
+              رقم الهوية
+            </label>
             {{ form.national_id }}
-            {% for e in form.national_id.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">رقم الهوية الوطنية مكوّن من 10 أرقام (اختياري)</div>
+            {% for e in form.national_id.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
+            <div class="te-hint">رقم الهوية الوطنية مكوّن من 10 أرقام (اختياري)</div>
           </div>
 
-          <div class="group">
-            <label for="{{ form.phone.id_for_label }}"><i class="fas fa-phone icon" aria-hidden="true"></i> رقم الجوال</label>
+          <div class="te-group">
+            <label class="te-label" for="{{ form.phone.id_for_label }}">
+              <i class="fa-solid fa-phone te-icon" aria-hidden="true"></i>
+              رقم الجوال
+            </label>
             {{ form.phone }}
-            {% for e in form.phone.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">يبدأ بـ 05 ويحتوي على 10 أرقام</div>
+            {% for e in form.phone.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
+            <div class="te-hint">يبدأ بـ 05 ويحتوي على 10 أرقام</div>
           </div>
 
-          <div class="group">
-            <label for="{{ form.password.id_for_label }}"><i class="fas fa-key icon" aria-hidden="true"></i> كلمة المرور</label>
-            <div class="password-wrap">
+          <div class="te-group">
+            <label class="te-label" for="{{ form.password.id_for_label }}">
+              <i class="fa-solid fa-key te-icon" aria-hidden="true"></i>
+              كلمة المرور
+            </label>
+            <div class="te-password-wrap">
               {{ form.password }}
-              <button type="button" class="toggle" id="togglePassword" aria-label="إظهار/إخفاء كلمة المرور">
-                <i class="fas fa-eye" aria-hidden="true"></i>
+              <button type="button" class="te-toggle" id="togglePassword" aria-label="إظهار/إخفاء كلمة المرور">
+                <i class="fa-solid fa-eye" aria-hidden="true"></i>
               </button>
             </div>
-            {% for e in form.password.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">اترك الحقل فارغًا للحفاظ على كلمة المرور الحالية</div>
+            {% for e in form.password.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
+            <div class="te-hint">اترك الحقل فارغًا للحفاظ على كلمة المرور الحالية</div>
           </div>
 
-          <div class="group" style="grid-column: 1 / -1;">
-            <div class="switch-row">
-              <label class="switch" aria-label="تفعيل/تعطيل">
+          <div class="te-group" style="grid-column: 1 / -1;">
+            <div class="te-switch-row">
+              <label class="te-switch" aria-label="تفعيل/تعطيل">
                 {{ form.is_active }}
-                <span class="slider"></span>
+                <span class="te-slider"></span>
               </label>
 
-              <div class="switch-text">
-                <div style="display:flex;align-items:center;gap:8px;font-weight:950;color:var(--ink)">
-                  <i class="fas fa-toggle-on icon" aria-hidden="true"></i> نشط
+              <div class="te-switch-text">
+                <div style="display:flex;align-items:center;gap:8px;font-weight:950;color:var(--te-ink)">
+                  <i class="fa-solid fa-toggle-on te-icon" aria-hidden="true"></i>
+                  نشط
                 </div>
-                <div class="hint">تفعيل أو إلغاء تفعيل حساب المعلم</div>
-                {% for e in form.is_active.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+                <div class="te-hint">تفعيل أو إلغاء تفعيل حساب المعلم</div>
+                {% for e in form.is_active.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
               </div>
             </div>
           </div>
@@ -211,18 +381,21 @@
           <input type="hidden" name="next" value="{{ request.GET.next }}">
         {% endif %}
 
-        <div class="actions">
-          <button type="submit" class="btn btn-primary" id="saveBtn">
-            <i class="fas fa-save" aria-hidden="true"></i> حفظ التعديلات
+        <div class="te-actions">
+          <button type="submit" class="te-btn te-btn-primary" id="saveBtn">
+            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+            <span data-label>حفظ التعديلات</span>
           </button>
 
           {% if request.GET.next %}
-            <a href="{{ request.GET.next }}" class="btn btn-outline">
-              <i class="fas fa-arrow-right" aria-hidden="true"></i> رجوع
+            <a href="{{ request.GET.next }}" class="te-btn te-btn-outline">
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              رجوع
             </a>
           {% else %}
-            <a href="{% url 'reports:manage_teachers' %}" class="btn btn-outline">
-              <i class="fas fa-arrow-right" aria-hidden="true"></i> رجوع للقائمة
+            <a href="{% url 'reports:manage_teachers' %}" class="te-btn te-btn-outline">
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              رجوع للقائمة
             </a>
           {% endif %}
         </div>
@@ -234,63 +407,85 @@
 
 {% block scripts %}
 {{ block.super }}
-<script>
+<script nonce="{{ CSP_NONCE|default:'' }}">
   (function(){
-    const form = document.getElementById('teacherEditForm');
+    var form = document.getElementById('teacherEditForm');
     if(!form) return;
 
-    // إضافة class=control لكل الحقول القادمة من Django
-    form.querySelectorAll('input:not([type="checkbox"]), select, textarea').forEach(el=>{
-      if(!el.classList.contains('control')) el.classList.add('control');
+    // أضف class te-control لجميع الحقول (بدون checkbox)
+    form.querySelectorAll('input:not([type="checkbox"]), select, textarea').forEach(function(el){
+      if(!el.classList.contains('te-control')) el.classList.add('te-control');
     });
 
-    // تحسين تجربة إدخال الهوية والجوال
-    const national = document.getElementById('{{ form.national_id.id_for_label }}') || document.getElementById('id_national_id');
-    const phone = document.getElementById('{{ form.phone.id_for_label }}') || document.getElementById('id_phone');
+    // تحسين إدخال الهوية والجوال + محاذاة LTR
+    var national = document.getElementById('{{ form.national_id.id_for_label }}') || document.getElementById('id_national_id');
+    var phone = document.getElementById('{{ form.phone.id_for_label }}') || document.getElementById('id_phone');
+
     if(national){
       national.setAttribute('inputmode','numeric');
       national.setAttribute('pattern','\\d{10}');
       national.setAttribute('maxlength','10');
+      national.setAttribute('autocomplete','off');
       national.dir = 'ltr';
       national.style.textAlign = 'left';
     }
+
     if(phone){
       phone.setAttribute('inputmode','tel');
       phone.setAttribute('pattern','05\\d{8}');
       phone.setAttribute('maxlength','10');
+      phone.setAttribute('autocomplete','tel');
       phone.dir = 'ltr';
       phone.style.textAlign = 'left';
     }
 
+    // كلمة المرور: autocomplete جديد
+    var password = document.getElementById('{{ form.password.id_for_label }}')
+      || document.getElementById('id_password')
+      || form.querySelector('input[name="password"]');
+
+    if(password){
+      password.setAttribute('autocomplete','new-password');
+    }
+
     // إظهار/إخفاء كلمة المرور
-    const toggle = document.getElementById('togglePassword');
-    const password = document.getElementById('{{ form.password.id_for_label }}') || document.getElementById('id_password') || form.querySelector('input[name="password"]');
+    var toggle = document.getElementById('togglePassword');
     if(toggle && password){
-      toggle.addEventListener('click', ()=>{
-        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-        password.setAttribute('type', type);
-        const ic = toggle.querySelector('i');
+      toggle.addEventListener('click', function(){
+        var isPw = password.getAttribute('type') === 'password';
+        password.setAttribute('type', isPw ? 'text' : 'password');
+
+        var ic = toggle.querySelector('i');
         if(ic){
-          ic.classList.toggle('fa-eye');
-          ic.classList.toggle('fa-eye-slash');
+          ic.classList.toggle('fa-eye', !isPw);
+          ic.classList.toggle('fa-eye-slash', isPw);
         }
       });
     }
 
-    // إخفاء رسائل الفلاش بعد 3 ثواني (بدون إزالة لو فيها أخطاء نموذج)
-    const flash = document.getElementById('flash');
+    // إخفاء رسائل الفلاش غير الخطأ بعد 3 ثوانٍ
+    var flash = document.getElementById('flash');
     if(flash){
-      window.setTimeout(()=>{ flash.style.display = 'none'; }, 3000);
+      window.setTimeout(function(){
+        flash.querySelectorAll('.te-alert').forEach(function(a){
+          if(!a.classList.contains('error')){
+            a.style.display = 'none';
+          }
+        });
+      }, 3000);
     }
 
     // منع الإرسال المزدوج
-    form.addEventListener('submit', ()=>{
-      const btn = document.getElementById('saveBtn');
-      if(btn){
-        btn.disabled = true;
-        btn.style.opacity = '.75';
-        btn.textContent = 'جارٍ الحفظ...';
-      }
+    form.addEventListener('submit', function(){
+      var btn = document.getElementById('saveBtn');
+      if(!btn) return;
+
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.style.opacity = '.75';
+
+      var lbl = btn.querySelector('[data-label]');
+      if(lbl) lbl.textContent = 'جارٍ الحفظ...';
     });
   })();
 </script>

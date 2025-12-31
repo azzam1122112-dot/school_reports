@@ -1,0 +1,245 @@
+{# reports/templates/reports/achievement_files.html (مثال اسم) #}
+{% extends "base.html" %}
+{% block title %}ملف الإنجاز{% endblock %}
+
+{% block head %}
+<style>
+  /* =========================================================
+     Achievement Files — scoped (بدون لمس .btn / .card العامة)
+     ========================================================= */
+  .af-wrap{ max-width:1050px; margin:0 auto; padding:clamp(12px,2.4vw,18px); }
+
+  .af-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+
+  .af-head{
+    padding:16px 18px;
+    background:
+      radial-gradient(800px 320px at 10% 0%, rgba(255,255,255,.18), transparent 60%),
+      linear-gradient(135deg, rgba(37,99,235,.94), rgba(59,130,246,.86));
+    color:#fff;
+    border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .af-head h1{ margin:0; font-weight:950; font-size:1.35rem; letter-spacing:-.2px; }
+  .af-head p{ margin:6px 0 0; opacity:.95; font-weight:800; }
+
+  .af-body{ padding:16px 18px; }
+
+  .af-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+  }
+  .af-field{ flex:1 1 260px; }
+
+  .af-label{
+    display:block;
+    margin:0 0 6px;
+    font-weight:900;
+    color:var(--ink);
+  }
+
+  /* نطبّق الستايل على أي input/select/textarea داخل الحقل */
+  .af-field input,
+  .af-field select,
+  .af-field textarea{
+    width:100%;
+    min-height:var(--tap);
+    border-radius:14px;
+    border:1px solid var(--line);
+    padding:12px 14px;
+    background: rgba(248,250,252,.85);
+    font-weight:800;
+    color:var(--ink);
+    outline:none;
+    transition: var(--t-fast);
+  }
+  html[data-theme="dark"] .af-field input,
+  html[data-theme="dark"] .af-field select,
+  html[data-theme="dark"] .af-field textarea{
+    background: rgba(255,255,255,.04);
+    border-color: rgba(148,163,184,.18);
+  }
+  .af-field input:focus,
+  .af-field select:focus,
+  .af-field textarea:focus{
+    box-shadow: 0 0 0 4px rgba(37,99,235,.18);
+    border-color: rgba(37,99,235,.45);
+  }
+
+  .af-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+  /* أزرار خاصة بالصفحة */
+  .af-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:44px;
+    padding:0 14px;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    text-decoration:none;
+    font-weight:950;
+    transition: var(--t-fast);
+    cursor:pointer;
+    user-select:none;
+  }
+  .af-btn:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(2,6,23,.08);
+  }
+  .af-btn-primary{
+    background: var(--brand);
+    border-color: rgba(37,99,235,.25);
+    color:#fff;
+  }
+  .af-btn-primary:hover{ box-shadow: 0 16px 30px rgba(37,99,235,.22); }
+
+  .af-divider{
+    margin:14px 0;
+    height:1px;
+    background: var(--line);
+  }
+
+  .af-list{ margin-top:14px; display:grid; gap:10px; }
+
+  .af-item{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:center;
+    padding:12px 14px;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+  }
+  html[data-theme="dark"] .af-item{
+    background: rgba(255,255,255,.03);
+  }
+
+  .af-meta{ display:grid; gap:4px; }
+  .af-meta b{ font-weight:950; color:var(--ink); }
+  .af-meta small{ color:var(--muted); font-weight:800; }
+
+  .af-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:950;
+    font-size:.85rem;
+    color:#fff;
+    white-space:nowrap;
+  }
+  .af-pill-blue{ background:#2563eb; }
+  .af-pill-green{ background:#10b981; }
+  .af-pill-amber{ background:#f59e0b; }
+  .af-pill-red{ background:#ef4444; }
+  .af-pill-gray{ background:#64748b; }
+
+  .af-empty{
+    padding:14px;
+    border-radius:16px;
+    border:1px dashed var(--line);
+    background: linear-gradient(180deg, var(--card), var(--line-2));
+  }
+  .af-empty b{ font-weight:950; color:var(--ink); }
+  .af-empty p{ margin:6px 0 0; color:var(--muted); font-weight:800; }
+
+  .af-err{
+    margin-top:6px;
+    color:#b91c1c;
+    font-weight:900;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .af-btn, .af-item{ transition:none !important; }
+    .af-btn:hover{ transform:none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="af-wrap">
+  <div class="af-card">
+    <div class="af-head">
+      <h1>ملف الإنجاز</h1>
+      <p>إنشاء وإدارة ملف الإنجاز السنوي</p>
+    </div>
+
+    <div class="af-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create" />
+
+        {% if create_form.non_field_errors %}
+          <div class="af-err">{{ create_form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="af-row">
+          <div class="af-field">
+            <label class="af-label" for="{{ create_form.academic_year.id_for_label }}">{{ create_form.academic_year.label }}</label>
+            {{ create_form.academic_year }}
+            {% if create_form.academic_year.errors %}
+              <div class="af-err">{{ create_form.academic_year.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="af-actions" style="flex:0 0 auto">
+            <button class="af-btn af-btn-primary" type="submit">
+              <i class="fa-solid fa-plus"></i>
+              إنشاء ملف للسنة
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div class="af-divider" role="separator" aria-hidden="true"></div>
+
+      <div class="af-list" aria-label="ملفات الإنجاز">
+        {% for f in files %}
+          <div class="af-item">
+            <div class="af-meta">
+              <b>
+                <i class="fa-solid fa-folder-open" style="opacity:.85"></i>
+                {{ f.academic_year }} هـ
+              </b>
+              <small>
+                الحالة:
+                {# لون الشارة بسيط، غيّره حسب statuses الفعلية عندك #}
+                <span class="af-pill af-pill-gray">{{ f.get_status_display }}</span>
+              </small>
+            </div>
+
+            <div class="af-actions">
+              <a class="af-btn" href="{% url 'reports:achievement_file_detail' f.pk %}">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                فتح
+              </a>
+              <a class="af-btn" href="{% url 'reports:achievement_file_pdf' f.pk %}">
+                <i class="fa-solid fa-file-pdf"></i>
+                تحميل PDF
+              </a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="af-empty">
+            <b>لا يوجد ملفات بعد</b>
+            <p>أنشئ ملفًا لسنة دراسية جديدة من الأعلى.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

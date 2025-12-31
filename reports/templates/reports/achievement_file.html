@@ -1,0 +1,565 @@
+{# reports/templates/reports/achievement_file_detail.html (or your file) #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}ملف الإنجاز{% endblock %}
+
+{% block head %}
+<style>
+  /* =========================================================
+     Achievement File (page-scoped) — بدون كسر base.css
+     - لا نعيد تعريف .btn / .card العامة
+     - كل شيء scoped داخل .af-wrap
+     ========================================================= */
+
+  .af-wrap{max-width:1200px;margin:0 auto;padding:clamp(12px,2.4vw,18px)}
+
+  .af-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .af-head{padding:16px 18px}
+  .af-body{padding:16px 18px}
+
+  /* HERO */
+  .af-hero{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:18px;
+    border-radius:16px;
+    background: linear-gradient(135deg, rgba(37,99,235,.92), rgba(16,185,129,.78));
+    color:#fff;
+    position:relative;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.16);
+  }
+  .af-hero::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(closest-side, rgba(255,255,255,.14), transparent 60%) 20% 15%/220px 220px no-repeat,
+      radial-gradient(closest-side, rgba(255,255,255,.10), transparent 60%) 85% 70%/260px 260px no-repeat;
+    pointer-events:none;
+    opacity:.85;
+  }
+
+  .af-hero-side{flex:1;min-width:0;position:relative}
+  .af-hero-right{text-align:right}
+  .af-hero-left{text-align:left}
+  .af-hero-center{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative}
+
+  .af-ministry-logo{
+    width:74px;
+    height:74px;
+    object-fit:contain;
+    background:#fff;
+    border-radius:14px;
+    padding:8px;
+    border:1px solid rgba(255,255,255,.22);
+    box-shadow: 0 14px 30px rgba(2,6,23,.18);
+  }
+
+  .af-hero-school{margin:0;font-weight:950;font-size:1.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .af-hero-stage{margin-top:6px;opacity:.95;font-weight:850;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .af-hero-type{opacity:.95;font-weight:950;font-size:1.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .af-hero-teacher{margin-top:6px;opacity:.98;font-weight:900;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .af-hero-year{opacity:.95;font-weight:900;font-size:.95rem;white-space:nowrap}
+
+  @media(max-width:820px){
+    .af-hero{flex-direction:column;align-items:stretch}
+    .af-hero-center{order:-1}
+    .af-hero-left, .af-hero-right{text-align:center}
+  }
+
+  /* Top meta */
+  .af-head-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-top:12px}
+
+  .af-badge{
+    display:inline-flex;
+    gap:8px;
+    align-items:center;
+    padding:8px 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.22);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    font-weight:950;
+    color:#fff;
+  }
+  .af-badge i{opacity:.95}
+
+  /* Status pill */
+  .af-status{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 12px;
+    border-radius:999px;
+    font-weight:950;
+    border:1px solid rgba(255,255,255,.22);
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+  .af-status-dot{width:10px;height:10px;border-radius:999px;background:#cbd5e1}
+  .af-s-draft   .af-status-dot{background:#94a3b8}
+  .af-s-submit  .af-status-dot{background:#f59e0b}
+  .af-s-approve .af-status-dot{background:#10b981}
+  .af-s-return  .af-status-dot{background:#ef4444}
+
+  .af-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+
+  /* Page buttons (scoped) */
+  .af-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:44px;
+    padding:0 14px;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    text-decoration:none;
+    font-weight:950;
+    cursor:pointer;
+    transition: var(--t-fast);
+  }
+  .af-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(2,6,23,.07)}
+  .af-btn-primary{background:var(--brand);border-color:rgba(37,99,235,.2);color:#fff}
+  .af-btn-danger{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.22);color:var(--ink)}
+  html[data-theme="dark"] .af-btn-danger{color:#fff}
+
+  /* Forms layout */
+  .af-grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media(max-width:900px){.af-grid{grid-template-columns:1fr}}
+
+  .af-label{display:block;margin:0 0 6px;font-weight:900;color:var(--ink)}
+  .af-muted{color:var(--muted);font-weight:850}
+
+  /* Style any Django form widgets داخل هذا القسم بدون الحاجة لتعديل الـForm */
+  .af-form input[type="text"],
+  .af-form input[type="number"],
+  .af-form input[type="email"],
+  .af-form input[type="tel"],
+  .af-form input[type="url"],
+  .af-form input[type="date"],
+  .af-form select,
+  .af-form textarea{
+    width:100%;
+    border-radius:14px;
+    border:1px solid var(--line);
+    padding:12px 14px;
+    background:rgba(248,250,252,.85);
+    font-weight:800;
+    outline:none;
+  }
+  .af-form textarea{min-height:110px;resize:vertical}
+  html[data-theme="dark"] .af-form input,
+  html[data-theme="dark"] .af-form select,
+  html[data-theme="dark"] .af-form textarea{
+    background:rgba(255,255,255,.04);
+    border-color:rgba(148,163,184,.16);
+    color:var(--ink);
+  }
+
+  .af-note{
+    padding:12px 14px;
+    border-radius:16px;
+    border:1px solid rgba(245,158,11,.25);
+    background:rgba(245,158,11,.08);
+    font-weight:900;
+  }
+
+  /* Sections */
+  .af-sections{display:grid;gap:12px}
+  .af-details{
+    border:1px solid var(--line);
+    border-radius:16px;
+    overflow:hidden;
+    background:rgba(255,255,255,.50);
+  }
+  html[data-theme="dark"] .af-details{background:rgba(255,255,255,.03)}
+  .af-summary{
+    cursor:pointer;
+    list-style:none;
+    padding:12px 14px;
+    font-weight:950;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .af-summary::-webkit-details-marker{display:none}
+  .af-sec-body{padding:12px 14px;border-top:1px solid var(--line)}
+
+  /* Evidence grid */
+  .af-evidence{
+    margin-top:10px;
+    display:grid;
+    gap:10px;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  @media(max-width:1024px){.af-evidence{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+  .af-imgbox{
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+    background:var(--card);
+  }
+  .af-imgbtn{
+    padding:0;
+    border:none;
+    background:transparent;
+    cursor:pointer;
+    display:block;
+    width:100%;
+    text-align:inherit;
+  }
+  .af-imgbox img{
+    display:block;
+    width:100%;
+    height:140px;
+    object-fit:cover;
+  }
+  .af-img-actions{padding:8px;display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap}
+  .af-empty-mini{grid-column:1/-1}
+
+  /* Image preview modal */
+  .af-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(2,6,23,.62);
+    z-index:14000;
+    display:none;
+    place-items:center;
+    padding:12px;
+  }
+  .af-modal.is-open{display:grid}
+  .af-modal-card{
+    width:min(980px, 96vw);
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 40px 90px rgba(2,6,23,.28);
+  }
+  .af-modal-hd{
+    padding:12px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, var(--line-2), var(--card));
+  }
+  .af-modal-ttl{margin:0;font-weight:950;color:var(--ink);display:flex;align-items:center;gap:8px}
+  .af-modal-close{
+    width:44px;height:44px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);
+    cursor:pointer;font-weight:900;color:var(--ink);
+  }
+  .af-modal-bd{padding:10px}
+  .af-modal-bd img{width:100%;height:auto;display:block}
+
+  @media (prefers-reduced-motion: reduce){
+    .af-btn{transition:none}
+    .af-btn:hover{transform:none;box-shadow:none}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="af-wrap">
+  <div class="af-card">
+    <div class="af-head">
+      <header class="af-hero" aria-label="رأس ملف الإنجاز">
+        <div class="af-hero-side af-hero-right">
+          <div class="af-hero-school">{{ file.school_name }}</div>
+          <div class="af-hero-stage">
+            {% if current_school %}{{ current_school.get_stage_display }}{% else %}{{ file.school_stage }}{% endif %}
+          </div>
+        </div>
+
+        <div class="af-hero-center" aria-label="شعار والعام الدراسي">
+          <img class="af-ministry-logo" src="{% static 'img/UntiTtled-1.png' %}" alt="شعار الوزارة">
+          <div class="af-hero-year">{{ file.academic_year }} هـ</div>
+        </div>
+
+        <div class="af-hero-side af-hero-left">
+          <div class="af-hero-type">ملف الإنجاز</div>
+          <div class="af-hero-teacher">{{ file.teacher_name }}</div>
+        </div>
+      </header>
+
+      <div class="af-head-top">
+        {# حالة ملوّنة بشكل دفاعي حسب الأكواد الشائعة #}
+        {% if file.status == "approved" or file.status == "APPROVED" %}
+          <div class="af-status af-s-approve"><span class="af-status-dot" aria-hidden="true"></span> الحالة: {{ file.get_status_display }}</div>
+        {% else %}
+          {% if file.status == "submitted" or file.status == "SUBMITTED" %}
+            <div class="af-status af-s-submit"><span class="af-status-dot" aria-hidden="true"></span> الحالة: {{ file.get_status_display }}</div>
+          {% else %}
+            {% if file.status == "returned" or file.status == "RETURNED" or file.status == "rejected" or file.status == "REJECTED" %}
+              <div class="af-status af-s-return"><span class="af-status-dot" aria-hidden="true"></span> الحالة: {{ file.get_status_display }}</div>
+            {% else %}
+              <div class="af-status af-s-draft"><span class="af-status-dot" aria-hidden="true"></span> الحالة: {{ file.get_status_display }}</div>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+
+        <div class="af-badge" aria-label="معلومة">
+          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+          {% if can_edit_teacher %}وضع التحرير{% else %}عرض فقط{% endif %}
+        </div>
+      </div>
+
+      <div class="af-actions" aria-label="إجراءات">
+        <a class="af-btn" href="{{ back_url }}" title="رجوع">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع
+        </a>
+
+        <a class="af-btn" href="{% url 'reports:achievement_file_print' file.pk %}" target="_blank" rel="noopener">
+          <i class="fa-solid fa-print" aria-hidden="true"></i> طباعة / حفظ PDF
+        </a>
+
+        {% if is_owner %}
+          <a class="af-btn" href="{% url 'reports:achievement_my_files' %}">
+            <i class="fa-solid fa-folder-open" aria-hidden="true"></i> كل ملفاتي
+          </a>
+        {% else %}
+          <a class="af-btn" href="{% url 'reports:achievement_school_files' %}">
+            <i class="fa-solid fa-school" aria-hidden="true"></i> ملفات المدرسة
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="af-body">
+      {% if file.manager_notes %}
+        <div class="af-note">ملاحظات المدير: {{ file.manager_notes|linebreaksbr }}</div>
+      {% endif %}
+
+      <h2 style="margin:14px 0 10px;font-weight:950">البيانات العامة</h2>
+
+      {% if can_edit_teacher %}
+        <form class="af-form" method="post" autocomplete="off">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_general" />
+          <div class="af-grid">
+            <div>
+              <label class="af-label">المؤهلات</label>
+              {{ general_form.qualifications }}
+            </div>
+            <div>
+              <label class="af-label">الخبرات المهنية</label>
+              {{ general_form.professional_experience }}
+            </div>
+            <div>
+              <label class="af-label">التخصص</label>
+              {{ general_form.specialization }}
+            </div>
+            <div>
+              <label class="af-label">نصاب الحصص</label>
+              {{ general_form.teaching_load }}
+            </div>
+            <div>
+              <label class="af-label">مواد التدريس</label>
+              {{ general_form.subjects_taught }}
+            </div>
+            <div>
+              <label class="af-label">بيانات التواصل</label>
+              {{ general_form.contact_info }}
+            </div>
+          </div>
+
+          <div class="af-actions" style="margin-top:12px">
+            <button class="af-btn af-btn-primary" type="submit">حفظ البيانات العامة</button>
+            <button class="af-btn" type="submit" name="action" value="import_prev">
+              <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> استيراد من آخر ملف
+            </button>
+            <button class="af-btn af-btn-primary" type="submit" name="action" value="submit">
+              <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> إرسال للاعتماد
+            </button>
+          </div>
+
+          <p class="af-muted" style="margin:10px 0 0">
+            ملاحظة: بعد الإرسال يصبح الملف للعرض فقط حتى قرار المدير.
+          </p>
+        </form>
+      {% else %}
+        <div class="af-grid">
+          <div><b>المؤهلات</b><div class="af-muted">{{ file.qualifications|default:"-"|linebreaksbr }}</div></div>
+          <div><b>الخبرات المهنية</b><div class="af-muted">{{ file.professional_experience|default:"-"|linebreaksbr }}</div></div>
+          <div><b>التخصص</b><div class="af-muted">{{ file.specialization|default:"-"|linebreaksbr }}</div></div>
+          <div><b>نصاب الحصص</b><div class="af-muted">{{ file.teaching_load|default:"-"|linebreaksbr }}</div></div>
+          <div><b>مواد التدريس</b><div class="af-muted">{{ file.subjects_taught|default:"-"|linebreaksbr }}</div></div>
+          <div><b>بيانات التواصل</b><div class="af-muted">{{ file.contact_info|default:"-"|linebreaksbr }}</div></div>
+        </div>
+      {% endif %}
+
+      {% if is_manager %}
+        <h2 style="margin:18px 0 10px;font-weight:950">اعتماد مدير المدرسة</h2>
+        <form class="af-form" method="post" autocomplete="off">
+          {% csrf_token %}
+          <div>
+            <label class="af-label">ملاحظات المدير</label>
+            {{ manager_notes_form.manager_notes }}
+          </div>
+          <div class="af-actions" style="margin-top:12px">
+            <button class="af-btn af-btn-primary" type="submit" name="action" value="approve">
+              <i class="fa-solid fa-circle-check" aria-hidden="true"></i> اعتماد + شكر/تحفيز
+            </button>
+            <button class="af-btn" type="submit" name="action" value="return">
+              <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> رفض/إرجاع مع ملاحظة
+            </button>
+          </div>
+        </form>
+      {% endif %}
+
+      <h2 style="margin:18px 0 10px;font-weight:950">المحاور والشواهد</h2>
+
+      <div class="af-sections">
+        {% for s in sections %}
+          <details class="af-details">
+            <summary class="af-summary">
+              <span>{{ s.get_code_display }}</span>
+              <span class="af-muted">({{ s.evidence_images.count }}/8)</span>
+            </summary>
+
+            <div class="af-sec-body">
+              {% if can_edit_teacher %}
+                <form class="af-form" method="post" autocomplete="off">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="save_section" />
+                  <input type="hidden" name="section_id" value="{{ s.id }}" />
+                  <label class="af-label">ملاحظات المعلّم</label>
+                  <textarea name="teacher_notes">{{ s.teacher_notes }}</textarea>
+                  <div class="af-actions" style="margin-top:10px">
+                    <button class="af-btn af-btn-primary" type="submit">
+                      <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ ملاحظات المحور
+                    </button>
+                  </div>
+                </form>
+
+                <form class="af-form" method="post" enctype="multipart/form-data" style="margin-top:10px" autocomplete="off">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="upload_evidence" />
+                  <input type="hidden" name="section_id" value="{{ s.id }}" />
+                  <label class="af-label">إضافة صور (حتى 8)</label>
+                  <input type="file" name="images" multiple accept="image/*" />
+                  <div class="af-actions" style="margin-top:10px">
+                    <button class="af-btn af-btn-primary" type="submit">
+                      <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> رفع الصور
+                    </button>
+                  </div>
+                  <div class="af-muted" style="margin-top:8px">تلميح: على الجوال يمكنك اختيار الكاميرا أو الاستديو من نافذة الاختيار.</div>
+                </form>
+              {% else %}
+                <div><b>ملاحظات المعلّم</b><div class="af-muted">{{ s.teacher_notes|default:"-"|linebreaksbr }}</div></div>
+              {% endif %}
+
+              <div class="af-evidence" aria-label="صور الشواهد">
+                {% for img in s.evidence_images.all %}
+                  <div class="af-imgbox">
+                    <button class="af-imgbtn" type="button" data-preview-src="{{ img.image.url }}" aria-label="معاينة الشاهد">
+                      <img
+                        src="{{ img.image.url }}"
+                        alt="شاهد"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </button>
+
+                    {% if can_edit_teacher %}
+                      <div class="af-img-actions">
+                        <form method="post" style="margin:0">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="delete_evidence" />
+                          <input type="hidden" name="image_id" value="{{ img.id }}" />
+                          <button class="af-btn af-btn-danger" type="submit">
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i> حذف
+                          </button>
+                        </form>
+                      </div>
+                    {% endif %}
+                  </div>
+                {% empty %}
+                  <div class="af-muted af-empty-mini">لا توجد شواهد بعد.</div>
+                {% endfor %}
+              </div>
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Image Preview Modal #}
+<div class="af-modal" id="afImgModal" role="dialog" aria-modal="true" aria-label="معاينة الصورة">
+  <div class="af-modal-card" role="document">
+    <div class="af-modal-hd">
+      <h3 class="af-modal-ttl"><i class="fa-solid fa-image" aria-hidden="true"></i> معاينة الشاهد</h3>
+      <button class="af-modal-close" type="button" id="afImgClose" aria-label="إغلاق">✕</button>
+    </div>
+    <div class="af-modal-bd">
+      <img id="afImgPreview" src="" alt="معاينة" />
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function(){
+    var modal = document.getElementById('afImgModal');
+    var closeBtn = document.getElementById('afImgClose');
+    var img = document.getElementById('afImgPreview');
+
+    if(!modal || !img) return;
+
+    function open(src){
+      img.src = src;
+      modal.classList.add('is-open');
+      try{ if(window.__lockScroll) window.__lockScroll(true); }catch(e){}
+    }
+
+    function close(){
+      modal.classList.remove('is-open');
+      img.src = '';
+      try{ if(window.__lockScroll) window.__lockScroll(false); }catch(e){}
+    }
+
+    document.addEventListener('click', function(ev){
+      var btn = ev.target.closest && ev.target.closest('[data-preview-src]');
+      if(btn){
+        open(btn.getAttribute('data-preview-src'));
+        return;
+      }
+    });
+
+    if(closeBtn){
+      closeBtn.addEventListener('click', close);
+    }
+
+    modal.addEventListener('click', function(ev){
+      if(ev.target === modal) close();
+    });
+
+    document.addEventListener('keydown', function(ev){
+      if(ev.key === 'Escape' && modal.classList.contains('is-open')) close();
+    });
+  })();
+</script>
+{% endblock %}

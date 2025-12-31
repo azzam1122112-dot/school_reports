@@ -653,6 +653,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     # المدرسة النشطة + قائمة مدارس المستخدم (للتبديل في الهيدر)
     school_name = None
     school_logo = None
+    school_id = None
     user_schools: list[School] = []
     try:
         if getattr(request.user, "is_authenticated", False):
@@ -668,6 +669,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         if sid:
             s = School.objects.filter(pk=sid, is_active=True).first()
             if s is not None:
+                school_id = s.pk
                 school_name = s.name
                 # نفضّل الشعار المرفوع إن وُجد، ثم نرجع للرابط الخارجي
                 logo_file = getattr(s, "logo_file", None)
@@ -678,6 +680,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         school_name = None
         school_logo = None
+        school_id = None
         user_schools = []
 
     # تنبيه انتهاء الاشتراك (لمدير المدرسة فقط)
@@ -726,6 +729,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "NAV_NOTIFICATION_HERO": hero,
         "CAN_SEND_NOTIFICATIONS": can_send_notifications,
         "SEND_NOTIFICATION_URL": send_notification_url,
+        "SCHOOL_ID": school_id,
         "SCHOOL_NAME": school_name,
         "SCHOOL_LOGO_URL": school_logo,
         "USER_SCHOOLS": user_schools,
@@ -747,3 +751,17 @@ def nav_badges(request: HttpRequest) -> Dict[str, Any]:
 
 
 __all__ = ["nav_context", "nav_counters", "nav_badges"]
+
+
+def csp(request: HttpRequest) -> Dict[str, Any]:
+    """Expose CSP nonce to templates.
+
+    The nonce is attached to the request by ContentSecurityPolicyMiddleware.
+    """
+    try:
+        return {"CSP_NONCE": getattr(request, "csp_nonce", "")}
+    except Exception:
+        return {"CSP_NONCE": ""}
+
+
+__all__.append("csp")

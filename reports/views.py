@@ -1,26 +1,23 @@
 # reports/views.py
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from .models import (
-    Ticket, TicketNote, TicketImage, 
-    SubscriptionPlan, SchoolSubscription, Payment, SchoolMembership, NotificationRecipient
-)
 
+from datetime import date, timedelta
 import logging
 import os
 import traceback
-import openpyxl
-from datetime import date, timedelta
 from typing import Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
+
+import openpyxl
 
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout, get_user_model
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import (
     Count,
@@ -32,13 +29,12 @@ from django.db.models import (
     ForeignKey,
     OuterRef,
     Subquery,
-    ProtectedError,
     Sum,
 )
 from django.core.exceptions import ValidationError
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -48,7 +44,6 @@ from django.db.models.deletion import ProtectedError
 # ===== فورمات =====
 from .forms import (
     ReportForm,
-    TeacherForm,
     TeacherCreateForm,
     TeacherEditForm,
     TicketActionForm,
@@ -57,6 +52,11 @@ from .forms import (
     ManagerCreateForm,
     SubscriptionPlanForm,
     SchoolSubscriptionForm,
+    AchievementCreateYearForm,
+    TeacherAchievementFileForm,
+    AchievementSectionNotesForm,
+    AchievementEvidenceUploadForm,
+    AchievementManagerNotesForm,
 )
 
 # إشعارات (اختياري)
@@ -71,6 +71,7 @@ from .models import (
     Teacher,
     Ticket,
     TicketNote,
+    TicketImage,
     Role,
     School,
     SchoolMembership,
@@ -79,6 +80,9 @@ from .models import (
     SchoolSubscription,
     Payment,
     AuditLog,
+    TeacherAchievementFile,
+    AchievementSection,
+    AchievementEvidenceImage,
 )
 
 # موديلات الإشعارات (اختياري)
@@ -105,7 +109,7 @@ except Exception:  # pragma: no cover
     DepartmentMembership = None  # type: ignore
 
 # ===== صلاحيات =====
-from .permissions import allowed_categories_for, role_required, restrict_queryset_for_user
+from .permissions import allowed_categories_for, role_required
 try:
     from .permissions import is_officer  # type: ignore
 except Exception:
@@ -121,6 +125,18 @@ except Exception:
             ).exists()
         except Exception:
             return False
+
+# ===== خدمات التقارير (تنظيم منطق العرض/التصفية) =====
+from .services_reports import (
+    apply_admin_report_filters,
+    apply_teacher_report_filters,
+    get_admin_reports_queryset,
+    get_report_for_user_or_404 as svc_get_report_for_user_or_404,
+    get_reporttype_choices,
+    get_teacher_reports_queryset,
+    paginate as svc_paginate,
+    teacher_report_stats,
+)
 
 # ===== إعدادات محلية =====
 HAS_RTYPE: bool = ReportType is not None
@@ -150,12 +166,14 @@ def _is_staff(user) -> bool:
     except Exception:
         return False
 
+
 def _is_staff_or_officer(user) -> bool:
     """يسمح للموظّفين (is_staff) أو لمسؤولي الأقسام (Officer)."""
     return bool(
         getattr(user, "is_authenticated", False)
         and (_is_staff(user) or is_officer(user))
     )
+
 
 def _safe_next_url(next_url: str | None) -> str | None:
     if not next_url:
@@ -164,6 +182,7 @@ def _safe_next_url(next_url: str | None) -> str | None:
     if parsed.scheme == "" and parsed.netloc == "":
         return next_url
     return None
+
 
 def _role_display_map(active_school: Optional[School] = None) -> dict:
     """خريطة عرض عربية للأدوار/الأقسام.
@@ -210,6 +229,7 @@ def _is_manager_in_school(user, active_school: Optional[School]) -> bool:
         ).exists()
     except Exception:
         return False
+
 
 def _safe_redirect(request: HttpRequest, fallback_name: str) -> HttpResponse:
     nxt = request.POST.get("next") or request.GET.get("next")
@@ -342,11 +362,14 @@ def _user_manager_schools(user) -> list[School]:
 
 
 def _is_report_viewer(user, active_school: Optional[School] = None) -> bool:
-    """هل المستخدم مشرف تقارير (عرض فقط) داخل مدرسة معينة أو أي مدرسة؟"""
+    """مشرف تقارير (عرض فقط) داخل مدرسة محددة أو أي مدرسة."""
     if not getattr(user, "is_authenticated", False):
         return False
+
+    # السوبر/الموظفين ليسوا ضمن مسار "عرض فقط"
     if getattr(user, "is_superuser", False) or _is_staff(user):
         return False
+
     try:
         qs = SchoolMembership.objects.filter(
             teacher=user,
@@ -357,20 +380,8 @@ def _is_report_viewer(user, active_school: Optional[School] = None) -> bool:
             qs = qs.filter(school=active_school)
         return qs.exists()
     except Exception:
+        logger.exception("_is_report_viewer failed")
         return False
-    try:
-        qs = (
-            School.objects.filter(
-                memberships__teacher=user,
-                memberships__role_type=SchoolMembership.RoleType.MANAGER,
-                memberships__is_active=True,
-            )
-            .distinct()
-            .order_by("name")
-        )
-        return list(qs)
-    except Exception:
-        return []
 
 # =========================
 # الدخول / الخروج
@@ -579,7 +590,6 @@ def select_school(request: HttpRequest) -> HttpResponse:
 
 
 @login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
 @require_http_methods(["GET", "POST"])
 def switch_school(request: HttpRequest) -> HttpResponse:
     """تبديل المدرسة النشطة بسرعة من الهيدر/القائمة."""
@@ -590,7 +600,8 @@ def switch_school(request: HttpRequest) -> HttpResponse:
         sid = request.GET.get("school_id")
         next_raw = request.GET.get("next")
 
-    next_url = _safe_next_url(next_raw) or "reports:admin_dashboard"
+    default_next = "reports:admin_dashboard" if _is_staff(request.user) or getattr(request.user, "is_superuser", False) else "reports:home"
+    next_url = _safe_next_url(next_raw) or default_next
 
     if not sid:
         return redirect(next_url)
@@ -598,8 +609,15 @@ def switch_school(request: HttpRequest) -> HttpResponse:
     if request.user.is_superuser:
         schools_qs = School.objects.filter(is_active=True)
     else:
-        manager_schools = _user_manager_schools(request.user)
-        schools_qs = School.objects.filter(id__in=[s.id for s in manager_schools], is_active=True)
+        # ✅ أي مستخدم يملك عضوية نشطة في المدرسة يمكنه التبديل إليها
+        schools_qs = (
+            School.objects.filter(
+                is_active=True,
+                memberships__teacher=request.user,
+                memberships__is_active=True,
+            )
+            .distinct()
+        )
 
     try:
         school = schools_qs.get(pk=sid)
@@ -751,38 +769,14 @@ def add_report(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def my_reports(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
-    qs = _filter_by_school(
-        Report.objects.select_related("teacher", "category")
-        .filter(teacher=request.user)
-        .order_by("-report_date", "-id"),
-        active_school,
-    )
+    qs = get_teacher_reports_queryset(user=request.user, active_school=active_school)
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
     q = request.GET.get("q", "").strip()
 
-    if start_date:
-        qs = qs.filter(report_date__gte=start_date)
-    if end_date:
-        qs = qs.filter(report_date__lte=end_date)
-    if q:
-        qs = qs.filter(Q(title__icontains=q) | Q(idea__icontains=q))
-
-    # إحصائيات سريعة للمعلم
-    today = date.today()
-    stats = {
-        'total': qs.count(),
-        'this_month': qs.filter(report_date__month=today.month, report_date__year=today.year).count(),
-    }
-
-    page = request.GET.get("page", 1)
-    paginator = Paginator(qs, 10)
-    try:
-        reports_page = paginator.page(page)
-    except PageNotAnInteger:
-        reports_page = paginator.page(1)
-    except EmptyPage:
-        reports_page = paginator.page(paginator.num_pages)
+    qs = apply_teacher_report_filters(qs, start_date=start_date, end_date=end_date, q=q)
+    stats = teacher_report_stats(qs)
+    reports_page = svc_paginate(qs, per_page=10, page=request.GET.get("page", 1))
 
     params = request.GET.copy()
     if "page" in params:
@@ -808,46 +802,24 @@ def my_reports(request: HttpRequest) -> HttpResponse:
 def admin_reports(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
     cats = allowed_categories_for(request.user, active_school)
-    qs = Report.objects.select_related("teacher", "category").order_by("-report_date", "-id")
-    qs = restrict_queryset_for_user(qs, request.user, active_school)
-    qs = _filter_by_school(qs, active_school)
+    qs = get_admin_reports_queryset(user=request.user, active_school=active_school)
 
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
     teacher_name = (request.GET.get("teacher_name") or "").strip()
     category = (request.GET.get("category") or "").strip().lower()
 
-    if start_date:
-        qs = qs.filter(report_date__gte=start_date)
-    if end_date:
-        qs = qs.filter(report_date__lte=end_date)
-    if teacher_name:
-        for t in [t for t in teacher_name.split() if t]:
-            qs = qs.filter(teacher_name__icontains=t)
+    qs = apply_admin_report_filters(
+        qs,
+        start_date=start_date,
+        end_date=end_date,
+        teacher_name=teacher_name,
+        category=category,
+        cats=cats,
+    )
 
-    if category:
-        if cats and "all" not in cats:
-            if category in cats:
-                qs = qs.filter(category__code=category)
-        else:
-            qs = qs.filter(category__code=category)
-
-    if HAS_RTYPE and ReportType is not None:
-        rtypes_qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
-        if active_school is not None and hasattr(ReportType, "school"):
-            rtypes_qs = rtypes_qs.filter(school=active_school)
-        allowed_choices = [(rt.code, rt.name) for rt in rtypes_qs]
-    else:
-        allowed_choices = []
-
-    page = request.GET.get("page", 1)
-    paginator = Paginator(qs, 20)
-    try:
-        reports_page = paginator.page(page)
-    except PageNotAnInteger:
-        reports_page = paginator.page(1)
-    except EmptyPage:
-        reports_page = paginator.page(paginator.num_pages)
+    allowed_choices = get_reporttype_choices(active_school=active_school) if (HAS_RTYPE and ReportType is not None) else []
+    reports_page = svc_paginate(qs, per_page=20, page=request.GET.get("page", 1))
 
     context = {
         "reports": reports_page,
@@ -879,46 +851,24 @@ def school_reports_readonly(request: HttpRequest) -> HttpResponse:
         return redirect("reports:home")
 
     cats = allowed_categories_for(request.user, active_school)
-    qs = Report.objects.select_related("teacher", "category").order_by("-report_date", "-id")
-    qs = restrict_queryset_for_user(qs, request.user, active_school)
-    qs = _filter_by_school(qs, active_school)
+    qs = get_admin_reports_queryset(user=request.user, active_school=active_school)
 
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
     teacher_name = (request.GET.get("teacher_name") or "").strip()
     category = (request.GET.get("category") or "").strip().lower()
 
-    if start_date:
-        qs = qs.filter(report_date__gte=start_date)
-    if end_date:
-        qs = qs.filter(report_date__lte=end_date)
-    if teacher_name:
-        for t in [t for t in teacher_name.split() if t]:
-            qs = qs.filter(teacher_name__icontains=t)
+    qs = apply_admin_report_filters(
+        qs,
+        start_date=start_date,
+        end_date=end_date,
+        teacher_name=teacher_name,
+        category=category,
+        cats=cats,
+    )
 
-    if category:
-        if cats and "all" not in cats:
-            if category in cats:
-                qs = qs.filter(category__code=category)
-        else:
-            qs = qs.filter(category__code=category)
-
-    if HAS_RTYPE and ReportType is not None:
-        rtypes_qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
-        if active_school is not None and hasattr(ReportType, "school"):
-            rtypes_qs = rtypes_qs.filter(school=active_school)
-        allowed_choices = [(rt.code, rt.name) for rt in rtypes_qs]
-    else:
-        allowed_choices = []
-
-    page = request.GET.get("page", 1)
-    paginator = Paginator(qs, 20)
-    try:
-        reports_page = paginator.page(page)
-    except PageNotAnInteger:
-        reports_page = paginator.page(1)
-    except EmptyPage:
-        reports_page = paginator.page(paginator.num_pages)
+    allowed_choices = get_reporttype_choices(active_school=active_school) if (HAS_RTYPE and ReportType is not None) else []
+    reports_page = svc_paginate(qs, per_page=20, page=request.GET.get("page", 1))
 
     context = {
         "reports": reports_page,
@@ -930,6 +880,476 @@ def school_reports_readonly(request: HttpRequest) -> HttpResponse:
         "can_delete": False,
     }
     return render(request, "reports/admin_reports.html", context)
+
+
+# =========================
+# ملف إنجاز المعلّم
+# =========================
+def _ensure_achievement_sections(ach_file: TeacherAchievementFile) -> None:
+    """يضمن وجود 11 محورًا ثابتًا داخل الملف."""
+    existing = set(
+        AchievementSection.objects.filter(file=ach_file).values_list("code", flat=True)
+    )
+    to_create = []
+    for code, title in AchievementSection.Code.choices:
+        if int(code) in existing:
+            continue
+        to_create.append(
+            AchievementSection(file=ach_file, code=int(code), title=str(title))
+        )
+    if to_create:
+        AchievementSection.objects.bulk_create(to_create)
+
+
+def _can_manage_achievement(user, active_school: Optional[School]) -> bool:
+    if getattr(user, "is_superuser", False):
+        return True
+    if active_school is None:
+        return False
+    try:
+        return SchoolMembership.objects.filter(
+            teacher=user,
+            school=active_school,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True,
+        ).exists()
+    except Exception:
+        return False
+
+
+def _can_view_achievement(user, active_school: Optional[School]) -> bool:
+    if getattr(user, "is_superuser", False):
+        return True
+    if _can_manage_achievement(user, active_school):
+        return True
+    return _is_report_viewer(user, active_school)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def achievement_my_files(request: HttpRequest) -> HttpResponse:
+    """قائمة ملفات الإنجاز الخاصة بالمعلّم + إنشاء سنة جديدة."""
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
+        return redirect("reports:home")
+
+    # مشرف التقارير لا يملك ملف إنجاز خاص به عادةً
+    if _is_report_viewer(request.user, active_school) and not _can_manage_achievement(request.user, active_school):
+        return redirect("reports:achievement_school_files")
+
+    create_form = AchievementCreateYearForm(request.POST or None)
+    if request.method == "POST" and (request.POST.get("action") == "create"):
+        if create_form.is_valid():
+            year = create_form.cleaned_data["academic_year"]
+            ach_file, created = TeacherAchievementFile.objects.get_or_create(
+                teacher=request.user,
+                school=active_school,
+                academic_year=year,
+                defaults={},
+            )
+            _ensure_achievement_sections(ach_file)
+            if created:
+                messages.success(request, "تم إنشاء ملف الإنجاز للسنة بنجاح ✅")
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+        messages.error(request, "تحقق من السنة الدراسية وأعد المحاولة.")
+
+    files = (
+        TeacherAchievementFile.objects.filter(teacher=request.user, school=active_school)
+        .order_by("-academic_year", "-id")
+    )
+    return render(
+        request,
+        "reports/achievement_my_files.html",
+        {"files": files, "create_form": create_form, "current_school": active_school},
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def achievement_school_files(request: HttpRequest) -> HttpResponse:
+    """قائمة ملفات الإنجاز للمدرسة (مدير/مشرف عرض فقط).
+
+    - تعرض جميع المعلمين في المدرسة النشطة.
+    - بجانب كل معلم: فتح الملف + طباعة/حفظ PDF.
+    - إنشاء ملف للسنة المحددة (للمدير فقط) عند عدم وجوده.
+    - الاعتماد/الرفض يكون داخل صفحة الملف نفسها.
+    """
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
+        return redirect("reports:home")
+
+    if not _can_view_achievement(request.user, active_school):
+        messages.error(request, "لا تملك صلاحية الاطلاع على ملفات الإنجاز.")
+        return redirect("reports:home")
+
+    # اختيار سنة (اختياري): إن لم تُحدد، نأخذ آخر سنة موجودة في المدرسة
+    year = (request.GET.get("year") or request.POST.get("year") or "").strip()
+    new_year = (request.GET.get("new_year") or request.POST.get("new_year") or "").strip()
+    try:
+        year = year.replace("–", "-").replace("—", "-")
+    except Exception:
+        pass
+    try:
+        new_year = new_year.replace("–", "-").replace("—", "-")
+    except Exception:
+        pass
+
+    year_choices = list(
+        TeacherAchievementFile.objects.filter(school=active_school)
+        .values_list("academic_year", flat=True)
+        .distinct()
+        .order_by("-academic_year")
+    )
+
+    if new_year:
+        year = new_year
+    if not year and year_choices:
+        year = year_choices[0]
+
+    base_url = reverse("reports:achievement_school_files")
+
+    def _redirect_with_year(year_value: str) -> HttpResponse:
+        year_value = (year_value or "").strip()
+        if not year_value:
+            return redirect(base_url)
+        return redirect(f"{base_url}?{urlencode({'year': year_value})}")
+
+    # إنشاء ملف إنجاز لمعلم (من المدير فقط)
+    if request.method == "POST" and (request.POST.get("action") == "create"):
+        if not _can_manage_achievement(request.user, active_school):
+            return HttpResponse(status=403)
+
+        teacher_id = request.POST.get("teacher_id")
+        create_form = AchievementCreateYearForm({"academic_year": year})
+        if not teacher_id or not create_form.is_valid():
+            messages.error(request, "تأكد من اختيار السنة بصيغة صحيحة (مثال: 1447-1448).")
+            return _redirect_with_year(year)
+
+        t = get_object_or_404(Teacher, pk=int(teacher_id))
+        year_clean = create_form.cleaned_data["academic_year"]
+        ach_file, _ = TeacherAchievementFile.objects.get_or_create(
+            teacher=t,
+            school=active_school,
+            academic_year=year_clean,
+        )
+        _ensure_achievement_sections(ach_file)
+        messages.success(request, "تم إنشاء ملف الإنجاز ✅")
+        return _redirect_with_year(year_clean)
+
+    teachers = (
+        Teacher.objects.filter(
+            school_memberships__school=active_school,
+            school_memberships__is_active=True,
+        )
+        .distinct()
+        .only("id", "name", "phone")
+        .order_by("name")
+    )
+
+    files_by_teacher_id = {}
+    if year:
+        files = (
+            TeacherAchievementFile.objects.filter(school=active_school, academic_year=year)
+            .select_related("teacher")
+            .only("id", "teacher_id", "status", "academic_year")
+        )
+        files_by_teacher_id = {f.teacher_id: f for f in files}
+
+    rows = [{"teacher": t, "file": files_by_teacher_id.get(t.id)} for t in teachers]
+
+    return render(
+        request,
+        "reports/achievement_school_files.html",
+        {
+            "rows": rows,
+            "year": year,
+            "new_year": new_year,
+            "year_choices": year_choices,
+            "current_school": active_school,
+            "is_manager": _can_manage_achievement(request.user, active_school),
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def achievement_school_teachers(request: HttpRequest) -> HttpResponse:
+    """Alias قديم: توجيه إلى صفحة المدرسة الموحدة."""
+    params = {}
+    year = (request.GET.get("year") or request.POST.get("year") or "").strip()
+    new_year = (request.GET.get("new_year") or request.POST.get("new_year") or "").strip()
+    if new_year:
+        params["new_year"] = new_year
+    if year:
+        params["year"] = year
+    url = reverse("reports:achievement_school_files")
+    if params:
+        return redirect(f"{url}?{urlencode(params)}")
+    return redirect("reports:achievement_school_files")
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    active_school = _get_active_school(request)
+    ach_file = get_object_or_404(TeacherAchievementFile, pk=pk)
+
+    if not getattr(request.user, "is_superuser", False):
+        if active_school is None or ach_file.school_id != getattr(active_school, "id", None):
+            raise Http404
+
+    is_manager = _can_manage_achievement(request.user, active_school)
+    is_viewer = _is_report_viewer(request.user, active_school)
+    is_owner = (ach_file.teacher_id == getattr(request.user, "id", None))
+
+    if not (getattr(request.user, "is_superuser", False) or is_manager or is_viewer or is_owner):
+        return HttpResponse(status=403)
+
+    _ensure_achievement_sections(ach_file)
+    sections = (
+        AchievementSection.objects.filter(file=ach_file)
+        .prefetch_related("evidence_images")
+        .order_by("code", "id")
+    )
+
+    can_edit_teacher = bool(is_owner and ach_file.status in {TeacherAchievementFile.Status.DRAFT, TeacherAchievementFile.Status.RETURNED})
+    can_post = bool((can_edit_teacher or is_manager) and not is_viewer)
+
+    general_form = TeacherAchievementFileForm(request.POST or None, instance=ach_file)
+    manager_notes_form = AchievementManagerNotesForm(request.POST or None, instance=ach_file)
+    year_form = AchievementCreateYearForm()
+    upload_form = AchievementEvidenceUploadForm()
+
+    # الرجوع ثابت حسب الدور: المعلّم -> ملفاتي، غير ذلك -> ملفات المدرسة
+    if is_owner:
+        back_url = reverse("reports:achievement_my_files")
+    else:
+        url = reverse("reports:achievement_school_files")
+        back_url = f"{url}?{urlencode({'year': ach_file.academic_year})}"
+
+    if request.method == "POST":
+        if not can_post:
+            return HttpResponse(status=403)
+
+        action = (request.POST.get("action") or "").strip()
+        section_id = request.POST.get("section_id")
+
+        if action == "save_general" and can_edit_teacher:
+            if general_form.is_valid():
+                general_form.save()
+                messages.success(request, "تم حفظ البيانات العامة ✅")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+            messages.error(request, "تحقق من الحقول وأعد المحاولة.")
+
+        elif action == "save_section" and can_edit_teacher and section_id:
+            sec = get_object_or_404(AchievementSection, pk=int(section_id), file=ach_file)
+            sec_form = AchievementSectionNotesForm(request.POST, instance=sec)
+            if sec_form.is_valid():
+                sec_form.save()
+                messages.success(request, "تم حفظ ملاحظات المحور ✅")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+            messages.error(request, "تحقق من ملاحظات المحور وأعد المحاولة.")
+
+        elif action == "upload_evidence" and can_edit_teacher and section_id:
+            sec = get_object_or_404(AchievementSection, pk=int(section_id), file=ach_file)
+            imgs = request.FILES.getlist("images")
+            if not imgs:
+                messages.error(request, "اختر صورًا للرفع.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+            existing_count = AchievementEvidenceImage.objects.filter(section=sec).count()
+            remaining = max(0, 8 - existing_count)
+            if remaining <= 0:
+                messages.error(request, "لا يمكن إضافة أكثر من 8 صور لهذا المحور.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+            imgs = imgs[:remaining]
+            for f in imgs:
+                AchievementEvidenceImage.objects.create(section=sec, image=f)
+            messages.success(request, "تم رفع الشواهد ✅")
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+        elif action == "delete_evidence" and can_edit_teacher:
+            img_id = request.POST.get("image_id")
+            if img_id:
+                img = get_object_or_404(AchievementEvidenceImage, pk=int(img_id), section__file=ach_file)
+                try:
+                    img.delete()
+                except Exception:
+                    pass
+                messages.success(request, "تم حذف الصورة ✅")
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+        elif action == "import_prev" and can_edit_teacher:
+            prev_year = (request.POST.get("prev_year") or "").strip()
+            if prev_year:
+                prev = TeacherAchievementFile.objects.filter(
+                    teacher=ach_file.teacher,
+                    school=ach_file.school,
+                    academic_year=prev_year,
+                ).first()
+            else:
+                prev = (
+                    TeacherAchievementFile.objects.filter(
+                        teacher=ach_file.teacher, school=ach_file.school
+                    )
+                    .exclude(pk=ach_file.pk)
+                    .order_by("-academic_year", "-id")
+                    .first()
+                )
+            if not prev:
+                messages.error(request, "لا يوجد ملف سابق للاستيراد.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+            # استيراد الحقول الثابتة فقط
+            ach_file.qualifications = prev.qualifications
+            ach_file.professional_experience = prev.professional_experience
+            ach_file.specialization = prev.specialization
+            ach_file.teaching_load = prev.teaching_load
+            ach_file.subjects_taught = prev.subjects_taught
+            ach_file.contact_info = prev.contact_info
+            ach_file.save(update_fields=[
+                "qualifications",
+                "professional_experience",
+                "specialization",
+                "teaching_load",
+                "subjects_taught",
+                "contact_info",
+                "updated_at",
+            ])
+            messages.success(request, "تم استيراد البيانات الثابتة من ملف سابق ✅")
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+        elif action == "submit" and can_edit_teacher:
+            ach_file.status = TeacherAchievementFile.Status.SUBMITTED
+            ach_file.submitted_at = timezone.now()
+            ach_file.save(update_fields=["status", "submitted_at", "updated_at"])
+            messages.success(request, "تم إرسال الملف للاعتماد ✅")
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+        elif action == "approve" and is_manager:
+            ach_file.status = TeacherAchievementFile.Status.APPROVED
+            ach_file.decided_at = timezone.now()
+            ach_file.decided_by = request.user
+            ach_file.save(update_fields=["status", "decided_at", "decided_by", "updated_at"])
+            messages.success(request, "تم اعتماد ملف الإنجاز ✅")
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+        elif action == "return" and is_manager:
+            if manager_notes_form.is_valid():
+                manager_notes_form.save()
+            ach_file.status = TeacherAchievementFile.Status.RETURNED
+            ach_file.decided_at = timezone.now()
+            ach_file.decided_by = request.user
+            ach_file.save(update_fields=["status", "decided_at", "decided_by", "updated_at", "manager_notes"])
+            messages.success(request, "تم إرجاع الملف للمعلّم مع الملاحظات ✅")
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+        messages.error(request, "تعذر تنفيذ العملية.")
+
+    return render(
+        request,
+        "reports/achievement_file.html",
+        {
+            "file": ach_file,
+            "sections": sections,
+            "general_form": general_form,
+            "upload_form": upload_form,
+            "manager_notes_form": manager_notes_form,
+            "can_edit_teacher": can_edit_teacher,
+            "is_manager": is_manager,
+            "is_viewer": is_viewer,
+            "is_owner": is_owner,
+            "year_form": year_form,
+            "current_school": active_school,
+            "back_url": back_url,
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def achievement_file_pdf(request: HttpRequest, pk: int) -> HttpResponse:
+    active_school = _get_active_school(request)
+    ach_file = get_object_or_404(TeacherAchievementFile, pk=pk)
+    if not getattr(request.user, "is_superuser", False):
+        if active_school is None or ach_file.school_id != getattr(active_school, "id", None):
+            raise Http404
+    if not (_can_view_achievement(request.user, active_school) or ach_file.teacher_id == getattr(request.user, "id", None)):
+        return HttpResponse(status=403)
+
+    # توليد PDF عند الطلب
+    try:
+        from .pdf_achievement import generate_achievement_pdf
+
+        pdf_bytes, filename = generate_achievement_pdf(request=request, ach_file=ach_file)
+    except OSError as ex:
+        # WeasyPrint on Windows يحتاج مكتبات نظام (GTK/Pango/Cairo) مثل libgobject.
+        msg = str(ex) or ""
+        if "libgobject" in msg or "gobject-2.0" in msg:
+            # أفضل UX: لا نعرض صفحة خطأ/نص؛ نرجع لنفس صفحة الملف برسالة واضحة.
+            messages.error(
+                request,
+                "تعذر توليد PDF محليًا لأن مكتبات الطباعة غير مثبتة على هذا الجهاز. "
+                "أفضل حل: شغّل المشروع على Render/Docker/WSL (Linux) أو ثبّت GTK runtime على Windows.",
+            )
+            logger.warning("WeasyPrint native deps missing: %s", msg)
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+        if settings.DEBUG:
+            raise
+        messages.error(request, "تعذر توليد ملف PDF حاليًا.")
+        return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+    except Exception:
+        if settings.DEBUG:
+            raise
+        messages.error(request, "تعذر توليد ملف PDF حاليًا.")
+        return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+    resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+    resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return resp
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
+    """صفحة طباعة ملف الإنجاز (مثل طباعة التقارير).
+
+    تعتمد على الطباعة من المتصفح (Save as PDF) لتجنّب مشاكل WeasyPrint على Windows.
+    """
+
+    active_school = _get_active_school(request)
+    ach_file = get_object_or_404(TeacherAchievementFile, pk=pk)
+
+    if not getattr(request.user, "is_superuser", False):
+        if active_school is None or ach_file.school_id != getattr(active_school, "id", None):
+            raise Http404
+
+    if not (_can_view_achievement(request.user, active_school) or ach_file.teacher_id == getattr(request.user, "id", None)):
+        return HttpResponse(status=403)
+
+    _ensure_achievement_sections(ach_file)
+    sections = (
+        AchievementSection.objects.filter(file=ach_file)
+        .prefetch_related("evidence_images")
+        .order_by("code", "id")
+    )
+
+    school = ach_file.school
+    primary = (getattr(school, "print_primary_color", None) or "").strip() or "#2563eb"
+
+    return render(
+        request,
+        "reports/pdf/achievement_file.html",
+        {
+            "file": ach_file,
+            "school": school,
+            "sections": sections,
+            "theme": {"brand": primary},
+            "now": timezone.localtime(timezone.now()),
+        },
+    )
 
 
 @login_required(login_url="reports:login")
@@ -1319,38 +1739,10 @@ def officer_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
 # الوصول إلى تقرير معيّن (مع احترام المدرسة النشطة)
 # =========================
 def _get_report_for_user_or_404(request: HttpRequest, pk: int):
-    user = request.user
-    qs = Report.objects.select_related("teacher", "category")
-
-    # عزل حسب المدرسة النشطة إن كان للموديل حقل school
     active_school = _get_active_school(request)
-    if active_school is not None:
-        try:
-            if "school" in [f.name for f in Report._meta.get_fields()]:
-                qs = qs.filter(school=active_school)
-        except Exception:
-            pass
+    return svc_get_report_for_user_or_404(user=request.user, pk=pk, active_school=active_school)
 
-    if getattr(user, "is_staff", False):
-        return get_object_or_404(qs, pk=pk)
-
-    try:
-        cats = allowed_categories_for(user, active_school) or set()
-    except Exception:
-        cats = set()
-
-    if "all" in cats:
-        return get_object_or_404(qs, pk=pk)
-
-    if cats:
-        return get_object_or_404(
-            qs.filter(Q(teacher=user) | Q(category__code__in=list(cats))),
-            pk=pk,
-        )
-
-    return get_object_or_404(qs, pk=pk, teacher=user)
-
-from .utils import _resolve_department_for_category, _build_head_decision, run_task_safe
+from .utils import _resolve_department_for_category, _build_head_decision
 
 # =========================
 # طباعة التقرير (نسخة مُحسّنة)
@@ -1425,24 +1817,20 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
         if not school_principal:
             school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
 
-        # إعدادات المدرسة (الاسم والشعار واللون)
+        # إعدادات المدرسة (الاسم + المرحلة + الشعار)
         school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+        school_stage = ""
         school_logo_url = ""
-        print_color = "#2563eb"
-
         if school_scope:
+            try:
+                school_stage = getattr(school_scope, "get_stage_display", lambda: "")() or ""
+            except Exception:
+                school_stage = getattr(school_scope, "stage", "") or ""
             try:
                 if school_scope.logo_file:
                     school_logo_url = school_scope.logo_file.url
-                
-                color_val = getattr(school_scope, "print_primary_color", "")
-                if color_val:
-                    print_color = color_val
             except Exception:
                 pass
-        
-        if not print_color or print_color == "#2563eb":
-            print_color = getattr(settings, "SCHOOL_PRINT_COLOR", "#2563eb")
 
         return render(
             request,
@@ -1451,8 +1839,8 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "r": r,
                 "head_decision": head_decision,
                 "SCHOOL_PRINCIPAL": school_principal,
-                "PRINT_PRIMARY_COLOR": print_color,
                 "SCHOOL_NAME": school_name,
+                "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,
             },
         )
@@ -1462,12 +1850,6 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
-def report_pdf(request: HttpRequest, pk: int) -> HttpResponse:
-    r = _get_report_for_user_or_404(request, pk)
-    # ميزة PDF أُلغيت من واجهة المستخدم وتم تعطيل رابطها في urls.py
-    # إن تم الوصول لها مباشرة نرجع 404.
-    raise Http404()
-
 # =========================
 # إدارة المعلّمين (مدير فقط)
 # =========================
@@ -1633,6 +2015,7 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                     membership, created = SchoolMembership.objects.get_or_create(
                         school=active_school,
                         teacher=teacher,
+                        role_type=SchoolMembership.RoleType.TEACHER,
                         defaults={
                             "role_type": SchoolMembership.RoleType.TEACHER,
                             "is_active": True
@@ -1659,6 +2042,9 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
 
     return render(request, "reports/bulk_import_teachers.html")
 
+@login_required(login_url="reports:login")
+@role_required({"manager"})
+@require_http_methods(["GET", "POST"])
 def add_teacher(request: HttpRequest) -> HttpResponse:
     # كل معلم جديد يُربط تلقائياً بالمدرسة النشطة لهذا المدير
     active_school = _get_active_school(request)
@@ -1673,6 +2059,64 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         # إنشاء معلّم فقط: بدون قسم/بدون دور داخل قسم. التكاليف تتم من صفحة أعضاء القسم.
         form = TeacherCreateForm(request.POST)
+
+        # ✅ إذا كان رقم الجوال موجودًا مسبقًا: لا ننشئ مستخدمًا جديدًا، بل نربطه بهذه المدرسة
+        try:
+            phone_raw = (request.POST.get("phone") or "").strip()
+            existing_teacher = None
+            if phone_raw:
+                existing_teacher = Teacher.objects.filter(phone=phone_raw).first()
+            if existing_teacher is not None and active_school is not None:
+                # هل هو مرتبط فعلاً بهذه المدرسة كـ TEACHER؟
+                already = SchoolMembership.objects.filter(
+                    school=active_school,
+                    teacher=existing_teacher,
+                    role_type=SchoolMembership.RoleType.TEACHER,
+                    is_active=True,
+                ).exists()
+                if already:
+                    messages.info(request, "المستخدم مرتبط بالفعل بهذه المدرسة.")
+                    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+                    return redirect(next_url or "reports:manage_teachers")
+
+                # نفس منطق حد الباقة الحالي (مع ترك الضمان النهائي للموديل)
+                try:
+                    sub = getattr(active_school, "subscription", None)
+                    if sub is None or bool(getattr(sub, "is_expired", True)):
+                        messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
+                        return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
+
+                    max_teachers = int(getattr(getattr(sub, "plan", None), "max_teachers", 0) or 0)
+                    if max_teachers > 0:
+                        current_count = SchoolMembership.objects.filter(
+                            school=active_school,
+                            role_type=SchoolMembership.RoleType.TEACHER,
+                        ).count()
+                        if current_count >= max_teachers:
+                            messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} معلّم لهذه المدرسة حسب الباقة.")
+                            return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
+                except Exception:
+                    pass
+
+                try:
+                    with transaction.atomic():
+                        SchoolMembership.objects.update_or_create(
+                            school=active_school,
+                            teacher=existing_teacher,
+                            role_type=SchoolMembership.RoleType.TEACHER,
+                            defaults={"is_active": True},
+                        )
+                    messages.success(request, "✅ تم ربط المستخدم الموجود بهذه المدرسة بنجاح (بدون إنشاء حساب جديد).")
+                    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+                    return redirect(next_url or "reports:manage_teachers")
+                except ValidationError as e:
+                    messages.error(request, " ".join(getattr(e, "messages", []) or [str(e)]))
+                except Exception:
+                    logger.exception("add_teacher link existing failed")
+                    messages.error(request, "حدث خطأ غير متوقع أثناء الربط. جرّب لاحقًا.")
+        except Exception:
+            # لو فشل هذا المسار لأي سبب نكمل التدفق الطبيعي (وقد يظهر خطأ unique من الفورم)
+            pass
 
         # ✅ منع إضافة معلّم إذا تجاوزت المدرسة حد الباقة (يشمل غير النشط)
         try:
@@ -1782,8 +2226,20 @@ def delete_teacher(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect("reports:manage_teachers")
     try:
         with transaction.atomic():
-            teacher.delete()
-        messages.success(request, "🗑️ تم حذف المستخدم.")
+            if active_school is not None and not getattr(request.user, "is_superuser", False):
+                # ✅ في وضع تعدد المدارس: لا نحذف الحساب عالميًا، بل نفصل عضويته عن هذه المدرسة فقط
+                SchoolMembership.objects.filter(
+                    school=active_school,
+                    teacher=teacher,
+                    role_type__in=[
+                        SchoolMembership.RoleType.TEACHER,
+                        SchoolMembership.RoleType.REPORT_VIEWER,
+                    ],
+                ).delete()
+                messages.success(request, "🗑️ تم إزالة المستخدم من المدرسة الحالية.")
+            else:
+                teacher.delete()
+                messages.success(request, "🗑️ تم حذف المستخدم.")
     except Exception:
         logger.exception("delete_teacher failed")
         messages.error(request, "تعذّر حذف المستخدم. حاول لاحقًا.")
@@ -2151,17 +2607,6 @@ def _dept_code_for(dept_obj_or_code) -> str:
         return getattr(dept_obj_or_code, "code")
     return str(dept_obj_or_code or "").strip()
 
-def _arabic_label_for(dept_obj_or_code) -> str:
-    if hasattr(dept_obj_or_code, "name") and getattr(dept_obj_or_code, "name"):
-        return dept_obj_or_code.name
-    code = (
-        getattr(dept_obj_or_code, "slug", None)
-        or getattr(dept_obj_or_code, "code", None)
-        or (dept_obj_or_code if isinstance(dept_obj_or_code, str) else "")
-    )
-    return _role_display_map(None).get(code, code or "—")
-
-
 def _arabic_label_for_in_school(dept_obj_or_code, active_school: Optional[School] = None) -> str:
     """نسخة آمنة من _arabic_label_for تربط التسمية بالمدرسة النشطة لتجنب تداخل slugs بين المدارس."""
     if hasattr(dept_obj_or_code, "name") and getattr(dept_obj_or_code, "name"):
@@ -2323,16 +2768,7 @@ class _SchoolSettingsForm(forms.ModelForm):
             "phone",
             "logo_url",
             "logo_file",
-            "print_primary_color",
         ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # حقل لون قالب الطباعة كـ color-picker في المتصفح
-        if "print_primary_color" in self.fields:
-            self.fields["print_primary_color"].widget = forms.TextInput(
-                attrs={"type": "color"}
-            )
 
 
 @login_required(login_url="reports:login")
@@ -2387,15 +2823,7 @@ class _SchoolAdminForm(forms.ModelForm):
             "is_active",
             "logo_url",
             "logo_file",
-            "print_primary_color",
         ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if "print_primary_color" in self.fields:
-            self.fields["print_primary_color"].widget = forms.TextInput(
-                attrs={"type": "color"}
-            )
 
 
 @login_required(login_url="reports:login")
@@ -2629,8 +3057,8 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff, login_url="reports:login")
 @role_required({"manager"})
-@login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
+@require_http_methods(["GET"])
+
 def admin_dashboard(request: HttpRequest) -> HttpResponse:
     from django.core.cache import cache
     
@@ -3458,24 +3886,6 @@ def _dept_set_officer(dep, teacher: Teacher) -> bool:
         return _dept_set_member_role(dep, teacher, DM_OFFICER)
     except Exception:
         logger.exception("Failed to set department officer")
-        return False
-
-def _dept_unset_officer(dep, teacher: Teacher) -> bool:
-    try:
-        if DepartmentMembership is None or Department is None:
-            return False
-
-        dep_field, tea_field = _deptmember_field_names()
-        if not dep_field or not tea_field:
-            return False
-
-        if not hasattr(DepartmentMembership, "role_type"):
-            return False
-
-        updated = DepartmentMembership.objects.filter(**{dep_field: dep, tea_field: teacher}).update(role_type=DM_TEACHER)
-        return updated > 0
-    except Exception:
-        logger.exception("Failed to unset department officer")
         return False
 
 @login_required(login_url="reports:login")

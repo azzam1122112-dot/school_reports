@@ -1,16 +1,22 @@
+{# reports/templates/reports/notifications_sent.html (مثال اسم) #}
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}الإشعارات المرسلة{% endblock %}
 
 {% block head %}
 <style>
-  /* ===== Scoped: Sent Notifications ===== */
+  /* =========================================================
+     Sent Notifications (Scoped)
+     - بدون لمس .btn / .card العامة
+     - متوافق مع data-theme (وليس prefers-color-scheme)
+     - مظهر احترافي + RTL
+     ========================================================= */
+
   .ns-scope{
     --primary: #4361ee;
-    --primary-dark: #3a56d4;
     --secondary: #7209b7;
     --accent: #f72585;
-    --success: #4cc9f0;
 
     --bg: var(--bg, #f8fafc);
     --card: var(--card, #ffffff);
@@ -22,95 +28,99 @@
     --radius-md: 12px;
     --shadow: var(--shadow, 0 10px 40px rgba(2, 6, 23, 0.08));
     --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    --transition: all 0.3s ease;
+    --t: var(--t-fast);
   }
 
   .ns-scope .wrap{max-width:1400px;margin-inline:auto;padding:20px}
 
   .ns-scope .page-header{
     display:flex;align-items:center;justify-content:space-between;gap:16px;
-    margin-bottom:24px;flex-wrap:wrap;
+    margin-bottom:18px;flex-wrap:wrap;
   }
   .ns-scope .page-header h1{
-    margin:0;font-size:1.8rem;font-weight:900;
+    margin:0;font-size:1.75rem;font-weight:950;
     background:var(--gradient);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
     position:relative;padding-bottom:8px;
   }
   .ns-scope .page-header h1::after{
-    content:'';position:absolute;bottom:0;right:0;width:60px;height:4px;
+    content:"";position:absolute;bottom:0;right:0;width:60px;height:4px;
     background:var(--gradient);border-radius:2px;
   }
 
   .ns-scope .create-btn{
     display:inline-flex;align-items:center;gap:8px;
-    padding:12px 20px;border:none;border-radius:var(--radius-md);
-    cursor:pointer;background:var(--gradient);color:#fff;
-    font-weight:900;font-size:1rem;transition:var(--transition);
-    text-decoration:none;box-shadow:0 8px 25px rgba(67, 97, 238, 0.30);
+    padding:12px 18px;border-radius:var(--radius-md);
+    background:var(--gradient);color:#fff;text-decoration:none;
+    font-weight:950;border:1px solid rgba(255,255,255,.20);
+    box-shadow:0 8px 25px rgba(67, 97, 238, 0.28);
+    transition: var(--t);
   }
   .ns-scope .create-btn:hover{
     transform:translateY(-2px);
-    box-shadow:0 12px 30px rgba(67, 97, 238, 0.40);
+    box-shadow:0 12px 30px rgba(67, 97, 238, 0.38);
   }
 
-  .ns-scope .cards-grid{display:grid;gap:20px}
+  .ns-scope .cards-grid{display:grid;gap:16px}
   @media (min-width:768px){
-    .ns-scope .cards-grid{grid-template-columns:repeat(auto-fill, minmax(400px, 1fr))}
+    .ns-scope .cards-grid{grid-template-columns:repeat(auto-fill, minmax(420px, 1fr))}
   }
   @media (max-width:767px){
     .ns-scope .cards-grid{grid-template-columns:1fr}
     .ns-scope .page-header{flex-direction:column;align-items:flex-start}
-    .ns-scope .page-header h1{font-size:1.5rem}
+    .ns-scope .page-header h1{font-size:1.45rem}
   }
 
   .ns-scope .notif-card{
     background:var(--card);
     border:1px solid var(--border);
     border-radius:var(--radius-lg);
-    padding:20px;
+    padding:18px;
     box-shadow:var(--shadow);
-    transition:var(--transition);
+    transition: var(--t);
     position:relative;
     overflow:hidden;
   }
   .ns-scope .notif-card::before{
-    content:'';position:absolute;top:0;right:0;width:100%;height:5px;background:var(--gradient);
+    content:"";position:absolute;top:0;right:0;width:100%;height:5px;background:var(--gradient);
   }
   .ns-scope .notif-card:hover{
-    transform:translateY(-5px);
+    transform:translateY(-4px);
     box-shadow:0 15px 50px rgba(2, 6, 23, 0.12);
   }
 
   .ns-scope .notif-head{
-    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;
   }
+
   .ns-scope .notif-title{
-    font-weight:900;margin:0;color:var(--text);
+    font-weight:950;margin:0;color:var(--text);
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-    font-size:1.2rem;
+    font-size:1.15rem;
   }
   .ns-scope .badges-container{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 
   .ns-scope .pill{
     display:inline-flex;align-items:center;gap:6px;
-    padding:6px 12px;border-radius:999px;font-weight:900;font-size:.85rem;
+    padding:6px 12px;border-radius:999px;font-weight:950;font-size:.85rem;
     border:1px solid transparent;
   }
   .ns-scope .pill.important{background:#fff5f5;border-color:#ffe0e0;color:#b91c1c}
   .ns-scope .pill.blue{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
 
+  html[data-theme="dark"] .ns-scope .pill.important{background:rgba(185,28,28,.15);border-color:rgba(185,28,28,.4)}
+  html[data-theme="dark"] .ns-scope .pill.blue{background:rgba(30,64,175,.15);border-color:rgba(30,64,175,.4)}
+
   .ns-scope .notif-time{
-    color:var(--text-light);font-weight:800;font-size:.9rem;white-space:nowrap;
+    color:var(--text-light);font-weight:850;font-size:.9rem;white-space:nowrap;
     display:flex;align-items:center;gap:6px;
   }
 
   .ns-scope .notif-body{
     color:var(--text);
-    margin:16px 0;
-    white-space:pre-wrap;
-    line-height:1.8;
-    font-weight:700;
+    margin:14px 0 0;
+    line-height:1.85;
+    font-weight:800;
     background:var(--bg);
     border-radius:var(--radius-md);
     padding:12px;
@@ -119,14 +129,14 @@
   }
 
   .ns-scope .meta{
-    display:flex;flex-wrap:wrap;gap:8px;
-    color:var(--text-light);font-weight:800;margin-top:12px;font-size:.9rem;
+    display:flex;flex-wrap:wrap;gap:10px;
+    color:var(--text-light);font-weight:850;margin-top:12px;font-size:.9rem;
   }
 
-  .ns-scope .progress-container{margin-top:16px}
+  .ns-scope .progress-container{margin-top:14px}
   .ns-scope .progress-info{
     display:flex;justify-content:space-between;margin-bottom:6px;
-    font-size:.9rem;color:var(--text-light);font-weight:800;
+    font-size:.9rem;color:var(--text-light);font-weight:850;
   }
   .ns-scope .progress{
     height:10px;border-radius:999px;background:var(--bg);
@@ -135,45 +145,42 @@
   .ns-scope .progress .bar{
     height:100%;width:0%;
     background:var(--gradient);
-    transition:width 1s ease;border-radius:999px;
+    transition: width 900ms ease;
+    border-radius:999px;
   }
 
   .ns-scope .actions{
-    display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;align-items:center;
+    display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;align-items:center;
   }
-  .ns-scope .btn{
+  .ns-scope .ns-btn{
     display:inline-flex;align-items:center;gap:6px;
-    padding:8px 16px;border-radius:var(--radius-md);
+    padding:9px 14px;border-radius:var(--radius-md);
     border:1px solid var(--border);background:var(--card);
-    font-weight:900;text-decoration:none;color:var(--text);
-    transition:var(--transition);font-size:.9rem;cursor:pointer;
+    font-weight:950;text-decoration:none;color:var(--text);
+    transition: var(--t);
+    font-size:.9rem;cursor:pointer;
   }
-  .ns-scope .btn:hover{
+  .ns-scope .ns-btn:hover{
     transform:translateY(-2px);
-    box-shadow:0 5px 15px rgba(0,0,0,.1);
+    box-shadow:0 5px 15px rgba(0,0,0,.08);
   }
-  .ns-scope .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .ns-scope .btn.danger{background:#fff0f0;color:#b91c1c;border-color:#fecaca}
+  .ns-scope .ns-btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .ns-scope .ns-btn.danger{background:#fff0f0;color:#b91c1c;border-color:#fecaca}
+  html[data-theme="dark"] .ns-scope .ns-btn.danger{background:rgba(185,28,28,.15);border-color:rgba(185,28,28,.4)}
 
   .ns-scope .empty-state{
     text-align:center;padding:40px 20px;color:var(--text-light);
     border:1px dashed var(--border);border-radius:18px;background:var(--card);
   }
   .ns-scope .empty-state i{font-size:3rem;margin-bottom:16px;opacity:.55}
-  .ns-scope .empty-state h3{margin:0 0 8px 0;color:var(--text);font-weight:900}
+  .ns-scope .empty-state h3{margin:0 0 8px 0;color:var(--text);font-weight:950}
 
   .ns-scope .pager{
-    display:flex;gap:12px;justify-content:center;margin-top:30px;flex-wrap:wrap;
+    display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap;
   }
-  .ns-scope .pager .btn{padding:10px 18px}
+  .ns-scope .pager .ns-btn{padding:10px 16px}
   .ns-scope .pager .current{
-    background:var(--gradient);color:#fff;border:none;
-  }
-
-  @media (prefers-color-scheme: dark){
-    .ns-scope .pill.important{background:rgba(185,28,28,.15);border-color:rgba(185,28,28,.4)}
-    .ns-scope .pill.blue{background:rgba(30,64,175,.15);border-color:rgba(30,64,175,.4)}
-    .ns-scope .btn.danger{background:rgba(185,28,28,.15);border-color:rgba(185,28,28,.4)}
+    background:var(--gradient);color:#fff;border:1px solid rgba(255,255,255,.18);
   }
 </style>
 {% endblock %}
@@ -199,8 +206,12 @@
                 </h3>
 
                 <div class="badges-container">
-                  {% if n.is_important %}<span class="pill important"><i class="fa-solid fa-exclamation-circle" aria-hidden="true"></i> هام</span>{% endif %}
-                  {% if n.is_broadcast %}<span class="pill blue"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> للجميع</span>{% endif %}
+                  {% if n.is_important %}
+                    <span class="pill important"><i class="fa-solid fa-exclamation-circle" aria-hidden="true"></i> هام</span>
+                  {% endif %}
+                  {% if n.is_broadcast %}
+                    <span class="pill blue"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> للجميع</span>
+                  {% endif %}
                 </div>
               </div>
 
@@ -219,14 +230,14 @@
                 <span><i class="fa-regular fa-calendar-times" aria-hidden="true"></i> ينتهي: {{ n.expires_at|date:"Y-m-d H:i" }}</span>
               {% endif %}
               {% if n.created_by and n.created_by.name %}
-                <span><i class="fa-regular fa-user" aria-hidden="true"></i> مرسِل: {{ n.created_by.name }}</span>
+                <span><i class="fa-regular fa-user" aria-hidden="true"></i> المُرسِل: {{ n.created_by.name }}</span>
               {% endif %}
             </div>
 
             <div class="progress-container">
               <div class="progress-info">
                 <span>معدل القراءة</span>
-                <span id="rate-{{ n.id }}">0%</span>
+                <span class="rate" id="rate-{{ n.id }}">0%</span>
               </div>
               <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                 <div class="bar"></div>
@@ -234,12 +245,12 @@
             </div>
 
             <div class="actions">
-              <a class="btn" href="{% url 'reports:notification_detail' n.id %}">
+              <a class="ns-btn" href="{% url 'reports:notification_detail' n.id %}">
                 <i class="fa-regular fa-eye" aria-hidden="true"></i> عرض التفاصيل
               </a>
 
               {% if n.action_url %}
-                <a class="btn primary" href="{{ n.action_url }}" rel="noopener">
+                <a class="ns-btn primary" href="{{ n.action_url }}" rel="noopener">
                   <i class="fa-solid fa-link" aria-hidden="true"></i> فتح الرابط
                 </a>
               {% endif %}
@@ -247,7 +258,7 @@
               <form method="post" action="{% url 'reports:notification_delete' n.id %}"
                     style="display:inline" onsubmit="return confirm('هل تريد حذف هذا الإشعار نهائيًا؟');">
                 {% csrf_token %}
-                <button class="btn danger" type="submit">
+                <button class="ns-btn danger" type="submit">
                   <i class="fa-regular fa-trash-can" aria-hidden="true"></i> حذف
                 </button>
               </form>
@@ -259,15 +270,15 @@
       {% if page_obj.paginator.num_pages > 1 %}
         <nav class="pager" aria-label="التنقل بين الصفحات">
           {% if page_obj.has_previous %}
-            <a class="btn" href="?page={{ page_obj.previous_page_number }}">
+            <a class="ns-btn" href="?page={{ page_obj.previous_page_number }}">
               <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> السابق
             </a>
           {% endif %}
 
-          <span class="btn current">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+          <span class="ns-btn current">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
 
           {% if page_obj.has_next %}
-            <a class="btn" href="?page={{ page_obj.next_page_number }}">
+            <a class="ns-btn" href="?page={{ page_obj.next_page_number }}">
               التالي <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
           {% endif %}
@@ -287,7 +298,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
     const script = document.getElementById('notif-stats-data');
     let stats = {};
@@ -296,31 +307,36 @@
       catch(e){ stats = {}; }
     }
 
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
     document.querySelectorAll('.ns-scope .notif-card').forEach(function(card){
       const id = card.getAttribute('data-id');
       const bucket = stats[String(id)] || stats[id] || {};
       const total = Number(bucket.total || 0);
       const read  = Number(bucket.read  || 0);
       const rate  = total ? Math.round((read / total) * 100) : 0;
+      const safeRate = clamp(rate, 0, 100);
 
       const bar = card.querySelector('.progress .bar');
       const rateEl = card.querySelector('#rate-' + id);
+      const pb = card.querySelector('.progress');
+
+      if(pb){ pb.setAttribute('aria-valuenow', String(safeRate)); }
 
       if(bar){
-        setTimeout(function(){ bar.style.width = rate + '%'; }, 120);
-        const pb = card.querySelector('.progress');
-        if(pb){ pb.setAttribute('aria-valuenow', String(rate)); }
+        // تحريك لطيف بعد الرندر
+        setTimeout(function(){ bar.style.width = safeRate + '%'; }, 120);
       }
 
       if(rateEl){
         let current = 0;
         const duration = 900;
         const steps = 45;
-        const inc = rate / steps;
+        const inc = safeRate / steps;
         const t = setInterval(function(){
           current += inc;
-          if(current >= rate){
-            current = rate;
+          if(current >= safeRate){
+            current = safeRate;
             clearInterval(t);
           }
           rateEl.textContent = Math.round(current) + '%';

@@ -1,3 +1,4 @@
+{# reports/templates/reports/notification_create.html (or your path) #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -5,13 +6,16 @@
 
 {% block head %}
 <style>
-  /* ===== Scoped Notification Create ===== */
+  /* =========================================================
+     Notification Create (Scoped)
+     - Scoped بالكامل داخل .notify-scope لتجنب تعارضات base/app.css
+     - متوافق مع data-theme="dark" (بدل prefers-color-scheme)
+     - جاهز لـ CheckboxSelectMultiple أو SelectMultiple
+     ========================================================= */
   .notify-scope{
     --primary:#4361ee;
-    --primary-dark:#3a56d4;
     --secondary:#7209b7;
     --accent:#f72585;
-    --success:#4cc9f0;
 
     --bg:#f8fafc;
     --card:#ffffff;
@@ -21,41 +25,46 @@
 
     --radius-lg:20px;
     --radius-md:12px;
-    --radius-sm:8px;
+    --radius-sm:10px;
     --shadow:0 10px 40px rgba(2, 6, 23, 0.08);
     --gradient:linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    --transition:all .3s ease;
-  }
+    --transition:all .25s ease;
 
-  @media (prefers-color-scheme: dark){
-    .notify-scope{
-      --bg:#0f172a;
-      --card:#1e293b;
-      --text:#f1f5f9;
-      --text-light:#94a3b8;
-      --border:#334155;
-    }
+    color: var(--text);
+  }
+  html[data-theme="dark"] .notify-scope{
+    --bg:#0f172a;
+    --card:#111c33;
+    --text:#f1f5f9;
+    --text-light:#94a3b8;
+    --border:#22314f;
   }
 
   .notify-scope .wrap{max-width:1400px;margin:0 auto;padding:20px}
+
   .notify-scope .page-head{
-    display:flex;align-items:center;justify-content:space-between;gap:16px;
-    margin-bottom:24px;flex-wrap:wrap
+    display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+    margin-bottom:22px;flex-wrap:wrap
   }
   .notify-scope .title{
-    margin:0;font-weight:900;font-size:2rem;
+    margin:0;font-weight:950;font-size:2rem;
     background:var(--gradient);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
     position:relative;padding-bottom:8px
   }
   .notify-scope .title::after{
-    content:'';position:absolute;bottom:0;right:0;width:80px;height:4px;
-    background:var(--gradient);border-radius:2px
+    content:"";position:absolute;bottom:0;right:0;width:88px;height:4px;
+    background:var(--gradient);border-radius:999px
   }
-  .notify-scope .hint{color:var(--text-light);font-weight:700;margin-top:8px;font-size:1.05rem}
+  .notify-scope .hint{
+    color:var(--text-light);font-weight:800;margin-top:8px;
+    font-size:1.02rem;line-height:1.7
+  }
 
-  .notify-scope .grid{display:grid;gap:24px}
-  @media (min-width:1040px){.notify-scope .grid{grid-template-columns:1.15fr .85fr}}
+  .notify-scope .grid{display:grid;gap:22px}
+  @media (min-width:1040px){
+    .notify-scope .grid{grid-template-columns:1.15fr .85fr;align-items:start}
+  }
 
   .notify-scope .card{
     background:var(--card);
@@ -66,23 +75,30 @@
     position:relative;overflow:hidden
   }
   .notify-scope .card::before{
-    content:'';position:absolute;top:0;right:0;width:100%;height:5px;background:var(--gradient)
+    content:"";position:absolute;top:0;right:0;width:100%;height:5px;background:var(--gradient)
   }
   .notify-scope .card-hd{
     padding:16px 20px;border-bottom:1px solid var(--border);
     display:flex;align-items:center;justify-content:space-between;gap:10px;
-    background:var(--bg)
+    background:linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0));
   }
-  .notify-scope .card-hd strong{font-weight:900;color:var(--text);font-size:1.15rem}
+  html[data-theme="dark"] .notify-scope .card-hd{
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0));
+  }
+  .notify-scope .card-hd strong{font-weight:950;color:var(--text);font-size:1.15rem}
   .notify-scope .card-bd{padding:20px}
-  .notify-scope .help{color:var(--text-light);font-size:.9rem;font-weight:700}
+  .notify-scope .help{color:var(--text-light);font-size:.92rem;font-weight:800}
 
-  .notify-scope .form-grid{display:grid;gap:20px}
-  @media (min-width:640px){.notify-scope .form-grid{grid-template-columns:1fr 1fr}}
+  .notify-scope .form-grid{display:grid;gap:18px}
+  @media (min-width:720px){.notify-scope .form-grid{grid-template-columns:1fr 1fr}}
   .notify-scope .field{display:flex;flex-direction:column;gap:8px}
   .notify-scope .field.full{grid-column:1/-1}
 
-  .notify-scope label{font-weight:900;color:var(--text);display:flex;align-items:center;gap:8px}
+  .notify-scope label{
+    font-weight:950;color:var(--text);
+    display:flex;align-items:center;gap:8px
+  }
+
   .notify-scope input[type="text"],
   .notify-scope input[type="url"],
   .notify-scope input[type="datetime-local"],
@@ -90,70 +106,94 @@
   .notify-scope select{
     border:2px solid var(--border);
     border-radius:var(--radius-md);
-    padding:12px 16px;
-    font:inherit;background:var(--bg);color:var(--text);
+    padding:12px 14px;
+    font:inherit;
+    background:var(--bg);
+    color:var(--text);
     transition:var(--transition)
   }
-  .notify-scope textarea{min-height:180px;resize:vertical;line-height:1.7}
+  .notify-scope textarea{min-height:180px;resize:vertical;line-height:1.8}
   .notify-scope input:focus,
   .notify-scope textarea:focus,
   .notify-scope select:focus{
-    outline:none;border-color:var(--primary);
-    box-shadow:0 0 0 3px rgba(67, 97, 238, .2)
+    outline:none;
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px rgba(67, 97, 238, .18)
   }
 
-  .notify-scope .errors{color:#ef4444;font-weight:800;font-size:.9rem;margin-top:4px}
-
-  .notify-scope .actions{
-    display:flex;gap:12px;flex-wrap:wrap;margin-top:24px
+  .notify-scope .errors{
+    color:#ef4444;font-weight:850;font-size:.92rem;margin-top:4px
   }
-  .notify-scope .actions--top{margin-top:0;margin-bottom:18px}
+
+  /* Actions */
+  .notify-scope .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}
+  .notify-scope .actions--top{margin-top:0;margin-bottom:16px}
+
+  /* Scoped buttons */
   .notify-scope .btn{
     display:inline-flex;align-items:center;gap:8px;
-    padding:12px 20px;border-radius:var(--radius-md);
+    padding:12px 18px;border-radius:var(--radius-md);
     border:1px solid var(--border);
     background:var(--card);
-    font-weight:900;cursor:pointer;text-decoration:none;color:var(--text);
+    font-weight:950;cursor:pointer;text-decoration:none;color:var(--text);
     transition:var(--transition)
   }
-  .notify-scope .btn:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,.1)}
+  .notify-scope .btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(2,6,23,.10)}
   .notify-scope .btn-primary{
-    background:var(--gradient);border:none;color:#fff;
-    box-shadow:0 8px 25px rgba(67, 97, 238, .3)
+    background:var(--gradient);
+    border:none;color:#fff;
+    box-shadow:0 10px 26px rgba(67, 97, 238, .30)
   }
-  .notify-scope .btn-primary:hover{box-shadow:0 12px 30px rgba(67, 97, 238, .4)}
-  .notify-scope .btn-ghost{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
-  .notify-scope .btn:disabled{opacity:.7;cursor:not-allowed}
+  .notify-scope .btn-primary:hover{box-shadow:0 14px 34px rgba(67, 97, 238, .38)}
+  .notify-scope .btn-ghost{
+    background:rgba(238,242,255,.95);
+    border-color:#e5e7eb;
+    color:#1e40af
+  }
+  html[data-theme="dark"] .notify-scope .btn-ghost{
+    background:rgba(67,97,238,.12);
+    border-color:rgba(67,97,238,.22);
+    color:#dbeafe
+  }
+  .notify-scope .btn:disabled{opacity:.75;cursor:not-allowed;transform:none;box-shadow:none}
 
   /* Teachers tools */
   .notify-scope .teacher-tools{
     display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0 12px
   }
   .notify-scope .teacher-tools input[type="search"]{
-    flex:1 1 260px;border:2px solid var(--border);
-    border-radius:var(--radius-md);padding:10px 14px;background:var(--card)
+    flex:1 1 260px;
+    border:2px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:10px 12px;
+    background:var(--card);
+    color:var(--text);
   }
-  .notify-scope .teacher-tools .mini{font-weight:900;color:var(--text)}
+  .notify-scope .teacher-tools .mini{font-weight:950;color:var(--text)}
   .notify-scope .teacher-tools .count{
     background:var(--primary);color:#fff;border-radius:999px;
-    padding:6px 12px;font-weight:900;font-size:.9rem
+    padding:6px 12px;font-weight:950;font-size:.9rem
   }
-  .notify-scope .teacher-actions{display:flex;align-items:center;gap:8px;font-size:.9rem}
+  .notify-scope .teacher-actions{display:flex;align-items:center;gap:8px;font-size:.92rem}
   .notify-scope .teacher-actions button{
     background:none;border:0;padding:0;color:var(--primary);
-    cursor:pointer;font-weight:900
+    cursor:pointer;font-weight:950
   }
   .notify-scope .teacher-actions button:hover{text-decoration:underline}
 
-  /* If teachers render as checkboxes list */
+  /* Teachers list container (Checkboxes OR SelectMultiple) */
   .notify-scope .teacher-list{
     border:2px solid var(--border);
     border-radius:var(--radius-md);
     background:var(--bg);
     padding:10px 12px;
-    max-height:360px;overflow:auto
+    max-height:360px;
+    overflow:auto
   }
-  .notify-scope .teacher-list ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+  .notify-scope .teacher-list ul{
+    list-style:none;padding:0;margin:0;
+    display:grid;gap:8px
+  }
   .notify-scope .teacher-list li{
     background:var(--card);
     border:1px solid transparent;
@@ -164,49 +204,86 @@
     border-color:rgba(67, 97, 238, .25);
     background:rgba(67, 97, 238, .06)
   }
-  .notify-scope .teacher-list label{display:flex;align-items:center;gap:10px;margin:0;cursor:pointer}
-  .notify-scope .teacher-list input[type="checkbox"]{width:18px;height:18px;accent-color:var(--primary)}
+  .notify-scope .teacher-list label{
+    display:flex;align-items:center;gap:10px;margin:0;cursor:pointer;
+    font-weight:900;
+  }
+  .notify-scope .teacher-list input[type="checkbox"]{
+    width:18px;height:18px;accent-color:var(--primary)
+  }
+  /* If field is a <select multiple> */
+  .notify-scope .teacher-list select[multiple]{
+    width:100%;
+    min-height:320px;
+    padding:10px 12px;
+    border-radius:var(--radius-md);
+    border:2px solid var(--border);
+    background:var(--card);
+    color:var(--text);
+  }
+  .notify-scope .teacher-list select[multiple] option{
+    padding:8px 10px;
+  }
 
   /* Preview */
   .notify-scope .preview{
-    background:linear-gradient(180deg,#f9fbff,#ffffff)
+    background:linear-gradient(180deg, rgba(249,251,255,.9), rgba(255,255,255,.7));
   }
-  @media (prefers-color-scheme: dark){
-    .notify-scope .preview{background:linear-gradient(180deg,#0f172a,#0b1326)}
+  html[data-theme="dark"] .notify-scope .preview{
+    background:linear-gradient(180deg, rgba(15,23,42,.85), rgba(11,19,38,.85));
   }
+
   .notify-scope .notif{
-    border:2px dashed #dbeafe;border-radius:var(--radius-lg);
-    padding:20px;background:var(--card);
-    box-shadow:0 5px 15px rgba(0,0,0,.05)
+    border:2px dashed rgba(219,234,254,.95);
+    border-radius:var(--radius-lg);
+    padding:18px;
+    background:var(--card);
+    box-shadow:0 10px 22px rgba(2,6,23,.07)
   }
-  .notify-scope .nt-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
-  .notify-scope .nt-title{margin:0;font-weight:900;color:var(--text);font-size:1.25rem}
+  html[data-theme="dark"] .notify-scope .notif{
+    border-color: rgba(67,97,238,.28);
+  }
+  .notify-scope .nt-h{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px
+  }
+  .notify-scope .nt-title{margin:0;font-weight:950;color:var(--text);font-size:1.25rem}
   .notify-scope .nt-body{
-    white-space:pre-wrap;margin:16px 0;color:var(--text);
-    font-weight:700;line-height:1.8;padding:16px;background:var(--bg);
-    border-radius:var(--radius-md);border-left:4px solid var(--primary)
+    white-space:pre-wrap;
+    margin:14px 0;
+    color:var(--text);
+    font-weight:800;
+    line-height:1.85;
+    padding:14px;
+    background:var(--bg);
+    border-radius:var(--radius-md);
+    border-right:4px solid var(--primary)
   }
   .notify-scope .nt-meta{
-    margin-top:16px;color:var(--text-light);font-weight:800;
-    display:flex;gap:12px;flex-wrap:wrap
+    margin-top:12px;
+    color:var(--text-light);
+    font-weight:850;
+    display:flex;gap:10px;flex-wrap:wrap
   }
   .notify-scope .pill{
     display:inline-flex;align-items:center;gap:6px;
-    padding:8px 14px;border:1px solid var(--border);
-    background:var(--bg);color:var(--text);
-    border-radius:999px;font-weight:900;font-size:.9rem
+    padding:8px 12px;border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--text);
+    border-radius:999px;font-weight:950;font-size:.9rem
   }
 
   /* Loading */
   .notify-scope .loading{
     display:inline-block;width:20px;height:20px;
-    border:3px solid rgba(255,255,255,.3);
-    border-radius:50%;border-top-color:#fff;
+    border:3px solid rgba(255,255,255,.32);
+    border-radius:50%;
+    border-top-color:#fff;
     animation:spin 1s ease-in-out infinite
   }
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  @media (max-width:768px){
+  /* Mobile */
+  @media (max-width:820px){
     .notify-scope .wrap{padding:16px}
     .notify-scope .page-head{flex-direction:column;align-items:flex-start}
     .notify-scope .title{font-size:1.6rem}
@@ -251,6 +328,7 @@
         <div class="card-bd">
           {% if form %}
             {% if form.media %}{{ form.media }}{% endif %}
+
             <form method="post" enctype="multipart/form-data" action="" id="notifyForm" novalidate>
               {% csrf_token %}
 
@@ -276,12 +354,13 @@
                           {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
                           {{ field.label }}
                         </span>
+
                         {% if field.name == "teachers" %}
-                        <span class="teacher-actions">
-                          <button type="button" id="selectAllTeachers">تحديد الكل</button>
-                          <span>/</span>
-                          <button type="button" id="clearAllTeachers">إلغاء التحديد</button>
-                        </span>
+                          <span class="teacher-actions">
+                            <button type="button" id="selectAllTeachers">تحديد الكل</button>
+                            <span>/</span>
+                            <button type="button" id="clearAllTeachers">إلغاء التحديد</button>
+                          </span>
                         {% endif %}
                       </label>
 
@@ -367,10 +446,9 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
     const $ = s => document.querySelector(s);
-    const $$ = s => Array.from(document.querySelectorAll(s));
 
     function escapeHtml(val){
       return String(val ?? "").replace(/[&<>"']/g, ch => ({
@@ -382,7 +460,7 @@
       })[ch]);
     }
 
-    // ===== Preview bindings (try to be flexible with field names) =====
+    // ===== Preview bindings (flexible) =====
     const titleInput =
       $("#id_title") ||
       document.querySelector('[name$="title"],[name*="title"],[name*="subject"],[name*="heading"]');
@@ -426,6 +504,7 @@
         pvExpires.style.display = (expInput.value || "").trim() ? "inline-flex" : "none";
       }
     }
+
     [titleInput, msgInput, urlInput, impInput, expInput].forEach(el=>{
       if(el){
         el.addEventListener("input", updatePreview);
@@ -435,7 +514,7 @@
     updatePreview();
 
     // ===== Teachers filter/select-all (checkboxes OR select[multiple]) =====
-    const teacherField = document.querySelector('.form-grid .field[data-name="teachers"]');
+    const teacherField = document.querySelector('.form-grid .field[data-name*="teachers"]');
     if(teacherField){
       const searchInput = $('#teacherSearch');
       const selCount = $('#selCount');
@@ -443,30 +522,46 @@
       const btnClearAll = $('#clearAllTeachers');
 
       const teacherListBox = document.getElementById('teacherList') || teacherField;
-      let isLoadingTeachers = false;
+
+      // Determine actual field name (supports prefixes)
+      function getTeachersFieldName(){
+        const cb = teacherField.querySelector('input[type="checkbox"][name]');
+        if(cb && cb.name) return cb.name;
+
+        const ms = teacherField.querySelector('select[multiple][name]');
+        if(ms && ms.name) return ms.name;
+
+        return 'teachers';
+      }
+      const teachersFieldName = getTeachersFieldName();
 
       const scopeSel = document.getElementById('id_audience_scope');
       const schoolSel = document.getElementById('id_target_school');
       const deptSel = document.getElementById('id_target_department');
+
+      let isLoadingTeachers = false;
       let isLoadingDepts = false;
 
       function getCheckboxInputs(){
-        return Array.from(teacherField.querySelectorAll('input[type="checkbox"][name="teachers"]'));
+        return Array.from(teacherField.querySelectorAll('input[type="checkbox"][name="' + CSS.escape(teachersFieldName) + '"]'));
       }
 
       function getMultiSelect(){
-        return teacherField.querySelector('select[multiple]');
+        const ms = teacherField.querySelector('select[multiple][name="' + CSS.escape(teachersFieldName) + '"]');
+        return ms || teacherField.querySelector('select[multiple]');
       }
 
       function updateCount(){
         let count = 0;
         const checkboxInputs = getCheckboxInputs();
         const multiSelect = getMultiSelect();
+
         if(checkboxInputs.length){
           checkboxInputs.forEach(cb => { if(cb.checked) count++; });
         } else if(multiSelect){
           Array.from(multiSelect.options).forEach(op => { if(op.selected) count++; });
         }
+
         if(selCount) selCount.textContent = String(count);
       }
 
@@ -496,6 +591,7 @@
       function toggleAll(select){
         const checkboxInputs = getCheckboxInputs();
         const multiSelect = getMultiSelect();
+
         if(checkboxInputs.length){
           checkboxInputs.forEach(cb => {
             const wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
@@ -509,6 +605,7 @@
             op.selected = !!select;
           });
         }
+
         updateCount();
       }
 
@@ -529,14 +626,18 @@
 
         if(!scopeSel && !schoolSel && !deptSel) return;
 
-        // Preserve current selections (best-effort)
+        // Preserve current selections
         const selected = new Set(getCheckboxInputs().filter(cb => cb.checked).map(cb => String(cb.value)));
+        const multiSelect = getMultiSelect();
+        if(multiSelect){
+          Array.from(multiSelect.options).forEach(op => { if(op.selected) selected.add(String(op.value)); });
+        }
+
         const params = new URLSearchParams();
         if(scopeSel && scopeSel.value) params.set('audience_scope', scopeSel.value);
         if(schoolSel && schoolSel.value) params.set('target_school', schoolSel.value);
         if(deptSel && deptSel.value) params.set('target_department', deptSel.value);
 
-        // If nothing is selected, keep server-rendered list (avoid extra request)
         if(params.toString() === '') return;
 
         const url = '{% url "reports:api_notification_teachers" %}?' + params.toString();
@@ -564,13 +665,12 @@
             const nm = escapeHtml(t.name || '—');
             const checked = selected.has(id) ? ' checked' : '';
             items.push(
-              `<li><label><input type="checkbox" name="teachers" value="${escapeHtml(id)}"${checked}> <span>${nm}</span></label></li>`
+              `<li><label><input type="checkbox" name="${escapeHtml(teachersFieldName)}" value="${escapeHtml(id)}"${checked}> <span>${nm}</span></label></li>`
             );
           }
           items.push('</ul>');
           teacherListBox.innerHTML = items.join('');
 
-          // Re-apply current search filter after re-render
           if(searchInput) applyFilter(searchInput.value);
           updateCount();
         }catch(e){
@@ -591,7 +691,6 @@
         const prevVal = String(deptSel.value || "");
         const params = new URLSearchParams();
 
-        // If scope=all, do not filter by school.
         const scopeVal = scopeSel ? String(scopeSel.value || "") : "";
         if(scopeVal !== 'all' && schoolSel && schoolSel.value){
           params.set('school', schoolSel.value);
@@ -616,7 +715,6 @@
             deptSel.appendChild(opt);
           }
 
-          // restore previous selection if still available (unless forced clear)
           if(options.clearSelection){
             deptSel.value = '';
           } else if(prevVal && Array.from(deptSel.options).some(o => o.value === prevVal)){
@@ -625,7 +723,6 @@
             deptSel.value = '';
           }
         }catch(e){
-          // fallback to previous options
           deptSel.innerHTML = '';
           for(const o of oldOptions){
             const opt = document.createElement('option');
@@ -640,7 +737,6 @@
         }
       }
 
-      // Trigger refresh when changing scope/school/department
       if(scopeSel){
         scopeSel.addEventListener('change', async () => {
           await refreshDepartments({clearSelection: true});
@@ -660,12 +756,11 @@
       applyFilter('');
       updateCount();
 
-      // If there is already a pre-selected scope/school/department, sync on load
       try{
-        if((scopeSel && scopeSel.value === 'all') || (schoolSel && schoolSel.value) || (deptSel && deptSel.value)){
+        if((scopeSel && scopeSel.value) || (schoolSel && schoolSel.value) || (deptSel && deptSel.value)){
           Promise.resolve(refreshDepartments({clearSelection: false})).then(refreshTeachers);
         }
-      }catch(e){ /* noop */ }
+      }catch(e){ /* ignore */ }
     }
 
     // ===== Prevent double submit =====

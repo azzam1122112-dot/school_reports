@@ -1,42 +1,186 @@
+{# templates/.../manager_school_form.html (مثال اسم) #}
 {% extends "base.html" %}
-{% block title %}{% if mode == "edit" %}تعديل مدير مدرسة{% else %}إنشاء مدير مدرسة{% endif %}{% endblock %}
+
+{% block title %}
+  {% if mode == "edit" %}تعديل مدير مدرسة{% else %}إنشاء مدير مدرسة{% endif %}
+{% endblock %}
 
 {% block head %}
 <style>
+  /* =========================================================
+     School Manager Form (page-only polish)
+     - Scoped: .schools-scope
+     - بدون إعادة تعريف .btn / .card العامة
+     - دعم RTL + وضع داكن عبر vars
+     ========================================================= */
+  .schools-scope{
+    --x-radius: 18px;
+    --x-soft: rgba(148,163,184,.10);
+    --x-soft-2: rgba(219,234,254,.55);
+    --x-err-bg: rgba(239,68,68,.08);
+    --x-err-bd: rgba(239,68,68,.25);
+    --x-ok-bg: rgba(16,185,129,.10);
+    --x-ok-bd: rgba(16,185,129,.22);
+    --t: var(--t-fast);
+  }
+
+  .schools-scope .page-head{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:flex-end;
+    margin-bottom: 14px;
+  }
+
+  .schools-scope .kicker{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    margin-bottom: 10px;
+  }
+
+  /* المدارس */
+  .schools-scope .schools-box{
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    border-radius: var(--x-radius);
+    padding: 12px;
+  }
+
+  .schools-scope .schools-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin: 8px 0 10px;
+  }
+
   .schools-scope .schools-list{
-    max-height:240px;
+    max-height: 280px;
     overflow:auto;
-    border: 1px solid var(--line-2);
+    border: 1px solid var(--line);
     border-radius: 14px;
     padding: 10px;
-    background: rgba(148,163,184,.10);
+    background: var(--x-soft);
   }
+  html[data-theme="dark"] .schools-scope .schools-list{
+    background: rgba(20,35,73,.35);
+    border-color: #1b2744;
+  }
+
   .schools-scope .schools-list label{
-    display:flex;align-items:center;gap:10px;
-    font-weight:900;margin-bottom:8px;cursor:pointer
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    font-weight: 900;
+    margin-bottom: 10px;
+    cursor:pointer;
+    border-radius: 12px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    transition: var(--t);
   }
-  .schools-scope .hint{font-size:.9rem;color:var(--muted);font-weight:850;margin-top:6px}
+
+  .schools-scope .schools-list label:hover{
+    background: var(--x-soft-2);
+    border-color: rgba(37,99,235,.18);
+  }
+  html[data-theme="dark"] .schools-scope .schools-list label:hover{
+    background: rgba(26,44,83,.60);
+    border-color: rgba(96,165,250,.20);
+  }
+
+  .schools-scope .school-check{
+    margin-top: 2px;
+    transform: scale(1.05);
+    accent-color: #2563eb;
+  }
+
+  .schools-scope .school-meta{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top: 4px;
+    font-weight: 850;
+    color: var(--muted);
+    font-size: .92rem;
+  }
+
+  .schools-scope .hint{
+    font-size:.92rem;
+    color:var(--muted);
+    font-weight:850;
+    margin-top:6px;
+  }
+
+  /* أخطاء الحقول */
   .schools-scope .field-error{
     margin-top:8px;
     padding:10px 12px;
     border-radius:12px;
-    border:1px solid rgba(239,68,68,.25);
-    background: rgba(239,68,68,.08);
+    border:1px solid var(--x-err-bd);
+    background: var(--x-err-bg);
     color: var(--danger, #b91c1c);
     font-weight:900;
-    font-size:.9rem;
+    font-size:.92rem;
   }
-  .schools-scope .schools-actions{
-    display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 10px
+
+  /* شارة صغيرة للعدد */
+  .schools-scope .count-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    border-radius: 999px;
+    padding: 7px 10px;
+    font-weight: 950;
+    font-size: .9rem;
+    border: 1px solid rgba(37,99,235,.18);
+    background: rgba(37,99,235,.10);
+    color: var(--ink);
+  }
+  html[data-theme="dark"] .schools-scope .count-pill{
+    border-color: rgba(96,165,250,.22);
+    background: rgba(96,165,250,.10);
+  }
+
+  /* شبكة الفورم */
+  .schools-scope .form-2{
+    display:grid;
+    gap:12px;
+    grid-template-columns: 1fr;
+  }
+  @media(min-width: 900px){
+    .schools-scope .form-2{
+      grid-template-columns: 1fr 1fr;
+      align-items:start;
+    }
+  }
+
+  /* ترويسة القسم */
+  .schools-scope .section-title{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin: 0 0 8px 0;
+    font-weight: 950;
+    color: var(--ink);
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .schools-scope .schools-list label{ transition:none !important; }
+    .schools-scope .schools-list label:hover{ transform:none !important; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container schools-scope" dir="rtl">
-  <div class="page-head" style="max-width:780px;margin-inline:auto">
+  <div class="page-head" style="max-width:860px;margin-inline:auto">
     <div>
-      <h1 class="page-title">{% if mode == "edit" %}تعديل مدير مدرسة{% else %}إنشاء مدير مدرسة{% endif %}</h1>
+      <h1 class="page-title">
+        {% if mode == "edit" %}تعديل مدير مدرسة{% else %}إنشاء مدير مدرسة{% endif %}
+      </h1>
       <p class="page-subtitle">
         {% if mode == "edit" and manager %}
           تحديث بيانات المدير وربطه بالمدارس المناسبة.
@@ -47,13 +191,20 @@
     </div>
   </div>
 
-  <div style="max-width:780px;margin-inline:auto">
+  <div style="max-width:860px;margin-inline:auto">
     <div class="card">
-      {% if mode == "edit" and manager %}
-        <div class="badge info" style="margin-bottom:10px">المدير الحالي: {{ manager.name }}</div>
-      {% else %}
-        <div class="badge info" style="margin-bottom:10px">يمكن ربط المدير بعدة مدارس.</div>
-      {% endif %}
+      <div class="kicker">
+        {% if mode == "edit" and manager %}
+          <span class="badge info">المدير الحالي: {{ manager.name }}</span>
+        {% else %}
+          <span class="badge info">يمكن ربط المدير بعدة مدارس</span>
+        {% endif %}
+
+        <span class="count-pill" id="selectedCountPill" aria-live="polite">
+          <i class="fa-solid fa-school" style="opacity:.9"></i>
+          المحدد: <span id="selectedCount">0</span>
+        </span>
+      </div>
 
       {% if form.non_field_errors %}
         <div class="msg error" data-autohide="false" style="margin-bottom:10px;">
@@ -64,61 +215,94 @@
       <form method="post" novalidate class="form-grid" id="manager-form">
         {% csrf_token %}
 
-        <div style="display:grid;gap:12px;grid-template-columns:1fr">
+        <div class="form-2">
+          <!-- بيانات المدير -->
+          <div class="schools-box">
+            <h3 class="section-title">
+              <span><i class="fa-solid fa-user-gear" style="opacity:.85"></i> بيانات المدير</span>
+            </h3>
 
-          <div style="display:grid;gap:12px;grid-template-columns:1fr">
-            <div>
-              <label for="{{ form.name.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">اسم المدير</label>
-              {{ form.name }}
-              {% for e in form.name.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
-            </div>
+            <div style="display:grid;gap:12px">
+              <div>
+                <label for="{{ form.name.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">اسم المدير</label>
+                {{ form.name }}
+                {% for e in form.name.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+              </div>
 
-            <div>
-              <label for="{{ form.phone.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">رقم الجوال (اسم المستخدم)</label>
-              {{ form.phone }}
-              <div class="hint">سيُستخدم رقم الجوال لتسجيل الدخول.</div>
-              {% for e in form.phone.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
-            </div>
+              <div>
+                <label for="{{ form.phone.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">رقم الجوال (اسم المستخدم)</label>
+                {{ form.phone }}
+                <div class="hint">سيُستخدم رقم الجوال لتسجيل الدخول.</div>
+                {% for e in form.phone.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+              </div>
 
-            <div>
-              <label for="{{ form.national_id.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">الهوية الوطنية (اختياري)</label>
-              {{ form.national_id }}
-              {% for e in form.national_id.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
-            </div>
+              <div>
+                <label for="{{ form.national_id.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">الهوية الوطنية (اختياري)</label>
+                {{ form.national_id }}
+                {% for e in form.national_id.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+              </div>
 
-            <div>
-              <label for="{{ form.password.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">كلمة المرور</label>
-              {{ form.password }}
-              {% if mode == "edit" %}
-                <div class="hint">اتركها فارغة إذا لا تريد تغيير كلمة المرور.</div>
-              {% endif %}
-              {% for e in form.password.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
-            </div>
+              <div>
+                <label for="{{ form.password.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">كلمة المرور</label>
+                {{ form.password }}
+                {% if mode == "edit" %}
+                  <div class="hint">اتركها فارغة إذا لا تريد تغيير كلمة المرور.</div>
+                {% endif %}
+                {% for e in form.password.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+              </div>
 
-            <div>
-              <label for="{{ form.is_active.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">حالة الحساب</label>
-              {{ form.is_active }}
-              {% for e in form.is_active.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+              <div>
+                <label for="{{ form.is_active.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">حالة الحساب</label>
+                {{ form.is_active }}
+                {% for e in form.is_active.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+              </div>
             </div>
           </div>
 
-          <div>
-            <label style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">المدارس المرتبطة بالمدير</label>
+          <!-- المدارس -->
+          <div class="schools-box">
+            <h3 class="section-title">
+              <span><i class="fa-solid fa-school" style="opacity:.85"></i> المدارس المرتبطة</span>
+              <span class="hint" style="margin:0">اختر مدرسة واحدة على الأقل</span>
+            </h3>
 
             <div class="schools-actions">
-              <input type="search" id="managerSchoolsSearch" class="input" placeholder="ابحث عن مدرسة..." autocomplete="off" spellcheck="false" style="min-width:240px">
-              <button type="button" class="btn btn-outline" id="selectAllSchools" style="padding:8px 10px;min-height:38px">تحديد الكل</button>
-              <button type="button" class="btn btn-outline" id="clearAllSchools" style="padding:8px 10px;min-height:38px">مسح</button>
+              <input
+                type="search"
+                id="managerSchoolsSearch"
+                class="input"
+                placeholder="ابحث عن مدرسة..."
+                autocomplete="off"
+                spellcheck="false"
+                style="min-width:240px"
+                aria-label="بحث المدارس"
+              >
+              <button type="button" class="btn btn-outline" id="selectAllSchools" style="padding:8px 10px;min-height:38px">
+                تحديد الكل
+              </button>
+              <button type="button" class="btn btn-outline" id="clearAllSchools" style="padding:8px 10px;min-height:38px">
+                مسح
+              </button>
             </div>
 
             <div class="schools-list" id="schoolsList">
               {% if schools %}
                 {% for s in schools %}
                   <label class="school-item">
-                    <input type="checkbox" class="school-check" name="schools" value="{{ s.id }}"
-                      {% if s.id|stringformat:"s" in selected_ids %}checked{% endif %}>
-                    <span>{{ s.name }}</span>
-                    {% if s.city %}<span class="hint">- {{ s.city }}</span>{% endif %}
+                    <input
+                      type="checkbox"
+                      class="school-check"
+                      name="schools"
+                      value="{{ s.id }}"
+                      {% if s.id|stringformat:"s" in selected_ids %}checked{% endif %}
+                    >
+                    <div style="display:grid;gap:2px">
+                      <span style="font-weight:950;color:var(--ink)">{{ s.name }}</span>
+                      <div class="school-meta">
+                        {% if s.city %}<span><i class="fa-solid fa-location-dot" style="opacity:.75"></i> {{ s.city }}</span>{% endif %}
+                        <span dir="ltr" style="opacity:.85">#{{ s.id }}</span>
+                      </div>
+                    </div>
                   </label>
                 {% endfor %}
               {% else %}
@@ -126,16 +310,20 @@
               {% endif %}
             </div>
 
-            <div class="hint">يجب اختيار مدرسة واحدة على الأقل.</div>
             <div class="field-error" id="schoolsError" style="display:none">• اختر مدرسة واحدة على الأقل.</div>
           </div>
-
         </div>
 
-        <div>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <button type="submit" class="btn btn-primary">
             {% if mode == "edit" %}حفظ التعديلات{% else %}حفظ وإنشاء المدير{% endif %}
           </button>
+
+          {% if mode == "edit" and manager %}
+            <a class="btn btn-ghost" href="{% url 'dashboard:school_data' %}">رجوع</a>
+          {% else %}
+            <a class="btn btn-ghost" href="{% url 'dashboard:school_data' %}">رجوع</a>
+          {% endif %}
         </div>
       </form>
     </div>
@@ -145,9 +333,10 @@
 
 {% block scripts %}
 {{ block.super }}
-<script>
+<script nonce="{{ CSP_NONCE }}">
 (function(){
   const search = document.getElementById('managerSchoolsSearch');
+  const list = document.getElementById('schoolsList');
   const items = Array.from(document.querySelectorAll('.schools-list .school-item'));
   const checks = Array.from(document.querySelectorAll('.school-check'));
   const selectAll = document.getElementById('selectAllSchools');
@@ -155,6 +344,28 @@
   const form = document.getElementById('manager-form');
   const err = document.getElementById('schoolsError');
 
+  const countEl = document.getElementById('selectedCount');
+  const countPill = document.getElementById('selectedCountPill');
+
+  function selectedCount(){
+    return checks.reduce((acc, c) => acc + (c.checked ? 1 : 0), 0);
+  }
+
+  function syncCount(){
+    const n = selectedCount();
+    if(countEl) countEl.textContent = String(n);
+
+    // لمسة بسيطة: لو صفر نخفف الشارة
+    if(countPill){
+      countPill.style.opacity = n ? '1' : '.75';
+    }
+
+    if(err){
+      err.style.display = n ? 'none' : (checks.length ? 'block' : 'none');
+    }
+  }
+
+  // بحث
   if(search){
     search.addEventListener('input', function(){
       const q = (this.value || '').trim().toLowerCase();
@@ -167,30 +378,36 @@
 
   function setAll(val){
     checks.forEach(c => c.checked = !!val);
+    syncCount();
   }
 
-  selectAll?.addEventListener('click', () => setAll(true));
-  clearAll?.addEventListener('click', () => setAll(false));
+  if(selectAll){ selectAll.addEventListener('click', () => setAll(true)); }
+  if(clearAll){ clearAll.addEventListener('click', () => setAll(false)); }
 
   function hasOneSelected(){
     return checks.some(c => c.checked);
   }
 
-  // تحقق سريع قبل الإرسال (لا يغني عن تحقق السيرفر)
-  form?.addEventListener('submit', (e) => {
-    if(!checks.length) return;
-    if(!hasOneSelected()){
-      e.preventDefault();
-      if(err) err.style.display = 'block';
-      document.getElementById('schoolsList')?.scrollIntoView({behavior:'smooth', block:'center'});
-    } else {
-      if(err) err.style.display = 'none';
-    }
-  });
+  // تحقق قبل الإرسال (لا يغني عن تحقق السيرفر)
+  if(form){
+    form.addEventListener('submit', (e) => {
+      if(!checks.length) return;
 
-  checks.forEach(c => c.addEventListener('change', () => {
-    if(err) err.style.display = hasOneSelected() ? 'none' : 'block';
-  }));
+      if(!hasOneSelected()){
+        e.preventDefault();
+        if(err) err.style.display = 'block';
+        if(list) list.scrollIntoView({behavior:'smooth', block:'center'});
+      }else{
+        if(err) err.style.display = 'none';
+      }
+    });
+  }
+
+  // تحديث العدّاد/الخطأ
+  checks.forEach(c => c.addEventListener('change', syncCount));
+
+  // init
+  syncCount();
 })();
 </script>
 {% endblock %}

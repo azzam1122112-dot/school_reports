@@ -5,136 +5,341 @@
 
 {% block head %}
 <style>
-  .edit-report-scope{
-    --ink:#0f172a; --ink-soft:#1f2937; --muted:#64748b; --line:#e5e7eb;
-    --brand:#2563eb; --brand2:#3b82f6;
-    --accent:#059669; --accent2:#10b981;
-    --danger:#ef4444; --danger2:#dc2626;
-    --card:#ffffff; --bg:#f8fafc;
-    --radius:16px; --rsm:12px;
-    --shadow:0 10px 30px rgba(2,6,23,.08);
-    --shadow2:0 14px 34px rgba(2,6,23,.14);
-    --tr:.2s ease;
-  }
-  @media (prefers-color-scheme: dark){
-    .edit-report-scope{
-      --ink:#e5e7eb; --ink-soft:#f1f5f9; --muted:#94a3b8; --line:#1f2937;
-      --card:#0f172a; --bg:#0b1220;
-      --shadow:0 10px 30px rgba(0,0,0,.35);
-      --shadow2:0 18px 40px rgba(0,0,0,.45);
-    }
+  /* =========================================================
+     Report Edit (page-only polish)
+     - Scoped داخل .er-scope
+     - بدون إعادة تعريف .btn / .card العامة
+     - متوافق مع data-theme في base.html
+     ========================================================= */
+  .er-scope{
+    --er-radius: 18px;
+    --er-rsm: 12px;
+    --er-shadow: 0 16px 46px rgba(2,6,23,.10);
+    --er-shadow2: 0 18px 54px rgba(2,6,23,.16);
+    --er-t: var(--t-fast);
+
+    /* Fall back لو لم تتوفر متغيرات base */
+    --er-ink: var(--ink, #0f172a);
+    --er-ink2: var(--ink-2, #1f2937);
+    --er-muted: var(--muted, #64748b);
+    --er-line: var(--line, #e5e7eb);
+    --er-card: var(--card, #ffffff);
+    --er-line2: var(--line-2, #f1f5f9);
+    --er-brand: var(--brand, #2563eb);
+    --er-danger: #ef4444;
+    --er-danger2: #dc2626;
+    --er-good: #10b981;
   }
 
-  .edit-report-scope .wrap{max-width:980px;margin:0 auto;padding:20px 14px}
-  .edit-report-scope .card{
-    background:var(--card);border:1px solid var(--line);
-    border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden
-  }
-  .edit-report-scope .hd{
-    padding:18px 20px;border-bottom:1px solid var(--line);
-    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap
-  }
-  .edit-report-scope .title{margin:0;font-weight:950;color:var(--ink-soft);font-size:1.05rem}
-  .edit-report-scope .sub{margin:0;color:var(--muted);font-weight:800;font-size:.92rem}
-  .edit-report-scope .body{padding:20px}
-
-  .edit-report-scope .grid{display:grid;gap:18px}
-  .edit-report-scope .row{display:flex;flex-direction:column;gap:8px}
-  .edit-report-scope label{font-weight:900;color:var(--ink-soft)}
-  .edit-report-scope .help{font-size:.88rem;color:var(--muted);font-weight:800;margin-top:2px}
-
-  .edit-report-scope .control{
-    width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--rsm);
-    background:color-mix(in srgb, var(--card) 92%, var(--bg) 8%);color:var(--ink-soft);
-    font-size:1rem;transition:border var(--tr), box-shadow var(--tr)
-  }
-  .edit-report-scope textarea.control{min-height:120px;resize:vertical}
-  .edit-report-scope .control:focus{outline:none;border-color:var(--brand2);box-shadow:0 0 0 3px rgba(59,130,246,.18)}
-
-  /* رسائل */
-  .edit-report-scope .msg{
-    border:1px solid; padding:10px 12px; border-radius:12px; font-weight:900;
-    background:color-mix(in srgb, var(--card) 88%, var(--bg) 12%);
-  }
-  .edit-report-scope .msg.err{border-color:#fecaca;background:#fef2f2;color:#991b1b}
-  @media (prefers-color-scheme: dark){
-    .edit-report-scope .msg.err{border-color:#7f1d1d;background:#2a0f14;color:#fecaca}
+  .er-scope .wrap{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 20px 14px;
   }
 
-  /* صور */
-  .edit-report-scope .images{display:grid;gap:14px}
-  @media(min-width:720px){.edit-report-scope .images{grid-template-columns:repeat(4,1fr)}}
-  .edit-report-scope .img-card{
-    border:1px dashed color-mix(in srgb, var(--line) 70%, #cbd5e1 30%);
-    border-radius:14px;background:color-mix(in srgb, var(--card) 92%, var(--bg) 8%);
-    padding:12px;display:flex;flex-direction:column;gap:10px;transition:transform var(--tr), box-shadow var(--tr)
-  }
-  .edit-report-scope .img-card:hover{transform:translateY(-2px);box-shadow:var(--shadow2)}
-  .edit-report-scope .thumb{
-    width:100%;height:130px;border-radius:12px;background:#f1f5f9;object-fit:cover;display:block;border:1px solid var(--line)
-  }
-  .edit-report-scope .thumb--empty{
-    height:130px;border-radius:12px;background:color-mix(in srgb, var(--card) 80%, var(--bg) 20%);
-    border:1px solid var(--line);
-    display:grid;place-items:center;color:var(--muted);font-weight:900;font-size:.9rem
-  }
-  .edit-report-scope .img-meta{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .edit-report-scope .img-meta small{color:var(--muted);font-weight:900}
-  .edit-report-scope .img-meta a{font-size:.85rem;color:var(--brand);text-decoration:none;font-weight:900}
-  .edit-report-scope .img-meta a:hover{text-decoration:underline}
-
-  .edit-report-scope .img-actions{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-  .edit-report-scope .btn-file{
-    position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    padding:9px 12px;border-radius:10px;border:1px solid #c7d2fe;
-    background:#eef2ff;color:#1e3a8a;font-weight:950;cursor:pointer;min-height:40px
-  }
-  @media (prefers-color-scheme: dark){
-    .edit-report-scope .btn-file{background:#0e1b35;color:#cdd9ff;border-color:#1e2e59}
-  }
-  .edit-report-scope .btn-file input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
-
-  .edit-report-scope .clearbox{display:flex;align-items:center;gap:6px}
-  .edit-report-scope .clearbox input{width:18px;height:18px}
-  .edit-report-scope .clearbox span{font-size:.9rem;color:var(--danger2);font-weight:950}
-
-  .edit-report-scope .note{
-    font-size:.88rem;color:var(--muted);font-weight:850;
-    background:color-mix(in srgb, var(--card) 92%, var(--bg) 8%);
-    border:1px solid var(--line);border-radius:12px;padding:10px 12px
+  .er-scope .er-card{
+    border-radius: var(--er-radius);
+    box-shadow: var(--er-shadow);
+    overflow: hidden;
   }
 
-  /* أزرار */
-  .edit-report-scope .actions{display:grid;grid-template-columns:1fr;gap:12px;margin-top:8px}
-  @media(min-width:560px){.edit-report-scope .actions{grid-template-columns:1fr 1fr}}
-  .edit-report-scope .btn{
-    padding:12px 16px;border-radius:12px;border:1px solid var(--line);
-    background:color-mix(in srgb, var(--card) 92%, var(--bg) 8%);
-    font-weight:950;cursor:pointer;text-decoration:none;text-align:center;color:var(--ink-soft);
-    transition:transform var(--tr), filter var(--tr)
+  .er-scope .er-hd{
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--er-line);
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    background: linear-gradient(180deg, var(--er-line2), var(--er-card));
   }
-  .edit-report-scope .btn:hover{transform:translateY(-1px)}
-  .edit-report-scope .btn-save{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent}
-  .edit-report-scope .btn-save:hover{filter:brightness(1.03)}
-  .edit-report-scope .btn-ghost{color:#1e3a8a;background:#eef2ff;border-color:#c7d2fe}
-  @media (prefers-color-scheme: dark){
-    .edit-report-scope .btn-ghost{background:#0e1b35;color:#cdd9ff;border-color:#1e2e59}
+
+  .er-scope .er-title{
+    margin: 0;
+    font-weight: 950;
+    color: var(--er-ink2);
+    font-size: 1.08rem;
+    letter-spacing: -.2px;
+  }
+
+  .er-scope .er-sub{
+    margin: 6px 0 0;
+    color: var(--er-muted);
+    font-weight: 850;
+    font-size: .95rem;
+    line-height: 1.6;
+  }
+
+  .er-scope .er-body{ padding: 20px; }
+
+  .er-scope .grid{ display:grid; gap: 18px; }
+  .er-scope .row{ display:flex; flex-direction:column; gap: 8px; }
+
+  .er-scope label{
+    font-weight: 950;
+    color: var(--er-ink2);
+  }
+
+  .er-scope .help{
+    font-size: .88rem;
+    color: var(--er-muted);
+    font-weight: 800;
+    margin-top: 2px;
+  }
+
+  /* Inputs styling (نضيف class control عبر JS) */
+  .er-scope .control{
+    width:100%;
+    padding: 12px 14px;
+    border: 1px solid var(--er-line);
+    border-radius: var(--er-rsm);
+    background: var(--er-card);
+    color: var(--er-ink2);
+    font-size: 1rem;
+    transition: border var(--er-t), box-shadow var(--er-t), background var(--er-t);
+  }
+  .er-scope textarea.control{ min-height: 120px; resize: vertical; }
+  .er-scope .control:focus{
+    outline:none;
+    border-color: rgba(37,99,235,.55);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.18);
+  }
+
+  /* Messages */
+  .er-scope .msg{
+    border: 1px solid var(--er-line);
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-weight: 900;
+    background: linear-gradient(180deg, var(--er-line2), var(--er-card));
+    color: var(--er-ink2);
+  }
+  .er-scope .msg.err{
+    border-color: rgba(239,68,68,.30);
+    background: rgba(239,68,68,.08);
+    color: var(--er-danger2);
+  }
+
+  /* Images */
+  .er-scope .images{
+    display:grid;
+    gap: 14px;
+  }
+  @media(min-width:720px){
+    .er-scope .images{ grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .er-scope .img-card{
+    border: 1px dashed rgba(148,163,184,.55);
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--er-line2), var(--er-card));
+    padding: 12px;
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    transition: transform var(--er-t), box-shadow var(--er-t), border-color var(--er-t);
+  }
+  .er-scope .img-card:hover{
+    transform: translateY(-2px);
+    box-shadow: var(--er-shadow2);
+    border-color: rgba(37,99,235,.35);
+  }
+
+  .er-scope .thumb{
+    width:100%;
+    height: 130px;
+    border-radius: 12px;
+    object-fit: cover;
+    display:block;
+    border: 1px solid var(--er-line);
+    background: var(--er-line2);
+    cursor: zoom-in;
+  }
+  .er-scope .thumb--empty{
+    height: 130px;
+    border-radius: 12px;
+    border: 1px solid var(--er-line);
+    background: var(--er-card);
+    display:grid;
+    place-items:center;
+    color: var(--er-muted);
+    font-weight: 950;
+    font-size: .9rem;
+  }
+
+  .er-scope .img-meta{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 8px;
+  }
+  .er-scope .img-meta small{
+    color: var(--er-muted);
+    font-weight: 900;
+  }
+  .er-scope .img-meta .links{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .er-scope .img-meta a{
+    font-size: .86rem;
+    color: var(--er-brand);
+    text-decoration:none;
+    font-weight: 950;
+  }
+  .er-scope .img-meta a:hover{ text-decoration: underline; }
+
+  .er-scope .img-actions{
+    display:flex;
+    gap: 8px;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+  }
+
+  .er-scope .btn-file{
+    position: relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(37,99,235,.25);
+    background: rgba(37,99,235,.08);
+    color: #1e3a8a;
+    font-weight: 950;
+    cursor: pointer;
+    min-height: 40px;
+  }
+  html[data-theme="dark"] .er-scope .btn-file{
+    background: rgba(37,99,235,.16);
+    color: #dbeafe;
+    border-color: rgba(37,99,235,.30);
+  }
+  .er-scope .btn-file input[type="file"]{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    cursor:pointer;
+  }
+
+  .er-scope .clearbox{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+  }
+  .er-scope .clearbox input{ width: 18px; height: 18px; }
+  .er-scope .clearbox span{ font-size: .9rem; color: var(--er-danger2); font-weight: 950; }
+
+  .er-scope .note{
+    font-size: .88rem;
+    color: var(--er-muted);
+    font-weight: 850;
+    background: linear-gradient(180deg, var(--er-card), var(--er-line2));
+    border: 1px solid var(--er-line);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+
+  /* Actions (نستخدم أزرار base .btn) */
+  .er-scope .actions{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  @media(min-width:560px){
+    .er-scope .actions{ grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Submit loading */
+  .er-scope .is-submitting{
+    opacity: .75;
+    pointer-events: none;
+    filter: saturate(.9);
+  }
+
+  /* Preview modal */
+  .er-scope .pm-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(2,6,23,.65);
+    z-index: 12600;
+    display: none;
+    place-items: center;
+    padding: 14px;
+  }
+  .er-scope .pm-overlay.is-open{ display: grid; }
+  .er-scope .pm{
+    width: min(980px, 96vw);
+    max-height: 92vh;
+    background: var(--er-card);
+    border: 1px solid var(--er-line);
+    border-radius: 18px;
+    box-shadow: 0 40px 90px rgba(2,6,23,.30);
+    overflow: hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .er-scope .pm-hd{
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--er-line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    background: linear-gradient(180deg, var(--er-line2), var(--er-card));
+  }
+  .er-scope .pm-hd .ttl{
+    margin: 0;
+    font-weight: 950;
+    color: var(--er-ink2);
+    display:flex;
+    gap: 8px;
+    align-items:center;
+  }
+  .er-scope .pm-close{
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid var(--er-line);
+    background: var(--er-card);
+    cursor: pointer;
+    font-weight: 950;
+    color: var(--er-ink2);
+  }
+  .er-scope .pm-bd{
+    padding: 12px;
+    overflow:auto;
+  }
+  .er-scope .pm-img{
+    width: 100%;
+    height: auto;
+    display:block;
+    border-radius: 14px;
+    border: 1px solid var(--er-line);
+    background: var(--er-line2);
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="edit-report-scope">
+<div class="er-scope">
   <div class="wrap" dir="rtl">
-    <div class="card">
-      <div class="hd">
+    <div class="card er-card">
+      <div class="er-hd">
         <div>
-          <h2 class="title">✏️ تعديل التقرير #{{ report.id }}</h2>
-          <p class="sub">حدّث بيانات التقرير، واستبدل الصور أو احذفها إن لزم.</p>
+          <h2 class="er-title">✏️ تعديل التقرير #{{ report.id }}</h2>
+          <p class="er-sub">حدّث بيانات التقرير، واستبدل الصور أو احذفها إن لزم.</p>
         </div>
+
+        {# اختياري: رابط سريع للطباعة إن كان مناسبًا عندك #}
+        {# <a class="btn btn-ghost" href="{% url 'reports:report_print' report.id %}"><i class="fa-solid fa-print"></i> طباعة</a> #}
       </div>
 
-      <div class="body">
+      <div class="er-body">
         {% if messages %}
           {% for message in messages %}
             <div class="msg err" style="margin-bottom:10px">{{ message }}</div>
@@ -162,8 +367,14 @@
             {% if form.fields.teacher_name %}
               <div class="row">
                 <label for="id_teacher_name">اسم المعلم</label>
-                <input class="control" type="text" id="id_teacher_name" name="teacher_name" maxlength="120"
-                       value="{{ form.data.teacher_name|default:report.teacher_name|default:request.user.name }}">
+                <input
+                  class="control"
+                  type="text"
+                  id="id_teacher_name"
+                  name="teacher_name"
+                  maxlength="120"
+                  value="{{ form.data.teacher_name|default:report.teacher_name|default:request.user.name }}"
+                >
                 <div class="help">يظهر هذا الاسم داخل الطباعة.</div>
               </div>
             {% endif %}
@@ -216,10 +427,13 @@
                 {# ========= Slot 1 ========= #}
                 <div class="img-card" data-slot="1">
                   {% if report.image1 %}
-                    <img class="thumb" id="thumb-1" src="{{ report.image1.url }}" alt="image1">
+                    <img class="thumb" id="thumb-1" src="{{ report.image1.url }}" alt="image1" data-full="{{ report.image1.url }}">
                     <div class="img-meta">
                       <small>الصورة الحالية</small>
-                      <a href="{{ report.image1.url }}" target="_blank" rel="noopener">فتح</a>
+                      <div class="links">
+                        <a href="#" class="er-preview" data-src="{{ report.image1.url }}">معاينة</a>
+                        <a href="{{ report.image1.url }}" target="_blank" rel="noopener">فتح</a>
+                      </div>
                     </div>
                   {% else %}
                     <div class="thumb--empty" id="thumb-1">لا توجد صورة</div>
@@ -245,10 +459,13 @@
                 {# ========= Slot 2 ========= #}
                 <div class="img-card" data-slot="2">
                   {% if report.image2 %}
-                    <img class="thumb" id="thumb-2" src="{{ report.image2.url }}" alt="image2">
+                    <img class="thumb" id="thumb-2" src="{{ report.image2.url }}" alt="image2" data-full="{{ report.image2.url }}">
                     <div class="img-meta">
                       <small>الصورة الحالية</small>
-                      <a href="{{ report.image2.url }}" target="_blank" rel="noopener">فتح</a>
+                      <div class="links">
+                        <a href="#" class="er-preview" data-src="{{ report.image2.url }}">معاينة</a>
+                        <a href="{{ report.image2.url }}" target="_blank" rel="noopener">فتح</a>
+                      </div>
                     </div>
                   {% else %}
                     <div class="thumb--empty" id="thumb-2">لا توجد صورة</div>
@@ -274,10 +491,13 @@
                 {# ========= Slot 3 ========= #}
                 <div class="img-card" data-slot="3">
                   {% if report.image3 %}
-                    <img class="thumb" id="thumb-3" src="{{ report.image3.url }}" alt="image3">
+                    <img class="thumb" id="thumb-3" src="{{ report.image3.url }}" alt="image3" data-full="{{ report.image3.url }}">
                     <div class="img-meta">
                       <small>الصورة الحالية</small>
-                      <a href="{{ report.image3.url }}" target="_blank" rel="noopener">فتح</a>
+                      <div class="links">
+                        <a href="#" class="er-preview" data-src="{{ report.image3.url }}">معاينة</a>
+                        <a href="{{ report.image3.url }}" target="_blank" rel="noopener">فتح</a>
+                      </div>
                     </div>
                   {% else %}
                     <div class="thumb--empty" id="thumb-3">لا توجد صورة</div>
@@ -303,10 +523,13 @@
                 {# ========= Slot 4 ========= #}
                 <div class="img-card" data-slot="4">
                   {% if report.image4 %}
-                    <img class="thumb" id="thumb-4" src="{{ report.image4.url }}" alt="image4">
+                    <img class="thumb" id="thumb-4" src="{{ report.image4.url }}" alt="image4" data-full="{{ report.image4.url }}">
                     <div class="img-meta">
                       <small>الصورة الحالية</small>
-                      <a href="{{ report.image4.url }}" target="_blank" rel="noopener">فتح</a>
+                      <div class="links">
+                        <a href="#" class="er-preview" data-src="{{ report.image4.url }}">معاينة</a>
+                        <a href="{{ report.image4.url }}" target="_blank" rel="noopener">فتح</a>
+                      </div>
                     </div>
                   {% else %}
                     <div class="thumb--empty" id="thumb-4">لا توجد صورة</div>
@@ -331,7 +554,7 @@
               </div>
 
               <div class="note" style="margin-top:10px">
-                لإزالة صورة حالية فعِّل مربع <b>إزالة</b>؛ أو اختر صورة جديدة لاستبدالها.
+                لإزالة صورة حالية فعِّل مربع <b>إزالة</b>؛ أو اختر صورة جديدة لاستبدالها (سيتم إلغاء الإزالة تلقائيًا).
               </div>
             </div>
 
@@ -340,7 +563,7 @@
             {% endif %}
 
             <div class="actions">
-              <button type="submit" class="btn btn-save">💾 حفظ التعديلات</button>
+              <button type="submit" class="btn btn-primary" id="saveBtn">💾 حفظ التعديلات</button>
               {% if request.GET.next %}
                 <a class="btn btn-ghost" href="{{ request.GET.next }}">↩ الرجوع</a>
               {% else %}
@@ -349,7 +572,19 @@
             </div>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
 
+  {# Preview modal #}
+  <div class="pm-overlay" id="pmOverlay" role="dialog" aria-modal="true" aria-label="معاينة الصورة">
+    <div class="pm" role="document">
+      <div class="pm-hd">
+        <h3 class="ttl"><i class="fa-regular fa-image"></i> معاينة</h3>
+        <button type="button" class="pm-close" id="pmClose" aria-label="إغلاق">✕</button>
+      </div>
+      <div class="pm-bd">
+        <img class="pm-img" id="pmImg" src="" alt="preview">
       </div>
     </div>
   </div>
@@ -358,8 +593,8 @@
 
 {% block scripts %}
 {{ block.super }}
-<script>
-  // إضافة صنف .control لكل مدخلات النموذج القادمة من Django (للتوحيد)
+<script nonce="{{ CSP_NONCE }}">
+  // إضافة class control لمدخلات Django
   (function(){
     const form = document.getElementById('editReportForm');
     if(!form) return;
@@ -369,25 +604,50 @@
     });
   })();
 
+  // منع الدبل-سبميت + حالة تحميل بسيطة
+  (function(){
+    const form = document.getElementById('editReportForm');
+    const btn = document.getElementById('saveBtn');
+    if(!form || !btn) return;
+
+    form.addEventListener('submit', function(){
+      btn.disabled = true;
+      btn.textContent = '⏳ جارٍ الحفظ...';
+      form.classList.add('is-submitting');
+    }, { once: true });
+  })();
+
   // تعيين اليوم تلقائيًا
   (function(){
     const dateInput = document.getElementById("id_report_date");
     const dayInput  = document.getElementById("id_day_name");
-    if(dateInput && dayInput){
-      function setDay(v){
-        if(!v){ dayInput.value=""; return; }
-        const d = new Date(v);
-        const days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-        dayInput.value = days[d.getDay()];
-      }
-      setDay(dateInput.value);
-      dateInput.addEventListener("change", e => setDay(e.target.value));
+    if(!dateInput || !dayInput) return;
+
+    function setDay(v){
+      if(!v){ dayInput.value=""; return; }
+      const d = new Date(v);
+      const days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+      if(!isNaN(d.getTime())) dayInput.value = days[d.getDay()];
     }
+
+    setDay(dateInput.value);
+    dateInput.addEventListener("change", e => setDay(e.target.value));
   })();
 
-  // معاينة فورية لكل خانة صورة + إلغاء الإزالة عند اختيار ملف
+  // معاينة فورية لكل خانة + إلغاء الإزالة عند اختيار ملف + إظهار placeholder عند تفعيل إزالة
   (function(){
     const slots = [1,2,3,4];
+
+    function makeEmpty(slot){
+      const old = document.getElementById(`thumb-${slot}`);
+      if(!old) return;
+
+      const box = document.createElement('div');
+      box.className = 'thumb--empty';
+      box.id = `thumb-${slot}`;
+      box.textContent = 'لا توجد صورة';
+      old.replaceWith(box);
+    }
 
     function setThumb(slot, dataUrl){
       const old = document.getElementById(`thumb-${slot}`);
@@ -395,6 +655,7 @@
 
       if(old.tagName && old.tagName.toLowerCase() === 'img'){
         old.src = dataUrl;
+        old.setAttribute('data-full', dataUrl);
         return;
       }
 
@@ -403,24 +664,97 @@
       img.id = `thumb-${slot}`;
       img.src = dataUrl;
       img.alt = `image${slot}`;
+      img.setAttribute('data-full', dataUrl);
       old.replaceWith(img);
     }
 
     slots.forEach(n=>{
       const input = document.getElementById(`id_image${n}`);
       const clear = document.getElementById(`id_image${n}_clear`);
-      if(!input) return;
+      if(input){
+        input.addEventListener('change', function(e){
+          const file = e.target.files && e.target.files[0];
+          if(!file) return;
 
-      input.addEventListener('change', function(e){
-        const file = e.target.files && e.target.files[0];
-        if(!file) return;
+          if(clear) clear.checked = false;
 
-        if(clear) clear.checked = false;
+          const reader = new FileReader();
+          reader.onload = ev => setThumb(n, ev.target.result);
+          reader.readAsDataURL(file);
+        });
+      }
 
-        const reader = new FileReader();
-        reader.onload = ev => setThumb(n, ev.target.result);
-        reader.readAsDataURL(file);
-      });
+      if(clear){
+        clear.addEventListener('change', function(){
+          if(clear.checked){
+            // لو المستخدم فعّل إزالة، نعرض placeholder (بدون لمس الرابط)
+            makeEmpty(n);
+            // محاولة تنظيف اختيار الملف (إن وجد)
+            try{
+              if(input) input.value = '';
+            }catch(e){
+              // ignore
+            }
+          }
+        });
+      }
+    });
+  })();
+
+  // Modal معاينة
+  (function(){
+    const overlay = document.getElementById('pmOverlay');
+    const closeBtn = document.getElementById('pmClose');
+    const img = document.getElementById('pmImg');
+    if(!overlay || !closeBtn || !img) return;
+
+    function open(src){
+      if(!src) return;
+      img.src = src;
+      overlay.classList.add('is-open');
+      try{
+        if(window.__lockScroll) window.__lockScroll(true);
+      }catch(e){
+        // ignore
+      }
+    }
+
+    function close(){
+      overlay.classList.remove('is-open');
+      img.src = '';
+      try{
+        if(window.__lockScroll) window.__lockScroll(false);
+      }catch(e){
+        // ignore
+      }
+    }
+
+    document.addEventListener('click', function(ev){
+      const a = ev.target.closest && ev.target.closest('.er-preview');
+      if(a){
+        ev.preventDefault();
+        open(a.getAttribute('data-src'));
+        return;
+      }
+
+      const t = ev.target;
+      if(t && t.classList && t.classList.contains('thumb')){
+        const src = t.getAttribute('data-full') || t.src;
+        open(src);
+        return;
+      }
+
+      if(ev.target === overlay){
+        close();
+      }
+    });
+
+    closeBtn.addEventListener('click', close);
+
+    document.addEventListener('keydown', function(ev){
+      if(ev.key === 'Escape' && overlay.classList.contains('is-open')){
+        close();
+      }
     });
   })();
 </script>

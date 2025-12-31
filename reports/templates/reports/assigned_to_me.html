@@ -1,3 +1,4 @@
+{# reports/templates/reports/assigned_to_me.html (أو اسم ملفك الحالي) #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -15,6 +16,7 @@
     --ap-line: var(--line-2, var(--line, #e5e7eb));
     --ap-card: var(--card, #fff);
     --ap-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
+    --t: var(--t-fast);
   }
 
   /* Hero (بدون كسر هوية المنصة) */
@@ -35,6 +37,7 @@
     align-items:center;
     gap:10px;
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   /* Stats */
@@ -59,6 +62,11 @@
   .assigned-page .st-pro{background:#f5f3ff;color:#7c3aed}
   .assigned-page .st-don{background:#e0f2fe;color:var(--ap-brand)}
   .assigned-page .st-rej{background:#fee2e2;color:var(--ap-danger)}
+
+  html[data-theme="dark"] .assigned-page .st-new{background:rgba(16,185,129,.14); color:#34d399}
+  html[data-theme="dark"] .assigned-page .st-pro{background:rgba(124,58,237,.14); color:#c4b5fd}
+  html[data-theme="dark"] .assigned-page .st-don{background:rgba(37,99,235,.14); color:#93c5fd}
+  html[data-theme="dark"] .assigned-page .st-rej{background:rgba(239,68,68,.14); color:#fca5a5}
 
   /* Filters card tweaks */
   .assigned-page .filters .actions{
@@ -91,7 +99,7 @@
     display:grid;
     grid-template-columns: 1fr auto;
     gap: 16px;
-    transition: var(--t, all .2s ease);
+    transition: var(--t);
   }
   @media (max-width:768px){
     .assigned-page .ticket-item{grid-template-columns:1fr}
@@ -108,8 +116,8 @@
   }
   .assigned-page .meter-fill{height:100%;display:block;border-radius:999px}
 
-  /* Badges */
-  .assigned-page .badge{
+  /* Badges (✅ renamed to avoid conflicts) */
+  .assigned-page .ap-badge{
     padding:4px 10px;
     border-radius:10px;
     font-size:.85rem;
@@ -118,11 +126,14 @@
     align-items:center;
     gap:6px;
     border:1px solid transparent;
+    white-space:nowrap;
   }
-  .assigned-page .bg-new{background:#ecfdf5;color:var(--ap-accent);border-color:rgba(16,185,129,.2)}
-  .assigned-page .bg-pro{background:#f5f3ff;color:#7c3aed;border-color:rgba(124,58,237,.2)}
-  .assigned-page .bg-don{background:#e0f2fe;color:var(--ap-brand);border-color:rgba(37,99,235,.2)}
-  .assigned-page .bg-rej{background:#fee2e2;color:var(--ap-danger);border-color:rgba(239,68,68,.2)}
+  .assigned-page .ap-bg-new{background:#ecfdf5;color:var(--ap-accent);border-color:rgba(16,185,129,.2)}
+  .assigned-page .ap-bg-pro{background:#f5f3ff;color:#7c3aed;border-color:rgba(124,58,237,.2)}
+  .assigned-page .ap-bg-don{background:#e0f2fe;color:var(--ap-brand);border-color:rgba(37,99,235,.2)}
+  .assigned-page .ap-bg-rej{background:#fee2e2;color:var(--ap-danger);border-color:rgba(239,68,68,.2)}
+  .assigned-page .ap-bg-oth{background:#f1f5f9;color:#334155;border-color:rgba(148,163,184,.35)}
+  html[data-theme="dark"] .assigned-page .ap-bg-oth{background:rgba(148,163,184,.14); color:#e2e8f0; border-color:rgba(148,163,184,.22)}
 
   /* Table polish */
   .assigned-page .table-wrap table{width:100%;border-collapse:collapse}
@@ -136,6 +147,7 @@
   .assigned-page .table-wrap th{font-weight:900}
   .assigned-page .table-wrap td.title{text-align:right;font-weight:800}
   .assigned-page .table-wrap tr:hover{background:rgba(37,99,235,.04)}
+  html[data-theme="dark"] .assigned-page .table-wrap tr:hover{background:rgba(148,163,184,.08)}
 
   /* Mobile tweaks */
   @media (max-width:520px){
@@ -148,6 +160,14 @@
     .assigned-page .ticket-item > div:last-child{align-items:stretch !important}
     .assigned-page .btn-detail{width:100%;justify-content:center}
   }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .assigned-page .ticket-item,
+    .assigned-page .view-btn{
+      transition:none !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -157,6 +177,9 @@
   <section class="card page-hero row-between" style="margin-bottom: 18px;">
     <div>
       <h1 style="margin:0; font-weight:950; font-size:1.45rem;">🎟️ التذاكر المعيّنة لي</h1>
+      <div style="margin-top:6px; opacity:.92; font-weight:800">
+        تابع التذاكر المسندة لك بسرعة، وفلتر حسب الحالة أو ابحث بالعنوان.
+      </div>
     </div>
 
     <div class="user-badge">
@@ -168,7 +191,7 @@
           {{ request.user.name|default:"المستخدم" }}
         </div>
         <small style="opacity:.92;">
-          {{ request.user.get_role_display|default:request.user.role }}
+          {% firstof request.user.role "مستخدم" %}
         </small>
       </div>
     </div>
@@ -176,18 +199,21 @@
 
   <div class="card" style="margin-bottom: 16px;">
     <form method="get" class="filters" novalidate>
+      {# ✅ حافظ على وضع العرض عند البحث #}
+      <input type="hidden" name="view" value="{{ view_mode|default:'list' }}">
+
       <div style="grid-column: span 2;">
         <input type="search"
                name="q"
                class="input"
                placeholder="بحث برقم التذكرة أو العنوان..."
-               value="{{ request.GET.q }}">
+               value="{{ request.GET.q|default:'' }}">
       </div>
 
       <div>
         <select name="status" class="select">
           <option value="">-- كل الحالات --</option>
-          <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>جـديدة</option>
+          <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>جديدة</option>
           <option value="in_progress" {% if request.GET.status == "in_progress" %}selected{% endif %}>قيد المعالجة</option>
           <option value="done" {% if request.GET.status == "done" %}selected{% endif %}>مكتملة</option>
           <option value="rejected" {% if request.GET.status == "rejected" %}selected{% endif %}>مرفوضة</option>
@@ -226,7 +252,7 @@
   <div class="stats-grid">
     <div class="card stat-card">
       <div>
-        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.open }}</div>
+        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.open|default:"0" }}</div>
         <div class="muted" style="font-weight:800">جديدة</div>
       </div>
       <div class="stat-icon st-new"><i class="fa-solid fa-envelope-open-text"></i></div>
@@ -234,7 +260,7 @@
 
     <div class="card stat-card">
       <div>
-        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.in_progress }}</div>
+        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.in_progress|default:"0" }}</div>
         <div class="muted" style="font-weight:800">جارية</div>
       </div>
       <div class="stat-icon st-pro"><i class="fa-solid fa-spinner fa-spin-pulse"></i></div>
@@ -242,7 +268,7 @@
 
     <div class="card stat-card">
       <div>
-        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.done }}</div>
+        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.done|default:"0" }}</div>
         <div class="muted" style="font-weight:800">مكتملة</div>
       </div>
       <div class="stat-icon st-don"><i class="fa-solid fa-check-double"></i></div>
@@ -250,13 +276,15 @@
 
     <div class="card stat-card">
       <div>
-        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.rejected }}</div>
+        <div style="font-size:1.55rem;font-weight:950;color:var(--ap-ink)">{{ stats.rejected|default:"0" }}</div>
         <div class="muted" style="font-weight:800">مرفوضة</div>
       </div>
       <div class="stat-icon st-rej"><i class="fa-solid fa-xmark"></i></div>
     </div>
   </div>
 
+  {# ===== Helpers داخل القالب (بدون استدعاء get_*_display) ===== #}
+  {# status label mapping #}
   {% if view_mode == "table" %}
     <div class="card table-wrap">
       <table>
@@ -282,21 +310,34 @@
                 </a>
               </td>
 
-              <td>{% firstof t.creator.name t.creator "—" %}</td>
+              <td>{% firstof t.creator.name t.creator.phone "—" %}</td>
 
               <td>
-                {{ t.get_department_display|default:t.department|default:"—" }}
+                {% if t.department %}
+                  {% if t.department.name %}{{ t.department.name }}
+                  {% elif t.department.title %}{{ t.department.title }}
+                  {% else %}{{ t.department }}
+                  {% endif %}
+                {% else %}
+                  —
+                {% endif %}
               </td>
 
               <td class="muted">{{ t.created_at|date:"Y-m-d" }}</td>
 
               <td>
-                <span class="badge
-                  {% if t.status == 'open' %}bg-new
-                  {% elif t.status == 'in_progress' %}bg-pro
-                  {% elif t.status == 'done' %}bg-don
-                  {% else %}bg-rej{% endif %}">
-                  {{ t.get_status_display|default:t.status }}
+                <span class="ap-badge
+                  {% if t.status == 'open' %}ap-bg-new
+                  {% elif t.status == 'in_progress' %}ap-bg-pro
+                  {% elif t.status == 'done' %}ap-bg-don
+                  {% elif t.status == 'rejected' %}ap-bg-rej
+                  {% else %}ap-bg-oth{% endif %}">
+                  {% if t.status == 'open' %}جديدة
+                  {% elif t.status == 'in_progress' %}قيد المعالجة
+                  {% elif t.status == 'done' %}مكتملة
+                  {% elif t.status == 'rejected' %}مرفوضة
+                  {% else %}{{ t.status|default:"—" }}
+                  {% endif %}
                 </span>
               </td>
 
@@ -323,7 +364,6 @@
     <div class="cards" style="display:grid; gap:12px;">
       {% for t in page_obj.object_list %}
         <div class="card ticket-item">
-
           <div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
               <span style="background:var(--ap-line);color:var(--ap-brand);padding:2px 8px;border-radius:8px;font-weight:900;font-size:.82rem;">
@@ -337,19 +377,35 @@
             </div>
 
             <div style="display:flex;flex-wrap:wrap;gap:12px;color:var(--ap-muted);font-size:.92rem;font-weight:800;">
-              <span><i class="fa-regular fa-user"></i> {% firstof t.creator.name t.creator "—" %}</span>
-              <span><i class="fa-solid fa-building"></i> {{ t.get_department_display|default:t.department|default:"—" }}</span>
+              <span><i class="fa-regular fa-user"></i> {% firstof t.creator.name t.creator.phone "—" %}</span>
+              <span>
+                <i class="fa-solid fa-building"></i>
+                {% if t.department %}
+                  {% if t.department.name %}{{ t.department.name }}
+                  {% elif t.department.title %}{{ t.department.title }}
+                  {% else %}{{ t.department }}
+                  {% endif %}
+                {% else %}
+                  —
+                {% endif %}
+              </span>
               <span><i class="fa-regular fa-clock"></i> {{ t.created_at|date:"Y-m-d H:i" }}</span>
             </div>
           </div>
 
           <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:8px;">
-            <span class="badge
-              {% if t.status == 'open' %}bg-new
-              {% elif t.status == 'in_progress' %}bg-pro
-              {% elif t.status == 'done' %}bg-don
-              {% else %}bg-rej{% endif %}">
-              {{ t.get_status_display|default:t.status }}
+            <span class="ap-badge
+              {% if t.status == 'open' %}ap-bg-new
+              {% elif t.status == 'in_progress' %}ap-bg-pro
+              {% elif t.status == 'done' %}ap-bg-don
+              {% elif t.status == 'rejected' %}ap-bg-rej
+              {% else %}ap-bg-oth{% endif %}">
+              {% if t.status == 'open' %}جديدة
+              {% elif t.status == 'in_progress' %}قيد المعالجة
+              {% elif t.status == 'done' %}مكتملة
+              {% elif t.status == 'rejected' %}مرفوضة
+              {% else %}{{ t.status|default:"—" }}
+              {% endif %}
             </span>
 
             <div class="meter" aria-hidden="true">
@@ -357,7 +413,8 @@
                 {% if t.status == 'open' %}width:33%; background:var(--ap-accent);
                 {% elif t.status == 'in_progress' %}width:66%; background:#7c3aed;
                 {% elif t.status == 'done' %}width:100%; background:var(--ap-brand);
-                {% else %}width:100%; background:var(--ap-danger);{% endif %}
+                {% elif t.status == 'rejected' %}width:100%; background:var(--ap-danger);
+                {% else %}width:50%; background:#94a3b8;{% endif %}
               "></span>
             </div>
 
@@ -367,7 +424,6 @@
               التفاصيل <i class="fa-solid fa-arrow-left"></i>
             </a>
           </div>
-
         </div>
       {% empty %}
         <div class="card" style="text-align:center;padding:40px;">
@@ -383,7 +439,7 @@
   {% if page_obj.paginator.num_pages > 1 %}
     <div class="pgn">
       {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&view={{ view_mode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}{% if request.GET.order %}&order={{ request.GET.order|urlencode }}{% endif %}">
+        <a href="?page={{ page_obj.previous_page_number }}&view={{ view_mode|default:'list' }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}{% if request.GET.order %}&order={{ request.GET.order|urlencode }}{% endif %}">
           السابق
         </a>
       {% endif %}
@@ -391,7 +447,7 @@
       <span class="active">{{ page_obj.number }}</span>
 
       {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&view={{ view_mode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}{% if request.GET.order %}&order={{ request.GET.order|urlencode }}{% endif %}">
+        <a href="?page={{ page_obj.next_page_number }}&view={{ view_mode|default:'list' }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}{% if request.GET.order %}&order={{ request.GET.order|urlencode }}{% endif %}">
           التالي
         </a>
       {% endif %}

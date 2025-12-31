@@ -10,7 +10,7 @@ from django.db.models import QuerySet, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 
-from .models import Department, SchoolMembership, ReportType, School
+from .models import Department, SchoolMembership, School
 
 # نحاول الاستيراد المرن لعضويات الأقسام
 try:
@@ -107,6 +107,34 @@ def role_required(allowed_roles: Iterable[str]):
     """
     allowed = set(allowed_roles or [])
 
+    def _has_active_schools() -> bool:
+        try:
+            return School.objects.filter(is_active=True).exists()
+        except Exception:
+            return False
+
+    def _get_active_school_id(request: HttpRequest) -> int | None:
+        try:
+            sid = request.session.get("active_school_id")
+            return int(sid) if sid else None
+        except Exception:
+            return None
+
+    def _is_school_manager(user, *, school_id: int | None) -> bool:
+        if SchoolMembership is None:
+            return False
+        try:
+            filters = {
+                "teacher": user,
+                "role_type": SchoolMembership.RoleType.MANAGER,
+                "is_active": True,
+            }
+            if school_id:
+                filters["school_id"] = school_id
+            return SchoolMembership.objects.filter(**filters).exists()
+        except Exception:
+            return False
+
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped(request: HttpRequest, *args, **kwargs) -> HttpResponse:
@@ -118,40 +146,27 @@ def role_required(allowed_roles: Iterable[str]):
             if getattr(user, "is_superuser", False):
                 return view_func(request, *args, **kwargs)
 
+            active_school_id = _get_active_school_id(request)
+
+            # إذا كان النظام متعدد المدارس ونتعامل مع صلاحيات مدرسية، نجبر اختيار مدرسة نشطة.
+            if _has_active_schools() and not active_school_id:
+                # نُجبر ذلك خصوصًا للصفحات المدرسية (manager)
+                if "manager" in allowed:
+                    messages.error(request, "فضلاً اختر مدرسة أولاً.")
+                    return redirect("reports:select_school")
+
             role_slug = _user_role_slug(user)
-            if role_slug in allowed:
-                return view_func(request, *args, **kwargs)
 
-            # ✅ دعم مدير المدرسة (School Manager) إذا كان الدور المطلوب "manager"
-            if "manager" in allowed and SchoolMembership is not None:
-                try:
-                    # إن كان النظام متعدد المدارس، نُلزم مدرسة نشطة لتحديد نطاق الصلاحية.
-                    has_active_schools = False
-                    try:
-                        has_active_schools = School.objects.filter(is_active=True).exists()
-                    except Exception:
-                        has_active_schools = False
+            # ⚠️ المدير (manager) صلاحية مدرسية، لا نعتمد فقط على Role.slug
+            if "manager" in allowed:
+                if _is_school_manager(user, school_id=active_school_id):
+                    return view_func(request, *args, **kwargs)
+            else:
+                # أدوار عالمية أخرى يمكن السماح بها عبر Role.slug
+                if role_slug in allowed:
+                    return view_func(request, *args, **kwargs)
 
-                    active_school_id = None
-                    try:
-                        active_school_id = request.session.get("active_school_id")
-                    except Exception:
-                        active_school_id = None
-
-                    if has_active_schools and not active_school_id:
-                        messages.error(request, "فضلاً اختر مدرسة أولاً.")
-                        return redirect("reports:select_school")
-
-                    is_school_manager = SchoolMembership.objects.filter(
-                        teacher=user,
-                        role_type=SchoolMembership.RoleType.MANAGER,
-                        is_active=True,
-                        **({"school_id": active_school_id} if active_school_id else {}),
-                    ).exists()
-                    if is_school_manager:
-                        return view_func(request, *args, **kwargs)
-                except Exception:
-                    pass
+            # ملاحظة: دعم المدير تم أعلاه بشكل صريح ومشدّد
 
             messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
             return redirect("reports:home")

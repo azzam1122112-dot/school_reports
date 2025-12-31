@@ -1,3 +1,4 @@
+{# reports/templates/reports/schools_manage.html (مثال اسم) #}
 {% extends "base.html" %}
 {% block title %}إدارة المدارس{% endblock %}
 
@@ -205,15 +206,22 @@
                 {% for item in schools %}
                   {% with s=item.school managers=item.managers %}
                   <tr
-                    data-search="{{ s.name|lower }} {{ s.code|lower }} {{ s.city|default:''|lower }} {{ s.phone|default:''|lower }}{% if managers %} {{ managers|join:' '|lower }}{% endif %}">
+                    data-search="{{ s.name|lower }} {{ s.code|default:''|lower }} {{ s.city|default:''|lower }} {{ s.phone|default:''|lower }}{% if managers %} {{ managers|join:' '|lower }}{% endif %}">
                     <td data-label="المدرسة" style="text-align:right">
                       <div style="font-weight:950;color:var(--ink)">{{ s.name }}</div>
                       {% if s.code %}
                         <div class="muted" style="font-weight:850;font-family:ui-monospace,monospace;margin-top:2px">#{{ s.code }}</div>
                       {% endif %}
                     </td>
-                    <td data-label="المرحلة">{{ s.get_stage_display }}</td>
-                    <td data-label="بنين/بنات">{{ s.get_gender_display }}</td>
+
+                    <td data-label="المرحلة">
+                      {% if s.get_stage_display %}{{ s.get_stage_display }}{% else %}-{% endif %}
+                    </td>
+
+                    <td data-label="بنين/بنات">
+                      {% if s.get_gender_display %}{{ s.get_gender_display }}{% else %}-{% endif %}
+                    </td>
+
                     <td data-label="المدينة">{{ s.city|default:"-" }}</td>
                     <td data-label="الجوال" style="font-family:ui-monospace,monospace">{{ s.phone|default:"-" }}</td>
 
@@ -246,6 +254,7 @@
                         <a class="btn btn-outline" href="{% url 'reports:school_profile' s.id %}">بروفايل</a>
                         <a class="btn btn-outline" href="{% url 'reports:school_managers_manage' s.id %}">المدراء</a>
                         <a class="btn btn-outline" href="{% url 'reports:school_update' s.id %}">تعديل</a>
+
                         <form method="post"
                               action="{% url 'reports:school_delete' s.id %}"
                               style="display:inline"
@@ -271,7 +280,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
     const input = document.getElementById('schoolSearch');
     const rows  = Array.from(document.querySelectorAll('table.rtable tbody tr'));

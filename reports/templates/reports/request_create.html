@@ -1,48 +1,155 @@
+{# reports/templates/reports/ticket_create.html (أو الاسم الذي تستخدمه) #}
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}طلب جديد{% endblock %}
 
 {% block head %}
 <style>
+  /* =========================================================
+     Ticket Create — scoped داخل .ticket-page فقط
+     - بدون لمس أنماط base العامة خارج الصفحة
+     - متوافق مع data-theme (dark/light)
+     ========================================================= */
   .ticket-page{
-    --ink:#0f172a;--ink-soft:#1f2937;--muted:#64748b;--line:#e5e7eb;
-    --brand:#2563eb;--brand-light:#3b82f6;--accent:#059669;--accent-light:#10b981;
-    --card:#fff;--bg:#f8fafc;--error:#ef4444;--error-bg:#fef2f2;
-    --radius:16px;--rsm:10px;--shadow:0 6px 20px rgba(2,6,23,.08);--t:all .2s ease;
+    --ink:#0f172a;
+    --ink-soft:#1f2937;
+    --muted:#64748b;
+    --line:#e5e7eb;
+
+    --brand:#2563eb;
+    --brand-light:#3b82f6;
+
+    --accent:#059669;
+    --accent-light:#10b981;
+
+    --card:#ffffff;
+    --bg:#f8fafc;
+
+    --error:#ef4444;
+    --error-bg:#fef2f2;
+
+    --radius:16px;
+    --rsm:12px;
+    --shadow:0 10px 30px rgba(2,6,23,.08);
+
+    /* لو base فيه --t-fast بنستفيد منه */
+    --t: var(--t-fast);
   }
-  .ticket-page .ticket-container{max-width:900px;margin:0 auto;padding:18px}
-  .ticket-page .ticket-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px}
-  .ticket-page .section-title{font-size:1.35rem;font-weight:900;color:var(--ink-soft);display:flex;gap:10px;align-items:center;margin:0 0 16px}
+
+  html[data-theme="dark"] .ticket-page{
+    --ink:#e5e7eb;
+    --ink-soft:#f1f5f9;
+    --muted:#94a3b8;
+    --line:#1f2a44;
+
+    --card:#0b1220;
+    --bg:#070b14;
+
+    --error-bg: rgba(239,68,68,.10);
+    --shadow:0 14px 42px rgba(0,0,0,.35);
+  }
+
+  .ticket-page{
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .ticket-page .ticket-container{
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 18px;
+  }
+
+  .ticket-page .ticket-card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px;
+    overflow: hidden;
+  }
+
+  .ticket-page .section-title{
+    font-size: 1.35rem;
+    font-weight: 950;
+    color: var(--ink-soft);
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin:0 0 16px;
+  }
 
   .ticket-page .form-grid{display:grid;gap:18px}
   .ticket-page .form-row{display:grid;gap:16px}
-  @media(min-width:720px){ .ticket-page .form-row{grid-template-columns:1fr 1fr} }
+  @media(min-width:720px){
+    .ticket-page .form-row{grid-template-columns:1fr 1fr}
+  }
 
   .ticket-page .form-group{display:flex;flex-direction:column;gap:8px}
-  .ticket-page label{font-weight:800;color:var(--ink-soft)}
-  .ticket-page input[type="text"], .ticket-page select, .ticket-page textarea{
-    width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:var(--rsm);font:inherit;background:#fff;transition:var(--t)
-  }
-  .ticket-page select:disabled{background:#f3f4f6;color:#9ca3af;cursor:not-allowed}
-  .ticket-page input:focus,.ticket-page select:focus,.ticket-page textarea:focus{outline:none;border-color:var(--brand-light);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
-  .ticket-page textarea{min-height:140px;resize:vertical}
-  .ticket-page .help{font-size:.9rem;color:var(--muted);font-weight:850;line-height:1.45}
-  .ticket-page .field-error{color:var(--error);background:var(--error-bg);border:1px solid #fecaca;padding:10px 12px;border-radius:var(--rsm);font-size:.92rem;font-weight:900}
+  .ticket-page label{font-weight:900;color:var(--ink-soft)}
 
-  /* مستلمون (Checkboxes) */
+  .ticket-page input[type="text"],
+  .ticket-page select,
+  .ticket-page textarea{
+    width:100%;
+    padding:14px 16px;
+    border:1px solid var(--line);
+    border-radius: var(--rsm);
+    font:inherit;
+    background: var(--card);
+    color: var(--ink);
+    transition: var(--t);
+  }
+
+  .ticket-page select:disabled{
+    opacity:.85;
+    cursor:not-allowed;
+  }
+
+  .ticket-page input:focus,
+  .ticket-page select:focus,
+  .ticket-page textarea:focus{
+    outline:none;
+    border-color: var(--brand-light);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+  }
+
+  .ticket-page textarea{min-height:140px;resize:vertical}
+
+  .ticket-page .help{
+    font-size:.92rem;
+    color: var(--muted);
+    font-weight: 850;
+    line-height:1.55;
+  }
+
+  .ticket-page .field-error{
+    color: var(--error);
+    background: var(--error-bg);
+    border: 1px solid rgba(239,68,68,.25);
+    padding:10px 12px;
+    border-radius: var(--rsm);
+    font-size:.92rem;
+    font-weight: 950;
+  }
+
+  /* مستلمون (Dropdown + Search + Checkboxes) */
   .ticket-page .recipients-box{
     border:0;
     padding:0;
     background:transparent;
     min-height:52px;
   }
+
   .ticket-page .recipients-dd{
     width:100%;
     border:1px solid var(--line);
-    border-radius:var(--rsm);
-    background:#fff;
+    border-radius: var(--rsm);
+    background: var(--card);
     overflow:hidden;
   }
+
   .ticket-page .recipients-dd > summary{
     list-style:none;
     cursor:pointer;
@@ -51,72 +158,177 @@
     align-items:center;
     justify-content:space-between;
     gap:10px;
-    font-weight:900;
-    color:var(--ink-soft);
+    font-weight: 950;
+    color: var(--ink-soft);
+    user-select:none;
   }
+
   .ticket-page .recipients-dd > summary::-webkit-details-marker{display:none}
   .ticket-page .recipients-dd > summary:focus{outline:none}
-  .ticket-page .recipients-dd[open] > summary{border-bottom:1px solid var(--line); background:#f8fafc}
-  .ticket-page .recipients-dd-title{display:flex;align-items:center;gap:10px;min-width:0}
-  .ticket-page .recipients-dd-title .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ticket-page .recipients-dd-title .count{font-size:.85rem;color:var(--muted);font-weight:900}
-  .ticket-page .recipients-dd-caret{color:var(--muted);font-size:1rem;flex:0 0 auto}
+  .ticket-page .recipients-dd[open] > summary{
+    border-bottom:1px solid var(--line);
+    background: rgba(148,163,184,.10);
+  }
+
+  .ticket-page .recipients-dd-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+  }
+  .ticket-page .recipients-dd-title .txt{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .ticket-page .recipients-dd-title .count{
+    font-size:.85rem;
+    color: var(--muted);
+    font-weight: 950;
+    flex:0 0 auto;
+  }
+  .ticket-page .recipients-dd-caret{
+    color: var(--muted);
+    font-size: 1rem;
+    flex:0 0 auto;
+  }
 
   .ticket-page .recipients-panel{padding:10px 12px}
-  .ticket-page .recipients-search {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--line);
+
+  .ticket-page .recipients-search{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
     border-radius: 10px;
-    font-size: 0.95rem;
+    font-size:.95rem;
+    background: var(--card);
+    color: var(--ink);
   }
+
   .ticket-page .recipients-scroll{
     margin-top:10px;
     max-height:320px;
     overflow-y:auto;
     padding-inline-end:4px;
   }
-  .ticket-page .recipients-grid{display:grid;gap:10px;grid-template-columns:1fr}
+
+  .ticket-page .recipients-grid{
+    display:grid;
+    gap:10px;
+    grid-template-columns:1fr;
+  }
+
   .ticket-page .rcpt{
-    display:flex;align-items:center;gap:10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
     padding:10px 12px;
     border:1px solid var(--line);
-    border-radius:12px;
-    background:#f8fafc;
-    font-weight:900;
-    color:var(--ink-soft);
-    cursor: pointer;
-    transition: all 0.2s ease;
+    border-radius: 12px;
+    background: rgba(148,163,184,.10);
+    font-weight: 950;
+    color: var(--ink-soft);
+    cursor:pointer;
+    transition: var(--t);
   }
-  .ticket-page .rcpt:hover {
-    background: #f1f5f9;
-    border-color: var(--brand-light);
+
+  .ticket-page .rcpt:hover{
+    border-color: rgba(59,130,246,.55);
+    background: rgba(59,130,246,.10);
   }
-  .ticket-page .rcpt.selected {
-    background: #eff6ff;
-    border-color: var(--brand);
+
+  .ticket-page .rcpt.selected{
+    background: rgba(37,99,235,.12);
+    border-color: rgba(37,99,235,.75);
     color: var(--brand);
-    box-shadow: 0 0 0 1px var(--brand);
+    box-shadow: 0 0 0 1px rgba(37,99,235,.35);
   }
+
   .ticket-page .rcpt input{
-    width:20px;height:20px;
+    width:20px;
+    height:20px;
     accent-color: var(--brand);
-    cursor: pointer;
+    cursor:pointer;
+    flex:0 0 auto;
   }
 
   /* معاينات الصور */
-  .ticket-page .previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px}
-  .ticket-page .thumb{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
-  .ticket-page .thumb img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:4/3}
-  .ticket-page .thumb .badge{position:absolute;top:6px;left:6px;background:rgba(15,23,42,.75);color:#fff;font-size:.78rem;padding:2px 6px;border-radius:999px}
+  .ticket-page .previews{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap:10px;
+    margin-top:8px;
+  }
+  .ticket-page .thumb{
+    position:relative;
+    border:1px solid var(--line);
+    border-radius: 12px;
+    overflow:hidden;
+    background: var(--card);
+  }
+  .ticket-page .thumb img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    aspect-ratio: 4 / 3;
+  }
+  .ticket-page .thumb .badge{
+    position:absolute;
+    top:6px;
+    left:6px;
+    background: rgba(15,23,42,.75);
+    color:#fff;
+    font-size:.78rem;
+    padding:2px 6px;
+    border-radius: 999px;
+  }
+  html[data-theme="dark"] .ticket-page .thumb .badge{
+    background: rgba(0,0,0,.55);
+  }
 
-  .ticket-page .form-actions{display:grid;gap:12px}
-  @media(min-width:560px){ .ticket-page .form-actions{grid-template-columns:1fr 1fr} }
-  .ticket-page .btn{padding:14px 18px;border:0;border-radius:12px;font-weight:900;cursor:pointer;transition:var(--t);display:inline-flex;justify-content:center;align-items:center;gap:8px;text-decoration:none}
-  .ticket-page .btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff}
-  .ticket-page .btn-accent:hover{transform:translateY(-2px)}
-  .ticket-page .btn-outline{background:#fff;border:1px solid var(--line);color:var(--ink-soft)}
-  .ticket-page .btn-outline:hover{background:#f8fafc}
+  /* Actions */
+  .ticket-page .form-actions{
+    display:grid;
+    gap:12px;
+  }
+  @media(min-width:560px){
+    .ticket-page .form-actions{grid-template-columns:1fr 1fr}
+  }
+
+  .ticket-page .btn{
+    padding:14px 18px;
+    border:0;
+    border-radius: 12px;
+    font-weight: 950;
+    cursor:pointer;
+    transition: var(--t);
+    display:inline-flex;
+    justify-content:center;
+    align-items:center;
+    gap:8px;
+    text-decoration:none;
+  }
+
+  .ticket-page .btn:disabled{
+    opacity:.75;
+    cursor:not-allowed;
+    transform:none !important;
+  }
+
+  .ticket-page .btn-accent{
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color:#fff;
+  }
+  .ticket-page .btn-accent:hover{transform: translateY(-2px)}
+  .ticket-page .btn-outline{
+    background: transparent;
+    border:1px solid var(--line);
+    color: var(--ink-soft);
+  }
+  .ticket-page .btn-outline:hover{
+    background: rgba(148,163,184,.10);
+  }
 
   .ticket-page #dynamic-msg{min-height:22px}
 
@@ -127,6 +339,11 @@
     .ticket-page input[type="text"], .ticket-page select, .ticket-page textarea{font-size:16px}
     .ticket-page .form-actions{grid-template-columns:1fr}
     .ticket-page .btn{width:100%}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .ticket-page *{transition:none !important}
+    .ticket-page .btn-accent:hover{transform:none !important}
   }
 </style>
 {% endblock %}
@@ -149,6 +366,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="{{ form.department.id_for_label }}">القسم <span aria-hidden="true" style="color:#ef4444">*</span></label>
+
             <select id="{{ form.department.id_for_label }}" name="{{ form.department.html_name }}" required>
               <option value="" selected hidden>— اختر القسم —</option>
               {% for d in form.fields.department.queryset %}
@@ -163,15 +381,25 @@
                 {% endwith %}
               {% endfor %}
             </select>
+
             {% for e in form.department.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+            <div class="help">اختر القسم أولًا ليتم تحميل الموظفين تلقائيًا.</div>
           </div>
 
           <div class="form-group">
             <label for="{{ form.recipients.id_for_label }}">المستلمون <span aria-hidden="true" style="color:#ef4444">*</span></label>
-            <div id="id_recipients" class="recipients-box" aria-label="قائمة المستلمين"></div>
-            <div class="help">
 
-            </div>
+            {# يمكن تمرير selected_recipient_ids من الـView (اختياري) لاستعادة التحديد بعد فشل الإرسال #}
+            <div
+              id="id_recipients"
+              class="recipients-box"
+              aria-label="قائمة المستلمين"
+              {% if selected_recipient_ids %}
+                data-selected="{% for rid in selected_recipient_ids %}{{ rid }}{% if not forloop.last %},{% endif %}{% endfor %}"
+              {% endif %}
+            ></div>
+
+            <div class="help" id="recipientsHelp">اختر مستلمًا واحدًا على الأقل.</div>
             {% for e in form.recipients.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
           </div>
         </div>
@@ -186,11 +414,12 @@
           <label for="{{ form.body.id_for_label }}">تفاصيل الطلب</label>
           {{ form.body }}
           {% for e in form.body.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+          <div class="help">اكتب التفاصيل بشكل واضح، ويمكن إرفاق صور لتوضيح المشكلة.</div>
         </div>
 
         <div class="form-group">
           <label for="id_images">الصور (حتى 4)</label>
-          <input id="id_images" name="images" type="file" accept="image/*" multiple>
+          <input id="id_images" name="images" type="file" accept="image/*" capture="environment" multiple>
           <div class="help">المسموح: JPG / PNG / WebP — سيتم ضغط الصور تلقائيًا قبل الإرسال. الحد الأقصى 4 صور.</div>
 
           {# عرض أخطاء الصور بشكل آمن حتى لو الحقل غير موجود داخل الـForm #}
@@ -206,15 +435,17 @@
         <div id="dynamic-msg" class="help" aria-live="polite"></div>
 
         <div class="form-actions">
-          <button class="btn btn-accent" type="submit">إرسال الطلب</button>
+          <button class="btn btn-accent" type="submit" id="submitBtn">إرسال الطلب</button>
           <a class="btn btn-outline" href="{% url 'reports:my_requests' %}">عرض طلباتي</a>
         </div>
       </form>
     </div>
   </div>
 </div>
+{% endblock %}
 
-<script>
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
 (function(){
   const form = document.getElementById('ticket-form');
   const dept = document.getElementById('{{ form.department.id_for_label }}');
@@ -222,23 +453,28 @@
   const msg = document.getElementById('dynamic-msg');
   const input = document.getElementById('id_images');
   const previews = document.getElementById('previews');
+  const submitBtn = document.getElementById('submitBtn');
 
   const MAX_FILES = 4;
   const MAX_FILE_MB = 6; // قبل الضغط
   const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 
-  function getCookie(name){
-    const v = `; ${document.cookie}`.split(`; ${name}=`);
-    if (v.length===2) return decodeURIComponent(v.pop().split(';').shift());
-  }
-  const CSRF = window.csrfToken || getCookie('csrftoken') || '';
+  const CSRF = (window.getCsrfToken ? window.getCsrfToken() : (window.csrfToken || ''));
 
   function setMsg(text, type){
     if(!msg) return;
     msg.textContent = text || '';
     if(type === 'error') msg.style.color = '#b91c1c';
-    if(type === 'ok') msg.style.color = '#065f46';
-    if(!type) msg.style.color = '#64748b';
+    else if(type === 'ok') msg.style.color = '#065f46';
+    else msg.style.color = '';
+  }
+
+  function setLoading(isLoading, text){
+    if(submitBtn){
+      submitBtn.disabled = !!isLoading;
+      submitBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    }
+    if(isLoading) setMsg(text || '...جاري المعالجة');
   }
 
   function setRecipientsDisabled(disabled){
@@ -247,6 +483,13 @@
     if(disabled){
       recipientsBox.innerHTML = '';
     }
+  }
+
+  function parseSelectedIds(){
+    if(!recipientsBox) return [];
+    const raw = recipientsBox.getAttribute('data-selected') || '';
+    if(!raw) return [];
+    return raw.split(',').map(s => (s || '').trim()).filter(Boolean);
   }
 
   function getSelectedRecipientIds(){
@@ -259,6 +502,7 @@
     if(!recipientsBox) return;
     const details = recipientsBox.querySelector('details.recipients-dd');
     if(!details) return;
+
     const countEl = details.querySelector('.recipients-dd-title .count');
     const txtEl = details.querySelector('.recipients-dd-title .txt');
     if(!countEl || !txtEl) return;
@@ -299,12 +543,15 @@
     details.open = false;
 
     const summary = document.createElement('summary');
+
     const title = document.createElement('div');
     title.className = 'recipients-dd-title';
     title.innerHTML = '<span class="txt">اختر المستلمين</span><span class="count">غير محدد</span>';
+
     const caret = document.createElement('span');
     caret.className = 'recipients-dd-caret';
     caret.textContent = '▾';
+
     summary.appendChild(title);
     summary.appendChild(caret);
 
@@ -322,13 +569,20 @@
     const grid = document.createElement('div');
     grid.className = 'recipients-grid';
 
+    // استعادة التحديد إن توفر (بعد فشل الإرسال مثلاً)
+    const preSelected = new Set(parseSelectedIds());
+
+    let searchTimer = null;
     searchInput.addEventListener('input', (e) => {
       const val = (e.target.value || '').toLowerCase();
-      const labels = grid.querySelectorAll('.rcpt');
-      labels.forEach(lbl => {
-        const name = (lbl.textContent || '').toLowerCase();
-        lbl.style.display = name.includes(val) ? 'flex' : 'none';
-      });
+      if(searchTimer) window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(() => {
+        const labels = grid.querySelectorAll('.rcpt');
+        labels.forEach(lbl => {
+          const name = (lbl.textContent || '').toLowerCase();
+          lbl.style.display = name.includes(val) ? 'flex' : 'none';
+        });
+      }, 60);
     });
 
     list.forEach(u => {
@@ -339,8 +593,13 @@
       cb.type = 'checkbox';
       cb.name = 'recipients';
       cb.value = String(u.id);
-      
-      // Toggle class for visual feedback
+
+      // restore
+      if(preSelected.has(String(u.id))){
+        cb.checked = true;
+        label.classList.add('selected');
+      }
+
       cb.addEventListener('change', () => {
         if(cb.checked) label.classList.add('selected');
         else label.classList.remove('selected');
@@ -358,16 +617,18 @@
     scroll.appendChild(grid);
     panel.appendChild(searchInput);
     panel.appendChild(scroll);
+
     details.appendChild(summary);
     details.appendChild(panel);
+
     recipientsBox.appendChild(details);
 
-    // Reset summary state
     updateRecipientsSummary();
   }
 
   async function loadMembers(deptSlug){
     if(!recipientsBox) return;
+
     setRecipientsDisabled(true);
     setMsg('...جاري تحميل الموظفين');
 
@@ -377,23 +638,29 @@
 
       const res = await fetch(url, {
         method: 'GET',
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': CSRF },
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': CSRF
+        },
         credentials: 'same-origin'
       });
 
       if(!res.ok) throw new Error('HTTP ' + res.status);
+
       const data = await res.json();
-
       const list = Array.isArray(data.results) ? data.results : [];
-      renderRecipients(list);
 
+      renderRecipients(list);
       setRecipientsDisabled(false);
 
-      if(list.length === 1){
+      // لو فيه موظف واحد: نختاره تلقائيًا (ما لم يكن هناك تحديد مُسبق)
+      const preSelected = parseSelectedIds();
+      if(list.length === 1 && preSelected.length === 0){
         const first = recipientsBox.querySelector('input[type="checkbox"][name="recipients"]');
-        if(first) {
+        if(first){
           first.checked = true;
-          first.closest('label').classList.add('selected');
+          const lbl = first.closest('label');
+          if(lbl) lbl.classList.add('selected');
         }
         updateRecipientsSummary();
         setMsg('تم اختيار الموظف تلقائيًا لأن القسم يحتوي موظفًا واحدًا', 'ok');
@@ -405,6 +672,7 @@
       } else {
         setMsg('لا يوجد موظفون لهذا القسم');
       }
+
     } catch(err){
       console.error(err);
       setMsg('تعذر تحميل الموظفين. حاول مجددًا.', 'error');
@@ -414,8 +682,11 @@
 
   // تغيير القسم
   if(dept && recipientsBox){
-    dept.addEventListener('change', (e)=>{
+    dept.addEventListener('change', (e) => {
       const slug = (e.target.value || '').trim();
+      // عند تغيير القسم: نلغي أي data-selected قديم حتى لا يُعاد تطبيقه على قسم آخر
+      recipientsBox.removeAttribute('data-selected');
+
       if(!slug){
         setRecipientsDisabled(true);
         setMsg('اختر قسمًا أولاً');
@@ -424,15 +695,18 @@
       loadMembers(slug);
     });
 
-    // عند تحميل الصفحة: لو في قيمة مسبقة
+    // عند تحميل الصفحة: لو فيه قيمة مسبقة
     {% if form.is_bound %}
-      // نعيد تحميل موظفي القسم المختار (إن وجد) بعد محاولة فاشلة حتى لا تختفي القائمة
-      if(dept.value){ loadMembers(dept.value); }
-      else { setRecipientsDisabled(true); }
-      setMsg('تم استعادة القيم من المحاولة السابقة', 'ok');
+      if(dept.value){
+        loadMembers(dept.value);
+        setMsg('تم استعادة القيم من المحاولة السابقة', 'ok');
+      } else {
+        setRecipientsDisabled(true);
+        setMsg('اختر قسمًا أولاً');
+      }
     {% else %}
       if(dept.value){ loadMembers(dept.value); }
-      else { setRecipientsDisabled(true); }
+      else { setRecipientsDisabled(true); setMsg('اختر قسمًا أولاً'); }
     {% endif %}
   }
 
@@ -446,9 +720,15 @@
       const url = URL.createObjectURL(f);
       const box = document.createElement('div');
       box.className = 'thumb';
-      box.innerHTML = '<span class="badge">#' + (idx+1) + '</span><img src="' + url + '" alt="preview">';
+      box.innerHTML = '<span class="badge">#' + (idx + 1) + '</span><img src="' + url + '" alt="preview">';
       previews.appendChild(box);
-      box.querySelector('img').addEventListener('load', ()=>URL.revokeObjectURL(url), {once:true});
+
+      const img = box.querySelector('img');
+      if(img){
+        img.addEventListener('load', () => {
+          try{ URL.revokeObjectURL(url); }catch(e){}
+        }, {once:true});
+      }
     });
   }
 
@@ -478,12 +758,11 @@
         return false;
       }
     }
-
     return true;
   }
 
   if(input){
-    input.addEventListener('change', ()=>{
+    input.addEventListener('change', () => {
       setMsg('');
       const files = Array.from(input.files || []);
       if(!files.length){ clearPreviews(); return; }
@@ -495,13 +774,13 @@
   async function compressImage(file, opts){
     const maxW = opts.maxW || 1600;
     const maxH = opts.maxH || 1600;
-    const quality = opts.quality || 0.82;
+    const quality = typeof opts.quality === 'number' ? opts.quality : 0.82;
     const format = opts.format || 'image/webp';
 
     const img = document.createElement('img');
     const src = URL.createObjectURL(file);
 
-    await new Promise((res, rej)=>{
+    await new Promise((res, rej) => {
       img.onload = res;
       img.onerror = rej;
       img.src = src;
@@ -517,72 +796,97 @@
     const canvas = document.createElement('canvas');
     canvas.width = tw;
     canvas.height = th;
+
     const ctx = canvas.getContext('2d');
+    if(!ctx){
+      try{ URL.revokeObjectURL(src); }catch(e){}
+      return file;
+    }
+
     ctx.drawImage(img, 0, 0, tw, th);
 
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
-    URL.revokeObjectURL(src);
+    const blob = await new Promise(resolve => {
+      try{
+        canvas.toBlob(resolve, format, quality);
+      }catch(e){
+        resolve(null);
+      }
+    });
+
+    try{ URL.revokeObjectURL(src); }catch(e){}
 
     if(!blob) return file;
 
     const ext = blob.type === 'image/webp' ? '.webp' : '.jpg';
     const base = (file.name || 'image').replace(/\.\w+$/, '');
-    return new File([blob], base + ext, {type: blob.type});
+    return new File([blob], base + ext, { type: blob.type });
   }
 
   async function replaceWithCompressed(files){
     const dt = new DataTransfer();
+
     for(const f of files){
-      const c1 = await compressImage(f, {maxW:1600, maxH:1600, quality:0.82, format:'image/webp'});
+      const c1 = await compressImage(f, { maxW:1600, maxH:1600, quality:0.82, format:'image/webp' });
+
       if(c1.size > 1.2 * 1024 * 1024){
-        const c2 = await compressImage(f, {maxW:1600, maxH:1600, quality:0.70, format:'image/webp'});
+        const c2 = await compressImage(f, { maxW:1600, maxH:1600, quality:0.70, format:'image/webp' });
         dt.items.add(c2);
       } else {
         dt.items.add(c1);
       }
     }
+
     input.files = dt.files;
   }
 
-  form.addEventListener('submit', async (e)=>{
-    if(dept && !dept.value){
-      e.preventDefault();
-      setMsg('الرجاء اختيار القسم.', 'error');
-      dept.focus();
-      return;
-    }
-    if(recipientsBox && recipientsBox.dataset.disabled === '1'){
-      e.preventDefault();
-      setMsg('الرجاء الانتظار حتى يتم تحميل الموظفين.', 'error');
-      return;
-    }
-    if(recipientsBox && getSelectedRecipientIds().length === 0){
-      e.preventDefault();
-      setMsg('الرجاء اختيار مستلم واحد على الأقل.', 'error');
-      recipientsBox.scrollIntoView({behavior:'smooth', block:'center'});
-      return;
-    }
-
-    if(input){
-      const files = Array.from(input.files || []);
-      if(files.length){
-        if(!validateFiles(files)){
-          e.preventDefault();
-          return;
-        }
+  if(form){
+    form.addEventListener('submit', async (e) => {
+      // تحقق سريع قبل الإرسال
+      if(dept && !dept.value){
         e.preventDefault();
-        setMsg('...جاري ضغط الصور');
-        try{
-          await replaceWithCompressed(files);
-          setMsg('');
-          form.submit();
-        }catch(err){
-          console.error(err);
-          setMsg('تعذر ضغط الصور. حاول مجددًا أو ارفع صورًا أصغر.', 'error');
+        setMsg('الرجاء اختيار القسم.', 'error');
+        dept.focus();
+        return;
+      }
+
+      if(recipientsBox && recipientsBox.dataset.disabled === '1'){
+        e.preventDefault();
+        setMsg('الرجاء الانتظار حتى يتم تحميل الموظفين.', 'error');
+        return;
+      }
+
+      if(recipientsBox && getSelectedRecipientIds().length === 0){
+        e.preventDefault();
+        setMsg('الرجاء اختيار مستلم واحد على الأقل.', 'error');
+        recipientsBox.scrollIntoView({behavior:'smooth', block:'center'});
+        return;
+      }
+
+      // ضغط الصور قبل الإرسال
+      if(input){
+        const files = Array.from(input.files || []);
+        if(files.length){
+          if(!validateFiles(files)){
+            e.preventDefault();
+            return;
+          }
+
+          e.preventDefault();
+          setLoading(true, '...جاري ضغط الصور');
+
+          try{
+            await replaceWithCompressed(files);
+            setLoading(false, '');
+            form.submit();
+          }catch(err){
+            console.error(err);
+            setLoading(false, '');
+            setMsg('تعذر ضغط الصور. حاول مجددًا أو ارفع صورًا أصغر.', 'error');
+          }
         }
       }
-    }
-  });
+    });
+  }
 })();
 </script>
 {% endblock %}

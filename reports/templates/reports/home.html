@@ -7,18 +7,21 @@
 {% block head %}
 <style>
   /* =========================================================
-     HOME (page-only polish) — بدون إعادة تعريف .btn / .card
+     HOME (page-only polish)
+     - Scoped بالكامل داخل .home-wrap لتجنب تعارضات app.css
+     - متوافق مع data-theme (بدل prefers-color-scheme)
+     - بدون إعادة تعريف .btn / .card العامة
      ========================================================= */
+
   .home-wrap{
     --h-radius: 18px;
     --h-shadow: 0 18px 50px rgba(2,6,23,.10);
     --h-ring: 0 0 0 4px rgba(37,99,235,.20);
-
-    /* Fix: base.html يوفّر --t-fast، هنا نعرّف --t لتعمل الانتقالات */
     --t: var(--t-fast);
   }
 
-  .home-hero{
+  /* HERO */
+  .home-wrap .home-hero{
     position:relative;
     overflow:hidden;
     border-radius: var(--h-radius);
@@ -31,7 +34,7 @@
     border: 1px solid rgba(255,255,255,.14);
   }
 
-  .home-hero::before{
+  .home-wrap .home-hero::before{
     content:"";
     position:absolute;
     inset:-2px;
@@ -42,14 +45,14 @@
     opacity:.85;
   }
 
-  .home-hero-inner{
+  .home-wrap .home-hero-inner{
     position:relative;
     padding: clamp(16px, 3vw, 28px);
     display:grid;
     gap:16px;
   }
 
-  .hero-top{
+  .home-wrap .hero-top{
     display:flex;
     align-items:flex-start;
     justify-content:space-between;
@@ -57,7 +60,7 @@
     flex-wrap:wrap;
   }
 
-  .hero-title{
+  .home-wrap .hero-title{
     margin:0;
     font-weight: 950;
     letter-spacing: -.5px;
@@ -66,7 +69,7 @@
     color:#eef2ff;
   }
 
-  .hero-sub{
+  .home-wrap .hero-sub{
     margin:8px 0 0;
     font-weight: 800;
     opacity:.92;
@@ -74,7 +77,7 @@
     font-size: clamp(.98rem, 1.8vw, 1.12rem);
   }
 
-  .hero-meta{
+  .home-wrap .hero-meta{
     display:flex;
     gap:10px;
     flex-wrap:wrap;
@@ -83,7 +86,7 @@
     opacity:.95;
   }
 
-  .hero-chip{
+  .home-wrap .hero-chip{
     display:inline-flex;
     align-items:center;
     gap:8px;
@@ -95,61 +98,62 @@
     -webkit-backdrop-filter: blur(10px);
     white-space:nowrap;
   }
-  .hero-chip i{ opacity:.95; }
+  .home-wrap .hero-chip i{ opacity:.95; }
 
-  .hero-actions{
+  .home-wrap .hero-actions{
     display:flex;
     flex-wrap:wrap;
     gap:10px;
     margin-top: 2px;
   }
 
-  /* أزرار داخل الهيرو فقط (بدون لمس .btn العامة) */
-  .hero-actions .btn{
+  /* أزرار داخل الهيرو فقط */
+  .home-wrap .hero-actions .btn{
     border-radius: 999px;
     min-height: 44px;
     padding: 10px 16px;
     border-color: rgba(255,255,255,.18);
+    transition: var(--t);
   }
-  .btn-hero{
+  .home-wrap .btn-hero{
     background:#fff;
     color:#1e40af;
     border-color:#fff;
   }
-  .btn-hero:hover{
+  .home-wrap .btn-hero:hover{
     transform: translateY(-2px);
     box-shadow: 0 18px 35px rgba(2,6,23,.18);
   }
-  .btn-hero-outline{
+  .home-wrap .btn-hero-outline{
     background: rgba(255,255,255,.10);
     color:#eef2ff;
     border-color: rgba(255,255,255,.22);
   }
-  .btn-hero-outline:hover{
+  .home-wrap .btn-hero-outline:hover{
     background: rgba(255,255,255,.16);
     transform: translateY(-2px);
   }
 
   /* Layout */
-  .home-grid{
+  .home-wrap .home-grid{
     display:grid;
     gap:14px;
     margin-top: 14px;
   }
   @media(min-width: 980px){
-    .home-grid{
+    .home-wrap .home-grid{
       grid-template-columns: 1.35fr .65fr;
       align-items:start;
     }
   }
 
   /* KPI */
-  .kpis{
+  .home-wrap .kpis{
     display:grid;
     gap:12px;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
-  .kpi{
+  .home-wrap .kpi{
     border-radius: 16px;
     border: 1px solid var(--line);
     background: linear-gradient(180deg, var(--line-2), var(--card));
@@ -158,30 +162,28 @@
     overflow:hidden;
     transition: var(--t);
   }
-  .kpi:hover{
+  .home-wrap .kpi:hover{
     transform: translateY(-2px);
     box-shadow: 0 10px 26px rgba(2,6,23,.08);
   }
-  @media(prefers-color-scheme: dark){
-    .kpi{
-      background: linear-gradient(180deg, #122043, #0f1629);
-      border-color: #1b2744;
-    }
+  html[data-theme="dark"] .home-wrap .kpi{
+    background: linear-gradient(180deg, #122043, #0f1629);
+    border-color: #1b2744;
   }
 
-  .kpi .v{
+  .home-wrap .kpi .v{
     font-weight: 950;
     font-size: clamp(1.2rem, 2.2vw, 1.65rem);
     color: var(--ink);
     line-height:1.1;
   }
-  .kpi .l{
+  .home-wrap .kpi .l{
     margin-top: 6px;
     font-weight: 900;
     color: var(--muted);
     font-size: .95rem;
   }
-  .kpi .bub{
+  .home-wrap .kpi .bub{
     position:absolute;
     left: 12px;
     bottom: 12px;
@@ -194,16 +196,16 @@
     border: 1px solid rgba(37,99,235,.18);
     color: rgba(37,99,235,.95);
   }
-  .kpi.kpi-green .bub{ background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.20); color: rgba(16,185,129,.95); }
-  .kpi.kpi-amber .bub{ background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.22); color: rgba(245,158,11,.95); }
-  .kpi.kpi-red   .bub{ background: rgba(239,68,68,.10);  border-color: rgba(239,68,68,.22);  color: rgba(239,68,68,.95); }
+  .home-wrap .kpi.kpi-green .bub{ background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.20); color: rgba(16,185,129,.95); }
+  .home-wrap .kpi.kpi-amber .bub{ background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.22); color: rgba(245,158,11,.95); }
+  .home-wrap .kpi.kpi-red   .bub{ background: rgba(239,68,68,.10);  border-color: rgba(239,68,68,.22);  color: rgba(239,68,68,.95); }
 
-  /* Modern list rows */
-  .list{
+  /* Modern list rows (scoped) */
+  .home-wrap .list{
     display:grid;
     gap:10px;
   }
-  .item{
+  .home-wrap .item{
     display:grid;
     grid-template-columns: 1fr auto;
     gap:10px;
@@ -215,30 +217,28 @@
     color: inherit;
     transition: var(--t);
   }
-  .item:hover{
+  .home-wrap .item:hover{
     transform: translateY(-1px);
     box-shadow: 0 10px 22px rgba(2,6,23,.07);
     background: rgba(219,234,254,.60);
   }
-  @media(prefers-color-scheme: dark){
-    .item{ background: rgba(20,35,73,.40); border-color:#1b2744; }
-    .item:hover{ background: rgba(26,44,83,.70); }
-  }
+  html[data-theme="dark"] .home-wrap .item{ background: rgba(20,35,73,.40); border-color:#1b2744; }
+  html[data-theme="dark"] .home-wrap .item:hover{ background: rgba(26,44,83,.70); }
 
-  .item strong{
+  .home-wrap .item strong{
     font-weight: 950;
     color: var(--ink);
     display:block;
   }
-  .item .meta{
+  .home-wrap .item .meta{
     margin-top: 4px;
     font-weight: 800;
     color: var(--muted);
     font-size: .95rem;
   }
 
-  /* Fix: لا نستخدم .pill لأنها مستخدمة في base.html */
-  .hpill{
+  /* Pill (new) */
+  .home-wrap .hpill{
     align-self:center;
     justify-self:end;
     border-radius: 999px;
@@ -248,14 +248,14 @@
     color:#fff;
     white-space:nowrap;
   }
-  .hp-blue{ background:#2563eb; }
-  .hp-green{ background:#10b981; }
-  .hp-amber{ background:#f59e0b; }
-  .hp-red{ background:#ef4444; }
-  .hp-gray{ background:#64748b; }
+  .home-wrap .hp-blue{ background:#2563eb; }
+  .home-wrap .hp-green{ background:#10b981; }
+  .home-wrap .hp-amber{ background:#f59e0b; }
+  .home-wrap .hp-red{ background:#ef4444; }
+  .home-wrap .hp-gray{ background:#64748b; }
 
   /* Empty state */
-  .empty{
+  .home-wrap .empty{
     padding: 14px;
     border-radius: 16px;
     border: 1px dashed var(--line);
@@ -263,26 +263,34 @@
     color: var(--muted);
     font-weight: 850;
   }
-  .empty b{ color: var(--ink); }
+  .home-wrap .empty b{ color: var(--ink); }
 
   /* Reduce motion */
   @media (prefers-reduced-motion: reduce){
-    .kpi, .item, .hero-actions .btn{ transition:none !important; }
-    .kpi:hover, .item:hover, .hero-actions .btn:hover{ transform:none !important; }
+    .home-wrap .kpi,
+    .home-wrap .item,
+    .home-wrap .hero-actions .btn{
+      transition:none !important;
+    }
+    .home-wrap .kpi:hover,
+    .home-wrap .item:hover,
+    .home-wrap .hero-actions .btn:hover{
+      transform:none !important;
+    }
   }
 
   /* ===== Home Notification Modal (center) ===== */
-  .hn-overlay{
+  .home-wrap .hn-overlay{
     position: fixed;
     inset: 0;
     background: rgba(2,6,23,.55);
-    z-index: 12500; /* أعلى من school modal */
+    z-index: 12500;
     display: none;
     place-items: center;
     padding: 12px;
   }
-  .hn-overlay.is-open{ display: grid; }
-  .hn-modal{
+  .home-wrap .hn-overlay.is-open{ display: grid; }
+  .home-wrap .hn-modal{
     width: min(560px, 94vw);
     background: var(--card);
     border: 1px solid var(--line);
@@ -290,7 +298,7 @@
     box-shadow: 0 40px 90px rgba(2,6,23,.28);
     overflow: hidden;
   }
-  .hn-hd{
+  .home-wrap .hn-hd{
     padding: 14px 16px;
     border-bottom: 1px solid var(--line);
     display: flex;
@@ -299,7 +307,7 @@
     gap: 10px;
     background: linear-gradient(180deg, var(--line-2), var(--card));
   }
-  .hn-hd .ttl{
+  .home-wrap .hn-hd .ttl{
     margin: 0;
     font-weight: 950;
     display: flex;
@@ -307,7 +315,7 @@
     gap: 8px;
     color: var(--ink);
   }
-  .hn-close{
+  .home-wrap .hn-close{
     width: 44px;
     height: 44px;
     border-radius: 999px;
@@ -317,19 +325,36 @@
     font-weight: 900;
     color: var(--ink);
   }
-  .hn-bd{ padding: 14px 16px; }
-  .hn-title{ font-weight: 950; margin: 0 0 8px 0; color: var(--ink); }
-  .hn-body{ color: var(--ink); font-weight: 800; line-height: 1.8; }
-  .hn-meta{ margin-top: 10px; color: var(--muted); font-weight: 800; font-size: .95rem; display:flex; gap:10px; flex-wrap:wrap; }
+  .home-wrap .hn-bd{ padding: 14px 16px; }
+  .home-wrap .hn-title{ font-weight: 950; margin: 0 0 8px 0; color: var(--ink); }
+  .home-wrap .hn-body{ color: var(--ink); font-weight: 800; line-height: 1.8; }
+  .home-wrap .hn-meta{
+    margin-top: 10px;
+    color: var(--muted);
+    font-weight: 800;
+    font-size: .95rem;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="home-wrap">
   {% if home_notification %}
-    <div class="hn-overlay is-open" id="homeNotifOverlay" role="dialog" aria-modal="true" aria-label="إشعار جديد"
-         {% if home_notification_recipient_id %}data-recipient-id="{{ home_notification_recipient_id }}" data-mark-url="{% url 'reports:notification_mark_read' home_notification_recipient_id %}"{% endif %}>
-      <div class="hn-modal">
+    <div
+      class="hn-overlay is-open"
+      id="homeNotifOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="إشعار جديد"
+      {% if home_notification_recipient_id %}
+        data-recipient-id="{{ home_notification_recipient_id }}"
+        data-mark-url="{% url 'reports:notification_mark_read' home_notification_recipient_id %}"
+      {% endif %}
+    >
+      <div class="hn-modal" role="document">
         <div class="hn-hd">
           <h3 class="ttl">
             <i class="fa-solid fa-bell" style="opacity:.9"></i>
@@ -447,7 +472,9 @@
                   <div class="meta">بتاريخ {{ r.report_date }} — {{ r.day_name }}</div>
                 </div>
 
-                <span class="hpill hp-blue">{% if r.category and r.category.name %}{{ r.category.name }}{% else %}—{% endif %}</span>
+                <span class="hpill hp-blue">
+                  {% if r.category and r.category.name %}{{ r.category.name }}{% else %}—{% endif %}
+                </span>
               </a>
             {% endfor %}
           </div>
@@ -523,32 +550,33 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
     var overlay = document.getElementById('homeNotifOverlay');
     if(!overlay) return;
 
     var closeBtn = document.getElementById('homeNotifClose');
+    var modal = overlay.querySelector('.hn-modal');
 
     var recipientId = overlay.getAttribute('data-recipient-id') || '';
     var storageKey = recipientId ? ('hn_dismissed_recipient_' + recipientId) : '';
 
-    function getCookie(name){
-      var value = '; ' + document.cookie;
-      var parts = value.split('; ' + name + '=');
-      if(parts.length === 2) return parts.pop().split(';').shift();
-      return null;
-    }
-
     function hide(){
       overlay.classList.remove('is-open');
+      try{
+        if(window.__lockScroll) window.__lockScroll(false);
+        if(window.__trapFocus && modal) window.__trapFocus(modal, false);
+      }catch(e){
+        // ignore
+      }
     }
 
     async function markRead(){
       var url = overlay.getAttribute('data-mark-url');
       if(!url) return;
+
       try{
-        var csrftoken = getCookie('csrftoken');
+        var csrftoken = (window.getCsrfToken ? window.getCsrfToken() : (window.csrfToken || ''));
         await fetch(url, {
           method: 'POST',
           headers: {
@@ -562,6 +590,16 @@
       }
     }
 
+    function openModal(){
+      try{
+        if(window.__lockScroll) window.__lockScroll(true);
+        if(window.__trapFocus && modal) window.__trapFocus(modal, true);
+      }catch(e){
+        // ignore
+      }
+    }
+
+    // إن كان المستخدم أغلقها سابقاً لنفس المستلم
     try{
       if(storageKey && window.localStorage && localStorage.getItem(storageKey) === '1'){
         hide();
@@ -572,6 +610,10 @@
       // ignore
     }
 
+    // مودال مفتوح افتراضياً عند وجود إشعار
+    openModal();
+
+    // إغلاق بالزر
     if(closeBtn){
       closeBtn.addEventListener('click', function(){
         try{
@@ -583,6 +625,32 @@
         hide();
       });
     }
+
+    // إغلاق بالنقر خارج المحتوى
+    overlay.addEventListener('click', function(ev){
+      if(ev.target === overlay){
+        try{
+          if(storageKey && window.localStorage) localStorage.setItem(storageKey, '1');
+        }catch(e){
+          // ignore
+        }
+        markRead();
+        hide();
+      }
+    });
+
+    // إغلاق بـ ESC
+    document.addEventListener('keydown', function(ev){
+      if(ev.key === 'Escape' && overlay.classList.contains('is-open')){
+        try{
+          if(storageKey && window.localStorage) localStorage.setItem(storageKey, '1');
+        }catch(e){
+          // ignore
+        }
+        markRead();
+        hide();
+      }
+    });
   })();
 </script>
 {% endblock %}

@@ -40,6 +40,16 @@ urlpatterns = [
     path("reports/school/", views.school_reports_readonly, name="school_reports_readonly"),
 
     # =========================
+    # ملف إنجاز المعلّم
+    # =========================
+    path("achievement/my/", views.achievement_my_files, name="achievement_my_files"),
+    path("achievement/school/", views.achievement_school_files, name="achievement_school_files"),
+    path("achievement/school/teachers/", views.achievement_school_teachers, name="achievement_school_teachers"),
+    path("achievement/<int:pk>/", views.achievement_file_detail, name="achievement_file_detail"),
+    path("achievement/<int:pk>/print/", views.achievement_file_print, name="achievement_file_print"),
+    path("achievement/<int:pk>/pdf/", views.achievement_file_pdf, name="achievement_file_pdf"),
+
+    # =========================
     # إدارة المعلّمين (للمدير)
     # =========================
     path("staff/teachers/", views.manage_teachers, name="manage_teachers"),

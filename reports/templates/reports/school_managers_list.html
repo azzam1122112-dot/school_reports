@@ -1,133 +1,319 @@
+{# reports/templates/reports/school_managers_list.html #}
 {% extends "base.html" %}
 {% block title %}مدراء المدارس{% endblock %}
 
+{% block head %}
+<style>
+  /* =========================================================
+     School Managers (page-only polish) — بدون لمس .btn/.card العامة
+     ========================================================= */
+  .sm-wrap{ --t: var(--t-fast); }
+
+  .sm-head{
+    max-width: 980px;
+    margin-inline: auto;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .sm-title{
+    margin:0;
+    font-weight: 950;
+    letter-spacing: -.4px;
+    line-height:1.15;
+  }
+  .sm-sub{
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-weight: 850;
+  }
+
+  .sm-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
+  .sm-card{
+    max-width: 980px;
+    margin: 12px auto 0;
+  }
+
+  .sm-tools{
+    display:flex;
+    gap:12px;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    margin-top: 10px;
+  }
+  .sm-tools .box{
+    flex: 1 1 360px;
+    min-width: 240px;
+  }
+  .sm-hint{
+    margin-top: 6px;
+    color: var(--muted);
+    font-weight: 850;
+  }
+
+  .sm-count{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    font-weight: 950;
+    white-space:nowrap;
+  }
+  .sm-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    font-weight: 950;
+  }
+
+  /* Empty / no results */
+  .sm-nores{
+    display:none;
+    margin-top: 12px;
+    padding: 14px;
+    text-align:center;
+    border: 1px dashed var(--line);
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--card), var(--line-2));
+  }
+  .sm-nores .muted{ font-weight: 900; }
+
+  /* Table row hover */
+  .sm-wrap .rtable tbody tr{
+    transition: var(--t);
+  }
+  .sm-wrap .rtable tbody tr:hover{
+    transform: translateY(-1px);
+    background: rgba(219,234,254,.35);
+  }
+  html[data-theme="dark"] .sm-wrap .rtable tbody tr:hover{
+    background: rgba(26,44,83,.35);
+  }
+
+  /* Schools list in cell */
+  .sm-schools{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    align-items:center;
+  }
+  .sm-sbadge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--line-2);
+    font-weight: 900;
+    color: var(--ink);
+    max-width: 100%;
+  }
+  .sm-sbadge small{
+    color: var(--muted);
+    font-weight: 900;
+    direction:ltr;
+  }
+
+  /* Actions stack on mobile */
+  .sm-actions-cell{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-start;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .sm-wrap .rtable tbody tr{ transition:none !important; }
+    .sm-wrap .rtable tbody tr:hover{ transform:none !important; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container" dir="rtl">
-  <div class="page-head" style="max-width:980px;margin-inline:auto">
+<div class="container sm-wrap" dir="rtl">
+  <div class="sm-head">
     <div>
-      <h1 class="page-title">مدراء المدارس</h1>
-      <p class="page-subtitle">قائمة بجميع مدراء المدارس والمدارس المرتبطة بكل مدير.</p>
+      <h1 class="sm-title">مدراء المدارس</h1>
+      <p class="sm-sub">قائمة بجميع مدراء المدارس والمدارس المرتبطة بكل مدير.</p>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <a class="btn btn-primary" href="{% url 'reports:school_manager_create' %}">+ إنشاء مدير مدرسة جديد</a>
+
+    <div class="sm-actions">
+      <a class="btn btn-primary" href="{% url 'reports:school_manager_create' %}">
+        + إنشاء مدير مدرسة جديد
+      </a>
       <a class="btn btn-outline" href="{% url 'reports:schools_admin_list' %}">إدارة المدارس</a>
       <a class="btn btn-outline" href="{% url 'reports:manage_teachers' %}">قائمة المعلّمين</a>
     </div>
   </div>
 
-  <div style="max-width:980px;margin-inline:auto">
+  <div class="sm-card">
     <div class="card">
       <div class="section-title">قائمة المدراء</div>
 
       {% if managers %}
-      <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px">
-        <div style="flex:1 1 320px;min-width:240px">
-          <label class="muted" for="managerSearch" style="display:block;font-weight:900;margin-bottom:6px">بحث</label>
-          <input id="managerSearch" class="input" type="search" placeholder="ابحث باسم المدير / الجوال / اسم المدرسة…" autocomplete="off" spellcheck="false">
-          <div class="muted" style="margin-top:6px;font-weight:850">تلميح: يمكنك كتابة أكثر من كلمة (مثال: “أحمد الرياض”).</div>
+        <div class="sm-tools">
+          <div class="box">
+            <label class="muted" for="managerSearch" style="display:block;font-weight:900;margin-bottom:6px">بحث</label>
+            <input
+              id="managerSearch"
+              class="input"
+              type="search"
+              placeholder="ابحث باسم المدير / الجوال / اسم المدرسة…"
+              autocomplete="off"
+              spellcheck="false"
+              inputmode="search"
+            >
+            <div class="sm-hint">تلميح: يمكنك كتابة أكثر من كلمة (مثال: “أحمد الرياض”).</div>
+          </div>
+
+          <div class="sm-count" aria-label="عدد النتائج">
+            <span class="sm-chip">
+              <span id="managerCount">{{ managers|length }}</span>
+              مدير
+            </span>
+          </div>
         </div>
-        <div class="muted" style="font-weight:900;white-space:nowrap">
-          <span id="managerCount">{{ managers|length }}</span>
-          مدير
+
+        <div id="managerNoResults" class="sm-nores">
+          <span class="muted">لا توجد نتائج مطابقة.</span>
         </div>
-      </div>
-      <div id="managerNoResults" class="card" style="display:none;margin-top:12px;padding:14px;text-align:center">
-        <span class="muted" style="font-weight:900">لا توجد نتائج مطابقة.</span>
-      </div>
       {% endif %}
 
       {% if managers %}
-      <div class="table-responsive">
-        <table class="rtable">
-          <thead>
-            <tr>
-              <th>المدير</th>
-              <th>رقم الجوال</th>
-              <th>الحالة</th>
-              <th>المدارس المرتبطة</th>
-              <th>إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in managers %}
-              {% with m=item.manager schools=item.schools %}
-              <tr data-search="{{ m.name|lower }} {{ m.phone|lower }}{% for s in schools %} {{ s.name|lower }} {{ s.code|lower }}{% endfor %}">
-                <td data-label="المدير"><b>{{ m.name }}</b></td>
-                <td data-label="رقم الجوال">{{ m.phone }}</td>
-                <td data-label="الحالة">
-                  {% if m.is_active %}
-                    <span class="badge success">نشط</span>
-                  {% else %}
-                    <span class="badge danger">موقوف</span>
-                  {% endif %}
-                </td>
-                <td data-label="المدارس المرتبطة">
-                  {% if schools %}
-                    {% for s in schools %}
-                      {{ s.name }}{% if not forloop.last %}، {% endif %}
-                    {% endfor %}
-                  {% else %}
-                    <span class="muted" style="font-weight:900">لا توجد مدارس مرتبطة</span>
-                  {% endif %}
-                </td>
-                <td data-label="إجراءات">
-                  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start">
-                    <a class="btn btn-outline" href="{% url 'reports:school_manager_update' m.id %}" style="padding:8px 10px">تعديل المدير</a>
-                    <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" style="display:inline" 
-                          onsubmit="return confirm('{% if m.is_active %}هل أنت متأكد من تعطيل هذا المدير؟{% else %}هل أنت متأكد من إعادة تفعيل هذا المدير؟{% endif %}');">
-                      {% csrf_token %}
-                      {% if m.is_active %}
-                        <button type="submit" class="btn btn-danger" style="padding:8px 10px">تعطيل المدير</button>
-                      {% else %}
-                        <button type="submit" class="btn btn-accent" style="padding:8px 10px">تفعيل المدير</button>
-                      {% endif %}
-                    </form>
-                  </div>
-                </td>
+        <div class="table-responsive" style="margin-top:12px">
+          <table class="rtable">
+            <thead>
+              <tr>
+                <th>المدير</th>
+                <th>رقم الجوال</th>
+                <th>الحالة</th>
+                <th>المدارس المرتبطة</th>
+                <th>إجراءات</th>
               </tr>
-              {% endwith %}
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {% for item in managers %}
+                {% with m=item.manager schools=item.schools %}
+                  <tr data-search="{{ m.name|lower }} {{ m.phone|lower }}{% for s in schools %} {{ s.name|lower }}{% if s.code %} {{ s.code|lower }}{% endif %}{% endfor %}">
+                    <td data-label="المدير"><b>{{ m.name }}</b></td>
+
+                    <td data-label="رقم الجوال" dir="ltr">{{ m.phone }}</td>
+
+                    <td data-label="الحالة">
+                      {% if m.is_active %}
+                        <span class="badge success">نشط</span>
+                      {% else %}
+                        <span class="badge danger">موقوف</span>
+                      {% endif %}
+                    </td>
+
+                    <td data-label="المدارس المرتبطة">
+                      {% if schools %}
+                        <div class="sm-schools">
+                          {% for s in schools %}
+                            <span class="sm-sbadge" title="{{ s.name }}">
+                              {{ s.name }}
+                              {% if s.code %}<small>{{ s.code }}</small>{% endif %}
+                            </span>
+                          {% endfor %}
+                        </div>
+                      {% else %}
+                        <span class="muted" style="font-weight:900">لا توجد مدارس مرتبطة</span>
+                      {% endif %}
+                    </td>
+
+                    <td data-label="إجراءات">
+                      <div class="sm-actions-cell">
+                        <a class="btn btn-outline" href="{% url 'reports:school_manager_update' m.id %}" style="padding:8px 10px">
+                          تعديل المدير
+                        </a>
+
+                        <form
+                          method="post"
+                          action="{% url 'reports:school_manager_delete' m.id %}"
+                          style="display:inline"
+                          onsubmit="return confirm('{% if m.is_active %}هل أنت متأكد من تعطيل هذا المدير؟{% else %}هل أنت متأكد من إعادة تفعيل هذا المدير؟{% endif %}');"
+                        >
+                          {% csrf_token %}
+                          {% if m.is_active %}
+                            <button type="submit" class="btn btn-danger" style="padding:8px 10px">تعطيل المدير</button>
+                          {% else %}
+                            <button type="submit" class="btn btn-accent" style="padding:8px 10px">تفعيل المدير</button>
+                          {% endif %}
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       {% else %}
-        <div class="muted" style="font-weight:900">لا يوجد أي مدير مدرسة بعد.</div>
+        <div class="muted" style="font-weight:900;margin-top:10px">لا يوجد أي مدير مدرسة بعد.</div>
       {% endif %}
     </div>
   </div>
 </div>
+{% endblock %}
 
-<script>
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
 (function(){
-  const input = document.getElementById('managerSearch');
-  const rows = Array.from(document.querySelectorAll('table.rtable tbody tr'));
-  const count = document.getElementById('managerCount');
-  const empty = document.getElementById('managerNoResults');
+  var input = document.getElementById('managerSearch');
+  if(!input) return;
+
+  var rows = Array.prototype.slice.call(document.querySelectorAll('table.rtable tbody tr'));
+  var count = document.getElementById('managerCount');
+  var empty = document.getElementById('managerNoResults');
+
+  function norm(s){
+    return (s || '')
+      .toString()
+      .toLowerCase()
+      .replace(/[إأآا]/g,'ا')
+      .replace(/ى/g,'ي')
+      .replace(/ة/g,'ه')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
 
   function matchAllWords(hay, query){
-    const words = (query || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (!words.length) return true;
-    return words.every(w => hay.includes(w));
+    var words = norm(query).split(' ').filter(Boolean);
+    if(!words.length) return true;
+    return words.every(function(w){ return hay.indexOf(w) !== -1; });
   }
 
   function applyFilter(){
-    if(!input) return;
-    const q = (input.value || '').trim().toLowerCase();
-    let visible = 0;
-    rows.forEach((row)=>{
-      const hay = (row.getAttribute('data-search') || '').toLowerCase();
-      const ok = matchAllWords(hay, q);
+    var q = (input.value || '').trim();
+    var visible = 0;
+
+    rows.forEach(function(row){
+      var hay = norm(row.getAttribute('data-search') || '');
+      var ok = matchAllWords(hay, q);
       row.style.display = ok ? '' : 'none';
       if(ok) visible += 1;
     });
+
     if(count) count.textContent = String(visible);
-    if(empty) empty.style.display = visible === 0 ? 'block' : 'none';
+    if(empty) empty.style.display = (visible === 0) ? 'block' : 'none';
   }
 
-  if(input){
-    input.addEventListener('input', applyFilter);
-    applyFilter();
-  }
+  input.addEventListener('input', applyFilter);
+  applyFilter();
 })();
 </script>
 {% endblock %}

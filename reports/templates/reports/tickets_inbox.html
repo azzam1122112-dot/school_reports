@@ -4,77 +4,256 @@
 
 {% block head %}
 <style>
+  /* =========================================================
+     Tickets Inbox (page-only) — بدون كسر أنماط base/app.css
+     - Scoped داخل .inbox-wrap
+     - دعم data-theme="dark"
+     ========================================================= */
   .inbox-wrap{max-width:1200px;margin-inline:auto}
-  .card{
-    background:#fff;border:1px solid #e5e7eb;border-radius:14px;
-    box-shadow:0 4px 16px rgba(2,6,23,.06);padding:18px
+  .inbox-wrap .inbox-card{
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    box-shadow: 0 18px 50px rgba(2,6,23,.06);
+    padding: 18px;
   }
-  .title{margin:0 0 12px;font-weight:900;color:#1f2937}
-
-  /* Filters (use global input/select/button styles) */
-  .inbox-filters{display:grid;gap:10px;margin:8px 0 14px}
-  .inbox-filters .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end}
-  .inbox-filters .chk{display:flex;align-items:center;gap:10px;font-weight:900;color:var(--muted)}
-  .inbox-filters .actions{display:flex;gap:8px;flex-wrap:wrap}
   @media (max-width:520px){
-    .card{padding:14px}
-    .inbox-filters .actions .btn{flex:1;justify-content:center}
+    .inbox-wrap .inbox-card{padding:14px}
   }
 
-  /* شارات الحالة */
-  .status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.8rem;font-weight:900;white-space:nowrap}
-  .s-open,.s-new{background:#dcfce7;color:#166534}
-  .s-in_progress,.s-pending{background:#ede9fe;color:#5b21b6}
-  .s-done{background:#e0f2fe;color:#075985}
-  .s-rejected,.s-cancelled{background:#fee2e2;color:#991b1b}
-
-  /* شارة القسم */
-  .dept-chip{display:inline-block;background:#eef2ff;color:#1e40af;border:1px solid #dbeafe;border-radius:999px;padding:3px 10px;font-weight:800;font-size:.8rem}
-
-  /* مصغّر المرفق (صورة فقط) */
-  .att-thumb{
-    width:42px;height:42px;border-radius:10px;object-fit:cover;
-    border:1px solid #e5e7eb; box-shadow:0 2px 10px rgba(2,6,23,.06);
-    background:#f8fafc; display:inline-block;
+  .inbox-wrap .title{
+    margin:0 0 12px;
+    font-weight:950;
+    color: var(--ink);
+    display:flex;
+    align-items:center;
+    gap:10px;
   }
-  .att-empty{color:#94a3b8;font-weight:900}
+  .inbox-wrap .subtitle{
+    margin: -6px 0 14px;
+    color: var(--muted);
+    font-weight:800;
+    line-height:1.7;
+  }
 
-  /* الجدول */
-  .tbl{width:100%;border-collapse:collapse;font-size:14px}
-  .tbl th,.tbl td{padding:10px;border-bottom:1px solid #f1f5f9;text-align:right;vertical-align:middle}
-  .tbl thead th{background:#f9fafb;border-bottom:1px solid #e5e7eb;color:#0f172a;font-weight:900}
-  .actions .btn-open{padding:6px 10px;border-radius:8px;background:#10b981;color:#fff;text-decoration:none;display:inline-block}
+  /* Filters */
+  .inbox-wrap .inbox-filters{
+    display:grid;
+    gap:10px;
+    margin: 8px 0 14px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+  }
+  .inbox-wrap .inbox-filters .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:10px;
+    align-items:end;
+  }
+  .inbox-wrap .inbox-filters .chk{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:900;
+    color: var(--muted);
+    user-select:none;
+  }
+  .inbox-wrap .inbox-filters .chk input{ transform: translateY(1px); }
+  .inbox-wrap .inbox-filters .actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  @media (max-width:520px){
+    .inbox-wrap .inbox-filters .actions .btn{flex:1;justify-content:center}
+  }
 
-  /* استجابة الموبايل: نقلب الجدول إلى بطاقات */
+  /* Badges */
+  .inbox-wrap .status-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: .82rem;
+    font-weight: 950;
+    white-space:nowrap;
+    border: 1px solid transparent;
+  }
+  .inbox-wrap .s-open,
+  .inbox-wrap .s-new{
+    background: rgba(16,185,129,.14);
+    color: #065f46;
+    border-color: rgba(16,185,129,.22);
+  }
+  .inbox-wrap .s-in_progress,
+  .inbox-wrap .s-pending{
+    background: rgba(124,58,237,.14);
+    color: #4c1d95;
+    border-color: rgba(124,58,237,.22);
+  }
+  .inbox-wrap .s-done{
+    background: rgba(14,165,233,.14);
+    color: #075985;
+    border-color: rgba(14,165,233,.22);
+  }
+  .inbox-wrap .s-rejected,
+  .inbox-wrap .s-cancelled{
+    background: rgba(239,68,68,.14);
+    color: #991b1b;
+    border-color: rgba(239,68,68,.22);
+  }
+  .inbox-wrap .s-unknown{
+    background: rgba(100,116,139,.14);
+    color: #334155;
+    border-color: rgba(100,116,139,.22);
+  }
+
+  /* Department chip */
+  .inbox-wrap .dept-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background: rgba(37,99,235,.10);
+    color: #1e40af;
+    border: 1px solid rgba(37,99,235,.18);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-weight: 900;
+    font-size: .82rem;
+    white-space:nowrap;
+  }
+
+  /* Attachment thumbnail */
+  .inbox-wrap .att-thumb{
+    width:42px;
+    height:42px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    box-shadow: 0 10px 22px rgba(2,6,23,.08);
+    background: var(--line-2);
+    display:inline-block;
+  }
+  .inbox-wrap .att-empty{
+    color: var(--muted);
+    font-weight: 900;
+  }
+
+  /* Table */
+  .inbox-wrap .tbl-wrap{
+    overflow:auto;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--card);
+  }
+  .inbox-wrap .tbl{
+    width:100%;
+    border-collapse:collapse;
+    font-size: 14px;
+    min-width: 980px;
+  }
+  .inbox-wrap .tbl th,
+  .inbox-wrap .tbl td{
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--line);
+    text-align:right;
+    vertical-align:middle;
+  }
+  .inbox-wrap .tbl thead th{
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    color: var(--ink);
+    font-weight: 950;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .inbox-wrap .tbl tbody tr:hover{
+    background: rgba(219,234,254,.35);
+  }
+  html[data-theme="dark"] .inbox-wrap .tbl tbody tr:hover{
+    background: rgba(26,44,83,.35);
+  }
+
+  .inbox-wrap .row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .inbox-wrap .btn-open{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: #10b981;
+    color:#fff;
+    text-decoration:none;
+    font-weight: 950;
+    border: 1px solid rgba(16,185,129,.25);
+    white-space:nowrap;
+  }
+  .inbox-wrap .btn-open:hover{
+    filter: brightness(.98);
+    transform: translateY(-1px);
+  }
+
+  /* Mobile: table -> cards */
   @media(max-width:860px){
-    .tbl thead{display:none}
-    .tbl, .tbl tbody, .tbl tr, .tbl td{display:block;width:100%}
-    .tbl tr{border:1px solid #e5e7eb;border-radius:12px;margin:10px 0;background:#fff;overflow:hidden}
-    .tbl td{border-bottom:1px dashed #e5e7eb}
-    .tbl td:last-child{border-bottom:0}
-    .tbl td[data-label]::before{
-      content:attr(data-label);
-      font-weight:900;color:#1f2937;display:inline-block;margin-inline-start:6px
+    .inbox-wrap .tbl{min-width: 0}
+    .inbox-wrap .tbl thead{display:none}
+    .inbox-wrap .tbl,
+    .inbox-wrap .tbl tbody,
+    .inbox-wrap .tbl tr,
+    .inbox-wrap .tbl td{
+      display:block;
+      width:100%;
     }
-    .actions{display:flex;justify-content:flex-start;gap:8px}
+    .inbox-wrap .tbl-wrap{
+      border: 0;
+      background: transparent;
+      overflow: visible;
+    }
+    .inbox-wrap .tbl tr{
+      border:1px solid var(--line);
+      border-radius: 14px;
+      margin: 10px 0;
+      background: var(--card);
+      overflow:hidden;
+      box-shadow: 0 10px 26px rgba(2,6,23,.06);
+    }
+    .inbox-wrap .tbl td{
+      border-bottom: 1px dashed var(--line);
+      padding: 10px 12px;
+    }
+    .inbox-wrap .tbl td:last-child{border-bottom:0}
+    .inbox-wrap .tbl td[data-label]::before{
+      content: attr(data-label);
+      font-weight: 950;
+      color: var(--ink);
+      display:inline-block;
+      margin-inline-start: 8px;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container inbox-wrap" dir="rtl">
-  <div class="card">
+  <div class="inbox-card">
     <h2 class="title">📥 صندوق الطلبات</h2>
+    <div class="subtitle">
+      استعرض الطلبات الواردة، فلتر حسب الحالة أو ابحث بالعنوان/التفاصيل.
+    </div>
 
     <form method="get" class="inbox-filters" aria-label="فلترة الطلبات" novalidate>
       <div class="grid">
         <input type="text" name="q" value="{{ q }}" class="input" placeholder="بحث في العنوان/التفاصيل">
-        <select name="status" class="select">
+        <select name="status" class="select" aria-label="الحالة">
           <option value="">كل الحالات</option>
           {% for v,lbl in status_choices %}
             <option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ lbl }}</option>
           {% endfor %}
         </select>
+
         <label class="chk">
           <input type="checkbox" name="mine" value="1" {% if mine %}checked{% endif %}>
           المعيّنة لي فقط
@@ -89,7 +268,7 @@
       </div>
     </form>
 
-    <div class="table-responsive" style="overflow:auto;">
+    <div class="tbl-wrap" aria-label="جدول الطلبات">
       <table class="tbl">
         <thead>
           <tr>
@@ -112,7 +291,6 @@
               <td data-label="التاريخ"> {{ t.created_at|date:"Y-m-d H:i" }} </td>
               <td data-label="المرسل"> {{ t.creator.name|default:"—" }} </td>
 
-              {# ✅ القسم: يدعم ForeignKey أو choices مع بديل آمن #}
               <td data-label="القسم">
                 {% if t.department %}
                   <span class="dept-chip">{{ t.department.name|default:t.department }}</span>
@@ -130,9 +308,9 @@
                   {{ t.assignee.name|default:"—" }}
                 {% endif %}
               </td>
+
               <td data-label="العنوان"> {{ t.title }} </td>
 
-              {# ✅ المرفقات صور فقط: نعرض مصغّر لو وجد #}
               <td data-label="المرفق">
                 {% if t.attachment %}
                   <a href="{{ t.attachment.url }}" target="_blank" rel="noopener" title="فتح المرفق">
@@ -143,20 +321,25 @@
                 {% endif %}
               </td>
 
-              {# ✅ شارة الحالة الملونة #}
               <td data-label="الحالة">
-                <span class="status-badge s-{{ t.status|default:'open' }}">
-                  {{ t.get_status_display|default:t.status }}
+                <span class="status-badge s-{{ t.status|default:'unknown' }}">
+                  {{ t.get_status_display|default:t.status|default:"—" }}
                 </span>
               </td>
 
-              <td data-label="إجراءات" class="actions">
-                <a href="{% url 'reports:ticket_detail' t.pk %}" class="btn-open">فتح</a>
+              <td data-label="إجراءات">
+                <div class="row-actions">
+                  <a href="{% url 'reports:ticket_detail' t.pk %}" class="btn-open">
+                    فتح <i class="fa-solid fa-arrow-up-left-from-square" style="opacity:.9"></i>
+                  </a>
+                </div>
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="9" style="text-align:center;padding:14px;">لا توجد طلبات</td>
+              <td colspan="9" style="text-align:center;padding:16px;color:var(--muted);font-weight:900;">
+                لا توجد طلبات
+              </td>
             </tr>
           {% endfor %}
         </tbody>

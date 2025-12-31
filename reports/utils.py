@@ -2,7 +2,6 @@ import threading
 from django.db import transaction
 from django.conf import settings
 from django.apps import apps
-from django.db.models import Q
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,7 +9,11 @@ logger = logging.getLogger(__name__)
 def run_task_safe(task_func, *args, force_thread: bool = False, **kwargs):
     """
     محاولة تشغيل المهمة عبر Celery، وإذا فشل (بسبب عدم وجود Redis مثلاً) 
-    يتم تشغيلها في Thread خلفي لضمان عدم توقف النظام.
+    يتم تشغيلها بشكل آمن بدون كسر النظام.
+
+    سياسة التنفيذ:
+    - في التطوير (DEBUG=True) أو force_thread=True: نسمح بالـ Thread fallback.
+    - في الإنتاج: نتجنب Threads (غير موثوقة مع worker/dyno) ونستخدم تنفيذ inline عند تعذر Celery.
     """
     def _thread_wrapper(func, *f_args, **f_kwargs):
         from django.db import connections
@@ -23,23 +26,33 @@ def run_task_safe(task_func, *args, force_thread: bool = False, **kwargs):
             connections.close_all()
 
     def _execute():
-        # في بيئة التطوير (DEBUG=True)، نفضل استخدام Thread مباشرة لتجنب مشاكل عدم تشغيل Worker.
-        # ويمكن إجبار الـ Thread صراحةً عبر force_thread=True لبعض المهام الحرجة (مثل توليد PDF).
-        _force_thread = bool(force_thread) or bool(getattr(settings, 'DEBUG', False))
-        
-        if not _force_thread:
-            try:
-                # محاولة الإرسال لـ Celery
-                task_func.delay(*args, **kwargs)
-                logger.info(f"Task {task_func.__name__} queued via Celery.")
-                return
-            except Exception as e:
-                logger.warning(f"Celery failed: {e}. Falling back to Thread for {task_func.__name__}.")
+        debug_mode = bool(getattr(settings, 'DEBUG', False))
+        allow_thread = bool(force_thread) or debug_mode
 
-        # Fallback or forced thread
-        thread = threading.Thread(target=_thread_wrapper, args=(task_func, *args), kwargs=kwargs)
-        thread.daemon = True
-        thread.start()
+        # 1) Prefer Celery
+        try:
+            task_func.delay(*args, **kwargs)
+            logger.info("Task %s queued via Celery.", getattr(task_func, "__name__", str(task_func)))
+            return
+        except Exception as e:
+            logger.warning("Celery enqueue failed for %s: %s", getattr(task_func, "__name__", str(task_func)), e)
+
+        # 2) Development fallback: background thread
+        if allow_thread:
+            thread = threading.Thread(target=_thread_wrapper, args=(task_func, *args), kwargs=kwargs)
+            thread.daemon = True
+            thread.start()
+            return
+
+        # 3) Production-safe fallback: inline execution
+        try:
+            if hasattr(task_func, "apply"):
+                task_func.apply(args=args, kwargs=kwargs, throw=True)
+            else:
+                task_func(*args, **kwargs)
+            logger.info("Task %s executed inline (fallback).", getattr(task_func, "__name__", str(task_func)))
+        except Exception:
+            logger.exception("Task %s failed even with inline fallback.", getattr(task_func, "__name__", str(task_func)))
 
     # تنفيذ العملية بعد التأكد من حفظ البيانات في قاعدة البيانات
     transaction.on_commit(_execute)

@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2563eb">
+  <meta name="color-scheme" content="light dark">
   <title>تسجيل الدخول — {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</title>
 
   <!-- Fonts / Icons -->
@@ -14,7 +15,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
 
   <!-- App CSS -->
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=login-20251216">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=login-20251231">
 
   <style>
     /* ===== Safe fallbacks without overriding app.css ===== */
@@ -43,6 +44,12 @@
         radial-gradient(900px 520px at 20% 10%, rgba(37,99,235,.12), transparent 60%),
         radial-gradient(800px 500px at 90% 75%, rgba(5,150,105,.10), transparent 60%),
         linear-gradient(180deg, rgba(255,255,255,.40), transparent 40%);
+    }
+    html[data-theme="dark"] .auth-shell{
+      background:
+        radial-gradient(900px 520px at 20% 10%, rgba(37,99,235,.16), transparent 60%),
+        radial-gradient(800px 500px at 90% 75%, rgba(5,150,105,.12), transparent 60%),
+        linear-gradient(180deg, rgba(2,6,23,.35), transparent 40%);
     }
 
     .blob{
@@ -121,7 +128,9 @@
       display:grid;place-items:center;
       overflow:hidden;
     }
+    html[data-theme="dark"] .school-mark{ background: rgba(255,255,255,.06); }
     .school-mark img{width:70px;height:70px;object-fit:contain}
+
     .hero h1{
       margin:0;
       font-size: 1.55rem;
@@ -165,6 +174,7 @@
       font-size: 1.05rem;
       pointer-events:none;
     }
+
     .toggle{
       position:absolute;
       left: 10px;
@@ -192,6 +202,7 @@
       min-height: 54px;
       font-size: 1.05rem;
     }
+
     .hint{
       margin-top: 12px;
       padding: 12px 12px;
@@ -226,6 +237,7 @@
       display:grid;place-items:center;
       overflow:hidden;
     }
+    html[data-theme="dark"] .foot-logo{ background: rgba(255,255,255,.06); }
     .foot-logo img{width:18px;height:18px;object-fit:contain}
 
     /* Toasts */
@@ -267,6 +279,10 @@
     .toast.success{ color:#065f46; border-color: rgba(167,243,208,.9); background: rgba(236,253,245,.92); }
     .toast.warning{ color:#92400e; border-color: rgba(253,230,138,.9); background: rgba(255,251,235,.92); }
     .toast.error{ color: #b91c1c; border-color: rgba(254,202,202,.9); background: rgba(254,242,242,.92); }
+    html[data-theme="dark"] .toast.info{ background: rgba(30,58,138,.25); border-color: rgba(59,130,246,.25); }
+    html[data-theme="dark"] .toast.success{ background: rgba(6,95,70,.25); border-color: rgba(16,185,129,.22); }
+    html[data-theme="dark"] .toast.warning{ background: rgba(146,64,14,.25); border-color: rgba(245,158,11,.22); }
+    html[data-theme="dark"] .toast.error{ background: rgba(185,28,28,.22); border-color: rgba(239,68,68,.22); }
 
     @media (min-width: 1400px){
       .auth-card{ width: min(560px, 92vw); }
@@ -275,6 +291,18 @@
       .submit{ min-height: 58px; }
     }
   </style>
+
+  <script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
+    // Theme sync with base/app (if you store it in localStorage)
+    (function(){
+      try{
+        var t = localStorage.getItem('theme');
+        if(t === 'dark' || t === 'light'){
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      }catch(e){}
+    })();
+  </script>
 </head>
 
 <body class="page">
@@ -340,7 +368,7 @@
           {% endif %}
         </div>
 
-        <form method="post" class="auth-form" autocomplete="on">
+        <form method="post" class="auth-form" autocomplete="on" novalidate>
           {% csrf_token %}
 
           <div class="field">
@@ -360,8 +388,12 @@
                 maxlength="10"
                 placeholder="05XXXXXXXX"
                 autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+                enterkeyhint="next"
                 required
                 aria-required="true"
+                {% if form.errors %}aria-invalid="true"{% endif %}
                 autofocus
               >
               <span class="in-ico" aria-hidden="true"><i class="fa-solid fa-mobile-screen-button"></i></span>
@@ -381,8 +413,12 @@
                 name="password"
                 placeholder="••••••••"
                 autocomplete="current-password"
+                autocapitalize="none"
+                spellcheck="false"
+                enterkeyhint="done"
                 required
                 aria-required="true"
+                {% if form.errors %}aria-invalid="true"{% endif %}
               >
               <span class="in-ico" aria-hidden="true"><i class="fa-solid fa-lock"></i></span>
 
@@ -422,36 +458,43 @@
     </section>
   </div>
 
-  <script>
+  <script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
     (function(){
       // Toggle password
-      const btn = document.getElementById('togglePwd');
-      const inp = document.getElementById('password');
+      var btn = document.getElementById('togglePwd');
+      var inp = document.getElementById('password');
       if(btn && inp){
         btn.addEventListener('click', function(){
-          const isPwd = inp.type === 'password';
+          var isPwd = inp.type === 'password';
           inp.type = isPwd ? 'text' : 'password';
           btn.setAttribute('aria-label', isPwd ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
           btn.innerHTML = isPwd ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
         });
       }
 
-      // Phone sanitize (digits only, max 10)
-      const phone = document.getElementById('phone');
+      // Phone sanitize (digits only, max 10) + keep leading 0
+      var phone = document.getElementById('phone');
       if(phone){
         phone.addEventListener('input', function(){
-          const v = (phone.value || '').replace(/[^\d]/g,'').slice(0,10);
+          var v = (phone.value || '').replace(/[^\d]/g,'').slice(0,10);
           if(phone.value !== v) phone.value = v;
         });
       }
 
       // Toast auto-hide
-      document.querySelectorAll('.toast[data-autohide="true"]').forEach((t)=>{
-        const close = t.querySelector('.close');
-        const remove = ()=>{ t.style.opacity='0'; t.style.transform='translateY(-6px)'; setTimeout(()=>t.remove(), 220); };
-        close && close.addEventListener('click', remove);
-        setTimeout(remove, 3200);
-      });
+      var toasts = document.querySelectorAll('.toast[data-autohide="true"]');
+      for(var i=0;i<toasts.length;i++){
+        (function(t){
+          var close = t.querySelector('.close');
+          var remove = function(){
+            t.style.opacity='0';
+            t.style.transform='translateY(-6px)';
+            setTimeout(function(){ try{ t.remove(); }catch(e){} }, 220);
+          };
+          if(close) close.addEventListener('click', remove);
+          setTimeout(remove, 3200);
+        })(toasts[i]);
+      }
     })();
   </script>
 </body>

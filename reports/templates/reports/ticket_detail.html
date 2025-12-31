@@ -1,3 +1,4 @@
+{# reports/templates/reports/ticket_detail.html #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -5,115 +6,252 @@
 
 {% block head %}
 <style>
-  :root{
-    --ink:#0f172a; --ink-soft:#1f2937; --muted:#6b7280; --line:#e5e7eb;
-    --card:#ffffff; --bg:#f8fafc; --brand:#2563eb; --accent:#10b981; --danger:#ef4444;
-    --chip:#eef2ff; --chip-ink:#1e40af;
-    --shadow:0 12px 30px rgba(2,6,23,.10); --shadow2:0 20px 50px rgba(2,6,23,.14);
-    --radius:18px; --rsm:12px; --t:all .22s ease;
+  /* =========================================================
+     Ticket Detail (page-only)
+     - Scoped داخل .ticket-wrap (بدون :root وبدون كسر base)
+     - Dark mode عبر html[data-theme="dark"]
+     - لا نعيد تعريف .btn/.card العامة، فقط تحسينات داخل الصفحة
+     ========================================================= */
+
+  .ticket-wrap{max-width:1100px;margin-inline:auto;padding:18px}
+  @media(max-width:520px){ .ticket-wrap{padding:14px 12px} }
+
+  /* ===== Top bar ===== */
+  .ticket-bar{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(2,6,23,.10);
+    padding: 12px 14px;
+    display:flex;
+    gap: 12px;
+    align-items:flex-start;
+    justify-content:space-between;
+    flex-wrap:wrap;
+  }
+  .ticket-bar h1{margin:0;font-size:1.15rem;font-weight:950;color:var(--ink)}
+  .ticket-minor{color:var(--muted);font-weight:850;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .ticket-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  @media(max-width:520px){
+    .ticket-actions{width:100%}
+    .ticket-actions .btn{flex:1;justify-content:center}
   }
 
-  .wrap{max-width:1100px;margin-inline:auto;padding:18px}
-
-  /* ===== Header bar ===== */
-  .bar{
-    background:var(--card); border:1px solid var(--line); border-radius:16px;
-    box-shadow:var(--shadow); padding:12px 14px; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+  /* تحسين بسيط لأزرار هذه الصفحة فقط */
+  .ticket-wrap .btn{min-height:44px;border-radius:12px}
+  .ticket-wrap .btn.btn-danger{
+    background: rgba(239,68,68,.10);
+    border-color: rgba(239,68,68,.22);
+    color: #991b1b;
   }
-  .bar h1{margin:0; font-size:1.15rem; font-weight:900; color:#1f2937}
-  .bar .minor{color:#6b7280; font-weight:700}
-  .bar .btns{display:flex; gap:8px; flex-wrap:wrap}
-  .btn{height:42px; padding:0 14px; border-radius:12px; border:1px solid:#e5e7eb;
-       background:#fff; color:#111827; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:8px; transition:var(--t)}
-  .btn:hover{background:#f6f9ff; border-color:#dbeafe}
-  .btn-primary{background:var(--brand); color:#fff; border-color:var(--brand)}
-  .btn-danger{background:#fee2e2; color:#991b1b; border-color:#fecaca}
 
   /* ===== Layout ===== */
-  .grid{display:grid; gap:18px; margin-top:14px}
-  @media(min-width:980px){ .grid{ grid-template-columns:1.1fr .9fr } }
+  .ticket-grid{display:grid;gap:18px;margin-top:14px}
+  @media(min-width:980px){ .ticket-grid{grid-template-columns:1.1fr .9fr} }
 
-  /* ===== Card ===== */
-  .card{background:#fff; border:1px solid #e5e7eb; border-radius:var(--radius); box-shadow:var(--shadow);}
-  .hd{padding:16px 18px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between; gap:10px}
-  .title{margin:0; font-weight:900; color:#1f2937}
-  .body{padding:16px 18px}
+  /* ===== Cards (نعتمد card من base) ===== */
+  .ticket-card-hd{
+    padding:16px 18px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+  }
+  .ticket-card-ttl{margin:0;font-weight:950;color:var(--ink);display:flex;gap:10px;align-items:center}
+  .ticket-card-bd{padding:16px 18px}
+  @media(max-width:520px){
+    .ticket-card-hd{padding:14px 14px}
+    .ticket-card-bd{padding:14px 14px}
+    .ticket-wrap .input,
+    .ticket-wrap .select,
+    .ticket-wrap .textarea{font-size:16px}
+  }
 
-  /* ===== Summary table ===== */
-  .summary{display:grid; gap:12px}
-  .row{display:grid; grid-template-columns:180px 1fr; gap:12px}
-  .row .k{color:#6b7280; font-weight:800}
-  .row .v{color:#1f2937; font-weight:900}
-  .content-pre{white-space:pre-wrap}
-  @media(max-width:600px){ .row{grid-template-columns:1fr} .row .k{order:-1} }
+  /* ===== Status pill ===== */
+  .t-status{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 12px;
+    border-radius:999px;
+    font-weight:950;
+    font-size:.85rem;
+    border:1px solid transparent;
+    background: rgba(37,99,235,.10);
+    color: #1e40af;
+  }
+  .t-dot{width:8px;height:8px;border-radius:999px;background:#2563eb}
 
-  /* ===== Status ===== */
-  .status{padding:6px 12px; border-radius:999px; font-weight:900; font-size:.85rem; display:inline-flex; align-items:center; gap:8px}
-  .dot{width:8px; height:8px; border-radius:50%}
-  .s-new,.s-open{background:#dcfce7; color:#166534}        .s-new .dot,.s-open .dot{background:#16a34a}
-  .s-in_progress,.s-pending{background:#ede9fe; color:#5b21b6} .s-in_progress .dot,.s-pending .dot{background:#7c3aed}
-  .s-done{background:#e0f2fe; color:#075985}                .s-done .dot{background:#0ea5e9}
-  .s-rejected,.s-cancelled{background:#fee2e2; color:#991b1b} .s-rejected .dot,.s-cancelled .dot{background:#ef4444}
+  .t-new,.t-open{background: rgba(16,185,129,.12); color:#166534; border-color: rgba(16,185,129,.22)}
+  .t-new .t-dot,.t-open .t-dot{background:#16a34a}
+
+  .t-in_progress,.t-pending{background: rgba(124,58,237,.12); color:#5b21b6; border-color: rgba(124,58,237,.22)}
+  .t-in_progress .t-dot,.t-pending .t-dot{background:#7c3aed}
+
+  .t-done{background: rgba(14,165,233,.12); color:#075985; border-color: rgba(14,165,233,.22)}
+  .t-done .t-dot{background:#0ea5e9}
+
+  .t-rejected,.t-cancelled{background: rgba(239,68,68,.12); color:#991b1b; border-color: rgba(239,68,68,.22)}
+  .t-rejected .t-dot,.t-cancelled .t-dot{background:#ef4444}
+
+  /* ===== Summary rows ===== */
+  .summary{display:grid;gap:12px}
+  .srow{display:grid;grid-template-columns:180px 1fr;gap:12px}
+  .sk{color:var(--muted);font-weight:900}
+  .sv{color:var(--ink);font-weight:950}
+  .content-pre{white-space:pre-wrap;line-height:1.9;color:var(--ink);font-weight:850}
+  @media(max-width:600px){ .srow{grid-template-columns:1fr} }
 
   /* ===== Notes ===== */
-  .notes{display:grid; gap:12px; position:relative}
+  .notes{display:grid;gap:12px}
   .note{
-    border:1px solid #e5e7eb; border-radius:14px; padding:12px 14px; background:#fff;
-    box-shadow:0 6px 18px rgba(2,6,23,.06);
+    border:1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: var(--card);
+    box-shadow: 0 6px 18px rgba(2,6,23,.06);
   }
-  .note .meta{color:#6b7280; font-size:.9rem; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-  .note .txt{margin-top:6px; white-space:pre-wrap}
-  .empty{color:#6b7280}
+  .note-meta{color:var(--muted);font-size:.92rem;font-weight:850;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .note-txt{margin-top:6px;white-space:pre-wrap;line-height:1.85;color:var(--ink);font-weight:850}
+  .empty{color:var(--muted);font-weight:850}
 
   /* ===== Forms ===== */
-  .form{display:grid; gap:12px}
-  .input, .select, .textarea{
-    width:100%; padding:12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; font:inherit;
+  .form{display:grid;gap:12px}
+  .input,.select,.textarea{
+    width:100%;
+    padding:12px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background: var(--card);
+    font: inherit;
+    color: var(--ink);
   }
-  .textarea{min-height:120px; white-space:pre-wrap}
-  .help{color:#6b7280; font-size:.9rem}
+  .textarea{min-height:120px;white-space:pre-wrap}
+  .help{color:var(--muted);font-size:.92rem;font-weight:850}
 
-  /* ===== Images gallery ===== */
-  .gallery{display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px}
-  .thumb{display:block; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff}
-  .thumb img{width:100%; height:100%; object-fit:cover; aspect-ratio:4/3}
-  .thumb:hover{box-shadow:0 4px 16px rgba(2,6,23,.12)}
-  .thumb .cap{display:block; padding:6px 8px; font-size:.85rem; color:#6b7280}
-
-  /* Sticky hint on mobile */
-  @media(max-width:720px){
-    .sticky-hint{position:sticky; bottom:0; background:linear-gradient(0deg,rgba(248,250,252,.98),rgba(248,250,252,.75));
-      border-top:1px solid #e5e7eb; padding:10px; border-bottom-left-radius:16px; border-bottom-right-radius:16px}
+  /* ===== Gallery ===== */
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+  .thumb{
+    display:block;
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+    background: var(--card);
+    text-decoration:none;
+    color: inherit;
+    transition: var(--t-fast);
   }
+  .thumb:hover{box-shadow:0 10px 22px rgba(2,6,23,.10);transform:translateY(-1px)}
+  .thumb img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/3;display:block}
+  .cap{display:block;padding:6px 8px;font-size:.85rem;color:var(--muted);font-weight:850}
 
-  /* Mobile ergonomics */
   @media(max-width:520px){
-    .wrap{padding:14px 12px}
-    .bar{padding:10px 12px}
-    .bar .btns{width:100%}
-    .bar .btns .btn{flex:1;justify-content:center}
-    .hd{padding:14px 14px}
-    .body{padding:14px 14px}
-    .input,.select,.textarea{font-size:16px}
     .gallery{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+  }
+
+  /* ===== Sticky hint (mobile) ===== */
+  @media(max-width:720px){
+    .sticky-hint{
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(0deg, rgba(248,250,252,.98), rgba(248,250,252,.75));
+      border-top: 1px solid var(--line);
+      padding: 10px;
+      border-bottom-left-radius: 16px;
+      border-bottom-right-radius: 16px;
+    }
+    html[data-theme="dark"] .sticky-hint{
+      background: linear-gradient(0deg, rgba(2,6,23,.88), rgba(2,6,23,.55));
+    }
+  }
+
+  /* ===== Lightbox ===== */
+  .lb-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(2,6,23,.62);
+    z-index: 14000;
+    display: none;
+    place-items: center;
+    padding: 12px;
+  }
+  .lb-overlay.is-open{display:grid}
+  .lb-modal{
+    width: min(920px, 96vw);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 40px 90px rgba(2,6,23,.30);
+  }
+  .lb-hd{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+  }
+  .lb-ttl{margin:0;font-weight:950;color:var(--ink);font-size:1rem}
+  .lb-close{
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    cursor: pointer;
+    font-weight: 950;
+    color: var(--ink);
+  }
+  .lb-bd{padding: 12px 14px}
+  .lb-img{
+    width:100%;
+    height:auto;
+    max-height: 72vh;
+    object-fit: contain;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--line-2);
+  }
+  .lb-meta{
+    margin-top: 10px;
+    color: var(--muted);
+    font-weight: 850;
+    font-size: .92rem;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:space-between;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wrap">
+<div class="ticket-wrap" dir="rtl">
 
   <!-- Top bar -->
-  <section class="bar" aria-label="شريط الصفحة" dir="rtl">
+  <section class="ticket-bar" aria-label="شريط الصفحة">
     <div>
       <h1>تفاصيل الطلب #{{ t.id }}</h1>
-      <div class="minor">
-        أُنشئ بتاريخ {{ t.created_at|date:"Y-m-d H:i" }} •
-        الحالة:
-        <span class="status s-{{ t.status|default:'open' }}"><span class="dot"></span>{{ t.get_status_display|default:t.status }}</span>
+      <div class="ticket-minor">
+        <span>أُنشئ بتاريخ {{ t.created_at|date:"Y-m-d H:i" }}</span>
+        <span>•</span>
+        <span>
+          الحالة:
+          <span class="t-status t-{{ t.status|default:'open' }}">
+            <span class="t-dot" aria-hidden="true"></span>
+            {{ t.get_status_display|default:t.status }}
+          </span>
+        </span>
       </div>
     </div>
-    <div class="btns">
+
+    <div class="ticket-actions">
       {% if t.is_platform %}
         <a class="btn" href="{% url 'reports:my_support_tickets' %}">← العودة لطلبات الدعم</a>
       {% else %}
@@ -126,18 +264,31 @@
     </div>
   </section>
 
-  <section class="grid" aria-label="تفاصيل وملاحظات" dir="rtl">
+  <section class="ticket-grid" aria-label="تفاصيل وملاحظات">
 
     <!-- Details -->
     <article class="card" aria-labelledby="details-h">
-      <div class="hd"><h2 id="details-h" class="title">تفاصيل الطلب</h2></div>
+      <div class="ticket-card-hd">
+        <h2 id="details-h" class="ticket-card-ttl">
+          <i class="fa-solid fa-circle-info" style="opacity:.85"></i>
+          تفاصيل الطلب
+        </h2>
+      </div>
 
-      <div class="body summary">
-        <div class="row"><div class="k">العنوان</div><div class="v">{{ t.title|default:"—" }}</div></div>
-        <div class="row"><div class="k">القسم</div><div class="v">{{ t.get_department_display|default:t.department|default:"—" }}</div></div>
-        <div class="row">
-          <div class="k">المستلمون</div>
-          <div class="v">
+      <div class="ticket-card-bd summary">
+        <div class="srow">
+          <div class="sk">العنوان</div>
+          <div class="sv">{{ t.title|default:"—" }}</div>
+        </div>
+
+        <div class="srow">
+          <div class="sk">القسم</div>
+          <div class="sv">{{ t.get_department_display|default:t.department|default:"—" }}</div>
+        </div>
+
+        <div class="srow">
+          <div class="sk">المستلمون</div>
+          <div class="sv">
             {% if t.recipients.exists %}
               {% for u in t.recipients.all %}
                 {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
@@ -147,15 +298,25 @@
             {% endif %}
           </div>
         </div>
-        <div class="row"><div class="k">المرسل</div><div class="v">{{ t.creator.name|default:"—" }}</div></div>
+
+        <div class="srow">
+          <div class="sk">المرسل</div>
+          <div class="sv">{{ t.creator.name|default:"—" }}</div>
+        </div>
 
         <!-- ✅ المرفق (صورة فقط) -->
-        <div class="row">
-          <div class="k">المرفق</div>
-          <div class="v">
+        <div class="srow">
+          <div class="sk">المرفق</div>
+          <div class="sv">
             {% if t.attachment %}
               <div class="gallery">
-                <a class="thumb" href="{{ t.attachment.url }}" target="_blank" rel="noopener">
+                <a
+                  class="thumb"
+                  href="{{ t.attachment.url }}"
+                  data-lightbox
+                  data-full="{{ t.attachment.url }}"
+                  data-caption="الصورة الرئيسية"
+                >
                   <img src="{{ t.attachment.url }}" alt="مرفق الطلب" loading="lazy">
                   <span class="cap">الصورة الرئيسية</span>
                 </a>
@@ -166,15 +327,21 @@
           </div>
         </div>
 
-        <!-- الصور المرفقة المتعددة (تُمرَّر من الفيو في المتغيّر images) -->
-        <div class="row">
-          <div class="k">صور إضافية</div>
-          <div class="v">
-            {% if images and images|length %}
+        <!-- الصور المرفقة المتعددة (تمرّر من الفيو في المتغيّر images) -->
+        <div class="srow">
+          <div class="sk">صور إضافية</div>
+          <div class="sv">
+            {% if images %}
               <div class="gallery">
                 {% for im in images %}
-                  {# غيّر im.image إلى اسم حقل الملف في TicketImage إن كان مختلفًا #}
-                  <a class="thumb" href="{{ im.image.url }}" target="_blank" rel="noopener">
+                  {# غيّر im.image إلى اسم حقل الملف إن كان مختلفًا #}
+                  <a
+                    class="thumb"
+                    href="{{ im.image.url }}"
+                    data-lightbox
+                    data-full="{{ im.image.url }}"
+                    data-caption="صورة #{{ forloop.counter }}"
+                  >
                     <img src="{{ im.image.url }}" alt="صورة {{ forloop.counter }}" loading="lazy">
                     <span class="cap">صورة #{{ forloop.counter }}</span>
                   </a>
@@ -186,29 +353,41 @@
           </div>
         </div>
 
-        <div class="row">
-          <div class="k">المحتوى</div>
+        <div class="srow">
+          <div class="sk">المحتوى</div>
           <div class="content-pre">{{ t.body|default_if_none:"—"|linebreaksbr }}</div>
         </div>
       </div>
 
       {% if is_owner and not can_act and not t.is_platform %}
         <div class="sticky-hint">
-          <span class="help">أضِف ملاحظة للتواصل — ستتحوّل الحالة تلقائيًا إلى <b>جــديد</b>.</span>
+          <span class="help">
+            أضِف ملاحظة للتواصل — ستتحوّل الحالة تلقائيًا إلى <b>جــديد</b>.
+          </span>
         </div>
       {% endif %}
     </article>
 
     <!-- Notes -->
     <article class="card" aria-labelledby="notes-h">
-      <div class="hd"><h2 id="notes-h" class="title">سجلّ الملاحظات</h2></div>
-      <div class="body">
+      <div class="ticket-card-hd">
+        <h2 id="notes-h" class="ticket-card-ttl">
+          <i class="fa-solid fa-clipboard-list" style="opacity:.85"></i>
+          سجلّ الملاحظات
+        </h2>
+      </div>
+
+      <div class="ticket-card-bd">
         {% if notes %}
           <div class="notes">
             {% for n in notes %}
               <div class="note">
-                <div class="meta">{{ n.author.name|default:"—" }} • {{ n.created_at|date:"Y-m-d H:i" }}</div>
-                <div class="txt">{{ n.body|default_if_none:""|linebreaksbr }}</div>
+                <div class="note-meta">
+                  <span><i class="fa-solid fa-user" style="opacity:.75"></i> {{ n.author.name|default:"—" }}</span>
+                  <span>•</span>
+                  <span dir="ltr">{{ n.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div class="note-txt">{{ n.body|default_if_none:""|linebreaksbr }}</div>
               </div>
             {% endfor %}
           </div>
@@ -221,14 +400,20 @@
     {% if can_act and form %}
       <!-- Assignee action form -->
       <article class="card" id="act" aria-labelledby="act-h">
-        <div class="hd"><h2 id="act-h" class="title">إجراء على الطلب</h2></div>
-        <div class="body">
+        <div class="ticket-card-hd">
+          <h2 id="act-h" class="ticket-card-ttl">
+            <i class="fa-solid fa-pen-to-square" style="opacity:.85"></i>
+            إجراء على الطلب
+          </h2>
+        </div>
+
+        <div class="ticket-card-bd">
           <form method="post" class="form" novalidate>
             {% csrf_token %}
 
             <div>
-              <label class="help">الحالة</label>
-              <select name="status" class="select">
+              <label class="help" for="statusSel">الحالة</label>
+              <select id="statusSel" name="status" class="select">
                 {% for value,label in form.fields.status.choices %}
                   <option value="{{ value }}" {% if value == t.status %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
@@ -236,11 +421,11 @@
             </div>
 
             <div>
-              <label class="help">ملاحظة (تظهر للمرسل)</label>
-              <textarea name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك (اختياري)"></textarea>
+              <label class="help" for="noteTxt">ملاحظة (تظهر للمرسل)</label>
+              <textarea id="noteTxt" name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك (اختياري)"></textarea>
             </div>
 
-            <div class="btns">
+            <div class="ticket-actions">
               <button type="submit" class="btn btn-primary">حفظ</button>
               <a class="btn" href="{% url 'reports:ticket_detail' t.id %}">إلغاء</a>
             </div>
@@ -251,14 +436,21 @@
     {% elif is_owner and not can_act %}
       <!-- Creator note-only form -->
       <article class="card" id="note-only" aria-labelledby="note-h">
-        <div class="hd"><h2 id="note-h" class="title">إضافة ملاحظة</h2></div>
-        <div class="body">
+        <div class="ticket-card-hd">
+          <h2 id="note-h" class="ticket-card-ttl">
+            <i class="fa-solid fa-comment-dots" style="opacity:.85"></i>
+            إضافة ملاحظة
+          </h2>
+        </div>
+
+        <div class="ticket-card-bd">
           <form method="post" class="form" novalidate>
             {% csrf_token %}
             <div>
-              <textarea name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك هنا…"></textarea>
+              <label class="help" for="noteOnly">نص الملاحظة</label>
+              <textarea id="noteOnly" name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك هنا…"></textarea>
             </div>
-            <div class="btns">
+            <div class="ticket-actions">
               <button type="submit" class="btn btn-primary">إضافة الملاحظة</button>
               <a class="btn" href="{% url 'reports:ticket_detail' t.id %}">إلغاء</a>
             </div>
@@ -268,5 +460,79 @@
     {% endif %}
 
   </section>
+
+  <!-- Lightbox -->
+  <div class="lb-overlay" id="lbOverlay" role="dialog" aria-modal="true" aria-label="عرض الصورة">
+    <div class="lb-modal" role="document">
+      <div class="lb-hd">
+        <h3 class="lb-ttl" id="lbTitle">الصورة</h3>
+        <button type="button" class="lb-close" id="lbClose" aria-label="إغلاق">✕</button>
+      </div>
+      <div class="lb-bd">
+        <img class="lb-img" id="lbImg" src="" alt="صورة مرفقة">
+        <div class="lb-meta">
+          <span id="lbCaption">—</span>
+          <a class="btn" id="lbOpenNew" href="#" target="_blank" rel="noopener">فتح في نافذة جديدة</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function(){
+    var overlay = document.getElementById('lbOverlay');
+    if(!overlay) return;
+
+    var imgEl = document.getElementById('lbImg');
+    var capEl = document.getElementById('lbCaption');
+    var ttlEl = document.getElementById('lbTitle');
+    var closeBtn = document.getElementById('lbClose');
+    var openNew = document.getElementById('lbOpenNew');
+
+    var links = Array.prototype.slice.call(document.querySelectorAll('[data-lightbox]'));
+    if(!links.length) return;
+
+    function openLightbox(url, caption){
+      imgEl.src = url || '';
+      capEl.textContent = caption || '—';
+      ttlEl.textContent = caption || 'الصورة';
+      openNew.href = url || '#';
+      overlay.classList.add('is-open');
+      try{ if(window.__lockScroll) window.__lockScroll(true); }catch(e){}
+    }
+
+    function closeLightbox(){
+      overlay.classList.remove('is-open');
+      imgEl.src = '';
+      try{ if(window.__lockScroll) window.__lockScroll(false); }catch(e){}
+    }
+
+    links.forEach(function(a){
+      a.addEventListener('click', function(ev){
+        ev.preventDefault();
+        var url = a.getAttribute('data-full') || a.getAttribute('href') || '';
+        var caption = a.getAttribute('data-caption') || 'الصورة';
+        openLightbox(url, caption);
+      });
+    });
+
+    if(closeBtn){
+      closeBtn.addEventListener('click', function(){ closeLightbox(); });
+    }
+
+    overlay.addEventListener('click', function(ev){
+      if(ev.target === overlay){ closeLightbox(); }
+    });
+
+    document.addEventListener('keydown', function(ev){
+      if(ev.key === 'Escape' && overlay.classList.contains('is-open')){
+        closeLightbox();
+      }
+    });
+  })();
+</script>
 {% endblock %}

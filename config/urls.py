@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.http import HttpResponse
 from django.views.decorators.cache import cache_control
@@ -11,10 +12,24 @@ from django.views.decorators.cache import cache_control
 @cache_control(no_cache=True, must_revalidate=True, max_age=0)
 def service_worker(request):
     """Serve service worker from site root to allow scope="/"."""
-    with staticfiles_storage.open("sw.js") as fp:
-        content = fp.read()
-    if isinstance(content, bytes):
-        return HttpResponse(content, content_type="application/javascript")
+    content = None
+    # Production/collected static
+    try:
+        with staticfiles_storage.open("sw.js") as fp:
+            content = fp.read()
+    except Exception:
+        content = None
+
+    # Development fallback (no collectstatic): resolve from STATICFILES_DIRS / app static
+    if content is None:
+        path = finders.find("sw.js")
+        if path:
+            with open(path, "rb") as fp:
+                content = fp.read()
+
+    if content is None:
+        return HttpResponse("Service worker not found.", status=404, content_type="text/plain")
+
     return HttpResponse(content, content_type="application/javascript")
 
 urlpatterns = [

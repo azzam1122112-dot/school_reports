@@ -1,80 +1,282 @@
+{# reports/templates/reports/schools_admin_managers.html #}
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}إدارة مدراء المدرسة{% endblock %}
 
+{% block head %}
+{{ block.super }}
+<style>
+  /* صفحة إدارة مدراء المدرسة — تحسينات محلية فقط */
+  .mgr-wrap{
+    --r: 18px;
+    --t: var(--t-fast);
+  }
+
+  .mgr-head{
+    max-width: 920px;
+    margin-inline: auto;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+    justify-content:space-between;
+    flex-wrap:wrap;
+  }
+  .mgr-title{
+    margin:0;
+    font-weight: 950;
+    letter-spacing: -.3px;
+  }
+  .mgr-sub{
+    margin:6px 0 0;
+    color: var(--muted);
+    font-weight: 850;
+  }
+
+  .mgr-shell{
+    max-width: 920px;
+    margin-inline: auto;
+  }
+
+  .mgr-card{
+    position:relative;
+    overflow:hidden;
+    border-radius: var(--r);
+  }
+
+  .mgr-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 12px;
+    border-radius: 999px;
+    font-weight: 950;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+  }
+
+  .mgr-grid{
+    display:grid;
+    gap:12px;
+    grid-template-columns: 1fr;
+    margin-top: 12px;
+  }
+  @media(min-width: 980px){
+    .mgr-grid{
+      grid-template-columns: 1.15fr .85fr;
+      align-items:start;
+    }
+  }
+
+  .mgr-section-title{
+    margin: 0 0 10px;
+    font-weight: 950;
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  .mgr-muted{
+    color: var(--muted);
+    font-weight: 850;
+  }
+
+  /* جدول (تحسين خفيف دون تغيير كلاساته الأصلية) */
+  .mgr-table{
+    border-radius: 14px;
+    overflow:hidden;
+    border: 1px solid var(--line);
+    background: var(--card);
+  }
+  .mgr-table .rtable{
+    width:100%;
+    border-collapse: collapse;
+  }
+  .mgr-table .rtable thead th{
+    text-align: right;
+    font-weight: 950;
+    color: var(--muted);
+    background: var(--line-2);
+    padding: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mgr-table .rtable tbody td{
+    padding: 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .mgr-table .rtable tbody tr:last-child td{
+    border-bottom: none;
+  }
+
+  /* صف عنصر/بطاقة للهاتف (fallback) */
+  .mgr-row{
+    display:grid;
+    gap:10px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--line-2);
+  }
+  .mgr-row b{ font-weight: 950; color: var(--ink); }
+
+  /* إضافة مدير */
+  .mgr-form{
+    display:grid;
+    gap:12px;
+  }
+  .mgr-form .hint{
+    margin-top: 6px;
+    color: var(--muted);
+    font-weight: 850;
+    font-size: .95rem;
+  }
+  .mgr-inline{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+  }
+  .mgr-inline > div{
+    min-width: 220px;
+    flex:1;
+  }
+  .mgr-inline > div.wide{
+    min-width: 280px;
+    flex:2;
+  }
+
+  /* تحسين بسيط للزر الخطِر داخل الجدول */
+  .mgr-danger-btn{
+    padding: 8px 10px;
+    border-radius: 12px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .mgr-wrap *{ transition:none !important; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container" dir="rtl">
-  <div class="page-head" style="max-width:900px;margin-inline:auto">
+<div class="container mgr-wrap" dir="rtl">
+  <div class="mgr-head">
     <div>
-      <h1 class="page-title">إدارة مدراء المدرسة</h1>
-      <p class="page-subtitle">إضافة أو إزالة المدراء لهذه المدرسة.</p>
+      <h1 class="mgr-title">إدارة مدراء المدرسة</h1>
+      <p class="mgr-sub">إضافة أو إزالة المدراء لهذه المدرسة.</p>
     </div>
-    <a href="{% url 'reports:schools_admin_list' %}" class="btn btn-outline">عودة لقائمة المدارس</a>
+
+    <a href="{% url 'reports:schools_admin_list' %}" class="btn btn-outline">
+      <i class="fa-solid fa-arrow-right"></i> عودة لقائمة المدارس
+    </a>
   </div>
 
-  <div style="max-width:900px;margin-inline:auto">
-    <div class="card">
+  <div class="mgr-shell" style="margin-top:14px">
+    <div class="card mgr-card">
       <div style="margin-bottom:12px">
-        <span class="badge info">المدرسة: {{ school.name }} — الكود: {{ school.code }}</span>
+        <span class="mgr-badge">
+          <i class="fa-solid fa-school" style="opacity:.85"></i>
+          المدرسة: {{ school.name }} — الكود: {{ school.code }}
+        </span>
       </div>
 
-      <div class="section-title">المدراء الحاليون</div>
-      {% if managers %}
-        <div class="table-responsive">
-          <table class="rtable">
-            <thead>
-              <tr>
-                <th>المدير</th>
-                <th>إجراء</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for m in managers %}
-              <tr>
-                <td data-label="المدير"><b>{{ m.name }}</b></td>
-                <td data-label="إجراء">
-                  <form method="post" style="margin:0" class="js-once">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="remove">
-                    <input type="hidden" name="teacher_id" value="{{ m.id }}">
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <button type="submit" class="btn btn-danger" style="padding:8px 10px" onclick="return confirm('هل تريد إزالة هذا المدير من المدرسة؟');">
-                      إزالة من المدراء
-                    </button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+      <div class="mgr-grid">
+        <!-- المدراء الحاليون -->
+        <div>
+          <h3 class="mgr-section-title">
+            <i class="fa-solid fa-user-tie" style="opacity:.85"></i> المدراء الحاليون
+          </h3>
+
+          {% if managers %}
+            <div class="table-responsive mgr-table">
+              <table class="rtable">
+                <thead>
+                  <tr>
+                    <th>المدير</th>
+                    <th style="width:220px">إجراء</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for m in managers %}
+                  <tr>
+                    <td data-label="المدير"><b>{{ m.name }}</b></td>
+                    <td data-label="إجراء">
+                      <form method="post" style="margin:0" class="js-once">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="teacher_id" value="{{ m.id }}">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button
+                          type="submit"
+                          class="btn btn-danger mgr-danger-btn"
+                          onclick="return confirm('هل تريد إزالة هذا المدير من المدرسة؟');"
+                        >
+                          <i class="fa-solid fa-user-minus"></i> إزالة
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mgr-muted" style="margin-top:10px">
+              <i class="fa-solid fa-circle-info" style="opacity:.85"></i>
+              ملاحظة: الإزالة لا تحذف المستخدم، فقط تفك ارتباطه كمدير لهذه المدرسة.
+            </div>
+          {% else %}
+            <div class="mgr-muted" style="font-weight:900">
+              لا يوجد مدراء معيّنون لهذه المدرسة بعد.
+            </div>
+          {% endif %}
         </div>
-      {% else %}
-        <div class="muted" style="font-weight:900">لا يوجد مدراء معيّنون لهذه المدرسة بعد.</div>
-      {% endif %}
 
-      <div style="height:12px"></div>
+        <!-- إضافة مدير -->
+        <div>
+          <h3 class="mgr-section-title">
+            <i class="fa-solid fa-user-plus" style="opacity:.85"></i> إضافة مدير جديد
+          </h3>
 
-      <div class="section-title">إضافة مدير جديد</div>
-      <form method="post" class="form-grid js-once" id="addManagerForm">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="add">
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <form method="post" class="mgr-form js-once" id="addManagerForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <div style="flex:1;min-width:220px">
-            <input type="search" id="managerSearch" class="input" placeholder="ابحث باسم المدير" autocomplete="off" spellcheck="false">
+            <div class="mgr-inline">
+              <div>
+                <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">بحث</label>
+                <input type="search" id="managerSearch" class="input" placeholder="ابحث باسم المدير" autocomplete="off" spellcheck="false">
+              </div>
+
+              <div class="wide">
+                <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">اختر المعلّم</label>
+                <select name="teacher_id" id="managerSelect" class="input" required>
+                  <option value="" disabled selected>اختر المعلّم ليصبح مديراً...</option>
+                  {% for t in teachers %}
+                    <option value="{{ t.id }}">{{ t.name }}</option>
+                  {% endfor %}
+                </select>
+                <div class="hint">نصيحة: اكتب جزءًا من الاسم لتصفية القائمة.</div>
+              </div>
+
+              <div style="flex:0 0 auto">
+                <button type="submit" class="btn btn-primary" style="min-height:44px;border-radius:14px">
+                  <i class="fa-solid fa-plus"></i> إضافة كمدير
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <div class="mgr-row" style="margin-top:12px">
+            <div class="mgr-muted">
+              <i class="fa-solid fa-shield-halved" style="opacity:.85"></i>
+              تلميح أمان: الإضافة/الإزالة تتم عبر POST مع CSRF، وتم منع الإرسال المكرر تلقائيًا.
+            </div>
           </div>
-          <div style="flex:2;min-width:260px">
-            <select name="teacher_id" id="managerSelect" class="input" required>
-              <option value="" disabled selected>اختر المعلّم ليصبح مديراً...</option>
-              {% for t in teachers %}
-                <option value="{{ t.id }}">{{ t.name }}</option>
-              {% endfor %}
-            </select>
-            <div class="muted" style="font-weight:850;margin-top:6px">نصيحة: اكتب جزءًا من الاسم لتصفية القائمة.</div>
-          </div>
-          <button type="submit" class="btn btn-primary">إضافة كمدير</button>
         </div>
-      </form>
+      </div>
+
     </div>
   </div>
 </div>
@@ -82,13 +284,13 @@
 
 {% block scripts %}
 {{ block.super }}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
     const input = document.getElementById('managerSearch');
     const select = document.getElementById('managerSelect');
     if (!input || !select) return;
 
-    // خذ نسخة ثابتة من الخيارات (باستثناء placeholder)
+    // نسخة ثابتة من الخيارات (باستثناء placeholder)
     const originalOptions = Array.from(select.options).slice(1).map(o => ({
       value: o.value,
       text: o.textContent || ''
@@ -107,8 +309,6 @@
       ph.textContent = 'اختر المعلّم ليصبح مديراً...';
       select.appendChild(ph);
 
-      let firstMatchValue = null;
-
       originalOptions.forEach(opt => {
         const txt = (opt.text || '').toLowerCase();
         if (!q || txt.includes(q)){
@@ -116,24 +316,19 @@
           o.value = opt.value;
           o.textContent = opt.text;
 
-          // Hook: هنا تقدر تعطل خيارات المدراء الحاليين لو مرّرت قائمة ids من الـview
-          // مثال: لو عندك manager_ids في السياق
+          // Hook (اختياري): تعطيل المدراء الحاليين إن مرّرت manager_ids من الـview
+          // مثال:
+          // <script>window.managerIds = {{ manager_ids_json|safe }};</script>
           // const isManager = (window.managerIds || []).includes(String(opt.value));
           // if (isManager) { o.disabled = true; o.textContent = opt.text + ' (مدير حالياً)'; }
 
           select.appendChild(o);
-          if (!firstMatchValue) firstMatchValue = opt.value;
         }
       });
 
-      // حافظ على الاختيار إن كان ما زال موجودًا
+      // حافظ على الاختيار إن كان ما زال موجودًا وغير معطل
       const stillExists = Array.from(select.options).some(o => o.value === current && !o.disabled);
-      if (stillExists) {
-        select.value = current;
-      } else {
-        // لا تغيّر شيء؛ خلّه على placeholder
-        select.value = '';
-      }
+      select.value = stillExists ? current : '';
     }
 
     input.addEventListener('input', function(){
@@ -148,7 +343,7 @@
         const btn = form.querySelector('button[type="submit"]');
         if (btn) {
           btn.disabled = true;
-          btn.style.opacity = '0.8';
+          btn.style.opacity = '0.85';
         }
       }, {once:true});
     });

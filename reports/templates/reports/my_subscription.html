@@ -1,3 +1,4 @@
+{# reports/templates/reports/my_subscription.html (or your path) #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -5,200 +6,354 @@
 
 {% block head %}
 <style>
-  :root {
-    --ink:#0f172a; --ink-soft:#1f2937; --muted:#6b7280; --line:#e5e7eb;
-    --card:#ffffff; --bg:#f8fafc; --brand:#2563eb; --accent:#10b981; --danger:#ef4444;
-    --shadow:0 10px 26px rgba(2,6,23,.08);
-    --radius:14px;
+  /* =========================================================
+     Subscription (page-only polish)
+     - Scoped داخل .sub-wrap لتجنب تعارضات base/app.css
+     - بدون إعادة تعريف .btn / .card العامة
+     - دعم الثيم عبر html[data-theme="dark"]
+     ========================================================= */
+
+  .sub-wrap{
+    --s-radius: 16px;
+    --s-shadow: 0 16px 40px rgba(2,6,23,.10);
+    --s-ring: 0 0 0 4px rgba(37,99,235,.18);
+    --t: var(--t-fast);
+
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 18px;
   }
 
-  .wrap { max-width:1100px; margin:auto; padding:18px; }
-  .grid { display:grid; gap:20px; }
-  @media(min-width:900px){ .grid{ grid-template-columns:1fr 1fr; } }
-
-  .card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    padding:24px;
-    box-shadow:var(--shadow);
+  .sub-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom: 18px;
   }
-  .title{ font-weight:900; margin:0 0 16px 0; color:var(--ink-soft); font-size:1.25rem; }
 
-  .stat-box{
-    background:#f8fafc;
-    border-radius:12px;
-    padding:16px;
+  .sub-h1{
+    margin:0;
+    font-weight: 950;
+    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    color: var(--ink);
+    letter-spacing: -.3px;
+  }
+  .sub-school{
+    margin-top: 6px;
+    color: var(--muted);
+    font-weight: 850;
+  }
+
+  .sub-grid{
+    display:grid;
+    gap: 14px;
+  }
+  @media(min-width: 980px){
+    .sub-grid{ grid-template-columns: 1fr 1fr; align-items:start; }
+  }
+
+  /* Card helpers (مع بقاء .card الأساسية من base) */
+  .sub-card{
+    border-radius: var(--s-radius);
+    box-shadow: var(--s-shadow);
+  }
+  html[data-theme="dark"] .sub-card{
+    box-shadow: 0 18px 50px rgba(0,0,0,.35);
+  }
+
+  .sub-title{
+    margin:0 0 12px 0;
+    font-weight: 950;
+    color: var(--ink);
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  /* Plan hero */
+  .plan-hero{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    padding: 14px;
+    border-radius: 14px;
+    background: rgba(219,234,254,.65);
+    border: 1px solid rgba(59,130,246,.25);
+  }
+  html[data-theme="dark"] .plan-hero{
+    background: rgba(30,58,138,.22);
+    border-color: rgba(59,130,246,.25);
+  }
+  .plan-hero .icon{
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    display:grid; place-items:center;
+    background: rgba(37,99,235,.14);
+    border: 1px solid rgba(37,99,235,.22);
+    color: rgba(37,99,235,.95);
+    font-size: 20px;
+    flex: 0 0 auto;
+  }
+  .plan-hero .name{
+    font-weight: 950;
+    color: #1e40af;
+  }
+  html[data-theme="dark"] .plan-hero .name{
+    color: #bfdbfe;
+  }
+  .plan-hero .meta{
+    margin-top: 4px;
+    font-weight: 850;
+    color: rgba(30,58,138,.90);
+    font-size: .95rem;
+  }
+  html[data-theme="dark"] .plan-hero .meta{
+    color: rgba(191,219,254,.85);
+  }
+
+  /* Stats */
+  .stats{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .stat{
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
     text-align:center;
-    border:1px solid var(--line);
   }
-  .stat-val{ font-size:1.8rem; font-weight:900; color:var(--brand); }
-  .stat-lbl{ font-size:.9rem; color:var(--muted); font-weight:700; margin-top:4px; }
+  html[data-theme="dark"] .stat{
+    background: rgba(20,35,73,.35);
+    border-color: #1b2744;
+  }
+  .stat .v{
+    font-weight: 950;
+    font-size: 1.55rem;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .stat .l{
+    margin-top: 6px;
+    font-weight: 850;
+    color: var(--muted);
+    font-size: .95rem;
+  }
 
-  .status-badge{
+  /* Badges */
+  .sbadge{
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    padding:6px 12px;
-    border-radius:999px;
-    font-weight:900;
-    font-size:.85rem;
-    gap:6px;
-  }
-  .st-active{ background:#dcfce7; color:#166534; }
-  .st-expired{ background:#fee2e2; color:#991b1b; }
-  .st-pending{ background:#fef3c7; color:#92400e; }
-
-  .form-group{ margin-bottom:16px; }
-  .label{ display:block; font-weight:900; margin-bottom:8px; color:var(--ink); }
-  .input,.select,.textarea{
-    width:100%;
-    padding:12px;
-    border:1px solid var(--line);
-    border-radius:10px;
-    font:inherit;
-    background:#fff;
-  }
-  .help{ font-size:.85rem; color:var(--muted); margin-top:6px; font-weight:700; }
-
-  .table-wrap{ overflow-x:auto; }
-  table{ width:100%; border-collapse:collapse; min-width:600px; }
-  th{
-    text-align:right;
-    padding:12px;
-    border-bottom:2px solid var(--line);
-    color:var(--muted);
-    font-size:.9rem;
-    font-weight:900;
+    gap:8px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .86rem;
     white-space:nowrap;
   }
-  td{
-    padding:12px;
-    border-bottom:1px solid var(--line);
-    color:var(--ink);
-    vertical-align:top;
+  .sb-active{ background: rgba(16,185,129,.14); border: 1px solid rgba(16,185,129,.25); color: rgba(16,185,129,.98); }
+  .sb-expired{ background: rgba(239,68,68,.14); border: 1px solid rgba(239,68,68,.25); color: rgba(239,68,68,.98); }
+  .sb-pending{ background: rgba(245,158,11,.16); border: 1px solid rgba(245,158,11,.25); color: rgba(245,158,11,.98); }
+
+  /* Form */
+  .fg{ margin-bottom: 14px; }
+  .lbl{
+    display:block;
+    font-weight: 950;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+  .in, .sel, .ta{
+    width:100%;
+    padding: 12px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--ink);
+    font: inherit;
+    outline: none;
+    transition: var(--t);
+  }
+  .in:focus, .sel:focus, .ta:focus{
+    border-color: rgba(37,99,235,.45);
+    box-shadow: var(--s-ring);
+  }
+  .help{
+    margin-top: 6px;
+    font-weight: 850;
+    font-size: .9rem;
+    color: var(--muted);
   }
 
-  .btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:12px 20px;
-    border-radius:10px;
-    font-weight:900;
-    text-decoration:none;
-    cursor:pointer;
-    border:1px solid var(--line);
-    transition:all .18s ease;
-    gap:8px;
+  .sub-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top: 10px;
   }
-  .btn:hover{ transform:translateY(-1px); }
-  .btn-primary{
-    background:var(--brand);
-    color:#fff;
-    width:100%;
-    border-color:var(--brand);
-  }
-  .btn-primary:hover{ filter:brightness(.95); }
-  .btn-outline{ background:#fff; color:var(--ink); }
+  .sub-actions .btn{ min-height: 44px; }
 
   /* Receipt preview */
-  .preview{
+  .rprev{
     display:none;
-    margin-top:10px;
-    border:1px solid var(--line);
-    border-radius:12px;
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
     overflow:hidden;
-    background:#fff;
+    background: var(--card);
   }
-  .preview img{
+  .rprev img{
     width:100%;
-    max-height:280px;
-    object-fit:contain;
+    max-height: 280px;
+    object-fit: contain;
     display:block;
-    background:#0b1220;
+    background: #0b1220;
   }
-  .preview .meta{
-    padding:10px 12px;
-    color:var(--muted);
-    font-weight:800;
-    font-size:.9rem;
-    background:#f8fafc;
-    border-top:1px solid var(--line);
+  .rprev .meta{
+    padding: 10px 12px;
+    background: var(--line-2);
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-weight: 850;
+    font-size: .92rem;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  /* Table */
+  .twrap{ overflow-x:auto; }
+  .tbl{
+    width:100%;
+    border-collapse:collapse;
+    min-width: 640px;
+  }
+  .tbl th{
+    text-align:right;
+    padding: 12px;
+    border-bottom: 2px solid var(--line);
+    color: var(--muted);
+    font-weight: 950;
+    font-size: .92rem;
+    white-space: nowrap;
+  }
+  .tbl td{
+    padding: 12px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    vertical-align: top;
+  }
+
+  .note-dim{ color: var(--muted); font-weight: 850; }
+
+  /* Empty state */
+  .empty{
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px dashed var(--line);
+    background: linear-gradient(180deg, var(--card), var(--line-2));
+    color: var(--muted);
+    font-weight: 900;
+    text-align:center;
+  }
+  .empty .ico{ font-size: 40px; margin-bottom: 8px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .sub-wrap *{ transition:none !important; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px;flex-wrap:wrap">
+<div class="sub-wrap" dir="rtl">
+  <div class="sub-top">
     <div>
-      <h1 style="font-size:1.8rem;font-weight:900;margin:0;color:var(--ink)">إدارة اشتراك المدرسة</h1>
-      <div style="color:var(--muted);font-weight:800;margin-top:4px">{{ school.name }}</div>
+      <h1 class="sub-h1">إدارة اشتراك المدرسة</h1>
+      <div class="sub-school">{{ school.name }}</div>
     </div>
-    <a href="{% url 'reports:admin_dashboard' %}" class="btn btn-outline">عودة للوحة التحكم</a>
+
+    <a href="{% url 'reports:admin_dashboard' %}" class="btn btn-ghost">
+      <i class="fa-solid fa-arrow-right"></i> عودة للوحة التحكم
+    </a>
   </div>
 
-  <div class="grid">
+  <div class="sub-grid">
     <!-- Status Card -->
-    <div class="card">
-      <h2 class="title">حالة الاشتراك الحالي</h2>
+    <div class="card sub-card">
+      <h2 class="sub-title"><i class="fa-solid fa-gem" style="opacity:.85"></i> حالة الاشتراك الحالي</h2>
 
       {% if subscription %}
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;background:#eff6ff;padding:16px;border-radius:12px;border:1px solid #dbeafe">
-          <div style="font-size:24px">💎</div>
+        <div class="plan-hero">
+          <div class="icon">💎</div>
           <div>
-            <div style="font-weight:900;color:#1e40af">الباقة الحالية: {{ subscription.plan.name }}</div>
-            <div style="font-size:.9rem;color:#1e3a8a;font-weight:800">
+            <div class="name">الباقة الحالية: {{ subscription.plan.name }}</div>
+            <div class="meta">
               ينتهي في: <span dir="ltr">{{ subscription.end_date|date:"Y-m-d" }}</span>
             </div>
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-          <div class="stat-box">
-            <div class="stat-val">
+        <div class="stats">
+          <div class="stat">
+            <div class="v">
               {% if subscription.days_remaining > 0 %}{{ subscription.days_remaining }}{% else %}0{% endif %}
             </div>
-            <div class="stat-lbl">الأيام المتبقية</div>
+            <div class="l">الأيام المتبقية</div>
           </div>
 
-          <div class="stat-box">
-            <div class="stat-val" style="font-size:1.1rem;display:flex;align-items:center;justify-content:center;height:100%">
+          <div class="stat">
+            <div class="v" style="font-size:1.1rem">
               {% if subscription.is_expired %}
-                <span class="status-badge st-expired">⛔ منتهي</span>
+                <span class="sbadge sb-expired">⛔ منتهي</span>
               {% else %}
-                <span class="status-badge st-active">✅ نشط</span>
+                <span class="sbadge sb-active">✅ نشط</span>
               {% endif %}
             </div>
-            <div class="stat-lbl">الحالة</div>
+            <div class="l">الحالة</div>
           </div>
         </div>
 
-        <div style="text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)">
-          <a href="{% url 'reports:support_ticket_create' %}" style="color:var(--brand);font-weight:900;text-decoration:none">
-            هل تواجه مشكلة؟ تواصل مع الدعم الفني
+        <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between">
+          <div class="note-dim">
+            آخر تحديث: {% if subscription.updated_at %}<span dir="ltr">{{ subscription.updated_at|date:"Y-m-d H:i" }}</span>{% else %}—{% endif %}
+          </div>
+
+          <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-ghost">
+            <i class="fa-solid fa-headset"></i> تواصل مع الدعم الفني
           </a>
         </div>
       {% else %}
-        <div style="text-align:center;padding:40px 0;color:var(--muted);font-weight:900">
-          <div style="font-size:40px;margin-bottom:10px">🚫</div>
-          <h3 style="margin:0;color:var(--ink);font-weight:900">لا يوجد اشتراك نشط</h3>
-          <p style="margin:10px 0 0;font-weight:800">يرجى اختيار باقة وتفعيل الاشتراك.</p>
+        <div class="empty">
+          <div class="ico">🚫</div>
+          <div style="color:var(--ink); font-weight:950; font-size:1.05rem; margin-bottom:4px;">لا يوجد اشتراك نشط</div>
+          <div style="font-weight:850">يرجى اختيار باقة وتفعيل الاشتراك.</div>
         </div>
       {% endif %}
     </div>
 
     <!-- Renewal Form -->
-    <div class="card">
-      <h2 class="title">تجديد الاشتراك / رفع إيصال</h2>
+    <div class="card sub-card">
+      <h2 class="sub-title"><i class="fa-solid fa-receipt" style="opacity:.85"></i> تجديد الاشتراك / رفع إيصال</h2>
 
-      <form action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data" id="renewForm" novalidate>
+      <form
+        action="{% url 'reports:payment_create' %}"
+        method="POST"
+        enctype="multipart/form-data"
+        id="renewForm"
+        novalidate
+      >
         {% csrf_token %}
 
-        <div class="form-group">
-          <label class="label" for="plan_select">اختر الباقة</label>
-          <select id="plan_select" class="select" name="plan" required>
+        <div class="fg">
+          <label class="lbl" for="plan_select">اختر الباقة</label>
+          <select id="plan_select" class="sel" name="plan" required>
             <option value="">-- اختر الباقة --</option>
             {% for plan in plans %}
               <option value="{{ plan.pk }}" data-price="{{ plan.price }}">
@@ -209,38 +364,71 @@
           <div class="help">سيتم تعبئة المبلغ تلقائيًا حسب الباقة (يمكنك تعديله إذا لزم).</div>
         </div>
 
-        <div class="form-group">
-          <label class="label" for="amount">المبلغ المحول (ريال)</label>
-          <input type="number" name="amount" id="amount" required step="0.01" min="0" class="input" placeholder="0.00" inputmode="decimal">
+        <div class="fg">
+          <label class="lbl" for="amount">المبلغ المحول (ريال)</label>
+          <input
+            type="number"
+            name="amount"
+            id="amount"
+            required
+            step="0.01"
+            min="0"
+            class="in"
+            placeholder="0.00"
+            inputmode="decimal"
+          >
         </div>
 
-        <div class="form-group">
-          <label class="label" for="receipt_image">صورة الإيصال</label>
-          <input type="file" name="receipt_image" id="receipt_image" class="input" required accept="image/*">
-          <div class="help">يرجى إرفاق صورة واضحة للتحويل البنكي (يفضّل JPG/PNG) — حد أقصى 10MB.</div>
+        <div class="fg">
+          <label class="lbl" for="receipt_image">صورة الإيصال</label>
+          <input
+            type="file"
+            name="receipt_image"
+            id="receipt_image"
+            class="in"
+            required
+            accept="image/*"
+            capture="environment"
+          >
+          <div class="help">يرجى إرفاق صورة واضحة للتحويل البنكي (JPG/PNG) — حد أقصى 10MB.</div>
 
-          <div class="preview" id="receiptPreview" aria-live="polite">
+          <div class="rprev" id="receiptPreview" aria-live="polite">
             <img id="receiptImg" alt="معاينة الإيصال">
-            <div class="meta" id="receiptMeta">—</div>
+            <div class="meta">
+              <span id="receiptMeta">—</span>
+              <button type="button" class="btn btn-ghost" id="receiptClearBtn" style="min-height:40px">
+                <i class="fa-solid fa-trash"></i> إزالة
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="label" for="notes">ملاحظات إضافية</label>
-          <textarea name="notes" id="notes" rows="2" class="textarea" placeholder="مثال: رقم الحوالة أو اسم المحول..."></textarea>
+        <div class="fg">
+          <label class="lbl" for="notes">ملاحظات إضافية</label>
+          <textarea
+            name="notes"
+            id="notes"
+            rows="2"
+            class="ta"
+            placeholder="مثال: رقم الحوالة أو اسم المحول..."
+          ></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary" id="submitBtn">إرسال طلب التجديد</button>
+        <div class="sub-actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1">
+            <i class="fa-solid fa-paper-plane"></i> إرسال طلب التجديد
+          </button>
+        </div>
       </form>
     </div>
   </div>
 
   <!-- Payments History -->
-  <div class="card" style="margin-top:24px">
-    <h2 class="title">آخر عمليات الدفع</h2>
+  <div class="card sub-card" style="margin-top:14px">
+    <h2 class="sub-title"><i class="fa-solid fa-clock-rotate-left" style="opacity:.85"></i> آخر عمليات الدفع</h2>
 
-    <div class="table-wrap">
-      <table>
+    <div class="twrap">
+      <table class="tbl">
         <thead>
           <tr>
             <th>التاريخ</th>
@@ -251,99 +439,147 @@
         </thead>
         <tbody>
           {% for payment in payments %}
-          <tr>
-            <td><span dir="ltr">{{ payment.created_at|date:"Y-m-d" }}</span></td>
-            <td style="font-weight:900">{{ payment.amount }} ريال</td>
-            <td>
-              {% if payment.status == 'approved' %}
-                <span class="status-badge st-active">✅ مقبول</span>
-              {% elif payment.status == 'rejected' %}
-                <span class="status-badge st-expired">⛔ مرفوض</span>
-              {% else %}
-                <span class="status-badge st-pending">⏳ قيد المراجعة</span>
-              {% endif %}
-            </td>
-            <td style="color:var(--muted);font-weight:800">{{ payment.notes|default:"-" }}</td>
-          </tr>
+            <tr>
+              <td><span dir="ltr">{{ payment.created_at|date:"Y-m-d" }}</span></td>
+              <td style="font-weight:950">{{ payment.amount }} ريال</td>
+              <td>
+                {% if payment.status == 'approved' %}
+                  <span class="sbadge sb-active">✅ مقبول</span>
+                {% elif payment.status == 'rejected' %}
+                  <span class="sbadge sb-expired">⛔ مرفوض</span>
+                {% else %}
+                  <span class="sbadge sb-pending">⏳ قيد المراجعة</span>
+                {% endif %}
+              </td>
+              <td class="note-dim">{{ payment.notes|default:"-" }}</td>
+            </tr>
           {% empty %}
-          <tr>
-            <td colspan="4" style="text-align:center;padding:30px;color:var(--muted);font-weight:900">
-              لا توجد عمليات دفع سابقة
-            </td>
-          </tr>
+            <tr>
+              <td colspan="4">
+                <div class="empty" style="margin: 6px 0">
+                  <div class="ico">🧾</div>
+                  لا توجد عمليات دفع سابقة
+                </div>
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+{% endblock %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const planSelect = document.getElementById('plan_select');
-  const amountEl   = document.getElementById('amount');
-  const fileEl     = document.getElementById('receipt_image');
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
+  (function(){
+    var planSelect = document.getElementById('plan_select');
+    var amountEl   = document.getElementById('amount');
+    var fileEl     = document.getElementById('receipt_image');
 
-  const prevBox  = document.getElementById('receiptPreview');
-  const prevImg  = document.getElementById('receiptImg');
-  const prevMeta = document.getElementById('receiptMeta');
+    var prevBox  = document.getElementById('receiptPreview');
+    var prevImg  = document.getElementById('receiptImg');
+    var prevMeta = document.getElementById('receiptMeta');
+    var clearBtn = document.getElementById('receiptClearBtn');
 
-  const form     = document.getElementById('renewForm');
-  const submitBtn= document.getElementById('submitBtn');
+    var form     = document.getElementById('renewForm');
+    var submitBtn= document.getElementById('submitBtn');
 
-  const MAX_MB = 10;
-  const MAX_BYTES = MAX_MB * 1024 * 1024;
+    var MAX_MB = 10;
+    var MAX_BYTES = MAX_MB * 1024 * 1024;
 
-  // تعبئة المبلغ حسب الباقة
-  if(planSelect && amountEl){
-    planSelect.addEventListener('change', function(){
-      const opt = planSelect.options[planSelect.selectedIndex];
-      const price = opt ? opt.getAttribute('data-price') : '';
-      if(price){ amountEl.value = price; }
-    });
-  }
-
-  // معاينة الإيصال + تحقق بسيط (على المتصفح فقط)
-  if(fileEl){
-    fileEl.addEventListener('change', function(){
-      const f = fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
-      if(!f){
-        prevBox.style.display = 'none';
-        prevImg.removeAttribute('src');
-        prevMeta.textContent = '—';
+    function toast(msg){
+      // لو عندك نظام Toast في base.html يفضّل استخدامه
+      if(window.showToast){
+        window.showToast(msg, 'warning');
         return;
       }
+      alert(msg);
+    }
 
-      const isImage = f.type && f.type.startsWith('image/');
-      if(!isImage){
-        alert('الملف المرفق يجب أن يكون صورة.');
-        fileEl.value = '';
-        prevBox.style.display = 'none';
-        return;
-      }
+    // تعبئة المبلغ حسب الباقة
+    if(planSelect && amountEl){
+      planSelect.addEventListener('change', function(){
+        var opt = planSelect.options[planSelect.selectedIndex];
+        var price = opt ? opt.getAttribute('data-price') : '';
+        if(price){
+          amountEl.value = price;
+        }
+      });
+    }
 
-      if(f.size > MAX_BYTES){
-        alert('حجم الصورة كبير. الحد الأقصى ' + MAX_MB + 'MB.');
-        fileEl.value = '';
-        prevBox.style.display = 'none';
-        return;
-      }
+    function clearPreview(){
+      if(prevBox) prevBox.style.display = 'none';
+      if(prevImg) prevImg.removeAttribute('src');
+      if(prevMeta) prevMeta.textContent = '—';
+    }
 
-      const url = URL.createObjectURL(f);
-      prevImg.src = url;
-      prevMeta.textContent = f.name + ' — ' + Math.round(f.size / 1024) + 'KB';
-      prevBox.style.display = 'block';
-    });
-  }
+    function clearFile(){
+      if(fileEl) fileEl.value = '';
+      clearPreview();
+    }
 
-  // منع الإرسال المزدوج
-  if(form && submitBtn){
-    form.addEventListener('submit', function(){
-      submitBtn.disabled = true;
-      submitBtn.style.opacity = '0.8';
-      submitBtn.textContent = 'جارٍ الإرسال...';
-    });
-  }
-});
+    // معاينة الإيصال + تحقق بسيط (متصفح فقط)
+    if(fileEl){
+      fileEl.addEventListener('change', function(){
+        var f = (fileEl.files && fileEl.files[0]) ? fileEl.files[0] : null;
+
+        if(!f){
+          clearPreview();
+          return;
+        }
+
+        var isImage = f.type && f.type.indexOf('image/') === 0;
+        if(!isImage){
+          toast('الملف المرفق يجب أن يكون صورة.');
+          clearFile();
+          return;
+        }
+
+        if(f.size > MAX_BYTES){
+          toast('حجم الصورة كبير. الحد الأقصى ' + MAX_MB + 'MB.');
+          clearFile();
+          return;
+        }
+
+        var url = URL.createObjectURL(f);
+        prevImg.src = url;
+        prevMeta.textContent = f.name + ' — ' + Math.round(f.size / 1024) + 'KB';
+        prevBox.style.display = 'block';
+      });
+    }
+
+    if(clearBtn){
+      clearBtn.addEventListener('click', function(){
+        clearFile();
+      });
+    }
+
+    // منع الإرسال المزدوج + تحقق سريع قبل التعطيل
+    if(form && submitBtn){
+      form.addEventListener('submit', function(ev){
+        // تحقق بسيط قبل تعطيل الزر
+        if(planSelect && !planSelect.value){
+          ev.preventDefault();
+          toast('فضلاً اختر الباقة.');
+          return;
+        }
+        if(amountEl && !amountEl.value){
+          ev.preventDefault();
+          toast('فضلاً أدخل مبلغ التحويل.');
+          return;
+        }
+        if(fileEl && (!fileEl.files || !fileEl.files[0])){
+          ev.preventDefault();
+          toast('فضلاً أرفق صورة الإيصال.');
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.85';
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ الإرسال...';
+      });
+    }
+  })();
 </script>
 {% endblock %}

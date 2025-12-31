@@ -95,6 +95,33 @@ class TenantIsolationTests(TestCase):
 		self.assertEqual(res.status_code, 302)
 		self.assertIn(reverse("reports:select_school"), res["Location"])
 
+	def test_role_manager_without_membership_is_forbidden(self):
+		"""Regression: Role.slug=manager وحده لا يجب أن يمنح صلاحيات مدير المدرسة."""
+		from .models import Role
+
+		school = School.objects.create(name="School X", code="school-x")
+		plan = SubscriptionPlan.objects.create(name="Test2", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=school, plan=plan, start_date=today, end_date=today)
+
+		mgr_role, _ = Role.objects.get_or_create(
+			slug="manager",
+			defaults={"name": "مدير", "is_staff_by_default": True},
+		)
+		fake_manager = Teacher.objects.create_user(phone="0500000099", name="Fake Manager", password="pass")
+		fake_manager.role = mgr_role
+		fake_manager.save()
+
+		self.client.force_login(fake_manager)
+		session = self.client.session
+		session["active_school_id"] = school.id
+		session.save()
+
+		url = reverse("reports:departments_list")
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 302)
+		self.assertIn(reverse("reports:home"), res["Location"])
+
 	def test_tickets_inbox_does_not_leak_by_slug_across_schools(self):
 		"""إذا كان للمستخدم عضوية قسم slug=it في مدرسة A ثم اختار مدرسة B، لا يجب أن تظهر تذاكر قسم it في مدرسة B."""
 		dept_b = Department.objects.create(school=self.school_b, name="IT B", slug="it", is_active=True)

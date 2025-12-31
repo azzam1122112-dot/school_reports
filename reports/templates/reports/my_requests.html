@@ -1,16 +1,24 @@
+{# reports/templates/reports/my_requests.html (طلباتي) #}
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}طلباتي{% endblock %}
 
 {% block head %}
 <style>
-  /* كل شيء scoped */
+  /* =========================================================
+     My Requests (Scoped) — بدون لمس .btn/.card العامة
+     - دعم ثيم data-theme
+     - الحفاظ على view_mode داخل الفلاتر (hidden input)
+     ========================================================= */
+
   .req-scope .wrap{max-width:1200px;margin:0 auto;padding:16px 12px}
 
   /* ===== Hero ===== */
   .req-scope .hero{
     border-radius:22px;
     color:#fff;
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow, 0 18px 50px rgba(2,6,23,.10));
     padding:18px 20px;
     display:flex;align-items:center;justify-content:space-between;gap:14px;
     background:
@@ -18,7 +26,7 @@
       linear-gradient(135deg, var(--brand), #0ea5e9);
   }
   .req-scope .hero .title{
-    margin:0;font-weight:900;font-size:1.45rem;
+    margin:0;font-weight:950;font-size:1.45rem;
     display:flex;align-items:center;gap:10px;
   }
   .req-scope .hero .title i{opacity:.95}
@@ -29,6 +37,7 @@
     padding:10px 12px;
     display:flex;align-items:center;gap:10px;
     backdrop-filter:saturate(160%) blur(8px);
+    -webkit-backdrop-filter:saturate(160%) blur(8px);
   }
   .req-scope .you-ava{
     width:38px;height:38px;border-radius:999px;
@@ -36,9 +45,9 @@
     display:grid;place-items:center;
     border:1px solid rgba(255,255,255,.18);
   }
-  .req-scope .you-ava span{font-weight:900}
-  .req-scope .you-name{font-weight:900;line-height:1}
-  .req-scope .you-role{display:block;margin-top:3px;font-size:.8rem;opacity:.92;font-weight:800}
+  .req-scope .you-ava span{font-weight:950}
+  .req-scope .you-name{font-weight:950;line-height:1}
+  .req-scope .you-role{display:block;margin-top:3px;font-size:.8rem;opacity:.92;font-weight:850}
 
   /* ===== Toolbar ===== */
   .req-scope .toolbar{
@@ -46,21 +55,35 @@
     background:var(--card);
     border:1px solid var(--line);
     border-radius:18px;
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow, 0 18px 50px rgba(2,6,23,.10));
     padding:12px;
     display:flex;gap:10px;flex-wrap:wrap;align-items:center;
   }
   .req-scope .tb-group{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
   .req-scope .input,
   .req-scope .select{
     border:1px solid var(--line);
     border-radius:14px;
-    background:#fff;
-    color:var(--ink);
+    background: #fff;
+    color: var(--ink);
     padding:10px 12px;
     font-size:.95rem;
     min-height:44px;
+    outline: none;
   }
+  html[data-theme="dark"] .req-scope .input,
+  html[data-theme="dark"] .req-scope .select{
+    background: rgba(15,23,42,.55);
+    border-color: #1b2744;
+    color: var(--ink);
+  }
+  .req-scope .input:focus,
+  .req-scope .select:focus{
+    box-shadow: 0 0 0 4px rgba(37,99,235,.18);
+    border-color: rgba(37,99,235,.45);
+  }
+
   .req-scope .input{min-width:min(380px, 100%);}
   .req-scope .select{min-width:180px}
 
@@ -69,13 +92,13 @@
     border-radius:14px;
     background:#eef2ff;
     color:#1e3a8a;
-    font-weight:900;
+    font-weight:950;
     padding:10px 14px;
     min-height:44px;
     cursor:pointer;
     text-decoration:none;
     display:inline-flex;align-items:center;gap:8px;
-    transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    transition: transform .15s ease, background .15s ease, border-color .15s ease, filter .15s ease;
   }
   .req-scope .btnx:hover{background:#e0e7ff;border-color:#b6c3ff;transform:translateY(-1px)}
   .req-scope .btnx:active{transform:none}
@@ -97,7 +120,13 @@
   .req-scope .view-switch{margin-inline-start:auto;display:flex;gap:8px}
   .req-scope .view-switch a{
     padding:9px 12px;border-radius:12px;border:1px solid var(--line);
-    background:#fff;font-weight:900;color:#1e3a8a;text-decoration:none;min-height:44px;display:inline-flex;align-items:center;gap:8px;
+    background:#fff;font-weight:950;color:#1e3a8a;text-decoration:none;min-height:44px;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  html[data-theme="dark"] .req-scope .view-switch a{
+    background: rgba(15,23,42,.55);
+    border-color:#1b2744;
+    color: var(--ink);
   }
   .req-scope .view-switch .active{background:var(--brand);color:#fff;border-color:var(--brand)}
 
@@ -105,7 +134,7 @@
     width:100%;
     display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
     color:var(--muted);
-    font-weight:800;
+    font-weight:850;
     padding-top:6px;
   }
 
@@ -115,22 +144,23 @@
     background:var(--card);
     border:1px solid var(--line);
     border-radius:16px;
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow, 0 18px 50px rgba(2,6,23,.10));
     padding:16px;
     display:flex;align-items:center;justify-content:space-between;gap:10px;
   }
-  .req-scope .stat .num{font-weight:900;font-size:1.45rem;line-height:1}
-  .req-scope .stat .lbl{color:var(--muted);font-weight:800;margin-top:6px}
+  .req-scope .stat .num{font-weight:950;font-size:1.45rem;line-height:1}
+  .req-scope .stat .lbl{color:var(--muted);font-weight:850;margin-top:6px}
   .req-scope .ico{
     width:42px;height:42px;border-radius:14px;
     display:grid;place-items:center;
     border:1px solid rgba(15,23,42,.06);
-    font-weight:900;
+    font-weight:950;
   }
   .req-scope .ico.o{background:#ecfdf5;color:#065f46}
   .req-scope .ico.i{background:#f5f3ff;color:#5b21b6}
   .req-scope .ico.d{background:#e0f2fe;color:#075985}
   .req-scope .ico.r{background:#fee2e2;color:#991b1b}
+  html[data-theme="dark"] .req-scope .ico{border-color: rgba(255,255,255,.06)}
 
   /* ===== List Cards ===== */
   .req-scope .list{margin-top:12px;display:grid;gap:12px}
@@ -138,7 +168,7 @@
     background:var(--card);
     border:1px solid var(--line);
     border-radius:16px;
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow, 0 18px 50px rgba(2,6,23,.10));
     padding:14px;
     display:grid;
     grid-template-columns:1fr 290px;
@@ -154,9 +184,9 @@
   .req-scope .t-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
   .req-scope .tid{
     background:#eef2ff;color:#1e40af;border:1px solid #c7d2fe;
-    border-radius:999px;padding:6px 10px;font-weight:900;font-size:.85rem;
+    border-radius:999px;padding:6px 10px;font-weight:950;font-size:.85rem;
   }
-  .req-scope .t-title{margin:0;font-weight:900;color:var(--ink);font-size:1.08rem}
+  .req-scope .t-title{margin:0;font-weight:950;color:var(--ink);font-size:1.08rem}
   .req-scope .t-title a{color:inherit;text-decoration:none}
   .req-scope .t-title a:hover{color:var(--brand)}
 
@@ -169,7 +199,11 @@
     display:inline-flex;align-items:center;gap:8px;
     font-size:.9rem;
     color:var(--ink);
-    font-weight:800;
+    font-weight:850;
+  }
+  html[data-theme="dark"] .req-scope .pill{
+    background: rgba(15,23,42,.35);
+    border-color:#1b2744;
   }
   .req-scope .dot{width:8px;height:8px;border-radius:999px}
   .req-scope .dot.a{background:#06b6d4}
@@ -183,7 +217,11 @@
     background:linear-gradient(180deg,#ffffff,#fbfdff);
     padding:10px 12px;
     color:var(--muted);
-    font-weight:800;
+    font-weight:850;
+  }
+  html[data-theme="dark"] .req-scope .last-note{
+    background: linear-gradient(180deg, rgba(15,23,42,.45), rgba(15,23,42,.25));
+    border-color:#1b2744;
   }
   .req-scope .last-note b{color:var(--ink)}
 
@@ -191,8 +229,9 @@
   .req-scope .badge2{
     --bg:#f1f5f9;--fg:#0f172a;--bd:#e2e8f0;
     background:var(--bg);color:var(--fg);border:1px solid var(--bd);
-    padding:10px 14px;border-radius:14px;font-weight:900;
+    padding:10px 14px;border-radius:14px;font-weight:950;
     display:inline-flex;align-items:center;gap:8px;
+    white-space:nowrap;
   }
   .req-scope .b-open{--bg:#ecfdf5;--fg:#065f46;--bd:#a7f3d0}
   .req-scope .b-in{--bg:#f5f3ff;--fg:#5b21b6;--bd:#ddd6fe}
@@ -204,6 +243,10 @@
     border-radius:999px;
     background:#eef2f7;border:1px solid #e6ebf2;
     overflow:hidden;
+  }
+  html[data-theme="dark"] .req-scope .meter{
+    background: rgba(148,163,184,.18);
+    border-color:#1b2744;
   }
   .req-scope .fill{height:100%;display:block;width:100%}
   .req-scope .m-open .fill{width:34%;background:linear-gradient(90deg,#34d399,#10b981)}
@@ -222,20 +265,26 @@
     background:var(--card);
     border:1px solid var(--line);
     border-radius:16px;
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow, 0 18px 50px rgba(2,6,23,.10));
     overflow:auto;
   }
   .req-scope table{width:100%;border-collapse:collapse}
   .req-scope thead th{
     background:#f8fafc;border-bottom:1px solid var(--line);
     padding:12px 10px;text-align:right;
-    color:var(--ink);font-weight:900;white-space:nowrap;
+    color:var(--ink);font-weight:950;white-space:nowrap;
+  }
+  html[data-theme="dark"] .req-scope thead th{
+    background: rgba(15,23,42,.45);
+    border-color:#1b2744;
   }
   .req-scope td{border-bottom:1px solid var(--line);padding:11px 10px;white-space:nowrap}
-  .req-scope .tbl-id{font-weight:900;color:#1e40af}
-  .req-scope .tbl-title a{text-decoration:none;color:var(--ink);font-weight:900}
+  html[data-theme="dark"] .req-scope td{border-color:#1b2744}
+  .req-scope .tbl-id{font-weight:950;color:#1e40af}
+  html[data-theme="dark"] .req-scope .tbl-id{color: #93c5fd}
+  .req-scope .tbl-title a{text-decoration:none;color:var(--ink);font-weight:950}
   .req-scope .tbl-title a:hover{color:var(--brand)}
-  .req-scope .note-preview{max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-weight:800}
+  .req-scope .note-preview{max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-weight:850}
 
   /* ===== Empty state ===== */
   .req-scope .empty{
@@ -249,10 +298,14 @@
     justify-content:space-between;
     gap:12px;
     color:var(--muted);
-    font-weight:900;
+    font-weight:950;
+  }
+  html[data-theme="dark"] .req-scope .empty{
+    background: linear-gradient(180deg, rgba(15,23,42,.45), rgba(15,23,42,.25));
+    border-color:#1b2744;
   }
   .req-scope .empty .big{font-size:1.05rem;color:var(--ink)}
-  .req-scope .empty .sub{font-weight:800;margin-top:4px;color:var(--muted)}
+  .req-scope .empty .sub{font-weight:850;margin-top:4px;color:var(--muted)}
   .req-scope .empty .spark{
     width:52px;height:52px;border-radius:18px;
     display:grid;place-items:center;
@@ -266,10 +319,20 @@
   .req-scope .pager{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
   .req-scope .pager a, .req-scope .pager span{
     background:#fff;border:1px solid var(--line);border-radius:12px;
-    padding:9px 12px;text-decoration:none;color:var(--ink);font-weight:900;
+    padding:9px 12px;text-decoration:none;color:var(--ink);font-weight:950;
+  }
+  html[data-theme="dark"] .req-scope .pager a,
+  html[data-theme="dark"] .req-scope .pager span{
+    background: rgba(15,23,42,.55);
+    border-color:#1b2744;
   }
   .req-scope .pager .current{
     background:#eef2ff;border-color:#c7d2fe;color:#1e3a8a;
+  }
+  html[data-theme="dark"] .req-scope .pager .current{
+    background: rgba(37,99,235,.18);
+    border-color: rgba(37,99,235,.28);
+    color: var(--ink);
   }
 
   /* Responsive */
@@ -278,9 +341,15 @@
     .req-scope .stats{grid-template-columns:repeat(2,1fr)}
     .req-scope .view-switch{width:100%;margin-inline-start:0}
     .req-scope .view-switch a{flex:1;justify-content:center}
+    .req-scope .input{min-width: 100%;}
   }
   @media (max-width: 560px){
     .req-scope .stats{grid-template-columns:1fr}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .req-scope .btnx{transition:none !important}
+    .req-scope .btnx:hover{transform:none !important}
   }
 </style>
 {% endblock %}
@@ -307,19 +376,24 @@
 
       <!-- Toolbar -->
       <form class="toolbar" method="get" aria-label="شريط أدوات">
+        {# يحافظ على وضع العرض عند تغيير الفلاتر #}
+        <input type="hidden" name="view" value="{{ view_mode|default:'list' }}">
+
         <div class="tb-group">
-          <input class="input" type="search" name="q" placeholder="ابحث في طلباتك…" value="{{ request.GET.q }}">
+          <input class="input" type="search" name="q" placeholder="ابحث في طلباتك…" value="{{ request.GET.q|default_if_none:'' }}">
           <button class="btnx" type="submit"><i class="fa-solid fa-magnifying-glass"></i> بحث</button>
 
-          <a class="btnx primary" href="{% url 'reports:request_create' %}"><i class="fa-solid fa-plus"></i> طلب جديد</a>
+          <a class="btnx primary" href="{% url 'reports:request_create' %}">
+            <i class="fa-solid fa-plus"></i> طلب جديد
+          </a>
 
-          {% if request.GET.q or request.GET.status or request.GET.order or request.GET.view %}
+          {% if request.GET.q or request.GET.status or request.GET.order %}
             <a class="btnx" href="?view={{ view_mode|default:'list' }}"><i class="fa-solid fa-rotate-left"></i> مسح</a>
           {% endif %}
         </div>
 
         <div class="tb-group">
-          <label for="status" style="font-weight:900;color:var(--muted)">الحالة:</label>
+          <label for="status" style="font-weight:950;color:var(--muted)">الحالة:</label>
           <select id="status" class="select" name="status">
             <option value="">جميع الحالات</option>
             <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>جديدة</option>
@@ -330,7 +404,7 @@
             <option value="rejected" {% if request.GET.status == "rejected" %}selected{% endif %}>مرفوضة</option>
           </select>
 
-          <label for="order" style="font-weight:900;color:var(--muted)">الفرز:</label>
+          <label for="order" style="font-weight:950;color:var(--muted)">الفرز:</label>
           <select id="order" class="select" name="order">
             <option value="-created_at" {% if request.GET.order|default:"-created_at" == "-created_at" %}selected{% endif %}>الأحدث</option>
             <option value="created_at" {% if request.GET.order == "created_at" %}selected{% endif %}>الأقدم</option>
@@ -341,10 +415,15 @@
 
         <div class="view-switch">
           {% with bq=request.GET.q|urlencode bs=request.GET.status bo=request.GET.order %}
-            <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=list"
-              class="{% if view_mode != 'table' %}active{% endif %}"><i class="fa-solid fa-rectangle-list"></i> قائمة</a>
-            <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=table"
-              class="{% if view_mode == 'table' %}active{% endif %}"><i class="fa-solid fa-table"></i> جدول</a>
+            <a
+              href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=list"
+              class="{% if view_mode != 'table' %}active{% endif %}"
+            ><i class="fa-solid fa-rectangle-list"></i> قائمة</a>
+
+            <a
+              href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view=table"
+              class="{% if view_mode == 'table' %}active{% endif %}"
+            ><i class="fa-solid fa-table"></i> جدول</a>
           {% endwith %}
         </div>
 
@@ -383,20 +462,20 @@
                 <th>إجراء</th>
               </tr>
             </thead>
+
             <tbody>
               {% for t in tickets %}
               <tr>
                 <td class="tbl-id">#{{ t.pk }}</td>
                 <td>{{ t.created_at|date:"Y-m-d H:i" }}</td>
                 <td>{{ t.get_department_display|default:t.department|default:"—" }}</td>
+
                 <td>
-                  {% if t.recipients.exists %}
-                    {% for u in t.recipients.all %}
-                      {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
-                    {% endfor %}
-                  {% else %}
+                  {% for u in t.recipients.all %}
+                    {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
+                  {% empty %}
                     {% firstof t.assignee.name t.assignee "—" %}
-                  {% endif %}
+                  {% endfor %}
                 </td>
 
                 <td class="tbl-title">
@@ -433,8 +512,13 @@
                   <a class="btnx sm" href="{% url 'reports:ticket_detail' t.pk %}">عرض</a>
                 </td>
               </tr>
+
               {% empty %}
-                <tr><td colspan="8" style="text-align:center;color:var(--muted);font-weight:900;padding:18px">لا توجد طلبات</td></tr>
+                <tr>
+                  <td colspan="8" style="text-align:center;color:var(--muted);font-weight:950;padding:18px">
+                    لا توجد طلبات
+                  </td>
+                </tr>
               {% endfor %}
             </tbody>
           </table>
@@ -459,16 +543,16 @@
 
               <div class="meta">
                 <span class="pill"><span class="dot b"></span> القسم: {{ t.get_department_display|default:t.department|default:"—" }}</span>
+
                 <span class="pill"><span class="dot a"></span>
                   المستلمون:
-                  {% if t.recipients.exists %}
-                    {% for u in t.recipients.all %}
-                      {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
-                    {% endfor %}
-                  {% else %}
+                  {% for u in t.recipients.all %}
+                    {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
+                  {% empty %}
                     {% firstof t.assignee.name t.assignee "—" %}
-                  {% endif %}
+                  {% endfor %}
                 </span>
+
                 <span class="pill"><span class="dot c"></span> {{ t.created_at|date:"Y-m-d H:i" }}</span>
               </div>
 
@@ -510,7 +594,11 @@
             <div class="empty" role="status" aria-live="polite">
               <div>
                 <div class="big">لا توجد طلبات حالياً</div>
-                <div class="sub">جرّب إزالة الفلاتر أو اضغط <a href="{% url 'reports:request_create' %}" style="font-weight:900;color:var(--brand);text-decoration:none">طلب جديد</a> لفتح تذكرة.</div>
+                <div class="sub">
+                  جرّب إزالة الفلاتر أو اضغط
+                  <a href="{% url 'reports:request_create' %}" style="font-weight:950;color:var(--brand);text-decoration:none">طلب جديد</a>
+                  لفتح تذكرة.
+                </div>
               </div>
               <div class="spark"><i class="fa-solid fa-face-smile"></i></div>
             </div>
@@ -525,7 +613,9 @@
           {% if tickets.has_previous %}
             <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view={{ view_mode }}&page={{ tickets.previous_page_number }}">السابق</a>
           {% endif %}
+
           <span class="current">صفحة {{ tickets.number }} من {{ tickets.paginator.num_pages }}</span>
+
           {% if tickets.has_next %}
             <a href="?{% if bq %}q={{ bq }}&{% endif %}{% if bs %}status={{ bs }}&{% endif %}{% if bo %}order={{ bo }}&{% endif %}view={{ view_mode }}&page={{ tickets.next_page_number }}">التالي</a>
           {% endif %}

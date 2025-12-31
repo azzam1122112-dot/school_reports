@@ -1,18 +1,20 @@
 # reports/models.py
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from urllib.parse import quote
+
 import os
+
+from urllib.parse import quote
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, FileExtensionValidator
 from django.db import models, transaction
-from django.db.models.signals import m2m_changed, post_migrate, post_save
+from django.db.models.signals import post_migrate, post_save
 from django.dispatch import receiver
 from django.utils.text import slugify
 from django.utils import timezone
-from django.db import transaction
 
 # تخزين Cloudinary العام لملفات raw (PDF/DOCX/ZIP/صور)
 from .storage import PublicRawMediaStorage
@@ -24,6 +26,41 @@ from .validators import validate_image_file
 MANAGER_SLUG = "manager"
 MANAGER_NAME = "الإدارة"
 MANAGER_ROLE_LABEL = "المدير"
+
+
+def _normalize_academic_year_hijri(value: str) -> str:
+    """تطبيع السنة الدراسية الهجرية بصيغة YYYY-YYYY (مثل 1447-1448)."""
+    v = (value or "").strip()
+    return v.replace("–", "-").replace("—", "-")
+
+
+def _validate_academic_year_hijri(value: str) -> None:
+    """يتحقق من الصيغة 1447-1448 وأن السنة الثانية = الأولى + 1."""
+    import re
+
+    v = _normalize_academic_year_hijri(value)
+    if not re.fullmatch(r"\d{4}-\d{4}", v):
+        raise ValidationError("صيغة السنة الدراسية يجب أن تكون مثل 1447-1448")
+    start, end = v.split("-", 1)
+    try:
+        s, e = int(start), int(end)
+    except Exception:
+        raise ValidationError("صيغة السنة الدراسية غير صحيحة")
+    if e != s + 1:
+        raise ValidationError("السنة الدراسية يجب أن تكون مثل 1447-1448 (فرق سنة واحدة)")
+
+
+def _achievement_pdf_upload_to(instance: "TeacherAchievementFile", filename: str) -> str:
+    year = _normalize_academic_year_hijri(getattr(instance, "academic_year", "")) or "unknown"
+    return f"achievements/pdfs/{year}/teacher_{instance.teacher_id}.pdf"
+
+
+def _achievement_evidence_upload_to(instance: "AchievementEvidenceImage", filename: str) -> str:
+    try:
+        year = _normalize_academic_year_hijri(instance.section.file.academic_year)
+    except Exception:
+        year = "unknown"
+    return f"achievements/evidence/{year}/section_{instance.section.code}/teacher_{instance.section.file.teacher_id}/{filename}"
 
 
 # =========================
@@ -634,6 +671,196 @@ class Report(models.Model):
                 pass
 
         super().save(*args, **kwargs)
+
+
+# =========================
+# ملف إنجاز المعلّم (سنوي)
+# =========================
+class TeacherAchievementFile(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "مسودة"
+        SUBMITTED = "submitted", "بانتظار الاعتماد"
+        RETURNED = "returned", "مُعاد للمعلّم"
+        APPROVED = "approved", "معتمد"
+
+    teacher = models.ForeignKey(
+        Teacher,
+        on_delete=models.CASCADE,
+        related_name="achievement_files",
+        verbose_name="المعلّم",
+        db_index=True,
+    )
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="achievement_files",
+        verbose_name="المدرسة",
+        db_index=True,
+    )
+
+    academic_year = models.CharField(
+        "السنة الدراسية (هجري)",
+        max_length=9,
+        help_text="مثال: 1447-1448",
+        db_index=True,
+    )
+    status = models.CharField(
+        "الحالة",
+        max_length=12,
+        choices=Status.choices,
+        default=Status.DRAFT,
+        db_index=True,
+    )
+
+    submitted_at = models.DateTimeField("تاريخ الإرسال", null=True, blank=True)
+    decided_at = models.DateTimeField("تاريخ القرار", null=True, blank=True)
+    decided_by = models.ForeignKey(
+        Teacher,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="achievement_files_decided",
+        verbose_name="اعتماد بواسطة",
+    )
+
+    # Snapshot بيانات عامة (تظهر في PDF)
+    teacher_name = models.CharField("اسم المعلّم", max_length=150, blank=True, default="")
+    teacher_phone = models.CharField("رقم الجوال", max_length=20, blank=True, default="")
+    school_name = models.CharField("اسم المدرسة", max_length=200, blank=True, default="")
+    school_stage = models.CharField("المرحلة", max_length=32, blank=True, default="")
+
+    # بيانات عامة تُعبّأ سنويًا (مع زر استيراد)
+    qualifications = models.TextField("المؤهلات", blank=True, default="")
+    professional_experience = models.TextField("الخبرات المهنية", blank=True, default="")
+    specialization = models.TextField("التخصص", blank=True, default="")
+    teaching_load = models.TextField("نصاب الحصص", blank=True, default="")
+    subjects_taught = models.TextField("مواد التدريس", blank=True, default="")
+    contact_info = models.TextField("بيانات التواصل", blank=True, default="")
+
+    manager_notes = models.TextField("ملاحظات مدير المدرسة", blank=True, default="")
+
+    pdf_file = models.FileField(
+        "ملف PDF",
+        upload_to=_achievement_pdf_upload_to,
+        storage=PublicRawMediaStorage(),
+        blank=True,
+        null=True,
+    )
+    pdf_generated_at = models.DateTimeField("آخر توليد PDF", null=True, blank=True)
+
+    created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
+    updated_at = models.DateTimeField("تاريخ التحديث", auto_now=True)
+
+    class Meta:
+        verbose_name = "ملف إنجاز"
+        verbose_name_plural = "ملفات الإنجاز"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["teacher", "school", "academic_year"],
+                name="uniq_teacher_achievement_per_year",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["school", "academic_year", "status"]),
+            models.Index(fields=["teacher", "academic_year"]),
+        ]
+
+    def clean(self):
+        self.academic_year = _normalize_academic_year_hijri(self.academic_year)
+        _validate_academic_year_hijri(self.academic_year)
+        return super().clean()
+
+    def save(self, *args, **kwargs):
+        # snapshot تلقائي (لا يعتمد على إدخال المستخدم)
+        try:
+            self.academic_year = _normalize_academic_year_hijri(self.academic_year)
+        except Exception:
+            pass
+        try:
+            if self.teacher_id:
+                self.teacher_name = self.teacher_name or getattr(self.teacher, "name", "") or ""
+                self.teacher_phone = self.teacher_phone or getattr(self.teacher, "phone", "") or ""
+        except Exception:
+            pass
+        try:
+            if self.school_id:
+                self.school_name = self.school_name or getattr(self.school, "name", "") or ""
+                self.school_stage = self.school_stage or getattr(self.school, "stage", "") or ""
+        except Exception:
+            pass
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.teacher_name or self.teacher_id} - {self.academic_year}"
+
+
+class AchievementSection(models.Model):
+    class Code(models.IntegerChoices):
+        SECTION_1 = 1, "1- أداء الواجبات الوظيفية"
+        SECTION_2 = 2, "2- التفاعل مع المجتمع المهني"
+        SECTION_3 = 3, "3- التفاعل مع أولياء الأمور"
+        SECTION_4 = 4, "4- التنوع في استراتيجيات التدريس"
+        SECTION_5 = 5, "5- تحسين نتائج المتعلمين"
+        SECTION_6 = 6, "6- إعداد وتنفيذ خطة التعلم"
+        SECTION_7 = 7, "7- توظيف تقنيات ووسائل التعلم المناسبة"
+        SECTION_8 = 8, "8- تهيئة بيئة تعليمية"
+        SECTION_9 = 9, "9- الإدارة الصفية"
+        SECTION_10 = 10, "10- تحليل نتائج المتعلمين وتشخيص مستوياتهم"
+        SECTION_11 = 11, "11- تنوع أساليب التقويم"
+
+    file = models.ForeignKey(
+        TeacherAchievementFile,
+        on_delete=models.CASCADE,
+        related_name="sections",
+        verbose_name="ملف الإنجاز",
+        db_index=True,
+    )
+    code = models.PositiveSmallIntegerField("المحور", choices=Code.choices)
+    title = models.CharField("العنوان", max_length=200, blank=True, default="")
+    teacher_notes = models.TextField("ملاحظات المعلّم", blank=True, default="")
+
+    class Meta:
+        verbose_name = "محور ملف إنجاز"
+        verbose_name_plural = "محاور ملفات الإنجاز"
+        constraints = [
+            models.UniqueConstraint(fields=["file", "code"], name="uniq_achievement_section_per_file")
+        ]
+        ordering = ["code", "id"]
+
+    def save(self, *args, **kwargs):
+        if not self.title:
+            try:
+                self.title = dict(self.Code.choices).get(int(self.code), "")
+            except Exception:
+                pass
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.file_id} - {self.code}"
+
+
+class AchievementEvidenceImage(models.Model):
+    section = models.ForeignKey(
+        AchievementSection,
+        on_delete=models.CASCADE,
+        related_name="evidence_images",
+        verbose_name="المحور",
+        db_index=True,
+    )
+    image = models.ImageField(
+        "صورة الشاهد",
+        upload_to=_achievement_evidence_upload_to,
+        validators=[validate_image_file],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "صورة شاهد"
+        verbose_name_plural = "صور الشواهد"
+        ordering = ["id"]
+
+    def __str__(self) -> str:
+        return f"EvidenceImage #{self.pk} (section {self.section_id})"
 
 
 # =========================
@@ -1269,7 +1496,6 @@ def trigger_ticket_notifications(sender, instance, created, **kwargs):
         return
 
     from .utils import create_system_notification
-    from .models import SchoolMembership, DepartmentMembership, Teacher
 
     title = f"تذكرة جديدة: {instance.title}"
     message = f"تم إنشاء طلب جديد بواسطة {instance.creator.name}. الحالة: {instance.get_status_display()}"

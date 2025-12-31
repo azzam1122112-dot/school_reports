@@ -1,3 +1,4 @@
+{# reports/templates/reports/admin_reports.html (أو اسم القالب لديك) #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -5,641 +6,854 @@
 
 {% block head %}
 <style>
-    :root {
-        --primary: #2563eb;
-        --primary-hover: #1d4ed8;
-        --secondary: #64748b;
-        --success: #10b981;
-        --danger: #ef4444;
-        --warning: #f59e0b;
-        --background: #f8fafc;
-        --surface: #ffffff;
-        --border: #e2e8f0;
-        --text-main: #0f172a;
-        --text-muted: #64748b;
-        --radius: 0.75rem;
-        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-        --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        --font-family: 'Tajawal', system-ui, sans-serif;
-    }
+  /* =========================================================
+     Reports Dashboard (page-only, scoped)
+     - بدون التأثير على base.html (لا :root ولا body)
+     - بدون إعادة تعريف .btn / .card بشكل عام
+     - دعم الوضع الليلي عبر html[data-theme="dark"]
+     ========================================================= */
 
-    body {
-        background-color: var(--background);
-        color: var(--text-main);
-        font-family: var(--font-family);
-    }
+  .repdash-wrap{
+    --rd-radius: 16px;
+    --rd-shadow: 0 14px 40px rgba(2,6,23,.10);
+    --rd-shadow-sm: 0 6px 18px rgba(2,6,23,.08);
+    --rd-ring: 0 0 0 4px rgba(37,99,235,.16);
+    --t: var(--t-fast, .18s ease);
+  }
 
-    .dashboard-container {
-        max-width: 1400px;
-        margin: 2rem auto;
-        padding: 0 1.5rem;
-    }
+  .repdash-container{
+    max-width: 1400px;
+    margin: 18px auto;
+    padding: 0 14px;
+  }
 
-    /* Header */
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
+  /* Header */
+  .repdash-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+    margin: 6px 0 16px;
+  }
+  .repdash-title{
+    margin:0;
+    font-weight: 950;
+    letter-spacing: -.4px;
+    color: var(--ink, #0f172a);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size: clamp(1.25rem, 2.6vw, 1.85rem);
+  }
+  .repdash-sub{
+    margin: 6px 0 0;
+    color: var(--muted, #64748b);
+    font-weight: 800;
+    font-size: .95rem;
+  }
 
-    .page-title {
-        font-size: 1.875rem;
-        font-weight: 800;
-        color: var(--text-main);
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
+  .repdash-header-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top: 2px;
+  }
 
-    .page-subtitle {
-        color: var(--text-muted);
-        margin-top: 0.25rem;
-        font-size: 0.95rem;
-    }
+  /* Cards */
+  .repdash-card{
+    background: var(--card, #fff);
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: var(--rd-radius);
+    box-shadow: var(--rd-shadow-sm);
+    overflow: hidden;
+  }
 
-    /* Filters */
-    .filters-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: var(--shadow-sm);
-    }
+  /* Filters */
+  .repdash-filters{
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .repdash-filters-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    align-items:end;
+  }
 
-    .filters-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.25rem;
-        align-items: end;
-    }
+  .repdash-field label{
+    display:block;
+    font-size: .88rem;
+    font-weight: 900;
+    color: var(--ink, #0f172a);
+    margin-bottom: 6px;
+  }
 
-    .form-group label {
-        display: block;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--text-main);
-        margin-bottom: 0.5rem;
-    }
+  .repdash-control{
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 12px;
+    font-size: .95rem;
+    background: var(--card, #fff);
+    color: var(--ink, #0f172a);
+    transition: var(--t);
+  }
+  .repdash-control:focus{
+    outline: none;
+    border-color: rgba(37,99,235,.55);
+    box-shadow: var(--rd-ring);
+  }
 
-    .form-control {
-        width: 100%;
-        padding: 0.625rem 1rem;
-        border: 1px solid var(--border);
-        border-radius: 0.5rem;
-        font-size: 0.95rem;
-        transition: border-color 0.2s, box-shadow 0.2s;
-        background-color: #fff;
-    }
+  .repdash-actions{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
 
-    .form-control:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
+  /* Table */
+  .repdash-table-wrap{
+    margin-top: 12px;
+    box-shadow: var(--rd-shadow);
+  }
 
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.625rem 1.25rem;
-        font-weight: 600;
-        border-radius: 0.5rem;
-        transition: all 0.2s;
-        cursor: pointer;
-        text-decoration: none;
-        border: 1px solid transparent;
-    }
+  .repdash-table-scroll{
+    overflow-x:auto;
+  }
 
-    .btn-primary {
-        background-color: var(--primary);
-        color: white;
-    }
-    .btn-primary:hover { background-color: var(--primary-hover); }
+  .repdash-table{
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: right;
+  }
 
-    .btn-secondary {
-        background-color: white;
-        border-color: var(--border);
-        color: var(--text-main);
-    }
-    .btn-secondary:hover { background-color: #f1f5f9; }
+  .repdash-table thead th{
+    background: linear-gradient(180deg, var(--line-2, #f8fafc), var(--card, #fff));
+    padding: 14px 14px;
+    font-weight: 950;
+    color: var(--muted, #64748b);
+    border-bottom: 1px solid var(--line, #e2e8f0);
+    white-space: nowrap;
+  }
 
-    .btn-danger {
-        background-color: #fee2e2;
-        color: #991b1b;
-        border-color: #fecaca;
-    }
-    .btn-danger:hover { background-color: #fecaca; }
+  .repdash-table td{
+    padding: 14px 14px;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+    vertical-align: middle;
+    color: var(--ink, #0f172a);
+  }
 
-    /* Table */
-    .table-container {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: hidden;
-        box-shadow: var(--shadow);
-    }
+  .repdash-table tbody tr:hover{
+    background: rgba(219,234,254,.45);
+  }
+  html[data-theme="dark"] .repdash-table tbody tr:hover{
+    background: rgba(26,44,83,.55);
+  }
 
-    .table-responsive {
-        overflow-x: auto;
-    }
+  /* Badges */
+  .rd-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .80rem;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .rd-badge-school{ background: rgba(37,99,235,.10); border-color: rgba(37,99,235,.18); color: rgba(30,64,175,.95); }
+  html[data-theme="dark"] .rd-badge-school{ color: rgba(191,219,254,.95); }
+  .rd-badge-cat{ background: rgba(100,116,139,.10); border-color: rgba(100,116,139,.16); color: var(--ink, #0f172a); }
 
-    .custom-table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: right;
-    }
+  /* Teacher cell */
+  .rd-user{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width: 220px;
+  }
+  .rd-avatar{
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    display:grid;
+    place-items:center;
+    font-weight: 950;
+    color: var(--muted, #64748b);
+    background: var(--line-2, #f1f5f9);
+    border: 1px solid var(--line, #e2e8f0);
+    flex: 0 0 auto;
+  }
+  .rd-user .nm{
+    font-weight: 950;
+    color: var(--ink, #0f172a);
+    line-height: 1.25;
+  }
 
-    .custom-table th {
-        background-color: #f8fafc;
-        padding: 1rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        border-bottom: 1px solid var(--border);
-        white-space: nowrap;
-    }
+  /* Icon buttons (لا نلمس .btn العامة) */
+  .rd-iconbtn{
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border: 1px solid var(--line, #e2e8f0);
+    background: var(--card, #fff);
+    color: var(--muted, #64748b);
+    cursor: pointer;
+    transition: var(--t);
+    text-decoration:none;
+  }
+  .rd-iconbtn:hover{
+    transform: translateY(-1px);
+    color: rgba(37,99,235,.95);
+    box-shadow: 0 10px 18px rgba(2,6,23,.08);
+    background: rgba(219,234,254,.45);
+  }
+  html[data-theme="dark"] .rd-iconbtn:hover{ background: rgba(26,44,83,.55); }
+  .rd-iconbtn.rd-del:hover{
+    color: rgba(239,68,68,.95);
+    background: rgba(239,68,68,.12);
+    border-color: rgba(239,68,68,.20);
+  }
 
-    .custom-table td {
-        padding: 1rem;
-        border-bottom: 1px solid var(--border);
-        vertical-align: middle;
-        color: var(--text-main);
-    }
+  .rd-actions{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+  }
 
-    .custom-table tr:last-child td { border-bottom: none; }
-    .custom-table tr:hover { background-color: #f8fafc; }
+  /* Empty state */
+  .rd-empty{
+    padding: 30px 12px;
+    text-align:center;
+    color: var(--muted, #64748b);
+    font-weight: 850;
+  }
+  .rd-empty i{ opacity:.45; margin-bottom: 10px; }
 
-    /* Badges & Elements */
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 700;
-    }
-    
-    .badge-school { background: #e0e7ff; color: #3730a3; }
-    .badge-category { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  /* Mobile cards */
+  .repdash-mobile{
+    display:none;
+    gap:12px;
+    margin-top: 12px;
+  }
+  .rd-card{
+    background: var(--card, #fff);
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: var(--rd-radius);
+    padding: 14px;
+    box-shadow: var(--rd-shadow-sm);
+  }
+  .rd-card-hd{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+  }
+  .rd-card-title{
+    font-weight: 950;
+    color: var(--ink, #0f172a);
+  }
+  .rd-card-date{
+    color: var(--muted, #64748b);
+    font-weight: 900;
+    font-size: .88rem;
+    white-space: nowrap;
+  }
+  .rd-row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    margin-top: 8px;
+    font-size: .92rem;
+  }
+  .rd-row .k{ color: var(--muted, #64748b); font-weight: 900; }
+  .rd-row .v{ color: var(--ink, #0f172a); font-weight: 950; }
+  .rd-card-actions{
+    margin-top: 12px;
+    display:flex;
+    gap:8px;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+  }
 
-    .user-info {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    .user-avatar {
-        width: 2.5rem;
-        height: 2.5rem;
-        background: #e2e8f0;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #64748b;
-        font-weight: bold;
-    }
+  @media (max-width: 1024px){
+    .repdash-table-wrap{ display:none; }
+    .repdash-mobile{ display:grid; }
+  }
 
-    .action-buttons {
-        display: flex;
-        gap: 0.5rem;
-    }
+  /* Dialogs */
+  .repdash-wrap dialog{
+    border: none;
+    border-radius: var(--rd-radius);
+    padding: 0;
+    max-width: 640px;
+    width: min(640px, 92vw);
+    background: var(--card, #fff);
+    color: var(--ink, #0f172a);
+    box-shadow: 0 30px 80px rgba(2,6,23,.26);
+  }
+  .repdash-wrap dialog::backdrop{
+    background: rgba(2,6,23,.55);
+    backdrop-filter: blur(4px);
+  }
 
-    .btn-icon {
-        width: 2rem;
-        height: 2rem;
-        padding: 0;
-        border-radius: 0.375rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-        transition: all 0.2s;
-    }
-    .btn-icon:hover { background-color: #f1f5f9; color: var(--primary); }
-    .btn-icon.delete:hover { color: var(--danger); background-color: #fee2e2; }
+  .rd-dlg-hd{
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background: linear-gradient(180deg, var(--line-2, #f8fafc), var(--card, #fff));
+  }
+  .rd-dlg-hd h3{
+    margin:0;
+    font-weight: 950;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .rd-dlg-bd{ padding: 14px 16px; }
 
-    /* Mobile Cards */
-    .mobile-cards { display: none; }
+  .rd-detail-grid{
+    display:grid;
+    gap: 12px;
+  }
+  .rd-detail{
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 14px;
+    padding: 12px;
+    background: linear-gradient(180deg, var(--line-2, #f8fafc), var(--card, #fff));
+  }
+  .rd-detail .lbl{
+    font-size: .78rem;
+    color: var(--muted, #64748b);
+    font-weight: 900;
+    letter-spacing: .02em;
+    margin-bottom: 6px;
+  }
+  .rd-detail .val{
+    font-weight: 950;
+    color: var(--ink, #0f172a);
+  }
+  .rd-detail .val-lite{
+    font-weight: 850;
+    color: var(--ink, #0f172a);
+    line-height: 1.8;
+    white-space: normal;
+    word-break: break-word;
+  }
 
-    @media (max-width: 1024px) {
-        .table-container { display: none; }
-        .mobile-cards { display: grid; gap: 1rem; }
-        
-        .report-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.25rem;
-            box-shadow: var(--shadow-sm);
-        }
-        
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .card-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-        
-        .card-label { color: var(--text-muted); }
-        .card-value { font-weight: 600; }
-    }
+  .rd-two{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 520px){
+    .rd-two{ grid-template-columns: 1fr; }
+  }
 
-    /* Dialogs */
-    dialog {
-        border: none;
-        border-radius: var(--radius);
-        box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-        padding: 0;
-        max-width: 600px;
-        width: 90%;
-    }
-    dialog::backdrop {
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-    }
-    
-    .dialog-header {
-        padding: 1.25rem;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #f8fafc;
-    }
-    
-    .dialog-body { padding: 1.5rem; }
-    
-    .report-detail-grid {
-        display: grid;
-        gap: 1rem;
-    }
-    
-    .detail-item {
-        background: #f8fafc;
-        padding: 1rem;
-        border-radius: 0.5rem;
-    }
-    
-    .detail-label {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--text-muted);
-        margin-bottom: 0.25rem;
-    }
-    
-    .detail-value { font-weight: 600; color: var(--text-main); }
+  .rd-gallery{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .rd-thumb{
+    width: 100%;
+    height: 92px;
+    object-fit: cover;
+    border-radius: 14px;
+    border: 1px solid var(--line, #e2e8f0);
+    cursor: zoom-in;
+    transition: var(--t);
+    background: var(--line-2, #f1f5f9);
+  }
+  .rd-thumb:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px rgba(2,6,23,.12);
+  }
 
-    .image-gallery {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-        gap: 0.5rem;
-        margin-top: 1rem;
-    }
-    
-    .gallery-img {
-        width: 100%;
-        height: 80px;
-        object-fit: cover;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        border: 1px solid var(--border);
-    }
+  /* Lightbox */
+  #rdLightbox{
+    background: transparent !important;
+    box-shadow: none !important;
+    max-width: none !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  #rdLightbox .rd-lb-wrap{
+    height: 100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 18px;
+  }
+  #rdLightbox img{
+    max-width: min(1100px, 92vw);
+    max-height: 88vh;
+    border-radius: 16px;
+    box-shadow: 0 30px 80px rgba(2,6,23,.35);
+    cursor: zoom-out;
+    background: rgba(255,255,255,.06);
+  }
 
-    /* Pagination */
-    .pagination {
-        display: flex;
-        justify-content: center;
-        gap: 0.5rem;
-        margin-top: 2rem;
-    }
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .repdash-wrap *{ transition:none !important; }
+    .rd-iconbtn:hover, .rd-thumb:hover{ transform:none !important; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
+<div class="repdash-wrap">
+  <div class="repdash-container">
+
     <!-- Header -->
-    <div class="page-header">
-        <div>
-            <h1 class="page-title">
-                <i class="fa-solid fa-chart-pie text-primary"></i>
-                لوحة التقارير
-            </h1>
-            <p class="page-subtitle">إدارة ومتابعة التقارير والأنشطة المدرسية</p>
-        </div>
-        <div class="header-actions">
-            <!-- Optional: Add Export button or similar here -->
-        </div>
+    <div class="repdash-header">
+      <div>
+        <h1 class="repdash-title">
+          <i class="fa-solid fa-chart-pie" style="opacity:.9;"></i>
+          لوحة التقارير
+        </h1>
+        <p class="repdash-sub">إدارة ومتابعة التقارير والأنشطة المدرسية</p>
+      </div>
+
+      <div class="repdash-header-actions">
+        {# مثال: زر تصدير إن أردت لاحقًا #}
+        {# <a class="btn btn-ghost" href="?export=csv"><i class="fa-solid fa-file-csv"></i> تصدير CSV</a> #}
+      </div>
     </div>
 
     <!-- Filters -->
-    <div class="filters-card">
-        <form method="get" class="filters-grid">
-            <div class="form-group">
-                <label>من تاريخ</label>
-                <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>إلى تاريخ</label>
-                <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>المعلم</label>
-                <input type="text" name="teacher_name" value="{{ teacher_name }}" placeholder="بحث باسم المعلم..." class="form-control">
-            </div>
-            {% if categories %}
-            <div class="form-group">
-                <label>التصنيف</label>
-                <select name="category" class="form-control">
-                    <option value="">الكل</option>
-                    {% for val, label in categories %}
-                    <option value="{{ val }}" {% if category == val %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+    <div class="repdash-card repdash-filters">
+      <form method="get" class="repdash-filters-grid">
+        <div class="repdash-field">
+          <label>من تاريخ</label>
+          <input type="date" name="start_date" value="{{ start_date }}" class="repdash-control">
+        </div>
+
+        <div class="repdash-field">
+          <label>إلى تاريخ</label>
+          <input type="date" name="end_date" value="{{ end_date }}" class="repdash-control">
+        </div>
+
+        <div class="repdash-field">
+          <label>المعلم</label>
+          <input type="text" name="teacher_name" value="{{ teacher_name }}" placeholder="بحث باسم المعلم..." class="repdash-control">
+        </div>
+
+        {% if categories %}
+          <div class="repdash-field">
+            <label>التصنيف</label>
+            <select name="category" class="repdash-control">
+              <option value="">الكل</option>
+              {% for val, label in categories %}
+                <option value="{{ val }}" {% if category == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endif %}
+
+        <div class="repdash-field">
+          <label style="visibility:hidden">إجراءات</label>
+          <div class="repdash-actions">
+            <button type="submit" class="btn btn-primary" style="min-height:44px;">
+              <i class="fa-solid fa-filter"></i> تصفية
+            </button>
+
+            {% if start_date or end_date or teacher_name or category %}
+              <a href="{% url 'reports:admin_reports' %}" class="btn btn-ghost" title="مسح الفلاتر" style="min-height:44px;">
+                <i class="fa-solid fa-rotate-left"></i>
+              </a>
             {% endif %}
-            <div class="form-group" style="display: flex; gap: 0.5rem;">
-                <button type="submit" class="btn btn-primary" style="flex: 1;">
-                    <i class="fa-solid fa-filter"></i> تصفية
-                </button>
-                {% if start_date or end_date or teacher_name or category %}
-                <a href="{% url 'reports:admin_reports' %}" class="btn btn-secondary">
-                    <i class="fa-solid fa-times"></i>
-                </a>
-                {% endif %}
-            </div>
-        </form>
+          </div>
+        </div>
+      </form>
     </div>
 
     <!-- Desktop Table -->
-    <div class="table-container">
-        <div class="table-responsive">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>التاريخ</th>
-                        {% if request.user.is_superuser %}
-                        <th>المدرسة</th>
-                        {% endif %}
-                        <th>المعلم</th>
-                        <th>العنوان</th>
-                        <th>التصنيف</th>
-                        <th>المستفيدون</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in reports %}
-                    <tr>
-                        <td>{{ r.id }}</td>
-                        <td>
-                            <div style="font-weight: 600;">{{ r.report_date|date:"Y-m-d" }}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">{{ r.day_name }}</div>
-                        </td>
-                        {% if request.user.is_superuser %}
-                        <td>
-                            {% if r.school %}
-                            <span class="badge badge-school">{{ r.school.name }}</span>
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        {% endif %}
-                        <td>
-                            <div class="user-info">
-                                <div class="user-avatar">
-                                    {{ r.teacher_display_name|slice:":1" }}
-                                </div>
-                                <div>
-                                    <div style="font-weight: 600;">{{ r.teacher_display_name }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>{{ r.title }}</td>
-                        <td>
-                            <span class="badge badge-category">
-                                <i class="fa-solid fa-tag" style="margin-left: 4px;"></i>
-                                {% if r.category %}{{ r.category.name }}{% else %}-{% endif %}
-                            </span>
-                        </td>
-                        <td>{{ r.beneficiaries_count }}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <button type="button" class="btn-icon" title="عرض التفاصيل" onclick="showReportDetails({{ r.pk }})">
-                                    <i class="fa-solid fa-eye"></i>
-                                </button>
-                                <a href="{% url 'reports:report_print' r.pk %}" target="_blank" class="btn-icon" title="طباعة">
-                                    <i class="fa-solid fa-print"></i>
-                                </a>
-                                {% if can_delete %}
-                                <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" onsubmit="return confirm('هل أنت متأكد من الحذف؟');" style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                    <button type="submit" class="btn-icon delete" title="حذف">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </form>
-                                {% endif %}
-                            </div>
-                            
-                            <!-- Hidden Data for JS -->
-                            <div id="report-data-{{ r.pk }}" style="display:none;">
-                                <div class="d-teacher">{{ r.teacher_display_name }}</div>
-                                <div class="d-title">{{ r.title }}</div>
-                                <div class="d-date">{{ r.report_date|date:"Y-m-d" }}</div>
-                                <div class="d-category">{% if r.category %}{{ r.category.name }}{% endif %}</div>
-                                <div class="d-idea">{{ r.idea|linebreaksbr }}</div>
-                                <div class="d-images">
-                                    {% if r.image1 %}{{ r.image1.url }}{% endif %}|
-                                    {% if r.image2 %}{{ r.image2.url }}{% endif %}|
-                                    {% if r.image3 %}{{ r.image3.url }}{% endif %}|
-                                    {% if r.image4 %}{{ r.image4.url }}{% endif %}
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="{% if request.user.is_superuser %}8{% else %}7{% endif %}" style="text-align: center; padding: 3rem;">
-                            <div style="color: var(--text-muted);">
-                                <i class="fa-regular fa-folder-open fa-3x" style="margin-bottom: 1rem; opacity: 0.5;"></i>
-                                <p>لا توجد تقارير مطابقة للبحث</p>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="repdash-card repdash-table-wrap">
+      <div class="repdash-table-scroll">
+        <table class="repdash-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>التاريخ</th>
+              {% if request.user.is_superuser %}
+                <th>المدرسة</th>
+              {% endif %}
+              <th>المعلم</th>
+              <th>العنوان</th>
+              <th>التصنيف</th>
+              <th>المستفيدون</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for r in reports %}
+              <tr>
+                <td>{{ r.id }}</td>
+
+                <td>
+                  <div style="font-weight:950;">{{ r.report_date|date:"Y-m-d" }}</div>
+                  <div style="font-size:.86rem; color:var(--muted); font-weight:850;">{{ r.day_name }}</div>
+                </td>
+
+                {% if request.user.is_superuser %}
+                  <td>
+                    {% if r.school %}
+                      <span class="rd-badge rd-badge-school">
+                        <i class="fa-solid fa-school" style="opacity:.85"></i> {{ r.school.name }}
+                      </span>
+                    {% else %}
+                      <span style="color:var(--muted); font-weight:850;">—</span>
+                    {% endif %}
+                  </td>
+                {% endif %}
+
+                <td>
+                  <div class="rd-user">
+                    <div class="rd-avatar" aria-hidden="true">
+                      {{ r.teacher_display_name|default:"?"|slice:":1" }}
+                    </div>
+                    <div>
+                      <div class="nm">{{ r.teacher_display_name }}</div>
+                    </div>
+                  </div>
+                </td>
+
+                <td style="font-weight:900;">{{ r.title }}</td>
+
+                <td>
+                  <span class="rd-badge rd-badge-cat">
+                    <i class="fa-solid fa-tag" style="opacity:.8"></i>
+                    {% if r.category %}{{ r.category.name }}{% else %}—{% endif %}
+                  </span>
+                </td>
+
+                <td style="font-weight:950;">{{ r.beneficiaries_count|default:"0" }}</td>
+
+                <td>
+                  <div class="rd-actions">
+                    <button type="button" class="rd-iconbtn" title="عرض التفاصيل" onclick="rdShowDetails({{ r.pk }})">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+
+                    <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="rd-iconbtn" title="طباعة">
+                      <i class="fa-solid fa-print"></i>
+                    </a>
+
+                    {% if can_delete %}
+                      <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;"
+                            onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="rd-iconbtn rd-del" title="حذف">
+                          <i class="fa-solid fa-trash"></i>
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+
+                  {# بيانات مخفية للـ JS (الـ idea آمنة لأن linebreaksbr يعمل escape) #}
+                  <div id="rd-data-{{ r.pk }}" style="display:none;">
+                    <div class="d-teacher">{{ r.teacher_display_name }}</div>
+                    <div class="d-title">{{ r.title }}</div>
+                    <div class="d-date">{{ r.report_date|date:"Y-m-d" }}</div>
+                    <div class="d-category">{% if r.category %}{{ r.category.name }}{% endif %}</div>
+                    <div class="d-idea">{{ r.idea|default:""|linebreaksbr }}</div>
+                    <div class="d-images">
+                      {% if r.image1 %}{{ r.image1.url }}{% endif %}|
+                      {% if r.image2 %}{{ r.image2.url }}{% endif %}|
+                      {% if r.image3 %}{{ r.image3.url }}{% endif %}|
+                      {% if r.image4 %}{{ r.image4.url }}{% endif %}
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="{% if request.user.is_superuser %}8{% else %}7{% endif %}">
+                  <div class="rd-empty">
+                    <i class="fa-regular fa-folder-open fa-3x"></i>
+                    <div>لا توجد تقارير مطابقة للبحث</div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Mobile Cards -->
-    <div class="mobile-cards">
-        {% for r in reports %}
-        <div class="report-card">
-            <div class="card-header">
-                <div style="font-weight: 700;">{{ r.title }}</div>
-                <div style="color: var(--text-muted); font-size: 0.85rem;">{{ r.report_date|date:"Y-m-d" }}</div>
+    <div class="repdash-mobile">
+      {% for r in reports %}
+        <div class="rd-card">
+          <div class="rd-card-hd">
+            <div class="rd-card-title">{{ r.title }}</div>
+            <div class="rd-card-date">{{ r.report_date|date:"Y-m-d" }}</div>
+          </div>
+
+          {% if request.user.is_superuser and r.school %}
+            <div class="rd-row">
+              <span class="k">المدرسة</span>
+              <span class="v"><span class="rd-badge rd-badge-school">{{ r.school.name }}</span></span>
             </div>
-            
-            {% if request.user.is_superuser and r.school %}
-            <div class="card-row">
-                <span class="card-label">المدرسة</span>
-                <span class="badge badge-school">{{ r.school.name }}</span>
-            </div>
+          {% endif %}
+
+          <div class="rd-row">
+            <span class="k">المعلم</span>
+            <span class="v">{{ r.teacher_display_name }}</span>
+          </div>
+
+          <div class="rd-row">
+            <span class="k">التصنيف</span>
+            <span class="v">
+              <span class="rd-badge rd-badge-cat">{% if r.category %}{{ r.category.name }}{% else %}—{% endif %}</span>
+            </span>
+          </div>
+
+          <div class="rd-row">
+            <span class="k">المستفيدون</span>
+            <span class="v">{{ r.beneficiaries_count|default:"0" }}</span>
+          </div>
+
+          <div class="rd-card-actions">
+            <button type="button" class="btn btn-ghost" onclick="rdShowDetails({{ r.pk }})" style="min-height:40px;">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+
+            <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="btn btn-ghost" style="min-height:40px;">
+              <i class="fa-solid fa-print"></i>
+            </a>
+
+            {% if can_delete %}
+              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;"
+                    onsubmit="return confirm('حذف؟');">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="btn btn-danger" style="min-height:40px;">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
             {% endif %}
 
-            <div class="card-row">
-                <span class="card-label">المعلم</span>
-                <span class="card-value">{{ r.teacher_display_name }}</span>
+            {# نفس بيانات الـ JS للموبايل #}
+            <div id="rd-data-{{ r.pk }}" style="display:none;">
+              <div class="d-teacher">{{ r.teacher_display_name }}</div>
+              <div class="d-title">{{ r.title }}</div>
+              <div class="d-date">{{ r.report_date|date:"Y-m-d" }}</div>
+              <div class="d-category">{% if r.category %}{{ r.category.name }}{% endif %}</div>
+              <div class="d-idea">{{ r.idea|default:""|linebreaksbr }}</div>
+              <div class="d-images">
+                {% if r.image1 %}{{ r.image1.url }}{% endif %}|
+                {% if r.image2 %}{{ r.image2.url }}{% endif %}|
+                {% if r.image3 %}{{ r.image3.url }}{% endif %}|
+                {% if r.image4 %}{{ r.image4.url }}{% endif %}
+              </div>
             </div>
-            
-            <div class="card-row">
-                <span class="card-label">التصنيف</span>
-                <span class="badge badge-category">{% if r.category %}{{ r.category.name }}{% else %}-{% endif %}</span>
-            </div>
-
-            <div style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
-                <button class="btn btn-secondary" onclick="showReportDetails({{ r.pk }})" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
-                    <i class="fa-solid fa-eye"></i>
-                </button>
-                <a href="{% url 'reports:report_print' r.pk %}" target="_blank" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
-                    <i class="fa-solid fa-print"></i>
-                </a>
-                {% if can_delete %}
-                <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" onsubmit="return confirm('حذف؟');" style="display:inline;">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <button type="submit" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </form>
-                {% endif %}
-            </div>
+          </div>
         </div>
-        {% endfor %}
+      {% empty %}
+        <div class="rd-card">
+          <div class="rd-empty" style="padding: 18px 10px;">
+            <i class="fa-regular fa-folder-open fa-2x"></i>
+            <div>لا توجد تقارير مطابقة للبحث</div>
+          </div>
+        </div>
+      {% endfor %}
     </div>
 
     <!-- Pagination -->
     {% if reports.paginator.num_pages > 1 %}
-    <div class="pagination">
+      <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-top: 16px;">
         {% if reports.has_previous %}
-        <a href="?page={{ reports.previous_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&teacher_name={{ teacher_name }}&category={{ category }}" class="btn btn-secondary">السابق</a>
+          <a class="btn btn-ghost"
+             href="?page={{ reports.previous_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&teacher_name={{ teacher_name }}&category={{ category }}">
+            السابق
+          </a>
         {% endif %}
-        
-        <span class="btn btn-secondary" style="background: #f1f5f9; cursor: default;">
-            {{ reports.number }} / {{ reports.paginator.num_pages }}
+
+        <span class="btn btn-ghost" style="cursor:default; opacity:.9;">
+          {{ reports.number }} / {{ reports.paginator.num_pages }}
         </span>
 
         {% if reports.has_next %}
-        <a href="?page={{ reports.next_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&teacher_name={{ teacher_name }}&category={{ category }}" class="btn btn-secondary">التالي</a>
+          <a class="btn btn-ghost"
+             href="?page={{ reports.next_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&teacher_name={{ teacher_name }}&category={{ category }}">
+            التالي
+          </a>
         {% endif %}
-    </div>
+      </div>
     {% endif %}
-</div>
 
-<!-- Details Dialog -->
-<dialog id="detailsDialog">
-    <div class="dialog-header">
-        <h3 style="margin:0; font-weight: 800;">تفاصيل التقرير</h3>
-        <button onclick="document.getElementById('detailsDialog').close()" class="btn-icon">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
+  </div>
+
+  <!-- Details Dialog -->
+  <dialog id="rdDetailsDialog" aria-label="تفاصيل التقرير">
+    <div class="rd-dlg-hd">
+      <h3>
+        <i class="fa-solid fa-clipboard-list" style="opacity:.85;"></i>
+        تفاصيل التقرير
+      </h3>
+      <button type="button" class="rd-iconbtn" onclick="rdCloseDetails()" aria-label="إغلاق">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
-    <div class="dialog-body">
-        <div class="report-detail-grid">
-            <div class="detail-item">
-                <div class="detail-label">عنوان البرنامج</div>
-                <div class="detail-value" id="dlg-title"></div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="detail-item">
-                    <div class="detail-label">المعلم</div>
-                    <div class="detail-value" id="dlg-teacher"></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">التاريخ</div>
-                    <div class="detail-value" id="dlg-date"></div>
-                </div>
-            </div>
 
-            <div class="detail-item">
-                <div class="detail-label">فكرة البرنامج / التقرير</div>
-                <div class="detail-value" id="dlg-idea" style="font-weight: 400; line-height: 1.6;"></div>
-            </div>
-
-            <div class="detail-item">
-                <div class="detail-label">المرفقات والصور</div>
-                <div class="image-gallery" id="dlg-images"></div>
-            </div>
+    <div class="rd-dlg-bd">
+      <div class="rd-detail-grid">
+        <div class="rd-detail">
+          <div class="lbl">عنوان البرنامج</div>
+          <div class="val" id="rd-dlg-title"></div>
         </div>
-    </div>
-</dialog>
 
-<!-- Image Lightbox -->
-<dialog id="lightbox" style="background: transparent; box-shadow: none; max-width: none; width: 100%; height: 100%;">
-    <div style="display: flex; align-items: center; justify-content: center; height: 100%;" onclick="this.parentElement.close()">
-        <img id="lightbox-img" src="" style="max-width: 90%; max-height: 90vh; border-radius: 8px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);">
-    </div>
-</dialog>
+        <div class="rd-two">
+          <div class="rd-detail">
+            <div class="lbl">المعلم</div>
+            <div class="val" id="rd-dlg-teacher"></div>
+          </div>
+          <div class="rd-detail">
+            <div class="lbl">التاريخ</div>
+            <div class="val" id="rd-dlg-date"></div>
+          </div>
+        </div>
 
+        <div class="rd-detail">
+          <div class="lbl">فكرة البرنامج / التقرير</div>
+          <div class="val-lite" id="rd-dlg-idea"></div>
+        </div>
+
+        <div class="rd-detail">
+          <div class="lbl">المرفقات والصور</div>
+          <div id="rd-dlg-images" class="rd-gallery"></div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Lightbox -->
+  <dialog id="rdLightbox" aria-label="عرض الصورة">
+    <div class="rd-lb-wrap" onclick="rdCloseLightbox()">
+      <img id="rdLightboxImg" src="" alt="صورة مرفقة">
+    </div>
+  </dialog>
+</div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-    function showReportDetails(id) {
-    const container = document.getElementById('report-data-' + id);
-        if (!container) return;
+<script nonce="{{ CSP_NONCE }}">
+  (function(){
+    function byId(id){ return document.getElementById(id); }
 
-        document.getElementById('dlg-title').textContent = container.querySelector('.d-title').textContent;
-        document.getElementById('dlg-teacher').textContent = container.querySelector('.d-teacher').textContent;
-        document.getElementById('dlg-date').textContent = container.querySelector('.d-date').textContent;
-        document.getElementById('dlg-idea').innerHTML = container.querySelector('.d-idea').innerHTML;
+    var details = byId('rdDetailsDialog');
+    var lightbox = byId('rdLightbox');
+    var lightboxImg = byId('rdLightboxImg');
 
-        const imagesContainer = document.getElementById('dlg-images');
-        imagesContainer.innerHTML = '';
-        
-        const imagesStr = container.querySelector('.d-images').textContent.trim();
-        const images = imagesStr.split('|').map(s => s.trim()).filter(s => s);
+    function splitImages(text){
+      return (text || '')
+        .split('|')
+        .map(function(s){ return (s || '').trim(); })
+        .filter(function(s){ return s; });
+    }
 
-        if (images.length === 0) {
-            imagesContainer.innerHTML = '<span style="color:var(--text-muted); font-size:0.9rem;">لا توجد صور مرفقة</span>';
-        } else {
-            images.forEach(url => {
-                const img = document.createElement('img');
-                img.src = url;
-                img.className = 'gallery-img';
-                img.onclick = () => showLightbox(url);
-                imagesContainer.appendChild(img);
+    window.rdCloseDetails = function(){
+      if(details && details.open) details.close();
+      try{
+        if(window.__lockScroll) window.__lockScroll(false);
+        if(window.__trapFocus) window.__trapFocus(details, false);
+      }catch(e){}
+    };
+
+    window.rdCloseLightbox = function(){
+      if(lightbox && lightbox.open) lightbox.close();
+    };
+
+    window.rdShowLightbox = function(url){
+      if(!lightbox || !lightboxImg) return;
+      lightboxImg.src = url;
+      lightbox.showModal();
+    };
+
+    window.rdShowDetails = function(pk){
+      var box = byId('rd-data-' + pk);
+      if(!box || !details) return;
+
+      var t = box.querySelector('.d-title');
+      var te = box.querySelector('.d-teacher');
+      var d = box.querySelector('.d-date');
+      var idea = box.querySelector('.d-idea');
+      var imgs = box.querySelector('.d-images');
+
+      byId('rd-dlg-title').textContent = t ? t.textContent : '';
+      byId('rd-dlg-teacher').textContent = te ? te.textContent : '';
+      byId('rd-dlg-date').textContent = d ? d.textContent : '';
+
+      // idea: آمنة (linebreaksbr) — نعرضها كـ HTML للحفاظ على <br>
+      byId('rd-dlg-idea').innerHTML = idea ? idea.innerHTML : '';
+
+      var imagesWrap = byId('rd-dlg-images');
+      if(imagesWrap){
+        imagesWrap.innerHTML = '';
+        var arr = splitImages(imgs ? imgs.textContent : '');
+
+        if(arr.length === 0){
+          var sp = document.createElement('div');
+          sp.style.color = 'var(--muted)';
+          sp.style.fontWeight = '850';
+          sp.style.fontSize = '.92rem';
+          sp.textContent = 'لا توجد صور مرفقة';
+          imagesWrap.appendChild(sp);
+        }else{
+          arr.forEach(function(url){
+            var img = document.createElement('img');
+            img.src = url;
+            img.className = 'rd-thumb';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.referrerPolicy = 'no-referrer';
+            img.addEventListener('click', function(ev){
+              ev.stopPropagation();
+              window.rdShowLightbox(url);
             });
+            imagesWrap.appendChild(img);
+          });
         }
+      }
 
-        document.getElementById('detailsDialog').showModal();
+      details.showModal();
+
+      try{
+        if(window.__lockScroll) window.__lockScroll(true);
+        if(window.__trapFocus) window.__trapFocus(details, true);
+      }catch(e){}
+    };
+
+    // Close when clicking outside (dialog background)
+    if(details){
+      details.addEventListener('click', function(ev){
+        if(ev.target === details) window.rdCloseDetails();
+      });
     }
-
-    function showLightbox(url) {
-        const lightbox = document.getElementById('lightbox');
-        document.getElementById('lightbox-img').src = url;
-        lightbox.showModal();
+    if(lightbox){
+      lightbox.addEventListener('click', function(ev){
+        if(ev.target === lightbox) window.rdCloseLightbox();
+      });
     }
-
-    // Close dialogs when clicking outside
-    document.getElementById('detailsDialog').addEventListener('click', function(e) {
-        if (e.target === this) this.close();
-    });
+  })();
 </script>
 {% endblock %}

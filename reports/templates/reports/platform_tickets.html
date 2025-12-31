@@ -4,7 +4,7 @@
 
 {% block head %}
 <style>
-  /* ✅ Scoped فقط لهذه الصفحة */
+  /* ✅ Scoped فقط لهذه الصفحة — بدون لمس .btn / .card العامة */
   .plat-tickets-scope{
     --pt-brand: var(--brand, #2563eb);
     --pt-ink: var(--ink, #0f172a);
@@ -15,6 +15,7 @@
     --pt-danger: var(--danger, #ef4444);
     --pt-ok: var(--accent, #10b981);
     --pt-grad: linear-gradient(135deg, rgba(37,99,235,.95), rgba(59,130,246,.88));
+    --pt-t: var(--t-fast, 160ms ease);
   }
 
   .plat-tickets-scope .wrap{max-width:1100px;margin-inline:auto}
@@ -39,7 +40,7 @@
   .plat-tickets-scope .hero h1{margin:0;font-weight:950;font-size:clamp(1.15rem,2.4vw,1.55rem)}
   .plat-tickets-scope .hero p{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65;max-width:70ch}
   .plat-tickets-scope .hero-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .plat-tickets-scope .hero-actions .btn{border-radius:14px}
+  .plat-tickets-scope .hero-actions .btn{border-radius:14px;min-height:42px;transition: var(--pt-t)}
   .plat-tickets-scope .hero-actions .btn-outline{
     background: rgba(255,255,255,.12);
     border-color: rgba(255,255,255,.22);
@@ -48,6 +49,7 @@
   .plat-tickets-scope .hero-actions .btn-outline:hover{
     background: rgba(255,255,255,.16);
     border-color: rgba(255,255,255,.28);
+    transform: translateY(-1px);
   }
 
   /* Table card */
@@ -56,11 +58,26 @@
     border-radius: 16px;
     box-shadow: var(--pt-shadow);
     overflow: hidden;
+    background: var(--pt-card);
   }
+  .plat-tickets-scope .tcard table{width:100%}
   .plat-tickets-scope .rtable thead th{font-weight:950}
 
+  /* Row hover polish */
+  .plat-tickets-scope .rtable tbody tr{
+    transition: var(--pt-t);
+  }
+  .plat-tickets-scope .rtable tbody tr:hover{
+    background: rgba(219,234,254,.55);
+  }
+  html[data-theme="dark"] .plat-tickets-scope .rtable tbody tr:hover{
+    background: rgba(26,44,83,.45);
+  }
+
   /* Ticket bits */
-  .plat-tickets-scope .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  .plat-tickets-scope .mono{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
+  }
   .plat-tickets-scope .t-title{font-weight:950;color:var(--pt-ink)}
   .plat-tickets-scope .sender{display:grid;gap:2px}
   .plat-tickets-scope .sender b{font-weight:950}
@@ -101,10 +118,31 @@
     color: var(--pt-danger);
   }
 
+  /* Empty state */
+  .plat-tickets-scope .empty{
+    padding: 18px 14px;
+    border-radius: 14px;
+    border: 1px dashed var(--pt-line);
+    background: linear-gradient(180deg, var(--pt-card), rgba(148,163,184,.10));
+    color: var(--pt-muted);
+    font-weight: 900;
+  }
+
   /* Mobile tweaks */
   @media(max-width:520px){
     .plat-tickets-scope .hero{padding:14px}
     .plat-tickets-scope .hero-actions .btn{width:100%;justify-content:center}
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .plat-tickets-scope .hero-actions .btn,
+    .plat-tickets-scope .rtable tbody tr{
+      transition:none !important;
+    }
+    .plat-tickets-scope .hero-actions .btn:hover{
+      transform:none !important;
+    }
   }
 </style>
 {% endblock %}
@@ -119,6 +157,7 @@
           <h1>تذاكر الدعم الفني (المنصة)</h1>
           <p>متابعة تذاكر الدعم للمدارس على مستوى المنصة.</p>
         </div>
+
         <div class="hero-actions">
           <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
             <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
@@ -175,7 +214,9 @@
               </td>
 
               <td data-label="إجراء">
-                <a href="{% url 'reports:ticket_detail' ticket.id %}" class="btn btn-outline" style="min-height:38px;padding:8px 10px;border-radius:12px">
+                <a href="{% url 'reports:ticket_detail' ticket.id %}"
+                   class="btn btn-outline"
+                   style="min-height:38px;padding:8px 10px;border-radius:12px">
                   <i class="fa-regular fa-eye" aria-hidden="true"></i>
                   عرض
                 </a>
@@ -183,8 +224,11 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" style="padding:22px;text-align:center" class="muted">
-                <div style="font-weight:950">لا توجد تذاكر دعم فني.</div>
+              <td colspan="6" style="padding:22px;text-align:center">
+                <div class="empty">
+                  <div style="font-weight:950;color:var(--pt-ink)">لا توجد تذاكر دعم فني.</div>
+                  <div style="margin-top:6px;font-weight:850">ستظهر التذاكر هنا فور إنشائها من المدارس.</div>
+                </div>
               </td>
             </tr>
           {% endfor %}

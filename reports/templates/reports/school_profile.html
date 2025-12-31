@@ -1,13 +1,20 @@
+{# reports/templates/reports/school_profile.html #}
 {% extends "base.html" %}
+
 {% block title %}بروفايل المدرسة{% endblock %}
 
 {% block head %}
 <style>
-  /* ✅ Scoped styles فقط لهذه الصفحة */
+  /* =========================================================
+     School Profile — Scoped page styles only
+     - بدون لمس .btn / .card العامة
+     - متوافق مع data-theme (dark/light)
+     ========================================================= */
+
   .schoolp-page{max-width:1100px;margin:0 auto;padding:clamp(10px,2.2vw,18px)}
   .schoolp-shell{
     background:var(--card);
-    border:1px solid var(--line-2);
+    border:1px solid var(--line);
     border-radius:18px;
     box-shadow:var(--shadow);
     overflow:hidden;
@@ -21,59 +28,84 @@
       radial-gradient(700px 220px at 85% 90%, rgba(16,185,129,.14), transparent 60%),
       linear-gradient(135deg, rgba(37,99,235,.92), rgba(59,130,246,.86));
     color:#fff;
+    border-bottom:1px solid rgba(255,255,255,.14);
   }
-  .schoolp-head-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .schoolp-head-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap
+  }
   .schoolp-title{
     margin:0;
     font-weight:950;
     font-size:clamp(1.15rem,2.4vw,1.6rem);
-    display:flex;align-items:center;gap:10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    letter-spacing:-.2px;
   }
   .schoolp-sub{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65}
 
-  .schoolp-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+  .schoolp-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:flex-end
+  }
   .schoolp-actions .btn{border-radius:14px}
   .schoolp-actions .btn-outline{
     background:rgba(255,255,255,.10);
     border:1px solid rgba(255,255,255,.20);
     color:#fff;
   }
+  .schoolp-actions .btn-outline:hover{background:rgba(255,255,255,.16)}
 
   /* Body */
   .schoolp-body{padding:clamp(14px,2.6vw,22px)}
-  .grid{display:grid;gap:14px}
-  @media(min-width:980px){.grid{grid-template-columns:1.15fr .85fr}}
+  .schoolp-grid{display:grid;gap:14px}
+  @media(min-width:980px){.schoolp-grid{grid-template-columns:1.15fr .85fr}}
 
-  .cardish{
+  .schoolp-cardish{
     background:var(--card);
-    border:1px solid var(--line-2);
+    border:1px solid var(--line);
     border-radius:18px;
     box-shadow:var(--shadow-sm);
     padding:14px;
   }
 
-  .block-title{
-    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  .schoolp-block-title{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
     margin:0 0 10px;
     font-weight:950;
     color:var(--ink);
   }
-  .block-title small{color:var(--muted);font-weight:850}
+  .schoolp-block-title small{color:var(--muted);font-weight:850}
 
-  .rows{display:grid;gap:10px}
-  .row{
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  .schoolp-rows{display:grid;gap:10px}
+  .schoolp-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
     padding:10px 12px;
     border-radius:14px;
-    border:1px solid var(--line-2);
+    border:1px solid var(--line);
     background:rgba(248,250,252,.65);
   }
-  html[data-theme="dark"] .row{background:rgba(255,255,255,.03)}
-  .row span{color:var(--muted);font-weight:900}
-  .row b{color:var(--ink);font-weight:950}
-  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  html[data-theme="dark"] .schoolp-row{background:rgba(255,255,255,.03)}
+  .schoolp-row span{color:var(--muted);font-weight:900}
+  .schoolp-row b{color:var(--ink);font-weight:950}
+  .schoolp-mono{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace
+  }
 
-  .status{
+  .schoolp-status{
     margin-top:10px;
     display:flex;
     gap:10px;
@@ -82,19 +114,22 @@
   }
 
   /* KPIs */
-  .kpis{display:grid;gap:12px}
-  @media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
-  .kpi{
+  .schoolp-kpis{display:grid;gap:12px}
+  @media(min-width:700px){.schoolp-kpis{grid-template-columns:repeat(4,1fr)}}
+  .schoolp-kpi{
     background:var(--card);
-    border:1px solid var(--line-2);
+    border:1px solid var(--line);
     border-radius:16px;
     box-shadow:var(--shadow-sm);
     padding:14px;
-    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
   }
-  .kpi .num{font-weight:950;font-size:1.35rem;color:var(--brand)}
-  .kpi .lbl{color:var(--muted);font-weight:850;margin-top:2px}
-  .kpi-ico{
+  .schoolp-kpi .num{font-weight:950;font-size:1.35rem;color:var(--brand)}
+  .schoolp-kpi .lbl{color:var(--muted);font-weight:850;margin-top:2px}
+  .schoolp-kpi-ico{
     width:44px;height:44px;border-radius:14px;
     display:grid;place-items:center;
     font-weight:950;
@@ -103,17 +138,14 @@
     color:var(--brand);
     flex:0 0 auto;
   }
-  html[data-theme="dark"] .kpi-ico{border-color:rgba(148,163,184,.14)}
+  html[data-theme="dark"] .schoolp-kpi-ico{border-color:rgba(148,163,184,.14)}
 
   /* Lists */
-  .two{display:grid;gap:14px}
-  @media(min-width:980px){.two{grid-template-columns:1fr 1fr}}
-  .list{
-    margin:0;
-    padding-right:18px;
-  }
-  .list li{margin:6px 0;color:var(--ink);font-weight:850}
-  .muted{color:var(--muted);font-weight:900}
+  .schoolp-two{display:grid;gap:14px}
+  @media(min-width:980px){.schoolp-two{grid-template-columns:1fr 1fr}}
+  .schoolp-list{margin:0;padding-right:18px}
+  .schoolp-list li{margin:6px 0;color:var(--ink);font-weight:850}
+  .schoolp-muted{color:var(--muted);font-weight:900}
 
   @media(max-width:520px){
     .schoolp-actions{width:100%}
@@ -145,23 +177,29 @@
     </div>
 
     <div class="schoolp-body">
-      <div class="grid">
+      <div class="schoolp-grid">
         <!-- بيانات المدرسة -->
-        <div class="cardish">
-          <div class="block-title">
+        <div class="schoolp-cardish">
+          <div class="schoolp-block-title">
             <span>بيانات المدرسة</span>
-            <small>{% if school.code %}<span class="mono">#{{ school.code }}</span>{% else %}—{% endif %}</small>
+            <small>
+              {% if school.code %}
+                <span class="schoolp-mono">#{{ school.code }}</span>
+              {% else %}
+                —
+              {% endif %}
+            </small>
           </div>
 
-          <div class="rows">
-            <div class="row"><span>اسم المدرسة</span><b>{{ school.name }}</b></div>
-            <div class="row"><span>المرحلة</span><b>{{ school.get_stage_display }}</b></div>
-            <div class="row"><span>بنين / بنات</span><b>{{ school.get_gender_display }}</b></div>
-            <div class="row"><span>المدينة</span><b>{{ school.city|default:"-" }}</b></div>
-            <div class="row"><span>رقم الجوال</span><b class="mono">{{ school.phone|default:"-" }}</b></div>
+          <div class="schoolp-rows">
+            <div class="schoolp-row"><span>اسم المدرسة</span><b>{{ school.name }}</b></div>
+            <div class="schoolp-row"><span>المرحلة</span><b>{{ school.get_stage_display }}</b></div>
+            <div class="schoolp-row"><span>بنين / بنات</span><b>{{ school.get_gender_display }}</b></div>
+            <div class="schoolp-row"><span>المدينة</span><b>{{ school.city|default:"-" }}</b></div>
+            <div class="schoolp-row"><span>رقم الجوال</span><b class="schoolp-mono">{{ school.phone|default:"-" }}</b></div>
           </div>
 
-          <div class="status">
+          <div class="schoolp-status">
             {% if school.is_active %}
               <span class="badge success">نشطة</span>
             {% else %}
@@ -171,16 +209,16 @@
         </div>
 
         <!-- تفاصيل التذاكر -->
-        <div class="cardish">
-          <div class="block-title">
+        <div class="schoolp-cardish">
+          <div class="schoolp-block-title">
             <span>تفاصيل التذاكر</span>
             <small>ملخص الحالة</small>
           </div>
 
-          <div class="rows">
-            <div class="row"><span>مفتوحة / تحت المعالجة</span><b>{{ tickets_open }}</b></div>
-            <div class="row"><span>مغلقة</span><b>{{ tickets_done }}</b></div>
-            <div class="row"><span>مرفوضة</span><b>{{ tickets_rejected }}</b></div>
+          <div class="schoolp-rows">
+            <div class="schoolp-row"><span>مفتوحة / تحت المعالجة</span><b>{{ tickets_open|default:"0" }}</b></div>
+            <div class="schoolp-row"><span>مغلقة</span><b>{{ tickets_done|default:"0" }}</b></div>
+            <div class="schoolp-row"><span>مرفوضة</span><b>{{ tickets_rejected|default:"0" }}</b></div>
           </div>
         </div>
       </div>
@@ -188,58 +226,70 @@
       <div style="height:14px"></div>
 
       <!-- KPIs -->
-      <div class="kpis" aria-label="مؤشرات سريعة">
-        <div class="kpi">
-          <div><div class="num">{{ reports_count }}</div><div class="lbl">عدد التقارير</div></div>
-          <div class="kpi-ico">📄</div>
+      <div class="schoolp-kpis" aria-label="مؤشرات سريعة">
+        <div class="schoolp-kpi">
+          <div>
+            <div class="num">{{ reports_count|default:"0" }}</div>
+            <div class="lbl">عدد التقارير</div>
+          </div>
+          <div class="schoolp-kpi-ico" aria-hidden="true">📄</div>
         </div>
-        <div class="kpi">
-          <div><div class="num">{{ tickets_total }}</div><div class="lbl">التذاكر (الكل)</div></div>
-          <div class="kpi-ico">🎟️</div>
+        <div class="schoolp-kpi">
+          <div>
+            <div class="num">{{ tickets_total|default:"0" }}</div>
+            <div class="lbl">التذاكر (الكل)</div>
+          </div>
+          <div class="schoolp-kpi-ico" aria-hidden="true">🎟️</div>
         </div>
-        <div class="kpi">
-          <div><div class="num">{{ departments_count }}</div><div class="lbl">الأقسام</div></div>
-          <div class="kpi-ico">🏷️</div>
+        <div class="schoolp-kpi">
+          <div>
+            <div class="num">{{ departments_count|default:"0" }}</div>
+            <div class="lbl">الأقسام</div>
+          </div>
+          <div class="schoolp-kpi-ico" aria-hidden="true">🏷️</div>
         </div>
-        <div class="kpi">
-          <div><div class="num">{{ teachers_count }}</div><div class="lbl">المعلّمين</div></div>
-          <div class="kpi-ico">👩‍🏫</div>
+        <div class="schoolp-kpi">
+          <div>
+            <div class="num">{{ teachers_count|default:"0" }}</div>
+            <div class="lbl">المعلّمين</div>
+          </div>
+          <div class="schoolp-kpi-ico" aria-hidden="true">👩‍🏫</div>
         </div>
       </div>
 
       <div style="height:14px"></div>
 
       <!-- Lists -->
-      <div class="two">
-        <div class="cardish">
-          <div class="block-title">
+      <div class="schoolp-two">
+        <div class="schoolp-cardish">
+          <div class="schoolp-block-title">
             <span>أمثلة أقسام</span>
             <small>بحد أقصى 20</small>
           </div>
           {% if departments %}
-            <ul class="list">
+            <ul class="schoolp-list">
               {% for d in departments %}
                 <li>{{ d.name }}</li>
               {% endfor %}
             </ul>
           {% else %}
-            <div class="muted">لا توجد أقسام لعرضها.</div>
+            <div class="schoolp-muted">لا توجد أقسام لعرضها.</div>
           {% endif %}
         </div>
 
-        <div class="cardish">
-          <div class="block-title">
+        <div class="schoolp-cardish">
+          <div class="schoolp-block-title">
             <span>أمثلة معلمين</span>
             <small>بحد أقصى 20</small>
           </div>
           {% if teachers %}
-            <ul class="list">
+            <ul class="schoolp-list">
               {% for t in teachers %}
                 <li>{{ t.name }}</li>
               {% endfor %}
             </ul>
           {% else %}
-            <div class="muted">لا يوجد معلمين لعرضهم.</div>
+            <div class="schoolp-muted">لا يوجد معلمين لعرضهم.</div>
           {% endif %}
         </div>
       </div>

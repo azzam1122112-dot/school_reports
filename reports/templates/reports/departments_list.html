@@ -1,96 +1,296 @@
-{# templates/reports/departments_list.html (أو اسم ملفك الحالي) #}
+{# templates/reports/departments_list.html #}
 {% extends "base.html" %}
 {% block title %}إدارة الأقسام{% endblock %}
 
 {% block head %}
 <style>
+  /* =========================================================
+     Departments List (page-scoped)
+     - لا نعيد تعريف .btn / .card العامة: نستخدم d-btn / d-card
+     - متوافق مع html[data-theme="dark"]
+     ========================================================= */
   .deptlist-scope{
-    --ink:#0f172a;--muted:#6b7280;--line:#e5e7eb;--line2:#f1f5f9;--card:#fff;--bg:#f8fafc;
-    --brand:#2563eb;--brand2:#3b82f6;--danger:#ef4444;--danger-bg:#fee2e2;--danger-border:#fecaca;
-    --radius:14px;--shadow:0 10px 30px rgba(2,6,23,.08);--tap:48px;--t:all .2s ease;
-  }
-  @media (prefers-color-scheme:dark){
-    .deptlist-scope{
-      --ink:#e6ebff;--muted:#a9b8de;--line:#1b2744;--line2:#152547;--card:#0f1629;--bg:#0b1220;
-      --danger-bg:#2a0f14;--danger-border:#4a151c;
-    }
+    --d-ink:   var(--ink,   #0f172a);
+    --d-muted: var(--muted, #6b7280);
+    --d-line:  var(--line,  #e5e7eb);
+    --d-line2: var(--line-2,#f1f5f9);
+    --d-card:  var(--card,  #ffffff);
+    --d-bg:    var(--bg,    #f8fafc);
+
+    --d-brand:  #2563eb;
+    --d-brand2: #3b82f6;
+
+    --d-danger:        #ef4444;
+    --d-danger-bg:     #fee2e2;
+    --d-danger-border: #fecaca;
+
+    --d-radius: 14px;
+    --d-shadow: 0 10px 30px rgba(2,6,23,.08);
+    --d-tap: 48px;
+    --d-t: var(--t-fast, all .2s ease);
   }
 
-  .deptlist-scope .wrap{max-width:1100px;margin:0 auto;padding:clamp(10px,2.2vw,14px)}
-  .deptlist-scope .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:clamp(12px,2vw,16px)}
-  .deptlist-scope .title{margin:0 0 10px;font-weight:950;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:1.05rem}
-  .deptlist-scope .title .hint{font-size:.9rem;color:var(--muted);font-weight:800}
+  html[data-theme="dark"] .deptlist-scope{
+    --d-ink:#e6ebff;
+    --d-muted:#a9b8de;
+    --d-line:#1b2744;
+    --d-line2:#152547;
+    --d-card:#0f1629;
+    --d-bg:#0b1220;
 
-  .deptlist-scope .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px;align-items:center}
-  .deptlist-scope .btn{
-    min-height:var(--tap);display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    padding:10px 14px;border-radius:12px;border:1px solid var(--line);
-    background:var(--card);font-weight:900;text-decoration:none;color:var(--ink);
-    transition:transform .18s ease, box-shadow .18s ease, filter .18s ease
+    --d-danger-bg:#2a0f14;
+    --d-danger-border:#4a151c;
   }
-  .deptlist-scope .btn:hover{transform:translateY(-1px)}
-  .deptlist-scope .btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px;box-shadow:0 0 0 3px rgba(37,99,235,.25)}
-  .deptlist-scope .btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff}
-  .deptlist-scope .btn-danger{background:var(--danger-bg);color:#991b1b;border-color:var(--danger-border)}
-  @media (prefers-color-scheme:dark){.deptlist-scope .btn-danger{color:#fecaca}}
+
+  .deptlist-scope .wrap{
+    max-width:1100px;
+    margin:0 auto;
+    padding:clamp(10px,2.2vw,14px)
+  }
+
+  .deptlist-scope .d-card{
+    background:var(--d-card);
+    border:1px solid var(--d-line);
+    border-radius:var(--d-radius);
+    box-shadow:var(--d-shadow);
+    padding:clamp(12px,2vw,16px)
+  }
+
+  .deptlist-scope .title{
+    margin:0 0 10px;
+    font-weight:950;
+    color:var(--d-ink);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    font-size:1.05rem
+  }
+  .deptlist-scope .title .hint{
+    font-size:.9rem;
+    color:var(--d-muted);
+    font-weight:800
+  }
+
+  .deptlist-scope .toolbar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin:0 0 12px;
+    align-items:center;
+    justify-content:space-between
+  }
+
+  .deptlist-scope .toolbar .left{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center
+  }
+
+  .deptlist-scope .toolbar .right{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center
+  }
+
+  .deptlist-scope .d-btn{
+    min-height:var(--d-tap);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:10px 14px;
+    border-radius:12px;
+    border:1px solid var(--d-line);
+    background:var(--d-card);
+    font-weight:900;
+    text-decoration:none;
+    color:var(--d-ink);
+    transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    cursor:pointer;
+  }
+  .deptlist-scope .d-btn:hover{transform:translateY(-1px)}
+  .deptlist-scope .d-btn:focus-visible{
+    outline:2px solid var(--d-brand);
+    outline-offset:2px;
+    box-shadow:0 0 0 3px rgba(37,99,235,.25)
+  }
+  .deptlist-scope .d-btn-primary{
+    background:linear-gradient(135deg,var(--d-brand),var(--d-brand2));
+    border-color:transparent;
+    color:#fff
+  }
+  .deptlist-scope .d-btn-danger{
+    background:var(--d-danger-bg);
+    color:#991b1b;
+    border-color:var(--d-danger-border)
+  }
+  html[data-theme="dark"] .deptlist-scope .d-btn-danger{color:#fecaca}
 
   .deptlist-scope .count-badge{
-    display:inline-flex;align-items:center;gap:6px;
-    background:#eef2ff;border:1px solid #e5edff;color:#1e40af;border-radius:999px;
-    padding:6px 10px;font-weight:950
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:#eef2ff;
+    border:1px solid #e5edff;
+    color:#1e40af;
+    border-radius:999px;
+    padding:6px 10px;
+    font-weight:950
   }
-  @media (prefers-color-scheme:dark){.deptlist-scope .count-badge{background:#0e1b36;border-color:#1e2e59;color:#cdd9ff}}
+  html[data-theme="dark"] .deptlist-scope .count-badge{
+    background:#0e1b36;
+    border-color:#1e2e59;
+    color:#cdd9ff
+  }
 
-  .deptlist-scope .table-headnote{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between;margin-bottom:8px}
-  .deptlist-scope .muted{color:var(--muted);font-weight:800}
+  .deptlist-scope .muted{color:var(--d-muted);font-weight:800}
 
-  .deptlist-scope .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
-  .deptlist-scope .table-wrap{-webkit-overflow-scrolling:touch}
+  .deptlist-scope .search{
+    min-height:var(--d-tap);
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid var(--d-line);
+    background:var(--d-card);
+    color:var(--d-ink);
+    font-weight:850;
+    width:min(360px, 78vw);
+    outline:none;
+  }
+  .deptlist-scope .search:focus{
+    border-color:rgba(37,99,235,.45);
+    box-shadow:0 0 0 4px rgba(37,99,235,.15)
+  }
+
+  .deptlist-scope .table-headnote{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    justify-content:space-between;
+    margin-bottom:8px
+  }
+
+  .deptlist-scope .table-wrap{
+    overflow:auto;
+    border:1px solid var(--d-line);
+    border-radius:12px;
+    background:var(--d-card);
+    -webkit-overflow-scrolling:touch
+  }
   .deptlist-scope .table-wrap::-webkit-scrollbar{height:10px}
   .deptlist-scope .table-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px}
-  @media (prefers-color-scheme:dark){.deptlist-scope .table-wrap::-webkit-scrollbar-thumb{background:#374b7a}}
+  html[data-theme="dark"] .deptlist-scope .table-wrap::-webkit-scrollbar-thumb{background:#374b7a}
 
   .deptlist-scope table{width:100%;border-collapse:collapse}
   .deptlist-scope caption{display:none}
-  .deptlist-scope th,.deptlist-scope td{padding:12px 10px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
-  .deptlist-scope thead th{background:#f8fafc;text-align:right;font-weight:950;position:sticky;top:0;z-index:1}
-  @media (prefers-color-scheme:dark){.deptlist-scope thead th{background:#0e1b35}}
+  .deptlist-scope th,.deptlist-scope td{
+    padding:12px 10px;
+    border-bottom:1px solid var(--d-line);
+    white-space:nowrap;
+    vertical-align:middle
+  }
+  .deptlist-scope thead th{
+    background:var(--d-bg);
+    text-align:right;
+    font-weight:950;
+    position:sticky;
+    top:0;
+    z-index:1
+  }
+  html[data-theme="dark"] .deptlist-scope thead th{background:#0e1b35}
   .deptlist-scope td code{direction:ltr;unicode-bidi:embed}
 
   .deptlist-scope .pill{
-    display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;
-    border:1px solid var(--line);background:#f8fafc;font-weight:900;white-space:nowrap
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid var(--d-line);
+    background:var(--d-bg);
+    font-weight:900;
+    white-space:nowrap
   }
-  .deptlist-scope .pill.on{background:linear-gradient(180deg,#ecfdf5,#ffffff);border-color:#c7f3e3;color:#065f46}
-  .deptlist-scope .pill.off{background:#fff7ed;border-color:#fed7aa;color:#7c2d12}
-  @media (prefers-color-scheme:dark){
-    .deptlist-scope .pill{background:#0e1b35;border-color:#1e2e59}
-    .deptlist-scope .pill.on{background:#0f2b22;border-color:#134e4a;color:#a7f3d0}
-    .deptlist-scope .pill.off{background:#2b1b0f;border-color:#4a2e14;color:#fed7aa}
+  .deptlist-scope .pill.on{
+    background:linear-gradient(180deg,#ecfdf5,#ffffff);
+    border-color:#c7f3e3;
+    color:#065f46
+  }
+  .deptlist-scope .pill.off{
+    background:#fff7ed;
+    border-color:#fed7aa;
+    color:#7c2d12
+  }
+  html[data-theme="dark"] .deptlist-scope .pill{
+    background:#0e1b35;
+    border-color:#1e2e59
+  }
+  html[data-theme="dark"] .deptlist-scope .pill.on{
+    background:#0f2b22;
+    border-color:#134e4a;
+    color:#a7f3d0
+  }
+  html[data-theme="dark"] .deptlist-scope .pill.off{
+    background:#2b1b0f;
+    border-color:#4a2e14;
+    color:#fed7aa
   }
 
   .deptlist-scope .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .deptlist-scope .actions .btn{padding:8px 12px;min-height:40px}
+  .deptlist-scope .actions .d-btn{padding:8px 12px;min-height:40px}
+
+  .deptlist-scope .empty{
+    border:1px dashed var(--d-line);
+    border-radius:12px;
+    background:linear-gradient(180deg, var(--d-card), var(--d-line2));
+    padding:14px;
+    color:var(--d-muted);
+    font-weight:850;
+  }
+  .deptlist-scope .empty b{color:var(--d-ink)}
 
   /* Mobile cards (≤820px) */
   @media (max-width: 820px){
-    .deptlist-scope .table-wrap{border:none;padding:0}
-    .deptlist-scope table, .deptlist-scope thead, .deptlist-scope tbody, .deptlist-scope th, .deptlist-scope td, .deptlist-scope tr{display:block;width:100%}
+    .deptlist-scope .table-wrap{border:none;padding:0;background:transparent}
+    .deptlist-scope table,
+    .deptlist-scope thead,
+    .deptlist-scope tbody,
+    .deptlist-scope th,
+    .deptlist-scope td,
+    .deptlist-scope tr{display:block;width:100%}
     .deptlist-scope thead{display:none}
     .deptlist-scope tbody{display:grid;gap:12px}
-    .deptlist-scope tr{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+    .deptlist-scope tr{
+      border:1px solid var(--d-line);
+      border-radius:12px;
+      overflow:hidden;
+      background:var(--d-card)
+    }
     .deptlist-scope td{
-      display:grid;grid-template-columns:9.5em 1fr;gap:8px;
-      border:0;border-bottom:1px solid var(--line);
-      padding:12px 14px;white-space:normal;word-break:break-word
+      display:grid;
+      grid-template-columns:9.5em 1fr;
+      gap:8px;
+      border:0;
+      border-bottom:1px solid var(--d-line);
+      padding:12px 14px;
+      white-space:normal;
+      word-break:break-word
     }
     .deptlist-scope td:last-child{border-bottom:0}
-    .deptlist-scope td::before{content:attr(data-th);font-weight:950;color:var(--muted)}
-    .deptlist-scope .actions{padding:10px;border-top:1px dashed var(--line)}
-    .deptlist-scope .actions .btn{flex:1 1 auto}
+    .deptlist-scope td::before{content:attr(data-th);font-weight:950;color:var(--d-muted)}
+    .deptlist-scope .actions{padding:10px;border-top:1px dashed var(--d-line)}
+    .deptlist-scope .actions .d-btn{flex:1 1 auto}
   }
   @media (max-width:420px){
     .deptlist-scope td{grid-template-columns:7.5em 1fr}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .deptlist-scope .d-btn{transition:none}
+    .deptlist-scope .d-btn:hover{transform:none}
   }
 </style>
 {% endblock %}
@@ -98,83 +298,159 @@
 {% block content %}
 <div class="deptlist-scope">
   <div class="wrap" dir="rtl">
-    <div class="card" role="region" aria-labelledby="dept-title">
+    <div class="d-card" role="region" aria-labelledby="dept-title">
       <div class="title" id="dept-title">
         <span>🏷️ إدارة الأقسام</span>
         <span class="hint">إضافة، تعديل، حذف، وإدارة أعضاء كل قسم</span>
       </div>
 
       <div class="toolbar" role="toolbar" aria-label="إجراءات">
-        <a class="btn btn-primary" href="{% url 'reports:department_create' %}">➕ قسم جديد</a>
-        <span class="count-badge" aria-live="polite">عدد الأقسام: <b>{{ departments|length|default:"0" }}</b></span>
+        <div class="left">
+          <a class="d-btn d-btn-primary" href="{% url 'reports:department_create' %}">➕ قسم جديد</a>
+          <span class="count-badge" aria-live="polite">عدد الأقسام: <b>{{ departments|length|default:"0" }}</b></span>
+        </div>
+
+        <div class="right">
+          <input
+            id="deptSearch"
+            class="search"
+            type="search"
+            placeholder="ابحث بالاسم أو الكود…"
+            autocomplete="off"
+            aria-label="بحث في الأقسام"
+          >
+        </div>
       </div>
 
       <div class="table-headnote">
         <span class="muted">على الجوال ستظهر كبطاقات. على الشاشات الواسعة يبقى جدولًا ويمكنك التمرير أفقيًا إذا لزم.</span>
+        <span class="muted" id="deptSearchMeta" aria-live="polite"></span>
       </div>
 
-      <div class="table-wrap" tabindex="0" aria-label="جدول الأقسام — قابل للتمرير">
-        <table>
-          <caption>قائمة الأقسام</caption>
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">الكود (slug)</th>
-              <th scope="col">الاسم</th>
-              <th scope="col">الحالة</th>
-              <th scope="col">عدد الأعضاء</th>
-              <th scope="col">التذاكر (جـديدة / قيد / منجزة)</th>
-              <th scope="col">إجراءات</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {% for d in departments %}
-              {% with code=d.slug|default:d.code %}
+      {% if departments %}
+        <div class="table-wrap" tabindex="0" aria-label="جدول الأقسام — قابل للتمرير">
+          <table>
+            <caption>قائمة الأقسام</caption>
+            <thead>
               <tr>
-                <td data-th="#" aria-label="الترتيب">{{ forloop.counter }}</td>
-
-                <td data-th="الكود (slug)"><code>{{ code|default:"—" }}</code></td>
-
-                <td data-th="الاسم">{{ d.name|default:"—" }}</td>
-
-                <td data-th="الحالة">
-                  {% if d.is_active %}
-                    <span class="pill on" aria-label="نشط" title="نشط">✅ نشط</span>
-                  {% else %}
-                    <span class="pill off" aria-label="موقّف" title="موقّف">⛔ موقّف</span>
-                  {% endif %}
-                </td>
-
-                <td data-th="عدد الأعضاء">{{ d.members_count|default:"0" }}</td>
-
-                <td data-th="حالة التذاكر" class="muted">
-                  {{ d.stats.open|default:"0" }} /
-                  {{ d.stats.in_progress|default:"0" }} /
-                  {{ d.stats.done|default:"0" }}
-                </td>
-
-                <td data-th="إجراءات">
-                  <div class="actions" role="group" aria-label="إجراءات القسم">
-                    <a class="btn" href="{% url 'reports:department_members' code=code %}">👥 الأعضاء</a>
-                    <a class="btn" href="{% url 'reports:department_edit' code=code %}">✏️ تعديل</a>
-                    <form action="{% url 'reports:department_delete' code=code %}" method="post" style="display:inline" onsubmit="return confirm('حذف هذا القسم؟');">
-                      {% csrf_token %}
-                      <button class="btn btn-danger" type="submit">🗑 حذف</button>
-                    </form>
-                  </div>
-                </td>
+                <th scope="col">#</th>
+                <th scope="col">الكود (slug)</th>
+                <th scope="col">الاسم</th>
+                <th scope="col">الحالة</th>
+                <th scope="col">عدد الأعضاء</th>
+                <th scope="col">التذاكر (جـديدة / قيد / منجزة)</th>
+                <th scope="col">إجراءات</th>
               </tr>
-              {% endwith %}
-            {% empty %}
-              <tr>
-                <td data-th="ملاحظة" colspan="7" class="muted" style="text-align:center">لا توجد أقسام.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+
+            <tbody id="deptTbody">
+              {% for d in departments %}
+                {# code: slug إن وجد وإلا pk لضمان عدم فشل الروابط #}
+                {% with code=d.slug|default:d.pk %}
+                  <tr class="dept-row" data-code="{{ code }}" data-name="{{ d.name|default:'' }}">
+                    <td data-th="#" aria-label="الترتيب">{{ forloop.counter }}</td>
+
+                    <td data-th="الكود (slug)"><code>{{ code|default:"—" }}</code></td>
+
+                    <td data-th="الاسم">{{ d.name|default:"—" }}</td>
+
+                    <td data-th="الحالة">
+                      {% if d.is_active %}
+                        <span class="pill on" aria-label="نشط" title="نشط">✅ نشط</span>
+                      {% else %}
+                        <span class="pill off" aria-label="موقّف" title="موقّف">⛔ موقّف</span>
+                      {% endif %}
+                    </td>
+
+                    <td data-th="عدد الأعضاء">{{ d.members_count|default:"0" }}</td>
+
+                    <td data-th="حالة التذاكر" class="muted">
+                      {{ d.stats.open|default:"0" }} /
+                      {{ d.stats.in_progress|default:"0" }} /
+                      {{ d.stats.done|default:"0" }}
+                    </td>
+
+                    <td data-th="إجراءات">
+                      <div class="actions" role="group" aria-label="إجراءات القسم">
+                        <a class="d-btn" href="{% url 'reports:department_members' code=code %}">👥 الأعضاء</a>
+                        <a class="d-btn" href="{% url 'reports:department_edit' code=code %}">✏️ تعديل</a>
+
+                        <form
+                          action="{% url 'reports:department_delete' code=code %}"
+                          method="post"
+                          style="display:inline"
+                          data-confirm="حذف هذا القسم؟"
+                        >
+                          {% csrf_token %}
+                          <button class="d-btn d-btn-danger" type="submit">🗑 حذف</button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty">
+          لا توجد أقسام حالياً — <b>ابدأ بإضافة أول قسم</b>.
+          <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+            <a class="d-btn d-btn-primary" href="{% url 'reports:department_create' %}">➕ قسم جديد</a>
+          </div>
+        </div>
+      {% endif %}
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function(){
+    // Confirm delete (آمن وبسيط)
+    document.addEventListener('submit', function(ev){
+      var form = ev.target;
+      if(!form || !form.matches('form[data-confirm]')) return;
+      var msg = form.getAttribute('data-confirm') || 'متأكد؟';
+      if(!window.confirm(msg)) ev.preventDefault();
+    }, true);
+
+    // Client-side search filter
+    var input = document.getElementById('deptSearch');
+    var meta = document.getElementById('deptSearchMeta');
+    var tbody = document.getElementById('deptTbody');
+    if(!input || !tbody) return;
+
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('.dept-row'));
+    function norm(s){
+      s = (s || '').toString().trim().toLowerCase();
+      return s;
+    }
+
+    function apply(){
+      var q = norm(input.value);
+      var shown = 0;
+
+      rows.forEach(function(row){
+        var code = norm(row.getAttribute('data-code'));
+        var name = norm(row.getAttribute('data-name'));
+        var ok = !q || code.indexOf(q) > -1 || name.indexOf(q) > -1;
+        row.style.display = ok ? '' : 'none';
+        if(ok) shown += 1;
+      });
+
+      if(meta){
+        if(q){
+          meta.textContent = 'نتائج البحث: ' + shown + ' / ' + rows.length;
+        }else{
+          meta.textContent = '';
+        }
+      }
+    }
+
+    input.addEventListener('input', apply);
+    apply();
+  })();
+</script>
 {% endblock %}

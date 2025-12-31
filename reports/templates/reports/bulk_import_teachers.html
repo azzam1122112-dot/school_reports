@@ -1,61 +1,339 @@
+{# reports/templates/reports/teachers_import.html #}
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}استيراد معلمين{% endblock %}
+
+{% block head %}
+<style>
+  /* صفحة الاستيراد فقط — بدون لمس .btn / .card العامة */
+  .imp-wrap{
+    --t: var(--t-fast);
+    --r: 18px;
+    --shadow: 0 18px 50px rgba(2,6,23,.10);
+  }
+
+  .imp-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom: 14px;
+  }
+
+  .imp-title{
+    margin:0;
+    font-weight: 950;
+    color: var(--ink);
+    letter-spacing: -.3px;
+    line-height:1.2;
+    font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  }
+  .imp-sub{
+    margin: 8px 0 0;
+    font-weight: 850;
+    color: var(--muted);
+    line-height:1.7;
+  }
+
+  .imp-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius: var(--r);
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(900px 420px at 10% 0%, rgba(37,99,235,.14), transparent 55%),
+      radial-gradient(800px 420px at 95% 85%, rgba(16,185,129,.10), transparent 55%),
+      linear-gradient(180deg, var(--line-2), var(--card));
+    box-shadow: var(--shadow);
+    padding: clamp(14px, 2.4vw, 18px);
+  }
+  html[data-theme="dark"] .imp-hero{
+    background:
+      radial-gradient(900px 420px at 10% 0%, rgba(37,99,235,.18), transparent 55%),
+      radial-gradient(800px 420px at 95% 85%, rgba(16,185,129,.12), transparent 55%),
+      linear-gradient(180deg, #0f1629, #0b1220);
+    border-color: #1b2744;
+  }
+
+  .imp-grid{
+    display:grid;
+    gap:14px;
+    margin-top: 14px;
+  }
+  @media(min-width: 980px){
+    .imp-grid{ grid-template-columns: 1.1fr .9fr; align-items:start; }
+  }
+
+  .imp-box h3{
+    margin:0 0 10px;
+    font-weight:950;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    color: var(--ink);
+  }
+
+  .imp-list{
+    margin:0;
+    padding: 0 18px 0 0;
+    color: var(--muted);
+    font-weight: 850;
+    line-height:1.9;
+  }
+  .imp-list li{ margin: 6px 0; }
+  .imp-list ol{
+    margin: 8px 0 0;
+    padding: 0 18px 0 0;
+  }
+
+  .imp-note{
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--card), var(--line-2));
+    color: var(--muted);
+    font-weight: 850;
+    line-height:1.8;
+  }
+
+  .file-card{
+    border-radius: 18px;
+    border: 1px dashed var(--line);
+    background: linear-gradient(180deg, var(--card), var(--line-2));
+    padding: 14px;
+  }
+  .file-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .file-name{
+    font-weight: 950;
+    color: var(--ink);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .file-hint{
+    margin-top: 8px;
+    color: var(--muted);
+    font-weight: 850;
+    line-height:1.7;
+    font-size: .95rem;
+  }
+
+  .imp-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top: 12px;
+  }
+
+  .imp-alert{
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    padding: 14px;
+  }
+  .imp-alert .row{
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .imp-alert .ic{
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    display:grid;
+    place-items:center;
+    border: 1px solid rgba(37,99,235,.22);
+    background: rgba(37,99,235,.10);
+    color: rgba(37,99,235,.95);
+  }
+  .imp-alert h4{
+    margin:0;
+    font-weight:950;
+    color: var(--ink);
+  }
+  .imp-alert p{
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-weight: 850;
+    line-height: 1.8;
+  }
+
+  .imp-bad{
+    display:none;
+    margin-top: 10px;
+    border-radius: 16px;
+    border: 1px solid rgba(239,68,68,.25);
+    background: rgba(239,68,68,.08);
+    color: var(--ink);
+    font-weight: 900;
+    padding: 10px 12px;
+    line-height: 1.8;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .imp-wrap *{ transition:none !important; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4 mb-0">استيراد معلمين من ملف Excel</h2>
-        <a href="{% url 'reports:manage_teachers' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-right me-1"></i> عودة لإدارة المعلمين
-        </a>
+<div class="imp-wrap">
+  <div class="imp-header">
+    <div>
+      <h1 class="imp-title">استيراد معلمين من ملف Excel</h1>
+      <p class="imp-sub">ارفع ملف <b>.xlsx</b> لاستيراد المعلمين وربطهم بمدرستك بشكل سريع.</p>
     </div>
 
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body p-4">
-            <h5 class="card-title mb-3">تعليمات الاستيراد</h5>
-            <ul class="text-muted small">
-                <li>يجب أن يكون الملف بصيغة <strong>.xlsx</strong> (Excel).</li>
-                <li>يجب أن يحتوي الصف الأول على عناوين الأعمدة (سيتم تجاهله).</li>
-                <li>ترتيب الأعمدة المطلوب:
-                    <ol class="mt-2">
-                        <li><strong>الاسم الكامل</strong> (مطلوب)</li>
-                        <li><strong>رقم الجوال</strong> (مطلوب - سيستخدم كاسم مستخدم وكلمة مرور افتراضية)</li>
-                        <li><strong>رقم الهوية</strong> (اختياري)</li>
-                        <li><strong>التخصص</strong> (اختياري)</li>
-                    </ol>
-                </li>
-                <li>إذا كان المعلم مسجلاً مسبقاً في النظام برقم الجوال، سيتم ربطه بمدرستك فقط دون تغيير بياناته.</li>
-            </ul>
-            
-            <hr>
+    <a href="{% url 'reports:manage_teachers' %}" class="btn btn-ghost">
+      <i class="fa-solid fa-arrow-right"></i> عودة لإدارة المعلمين
+    </a>
+  </div>
 
-            <form method="post" enctype="multipart/form-data" class="mt-4">
-                {% csrf_token %}
-                <div class="mb-4">
-                    <label for="excel_file" class="form-label fw-bold">اختر ملف Excel</label>
-                    <input type="file" name="excel_file" id="excel_file" class="form-control form-control-lg" accept=".xlsx" required>
-                    <div class="form-text">تأكد من مطابقة الملف للتعليمات أعلاه.</div>
-                </div>
+  <section class="imp-hero" aria-label="منطقة الاستيراد">
+    <div class="imp-grid">
+      <!-- Instructions -->
+      <div class="card imp-box">
+        <h3><i class="fa-solid fa-circle-info" style="opacity:.85"></i> تعليمات الاستيراد</h3>
 
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="fas fa-upload me-2"></i> بدء الاستيراد الآن
-                    </button>
-                </div>
-            </form>
+        <ul class="imp-list">
+          <li>الملف يجب أن يكون بصيغة <b>.xlsx</b> فقط.</li>
+          <li>الصف الأول عناوين أعمدة (سيتم تجاهله).</li>
+          <li>
+            ترتيب الأعمدة المطلوب:
+            <ol>
+              <li><b>الاسم الكامل</b> (مطلوب)</li>
+              <li><b>رقم الجوال</b> (مطلوب — يُستخدم كاسم مستخدم وكلمة مرور افتراضية حسب إعدادات النظام)</li>
+              <li><b>رقم الهوية</b> (اختياري)</li>
+              <li><b>التخصص</b> (اختياري)</li>
+            </ol>
+          </li>
+          <li>إذا كان المعلم مسجلاً مسبقاً برقم الجوال، سيتم ربطه بمدرستك فقط دون تغيير بياناته.</li>
+        </ul>
+
+        <div class="imp-note">
+          <b>ملاحظة أمنية:</b> في حال كانت كلمة المرور الافتراضية = رقم الجوال، يُفضّل تنبيه المعلمين لتغييرها بعد أول تسجيل دخول.
         </div>
+      </div>
+
+      <!-- Upload -->
+      <div class="card imp-box">
+        <h3><i class="fa-solid fa-file-arrow-up" style="opacity:.85"></i> رفع ملف الاستيراد</h3>
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          <div class="file-card">
+            <div class="file-row">
+              <div class="file-name">
+                <i class="fa-solid fa-file-excel" style="opacity:.85"></i>
+                <span id="excelFileName">لم يتم اختيار ملف بعد</span>
+              </div>
+
+              <label class="btn btn-primary" for="excel_file" style="cursor:pointer">
+                <i class="fa-solid fa-folder-open"></i> اختيار ملف
+              </label>
+            </div>
+
+            <input
+              type="file"
+              name="excel_file"
+              id="excel_file"
+              accept=".xlsx"
+              required
+              style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;"
+            >
+
+            <div class="file-hint">
+              تأكد أن الملف مطابق للتعليمات أعلاه. (سيتم رفض أي امتداد غير <b>.xlsx</b>)
+            </div>
+
+            <div class="imp-bad" id="excelBad">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              الملف غير صالح. الرجاء اختيار ملف <b>.xlsx</b>.
+            </div>
+          </div>
+
+          <div class="imp-actions">
+            <button type="submit" class="btn btn-primary" id="importBtn">
+              <i class="fa-solid fa-upload"></i> بدء الاستيراد الآن
+            </button>
+
+            <a href="{% url 'reports:manage_teachers' %}" class="btn">
+              <i class="fa-solid fa-users-gear"></i> إدارة المعلمين
+            </a>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <div class="alert alert-info border-0 shadow-sm">
-        <div class="d-flex">
-            <div class="me-3">
-                <i class="fas fa-info-circle fa-2x"></i>
-            </div>
-            <div>
-                <h6 class="alert-heading fw-bold">نصيحة تقنية</h6>
-                <p class="mb-0 small">استخدام الاستيراد الجماعي يوفر عليك الوقت عند إعداد المدرسة لأول مرة أو عند بداية العام الدراسي الجديد.</p>
-            </div>
+    <div class="imp-alert" style="margin-top:14px;">
+      <div class="row">
+        <div class="ic" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></div>
+        <div>
+          <h4>نصيحة تقنية</h4>
+          <p>الاستيراد الجماعي يوفّر وقتًا كبيرًا عند إعداد المدرسة لأول مرة أو بداية العام الدراسي الجديد.</p>
         </div>
+      </div>
     </div>
+  </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function(){
+    var input = document.getElementById('excel_file');
+    var nameEl = document.getElementById('excelFileName');
+    var badEl = document.getElementById('excelBad');
+    var btn = document.getElementById('importBtn');
+
+    if(!input || !nameEl) return;
+
+    function isXlsx(fileName){
+      if(!fileName) return false;
+      return fileName.toLowerCase().endsWith('.xlsx');
+    }
+
+    function setBad(isBad){
+      if(!badEl) return;
+      badEl.style.display = isBad ? 'block' : 'none';
+      if(btn) btn.disabled = isBad;
+    }
+
+    input.addEventListener('change', function(){
+      var file = input.files && input.files[0] ? input.files[0] : null;
+      var fileName = file ? file.name : '';
+
+      nameEl.textContent = fileName || 'لم يتم اختيار ملف بعد';
+
+      if(fileName && !isXlsx(fileName)){
+        setBad(true);
+        return;
+      }
+      setBad(false);
+    });
+
+    // حماية إضافية قبل الإرسال
+    var form = input.closest('form');
+    if(form){
+      form.addEventListener('submit', function(ev){
+        var file = input.files && input.files[0] ? input.files[0] : null;
+        var fileName = file ? file.name : '';
+        if(!fileName || !isXlsx(fileName)){
+          ev.preventDefault();
+          setBad(true);
+        }
+      });
+    }
+  })();
+</script>
 {% endblock %}

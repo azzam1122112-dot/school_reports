@@ -7,14 +7,31 @@
   <meta name="theme-color" content="#2563eb" />
   <meta name="color-scheme" content="light dark" />
 
-  <!-- PWA Meta Tags -->
+  <!-- Favicon (مهم لتفادي طلب /favicon.ico الافتراضي) -->
+  <link rel="icon" href="{% static 'img/logo1.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
+
+  <!-- PWA -->
   <link rel="manifest" href="{% static 'manifest.json' %}">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="توثيق">
-  <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
 
   <title>{% block title %}نظام التقارير{% endblock %}</title>
+
+  <!-- Theme: apply BEFORE CSS to avoid flash -->
+  <script nonce="{{ CSP_NONCE }}">
+    (function(){
+      try{
+        var m = document.cookie.match(/(?:^|; )theme=([^;]+)/);
+        var theme = m ? decodeURIComponent(m[1]) : '';
+        if(theme === 'dark' || theme === 'light'){
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.style.colorScheme = theme;
+        }
+      }catch(e){}
+    })();
+  </script>
 
   <!-- Performance -->
   <link rel="preload" href="{% static 'css/app.css' %}" as="style">
@@ -25,496 +42,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;800;900&display=swap" rel="stylesheet">
 
-  <!-- Icons (يفضّل لاحقاً استضافتها محلياً) -->
+  <!-- Icons (ممتاز الآن، والأفضل لاحقًا نقلها محليًا) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" referrerpolicy="no-referrer" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/v4-shims.min.css" referrerpolicy="no-referrer" crossorigin="anonymous">
-
-  <!-- Minimal base-only helpers (لا تعيد تعريف نظام التصميم الموجود في app.css) -->
-  <style>
-    /* Prevent horizontal overflow and fix mobile layout */
-    html, body {
-      overflow-x: hidden;
-      width: 100%;
-      position: relative;
-    }
-
-    /* Skip link */
-    .skip-link{
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 9999;
-      background: var(--card);
-      border: 1px solid var(--line-2);
-      border-radius: 14px;
-      padding: 10px 12px;
-      font-weight: 950;
-      text-decoration: none;
-      transform: translateY(-140%);
-      box-shadow: var(--shadow-lg);
-    }
-    .skip-link:focus{transform:none}
-
-    /* Progress bar */
-    .progress-bar{
-      position: fixed;
-      top: 0;
-      right: 0;
-      height: 3px;
-      width: 0;
-      background: linear-gradient(90deg, var(--brand), var(--accent));
-      z-index: 9999;
-      transition: width .2s ease;
-    }
-
-    /* Header shell */
-    .site-header{
-      background: rgba(255,255,255,.86);
-      border-bottom: 1px solid var(--line-2);
-      position: sticky;
-      top: 0;
-      z-index: var(--z-header);
-      backdrop-filter: blur(10px) saturate(180%);
-      transition: box-shadow .2s ease, background .2s ease, border-color .2s ease;
-    }
-    html[data-theme="dark"] .site-header{background: rgba(10,16,32,.70)}
-    .site-header.scrolled{box-shadow: var(--shadow);}
-
-    .hdr{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-height: 72px;
-      padding: 10px 0;
-    }
-
-    /* Brand */
-    .hdr-brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      text-decoration:none;
-      color: var(--ink);
-      min-width: 220px;
-    }
-    .hdr-brand img{
-      width:42px;height:42px;
-      border-radius: 14px;
-      border: 1px solid var(--line-2);
-      background: rgba(255,255,255,.65);
-      object-fit: contain;
-    }
-    .hdr-brand-txt{display:grid;gap:2px;min-width:0}
-    .hdr-brand-name{font-weight:950;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .hdr-brand-sub{font-weight:800;color:var(--muted);font-size:.88rem;white-space:nowrap}
-    @media(max-width:520px){.hdr-brand-sub{display:none}}
-
-    /* Desktop nav tabs */
-    .hdr-nav{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      margin-inline-start: 18px;
-      margin-inline-end: auto;
-      flex-wrap: wrap;
-    }
-    @media(max-width:1024px){.hdr-nav{display:none}}
-
-    .tab{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      min-height:44px;
-      padding: 0 14px;
-      border-radius: 999px;
-      text-decoration:none;
-      font-weight: 950;
-      color: var(--ink);
-      border: 1px solid transparent;
-      transition: background var(--t) var(--ease), transform var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
-    }
-    .tab:hover{background: var(--brand-ghost); color: var(--brand); transform: translateY(-1px)}
-    .tab.is-active{background: var(--brand-ghost); color: var(--brand-700); border-color: rgba(37,99,235,.18)}
-
-    .pill{
-      min-width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: var(--danger);
-      color:#fff;
-      display:inline-grid;
-      place-items:center;
-      font-size:.78rem;
-      padding: 0 7px;
-      font-weight: 950;
-    }
-
-    /* Right actions */
-    .hdr-actions{display:flex;align-items:center;gap:10px}
-
-    .icon-btn{
-      position:relative;
-      display:grid;
-      place-items:center;
-      width:44px;height:44px;
-      border-radius: 999px;
-      border: 1px solid var(--line-2);
-      background: var(--card);
-      color: var(--ink);
-      text-decoration:none;
-      transition: transform var(--t-fast) var(--ease), box-shadow var(--t) var(--ease), border-color var(--t) var(--ease);
-    }
-    .icon-btn:hover{transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: rgba(37,99,235,.18)}
-    .dot{
-      position:absolute;
-      top: 6px;
-      left: 6px;
-      min-width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      background: var(--danger);
-      color:#fff;
-      font-size:.72rem;
-      display:grid;
-      place-items:center;
-      padding: 0 5px;
-      font-weight: 950;
-    }
-
-    /* Hamburger */
-    .hamburger{
-      display:none;
-      width: var(--tap);
-      height: var(--tap);
-      border-radius: 14px;
-      border: 1px solid var(--line-2);
-      background: var(--card);
-      align-items:center;
-      justify-content:center;
-      gap:4px;
-      cursor:pointer;
-    }
-    .hamburger span{display:block;width:18px;height:2px;background:var(--ink);border-radius:2px;transition:all .18s ease;opacity:.9}
-    .hamburger.active span:nth-child(1){transform:translateY(4px) rotate(45deg)}
-    .hamburger.active span:nth-child(2){opacity:0}
-    .hamburger.active span:nth-child(3){transform:translateY(-4px) rotate(-45deg)}
-    @media(max-width:1024px){
-      .hamburger{display:flex}
-      .hdr-actions .icon-btn,
-      .hdr-actions #openSchoolModal { display: none; }
-    }
-
-    /* Drawer Actions */
-    .drawer-actions{
-      display: none;
-      padding: 16px;
-      gap: 12px;
-      justify-content: center;
-      border-bottom: 1px solid var(--line-2);
-      background: rgba(2,6,23,.02);
-    }
-    @media(max-width:1024px){
-      .drawer-actions{ display: flex; }
-    }
-
-    /* User menu */
-    .userbox{position:relative}
-    .avatar{
-      width:44px;height:44px;
-      border-radius:999px;
-      display:grid;
-      place-items:center;
-      font-weight: 950;
-      border: 1px solid rgba(37,99,235,.18);
-      background: var(--brand-ghost);
-      color: var(--brand-ink);
-      cursor:pointer;
-      transition: transform var(--t-fast) var(--ease);
-    }
-    .avatar:hover{transform: translateY(-1px)}
-    .menu{
-      position:absolute;
-      inset: calc(100% + 10px) 0 auto auto;
-      min-width: 230px;
-      background: var(--card);
-      border: 1px solid var(--line-2);
-      border-radius: 14px;
-      box-shadow: var(--shadow-lg);
-      padding: 8px;
-      opacity: 0;
-      transform: translateY(-6px) scale(.98);
-      pointer-events:none;
-      transition: all .18s ease;
-      z-index: var(--z-modal);
-    }
-    .menu.open{opacity:1;transform:none;pointer-events:auto}
-    .menu .mi{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding: 10px 12px;
-      border-radius: 12px;
-      color: var(--ink);
-      text-decoration:none;
-      font-weight: 900;
-    }
-    .menu .mi:hover{background: var(--line-2)}
-    .menu .meta{color: var(--muted); font-weight: 800; font-size: .9rem}
-
-    /* PWA install banner */
-    .pwa-banner{
-      position: fixed;
-      right: 14px;
-      left: 14px;
-      bottom: calc(14px + var(--safe-bottom));
-      z-index: var(--z-toast);
-      display: none;
-    }
-    .pwa-banner.open{display:block}
-    .pwa-card{
-      background: var(--card);
-      border: 1px solid var(--line-2);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg);
-      padding: 12px;
-      display:flex;
-      gap: 12px;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .pwa-text{min-width:0}
-    .pwa-title{font-weight:950;margin:0;color:var(--ink)}
-    .pwa-sub{margin:2px 0 0;color:var(--muted);font-weight:800;font-size:.92rem}
-    .pwa-actions{display:flex;gap:10px;align-items:center;flex:0 0 auto}
-    .pwa-btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      min-height:44px;
-      padding: 0 14px;
-      border-radius: 12px;
-      border: 1px solid transparent;
-      cursor:pointer;
-      font-weight:950;
-      text-decoration:none;
-      background: var(--brand);
-      color: #fff;
-    }
-    .pwa-btn:hover{filter:saturate(1.05) brightness(.98)}
-    .pwa-close{
-      width:44px;height:44px;
-      border-radius: 12px;
-      border: 1px solid var(--line-2);
-      background: var(--card);
-      color: var(--ink);
-      cursor:pointer;
-      display:grid;
-      place-items:center;
-    }
-    .pwa-close:hover{box-shadow: var(--shadow-sm)}
-
-    /* Drawer */
-    .drawer-overlay{
-      position: fixed;
-      inset: 0;
-      background: rgba(2,6,23,.45);
-      backdrop-filter: blur(6px);
-      z-index: calc(var(--z-header) + 1);
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity var(--t) var(--ease), visibility var(--t) var(--ease);
-    }
-    .drawer-overlay.show{opacity:1;visibility:visible}
-
-    .drawer{
-      position: fixed;
-      top: 0;
-      right: 0;
-      left: auto !important;
-      bottom: 0;
-      width: min(340px, 88vw);
-      background: var(--card);
-      border-left: 1px solid var(--line-2);
-      z-index: calc(var(--z-header) + 100);
-      transform: translateX(100%);
-      visibility: hidden;
-      transition: transform .3s var(--ease), visibility 0s .3s;
-      display:flex;
-      flex-direction:column;
-      overflow:auto;
-      padding-bottom: var(--safe-bottom);
-    }
-    /* RTL fix: ensure drawer hides to the right */
-    html[dir="rtl"] .drawer {
-      transform: translateX(100%);
-      right: 0;
-      left: auto !important;
-    }
-    html[dir="rtl"] .drawer.open {
-      transform: translateX(0);
-    }
-    .drawer.open{
-      transform: translateX(0);
-      visibility: visible;
-      transition: transform .3s var(--ease), visibility 0s 0s;
-    }
-    .drawer-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 12px;
-      border-bottom: 1px solid var(--line-2);
-    }
-    .drawer-title{font-weight:950}
-    .drawer-nav{display:grid;padding:12px;gap:10px}
-    .drawer-nav a{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 12px;
-      border: 1px solid var(--line-2);
-      border-radius: 14px;
-      text-decoration:none;
-      font-weight: 950;
-      background: rgba(2,6,23,.01);
-      transition: background var(--t) var(--ease), transform var(--t-fast) var(--ease), border-color var(--t) var(--ease);
-    }
-    .drawer-nav a:hover{background: rgba(37,99,235,.06); transform: translateY(-1px)}
-    .drawer-nav a.is-active{border-color: rgba(37,99,235,.22); background: var(--brand-ghost); color: var(--brand-700)}
-    .drawer-footer{margin-top:auto;padding:12px;border-top:1px solid var(--line-2);display:grid;gap:10px}
-
-    /* Subscription banner */
-    .sub-banner{
-      border-bottom: 1px solid rgba(245,158,11,.28);
-      background: rgba(255,251,235,.94);
-      color: #7c2d12;
-      padding: 12px 0;
-      font-weight: 950;
-    }
-    html[data-theme="dark"] .sub-banner{
-      background: rgba(124,45,18,.22);
-      color: #fde68a;
-      border-bottom-color: rgba(245,158,11,.22);
-    }
-    .sub-banner a{font-weight:950; text-decoration: underline; margin-inline-start: 8px}
-
-    /* Messages container keeps your .msg styles in app.css */
-    .messages{
-      position: fixed;
-      top: calc(var(--safe-top) + 78px);
-      right: clamp(10px,2vw,16px);
-      width: min(420px, calc(100vw - 20px));
-      z-index: var(--z-toast);
-      display:grid;
-      gap:10px;
-      margin:0;
-      pointer-events:none;
-    }
-    .messages .msg{pointer-events:auto; position:relative}
-    .msg-close{
-      position:absolute;
-      top: 8px;
-      left: 8px;
-      background: transparent;
-      border: 0;
-      cursor: pointer;
-      opacity: .75;
-      padding: 0;
-      color: inherit;
-    }
-    .msg-close:hover{opacity:1}
-    .msg-progress{position:absolute;bottom:0;left:0;height:3px;width:100%;background:rgba(0,0,0,.08);overflow:hidden}
-    .msg-progress::after{
-      content:"";
-      position:absolute;bottom:0;left:0;height:3px;width:100%;
-      background: currentColor;
-      opacity:.25;
-      animation: progress 3.2s linear forwards;
-    }
-    @keyframes progress{from{transform:translateX(-100%)}to{transform:none}}
-
-    /* School modal (only minimal layout; details from app.css if you want later) */
-    .school-modal{
-      position: fixed;
-      inset: 0;
-      z-index: var(--z-modal);
-      display:none;
-      place-items:center;
-      padding: 12px;
-      background: rgba(2,6,23,.55);
-      backdrop-filter: blur(8px);
-    }
-    .school-modal.open{display:grid}
-    .school-panel{
-      width: min(560px, 94vw);
-      max-height: min(80vh, 720px);
-      background: var(--card);
-      border: 1px solid var(--line-2);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-lg);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      transform: scale(.98) translateY(10px);
-      transition: transform .2s var(--ease);
-    }
-    .school-modal.open .school-panel{transform:none}
-    .school-panel-h{
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line-2);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .school-panel-h b{font-weight:950}
-    .school-panel-close{
-      width:44px;height:44px;
-      border-radius:999px;
-      border: 1px solid var(--line-2);
-      background: var(--card);
-      cursor:pointer;
-    }
-    .school-panel-b{padding: 14px 16px; display:grid; gap:12px; overflow:auto}
-    .school-search{min-height:48px}
-    .school-list{margin:0;padding:0;list-style:none;display:grid;gap:10px}
-    .school-item{
-      width:100%;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      border: 1px solid var(--line-2);
-      border-radius: 14px;
-      background: rgba(2,6,23,.01);
-      padding: 12px 14px;
-      cursor:pointer;
-      font-weight: 950;
-      text-align:right;
-      transition: transform var(--t-fast) var(--ease), box-shadow var(--t) var(--ease), border-color var(--t) var(--ease);
-    }
-    .school-item:hover{transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: rgba(37,99,235,.18)}
-    .school-item.current-school{opacity:.75; cursor:not-allowed}
-    .school-item-text{display:grid;gap:2px;min-width:0}
-    .school-item-text b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .school-item small{color: var(--muted); font-weight: 800; font-size: .85rem}
-    .school-item .tag{
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--line-2);
-      background: rgba(148,163,184,.14);
-      font-size: .8rem;
-      font-weight: 950;
-      white-space: nowrap;
-      min-width: 66px;
-      text-align:center;
-    }
-
-    /* To top button uses app.css styles if present */
-  </style>
 
   {% block head %}{% endblock %}
 </head>
@@ -532,6 +62,8 @@
 
   <a class="skip-link" href="#mainContent">تخطي إلى المحتوى</a>
   <div class="progress-bar" id="scrollProgress"></div>
+
+  <form id="__csrf" hidden aria-hidden="true">{% csrf_token %}</form>
 
   <header class="site-header" id="siteHeader">
     <div class="container hdr">
@@ -623,6 +155,19 @@
                   <div class="meta">مرحباً 👋</div>
                 </div>
               </div>
+
+              {% if request.user.is_superuser or SHOW_ADMIN_DASHBOARD_LINK %}
+                <a href="{% url 'reports:achievement_school_files' %}" class="mi" role="menuitem">
+                  <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                  ملفات الإنجاز
+                </a>
+              {% else %}
+                <a href="{% url 'reports:achievement_my_files' %}" class="mi" role="menuitem">
+                  <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                  ملف الإنجاز
+                </a>
+              {% endif %}
+
               <a href="{% url 'reports:logout' %}" class="mi" role="menuitem">تسجيل الخروج</a>
             </div>
           </div>
@@ -703,6 +248,18 @@
           {% endif %}
         {% endif %}
 
+        {% if request.user.is_superuser or SHOW_ADMIN_DASHBOARD_LINK %}
+          <a class="{% if active == 'achievement_school_files' or active == 'achievement_school_teachers' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">
+            <span>ملفات الإنجاز</span>
+            <i class="fa-solid fa-file-lines"></i>
+          </a>
+        {% else %}
+          <a class="{% if active == 'achievement_my_files' %}is-active{% endif %}" href="{% url 'reports:achievement_my_files' %}">
+            <span>ملف الإنجاز</span>
+            <i class="fa-solid fa-file-lines"></i>
+          </a>
+        {% endif %}
+
         <div class="drawer-footer">
           {% if USER_SCHOOLS|length > 1 %}
             <button type="button" class="btn btn-primary btn-block" id="openSchoolModalMobile">
@@ -748,7 +305,7 @@
             <div style="font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
               {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}
             </div>
-            <div class="muted" style="font-weight:800;font-size:.92rem">إدارة التقارير والتذاكر — تجربة عربية احترافية</div>
+            <div class="muted" style="font-weight:800;font-size:.92rem">نظام إدارة التقارير والتذاكر المدرسية</div>
           </div>
         </div>
 
@@ -832,14 +389,7 @@
     {% endif %}
   {% endif %}
 
-  <script>
-    // Apply extra bottom spacing only when optional bottom nav exists
-    (function(){
-      if (document.querySelector('.bottom-nav')) {
-        document.body.classList.add('has-bottom-nav');
-      }
-    })();
-
+  <script nonce="{{ CSP_NONCE }}">
     // ===== Cookies (SameSite=Lax + Secure on https) =====
     (function(){
       window.getCookie = function(name){
@@ -898,7 +448,6 @@
       const apply = (theme)=>{
         root.setAttribute('data-theme', theme);
         window.setCookie('theme', theme, 365);
-        // تحديث الأيقونة لجميع الأزرار
         btns.forEach(btn => {
           const icon = btn.querySelector('i');
           if(icon){
@@ -911,7 +460,6 @@
       if(saved === 'dark' || saved === 'light'){
         apply(saved);
       }else{
-        // افتراضي: اتبع النظام (لكن نخزن أول مرة عند التبديل فقط)
         if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
           root.setAttribute('data-theme', 'dark');
           btns.forEach(btn => {
@@ -944,7 +492,7 @@
       onScroll();
     })();
 
-    // ===== Toasts (pause on hover) =====
+    // ===== Toasts =====
     (function(){
       const container = document.getElementById('messages-container');
       if(!container) return;
@@ -985,7 +533,6 @@
         drawer.setAttribute('aria-hidden','false');
         window.__lockScroll(true);
         window.__trapFocus(drawer, true);
-
         const first = drawer.querySelector('a, button');
         if(first) first.focus();
       };
@@ -1103,7 +650,7 @@
     })();
   </script>
 
-  <!-- PWA Install Banner (shown only when eligible or on iOS) -->
+  <!-- PWA Install Banner -->
   <div id="pwaInstallBanner" class="pwa-banner" role="region" aria-label="تثبيت التطبيق">
     <div class="pwa-card">
       <div class="pwa-text">
@@ -1119,18 +666,15 @@
     </div>
   </div>
 
-  <script>
-    // PWA Service Worker Registration
+  <script nonce="{{ CSP_NONCE }}">
+    // Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        // Register from root so the SW can control the whole site.
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('Service Worker registered'))
-          .catch(err => console.error('Service Worker registration failed:', err));
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
       });
     }
 
-    // PWA Install Prompt (Chrome/Edge/Android) + iOS guidance
+    // PWA Install Prompt + iOS guidance
     (function(){
       const banner = document.getElementById('pwaInstallBanner');
       const btn = document.getElementById('pwaInstallBtn');
@@ -1144,9 +688,7 @@
       const isSafari = isIOS && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
       const iosStandalone = Boolean(window.navigator.standalone);
 
-      try {
-        if (localStorage.getItem(dismissedKey) === '1') return;
-      } catch (e) {}
+      try { if (localStorage.getItem(dismissedKey) === '1') return; } catch (e) {}
       if (isStandalone || iosStandalone) return;
 
       function openBanner(){ banner.classList.add('open'); }
@@ -1159,7 +701,6 @@
 
       let deferredPrompt = null;
       window.addEventListener('beforeinstallprompt', (e) => {
-        // Save the event for triggering on user gesture.
         e.preventDefault();
         deferredPrompt = e;
         btn.style.display = '';
@@ -1170,19 +711,12 @@
       btn.addEventListener('click', async () => {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
-        try {
-          await deferredPrompt.userChoice;
-        } finally {
-          deferredPrompt = null;
-          closeBanner();
-        }
+        try { await deferredPrompt.userChoice; }
+        finally { deferredPrompt = null; closeBanner(); }
       });
 
-      window.addEventListener('appinstalled', () => {
-        closeBanner();
-      });
+      window.addEventListener('appinstalled', closeBanner);
 
-      // iOS: no beforeinstallprompt, show guidance on Safari.
       if (isSafari) {
         hint.textContent = 'على iPhone: من زر المشاركة ثم "إضافة إلى الشاشة الرئيسية".';
         btn.style.display = 'none';
@@ -1190,7 +724,7 @@
       }
     })();
 
-    // Notification Polling
+    // Notification polling
     (function() {
       const notifDot = document.getElementById('notifDot');
       const notifDotMobile = document.getElementById('notifDotMobile');
@@ -1198,24 +732,19 @@
 
       function checkNotifications() {
         fetch('{% url "reports:unread_notifications_count" %}')
-          .then(response => response.json())
+          .then(r => r.json())
           .then(data => {
-            const updateDot = (dot) => {
+            const update = (dot) => {
               if (!dot) return;
-              if (data.count > 0) {
-                dot.textContent = data.count;
-                dot.style.display = 'flex';
-              } else {
-                dot.style.display = 'none';
-              }
+              if (data.count > 0) { dot.textContent = data.count; dot.style.display = 'flex'; }
+              else { dot.style.display = 'none'; }
             };
-            updateDot(notifDot);
-            updateDot(notifDotMobile);
+            update(notifDot);
+            update(notifDotMobile);
           })
-          .catch(err => console.error('Error fetching notifications:', err));
+          .catch(() => {});
       }
 
-      // Check every 60 seconds
       setInterval(checkNotifications, 60000);
     })();
   </script>

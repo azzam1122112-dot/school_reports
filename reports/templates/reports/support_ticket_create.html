@@ -1,78 +1,318 @@
+{# reports/templates/reports/ticket_create.html (مثال) #}
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}طلب دعم فني جديد{% endblock %}
 
 {% block head %}
 <style>
-  .ticket-page{max-width:800px;margin:0 auto;padding:20px}
-  .ticket-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;box-shadow:0 4px 12px rgba(0,0,0,0.05)}
-  .form-group{margin-bottom:16px}
-  .form-group label{display:block;font-weight:900;margin-bottom:8px;color:#374151}
-  .form-control{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:1rem}
-  .form-control:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
-  .btn-submit{background:#2563eb;color:#fff;padding:12px 24px;border:none;border-radius:8px;font-weight:900;cursor:pointer;width:100%}
-  .btn-submit:hover{background:#1d4ed8}
-  .btn-submit:disabled{opacity:.75;cursor:not-allowed}
-  .err{color:#dc2626;font-size:0.9em;margin-top:6px;font-weight:800}
-  .alert{background:#fee2e2;color:#b91c1c;padding:12px;border-radius:10px;margin-bottom:18px;font-weight:900}
+  /* =========================================================
+     Ticket Create (page-only polish) — بدون لمس .btn / .card العامة
+     - RTL
+     - متوافق مع theme variables في base/app.css قدر الإمكان
+     ========================================================= */
+
+  .ticket-wrap{
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 16px;
+    --t: var(--t-fast);
+  }
+
+  .ticket-hero{
+    border-radius: 18px;
+    padding: 16px 16px;
+    background:
+      radial-gradient(800px 220px at 10% 0%, rgba(255,255,255,.18), transparent 60%),
+      radial-gradient(800px 260px at 95% 90%, rgba(16,185,129,.12), transparent 55%),
+      linear-gradient(135deg, #2563eb 0%, #1e40af 55%, #0f2a6a 100%);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 18px 50px rgba(2,6,23,.10);
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ticket-hero::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(closest-side, rgba(255,255,255,.14), transparent 60%) 20% 15%/220px 220px no-repeat,
+      radial-gradient(closest-side, rgba(255,255,255,.10), transparent 60%) 85% 70%/260px 260px no-repeat;
+    opacity:.85;
+    pointer-events:none;
+  }
+  .ticket-hero-inner{
+    position: relative;
+    display:flex;
+    align-items:flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .ticket-hero h1{
+    margin: 0;
+    font-weight: 950;
+    letter-spacing: -.4px;
+    line-height: 1.2;
+    font-size: clamp(1.25rem, 2.8vw, 1.7rem);
+    color: #eef2ff;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+  .ticket-hero p{
+    margin: 8px 0 0;
+    color: rgba(255,255,255,.92);
+    font-weight: 850;
+    max-width: 760px;
+  }
+
+  /* Card */
+  .ticket-card{
+    border: 1px solid var(--line);
+    background: var(--card);
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(2,6,23,.06);
+    overflow: hidden;
+  }
+  .ticket-card-hd{
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .ticket-card-hd .hint{
+    color: var(--muted);
+    font-weight: 850;
+  }
+
+  .ticket-card-bd{
+    padding: 16px;
+  }
+
+  /* Alerts */
+  .t-alert{
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    padding: 12px 12px;
+    margin-bottom: 14px;
+    font-weight: 900;
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    color: var(--ink);
+  }
+  .t-alert.t-danger{
+    border-color: rgba(239,68,68,.30);
+    background: rgba(239,68,68,.08);
+    color: #b91c1c;
+  }
+
+  /* Form */
+  .t-form{
+    display:grid;
+    gap: 14px;
+  }
+  .t-group label{
+    display:block;
+    font-weight: 950;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+
+  /* ننسّق عناصر الفورم سواء كانت Django widgets أو inputs عادية */
+  .t-group input,
+  .t-group textarea,
+  .t-group select{
+    width:100%;
+    padding: 12px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    font-size: 1rem;
+    background: var(--card);
+    color: var(--ink);
+    transition: var(--t);
+  }
+  .t-group textarea{ min-height: 140px; resize: vertical; }
+
+  .t-group input:focus,
+  .t-group textarea:focus,
+  .t-group select:focus{
+    outline: none;
+    border-color: rgba(37,99,235,.55);
+    box-shadow: 0 0 0 4px rgba(37,99,235,.14);
+  }
+
+  /* File helper row */
+  .t-help{
+    margin-top: 6px;
+    font-weight: 850;
+    color: var(--muted);
+    font-size: .92rem;
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items:center;
+  }
+  .t-help .tag{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    background: var(--line-2);
+    color: var(--ink);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .85rem;
+  }
+
+  .t-err{
+    margin-top: 6px;
+    color: #dc2626;
+    font-weight: 900;
+    font-size: .92rem;
+  }
+
+  /* Actions */
+  .t-actions{
+    margin-top: 4px;
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items:center;
+    justify-content: flex-start;
+  }
+
+  .t-actions .btn{
+    min-height: 44px;
+    border-radius: 999px;
+    padding: 10px 16px;
+    transition: var(--t);
+  }
+
+  .t-submit{
+    width: 100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+  }
+  @media(min-width: 640px){
+    .t-submit{ width: auto; min-width: 220px; }
+  }
+
+  .t-actions .btn[disabled]{
+    opacity: .75;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .ticket-wrap *{ transition: none !important; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="ticket-page" dir="rtl">
+<div class="ticket-wrap" dir="rtl">
+  <section class="ticket-hero" aria-label="عنوان صفحة الدعم">
+    <div class="ticket-hero-inner">
+      <div>
+        <h1><span aria-hidden="true">🎧</span> طلب دعم فني للمنصة</h1>
+        <p>اكتب المشكلة بوضوح، وأرفق صورة إن لزم. سيصل الطلب للإدارة للمتابعة.</p>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-weight:900;opacity:.95">
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);white-space:nowrap">
+          <i class="fa-solid fa-user" style="opacity:.95"></i>
+          {{ request.user.name|default:"مستخدم" }}
+        </span>
+      </div>
+    </div>
+  </section>
+
   <div class="ticket-card">
-    <h1 style="margin-top:0;margin-bottom:14px;color:#111827;display:flex;align-items:center;gap:10px">
-      <span style="font-size:1.5em">🎧</span> طلب دعم فني للمنصة
-    </h1>
-    <p style="color:#6b7280;margin-bottom:24px;font-weight:700">
-      استخدم هذا النموذج للتواصل مع إدارة المنصة بخصوص المشاكل التقنية أو الاستفسارات العامة حول النظام.
-    </p>
-
-    <form method="post" enctype="multipart/form-data" id="supportForm" novalidate>
-      {% csrf_token %}
-
-      {% if form.non_field_errors %}
-        <div class="alert">{{ form.non_field_errors }}</div>
-      {% elif form.errors %}
-        <div class="alert">يرجى تصحيح الأخطاء أدناه.</div>
-      {% endif %}
-
-      <div class="form-group">
-        <label for="{{ form.title.id_for_label }}">عنوان الطلب</label>
-        {{ form.title }}
-        {% if form.title.errors %}<div class="err">{{ form.title.errors.0 }}</div>{% endif %}
+    <div class="ticket-card-hd">
+      <div style="font-weight:950;display:flex;gap:10px;align-items:center;">
+        <i class="fa-solid fa-life-ring" style="opacity:.9"></i>
+        <span>نموذج طلب الدعم</span>
       </div>
+      <div class="hint">الحقول بعلامة * إلزامية</div>
+    </div>
 
-      <div class="form-group">
-        <label for="{{ form.body.id_for_label }}">تفاصيل المشكلة</label>
-        {{ form.body }}
-        {% if form.body.errors %}<div class="err">{{ form.body.errors.0 }}</div>{% endif %}
-      </div>
+    <div class="ticket-card-bd">
+      <form method="post" enctype="multipart/form-data" id="supportForm" class="t-form" novalidate>
+        {% csrf_token %}
 
-      <div class="form-group">
-        <label for="{{ form.attachment.id_for_label }}">مرفق (اختياري)</label>
-        {# لو تقدر عدّل widget في الفورم أفضل، لكن هنا فالباك بسيط إن كان input file #}
-        {{ form.attachment }}
-        <div style="font-size:0.85em;color:#6b7280;margin-top:6px;font-weight:700">
-          يمكنك إرفاق صورة فقط (JPG أو PNG) لشرح المشكلة.
+        {% if form.non_field_errors %}
+          <div class="t-alert t-danger">{{ form.non_field_errors }}</div>
+        {% elif form.errors %}
+          <div class="t-alert t-danger">يرجى تصحيح الأخطاء أدناه.</div>
+        {% endif %}
+
+        <div class="t-group">
+          <label for="{{ form.title.id_for_label }}">عنوان الطلب *</label>
+          {{ form.title }}
+          {% if form.title.errors %}<div class="t-err">{{ form.title.errors.0 }}</div>{% endif %}
         </div>
-        {% if form.attachment.errors %}<div class="err">{{ form.attachment.errors.0 }}</div>{% endif %}
-      </div>
 
-      <button type="submit" class="btn-submit" id="submitBtn">إرسال الطلب</button>
-    </form>
+        <div class="t-group">
+          <label for="{{ form.body.id_for_label }}">تفاصيل المشكلة *</label>
+          {{ form.body }}
+          {% if form.body.errors %}<div class="t-err">{{ form.body.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="t-group">
+          <label for="{{ form.attachment.id_for_label }}">مرفق (اختياري)</label>
+          {{ form.attachment }}
+
+          <div class="t-help">
+            <span class="tag"><i class="fa-solid fa-image"></i> صور فقط</span>
+            <span>JPG / PNG — يفضّل أقل من 10MB</span>
+          </div>
+
+          {% if form.attachment.errors %}<div class="t-err">{{ form.attachment.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="t-actions">
+          <button type="submit" class="btn btn-primary t-submit" id="submitBtn">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>إرسال الطلب</span>
+          </button>
+
+          <a class="btn btn-ghost" href="{% url 'reports:my_requests' %}">
+            <i class="fa-solid fa-arrow-right"></i> رجوع لطلباتي
+          </a>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
+{% endblock %}
 
-<script>
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
   (function(){
-    const form = document.getElementById('supportForm');
-    const btn = document.getElementById('submitBtn');
+    var form = document.getElementById('supportForm');
+    var btn = document.getElementById('submitBtn');
     if(!form || !btn) return;
+
+    var fileInput = form.querySelector('input[type="file"]');
+    if(fileInput){
+      // تحسين بسيط: قبول الصور فقط على الجوال/سطح المكتب
+      try{ fileInput.setAttribute('accept','image/*'); }catch(e){ /* ignore */ }
+    }
 
     form.addEventListener('submit', function(){
       btn.disabled = true;
-      btn.textContent = 'جارٍ الإرسال…';
+      btn.setAttribute('aria-busy', 'true');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span> جارٍ الإرسال…</span>';
     });
   })();
 </script>

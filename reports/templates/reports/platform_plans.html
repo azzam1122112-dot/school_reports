@@ -1,10 +1,15 @@
+{# reports/templates/reports/platform/plans_list.html (مثال اسم) #}
 {% extends "base.html" %}
 
 {% block title %}خطط الاشتراك{% endblock %}
 
 {% block head %}
 <style>
-  /* ✅ Scoped فقط لهذه الصفحة */
+  /* =========================================================
+     PLANS (page-only) — Scoped داخل .plans-scope فقط
+     - بدون لمس .btn / .card العامة
+     - متوافق مع data-theme
+     ========================================================= */
   .plans-scope{
     --pl-brand: var(--brand, #2563eb);
     --pl-ink: var(--ink, #0f172a);
@@ -14,17 +19,37 @@
     --pl-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
     --pl-danger: var(--danger, #ef4444);
     --pl-ok: var(--accent, #10b981);
+    --pl-t: var(--t-fast, .18s ease);
   }
 
+  /* Head */
   .plans-scope .page-head{
+    display:flex;
     align-items:flex-start;
-    gap:10px;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom: 12px;
   }
+  .plans-scope .page-title{
+    margin:0;
+    font-weight:950;
+    color:var(--pl-ink);
+    letter-spacing:-.3px;
+  }
+  .plans-scope .page-subtitle{
+    margin:6px 0 0;
+    color:var(--pl-muted);
+    font-weight:850;
+    line-height:1.7;
+  }
+
   .plans-scope .head-actions{
     display:flex;
     gap:10px;
     flex-wrap:wrap;
     justify-content:flex-start;
+    align-items:center;
   }
   @media(max-width:560px){
     .plans-scope .head-actions{width:100%}
@@ -38,13 +63,19 @@
     gap:12px;
   }
 
-  /* Card */
+  /* Card (داخل الكارد العامة) */
   .plans-scope .p-card{
     position:relative;
     overflow:hidden;
     border-radius:16px;
     box-shadow: var(--pl-shadow);
     border:1px solid var(--pl-line);
+    background: var(--pl-card);
+    transition: var(--pl-t);
+  }
+  .plans-scope .p-card:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 18px 46px rgba(2,6,23,.12);
   }
   .plans-scope .p-card::before{
     content:"";
@@ -55,24 +86,36 @@
     opacity:.95;
   }
 
+  .plans-scope .p-body{
+    padding: 14px;
+  }
+
   .plans-scope .p-top{
     display:flex;
     align-items:flex-start;
     justify-content:space-between;
     gap:12px;
   }
+
   .plans-scope .p-name{
     margin:0;
     font-weight:950;
-    font-size:1.05rem;
+    font-size:1.06rem;
     color:var(--pl-ink);
   }
+
   .plans-scope .p-meta{
     margin-top:8px;
     display:grid;
-    gap:4px;
+    gap:6px;
     color:var(--pl-muted);
     font-weight:850;
+    line-height:1.55;
+  }
+
+  .plans-scope .p-meta b{
+    color:var(--pl-ink);
+    font-weight:950;
   }
 
   .plans-scope .price{
@@ -95,20 +138,27 @@
     color:var(--pl-muted);
     font-weight:850;
     min-height:44px;
-    line-height:1.7;
+    line-height:1.75;
   }
 
-  .plans-scope .p-actions{margin-top:14px; display:grid; gap:10px}
-  .plans-scope .btn-block{width:100%; justify-content:center}
+  .plans-scope .p-actions{
+    margin-top:14px;
+    display:grid;
+    gap:10px;
+  }
+  .plans-scope .btn-block{
+    width:100%;
+    justify-content:center;
+  }
 
-  /* Badge tweaks (لو ما كانت موجودة في app.css تظل آمنة) */
+  /* Badge (آمنة حتى لو ما عندك badge بالـapp.css) */
   .plans-scope .badge{
     display:inline-flex;
     align-items:center;
     gap:6px;
     padding:6px 10px;
     border-radius:999px;
-    border:1px solid rgba(15,23,42,.08);
+    border:1px solid rgba(15,23,42,.10);
     background: rgba(148,163,184,.10);
     color: var(--pl-ink);
     font-weight:900;
@@ -121,6 +171,20 @@
     border-color: rgba(16,185,129,.22);
   }
 
+  /* Footer small bar */
+  .plans-scope .p-foot{
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--pl-line);
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    color: var(--pl-muted);
+    font-weight:850;
+    font-size:.95rem;
+  }
+
   /* Empty */
   .plans-scope .empty{
     grid-column:1/-1;
@@ -128,6 +192,12 @@
     padding:22px;
     font-weight:900;
     color:var(--pl-muted);
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    .plans-scope .p-card{ transition:none !important; }
+    .plans-scope .p-card:hover{ transform:none !important; }
   }
 </style>
 {% endblock %}
@@ -145,6 +215,7 @@
         <i class="fa-solid fa-plus" aria-hidden="true"></i>
         إضافة خطة جديدة
       </a>
+
       <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
         عودة للوحة المنصة
@@ -155,52 +226,65 @@
   <div class="plans-grid">
     {% for plan in plans %}
       <div class="card p-card">
-        <div class="p-top">
-          <div>
-            <h3 class="p-name">{{ plan.name }}</h3>
+        <div class="p-body">
+          <div class="p-top">
+            <div>
+              <h3 class="p-name">{{ plan.name }}</h3>
 
-            <div class="p-meta">
-              <div>⏱️ المدة: <b style="color:var(--pl-ink)">{{ plan.days_duration }}</b> يوم</div>
-              <div>
-                👥 حد المعلمين:
-                {% if plan.max_teachers and plan.max_teachers > 0 %}
-                  <b style="color:var(--pl-ink)">{{ plan.max_teachers }}</b>
-                {% else %}
-                  <b style="color:var(--pl-ink)">غير محدود</b>
-                {% endif %}
+              <div class="p-meta">
+                <div>⏱️ المدة: <b>{{ plan.days_duration }}</b> يوم</div>
+                <div>
+                  👥 حد المعلمين:
+                  {% if plan.max_teachers and plan.max_teachers > 0 %}
+                    <b>{{ plan.max_teachers }}</b>
+                  {% else %}
+                    <b>غير محدود</b>
+                  {% endif %}
+                </div>
               </div>
             </div>
+
+            {% if plan.is_active %}
+              <span class="badge success">
+                <i class="fa-solid fa-circle-check" aria-hidden="true"></i> فعال
+              </span>
+            {% else %}
+              <span class="badge">
+                <i class="fa-regular fa-circle" aria-hidden="true"></i> غير فعال
+              </span>
+            {% endif %}
           </div>
 
-          {% if plan.is_active %}
-            <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> فعال</span>
-          {% else %}
-            <span class="badge"><i class="fa-regular fa-circle" aria-hidden="true"></i> غير فعال</span>
-          {% endif %}
-        </div>
+          <div class="price">
+            {{ plan.price }} <small>ريال</small>
+          </div>
 
-        <div class="price">
-          {{ plan.price }} <small>ريال</small>
-        </div>
+          <div class="desc">
+            {{ plan.description|default:"—"|truncatechars:120 }}
+          </div>
 
-        <div class="desc">
-          {{ plan.description|default:"—"|truncatechars:120 }}
-        </div>
+          <div class="p-actions">
+            <a href="{% url 'reports:platform_plan_edit' plan.id %}" class="btn btn-outline btn-block">
+              <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+              تعديل الخطة
+            </a>
 
-        <div class="p-actions">
-          <a href="{% url 'reports:platform_plan_edit' plan.id %}" class="btn btn-outline btn-block">
-            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-            تعديل الخطة
-          </a>
+            <form method="post" action="{% url 'reports:platform_plan_delete' plan.id %}" data-confirm="1">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-danger btn-block">
+                <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                حذف الخطة
+              </button>
+            </form>
+          </div>
 
-          <form method="post" action="{% url 'reports:platform_plan_delete' plan.id %}" data-confirm="1">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="btn btn-danger btn-block">
-              <i class="fa-solid fa-trash" aria-hidden="true"></i>
-              حذف الخطة
-            </button>
-          </form>
+          <div class="p-foot" aria-label="معلومات إضافية">
+            <span>المعرّف: <b style="color:var(--pl-ink)">{{ plan.id }}</b></span>
+            {% if plan.updated_at %}
+              <span>آخر تحديث: <span dir="ltr">{{ plan.updated_at|date:"Y-m-d H:i" }}</span></span>
+            {% endif %}
+          </div>
         </div>
       </div>
     {% empty %}
@@ -211,15 +295,21 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-  // تأكيد حذف بدون inline onclick (أنظف وأسهل صيانة)
-  document.addEventListener("DOMContentLoaded", function(){
-    document.querySelectorAll('form[data-confirm="1"]').forEach(function(f){
-      f.addEventListener("submit", function(e){
-        const ok = confirm("هل أنت متأكد من حذف هذه الخطة؟");
-        if(!ok) e.preventDefault();
+<script nonce="{{ CSP_NONCE }}">
+  (function(){
+    function onReady(fn){
+      if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
+      else fn();
+    }
+
+    onReady(function(){
+      document.querySelectorAll('form[data-confirm="1"]').forEach(function(f){
+        f.addEventListener("submit", function(e){
+          var ok = confirm("هل أنت متأكد من حذف هذه الخطة؟");
+          if(!ok) e.preventDefault();
+        });
       });
     });
-  });
+  })();
 </script>
 {% endblock %}

@@ -1,140 +1,247 @@
+{# reports/templates/reports/notification_detail.html #}
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}تفاصيل الإشعار{% endblock %}
 
 {% block head %}
 <style>
-  /* ===== Scoped: Notification Detail ===== */
+  /* =========================================================
+     Notification Detail (page-only, scoped)
+     - بدون إعادة تعريف .btn / .card العامة
+     - يدعم data-theme="dark"
+     ========================================================= */
+
   .nd-scope{
-    --ink: var(--ink, #0f172a);
-    --muted: var(--muted, #64748b);
-    --line: var(--line, #e5e7eb);
-    --card: var(--card, #ffffff);
-    --shadow: var(--shadow, 0 10px 26px rgba(2,6,23,.08));
-    --brand: var(--brand, #2563eb);
-    --brand-ghost: var(--brand-ghost, #eef2ff);
+    --nd-ink: var(--ink, #0f172a);
+    --nd-muted: var(--muted, #64748b);
+    --nd-line: var(--line, #e5e7eb);
+    --nd-card: var(--card, #ffffff);
+    --nd-soft: var(--line-2, #f1f5f9);
+    --nd-shadow: 0 12px 30px rgba(2,6,23,.08);
+    --nd-brand: var(--brand, #2563eb);
+    --nd-brand-ghost: rgba(37,99,235,.10);
+    --nd-danger: #ef4444;
+    --nd-t: var(--t-fast, .18s ease);
   }
 
-  .nd-scope .wrap{max-width:1100px;margin:0 auto;padding:18px}
-  .nd-scope .page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
-  .nd-scope .page-title{margin:0;font-weight:900;color:var(--ink)}
-  .nd-scope .hint{color:var(--muted);font-weight:800}
+  .nd-scope .nd-wrap{max-width:1100px;margin:0 auto;padding:18px}
 
-  .nd-scope .grid{display:grid;gap:18px}
-  @media(min-width:1000px){.nd-scope .grid{grid-template-columns:1.1fr .9fr}}
+  .nd-scope .nd-head{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    gap:12px;margin-bottom:14px;flex-wrap:wrap
+  }
+  .nd-scope .nd-title{margin:0;font-weight:950;color:var(--nd-ink)}
+  .nd-scope .nd-hint{color:var(--nd-muted);font-weight:850}
 
-  .nd-scope .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
-  .nd-scope .card-hd{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-  .nd-scope .card-bd{padding:16px}
+  .nd-scope .nd-grid{display:grid;gap:18px}
+  @media(min-width:1000px){.nd-scope .nd-grid{grid-template-columns:1.1fr .9fr}}
 
-  .nd-scope .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);background:#f8fbff;color:#0b1b3a;border-radius:999px;font-weight:900;font-size:.86rem}
-  .nd-scope .pill.important{background:#fff5f5;border-color:#ffe0e0;color:#b91c1c}
-  .nd-scope .pill.blue{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
-  .nd-scope .time{color:var(--muted);font-weight:900}
+  .nd-scope .nd-card{
+    background:var(--nd-card);
+    border:1px solid var(--nd-line);
+    border-radius:16px;
+    box-shadow:var(--nd-shadow);
+    overflow:hidden;
+  }
+  .nd-scope .nd-card-hd{
+    padding:14px 16px;border-bottom:1px solid var(--nd-line);
+    display:flex;align-items:center;justify-content:space-between;
+    gap:10px;flex-wrap:wrap;
+    background: linear-gradient(180deg, var(--nd-soft), var(--nd-card));
+  }
+  .nd-scope .nd-card-bd{padding:16px}
 
-  .nd-scope .body{
-    white-space:pre-wrap;
+  .nd-scope .nd-meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .nd-scope .nd-when{color:var(--nd-muted);font-weight:900}
+
+  .nd-scope .nd-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 10px;border:1px solid var(--nd-line);
+    background: var(--nd-soft);
+    color: var(--nd-ink);
+    border-radius:999px;font-weight:950;font-size:.86rem;
+    white-space:nowrap;
+  }
+  .nd-scope .nd-pill.important{background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.20); color: #b91c1c;}
+  .nd-scope .nd-pill.blue{background: var(--nd-brand-ghost); border-color: rgba(37,99,235,.20); color:#1e40af;}
+
+  .nd-scope .nd-body{
     line-height:1.95;
-    color:#334155;
-    font-weight:800;
-    background:linear-gradient(180deg,#ffffff,#fbfdff);
-    border:1px solid var(--line);
+    color: var(--nd-ink);
+    font-weight:850;
+    background: linear-gradient(180deg, var(--nd-card), rgba(248,250,252,.55));
+    border:1px solid var(--nd-line);
     border-radius:14px;
     padding:14px;
   }
 
-  .nd-scope .tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-  .nd-scope .btn{
-    padding:10px 12px;border-radius:12px;border:1px solid var(--line);
-    background:#fff;font-weight:900;text-decoration:none;color:#1e293b;
-    display:inline-flex;align-items:center;gap:8px;cursor:pointer;
-    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-  }
-  .nd-scope .btn:hover{transform:translateY(-1px);box-shadow:0 10px 20px rgba(2,6,23,.08);border-color:#c7d2fe}
-  .nd-scope .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-  .nd-scope .btn.danger{background:#fff0f0;border-color:#fecaca;color:#b91c1c}
+  .nd-scope .nd-tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 
-  .nd-scope .table-wrap{overflow:auto}
+  .nd-scope .nd-btn{
+    padding:10px 12px;border-radius:12px;border:1px solid var(--nd-line);
+    background: var(--nd-card);
+    font-weight:950;text-decoration:none;color:var(--nd-ink);
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+    transition: transform var(--nd-t), box-shadow var(--nd-t), border-color var(--nd-t), background var(--nd-t);
+    min-height:44px;
+  }
+  .nd-scope .nd-btn:hover{
+    transform:translateY(-1px);
+    box-shadow: 0 14px 26px rgba(2,6,23,.10);
+    border-color: rgba(37,99,235,.25);
+    background: rgba(248,250,252,.80);
+  }
+  .nd-scope .nd-btn.primary{
+    background: var(--nd-brand);
+    border-color: var(--nd-brand);
+    color:#fff;
+  }
+  .nd-scope .nd-btn.primary:hover{
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+  }
+  .nd-scope .nd-btn.danger{
+    background: rgba(239,68,68,.08);
+    border-color: rgba(239,68,68,.22);
+    color:#b91c1c;
+  }
+
+  .nd-scope .nd-table-wrap{overflow:auto}
   .nd-scope table{
     width:100%;
     border-collapse:separate;border-spacing:0;
-    border:1px solid var(--line);
+    border:1px solid var(--nd-line);
     border-radius:14px;
     overflow:hidden;
-    background:#fff;
+    background: var(--nd-card);
   }
   .nd-scope thead th{
-    background:#f8fbff;color:#0b1b3a;font-weight:900;
-    text-align:right;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap
+    background: linear-gradient(180deg, var(--nd-soft), var(--nd-card));
+    color: var(--nd-ink);
+    font-weight:950;
+    text-align:right;
+    padding:10px;
+    border-bottom:1px solid var(--nd-line);
+    white-space:nowrap;
   }
   .nd-scope tbody td{
-    padding:10px;border-bottom:1px solid var(--line);
-    color:#334155;font-weight:800;white-space:nowrap
+    padding:10px;
+    border-bottom:1px solid var(--nd-line);
+    color: var(--nd-ink);
+    font-weight:850;
+    white-space:nowrap;
   }
-  .nd-scope tbody tr:nth-child(even){background:#fafcff}
+  .nd-scope tbody tr:nth-child(even){background: rgba(248,250,252,.55);}
 
-  .nd-scope .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-weight:900;border:1px solid transparent}
-  .nd-scope .chip.read{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
-  .nd-scope .chip.unread{background:#f1f5f9;border-color:#e2e8f0;color:#334155}
+  .nd-scope .nd-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 10px;border-radius:999px;font-weight:950;
+    border:1px solid transparent;
+    white-space:nowrap;
+  }
+  .nd-scope .nd-chip.read{background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.22); color:#166534;}
+  .nd-scope .nd-chip.unread{background: rgba(100,116,139,.10); border-color: rgba(100,116,139,.18); color:#334155;}
 
-  .nd-scope .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-  .nd-scope .toolbar input[type="search"]{
-    border:1px solid var(--line);
+  .nd-scope .nd-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .nd-scope .nd-toolbar input[type="search"]{
+    border:1px solid var(--nd-line);
     border-radius:12px;
     padding:10px 12px;
     font:inherit;
     width:100%;
     min-height:44px;
-    background:#fff;
+    background: var(--nd-card);
+    color: var(--nd-ink);
+    font-weight:850;
+    outline: none;
   }
-  .nd-scope .toggle{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
-  .nd-scope .toggle button{
-    padding:10px 12px;border:0;background:#fff;font-weight:900;cursor:pointer;
+  .nd-scope .nd-toolbar input[type="search"]:focus{
+    border-color: rgba(37,99,235,.35);
+    box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+  }
+
+  .nd-scope .nd-toggle{
+    display:inline-flex;
+    border:1px solid var(--nd-line);
+    border-radius:12px;
+    overflow:hidden;
+    background: var(--nd-card);
+  }
+  .nd-scope .nd-toggle button{
+    padding:10px 12px;
+    border:0;
+    background: transparent;
+    font-weight:950;
+    cursor:pointer;
     min-height:44px;
+    color: var(--nd-ink);
+    transition: background var(--nd-t), color var(--nd-t);
   }
-  .nd-scope .toggle button.on{background:var(--brand-ghost);color:var(--brand)}
+  .nd-scope .nd-toggle button.on{
+    background: var(--nd-brand-ghost);
+    color: var(--nd-brand);
+  }
+
+  /* Dark tweaks (when base sets html[data-theme="dark"]) */
+  html[data-theme="dark"] .nd-scope{
+    --nd-shadow: 0 18px 46px rgba(0,0,0,.45);
+  }
+  html[data-theme="dark"] .nd-scope .nd-body{
+    background: linear-gradient(180deg, var(--nd-card), rgba(2,6,23,.25));
+  }
+  html[data-theme="dark"] .nd-scope tbody tr:nth-child(even){
+    background: rgba(2,6,23,.22);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .nd-scope .nd-btn{transition:none !important;}
+    .nd-scope .nd-btn:hover{transform:none !important;}
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="nd-scope">
-  <div class="wrap" dir="rtl">
-    <header class="page-head">
+  <div class="nd-wrap" dir="rtl">
+    <header class="nd-head">
       <div>
-        <h1 class="page-title">تفاصيل الإشعار</h1>
-        <div class="hint">عرض الرسالة + حالة وصولها للمستلمين</div>
+        <h1 class="nd-title">تفاصيل الإشعار</h1>
+        <div class="nd-hint">عرض الرسالة + حالة وصولها للمستلمين</div>
       </div>
-      <a class="btn" href="{% url 'reports:notifications_sent' %}">↩︎ رجوع إلى المرسلة</a>
+      <a class="nd-btn" href="{% url 'reports:notifications_sent' %}">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع إلى المرسلة
+      </a>
     </header>
 
-    <div class="grid">
+    <div class="nd-grid">
 
       <!-- بطاقة الإشعار -->
-      <section class="card" aria-label="الإشعار">
-        <div class="card-hd">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <strong style="font-weight:900">{{ n.title|default:"رسالة" }}</strong>
-            {% if n.is_important %}<span class="pill important">هام</span>{% endif %}
-            {% if n.is_broadcast %}<span class="pill blue">للجميع</span>{% endif %}
+      <section class="nd-card" aria-label="الإشعار">
+        <div class="nd-card-hd">
+          <div class="nd-meta-row">
+            <strong style="font-weight:950">{{ n.title|default:"رسالة" }}</strong>
+            {% if n.is_important %}<span class="nd-pill important">هام</span>{% endif %}
+            {% if n.is_broadcast %}<span class="nd-pill blue">للجميع</span>{% endif %}
           </div>
-          <div class="time">{{ n.created_at|date:"Y-m-d H:i" }}</div>
+          <div class="nd-when">{% if n.created_at %}{{ n.created_at|date:"Y-m-d H:i" }}{% endif %}</div>
         </div>
 
-        <div class="card-bd">
+        <div class="nd-card-bd">
           {% if body %}
-            <div class="body">{{ body|linebreaksbr }}</div>
+            <div class="nd-body">{{ body|linebreaksbr }}</div>
           {% else %}
-            <div class="hint">لا يوجد محتوى نصي.</div>
+            <div class="nd-hint">لا يوجد محتوى نصي.</div>
           {% endif %}
 
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-            {% if n.expires_at %}<span class="pill">ينتهي: {{ n.expires_at|date:"Y-m-d H:i" }}</span>{% endif %}
-            {% if n.created_by and n.created_by.name %}<span class="pill">المرسِل: {{ n.created_by.name }}</span>{% endif %}
+            {% if n.expires_at %}<span class="nd-pill">ينتهي: {{ n.expires_at|date:"Y-m-d H:i" }}</span>{% endif %}
+            {% if n.created_by and n.created_by.name %}<span class="nd-pill">المرسِل: {{ n.created_by.name }}</span>{% endif %}
           </div>
 
-          <div class="tools">
+          <div class="nd-tools">
             {% if n.action_url %}
-              <a class="btn primary" href="{{ n.action_url }}" rel="noopener">
+              <a class="nd-btn primary" href="{{ n.action_url }}" rel="noopener">
                 <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i> فتح الرابط
               </a>
             {% endif %}
@@ -142,7 +249,7 @@
             {% if n.id %}
               <form method="post" action="{% url 'reports:notification_delete' n.id %}" onsubmit="return confirm('حذف الإشعار نهائيًا؟');">
                 {% csrf_token %}
-                <button class="btn danger" type="submit">
+                <button class="nd-btn danger" type="submit">
                   <i class="fa-solid fa-trash" aria-hidden="true"></i> حذف
                 </button>
               </form>
@@ -152,24 +259,24 @@
       </section>
 
       <!-- بطاقة المستلمين -->
-      <aside class="card" aria-label="المستلمون">
-        <div class="card-hd">
-          <strong style="font-weight:900">المستلمون</strong>
-          <span class="hint">الاسم — الدور — الحالة</span>
+      <aside class="nd-card" aria-label="المستلمون">
+        <div class="nd-card-hd">
+          <strong style="font-weight:950">المستلمون</strong>
+          <span class="nd-hint">الاسم — الدور — الحالة</span>
         </div>
 
-        <div class="card-bd">
+        <div class="nd-card-bd">
           {% if recipients %}
-            <div class="toolbar">
-              <input type="search" id="recSearch" placeholder="ابحث بالاسم أو الدور…">
-              <div class="toggle" role="tablist" aria-label="تصفية">
-                <button id="toggleAll" class="on" type="button">الكل</button>
-                <button id="toggleUnread" type="button">غير المقروء فقط</button>
+            <div class="nd-toolbar">
+              <input type="search" id="recSearch" placeholder="ابحث بالاسم أو الدور…" aria-label="بحث بالمستلمين">
+              <div class="nd-toggle" role="tablist" aria-label="تصفية">
+                <button id="toggleAll" class="on" type="button" aria-pressed="true">الكل</button>
+                <button id="toggleUnread" type="button" aria-pressed="false">غير المقروء فقط</button>
               </div>
             </div>
 
-            <div class="table-wrap">
-              <table id="recTable">
+            <div class="nd-table-wrap">
+              <table id="recTable" aria-label="جدول المستلمين">
                 <thead>
                   <tr>
                     <th style="width:45%">الاسم</th>
@@ -184,9 +291,9 @@
                       <td>{{ r.role }}</td>
                       <td>
                         {% if r.read %}
-                          <span class="chip read" title="{% if r.read_at %}{{ r.read_at }}{% else %}مقروء{% endif %}">مقروء</span>
+                          <span class="nd-chip read" title="{% if r.read_at %}{{ r.read_at|date:'Y-m-d H:i' }}{% else %}مقروء{% endif %}">مقروء</span>
                         {% else %}
-                          <span class="chip unread" title="غير مقروء">غير مقروء</span>
+                          <span class="nd-chip unread" title="غير مقروء">غير مقروء</span>
                         {% endif %}
                       </td>
                     </tr>
@@ -196,9 +303,9 @@
             </div>
           {% else %}
             {% if n.is_broadcast %}
-              <div class="hint">هذا الإشعار مُرسل للجميع.</div>
+              <div class="nd-hint">هذا الإشعار مُرسل للجميع.</div>
             {% else %}
-              <div class="hint">لا يوجد مستلمون مسجّلون.</div>
+              <div class="nd-hint">لا يوجد مستلمون مسجّلون.</div>
             {% endif %}
           {% endif %}
         </div>
@@ -210,27 +317,37 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
-    const q = document.getElementById('recSearch');
-    const tbl = document.getElementById('recTable');
-    const btnAll = document.getElementById('toggleAll');
-    const btnUn  = document.getElementById('toggleUnread');
+    'use strict';
+
+    var q = document.getElementById('recSearch');
+    var tbl = document.getElementById('recTable');
+    var btnAll = document.getElementById('toggleAll');
+    var btnUn  = document.getElementById('toggleUnread');
     if(!tbl) return;
 
-    const rows = Array.from(tbl.querySelectorAll('tbody tr'));
+    var rows = Array.prototype.slice.call(tbl.querySelectorAll('tbody tr'));
+
+    function setPressed(){
+      if(!btnAll || !btnUn) return;
+      btnAll.setAttribute('aria-pressed', btnAll.classList.contains('on') ? 'true' : 'false');
+      btnUn.setAttribute('aria-pressed', btnUn.classList.contains('on') ? 'true' : 'false');
+    }
 
     function applyFilter(){
-      const term = (q && q.value || '').trim().toLowerCase();
-      const unreadOnly = btnUn && btnUn.classList.contains('on');
+      var term = (q && q.value ? q.value : '').trim().toLowerCase();
+      var unreadOnly = btnUn && btnUn.classList.contains('on');
 
       rows.forEach(function(tr){
-        const txt = tr.textContent.toLowerCase();
-        const isRead = tr.getAttribute('data-read') === '1';
-        const match = !term || txt.indexOf(term) !== -1;
-        const pass  = !unreadOnly || !isRead;
+        var txt = (tr.textContent || '').toLowerCase();
+        var isRead = tr.getAttribute('data-read') === '1';
+        var match = !term || txt.indexOf(term) !== -1;
+        var pass  = !unreadOnly || !isRead;
         tr.style.display = (match && pass) ? '' : 'none';
       });
+
+      setPressed();
     }
 
     if(q){
@@ -243,12 +360,15 @@
         btnUn.classList.remove('on');
         applyFilter();
       });
+
       btnUn.addEventListener('click', function(){
         btnUn.classList.add('on');
         btnAll.classList.remove('on');
         applyFilter();
       });
     }
+
+    applyFilter();
   })();
 </script>
 {% endblock %}

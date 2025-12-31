@@ -1,0 +1,312 @@
+{# reports/templates/reports/achievement_files_school.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}ملفات الإنجاز - المدرسة{% endblock %}
+
+{% block head %}
+<style>
+  /* =========================================================
+     Achievement Files (School) — page-only polish
+     - بدون إعادة تعريف .btn / .card العامة
+     - Scoped داخل .af-wrap لتجنب التعارض
+     ========================================================= */
+  .af-wrap{max-width:1150px;margin:0 auto;padding:clamp(12px,2.4vw,18px)}
+  .af-card{
+    overflow:hidden;
+    border-radius:18px;
+    border:1px solid var(--line-2);
+    box-shadow: var(--shadow);
+    background: var(--card);
+  }
+
+  .af-head{
+    padding:16px 18px;
+    background: linear-gradient(135deg, rgba(16,185,129,.90), rgba(37,99,235,.88));
+    color:#fff;
+  }
+  .af-head h1{margin:0;font-weight:950;font-size:1.25rem;letter-spacing:-.2px}
+  .af-head p{margin:6px 0 0;opacity:.95;font-weight:850}
+
+  .af-body{padding:16px 18px}
+
+  .af-toolbar{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    justify-content:space-between;
+    margin-bottom: 14px;
+  }
+
+  .af-form{
+    min-width: 290px;
+    flex: 1 1 360px;
+    max-width: 520px;
+  }
+
+  .af-label{
+    display:block;
+    margin:0 0 6px;
+    font-weight:900;
+    color: var(--ink);
+  }
+
+  .af-input,
+  .af-select{
+    width:100%;
+    min-height: var(--tap);
+    border-radius:14px;
+    border:1px solid var(--line);
+    padding:12px 14px;
+    background: rgba(248,250,252,.85);
+    font-weight:850;
+    color: var(--ink);
+    outline: none;
+    transition: var(--t-fast);
+  }
+  .af-input:focus,
+  .af-select:focus{
+    box-shadow: 0 0 0 4px rgba(37,99,235,.18);
+    border-color: rgba(37,99,235,.40);
+  }
+  html[data-theme="dark"] .af-input,
+  html[data-theme="dark"] .af-select{
+    background: rgba(255,255,255,.04);
+    border-color: rgba(148,163,184,.18);
+  }
+
+  .af-side{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    justify-content:flex-end;
+  }
+
+  .af-stats{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .af-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    font-weight: 900;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .af-chip i{ opacity:.85; }
+
+  .af-list{margin-top: 12px;display:grid;gap:10px}
+
+  .af-item{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:center;
+    padding:12px 14px;
+    border-radius:14px;
+    border:1px solid var(--line-2);
+    background: rgba(255,255,255,.55);
+  }
+  html[data-theme="dark"] .af-item{ background: rgba(255,255,255,.03); }
+
+  .af-meta{display:grid;gap:4px;min-width:0}
+  .af-meta b{font-weight:950;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .af-meta small{color: var(--muted); font-weight: 850; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+  .af-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+
+  .af-badge{
+    display:inline-flex;
+    align-items:center;
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:950;
+    font-size:.85rem;
+    color:#fff;
+    white-space:nowrap;
+  }
+  .af-b-blue{ background:#2563eb; }
+  .af-b-green{ background:#10b981; }
+  .af-b-amber{ background:#f59e0b; }
+  .af-b-red{ background:#ef4444; }
+  .af-b-gray{ background:#64748b; }
+
+  .af-empty{
+    padding:14px;
+    border-radius:16px;
+    border:1px dashed var(--line);
+    background: linear-gradient(180deg, var(--card), var(--line-2));
+    color: var(--muted);
+    font-weight: 900;
+  }
+  .af-muted{color: var(--muted); font-weight: 850}
+
+  @media(max-width:860px){
+    .af-actions{justify-content:flex-start}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .af-input, .af-select{ transition:none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="af-wrap">
+  <div class="card af-card">
+    <div class="af-head">
+      <h1>ملفات الإنجاز - المدرسة</h1>
+      <p>عرض ملفات الإنجاز للمدرسة حسب السنة الدراسية</p>
+    </div>
+
+    <div class="af-body">
+      <div class="af-toolbar">
+        <form method="get" class="af-form" aria-label="فلترة السنة الدراسية">
+          <label class="af-label">السنة الدراسية (هجري)</label>
+
+          {% if year_choices %}
+            <select class="af-select" name="year" onchange="this.form.submit()">
+              {% if year and year not in year_choices %}
+                <option value="{{ year }}" selected>{{ year }} (جديدة)</option>
+              {% endif %}
+              {% for y in year_choices %}
+                <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} هـ</option>
+              {% endfor %}
+            </select>
+
+            <div style="margin-top:10px">
+              <label class="af-label">سنة جديدة (اختياري)</label>
+              <input class="af-input" name="new_year" value="{{ new_year }}" placeholder="مثال: 1447-1448" autocomplete="off" />
+            </div>
+          {% else %}
+            <input class="af-input" name="year" value="{{ year }}" placeholder="مثال: 1447-1448" autocomplete="off" />
+          {% endif %}
+
+          <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap">
+            <button class="btn btn-primary" type="submit">
+              <i class="fa-solid fa-filter"></i> عرض
+            </button>
+
+            <a class="btn" href="{% url 'reports:home' %}">
+              <i class="fa-solid fa-house"></i> الرئيسية
+            </a>
+          </div>
+        </form>
+
+        <div class="af-side">
+          <div class="af-stats" aria-label="معلومات سريعة">
+            <span class="af-chip">
+              <i class="fa-solid fa-calendar-days"></i>
+              {% if year %}{{ year }} هـ{% else %}—{% endif %}
+            </span>
+
+            <span class="af-chip">
+              <i class="fa-solid fa-users"></i>
+              {{ rows|length }} معلم
+            </span>
+          </div>
+
+          {% if is_manager %}
+            <a class="btn" href="{% url 'reports:admin_dashboard' %}">
+              <i class="fa-solid fa-gauge-high"></i> لوحة المدير
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="af-list" aria-label="قائمة المعلمين">
+        {% for row in rows %}
+          <div class="af-item">
+            <div class="af-meta">
+              <b title="{{ row.teacher.name }}">{{ row.teacher.name }}</b>
+              <small dir="ltr">{{ row.teacher.phone }}</small>
+              <small>{% if year %}{{ year }} هـ{% endif %}</small>
+
+              <small>
+                {% if row.file %}
+                  الحالة:
+                  {% if row.file.status == "approved" %}
+                    <span class="af-badge af-b-green">معتمد</span>
+                  {% elif row.file.status == "rejected" %}
+                    <span class="af-badge af-b-red">مرفوض</span>
+                  {% elif row.file.status == "submitted" %}
+                    <span class="af-badge af-b-amber">مُرسل للمراجعة</span>
+                  {% elif row.file.status == "draft" %}
+                    <span class="af-badge af-b-gray">مسودة</span>
+                  {% else %}
+                    <span class="af-badge af-b-blue">{{ row.file.get_status_display }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="af-badge af-b-gray">لا يوجد ملف</span>
+                {% endif %}
+              </small>
+            </div>
+
+            <div class="af-actions">
+              {% if row.file %}
+                <a class="btn" href="{% url 'reports:achievement_file_detail' row.file.pk %}">
+                  <i class="fa-solid fa-folder-open"></i> فتح
+                </a>
+                <a class="btn" href="{% url 'reports:achievement_file_print' row.file.pk %}" target="_blank" rel="noopener">
+                  <i class="fa-solid fa-print"></i> طباعة / حفظ PDF
+                </a>
+              {% else %}
+                {% if is_manager %}
+                  <form method="post" class="af-create-form" style="margin:0">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create" />
+                    <input type="hidden" name="teacher_id" value="{{ row.teacher.id }}" />
+                    <input type="hidden" name="year" value="{{ year }}" />
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                    <button class="btn btn-primary" type="submit" data-confirm="إنشاء ملف إنجاز لهذا المعلّم؟">
+                      <i class="fa-solid fa-plus"></i> إنشاء ملف
+                    </button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="af-empty">
+            <b>لا يوجد معلمون</b>
+            <div class="af-muted" style="margin-top:6px">تأكد من ربط المعلمين بمدرسة المدير.</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div style="margin-top:12px">
+        <small class="af-muted">
+          ملاحظة: الاعتماد/الرفض يتم من داخل صفحة الملف بعد فتحه.
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function(){
+    // تأكيد إنشاء ملف (للإدارة فقط)
+    document.addEventListener('click', function(ev){
+      var btn = ev.target && ev.target.closest ? ev.target.closest('[data-confirm]') : null;
+      if(!btn) return;
+
+      var msg = btn.getAttribute('data-confirm') || 'هل أنت متأكد؟';
+      if(!window.confirm(msg)){
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+    }, { passive: false });
+  })();
+</script>
+{% endblock %}

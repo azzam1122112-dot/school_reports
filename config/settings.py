@@ -1,6 +1,10 @@
 # config/settings.py
 from pathlib import Path
 import os
+import logging
+from urllib.parse import urlsplit, urlunsplit
+
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # حاول استخدام dj_database_url إن كان مُثبتًا، بدون كسر المشروع لو غير موجود
@@ -23,34 +27,106 @@ def _env_bool(name: str, default: bool = False) -> bool:
 def _split_env_list(val: str) -> list[str]:
     return [x.strip() for x in (val or "").split(",") if x.strip()]
 
-SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret")
 ENV = os.getenv("ENV", "development").strip().lower()
+
+# ----------------- Logging (early) -----------------
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
+logger = logging.getLogger(__name__)
+
+# ----------------- SECRET_KEY -----------------
+SECRET_KEY = (os.getenv("SECRET_KEY") or "").strip()
 
 # ----------------- Celery Broker URL -----------------
 # في Render، إذا لم يكن لديك Redis، سيتم استخدام Threading تلقائياً بفضل التعديلات الأخيرة
-CELERY_BROKER_URL = os.getenv("REDIS_URL", os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"))
+CELERY_BROKER_URL = os.getenv("REDIS_URL", os.getenv("CELERY_BROKER_URL", "")).strip()
 
 # كشف تلقائي لـ Render
 if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):
     ENV = "production"
 
-print(f"🚀 Current Environment: {ENV}")
+logger.info("Current Environment: %s", ENV)
 
 # يمكنك أيضًا فرض DEBUG عبر متغير DEBUG=1
 DEBUG = (ENV != "production") if os.getenv("DEBUG") is None else _env_bool("DEBUG", False)
 
-print(f"🚀 DEBUG: {DEBUG}")
+logger.info("DEBUG: %s", DEBUG)
 
-ALLOWED_HOSTS = _split_env_list(
-    os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,school-7lgm.onrender.com,school-reports.onrender.com,.onrender.com")
-)
+if ENV == "production":
+    # في الإنتاج لا نسمح بفال باك غير آمن أبدًا
+    if not SECRET_KEY or SECRET_KEY == "unsafe-secret":
+        raise ImproperlyConfigured("SECRET_KEY must be set to a strong unique value in production.")
 
-CSRF_TRUSTED_ORIGINS = _split_env_list(
-    os.getenv(
-        "CSRF_TRUSTED_ORIGINS",
-        "https://*.onrender.com,https://*.render.com,https://school-7lgm.onrender.com,https://school-reports.onrender.com"
-    )
-)
+    # لا نسمح بـ DEBUG في الإنتاج حتى لو تم ضبطه بالخطأ عبر ENV
+    if DEBUG:
+        raise ImproperlyConfigured("DEBUG must be False in production.")
+else:
+    # للتطوير فقط: نوفر قيمة افتراضية حتى لا يتوقف المشروع محليًا
+    if not SECRET_KEY:
+        SECRET_KEY = "unsafe-secret"
+
+def _default_allowed_hosts() -> list[str]:
+    hosts: list[str] = ["localhost", "127.0.0.1"]
+
+    # Known deployed domains (backwards compatible)
+    hosts += [
+        "school-7lgm.onrender.com",
+        "school-reports.onrender.com",
+    ]
+
+    # Render external URL (preferred, supports renames without wildcards)
+    render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip()
+    if render_url:
+        try:
+            parts = urlsplit(render_url)
+            if parts.netloc:
+                hosts.append(parts.netloc)
+        except Exception:
+            pass
+
+    # De-dupe while preserving order
+    seen = set()
+    out: list[str] = []
+    for h in hosts:
+        if h and h not in seen:
+            seen.add(h)
+            out.append(h)
+    return out
+
+_allowed_hosts_env = (os.getenv("ALLOWED_HOSTS") or "").strip()
+ALLOWED_HOSTS = _split_env_list(_allowed_hosts_env) if _allowed_hosts_env else _default_allowed_hosts()
+
+def _default_csrf_trusted_origins() -> list[str]:
+    """Safer defaults: explicit origins only (no wildcards unless configured via env)."""
+    origins: list[str] = []
+
+    # Known deployed domains (kept for backwards compatibility)
+    origins += [
+        "https://school-7lgm.onrender.com",
+        "https://school-reports.onrender.com",
+    ]
+
+    # Render external URL (if available)
+    render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip()
+    if render_url:
+        try:
+            parts = urlsplit(render_url)
+            if parts.scheme and parts.netloc:
+                origins.append(f"{parts.scheme}://{parts.netloc}")
+        except Exception:
+            pass
+
+    # De-dupe while preserving order
+    seen = set()
+    out: list[str] = []
+    for o in origins:
+        if o and o not in seen:
+            seen.add(o)
+            out.append(o)
+    return out
+
+_csrf_env = (os.getenv("CSRF_TRUSTED_ORIGINS") or "").strip()
+CSRF_TRUSTED_ORIGINS = _split_env_list(_csrf_env) if _csrf_env else _default_csrf_trusted_origins()
 
 # ----------------- التطبيقات -----------------
 INSTALLED_APPS = [
@@ -81,6 +157,7 @@ MIDDLEWARE = [
     "reports.middleware.IdleLogoutMiddleware",  # تسجيل خروج تلقائي بعد الخمول
     "reports.middleware.SubscriptionMiddleware",  # <--- تم الإضافة
     "reports.middleware.ReportViewerAccessMiddleware",  # حسابات عرض فقط (مشرف تقارير)
+    "reports.middleware.ContentSecurityPolicyMiddleware",  # CSP (production hardening)
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -101,6 +178,7 @@ TEMPLATES = [
                 "reports.context_processors.nav_context",
                 # متوافق مع الأيقونة/الهيدر
                 "reports.context_processors.nav_badges",
+                "reports.context_processors.csp",
             ],
         },
     },
@@ -108,17 +186,59 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# ----------------- Redis URLs (Broker/Cache) -----------------
+# افصل الكاش عن الـ broker إن أمكن لتقليل التداخل.
+REDIS_CACHE_URL = os.getenv("REDIS_CACHE_URL", "").strip()
+
+def _derive_cache_redis_url(broker_url: str) -> str:
+    """Derive a cache Redis URL from broker URL by switching DB index when possible."""
+    if not broker_url:
+        return ""
+    try:
+        parts = urlsplit(broker_url)
+        # Path is usually like /0
+        path = (parts.path or "/0").strip()
+        if path.startswith("/"):
+            path_num = path[1:]
+        else:
+            path_num = path
+        # Only adjust if numeric
+        if path_num.isdigit():
+            db = int(path_num)
+            # common practice: broker DB 0, cache DB 1
+            if db == 0:
+                new_path = "/1"
+            else:
+                new_path = f"/{db + 1}"
+            return urlunsplit((parts.scheme, parts.netloc, new_path, parts.query, parts.fragment))
+        return broker_url
+    except Exception:
+        return broker_url
+
+if not REDIS_CACHE_URL:
+    REDIS_CACHE_URL = _derive_cache_redis_url(CELERY_BROKER_URL)
+
 # ----------------- الكاش (Caching) -----------------
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": CELERY_BROKER_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "IGNORE_EXCEPTIONS": True,  # تجاهل أخطاء الاتصال بـ Redis
+# - في الإنتاج: نفضل Redis إن توفر، وإلا نستخدم LocMem (أفضل من كسر الإقلاع).
+# - في التطوير: نستخدم LocMem إذا لم يوجد Redis.
+if REDIS_CACHE_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_CACHE_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "IGNORE_EXCEPTIONS": True,  # تجاهل أخطاء الاتصال بـ Redis
+            },
         }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "school_reports_locmem",
+        }
+    }
 
 # ----------------- قاعدة البيانات -----------------
 # الأولوية لـ DATABASE_URL إن وُجد وكان dj_database_url متاحًا
@@ -219,6 +339,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 # يمكن التحكم بالقيمة عبر ENV: DATA_UPLOAD_MAX_NUMBER_FIELDS
 DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FIELDS", "20000"))
 
+# حد أقصى لحجم الـ request body بالبايت لتقليل مخاطر DoS (قابل للتعديل عبر ENV).
+# ملاحظة: رفع الملفات الكبيرة عبر multipart يحتسب ضمن هذا الحد.
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(40 * 1024 * 1024)))
+
 # ----------------- Cloudinary (شرطي) -----------------
 CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
 CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
@@ -240,6 +364,22 @@ if ENV == "production":
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+    CSRF_COOKIE_SAMESITE = os.getenv("CSRF_COOKIE_SAMESITE", "Lax")
+
+    # ----------------- CSP (Content Security Policy) -----------------
+    # ملاحظة: القوالب الحالية تستخدم inline <style>/<script> لذا نبدأ بسياسة
+    # متوافقة (مع unsafe-inline) ويمكن لاحقاً التحول إلى nonce/hashes.
+    CSP_ENABLED = _env_bool("CSP_ENABLED", True)
+    CSP_REPORT_ONLY = _env_bool("CSP_REPORT_ONLY", False)
+    CONTENT_SECURITY_POLICY = (os.getenv("CONTENT_SECURITY_POLICY") or "").strip()
+
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = os.getenv("SECURE_REFERRER_POLICY", "strict-origin-when-cross-origin")
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = os.getenv("SECURE_CROSS_ORIGIN_OPENER_POLICY", "same-origin")
+
     SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))  # سنة
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
@@ -247,8 +387,12 @@ if ENV == "production":
 else:
     SECURE_SSL_REDIRECT = False
 
+    # CSP off by default in development to avoid hindering iteration
+    CSP_ENABLED = _env_bool("CSP_ENABLED", False)
+    CSP_REPORT_ONLY = _env_bool("CSP_REPORT_ONLY", True)
+    CONTENT_SECURITY_POLICY = (os.getenv("CONTENT_SECURITY_POLICY") or "").strip()
+
 # ----------------- تسجيل الأحداث (Logging) -----------------
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -288,4 +432,7 @@ PRINT_MULTIHEAD_POLICY = "blank"  # أو "dept"
 # كيف نحدد رؤساء القسم؟
 DEPARTMENT_HEAD_ROLE_SLUG = "department_head"  # غيّرها لو اسم السلاج مختلف
 
-SITE_URL = "https://school-reports.onrender.com"
+SITE_URL = (os.getenv("SITE_URL") or "").strip()
+if not SITE_URL:
+    _render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip()
+    SITE_URL = _render_url or "https://school-reports.onrender.com"

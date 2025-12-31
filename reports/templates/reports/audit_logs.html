@@ -1,125 +1,367 @@
+{# reports/templates/reports/school_audit_logs.html #}
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}📜 سجل العمليات - {{ active_school.name }}{% endblock %}
 
 {% block head %}
 <style>
-  :root{
-    --brand:#2563eb; --brand-light:#eff6ff;
-    --ink:#0f172a; --muted:#64748b;
-    --bg:#f1f5f9; --card:#ffffff; --line:#e2e8f0;
-    --radius:16px; --shadow:0 4px 20px rgba(0,0,0,0.05);
-  }
-  body{background:var(--bg); color:var(--ink)}
-  .container{max-width:1200px; margin:0 auto; padding:24px 16px}
+  /* =========================================================
+     AUDIT LOGS (page-only polish)
+     - Scoped داخل .audit-wrap لتجنب تعارضات app.css
+     - لا نعيد تعريف .btn / .card العامة
+     - متوافق مع data-theme (فاتح/داكن)
+     - RTL + Mobile-first + Table scroll
+     ========================================================= */
 
-  .main-card{
-    background:var(--card); border-radius:var(--radius); border:1px solid var(--line);
-    box-shadow:var(--shadow); overflow:hidden;
+  .audit-wrap{
+    --a-brand: #2563eb;
+    --a-brand-2: rgba(37,99,235,.10);
+    --a-shadow: 0 18px 50px rgba(2,6,23,.10);
+    --a-radius: 18px;
+    --a-t: var(--t-fast);
   }
-  .card-header{
-    padding:20px; border-bottom:1px solid var(--line);
-    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
-  }
-  .card-title{ font-size:1.4rem; font-weight:900; margin:0; display:flex; align-items:center; gap:10px }
 
-  /* ===== Filters ===== */
-  .filter-bar{
-    padding:16px 20px; background:var(--brand-light); border-bottom:1px solid var(--line);
-    display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; align-items:flex-end;
+  .audit-hero{
+    border-radius: var(--a-radius);
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    box-shadow: var(--a-shadow);
+    overflow:hidden;
   }
-  .input-group{ display:flex; flex-direction:column; gap:6px }
-  .input-group label{ font-size:0.8rem; font-weight:800; color:var(--muted) }
-  .input{ 
-    padding:10px 14px; border:1px solid var(--line); border-radius:10px; 
-    font-family:inherit; font-size:0.95rem; width:100%;
-  }
-  .btn{
-    padding:10px 20px; border-radius:10px; font-weight:800; cursor:pointer;
-    display:inline-flex; align-items:center; gap:8px; border:1px solid transparent;
-    transition:0.2s; font-family:inherit;
-  }
-  .btn-primary{ background:var(--brand); color:#fff }
-  .btn-outline{ background:#fff; border-color:var(--line); color:var(--ink) }
 
-  /* ===== Table ===== */
-  .table-responsive{ overflow-x:auto }
-  table{ width:100%; border-collapse:collapse; text-align:right }
-  thead th{ 
-    background:#f8fafc; padding:14px; font-weight:900; font-size:0.9rem;
-    color:var(--muted); border-bottom:2px solid var(--line);
+  .audit-hd{
+    padding: 16px 16px;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(800px 220px at 10% 0%, rgba(37,99,235,.12), transparent 55%),
+      radial-gradient(700px 220px at 95% 100%, rgba(16,185,129,.10), transparent 60%),
+      linear-gradient(180deg, var(--line-2), var(--card));
   }
-  tbody td{ padding:14px; border-bottom:1px solid var(--line); vertical-align:middle; font-size:0.95rem }
-  
-  .action-badge{
-    padding:4px 10px; border-radius:99px; font-size:0.75rem; font-weight:800;
+
+  .audit-title{
+    margin:0;
+    font-weight: 950;
+    letter-spacing: -.4px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color: var(--ink);
+    font-size: clamp(1.05rem, 2.2vw, 1.35rem);
   }
-  .action-create{ background:#dcfce7; color:#166534 }
-  .action-update{ background:#e0e7ff; color:#3730a3 }
-  .action-delete{ background:#fee2e2; color:#991b1b }
-  .action-login{ background:#fef9c3; color:#854d0e }
 
-  .teacher-info{ display:flex; align-items:center; gap:10px }
-  .teacher-info img{ width:32px; height:32px; border-radius:50%; object-fit:cover }
+  .audit-hint{
+    color: var(--muted);
+    font-weight: 850;
+    font-size: .95rem;
+    margin-top: 4px;
+  }
 
-  .timestamp{ font-size:0.85rem; color:var(--muted); font-weight:700 }
-  .object-repr{ font-weight:700; color:var(--ink) }
-  .model-name{ font-size:0.8rem; color:var(--brand); font-weight:800; background:var(--brand-light); padding:2px 8px; border-radius:6px }
+  .audit-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
+  /* Filter bar */
+  .audit-filter{
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(600px 200px at 0% 0%, rgba(37,99,235,.10), transparent 60%),
+      linear-gradient(180deg, var(--card), var(--line-2));
+  }
+
+  .audit-grid{
+    display:grid;
+    gap:10px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    align-items:end;
+  }
+
+  .ig{ display:flex; flex-direction:column; gap:6px; }
+  .ig label{
+    font-size: .82rem;
+    font-weight: 900;
+    color: var(--muted);
+  }
+
+  .inp{
+    width:100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    font: inherit;
+    font-weight: 850;
+    outline: none;
+    transition: var(--a-t);
+  }
+  .inp:focus{
+    box-shadow: 0 0 0 4px rgba(37,99,235,.16);
+    border-color: rgba(37,99,235,.35);
+  }
+
+  .filter-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
+  /* Table */
+  .audit-table-wrap{
+    overflow:auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table.audit-table{
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 880px;
+    text-align:right;
+  }
+
+  .audit-table thead th{
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--line-2);
+    color: var(--muted);
+    font-weight: 950;
+    font-size: .9rem;
+    padding: 12px 12px;
+    border-bottom: 1px solid var(--line);
+    white-space:nowrap;
+  }
+
+  .audit-table tbody td{
+    padding: 12px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+    font-size: .95rem;
+    color: var(--ink);
+  }
+
+  .audit-table tbody tr:hover td{
+    background: rgba(219,234,254,.45);
+  }
+  html[data-theme="dark"] .audit-table tbody tr:hover td{
+    background: rgba(26,44,83,.45);
+  }
+
+  .ts{
+    font-weight: 850;
+    color: var(--muted);
+    font-size: .9rem;
+    white-space:nowrap;
+  }
+
+  .teacher{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width: 180px;
+  }
+  .avatar{
+    width: 32px; height: 32px;
+    border-radius: 999px;
+    background: rgba(37,99,235,.12);
+    border: 1px solid rgba(37,99,235,.18);
+    display:grid; place-items:center;
+    color: rgba(37,99,235,.95);
+    flex: 0 0 auto;
+    font-weight: 950;
+  }
+  .teacher .name{
+    font-weight: 950;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .teacher .sub{
+    color: var(--muted);
+    font-weight: 850;
+    font-size: .82rem;
+    margin-top: 2px;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .82rem;
+    white-space:nowrap;
+    border: 1px solid transparent;
+  }
+  .b-create{ background: rgba(16,185,129,.12); color:#166534; border-color: rgba(16,185,129,.18); }
+  .b-update{ background: rgba(99,102,241,.12); color:#3730a3; border-color: rgba(99,102,241,.20); }
+  .b-delete{ background: rgba(239,68,68,.12); color:#991b1b; border-color: rgba(239,68,68,.20); }
+  .b-login { background: rgba(245,158,11,.14); color:#854d0e; border-color: rgba(245,158,11,.24); }
+  .b-other { background: rgba(100,116,139,.12); color:#334155; border-color: rgba(100,116,139,.20); }
+
+  .model-pill{
+    display:inline-flex;
+    align-items:center;
+    padding: 4px 10px;
+    border-radius: 10px;
+    background: rgba(37,99,235,.10);
+    border: 1px solid rgba(37,99,235,.18);
+    color: rgba(30,64,175,.95);
+    font-weight: 950;
+    font-size: .82rem;
+    white-space:nowrap;
+  }
+  html[data-theme="dark"] .model-pill{
+    color: rgba(191,219,254,.95);
+    background: rgba(37,99,235,.16);
+    border-color: rgba(37,99,235,.25);
+  }
+
+  .obj{
+    font-weight: 850;
+    color: var(--ink);
+    max-width: 520px;
+    overflow:hidden;
+    text-overflow: ellipsis;
+    white-space:nowrap;
+  }
+
+  .ip{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: .85rem;
+    color: var(--muted);
+    font-weight: 850;
+    white-space:nowrap;
+  }
+
+  /* Empty */
+  .audit-empty{
+    padding: 48px 16px;
+    text-align:center;
+    color: var(--muted);
+    font-weight: 900;
+  }
+  .audit-empty .ico{
+    font-size: 2rem;
+    opacity: .85;
+    margin-bottom: 10px;
+  }
 
   /* Pagination */
-  .pagination{ padding:20px; display:flex; justify-content:center; gap:8px; align-items:center }
-  .page-link{ 
-    padding:8px 16px; border-radius:8px; border:1px solid var(--line); 
-    text-decoration:none; color:var(--ink); font-weight:700;
+  .audit-pg{
+    padding: 14px 16px;
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+    background: linear-gradient(180deg, var(--card), var(--line-2));
   }
-  .page-link.active{ background:var(--brand); color:#fff; border-color:var(--brand) }
+  .pg-link{
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    text-decoration:none;
+    font-weight: 950;
+    transition: var(--a-t);
+  }
+  .pg-link:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(2,6,23,.07);
+  }
+  .pg-active{
+    background: var(--a-brand);
+    border-color: var(--a-brand);
+    color:#fff;
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .inp, .pg-link{ transition:none !important; }
+    .pg-link:hover{ transform:none !important; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="main-card">
-    <div class="card-header">
-      <h2 class="card-title"><i class="fas fa-history text-primary"></i> سجل العمليات: {{ active_school.name }}</h2>
-      <div class="hint" style="color:var(--muted); font-size:0.9rem">مراقبة كافة التغييرات في المدرسة</div>
+<div class="audit-wrap">
+  <div class="audit-hero">
+    <div class="audit-hd">
+      <div>
+        <h2 class="audit-title">
+          <i class="fa-solid fa-clock-rotate-left" style="opacity:.9"></i>
+          سجل العمليات: {{ active_school.name }}
+        </h2>
+        <div class="audit-hint">مراقبة كافة التغييرات في المدرسة</div>
+      </div>
+
+      <div class="audit-actions">
+        <a class="btn btn-ghost" href="{% url 'reports:school_audit_logs' %}">
+          <i class="fa-solid fa-rotate-right"></i> تحديث
+        </a>
+      </div>
     </div>
 
-    <!-- Filter Bar -->
-    <form method="get" class="filter-bar">
-      <div class="input-group">
-        <label>المستخدم</label>
-        <select name="teacher" class="input">
-          <option value="">الكل</option>
-          {% for t in teachers %}
-            <option value="{{ t.id }}" {% if q_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="input-group">
-        <label>نوع العملية</label>
-        <select name="action" class="input">
-          <option value="">الكل</option>
-          {% for val, label in actions %}
-            <option value="{{ val }}" {% if q_action == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="input-group">
-        <label>من تاريخ</label>
-        <input type="date" name="start_date" value="{{ q_start }}" class="input">
-      </div>
-      <div class="input-group">
-        <label>إلى تاريخ</label>
-        <input type="date" name="end_date" value="{{ q_end }}" class="input">
-      </div>
-      <div style="display:flex; gap:8px">
-        <button type="submit" class="btn btn-primary">تصفية</button>
-        <a href="{% url 'reports:school_audit_logs' %}" class="btn btn-outline">مسح</a>
+    <!-- Filters -->
+    <form method="get" class="audit-filter">
+      <div class="audit-grid">
+        <div class="ig">
+          <label>المستخدم</label>
+          <select name="teacher" class="inp">
+            <option value="">الكل</option>
+            {% for t in teachers %}
+              <option value="{{ t.id }}" {% if q_teacher == t.id|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="ig">
+          <label>نوع العملية</label>
+          <select name="action" class="inp">
+            <option value="">الكل</option>
+            {% for val, label in actions %}
+              <option value="{{ val }}" {% if q_action == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="ig">
+          <label>من تاريخ</label>
+          <input type="date" name="start_date" value="{{ q_start }}" class="inp">
+        </div>
+
+        <div class="ig">
+          <label>إلى تاريخ</label>
+          <input type="date" name="end_date" value="{{ q_end }}" class="inp">
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-filter"></i> تصفية
+          </button>
+          <a href="{% url 'reports:school_audit_logs' %}" class="btn">
+            <i class="fa-solid fa-eraser"></i> مسح
+          </a>
+        </div>
       </div>
     </form>
 
-    <div class="table-responsive">
-      <table>
+    <!-- Table -->
+    <div class="audit-table-wrap" role="region" aria-label="جدول سجل العمليات">
+      <table class="audit-table">
         <thead>
           <tr>
             <th>الوقت</th>
@@ -132,34 +374,68 @@
         </thead>
         <tbody>
           {% for log in logs %}
-          <tr>
-            <td class="timestamp">{{ log.timestamp|date:"Y-m-d H:i" }}</td>
-            <td>
-              <div class="teacher-info">
-                <span>{{ log.teacher.name|default:log.teacher.username }}</span>
-              </div>
-            </td>
-            <td>
-              <span class="action-badge 
-                {% if log.action == 'create' %}action-create
-                {% elif log.action == 'update' %}action-update
-                {% elif log.action == 'delete' %}action-delete
-                {% elif log.action == 'login' %}action-login
-                {% endif %}">
-                {{ log.get_action_display }}
-              </span>
-            </td>
-            <td><span class="model-name">{{ log.model_name }}</span></td>
-            <td class="object-repr">{{ log.object_repr }}</td>
-            <td style="font-family:monospace; font-size:0.8rem; color:var(--muted)">{{ log.ip_address }}</td>
-          </tr>
+            <tr>
+              <td class="ts">{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+
+              <td>
+                <div class="teacher">
+                  <div class="avatar" aria-hidden="true">
+                    {% if log.teacher and log.teacher.name %}
+                      {{ log.teacher.name|slice:":1" }}
+                    {% elif log.teacher and log.teacher.username %}
+                      {{ log.teacher.username|slice:":1" }}
+                    {% else %}
+                      ؟
+                    {% endif %}
+                  </div>
+                  <div>
+                    <div class="name">
+                      {% if log.teacher %}
+                        {% firstof log.teacher.name log.teacher.username "—" %}
+                      {% else %}
+                        —
+                      {% endif %}
+                    </div>
+                    <div class="sub">
+                      {% if log.teacher %}
+                        {% firstof log.teacher.phone log.teacher.username "" %}
+                      {% else %}
+                        مستخدم غير معروف
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <td>
+                <span class="badge
+                  {% if log.action == 'create' %}b-create
+                  {% elif log.action == 'update' %}b-update
+                  {% elif log.action == 'delete' %}b-delete
+                  {% elif log.action == 'login' %}b-login
+                  {% else %}b-other
+                  {% endif %}">
+                  {{ log.get_action_display }}
+                </span>
+              </td>
+
+              <td>
+                <span class="model-pill">{{ log.model_name }}</span>
+              </td>
+
+              <td class="obj" title="{{ log.object_repr }}">{{ log.object_repr }}</td>
+
+              <td class="ip">{{ log.ip_address|default:"—" }}</td>
+            </tr>
           {% empty %}
-          <tr>
-            <td colspan="6" style="padding:60px; text-align:center; color:var(--muted)">
-              <i class="fas fa-info-circle" style="font-size:2rem; margin-bottom:10px"></i>
-              <p>لا توجد سجلات تطابق البحث.</p>
-            </td>
-          </tr>
+            <tr>
+              <td colspan="6">
+                <div class="audit-empty">
+                  <div class="ico"><i class="fa-solid fa-circle-info"></i></div>
+                  لا توجد سجلات تطابق البحث.
+                </div>
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -167,17 +443,23 @@
 
     <!-- Pagination -->
     {% if logs.paginator.num_pages > 1 %}
-    <div class="pagination">
-      {% if logs.has_previous %}
-        <a href="?page={{ logs.previous_page_number }}&teacher={{ q_teacher }}&action={{ q_action }}&start_date={{ q_start }}&end_date={{ q_end }}" class="page-link">السابق</a>
-      {% endif %}
-      
-      <span class="page-link active">{{ logs.number }} / {{ logs.paginator.num_pages }}</span>
+      <div class="audit-pg" aria-label="ترقيم الصفحات">
+        {% if logs.has_previous %}
+          <a class="pg-link"
+             href="?page={{ logs.previous_page_number }}&teacher={{ q_teacher }}&action={{ q_action }}&start_date={{ q_start }}&end_date={{ q_end }}">
+            السابق
+          </a>
+        {% endif %}
 
-      {% if logs.has_next %}
-        <a href="?page={{ logs.next_page_number }}&teacher={{ q_teacher }}&action={{ q_action }}&start_date={{ q_start }}&end_date={{ q_end }}" class="page-link">التالي</a>
-      {% endif %}
-    </div>
+        <span class="pg-link pg-active">{{ logs.number }} / {{ logs.paginator.num_pages }}</span>
+
+        {% if logs.has_next %}
+          <a class="pg-link"
+             href="?page={{ logs.next_page_number }}&teacher={{ q_teacher }}&action={{ q_action }}&start_date={{ q_start }}&end_date={{ q_end }}">
+            التالي
+          </a>
+        {% endif %}
+      </div>
     {% endif %}
   </div>
 </div>

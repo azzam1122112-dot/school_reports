@@ -1,13 +1,20 @@
+{# reports/templates/reports/school_settings.html #}
 {% extends "base.html" %}
 {% block title %}إعدادات المدرسة{% endblock %}
 
 {% block head %}
 <style>
-  /* ✅ Scoped only (بدون لمس :root نهائياً) */
+  /* =========================================================
+     School Settings — تصميم مرتب + بدون "تغيير لون القالب"
+     - Scoped لهذه الصفحة فقط
+     - لا تعديل على :root ولا ألوان الثيم
+     - مدخلات جميلة ومتناسقة مع base
+     ========================================================= */
+
   .school-settings{max-width:980px;margin:0 auto;padding:clamp(10px,2.2vw,18px)}
   .ss-shell{
     background:var(--card);
-    border:1px solid var(--line-2);
+    border:1px solid var(--line);
     border-radius:18px;
     box-shadow:var(--shadow);
     overflow:hidden;
@@ -21,7 +28,7 @@
       radial-gradient(700px 220px at 85% 90%, rgba(16,185,129,.14), transparent 60%),
       linear-gradient(135deg, rgba(37,99,235,.92), rgba(59,130,246,.86));
     color:#fff;
-    position:relative;
+    border-bottom:1px solid rgba(255,255,255,.14);
   }
   .ss-head-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .ss-title{
@@ -29,6 +36,7 @@
     font-weight:950;
     font-size:clamp(1.15rem,2.4vw,1.6rem);
     display:flex;align-items:center;gap:10px;
+    letter-spacing:-.2px;
   }
   .ss-sub{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65}
   .ss-chip{
@@ -37,6 +45,7 @@
     background:rgba(255,255,255,.14);
     border:1px solid rgba(255,255,255,.22);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     font-weight:900;
     white-space:nowrap;
   }
@@ -56,7 +65,7 @@
   .ss-label i{color:rgba(37,99,235,.95)}
   .ss-hint{margin-top:6px;color:var(--muted);font-weight:800;font-size:.88rem;line-height:1.6}
 
-  /* Inputs (نفس روح المنصة) */
+  /* Inputs */
   .ss-body input:not([type="checkbox"]):not([type="file"]),
   .ss-body select,
   .ss-body textarea{
@@ -108,7 +117,7 @@
     gap:12px;
     padding:10px 12px;
     border-radius:16px;
-    border:1px solid var(--line-2);
+    border:1px solid var(--line);
     background:rgba(248,250,252,.65);
   }
   html[data-theme="dark"] .preview{background:rgba(255,255,255,.03)}
@@ -116,7 +125,7 @@
     width:58px;height:58px;
     border-radius:16px;
     object-fit:contain;
-    border:1px solid var(--line-2);
+    border:1px solid var(--line);
     background:var(--card);
   }
   .preview b{font-weight:950;color:var(--ink)}
@@ -139,7 +148,7 @@
   .ss-actions{
     margin-top:16px;
     padding-top:14px;
-    border-top:1px solid var(--line-2);
+    border-top:1px solid var(--line);
     display:flex;
     gap:12px;
     justify-content:flex-start;
@@ -153,7 +162,7 @@
     .ss-actions .btn-primary{width:100%}
   }
 
-  /* Compact: make long fields span full width */
+  /* Full width fields */
   .span-2{grid-column:1/-1}
 </style>
 {% endblock %}
@@ -169,7 +178,7 @@
             <i class="fa-solid fa-gear" aria-hidden="true"></i>
             إعدادات المدرسة
           </h1>
-          <p class="ss-sub">تحديث بيانات المدرسة والشعار، مع الحفاظ على هوية الطباعة الخاصة بكم.</p>
+          <p class="ss-sub">تحديث بيانات المدرسة والشعار.</p>
         </div>
         <div class="ss-chip">
           <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
@@ -236,16 +245,6 @@
             <div class="ss-hint">يفضّل صيغة 05XXXXXXXX.</div>
           </div>
 
-          <!-- لون الطباعة -->
-          <div class="ss-group span-2">
-            <label class="ss-label" for="{{ form.print_primary_color.id_for_label }}">
-              <i class="fa-solid fa-palette" aria-hidden="true"></i> لون قالب الطباعة
-            </label>
-            {{ form.print_primary_color }}
-            {% for e in form.print_primary_color.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="ss-hint">إن تركته فارغًا سيتم استخدام اللون الافتراضي للنظام في ترويسة تقرير الطباعة.</div>
-          </div>
-
           <!-- رفع شعار -->
           <div class="ss-group span-2">
             <label class="ss-label" for="{{ form.logo_file.id_for_label }}">
@@ -255,8 +254,18 @@
             <div class="file-wrap">
               {{ form.logo_file }}
               {% for e in form.logo_file.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-              <div class="ss-hint">PNG / JPG / SVG / WEBP — سيتم استخدام المرفوع أولاً إن وُجد.</div>
+              <div class="ss-hint">PNG / JPG / SVG / WEBP</div>
             </div>
+
+            {% if school.logo_file %}
+              <div class="preview" aria-label="معاينة الشعار الحالي">
+                <img src="{{ school.logo_file.url }}" alt="الشعار الحالي">
+                <div>
+                  <b>معاينة الشعار الحالي</b>
+                  <small>المصدر: شعار مرفوع</small>
+                </div>
+              </div>
+            {% endif %}
           </div>
 
           <!-- رابط شعار -->
@@ -268,24 +277,20 @@
             {% for e in form.logo_url.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
             <div class="ss-hint">يُستخدم إذا لم يتوفر شعار مرفوع.</div>
 
-            {% if school.logo_file %}
-              <div class="preview" aria-label="معاينة الشعار الحالي">
-                <img src="{{ school.logo_file.url }}" alt="الشعار الحالي">
-                <div>
-                  <b>معاينة الشعار الحالي</b>
-                  <small>المصدر: شعار مرفوع</small>
+            {% if not school.logo_file %}
+              {% if school.logo_url %}
+                <div class="preview" aria-label="معاينة الشعار الحالي">
+                  <img src="{{ school.logo_url }}" alt="شعار المدرسة الحالي">
+                  <div>
+                    <b>معاينة الشعار الحالي</b>
+                    <small>المصدر: رابط</small>
+                  </div>
                 </div>
-              </div>
-            {% elif school.logo_url %}
-              <div class="preview" aria-label="معاينة الشعار الحالي">
-                <img src="{{ school.logo_url }}" alt="شعار المدرسة الحالي">
-                <div>
-                  <b>معاينة الشعار الحالي</b>
-                  <small>المصدر: رابط</small>
-                </div>
-              </div>
+              {% endif %}
             {% endif %}
           </div>
+
+          {# ✅ تم حذف أي حقل/واجهة لتغيير لون القالب هنا كما طلبت #}
         </div>
 
         <div class="ss-actions">
@@ -306,21 +311,22 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   document.addEventListener("DOMContentLoaded", function () {
     // تحسين إدخال الجوال (بدون تعديل Widgets في الفورم)
-    const phone = document.getElementById("{{ form.phone.id_for_label }}") || document.getElementById("id_phone");
+    var phone = document.getElementById("{{ form.phone.id_for_label }}") || document.getElementById("id_phone");
     if(phone){
       phone.setAttribute("inputmode","tel");
       phone.setAttribute("pattern","05\\d{8}");
       phone.setAttribute("maxlength","10");
       phone.dir="ltr";
       phone.style.textAlign="left";
+      phone.autocomplete = "tel";
     }
 
     // منع الإرسال المزدوج
-    const form = document.querySelector(".school-settings form");
-    const btn = document.getElementById("submitBtn");
+    var form = document.querySelector(".school-settings form");
+    var btn = document.getElementById("submitBtn");
     if(form && btn){
       form.addEventListener("submit", function(){
         btn.disabled = true;

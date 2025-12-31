@@ -1,10 +1,11 @@
+{# reports/templates/reports/platform_subscriptions_list.html #}
 {% extends "base.html" %}
 
 {% block title %}إدارة الاشتراكات{% endblock %}
 
 {% block head %}
 <style>
-  /* ✅ Scoped فقط لهذه الصفحة */
+  /* ✅ Scoped فقط لهذه الصفحة — بدون لمس .btn / .card العامة */
   .subslist-scope{
     --sl-brand: var(--brand, #2563eb);
     --sl-ink: var(--ink, #0f172a);
@@ -15,6 +16,7 @@
     --sl-danger: var(--danger, #ef4444);
     --sl-ok: var(--accent, #10b981);
     --sl-grad: linear-gradient(135deg, rgba(37,99,235,.95), rgba(59,130,246,.88));
+    --sl-t: var(--t-fast, 180ms ease);
   }
 
   .subslist-scope .wrap{max-width:1100px;margin-inline:auto}
@@ -33,14 +35,39 @@
     margin-bottom: 12px;
   }
   .subslist-scope .hero-head{
-    display:flex; align-items:flex-start; justify-content:space-between;
-    gap:12px; flex-wrap:wrap;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
   }
-  .subslist-scope .hero h1{margin:0;font-weight:950;font-size:clamp(1.15rem,2.4vw,1.55rem)}
-  .subslist-scope .hero p{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65;max-width:68ch}
-  .subslist-scope .hero-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .subslist-scope .hero h1{
+    margin:0;
+    font-weight:950;
+    font-size:clamp(1.15rem,2.4vw,1.55rem);
+  }
+  .subslist-scope .hero p{
+    margin:6px 0 0;
+    opacity:.95;
+    font-weight:850;
+    line-height:1.65;
+    max-width:68ch;
+  }
+  .subslist-scope .hero-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
+  /* أزرار داخل الهيرو فقط */
   .subslist-scope .hero-actions .btn{
     border-radius: 14px;
+    min-height: 44px;
+    transition: var(--sl-t);
+  }
+  .subslist-scope .hero-actions .btn:hover{
+    transform: translateY(-1px);
   }
   .subslist-scope .hero-actions .btn-outline{
     background: rgba(255,255,255,.12);
@@ -52,14 +79,22 @@
     border-color: rgba(255,255,255,.28);
   }
 
-  /* Filter card */
-  .subslist-scope .fcard{
+  /* Cards */
+  .subslist-scope .fcard,
+  .subslist-scope .tcard{
     border:1px solid var(--sl-line);
     border-radius: 16px;
     box-shadow: var(--sl-shadow);
+  }
+  .subslist-scope .fcard{
     padding: 14px;
     margin-bottom: 14px;
   }
+  .subslist-scope .tcard{
+    overflow:hidden;
+  }
+
+  /* Filters */
   .subslist-scope .filters{
     display:grid;
     gap: 12px;
@@ -92,24 +127,11 @@
     border-radius: 14px;
   }
 
-  /* Table card */
-  .subslist-scope .tcard{
-    border:1px solid var(--sl-line);
-    border-radius: 16px;
-    box-shadow: var(--sl-shadow);
-    overflow:hidden;
-  }
+  /* Table (نعتمد rtable من app.css، فقط تحسينات خفيفة) */
+  .subslist-scope .rtable thead th{font-weight:950}
+  .subslist-scope .school{font-weight:950;color:var(--sl-ink)}
 
-  /* نترك rtable الموجود في app.css، ونضيف تحسينات خفيفة */
-  .subslist-scope .rtable thead th{
-    font-weight: 950;
-  }
-  .subslist-scope .school{
-    font-weight: 950;
-    color: var(--sl-ink);
-  }
-
-  /* actions */
+  /* Row actions */
   .subslist-scope .row-actions{
     display:flex;
     gap: 8px;
@@ -122,7 +144,7 @@
     border-radius: 12px;
   }
 
-  /* badges fallback (لو badges موجودة في base/app.css ما راح تتعارض) */
+  /* Badges fallback */
   .subslist-scope .badge{
     display:inline-flex;
     align-items:center;
@@ -147,11 +169,17 @@
     color: var(--sl-danger);
   }
 
-  /* mobile tweaks */
+  /* Mobile tweaks */
   @media(max-width:520px){
     .subslist-scope .hero{padding:14px}
     .subslist-scope .hero-actions .btn{width:100%;justify-content:center}
     .subslist-scope .row-actions .btn{width:100%}
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .subslist-scope .hero-actions .btn{transition:none !important}
+    .subslist-scope .hero-actions .btn:hover{transform:none !important}
   }
 </style>
 {% endblock %}
@@ -166,6 +194,7 @@
           <h1>إدارة الاشتراكات</h1>
           <p>تجديد وتعديل اشتراكات المدارس على مستوى المنصة.</p>
         </div>
+
         <div class="hero-actions">
           <a href="{% url 'reports:platform_subscription_add' %}" class="btn btn-primary">
             <i class="fa-solid fa-plus" aria-hidden="true"></i>
@@ -262,7 +291,12 @@
                   <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}" style="display:inline">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <button type="submit" class="btn btn-primary" onclick="return confirm('تأكيد تجديد الاشتراك؟')">
+
+                    <button
+                      type="submit"
+                      class="btn btn-primary"
+                      data-confirm="تأكيد تجديد الاشتراك؟"
+                    >
                       <i class="fa-solid fa-rotate" aria-hidden="true"></i>
                       تجديد
                     </button>
@@ -288,4 +322,25 @@
 
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function(){
+    // تأكيدات آمنة بدون inline onclick
+    var buttons = document.querySelectorAll('.subslist-scope [data-confirm]');
+    if(!buttons || !buttons.length) return;
+
+    for(var i=0;i<buttons.length;i++){
+      buttons[i].addEventListener('click', function(ev){
+        var msg = this.getAttribute('data-confirm') || 'هل أنت متأكد؟';
+        if(!window.confirm(msg)){
+          ev.preventDefault();
+          ev.stopPropagation();
+          return false;
+        }
+      });
+    }
+  })();
+</script>
 {% endblock %}

@@ -1,4 +1,7 @@
+{# reports/templates/reports/upload_payment_receipt.html (مثال اسم) #}
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}رفع إيصال دفع{% endblock %}
 
 {% block head %}
@@ -33,7 +36,10 @@
     backdrop-filter: blur(10px);
     font-weight:900;
     white-space:nowrap;
+    text-decoration:none;
+    color:#fff;
   }
+  .payup-chip:hover{background:rgba(255,255,255,.18)}
 
   /* Body */
   .payup-body{padding:clamp(14px,2.6vw,22px)}
@@ -72,6 +78,10 @@
     box-shadow:var(--ring);
   }
 
+  /* Django errors */
+  .field-error{margin-top:6px;color:#b91c1c;font-weight:900;font-size:.9rem}
+  html[data-theme="dark"] .field-error{color:#fecaca}
+
   /* File preview */
   .preview{
     display:none;
@@ -99,10 +109,6 @@
     font-weight:850;
     font-size:.88rem;
   }
-
-  /* Errors (اختياري لو حبيت تستخدمها لاحقاً) */
-  .field-error{margin-top:6px;color:#b91c1c;font-weight:900;font-size:.9rem}
-  html[data-theme="dark"] .field-error{color:#fecaca}
 
   /* Actions */
   .actions{
@@ -153,7 +159,25 @@
               <i class="fa-solid fa-coins" aria-hidden="true"></i>
               المبلغ المحول (ريال)
             </label>
-            <input id="id_amount" type="number" name="amount" step="0.01" min="0" inputmode="decimal" required>
+
+            <input
+              id="id_amount"
+              type="number"
+              name="amount"
+              step="0.01"
+              min="0"
+              inputmode="decimal"
+              required
+              value="{{ form.amount.value|default_if_none:'' }}"
+              autocomplete="off"
+            >
+
+            {% if form and form.amount and form.amount.errors %}
+              <div class="field-error">
+                {% for e in form.amount.errors %}{{ e }}{% endfor %}
+              </div>
+            {% endif %}
+
             <div class="hint">اكتب مبلغ التحويل كما هو في الإيصال.</div>
           </div>
 
@@ -162,8 +186,22 @@
               <i class="fa-solid fa-image" aria-hidden="true"></i>
               صورة الإيصال
             </label>
-            <input id="id_receipt" type="file" name="receipt_image" accept="image/*" required>
-            <div class="hint">يفضّل صورة واضحة. الحد الأقصى يعتمد على إعدادات السيرفر.</div>
+
+            <input
+              id="id_receipt"
+              type="file"
+              name="receipt_image"
+              accept="image/*"
+              {% if not form or not form.receipt_image.value %}required{% endif %}
+            >
+
+            {% if form and form.receipt_image and form.receipt_image.errors %}
+              <div class="field-error">
+                {% for e in form.receipt_image.errors %}{{ e }}{% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="hint">يفضّل صورة واضحة. (صور فقط)</div>
 
             <div class="preview" id="previewBox" aria-live="polite">
               <img id="previewImg" alt="معاينة الإيصال">
@@ -179,7 +217,19 @@
               <i class="fa-regular fa-note-sticky" aria-hidden="true"></i>
               ملاحظات (اختياري)
             </label>
-            <textarea id="id_notes" name="notes" rows="3" placeholder="أي تفاصيل إضافية..."></textarea>
+
+            <textarea
+              id="id_notes"
+              name="notes"
+              rows="3"
+              placeholder="أي تفاصيل إضافية..."
+            >{{ form.notes.value|default_if_none:'' }}</textarea>
+
+            {% if form and form.notes and form.notes.errors %}
+              <div class="field-error">
+                {% for e in form.notes.errors %}{{ e }}{% endfor %}
+              </div>
+            {% endif %}
           </div>
         </div>
 
@@ -196,7 +246,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
 (function(){
   const fileInput = document.getElementById('id_receipt');
   const box = document.getElementById('previewBox');
@@ -205,21 +255,25 @@
   const sizeEl = document.getElementById('previewSize');
 
   function prettySize(bytes){
-    if(!bytes && bytes !== 0) return '—';
+    if(bytes === null || bytes === undefined) return '—';
     const units = ['B','KB','MB','GB'];
     let i = 0, n = bytes;
     while(n >= 1024 && i < units.length-1){ n = n/1024; i++; }
     return (i === 0 ? n.toFixed(0) : n.toFixed(1)) + ' ' + units[i];
   }
 
+  function resetPreview(){
+    if(box) box.style.display = 'none';
+    if(img) img.removeAttribute('src');
+    if(nameEl) nameEl.textContent = '—';
+    if(sizeEl) sizeEl.textContent = '—';
+  }
+
   if(fileInput){
     fileInput.addEventListener('change', function(){
       const f = this.files && this.files[0];
-      if(!f){
-        box.style.display = 'none';
-        img.removeAttribute('src');
-        return;
-      }
+      if(!f){ resetPreview(); return; }
+
       nameEl.textContent = f.name || '—';
       sizeEl.textContent = prettySize(f.size);
 
@@ -227,23 +281,38 @@
         const url = URL.createObjectURL(f);
         img.src = url;
         box.style.display = 'block';
-        img.onload = () => URL.revokeObjectURL(url);
+        img.onload = function(){ URL.revokeObjectURL(url); };
       }else{
-        box.style.display = 'none';
-        img.removeAttribute('src');
+        resetPreview();
       }
     });
   }
 
-  // منع الإرسال المزدوج
+  // منع الإرسال المزدوج (بدون كسر الرجوع عند أخطاء السيرفر)
   const form = document.querySelector('.payup-body form');
   const btn = document.getElementById('submitBtn');
+
   if(form && btn){
     form.addEventListener('submit', function(){
       btn.disabled = true;
-      btn.style.opacity = ".75";
+      btn.style.opacity = ".78";
+      btn.setAttribute('data-old-html', btn.innerHTML);
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جارٍ الإرسال...';
     });
+  }
+
+  // لو رجعت الصفحة بأخطاء Django (form.errors) نعيد تفعيل الزر
+  try{
+    const hasErrors = {{ form.errors|yesno:"true,false" }};
+    if(hasErrors && btn){
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      const old = btn.getAttribute('data-old-html');
+      if(old) btn.innerHTML = old;
+      else btn.innerHTML = '<i class="fa-solid fa-paper-plane" aria-hidden="true"></i> إرسال الطلب';
+    }
+  }catch(e){
+    // ignore
   }
 })();
 </script>

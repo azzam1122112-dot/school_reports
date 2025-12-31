@@ -1,4 +1,6 @@
+{# reports/templates/reports/school_form.html (مثال اسم الملف) #}
 {% extends "base.html" %}
+
 {% block title %}{% if mode == 'edit' %}تعديل مدرسة{% else %}إنشاء مدرسة جديدة{% endif %}{% endblock %}
 
 {% block head %}
@@ -112,7 +114,11 @@
         </div>
 
         <div class="schoolform-actions">
-          <a href="{% url 'reports:schools_admin_list' %}" class="btn btn-outline" style="background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#fff">
+          <a
+            href="{% url 'reports:schools_admin_list' %}"
+            class="btn btn-outline"
+            style="background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22);color:#fff"
+          >
             <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             عودة
           </a>
@@ -187,17 +193,8 @@
             </div>
           </div>
 
-          <!-- ألوان/شعار/رابط/حالة -->
+          <!-- شعار/رابط/حالة -->
           <div class="row-4">
-            <div class="field">
-              <label for="id_print_primary_color" class="lbl">لون قالب الطباعة</label>
-              {{ form.print_primary_color }}
-              <div class="hint">لون رئيسي لقالب الطباعة (يمكن تغييره لاحقًا من إعدادات المدرسة).</div>
-              {% if form.print_primary_color.errors %}
-                <div style="color:var(--danger);font-weight:950;font-size:.9rem;margin-top:6px">{{ form.print_primary_color.errors.0 }}</div>
-              {% endif %}
-            </div>
-
             <div class="field">
               <label for="id_logo_file" class="lbl">رفع الشعار (اختياري)</label>
               {{ form.logo_file }}

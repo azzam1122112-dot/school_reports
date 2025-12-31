@@ -1,11 +1,13 @@
+{# reports/templates/reports/teacher_form.html (or your file name) #}
 {% extends "base.html" %}
+
 {% block title %}{{ page_title|default:"إضافة معلم جديد" }}{% endblock %}
 
 {% block head %}
 <style>
   /* ✅ Scoped styles: لا نلمس :root نهائيًا حتى ما نكسر هوية المنصة */
   .teacher-page{max-width:980px;margin:0 auto;padding:clamp(10px,2.2vw,18px)}
-  .teacher-shell{
+  .teacher-page .teacher-shell{
     background:var(--card);
     border:1px solid var(--line-2);
     border-radius:18px;
@@ -15,7 +17,7 @@
   }
 
   /* Header */
-  .teacher-head{
+  .teacher-page .teacher-head{
     padding:clamp(16px,2.2vw,22px) clamp(16px,3vw,26px);
     background:
       radial-gradient(900px 200px at 20% 0%, rgba(37,99,235,.18), transparent 55%),
@@ -23,42 +25,43 @@
       linear-gradient(135deg, rgba(37,99,235,.92), rgba(59,130,246,.86));
     color:#fff;
   }
-  .teacher-head-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
-  .teacher-title{
+  .teacher-page .teacher-head-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .teacher-page .teacher-title{
     margin:0;
     font-weight:900;
     font-size:clamp(1.25rem,2.4vw,1.65rem);
     display:flex;align-items:center;gap:10px;
   }
-  .teacher-sub{margin:6px 0 0;opacity:.95;font-weight:800}
-  .teacher-chip{
+  .teacher-page .teacher-sub{margin:6px 0 0;opacity:.95;font-weight:800}
+  .teacher-page .teacher-chip{
     display:inline-flex;align-items:center;gap:8px;
     padding:8px 12px;border-radius:999px;
     background:rgba(255,255,255,.14);
     border:1px solid rgba(255,255,255,.22);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     font-weight:900;
   }
 
   /* Body */
-  .teacher-body{padding:clamp(14px,2.6vw,22px)}
-  .grid{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:14px}
-  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .teacher-page .teacher-body{padding:clamp(14px,2.6vw,22px)}
+  .teacher-page .tgrid{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:14px}
+  @media(max-width:900px){.teacher-page .tgrid{grid-template-columns:1fr}}
 
-  .group{display:block}
-  .label{
+  .teacher-page .group{display:block}
+  .teacher-page .label{
     display:flex;align-items:center;gap:10px;
     margin:0 0 8px;
     font-weight:900;
     color:var(--ink);
   }
-  .label i{color:rgba(37,99,235,.95)}
-  .hint{margin-top:6px;color:var(--muted);font-weight:800;font-size:.88rem}
+  .teacher-page .label i{color:rgba(37,99,235,.95)}
+  .teacher-page .hint{margin-top:6px;color:var(--muted);font-weight:800;font-size:.88rem}
 
   /* Inputs */
-  .teacher-body input:not([type="checkbox"]),
-  .teacher-body select,
-  .teacher-body textarea{
+  .teacher-page .teacher-body input:not([type="checkbox"]),
+  .teacher-page .teacher-body select,
+  .teacher-page .teacher-body textarea{
     width:100%;
     min-height:var(--tap);
     border-radius:14px;
@@ -68,29 +71,29 @@
     font-weight:800;
     transition: box-shadow .18s ease, border-color .18s ease, transform .12s ease;
   }
-  html[data-theme="dark"] .teacher-body input:not([type="checkbox"]),
-  html[data-theme="dark"] .teacher-body select,
-  html[data-theme="dark"] .teacher-body textarea{
+  html[data-theme="dark"] .teacher-page .teacher-body input:not([type="checkbox"]),
+  html[data-theme="dark"] .teacher-page .teacher-body select,
+  html[data-theme="dark"] .teacher-page .teacher-body textarea{
     background: rgba(255,255,255,.04);
     border-color: rgba(148,163,184,.16);
   }
-  .teacher-body input:not([type="checkbox"]):focus,
-  .teacher-body select:focus,
-  .teacher-body textarea:focus{
+  .teacher-page .teacher-body input:not([type="checkbox"]):focus,
+  .teacher-page .teacher-body select:focus,
+  .teacher-page .teacher-body textarea:focus{
     outline:none;
     border-color:var(--brand);
     box-shadow:var(--ring);
   }
 
   /* Password control */
-  .pw-wrap{position:relative}
-  .pw-wrap input{padding-inline:44px}
-  .pw-ico{
+  .teacher-page .pw-wrap{position:relative}
+  .teacher-page .pw-wrap input{padding-inline:44px}
+  .teacher-page .pw-ico{
     position:absolute;right:12px;top:50%;transform:translateY(-50%);
     color:rgba(100,116,139,.95);
     pointer-events:none;
   }
-  .pw-toggle{
+  .teacher-page .pw-toggle{
     position:absolute;left:10px;top:50%;transform:translateY(-50%);
     width:40px;height:40px;border-radius:12px;
     border:1px solid rgba(15,23,42,.10);
@@ -100,43 +103,34 @@
     color:rgba(100,116,139,.95);
     transition:transform .12s ease,border-color .12s ease,color .12s ease;
   }
-  .pw-toggle:hover{transform:translateY(-50%) translateY(-1px);border-color:rgba(37,99,235,.28);color:var(--brand)}
-  html[data-theme="dark"] .pw-toggle{background:rgba(255,255,255,.06);border-color:rgba(148,163,184,.18)}
+  .teacher-page .pw-toggle:hover{transform:translateY(-50%) translateY(-1px);border-color:rgba(37,99,235,.28);color:var(--brand)}
+  html[data-theme="dark"] .teacher-page .pw-toggle{background:rgba(255,255,255,.06);border-color:rgba(148,163,184,.18)}
 
   /* Switch */
-  .switch-row{display:flex;align-items:center;gap:12px}
-  .switch{position:relative;width:56px;height:32px;flex:0 0 auto}
-  .switch input{opacity:0;width:0;height:0}
-  .slider{
+  .teacher-page .switch-row{display:flex;align-items:center;gap:12px}
+  .teacher-page .switch{position:relative;width:56px;height:32px;flex:0 0 auto}
+  .teacher-page .switch input{opacity:0;width:0;height:0}
+  .teacher-page .slider{
     position:absolute;inset:0;border-radius:999px;
     background:#cbd5e1;
     transition:.25s;
   }
-  .slider:before{
+  .teacher-page .slider:before{
     content:"";
     position:absolute;top:5px;right:5px;
     width:22px;height:22px;border-radius:50%;
     background:#fff;transition:.25s;
   }
-  .switch input:checked + .slider{background:var(--brand)}
-  .switch input:checked + .slider:before{transform:translateX(-24px)}
-  .switch-meta{display:grid;gap:4px}
-  .switch-meta b{font-weight:900}
-
-  /* Select caret */
-  .select-wrap{position:relative}
-  .select-wrap select{appearance:none;padding-left:44px}
-  .caret{
-    position:absolute;left:14px;top:50%;transform:translateY(-50%);
-    color:rgba(100,116,139,.95);
-    pointer-events:none;
-  }
+  .teacher-page .switch input:checked + .slider{background:var(--brand)}
+  .teacher-page .switch input:checked + .slider:before{transform:translateX(-24px)}
+  .teacher-page .switch-meta{display:grid;gap:4px}
+  .teacher-page .switch-meta b{font-weight:900}
 
   /* Errors */
-  .field-error{margin-top:6px;color:#b91c1c;font-weight:900;font-size:.9rem}
-  html[data-theme="dark"] .field-error{color:#fecaca}
+  .teacher-page .field-error{margin-top:6px;color:#b91c1c;font-weight:900;font-size:.9rem}
+  html[data-theme="dark"] .teacher-page .field-error{color:#fecaca}
 
-  .nferr{
+  .teacher-page .nferr{
     margin-bottom:12px;
     padding:12px 14px;
     border-radius:16px;
@@ -145,9 +139,14 @@
     color:#991b1b;
     font-weight:900;
   }
+  html[data-theme="dark"] .teacher-page .nferr{
+    background: rgba(239,68,68,.10);
+    border-color: rgba(239,68,68,.22);
+    color: #fecaca;
+  }
 
   /* Actions */
-  .actions{
+  .teacher-page .actions{
     margin-top:16px;
     padding-top:14px;
     border-top:1px solid var(--line-2);
@@ -156,12 +155,12 @@
     justify-content:flex-start;
     flex-wrap:wrap;
   }
-  .actions .btn{border-radius:14px}
-  .actions .btn-primary{min-width:200px}
+  .teacher-page .actions .btn{border-radius:14px}
+  .teacher-page .actions .btn-primary{min-width:200px}
   @media(max-width:560px){
-    .actions{flex-direction:column}
-    .actions .btn,
-    .actions .btn-primary{width:100%}
+    .teacher-page .actions{flex-direction:column}
+    .teacher-page .actions .btn,
+    .teacher-page .actions .btn-primary{width:100%}
   }
 </style>
 {% endblock %}
@@ -195,7 +194,7 @@
       <form method="POST" novalidate>
         {% csrf_token %}
 
-        <div class="grid">
+        <div class="tgrid">
           <!-- الاسم -->
           <div class="group">
             <label class="label" for="{{ form.name.id_for_label }}">
@@ -247,6 +246,18 @@
             {% endif %}
           </div>
 
+          <!-- الدور (اختياري إذا كان موجودًا في الفورم) -->
+          {% if form.role %}
+            <div class="group">
+              <label class="label" for="{{ form.role.id_for_label }}">
+                <i class="fas fa-user-tag" aria-hidden="true"></i> الدور
+              </label>
+              {{ form.role }}
+              {% for e in form.role.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+              <div class="hint">حدد صلاحية المستخدم داخل النظام</div>
+            </div>
+          {% endif %}
+
           <!-- نشط -->
           <div class="group">
             <div class="label"><i class="fas fa-toggle-on" aria-hidden="true"></i> حالة الحساب</div>
@@ -270,10 +281,17 @@
             {{ save_label|default:"حفظ المعلم" }}
           </button>
 
-          <a href="{% url back_url|default:'reports:manage_teachers' %}" class="btn">
-            <i class="fas fa-arrow-right" aria-hidden="true"></i>
-            {{ back_label|default:"رجوع للقائمة" }}
-          </a>
+          {% if back_href %}
+            <a href="{{ back_href }}" class="btn">
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+              {{ back_label|default:"رجوع للقائمة" }}
+            </a>
+          {% else %}
+            <a href="{% url 'reports:manage_teachers' %}" class="btn">
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+              {{ back_label|default:"رجوع للقائمة" }}
+            </a>
+          {% endif %}
         </div>
       </form>
     </div>
@@ -282,7 +300,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   document.addEventListener("DOMContentLoaded", function () {
     const national = document.getElementById('{{ form.national_id.id_for_label }}') || document.getElementById('id_national_id');
     const phone = document.getElementById('{{ form.phone.id_for_label }}') || document.getElementById('id_phone');
@@ -295,6 +313,7 @@
       national.style.textAlign='left';
       national.setAttribute('autocomplete','off');
     }
+
     if(phone){
       phone.setAttribute('inputmode','tel');
       phone.setAttribute('pattern','^05\\d{8}$');
@@ -305,11 +324,19 @@
     }
 
     const toggle = document.getElementById("togglePassword");
-    const pwd = document.getElementById('{{ form.password.id_for_label }}') || document.getElementById('id_password') || document.querySelector('input[type="password"],input[name="password"]');
+    const pwd =
+      document.getElementById('{{ form.password.id_for_label }}') ||
+      document.getElementById('id_password') ||
+      document.querySelector('input[type="password"],input[name="password"]');
+
     if(pwd && pwd.type !== 'password'){
-      // احتياطًا لو الودجت رجّع type مختلف
       pwd.type = 'password';
     }
+    if(pwd){
+      // أفضل للمتصفحات (حتى لو التغيير اختياري عند التعديل)
+      pwd.setAttribute('autocomplete','new-password');
+    }
+
     if(toggle && pwd){
       toggle.addEventListener("click", function(){
         const isPwd = pwd.type === "password";

@@ -1,304 +1,540 @@
 {# templates/reports/notifications_list.html (أو اسم ملفك الحالي) #}
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}إشعاراتي{% endblock %}
 
 {% block head %}
 <style>
-  /* Scope لمنع أي تعارض مع بقية الصفحات */
+  /* =========================================================
+     Notifications (page-scoped) — بدون لمس .btn/.card العامة
+     - يعتمد على متغيرات base (var(--card), --line, --ink, --muted)
+     - يدعم data-theme="dark"
+     ========================================================= */
   .notif-scope{
-    --primary:#4361ee; --secondary:#7209b7; --success:#10b981;
-    --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --text-light:#64748b; --border:#e2e8f0;
-    --radius-lg:20px; --radius-md:12px; --shadow:0 10px 40px rgba(2,6,23,.08);
-    --gradient:linear-gradient(135deg,var(--primary),var(--secondary));
-    --t:all .28s ease;
-    --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+    --primary: #4361ee;
+    --secondary:#7209b7;
+    --success:#10b981;
+    --danger:#ef4444;
+
+    --bg: var(--bg, #f8fafc);
+    --card: var(--card, #ffffff);
+    --text: var(--ink, #0f172a);
+    --text-light: var(--muted, #64748b);
+    --border: var(--line, #e2e8f0);
+
+    --radius-lg:20px;
+    --radius-md:12px;
+    --shadow: 0 10px 40px rgba(2,6,23,.08);
+    --gradient: linear-gradient(135deg,var(--primary),var(--secondary));
+    --t: var(--t-fast, all .25s ease);
+
+    --safe-top: env(safe-area-inset-top,0px);
+    --safe-bottom: env(safe-area-inset-bottom,0px);
   }
-  @media (prefers-color-scheme: dark){
-    .notif-scope{ --bg:#0f172a; --card:#1e293b; --text:#e5e7eb; --text-light:#a3b2c7; --border:#334155 }
+
+  html[data-theme="dark"] .notif-scope{
+    --bg: var(--bg, #0b1223);
+    --card: var(--card, #0f1629);
+    --text: var(--ink, #e5e7eb);
+    --text-light: var(--muted, #a3b2c7);
+    --border: var(--line, #1b2744);
+    --shadow: 0 18px 55px rgba(0,0,0,.35);
   }
 
-  /* لا تستخدم .container (لأنه مُعرّف عامّاً) حتى لا يحدث تداخل/تباين عبر الصفحات */
-  .notif-scope .notif-container{max-width:1400px;margin-inline:auto;padding:20px}
+  .notif-scope .notif-container{
+    max-width: 1400px;
+    margin-inline: auto;
+    padding: 20px;
+  }
 
-  .notif-scope .page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 28px;flex-wrap:wrap}
-  .notif-scope .page-title{margin:0;font-size:2rem;font-weight:950;display:flex;align-items:center;gap:12px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .notif-scope .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;font-weight:950;font-size:.9rem}
-  .notif-scope .chip.badge{background:#eef2ff;border:1px solid var(--border);color:#1e40af}
-  .notif-scope .chip.danger{background:#fff5f5;border:1px solid #ffe0e0;color:#b91c1c}
-  .notif-scope .chip.muted{background:#f8fafc;border:1px solid var(--border);color:#475569}
+  .notif-scope .page-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin: 0 0 22px;
+    flex-wrap:wrap;
+  }
 
-  .notif-scope .head-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .notif-scope .page-title{
+    margin:0;
+    font-size: clamp(1.45rem, 2.6vw, 2rem);
+    font-weight: 950;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background: var(--gradient);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+
+  .notif-scope .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .9rem;
+    border: 1px solid var(--border);
+    background: rgba(99,102,241,.08);
+    color: #1e40af;
+  }
+  html[data-theme="dark"] .notif-scope .chip{
+    background: rgba(99,102,241,.16);
+    color: #c7d2fe;
+  }
+
+  .notif-scope .chip.danger{
+    background: rgba(239,68,68,.10);
+    border-color: rgba(239,68,68,.25);
+    color: #b91c1c;
+  }
+  html[data-theme="dark"] .notif-scope .chip.danger{
+    color: #fecaca;
+  }
+
+  .notif-scope .chip.muted{
+    background: rgba(148,163,184,.10);
+    border-color: var(--border);
+    color: var(--text-light);
+  }
+
+  .notif-scope .head-actions{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
   .notif-scope .btn-outline{
-    padding:12px 18px;border-radius:var(--radius-md);border:2px solid var(--border);
-    background:var(--card);font-weight:900;color:var(--text);cursor:pointer;text-decoration:none;
-    display:inline-flex;align-items:center;gap:8px;transition:var(--t)
+    padding: 12px 18px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--card);
+    font-weight: 900;
+    color: var(--text);
+    cursor: pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition: var(--t);
   }
-  .notif-scope .btn-outline:hover{border-color:var(--primary);color:var(--primary);box-shadow:0 4px 14px rgba(2,6,23,.08);transform:translateY(-2px)}
-  .notif-scope .toggle{display:inline-flex;align-items:center;gap:8px;font-weight:900;color:var(--text)}
-  .notif-scope .toggle input{width:18px;height:18px}
+  .notif-scope .btn-outline:hover{
+    border-color: rgba(67,97,238,.55);
+    box-shadow: 0 8px 22px rgba(2,6,23,.08);
+    transform: translateY(-2px);
+  }
 
-  .notif-scope .cards{display:grid;gap:20px}
-  @media (min-width:768px){.notif-scope .cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media (min-width:1200px){.notif-scope .cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .notif-scope .toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-weight: 900;
+    color: var(--text);
+    user-select:none;
+  }
+  .notif-scope .toggle input{ width:18px; height:18px; }
+
+  .notif-scope .cards{ display:grid; gap:20px; }
+  @media (min-width:768px){ .notif-scope .cards{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (min-width:1200px){ .notif-scope .cards{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
 
   .notif-scope .n-card{
-    position:relative;display:flex;flex-direction:column;gap:16px;background:var(--card);
-    border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);
-    transition:var(--t);overflow:hidden
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    transition: var(--t);
+    overflow:hidden;
   }
-  .notif-scope .n-card::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--gradient)}
-  .notif-scope .n-card:hover{transform:translateY(-4px);box-shadow:0 18px 50px rgba(2,6,23,.12);border-color:#dfe7ff}
-  .notif-scope .n-card.read{background:linear-gradient(180deg,rgba(99,102,241,.06),transparent),var(--card)}
+  .notif-scope .n-card::before{
+    content:"";
+    position:absolute;
+    inset: 0 0 auto 0;
+    height: 5px;
+    background: var(--gradient);
+  }
+  .notif-scope .n-card:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 22px 60px rgba(2,6,23,.12);
+  }
+  html[data-theme="dark"] .notif-scope .n-card:hover{
+    box-shadow: 0 28px 80px rgba(0,0,0,.45);
+  }
 
-  .notif-scope .n-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-  .notif-scope .n-title{margin:0;font-weight:950;color:var(--text);display:flex;align-items:center;gap:10px;font-size:1.15rem}
-  .notif-scope .n-time{white-space:nowrap;color:var(--text-light);font-weight:800;font-size:.9rem;display:flex;align-items:center;gap:6px}
+  .notif-scope .n-card.read{
+    background:
+      linear-gradient(180deg, rgba(99,102,241,.06), transparent),
+      var(--card);
+  }
 
-  /* محتوى مختصر داخل البطاقة — آمن لأن المودال يعرض textContent */
+  .notif-scope .n-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .notif-scope .n-title{
+    margin:0;
+    font-weight: 950;
+    color: var(--text);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size: 1.12rem;
+    line-height: 1.35;
+  }
+
+  .notif-scope .n-time{
+    white-space:nowrap;
+    color: var(--text-light);
+    font-weight: 850;
+    font-size: .9rem;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+
   .notif-scope .n-body{
-    color:var(--text);font-weight:700;line-height:1.85;overflow-wrap:anywhere;
-    display:-webkit-box;-webkit-box-orient:vertical;--lines:6;-webkit-line-clamp:var(--lines);
-    overflow:hidden;margin:2px 0 4px;background:var(--bg);padding:12px;border-radius:12px;border-inline-start:4px solid var(--primary)
+    color: var(--text);
+    font-weight: 800;
+    line-height: 1.85;
+    overflow-wrap:anywhere;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    --lines:6;
+    -webkit-line-clamp: var(--lines);
+    overflow:hidden;
+    margin: 2px 0 4px;
+    background: rgba(148,163,184,.08);
+    padding: 12px;
+    border-radius: 12px;
+    border-inline-start: 4px solid rgba(67,97,238,.95);
   }
-  @media (max-width:900px){.notif-scope .n-body{--lines:5}}
-  @media (max-width:600px){.notif-scope .n-body{--lines:4}}
+  @media (max-width:900px){ .notif-scope .n-body{ --lines:5; } }
+  @media (max-width:600px){ .notif-scope .n-body{ --lines:4; } }
+  html[data-theme="dark"] .notif-scope .n-body{
+    background: rgba(148,163,184,.10);
+    border-inline-start-color: rgba(99,102,241,.9);
+  }
 
-  .notif-scope .sender{display:flex;align-items:center;gap:12px;color:var(--text);flex-wrap:wrap}
-  .notif-scope .avatar-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 3px rgba(67,97,238,.2)}
-  .notif-scope .read .avatar-dot{background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.2)}
-  .notif-scope .sender-name{font-weight:900}
-  .notif-scope .sender-role{color:var(--text-light);font-weight:800;font-size:.9rem}
+  .notif-scope .sender{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color: var(--text);
+    flex-wrap:wrap;
+  }
 
-  .notif-scope .n-actions{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .notif-scope .n-actions .left{display:flex;gap:10px;flex-wrap:wrap}
+  .notif-scope .avatar-dot{
+    width:12px;height:12px;border-radius:50%;
+    background: rgba(67,97,238,.95);
+    box-shadow: 0 0 0 3px rgba(67,97,238,.20);
+  }
+  .notif-scope .read .avatar-dot{
+    background: rgba(16,185,129,.95);
+    box-shadow: 0 0 0 3px rgba(16,185,129,.20);
+  }
+
+  .notif-scope .sender-name{ font-weight: 950; }
+  .notif-scope .sender-role{ color: var(--text-light); font-weight: 850; font-size: .9rem; }
+
+  .notif-scope .n-actions{
+    margin-top:auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .notif-scope .n-actions .left{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
   .notif-scope .btn-sm{
-    padding:10px 14px;border-radius:12px;border:1px solid var(--border);
-    background:var(--card);font-weight:900;text-decoration:none;color:var(--text);
-    display:inline-flex;align-items:center;gap:8px;transition:var(--t);font-size:.9rem;cursor:pointer
+    padding:10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    font-weight: 900;
+    text-decoration:none;
+    color: var(--text);
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition: var(--t);
+    font-size: .9rem;
+    cursor:pointer;
   }
-  .notif-scope .btn-sm:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
-  .notif-scope .btn-sm.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-  .notif-scope .btn-sm.ghost{background:#eef2ff;border-color:#e5e7eb;color:#1e40af}
-  .notif-scope .btn-sm.success{background:#ecfdf5;border-color:#d1fae5;color:#065f46}
-  .notif-scope .time-badge{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:999px;background:#f1f5ff;border:1px solid #e5edff;color:#1e3a8a;font-weight:900;font-size:.9rem}
+  .notif-scope .btn-sm:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(2,6,23,.10);
+  }
+
+  .notif-scope .btn-sm.primary{
+    background: rgba(67,97,238,.95);
+    border-color: rgba(67,97,238,.95);
+    color:#fff;
+  }
+
+  .notif-scope .btn-sm.ghost{
+    background: rgba(99,102,241,.10);
+    border-color: rgba(99,102,241,.20);
+    color: #1e40af;
+  }
+  html[data-theme="dark"] .notif-scope .btn-sm.ghost{
+    color: #c7d2fe;
+  }
+
+  .notif-scope .btn-sm.success{
+    background: rgba(16,185,129,.12);
+    border-color: rgba(16,185,129,.22);
+    color: #065f46;
+  }
+  html[data-theme="dark"] .notif-scope .btn-sm.success{
+    color: #bbf7d0;
+  }
+
+  .notif-scope .time-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:10px 14px;
+    border-radius: 999px;
+    background: rgba(67,97,238,.08);
+    border: 1px solid rgba(67,97,238,.18);
+    color: #1e3a8a;
+    font-weight: 950;
+    font-size: .9rem;
+  }
+  html[data-theme="dark"] .notif-scope .time-badge{
+    color: #c7d2fe;
+    background: rgba(99,102,241,.14);
+    border-color: rgba(99,102,241,.22);
+  }
 
   .notif-scope .empty{
-    padding:40px 20px;border:2px dashed var(--border);border-radius:var(--radius-lg);
-    background:var(--card);text-align:center;color:var(--text-light);font-weight:900;font-size:1.1rem
+    padding: 40px 20px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    text-align:center;
+    color: var(--text-light);
+    font-weight: 950;
+    font-size: 1.05rem;
   }
-  .notif-scope .empty i{font-size:3rem;margin-bottom:16px;opacity:.5;display:block}
+  .notif-scope .empty i{
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: .5;
+    display:block;
+  }
 
-  .notif-scope .pager{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:28px;flex-wrap:wrap}
-  .notif-scope .pager a,.notif-scope .pager span{
-    padding:10px 16px;border:1px solid var(--border);border-radius:12px;background:var(--card);
-    font-weight:900;text-decoration:none;color:var(--text);transition:var(--t)
+  .notif-scope .pager{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:center;
+    margin-top: 28px;
+    flex-wrap:wrap;
   }
-  .notif-scope .pager a:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .notif-scope .pager .on{background:var(--gradient);color:#fff;border-color:var(--primary)}
+  .notif-scope .pager a,
+  .notif-scope .pager span{
+    padding:10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    font-weight: 950;
+    text-decoration:none;
+    color: var(--text);
+    transition: var(--t);
+  }
+  .notif-scope .pager a:hover{
+    background: rgba(67,97,238,.95);
+    color:#fff;
+    border-color: rgba(67,97,238,.95);
+  }
+  .notif-scope .pager .on{
+    background: var(--gradient);
+    color:#fff;
+    border-color: rgba(67,97,238,.55);
+  }
 
-  /* ===== المودال ===== */
-  .notif-scope .modal-overlay{
-    position:fixed; inset:0; z-index:2147483000; display:none; place-items:center;
-    padding:20px; padding-top:calc(20px + var(--safe-top)); padding-bottom:calc(20px + var(--safe-bottom));
-    opacity:0; visibility:hidden; transition:opacity .25s ease, visibility .25s ease;
+  /* ===== Modal (ID based, works even if moved to <body>) ===== */
+  #nModal{
+    position:fixed;
+    inset:0;
+    z-index:2147483647;
+    display:none;
+    place-items:center;
+    padding:20px;
+    padding-top: calc(20px + env(safe-area-inset-top,0px));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom,0px));
+    opacity:0;
+    visibility:hidden;
+    transition: opacity .25s ease, visibility .25s ease;
   }
-  .notif-scope .modal-overlay.open{
-    display:grid !important;
+  #nModal.open{
+    display:grid;
     opacity:1;
     visibility:visible;
   }
-  .notif-scope .modal-overlay::before{content:""; position:absolute; inset:0; background:rgba(2,6,23,.58); backdrop-filter:blur(3px); pointer-events:none}
-  .notif-scope .modal{
-    position:relative; z-index:1; width:min(760px,96vw); max-height:90vh; overflow:auto;
-    background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg);
-    box-shadow:0 24px 80px rgba(2,6,23,.35);
-    transform:translateY(16px) scale(.98); opacity:0; transition:transform .25s ease, opacity .25s ease
-  }
-  .notif-scope .modal-overlay.open .modal{transform:none; opacity:1}
-  .notif-scope .m-close{
-    position:absolute; inset-block-start:16px; inset-inline-start:16px; width:40px; height:40px; border-radius:50%;
-    border:0; cursor:pointer; background:#ef4444; color:#fff; font-size:18px; display:grid; place-items:center; transition:var(--t)
-  }
-  .notif-scope .m-close:hover{transform:scale(1.08)}
-  .notif-scope .m-header{padding:22px; border-bottom:1px solid var(--border); background:linear-gradient(135deg,#f8fafc,#eef2ff)}
-  .notif-scope .m-title{margin:0 0 10px; font-weight:950; color:var(--text); font-size:1.4rem}
-  .notif-scope .m-meta{display:flex; flex-wrap:wrap; gap:10px}
-  .notif-scope .m-chip{
-    display:inline-flex; align-items:center; gap:6px; background:#eef2ff; border:1px solid #e5edff; color:#1e40af;
-    border-radius:999px; padding:8px 12px; font-weight:900; font-size:.9rem
-  }
-  .notif-scope .m-body{
-    padding:22px; color:var(--text); line-height:1.85; white-space:pre-wrap; overflow-wrap:anywhere; background:var(--bg)
-  }
-  .notif-scope .m-actions{
-    padding:16px 22px; display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end;
-    border-top:1px solid var(--border); background:var(--bg)
-  }
-  .notif-scope .btn{
-    padding:12px 18px; border-radius:12px; border:1px solid var(--border); background:var(--card);
-    font-weight:900; cursor:pointer; transition:var(--t); display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--text)
-  }
-  .notif-scope .btn-primary{background:var(--gradient); color:#fff; border:none}
-  .notif-scope .btn-ghost{background:#eef2ff; border-color:#e5e7eb; color:#1e40af}
-  .notif-scope .btn:hover{transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.1)}
-
-  /* تحسين للجوال */
-  @media (max-width:600px){
-    .notif-scope .m-actions{flex-direction:column-reverse;padding:12px 16px}
-    .notif-scope .btn{width:100%;justify-content:center;padding:14px}
-    .notif-scope .m-close{width:36px;height:36px;font-size:20px}
-    .notif-scope .modal{width:98vw;border-radius:12px}
-    .notif-scope .m-header{padding:18px}
-    .notif-scope .m-title{font-size:1.2rem}
-    .notif-scope .m-body{padding:18px;font-size:.95rem}
-  }
-
-  /* ===== Fix: modal moved to body on some layouts =====
-     The script may append #nModal to document.body.
-     These rules ensure the modal still works even خارج .notif-scope.
-  */
-  #nModal{
-    position:fixed !important;
-    inset:0 !important;
-    z-index:2147483647 !important;
-    display:none !important;
-    place-items:center !important;
-    padding:20px !important;
-    padding-top:calc(20px + env(safe-area-inset-top,0px)) !important;
-    padding-bottom:calc(20px + env(safe-area-inset-bottom,0px)) !important;
-    opacity:0 !important;
-    visibility:hidden !important;
-    transition:opacity .25s ease, visibility .25s ease !important;
-    background:none !important;
-  }
-  #nModal.open{
-    display:grid !important;
-    opacity:1 !important;
-    visibility:visible !important;
-  }
   #nModal::before{
-    content:"" !important;
-    position:absolute !important;
-    inset:0 !important;
-    background:rgba(2,6,23,.75) !important;
-    backdrop-filter:blur(4px) !important;
-    pointer-events:none !important;
+    content:"";
+    position:absolute;
+    inset:0;
+    background: rgba(2,6,23,.68);
+    backdrop-filter: blur(4px);
+    pointer-events:none;
   }
+
   #nModal .modal{
-    position:relative !important;
-    z-index:2147483647 !important;
-    width:min(760px,96vw) !important;
-    max-height:90vh !important;
-    overflow:auto !important;
-    background:#ffffff !important;
-    border:1px solid #e2e8f0 !important;
-    border-radius:20px !important;
-    box-shadow:0 24px 80px rgba(2,6,23,.35) !important;
-    transform:translateY(16px) scale(.98) !important;
-    opacity:0 !important;
-    transition:transform .25s ease, opacity .25s ease !important;
-    pointer-events:auto !important;
+    position:relative;
+    z-index:1;
+    width: min(760px, 96vw);
+    max-height: 90vh;
+    overflow:auto;
+    background: var(--card, #fff);
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 20px;
+    box-shadow: 0 24px 80px rgba(2,6,23,.35);
+    transform: translateY(16px) scale(.985);
+    opacity:0;
+    transition: transform .25s ease, opacity .25s ease;
+    pointer-events:auto;
+    outline: none;
   }
   #nModal.open .modal{
-    transform:none !important;
-    opacity:1 !important;
+    transform:none;
+    opacity:1;
   }
+
   #nModal .m-close{
-    position:absolute !important;
-    top:16px !important;
-    left:16px !important;
-    width:40px !important;
-    height:40px !important;
-    border-radius:50% !important;
-    border:0 !important;
-    cursor:pointer !important;
-    background:#ef4444 !important;
-    color:#fff !important;
-    font-size:20px !important;
-    display:grid !important;
-    place-items:center !important;
-    font-weight:bold !important;
-    line-height:1 !important;
+    position:absolute;
+    inset-block-start: 16px;
+    inset-inline-start: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 0;
+    cursor: pointer;
+    background: rgba(239,68,68,.95);
+    color:#fff;
+    font-size: 18px;
+    display:grid;
+    place-items:center;
+    transition: var(--t, all .25s ease);
+    line-height: 1;
   }
+  #nModal .m-close:hover{ transform: scale(1.06); }
+
   #nModal .m-header{
-    padding:22px !important;
-    border-bottom:1px solid #e2e8f0 !important;
-    background:linear-gradient(135deg,#f8fafc,#eef2ff) !important;
+    padding: 22px;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+    background: linear-gradient(135deg, rgba(248,250,252,.9), rgba(238,242,255,.85));
   }
+  html[data-theme="dark"] #nModal .m-header{
+    background: linear-gradient(135deg, rgba(15,22,41,.95), rgba(27,39,68,.9));
+  }
+
   #nModal .m-title{
-    margin:0 0 10px !important;
-    font-weight:900 !important;
-    color:#0f172a !important;
-    font-size:1.4rem !important;
+    margin: 0 0 10px;
+    font-weight: 950;
+    color: var(--ink, #0f172a);
+    font-size: 1.35rem;
   }
+
   #nModal .m-meta{
-    display:flex !important;
-    flex-wrap:wrap !important;
-    gap:10px !important;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
   }
+
   #nModal .m-chip{
-    display:inline-flex !important;
-    align-items:center !important;
-    gap:6px !important;
-    background:#eef2ff !important;
-    border:1px solid #e5edff !important;
-    color:#1e40af !important;
-    border-radius:999px !important;
-    padding:8px 12px !important;
-    font-weight:900 !important;
-    font-size:.9rem !important;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background: rgba(99,102,241,.10);
+    border: 1px solid rgba(99,102,241,.20);
+    color: #1e40af;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-weight: 950;
+    font-size: .9rem;
   }
+  html[data-theme="dark"] #nModal .m-chip{ color: #c7d2fe; }
+
   #nModal .m-body{
-    padding:22px !important;
-    color:#0f172a !important;
-    line-height:1.85 !important;
-    white-space:pre-wrap !important;
-    overflow-wrap:anywhere !important;
-    background:#f8fafc !important;
-    min-height:100px !important;
+    padding: 22px;
+    color: var(--ink, #0f172a);
+    line-height: 1.85;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: rgba(148,163,184,.08);
+    min-height: 100px;
   }
+  html[data-theme="dark"] #nModal .m-body{ background: rgba(148,163,184,.10); }
+
   #nModal .m-actions{
-    padding:16px 22px !important;
-    display:flex !important;
-    gap:12px !important;
-    flex-wrap:wrap !important;
-    justify-content:flex-end !important;
-    border-top:1px solid #e2e8f0 !important;
-    background:#f8fafc !important;
+    padding: 16px 22px;
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    border-top: 1px solid var(--line, #e2e8f0);
+    background: rgba(148,163,184,.08);
   }
-  #nModal .btn{
-    padding:12px 18px !important;
-    border-radius:12px !important;
-    border:1px solid #e2e8f0 !important;
-    background:#ffffff !important;
-    font-weight:900 !important;
-    cursor:pointer !important;
-    display:inline-flex !important;
-    align-items:center !important;
-    gap:8px !important;
-    text-decoration:none !important;
-    color:#0f172a !important;
-    transition:all .25s ease !important;
+  html[data-theme="dark"] #nModal .m-actions{ background: rgba(148,163,184,.10); }
+
+  /* Buttons inside modal only */
+  #nModal .m-btn{
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--line, #e2e8f0);
+    background: var(--card, #fff);
+    font-weight: 950;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    text-decoration:none;
+    color: var(--ink, #0f172a);
+    transition: var(--t, all .25s ease);
   }
-  #nModal .btn-primary{
-    background:linear-gradient(135deg,#4361ee,#7209b7) !important;
-    color:#fff !important;
-    border:none !important;
+  #nModal .m-btn:hover{ transform: translateY(-2px); box-shadow: 0 10px 22px rgba(2,6,23,.12); }
+
+  #nModal .m-btn.primary{
+    background: var(--gradient);
+    color:#fff;
+    border-color: transparent;
   }
-  #nModal .btn-ghost{
-    background:#eef2ff !important;
-    border-color:#e5e7eb !important;
-    color:#1e40af !important;
+  #nModal .m-btn.ghost{
+    background: rgba(99,102,241,.10);
+    border-color: rgba(99,102,241,.20);
+    color: #1e40af;
   }
+  html[data-theme="dark"] #nModal .m-btn.ghost{ color: #c7d2fe; }
+
   @media (max-width:600px){
-    #nModal .modal{width:98vw !important;border-radius:12px !important}
-    #nModal .m-close{width:36px !important;height:36px !important;font-size:18px !important}
-    #nModal .m-header{padding:18px !important}
-    #nModal .m-title{font-size:1.2rem !important}
-    #nModal .m-body{padding:18px !important;font-size:.95rem !important}
-    #nModal .m-actions{flex-direction:column-reverse !important;padding:12px 16px !important}
-    #nModal .btn{width:100% !important;justify-content:center !important;padding:14px !important}
+    .notif-scope .notif-container{ padding: 14px; }
+    #nModal .modal{ width: 98vw; border-radius: 14px; }
+    #nModal .m-close{ width: 36px; height: 36px; font-size: 18px; }
+    #nModal .m-header{ padding: 18px; }
+    #nModal .m-title{ font-size: 1.15rem; }
+    #nModal .m-body{ padding: 18px; font-size: .95rem; }
+    #nModal .m-actions{ flex-direction: column-reverse; padding: 12px 16px; }
+    #nModal .m-btn{ width: 100%; justify-content:center; padding: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .notif-scope *{ transition:none !important; }
   }
 </style>
 {% endblock %}
@@ -309,28 +545,29 @@
 
     <header class="page-head">
       <h1 class="page-title">
-        <i class="fa-solid fa-bell" aria-hidden="true"></i> إشعاراتي
+        <i class="fa-solid fa-bell" aria-hidden="true"></i>
+        إشعاراتي
 
-        {% if NAV_NOTIFICATIONS_UNREAD|default:0 > 0 %}
-          <span class="chip badge" id="unreadCount" aria-live="polite">
-            <i class="fa-solid fa-envelope"></i> {{ NAV_NOTIFICATIONS_UNREAD }} غير مقروءة
+        {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" %}
+          <span class="chip" id="unreadCount" aria-live="polite" {% if unread == 0 %}style="display:none"{% endif %} data-initial="{{ unread }}">
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+            <span id="unreadCountNum">{{ unread }}</span>
+            غير مقروءة
           </span>
-        {% else %}
-          <span class="chip badge" id="unreadCount" aria-live="polite" style="display:none">
-            <i class="fa-solid fa-envelope"></i> 0 غير مقروءة
-          </span>
-        {% endif %}
+        {% endwith %}
       </h1>
 
       <div class="head-actions">
         <label class="toggle" for="onlyUnread">
-          <input type="checkbox" id="onlyUnread"> إظهار غير المقروء فقط
+          <input type="checkbox" id="onlyUnread">
+          إظهار غير المقروء فقط
         </label>
 
         <form class="head-actions mark-all" method="post" action="{% url 'reports:notifications_mark_all_read' %}">
           {% csrf_token %}
           <button class="btn-outline" type="submit" id="markAllBtn">
-            <i class="fa-solid fa-check-double"></i> تحديد الكل كمقروء
+            <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+            تحديد الكل كمقروء
           </button>
         </form>
       </div>
@@ -343,11 +580,15 @@
           <article class="n-card {% if r.is_read %}read{% endif %}">
             <div class="n-head">
               <h3 class="n-title">
-                {% if n.is_important %}<span class="chip danger"><i class="fa-solid fa-exclamation-circle"></i> هام</span>{% endif %}
+                {% if n.is_important %}
+                  <span class="chip danger"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> هام</span>
+                {% endif %}
                 {{ n.title|default:"رسالة من الإدارة" }}
               </h3>
+
               <time class="n-time" datetime="{{ r.created_at|date:'c' }}">
-                <i class="fa-regular fa-clock"></i> {{ r.created_at|date:"Y-m-d H:i" }}
+                <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                {{ r.created_at|date:"Y-m-d H:i" }}
               </time>
             </div>
 
@@ -358,42 +599,60 @@
 
             <div class="sender" aria-label="المرسِل">
               <span class="avatar-dot" aria-hidden="true"></span>
+
               <span class="sender-name">
                 {% with s=n.created_by %}{% firstof s.name s.phone s.username "الإدارة" %}{% endwith %}
               </span>
+
               <span class="sender-role">
                 {% with s=n.created_by %}
-                  {% if s and s.role %}— {% firstof s.role.name s.role.slug %}{% endif %}
+                  {% if s and s.role %}
+                    — {% firstof s.role.name s.role.slug %}
+                  {% endif %}
                 {% endwith %}
               </span>
             </div>
 
             <div class="n-actions">
               <div class="left">
-                <span class="time-badge"><i class="fa-regular fa-clock"></i> {{ r.created_at|date:"Y-m-d H:i" }}</span>
+                <span class="time-badge">
+                  <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                  {{ r.created_at|date:"Y-m-d H:i" }}
+                </span>
 
-                <button type="button"
-                        class="btn-sm ghost btn-view"
-                        aria-label="عرض الإشعار كاملًا"
-                        data-title="{{ n.title|default:'رسالة من الإدارة'|escape }}"
-                        data-body="{{ body|default_if_none:''|striptags|escape }}"
-                        data-sender="{% with s=n.created_by %}{% firstof s.name|escape s.phone|escape s.username|escape 'الإدارة' %}{% endwith %}{% with s=n.created_by %}{% if s and s.role %} — {% firstof s.role.name|escape s.role.slug|escape %}{% endif %}{% endwith %}"
-                        data-time="{{ r.created_at|date:'Y-m-d H:i' }}"
-                        {% if n.action_url %}data-url="{{ n.action_url|escape }}"{% endif %}>
-                  <i class="fa-regular fa-eye"></i> عرض
+                <button
+                  type="button"
+                  class="btn-sm ghost btn-view"
+                  aria-label="عرض الإشعار كاملًا"
+                  data-title="{{ n.title|default:'رسالة من الإدارة'|escape }}"
+                  data-body="{{ body|default_if_none:''|striptags|escape }}"
+                  data-sender="{% with s=n.created_by %}{% firstof s.name|escape s.phone|escape s.username|escape 'الإدارة' %}{% endwith %}{% with s=n.created_by %}{% if s and s.role %} — {% firstof s.role.name|escape s.role.slug|escape %}{% endif %}{% endwith %}"
+                  data-time="{{ r.created_at|date:'Y-m-d H:i' }}"
+                >
+                  <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                  عرض
                 </button>
               </div>
 
               <div class="right">
                 {% if r.is_read %}
-                  <span class="btn-sm success"><i class="fa-solid fa-circle-check"></i> مقروء</span>
+                  <span class="btn-sm success">
+                    <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                    مقروء
+                  </span>
                   {% if r.read_at %}
-                    <span class="chip muted"><i class="fa-regular fa-clock"></i> {{ r.read_at|date:"Y-m-d H:i" }}</span>
+                    <span class="chip muted">
+                      <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                      {{ r.read_at|date:"Y-m-d H:i" }}
+                    </span>
                   {% endif %}
                 {% else %}
                   <form method="post" action="{% url 'reports:notification_mark_read' r.pk %}" class="mark-one-form">
                     {% csrf_token %}
-                    <button class="btn-sm mark-one" type="submit"><i class="fa-solid fa-check"></i> تمت القراءة</button>
+                    <button class="btn-sm primary mark-one" type="submit">
+                      <i class="fa-solid fa-check" aria-hidden="true"></i>
+                      تمت القراءة
+                    </button>
                   </form>
                 {% endif %}
               </div>
@@ -406,37 +665,53 @@
       {% if page_obj.paginator.num_pages > 1 %}
         <nav class="pager" aria-label="التنقل بين الصفحات">
           {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-arrow-right"></i> السابق</a>
+            <a href="?page={{ page_obj.previous_page_number }}">
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              السابق
+            </a>
           {% endif %}
+
           <span class="on">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+
           {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">التالي <i class="fa-solid fa-arrow-left"></i></a>
+            <a href="?page={{ page_obj.next_page_number }}">
+              التالي
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </a>
           {% endif %}
         </nav>
       {% endif %}
 
     {% else %}
-      <div class="empty"><i class="fa-regular fa-bell"></i><p>لا توجد إشعارات حتى الآن.</p></div>
+      <div class="empty">
+        <i class="fa-regular fa-bell" aria-hidden="true"></i>
+        لا توجد إشعارات حتى الآن.
+      </div>
     {% endif %}
   </div>
 
-  <!-- المودال -->
+  {# Modal (قد ينقله JS إلى body) #}
   <div class="modal-overlay" id="nModal" aria-hidden="true">
     <div class="modal" id="nModalCard" role="dialog" aria-modal="true" aria-labelledby="mTitle" aria-describedby="mBody" tabindex="-1">
+      <button class="m-close" id="mClose" type="button" aria-label="إغلاق">✕</button>
 
       <div class="m-header">
         <h3 class="m-title" id="mTitle">عنوان الإشعار</h3>
         <div class="m-meta">
           <span class="m-chip" id="mSender">الإدارة</span>
-          <span class="m-chip" id="mTime"><i class="fa-regular fa-clock"></i> —</span>
+          <span class="m-chip" id="mTime">
+            <i class="fa-regular fa-clock" aria-hidden="true"></i>
+            <span id="mTimeText">—</span>
+          </span>
         </div>
       </div>
 
       <div class="m-body" id="mBody">—</div>
 
       <div class="m-actions">
-        <button class="btn btn-ghost" id="mOk" type="button">
-          <i class="fa-solid fa-times"></i> إغلاق
+        <button class="m-btn ghost" id="mOk" type="button">
+          <i class="fa-solid fa-times" aria-hidden="true"></i>
+          إغلاق
         </button>
       </div>
     </div>
@@ -446,59 +721,71 @@
 
 {% block scripts %}
 {{ block.super }}
-<script>
+<script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
 document.addEventListener('DOMContentLoaded', function(){
   const $  = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
 
+  const LS_ONLY_KEY = 'notif_only_unread_v1';
+
   const unreadCountEl = $('#unreadCount');
+  const unreadNumEl   = $('#unreadCountNum');
+
   function countUnread(){
     return $$('.n-card').filter(c => !c.classList.contains('read')).length;
   }
+
   function renderUnread(){
-    if(!unreadCountEl) return;
+    if(!unreadCountEl || !unreadNumEl) return;
     const n = countUnread();
-    if(n > 0){
-      unreadCountEl.style.display = '';
-      unreadCountEl.innerHTML = '<i class="fa-solid fa-envelope"></i> ' + n + ' غير مقروءة';
-    }else{
-      unreadCountEl.style.display = 'none';
-    }
+    unreadNumEl.textContent = String(n);
+    unreadCountEl.style.display = (n > 0) ? '' : 'none';
   }
 
   const onlyUnread = $('#onlyUnread');
+
   function applyOnlyUnread(){
-    const only = onlyUnread && onlyUnread.checked;
+    const only = !!(onlyUnread && onlyUnread.checked);
     $$('.n-card').forEach(c=>{
       const isRead = c.classList.contains('read');
       c.style.display = (only && isRead) ? 'none' : '';
     });
   }
+
   if(onlyUnread){
-    onlyUnread.addEventListener('change', ()=>{ applyOnlyUnread(); });
+    try{
+      const saved = localStorage.getItem(LS_ONLY_KEY);
+      if(saved === '1') onlyUnread.checked = true;
+    }catch(e){
+      // ignore
+    }
+
+    onlyUnread.addEventListener('change', function(){
+      try{ localStorage.setItem(LS_ONLY_KEY, onlyUnread.checked ? '1' : '0'); }catch(e){}
+      applyOnlyUnread();
+    });
   }
 
-  // ✅ تعطيل زر "تحديد الكل" عند submit
+  // زر "تحديد الكل" — UI optimistic
   const markAllForm = document.querySelector('form.mark-all');
   const markAllBtn  = $('#markAllBtn');
   if(markAllForm && markAllBtn){
-    markAllForm.addEventListener('submit', ()=>{
+    markAllForm.addEventListener('submit', function(){
       markAllBtn.disabled = true;
-      markAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري المعالجة...';
-      // تحسين بصري محلي
-      $$('.n-card').forEach(c=> c.classList.add('read'));
+      markAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جاري المعالجة...';
+      $$('.n-card').forEach(c => c.classList.add('read'));
       renderUnread();
       applyOnlyUnread();
     });
   }
 
-  // ✅ وسم إشعار واحد محليًا + منع النقر المزدوج
-  $$('.mark-one-form').forEach(f=>{
-    f.addEventListener('submit', ()=>{
+  // وسم إشعار واحد محليًا + منع النقر المزدوج
+  $$('.mark-one-form').forEach(function(f){
+    f.addEventListener('submit', function(){
       const btn = f.querySelector('.mark-one');
       if(btn){
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري المعالجة...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جاري المعالجة...';
       }
       const card = f.closest('.n-card');
       if(card) card.classList.add('read');
@@ -507,66 +794,58 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 
-  // ===== المودال (آمن: textContent) =====
-  const overlay = $('#nModal');
-  const card    = $('#nModalCard');
-  const mTitle  = $('#mTitle');
-  const mBody   = $('#mBody');
-  const mSender = $('#mSender');
-  const mTime   = $('#mTime');
-  const mOk     = $('#mOk');
+  // ===== Modal (آمن: textContent) =====
+  const overlay   = $('#nModal');
+  const modalCard = $('#nModalCard');
+  const mTitle    = $('#mTitle');
+  const mBody     = $('#mBody');
+  const mSender   = $('#mSender');
+  const mTimeText = $('#mTimeText');
+  const mOk       = $('#mOk');
+  const mClose    = $('#mClose');
 
-  if (overlay && overlay.parentElement !== document.body) document.body.appendChild(overlay);
+  if(overlay && overlay.parentElement !== document.body){
+    document.body.appendChild(overlay);
+  }
 
   const root = document.documentElement;
   const main = document.querySelector('.page-main');
   const headerEl = document.getElementById('siteHeader');
   const footerEl = document.querySelector('.site-footer');
-  const setInert = (el, v)=>{ if(!el) return; v ? el.setAttribute('inert','') : el.removeAttribute('inert'); };
+
+  const setInert = (el, v) => {
+    if(!el) return;
+    if(v) el.setAttribute('inert','');
+    else el.removeAttribute('inert');
+  };
 
   let lastFocus = null;
-  function lockScroll(){ root.style.overflow='hidden'; }
-  function unlockScroll(){ root.style.overflow=''; }
+
+  function lockScroll(){ root.style.overflow = 'hidden'; }
+  function unlockScroll(){ root.style.overflow = ''; }
 
   function setModalData(d){
-    mTitle.textContent  = d.title || 'إشعار';
-    mSender.textContent = d.sender || 'الإدارة';
-    mTime.innerHTML     = '<i class="fa-regular fa-clock" aria-hidden="true"></i> ' + (d.time || '');
-    mBody.textContent   = d.body || '';
+    if(mTitle) mTitle.textContent = d.title || 'إشعار';
+    if(mSender) mSender.textContent = d.sender || 'الإدارة';
+    if(mTimeText) mTimeText.textContent = d.time || '—';
+    if(mBody) mBody.textContent = d.body || '';
   }
 
   function openModal(data){
-    console.log('فتح المودال:', overlay, card);
-    console.log('عناصر المودال:', {
-      overlay: overlay,
-      card: card,
-      overlayStyle: overlay ? window.getComputedStyle(overlay).display : 'لا يوجد',
-      cardStyle: card ? window.getComputedStyle(card).display : 'لا يوجد'
-    });
-    
-    if(!overlay || !card) {
-      console.error('المودال غير موجود!');
-      return;
-    }
+    if(!overlay || !modalCard) return;
+
     lastFocus = document.activeElement;
     setModalData(data);
 
-    // إزالة display:none أولاً
     overlay.style.display = 'grid';
-    card.style.display = 'block';
-    
-    // بعد فترة قصيرة جداً، أضف class open للـ animation
-    setTimeout(() => {
+    // تأخير بسيط لتفعيل الانتقال
+    setTimeout(function(){
       overlay.classList.add('open');
       overlay.removeAttribute('aria-hidden');
-      console.log('تم إضافة class open، المودال يجب أن يظهر الآن');
-      console.log('display بعد التفعيل:', window.getComputedStyle(card).display);
+      lockScroll();
+      setInert(main,true); setInert(headerEl,true); setInert(footerEl,true);
+      modalCard.focus({preventScroll:true});
     }, 10);
-
-    lockScroll();
-    setInert(main,true); setInert(headerEl,true); setInert(footerEl,true);
-
-    card.focus({preventScroll:true});
 
     const focusables = overlay.querySelectorAll('a,button,input,select,textarea,[tabindex]:not([tabindex="-1"])');
     const first = focusables[0];
@@ -583,42 +862,50 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function closeModal(){
     if(!overlay) return;
+
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden','true');
 
-    // بعد انتهاء الـ animation، أخفِ المودال تماماً
-    setTimeout(() => {
+    setTimeout(function(){
       overlay.style.display = 'none';
+      unlockScroll();
+      setInert(main,false); setInert(headerEl,false); setInert(footerEl,false);
+
+      if(overlay._trap){
+        overlay.removeEventListener('keydown', overlay._trap);
+        overlay._trap = null;
+      }
+      if(lastFocus && typeof lastFocus.focus === 'function'){
+        lastFocus.focus({preventScroll:true});
+      }
     }, 250);
-
-    unlockScroll();
-    setInert(main,false); setInert(headerEl,false); setInert(footerEl,false);
-
-    if(overlay._trap){
-      overlay.removeEventListener('keydown', overlay._trap);
-      overlay._trap = null;
-    }
-    if(lastFocus && typeof lastFocus.focus === 'function'){
-      lastFocus.focus({preventScroll:true});
-    }
   }
 
-  $$('.btn-view').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      console.log('عرض الإشعار:', btn.dataset.title);
+  $$('.btn-view').forEach(function(btn){
+    btn.addEventListener('click', function(){
       openModal({
-        title:  btn.dataset.title || '',
-        body:   btn.dataset.body  || '',
-        sender: btn.dataset.sender|| '',
-        time:   btn.dataset.time  || '',
-        url:    btn.dataset.url   || ''
+        title:  btn.dataset.title  || '',
+        body:   btn.dataset.body   || '',
+        sender: btn.dataset.sender || '',
+        time:   btn.dataset.time   || ''
       });
     });
   });
 
-  if(mOk)    mOk.addEventListener('click',    (e)=>{ e.preventDefault(); closeModal(); });
-  if(overlay) overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
-  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && overlay && overlay.classList.contains('open')) closeModal(); });
+  if(mOk)    mOk.addEventListener('click', function(e){ e.preventDefault(); closeModal(); });
+  if(mClose) mClose.addEventListener('click', function(e){ e.preventDefault(); closeModal(); });
+
+  if(overlay){
+    overlay.addEventListener('click', function(e){
+      if(e.target === overlay) closeModal();
+    });
+  }
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && overlay && overlay.classList.contains('open')){
+      closeModal();
+    }
+  });
 
   renderUnread();
   applyOnlyUnread();

@@ -1,10 +1,20 @@
+{# reports/templates/reports/platform_payments_list.html #}
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}المالية والمدفوعات{% endblock %}
 
 {% block head %}
 <style>
-  /* ✅ Scoped only (بدون لمس :root) */
+  /* =========================================================
+     PLATFORM PAYMENTS LIST (page-only)
+     - Scoped بالكامل داخل .paylist-scope
+     - بدون لمس :root ولا إعادة تعريف .btn/.card
+     - متوافق مع html[data-theme="dark"]
+     ========================================================= */
+
   .paylist-scope{max-width:1400px;margin:auto;padding:clamp(10px,2.2vw,18px)}
+
   .paylist-hero{
     background:
       radial-gradient(900px 220px at 15% 0%, rgba(37,99,235,.16), transparent 55%),
@@ -16,26 +26,43 @@
     box-shadow:var(--shadow);
     padding:clamp(14px,2.2vw,18px) clamp(14px,3vw,22px);
     margin-bottom:14px;
+    position:relative;
+    overflow:hidden;
   }
-  .paylist-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .paylist-hero::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(closest-side, rgba(255,255,255,.12), transparent 60%) 18% 10%/240px 240px no-repeat,
+      radial-gradient(closest-side, rgba(255,255,255,.09), transparent 60%) 86% 82%/280px 280px no-repeat;
+    opacity:.9;
+    pointer-events:none;
+  }
+  .paylist-hero-top{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .paylist-title{margin:0;font-weight:950;font-size:clamp(1.15rem,2.4vw,1.55rem);display:flex;align-items:center;gap:10px}
   .paylist-sub{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.6}
+
   .paylist-chip{
     display:inline-flex;align-items:center;gap:8px;
     padding:8px 12px;border-radius:999px;
     background:rgba(255,255,255,.14);
     border:1px solid rgba(255,255,255,.22);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     font-weight:900;
     text-decoration:none;
     color:#fff;
     white-space:nowrap;
+    transition: var(--t-fast);
   }
+  .paylist-chip:hover{transform:translateY(-1px);background:rgba(255,255,255,.18)}
 
   /* KPIs */
-  .kpis{display:grid;gap:12px;margin-bottom:14px}
-  @media(min-width:900px){.kpis{grid-template-columns:repeat(4,1fr)}}
-  .kpi{
+  .paylist-scope .kpis{display:grid;gap:12px;margin-bottom:14px}
+  @media(min-width:900px){.paylist-scope .kpis{grid-template-columns:repeat(4,1fr)}}
+
+  .paylist-scope .kpi{
     background:var(--card);
     border:1px solid var(--line-2);
     border-radius:16px;
@@ -46,22 +73,30 @@
     justify-content:space-between;
     gap:10px;
   }
-  .kpi .num{font-weight:950;font-size:1.35rem;color:var(--ink)}
-  .kpi .lbl{color:var(--muted);font-weight:850;margin-top:2px}
-  .kpi .ico{
+  .paylist-scope .kpi .num{font-weight:950;font-size:1.35rem;color:var(--ink)}
+  .paylist-scope .kpi .lbl{color:var(--muted);font-weight:850;margin-top:2px}
+  .paylist-scope .kpi .ico{
     width:44px;height:44px;border-radius:14px;
     display:grid;place-items:center;
     font-size:1.2rem;
     border:1px solid rgba(15,23,42,.06);
   }
-  .ico-ok{background:rgba(16,185,129,.12);color:rgba(5,150,105,1)}
-  .ico-warn{background:rgba(245,158,11,.12);color:rgba(217,119,6,1)}
-  .ico-danger{background:rgba(239,68,68,.12);color:rgba(220,38,38,1)}
-  .ico-info{background:rgba(37,99,235,.12);color:rgba(37,99,235,1)}
+  html[data-theme="dark"] .paylist-scope .kpi .ico{border-color:rgba(255,255,255,.08)}
 
-  /* Table wrapper */
-  .paylist-card{background:var(--card);border:1px solid var(--line-2);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
-  .paylist-toolbar{
+  .paylist-scope .ico-ok{background:rgba(16,185,129,.12);color:rgba(5,150,105,1)}
+  .paylist-scope .ico-warn{background:rgba(245,158,11,.12);color:rgba(217,119,6,1)}
+  .paylist-scope .ico-danger{background:rgba(239,68,68,.12);color:rgba(220,38,38,1)}
+  .paylist-scope .ico-info{background:rgba(37,99,235,.12);color:rgba(37,99,235,1)}
+
+  /* Card wrapper */
+  .paylist-scope .paylist-card{
+    background:var(--card);
+    border:1px solid var(--line-2);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .paylist-scope .paylist-toolbar{
     padding:12px 14px;
     border-bottom:1px solid var(--line-2);
     display:flex;
@@ -70,30 +105,33 @@
     gap:10px;
     flex-wrap:wrap;
   }
-  .paylist-toolbar .muted{color:var(--muted);font-weight:850}
-  .pill{
+  .paylist-scope .muted{color:var(--muted);font-weight:850}
+
+  .paylist-scope .pill{
     display:inline-flex;align-items:center;gap:8px;
     padding:6px 10px;border-radius:999px;
     border:1px solid var(--line-2);
     background:rgba(248,250,252,.7);
     color:var(--ink);
     font-weight:900;
+    white-space:nowrap;
   }
-  html[data-theme="dark"] .pill{background:rgba(255,255,255,.04)}
+  html[data-theme="dark"] .paylist-scope .pill{background:rgba(255,255,255,.04)}
 
-  /* Use existing rtable if present, but enhance lightly */
-  .paylist-card .table-responsive{border:0}
-  .paylist-card .rtable thead th{white-space:nowrap}
+  /* Table */
+  .paylist-scope .table-responsive{border:0}
+  .paylist-scope .rtable thead th{white-space:nowrap}
+  .paylist-scope .rtable tbody tr:hover{background:rgba(37,99,235,.04)}
+  html[data-theme="dark"] .paylist-scope .rtable tbody tr:hover{background:rgba(37,99,235,.10)}
 
-  /* Status badge enhancements (keep existing badge classes) */
-  .badge{font-weight:950}
+  /* Buttons */
+  .paylist-scope .btn-min{min-height:38px;padding:8px 10px;border-radius:12px}
 
-  /* Row hover */
-  .paylist-card .rtable tbody tr:hover{background:rgba(37,99,235,.04)}
-
-  /* Mobile actions */
-  .btn-min{min-height:38px;padding:8px 10px;border-radius:12px}
-
+  /* Accessibility / reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .paylist-chip{transition:none !important}
+    .paylist-chip:hover{transform:none !important}
+  }
 </style>
 {% endblock %}
 
@@ -109,6 +147,7 @@
         </h1>
         <p class="paylist-sub">مراجعة المدفوعات وتأكيد التحويلات على مستوى المنصة.</p>
       </div>
+
       <a class="paylist-chip" href="{% url 'reports:platform_admin_dashboard' %}">
         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
         عودة للوحة المنصة
@@ -123,7 +162,7 @@
         <div class="num">{% if payments_total %}{{ payments_total }}{% else %}—{% endif %}</div>
         <div class="lbl">إجمالي العمليات</div>
       </div>
-      <div class="ico ico-info">📦</div>
+      <div class="ico ico-info" aria-hidden="true">📦</div>
     </div>
 
     <div class="kpi">
@@ -131,7 +170,7 @@
         <div class="num">{% if payments_pending %}{{ payments_pending }}{% else %}—{% endif %}</div>
         <div class="lbl">معلّقة</div>
       </div>
-      <div class="ico ico-warn">⏳</div>
+      <div class="ico ico-warn" aria-hidden="true">⏳</div>
     </div>
 
     <div class="kpi">
@@ -139,7 +178,7 @@
         <div class="num">{% if payments_approved %}{{ payments_approved }}{% else %}—{% endif %}</div>
         <div class="lbl">مقبولة</div>
       </div>
-      <div class="ico ico-ok">✅</div>
+      <div class="ico ico-ok" aria-hidden="true">✅</div>
     </div>
 
     <div class="kpi">
@@ -147,7 +186,7 @@
         <div class="num">{% if payments_rejected %}{{ payments_rejected }}{% else %}—{% endif %}</div>
         <div class="lbl">مرفوضة</div>
       </div>
-      <div class="ico ico-danger">⛔</div>
+      <div class="ico ico-danger" aria-hidden="true">⛔</div>
     </div>
   </section>
 
@@ -179,15 +218,15 @@
           {% for payment in payments %}
           <tr>
             <td data-label="المدرسة" style="text-align:right;font-weight:950">
-              {{ payment.school.name }}
+              {% firstof payment.school.name "—" %}
             </td>
 
             <td data-label="المبلغ" style="font-weight:950;color:var(--brand)">
-              {{ payment.amount }} ريال
+              {% if payment.amount %}{{ payment.amount }}{% else %}0{% endif %} ريال
             </td>
 
             <td data-label="التاريخ">
-              {{ payment.payment_date|date:"Y-m-d" }}
+              {% if payment.payment_date %}{{ payment.payment_date|date:"Y-m-d" }}{% else %}-{% endif %}
             </td>
 
             <td data-label="رقم العملية" style="font-family:monospace">
@@ -199,14 +238,21 @@
                 <span class="badge success">مقبول</span>
               {% elif payment.status == 'pending' %}
                 <span class="badge warning">معلّق</span>
-              {% else %}
+              {% elif payment.status == 'rejected' %}
                 <span class="badge danger">مرفوض</span>
+              {% else %}
+                <span class="badge" style="background:rgba(100,116,139,.12);color:#475569;border:1px solid rgba(100,116,139,.25);font-weight:950">
+                  غير معروف
+                </span>
               {% endif %}
             </td>
 
             <td data-label="إجراء">
-              <a href="{% url 'reports:platform_payment_detail' payment.id %}"
-                 class="btn btn-outline btn-min">
+              <a
+                href="{% url 'reports:platform_payment_detail' payment.id %}"
+                class="btn btn-outline btn-min"
+                aria-label="تفاصيل العملية"
+              >
                 تفاصيل
               </a>
             </td>

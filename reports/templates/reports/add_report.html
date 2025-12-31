@@ -1,3 +1,4 @@
+{# reports/templates/reports/report_form.html (أو add_report.html حسب مشروعك) #}
 {% extends "base.html" %}
 {% load static %}
 {% block title %}إضافة تقرير{% endblock %}
@@ -277,7 +278,7 @@
           <select name="{{ form.category.html_name }}" id="{{ form.category.id_for_label }}" required>
             <option value="" selected hidden>— اختر نوع التقرير —</option>
             {% for value,label in form.fields.category.choices %}
-              {% if value != "" %}
+              {% if value %}
                 <option value="{{ value }}"
                         {% if form.is_bound and form.data.category == value %}selected{% endif %}
                         {% if not form.is_bound and form.initial.category == value %}selected{% endif %}>
@@ -292,7 +293,7 @@
           {% endif %}
         </div>
 
-        <!-- اسم المعلم -->
+        <!-- اسم المعلم (اختياري عند وجوده في الفورم/الموديل) -->
         <div class="ar-group" data-group="teacher_name">
           <label for="id_teacher_name"><i class="fa-solid fa-user"></i> اسم المعلم</label>
           <input
@@ -301,7 +302,7 @@
             name="teacher_name"
             maxlength="120"
             placeholder="اكتب اسم المعلم"
-            value="{{ form.data.teacher_name|default:request.user.name }}"
+            value="{% if form.data.teacher_name %}{{ form.data.teacher_name }}{% else %}{{ request.user.name|default:'' }}{% endif %}"
             required
           >
         </div>
@@ -400,28 +401,31 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
-<script>
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
   function todayYYYYMMDD(){
-    const t = new Date(); t.setHours(0,0,0,0);
-    const y = t.getFullYear();
-    const m = String(t.getMonth()+1).padStart(2,'0');
-    const d = String(t.getDate()).padStart(2,'0');
-    return `${y}-${m}-${d}`;
+    var t = new Date(); t.setHours(0,0,0,0);
+    var y = t.getFullYear();
+    var m = String(t.getMonth()+1).padStart(2,'0');
+    var d = String(t.getDate()).padStart(2,'0');
+    return y + "-" + m + "-" + d;
   }
+
   function parseDateInput(val){
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(val || "");
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(val || "");
     if(!m) return null;
-    const dt = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+    var dt = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
     dt.setHours(0,0,0,0);
     return isNaN(dt) ? null : dt;
   }
 
   // منع التاريخ المستقبلي + توليد اسم اليوم + جعل day_name readonly
   (function(){
-    const d = document.getElementById("id_report_date");
-    const day = document.getElementById("id_day_name");
-    const err = document.getElementById("futureDateErr");
+    var d = document.getElementById("id_report_date");
+    var day = document.getElementById("id_day_name");
+    var err = document.getElementById("futureDateErr");
 
     if(day){
       day.setAttribute('readonly', 'readonly');
@@ -432,11 +436,11 @@
       d.setAttribute("max", todayYYYYMMDD());
       if(!d.value){ d.value = todayYYYYMMDD(); }
 
-      const applyDay = ()=>{
+      var applyDay = function(){
         if(!day) return;
-        const dt = parseDateInput(d.value);
+        var dt = parseDateInput(d.value);
         if(!dt){ day.value=""; return; }
-        const days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+        var days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
         day.value = days[dt.getDay()];
       };
 
@@ -444,10 +448,10 @@
         if(err) err.style.display = "none";
         d.classList.remove("ar-invalid");
 
-        const dt = parseDateInput(this.value);
+        var dt = parseDateInput(this.value);
         if(!dt){ if(day) day.value=""; return; }
 
-        const now = parseDateInput(todayYYYYMMDD());
+        var now = parseDateInput(todayYYYYMMDD());
         if(dt.getTime() > now.getTime()){
           if(err) err.style.display = "block";
           d.classList.add("ar-invalid");
@@ -458,44 +462,43 @@
         applyDay();
       });
 
-      // أول تحميل
       d.dispatchEvent(new Event('change'));
     }
   })();
 
-  // مدخلات الصور
+  // مدخلات الصور: accept + capture للجوال
   (function(){
-    const ids = ["id_image1","id_image2","id_image3","id_image4"];
-    ids.forEach((id)=>{
-      const inp = document.getElementById(id);
-      if(!inp) return;
-      inp.removeAttribute("capture");
+    var ids = ["id_image1","id_image2","id_image3","id_image4"];
+    for(var i=0;i<ids.length;i++){
+      var inp = document.getElementById(ids[i]);
+      if(!inp) continue;
       inp.setAttribute("accept","image/*");
-    });
+      inp.setAttribute("capture","environment");
+    }
   })();
 
   // معاينات الصور (استبدال حسب slot)
   (function(){
-    const slots = [
+    var slots = [
       {id:"id_image1", slot:"1"},
       {id:"id_image2", slot:"2"},
       {id:"id_image3", slot:"3"},
-      {id:"id_image4", slot:"4"},
+      {id:"id_image4", slot:"4"}
     ];
-    const previewContainer = document.getElementById("preview-container");
+    var previewContainer = document.getElementById("preview-container");
     if(!previewContainer) return;
 
     function upsertPreview(slotKey, dataUrl, inputEl){
-      const existing = previewContainer.querySelector(`[data-slot="${slotKey}"]`);
-      const wrap = existing || document.createElement("div");
+      var existing = previewContainer.querySelector('[data-slot="' + slotKey + '"]');
+      var wrap = existing || document.createElement("div");
       wrap.className = "ar-prev";
       wrap.dataset.slot = slotKey;
 
       wrap.innerHTML = "";
-      const img = document.createElement("img");
+      var img = document.createElement("img");
       img.src = dataUrl;
 
-      const x = document.createElement("button");
+      var x = document.createElement("button");
       x.type = "button";
       x.className = "ar-x";
       x.setAttribute("aria-label", "حذف الصورة");
@@ -511,17 +514,17 @@
       if(!existing) previewContainer.appendChild(wrap);
     }
 
-    slots.forEach(({id, slot})=>{
-      const input = document.getElementById(id);
+    slots.forEach(function(it){
+      var input = document.getElementById(it.id);
       if(!input) return;
 
       input.addEventListener("change", function(e){
-        const file = e.target.files && e.target.files[0];
+        var file = e.target.files && e.target.files[0];
         if(!file) return;
 
-        const reader = new FileReader();
+        var reader = new FileReader();
         reader.onload = function(ev){
-          upsertPreview(slot, ev.target.result, input);
+          upsertPreview(it.slot, ev.target.result, input);
         };
         reader.readAsDataURL(file);
       });
@@ -530,12 +533,12 @@
 
   // Validation helpers
   function clearClientErrors(form){
-    form.querySelectorAll('.ar-alert[data-gen="1"]').forEach(e=>e.remove());
-    form.querySelectorAll('.ar-invalid').forEach(e=>e.classList.remove('ar-invalid'));
+    form.querySelectorAll('.ar-alert[data-gen="1"]').forEach(function(e){ e.remove(); });
+    form.querySelectorAll('.ar-invalid').forEach(function(e){ e.classList.remove('ar-invalid'); });
   }
   function addError(groupEl, inputEl, msg){
     if(inputEl) inputEl.classList.add('ar-invalid');
-    const box = document.createElement('div');
+    var box = document.createElement('div');
     box.className = 'ar-alert';
     box.dataset.gen = '1';
     box.textContent = msg;
@@ -544,38 +547,54 @@
 
   function validateForm(form){
     clearClientErrors(form);
-    let firstBad = null;
+    var firstBad = null;
 
-    const gCat = form.querySelector('[data-group="category"]');
-    const sel = gCat && gCat.querySelector('select');
-    if(sel && !sel.value){ addError(gCat, sel, 'فضلاً اختر نوع التقرير.'); firstBad = firstBad || sel; }
+    var gCat = form.querySelector('[data-group="category"]');
+    var sel = gCat && gCat.querySelector('select');
+    if(sel && !sel.value){
+      addError(gCat, sel, 'فضلاً اختر نوع التقرير.');
+      firstBad = firstBad || sel;
+    }
 
-    const gName = form.querySelector('[data-group="teacher_name"]');
-    const nameInput = gName && gName.querySelector('input[name="teacher_name"]');
-    if(nameInput && !nameInput.value.trim()){ addError(gName, nameInput, 'اكتب اسم المعلم.'); firstBad = firstBad || nameInput; }
+    var gName = form.querySelector('[data-group="teacher_name"]');
+    var nameInput = gName && gName.querySelector('input[name="teacher_name"]');
+    if(nameInput && !nameInput.value.trim()){
+      addError(gName, nameInput, 'اكتب اسم المعلم.');
+      firstBad = firstBad || nameInput;
+    }
 
-    const gTitle = form.querySelector('[data-group="title"]');
-    const titleEl = gTitle && gTitle.querySelector('input,textarea,select');
-    if(titleEl && !titleEl.value.trim()){ addError(gTitle, titleEl, 'اكتب عنوان التقرير.'); firstBad = firstBad || titleEl; }
+    var gTitle = form.querySelector('[data-group="title"]');
+    var titleEl = gTitle && gTitle.querySelector('input,textarea,select');
+    if(titleEl && !titleEl.value.trim()){
+      addError(gTitle, titleEl, 'اكتب عنوان التقرير.');
+      firstBad = firstBad || titleEl;
+    }
 
-    const gDate = form.querySelector('[data-group="report_date"]');
-    const dateEl = document.getElementById('id_report_date');
+    var gDate = form.querySelector('[data-group="report_date"]');
+    var dateEl = document.getElementById('id_report_date');
     if(dateEl){
-      if(!dateEl.value){ addError(gDate, dateEl, 'اختر تاريخ التقرير.'); firstBad = firstBad || dateEl; }
-      else{
-        const picked = parseDateInput(dateEl.value);
-        const today  = parseDateInput(todayYYYYMMDD());
-        if(!picked){ addError(gDate, dateEl, 'تاريخ غير صالح.'); firstBad = firstBad || dateEl; }
-        else if(picked.getTime() > today.getTime()){
+      if(!dateEl.value){
+        addError(gDate, dateEl, 'اختر تاريخ التقرير.');
+        firstBad = firstBad || dateEl;
+      }else{
+        var picked = parseDateInput(dateEl.value);
+        var today  = parseDateInput(todayYYYYMMDD());
+        if(!picked){
+          addError(gDate, dateEl, 'تاريخ غير صالح.');
+          firstBad = firstBad || dateEl;
+        }else if(picked.getTime() > today.getTime()){
           addError(gDate, dateEl, 'لا يُسمح بتاريخ مستقبلي.');
           firstBad = firstBad || dateEl;
         }
       }
     }
 
-    const gIdea = form.querySelector('[data-group="idea"]');
-    const ideaEl = gIdea && (gIdea.querySelector('textarea') || gIdea.querySelector('input'));
-    if(ideaEl && !ideaEl.value.trim()){ addError(gIdea, ideaEl, 'اكتب وصف/فكرة التقرير.'); firstBad = firstBad || ideaEl; }
+    var gIdea = form.querySelector('[data-group="idea"]');
+    var ideaEl = gIdea && (gIdea.querySelector('textarea') || gIdea.querySelector('input'));
+    if(ideaEl && !ideaEl.value.trim()){
+      addError(gIdea, ideaEl, 'اكتب وصف/فكرة التقرير.');
+      firstBad = firstBad || ideaEl;
+    }
 
     if(firstBad){
       firstBad.scrollIntoView({behavior:'smooth', block:'center'});
@@ -587,35 +606,40 @@
 
   // Compress + Upload progress + عرض HTML عند فشل 400
   (function(){
-    const form = document.getElementById('report-form');
-    const overlay = document.getElementById('uploadOverlay');
-    const fill = document.getElementById('upFill');
-    const label = document.getElementById('upLabel');
-    const pctEl = document.getElementById('upPct');
-    const submitBtn = document.getElementById('submitBtn');
+    var form = document.getElementById('report-form');
+    var overlay = document.getElementById('uploadOverlay');
+    var fill = document.getElementById('upFill');
+    var label = document.getElementById('upLabel');
+    var pctEl = document.getElementById('upPct');
+    var submitBtn = document.getElementById('submitBtn');
 
-    const MAX_DIM = 1600;
-    const JPEG_QUALITY = 0.82;
+    var MAX_DIM = 1600;
+    var JPEG_QUALITY = 0.82;
 
     function setOverlay(on){
       if(!overlay) return;
       overlay.style.display = on ? 'flex' : 'none';
       overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+      try{
+        if(window.__lockScroll) window.__lockScroll(on);
+      }catch(e){
+        // ignore
+      }
     }
 
     function compressImage(file){
-      return new Promise((resolve)=>{
+      return new Promise(function(resolve){
         try{
           if(!file || !file.type || !file.type.startsWith('image/')) return resolve(file);
 
-          const img = new Image();
-          const objUrl = URL.createObjectURL(file);
+          var img = new Image();
+          var objUrl = URL.createObjectURL(file);
 
-          img.onload = ()=>{
+          img.onload = function(){
             try{
-              const canvas = document.createElement('canvas');
-              let width = img.width;
-              let height = img.height;
+              var canvas = document.createElement('canvas');
+              var width = img.width;
+              var height = img.height;
 
               if(width > height && width > MAX_DIM){
                 height = Math.round(height * (MAX_DIM / width));
@@ -628,13 +652,13 @@
               canvas.width = width;
               canvas.height = height;
 
-              const ctx = canvas.getContext('2d');
+              var ctx = canvas.getContext('2d');
               ctx.drawImage(img, 0, 0, width, height);
 
-              canvas.toBlob((blob)=>{
+              canvas.toBlob(function(blob){
                 URL.revokeObjectURL(objUrl);
                 if(blob){
-                  const newName = file.name.replace(/\.(heic|heif|png|webp)$/i, '.jpg');
+                  var newName = file.name.replace(/\.(heic|heif|png|webp)$/i, '.jpg');
                   resolve(new File([blob], newName, {type:'image/jpeg', lastModified: Date.now()}));
                 } else {
                   resolve(file);
@@ -646,7 +670,7 @@
             }
           };
 
-          img.onerror = ()=>{
+          img.onerror = function(){
             URL.revokeObjectURL(objUrl);
             resolve(file);
           };
@@ -659,20 +683,23 @@
     }
 
     async function buildCompressedFormData(formEl){
-      const fd = new FormData();
+      var fd = new FormData();
 
-      for (const el of formEl.elements){
+      for (var i=0;i<formEl.elements.length;i++){
+        var el = formEl.elements[i];
         if(!el.name || el.disabled) continue;
         if(el.type === 'file') continue;
         if((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
         fd.append(el.name, el.value);
       }
 
-      const names = ['image1','image2','image3','image4'];
-      for (const n of names){
-        const input = formEl.querySelector(`[name="${n}"]`);
+      var names = ['image1','image2','image3','image4'];
+      for (var j=0;j<names.length;j++){
+        var n = names[j];
+        var input = formEl.querySelector('[name="' + n + '"]');
         if(input && input.files && input.files[0]){
-          const c = await compressImage(input.files[0]);
+          if(label) label.textContent = 'ضغط الصور…';
+          var c = await compressImage(input.files[0]);
           fd.append(n, c, c.name);
         }
       }
@@ -697,17 +724,18 @@
       }
 
       try{
-        const fd = await buildCompressedFormData(form);
-        const csrf = form.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+        var fd = await buildCompressedFormData(form);
+        var csrf = form.querySelector('input[name="csrfmiddlewaretoken"]');
+        var csrfVal = csrf ? csrf.value : '';
 
-        const xhr = new XMLHttpRequest();
+        var xhr = new XMLHttpRequest();
         xhr.open('POST', form.action || window.location.href, true);
-        if (csrf) xhr.setRequestHeader('X-CSRFToken', csrf);
+        if (csrfVal) xhr.setRequestHeader('X-CSRFToken', csrfVal);
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
         xhr.upload.onprogress = function(e){
           if(e.lengthComputable){
-            const p = Math.round((e.loaded / e.total) * 100);
+            var p = Math.round((e.loaded / e.total) * 100);
             if(fill) fill.style.width = p + '%';
             if(pctEl) pctEl.textContent = p + '%';
             if(label) label.textContent = p < 100 ? 'جاري الرفع…' : 'معالجة الطلب…';
@@ -717,6 +745,7 @@
         xhr.onreadystatechange = function(){
           if(xhr.readyState !== 4) return;
 
+          // نجاح
           if(xhr.status >= 200 && xhr.status < 400){
             if(xhr.responseURL && xhr.responseURL !== window.location.href){
               window.location.href = xhr.responseURL;
@@ -727,7 +756,7 @@
           }
 
           // فشل: لو السيرفر رجّع HTML (عادة صفحة النموذج مع الأخطاء) اعرضه مباشرة
-          const ct = (xhr.getResponseHeader('Content-Type') || '').toLowerCase();
+          var ct = (xhr.getResponseHeader('Content-Type') || '').toLowerCase();
           if(ct.includes('text/html') && xhr.responseText){
             document.open();
             document.write(xhr.responseText);

@@ -1,59 +1,263 @@
+{# templates/choose_school.html (أو المسار المناسب عندك) #}
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}اختيار المدرسة{% endblock %}
 
 {% block head %}
 <style>
-  .wrap{max-width:680px;margin:auto;padding:18px}
-  .card{background:var(--card,#fff);border-radius:16px;border:1px solid var(--line,#e5e7eb);padding:20px;box-shadow:0 10px 26px rgba(15,23,42,.08)}
-  .card h1{margin-top:0;font-size:1.4rem;font-weight:900;color:var(--ink-soft,#111827)}
-  .card p{color:var(--muted,#6b7280);font-weight:700;margin-top:4px}
-  .toolbar{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
-  .field{flex:1 1 260px;min-width:220px}
-  .label{display:block;font-weight:900;color:var(--muted,#6b7280);margin-bottom:6px}
-  .search{width:100%;min-height:46px;border-radius:14px;border:1px solid var(--line,#e5e7eb);padding:10px 12px;font-weight:900;outline:none}
-  .search:focus{box-shadow:0 0 0 3px rgba(37,99,235,.18);border-color:rgba(37,99,235,.45)}
-  .meta{color:var(--muted,#6b7280);font-size:.9rem;font-weight:900;white-space:nowrap}
-  .schools{display:grid;gap:10px;margin-top:18px}
-  .school-select{width:100%;min-height:52px;border-radius:14px;border:1px solid var(--line,#e5e7eb);padding:10px 12px;font-weight:900;outline:none;background:#fff}
-  .school-select:focus{box-shadow:0 0 0 3px rgba(37,99,235,.18);border-color:rgba(37,99,235,.45)}
-  .school-select option{padding:10px 8px}
-  .actions{margin-top:18px;display:flex;gap:10px;justify-content:flex-start;flex-wrap:wrap}
-  .btn-main{padding:10px 16px;border-radius:999px;border:none;background:var(--brand,#2563eb);color:#fff;font-weight:800;cursor:pointer;min-width:140px}
-  .hint{margin-top:10px;color:var(--muted,#6b7280);font-size:.85rem}
-  .empty{display:none;margin-top:12px;padding:14px;border-radius:14px;border:1px dashed var(--line,#e5e7eb);background:rgba(37,99,235,.04);font-weight:900;color:var(--muted,#6b7280);text-align:center}
+  /* =========================================================
+     Choose School — RTL / Modern / بدون لمس .btn/.card العامة
+     - Scoped بالكامل لتجنب تعارضات base/app.css
+     - متوافق مع data-theme="dark"
+     ========================================================= */
+
+  .cs-wrap{
+    max-width: 760px;
+    margin: auto;
+    padding: 18px;
+  }
+
+  .cs-card{
+    background: var(--card, #fff);
+    border-radius: 18px;
+    border: 1px solid var(--line, #e5e7eb);
+    padding: 20px;
+    box-shadow: 0 14px 38px rgba(15,23,42,.08);
+  }
+
+  .cs-hd{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .cs-title{
+    margin:0;
+    font-size: 1.35rem;
+    font-weight: 950;
+    color: var(--ink, #111827);
+    letter-spacing: -.2px;
+  }
+
+  .cs-sub{
+    margin: 6px 0 0;
+    color: var(--muted, #6b7280);
+    font-weight: 800;
+    line-height: 1.7;
+    max-width: 680px;
+  }
+
+  .cs-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(37,99,235,.08);
+    border: 1px solid rgba(37,99,235,.18);
+    color: rgba(30,64,175,.95);
+    font-weight: 950;
+    white-space: nowrap;
+  }
+  html[data-theme="dark"] .cs-badge{
+    background: rgba(37,99,235,.16);
+    border-color: rgba(37,99,235,.28);
+    color: rgba(191,219,254,.95);
+  }
+
+  .cs-toolbar{
+    margin-top: 14px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+  }
+
+  .cs-field{
+    flex: 1 1 280px;
+    min-width: 240px;
+  }
+
+  .cs-label{
+    display:block;
+    font-weight: 950;
+    color: var(--muted, #6b7280);
+    margin-bottom: 6px;
+  }
+
+  .cs-search{
+    width:100%;
+    min-height: 46px;
+    border-radius: 14px;
+    border: 1px solid var(--line, #e5e7eb);
+    padding: 10px 12px;
+    font-weight: 900;
+    outline: none;
+    background: var(--card, #fff);
+    color: var(--ink, #111827);
+  }
+
+  .cs-search:focus{
+    box-shadow: 0 0 0 3px rgba(37,99,235,.18);
+    border-color: rgba(37,99,235,.45);
+  }
+
+  .cs-meta{
+    color: var(--muted, #6b7280);
+    font-size: .9rem;
+    font-weight: 900;
+    white-space: nowrap;
+    display:flex;
+    gap:8px;
+    align-items:center;
+    padding-bottom: 4px;
+  }
+
+  .cs-list{
+    margin-top: 16px;
+    display:grid;
+    gap:10px;
+  }
+
+  .cs-select{
+    width:100%;
+    min-height: 320px;
+    border-radius: 14px;
+    border: 1px solid var(--line, #e5e7eb);
+    padding: 10px 12px;
+    font-weight: 900;
+    outline:none;
+    background: var(--card, #fff);
+    color: var(--ink, #111827);
+  }
+
+  .cs-select:focus{
+    box-shadow: 0 0 0 3px rgba(37,99,235,.18);
+    border-color: rgba(37,99,235,.45);
+  }
+
+  .cs-select option{
+    padding: 10px 8px;
+  }
+
+  .cs-actions{
+    margin-top: 16px;
+    display:flex;
+    gap:10px;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
+  .cs-btn{
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(37,99,235,.22);
+    background: var(--brand, #2563eb);
+    color:#fff;
+    font-weight: 900;
+    cursor:pointer;
+    min-width: 170px;
+    transition: var(--t-fast, .15s ease);
+  }
+
+  .cs-btn:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 14px 26px rgba(2,6,23,.12);
+  }
+
+  .cs-hint{
+    margin-top: 10px;
+    color: var(--muted, #6b7280);
+    font-size: .85rem;
+    font-weight: 800;
+  }
+
+  .cs-empty{
+    display:none;
+    margin-top: 12px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px dashed var(--line, #e5e7eb);
+    background: rgba(37,99,235,.05);
+    font-weight: 950;
+    color: var(--muted, #6b7280);
+    text-align:center;
+  }
+
+  .cs-help{
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--line, #e5e7eb);
+    background: linear-gradient(180deg, var(--line-2, rgba(37,99,235,.05)), var(--card, #fff));
+    color: var(--muted, #6b7280);
+    font-weight: 850;
+    line-height: 1.8;
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .cs-btn{ transition:none !important; }
+    .cs-btn:hover{ transform:none !important; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wrap" dir="rtl">
-  <div class="card">
-    <h1>اختيار المدرسة</h1>
-    <p>اختر المدرسة التي ترغب في إدارتها الآن. يمكن تغيير الاختيار لاحقًا في أي وقت.</p>
+<div class="cs-wrap" dir="rtl">
+  <div class="cs-card">
+    <div class="cs-hd">
+      <div>
+        <h1 class="cs-title">اختيار المدرسة</h1>
+        <p class="cs-sub">
+          اختر المدرسة التي ترغب في إدارتها الآن. يمكن تغيير الاختيار لاحقًا في أي وقت.
+        </p>
+      </div>
+
+      {% if schools %}
+        <span class="cs-badge" aria-label="عدد المدارس">
+          <i class="fa-solid fa-school" style="opacity:.9"></i>
+          <span id="schoolCountTop">{{ schools|length }}</span>
+          مدرسة
+        </span>
+      {% endif %}
+    </div>
 
     {% if schools %}
-      <form method="post" id="schoolForm">
+      <form method="post" id="schoolForm" novalidate>
         {% csrf_token %}
 
-        <div class="toolbar">
-          <div class="field">
-            <label class="label" for="schoolSearch">بحث سريع</label>
+        <div class="cs-toolbar">
+          <div class="cs-field">
+            <label class="cs-label" for="schoolSearch">بحث سريع</label>
             <input
               id="schoolSearch"
-              class="search"
+              class="cs-search"
               type="search"
               placeholder="ابحث باسم المدرسة أو الكود…"
               autocomplete="off"
               spellcheck="false"
+              aria-describedby="searchHint"
             />
           </div>
-          <div class="meta" aria-live="polite">
+
+          <div class="cs-meta" aria-live="polite" aria-atomic="true">
+            <i class="fa-solid fa-filter" style="opacity:.85"></i>
             <span id="schoolCount">{{ schools|length }}</span>
-            مدرسة
+            نتيجة
           </div>
         </div>
 
-        <div class="schools">
-          <select id="schoolSelect" name="school_id" class="school-select" size="12" required>
+        <div id="searchHint" class="cs-hint">
+          تلميح: استخدم <b>Ctrl + K</b> (أو <b>⌘ + K</b>) للتركيز على البحث بسرعة.
+        </div>
+
+        <div class="cs-list">
+          <select id="schoolSelect" name="school_id" class="cs-select" size="12" required>
             {% for s in schools %}
               <option
                 value="{{ s.id }}"
@@ -67,42 +271,60 @@
           </select>
         </div>
 
-        <div id="noResults" class="empty">لا توجد نتائج مطابقة للبحث.</div>
+        <div id="noResults" class="cs-empty">لا توجد نتائج مطابقة للبحث.</div>
 
-        <div class="actions">
-          <button type="submit" class="btn-main">دخول لوحة المدير</button>
+        <div class="cs-actions">
+          <button type="submit" class="cs-btn">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> دخول لوحة المدير
+          </button>
+
+          {% if current_school %}
+            <span class="cs-hint" style="margin-top:0">
+              المدرسة الحالية: <b>{{ current_school.name }}</b>
+            </span>
+          {% endif %}
         </div>
       </form>
     {% else %}
-      <p>لا توجد مدارس مضافة بعد. قم بإضافة مدرسة من خلال لوحة تحكم Django (<code>/admin-panel/</code>) ثم عد إلى هذه الصفحة.</p>
+      <div class="cs-help">
+        لا توجد مدارس مضافة بعد. قم بإضافة مدرسة من خلال لوحة تحكم Django
+        (<code>/admin-panel/</code>)
+        ثم عد إلى هذه الصفحة.
+      </div>
     {% endif %}
   </div>
 </div>
 
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
     const input = document.getElementById('schoolSearch');
     const select = document.getElementById('schoolSelect');
     const options = select ? Array.from(select.options) : [];
     const count = document.getElementById('schoolCount');
+    const countTop = document.getElementById('schoolCountTop');
     const empty = document.getElementById('noResults');
+
+    function setCounts(n){
+      if(count) count.textContent = String(n);
+      if(countTop) countTop.textContent = String(n);
+    }
 
     function applyFilter(){
       const q = (input && input.value ? input.value : '').trim().toLowerCase();
       let visible = 0;
 
-      options.forEach((opt)=>{
-        const name = (opt.getAttribute('data-name') || '');
-        const code = (opt.getAttribute('data-code') || '');
+      for(const opt of options){
+        const name = opt.getAttribute('data-name') || '';
+        const code = opt.getAttribute('data-code') || '';
         const ok = !q || name.includes(q) || code.includes(q);
         opt.hidden = !ok;
         if(ok) visible += 1;
-      });
+      }
 
-      if(count) count.textContent = String(visible);
+      setCounts(visible);
       if(empty) empty.style.display = visible === 0 ? 'block' : 'none';
 
-      // لو لم يعد الخيار المحدد ظاهرًا بعد الفلترة، اختر أول خيار ظاهر
+      // لو الخيار المحدد صار مخفي، اختر أول خيار ظاهر
       if(select && select.selectedOptions && select.selectedOptions.length){
         const selected = select.selectedOptions[0];
         if(selected && selected.hidden){
@@ -112,15 +334,41 @@
       }
     }
 
+    function focusSearch(){
+      if(input){
+        input.focus();
+        input.select();
+      }
+    }
+
     if(input){
       input.addEventListener('input', applyFilter);
-      // Ctrl+K / Cmd+K to focus search
+
+      // Ctrl+K / Cmd+K
       document.addEventListener('keydown', function(e){
-        const isMac = navigator.platform.toLowerCase().includes('mac');
+        const isMac = String(navigator.platform || '').toLowerCase().includes('mac');
         const meta = isMac ? e.metaKey : e.ctrlKey;
-        if(meta && (e.key || '').toLowerCase() === 'k'){
+        if(meta && String(e.key || '').toLowerCase() === 'k'){
           e.preventDefault();
-          input.focus();
+          focusSearch();
+        }
+      });
+    }
+
+    // تحسين UX: Enter داخل البحث يختار أول نتيجة ظاهرة (إن وُجد)
+    if(input){
+      input.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){
+          e.preventDefault();
+          const firstVisible = options.find(o => !o.hidden);
+          if(firstVisible){
+            firstVisible.selected = true;
+            if(select) select.focus();
+          }
+        }
+        if(e.key === 'ArrowDown'){
+          e.preventDefault();
+          if(select) select.focus();
         }
       });
     }

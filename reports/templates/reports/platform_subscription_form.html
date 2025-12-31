@@ -1,3 +1,4 @@
+{# reports/templates/reports/platform_subscription_form.html (مثال اسم) #}
 {% extends "base.html" %}
 
 {% block title %}{% if subscription %}تعديل اشتراك{% else %}إضافة اشتراك جديد{% endif %}{% endblock %}
@@ -53,6 +54,7 @@
     line-height:1.65;
     max-width: 62ch;
   }
+
   .subform-scope .sf-cancel{
     background: rgba(255,255,255,.12);
     border: 1px solid rgba(255,255,255,.22);
@@ -61,6 +63,7 @@
   .subform-scope .sf-cancel:hover{
     background: rgba(255,255,255,.16);
     border-color: rgba(255,255,255,.28);
+    transform: translateY(-1px);
   }
 
   /* Card */
@@ -68,9 +71,21 @@
     border:1px solid var(--sf-line);
     border-radius:16px;
     box-shadow: var(--sf-shadow);
+    overflow: hidden;
+  }
+
+  /* تحسين بسيط للداخل (بدون لمس .card العامة) */
+  .subform-scope .sf-card > form{
+    padding: 14px;
+  }
+  @media(min-width: 720px){
+    .subform-scope .sf-card > form{ padding: 18px; }
   }
 
   /* Form grid (استفادة من .form-grid إن كانت موجودة) */
+  .subform-scope .form-grid{
+    gap: 12px;
+  }
   .subform-scope .form-grid > div label{
     display:block;
     font-weight:950;
@@ -88,6 +103,15 @@
     color: var(--sf-danger);
     font-weight:950;
     font-size:.88rem;
+  }
+
+  /* تركيز (focus) لطيف للحقول بدون تغيير ستايل inputs العامة */
+  .subform-scope input:focus,
+  .subform-scope select:focus,
+  .subform-scope textarea:focus{
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(37,99,235,.15);
+    border-color: rgba(37,99,235,.55);
   }
 
   .subform-scope .actions{
@@ -110,6 +134,17 @@
     border: 1px solid rgba(254,202,202,.90);
     background: rgba(254,242,242,.92);
     color: #991b1b;
+    font-weight: 900;
+  }
+
+  /* تنبيه صغير أعلى النموذج (اختياري) */
+  .subform-scope .hintbar{
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(191,219,254,.95);
+    background: rgba(239,246,255,.92);
+    color: #1e3a8a;
     font-weight: 900;
   }
 </style>
@@ -143,6 +178,11 @@
     <div class="card sf-card">
       <form method="post" novalidate>
         {% csrf_token %}
+
+        <div class="hintbar">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+          تأكد من اختيار المدرسة والخطة وتاريخ البداية بدقة قبل الحفظ.
+        </div>
 
         {% if form.non_field_errors %}
           <div class="nferr" role="alert">
@@ -184,18 +224,35 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-  // منع الإرسال المزدوج بشكل لطيف
-  document.addEventListener("DOMContentLoaded", function(){
-    const btn = document.getElementById("submitBtn");
-    const form = btn ? btn.closest("form") : null;
-    if(form && btn){
+<script nonce="{{ CSP_NONCE }}">
+  (function(){
+    "use strict";
+
+    function onReady(fn){
+      if(document.readyState === "loading"){
+        document.addEventListener("DOMContentLoaded", fn, { once:true });
+      }else{
+        fn();
+      }
+    }
+
+    onReady(function(){
+      var btn = document.getElementById("submitBtn");
+      var form = btn ? btn.closest("form") : null;
+      if(!form || !btn) return;
+
+      var submitted = false;
+
       form.addEventListener("submit", function(){
+        if(submitted) return;
+        submitted = true;
+
         btn.disabled = true;
-        btn.style.opacity = ".8";
+        btn.setAttribute("aria-disabled", "true");
+        btn.style.opacity = ".85";
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جارٍ الحفظ...';
       });
-    }
-  });
+    });
+  })();
 </script>
 {% endblock %}

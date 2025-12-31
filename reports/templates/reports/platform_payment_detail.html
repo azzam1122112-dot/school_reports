@@ -1,3 +1,4 @@
+{# reports/templates/reports/platform_payment_detail.html (مثال اسم) #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -5,7 +6,7 @@
 
 {% block head %}
 <style>
-  /* ✅ Scoped فقط لهذه الصفحة */
+  /* ✅ Scoped فقط لهذه الصفحة (بدون لمس .btn/.card العامة) */
   .pay-detail{
     --pd-brand: var(--brand, #2563eb);
     --pd-accent: var(--accent, #10b981);
@@ -16,34 +17,80 @@
     --pd-card: var(--card, #fff);
     --pd-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
     --pd-shadow-sm: var(--shadow-sm, 0 10px 26px rgba(2,6,23,.08));
+    --pd-radius: 18px;
+    --pd-t: var(--t-fast, 180ms ease);
   }
 
   .pay-detail .wrap{max-width:980px;margin-inline:auto}
 
-  /* Hero */
+  /* HERO */
   .pay-detail .hero{
     margin-top: 10px;
     margin-bottom: 14px;
-    padding: 14px 18px;
-    border: none;
+    padding: 16px 18px;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: var(--pd-radius);
     color:#fff;
     background:
       radial-gradient(900px 240px at 20% 0%, rgba(37,99,235,.22), transparent 55%),
       radial-gradient(700px 260px at 85% 75%, rgba(16,185,129,.16), transparent 60%),
       linear-gradient(135deg, rgba(37,99,235,.96), rgba(14,165,233,.88));
+    box-shadow: var(--pd-shadow);
+    position:relative;
+    overflow:hidden;
   }
-  .pay-detail .hero-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .pay-detail .hero h1{margin:0;font-weight:950;font-size:clamp(1.15rem,2.2vw,1.45rem)}
-  .pay-detail .hero p{margin:6px 0 0;opacity:.95;font-weight:850}
+  .pay-detail .hero::before{
+    content:"";
+    position:absolute;
+    inset:-2px;
+    background:
+      radial-gradient(closest-side, rgba(255,255,255,.14), transparent 60%) 18% 15%/220px 220px no-repeat,
+      radial-gradient(closest-side, rgba(255,255,255,.10), transparent 60%) 84% 75%/260px 260px no-repeat;
+    opacity:.9;
+    pointer-events:none;
+  }
+  .pay-detail .hero-head{
+    position:relative;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap
+  }
+  .pay-detail .hero h1{
+    margin:0;
+    font-weight:950;
+    font-size:clamp(1.15rem,2.2vw,1.45rem)
+  }
+  .pay-detail .hero p{
+    margin:6px 0 0;
+    opacity:.95;
+    font-weight:850
+  }
+  .pay-detail .hero .btn{
+    border-radius: 999px;
+    min-height: 44px;
+    transition: var(--pd-t);
+  }
+  .pay-detail .hero .btn:hover{
+    transform: translateY(-1px);
+  }
 
   /* Cards */
-  .pay-detail .card{box-shadow: var(--pd-shadow)}
+  .pay-detail .card{
+    box-shadow: var(--pd-shadow);
+    border-radius: var(--pd-radius);
+  }
+
   .pay-detail .section-title{
-    display:flex;align-items:center;justify-content:space-between;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
     font-weight:950;
     padding-bottom:10px;
     margin-bottom:10px;
     border-bottom:1px solid var(--pd-line);
+    gap:10px;
   }
 
   /* Rows */
@@ -74,17 +121,27 @@
     border:1px solid var(--pd-line);
     overflow:hidden;
     background: rgba(248,250,252,.75);
+    transition: var(--pd-t);
   }
+  .pay-detail .receipt:hover{
+    transform: translateY(-1px);
+    box-shadow: var(--pd-shadow-sm);
+  }
+  html[data-theme="dark"] .pay-detail .receipt{
+    background: rgba(15,23,42,.35);
+  }
+
   .pay-detail .img-preview{
     width:100%;
     max-width:100%;
     display:block;
-    border-radius:0;
   }
 
-  /* Status badge (إن لم تكن موجودة في base/app.css نوفّرها هنا) */
+  /* Badges */
   .pay-detail .badge{
-    display:inline-flex;align-items:center;gap:8px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
     padding: 6px 10px;
     border-radius: 999px;
     font-weight: 950;
@@ -100,18 +157,33 @@
   html[data-theme="dark"] .pay-detail .badge.danger{color:#fca5a5}
 
   /* Form */
-  .pay-detail .form-grid{
-    display:grid;
-    gap: 14px;
-  }
+  .pay-detail .form-grid{display:grid;gap: 14px;}
   .pay-detail label{display:block;font-weight:950;margin-bottom:6px;color:var(--pd-ink)}
+  .pay-detail .help{
+    margin-top:6px;
+    color: var(--pd-muted);
+    font-weight: 800;
+    font-size: .92rem;
+  }
   .pay-detail .actions{
     display:flex;
     gap:10px;
     flex-wrap:wrap;
+    align-items:center;
   }
   .pay-detail .actions .btn{min-height:44px}
   .pay-detail .actions .btn-primary{flex:1}
+
+  /* Errors (اختياري) */
+  .pay-detail .form-error{
+    border: 1px solid rgba(239,68,68,.25);
+    background: rgba(239,68,68,.08);
+    color: #b91c1c;
+    font-weight: 900;
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+  html[data-theme="dark"] .pay-detail .form-error{ color:#fca5a5; }
 
   @media(max-width:520px){
     .pay-detail .hero{padding:14px}
@@ -128,13 +200,18 @@
 <div class="container pay-detail" dir="rtl">
   <div class="wrap">
 
-    <section class="card hero" aria-label="رأس صفحة الدفع">
+    <section class="hero" aria-label="رأس صفحة الدفع">
       <div class="hero-head">
         <div>
           <h1>تفاصيل عملية الدفع #{{ payment.id }}</h1>
           <p>مراجعة بيانات الدفع واتخاذ الإجراء المناسب.</p>
         </div>
-        <a href="{% url 'reports:platform_payments_list' %}" class="btn btn-outline" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:#fff">
+
+        <a
+          href="{% url 'reports:platform_payments_list' %}"
+          class="btn btn-outline"
+          style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:#fff"
+        >
           <i class="fa-solid fa-arrow-right"></i> عودة للقائمة
         </a>
       </div>
@@ -143,6 +220,16 @@
     <div class="card">
       <div class="section-title">
         <span><i class="fa-solid fa-receipt"></i> معلومات الدفع</span>
+
+        <span class="value" aria-label="الحالة">
+          {% if payment.status == 'approved' %}
+            <span class="badge success"><i class="fa-solid fa-circle-check"></i> مقبول</span>
+          {% elif payment.status == 'rejected' %}
+            <span class="badge danger"><i class="fa-solid fa-circle-xmark"></i> مرفوض</span>
+          {% else %}
+            <span class="badge warning"><i class="fa-solid fa-hourglass-half"></i> قيد المراجعة</span>
+          {% endif %}
+        </span>
       </div>
 
       <div class="rows">
@@ -167,20 +254,7 @@
         </div>
 
         <div class="row">
-          <span class="label">الحالة الحالية</span>
-          <span class="value">
-            {% if payment.status == 'approved' %}
-              <span class="badge success"><i class="fa-solid fa-circle-check"></i> مقبول</span>
-            {% elif payment.status == 'rejected' %}
-              <span class="badge danger"><i class="fa-solid fa-circle-xmark"></i> مرفوض</span>
-            {% else %}
-              <span class="badge warning"><i class="fa-solid fa-hourglass-half"></i> قيد المراجعة</span>
-            {% endif %}
-          </span>
-        </div>
-
-        <div class="row">
-          <span class="label">ملاحظات</span>
+          <span class="label">ملاحظات المدرسة</span>
           <span class="value">{{ payment.notes|default:"-" }}</span>
         </div>
       </div>
@@ -195,11 +269,9 @@
         <a class="receipt" href="{{ payment.receipt_image.url }}" target="_blank" rel="noopener">
           <img src="{{ payment.receipt_image.url }}" class="img-preview" alt="إيصال الدفع" loading="lazy" decoding="async">
         </a>
-        <div class="muted" style="margin-top:10px;font-weight:900">
-          اضغط على الصورة لفتحها بحجم كامل.
-        </div>
+        <div class="help">اضغط على الصورة لفتحها بحجم كامل.</div>
       {% else %}
-        <div class="muted" style="padding:14px;text-align:center;font-weight:900">لا توجد صورة مرفقة</div>
+        <div class="help" style="padding:14px;text-align:center;font-weight:900">لا توجد صورة مرفقة</div>
       {% endif %}
     </div>
 
@@ -208,21 +280,30 @@
         <span><i class="fa-solid fa-screwdriver-wrench"></i> إجراءات الإدارة</span>
       </div>
 
+      {# إن كان عندك form.errors من الـView سيظهر بشكل لطيف #}
+      {% if form and form.errors %}
+        <div class="form-error" role="alert" aria-live="polite" style="margin-bottom:12px">
+          تحقق من المدخلات ثم أعد المحاولة.
+        </div>
+      {% endif %}
+
       <form method="post" class="form-grid" novalidate>
         {% csrf_token %}
 
         <div>
           <label for="id_status">تحديث الحالة</label>
-          <select id="id_status" name="status" class="select">
+          <select id="id_status" name="status" class="select" required>
             <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>قيد المراجعة</option>
             <option value="approved" {% if payment.status == 'approved' %}selected{% endif %}>قبول الدفع</option>
             <option value="rejected" {% if payment.status == 'rejected' %}selected{% endif %}>رفض الدفع</option>
           </select>
+          <div class="help">اختر الحالة ثم احفظ. يفضّل كتابة سبب الرفض عند الرفض.</div>
         </div>
 
         <div>
           <label for="id_notes">ملاحظات الإدارة (تظهر للمدرسة)</label>
-          <textarea id="id_notes" name="notes" class="textarea" rows="3">{{ payment.notes }}</textarea>
+          <textarea id="id_notes" name="notes" class="textarea" rows="3" maxlength="2000">{{ payment.notes }}</textarea>
+          <div class="help">حد أقصى 2000 حرف.</div>
         </div>
 
         <div class="actions">
@@ -241,18 +322,21 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-  // منع الإرسال المزدوج (لطيف وآمن)
-  document.addEventListener("DOMContentLoaded", function(){
-    const form = document.querySelector(".pay-detail form");
-    const btn = document.getElementById("submitBtn");
-    if(form && btn){
+<script nonce="{{ CSP_NONCE }}">
+  (function(){
+    // منع الإرسال المزدوج (لطيف وآمن)
+    document.addEventListener("DOMContentLoaded", function(){
+      var form = document.querySelector(".pay-detail form");
+      var btn = document.getElementById("submitBtn");
+      if(!form || !btn) return;
+
       form.addEventListener("submit", function(){
         btn.disabled = true;
-        btn.style.opacity = ".75";
+        btn.setAttribute("aria-disabled", "true");
+        btn.style.opacity = ".78";
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جارٍ الحفظ...';
       });
-    }
-  });
+    });
+  })();
 </script>
 {% endblock %}

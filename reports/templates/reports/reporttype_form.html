@@ -1,40 +1,70 @@
+{# reports/templates/reports/reporttype_form.html (مثال اسم) #}
 {% extends "base.html" %}
-{% block title %}{% if mode == "edit" %}تعديل نوع تقرير{% else %}إضافة نوع تقرير{% endif %}{% endblock %}
+
+{% block title %}
+  {% if mode == "edit" %}تعديل نوع تقرير{% else %}إضافة نوع تقرير{% endif %}
+{% endblock %}
 
 {% block head %}
 <style>
-  /* صفحة: إنشاء/تعديل نوع تقرير */
-  .rt-wrap{max-width:780px;margin:0 auto;padding:18px}
+  /* =========================================================
+     ReportType Form — RTL / Tailwind-like polish (بدون كسر base/app.css)
+     ========================================================= */
+  .rt-wrap{max-width:860px;margin:0 auto;padding:18px}
   .rt-card{padding:18px}
-  .rt-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-  .rt-title{margin:0;font-weight:950;font-size:1.25rem;color:var(--ink)}
-  .rt-sub{margin:6px 0 0;color:var(--muted);font-weight:850}
-  .rt-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(37,99,235,.10);color:var(--brand);border:1px solid rgba(37,99,235,.18);font-weight:900}
 
-  .rt-alert{border-radius:14px;padding:12px 14px;font-weight:900;border:1px solid var(--line-2);background:rgba(239,68,68,.08);color:var(--danger)}
+  .rt-head{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    gap:12px;flex-wrap:wrap;margin-bottom:12px
+  }
+  .rt-title{margin:0;font-weight:950;font-size:1.3rem;color:var(--ink)}
+  .rt-sub{margin:6px 0 0;color:var(--muted);font-weight:850;line-height:1.6;max-width:680px}
+
+  .rt-badge{
+    display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;
+    background:rgba(37,99,235,.10);color:var(--brand);
+    border:1px solid rgba(37,99,235,.18);font-weight:950;white-space:nowrap
+  }
+
+  .rt-alert{
+    border-radius:14px;padding:12px 14px;font-weight:900;
+    border:1px solid var(--line-2);background:rgba(239,68,68,.08);color:var(--danger)
+  }
   .rt-alert ul{margin:0;padding-right:18px}
   .rt-alert li{margin:4px 0}
 
   .rt-form{display:grid;gap:12px}
   .rt-grid{display:grid;gap:12px}
-  @media(min-width:820px){.rt-grid{grid-template-columns:1fr 1fr}}
+  @media(min-width:860px){.rt-grid{grid-template-columns:1fr 1fr}}
 
+  .rt-field{position:relative}
   .rt-field label{display:block;font-weight:950;color:var(--ink);margin-bottom:6px}
-  .rt-help{margin-top:6px;color:var(--muted);font-weight:850;font-size:.88rem;line-height:1.4}
+  .rt-help{margin-top:6px;color:var(--muted);font-weight:850;font-size:.88rem;line-height:1.5}
   .rt-err{margin-top:6px;color:var(--danger);font-weight:950;font-size:.9rem}
 
-  /* توحيد شكل عناصر النموذج - نعتمد على تصميم base/app.css */
+  /* نعتمد على app.css، فقط نضمن full width + تحسينات صغيرة */
   .rt-wrap .input,
   .rt-wrap .select,
   .rt-wrap .textarea{
     width:100%;
   }
 
-  .rt-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .rt-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
   .rt-inline .check-label{font-weight:950;color:var(--ink)}
+
   .rt-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
   .rt-actions .btn{min-height:42px}
   .rt-actions .btn-primary{flex:1}
+
+  /* شريط صغير أعلى الفورم للتلميح */
+  .rt-tip{
+    display:flex;align-items:flex-start;gap:10px;
+    padding:10px 12px;border-radius:14px;border:1px solid var(--line);
+    background:linear-gradient(180deg, var(--line-2), var(--card));
+    color:var(--ink);font-weight:850
+  }
+  html[data-theme="dark"] .rt-tip{border-color:#1b2744;background:rgba(20,35,73,.35)}
+  .rt-tip i{margin-top:2px;opacity:.85}
 </style>
 {% endblock %}
 
@@ -59,6 +89,16 @@
       </span>
     </div>
 
+    <div class="rt-tip" style="margin-bottom:12px">
+      <i class="fa-solid fa-circle-info"></i>
+      <div>
+        <div style="font-weight:950;margin-bottom:2px">تنبيه</div>
+        <div style="color:var(--muted);font-weight:850;line-height:1.6">
+          الرمز <b>(code)</b> يُحفظ داخل <code>Report.category</code>. اختَر قيمة ثابتة ولا تغيّرها كثيرًا بعد استخدام النوع في التقارير.
+        </div>
+      </div>
+    </div>
+
     {% if form.non_field_errors %}
       <div class="rt-alert" data-autohide="false" style="margin-bottom:12px">
         <ul>
@@ -75,7 +115,6 @@
       <div class="rt-grid">
         <div class="rt-field">
           <label for="{{ form.name.id_for_label }}">الاسم</label>
-          {# نضمن class آمن بدون فلاتر: نلتزم بأن form يضبط widgets أو نضيفه بالـJS #}
           {{ form.name }}
           {% if form.name.errors %}
             <div class="rt-err">{{ form.name.errors.0 }}</div>
@@ -86,7 +125,7 @@
           <label for="{{ form.code.id_for_label }}">الرمز (code)</label>
           {{ form.code }}
           <div class="rt-help">
-            يُخزَّن داخل <code>Report.category</code> ويُستخدم في الفلاتر. يُفضّل أحرف إنجليزية صغيرة وشرطة سفلية.
+            يُفضّل أحرف إنجليزية صغيرة وشرطة سفلية. مثال: <code>activity</code> أو <code>school_affairs</code>.
           </div>
           {% if form.code.errors %}
             <div class="rt-err">{{ form.code.errors.0 }}</div>
@@ -136,10 +175,12 @@
 
   </div>
 </div>
+{% endblock %}
 
-<script>
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
   (function(){
-    // إضافة classات موحّدة لعناصر النموذج بدون فلاتر
+    // إضافة classات موحّدة لعناصر النموذج بدون فلاتر Django
     const map = [
       ['input[type="text"]', 'input'],
       ['input[type="number"]', 'input'],
@@ -147,13 +188,38 @@
       ['input[type="url"]', 'input'],
       ['input[type="search"]', 'input'],
       ['select', 'select'],
-      ['textarea', 'textarea'],
+      ['textarea', 'textarea']
     ];
 
     map.forEach(([sel, cls]) => {
       document.querySelectorAll('.rt-wrap ' + sel).forEach(el => {
         if (!el.classList.contains(cls)) el.classList.add(cls);
       });
+    });
+
+    // تحسين تجربة code: تحويل تلقائي إلى lower_snake_case أثناء الكتابة (بدون إجبار عند اللصق)
+    var codeEl = document.querySelector('.rt-wrap #{{ form.code.id_for_label }}');
+    if(codeEl){
+      codeEl.setAttribute('inputmode','latin');
+      codeEl.setAttribute('autocomplete','off');
+
+      codeEl.addEventListener('input', function(){
+        var v = (codeEl.value || '');
+        // نترك الأرقام والشرطة السفلية، ونحوّل المسافات والشرطات إلى _
+        v = v.toLowerCase().replace(/\s+/g,'_').replace(/-+/g,'_').replace(/[^a-z0-9_]/g,'');
+        // منع تكرار __
+        v = v.replace(/_+/g,'_');
+        // قص لطول معقول (حتى لا يطول الرمز)
+        if(v.length > 50) v = v.slice(0,50);
+        codeEl.value = v;
+      });
+    }
+
+    // إغلاق رسائل الخطأ بالـEsc إن كانت موجودة (اختياري)
+    document.addEventListener('keydown', function(ev){
+      if(ev.key !== 'Escape') return;
+      var alertEl = document.querySelector('.rt-alert');
+      if(alertEl) alertEl.style.display = 'none';
     });
   })();
 </script>

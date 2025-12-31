@@ -6,6 +6,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.contrib import messages
 
+import secrets
+
 
 import threading
 
@@ -290,18 +292,17 @@ class ReportViewerAccessMiddleware:
         try:
             allowed_paths |= {
                 reverse("reports:school_reports_readonly"),
+                # ملف الإنجاز (قراءة فقط لمشرف التقارير)
+                reverse("reports:achievement_school_files"),
+                reverse("reports:achievement_school_teachers"),
+                # نسمح بها لتسهيل redirect من views (لكن POST سيُمنع أعلاه)
+                reverse("reports:achievement_my_files"),
                 reverse("reports:logout"),
                 reverse("reports:unread_notifications_count"),
                 reverse("reports:subscription_expired"),
             }
         except Exception:
             pass
-
-        # السماح بطباعة التقرير: المسار متغير لذا نطابق بالبادئة
-        # /reports/<pk>/print/
-        allow_prefixes = [
-            "/reports/",  # سنقيدها باللاحقة print فقط أدناه
-        ]
 
         path = request.path
         if path in allowed_paths:
@@ -311,8 +312,122 @@ class ReportViewerAccessMiddleware:
         if path.startswith("/reports/") and path.endswith("/print/"):
             return self.get_response(request)
 
+        # السماح بعرض ملف الإنجاز + الطباعة/PDF (قراءة فقط)
+        # /achievement/<pk>/
+        # /achievement/<pk>/print/
+        # /achievement/<pk>/pdf/
+        if path.startswith("/achievement/"):
+            tail = path[len("/achievement/"):]
+            parts = [p for p in tail.split("/") if p]
+            # أمثلة:
+            #  - ['school']
+            #  - ['school','teachers']
+            #  - ['123']
+            #  - ['123','print']
+            #  - ['123','pdf']
+            if parts and parts[0].isdigit():
+                if len(parts) == 1:
+                    return self.get_response(request)
+                if len(parts) == 2 and parts[1] in {"print", "pdf"}:
+                    return self.get_response(request)
+
         # أي شيء آخر: نعيد توجيه للصفحة المسموحة
         if self._wants_json(request):
             return JsonResponse({"detail": "forbidden"}, status=403)
         messages.info(request, "تم تقييد هذا الحساب للعرض على تقارير المدرسة فقط.")
         return redirect("reports:school_reports_readonly")
+
+
+class ContentSecurityPolicyMiddleware:
+    """Adds a Content Security Policy header in production.
+
+    Notes:
+    - This project uses inline <style>/<script> in templates, so we must allow
+      'unsafe-inline' unless we migrate to nonces/hashes.
+    - External fonts/icons are loaded via Google Fonts + cdnjs.
+    - Cloudinary may serve media assets on res.cloudinary.com.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def _is_enabled(self) -> bool:
+        try:
+            if getattr(settings, "ENV", "development") == "production":
+                return bool(getattr(settings, "CSP_ENABLED", True))
+            return bool(getattr(settings, "CSP_ENABLED", False))
+        except Exception:
+            return False
+
+    def _policy(self) -> str:
+        # Kept for backwards-compat; prefer _policy_for_request
+        return ""
+
+    def _policy_for_request(self, request) -> str:
+        # Allow override via env/settings for emergency tweaks.
+        # If you provide a custom policy, you may include "{nonce}" placeholder.
+        custom = (getattr(settings, "CONTENT_SECURITY_POLICY", "") or "").strip()
+        if custom:
+            try:
+                return custom.format(nonce=getattr(request, "csp_nonce", ""))
+            except Exception:
+                return custom
+
+        nonce = getattr(request, "csp_nonce", "")
+
+        # Default policy: safe baseline with current template constraints.
+        # NOTE: style-src keeps 'unsafe-inline' because templates use inline style="...".
+        base = [
+            "default-src 'self'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "object-src 'none'",
+            "frame-ancestors 'none'",
+            f"script-src 'self' 'nonce-{nonce}'",
+            f"script-src-elem 'self' 'nonce-{nonce}'",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+            "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+            "img-src 'self' data: blob: https: https://res.cloudinary.com",
+            "connect-src 'self'",
+            "upgrade-insecure-requests",
+        ]
+        return "; ".join(base)
+
+    def __call__(self, request):
+        # Generate per-request nonce early (so templates can use it)
+        try:
+            request.csp_nonce = secrets.token_urlsafe(16)
+        except Exception:
+            request.csp_nonce = ""
+
+        response = self.get_response(request)
+
+        if not self._is_enabled():
+            return response
+
+        # Avoid spending time on static/media responses
+        try:
+            if request.path.startswith("/static/") or request.path.startswith("/media/"):
+                return response
+        except Exception:
+            pass
+
+        # Do not enforce strict CSP on Django admin (it uses inline scripts without our nonce)
+        try:
+            if request.path.startswith("/admin/"):
+                return response
+        except Exception:
+            pass
+
+        header_name = "Content-Security-Policy"
+        try:
+            if bool(getattr(settings, "CSP_REPORT_ONLY", False)):
+                header_name = "Content-Security-Policy-Report-Only"
+        except Exception:
+            pass
+
+        # Don't override if already set by upstream/proxy
+        if header_name not in response:
+            response[header_name] = self._policy_for_request(request)
+
+        return response

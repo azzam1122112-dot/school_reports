@@ -3,8 +3,14 @@ services:
     name: school-app
     runtime: docker
     envVars:
+      - key: ENV
+        value: "production"
       - key: DEBUG
         value: "False"
+      - key: SITE_URL
+        value: "https://school-reports.onrender.com"
+      - key: ALLOWED_HOSTS
+        value: "school-7lgm.onrender.com,school-reports.onrender.com"
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
@@ -26,6 +32,8 @@ services:
     runtime: docker
     startCommand: "celery -A config worker --loglevel=info"
     envVars:
+      - key: ENV
+        value: "production"
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL

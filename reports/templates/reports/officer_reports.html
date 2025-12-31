@@ -1,9 +1,16 @@
+{# reports/templates/reports/officer_reports.html (or officer_reports.html) #}
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}لوحة المسؤول - تقارير قسمي{% endblock %}
 
 {% block head %}
 <style>
-  /* ===== Scoped Officer Reports ===== */
+  /* =========================================================
+     Officer Reports (Scoped)
+     - بدون لمس ستايلات base العامة خارج .or-scope
+     - متوافق مع data-theme للدارك/لايت
+     ========================================================= */
   .or-scope{
     --ink: var(--ink, #0f172a);
     --ink-soft: var(--ink-soft, #334155);
@@ -15,13 +22,14 @@
     --accent: var(--accent, #10b981);
     --danger: var(--danger, #ef4444);
     --shadow: var(--shadow, 0 10px 28px rgba(2,6,23,.08));
+    --t: var(--t-fast, .18s ease);
   }
 
   .or-scope .wrap{max-width:1400px;margin-inline:auto;padding:18px 14px}
   .or-scope .page-head{margin-bottom:14px}
   .or-scope .title{
     margin:0;
-    font-weight:900;
+    font-weight:950;
     font-size:1.35rem;
     color:var(--ink);
     display:flex;
@@ -32,10 +40,11 @@
   .or-scope .subtitle{
     margin:6px 0 0;
     color:var(--muted);
-    font-weight:800;
+    font-weight:850;
     line-height:1.7;
   }
 
+  /* Card داخل الصفحة فقط */
   .or-scope .card{
     background:var(--card);
     border:1px solid var(--line);
@@ -52,7 +61,7 @@
     gap:12px;
   }
   .or-scope .filter-group{display:flex;flex-direction:column;gap:6px}
-  .or-scope .filter-group label{font-weight:900;color:var(--muted)}
+  .or-scope .filter-group label{font-weight:950;color:var(--muted)}
   .or-scope .filter-input{
     padding:11px 12px;
     border:1px solid var(--line);
@@ -61,7 +70,22 @@
     background:#fff;
     color:var(--ink);
     min-height:44px;
+    outline:none;
+    transition: box-shadow .18s ease, border-color .18s ease;
   }
+  .or-scope .filter-input:focus{
+    border-color: rgba(37,99,235,.55);
+    box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+  }
+  html[data-theme="dark"] .or-scope .filter-input{
+    background: rgba(15,23,42,.55);
+    border-color: #1b2744;
+  }
+  html[data-theme="dark"] .or-scope .filter-input:focus{
+    border-color: rgba(96,165,250,.55);
+    box-shadow: 0 0 0 4px rgba(96,165,250,.14);
+  }
+
   .or-scope .filter-actions{
     margin-top:12px;
     display:flex;
@@ -70,45 +94,70 @@
     justify-content:flex-start;
   }
 
-  /* ===== Buttons ===== */
+  /* ===== Buttons (Scoped) ===== */
   .or-scope .btn{
     display:inline-flex;align-items:center;justify-content:center;gap:8px;
     padding:10px 14px;border-radius:12px;
-    font-weight:900;text-decoration:none;
+    font-weight:950;text-decoration:none;
     border:1px solid var(--line);
     background:#fff;color:var(--ink);
     cursor:pointer;
-    transition:transform .15s ease, filter .15s ease, background .15s ease;
+    transition:transform .15s ease, filter .15s ease, background .15s ease, box-shadow .15s ease;
     min-height:44px;
+    user-select:none;
   }
   .or-scope .btn:hover{transform:translateY(-1px)}
+  .or-scope .btn:active{transform:translateY(0)}
   .or-scope .btn-primary{background:var(--brand);border-color:var(--brand);color:#fff}
   .or-scope .btn-outline{background:#fff;border-color:#cbd5e1;color:var(--ink)}
   .or-scope .btn-print{background:var(--accent);border-color:var(--accent);color:#fff}
   .or-scope .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
   .or-scope .btn-ico{padding:10px 12px;min-width:44px}
 
+  html[data-theme="dark"] .or-scope .btn-outline{
+    background: rgba(15,23,42,.45);
+    border-color:#1b2744;
+    color: #e5e7eb;
+  }
+
   /* ===== Table ===== */
-  .or-scope .table-responsive{overflow:auto;border:1px solid var(--line);border-radius:16px;margin-top:10px}
+  .or-scope .table-responsive{
+    overflow:auto;
+    border:1px solid var(--line);
+    border-radius:16px;
+    margin-top:10px
+  }
   .or-scope table{width:100%;border-collapse:collapse;min-width:1100px;background:#fff}
+  html[data-theme="dark"] .or-scope table{background: rgba(15,23,42,.35)}
   .or-scope thead th{
     background:#f8fafc;
     border-bottom:1px solid var(--line);
     padding:12px 10px;
     text-align:right;
     color:var(--ink);
-    font-weight:900;
+    font-weight:950;
     white-space:nowrap;
+  }
+  html[data-theme="dark"] .or-scope thead th{
+    background: rgba(15,23,42,.55);
+    border-color:#1b2744;
+    color:#e5e7eb;
   }
   .or-scope tbody td{
     border-bottom:1px solid var(--line);
     padding:12px 10px;
     vertical-align:top;
     color:var(--ink-soft);
-    font-weight:800;
+    font-weight:850;
+  }
+  html[data-theme="dark"] .or-scope tbody td{
+    border-color:#1b2744;
+    color:#cbd5e1;
   }
   .or-scope tbody tr:hover{background:#f8fafc}
-  .or-scope .muted{color:var(--muted);font-weight:800}
+  html[data-theme="dark"] .or-scope tbody tr:hover{background: rgba(26,44,83,.35)}
+
+  .or-scope .muted{color:var(--muted);font-weight:850}
   .or-scope .text-center{text-align:center}
 
   /* Images in table */
@@ -119,6 +168,7 @@
     cursor:zoom-in;
     background:#f8fafc;
   }
+  html[data-theme="dark"] .or-scope .table-images img{border-color:#1b2744;background: rgba(15,23,42,.35)}
 
   /* ===== Mobile Cards ===== */
   .or-scope .cards-view{display:grid;gap:12px;margin-top:10px}
@@ -129,19 +179,25 @@
     display:grid;
     gap:10px;
   }
+  html[data-theme="dark"] .or-scope .report-card{
+    background: rgba(15,23,42,.35);
+    border-color:#1b2744;
+  }
   .or-scope .report-header{
     display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
-    font-weight:900;color:var(--ink);
+    font-weight:950;color:var(--ink);
   }
-  .or-scope .report-program{margin:0;color:var(--muted);font-weight:900;line-height:1.7}
-  .or-scope .report-idea{margin:0;color:var(--ink-soft);font-weight:800;line-height:1.9}
+  html[data-theme="dark"] .or-scope .report-header{color:#e5e7eb}
+  .or-scope .report-program{margin:0;color:var(--muted);font-weight:950;line-height:1.7}
+  .or-scope .report-idea{margin:0;color:var(--ink-soft);font-weight:850;line-height:1.9}
+  html[data-theme="dark"] .or-scope .report-idea{color:#cbd5e1}
   .or-scope .report-images{display:flex;gap:8px;flex-wrap:wrap}
   .or-scope .report-images img{
-    width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid var(--line);cursor:zoom-in
+    width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid var(--line);
+    cursor:zoom-in;background:#f8fafc
   }
-  .or-scope .card-actions{
-    display:flex;gap:8px;flex-wrap:wrap;align-items:center
-  }
+  html[data-theme="dark"] .or-scope .report-images img{border-color:#1b2744;background: rgba(15,23,42,.35)}
+  .or-scope .card-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
   /* ===== Pagination ===== */
   .or-scope .pagination{
@@ -151,9 +207,10 @@
   .or-scope .page-btn{
     padding:9px 14px;border:1px solid var(--line);
     border-radius:12px;background:#fff;color:var(--ink);
-    text-decoration:none;font-weight:900;
+    text-decoration:none;font-weight:950;
   }
-  .or-scope .page-current{color:var(--muted);font-weight:900}
+  html[data-theme="dark"] .or-scope .page-btn{background: rgba(15,23,42,.45);border-color:#1b2744;color:#e5e7eb}
+  .or-scope .page-current{color:var(--muted);font-weight:950}
 
   /* ===== Modal ===== */
   .or-scope .modal{
@@ -165,9 +222,10 @@
     padding:18px;
     overflow:auto;
   }
+  .or-scope .modal.is-open{display:flex}
   .or-scope .modal-dialog{
     width:min(820px, 100%);
-    background:#fff;
+    background:var(--card);
     border-radius:18px;
     border:1px solid var(--line);
     box-shadow:0 24px 80px rgba(0,0,0,.35);
@@ -179,10 +237,10 @@
     width:42px;height:42px;border-radius:999px;
     border:1px solid #fecaca;
     background:#fee2e2;color:#991b1b;
-    cursor:pointer;font-weight:900;
+    cursor:pointer;font-weight:950;
     display:grid;place-items:center;
   }
-  .or-scope .modal-title{margin:0 0 10px 0;font-weight:900;color:var(--ink)}
+  .or-scope .modal-title{margin:0 0 10px 0;font-weight:950;color:var(--ink)}
   .or-scope .modal-idea{
     white-space:pre-line;
     margin:10px 0;
@@ -195,13 +253,18 @@
     border-radius:14px;
     overflow-wrap:anywhere;
   }
+  html[data-theme="dark"] .or-scope .modal-idea{
+    background: rgba(15,23,42,.45);
+    border-color:#1b2744;
+    color:#cbd5e1;
+  }
   .or-scope .modal-meta{
     display:grid;
     grid-template-columns:1fr;
     gap:6px;
     margin-top:8px;
     color:var(--muted);
-    font-weight:900;
+    font-weight:950;
   }
   @media(min-width:720px){
     .or-scope .modal-meta{grid-template-columns:1fr 1fr}
@@ -220,6 +283,7 @@
     transition:transform .2s ease;
     background:#f8fafc;
   }
+  html[data-theme="dark"] .or-scope .modal-images img{border-color:#1b2744;background: rgba(15,23,42,.35)}
   .or-scope .modal-images img:hover{transform:scale(1.03)}
 
   /* ===== Responsive: hide/show ===== */
@@ -228,6 +292,13 @@
   @media(max-width: 860px){
     .or-scope .desktop-only{display:none}
     .or-scope .mobile-only{display:block}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .or-scope .btn,
+    .or-scope .modal-images img{transition:none !important}
+    .or-scope .btn:hover,
+    .or-scope .modal-images img:hover{transform:none !important}
   }
 </style>
 {% endblock %}
@@ -240,7 +311,7 @@
     <header class="page-head">
       <h1 class="title">📊 لوحة المسؤول – تقارير قسمي</h1>
       <p class="subtitle">
-        عرض وإدارة تقارير القسم:
+        عرض تقارير القسم:
         <b>{% if department %}{{ department.name }}{% else %}—{% endif %}</b>
       </p>
     </header>
@@ -250,30 +321,40 @@
       <!-- Filters -->
       <form method="get" class="filters-form" novalidate>
         <div class="filters-grid">
+
           <div class="filter-group">
-            <label>📅 من تاريخ</label>
-            <input type="date" name="start_date" value="{{ start_date }}" class="filter-input">
+            <label for="orStartDate">📅 من تاريخ</label>
+            <input id="orStartDate" type="date" name="start_date" value="{{ start_date }}" class="filter-input">
           </div>
+
           <div class="filter-group">
-            <label>📅 إلى تاريخ</label>
-            <input type="date" name="end_date" value="{{ end_date }}" class="filter-input">
+            <label for="orEndDate">📅 إلى تاريخ</label>
+            <input id="orEndDate" type="date" name="end_date" value="{{ end_date }}" class="filter-input">
           </div>
+
           <div class="filter-group">
-            <label>👨‍🏫 اسم المعلم</label>
-            <input type="text" name="teacher_name" value="{{ teacher_name }}"
-                   placeholder="اكتب اسم المعلم أو جزء منه" class="filter-input">
+            <label for="orTeacherName">👨‍🏫 اسم المعلم</label>
+            <input
+              id="orTeacherName"
+              type="text"
+              name="teacher_name"
+              value="{{ teacher_name }}"
+              placeholder="اكتب اسم المعلم أو جزء منه"
+              class="filter-input"
+              autocomplete="off"
+            >
           </div>
 
           {% if categories %}
-          <div class="filter-group">
-            <label>🏷️ التصنيف (خاص بقسمي)</label>
-            <select name="category" class="filter-input">
-              <option value="">كل تصنيفات قسمي</option>
-              {% for c_val, c_label in categories %}
-                <option value="{{ c_val }}" {% if category == c_val %}selected{% endif %}>{{ c_label }}</option>
-              {% endfor %}
-            </select>
-          </div>
+            <div class="filter-group">
+              <label for="orCategory">🏷️ التصنيف (خاص بقسمي)</label>
+              <select id="orCategory" name="category" class="filter-input">
+                <option value="">كل تصنيفات قسمي</option>
+                {% for c_val, c_label in categories %}
+                  <option value="{{ c_val }}" {% if category == c_val %}selected{% endif %}>{{ c_label }}</option>
+                {% endfor %}
+              </select>
+            </div>
           {% endif %}
         </div>
 
@@ -285,11 +366,7 @@
         </div>
       </form>
 
-      {# نحافظ على querystring للترقيم #}
-      {% with qs="" %}
-        {% if start_date %}{% with qs=qs|add:"&start_date="|add:start_date %}{% endwith %}{% endif %}
-      {% endwith %}
-
+      {# نحافظ على querystring للترقيم (بدون استدعاءات دوال داخل القالب) #}
       {% with qsp="" %}
         {% if start_date %}{% with qsp=qsp|add:"&start_date="|add:start_date %}{% endwith %}{% endif %}
         {% if end_date %}{% with qsp=qsp|add:"&end_date="|add:end_date %}{% endwith %}{% endif %}
@@ -305,7 +382,7 @@
                 <th>👨‍🏫 المعلم</th>
                 <th>📖 العنوان</th>
                 <th>🏷️ التصنيف</th>
-                <th>👥 المستفيدون</th>
+                <th class="text-center">👥 المستفيدون</th>
                 <th>💡 الفكرة</th>
                 <th>🖼 الصور</th>
                 <th>⚙️ الإجراءات</th>
@@ -313,55 +390,86 @@
             </thead>
             <tbody>
               {% for r in reports %}
-              <tr>
-                <td>
-                  {{ r.report_date|date:"Y-m-d" }}<br>
-                  <small class="muted">{{ r.day_name|default_if_none:"" }}</small>
-                </td>
-                <td>{% firstof r.teacher_name r.teacher.name "—" %}</td>
-                <td>{{ r.title|default:"—" }}</td>
-                <td>
-                  {% if r.category %}{{ r.category.name }}
-                  {% else %}{{ r.get_category_display|default:r.category|default:"—" }}
-                  {% endif %}
-                </td>
-                <td class="text-center">{{ r.beneficiaries_count|default_if_none:"—" }}</td>
-                <td>
-                  <textarea id="idea-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
-                  {{ r.idea|default_if_none:""|truncatewords:12 }}
-                </td>
-                <td>
-                  <div class="table-images">
-                    {% if r.image1 %}<img src="{{ r.image1.url }}" alt="صورة 1" data-full="{{ r.image1.url }}">{% endif %}
-                    {% if r.image2 %}<img src="{{ r.image2.url }}" alt="صورة 2" data-full="{{ r.image2.url }}">{% endif %}
-                    {% if r.image3 %}<img src="{{ r.image3.url }}" alt="صورة 3" data-full="{{ r.image3.url }}">{% endif %}
-                    {% if r.image4 %}<img src="{{ r.image4.url }}" alt="صورة 4" data-full="{{ r.image4.url }}">{% endif %}
-                  </div>
-                </td>
-                <td>
-                  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                    <button class="btn btn-primary btn-ico js-show"
-                            type="button"
-                            data-idea-id="idea-{{ r.pk }}"
-                            data-teacher="{% firstof r.teacher_name r.teacher.name '' %}"
-                            data-program="{{ r.title|default_if_none:''|escapejs }}"
-                            data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
-                            data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}">
-                      👁
-                    </button>
+                <tr>
+                  <td>
+                    {{ r.report_date|date:"Y-m-d" }}<br>
+                    <small class="muted">{{ r.day_name|default_if_none:"" }}</small>
+                  </td>
 
-                    <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="btn btn-print btn-ico">🖨</a>
+                  <td>
+                    {% if r.teacher_name %}
+                      {{ r.teacher_name }}
+                    {% else %}
+                      {% if r.teacher and r.teacher.name %}
+                        {{ r.teacher.name }}
+                      {% else %}
+                        —
+                      {% endif %}
+                    {% endif %}
+                  </td>
 
-                    <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
-                      {% csrf_token %}
-                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                      <button class="btn btn-danger btn-ico" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');">🗑</button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
+                  <td>{{ r.title|default:"—" }}</td>
+
+                  <td>
+                    {% if r.category and r.category.name %}
+                      {{ r.category.name }}
+                    {% else %}
+                      {% if r.category %}{{ r.category }}{% else %}—{% endif %}
+                    {% endif %}
+                  </td>
+
+                  <td class="text-center">{{ r.beneficiaries_count|default_if_none:"—" }}</td>
+
+                  <td>
+                    <textarea id="idea-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
+                    {{ r.idea|default_if_none:""|truncatewords:12 }}
+                  </td>
+
+                  <td>
+                    <div class="table-images">
+                      {% if r.image1 %}<img src="{{ r.image1.url }}" alt="صورة" data-full="{{ r.image1.url }}">{% endif %}
+                      {% if r.image2 %}<img src="{{ r.image2.url }}" alt="صورة" data-full="{{ r.image2.url }}">{% endif %}
+                      {% if r.image3 %}<img src="{{ r.image3.url }}" alt="صورة" data-full="{{ r.image3.url }}">{% endif %}
+                      {% if r.image4 %}<img src="{{ r.image4.url }}" alt="صورة" data-full="{{ r.image4.url }}">{% endif %}
+                    </div>
+                  </td>
+
+                  <td>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                      <button
+                        class="btn btn-primary btn-ico js-show"
+                        type="button"
+                        data-idea-id="idea-{{ r.pk }}"
+                        data-teacher="{% if r.teacher_name %}{{ r.teacher_name|escapejs }}{% else %}{% if r.teacher and r.teacher.name %}{{ r.teacher.name|escapejs }}{% endif %}{% endif %}"
+                        data-title="{{ r.title|default_if_none:''|escapejs }}"
+                        data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
+                        data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
+                        aria-label="عرض التفاصيل"
+                      >👁</button>
+
+                      <a
+                        href="{% url 'reports:report_print' r.pk %}"
+                        target="_blank"
+                        rel="noopener"
+                        class="btn btn-print btn-ico"
+                        aria-label="طباعة"
+                      >🖨</a>
+
+                      {# حسب سياستك: المسؤول عرض/طباعة فقط — الحذف يظهر فقط إذا مررت can_delete=True #}
+                      {% if can_delete %}
+                        <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          <button class="btn btn-danger btn-ico" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');" aria-label="حذف">🗑</button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
               {% empty %}
-              <tr><td colspan="8" class="text-center muted" style="padding:18px">لا توجد تقارير ضمن قسمك.</td></tr>
+                <tr>
+                  <td colspan="8" class="text-center muted" style="padding:18px">لا توجد تقارير ضمن قسمك.</td>
+                </tr>
               {% endfor %}
             </tbody>
           </table>
@@ -370,47 +478,61 @@
         <!-- Mobile Cards -->
         <div class="cards-view mobile-only">
           {% for r in reports %}
-          <article class="report-card">
-            <div class="report-header">
-              <span>📅 {{ r.report_date|date:"Y-m-d" }} – {{ r.day_name|default_if_none:"" }}</span>
-              <span>👨‍🏫 {% firstof r.teacher_name r.teacher.name "—" %}</span>
-            </div>
+            <article class="report-card">
+              <div class="report-header">
+                <span>📅 {{ r.report_date|date:"Y-m-d" }} – {{ r.day_name|default_if_none:"" }}</span>
+                <span>
+                  👨‍🏫
+                  {% if r.teacher_name %}
+                    {{ r.teacher_name }}
+                  {% else %}
+                    {% if r.teacher and r.teacher.name %}
+                      {{ r.teacher.name }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  {% endif %}
+                </span>
+              </div>
 
-            <p class="report-program">
-              📖 {{ r.title|default:"—" }}
-              | 🏷️ {% if r.category %}{{ r.category.name }}{% else %}{{ r.get_category_display|default:r.category|default:"—" }}{% endif %}
-              | 👥 {{ r.beneficiaries_count|default_if_none:"—" }}
-            </p>
+              <p class="report-program">
+                📖 {{ r.title|default:"—" }}
+                | 🏷️ {% if r.category and r.category.name %}{{ r.category.name }}{% else %}{% if r.category %}{{ r.category }}{% else %}—{% endif %}{% endif %}
+                | 👥 {{ r.beneficiaries_count|default_if_none:"—" }}
+              </p>
 
-            <textarea id="idea-m-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
-            <p class="report-idea">{{ r.idea|default_if_none:""|truncatewords:20 }}</p>
+              <textarea id="idea-m-{{ r.pk }}" style="display:none;">{{ r.idea|default_if_none:''|escape }}</textarea>
+              <p class="report-idea">{{ r.idea|default_if_none:""|truncatewords:20 }}</p>
 
-            <div class="report-images">
-              {% if r.image1 %}<img src="{{ r.image1.url }}" alt="img" data-full="{{ r.image1.url }}">{% endif %}
-              {% if r.image2 %}<img src="{{ r.image2.url }}" alt="img" data-full="{{ r.image2.url }}">{% endif %}
-              {% if r.image3 %}<img src="{{ r.image3.url }}" alt="img" data-full="{{ r.image3.url }}">{% endif %}
-              {% if r.image4 %}<img src="{{ r.image4.url }}" alt="img" data-full="{{ r.image4.url }}">{% endif %}
-            </div>
+              <div class="report-images">
+                {% if r.image1 %}<img src="{{ r.image1.url }}" alt="img" data-full="{{ r.image1.url }}">{% endif %}
+                {% if r.image2 %}<img src="{{ r.image2.url }}" alt="img" data-full="{{ r.image2.url }}">{% endif %}
+                {% if r.image3 %}<img src="{{ r.image3.url }}" alt="img" data-full="{{ r.image3.url }}">{% endif %}
+                {% if r.image4 %}<img src="{{ r.image4.url }}" alt="img" data-full="{{ r.image4.url }}">{% endif %}
+              </div>
 
-            <div class="card-actions">
-              <button class="btn btn-primary js-show" type="button"
-                      data-idea-id="idea-m-{{ r.pk }}"
-                      data-teacher="{% firstof r.teacher_name r.teacher.name '' %}"
-                      data-program="{{ r.title|default_if_none:''|escapejs }}"
-                      data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
-                      data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}">
-                👁 عرض
-              </button>
+              <div class="card-actions">
+                <button
+                  class="btn btn-primary js-show"
+                  type="button"
+                  data-idea-id="idea-m-{{ r.pk }}"
+                  data-teacher="{% if r.teacher_name %}{{ r.teacher_name|escapejs }}{% else %}{% if r.teacher and r.teacher.name %}{{ r.teacher.name|escapejs }}{% endif %}{% endif %}"
+                  data-title="{{ r.title|default_if_none:''|escapejs }}"
+                  data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
+                  data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
+                >👁 عرض</button>
 
-              <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="btn btn-print">🖨 طباعة</a>
+                <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="btn btn-print">🖨 طباعة</a>
 
-              <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button class="btn btn-danger" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');">🗑 حذف</button>
-              </form>
-            </div>
-          </article>
+                {% if can_delete %}
+                  <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="btn btn-danger" type="submit" onclick="return confirm('هل أنت متأكد من الحذف؟');">🗑 حذف</button>
+                  </form>
+                {% endif %}
+              </div>
+            </article>
           {% empty %}
             <div class="muted" style="text-align:center;padding:18px">لا توجد تقارير ضمن قسمك.</div>
           {% endfor %}
@@ -418,15 +540,15 @@
 
         <!-- Pagination -->
         {% if reports.paginator and reports.paginator.num_pages > 1 %}
-        <nav class="pagination" aria-label="ترقيم الصفحات">
-          {% if reports.has_previous %}
-            <a class="page-btn" href="?page={{ reports.previous_page_number }}{{ qsp }}">السابق</a>
-          {% endif %}
-          <span class="page-current">صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}</span>
-          {% if reports.has_next %}
-            <a class="page-btn" href="?page={{ reports.next_page_number }}{{ qsp }}">التالي</a>
-          {% endif %}
-        </nav>
+          <nav class="pagination" aria-label="ترقيم الصفحات">
+            {% if reports.has_previous %}
+              <a class="page-btn" href="?page={{ reports.previous_page_number }}{{ qsp }}">السابق</a>
+            {% endif %}
+            <span class="page-current">صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}</span>
+            {% if reports.has_next %}
+              <a class="page-btn" href="?page={{ reports.next_page_number }}{{ qsp }}">التالي</a>
+            {% endif %}
+          </nav>
         {% endif %}
       {% endwith %}
 
@@ -443,7 +565,7 @@
 
       <div class="modal-meta">
         <div>👨‍🏫 <b>المعلم:</b> <span id="modalTeacher"></span></div>
-        <div>📖 <b>العنوان:</b> <span id="modalProgram"></span></div>
+        <div>📖 <b>العنوان:</b> <span id="modalTitle"></span></div>
         <div>📅 <b>التاريخ:</b> <span id="modalDate"></span></div>
       </div>
 
@@ -454,74 +576,99 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
-    const modal = document.getElementById('ideaModal');
-    const closeBtn = modal ? modal.querySelector('.modal-close') : null;
-    const modalIdea = document.getElementById('modalIdea');
-    const modalTeacher = document.getElementById('modalTeacher');
-    const modalProgram = document.getElementById('modalProgram');
-    const modalDate = document.getElementById('modalDate');
-    const modalImages = document.getElementById('modalImages');
-
+    var modal = document.getElementById('ideaModal');
     if(!modal) return;
 
-    function openModalFromBtn(btn){
-      const ideaId = btn.getAttribute('data-idea-id');
-      const ta = ideaId ? document.getElementById(ideaId) : null;
-      let idea = ta ? ta.value : '';
-      idea = (idea || '').replace(/\r/g, '');
-      if(modalIdea) modalIdea.textContent = idea;
+    var closeBtn = modal.querySelector('.modal-close');
+    var modalIdea = document.getElementById('modalIdea');
+    var modalTeacher = document.getElementById('modalTeacher');
+    var modalTitle = document.getElementById('modalTitle');
+    var modalDate = document.getElementById('modalDate');
+    var modalImages = document.getElementById('modalImages');
 
+    function lockScroll(locked){
+      document.body.style.overflow = locked ? 'hidden' : 'auto';
+    }
+
+    function setOpen(open){
+      if(open){
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        lockScroll(true);
+        if(closeBtn) closeBtn.focus();
+      }else{
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        lockScroll(false);
+        if(modalImages) modalImages.innerHTML = '';
+      }
+    }
+
+    function buildImages(imagesStr){
+      if(!modalImages) return;
+      modalImages.innerHTML = '';
+
+      var list = (imagesStr || '').split('|').map(function(s){ return (s || '').trim(); }).filter(Boolean);
+      list.forEach(function(url){
+        var im = document.createElement('img');
+        im.src = url;
+        im.alt = 'صورة';
+        im.loading = 'lazy';
+        im.setAttribute('data-full', url);
+        modalImages.appendChild(im);
+      });
+    }
+
+    function openFromButton(btn){
+      var ideaId = btn.getAttribute('data-idea-id');
+      var ta = ideaId ? document.getElementById(ideaId) : null;
+      var idea = ta ? ta.value : '';
+      idea = (idea || '').replace(/\r/g, '');
+
+      if(modalIdea) modalIdea.textContent = idea;
       if(modalTeacher) modalTeacher.textContent = btn.getAttribute('data-teacher') || '';
-      if(modalProgram) modalProgram.textContent = btn.getAttribute('data-program') || '';
+      if(modalTitle) modalTitle.textContent = btn.getAttribute('data-title') || '';
       if(modalDate) modalDate.textContent = btn.getAttribute('data-date') || '';
 
-      if(modalImages){
-        modalImages.innerHTML = '';
-        const imgs = (btn.getAttribute('data-images') || '').split('|').map(s => (s || '').trim()).filter(Boolean);
-        imgs.forEach(url => {
-          const im = document.createElement('img');
-          im.src = url;
-          im.alt = 'صورة';
-          im.loading = 'lazy';
-          im.setAttribute('data-full', url);
-          modalImages.appendChild(im);
-        });
-      }
-
-      modal.style.display = 'flex';
-      modal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
+      buildImages(btn.getAttribute('data-images') || '');
+      setOpen(true);
     }
 
     function closeModal(){
-      modal.style.display = 'none';
-      modal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = 'auto';
-      if(modalImages) modalImages.innerHTML = '';
+      setOpen(false);
     }
 
-    document.querySelectorAll('.or-scope .js-show').forEach(btn => {
-      btn.addEventListener('click', function(){ openModalFromBtn(btn); });
-    });
-
-    if(closeBtn) closeBtn.addEventListener('click', closeModal);
-    window.addEventListener('click', function(e){
-      if(e.target === modal) closeModal();
-    });
-    window.addEventListener('keydown', function(e){
-      if(modal.style.display === 'flex' && e.key === 'Escape') closeModal();
-    });
-
-    // Lightbox for modal images
+    // Event delegation: show modal
     document.addEventListener('click', function(e){
-      const img = e.target;
-      if(!img) return;
-      if(!img.matches('#modalImages img')) return;
+      var btn = e.target && e.target.closest ? e.target.closest('.or-scope .js-show') : null;
+      if(btn){
+        openFromButton(btn);
+        return;
+      }
 
-      const full = img.getAttribute('data-full') || img.src;
-      const overlay = document.createElement('div');
+      // Close on backdrop click
+      if(e.target === modal){
+        closeModal();
+        return;
+      }
+    });
+
+    if(closeBtn){
+      closeBtn.addEventListener('click', closeModal);
+    }
+
+    // ESC close
+    document.addEventListener('keydown', function(e){
+      if(modal.classList.contains('is-open') && e.key === 'Escape'){
+        closeModal();
+      }
+    });
+
+    // Lightbox (single function) for thumbs + modal images
+    function openLightbox(fullUrl){
+      var overlay = document.createElement('div');
       overlay.style.position = 'fixed';
       overlay.style.inset = '0';
       overlay.style.background = 'rgba(0,0,0,0.88)';
@@ -529,29 +676,39 @@
       overlay.style.alignItems = 'center';
       overlay.style.justifyContent = 'center';
       overlay.style.zIndex = '3000';
-      overlay.innerHTML = '<img src="' + full + '" alt="preview" style="max-width:92%;max-height:92%;border-radius:14px;box-shadow:0 16px 60px rgba(0,0,0,.55)">';
-      overlay.addEventListener('click', function(){ overlay.remove(); });
-      document.body.appendChild(overlay);
-    });
 
-    // Click-to-zoom for thumbs in table/cards (optional)
+      var img = document.createElement('img');
+      img.src = fullUrl;
+      img.alt = 'preview';
+      img.style.maxWidth = '92%';
+      img.style.maxHeight = '92%';
+      img.style.borderRadius = '14px';
+      img.style.boxShadow = '0 16px 60px rgba(0,0,0,.55)';
+
+      overlay.appendChild(img);
+
+      function kill(){
+        overlay.remove();
+        document.removeEventListener('keydown', esc);
+      }
+      function esc(ev){
+        if(ev.key === 'Escape') kill();
+      }
+
+      overlay.addEventListener('click', kill);
+      document.addEventListener('keydown', esc);
+      document.body.appendChild(overlay);
+    }
+
     document.addEventListener('click', function(e){
-      const img = e.target;
+      var img = e.target;
       if(!img) return;
-      if(!img.matches('.table-images img') && !img.matches('.report-images img')) return;
 
-      const full = img.getAttribute('data-full') || img.src;
-      const overlay = document.createElement('div');
-      overlay.style.position = 'fixed';
-      overlay.style.inset = '0';
-      overlay.style.background = 'rgba(0,0,0,0.88)';
-      overlay.style.display = 'flex';
-      overlay.style.alignItems = 'center';
-      overlay.style.justifyContent = 'center';
-      overlay.style.zIndex = '3000';
-      overlay.innerHTML = '<img src="' + full + '" alt="preview" style="max-width:92%;max-height:92%;border-radius:14px;box-shadow:0 16px 60px rgba(0,0,0,.55)">';
-      overlay.addEventListener('click', function(){ overlay.remove(); });
-      document.body.appendChild(overlay);
+      var isThumb = img.matches && (img.matches('.or-scope .table-images img') || img.matches('.or-scope .report-images img') || img.matches('#modalImages img'));
+      if(!isThumb) return;
+
+      var full = img.getAttribute('data-full') || img.src;
+      if(full) openLightbox(full);
     });
   })();
 </script>

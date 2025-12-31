@@ -34,6 +34,9 @@ from .models import (
     SchoolMembership,
     SubscriptionPlan,
     SchoolSubscription,
+    TeacherAchievementFile,
+    AchievementSection,
+    AchievementEvidenceImage,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,6 +55,19 @@ except Exception:
 # ==============================
 digits10 = RegexValidator(r"^\d{10}$", "يجب أن يتكون من 10 أرقام.")
 sa_phone = RegexValidator(r"^0\d{9}$", "رقم الجوال يجب أن يبدأ بـ 0 ويتكون من 10 أرقام.")
+
+
+def _validate_academic_year_hijri(value: str) -> str:
+    """تحقق من صيغة السنة الدراسية الهجرية 1447-1448."""
+    value = (value or "").strip().replace("–", "-").replace("—", "-")
+    import re
+
+    if not re.fullmatch(r"\d{4}-\d{4}", value):
+        raise ValidationError("صيغة السنة الدراسية يجب أن تكون مثل 1447-1448")
+    s, e = value.split("-", 1)
+    if int(e) != int(s) + 1:
+        raise ValidationError("السنة الدراسية يجب أن تكون مثل 1447-1448 (فرق سنة واحدة)")
+    return value
 
 # ==============================
 # مساعدات داخلية للأقسام/المستخدمين
@@ -1439,3 +1455,74 @@ class SchoolSubscriptionForm(forms.ModelForm):
         if commit:
             subscription.save()
         return subscription
+
+
+# ==============================
+# 📁 ملف إنجاز المعلّم (سنوي)
+# ==============================
+class AchievementCreateYearForm(forms.Form):
+    academic_year = forms.CharField(
+        label="السنة الدراسية (هجري)",
+        max_length=9,
+        help_text="مثال: 1447-1448",
+        widget=forms.TextInput(attrs={"class": "input", "placeholder": "1447-1448"}),
+    )
+
+    def clean_academic_year(self):
+        return _validate_academic_year_hijri(self.cleaned_data.get("academic_year", ""))
+
+
+class TeacherAchievementFileForm(forms.ModelForm):
+    class Meta:
+        model = TeacherAchievementFile
+        fields = [
+            "qualifications",
+            "professional_experience",
+            "specialization",
+            "teaching_load",
+            "subjects_taught",
+            "contact_info",
+        ]
+        widgets = {
+            "qualifications": forms.Textarea(attrs={"class": "textarea", "rows": 4}),
+            "professional_experience": forms.Textarea(attrs={"class": "textarea", "rows": 4}),
+            "specialization": forms.Textarea(attrs={"class": "textarea", "rows": 3}),
+            "teaching_load": forms.Textarea(attrs={"class": "textarea", "rows": 2}),
+            "subjects_taught": forms.Textarea(attrs={"class": "textarea", "rows": 3}),
+            "contact_info": forms.Textarea(attrs={"class": "textarea", "rows": 3}),
+        }
+
+
+class AchievementSectionNotesForm(forms.ModelForm):
+    class Meta:
+        model = AchievementSection
+        fields = ["teacher_notes"]
+        widgets = {"teacher_notes": forms.Textarea(attrs={"class": "textarea", "rows": 3})}
+
+
+class _AchievementMultiImageInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class AchievementEvidenceUploadForm(forms.Form):
+    images = forms.FileField(
+        label="إضافة صور الشواهد",
+        required=False,
+        widget=_AchievementMultiImageInput(attrs={"multiple": True, "class": "input", "accept": "image/*"}),
+        help_text="حد أقصى 8 صور لكل محور.",
+    )
+
+
+class AchievementManagerNotesForm(forms.ModelForm):
+    class Meta:
+        model = TeacherAchievementFile
+        fields = ["manager_notes"]
+        widgets = {
+            "manager_notes": forms.Textarea(
+                attrs={
+                    "class": "textarea",
+                    "rows": 4,
+                    "placeholder": "اكتب شكرًا/تحفيزًا عند الاعتماد، أو سبب الرفض عند الإرجاع…",
+                }
+            )
+        }

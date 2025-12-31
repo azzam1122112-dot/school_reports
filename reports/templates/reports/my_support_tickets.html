@@ -1,32 +1,37 @@
+{# reports/templates/reports/support_tickets.html #}
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}تذاكر الدعم الفني{% endblock %}
 
 {% block head %}
 <style>
-  /* ===== Scoped: Support Tickets ===== */
+  /* ===== Scoped: Support Tickets (لا يلمس .btn/.card العامة) ===== */
   .support-scope .wrap{max-width:1100px;margin:0 auto;padding:20px 12px}
 
   .support-scope .hero{
     border-radius:22px;
     color:#fff;
     padding:18px 20px;
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow, 0 18px 50px rgba(2,6,23,.10));
     background:
       radial-gradient(900px 380px at 15% 10%, rgba(255,255,255,.16), transparent 55%),
-      linear-gradient(135deg, var(--brand), #0ea5e9);
+      linear-gradient(135deg, var(--brand, #2563eb), #0ea5e9);
     display:flex;
     align-items:center;
     justify-content:space-between;
     gap:14px;
     flex-wrap:wrap;
+    border: 1px solid rgba(255,255,255,.16);
   }
   .support-scope .hero .title{
     margin:0;
-    font-weight:900;
+    font-weight:950;
     font-size:1.55rem;
     display:flex;
     align-items:center;
     gap:10px;
+    letter-spacing: -.3px;
   }
   .support-scope .hero .sub{
     margin:6px 0 0;
@@ -48,10 +53,13 @@
     align-items:center;
     gap:8px;
     backdrop-filter:saturate(160%) blur(8px);
-    transition:transform .15s ease, filter .15s ease;
+    -webkit-backdrop-filter:saturate(160%) blur(8px);
+    transition:transform .15s ease, filter .15s ease, box-shadow .15s ease;
     white-space:nowrap;
+    outline:none;
   }
   .support-scope .btnx:hover{transform:translateY(-1px);filter:brightness(1.02)}
+  .support-scope .btnx:focus-visible{box-shadow:0 0 0 4px rgba(255,255,255,.22)}
   .support-scope .btnx.primary{
     background:#ffffff;
     color:#1e3a8a;
@@ -64,7 +72,7 @@
     background:var(--card);
     border:1px solid var(--line);
     border-radius:18px;
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow, 0 18px 50px rgba(2,6,23,.10));
     padding:12px;
     display:flex;
     gap:10px;
@@ -74,13 +82,20 @@
   .support-scope .input{
     border:1px solid var(--line);
     border-radius:14px;
-    background:#fff;
+    background:var(--card);
     color:var(--ink);
     padding:10px 12px;
     font-size:.95rem;
     min-height:44px;
     min-width:min(380px, 100%);
+    outline:none;
   }
+  .support-scope .input::placeholder{color:color-mix(in srgb, var(--muted) 80%, transparent)}
+  .support-scope .input:focus{
+    border-color: rgba(37,99,235,.45);
+    box-shadow: 0 0 0 4px rgba(37,99,235,.14);
+  }
+
   .support-scope .toolbar .meta{
     margin-inline-start:auto;
     color:var(--muted);
@@ -88,6 +103,7 @@
     display:flex;
     gap:10px;
     flex-wrap:wrap;
+    align-items:center;
   }
 
   /* List */
@@ -96,7 +112,7 @@
     background:var(--card);
     border:1px solid var(--line);
     border-radius:16px;
-    box-shadow:var(--shadow);
+    box-shadow: var(--shadow, 0 18px 50px rgba(2,6,23,.10));
     padding:14px;
     display:flex;
     align-items:center;
@@ -106,17 +122,24 @@
     color:inherit;
     position:relative;
     overflow:hidden;
-    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
   }
   .support-scope .item:hover{
     transform:translateY(-2px);
     box-shadow:0 14px 40px rgba(2,6,23,.12);
     border-color:#c7d2fe;
+    background: color-mix(in srgb, var(--card) 92%, #dbeafe 8%);
+  }
+  .support-scope .item:focus-visible{
+    outline:none;
+    box-shadow:0 0 0 4px rgba(37,99,235,.14), 0 14px 40px rgba(2,6,23,.12);
+    border-color: rgba(37,99,235,.45);
   }
   .support-scope .item::after{
     content:"";
     position:absolute;
-    top:0;bottom:0;left:0;
+    top:0;bottom:0;
+    inset-inline-start:0;
     width:6px;
     background:rgba(148,163,184,.55);
   }
@@ -133,9 +156,15 @@
     font-size:.85rem;
     white-space:nowrap;
   }
+  html[data-theme="dark"] .support-scope .tid{
+    background: rgba(99,102,241,.14);
+    border-color: rgba(99,102,241,.28);
+    color: #c7d2fe;
+  }
+
   .support-scope .t-title{
     margin:0;
-    font-weight:900;
+    font-weight:950;
     font-size:1.08rem;
     color:var(--ink);
     overflow:hidden;
@@ -150,7 +179,7 @@
     white-space:nowrap;
   }
 
-  /* Status */
+  /* Status badge */
   .support-scope .badge{
     --bg:#f1f5f9; --fg:#0f172a; --bd:#e2e8f0;
     background:var(--bg);
@@ -158,7 +187,7 @@
     border:1px solid var(--bd);
     padding:10px 14px;
     border-radius:14px;
-    font-weight:900;
+    font-weight:950;
     display:inline-flex;
     align-items:center;
     gap:8px;
@@ -179,7 +208,7 @@
     margin-top:12px;
     border:1px dashed var(--line);
     border-radius:18px;
-    background:linear-gradient(180deg,#ffffff,#fbfdff);
+    background: linear-gradient(180deg, var(--card), var(--line-2));
     padding:22px;
     display:flex;
     align-items:center;
@@ -189,20 +218,31 @@
     font-weight:900;
     flex-wrap:wrap;
   }
-  .support-scope .empty .big{font-size:1.1rem;color:var(--ink)}
+  .support-scope .empty .big{font-size:1.1rem;color:var(--ink);font-weight:950}
   .support-scope .empty .sub{font-weight:800;margin-top:4px}
   .support-scope .empty .spark{
     width:52px;height:52px;border-radius:18px;
     display:grid;place-items:center;
     background:rgba(37,99,235,.08);
     border:1px solid rgba(37,99,235,.18);
-    color:var(--brand);
+    color:var(--brand, #2563eb);
     font-size:1.2rem;
   }
 
   @media(max-width:680px){
     .support-scope .t-title{max-width:420px}
     .support-scope .toolbar .meta{width:100%;margin-inline-start:0;justify-content:space-between}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .support-scope .btnx,
+    .support-scope .item{
+      transition:none !important;
+    }
+    .support-scope .btnx:hover,
+    .support-scope .item:hover{
+      transform:none !important;
+    }
   }
 </style>
 {% endblock %}
@@ -225,13 +265,24 @@
         </a>
       </section>
 
-      <!-- Toolbar (بحث اختياري) -->
+      <!-- Toolbar -->
       <form class="toolbar" method="get" role="search" aria-label="بحث في التذاكر">
-        <input class="input" type="search" name="q" placeholder="ابحث في التذاكر…" value="{{ request.GET.q }}">
-        <button class="btnx" type="submit"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> بحث</button>
+        <input
+          class="input"
+          type="search"
+          name="q"
+          placeholder="ابحث في التذاكر…"
+          value="{% firstof request.GET.q "" %}"
+          autocomplete="off"
+        >
+        <button class="btnx" type="submit">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> بحث
+        </button>
 
         {% if request.GET.q %}
-          <a class="btnx" href="{% url 'reports:support_tickets' %}"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> مسح</a>
+          <a class="btnx" href="{% url 'reports:support_tickets' %}">
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> مسح
+          </a>
         {% endif %}
 
         <div class="meta" aria-label="إحصاءات">
@@ -242,13 +293,15 @@
       {% if tickets %}
         <section class="list" aria-label="قائمة التذاكر">
           {% for ticket in tickets %}
-            <a href="{% url 'reports:ticket_detail' ticket.pk %}"
-               class="item
+            <a
+              href="{% url 'reports:ticket_detail' ticket.pk %}"
+              class="item
                 {% if ticket.status == 'open' or ticket.status == 'new' %}state-open
                 {% elif ticket.status == 'in_progress' or ticket.status == 'pending' %}state-in
                 {% elif ticket.status == 'done' %}state-done
-                {% else %}state-rej{% endif %}">
-
+                {% else %}state-rej{% endif %}"
+              aria-label="فتح التذكرة رقم {{ ticket.pk }}"
+            >
               <div class="left">
                 <div class="row1">
                   <span class="tid">#{{ ticket.pk }}</span>
@@ -274,7 +327,6 @@
                   {% endif %}
                 </span>
               </div>
-
             </a>
           {% endfor %}
         </section>

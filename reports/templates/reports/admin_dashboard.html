@@ -1,10 +1,27 @@
+{# reports/templates/reports/admin_dashboard.html (أو اسم ملفك الحالي) #}
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}لوحة المدير{% endblock %}
 
 {% block head %}
 <style>
-  /* ===== Scoped: Admin Dashboard ===== */
-  .dash{max-width:1100px;margin:auto;padding:14px}
+  /* =========================================================
+     Admin Dashboard (Scoped)
+     - سكوب داخل .dash-wrap لتجنب تعارضات app.css
+     - متوافق مع data-theme (بدل prefers-color-scheme)
+     - بدون لمس :root أو تعريفات عامة مثل .btn / .card
+     ========================================================= */
+
+  .dash-wrap{max-width:1100px;margin:auto;padding:14px}
+
+  .dash-hd{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+  }
   .dash-title{
     margin:0;
     font-weight:950;
@@ -18,9 +35,17 @@
   }
 
   /* KPIs */
-  .kpis{display:grid;gap:12px;margin-top:12px}
-  @media(min-width:700px){.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
-  .kpi{
+  .dash-kpis{
+    display:grid;
+    gap:12px;
+    margin-top:12px;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+  @media(min-width:700px){
+    .dash-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+  }
+
+  .dash-kpi{
     background:var(--card);
     border:1px solid var(--line);
     border-radius:14px;
@@ -28,22 +53,35 @@
     box-shadow:0 10px 26px rgba(2,6,23,.08);
     position:relative;
     overflow:hidden;
+    transition: var(--t-fast);
   }
-  .kpi:before{
+  .dash-kpi:before{
     content:"";
-    position:absolute; inset:0 auto auto 0;
-    height:4px; width:100%;
+    position:absolute;
+    inset:0 auto auto 0;
+    height:4px;
+    width:100%;
     background:linear-gradient(90deg,var(--brand),var(--accent));
     opacity:.85;
   }
-  .kpi .num{font-weight:950;font-size:1.35rem;color:var(--brand)}
-  .kpi .lbl{color:var(--muted);font-weight:850;margin-top:6px}
+  .dash-kpi:hover{
+    transform:translateY(-2px);
+    box-shadow:0 18px 40px rgba(2,6,23,.12);
+  }
+  .dash-kpi .num{font-weight:950;font-size:1.35rem;color:var(--brand)}
+  .dash-kpi .lbl{color:var(--muted);font-weight:850;margin-top:6px}
 
   /* Tiles */
-  .grid{display:grid;gap:14px;margin-top:16px}
-  @media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+  .dash-grid{
+    display:grid;
+    gap:14px;
+    margin-top:16px;
+  }
+  @media(min-width:900px){
+    .dash-grid{grid-template-columns:1fr 1fr}
+  }
 
-  .tile{
+  .dash-tile{
     display:flex;
     gap:12px;
     align-items:center;
@@ -55,25 +93,31 @@
     color:inherit;
     box-shadow:0 10px 26px rgba(2,6,23,.08);
     transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+    position:relative;
   }
-  .tile:hover{
+  .dash-tile:hover{
     transform:translateY(-2px);
     border-color:rgba(37,99,235,.25);
     background:rgba(37,99,235,.04);
     box-shadow:0 18px 40px rgba(2,6,23,.12);
   }
-  .tile:focus-visible{
+  .dash-tile:focus-visible{
     outline:none;
-    box-shadow:var(--ring), 0 18px 40px rgba(2,6,23,.12);
+    box-shadow:0 0 0 4px rgba(37,99,235,.20), 0 18px 40px rgba(2,6,23,.12);
   }
-  .tile.disabled{
+  .dash-tile.disabled{
     opacity:.6;
     pointer-events:none;
     transform:none;
-    box-shadow:0 10px 26px rgba(2,6,23,.08);
+  }
+  .dash-tile .arrow{
+    margin-inline-start:auto;
+    color:var(--muted);
+    font-weight:950;
+    opacity:.8;
   }
 
-  .ico{
+  .dash-ico{
     width:46px;height:46px;border-radius:12px;
     display:grid;place-items:center;
     color:#fff;font-weight:950;
@@ -87,181 +131,219 @@
   .b6{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
   .b7{background:linear-gradient(135deg,#f97316,#ea580c)}
 
-  .tile-title{
+  .dash-tile-title{
     font-weight:950;
     margin:0;
     color:var(--ink);
     font-size:1.05rem;
   }
-  .muted{
+  .dash-muted{
     margin-top:4px;
     color:var(--muted);
     font-weight:800;
   }
 
-  /* Dark mode refinement (بدون لمس :root) */
-  @media (prefers-color-scheme:dark){
-    .tile:hover{background:rgba(59,130,246,.10);border-color:rgba(59,130,246,.25)}
-    .kpi, .tile{box-shadow:0 10px 30px rgba(0,0,0,.22)}
+  /* Dark mode (مع data-theme) */
+  html[data-theme="dark"] .dash-wrap .dash-tile:hover{
+    background:rgba(59,130,246,.10);
+    border-color:rgba(59,130,246,.25);
+  }
+  html[data-theme="dark"] .dash-wrap .dash-kpi,
+  html[data-theme="dark"] .dash-wrap .dash-tile{
+    box-shadow:0 10px 30px rgba(0,0,0,.22);
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .dash-wrap .dash-kpi,
+    .dash-wrap .dash-tile{
+      transition:none !important;
+    }
+    .dash-wrap .dash-kpi:hover,
+    .dash-wrap .dash-tile:hover{
+      transform:none !important;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dash" dir="rtl">
-  <header>
-    <h1 class="dash-title">لوحة المدير</h1>
-    <p class="dash-sub">نظرة سريعة على إحصاءات المدرسة وإدارة المحتوى</p>
+<div class="dash-wrap" dir="rtl">
+  <header class="dash-hd">
+    <div>
+      <h1 class="dash-title">لوحة المدير</h1>
+      <p class="dash-sub">نظرة سريعة على إحصاءات المدرسة وإدارة المحتوى</p>
+    </div>
   </header>
 
-  <section class="kpis" aria-label="مؤشرات سريعة">
-    <div class="kpi">
-      <div class="num">{{ reports_count }}</div>
+  <section class="dash-kpis" aria-label="مؤشرات سريعة">
+    <div class="dash-kpi">
+      <div class="num">{{ reports_count|default:"0" }}</div>
       <div class="lbl">إجمالي التقارير</div>
     </div>
 
-    <div class="kpi">
-      <div class="num">{{ teachers_count }}</div>
+    <div class="dash-kpi">
+      <div class="num">{{ teachers_count|default:"0" }}</div>
       <div class="lbl">المعلّمون</div>
     </div>
 
-    <div class="kpi">
-      <div class="num">{{ tickets_total }}</div>
+    <div class="dash-kpi">
+      <div class="num">{{ tickets_total|default:"0" }}</div>
       <div class="lbl">إجمالي الطلبات</div>
     </div>
 
-    <div class="kpi">
-      <div class="num">{{ tickets_open }}</div>
+    <div class="dash-kpi">
+      <div class="num">{{ tickets_open|default:"0" }}</div>
       <div class="lbl">طلبات جديدة/قيد</div>
     </div>
 
-    {% if reporttypes_count %}
-      <div class="kpi">
-        <div class="num">{{ reporttypes_count }}</div>
-        <div class="lbl">أنواع التقارير</div>
-      </div>
-    {% endif %}
+    <div class="dash-kpi">
+      <div class="num">{{ reporttypes_count|default:"0" }}</div>
+      <div class="lbl">أنواع التقارير</div>
+    </div>
   </section>
 
-  <section class="grid" aria-label="إجراءات">
-    <a class="tile" href="{% url 'reports:admin_reports' %}">
-      <div class="ico b1" aria-hidden="true">📄</div>
+  <section class="dash-grid" aria-label="إجراءات">
+    <a class="dash-tile" href="{% url 'reports:admin_reports' %}">
+      <div class="dash-ico b1" aria-hidden="true">📄</div>
       <div>
-        <div class="tile-title">جميع التقارير</div>
-        <div class="muted">عرض/تصفية وحذف التقارير</div>
+        <div class="dash-tile-title">جميع التقارير</div>
+        <div class="dash-muted">عرض/تصفية وطباعة</div>
       </div>
+      <span class="arrow" aria-hidden="true">‹</span>
     </a>
 
-    {# صندوق الطلبات: إن كان المسار غير موجود عندك غيّره لاسم URL الصحيح أو اعرضها disabled #}
+    {# صندوق الطلبات: لو الاسم مختلف عندك غيّره هنا #}
     {% url 'reports:tickets_inbox' as inbox_url %}
     {% if inbox_url %}
-      <a class="tile" href="{{ inbox_url }}">
-        <div class="ico b2" aria-hidden="true">📬</div>
+      <a class="dash-tile" href="{{ inbox_url }}">
+        <div class="dash-ico b2" aria-hidden="true">📬</div>
         <div>
-          <div class="tile-title">صندوق الطلبات</div>
-          <div class="muted">كل الطلبات وحالاتها</div>
+          <div class="dash-tile-title">صندوق الطلبات</div>
+          <div class="dash-muted">كل الطلبات وحالاتها</div>
         </div>
+        <span class="arrow" aria-hidden="true">‹</span>
       </a>
     {% else %}
-      <div class="tile disabled">
-        <div class="ico b2" aria-hidden="true">📬</div>
+      <div class="dash-tile disabled" aria-disabled="true">
+        <div class="dash-ico b2" aria-hidden="true">📬</div>
         <div>
-          <div class="tile-title">صندوق الطلبات</div>
-          <div class="muted">الرابط غير مفعّل حالياً</div>
+          <div class="dash-tile-title">صندوق الطلبات</div>
+          <div class="dash-muted">الرابط غير مفعّل حالياً</div>
         </div>
+        <span class="arrow" aria-hidden="true">—</span>
       </div>
     {% endif %}
 
-    <a class="tile" href="{% url 'reports:manage_teachers' %}">
-      <div class="ico b4" aria-hidden="true">👩‍🏫</div>
+    <a class="dash-tile" href="{% url 'reports:manage_teachers' %}">
+      <div class="dash-ico b4" aria-hidden="true">👩‍🏫</div>
       <div>
-        <div class="tile-title">إدارة المعلّمين</div>
-        <div class="muted">إضافة/تعديل/حذف</div>
+        <div class="dash-tile-title">إدارة المعلّمين</div>
+        <div class="dash-muted">إضافة/تعديل/حذف</div>
       </div>
+      <span class="arrow" aria-hidden="true">‹</span>
+    </a>
+
+    <a class="dash-tile" href="{% url 'reports:achievement_school_files' %}">
+      <div class="dash-ico b6" aria-hidden="true">📘</div>
+      <div>
+        <div class="dash-tile-title">ملفات الإنجاز</div>
+        <div class="dash-muted">عرض ملفات المعلمين واعتمادها</div>
+      </div>
+      <span class="arrow" aria-hidden="true">‹</span>
     </a>
 
     {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
-      <a class="tile" href="{{ SEND_NOTIFICATION_URL }}">
-        <div class="ico b5" aria-hidden="true">📣</div>
+      <a class="dash-tile" href="{{ SEND_NOTIFICATION_URL }}">
+        <div class="dash-ico b5" aria-hidden="true">📣</div>
         <div>
-          <div class="tile-title">إرسال إشعار</div>
-          <div class="muted">إرسال إشعارات للمعلمين/الأقسام</div>
+          <div class="dash-tile-title">إرسال إشعار</div>
+          <div class="dash-muted">إشعارات للمعلمين/الأقسام</div>
         </div>
+        <span class="arrow" aria-hidden="true">‹</span>
       </a>
     {% endif %}
 
-    <a class="tile" href="{% url 'reports:departments_list' %}">
-      <div class="ico b3" aria-hidden="true">🏷️</div>
+    <a class="dash-tile" href="{% url 'reports:departments_list' %}">
+      <div class="dash-ico b3" aria-hidden="true">🏷️</div>
       <div>
-        <div class="tile-title">الأقسام</div>
-        <div class="muted">
-          {% if has_dept_model %}إضافة/تعديل/حذف/أعضاء{% else %}إسناد الأعضاء فقط (من ROLE_CHOICES){% endif %}
+        <div class="dash-tile-title">الأقسام</div>
+        <div class="dash-muted">
+          {% if has_dept_model %}إضافة/تعديل/حذف/أعضاء{% else %}إسناد الأعضاء فقط{% endif %}
         </div>
       </div>
+      <span class="arrow" aria-hidden="true">‹</span>
     </a>
 
-    <div class="tile disabled">
-      <div class="ico b7" aria-hidden="true">📜</div>
-      <div>
-        <div class="tile-title">سجل العمليات</div>
-        <div class="muted">الرابط غير مفعّل حالياً</div>
-      </div>
-    </div>
-
     {% if has_reporttype %}
-      <a class="tile" href="{% url 'reports:reporttypes_list' %}">
-        <div class="ico b5" aria-hidden="true">🧩</div>
+      <a class="dash-tile" href="{% url 'reports:reporttypes_list' %}">
+        <div class="dash-ico b5" aria-hidden="true">🧩</div>
         <div>
-          <div class="tile-title">أنواع التقارير</div>
-          <div class="muted">إضافة/تعديل/حذف الأنواع (تظهر في “نوع التقرير”)</div>
+          <div class="dash-tile-title">أنواع التقارير</div>
+          <div class="dash-muted">إضافة/تعديل/حذف الأنواع</div>
         </div>
+        <span class="arrow" aria-hidden="true">‹</span>
       </a>
     {% else %}
-      <div class="tile disabled">
-        <div class="ico b5" aria-hidden="true">🧩</div>
+      <div class="dash-tile disabled" aria-disabled="true">
+        <div class="dash-ico b5" aria-hidden="true">🧩</div>
         <div>
-          <div class="tile-title">أنواع التقارير</div>
-          <div class="muted">فعّل ReportType والروابط الخاصة به لبدء الإدارة</div>
+          <div class="dash-tile-title">أنواع التقارير</div>
+          <div class="dash-muted">فعّل ReportType والروابط الخاصة به</div>
         </div>
+        <span class="arrow" aria-hidden="true">—</span>
       </div>
     {% endif %}
 
     {% if active_school %}
       {% url 'reports:school_settings' as school_settings_url %}
       {% if school_settings_url %}
-        <a class="tile" href="{{ school_settings_url }}">
-          <div class="ico b4" aria-hidden="true">⚙️</div>
+        <a class="dash-tile" href="{{ school_settings_url }}">
+          <div class="dash-ico b4" aria-hidden="true">⚙️</div>
           <div>
-            <div class="tile-title">إعدادات المدرسة</div>
-            <div class="muted">تعديل اسم المدرسة وشعارها النشط حالياً</div>
+            <div class="dash-tile-title">إعدادات المدرسة</div>
+            <div class="dash-muted">تعديل اسم المدرسة وشعارها</div>
           </div>
+          <span class="arrow" aria-hidden="true">‹</span>
         </a>
       {% else %}
-        <div class="tile disabled">
-          <div class="ico b4" aria-hidden="true">⚙️</div>
+        <div class="dash-tile disabled" aria-disabled="true">
+          <div class="dash-ico b4" aria-hidden="true">⚙️</div>
           <div>
-            <div class="tile-title">إعدادات المدرسة</div>
-            <div class="muted">الرابط غير مفعّل حالياً</div>
+            <div class="dash-tile-title">إعدادات المدرسة</div>
+            <div class="dash-muted">الرابط غير مفعّل حالياً</div>
           </div>
+          <span class="arrow" aria-hidden="true">—</span>
         </div>
       {% endif %}
 
-      <a class="tile" href="{% url 'reports:my_subscription' %}">
-        <div class="ico b6" aria-hidden="true">💳</div>
+      <a class="dash-tile" href="{% url 'reports:my_subscription' %}">
+        <div class="dash-ico b6" aria-hidden="true">💳</div>
         <div>
-          <div class="tile-title">الاشتراك والباقات</div>
-          <div class="muted">متابعة حالة الاشتراك وتجديد الباقة</div>
+          <div class="dash-tile-title">الاشتراك والباقات</div>
+          <div class="dash-muted">حالة الاشتراك وتجديد الباقة</div>
         </div>
+        <span class="arrow" aria-hidden="true">‹</span>
       </a>
     {% endif %}
 
-    <a class="tile" href="{% url 'reports:my_support_tickets' %}">
-      <div class="ico b7" aria-hidden="true">🎧</div>
+    <a class="dash-tile" href="{% url 'reports:my_support_tickets' %}">
+      <div class="dash-ico b7" aria-hidden="true">🎧</div>
       <div>
-        <div class="tile-title">الدعم الفني للمنصة</div>
-        <div class="muted">تواصل مع إدارة النظام للمشاكل التقنية</div>
+        <div class="dash-tile-title">الدعم الفني للمنصة</div>
+        <div class="dash-muted">تواصل مع إدارة النظام</div>
       </div>
+      <span class="arrow" aria-hidden="true">‹</span>
     </a>
+
+    <div class="dash-tile disabled" aria-disabled="true">
+      <div class="dash-ico b7" aria-hidden="true">📜</div>
+      <div>
+        <div class="dash-tile-title">سجل العمليات</div>
+        <div class="dash-muted">الرابط غير مفعّل حالياً</div>
+      </div>
+      <span class="arrow" aria-hidden="true">—</span>
+    </div>
   </section>
 </div>
 {% endblock %}
