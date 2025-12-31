@@ -1,3 +1,4 @@
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -10,9 +11,47 @@ from .models import (
 	SchoolMembership,
 	SchoolSubscription,
 	SubscriptionPlan,
+	Payment,
 	Teacher,
 	Ticket,
 )
+
+
+class PaymentApprovalAppliesRequestedPlanTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="School", code="school-pay")
+		self.plan_a = SubscriptionPlan.objects.create(name="Plan A", price=100, days_duration=30, is_active=True)
+		self.plan_b = SubscriptionPlan.objects.create(name="Plan B", price=200, days_duration=90, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=self.plan_a, start_date=today, end_date=today)
+
+		self.admin = Teacher.objects.create_superuser(phone="0599999999", name="Admin", password="pass")
+		self.client.force_login(self.admin)
+
+	def test_approving_payment_changes_subscription_plan(self):
+		# 1x1 PNG (valid)
+		png_bytes = (
+			b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+			b"\x00\x00\x00\x0cIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xa7\x1d\xa4\x16\x00\x00\x00\x00IEND\xaeB`\x82"
+		)
+		receipt = SimpleUploadedFile("r.png", png_bytes, content_type="image/png")
+
+		payment = Payment.objects.create(
+			school=self.school,
+			subscription=self.school.subscription,
+			requested_plan=self.plan_b,
+			amount="200.00",
+			receipt_image=receipt,
+			created_by=self.admin,
+		)
+
+		url = reverse("reports:platform_payment_detail", args=[payment.pk])
+		res = self.client.post(url, {"status": Payment.Status.APPROVED, "notes": "ok"})
+		self.assertEqual(res.status_code, 302)
+
+		self.school.refresh_from_db()
+		sub = self.school.subscription
+		self.assertEqual(sub.plan_id, self.plan_b.id)
 
 
 class ResolveDepartmentForCategoryTests(TestCase):

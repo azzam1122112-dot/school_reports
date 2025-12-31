@@ -3383,9 +3383,13 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    payment = get_object_or_404(Payment, pk=pk)
+    payment = get_object_or_404(
+        Payment.objects.select_related("school", "subscription", "requested_plan"),
+        pk=pk,
+    )
     
     if request.method == "POST":
+        prev_status = payment.status
         new_status = request.POST.get("status")
         notes = request.POST.get("notes")
         
@@ -3394,8 +3398,52 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
         
         if notes is not None:
             payment.notes = notes
-            
-        payment.save()
+
+        with transaction.atomic():
+            payment.save()
+
+            # ✅ عند اعتماد الدفع لأول مرة: حدّث/جدّد اشتراك المدرسة.
+            # الهدف: لا يوجد مسار منفصل "تغيير الباقة"؛ نفس طلب الدفع يحدد الباقة المطلوبة.
+            if prev_status != Payment.Status.APPROVED and payment.status == Payment.Status.APPROVED:
+                plan_to_apply = payment.requested_plan
+                subscription = getattr(payment.school, "subscription", None)
+
+                today = timezone.localdate()
+
+                if subscription is None:
+                    if plan_to_apply is not None:
+                        subscription = SchoolSubscription(
+                            school=payment.school,
+                            plan=plan_to_apply,
+                            start_date=today,
+                            end_date=today,
+                            is_active=True,
+                        )
+                        subscription.save()
+                    else:
+                        messages.warning(
+                            request,
+                            "تم اعتماد الدفع، لكن لا توجد باقة مطلوبة لتفعيل الاشتراك تلقائياً.",
+                        )
+                else:
+                    subscription.is_active = True
+
+                    # تغيير باقة أو تجديد نفس الباقة (كلاهما عبر طلب واحد)
+                    if plan_to_apply is not None and subscription.plan_id != plan_to_apply.id:
+                        subscription.plan = plan_to_apply
+                        subscription.save()
+                    else:
+                        # تجديد بنفس الباقة: نُعيد حساب التواريخ يدويًا لأن save() لا يعيد الحساب
+                        # إلا عند تغيير plan.
+                        days = int(getattr(subscription.plan, "days_duration", 0) or 0)
+                        subscription.start_date = today
+                        subscription.end_date = today if days <= 0 else today + timedelta(days=days - 1)
+                        subscription.save(update_fields=["start_date", "end_date", "is_active", "updated_at"])
+
+                if subscription is not None and payment.subscription_id != subscription.id:
+                    payment.subscription = subscription
+                    payment.save(update_fields=["subscription"])
+
         messages.success(request, "تم تحديث حالة الدفع بنجاح.")
         return redirect("reports:platform_payment_detail", pk=pk)
 
