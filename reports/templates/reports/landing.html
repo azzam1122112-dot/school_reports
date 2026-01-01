@@ -8,8 +8,8 @@
   <meta name="color-scheme" content="light dark">
 
   <title>منصة توثيق | المستقبل للإدارة المدرسية الذكية</title>
-  <meta name="description" content="النظام المدرسي المتكامل لعام 2026. أتمتة التقارير، تذاكر الصيانة، والطباعة الرسمية في منصة واحدة ذكية.">
-  <meta name="keywords" content="إدارة مدرسية, تقارير إلكترونية, تذاكر دعم, منصة توثيق, تعليم 2026, أتمتة المدارس">
+  <meta name="description" content="النظام المدرسي المتكامل لعام 2026. أتمتة التقارير، تذاكر الصيانة، ملف الإنجاز، والطباعة الرسمية في منصة واحدة ذكية.">
+  <meta name="keywords" content="إدارة مدرسية, تقارير إلكترونية, تذاكر دعم, منصة توثيق, ملف إنجاز إلكتروني, تعليم 2026, أتمتة المدارس">
   <meta name="robots" content="index,follow">
 
   <!-- Canonical -->
@@ -26,7 +26,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{ request.build_absolute_uri }}">
   <meta property="og:title" content="منصة توثيق | المستقبل للإدارة المدرسية الذكية">
-  <meta property="og:description" content="وداعاً للفوضى الورقية. منصة توثيق تمنحك السيطرة الكاملة على تقارير وطلبات مدرستك بلمسة واحدة.">
+  <meta property="og:description" content="وداعاً للفوضى الورقية. منصة توثيق تمنحك السيطرة الكاملة على التقارير والطلبات وملفات الإنجاز بلمسة واحدة.">
   <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/logo1.png' %}">
 
   <!-- Fonts -->
@@ -49,16 +49,22 @@
       --brand-dark: #1e40af;
       --brand-light: #60a5fa;
       --accent: #f59e0b;
+
       --surface-1: #ffffff;
       --surface-2: #f8fafc;
       --surface-3: #f1f5f9;
+
       --text-main: #0f172a;
       --text-muted: #64748b;
+
       --border-light: #e2e8f0;
+
       --glass: rgba(255, 255, 255, 0.7);
       --glass-border: rgba(255, 255, 255, 0.5);
+
       --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.08);
       --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.15);
+
       --radius-md: 16px;
       --radius-lg: 24px;
       --radius-xl: 32px;
@@ -72,7 +78,7 @@
       --text-muted: #94a3b8;
       --border-light: #334155;
       --glass: rgba(15, 23, 42, 0.7);
-      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.08);
     }
 
     /* Reset & Base */
@@ -81,10 +87,11 @@
       scroll-behavior: smooth;
     }
     body {
-      font-family: 'Tajawal', sans-serif;
+      font-family: 'Tajawal', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background-color: var(--surface-1);
       color: var(--text-main);
       line-height: 1.6;
+      margin: 0;
     }
 
     .container {
@@ -97,7 +104,13 @@
     a {
       text-decoration: none;
       color: inherit;
-      transition: all 0.3s ease;
+      transition: all 0.25s ease;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
     }
 
     /* Utilities */
@@ -105,6 +118,7 @@
       background: linear-gradient(135deg, var(--brand-primary), var(--brand-light));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     .bg-glass {
       background: var(--glass);
@@ -123,6 +137,7 @@
       background: rgba(37, 99, 235, 0.1);
       color: var(--brand-primary);
       border: 1px solid rgba(37, 99, 235, 0.2);
+      white-space: nowrap;
     }
 
     /* Header */
@@ -165,13 +180,13 @@
 
     .nav-links {
       display: flex;
-      gap: 24px;
+      gap: 20px;
       align-items: center;
+      font-size: 0.95rem;
     }
     .nav-links a {
       font-weight: 600;
       color: var(--text-muted);
-      font-size: 0.95rem;
     }
     .nav-links a:hover {
       color: var(--brand-primary);
@@ -179,7 +194,7 @@
 
     .btn-primary {
       background: var(--brand-primary);
-      color: white;
+      color: #ffffff;
       padding: 10px 24px;
       border-radius: 14px;
       font-weight: 700;
@@ -189,6 +204,8 @@
       gap: 8px;
       justify-content: center;
       font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
     }
     .btn-primary:hover {
       transform: translateY(-2px);
@@ -206,6 +223,8 @@
       gap: 8px;
       justify-content: center;
       font-size: 0.95rem;
+      background: transparent;
+      cursor: pointer;
     }
     .btn-outline:hover {
       border-color: var(--text-main);
@@ -236,6 +255,31 @@
       gap: 6px;
     }
 
+    .nav-mobile-panel {
+      display: none;
+      position: absolute;
+      top: 72px;
+      left: 0;
+      right: 0;
+      padding: 14px 20px 18px;
+      background: var(--surface-1);
+      border-bottom: 1px solid var(--border-light);
+      box-shadow: 0 12px 24px rgba(15,23,42,0.12);
+      z-index: 900;
+    }
+    .nav-mobile-panel.open {
+      display: block;
+    }
+    .nav-mobile-links {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
     /* Hero Section */
     .hero {
       padding-top: 140px;
@@ -243,7 +287,6 @@
       position: relative;
       overflow: hidden;
     }
-    /* Background Blobs */
     .blob {
       position: absolute;
       border-radius: 50%;
@@ -274,7 +317,6 @@
       align-items: center;
     }
 
-    /* نسخة ثانوية تستخدم في قسم ملف الإنجاز */
     .hero-grid-secondary {
       grid-template-columns: 1fr 1fr;
     }
@@ -287,7 +329,7 @@
       letter-spacing: -1px;
     }
     .hero-content p {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       color: var(--text-muted);
       margin-bottom: 32px;
       max-width: 540px;
@@ -298,13 +340,13 @@
       flex-wrap: wrap;
     }
 
-    /* Hero Visual (Glass Card) */
     .hero-visual {
       position: relative;
     }
     .glass-card {
       background: rgba(255, 255, 255, 0.4);
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.6);
       border-radius: var(--radius-xl);
       padding: 24px;
@@ -348,7 +390,7 @@
       margin-bottom: 60px;
     }
     .section-title h2 {
-      font-size: 2.5rem;
+      font-size: 2.2rem;
       font-weight: 800;
       margin-bottom: 12px;
     }
@@ -365,12 +407,14 @@
       border-radius: var(--radius-lg);
       padding: 32px;
       border: 1px solid var(--border-light);
-      transition: transform 0.3s ease;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
       overflow: hidden;
       position: relative;
+      box-shadow: 0 4px 14px rgba(15,23,42,0.04);
     }
     .bento-item:hover {
       transform: translateY(-5px);
+      box-shadow: 0 14px 30px rgba(15,23,42,0.12);
     }
     .bento-large {
       grid-column: span 2;
@@ -391,12 +435,13 @@
       box-shadow: var(--shadow-soft);
     }
     .bento-item h3 {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: 800;
       margin-bottom: 10px;
     }
     .bento-item p {
       color: var(--text-muted);
+      font-size: 0.97rem;
     }
 
     /* Stats Section */
@@ -407,6 +452,12 @@
       border-radius: var(--radius-xl);
       padding: 60px;
       text-align: center;
+      box-shadow: 0 12px 40px rgba(15,23,42,0.35);
+    }
+    .stats-section h2 {
+      margin: 0;
+      font-size: 2.1rem;
+      font-weight: 800;
     }
     .stats-grid {
       display: grid;
@@ -415,23 +466,142 @@
       margin-top: 40px;
     }
     .stat-item .num {
-      font-size: 3.5rem;
+      font-size: 3.1rem;
       font-weight: 900;
       color: var(--accent);
       line-height: 1;
     }
     .stat-item .label {
-      font-size: 1.1rem;
-      opacity: 0.8;
+      font-size: 1.05rem;
+      opacity: 0.85;
       margin-top: 8px;
     }
 
-    /* Testimonials (لو احتجتها لاحقاً) */
-    .testimonials {
+    /* Pricing */
+    .pricing-section {
+      background: var(--surface-2);
+      padding: 80px 0;
+    }
+    .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 24px;
       margin-top: 40px;
+    }
+    .pricing-card {
+      background: var(--surface-1);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .pricing-card.featured {
+      border-color: var(--brand-primary);
+      box-shadow: 0 16px 40px rgba(37,99,235,0.18);
+      position: relative;
+    }
+    .badge-plan {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: rgba(37,99,235,0.08);
+      color: var(--brand-primary);
+      border: 1px solid rgba(37,99,235,0.2);
+    }
+    .pricing-title {
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+    .pricing-sub {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .price-text {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+    .price-note {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .pricing-features {
+      list-style: none;
+      padding: 0;
+      margin: 14px 0 18px;
+      display: grid;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pricing-features i {
+      color: #22c55e;
+      font-size: 0.95rem;
+    }
+
+    /* Comparison table */
+    .comparison-wrapper {
+      margin-top: 50px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      background: var(--surface-1);
+      padding: 20px 16px;
+      overflow-x: auto;
+    }
+    .comparison-table {
+      min-width: 680px;
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.9rem;
+    }
+    .comparison-table th,
+    .comparison-table td {
+      padding: 10px 12px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-light);
+      white-space: nowrap;
+    }
+    .comparison-table th:first-child,
+    .comparison-table td:first-child {
+      text-align: right;
+      white-space: normal;
+    }
+    .comparison-table thead th {
+      font-weight: 800;
+      font-size: 0.9rem;
+      background: var(--surface-2);
+    }
+    .comparison-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .comparison-table .yes {
+      color: #16a34a;
+    }
+    .comparison-table .no {
+      color: #dc2626;
+    }
+
+    /* Testimonials */
+    .testimonials-section {
+      padding: 80px 0;
+      background: var(--surface-1);
+    }
+    .testimonials {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
     }
     .review-card {
       background: var(--surface-1);
@@ -439,10 +609,12 @@
       border-radius: var(--radius-lg);
       border: 1px solid var(--border-light);
       box-shadow: var(--shadow-soft);
+      font-size: 0.95rem;
     }
     .stars {
       color: var(--accent);
       margin-bottom: 12px;
+      font-size: 0.9rem;
     }
     .user-info {
       display: flex;
@@ -455,6 +627,14 @@
       height: 40px;
       border-radius: 50%;
       background: var(--border-light);
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+    }
+    .user-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
     }
 
     /* CTA Box */
@@ -467,29 +647,161 @@
       margin: 100px 0;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 16px 40px rgba(37,99,235,0.45);
+    }
+    .cta-box::before {
+      content: "";
+      position: absolute;
+      top: -80px;
+      left: -80px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: rgba(59,130,246,0.35);
+      filter: blur(40px);
+    }
+    .cta-box::after {
+      content: "";
+      position: absolute;
+      bottom: -90px;
+      right: -90px;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: rgba(248,250,252,0.12);
+      filter: blur(45px);
     }
     .cta-box h2 {
-      font-size: 2.5rem;
+      font-size: 2.3rem;
       margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
     }
     .cta-box p {
-      font-size: 1.2rem;
-      opacity: 0.9;
+      font-size: 1.1rem;
+      opacity: 0.95;
       margin-bottom: 32px;
       max-width: 600px;
       margin-inline: auto;
+      position: relative;
+      z-index: 1;
     }
     .btn-white {
-      background: white;
+      background: #ffffff;
       color: var(--brand-primary);
       padding: 12px 32px;
       border-radius: 14px;
       font-weight: 800;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+      position: relative;
+      z-index: 1;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-white:hover {
+      box-shadow: 0 10px 26px rgba(15,23,42,0.35);
+      transform: translateY(-2px);
+    }
+
+    /* Contact */
+    .contact-section {
+      padding: 80px 0 100px;
+      background: var(--surface-3);
+    }
+    .contact-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 32px;
+      align-items: stretch;
+    }
+    .contact-info {
+      padding: 24px 8px;
+    }
+    .contact-info h2 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+    .contact-info p {
+      color: var(--text-muted);
+      font-size: 0.98rem;
+      margin-bottom: 18px;
+    }
+    .contact-highlights {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .contact-highlights li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .contact-card {
+      background: var(--surface-1);
+      border-radius: var(--radius-lg);
+      padding: 24px 22px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+    }
+    .contact-card h3 {
+      margin: 0 0 16px;
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+    .contact-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .form-group {
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.9rem;
+    }
+    .form-group label {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .form-input,
+    .form-textarea {
+      border-radius: 10px;
+      border: 1px solid var(--border-light);
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      background: #fff;
+    }
+    .form-input:focus,
+    .form-textarea:focus {
+      border-color: var(--brand-primary);
+      box-shadow: 0 0 0 1px rgba(37,99,235,0.12);
+    }
+    .form-textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    .contact-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .contact-actions .note {
+      font-size: 0.83rem;
+      color: var(--text-muted);
     }
 
     /* Footer */
@@ -507,6 +819,7 @@
     .footer-col h4 {
       font-weight: 800;
       margin-bottom: 20px;
+      font-size: 1rem;
     }
     .footer-col a {
       display: block;
@@ -529,7 +842,6 @@
        Responsive
        ========================= */
 
-    /* تابلت: تعديل شبكة المميزات */
     @media (max-width: 1200px) {
       .bento-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -591,6 +903,13 @@
         padding: 40px 24px;
         margin: 60px 0;
       }
+
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+      .contact-info {
+        padding-bottom: 0;
+      }
     }
 
     @media (max-width: 480px) {
@@ -615,6 +934,9 @@
       .cta-box {
         padding: 40px 24px;
       }
+      .contact-row {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -631,8 +953,10 @@
 
         <nav class="nav-links">
           <a href="#features">المزايا</a>
-          <a href="#how">كيف نعمل</a>
+          <a href="#achievement">ملف الإنجاز</a>
+          <a href="#pricing">الخطط والأسعار</a>
           <a href="#testimonials">آراء العملاء</a>
+          <a href="#contact">تواصل معنا</a>
           <a href="{% url 'reports:login' %}" class="btn-primary">
             <i class="fa-solid fa-right-to-bracket"></i>
             دخول المنصة
@@ -644,9 +968,30 @@
             <i class="fa-solid fa-right-to-bracket"></i>
             دخول
           </a>
-          <button class="mobile-menu-btn" aria-label="القائمة">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="القائمة">
             <i class="fa-solid fa-bars"></i>
           </button>
+        </div>
+      </div>
+
+      <!-- Mobile panel -->
+      <div class="nav-mobile-panel" id="mobilePanel">
+        <div class="nav-mobile-links">
+          <a href="#features">المزايا</a>
+          <a href="#achievement">ملف الإنجاز</a>
+          <a href="#pricing">الخطط والأسعار</a>
+          <a href="#testimonials">آراء العملاء</a>
+          <a href="#contact">تواصل معنا</a>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+          <a href="{% url 'reports:login' %}" class="btn-primary" style="flex:1; justify-content:center; font-size:0.9rem;">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            دخول المنصة
+          </a>
+          <a href="https://wa.me/966537720207" target="_blank" rel="noopener" class="btn-outline" style="flex:1; justify-content:center; font-size:0.9rem;">
+            <i class="fa-brands fa-whatsapp"></i>
+            تواصل واتساب
+          </a>
         </div>
       </div>
     </div>
@@ -669,8 +1014,8 @@
             <span class="text-gradient">أذكى، أسرع، وأكثر دقة</span>
           </h1>
           <p>
-            نظام متكامل يجمع التقارير اليومية، تذاكر الصيانة، والطباعة الرسمية في مكان واحد.
-            صُمم خصيصاً لمدراء المدارس الذين يبحثون عن التميز وراحة البال.
+            نظام متكامل يجمع التقارير اليومية، تذاكر الصيانة، ملف الإنجاز الإلكتروني،
+            والطباعة الرسمية في مكان واحد. صُمم خصيصاً لمدراء المدارس الذين يبحثون عن التميز وراحة البال.
           </p>
           <div class="hero-actions">
             <a href="https://wa.me/966537720207" target="_blank" rel="noopener" class="btn-primary">
@@ -713,7 +1058,7 @@
                 <div style="font-weight: 800;">طلب صيانة مكيفات</div>
                 <div style="font-size: 0.85rem; opacity: 0.7;">جاري العمل - قسم الصيانة</div>
               </div>
-              <div style="margin-right: auto;"><span class="badge" style="background: #dcfce7; color: #166534;">نشط</span></div>
+              <div style="margin-right: auto;"><span class="badge" style="background: #dcfce7; color: #166534; border-color:#bbf7d0;">نشط</span></div>
             </div>
 
             <div class="stat-row">
@@ -735,7 +1080,7 @@
     <div class="container">
       <div class="section-title">
         <h2>كل ما تحتاجه في منصة واحدة</h2>
-        <p style="color: var(--text-muted);">استغنِ عن الأوراق والتطبيقات المتشتتة</p>
+        <p style="color: var(--text-muted); font-size:0.96rem;">استغنِ عن الأوراق والتطبيقات المتشتتة، واجمع التقارير، التذاكر، وملفات الإنجاز في نظام موحّد.</p>
       </div>
 
       <div class="bento-grid">
@@ -744,7 +1089,10 @@
             <i class="fa-solid fa-wand-magic-sparkles"></i>
           </div>
           <h3>تقارير ذكية بضغطة زر</h3>
-          <p>لا داعي للتنسيق اليدوي. أدخل البيانات، وسيقوم النظام بتوليد تقارير PDF احترافية بهوية مدرستك وشعارها جاهزة للطباعة أو الإرسال.</p>
+          <p>
+            أدخل البيانات، وسيقوم النظام بتوليد تقارير PDF احترافية بهوية مدرستك وشعارها جاهزة للطباعة أو الإرسال،
+            مع أرشفة آمنة وسريعة للرجوع لها لاحقاً.
+          </p>
         </div>
 
         <div class="bento-item">
@@ -752,7 +1100,7 @@
             <i class="fa-solid fa-ticket"></i>
           </div>
           <h3>نظام تذاكر متطور</h3>
-          <p>تتبّع طلبات الصيانة والدعم الفني من المعلمين لحظة بلحظة. لا مزيد من الطلبات المنسيّة.</p>
+          <p>تتبّع طلبات الصيانة والدعم الفني من المعلمين لحظة بلحظة، مع حالات واضحة وسجل إجراء لكل تذكرة، حتى لا تضيع أي مهمة.</p>
         </div>
 
         <div class="bento-item">
@@ -760,7 +1108,7 @@
             <i class="fa-solid fa-mobile-screen"></i>
           </div>
           <h3>يعمل على جوالك</h3>
-          <p>واجهة مصممة خصيصاً لتكون سهلة الاستخدام على الهواتف الذكية. أدر مدرستك من أي مكان.</p>
+          <p>واجهة مصممة خصيصاً لتكون سهلة الاستخدام على الهواتف الذكية والأجهزة اللوحية. أدر مدرستك من أي مكان داخل أو خارج المبنى.</p>
         </div>
 
         <div class="bento-item bento-large">
@@ -768,15 +1116,16 @@
             <i class="fa-solid fa-user-shield"></i>
           </div>
           <h3>صلاحيات دقيقة (RBAC)</h3>
-          <p>كل شخص يرى ما يخصه فقط. لوحة خاصة للمدير، ولوحة للمعلم، ولوحة لمسؤول الصيانة. خصوصية تامة وتنظيم عالٍ.</p>
+          <p>
+            لوحة خاصة للمدير، ولوحة للمعلم، ولوحة لمسؤول الصيانة، مع سجل تدقيق يوضح من قام بماذا ومتى. كل مستخدم يرى ما يخصه فقط.
+          </p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- New Feature: Achievement File -->
-  <section class="section" style="background: var(--surface-2); position: relative; overflow: hidden;">
-    <!-- Decorative background element -->
+  <!-- Achievement File Section -->
+  <section class="section" id="achievement" style="background: var(--surface-2); position: relative; overflow: hidden;">
     <div style="position: absolute; top: -100px; left: -100px; width: 400px; height: 400px; background: var(--brand-primary); opacity: 0.03; border-radius: 50%; filter: blur(60px);"></div>
 
     <div class="container">
@@ -787,14 +1136,14 @@
               <div class="stat-icon bg-purple"><i class="fa-solid fa-briefcase"></i></div>
               <div>
                 <div style="font-weight: 800;">ملف إنجاز إلكتروني</div>
-                <div style="font-size: 0.85rem; opacity: 0.7;">شامل لجميع المعايير الوزارية</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">شامل للمعايير الوزارية</div>
               </div>
               <div style="margin-right: auto;"><i class="fa-solid fa-check-double text-gradient"></i></div>
             </div>
             <div class="stat-row">
               <div class="stat-icon bg-blue"><i class="fa-solid fa-images"></i></div>
               <div>
-                <div style="font-weight: 800;">شواهد رقمية</div>
+                <div style="font-weight: 800;">شواهد رقمية من الجوال</div>
                 <div style="font-size: 0.85rem; opacity: 0.7;">رفع الصور وضغطها تلقائياً</div>
               </div>
               <div style="margin-right: auto;"><span class="badge">جديد</span></div>
@@ -815,26 +1164,27 @@
             <i class="fa-solid fa-star"></i>
             ميزة حصرية جديدة
           </div>
-          <h2 style="font-size: 2.5rem; font-weight: 900; margin-bottom: 20px;">
+          <h2 style="font-size: 2.2rem; font-weight: 900; margin-bottom: 20px;">
             ملف الإنجاز الإلكتروني.. <br>
             <span class="text-gradient">توثيق احترافي لجهود المعلم</span>
           </h2>
-          <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 24px;">
-            وداعاً للملفات الورقية الضخمة. نظامنا الجديد يتيح للمعلم بناء ملف إنجازه السنوي وفق 11 معياراً وزارياً معتمداً، مع إمكانية رفع الشواهد والصور من الجوال مباشرة.
+          <p style="font-size: 1.05rem; color: var(--text-muted); margin-bottom: 24px;">
+            وداعاً للملفات الورقية الضخمة. نظامنا يتيح للمعلم بناء ملف إنجازه السنوي وفق معايير مهنية معتمدة،
+            مع إمكانية رفع الشواهد والصور من الجوال مباشرة، وإرسال الملف للإدارة لاعتماده إلكترونياً.
           </p>
 
           <ul style="list-style: none; padding: 0; margin-bottom: 30px; display: grid; gap: 12px;">
             <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
               <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
-              تغطية شاملة لـ 11 مجالاً للتقويم المهني.
+              تغطية مجالات التقويم المهني المعتمدة.
             </li>
             <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
               <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
-              دورة اعتماد إلكترونية (إرسال - مراجعة - اعتماد المدير).
+              دورة اعتماد إلكترونية (إرسال - مراجعة - ملاحظات - اعتماد نهائي).
             </li>
             <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
               <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
-              تصدير الملف كاملاً كـ PDF بتصميم وزاري أنيق.
+              تصدير الملف كاملاً كـ PDF جاهز للطباعة أو الرفع في المنصات الرسمية.
             </li>
           </ul>
 
@@ -867,6 +1217,139 @@
     </div>
   </section>
 
+  <!-- Pricing & Comparison -->
+  <section class="pricing-section" id="pricing">
+    <div class="container">
+      <div class="section-title">
+        <h2>خطط مرنة تناسب احتياج مدرستك</h2>
+        <p style="color: var(--text-muted); font-size:0.95rem;">
+          اختر بين نظام التقارير فقط، أو أضف تذاكر الصيانة، أو انتقل للنظام الكامل مع ملف الإنجاز الإلكتروني.
+        </p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Plan 1: التقارير -->
+        <div class="pricing-card">
+          <span class="badge-plan">
+            <i class="fa-regular fa-file-lines"></i>
+            للمدارس الصغيرة
+          </span>
+          <div class="pricing-title">باقة التقارير</div>
+          <div class="pricing-sub">إدارة التقارير والطباعة الرسمية فقط</div>
+          <div class="price-text">سعر شهري ثابت للمدرسة</div>
+          <div class="price-note">مناسب للمدارس التي تريد تنظيم التقارير أولاً.</div>
+
+          <ul class="pricing-features">
+            <li><i class="fa-solid fa-check-circle"></i> تقارير يومية وأسبوعية وشهرية</li>
+            <li><i class="fa-solid fa-check-circle"></i> طباعة PDF بهوية المدرسة</li>
+            <li><i class="fa-solid fa-check-circle"></i> أرشفة إلكترونية وتصفية متقدمة</li>
+            <li><i class="fa-solid fa-check-circle"></i> وصول للمدير والمساعد</li>
+            <li><i class="fa-solid fa-circle-xmark" style="color:#dc2626;"></i> بدون تذاكر صيانة</li>
+            <li><i class="fa-solid fa-circle-xmark" style="color:#dc2626;"></i> بدون ملف إنجاز إلكتروني</li>
+          </ul>
+
+          <a href="https://wa.me/966537720207?text=أرغب%20في%20معرفة%20سعر%20باقة%20التقارير%20لمنصة%20توثيق" target="_blank" rel="noopener" class="btn-outline">
+            اطلب عرض سعر
+          </a>
+        </div>
+
+        <!-- Plan 2: تقارير + تذاكر -->
+        <div class="pricing-card featured">
+          <span class="badge-plan">
+            <i class="fa-solid fa-crown"></i>
+            الأكثر اختياراً
+          </span>
+          <div class="pricing-title">باقة التقارير + التذاكر</div>
+          <div class="pricing-sub">تنظيم التقارير وطلبات الصيانة في نظام واحد</div>
+          <div class="price-text">سعر شهري حسب حجم المدرسة</div>
+          <div class="price-note">تشمل لوحة للمدير، لوحة للمعلمين، ولوحة لمسؤول الصيانة.</div>
+
+          <ul class="pricing-features">
+            <li><i class="fa-solid fa-check-circle"></i> كل مزايا باقة التقارير</li>
+            <li><i class="fa-solid fa-check-circle"></i> نظام تذاكر للصيانة والدعم الفني</li>
+            <li><i class="fa-solid fa-check-circle"></i> تتبع الحالات والإشعارات</li>
+            <li><i class="fa-solid fa-check-circle"></i> صلاحيات دقيقة لكل قسم</li>
+            <li><i class="fa-solid fa-circle-xmark" style="color:#dc2626;"></i> بدون ملف إنجاز إلكتروني</li>
+          </ul>
+
+          <a href="https://wa.me/966537720207?text=أرغب%20في%20معرفة%20تفاصيل%20باقة%20التقارير%20والتذاكر%20لمنصة%20توثيق" target="_blank" rel="noopener" class="btn-primary" style="justify-content:center;">
+            احجز موعد عرض حي
+          </a>
+        </div>
+
+        <!-- Plan 3: النظام الكامل -->
+        <div class="pricing-card">
+          <span class="badge-plan" style="background:rgba(16,185,129,0.08); border-color:rgba(16,185,129,0.25); color:#059669;">
+            <i class="fa-solid fa-gem"></i>
+            للمدارس المتميزة
+          </span>
+          <div class="pricing-title">باقة النظام الكامل</div>
+          <div class="pricing-sub">تقارير + تذاكر + ملف إنجاز إلكتروني</div>
+          <div class="price-text">تسعير خاص بالمنطقة وعدد المعلمين</div>
+          <div class="price-note">مثالية للمدارس التي تستعد للاعتمادات والجولات الإشرافية.</div>
+
+          <ul class="pricing-features">
+            <li><i class="fa-solid fa-check-circle"></i> كل مزايا باقة التقارير + التذاكر</li>
+            <li><i class="fa-solid fa-check-circle"></i> ملف إنجاز إلكتروني لكل معلم</li>
+            <li><i class="fa-solid fa-check-circle"></i> اعتماد إلكتروني من قادة المدرسة</li>
+            <li><i class="fa-solid fa-check-circle"></i> جلسة تدريب مجانية للفريق</li>
+            <li><i class="fa-solid fa-check-circle"></i> أولوية في الدعم والتحديثات</li>
+          </ul>
+
+          <a href="https://wa.me/966537720207?text=نرغب%20في%20عرض%20تفصيلي%20لباقة%20النظام%20الكامل%20في%20توثيق" target="_blank" rel="noopener" class="btn-outline">
+            اطلب عرضاً مخصصاً لمدرستك
+          </a>
+        </div>
+      </div>
+
+      <!-- Comparison table -->
+      <div class="comparison-wrapper">
+        <table class="comparison-table" aria-label="مقارنة بين الباقات">
+          <thead>
+            <tr>
+              <th>المزايا الرئيسية</th>
+              <th>باقة التقارير</th>
+              <th>باقة التقارير + التذاكر</th>
+              <th>باقة النظام الكامل</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>إدارة التقارير والطباعة PDF</td>
+              <td class="yes"><i class="fa-solid fa-check"></i></td>
+              <td class="yes"><i class="fa-solid fa-check"></i></td>
+              <td class="yes"><i class="fa-solid fa-check"></i></td>
+            </tr>
+            <tr>
+              <td>نظام تذاكر للصيانة والدعم</td>
+              <td class="no"><i class="fa-solid fa-xmark"></i></td>
+              <td class="yes"><i class="fa-solid fa-check"></i></td>
+              <td class="yes"><i class="fa-solid fa-check"></i></td>
+            </tr>
+            <tr>
+              <td>ملف إنجاز إلكتروني للمعلمين</td>
+              <td class="no"><i class="fa-solid fa-xmark"></i></td>
+              <td class="no"><i class="fa-solid fa-xmark"></i></td>
+              <td class="yes"><i class="fa-solid fa-check"></i></td>
+            </tr>
+            <tr>
+              <td>عدد المستخدمين</td>
+              <td>حتى عدد محدد من المستخدمين</td>
+              <td>حتى عدد أكبر من المستخدمين</td>
+              <td>عدد مرن حسب الاتفاق</td>
+            </tr>
+            <tr>
+              <td>الدعم الفني</td>
+              <td>دعم خلال أوقات العمل</td>
+              <td>دعم ممتد ورسائل تنبيه</td>
+              <td>دعم أولوية عالي + متابعة شهرية</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <!-- How it works -->
   <section class="section" id="how">
     <div class="container">
@@ -878,17 +1361,91 @@
         <div>
           <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">1</div>
           <h3>سجّل مدرستك</h3>
-          <p style="color: var(--text-muted);">تواصل معنا لإنشاء حساب المدرسة وضبط الإعدادات الأساسية والشعار.</p>
+          <p style="color: var(--text-muted);">تواصل معنا لإنشاء حساب المدرسة وضبط الإعدادات الأساسية، الشعار، والبيانات الرسمية.</p>
         </div>
         <div>
           <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">2</div>
           <h3>أضف فريقك</h3>
-          <p style="color: var(--text-muted);">أضف المعلمين والإداريين ووزّع الصلاحيات والأقسام بسهولة.</p>
+          <p style="color: var(--text-muted);">أضف المعلمين والإداريين ووزّع الصلاحيات والأقسام بسهولة، مع تحديد ما يمكن لكل شخص رؤيته.</p>
         </div>
         <div>
           <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">3</div>
           <h3>انطلق!</h3>
-          <p style="color: var(--text-muted);">ابدأ في استقبال التقارير والتذاكر ومتابعة سير العمل باحترافية.</p>
+          <p style="color: var(--text-muted);">ابدأ في استقبال التقارير والتذاكر وملفات الإنجاز ومتابعة سير العمل باحترافية ووضوح.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="testimonials-section" id="testimonials">
+    <div class="container">
+      <div class="section-title">
+        <h2>ماذا تقول المدارس عن توثيق؟</h2>
+        <p style="color: var(--text-muted); font-size:0.95rem;">
+          آراء من مدراء ومديرات مدارس طبّقوا نظام التقارير والتذاكر وملف الإنجاز في أعمالهم اليومية.
+        </p>
+      </div>
+
+      <div class="testimonials">
+        <div class="review-card">
+          <div class="stars">
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star-half-stroke"></i>
+          </div>
+          <p>
+            "أصبحت متابعة تقارير المعلمين وطلبات الصيانة أوضح بكثير. كل شيء موثّق وبضغطة زر أطلع على ما يحدث في المدرسة."
+          </p>
+          <div class="user-info">
+            <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
+            <div>
+              <div style="font-weight:700;">قائد مدرسة ثانوية</div>
+              <div class="user-meta">المنطقة الشرقية</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-card">
+          <div class="stars">
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+          </div>
+          <p>
+            "ملف الإنجاز الإلكتروني اختصر علينا وقتاً طويلاً. المعلم يوثق من جواله، ونحن نعتمد الملف إلكترونياً بدون طباعة."
+          </p>
+          <div class="user-info">
+            <div class="avatar"><i class="fa-solid fa-user-graduate"></i></div>
+            <div>
+              <div style="font-weight:700;">وكيلة مدرسة متوسطة</div>
+              <div class="user-meta">منطقة الرياض</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-card">
+          <div class="stars">
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-regular fa-star"></i>
+          </div>
+          <p>
+            "النظام ساعدنا في تنظيم العمل بين الإدارة والمساعد الإداري ومسؤول الصيانة. كل طلب له رقم وحالة واضحة."
+          </p>
+          <div class="user-info">
+            <div class="avatar"><i class="fa-solid fa-user-gear"></i></div>
+            <div>
+              <div style="font-weight:700;">مشرف إداري</div>
+              <div class="user-meta">منطقة المدينة المنورة</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -898,10 +1455,95 @@
   <section class="container">
     <div class="cta-box">
       <h2>هل أنت مستعد لنقلة نوعية في مدرستك؟</h2>
-      <p>انضم إلى نخبة المدارس التي اختارت التنظيم والاحترافية. لا تضيع وقتك في الأوراق.</p>
+      <p>انضم إلى نخبة المدارس التي اختارت التنظيم والاحترافية. لا تضيع وقتك في الأوراق والتنسيقات اليدوية.</p>
       <a href="https://wa.me/966537720207" target="_blank" rel="noopener" class="btn-white">
+        <i class="fa-brands fa-whatsapp"></i>
         تواصل معنا الآن
       </a>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="contact-section" id="contact">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="contact-info">
+          <h2>دعنا نعرّفك على توثيق عن قرب</h2>
+          <p>
+            املأ النموذج التالي، وسيتواصل معك فريق المنصة لعرض حي قصير يوضح نظام التقارير،
+            التذاكر، وملف الإنجاز، مع إجابة على جميع استفساراتك.
+          </p>
+          <ul class="contact-highlights">
+            <li>
+              <i class="fa-solid fa-circle-check" style="color:var(--brand-primary);"></i>
+              عرض حي لمدة 20–30 دقيقة عن النظام.
+            </li>
+            <li>
+              <i class="fa-solid fa-circle-check" style="color:var(--brand-primary);"></i>
+              توصية بالباقة الأنسب لحجم ومرحلة مدرستك.
+            </li>
+            <li>
+              <i class="fa-solid fa-circle-check" style="color:var(--brand-primary);"></i>
+              إمكانية تجربة فعلية قبل اتخاذ القرار.
+            </li>
+          </ul>
+        </div>
+
+        <div class="contact-card">
+          <h3>نموذج طلب عرض توضيحي</h3>
+          <!-- ملاحظة: عدّل action لاحقاً ليتجه إلى فيو مخصص إن رغبت -->
+          <form action="#" method="post" onsubmit="return false;">
+            <div class="contact-row">
+              <div class="form-group">
+                <label for="contact_name">الاسم الثلاثي</label>
+                <input id="contact_name" name="name" type="text" class="form-input" placeholder="مثال: أحمد بن محمد">
+              </div>
+              <div class="form-group">
+                <label for="contact_role">الصفة</label>
+                <input id="contact_role" name="role" type="text" class="form-input" placeholder="قائد مدرسة / وكيل / مشرف..">
+              </div>
+            </div>
+
+            <div class="contact-row">
+              <div class="form-group">
+                <label for="contact_school">اسم المدرسة</label>
+                <input id="contact_school" name="school" type="text" class="form-input" placeholder="اسم المدرسة">
+              </div>
+              <div class="form-group">
+                <label for="contact_city">المدينة / المنطقة</label>
+                <input id="contact_city" name="city" type="text" class="form-input" placeholder="الرياض، جدة، ...">
+              </div>
+            </div>
+
+            <div class="contact-row">
+              <div class="form-group">
+                <label for="contact_phone">رقم الجوال</label>
+                <input id="contact_phone" name="phone" type="tel" class="form-input" placeholder="05XXXXXXXX">
+              </div>
+              <div class="form-group">
+                <label for="contact_email">البريد الإلكتروني</label>
+                <input id="contact_email" name="email" type="email" class="form-input" placeholder="example@school.sa">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="contact_message">ما الذي ترغب في التركيز عليه في العرض؟</label>
+              <textarea id="contact_message" name="message" class="form-textarea" placeholder="مثال: نرغب في التركيز على ملف الإنجاز الإلكتروني، وعدد المستخدمين، وطريقة إدخال التقارير من الجوال."></textarea>
+            </div>
+
+            <div class="contact-actions">
+              <button type="submit" class="btn-primary">
+                <i class="fa-solid fa-paper-plane"></i>
+                إرسال الطلب (تصميم فقط)
+              </button>
+              <a href="https://wa.me/966537720207" target="_blank" rel="noopener" class="btn-outline">
+                أو تواصل مباشرة عبر واتساب
+              </a>
+              <span class="note">* يمكن ربط النموذج لاحقاً بداخل النظام لاستقبال الطلبات.</span>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -915,14 +1557,15 @@
             <span>منصة توثيق</span>
           </a>
           <p style="color: var(--text-muted);">
-            الحل الأمثل لإدارة التقارير والطلبات المدرسية. نجمع بين سهولة الاستخدام وقوة الأداء.
+            الحل الأمثل لإدارة التقارير والطلبات وملفات الإنجاز المدرسية. نجمع بين سهولة الاستخدام وقوة الأداء.
           </p>
         </div>
 
         <div class="footer-col">
           <h4>روابط سريعة</h4>
           <a href="#features">المزايا</a>
-          <a href="#how">كيف نعمل</a>
+          <a href="#achievement">ملف الإنجاز</a>
+          <a href="#pricing">الخطط والأسعار</a>
           <a href="{% url 'reports:login' %}">تسجيل الدخول</a>
         </div>
 
@@ -935,8 +1578,12 @@
 
         <div class="footer-col">
           <h4>تواصل معنا</h4>
-          <a href="https://wa.me/966537720207"><i class="fa-brands fa-whatsapp"></i> واتساب</a>
-          <a href="mailto:info@tawtheeq.com"><i class="fa-regular fa-envelope"></i> البريد الإلكتروني</a>
+          <a href="https://wa.me/966537720207" target="_blank" rel="noopener">
+            <i class="fa-brands fa-whatsapp"></i> واتساب
+          </a>
+          <a href="mailto:info@tawtheeq.com">
+            <i class="fa-regular fa-envelope"></i> البريد الإلكتروني
+          </a>
         </div>
       </div>
 
@@ -950,6 +1597,7 @@
     // Header Scroll Effect
     window.addEventListener('scroll', function () {
       var header = document.getElementById('header');
+      if (!header) return;
       if (window.scrollY > 50) {
         header.classList.add('scrolled');
       } else {
@@ -958,29 +1606,35 @@
     });
 
     // Mobile Menu Toggle
-    var mobileBtn = document.querySelector('.mobile-menu-btn');
-    var navLinks = document.querySelector('.nav-links');
+    (function() {
+      var mobileBtn = document.getElementById('mobileMenuBtn');
+      var panel = document.getElementById('mobilePanel');
+      if (!mobileBtn || !panel) return;
 
-    if (mobileBtn && navLinks) {
       mobileBtn.addEventListener('click', function () {
-        var isHidden = window.getComputedStyle(navLinks).display === 'none';
-        if (isHidden) {
-          navLinks.style.display = 'flex';
-          navLinks.style.flexDirection = 'column';
-          navLinks.style.position = 'absolute';
-          navLinks.style.top = '70px';
-          navLinks.style.left = '0';
-          navLinks.style.right = '0';
-          navLinks.style.background = 'var(--surface-1)';
-          navLinks.style.padding = '20px';
-          navLinks.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
-          navLinks.style.borderBottom = '1px solid var(--border-light)';
-          navLinks.style.zIndex = '900';
-        } else {
-          navLinks.style.display = '';
-        }
+        panel.classList.toggle('open');
       });
-    }
+
+      // إغلاق القائمة عند الضغط على رابط داخلي
+      var links = panel.querySelectorAll('a[href^="#"]');
+      links.forEach(function(link) {
+        link.addEventListener('click', function() {
+          panel.classList.remove('open');
+        });
+      });
+    })();
+
+    // Smooth scroll for internal links (desktop + mobile)
+    document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        var id = a.getAttribute('href');
+        if (!id || id === '#') return;
+        var el = document.querySelector(id);
+        if (!el) return;
+        e.preventDefault();
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
   </script>
 </body>
 </html>
