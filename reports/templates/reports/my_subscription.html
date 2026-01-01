@@ -1,4 +1,4 @@
-{# reports/templates/reports/my_subscription.html (or your path) #}
+{# reports/templates/reports/my_subscription.html #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -14,14 +14,30 @@
      ========================================================= */
 
   .sub-wrap{
-    --s-radius: 16px;
-    --s-shadow: 0 16px 40px rgba(2,6,23,.10);
+    --s-radius: 18px;
+    --s-shadow: 0 18px 46px rgba(2,6,23,.10);
+    --s-shadow-dark: 0 22px 60px rgba(0,0,0,.42);
     --s-ring: 0 0 0 4px rgba(37,99,235,.18);
     --t: var(--t-fast);
 
-    max-width: 1100px;
+    max-width: 1120px;
     margin: 0 auto;
     padding: 18px;
+  }
+
+  /* Header */
+  .sub-header{
+    border: 1px solid var(--line);
+    border-radius: var(--s-radius);
+    background: linear-gradient(180deg, var(--line-2), var(--card));
+    box-shadow: var(--s-shadow);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  html[data-theme="dark"] .sub-header{
+    box-shadow: var(--s-shadow-dark);
+    background: rgba(16,24,44,.55);
+    border-color: #1b2744;
   }
 
   .sub-top{
@@ -30,20 +46,25 @@
     align-items:flex-start;
     gap:12px;
     flex-wrap:wrap;
-    margin-bottom: 18px;
   }
 
   .sub-h1{
     margin:0;
     font-weight: 950;
-    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    font-size: clamp(1.35rem, 2.6vw, 1.95rem);
     color: var(--ink);
-    letter-spacing: -.3px;
+    letter-spacing: -.35px;
   }
   .sub-school{
     margin-top: 6px;
     color: var(--muted);
+    font-weight: 900;
+  }
+  .sub-sub{
+    margin-top: 6px;
+    color: var(--muted);
     font-weight: 850;
+    font-size: .95rem;
   }
 
   .sub-grid{
@@ -58,11 +79,15 @@
   .sub-card{
     border-radius: var(--s-radius);
     box-shadow: var(--s-shadow);
+    border: 1px solid var(--line);
+    overflow:hidden;
   }
   html[data-theme="dark"] .sub-card{
-    box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    box-shadow: var(--s-shadow-dark);
+    border-color: #1b2744;
   }
 
+  .sub-body{ padding: 16px; }
   .sub-title{
     margin:0 0 12px 0;
     font-weight: 950;
@@ -70,6 +95,12 @@
     display:flex;
     gap:10px;
     align-items:center;
+    letter-spacing: -.2px;
+  }
+  .sub-divider{
+    height:1px;
+    background: var(--line);
+    margin: 14px 0;
   }
 
   /* Plan hero */
@@ -78,8 +109,8 @@
     gap:12px;
     align-items:center;
     padding: 14px;
-    border-radius: 14px;
-    background: rgba(219,234,254,.65);
+    border-radius: 16px;
+    background: rgba(219,234,254,.70);
     border: 1px solid rgba(59,130,246,.25);
   }
   html[data-theme="dark"] .plan-hero{
@@ -87,8 +118,8 @@
     border-color: rgba(59,130,246,.25);
   }
   .plan-hero .icon{
-    width: 44px; height: 44px;
-    border-radius: 14px;
+    width: 46px; height: 46px;
+    border-radius: 16px;
     display:grid; place-items:center;
     background: rgba(37,99,235,.14);
     border: 1px solid rgba(37,99,235,.22);
@@ -122,18 +153,75 @@
   }
   .stat{
     padding: 14px;
-    border-radius: 14px;
+    border-radius: 16px;
     border: 1px solid var(--line);
     background: linear-gradient(180deg, var(--line-2), var(--card));
     text-align:center;
+  }
+  html[data-theme="dark"] .stat{
+    background: rgba(20,35,73,.35);
+    border-color: #1b2744;
+  }
+  .stat .v{
+    font-weight: 950;
+    font-size: 1.55rem;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .stat .l{
+    margin-top: 6px;
+    font-weight: 850;
+    color: var(--muted);
+    font-size: .95rem;
+  }
+
+  /* Badges */
+  .sbadge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .86rem;
+    white-space:nowrap;
+  }
+  .sb-active{ background: rgba(16,185,129,.14); border: 1px solid rgba(16,185,129,.25); color: rgba(16,185,129,.98); }
+  .sb-expired{ background: rgba(239,68,68,.14); border: 1px solid rgba(239,68,68,.25); color: rgba(239,68,68,.98); }
+  .sb-pending{ background: rgba(245,158,11,.16); border: 1px solid rgba(245,158,11,.25); color: rgba(245,158,11,.98); }
+
+  .note-dim{ color: var(--muted); font-weight: 850; }
 
   /* Bank details (page scoped) */
-  .bank-box{
+  .bank-details{
     border: 1px solid var(--line);
     border-radius: 16px;
-    padding: 14px;
     background: linear-gradient(180deg, var(--line-2), var(--card));
+    overflow:hidden;
   }
+  .bank-details > summary{
+    list-style:none;
+    cursor:pointer;
+    padding: 12px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    font-weight: 950;
+    color: var(--ink);
+  }
+  .bank-details > summary::-webkit-details-marker{ display:none; }
+  .bank-details .sum-left{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .bank-details .sum-pill{
+    font-weight: 900;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+  .bank-content{ padding: 12px 14px 14px; border-top: 1px solid var(--line); }
+
   .bank-grid{
     display:grid;
     gap: 10px;
@@ -171,39 +259,6 @@
     background: rgba(0,0,0,.02);
   }
   html[data-theme="dark"] .bank-note{ background: rgba(255,255,255,.04); }
-  }
-  html[data-theme="dark"] .stat{
-    background: rgba(20,35,73,.35);
-    border-color: #1b2744;
-  }
-  .stat .v{
-    font-weight: 950;
-    font-size: 1.55rem;
-    color: var(--ink);
-    line-height: 1.1;
-  }
-  .stat .l{
-    margin-top: 6px;
-    font-weight: 850;
-    color: var(--muted);
-    font-size: .95rem;
-  }
-
-  /* Badges */
-  .sbadge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding: 7px 12px;
-    border-radius: 999px;
-    font-weight: 950;
-    font-size: .86rem;
-    white-space:nowrap;
-  }
-  .sb-active{ background: rgba(16,185,129,.14); border: 1px solid rgba(16,185,129,.25); color: rgba(16,185,129,.98); }
-  .sb-expired{ background: rgba(239,68,68,.14); border: 1px solid rgba(239,68,68,.25); color: rgba(239,68,68,.98); }
-  .sb-pending{ background: rgba(245,158,11,.16); border: 1px solid rgba(245,158,11,.25); color: rgba(245,158,11,.98); }
 
   /* Form */
   .fg{ margin-bottom: 14px; }
@@ -233,6 +288,14 @@
     font-weight: 850;
     font-size: .9rem;
     color: var(--muted);
+  }
+
+  .fg-grid{
+    display:grid;
+    gap: 12px;
+  }
+  @media(min-width: 980px){
+    .fg-grid{ grid-template-columns: 1fr 1fr; }
   }
 
   .sub-actions{
@@ -278,7 +341,7 @@
   .tbl{
     width:100%;
     border-collapse:collapse;
-    min-width: 640px;
+    min-width: 680px;
   }
   .tbl th{
     text-align:right;
@@ -296,7 +359,37 @@
     vertical-align: top;
   }
 
-  .note-dim{ color: var(--muted); font-weight: 850; }
+  /* Mobile table -> cards */
+  @media(max-width: 720px){
+    .twrap{ overflow: visible; }
+    .tbl{ min-width: 0; border-collapse: separate; border-spacing: 0 10px; }
+    .tbl thead{ display:none; }
+    .tbl tr{
+      display:block;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, var(--line-2), var(--card));
+      overflow:hidden;
+    }
+    html[data-theme="dark"] .tbl tr{
+      background: rgba(20,35,73,.35);
+      border-color: #1b2744;
+    }
+    .tbl td{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+    .tbl td:last-child{ border-bottom:none; }
+    .tbl td::before{
+      content: attr(data-label);
+      color: var(--muted);
+      font-weight: 950;
+      white-space: nowrap;
+    }
+  }
 
   /* Empty state */
   .empty{
@@ -318,263 +411,292 @@
 
 {% block content %}
 <div class="sub-wrap" dir="rtl">
-  <div class="sub-top">
-    <div>
-      <h1 class="sub-h1">إدارة اشتراك المدرسة</h1>
-      <div class="sub-school">{{ school.name }}</div>
-    </div>
 
-    <a href="{% url 'reports:admin_dashboard' %}" class="btn btn-ghost">
-      <i class="fa-solid fa-arrow-right"></i> عودة للوحة التحكم
-    </a>
+  <!-- Header -->
+  <div class="sub-header">
+    <div class="sub-top">
+      <div>
+        <h1 class="sub-h1">إدارة اشتراك المدرسة</h1>
+        <div class="sub-school">{{ school.name }}</div>
+        <div class="sub-sub">هنا يمكنك متابعة حالة الاشتراك ورفع إثبات الدفع لتجديد الباقة.</div>
+      </div>
+
+      <a href="{% url 'reports:admin_dashboard' %}" class="btn btn-ghost">
+        <i class="fa-solid fa-arrow-right"></i> عودة للوحة التحكم
+      </a>
+    </div>
   </div>
 
   <div class="sub-grid">
+
     <!-- Status Card -->
     <div class="card sub-card">
-      <h2 class="sub-title"><i class="fa-solid fa-gem" style="opacity:.85"></i> حالة الاشتراك الحالي</h2>
+      <div class="sub-body">
+        <h2 class="sub-title"><i class="fa-solid fa-gem" style="opacity:.85"></i> حالة الاشتراك الحالي</h2>
 
-      {% if subscription %}
-        <div class="plan-hero">
-          <div class="icon">💎</div>
-          <div>
-            <div class="name">الباقة الحالية: {{ subscription.plan.name }}</div>
-            <div class="meta">
-              ينتهي في: <span dir="ltr">{{ subscription.end_date|date:"Y-m-d" }}</span>
+        {% if subscription %}
+          <div class="plan-hero">
+            <div class="icon">💎</div>
+            <div style="flex:1">
+              <div class="name">الباقة الحالية: {{ subscription.plan.name }}</div>
+              <div class="meta">
+                ينتهي في: <span dir="ltr">{{ subscription.end_date|date:"Y-m-d" }}</span>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div class="stats">
-          <div class="stat">
-            <div class="v">
-              {% if subscription.days_remaining > 0 %}{{ subscription.days_remaining }}{% else %}0{% endif %}
-            </div>
-            <div class="l">الأيام المتبقية</div>
-          </div>
-
-          <div class="stat">
-            <div class="v" style="font-size:1.1rem">
+            <div>
               {% if subscription.is_expired %}
                 <span class="sbadge sb-expired">⛔ منتهي</span>
               {% else %}
                 <span class="sbadge sb-active">✅ نشط</span>
               {% endif %}
             </div>
-            <div class="l">الحالة</div>
-          </div>
-        </div>
-
-        <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between">
-          <div class="note-dim">
-            آخر تحديث: {% if subscription.updated_at %}<span dir="ltr">{{ subscription.updated_at|date:"Y-m-d H:i" }}</span>{% else %}—{% endif %}
           </div>
 
-          <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-ghost">
-            <i class="fa-solid fa-headset"></i> تواصل مع الدعم الفني
-          </a>
-        </div>
-      {% else %}
-        <div class="empty">
-          <div class="ico">🚫</div>
-          <div style="color:var(--ink); font-weight:950; font-size:1.05rem; margin-bottom:4px;">لا يوجد اشتراك نشط</div>
-          <div style="font-weight:850">يرجى اختيار باقة وتفعيل الاشتراك.</div>
-        </div>
-      {% endif %}
+          <div class="stats">
+            <div class="stat">
+              <div class="v">
+                {% if subscription.days_remaining > 0 %}{{ subscription.days_remaining }}{% else %}0{% endif %}
+              </div>
+              <div class="l">الأيام المتبقية</div>
+            </div>
+
+            <div class="stat">
+              <div class="v" style="font-size:1.05rem">
+                {% if subscription.updated_at %}
+                  <span dir="ltr">{{ subscription.updated_at|date:"Y-m-d H:i" }}</span>
+                {% else %}
+                  —
+                {% endif %}
+              </div>
+              <div class="l">آخر تحديث</div>
+            </div>
+          </div>
+
+          <div class="sub-divider"></div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between">
+            <div class="note-dim">هل تحتاج مساعدة؟</div>
+            <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-ghost">
+              <i class="fa-solid fa-headset"></i> تواصل مع الدعم الفني
+            </a>
+          </div>
+
+        {% else %}
+          <div class="empty">
+            <div class="ico">🚫</div>
+            <div style="color:var(--ink); font-weight:950; font-size:1.05rem; margin-bottom:4px;">لا يوجد اشتراك نشط</div>
+            <div style="font-weight:850">يرجى اختيار باقة وتفعيل الاشتراك.</div>
+          </div>
+        {% endif %}
+      </div>
     </div>
 
     <!-- Renewal Form -->
     <div class="card sub-card">
-      <h2 class="sub-title"><i class="fa-solid fa-receipt" style="opacity:.85"></i> تجديد الاشتراك أو الاشتراك في باقة أخرى</h2>
+      <div class="sub-body">
+        <h2 class="sub-title"><i class="fa-solid fa-receipt" style="opacity:.85"></i> تجديد الاشتراك أو الاشتراك في باقة أخرى</h2>
 
-      <div class="bank-box" style="margin-bottom: 12px" aria-label="بيانات التحويل البنكي">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-          <div style="font-weight:950;color:var(--ink)">
-            <i class="fa-solid fa-building-columns" style="opacity:.85"></i>
-            بيانات التحويل البنكي
-          </div>
-          <div class="note-dim">مصرف الراجحي</div>
-        </div>
+        <details class="bank-details" open>
+          <summary>
+            <span class="sum-left">
+              <i class="fa-solid fa-building-columns" style="opacity:.85"></i>
+              بيانات التحويل البنكي
+              <span class="sum-pill">مصرف الراجحي</span>
+            </span>
+            <span class="note-dim">اضغط للطي/الفتح</span>
+          </summary>
 
-        <div class="bank-grid" style="margin-top: 10px">
-          <div class="bank-item">
-            <div>
-              <div class="bank-label">اسم المستفيد</div>
-              <div class="bank-value">منصور محمد بن حامد الغامدي برمجة و تطوير</div>
+          <div class="bank-content" aria-label="بيانات التحويل البنكي">
+            <div class="bank-grid">
+              <div class="bank-item">
+                <div>
+                  <div class="bank-label">اسم المستفيد</div>
+                  <div class="bank-value">منصور محمد بن حامد الغامدي برمجة و تطوير</div>
+                </div>
+                <button type="button" class="btn btn-ghost copy-btn" data-copy="منصور محمد بن حامد الغامدي برمجة و تطوير">
+                  <i class="fa-regular fa-copy"></i> <span class="txt">نسخ</span>
+                </button>
+              </div>
+
+              <div class="bank-item">
+                <div>
+                  <div class="bank-label">رقم الحساب</div>
+                  <div class="bank-value bank-mono" dir="ltr">660000010006086220957</div>
+                </div>
+                <button type="button" class="btn btn-ghost copy-btn" data-copy="660000010006086220957">
+                  <i class="fa-regular fa-copy"></i> <span class="txt">نسخ</span>
+                </button>
+              </div>
+
+              <div class="bank-item">
+                <div>
+                  <div class="bank-label">الآيبان</div>
+                  <div class="bank-value bank-mono" dir="ltr">SA8580000660608016220957</div>
+                </div>
+                <button type="button" class="btn btn-ghost copy-btn" data-copy="SA8580000660608016220957">
+                  <i class="fa-regular fa-copy"></i> <span class="txt">نسخ</span>
+                </button>
+              </div>
+
+              <div class="bank-item">
+                <div>
+                  <div class="bank-label">كود سويفت</div>
+                  <div class="bank-value bank-mono" dir="ltr">RJHISARI</div>
+                </div>
+                <button type="button" class="btn btn-ghost copy-btn" data-copy="RJHISARI">
+                  <i class="fa-regular fa-copy"></i> <span class="txt">نسخ</span>
+                </button>
+              </div>
             </div>
-            <button type="button" class="btn btn-ghost copy-btn" data-copy="منصور محمد بن حامد الغامدي برمجة و تطوير">
-              <i class="fa-regular fa-copy"></i> نسخ
-            </button>
-          </div>
 
-          <div class="bank-item">
-            <div>
-              <div class="bank-label">رقم الحساب</div>
-              <div class="bank-value bank-mono" dir="ltr">660000010006086220957</div>
+            <div class="bank-note">
+              فضلاً اكتب في تفاصيل الحوالة: <b>اسم المدرسة</b> + <b>اسم الباقة</b> + <b>رقم جوال المدير</b> (لتسريع اعتماد الاشتراك).
             </div>
-            <button type="button" class="btn btn-ghost copy-btn" data-copy="660000010006086220957">
-              <i class="fa-regular fa-copy"></i> نسخ
-            </button>
           </div>
+        </details>
 
-          <div class="bank-item">
-            <div>
-              <div class="bank-label">الآيبان</div>
-              <div class="bank-value bank-mono" dir="ltr">SA8580000660608016220957</div>
+        <div class="sub-divider"></div>
+
+        <form
+          action="{% url 'reports:payment_create' %}"
+          method="POST"
+          enctype="multipart/form-data"
+          id="renewForm"
+          novalidate
+        >
+          {% csrf_token %}
+
+          <div class="fg-grid">
+            <div class="fg">
+              <label class="lbl" for="plan_select">اختر الباقة</label>
+              <select id="plan_select" class="sel" name="plan" required>
+                <option value="">-- اختر الباقة --</option>
+                {% for plan in plans %}
+                  <option
+                    value="{{ plan.pk }}"
+                    data-price="{{ plan.price }}"
+                    {% if subscription and subscription.plan_id == plan.id %}selected{% endif %}
+                    {% if not plan.is_active %}disabled{% endif %}
+                  >
+                    {{ plan.name }} - {{ plan.price }} ريال{% if not plan.is_active %} (غير نشطة){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="help">اختر نفس الباقة للتجديد، أو اختر باقة أخرى للاشتراك بها.</div>
             </div>
-            <button type="button" class="btn btn-ghost copy-btn" data-copy="SA8580000660608016220957">
-              <i class="fa-regular fa-copy"></i> نسخ
-            </button>
-          </div>
 
-          <div class="bank-item">
-            <div>
-              <div class="bank-label">كود سويفت</div>
-              <div class="bank-value bank-mono" dir="ltr">RJHISARI</div>
-            </div>
-            <button type="button" class="btn btn-ghost copy-btn" data-copy="RJHISARI">
-              <i class="fa-regular fa-copy"></i> نسخ
-            </button>
-          </div>
-        </div>
-
-        <div class="bank-note">
-          فضلاً اكتب في تفاصيل الحوالة: <b>اسم المدرسة</b> + <b>اسم الباقة</b> + <b>رقم جوال المدير</b> (لتسريع اعتماد الاشتراك).
-        </div>
-      </div>
-
-      <form
-        action="{% url 'reports:payment_create' %}"
-        method="POST"
-        enctype="multipart/form-data"
-        id="renewForm"
-        novalidate
-      >
-        {% csrf_token %}
-
-        <div class="fg">
-          <label class="lbl" for="plan_select">اختر الباقة</label>
-          <select id="plan_select" class="sel" name="plan" required>
-            <option value="">-- اختر الباقة --</option>
-            {% for plan in plans %}
-              <option
-                value="{{ plan.pk }}"
-                data-price="{{ plan.price }}"
-                {% if subscription and subscription.plan_id == plan.id %}selected{% endif %}
-                {% if not plan.is_active %}disabled{% endif %}
+            <div class="fg">
+              <label class="lbl" for="amount">المبلغ المحول (ريال)</label>
+              <input
+                type="number"
+                name="amount"
+                id="amount"
+                required
+                step="0.01"
+                min="0"
+                class="in"
+                placeholder="0.00"
+                inputmode="decimal"
               >
-                {{ plan.name }} - {{ plan.price }} ريال{% if not plan.is_active %} (غير نشطة){% endif %}
-              </option>
-            {% endfor %}
-          </select>
-          <div class="help">اختر نفس الباقة للتجديد، أو اختر باقة أخرى للاشتراك بها.</div>
-        </div>
-
-        <div class="fg">
-          <label class="lbl" for="amount">المبلغ المحول (ريال)</label>
-          <input
-            type="number"
-            name="amount"
-            id="amount"
-            required
-            step="0.01"
-            min="0"
-            class="in"
-            placeholder="0.00"
-            inputmode="decimal"
-          >
-        </div>
-
-        <div class="fg">
-          <label class="lbl" for="receipt_image">صورة الإيصال</label>
-          <input
-            type="file"
-            name="receipt_image"
-            id="receipt_image"
-            class="in"
-            required
-            accept="image/*"
-            capture="environment"
-          >
-          <div class="help">يرجى إرفاق صورة واضحة للتحويل البنكي (JPG/PNG) — حد أقصى 10MB.</div>
-
-          <div class="rprev" id="receiptPreview" aria-live="polite">
-            <img id="receiptImg" alt="معاينة الإيصال">
-            <div class="meta">
-              <span id="receiptMeta">—</span>
-              <button type="button" class="btn btn-ghost" id="receiptClearBtn" style="min-height:40px">
-                <i class="fa-solid fa-trash"></i> إزالة
-              </button>
+              <div class="help">سيتم تعبئته تلقائيًا من سعر الباقة (يمكنك تعديله إذا لزم).</div>
             </div>
           </div>
-        </div>
 
-        <div class="fg">
-          <label class="lbl" for="notes">ملاحظات إضافية</label>
-          <textarea
-            name="notes"
-            id="notes"
-            rows="2"
-            class="ta"
-            placeholder="مثال: رقم الحوالة أو اسم المحول..."
-          ></textarea>
-        </div>
+          <div class="fg">
+            <label class="lbl" for="receipt_image">صورة الإيصال</label>
+            <input
+              type="file"
+              name="receipt_image"
+              id="receipt_image"
+              class="in"
+              required
+              accept="image/*"
+              capture="environment"
+            >
+            <div class="help">يرجى إرفاق صورة واضحة للتحويل البنكي (JPG/PNG) — حد أقصى 10MB.</div>
 
-        <div class="sub-actions">
-          <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1">
-            <i class="fa-solid fa-paper-plane"></i> إرسال الطلب
-          </button>
-        </div>
-      </form>
+            <div class="rprev" id="receiptPreview" aria-live="polite">
+              <img id="receiptImg" alt="معاينة الإيصال">
+              <div class="meta">
+                <span id="receiptMeta">—</span>
+                <button type="button" class="btn btn-ghost" id="receiptClearBtn" style="min-height:40px">
+                  <i class="fa-solid fa-trash"></i> إزالة
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="fg">
+            <label class="lbl" for="notes">ملاحظات إضافية</label>
+            <textarea
+              name="notes"
+              id="notes"
+              rows="2"
+              class="ta"
+              placeholder="مثال: رقم الحوالة أو اسم المحول..."
+            ></textarea>
+          </div>
+
+          <div class="sub-actions">
+            <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1">
+              <i class="fa-solid fa-paper-plane"></i> إرسال الطلب
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+
   </div>
 
   <!-- Payments History -->
   <div class="card sub-card" style="margin-top:14px">
-    <h2 class="sub-title"><i class="fa-solid fa-clock-rotate-left" style="opacity:.85"></i> آخر عمليات الدفع</h2>
+    <div class="sub-body">
+      <h2 class="sub-title"><i class="fa-solid fa-clock-rotate-left" style="opacity:.85"></i> آخر عمليات الدفع</h2>
 
-    <div class="twrap">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>الباقة</th>
-            <th>المبلغ</th>
-            <th>الحالة</th>
-            <th>ملاحظات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for payment in payments %}
+      <div class="twrap">
+        <table class="tbl" aria-label="سجل عمليات الدفع">
+          <thead>
             <tr>
-              <td><span dir="ltr">{{ payment.created_at|date:"Y-m-d" }}</span></td>
-              <td style="font-weight:850">{% if payment.requested_plan %}{{ payment.requested_plan.name }}{% else %}—{% endif %}</td>
-              <td style="font-weight:950">{{ payment.amount }} ريال</td>
-              <td>
-                {% if payment.status == 'approved' %}
-                  <span class="sbadge sb-active">✅ مقبول</span>
-                {% elif payment.status == 'rejected' %}
-                  <span class="sbadge sb-expired">⛔ مرفوض</span>
-                {% else %}
-                  <span class="sbadge sb-pending">⏳ قيد المراجعة</span>
-                {% endif %}
-              </td>
-              <td class="note-dim">{{ payment.notes|default:"-" }}</td>
+              <th>التاريخ</th>
+              <th>الباقة</th>
+              <th>المبلغ</th>
+              <th>الحالة</th>
+              <th>ملاحظات</th>
             </tr>
-          {% empty %}
-            <tr>
-              <td colspan="5">
-                <div class="empty" style="margin: 6px 0">
-                  <div class="ico">🧾</div>
-                  لا توجد عمليات دفع سابقة
-                </div>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for payment in payments %}
+              <tr>
+                <td data-label="التاريخ"><span dir="ltr">{{ payment.created_at|date:"Y-m-d" }}</span></td>
+                <td data-label="الباقة" style="font-weight:850">{% if payment.requested_plan %}{{ payment.requested_plan.name }}{% else %}—{% endif %}</td>
+                <td data-label="المبلغ" style="font-weight:950">{{ payment.amount }} ريال</td>
+                <td data-label="الحالة">
+                  {% if payment.status == 'approved' %}
+                    <span class="sbadge sb-active">✅ مقبول</span>
+                  {% elif payment.status == 'rejected' %}
+                    <span class="sbadge sb-expired">⛔ مرفوض</span>
+                  {% else %}
+                    <span class="sbadge sb-pending">⏳ قيد المراجعة</span>
+                  {% endif %}
+                </td>
+                <td data-label="ملاحظات" class="note-dim">{{ payment.notes|default:"-" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5">
+                  <div class="empty" style="margin: 6px 0">
+                    <div class="ico">🧾</div>
+                    لا توجد عمليات دفع سابقة
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
+
 </div>
 {% endblock %}
 
@@ -596,29 +718,40 @@
     var MAX_MB = 10;
     var MAX_BYTES = MAX_MB * 1024 * 1024;
 
-    function toast(msg){
-      // لو عندك نظام Toast في base.html يفضّل استخدامه
+    var currentObjectUrl = null;
+
+    function toast(msg, type){
       if(window.showToast){
-        window.showToast(msg, 'warning');
+        window.showToast(msg, type || 'warning');
         return;
       }
       alert(msg);
     }
 
-    function copyText(text){
+    function setCopyBtnState(btn, text){
+      if(!btn) return;
+      var span = btn.querySelector('.txt');
+      if(span) span.textContent = text;
+      setTimeout(function(){
+        if(span) span.textContent = 'نسخ';
+      }, 1200);
+    }
+
+    function copyText(text, btn){
       if(!text) return;
       if(navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(text).then(function(){
-          toast('تم النسخ');
+          toast('تم النسخ', 'success');
+          setCopyBtnState(btn, 'تم النسخ');
         }).catch(function(){
-          fallbackCopy(text);
+          fallbackCopy(text, btn);
         });
         return;
       }
-      fallbackCopy(text);
+      fallbackCopy(text, btn);
     }
 
-    function fallbackCopy(text){
+    function fallbackCopy(text, btn){
       try{
         var ta = document.createElement('textarea');
         ta.value = text;
@@ -630,9 +763,10 @@
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        toast('تم النسخ');
+        toast('تم النسخ', 'success');
+        setCopyBtnState(btn, 'تم النسخ');
       }catch(e){
-        toast('تعذر النسخ، انسخها يدويًا.');
+        toast('تعذر النسخ، انسخها يدويًا.', 'warning');
       }
     }
 
@@ -642,7 +776,7 @@
       copyBtns.forEach(function(btn){
         btn.addEventListener('click', function(){
           var t = btn.getAttribute('data-copy') || '';
-          copyText(t);
+          copyText(t, btn);
         });
       });
     }
@@ -663,19 +797,25 @@
       }
     }
 
-    // تعبئة المبلغ حسب الباقة (عند التغيير) + تعبئة مبدئية عند فتح الصفحة
     if(planSelect && amountEl){
       planSelect.addEventListener('change', function(){
         syncAmountFromPlan(true);
       });
-      // في حال كانت الباقة محددة مسبقاً (الباقة الحالية)
       syncAmountFromPlan(false);
+    }
+
+    function revokePreviewUrl(){
+      if(currentObjectUrl){
+        try{ URL.revokeObjectURL(currentObjectUrl); }catch(e){}
+        currentObjectUrl = null;
+      }
     }
 
     function clearPreview(){
       if(prevBox) prevBox.style.display = 'none';
       if(prevImg) prevImg.removeAttribute('src');
       if(prevMeta) prevMeta.textContent = '—';
+      revokePreviewUrl();
     }
 
     function clearFile(){
@@ -683,7 +823,6 @@
       clearPreview();
     }
 
-    // معاينة الإيصال + تحقق بسيط (متصفح فقط)
     if(fileEl){
       fileEl.addEventListener('change', function(){
         var f = (fileEl.files && fileEl.files[0]) ? fileEl.files[0] : null;
@@ -695,19 +834,21 @@
 
         var isImage = f.type && f.type.indexOf('image/') === 0;
         if(!isImage){
-          toast('الملف المرفق يجب أن يكون صورة.');
+          toast('الملف المرفق يجب أن يكون صورة.', 'warning');
           clearFile();
           return;
         }
 
         if(f.size > MAX_BYTES){
-          toast('حجم الصورة كبير. الحد الأقصى ' + MAX_MB + 'MB.');
+          toast('حجم الصورة كبير. الحد الأقصى ' + MAX_MB + 'MB.', 'warning');
           clearFile();
           return;
         }
 
-        var url = URL.createObjectURL(f);
-        prevImg.src = url;
+        revokePreviewUrl();
+        currentObjectUrl = URL.createObjectURL(f);
+
+        prevImg.src = currentObjectUrl;
         prevMeta.textContent = f.name + ' — ' + Math.round(f.size / 1024) + 'KB';
         prevBox.style.display = 'block';
       });
@@ -719,23 +860,21 @@
       });
     }
 
-    // منع الإرسال المزدوج + تحقق سريع قبل التعطيل
     if(form && submitBtn){
       form.addEventListener('submit', function(ev){
-        // تحقق بسيط قبل تعطيل الزر
         if(planSelect && !planSelect.value){
           ev.preventDefault();
-          toast('فضلاً اختر الباقة.');
+          toast('فضلاً اختر الباقة.', 'warning');
           return;
         }
-        if(amountEl && !amountEl.value){
+        if(amountEl && !String(amountEl.value || '').trim()){
           ev.preventDefault();
-          toast('فضلاً أدخل مبلغ التحويل.');
+          toast('فضلاً أدخل مبلغ التحويل.', 'warning');
           return;
         }
         if(fileEl && (!fileEl.files || !fileEl.files[0])){
           ev.preventDefault();
-          toast('فضلاً أرفق صورة الإيصال.');
+          toast('فضلاً أرفق صورة الإيصال.', 'warning');
           return;
         }
 
