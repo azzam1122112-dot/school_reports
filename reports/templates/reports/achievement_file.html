@@ -561,5 +561,115 @@
       if(ev.key === 'Escape' && modal.classList.contains('is-open')) close();
     });
   })();
+
+  // =========================================================
+  // ضغط الصور قبل الرفع (Client-Side Compression)
+  // =========================================================
+  (function(){
+    const MAX_WIDTH = 1600;
+    const MAX_HEIGHT = 1600;
+    const QUALITY = 0.7;
+
+    async function compressFile(file) {
+      // نضغط الصور فقط
+      if (!file.type.match(/image.*/)) return file;
+
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+
+            // الحفاظ على الأبعاد النسبية
+            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+              if (width > height) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+              } else {
+                width = Math.round((width * MAX_HEIGHT) / height);
+                height = MAX_HEIGHT;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // التحويل إلى Blob (JPEG)
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                resolve(file); // فشل الضغط، نعيد الملف الأصلي
+                return;
+              }
+              // إنشاء ملف جديد من الـ Blob
+              const newFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(newFile);
+            }, 'image/jpeg', QUALITY);
+          };
+          img.onerror = () => resolve(file);
+        };
+        reader.onerror = () => resolve(file);
+      });
+    }
+
+    // البحث عن جميع نماذج رفع الشواهد
+    const forms = document.querySelectorAll('form');
+    forms.forEach((form) => {
+      // نتأكد أن الفورم هو فورم رفع شواهد (action=upload_evidence)
+      const actionInput = form.querySelector('input[name="action"][value="upload_evidence"]');
+      if (!actionInput) return;
+
+      form.addEventListener('submit', async function(e) {
+        const fileInput = form.querySelector('input[type="file"]');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+          return; // لا توجد ملفات، اترك الفورم يرسل بشكل طبيعي (أو يظهر خطأ)
+        }
+
+        // إذا تم الضغط مسبقاً، لا تكرر العملية
+        if (form.dataset.processed === "true") return;
+
+        e.preventDefault(); // إيقاف الإرسال مؤقتاً
+
+        // تحديث واجهة الزر
+        const btn = form.querySelector('button[type="submit"]');
+        const originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري ضغط الصور...';
+
+        try {
+          const dataTransfer = new DataTransfer();
+          const files = Array.from(fileInput.files);
+
+          // ضغط كل ملف
+          for (const file of files) {
+            const compressed = await compressFile(file);
+            dataTransfer.items.add(compressed);
+          }
+
+          // استبدال الملفات في الـ Input
+          fileInput.files = dataTransfer.files;
+
+          // وضع علامة وإعادة الإرسال
+          form.dataset.processed = "true";
+          form.submit();
+
+        } catch (err) {
+          console.error("Compression error:", err);
+          // في حال حدوث خطأ، نحاول الإرسال بالملفات الأصلية
+          form.dataset.processed = "true";
+          form.submit();
+        }
+      });
+    });
+  })();
 </script>
 {% endblock %}

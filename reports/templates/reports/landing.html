@@ -598,6 +598,78 @@
     </div>
   </section>
 
+  <!-- New Feature: Achievement File -->
+  <section class="section" style="padding: 80px 0; background: var(--surface-2); position: relative; overflow: hidden;">
+    <!-- Decorative background element -->
+    <div style="position: absolute; top: -100px; left: -100px; width: 400px; height: 400px; background: var(--brand-primary); opacity: 0.03; border-radius: 50%; filter: blur(60px);"></div>
+    
+    <div class="container">
+      <div class="hero-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="hero-visual">
+           <div class="glass-card" style="transform: rotate(2deg); background: rgba(255,255,255,0.6);">
+              <div class="stat-row">
+                <div class="stat-icon bg-purple"><i class="fa-solid fa-briefcase"></i></div>
+                <div>
+                  <div style="font-weight: 800;">ملف إنجاز إلكتروني</div>
+                  <div style="font-size: 0.85rem; opacity: 0.7;">شامل لجميع المعايير الوزارية</div>
+                </div>
+                <div style="margin-right: auto;"><i class="fa-solid fa-check-double text-gradient"></i></div>
+              </div>
+              <div class="stat-row">
+                <div class="stat-icon bg-blue"><i class="fa-solid fa-images"></i></div>
+                <div>
+                  <div style="font-weight: 800;">شواهد رقمية</div>
+                  <div style="font-size: 0.85rem; opacity: 0.7;">رفع الصور وضغطها تلقائياً</div>
+                </div>
+                <div style="margin-right: auto;"><span class="badge">جديد</span></div>
+              </div>
+              <div class="stat-row">
+                <div class="stat-icon bg-green"><i class="fa-solid fa-file-pdf"></i></div>
+                <div>
+                  <div style="font-weight: 800;">تصدير PDF فوري</div>
+                  <div style="font-size: 0.85rem; opacity: 0.7;">تصميم رسمي جاهز للطباعة</div>
+                </div>
+                <div style="margin-right: auto;"><i class="fa-solid fa-download"></i></div>
+              </div>
+           </div>
+        </div>
+        
+        <div class="hero-content">
+          <div class="badge mb-4" style="background: rgba(245, 158, 11, 0.1); color: var(--accent); border-color: rgba(245, 158, 11, 0.2);">
+            <i class="fa-solid fa-star"></i>
+            ميزة حصرية جديدة
+          </div>
+          <h2 style="font-size: 2.5rem; font-weight: 900; margin-bottom: 20px;">
+            ملف الإنجاز الإلكتروني.. <br>
+            <span class="text-gradient">توثيق احترافي لجهود المعلم</span>
+          </h2>
+          <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 24px;">
+            وداعاً للملفات الورقية الضخمة. نظامنا الجديد يتيح للمعلم بناء ملف إنجازه السنوي وفق 11 معياراً وزارياً معتمداً، مع إمكانية رفع الشواهد والصور من الجوال مباشرة.
+          </p>
+          
+          <ul style="list-style: none; padding: 0; margin-bottom: 30px; display: grid; gap: 12px;">
+            <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
+              <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
+              تغطية شاملة لـ 11 مجالاً للتقويم المهني.
+            </li>
+            <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
+              <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
+              دورة اعتماد إلكترونية (إرسال - مراجعة - اعتماد المدير).
+            </li>
+            <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
+              <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
+              تصدير الملف كاملاً كـ PDF بتصميم وزاري أنيق.
+            </li>
+          </ul>
+
+          <a href="{% url 'reports:login' %}" class="btn-primary">
+            ابدأ التوثيق الآن
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Stats -->
   <section class="container">
     <div class="stats-section">
