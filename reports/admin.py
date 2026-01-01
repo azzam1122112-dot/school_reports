@@ -274,6 +274,34 @@ class SchoolAdmin(admin.ModelAdmin):
     search_fields = ("name", "code")
     prepopulated_fields = {"code": ("name",)}
 
+    def has_delete_permission(self, request, obj=None):
+        # Only superusers can delete schools.
+        return bool(getattr(request.user, "is_superuser", False))
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not bool(getattr(request.user, "is_superuser", False)):
+            actions.pop("delete_selected", None)
+        return actions
+
+    def delete_model(self, request, obj):
+        from .middleware import set_audit_logging_suppressed
+
+        set_audit_logging_suppressed(True)
+        try:
+            return super().delete_model(request, obj)
+        finally:
+            set_audit_logging_suppressed(False)
+
+    def delete_queryset(self, request, queryset):
+        from .middleware import set_audit_logging_suppressed
+
+        set_audit_logging_suppressed(True)
+        try:
+            return super().delete_queryset(request, queryset)
+        finally:
+            set_audit_logging_suppressed(False)
+
 
 @admin.register(SchoolMembership)
 class SchoolMembershipAdmin(admin.ModelAdmin):

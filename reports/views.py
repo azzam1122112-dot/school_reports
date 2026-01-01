@@ -2909,12 +2909,17 @@ def school_update(request: HttpRequest, pk: int) -> HttpResponse:
 def school_delete(request: HttpRequest, pk: int) -> HttpResponse:
     school = get_object_or_404(School, pk=pk)
     name = school.name
+    from .middleware import set_audit_logging_suppressed
+
     try:
+        set_audit_logging_suppressed(True)
         school.delete()
         messages.success(request, f"🗑️ تم حذف المدرسة «{name}» وكل بياناتها المرتبطة.")
     except Exception:
         logger.exception("school_delete failed")
         messages.error(request, "تعذّر حذف المدرسة. ربما توجد قيود على البيانات المرتبطة.")
+    finally:
+        set_audit_logging_suppressed(False)
     return redirect("reports:schools_admin_list")
 
 

@@ -1617,6 +1617,11 @@ class AuditLog(models.Model):
 # =========================
 @receiver(post_save)
 def audit_log_save(sender, instance, created, **kwargs):
+    from .middleware import is_audit_logging_suppressed
+
+    if is_audit_logging_suppressed():
+        return
+
     # قائمة النماذج التي نريد مراقبتها
     monitored_models = ["Report", "Teacher", "School", "Department", "Ticket", "SchoolSubscription"]
     if sender.__name__ not in monitored_models:
@@ -1655,6 +1660,11 @@ def audit_log_save(sender, instance, created, **kwargs):
 
 @receiver(models.signals.post_delete)
 def audit_log_delete(sender, instance, **kwargs):
+    from .middleware import is_audit_logging_suppressed
+
+    if is_audit_logging_suppressed():
+        return
+
     monitored_models = ["Report", "Teacher", "School", "Department", "Ticket"]
     if sender.__name__ not in monitored_models:
         return
