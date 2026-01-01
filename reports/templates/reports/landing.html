@@ -76,7 +76,10 @@
     }
 
     /* Reset & Base */
-    html, body { overflow-x: hidden; scroll-behavior: smooth; }
+    html, body {
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
     body {
       font-family: 'Tajawal', sans-serif;
       background-color: var(--surface-1);
@@ -91,8 +94,12 @@
       padding: 0 20px;
     }
 
-    a { text-decoration: none; color: inherit; transition: all 0.3s ease; }
-    
+    a {
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s ease;
+    }
+
     /* Utilities */
     .text-gradient {
       background: linear-gradient(135deg, var(--brand-primary), var(--brand-light));
@@ -148,9 +155,14 @@
       font-size: 1.2rem;
       min-width: 0;
     }
-    .logo img { height: 40px; width: auto; }
-    .logo span { white-space: nowrap; }
-    
+    .logo img {
+      height: 40px;
+      width: auto;
+    }
+    .logo span {
+      white-space: nowrap;
+    }
+
     .nav-links {
       display: flex;
       gap: 24px;
@@ -161,8 +173,10 @@
       color: var(--text-muted);
       font-size: 0.95rem;
     }
-    .nav-links a:hover { color: var(--brand-primary); }
-    
+    .nav-links a:hover {
+      color: var(--brand-primary);
+    }
+
     .btn-primary {
       background: var(--brand-primary);
       color: white;
@@ -170,10 +184,56 @@
       border-radius: 14px;
       font-weight: 700;
       box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      font-size: 0.95rem;
     }
     .btn-primary:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-outline {
+      padding: 10px 24px;
+      border-radius: 14px;
+      font-weight: 700;
+      border: 2px solid var(--border-light);
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      font-size: 0.95rem;
+    }
+    .btn-outline:hover {
+      border-color: var(--text-main);
+      background: var(--surface-2);
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-main);
+    }
+
+    .mobile-nav-controls {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+    .mobile-login-btn {
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
     /* Hero Section */
@@ -191,8 +251,21 @@
       opacity: 0.4;
       z-index: -1;
     }
-    .blob-1 { top: -10%; right: -10%; width: 500px; height: 500px; background: var(--brand-light); }
-    .blob-2 { bottom: 10%; left: -10%; width: 400px; height: 400px; background: var(--accent); opacity: 0.2; }
+    .blob-1 {
+      top: -10%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      background: var(--brand-light);
+    }
+    .blob-2 {
+      bottom: 10%;
+      left: -10%;
+      width: 400px;
+      height: 400px;
+      background: var(--accent);
+      opacity: 0.2;
+    }
 
     .hero-grid {
       display: grid;
@@ -200,6 +273,12 @@
       gap: 40px;
       align-items: center;
     }
+
+    /* نسخة ثانوية تستخدم في قسم ملف الإنجاز */
+    .hero-grid-secondary {
+      grid-template-columns: 1fr 1fr;
+    }
+
     .hero-content h1 {
       font-size: clamp(2.5rem, 5vw, 4rem);
       line-height: 1.1;
@@ -218,17 +297,6 @@
       gap: 16px;
       flex-wrap: wrap;
     }
-    .btn-outline {
-      padding: 10px 24px;
-      border-radius: 14px;
-      font-weight: 700;
-      border: 2px solid var(--border-light);
-      color: var(--text-main);
-    }
-    .btn-outline:hover {
-      border-color: var(--text-main);
-      background: var(--surface-2);
-    }
 
     /* Hero Visual (Glass Card) */
     .hero-visual {
@@ -244,8 +312,10 @@
       transform: rotate(-2deg);
       transition: transform 0.5s ease;
     }
-    .glass-card:hover { transform: rotate(0deg) scale(1.02); }
-    
+    .glass-card:hover {
+      transform: rotate(0deg) scale(1.02);
+    }
+
     .stat-row {
       display: flex;
       align-items: center;
@@ -257,7 +327,8 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     }
     .stat-icon {
-      width: 48px; height: 48px;
+      width: 48px;
+      height: 48px;
       border-radius: 12px;
       display: grid;
       place-items: center;
@@ -267,7 +338,11 @@
     .bg-green { background: #f0fdf4; color: #16a34a; }
     .bg-purple { background: #faf5ff; color: #9333ea; }
 
-    /* Bento Grid Features */
+    /* Sections */
+    .section {
+      padding: 80px 0;
+    }
+
     .section-title {
       text-align: center;
       margin-bottom: 60px;
@@ -277,11 +352,12 @@
       font-weight: 800;
       margin-bottom: 12px;
     }
-    
+
+    /* Bento Grid Features */
     .bento-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(2, auto);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-auto-rows: auto;
       gap: 24px;
     }
     .bento-item {
@@ -293,12 +369,19 @@
       overflow: hidden;
       position: relative;
     }
-    .bento-item:hover { transform: translateY(-5px); }
-    .bento-large { grid-column: span 2; }
-    .bento-tall { grid-row: span 2; }
-    
+    .bento-item:hover {
+      transform: translateY(-5px);
+    }
+    .bento-large {
+      grid-column: span 2;
+    }
+    .bento-tall {
+      grid-row: span 2;
+    }
+
     .bento-icon {
-      width: 60px; height: 60px;
+      width: 60px;
+      height: 60px;
       border-radius: 18px;
       background: var(--surface-1);
       display: grid;
@@ -307,8 +390,14 @@
       margin-bottom: 20px;
       box-shadow: var(--shadow-soft);
     }
-    .bento-item h3 { font-size: 1.4rem; font-weight: 800; margin-bottom: 10px; }
-    .bento-item p { color: var(--text-muted); }
+    .bento-item h3 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .bento-item p {
+      color: var(--text-muted);
+    }
 
     /* Stats Section */
     .stats-section {
@@ -337,7 +426,7 @@
       margin-top: 8px;
     }
 
-    /* Testimonials */
+    /* Testimonials (لو احتجتها لاحقاً) */
     .testimonials {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -351,7 +440,10 @@
       border: 1px solid var(--border-light);
       box-shadow: var(--shadow-soft);
     }
-    .stars { color: var(--accent); margin-bottom: 12px; }
+    .stars {
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
     .user-info {
       display: flex;
       align-items: center;
@@ -359,7 +451,8 @@
       margin-top: 20px;
     }
     .avatar {
-      width: 40px; height: 40px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: var(--border-light);
     }
@@ -375,8 +468,17 @@
       position: relative;
       overflow: hidden;
     }
-    .cta-box h2 { font-size: 2.5rem; margin-bottom: 16px; }
-    .cta-box p { font-size: 1.2rem; opacity: 0.9; margin-bottom: 32px; max-width: 600px; margin-inline: auto; }
+    .cta-box h2 {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+    .cta-box p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      margin-bottom: 32px;
+      max-width: 600px;
+      margin-inline: auto;
+    }
     .btn-white {
       background: white;
       color: var(--brand-primary);
@@ -384,6 +486,10 @@
       border-radius: 14px;
       font-weight: 800;
       font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
     /* Footer */
@@ -398,59 +504,117 @@
       gap: 40px;
       margin-bottom: 40px;
     }
-    .footer-col h4 { font-weight: 800; margin-bottom: 20px; }
-    .footer-col a { display: block; color: var(--text-muted); margin-bottom: 10px; }
-    .footer-col a:hover { color: var(--brand-primary); }
+    .footer-col h4 {
+      font-weight: 800;
+      margin-bottom: 20px;
+    }
+    .footer-col a {
+      display: block;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+    }
+    .footer-col a:hover {
+      color: var(--brand-primary);
+    }
     .copy {
       text-align: center;
       color: var(--text-muted);
       padding-top: 30px;
       border-top: 1px solid var(--border-light);
+      font-size: 0.9rem;
     }
 
-    /* Mobile Responsive */
+    /* =========================
+       Responsive
+       ========================= */
+
+    /* تابلت: تعديل شبكة المميزات */
+    @media (max-width: 1200px) {
+      .bento-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .bento-large {
+        grid-column: span 2;
+      }
+      .bento-tall {
+        grid-row: auto;
+      }
+    }
+
     @media (max-width: 960px) {
-      .hero-grid { grid-template-columns: 1fr; text-align: center; }
-      .hero-content p { margin-inline: auto; }
-      .hero-actions { justify-content: center; }
-      .bento-grid { grid-template-columns: 1fr; }
-      .bento-large, .bento-tall { grid-column: span 1; grid-row: span 1; }
-      .nav-links { display: none; } /* Simple hide for now, toggle logic below */
-      .mobile-menu-btn { display: block !important; }
-      .mobile-nav-controls { display: flex !important; }
-      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .hero-grid,
+      .hero-grid-secondary {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .hero-content p {
+        margin-inline: auto;
+      }
+
+      .hero-actions {
+        justify-content: center;
+      }
+
+      .hero-grid-secondary .glass-card {
+        margin-bottom: 24px;
+      }
+
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+      .bento-large,
+      .bento-tall {
+        grid-column: span 1;
+        grid-row: auto;
+      }
+      .bento-item {
+        padding: 20px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+      .mobile-menu-btn {
+        display: block;
+      }
+      .mobile-nav-controls {
+        display: flex;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .stats-section {
+        padding: 40px 24px;
+        margin: 60px 0;
+      }
     }
+
     @media (max-width: 480px) {
-      .hero h1 { font-size: 2rem; }
-      .footer-grid { grid-template-columns: 1fr; }
-      .stats-grid { grid-template-columns: 1fr; }
-      .logo span { display: none; }
-      .logo img { height: 34px; }
-      .mobile-login-btn { padding: 8px 10px; }
-    }
-
-    .mobile-menu-btn {
-      display: none;
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      cursor: pointer;
-      color: var(--text-main);
-    }
-
-    .mobile-nav-controls {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      flex: 0 0 auto;
-    }
-    .mobile-login-btn {
-      padding: 8px 14px;
-      font-size: 0.85rem;
-      border-radius: 10px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      .hero h1 {
+        font-size: 2rem;
+      }
+      .logo span {
+        display: none;
+      }
+      .logo img {
+        height: 34px;
+      }
+      .mobile-login-btn {
+        padding: 8px 10px;
+      }
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      .cta-box {
+        padding: 40px 24px;
+      }
     }
   </style>
 </head>
@@ -464,7 +628,7 @@
           <img src="{% static 'img/logo1.png' %}" alt="توثيق">
           <span>منصة توثيق</span>
         </a>
-        
+
         <nav class="nav-links">
           <a href="#features">المزايا</a>
           <a href="#how">كيف نعمل</a>
@@ -492,7 +656,7 @@
   <section class="hero">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
-    
+
     <div class="container">
       <div class="hero-grid">
         <div class="hero-content">
@@ -505,8 +669,8 @@
             <span class="text-gradient">أذكى، أسرع، وأكثر دقة</span>
           </h1>
           <p>
-            نظام متكامل يجمع التقارير اليومية، تذاكر الصيانة، والطباعة الرسمية في مكان واحد. 
-            صمم خصيصاً لمدراء المدارس الذين يبحثون عن التميز وراحة البال.
+            نظام متكامل يجمع التقارير اليومية، تذاكر الصيانة، والطباعة الرسمية في مكان واحد.
+            صُمم خصيصاً لمدراء المدارس الذين يبحثون عن التميز وراحة البال.
           </p>
           <div class="hero-actions">
             <a href="https://wa.me/966537720207" target="_blank" rel="noopener" class="btn-primary">
@@ -518,13 +682,17 @@
               شاهد كيف يعمل
             </a>
           </div>
-          
-          <div style="margin-top: 30px; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--text-muted);">
-            <i class="fa-solid fa-shield-check" style="color: var(--brand-primary);"></i>
-            بيانات آمنة ومشفرة
+
+          <div style="margin-top: 30px; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--text-muted); flex-wrap: wrap;">
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-shield-check" style="color: var(--brand-primary);"></i>
+              بيانات آمنة ومشفرة
+            </span>
             <span style="margin: 0 10px;">•</span>
-            <i class="fa-solid fa-users" style="color: var(--brand-primary);"></i>
-            دعم فني متواصل
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-users" style="color: var(--brand-primary);"></i>
+              دعم فني متواصل
+            </span>
           </div>
         </div>
 
@@ -538,7 +706,7 @@
               </div>
               <div style="margin-right: auto;"><i class="fa-solid fa-check-circle text-gradient"></i></div>
             </div>
-            
+
             <div class="stat-row">
               <div class="stat-icon bg-green"><i class="fa-solid fa-wrench"></i></div>
               <div>
@@ -563,77 +731,85 @@
   </section>
 
   <!-- Features (Bento Grid) -->
-  <section class="section" id="features" style="padding: 80px 0;">
+  <section class="section" id="features">
     <div class="container">
       <div class="section-title">
         <h2>كل ما تحتاجه في منصة واحدة</h2>
-        <p style="color: var(--text-muted);">استغني عن الأوراق والتطبيقات المتشتتة</p>
+        <p style="color: var(--text-muted);">استغنِ عن الأوراق والتطبيقات المتشتتة</p>
       </div>
 
       <div class="bento-grid">
         <div class="bento-item bento-large">
-          <div class="bento-icon" style="color: var(--brand-primary);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+          <div class="bento-icon" style="color: var(--brand-primary);">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
           <h3>تقارير ذكية بضغطة زر</h3>
           <p>لا داعي للتنسيق اليدوي. أدخل البيانات، وسيقوم النظام بتوليد تقارير PDF احترافية بهوية مدرستك وشعارها جاهزة للطباعة أو الإرسال.</p>
         </div>
 
         <div class="bento-item">
-          <div class="bento-icon" style="color: var(--accent);"><i class="fa-solid fa-ticket"></i></div>
+          <div class="bento-icon" style="color: var(--accent);">
+            <i class="fa-solid fa-ticket"></i>
+          </div>
           <h3>نظام تذاكر متطور</h3>
-          <p>تتبع طلبات الصيانة والدعم الفني من المعلمين لحظة بلحظة. لا مزيد من الطلبات المنسية.</p>
+          <p>تتبّع طلبات الصيانة والدعم الفني من المعلمين لحظة بلحظة. لا مزيد من الطلبات المنسيّة.</p>
         </div>
 
         <div class="bento-item">
-          <div class="bento-icon" style="color: #10b981;"><i class="fa-solid fa-mobile-screen"></i></div>
+          <div class="bento-icon" style="color: #10b981;">
+            <i class="fa-solid fa-mobile-screen"></i>
+          </div>
           <h3>يعمل على جوالك</h3>
           <p>واجهة مصممة خصيصاً لتكون سهلة الاستخدام على الهواتف الذكية. أدر مدرستك من أي مكان.</p>
         </div>
 
         <div class="bento-item bento-large">
-          <div class="bento-icon" style="color: #8b5cf6;"><i class="fa-solid fa-user-shield"></i></div>
+          <div class="bento-icon" style="color: #8b5cf6;">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
           <h3>صلاحيات دقيقة (RBAC)</h3>
-          <p>كل شخص يرى ما يخصه فقط. لوحة خاصة للمدير، ولوحة للمعلم، ولوحة لمسؤول الصيانة. خصوصية تامة وتنظيم عالي.</p>
+          <p>كل شخص يرى ما يخصه فقط. لوحة خاصة للمدير، ولوحة للمعلم، ولوحة لمسؤول الصيانة. خصوصية تامة وتنظيم عالٍ.</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- New Feature: Achievement File -->
-  <section class="section" style="padding: 80px 0; background: var(--surface-2); position: relative; overflow: hidden;">
+  <section class="section" style="background: var(--surface-2); position: relative; overflow: hidden;">
     <!-- Decorative background element -->
     <div style="position: absolute; top: -100px; left: -100px; width: 400px; height: 400px; background: var(--brand-primary); opacity: 0.03; border-radius: 50%; filter: blur(60px);"></div>
-    
+
     <div class="container">
-      <div class="hero-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="hero-grid hero-grid-secondary">
         <div class="hero-visual">
-           <div class="glass-card" style="transform: rotate(2deg); background: rgba(255,255,255,0.6);">
-              <div class="stat-row">
-                <div class="stat-icon bg-purple"><i class="fa-solid fa-briefcase"></i></div>
-                <div>
-                  <div style="font-weight: 800;">ملف إنجاز إلكتروني</div>
-                  <div style="font-size: 0.85rem; opacity: 0.7;">شامل لجميع المعايير الوزارية</div>
-                </div>
-                <div style="margin-right: auto;"><i class="fa-solid fa-check-double text-gradient"></i></div>
+          <div class="glass-card" style="transform: rotate(2deg); background: rgba(255,255,255,0.6);">
+            <div class="stat-row">
+              <div class="stat-icon bg-purple"><i class="fa-solid fa-briefcase"></i></div>
+              <div>
+                <div style="font-weight: 800;">ملف إنجاز إلكتروني</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">شامل لجميع المعايير الوزارية</div>
               </div>
-              <div class="stat-row">
-                <div class="stat-icon bg-blue"><i class="fa-solid fa-images"></i></div>
-                <div>
-                  <div style="font-weight: 800;">شواهد رقمية</div>
-                  <div style="font-size: 0.85rem; opacity: 0.7;">رفع الصور وضغطها تلقائياً</div>
-                </div>
-                <div style="margin-right: auto;"><span class="badge">جديد</span></div>
+              <div style="margin-right: auto;"><i class="fa-solid fa-check-double text-gradient"></i></div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-icon bg-blue"><i class="fa-solid fa-images"></i></div>
+              <div>
+                <div style="font-weight: 800;">شواهد رقمية</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">رفع الصور وضغطها تلقائياً</div>
               </div>
-              <div class="stat-row">
-                <div class="stat-icon bg-green"><i class="fa-solid fa-file-pdf"></i></div>
-                <div>
-                  <div style="font-weight: 800;">تصدير PDF فوري</div>
-                  <div style="font-size: 0.85rem; opacity: 0.7;">تصميم رسمي جاهز للطباعة</div>
-                </div>
-                <div style="margin-right: auto;"><i class="fa-solid fa-download"></i></div>
+              <div style="margin-right: auto;"><span class="badge">جديد</span></div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-icon bg-green"><i class="fa-solid fa-file-pdf"></i></div>
+              <div>
+                <div style="font-weight: 800;">تصدير PDF فوري</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">تصميم رسمي جاهز للطباعة</div>
               </div>
-           </div>
+              <div style="margin-right: auto;"><i class="fa-solid fa-download"></i></div>
+            </div>
+          </div>
         </div>
-        
+
         <div class="hero-content">
           <div class="badge mb-4" style="background: rgba(245, 158, 11, 0.1); color: var(--accent); border-color: rgba(245, 158, 11, 0.2);">
             <i class="fa-solid fa-star"></i>
@@ -646,7 +822,7 @@
           <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 24px;">
             وداعاً للملفات الورقية الضخمة. نظامنا الجديد يتيح للمعلم بناء ملف إنجازه السنوي وفق 11 معياراً وزارياً معتمداً، مع إمكانية رفع الشواهد والصور من الجوال مباشرة.
           </p>
-          
+
           <ul style="list-style: none; padding: 0; margin-bottom: 30px; display: grid; gap: 12px;">
             <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
               <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
@@ -692,12 +868,12 @@
   </section>
 
   <!-- How it works -->
-  <section class="section" id="how" style="padding: 80px 0;">
+  <section class="section" id="how">
     <div class="container">
       <div class="section-title">
         <h2>ابدأ في 3 خطوات بسيطة</h2>
       </div>
-      
+
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; text-align: center;">
         <div>
           <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">1</div>
@@ -707,7 +883,7 @@
         <div>
           <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">2</div>
           <h3>أضف فريقك</h3>
-          <p style="color: var(--text-muted);">أضف المعلمين والإداريين ووزع الصلاحيات والأقسام بسهولة.</p>
+          <p style="color: var(--text-muted);">أضف المعلمين والإداريين ووزّع الصلاحيات والأقسام بسهولة.</p>
         </div>
         <div>
           <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">3</div>
@@ -742,7 +918,7 @@
             الحل الأمثل لإدارة التقارير والطلبات المدرسية. نجمع بين سهولة الاستخدام وقوة الأداء.
           </p>
         </div>
-        
+
         <div class="footer-col">
           <h4>روابط سريعة</h4>
           <a href="#features">المزايا</a>
@@ -763,7 +939,7 @@
           <a href="mailto:info@tawtheeq.com"><i class="fa-regular fa-envelope"></i> البريد الإلكتروني</a>
         </div>
       </div>
-      
+
       <div class="copy">
         &copy; {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.
       </div>
@@ -772,8 +948,8 @@
 
   <script nonce="{{ CSP_NONCE }}">
     // Header Scroll Effect
-    window.addEventListener('scroll', () => {
-      const header = document.getElementById('header');
+    window.addEventListener('scroll', function () {
+      var header = document.getElementById('header');
       if (window.scrollY > 50) {
         header.classList.add('scrolled');
       } else {
@@ -781,27 +957,30 @@
       }
     });
 
-    // Mobile Menu Toggle (Simple implementation)
-    const mobileBtn = document.querySelector('.mobile-menu-btn');
-    const navLinks = document.querySelector('.nav-links');
-    
-    mobileBtn.addEventListener('click', () => {
-      const isHidden = window.getComputedStyle(navLinks).display === 'none';
-      if (isHidden) {
-        navLinks.style.display = 'flex';
-        navLinks.style.flexDirection = 'column';
-        navLinks.style.position = 'absolute';
-        navLinks.style.top = '70px';
-        navLinks.style.left = '0';
-        navLinks.style.right = '0';
-        navLinks.style.background = 'var(--surface-1)';
-        navLinks.style.padding = '20px';
-        navLinks.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
-        navLinks.style.borderBottom = '1px solid var(--border-light)';
-      } else {
-        navLinks.style.display = ''; // Revert to CSS
-      }
-    });
+    // Mobile Menu Toggle
+    var mobileBtn = document.querySelector('.mobile-menu-btn');
+    var navLinks = document.querySelector('.nav-links');
+
+    if (mobileBtn && navLinks) {
+      mobileBtn.addEventListener('click', function () {
+        var isHidden = window.getComputedStyle(navLinks).display === 'none';
+        if (isHidden) {
+          navLinks.style.display = 'flex';
+          navLinks.style.flexDirection = 'column';
+          navLinks.style.position = 'absolute';
+          navLinks.style.top = '70px';
+          navLinks.style.left = '0';
+          navLinks.style.right = '0';
+          navLinks.style.background = 'var(--surface-1)';
+          navLinks.style.padding = '20px';
+          navLinks.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
+          navLinks.style.borderBottom = '1px solid var(--border-light)';
+          navLinks.style.zIndex = '900';
+        } else {
+          navLinks.style.display = '';
+        }
+      });
+    }
   </script>
 </body>
 </html>
