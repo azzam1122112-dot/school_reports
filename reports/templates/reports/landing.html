@@ -7,9 +7,9 @@
   <meta name="theme-color" content="#2563eb">
   <meta name="color-scheme" content="light dark">
 
-  <title>منصة توثيق | المستقبل للإدارة المدرسية الذكية</title>
-  <meta name="description" content="النظام المدرسي المتكامل لعام 2026. أتمتة التقارير، تذاكر الصيانة، ملف الإنجاز، والطباعة الرسمية في منصة واحدة ذكية.">
-  <meta name="keywords" content="إدارة مدرسية, تقارير إلكترونية, تذاكر دعم, منصة توثيق, ملف إنجاز إلكتروني, تعليم 2026, أتمتة المدارس">
+  <title>منصة التقارير والتذاكر | الإدارة المدرسية الذكية</title>
+  <meta name="description" content="منصة عربية متكاملة لإدارة التقارير المدرسية، تذاكر الصيانة والطلبات، وملف الإنجاز الإلكتروني للمعلمين، مع طباعة PDF رسمية وهوية المدرسة.">
+  <meta name="keywords" content="منصة التقارير, تذاكر الصيانة, تذاكر الدعم, ملف إنجاز إلكتروني, إدارة مدرسية, نظام تقارير, مدارس, تعليم, السعودية">
   <meta name="robots" content="index,follow">
 
   <!-- Canonical -->
@@ -19,14 +19,14 @@
   <link rel="manifest" href="{% static 'manifest.json' %}">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="توثيق">
+  <meta name="apple-mobile-web-app-title" content="منصة التقارير">
   <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{ request.build_absolute_uri }}">
-  <meta property="og:title" content="منصة توثيق | المستقبل للإدارة المدرسية الذكية">
-  <meta property="og:description" content="وداعاً للفوضى الورقية. منصة توثيق تمنحك السيطرة الكاملة على التقارير والطلبات وملفات الإنجاز بلمسة واحدة.">
+  <meta property="og:title" content="منصة التقارير والتذاكر | الإدارة المدرسية الذكية">
+  <meta property="og:description" content="بديل عملي للواتساب والملفات المتناثرة: تقارير، تذاكر، وملف إنجاز إلكتروني في نظام واحد متكامل.">
   <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/logo1.png' %}">
 
   <!-- Fonts -->
@@ -42,7 +42,7 @@
 
   <style>
     /* =========================================================
-       LANDING 2026 - DESIGN SYSTEM
+       LANDING – منصة التقارير والتذاكر + ملف الإنجاز
        ========================================================= */
     :root {
       --brand-primary: #2563eb;
@@ -78,10 +78,9 @@
       --text-muted: #94a3b8;
       --border-light: #334155;
       --glass: rgba(15, 23, 42, 0.7);
-      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.1);
     }
 
-    /* Reset & Base */
     html, body {
       overflow-x: hidden;
       scroll-behavior: smooth;
@@ -93,27 +92,23 @@
       line-height: 1.6;
       margin: 0;
     }
-
     .container {
       width: 100%;
       max-width: 1280px;
       margin: 0 auto;
       padding: 0 20px;
     }
-
     a {
       text-decoration: none;
       color: inherit;
       transition: all 0.25s ease;
     }
-
     img {
       max-width: 100%;
       height: auto;
       display: block;
     }
 
-    /* Utilities */
     .text-gradient {
       background: linear-gradient(135deg, var(--brand-primary), var(--brand-light));
       -webkit-background-clip: text;
@@ -177,10 +172,9 @@
     .logo span {
       white-space: nowrap;
     }
-
     .nav-links {
       display: flex;
-      gap: 20px;
+      gap: 24px;
       align-items: center;
       font-size: 0.95rem;
     }
@@ -211,7 +205,6 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
     }
-
     .btn-outline {
       padding: 10px 24px;
       border-radius: 14px;
@@ -239,7 +232,6 @@
       cursor: pointer;
       color: var(--text-main);
     }
-
     .mobile-nav-controls {
       display: none;
       align-items: center;
@@ -255,6 +247,7 @@
       gap: 6px;
     }
 
+    /* Mobile panel */
     .nav-mobile-panel {
       display: none;
       position: absolute;
@@ -280,7 +273,7 @@
       margin-bottom: 10px;
     }
 
-    /* Hero Section */
+    /* Hero */
     .hero {
       padding-top: 140px;
       padding-bottom: 80px;
@@ -309,18 +302,15 @@
       background: var(--accent);
       opacity: 0.2;
     }
-
     .hero-grid {
       display: grid;
       grid-template-columns: 1.1fr 0.9fr;
       gap: 40px;
       align-items: center;
     }
-
     .hero-grid-secondary {
       grid-template-columns: 1fr 1fr;
     }
-
     .hero-content h1 {
       font-size: clamp(2.5rem, 5vw, 4rem);
       line-height: 1.1;
@@ -339,7 +329,6 @@
       gap: 16px;
       flex-wrap: wrap;
     }
-
     .hero-visual {
       position: relative;
     }
@@ -357,7 +346,6 @@
     .glass-card:hover {
       transform: rotate(0deg) scale(1.02);
     }
-
     .stat-row {
       display: flex;
       align-items: center;
@@ -384,7 +372,6 @@
     .section {
       padding: 80px 0;
     }
-
     .section-title {
       text-align: center;
       margin-bottom: 60px;
@@ -395,7 +382,7 @@
       margin-bottom: 12px;
     }
 
-    /* Bento Grid Features */
+    /* Features (Bento) */
     .bento-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -422,7 +409,6 @@
     .bento-tall {
       grid-row: span 2;
     }
-
     .bento-icon {
       width: 60px;
       height: 60px;
@@ -444,7 +430,7 @@
       font-size: 0.97rem;
     }
 
-    /* Stats Section */
+    /* Stats */
     .stats-section {
       margin: 100px 0;
       background: var(--text-main);
@@ -477,177 +463,18 @@
       margin-top: 8px;
     }
 
-    /* Pricing */
-    .pricing-section {
-      background: var(--surface-2);
-      padding: 80px 0;
-    }
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 24px;
-      margin-top: 40px;
-    }
-    .pricing-card {
-      background: var(--surface-1);
-      border-radius: var(--radius-lg);
-      padding: 28px 24px;
-      border: 1px solid var(--border-light);
-      box-shadow: 0 10px 30px rgba(15,23,42,0.06);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .pricing-card.featured {
-      border-color: var(--brand-primary);
-      box-shadow: 0 16px 40px rgba(37,99,235,0.18);
-      position: relative;
-    }
-    .badge-plan {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      background: rgba(37,99,235,0.08);
-      color: var(--brand-primary);
-      border: 1px solid rgba(37,99,235,0.2);
-    }
-    .pricing-title {
-      font-weight: 800;
-      font-size: 1.1rem;
-    }
-    .pricing-sub {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-    }
-    .price-text {
-      font-size: 1.1rem;
-      font-weight: 800;
-      margin-top: 4px;
-    }
-    .price-note {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-    .pricing-features {
-      list-style: none;
-      padding: 0;
-      margin: 14px 0 18px;
-      display: grid;
-      gap: 8px;
-      font-size: 0.9rem;
-    }
-    .pricing-features li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .pricing-features i {
-      color: #22c55e;
-      font-size: 0.95rem;
-    }
-
-    /* Comparison table */
-    .comparison-wrapper {
-      margin-top: 50px;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border-light);
-      background: var(--surface-1);
-      padding: 20px 16px;
-      overflow-x: auto;
-    }
-    .comparison-table {
-      min-width: 680px;
-      border-collapse: collapse;
-      width: 100%;
-      font-size: 0.9rem;
-    }
-    .comparison-table th,
-    .comparison-table td {
-      padding: 10px 12px;
-      text-align: center;
-      border-bottom: 1px solid var(--border-light);
-      white-space: nowrap;
-    }
-    .comparison-table th:first-child,
-    .comparison-table td:first-child {
-      text-align: right;
-      white-space: normal;
-    }
-    .comparison-table thead th {
-      font-weight: 800;
-      font-size: 0.9rem;
-      background: var(--surface-2);
-    }
-    .comparison-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-    .comparison-table .yes {
-      color: #16a34a;
-    }
-    .comparison-table .no {
-      color: #dc2626;
-    }
-
-    /* Testimonials */
-    .testimonials-section {
-      padding: 80px 0;
-      background: var(--surface-1);
-    }
-    .testimonials {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
-      margin-top: 32px;
-    }
-    .review-card {
-      background: var(--surface-1);
-      padding: 24px;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border-light);
-      box-shadow: var(--shadow-soft);
-      font-size: 0.95rem;
-    }
-    .stars {
-      color: var(--accent);
-      margin-bottom: 12px;
-      font-size: 0.9rem;
-    }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 20px;
-    }
-    .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--border-light);
-      display: grid;
-      place-items: center;
-      font-size: 1.1rem;
-      color: var(--text-muted);
-    }
-    .user-meta {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
     /* CTA Box */
     .cta-box {
       background: linear-gradient(120deg, var(--brand-dark), var(--brand-primary));
       border-radius: var(--radius-xl);
-      padding: 60px 40px;
+      padding: 50px 32px;
       text-align: center;
       color: white;
-      margin: 100px 0;
+      margin: 90px auto;
       position: relative;
       overflow: hidden;
       box-shadow: 0 16px 40px rgba(37,99,235,0.45);
+      max-width: 900px;
     }
     .cta-box::before {
       content: "";
@@ -680,7 +507,7 @@
     .cta-box p {
       font-size: 1.1rem;
       opacity: 0.95;
-      margin-bottom: 32px;
+      margin-bottom: 26px;
       max-width: 600px;
       margin-inline: auto;
       position: relative;
@@ -707,101 +534,189 @@
       transform: translateY(-2px);
     }
 
-    /* Contact */
-    .contact-section {
-      padding: 80px 0 100px;
-      background: var(--surface-3);
-    }
-    .contact-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
-      gap: 32px;
-      align-items: stretch;
-    }
-    .contact-info {
-      padding: 24px 8px;
-    }
-    .contact-info h2 {
-      font-size: 2rem;
+    /* مقارنة الطريقة التقليدية vs النظام */
+    .sub-eyebrow {
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--brand-primary);
+      text-transform: uppercase;
       margin-bottom: 8px;
     }
-    .contact-info p {
-      color: var(--text-muted);
-      font-size: 0.98rem;
-      margin-bottom: 18px;
+    .compare-wrap {
+      background: var(--surface-2);
+      border-radius: var(--radius-xl);
+      padding: 32px 24px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-soft);
+      overflow-x: auto;
     }
-    .contact-highlights {
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+      font-size: 0.95rem;
+    }
+    .compare-table thead {
+      background: var(--surface-3);
+    }
+    .compare-table th,
+    .compare-table td {
+      padding: 12px 14px;
+      text-align: right;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .compare-table th {
+      font-weight: 800;
+    }
+    .compare-table tbody tr:nth-child(even) {
+      background: rgba(148,163,184,0.05);
+    }
+    .compare-table td b {
+      font-weight: 800;
+    }
+
+    /* التسعير */
+    .pricing-section {
+      background: var(--surface-2);
+      border-radius: var(--radius-xl);
+      padding: 40px 24px 36px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-soft);
+    }
+    .pricing-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .pricing-header h2 {
+      margin: 4px 0 8px;
+      font-size: 1.8rem;
+      font-weight: 900;
+    }
+    .pricing-header p {
+      color: var(--text-muted);
+      font-size: 0.96rem;
+    }
+    .pricing-note {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .pricing-tabs {
+      display: inline-flex;
+      background: var(--surface-3);
+      border-radius: 999px;
+      padding: 4px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border-light);
+    }
+    .pricing-tab {
+      border: none;
+      background: transparent;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .pricing-tab.active {
+      background: var(--surface-1);
+      color: var(--brand-primary);
+      box-shadow: 0 4px 12px rgba(15,23,42,0.12);
+    }
+
+    .pricing-panels {
+      margin-top: 8px;
+    }
+    .pricing-panel {
+      display: none;
+    }
+    .pricing-panel.active {
+      display: block;
+    }
+
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+    }
+    .pricing-card {
+      background: var(--surface-1);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      padding: 22px 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+    }
+    .pricing-card.featured {
+      border-color: var(--brand-primary);
+      box-shadow: 0 10px 28px rgba(37,99,235,0.25);
+      position: relative;
+    }
+    .pricing-card.featured::before {
+      content: "الأكثر اختياراً";
+      position: absolute;
+      top: 10px;
+      left: 16px;
+      background: rgba(37,99,235,0.1);
+      color: var(--brand-primary);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .pricing-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .miniTitle {
+      font-size: 0.95rem;
+      font-weight: 800;
+    }
+    .mutedSm {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .price-main {
+      font-size: 1.6rem;
+      font-weight: 900;
+    }
+    .price-main .per {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    .pricing-list {
       list-style: none;
       padding: 0;
       margin: 0;
       display: grid;
-      gap: 10px;
+      gap: 6px;
       font-size: 0.9rem;
       color: var(--text-muted);
     }
-    .contact-highlights li {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .contact-card {
-      background: var(--surface-1);
-      border-radius: var(--radius-lg);
-      padding: 24px 22px;
-      border: 1px solid var(--border-light);
-      box-shadow: 0 10px 30px rgba(15,23,42,0.08);
-    }
-    .contact-card h3 {
-      margin: 0 0 16px;
-      font-size: 1.05rem;
-      font-weight: 800;
-    }
-    .contact-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .form-group {
-      margin-bottom: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 0.9rem;
-    }
-    .form-group label {
-      font-weight: 600;
-      color: var(--text-main);
-    }
-    .form-input,
-    .form-textarea {
-      border-radius: 10px;
-      border: 1px solid var(--border-light);
-      padding: 8px 10px;
-      font-family: inherit;
-      font-size: 0.9rem;
-      outline: none;
-      background: #fff;
-    }
-    .form-input:focus,
-    .form-textarea:focus {
-      border-color: var(--brand-primary);
-      box-shadow: 0 0 0 1px rgba(37,99,235,0.12);
-    }
-    .form-textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
-    .contact-actions {
+    .pricing-actions {
+      margin-top: 8px;
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      margin-top: 8px;
+      gap: 8px;
     }
-    .contact-actions .note {
-      font-size: 0.83rem;
-      color: var(--text-muted);
+    .pricing-actions .btn-primary,
+    .pricing-actions .btn-outline {
+      flex: 1;
+      justify-content: center;
+      font-size: 0.9rem;
+      padding-block: 8px;
     }
 
     /* Footer */
@@ -838,10 +753,7 @@
       font-size: 0.9rem;
     }
 
-    /* =========================
-       Responsive
-       ========================= */
-
+    /* Responsive */
     @media (max-width: 1200px) {
       .bento-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -852,27 +764,25 @@
       .bento-tall {
         grid-row: auto;
       }
+      .pricing-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
-
     @media (max-width: 960px) {
       .hero-grid,
       .hero-grid-secondary {
         grid-template-columns: 1fr;
         text-align: center;
       }
-
       .hero-content p {
         margin-inline: auto;
       }
-
       .hero-actions {
         justify-content: center;
       }
-
       .hero-grid-secondary .glass-card {
         margin-bottom: 24px;
       }
-
       .bento-grid {
         grid-template-columns: 1fr;
       }
@@ -882,9 +792,8 @@
         grid-row: auto;
       }
       .bento-item {
-        padding: 20px;
+        padding: 24px;
       }
-
       .nav-links {
         display: none;
       }
@@ -894,24 +803,26 @@
       .mobile-nav-controls {
         display: flex;
       }
-
       .footer-grid {
         grid-template-columns: 1fr 1fr;
       }
-
       .stats-section {
         padding: 40px 24px;
         margin: 60px 0;
       }
-
-      .contact-grid {
-        grid-template-columns: 1fr;
+      .cta-box {
+        margin: 70px 0;
+        padding: 40px 24px;
       }
-      .contact-info {
-        padding-bottom: 0;
+      .pricing-cards {
+        grid-template-columns: 1fr 1fr;
       }
     }
-
+    @media (max-width: 640px) {
+      .pricing-cards {
+        grid-template-columns: 1fr;
+      }
+    }
     @media (max-width: 480px) {
       .hero h1 {
         font-size: 2rem;
@@ -932,10 +843,13 @@
         grid-template-columns: 1fr;
       }
       .cta-box {
-        padding: 40px 24px;
+        padding: 36px 20px;
       }
-      .contact-row {
-        grid-template-columns: 1fr;
+      .compare-wrap {
+        padding-inline: 16px;
+      }
+      .pricing-header {
+        flex-direction: column;
       }
     }
   </style>
@@ -947,16 +861,15 @@
     <div class="container">
       <div class="nav-wrap">
         <a href="#" class="logo">
-          <img src="{% static 'img/logo1.png' %}" alt="توثيق">
-          <span>منصة توثيق</span>
+          <img src="{% static 'img/logo1.png' %}" alt="منصة التقارير والتذاكر">
+          <span>منصة التقارير والتذاكر</span>
         </a>
 
         <nav class="nav-links">
           <a href="#features">المزايا</a>
           <a href="#achievement">ملف الإنجاز</a>
-          <a href="#pricing">الخطط والأسعار</a>
-          <a href="#testimonials">آراء العملاء</a>
-          <a href="#contact">تواصل معنا</a>
+          <a href="#compare">المقارنة</a>
+          <a href="#pricing">الأسعار</a>
           <a href="{% url 'reports:login' %}" class="btn-primary">
             <i class="fa-solid fa-right-to-bracket"></i>
             دخول المنصة
@@ -979,9 +892,8 @@
         <div class="nav-mobile-links">
           <a href="#features">المزايا</a>
           <a href="#achievement">ملف الإنجاز</a>
-          <a href="#pricing">الخطط والأسعار</a>
-          <a href="#testimonials">آراء العملاء</a>
-          <a href="#contact">تواصل معنا</a>
+          <a href="#compare">المقارنة</a>
+          <a href="#pricing">الأسعار</a>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
           <a href="{% url 'reports:login' %}" class="btn-primary" style="flex:1; justify-content:center; font-size:0.9rem;">
@@ -997,7 +909,7 @@
     </div>
   </header>
 
-  <!-- Hero Section -->
+  <!-- Hero -->
   <section class="hero">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
@@ -1007,24 +919,24 @@
         <div class="hero-content">
           <div class="badge mb-4">
             <i class="fa-solid fa-star"></i>
-            الخيار الأول للمدارس الذكية 2026
+            منصة التقارير والتذاكر + ملف الإنجاز الإلكتروني
           </div>
           <h1>
-            إدارة مدرستك.. <br>
-            <span class="text-gradient">أذكى، أسرع، وأكثر دقة</span>
+            وداعاً للفوضى الورقية والواتساب.. <br>
+            <span class="text-gradient">مرحباً بالتوثيق الذكي داخل المدرسة</span>
           </h1>
           <p>
-            نظام متكامل يجمع التقارير اليومية، تذاكر الصيانة، ملف الإنجاز الإلكتروني،
-            والطباعة الرسمية في مكان واحد. صُمم خصيصاً لمدراء المدارس الذين يبحثون عن التميز وراحة البال.
+            نظام متكامل يجمع التقارير اليومية المصورة، تذاكر الصيانة والطلبات بحالات واضحة،
+            وملف إنجاز إلكتروني للمعلمين مع طباعة PDF رسمية وهوية مدرستك.
           </p>
           <div class="hero-actions">
             <a href="https://wa.me/966537720207" target="_blank" rel="noopener" class="btn-primary">
               <i class="fa-brands fa-whatsapp"></i>
-              اطلب تجربة مجانية
+              اطلب تجربة مجانية 14 يوم
             </a>
             <a href="#features" class="btn-outline">
-              <i class="fa-solid fa-play"></i>
-              شاهد كيف يعمل
+              <i class="fa-solid fa-circle-info"></i>
+              استكشف مميزات النظام
             </a>
           </div>
 
@@ -1036,7 +948,7 @@
             <span style="margin: 0 10px;">•</span>
             <span style="display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-users" style="color: var(--brand-primary);"></i>
-              دعم فني متواصل
+              دعم فني للمدارس المشتركة
             </span>
           </div>
         </div>
@@ -1046,8 +958,8 @@
             <div class="stat-row">
               <div class="stat-icon bg-blue"><i class="fa-solid fa-file-signature"></i></div>
               <div>
-                <div style="font-weight: 800;">تقرير نشاط يومي</div>
-                <div style="font-size: 0.85rem; opacity: 0.7;">تم الاعتماد من المدير</div>
+                <div style="font-weight: 800;">تقرير إشراف يومي</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">مع صور مرفقة واعتماد إلكتروني</div>
               </div>
               <div style="margin-right: auto;"><i class="fa-solid fa-check-circle text-gradient"></i></div>
             </div>
@@ -1055,17 +967,17 @@
             <div class="stat-row">
               <div class="stat-icon bg-green"><i class="fa-solid fa-wrench"></i></div>
               <div>
-                <div style="font-weight: 800;">طلب صيانة مكيفات</div>
-                <div style="font-size: 0.85rem; opacity: 0.7;">جاري العمل - قسم الصيانة</div>
+                <div style="font-weight: 800;">تذكرة صيانة معمل الحاسب</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">جاري العمل - مسؤول الصيانة</div>
               </div>
-              <div style="margin-right: auto;"><span class="badge" style="background: #dcfce7; color: #166534; border-color:#bbf7d0;">نشط</span></div>
+              <div style="margin-right: auto;"><span class="badge" style="background: #dcfce7; color: #166534;">نشط</span></div>
             </div>
 
             <div class="stat-row">
               <div class="stat-icon bg-purple"><i class="fa-solid fa-print"></i></div>
               <div>
-                <div style="font-weight: 800;">طباعة تقرير أداء</div>
-                <div style="font-size: 0.85rem; opacity: 0.7;">تنسيق رسمي بشعار الوزارة</div>
+                <div style="font-weight: 800;">تقرير أداء معلم</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">تنسيق رسمي بهوية المدرسة جاهز للطباعة</div>
               </div>
               <div style="margin-right: auto;"><i class="fa-solid fa-download"></i></div>
             </div>
@@ -1075,12 +987,14 @@
     </div>
   </section>
 
-  <!-- Features (Bento Grid) -->
+  <!-- Features -->
   <section class="section" id="features">
     <div class="container">
       <div class="section-title">
-        <h2>كل ما تحتاجه في منصة واحدة</h2>
-        <p style="color: var(--text-muted); font-size:0.96rem;">استغنِ عن الأوراق والتطبيقات المتشتتة، واجمع التقارير، التذاكر، وملفات الإنجاز في نظام موحّد.</p>
+        <h2>كل التوثيق الإداري في منصة واحدة</h2>
+        <p style="color: var(--text-muted); font-size:0.96rem;">
+          تقارير، تذاكر، وملف إنجاز إلكتروني بمعايير واضحة وصلاحيات دقيقة، بعيدًا عن التشتت بين الواتساب والملفات الورقية.
+        </p>
       </div>
 
       <div class="bento-grid">
@@ -1088,37 +1002,32 @@
           <div class="bento-icon" style="color: var(--brand-primary);">
             <i class="fa-solid fa-wand-magic-sparkles"></i>
           </div>
-          <h3>تقارير ذكية بضغطة زر</h3>
-          <p>
-            أدخل البيانات، وسيقوم النظام بتوليد تقارير PDF احترافية بهوية مدرستك وشعارها جاهزة للطباعة أو الإرسال،
-            مع أرشفة آمنة وسريعة للرجوع لها لاحقاً.
-          </p>
+          <h3>تقارير ذكية بالصور + طباعة PDF</h3>
+          <p>أدخل بيانات التقرير، أرفق الصور من الجوال، والنظام يتكفل بتوليد تقرير PDF رسمي بهوية مدرستك جاهز للأرشفة والطباعة.</p>
         </div>
 
         <div class="bento-item">
           <div class="bento-icon" style="color: var(--accent);">
             <i class="fa-solid fa-ticket"></i>
           </div>
-          <h3>نظام تذاكر متطور</h3>
-          <p>تتبّع طلبات الصيانة والدعم الفني من المعلمين لحظة بلحظة، مع حالات واضحة وسجل إجراء لكل تذكرة، حتى لا تضيع أي مهمة.</p>
+          <h3>تذاكر وحالات واضحة</h3>
+          <p>كل طلب أو مشكلة تفتح كتذكرة بحالة، ومسؤول، وسجل ملاحظات، بدل أن تضيع في محادثات واتساب متفرقة.</p>
         </div>
 
         <div class="bento-item">
           <div class="bento-icon" style="color: #10b981;">
             <i class="fa-solid fa-mobile-screen"></i>
           </div>
-          <h3>يعمل على جوالك</h3>
-          <p>واجهة مصممة خصيصاً لتكون سهلة الاستخدام على الهواتف الذكية والأجهزة اللوحية. أدر مدرستك من أي مكان داخل أو خارج المبنى.</p>
+          <h3>يعمل على الجوال</h3>
+          <p>واجهة عربية RTL مصممة لتعمل بسلاسة على جوال المعلم والمدير دون الحاجة لأجهزة خاصة.</p>
         </div>
 
         <div class="bento-item bento-large">
           <div class="bento-icon" style="color: #8b5cf6;">
             <i class="fa-solid fa-user-shield"></i>
           </div>
-          <h3>صلاحيات دقيقة (RBAC)</h3>
-          <p>
-            لوحة خاصة للمدير، ولوحة للمعلم، ولوحة لمسؤول الصيانة، مع سجل تدقيق يوضح من قام بماذا ومتى. كل مستخدم يرى ما يخصه فقط.
-          </p>
+          <h3>صلاحيات دقيقة (مدير / مشرف / معلم)</h3>
+          <p>المدير يرى الصورة الكاملة، المشرف يتابع قسمه، والمعلم يرى تقاريره وتذاكره فقط، بصلاحيات واضحة ومسؤوليات محددة.</p>
         </div>
       </div>
     </div>
@@ -1135,24 +1044,24 @@
             <div class="stat-row">
               <div class="stat-icon bg-purple"><i class="fa-solid fa-briefcase"></i></div>
               <div>
-                <div style="font-weight: 800;">ملف إنجاز إلكتروني</div>
-                <div style="font-size: 0.85rem; opacity: 0.7;">شامل للمعايير الوزارية</div>
+                <div style="font-weight: 800;">ملف إنجاز إلكتروني متكامل</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">يدعم المعايير المهنية المعتمدة</div>
               </div>
               <div style="margin-right: auto;"><i class="fa-solid fa-check-double text-gradient"></i></div>
             </div>
             <div class="stat-row">
               <div class="stat-icon bg-blue"><i class="fa-solid fa-images"></i></div>
               <div>
-                <div style="font-weight: 800;">شواهد رقمية من الجوال</div>
-                <div style="font-size: 0.85rem; opacity: 0.7;">رفع الصور وضغطها تلقائياً</div>
+                <div style="font-weight: 800;">رفع الشواهد من الجوال</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">صور مضغوطة تلقائياً ومجهزة للطباعة</div>
               </div>
               <div style="margin-right: auto;"><span class="badge">جديد</span></div>
             </div>
             <div class="stat-row">
               <div class="stat-icon bg-green"><i class="fa-solid fa-file-pdf"></i></div>
               <div>
-                <div style="font-weight: 800;">تصدير PDF فوري</div>
-                <div style="font-size: 0.85rem; opacity: 0.7;">تصميم رسمي جاهز للطباعة</div>
+                <div style="font-weight: 800;">تصدير ملف الإنجاز PDF</div>
+                <div style="font-size: 0.85rem; opacity: 0.7;">تصميم رسمي جاهز للمشرفين والزيارات</div>
               </div>
               <div style="margin-right: auto;"><i class="fa-solid fa-download"></i></div>
             </div>
@@ -1162,34 +1071,34 @@
         <div class="hero-content">
           <div class="badge mb-4" style="background: rgba(245, 158, 11, 0.1); color: var(--accent); border-color: rgba(245, 158, 11, 0.2);">
             <i class="fa-solid fa-star"></i>
-            ميزة حصرية جديدة
+            ملف الإنجاز الإلكتروني للمعلمين
           </div>
-          <h2 style="font-size: 2.2rem; font-weight: 900; margin-bottom: 20px;">
-            ملف الإنجاز الإلكتروني.. <br>
-            <span class="text-gradient">توثيق احترافي لجهود المعلم</span>
+          <h2 style="font-size: 2.3rem; font-weight: 900; margin-bottom: 20px;">
+            ملف الإنجاز السنوي.. <br>
+            <span class="text-gradient">من شتات الأوراق إلى منصة توثيق موحدة</span>
           </h2>
           <p style="font-size: 1.05rem; color: var(--text-muted); margin-bottom: 24px;">
-            وداعاً للملفات الورقية الضخمة. نظامنا يتيح للمعلم بناء ملف إنجازه السنوي وفق معايير مهنية معتمدة،
-            مع إمكانية رفع الشواهد والصور من الجوال مباشرة، وإرسال الملف للإدارة لاعتماده إلكترونياً.
+            بدلاً من دفاتر وملفات يصعب حملها، يمكن للمعلم بناء ملف إنجازه إلكترونيًا،
+            رفع الشواهد من الجوال، ثم طباعة ملف متكامل عند الحاجة.
           </p>
 
           <ul style="list-style: none; padding: 0; margin-bottom: 30px; display: grid; gap: 12px;">
             <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
               <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
-              تغطية مجالات التقويم المهني المعتمدة.
+              تقسيم الملف إلى محاور واضحة تغطي المتطلبات الرسمية.
             </li>
             <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
               <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
-              دورة اعتماد إلكترونية (إرسال - مراجعة - ملاحظات - اعتماد نهائي).
+              اعتماد إلكتروني من قائد المدرسة أو المشرف التربوي.
             </li>
             <li style="display: flex; gap: 10px; align-items: center; font-weight: 600;">
               <i class="fa-solid fa-circle-check" style="color: var(--brand-primary);"></i>
-              تصدير الملف كاملاً كـ PDF جاهز للطباعة أو الرفع في المنصات الرسمية.
+              إمكانية طباعة الملف كاملاً أو جزء محدد بصيغة PDF رسمية.
             </li>
           </ul>
 
           <a href="{% url 'reports:login' %}" class="btn-primary">
-            ابدأ التوثيق الآن
+            ابدأ توثيق ملف الإنجاز الآن
           </a>
         </div>
       </div>
@@ -1199,153 +1108,20 @@
   <!-- Stats -->
   <section class="container">
     <div class="stats-section">
-      <h2>أرقام تتحدث عن الثقة</h2>
+      <h2>أرقام تعكس تجربة المدارس مع النظام</h2>
       <div class="stats-grid">
         <div class="stat-item">
           <div class="num">+50</div>
-          <div class="label">مدرسة تعتمد علينا</div>
+          <div class="label">مدرسة تستخدم النظام</div>
         </div>
         <div class="stat-item">
           <div class="num">+10k</div>
-          <div class="label">تقرير تم إنشاؤه</div>
+          <div class="label">تقرير وتذكرة موثقة</div>
         </div>
         <div class="stat-item">
           <div class="num">99%</div>
-          <div class="label">نسبة رضا العملاء</div>
+          <div class="label">نسبة رضا في المتابعة والتوثيق</div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Pricing & Comparison -->
-  <section class="pricing-section" id="pricing">
-    <div class="container">
-      <div class="section-title">
-        <h2>خطط مرنة تناسب احتياج مدرستك</h2>
-        <p style="color: var(--text-muted); font-size:0.95rem;">
-          اختر بين نظام التقارير فقط، أو أضف تذاكر الصيانة، أو انتقل للنظام الكامل مع ملف الإنجاز الإلكتروني.
-        </p>
-      </div>
-
-      <div class="pricing-grid">
-        <!-- Plan 1: التقارير -->
-        <div class="pricing-card">
-          <span class="badge-plan">
-            <i class="fa-regular fa-file-lines"></i>
-            للمدارس الصغيرة
-          </span>
-          <div class="pricing-title">باقة التقارير</div>
-          <div class="pricing-sub">إدارة التقارير والطباعة الرسمية فقط</div>
-          <div class="price-text">سعر شهري ثابت للمدرسة</div>
-          <div class="price-note">مناسب للمدارس التي تريد تنظيم التقارير أولاً.</div>
-
-          <ul class="pricing-features">
-            <li><i class="fa-solid fa-check-circle"></i> تقارير يومية وأسبوعية وشهرية</li>
-            <li><i class="fa-solid fa-check-circle"></i> طباعة PDF بهوية المدرسة</li>
-            <li><i class="fa-solid fa-check-circle"></i> أرشفة إلكترونية وتصفية متقدمة</li>
-            <li><i class="fa-solid fa-check-circle"></i> وصول للمدير والمساعد</li>
-            <li><i class="fa-solid fa-circle-xmark" style="color:#dc2626;"></i> بدون تذاكر صيانة</li>
-            <li><i class="fa-solid fa-circle-xmark" style="color:#dc2626;"></i> بدون ملف إنجاز إلكتروني</li>
-          </ul>
-
-          <a href="https://wa.me/966537720207?text=أرغب%20في%20معرفة%20سعر%20باقة%20التقارير%20لمنصة%20توثيق" target="_blank" rel="noopener" class="btn-outline">
-            اطلب عرض سعر
-          </a>
-        </div>
-
-        <!-- Plan 2: تقارير + تذاكر -->
-        <div class="pricing-card featured">
-          <span class="badge-plan">
-            <i class="fa-solid fa-crown"></i>
-            الأكثر اختياراً
-          </span>
-          <div class="pricing-title">باقة التقارير + التذاكر</div>
-          <div class="pricing-sub">تنظيم التقارير وطلبات الصيانة في نظام واحد</div>
-          <div class="price-text">سعر شهري حسب حجم المدرسة</div>
-          <div class="price-note">تشمل لوحة للمدير، لوحة للمعلمين، ولوحة لمسؤول الصيانة.</div>
-
-          <ul class="pricing-features">
-            <li><i class="fa-solid fa-check-circle"></i> كل مزايا باقة التقارير</li>
-            <li><i class="fa-solid fa-check-circle"></i> نظام تذاكر للصيانة والدعم الفني</li>
-            <li><i class="fa-solid fa-check-circle"></i> تتبع الحالات والإشعارات</li>
-            <li><i class="fa-solid fa-check-circle"></i> صلاحيات دقيقة لكل قسم</li>
-            <li><i class="fa-solid fa-circle-xmark" style="color:#dc2626;"></i> بدون ملف إنجاز إلكتروني</li>
-          </ul>
-
-          <a href="https://wa.me/966537720207?text=أرغب%20في%20معرفة%20تفاصيل%20باقة%20التقارير%20والتذاكر%20لمنصة%20توثيق" target="_blank" rel="noopener" class="btn-primary" style="justify-content:center;">
-            احجز موعد عرض حي
-          </a>
-        </div>
-
-        <!-- Plan 3: النظام الكامل -->
-        <div class="pricing-card">
-          <span class="badge-plan" style="background:rgba(16,185,129,0.08); border-color:rgba(16,185,129,0.25); color:#059669;">
-            <i class="fa-solid fa-gem"></i>
-            للمدارس المتميزة
-          </span>
-          <div class="pricing-title">باقة النظام الكامل</div>
-          <div class="pricing-sub">تقارير + تذاكر + ملف إنجاز إلكتروني</div>
-          <div class="price-text">تسعير خاص بالمنطقة وعدد المعلمين</div>
-          <div class="price-note">مثالية للمدارس التي تستعد للاعتمادات والجولات الإشرافية.</div>
-
-          <ul class="pricing-features">
-            <li><i class="fa-solid fa-check-circle"></i> كل مزايا باقة التقارير + التذاكر</li>
-            <li><i class="fa-solid fa-check-circle"></i> ملف إنجاز إلكتروني لكل معلم</li>
-            <li><i class="fa-solid fa-check-circle"></i> اعتماد إلكتروني من قادة المدرسة</li>
-            <li><i class="fa-solid fa-check-circle"></i> جلسة تدريب مجانية للفريق</li>
-            <li><i class="fa-solid fa-check-circle"></i> أولوية في الدعم والتحديثات</li>
-          </ul>
-
-          <a href="https://wa.me/966537720207?text=نرغب%20في%20عرض%20تفصيلي%20لباقة%20النظام%20الكامل%20في%20توثيق" target="_blank" rel="noopener" class="btn-outline">
-            اطلب عرضاً مخصصاً لمدرستك
-          </a>
-        </div>
-      </div>
-
-      <!-- Comparison table -->
-      <div class="comparison-wrapper">
-        <table class="comparison-table" aria-label="مقارنة بين الباقات">
-          <thead>
-            <tr>
-              <th>المزايا الرئيسية</th>
-              <th>باقة التقارير</th>
-              <th>باقة التقارير + التذاكر</th>
-              <th>باقة النظام الكامل</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>إدارة التقارير والطباعة PDF</td>
-              <td class="yes"><i class="fa-solid fa-check"></i></td>
-              <td class="yes"><i class="fa-solid fa-check"></i></td>
-              <td class="yes"><i class="fa-solid fa-check"></i></td>
-            </tr>
-            <tr>
-              <td>نظام تذاكر للصيانة والدعم</td>
-              <td class="no"><i class="fa-solid fa-xmark"></i></td>
-              <td class="yes"><i class="fa-solid fa-check"></i></td>
-              <td class="yes"><i class="fa-solid fa-check"></i></td>
-            </tr>
-            <tr>
-              <td>ملف إنجاز إلكتروني للمعلمين</td>
-              <td class="no"><i class="fa-solid fa-xmark"></i></td>
-              <td class="no"><i class="fa-solid fa-xmark"></i></td>
-              <td class="yes"><i class="fa-solid fa-check"></i></td>
-            </tr>
-            <tr>
-              <td>عدد المستخدمين</td>
-              <td>حتى عدد محدد من المستخدمين</td>
-              <td>حتى عدد أكبر من المستخدمين</td>
-              <td>عدد مرن حسب الاتفاق</td>
-            </tr>
-            <tr>
-              <td>الدعم الفني</td>
-              <td>دعم خلال أوقات العمل</td>
-              <td>دعم ممتد ورسائل تنبيه</td>
-              <td>دعم أولوية عالي + متابعة شهرية</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
   </section>
@@ -1354,196 +1130,324 @@
   <section class="section" id="how">
     <div class="container">
       <div class="section-title">
-        <h2>ابدأ في 3 خطوات بسيطة</h2>
+        <h2>كيف يعمل النظام داخل المدرسة؟</h2>
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; text-align: center;">
         <div>
           <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">1</div>
-          <h3>سجّل مدرستك</h3>
-          <p style="color: var(--text-muted);">تواصل معنا لإنشاء حساب المدرسة وضبط الإعدادات الأساسية، الشعار، والبيانات الرسمية.</p>
+          <h3>تهيئة المدرسة</h3>
+          <p style="color: var(--text-muted);">إضافة الأقسام، حسابات المعلمين والإداريين، وضبط الصلاحيات.</p>
         </div>
         <div>
           <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">2</div>
-          <h3>أضف فريقك</h3>
-          <p style="color: var(--text-muted);">أضف المعلمين والإداريين ووزّع الصلاحيات والأقسام بسهولة، مع تحديد ما يمكن لكل شخص رؤيته.</p>
+          <h3>التوثيق والمتابعة</h3>
+          <p style="color: var(--text-muted);">المعلم يرفع التقرير بالصور، والطلبات تُفتح كتذاكر بحالات ومسؤولين وملاحظات.</p>
         </div>
         <div>
           <div style="width: 80px; height: 80px; background: var(--surface-2); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--brand-primary);">3</div>
-          <h3>انطلق!</h3>
-          <p style="color: var(--text-muted);">ابدأ في استقبال التقارير والتذاكر وملفات الإنجاز ومتابعة سير العمل باحترافية ووضوح.</p>
+          <h3>الأرشفة والطباعة</h3>
+          <p style="color: var(--text-muted);">إغلاق التذاكر بعد التنفيذ، وطباعة تقارير وملفات الإنجاز PDF عند الحاجة.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Testimonials -->
-  <section class="testimonials-section" id="testimonials">
+  <!-- Comparison: الطريقة التقليدية vs النظام -->
+  <section class="section" id="compare" style="background: var(--surface-2);">
     <div class="container">
-      <div class="section-title">
-        <h2>ماذا تقول المدارس عن توثيق؟</h2>
+      <div class="section-title" style="margin-bottom: 30px;">
+        <div class="sub-eyebrow">مقارنة مباشرة</div>
+        <h2>الطريقة التقليدية مقابل منصة التقارير والتذاكر</h2>
         <p style="color: var(--text-muted); font-size:0.95rem;">
-          آراء من مدراء ومديرات مدارس طبّقوا نظام التقارير والتذاكر وملف الإنجاز في أعمالهم اليومية.
+          محتوى المقارنة مأخوذ كما هو من صفحة أنظمة المدارس الذكية، ليظهر الفرق بوضوح أمام إدارة المدرسة.
         </p>
       </div>
 
-      <div class="testimonials">
-        <div class="review-card">
-          <div class="stars">
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star-half-stroke"></i>
-          </div>
-          <p>
-            "أصبحت متابعة تقارير المعلمين وطلبات الصيانة أوضح بكثير. كل شيء موثّق وبضغطة زر أطلع على ما يحدث في المدرسة."
-          </p>
-          <div class="user-info">
-            <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
-            <div>
-              <div style="font-weight:700;">قائد مدرسة ثانوية</div>
-              <div class="user-meta">المنطقة الشرقية</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="review-card">
-          <div class="stars">
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-          </div>
-          <p>
-            "ملف الإنجاز الإلكتروني اختصر علينا وقتاً طويلاً. المعلم يوثق من جواله، ونحن نعتمد الملف إلكترونياً بدون طباعة."
-          </p>
-          <div class="user-info">
-            <div class="avatar"><i class="fa-solid fa-user-graduate"></i></div>
-            <div>
-              <div style="font-weight:700;">وكيلة مدرسة متوسطة</div>
-              <div class="user-meta">منطقة الرياض</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="review-card">
-          <div class="stars">
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-regular fa-star"></i>
-          </div>
-          <p>
-            "النظام ساعدنا في تنظيم العمل بين الإدارة والمساعد الإداري ومسؤول الصيانة. كل طلب له رقم وحالة واضحة."
-          </p>
-          <div class="user-info">
-            <div class="avatar"><i class="fa-solid fa-user-gear"></i></div>
-            <div>
-              <div style="font-weight:700;">مشرف إداري</div>
-              <div class="user-meta">منطقة المدينة المنورة</div>
-            </div>
-          </div>
-        </div>
+      <div class="compare-wrap">
+        <table class="compare-table" aria-label="مقارنة منصة التقارير والتذاكر">
+          <thead>
+            <tr>
+              <th>المحور</th>
+              <th>الطريقة التقليدية</th>
+              <th>منصة التقارير والتذاكر</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>التوثيق</b></td>
+              <td>ملفات وورد/صور في الجوال + مجلدات مبعثرة</td>
+              <td>تقارير منظمة داخل النظام + صور فقط + بحث سريع</td>
+            </tr>
+            <tr>
+              <td><b>الطلبات</b></td>
+              <td>واتساب/مذكرات/اتصالات بدون تتبع واضح</td>
+              <td>تذاكر بحالات وإسناد ومسار متابعة وسجل إجراءات</td>
+            </tr>
+            <tr>
+              <td><b>المساءلة</b></td>
+              <td>صعب معرفة “من المسؤول” و“ماذا حدث”</td>
+              <td>مسؤول محدد + تاريخ + ملاحظات + حالة واضحة</td>
+            </tr>
+            <tr>
+              <td><b>الطباعة</b></td>
+              <td>تجميع يدوي مرهق</td>
+              <td>تصدير وطباعة PDF بشكل مرتب</td>
+            </tr>
+            <tr>
+              <td><b>الوقت</b></td>
+              <td>ضياع وقت في التجميع والمتابعة</td>
+              <td>توفير وقت واضح + إجراءات موحدة</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </section>
 
-  <!-- CTA -->
-  <section class="container">
+  <!-- Pricing -->
+  <section class="section" id="pricing">
+    <div class="container">
+      <div class="pricing-section">
+        <div class="pricing-header">
+          <div>
+            <div class="sub-eyebrow">الأسعار</div>
+            <h2>باقات منصة التقارير والتذاكر</h2>
+            <p>
+              الأسعار التالية مأخوذة من صفحة أنظمة المدارس الذكية، وتشمل:
+              التقارير + التذاكر + الصلاحيات + الطباعة PDF.  
+              <span style="display:block; margin-top:4px;">المرفقات: <b>صور فقط</b> لتبسيط الاستخدام داخل المدرسة.</span>
+            </p>
+          </div>
+          <div>
+            <p class="pricing-note">
+              يمكن الاشتراك <b>نصف سنوي (6 أشهر)</b> أو <b>سنوي (12 شهر)</b>، مع باقات تناسب عدد المعلمين في المدرسة.
+            </p>
+            <a href="https://wa.me/966537720207" target="_blank" rel="noopener" class="btn-outline">
+              <i class="fa-brands fa-whatsapp"></i>
+              اطلب عرض سعر مكتوب
+            </a>
+          </div>
+        </div>
+
+        <div class="pricing-tabs" data-pricing-tabs>
+          <button type="button" class="pricing-tab active" data-tab="6m">نصف سنوي (6 أشهر)</button>
+          <button type="button" class="pricing-tab" data-tab="12m">سنوي (12 شهر)</button>
+        </div>
+
+        <div class="pricing-panels">
+          <!-- 6 months -->
+          <div class="pricing-panel active" data-tab-panel="6m">
+            <div class="pricing-cards">
+              <article class="pricing-card">
+                <div class="pricing-top">
+                  <div>
+                    <div class="miniTitle">Starter</div>
+                    <div class="mutedSm">حتى 25 معلم</div>
+                  </div>
+                  <div>
+                    <div class="price-main">595 <span class="per">ريال</span></div>
+                    <div class="mutedSm">لمدة 6 أشهر</div>
+                  </div>
+                </div>
+                <ul class="pricing-list">
+                  <li>مناسب للمدارس الصغيرة أو الأقسام المحدودة</li>
+                  <li>تقارير منظمة بالصور</li>
+                  <li>تذاكر بحالات وإسناد</li>
+                  <li>صلاحيات حسب الدور + تصدير/طباعة PDF</li>
+                </ul>
+                <div class="pricing-actions">
+                  <a href="#contact" class="btn-primary">اطلب اشتراك</a>
+                  <a href="{% url 'reports:login' %}" class="btn-outline">زيارة المنصة</a>
+                </div>
+              </article>
+
+              <article class="pricing-card featured">
+                <div class="pricing-top">
+                  <div>
+                    <div class="miniTitle">Standard ⭐</div>
+                    <div class="mutedSm">حتى 50 معلم</div>
+                  </div>
+                  <div>
+                    <div class="price-main">895 <span class="per">ريال</span></div>
+                    <div class="mutedSm">لمدة 6 أشهر</div>
+                  </div>
+                </div>
+                <ul class="pricing-list">
+                  <li>أفضل خيار لمعظم المدارس</li>
+                  <li>كل مزايا Starter</li>
+                  <li>تنظيم أعلى + متابعة أدق</li>
+                  <li>دعم محسّن</li>
+                </ul>
+                <div class="pricing-actions">
+                  <a href="#contact" class="btn-primary">اطلب اشتراك</a>
+                  <a href="{% url 'reports:login' %}" class="btn-outline">زيارة المنصة</a>
+                </div>
+              </article>
+
+              <article class="pricing-card">
+                <div class="pricing-top">
+                  <div>
+                    <div class="miniTitle">Plus</div>
+                    <div class="mutedSm">حتى 75 معلم</div>
+                  </div>
+                  <div>
+                    <div class="price-main">1,095 <span class="per">ريال</span></div>
+                    <div class="mutedSm">لمدة 6 أشهر</div>
+                  </div>
+                </div>
+                <ul class="pricing-list">
+                  <li>مناسب للمدارس المتوسطة والكبيرة</li>
+                  <li>كل مزايا Standard</li>
+                  <li>سعة أكبر للمستخدمين</li>
+                  <li>دعم فني أوسع</li>
+                </ul>
+                <div class="pricing-actions">
+                  <a href="#contact" class="btn-primary">اطلب اشتراك</a>
+                  <a href="{% url 'reports:login' %}" class="btn-outline">زيارة المنصة</a>
+                </div>
+              </article>
+
+              <article class="pricing-card">
+                <div class="pricing-top">
+                  <div>
+                    <div class="miniTitle">Pro</div>
+                    <div class="mutedSm">حتى 100 معلم</div>
+                  </div>
+                  <div>
+                    <div class="price-main">1,305 <span class="per">ريال</span></div>
+                    <div class="mutedSm">لمدة 6 أشهر</div>
+                  </div>
+                </div>
+                <ul class="pricing-list">
+                  <li>للمدارس الكبيرة جدًا أو المجمّعات</li>
+                  <li>كل مزايا Plus</li>
+                  <li>أعلى سعة للمستخدمين</li>
+                  <li>أولوية دعم</li>
+                </ul>
+                <div class="pricing-actions">
+                  <a href="#contact" class="btn-primary">اطلب اشتراك</a>
+                  <a href="{% url 'reports:login' %}" class="btn-outline">زيارة المنصة</a>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <!-- 12 months -->
+          <div class="pricing-panel" data-tab-panel="12m">
+            <div class="pricing-cards">
+              <article class="pricing-card">
+                <div class="pricing-top">
+                  <div>
+                    <div class="miniTitle">Starter</div>
+                    <div class="mutedSm">حتى 25 معلم</div>
+                  </div>
+                  <div>
+                    <div class="price-main">1,010 <span class="per">ريال</span></div>
+                    <div class="mutedSm">لمدة 12 شهر</div>
+                  </div>
+                </div>
+                <ul class="pricing-list">
+                  <li>مناسب للمدارس الصغيرة أو الأقسام المحدودة</li>
+                  <li>تقارير منظمة بالصور</li>
+                  <li>تذاكر بحالات وإسناد</li>
+                  <li>صلاحيات حسب الدور + تصدير/طباعة PDF</li>
+                </ul>
+                <div class="pricing-actions">
+                  <a href="#contact" class="btn-primary">اطلب اشتراك</a>
+                  <a href="{% url 'reports:login' %}" class="btn-outline">زيارة المنصة</a>
+                </div>
+              </article>
+
+              <article class="pricing-card featured">
+                <div class="pricing-top">
+                  <div>
+                    <div class="miniTitle">Standard ⭐</div>
+                    <div class="mutedSm">حتى 50 معلم</div>
+                  </div>
+                  <div>
+                    <div class="price-main">1,520 <span class="per">ريال</span></div>
+                    <div class="mutedSm">لمدة 12 شهر</div>
+                  </div>
+                </div>
+                <ul class="pricing-list">
+                  <li>أفضل خيار لمعظم المدارس</li>
+                  <li>كل مزايا Starter</li>
+                  <li>تنظيم أعلى + متابعة أدق</li>
+                  <li>دعم محسّن</li>
+                </ul>
+                <div class="pricing-actions">
+                  <a href="#contact" class="btn-primary">اطلب اشتراك</a>
+                  <a href="{% url 'reports:login' %}" class="btn-outline">زيارة المنصة</a>
+                </div>
+              </article>
+
+              <article class="pricing-card">
+                <div class="pricing-top">
+                  <div>
+                    <div class="miniTitle">Plus</div>
+                    <div class="mutedSm">حتى 75 معلم</div>
+                  </div>
+                  <div>
+                    <div class="price-main">1,860 <span class="per">ريال</span></div>
+                    <div class="mutedSm">لمدة 12 شهر</div>
+                  </div>
+                </div>
+                <ul class="pricing-list">
+                  <li>مناسب للمدارس المتوسطة والكبيرة</li>
+                  <li>كل مزايا Standard</li>
+                  <li>سعة أكبر للمستخدمين</li>
+                  <li>دعم فني أوسع</li>
+                </ul>
+                <div class="pricing-actions">
+                  <a href="#contact" class="btn-primary">اطلب اشتراك</a>
+                  <a href="{% url 'reports:login' %}" class="btn-outline">زيارة المنصة</a>
+                </div>
+              </article>
+
+              <article class="pricing-card">
+                <div class="pricing-top">
+                  <div>
+                    <div class="miniTitle">Pro</div>
+                    <div class="mutedSm">حتى 100 معلم</div>
+                  </div>
+                  <div>
+                    <div class="price-main">2,220 <span class="per">ريال</span></div>
+                    <div class="mutedSm">لمدة 12 شهر</div>
+                  </div>
+                </div>
+                <ul class="pricing-list">
+                  <li>للمدارس الكبيرة جدًا أو المجمّعات</li>
+                  <li>كل مزايا Plus</li>
+                  <li>أعلى سعة للمستخدمين</li>
+                  <li>أولوية دعم</li>
+                </ul>
+                <div class="pricing-actions">
+                  <a href="#contact" class="btn-primary">اطلب اشتراك</a>
+                  <a href="{% url 'reports:login' %}" class="btn-outline">زيارة المنصة</a>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <p class="pricing-note" style="margin-top: 24px;">
+          عند الاشتراك في منصة التقارير والتذاكر مع منصة شاشة العرض الذكية، يمكن تقديم خصم خاص حسب عدد المعلمين والشاشات.
+          يتم توضيح الخصم في عرض السعر المرسل للمدرسة.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA (Contact) -->
+  <section class="container" id="contact">
     <div class="cta-box">
-      <h2>هل أنت مستعد لنقلة نوعية في مدرستك؟</h2>
-      <p>انضم إلى نخبة المدارس التي اختارت التنظيم والاحترافية. لا تضيع وقتك في الأوراق والتنسيقات اليدوية.</p>
-      <a href="https://wa.me/966537720207" target="_blank" rel="noopener" class="btn-white">
+      <h2>جاهز لنقلة نوعية في توثيق مدرستك؟</h2>
+      <p>راسلنا عبر واتساب لطلب تجربة مجانية 14 يوم أو عرض سعر مفصل حسب عدد المعلمين في مدرستك.</p>
+      <a href="https://wa.me/966537720207?text=%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%AA%D8%AC%D8%B1%D8%A8%D8%A9%20%D9%85%D9%86%D8%B5%D8%A9%20%D8%A7%D9%84%D8%AA%D9%82%D8%A7%D8%B1%D9%8A%D8%B1%20%D9%88%D8%A7%D9%84%D8%AA%D8%B0%D8%A7%D9%83%D8%B1%20%D9%84%D9%85%D8%AF%D8%B1%D8%B3%D8%AA%D9%8A" target="_blank" rel="noopener" class="btn-white">
         <i class="fa-brands fa-whatsapp"></i>
         تواصل معنا الآن
       </a>
-    </div>
-  </section>
-
-  <!-- Contact -->
-  <section class="contact-section" id="contact">
-    <div class="container">
-      <div class="contact-grid">
-        <div class="contact-info">
-          <h2>دعنا نعرّفك على توثيق عن قرب</h2>
-          <p>
-            املأ النموذج التالي، وسيتواصل معك فريق المنصة لعرض حي قصير يوضح نظام التقارير،
-            التذاكر، وملف الإنجاز، مع إجابة على جميع استفساراتك.
-          </p>
-          <ul class="contact-highlights">
-            <li>
-              <i class="fa-solid fa-circle-check" style="color:var(--brand-primary);"></i>
-              عرض حي لمدة 20–30 دقيقة عن النظام.
-            </li>
-            <li>
-              <i class="fa-solid fa-circle-check" style="color:var(--brand-primary);"></i>
-              توصية بالباقة الأنسب لحجم ومرحلة مدرستك.
-            </li>
-            <li>
-              <i class="fa-solid fa-circle-check" style="color:var(--brand-primary);"></i>
-              إمكانية تجربة فعلية قبل اتخاذ القرار.
-            </li>
-          </ul>
-        </div>
-
-        <div class="contact-card">
-          <h3>نموذج طلب عرض توضيحي</h3>
-          <!-- ملاحظة: عدّل action لاحقاً ليتجه إلى فيو مخصص إن رغبت -->
-          <form action="#" method="post" onsubmit="return false;">
-            <div class="contact-row">
-              <div class="form-group">
-                <label for="contact_name">الاسم الثلاثي</label>
-                <input id="contact_name" name="name" type="text" class="form-input" placeholder="مثال: أحمد بن محمد">
-              </div>
-              <div class="form-group">
-                <label for="contact_role">الصفة</label>
-                <input id="contact_role" name="role" type="text" class="form-input" placeholder="قائد مدرسة / وكيل / مشرف..">
-              </div>
-            </div>
-
-            <div class="contact-row">
-              <div class="form-group">
-                <label for="contact_school">اسم المدرسة</label>
-                <input id="contact_school" name="school" type="text" class="form-input" placeholder="اسم المدرسة">
-              </div>
-              <div class="form-group">
-                <label for="contact_city">المدينة / المنطقة</label>
-                <input id="contact_city" name="city" type="text" class="form-input" placeholder="الرياض، جدة، ...">
-              </div>
-            </div>
-
-            <div class="contact-row">
-              <div class="form-group">
-                <label for="contact_phone">رقم الجوال</label>
-                <input id="contact_phone" name="phone" type="tel" class="form-input" placeholder="05XXXXXXXX">
-              </div>
-              <div class="form-group">
-                <label for="contact_email">البريد الإلكتروني</label>
-                <input id="contact_email" name="email" type="email" class="form-input" placeholder="example@school.sa">
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="contact_message">ما الذي ترغب في التركيز عليه في العرض؟</label>
-              <textarea id="contact_message" name="message" class="form-textarea" placeholder="مثال: نرغب في التركيز على ملف الإنجاز الإلكتروني، وعدد المستخدمين، وطريقة إدخال التقارير من الجوال."></textarea>
-            </div>
-
-            <div class="contact-actions">
-              <button type="submit" class="btn-primary">
-                <i class="fa-solid fa-paper-plane"></i>
-                إرسال الطلب (تصميم فقط)
-              </button>
-              <a href="https://wa.me/966537720207" target="_blank" rel="noopener" class="btn-outline">
-                أو تواصل مباشرة عبر واتساب
-              </a>
-              <span class="note">* يمكن ربط النموذج لاحقاً بداخل النظام لاستقبال الطلبات.</span>
-            </div>
-          </form>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -1553,11 +1457,11 @@
       <div class="footer-grid">
         <div class="footer-col">
           <a href="#" class="logo" style="margin-bottom: 20px;">
-            <img src="{% static 'img/logo1.png' %}" alt="توثيق">
-            <span>منصة توثيق</span>
+            <img src="{% static 'img/logo1.png' %}" alt="منصة التقارير والتذاكر">
+            <span>منصة التقارير والتذاكر</span>
           </a>
           <p style="color: var(--text-muted);">
-            الحل الأمثل لإدارة التقارير والطلبات وملفات الإنجاز المدرسية. نجمع بين سهولة الاستخدام وقوة الأداء.
+            نظام عربي متكامل لإدارة التقارير، التذاكر، وملفات الإنجاز المدرسية، بهوية احترافية وتجربة استخدام مريحة للمدير والمعلم.
           </p>
         </div>
 
@@ -1565,8 +1469,9 @@
           <h4>روابط سريعة</h4>
           <a href="#features">المزايا</a>
           <a href="#achievement">ملف الإنجاز</a>
-          <a href="#pricing">الخطط والأسعار</a>
-          <a href="{% url 'reports:login' %}">تسجيل الدخول</a>
+          <a href="#compare">المقارنة</a>
+          <a href="#pricing">الأسعار</a>
+          <a href="{% url 'reports:login' %}">دخول المنصة</a>
         </div>
 
         <div class="footer-col">
@@ -1581,14 +1486,14 @@
           <a href="https://wa.me/966537720207" target="_blank" rel="noopener">
             <i class="fa-brands fa-whatsapp"></i> واتساب
           </a>
-          <a href="mailto:info@tawtheeq.com">
+          <a href="mailto:mansour9999@hotmail.com">
             <i class="fa-regular fa-envelope"></i> البريد الإلكتروني
           </a>
         </div>
       </div>
 
       <div class="copy">
-        &copy; {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.
+        &copy; {% now "Y" %} منصة التقارير والتذاكر. جميع الحقوق محفوظة.
       </div>
     </div>
   </footer>
@@ -1615,7 +1520,6 @@
         panel.classList.toggle('open');
       });
 
-      // إغلاق القائمة عند الضغط على رابط داخلي
       var links = panel.querySelectorAll('a[href^="#"]');
       links.forEach(function(link) {
         link.addEventListener('click', function() {
@@ -1624,7 +1528,7 @@
       });
     })();
 
-    // Smooth scroll for internal links (desktop + mobile)
+    // Smooth scroll للروابط الداخلية
     document.querySelectorAll('a[href^="#"]').forEach(function (a) {
       a.addEventListener('click', function (e) {
         var id = a.getAttribute('href');
@@ -1635,6 +1539,33 @@
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
+
+    // تبويبات الأسعار (نصف سنوي / سنوي)
+    (function() {
+      var container = document.querySelector('[data-pricing-tabs]');
+      if (!container) return;
+
+      var tabs = container.querySelectorAll('.pricing-tab');
+      var panels = document.querySelectorAll('.pricing-panel');
+
+      tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          var key = tab.getAttribute('data-tab');
+          if (!key) return;
+
+          tabs.forEach(function(t) { t.classList.remove('active'); });
+          panels.forEach(function(panel) {
+            if (panel.getAttribute('data-tab-panel') === key) {
+              panel.classList.add('active');
+            } else {
+              panel.classList.remove('active');
+            }
+          });
+
+          tab.classList.add('active');
+        });
+      });
+    })();
   </script>
 </body>
 </html>
