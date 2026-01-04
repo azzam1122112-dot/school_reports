@@ -149,10 +149,16 @@ INSTALLED_APPS = [
 # ملاحظة مهمة: قيمة R2_ENDPOINT_URL يجب أن تكون مثل:
 #   https://<accountid>.r2.cloudflarestorage.com
 # وليس مع اسم الـ bucket في آخر الرابط.
-R2_ACCESS_KEY_ID = (os.getenv("R2_ACCESS_KEY_ID") or "").strip()
-R2_SECRET_ACCESS_KEY = (os.getenv("R2_SECRET_ACCESS_KEY") or "").strip()
+# NOTE: Support common alias env var names (some dashboards use shorter keys).
+R2_ACCESS_KEY_ID = (os.getenv("R2_ACCESS_KEY_ID") or os.getenv("R2_ACCESS_KEY") or "").strip()
+R2_SECRET_ACCESS_KEY = (os.getenv("R2_SECRET_ACCESS_KEY") or os.getenv("R2_SECRET_KEY") or "").strip()
 R2_BUCKET_NAME = (os.getenv("R2_BUCKET_NAME") or "").strip()
-R2_ENDPOINT_URL = (os.getenv("R2_ENDPOINT_URL") or "").strip()
+R2_ENDPOINT_URL = (
+    os.getenv("R2_ENDPOINT_URL")
+    or os.getenv("R2_ENDPOINT")
+    or os.getenv("Default_Endpoint")
+    or ""
+).strip()
 
 # بعض واجهات Cloudflare تعرض S3 API مع اسم الـ bucket في نهاية الرابط.
 # مثال: https://<accountid>.r2.cloudflarestorage.com/<bucket>
