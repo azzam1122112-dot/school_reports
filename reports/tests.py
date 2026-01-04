@@ -306,6 +306,51 @@ class ReportViewerLimitTests(TestCase):
 			m1.save(update_fields=["is_active"])
 
 
+class ReportEditPermissionsTests(TestCase):
+	def setUp(self):
+		from .models import ReportType
+
+		self.school = School.objects.create(name="School", code="school-edit")
+		plan = SubscriptionPlan.objects.create(name="Test", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+		self.manager = Teacher.objects.create_user(phone="0500001001", name="Manager", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.teacher = Teacher.objects.create_user(phone="0500001002", name="Teacher", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.teacher,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+
+		rt = ReportType.objects.create(name="Type A", code="type-a", is_active=True, school=self.school)
+		self.report = Report.objects.create(
+			school=self.school,
+			teacher=self.teacher,
+			title="R1",
+			report_date=timezone.localdate(),
+			category=rt,
+		)
+
+	def test_manager_can_open_edit_for_other_teachers_report_in_active_school(self):
+		self.client.force_login(self.manager)
+		session = self.client.session
+		session["active_school_id"] = self.school.id
+		session.save()
+
+		url = reverse("reports:edit_my_report", args=[self.report.pk])
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
+
+
 class StorageCompressionTests(TestCase):
 	def test_compress_image_file_resizes_and_reduces_size(self):
 		from io import BytesIO

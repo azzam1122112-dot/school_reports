@@ -111,7 +111,7 @@ except Exception:  # pragma: no cover
     DepartmentMembership = None  # type: ignore
 
 # ===== صلاحيات =====
-from .permissions import allowed_categories_for, role_required
+from .permissions import allowed_categories_for, role_required, restrict_queryset_for_user
 try:
     from .permissions import is_officer  # type: ignore
 except Exception:
@@ -4573,21 +4573,46 @@ def assigned_to_me(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET", "POST"])
 def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
+    user = request.user
     active_school = _get_active_school(request)
-    qs = Report.objects.filter(teacher=request.user)
+
+    # المدير داخل المدرسة النشطة (والسوبر) يمكنه تعديل التقارير ضمن نطاق صلاحياته.
+    # غير ذلك: يقتصر التعديل على تقارير المستخدم نفسه.
+    can_edit_others = bool(getattr(user, "is_superuser", False) or _is_manager_in_school(user, active_school))
+    if can_edit_others:
+        # غير السوبر: نُجبر اختيار مدرسة لتفادي خلط الصلاحيات عبر المدارس.
+        if (not getattr(user, "is_superuser", False)) and School.objects.filter(is_active=True).exists() and active_school is None:
+            messages.error(request, "فضلاً اختر مدرسة أولاً.")
+            return redirect("reports:select_school")
+        qs = restrict_queryset_for_user(Report.objects.all(), user, active_school)
+    else:
+        qs = Report.objects.filter(teacher=user)
+
     qs = _filter_by_school(qs, active_school)
     r = get_object_or_404(qs, pk=pk)
 
+    # لا نجبر تغيير المدرسة النشطة بالجَلسة، لكن نستخدم مدرسة التقرير لتصفية الأنواع عند الحاجة.
+    form_school = active_school
+    if form_school is None and _model_has_field(Report, "school"):
+        try:
+            form_school = getattr(r, "school", None)
+        except Exception:
+            form_school = active_school
+
     if request.method == "POST":
-        form = ReportForm(request.POST, request.FILES, instance=r, active_school=active_school)
+        form = ReportForm(request.POST, request.FILES, instance=r, active_school=form_school)
         if form.is_valid():
             form.save()
             messages.success(request, "✏️ تم تحديث التقرير بنجاح.")
             nxt = request.POST.get("next") or request.GET.get("next")
-            return redirect(nxt or "reports:my_reports")
+            if nxt:
+                return redirect(nxt)
+            if can_edit_others and getattr(r, "teacher_id", None) != getattr(user, "id", None):
+                return redirect("reports:admin_reports")
+            return redirect("reports:my_reports")
         messages.error(request, "تحقّق من الحقول.")
     else:
-        form = ReportForm(instance=r, active_school=active_school)
+        form = ReportForm(instance=r, active_school=form_school)
 
     return render(request, "reports/edit_report.html", {"form": form, "report": r})
 
