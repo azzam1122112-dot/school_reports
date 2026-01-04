@@ -414,13 +414,14 @@ if _use_r2:
     AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")
     AWS_DEFAULT_ACL = None
     # If no public domain is configured, default to signed URLs so media can still display.
+    # NOTE: When using signed URLs, we should NOT use AWS_S3_CUSTOM_DOMAIN; signatures are bound to host.
     AWS_QUERYSTRING_AUTH = _env_bool("AWS_QUERYSTRING_AUTH", not bool(R2_PUBLIC_DOMAIN))
     AWS_QUERYSTRING_EXPIRE = int(os.getenv("AWS_QUERYSTRING_EXPIRE", "86400"))
     AWS_S3_FILE_OVERWRITE = _env_bool("AWS_S3_FILE_OVERWRITE", False)
     AWS_S3_OBJECT_PARAMETERS = {
         "CacheControl": os.getenv("AWS_S3_CACHE_CONTROL", "max-age=31536000"),
     }
-    if R2_PUBLIC_DOMAIN:
+    if R2_PUBLIC_DOMAIN and not AWS_QUERYSTRING_AUTH:
         AWS_S3_CUSTOM_DOMAIN = R2_PUBLIC_DOMAIN
 
 # ملاحظة: حقل المرفق في Ticket يستخدم PublicRawMediaStorage صراحةً من reports/storage.py
