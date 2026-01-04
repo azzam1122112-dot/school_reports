@@ -387,8 +387,18 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(4
 # عند تفعيل R2، سيكون هو التخزين الافتراضي.
 # اختياري:
 # - R2_PUBLIC_DOMAIN: دومين عام لعرض الملفات (مثل custom domain أو *.r2.dev)
+#   يمكن إدخاله كـ host فقط (media.example.com) أو كـ URL كامل (https://media.example.com)
 # - AWS_QUERYSTRING_AUTH: إن كانت الـ bucket private وتحتاج روابط موقعة اجعله 1
 R2_PUBLIC_DOMAIN = (os.getenv("R2_PUBLIC_DOMAIN") or "").strip()
+if R2_PUBLIC_DOMAIN:
+    # Normalize: allow passing full URL; storages expects host without scheme.
+    try:
+        parts = urlsplit(R2_PUBLIC_DOMAIN)
+        if parts.scheme and parts.netloc:
+            R2_PUBLIC_DOMAIN = parts.netloc
+    except Exception:
+        pass
+    R2_PUBLIC_DOMAIN = R2_PUBLIC_DOMAIN.strip().strip("/")
 
 if _use_r2:
     DEFAULT_FILE_STORAGE = "reports.storage.R2MediaStorage"
@@ -403,7 +413,9 @@ if _use_r2:
     AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", "s3v4")
     AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")
     AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = _env_bool("AWS_QUERYSTRING_AUTH", False)
+    # If no public domain is configured, default to signed URLs so media can still display.
+    AWS_QUERYSTRING_AUTH = _env_bool("AWS_QUERYSTRING_AUTH", not bool(R2_PUBLIC_DOMAIN))
+    AWS_QUERYSTRING_EXPIRE = int(os.getenv("AWS_QUERYSTRING_EXPIRE", "86400"))
     AWS_S3_FILE_OVERWRITE = _env_bool("AWS_S3_FILE_OVERWRITE", False)
     AWS_S3_OBJECT_PARAMETERS = {
         "CacheControl": os.getenv("AWS_S3_CACHE_CONTROL", "max-age=31536000"),
