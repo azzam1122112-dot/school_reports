@@ -398,7 +398,11 @@ if R2_PUBLIC_DOMAIN:
             R2_PUBLIC_DOMAIN = parts.netloc
     except Exception:
         pass
+    # Also handle values provided as host/path without scheme.
+    # Example: pub-xxx.r2.dev/school-reports -> pub-xxx.r2.dev
     R2_PUBLIC_DOMAIN = R2_PUBLIC_DOMAIN.strip().strip("/")
+    if "/" in R2_PUBLIC_DOMAIN:
+        R2_PUBLIC_DOMAIN = R2_PUBLIC_DOMAIN.split("/", 1)[0]
 
 if _use_r2:
     DEFAULT_FILE_STORAGE = "reports.storage.R2MediaStorage"
