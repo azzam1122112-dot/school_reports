@@ -358,7 +358,7 @@ class ContentSecurityPolicyMiddleware:
     - This project uses inline <style>/<script> in templates, so we must allow
       'unsafe-inline' unless we migrate to nonces/hashes.
     - External fonts/icons are loaded via Google Fonts + cdnjs.
-    - Cloudinary may serve media assets on res.cloudinary.com.
+    - Media assets may be served from HTTPS URLs (depending on storage/CDN).
     """
 
     def __init__(self, get_response):
@@ -400,7 +400,7 @@ class ContentSecurityPolicyMiddleware:
             f"script-src-elem 'self' 'nonce-{nonce}'",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
-            "img-src 'self' data: blob: https: https://res.cloudinary.com",
+            "img-src 'self' data: blob: https:",
             "connect-src 'self'",
             "upgrade-insecure-requests",
         ]

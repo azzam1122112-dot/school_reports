@@ -262,7 +262,6 @@ class ReportViewerLimitTests(TestCase):
 			role_type=SchoolMembership.RoleType.REPORT_VIEWER,
 			is_active=True,
 		)
-
 		with self.assertRaises(Exception):
 			SchoolMembership.objects.create(
 				school=self.school,
@@ -305,3 +304,42 @@ class ReportViewerLimitTests(TestCase):
 		m1.is_active = True
 		with self.assertRaises(Exception):
 			m1.save(update_fields=["is_active"])
+
+
+class StorageCompressionTests(TestCase):
+	def test_compress_image_file_resizes_and_reduces_size(self):
+		from io import BytesIO
+		from PIL import Image
+		from django.core.files.base import ContentFile
+		from .storage import _compress_image_file
+
+		# Create a deliberately large JPEG so resizing definitely happens.
+		img = Image.new("RGB", (3000, 2000), (255, 0, 0))
+		buf = BytesIO()
+		img.save(buf, format="JPEG", quality=95)
+		original_bytes = buf.getvalue()
+
+		original = ContentFile(original_bytes)
+		original.name = "big.jpg"
+
+		compressed = _compress_image_file(original, max_size=1600, jpeg_quality=85)
+		compressed_bytes = compressed.read()
+
+		# Size should go down after resizing (3000px -> <=1600px)
+		self.assertLess(len(compressed_bytes), len(original_bytes))
+
+		# Dimensions should not exceed max_size
+		out = Image.open(BytesIO(compressed_bytes))
+		self.assertLessEqual(max(out.size), 1600)
+
+	def test_compress_image_file_keeps_non_images_unchanged(self):
+		from django.core.files.base import ContentFile
+		from .storage import _compress_image_file
+
+		data = b"not an image file"
+		f = ContentFile(data)
+		f.name = "x.txt"
+
+		out = _compress_image_file(f)
+		out_bytes = out.read()
+		self.assertEqual(out_bytes, data)

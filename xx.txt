@@ -48,9 +48,14 @@ SECRET_KEY=*** ضع هنا المفتاح السري للإنتاج (من Render
 
 DATABASE_URL=*** رابط قاعدة بيانات الإنتاج (من Render Postgres) ***
 
-CLOUDINARY_CLOUD_NAME=*** اسم حساب Cloudinary للإنتاج ***
-CLOUDINARY_API_KEY=*** مفتاح Cloudinary للإنتاج ***
-CLOUDINARY_API_SECRET=*** سر Cloudinary للإنتاج ***
+R2_ACCESS_KEY_ID=*** Cloudflare R2 Access Key ID ***
+R2_SECRET_ACCESS_KEY=*** Cloudflare R2 Secret Access Key ***
+R2_BUCKET_NAME=school-reports
+# ملاحظة: ضع هنا endpoint بدون اسم الـ bucket
+# مثال: https://<accountid>.r2.cloudflarestorage.com
+R2_ENDPOINT_URL=*** Cloudflare R2 S3 API endpoint ***
+# اختياري (إن لديك دومين عام أو r2.dev)
+R2_PUBLIC_DOMAIN=*** public domain for media (optional) ***
 
 ALLOWED_HOSTS=school-7lgm.onrender.com
 
@@ -67,9 +72,11 @@ SECRET_KEY=*** مفتاح سري للاستخدام المحلي فقط (غير 
 # إذا حاب تجرب PostgreSQL محليًا
 # DATABASE_URL=postgres://postgres:password@localhost:5432/school_db
 
-CLOUDINARY_CLOUD_NAME=*** حساب Cloudinary التجريبي أو نفس الإنتاج ***
-CLOUDINARY_API_KEY=*** المفتاح الخاص بالتطوير ***
-CLOUDINARY_API_SECRET=*** السر الخاص بالتطوير ***
+R2_ACCESS_KEY_ID=*** Cloudflare R2 Access Key ID (dev) ***
+R2_SECRET_ACCESS_KEY=*** Cloudflare R2 Secret Access Key (dev) ***
+R2_BUCKET_NAME=school-reports
+R2_ENDPOINT_URL=*** Cloudflare R2 S3 API endpoint (dev) ***
+R2_PUBLIC_DOMAIN=*** public domain for media (optional) ***
 
 ALLOWED_HOSTS=localhost,127.0.0.1
 

@@ -16,7 +16,7 @@ from django.dispatch import receiver
 from django.utils.text import slugify
 from django.utils import timezone
 
-# تخزين Cloudinary العام لملفات raw (PDF/DOCX/ZIP/صور)
+# تخزين المرفقات (R2 أو محلي)
 from .storage import PublicRawMediaStorage
 from .validators import validate_image_file
 
@@ -933,7 +933,7 @@ class Ticket(models.Model):
     title = models.CharField("عنوان الطلب", max_length=255)
     body = models.TextField("تفاصيل الطلب", blank=True, null=True)
 
-    # ✅ مرفق يُرفع إلى Cloudinary كـ raw عام (type=upload)
+    # ✅ مرفق يُرفع إلى التخزين الافتراضي (R2 أو محلي)
     attachment = models.FileField(
         "مرفق",
         upload_to="tickets/",
@@ -1026,8 +1026,7 @@ class TicketRecipient(models.Model):
     @property
     def attachment_download_url(self) -> str:
         """
-        • إذا كان التخزين Cloudinary → أدخل fl_attachment:<filename> داخل جزء /upload/.
-        • غير Cloudinary → أضف Content-Disposition عبر query كحل احتياطي.
+        • أضف Content-Disposition عبر query كحل احتياطي لتلميح التحميل.
         """
         url = getattr(self.attachment, "url", "") or ""
         if not url:
@@ -1035,13 +1034,7 @@ class TicketRecipient(models.Model):
 
         filename = os.path.basename(getattr(self.attachment, "name", "")) or "download"
 
-        # Cloudinary
-        if "res.cloudinary.com" in url and "/upload/" in url:
-            # مثال: /raw/upload/v123/... → /raw/upload/fl_attachment:my.pdf/v123/...
-            safe_fn = quote(filename, safe="")
-            return url.replace("/upload/", f"/upload/fl_attachment:{safe_fn}/")
-
-        # غير Cloudinary: تلميح للتحميل
+        # تلميح للتحميل
         sep = "&" if "?" in url else "?"
         dispo = quote(f"attachment; filename*=UTF-8''{filename}", safe="")
         return f"{url}{sep}response-content-disposition={dispo}"

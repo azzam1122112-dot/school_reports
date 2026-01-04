@@ -23,10 +23,9 @@ gunicorn
 whitenoise
 dj-database-url==3.0.1
 
-# Cloudinary
-cloudinary
-django-cloudinary-storage
-dj-database-url
+# Cloudflare R2 (S3-compatible)
+django-storages
+boto3
 
 # Redis & Caching
 django-redis==5.4.0

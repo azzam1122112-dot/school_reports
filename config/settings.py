@@ -138,13 +138,47 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     # طرف ثالث
-    "cloudinary",
-    "cloudinary_storage",
     "django_celery_results",
 
     # تطبيقاتنا
     "reports",
 ]
+
+# ----------------- Storage Backend (optional R2) -----------------
+# إذا كانت متغيرات R2 موجودة، نستخدم Cloudflare R2 لتخزين ملفات الوسائط (media).
+# ملاحظة مهمة: قيمة R2_ENDPOINT_URL يجب أن تكون مثل:
+#   https://<accountid>.r2.cloudflarestorage.com
+# وليس مع اسم الـ bucket في آخر الرابط.
+R2_ACCESS_KEY_ID = (os.getenv("R2_ACCESS_KEY_ID") or "").strip()
+R2_SECRET_ACCESS_KEY = (os.getenv("R2_SECRET_ACCESS_KEY") or "").strip()
+R2_BUCKET_NAME = (os.getenv("R2_BUCKET_NAME") or "").strip()
+R2_ENDPOINT_URL = (os.getenv("R2_ENDPOINT_URL") or "").strip()
+
+# بعض واجهات Cloudflare تعرض S3 API مع اسم الـ bucket في نهاية الرابط.
+# مثال: https://<accountid>.r2.cloudflarestorage.com/<bucket>
+# هنا نطبع الرابط تلقائياً ليصبح endpoint بدون path، ونستخرج اسم الـ bucket عند الحاجة.
+_r2_effective_bucket = R2_BUCKET_NAME
+_r2_effective_endpoint = R2_ENDPOINT_URL
+if R2_ENDPOINT_URL:
+    try:
+        parts = urlsplit(R2_ENDPOINT_URL)
+        path = (parts.path or "").strip("/")
+        if path:
+            bucket_from_path = path.split("/", 1)[0]
+            if not _r2_effective_bucket:
+                _r2_effective_bucket = bucket_from_path
+            # strip path/query/fragment for endpoint
+            _r2_effective_endpoint = urlunsplit((parts.scheme, parts.netloc, "", "", ""))
+    except Exception:
+        pass
+
+# استخدم القيم المطَبَّعة لباقي الإعدادات
+R2_BUCKET_NAME = _r2_effective_bucket
+R2_ENDPOINT_URL = _r2_effective_endpoint
+
+_use_r2 = bool(R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY and R2_BUCKET_NAME and R2_ENDPOINT_URL)
+if _use_r2 and "storages" not in INSTALLED_APPS:
+    INSTALLED_APPS.append("storages")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -343,21 +377,35 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FIELDS", "
 # ملاحظة: رفع الملفات الكبيرة عبر multipart يحتسب ضمن هذا الحد.
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(40 * 1024 * 1024)))
 
-# ----------------- Cloudinary (شرطي) -----------------
-CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
-CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
-CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+# ----------------- Cloudflare R2 (شرطي) -----------------
+# عند تفعيل R2، سيكون هو التخزين الافتراضي.
+# اختياري:
+# - R2_PUBLIC_DOMAIN: دومين عام لعرض الملفات (مثل custom domain أو *.r2.dev)
+# - AWS_QUERYSTRING_AUTH: إن كانت الـ bucket private وتحتاج روابط موقعة اجعله 1
+R2_PUBLIC_DOMAIN = (os.getenv("R2_PUBLIC_DOMAIN") or "").strip()
 
-if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
-    # نستخدم تخزينًا مخصصًا يضغط الصور قبل رفعها إلى Cloudinary
-    DEFAULT_FILE_STORAGE = "reports.storage.CompressedMediaCloudinaryStorage"
-    CLOUDINARY_STORAGE = {
-        "CLOUD_NAME": CLOUDINARY_CLOUD_NAME,
-        "API_KEY": CLOUDINARY_API_KEY,
-        "API_SECRET": CLOUDINARY_API_SECRET,
-        # "SECURE": True,  # اختياري
+if _use_r2:
+    DEFAULT_FILE_STORAGE = "reports.storage.R2MediaStorage"
+
+    AWS_ACCESS_KEY_ID = R2_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY = R2_SECRET_ACCESS_KEY
+    AWS_STORAGE_BUCKET_NAME = R2_BUCKET_NAME
+    AWS_S3_ENDPOINT_URL = R2_ENDPOINT_URL
+
+    # Cloudflare R2 best-practice settings
+    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "auto")
+    AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", "s3v4")
+    AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = _env_bool("AWS_QUERYSTRING_AUTH", False)
+    AWS_S3_FILE_OVERWRITE = _env_bool("AWS_S3_FILE_OVERWRITE", False)
+    AWS_S3_OBJECT_PARAMETERS = {
+        "CacheControl": os.getenv("AWS_S3_CACHE_CONTROL", "max-age=31536000"),
     }
-# ملاحظة: حقل المرفق في Ticket يستخدم PublicRawMediaStorage صراحةً (raw + public) من reports/storage.py
+    if R2_PUBLIC_DOMAIN:
+        AWS_S3_CUSTOM_DOMAIN = R2_PUBLIC_DOMAIN
+
+# ملاحظة: حقل المرفق في Ticket يستخدم PublicRawMediaStorage صراحةً من reports/storage.py
 
 # ----------------- الأمان في الإنتاج -----------------
 if ENV == "production":

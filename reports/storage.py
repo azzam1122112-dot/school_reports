@@ -14,16 +14,15 @@ except ImportError:  # Pillow غير متوفر؟ نتخطى الضغط بهدو
     Image = None
     UnidentifiedImageError = Exception
 
-# نحاول استيراد Cloudinary، لكن نستخدمه فقط إذا كان مفعلًا في الإعدادات
+# نحاول استيراد django-storages (S3) لاستخدام Cloudflare R2 عند تفعيله
 try:
-    from cloudinary_storage.storage import RawMediaCloudinaryStorage, MediaCloudinaryStorage
-except (ImportError, ImproperlyConfigured):
-    RawMediaCloudinaryStorage = None
-    MediaCloudinaryStorage = None
+    from storages.backends.s3boto3 import S3Boto3Storage
+except Exception:
+    S3Boto3Storage = None
 
 
 def _compress_image_file(file_obj, max_size: int = 1600, jpeg_quality: int = 90):
-    """يضغط الصورة (إن كانت صورة) قبل رفعها إلى Cloudinary.
+    """يضغط الصورة (إن كانت صورة) قبل حفظها.
 
     - يقلّل الأبعاد بحيث لا يتجاوز أي بُعد max_size (مثلاً 1600px)
     - يحفظ JPEG بجودة عالية (افتراضيًا 90) مع optimize=True
@@ -100,47 +99,58 @@ def _compress_image_file(file_obj, max_size: int = 1600, jpeg_quality: int = 90)
     return compressed
 
 
-# نتحقق هل Cloudinary مفعل في settings.py؟
-_use_cloudinary = (
-    MediaCloudinaryStorage is not None
-    and RawMediaCloudinaryStorage is not None
-    and hasattr(settings, "CLOUDINARY_STORAGE")
-    and settings.CLOUDINARY_STORAGE
-)
+def _use_r2_storage() -> bool:
+    """Detect if S3-compatible storage is configured in settings (Cloudflare R2)."""
+    try:
+        return bool(
+            S3Boto3Storage is not None
+            and getattr(settings, "AWS_STORAGE_BUCKET_NAME", None)
+            and getattr(settings, "AWS_S3_ENDPOINT_URL", None)
+        )
+    except Exception:
+        return False
 
 
-if _use_cloudinary:
-    class CompressedMediaCloudinaryStorage(MediaCloudinaryStorage):
-        """تخزين Cloudinary مع ضغط تلقائي للصور قبل الرفع.
-
-        يُستخدم هذا التخزين كـ DEFAULT_FILE_STORAGE بحيث يشمل:
-        - كل ImageField
-        - كل FileField الذي يرفع صورة (سيفحص الامتداد/المحتوى)
-        """
-
-        def _save(self, name, content):  # type: ignore[override]
-            content = _compress_image_file(content)
-            return super()._save(name, content)
-
-
-    class PublicRawMediaStorage(RawMediaCloudinaryStorage):
-        """تخزين Cloudinary للملفات العامة كـ RAW (PDF/DOCX/ZIP/صور).
-
-        - يرفع الملفات تحت resource_type="raw"
-        - الوصول عام (type=upload)
-        - إذا كان الملف صورة (jpg/png/webp ...) يتم ضغطها قبل الرفع
-        """
+if _use_r2_storage():
+    class PublicRawMediaStorage(S3Boto3Storage):
+        """Public storage for attachments when using R2."""
 
         def _save(self, name, content):  # type: ignore[override]
             content = _compress_image_file(content)
             return super()._save(name, content)
 else:
-    # في بيئة التطوير المحلية (بدون Cloudinary) نستخدم التخزين المحلي العادي
     class PublicRawMediaStorage(FileSystemStorage):
-        pass
+        """Local filesystem storage for attachments."""
 
-    # نعرّف CompressedMediaCloudinaryStorage كتخزين محلي بسيط للاتساق،
-    # لكن بدون أي منطق خاص (لا يوجد Cloudinary هنا).
-    class CompressedMediaCloudinaryStorage(FileSystemStorage):
-        pass
+        def _save(self, name, content):  # type: ignore[override]
+            content = _compress_image_file(content)
+            return super()._save(name, content)
+
+
+# ----------------- Cloudflare R2 Storage -----------------
+if S3Boto3Storage is None:
+    class R2MediaStorage(FileSystemStorage):
+        """Placeholder when django-storages isn't installed."""
+
+        def __init__(self, *args, **kwargs):
+            raise ImproperlyConfigured(
+                "R2 storage requires 'django-storages' and 'boto3'. "
+                "Install them and ensure 'storages' is available."
+            )
+else:
+    class R2MediaStorage(S3Boto3Storage):
+        """Storage backend for Cloudflare R2 (S3-compatible).
+
+        Compresses image files before upload to reduce size.
+        """
+
+        def _save(self, name, content):  # type: ignore[override]
+            content = _compress_image_file(content)
+            return super()._save(name, content)
+
+
+# When R2 is enabled, reuse the same behavior for attachment storage.
+if _use_r2_storage() and S3Boto3Storage is not None:
+    class PublicRawMediaStorage(R2MediaStorage):
+        """Public storage for attachments when using R2."""
 

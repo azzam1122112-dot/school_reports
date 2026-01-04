@@ -303,7 +303,7 @@ class ReportForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
 
-        # ضغط الصور قبل الرفع إلى Cloudinary + التحقق من الحجم بعد الضغط
+        # ضغط الصور قبل الرفع + التحقق من الحجم بعد الضغط
         for field_name in ["image1", "image2", "image3", "image4"]:
             img = cleaned.get(field_name)
             if not img:
