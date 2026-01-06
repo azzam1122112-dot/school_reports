@@ -5167,8 +5167,13 @@ def my_subscription(request):
     if not membership:
         messages.error(request, "عفواً، هذه الصفحة مخصصة لمدير المدرسة فقط.")
         return redirect('reports:home')
-        
-    subscription = getattr(membership.school, 'subscription', None)
+
+    # ملاحظة: reverse OneToOne (school.subscription) يرفع DoesNotExist إن لم يوجد سجل
+    subscription = (
+        SchoolSubscription.objects.filter(school=membership.school)
+        .select_related("plan")
+        .first()
+    )
     
     # جلب آخر المدفوعات
     payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:5]
@@ -5205,6 +5210,12 @@ def payment_create(request):
         messages.error(request, "عفواً، هذه الصفحة مخصصة لمدير المدرسة فقط.")
         return redirect('reports:home')
 
+    subscription = (
+        SchoolSubscription.objects.filter(school=membership.school)
+        .select_related("plan")
+        .first()
+    )
+
     if request.method == 'POST':
         plan_id = request.POST.get('plan')
         amount = request.POST.get('amount')
@@ -5230,7 +5241,7 @@ def payment_create(request):
         else:
             Payment.objects.create(
                 school=membership.school,
-                subscription=getattr(membership.school, 'subscription', None),
+                subscription=subscription,
                 requested_plan=requested_plan,
                 amount=amount,
                 receipt_image=receipt,
