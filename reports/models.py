@@ -21,7 +21,7 @@ from django.utils import timezone
 
 # تخزين المرفقات (R2 أو محلي)
 from .storage import PublicRawMediaStorage
-from .validators import validate_image_file
+from .validators import validate_attachment_file, validate_image_file, validate_pdf_file
 
 # =========================
 # ثوابت عامة
@@ -130,7 +130,7 @@ class School(models.Model):
     logo_url = models.URLField("رابط الشعار", blank=True, null=True)
     logo_file = models.ImageField(
         "شعار مرفوع",
-        upload_to="schools/logos/",
+        upload_to=_school_logo_upload_to,
         blank=True,
         null=True,
         validators=[validate_image_file],
@@ -260,6 +260,7 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     # يُحدَّث تلقائيًا حسب role.is_staff_by_default
     is_staff = models.BooleanField("موظّف لوحة", default=False)
     is_platform_admin = models.BooleanField("مشرف عام للمنصة؟", default=False)
+    current_session_key = models.CharField(max_length=64, blank=True, default="")
     date_joined = models.DateTimeField("تاريخ الانضمام", auto_now_add=True)
 
     USERNAME_FIELD = "phone"
@@ -748,10 +749,10 @@ class Report(models.Model):
         db_index=True,
     )
 
-    image1 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
-    image2 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
-    image3 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
-    image4 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
+    image1 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
+    image2 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
+    image3 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
+    image4 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
 
 
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
@@ -873,6 +874,7 @@ class TeacherAchievementFile(models.Model):
         storage=PublicRawMediaStorage(),
         blank=True,
         null=True,
+        validators=[validate_pdf_file],
     )
     pdf_generated_at = models.DateTimeField("آخر توليد PDF", null=True, blank=True)
 
@@ -1236,13 +1238,13 @@ class Ticket(models.Model):
     # ✅ مرفق يُرفع إلى التخزين الافتراضي (R2 أو محلي)
     attachment = models.FileField(
         "مرفق",
-        upload_to="tickets/",
+        upload_to=_ticket_attachment_upload_to,
         storage=PublicRawMediaStorage(),   # عام + raw
         blank=True,
         null=True,
         validators=[
             FileExtensionValidator(["pdf", "jpg", "jpeg", "png", "doc", "docx"]),
-            validate_attachment_size,
+            validate_attachment_file,
         ],
         help_text=f"يسمح بـ PDF/صور/DOCX حتى {MAX_ATTACHMENT_MB}MB",
     )
@@ -1405,10 +1407,13 @@ class RequestTicket(models.Model):
     body = models.TextField("تفاصيل الطلب")
     attachment = models.FileField(
         "مرفق (اختياري)",
-        upload_to="tickets/",
+        upload_to=_ticket_attachment_upload_to,
         blank=True,
         null=True,
-        validators=[FileExtensionValidator(["pdf", "jpg", "jpeg", "png", "doc", "docx"])],
+        validators=[
+            FileExtensionValidator(["pdf", "jpg", "jpeg", "png", "doc", "docx"]),
+            validate_attachment_file,
+        ],
     )
     status = models.CharField("الحالة", max_length=20, choices=Status.choices, default=Status.NEW, db_index=True)
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
@@ -1572,7 +1577,7 @@ class TicketImage(models.Model):
     )
     image = models.ImageField(
         "الصورة",
-        upload_to="tickets/images/%Y/%m/%d/",
+        upload_to=_ticket_image_upload_to,
         blank=False,
         null=False,
         validators=[validate_image_file],
@@ -1728,7 +1733,7 @@ class Payment(models.Model):
     amount = models.DecimalField("المبلغ", max_digits=10, decimal_places=2)
     receipt_image = models.ImageField(
         "صورة الإيصال",
-        upload_to="payments/receipts/%Y/%m/",
+        upload_to=_payment_receipt_upload_to,
         help_text="يرجى إرفاق صورة التحويل البنكي",
         validators=[validate_image_file],
     )
