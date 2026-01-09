@@ -205,6 +205,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "reports.middleware_single_session.EnforceSingleSessionMiddleware",  # جلسة واحدة فقط لكل مستخدم
     "django.contrib.messages.middleware.MessageMiddleware",
     "reports.middleware.AuditLogMiddleware",  # <--- تم الإضافة
     "reports.middleware.IdleLogoutMiddleware",  # تسجيل خروج تلقائي بعد الخمول
