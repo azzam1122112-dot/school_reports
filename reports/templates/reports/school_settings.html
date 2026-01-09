@@ -290,6 +290,16 @@
             {% endif %}
           </div>
 
+          <!-- مدة صلاحية الروابط -->
+          <div class="ss-group span-2">
+            <label class="ss-label" for="{{ form.share_link_default_days.id_for_label }}">
+              <i class="fa-solid fa-clock" aria-hidden="true"></i> تحديد مدة صلاحية الروابط الافتراضية (بالأيام)
+            </label>
+            {{ form.share_link_default_days }}
+            {% for e in form.share_link_default_days.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+            <div class="ss-hint">المدة الافتراضية لروابط مشاركة التقارير/ملفات الإنجاز. الافتراضي المقترح: 7 أيام</div>
+          </div>
+
           {# ✅ تم حذف أي حقل/واجهة لتغيير لون القالب هنا كما طلبت #}
         </div>
 

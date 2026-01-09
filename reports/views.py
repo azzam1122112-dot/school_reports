@@ -32,7 +32,7 @@ from django.db.models import (
     Sum,
 )
 from django.core.exceptions import ValidationError
-from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -59,6 +59,9 @@ from .forms import (
     AchievementSectionNotesForm,
     AchievementEvidenceUploadForm,
     AchievementManagerNotesForm,
+    PlatformAdminCreateForm,
+    PlatformSchoolNotificationForm,
+    PrivateCommentForm,
 )
 
 # إشعارات (اختياري)
@@ -70,6 +73,9 @@ except Exception:
 # ===== موديلات =====
 from .models import (
     Report,
+    PlatformSettings,
+    ShareLink,
+    get_share_link_default_days,
     Teacher,
     Ticket,
     TicketNote,
@@ -85,6 +91,7 @@ from .models import (
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
+    TeacherPrivateComment,
 )
 
 # موديلات الإشعارات (اختياري)
@@ -111,7 +118,14 @@ except Exception:  # pragma: no cover
     DepartmentMembership = None  # type: ignore
 
 # ===== صلاحيات =====
-from .permissions import allowed_categories_for, role_required, restrict_queryset_for_user
+from .permissions import (
+    allowed_categories_for,
+    role_required,
+    restrict_queryset_for_user,
+    is_platform_admin,
+    platform_allowed_schools_qs,
+    platform_can_access_school,
+)
 try:
     from .permissions import is_officer  # type: ignore
 except Exception:
@@ -364,26 +378,8 @@ def _user_manager_schools(user) -> list[School]:
 
 
 def _is_report_viewer(user, active_school: Optional[School] = None) -> bool:
-    """مشرف تقارير (عرض فقط) داخل مدرسة محددة أو أي مدرسة."""
-    if not getattr(user, "is_authenticated", False):
-        return False
-
-    # السوبر/الموظفين ليسوا ضمن مسار "عرض فقط"
-    if getattr(user, "is_superuser", False) or _is_staff(user):
-        return False
-
-    try:
-        qs = SchoolMembership.objects.filter(
-            teacher=user,
-            role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-            is_active=True,
-        )
-        if active_school is not None:
-            qs = qs.filter(school=active_school)
-        return qs.exists()
-    except Exception:
-        logger.exception("_is_report_viewer failed")
-        return False
+    """(تم إلغاء دور مشرف التقارير)"""
+    return False
 
 # =========================
 # الدخول / الخروج
@@ -394,6 +390,8 @@ def login_view(request: HttpRequest) -> HttpResponse:
         # إن كان المستخدم موظّف لوحة (مدير/سوبر أدمن) نوجّهه للوحة المناسبة
         if getattr(request.user, "is_superuser", False):
             return redirect("reports:platform_admin_dashboard")
+        if is_platform_admin(request.user):
+            return redirect("reports:platform_schools_directory")
         if _is_staff(request.user):
             return redirect("reports:admin_dashboard")
         return redirect("reports:home")
@@ -425,6 +423,8 @@ def login_view(request: HttpRequest) -> HttpResponse:
                         next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
                         if getattr(user, "is_superuser", False):
                             default_name = "reports:platform_admin_dashboard"
+                        elif is_platform_admin(user):
+                            default_name = "reports:platform_schools_directory"
                         elif _is_staff(user):
                             default_name = "reports:admin_dashboard"
                         else:
@@ -506,10 +506,10 @@ def login_view(request: HttpRequest) -> HttpResponse:
             # الوجهة الافتراضية حسب الدور
             if getattr(user, "is_superuser", False):
                 default_name = "reports:platform_admin_dashboard"
+            elif is_platform_admin(user):
+                default_name = "reports:platform_schools_directory"
             elif _is_staff(user):
                 default_name = "reports:admin_dashboard"
-            elif _is_report_viewer(user, _get_active_school(request)) or _is_report_viewer(user):
-                default_name = "reports:school_reports_readonly"
             else:
                 default_name = "reports:home"
             return redirect(next_url or default_name)
@@ -598,13 +598,407 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
     if getattr(request.user, "is_authenticated", False):
         if getattr(request.user, "is_superuser", False):
             return redirect("reports:platform_admin_dashboard")
+        if is_platform_admin(request.user):
+            return redirect("reports:platform_schools_directory")
         if _is_staff(request.user):
             return redirect("reports:admin_dashboard")
-        if _is_report_viewer(request.user, _get_active_school(request)) or _is_report_viewer(request.user):
-            return redirect("reports:school_reports_readonly")
         return redirect("reports:home")
 
     return render(request, "reports/landing.html")
+
+
+# =========================
+# المشرف العام (عرض + تواصل فقط)
+# =========================
+
+
+def _require_platform_admin_or_superuser(request: HttpRequest) -> bool:
+    return bool(getattr(request.user, "is_superuser", False) or is_platform_admin(request.user))
+
+
+def _require_platform_school_access(request: HttpRequest, school: Optional[School]) -> bool:
+    if getattr(request.user, "is_superuser", False):
+        return True
+    return bool(is_platform_admin(request.user) and platform_can_access_school(request.user, school))
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def platform_schools_directory(request: HttpRequest) -> HttpResponse:
+    user = request.user
+    if not _require_platform_admin_or_superuser(request):
+        messages.error(request, "لا تملك صلاحية الوصول إلى شاشة المدارس.")
+        return redirect("reports:home")
+
+    # السوبر يوزر يرى كل المدارس، المشرف العام يرى المدارس ضمن نطاقه.
+    base_qs = School.objects.all().order_by("name") if getattr(user, "is_superuser", False) else platform_allowed_schools_qs(user)
+
+    q = (request.GET.get("q") or "").strip()
+    gender = (request.GET.get("gender") or "").strip().lower()
+    city = (request.GET.get("city") or "").strip()
+
+    # قائمة المدن من كامل النطاق (قبل فلترة city) حتى تبقى القائمة مفيدة.
+    try:
+        cities = (
+            base_qs.exclude(city__isnull=True)
+            .exclude(city__exact="")
+            .values_list("city", flat=True)
+            .distinct()
+            .order_by("city")
+        )
+        cities = list(cities)
+    except Exception:
+        cities = []
+
+    qs = base_qs
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q) | Q(city__icontains=q))
+    if gender in {"boys", "girls"}:
+        qs = qs.filter(gender=gender)
+    if city:
+        qs = qs.filter(city=city)
+
+    ctx = {
+        "schools": list(qs.order_by("name")),
+        "cities": cities,
+        "q": q,
+        "gender": gender,
+        "city": city,
+    }
+    return render(request, "reports/platform_schools_directory.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def platform_enter_school(request: HttpRequest, pk: int) -> HttpResponse:
+    user = request.user
+    if not _require_platform_admin_or_superuser(request):
+        raise Http404("ليس لديك صلاحية")
+
+    if getattr(user, "is_superuser", False):
+        school = get_object_or_404(School, pk=pk)
+    else:
+        school = get_object_or_404(platform_allowed_schools_qs(user), pk=pk)
+
+    _set_active_school(request, school)
+    return redirect("reports:platform_school_dashboard")
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def platform_school_dashboard(request: HttpRequest) -> HttpResponse:
+    if not _require_platform_admin_or_superuser(request):
+        messages.error(request, "لا تملك صلاحية الوصول إلى لوحة المدرسة.")
+        return redirect("reports:home")
+
+    active_school = _get_active_school(request)
+    if active_school is None:
+        return redirect("reports:platform_schools_directory")
+
+    if not _require_platform_school_access(request, active_school):
+        try:
+            request.session.pop("active_school_id", None)
+        except Exception:
+            pass
+        messages.error(request, "هذه المدرسة خارج نطاق صلاحياتك.")
+        return redirect("reports:platform_schools_directory")
+
+    return render(request, "reports/platform_school_dashboard.html", {"school": active_school})
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def platform_school_reports(request: HttpRequest) -> HttpResponse:
+    if not _require_platform_admin_or_superuser(request):
+        messages.error(request, "لا تملك صلاحية الوصول.")
+        return redirect("reports:home")
+
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:platform_schools_directory")
+
+    if not _require_platform_school_access(request, active_school):
+        messages.error(request, "هذه المدرسة خارج نطاق صلاحياتك.")
+        return redirect("reports:platform_schools_directory")
+
+    cats = allowed_categories_for(request.user, active_school)
+    qs = get_admin_reports_queryset(user=request.user, active_school=active_school)
+
+    start_date = _parse_date_safe(request.GET.get("start_date"))
+    end_date = _parse_date_safe(request.GET.get("end_date"))
+    teacher_name = (request.GET.get("teacher_name") or "").strip()
+    category = (request.GET.get("category") or "").strip().lower()
+
+    qs = apply_admin_report_filters(
+        qs,
+        start_date=start_date,
+        end_date=end_date,
+        teacher_name=teacher_name,
+        category=category,
+        cats=cats,
+    )
+
+    allowed_choices = get_reporttype_choices(active_school=active_school) if (HAS_RTYPE and ReportType is not None) else []
+    reports_page = svc_paginate(qs, per_page=20, page=request.GET.get("page", 1))
+
+    context = {
+        "reports": reports_page,
+        "start_date": request.GET.get("start_date", ""),
+        "end_date": request.GET.get("end_date", ""),
+        "teacher_name": teacher_name,
+        "category": category if (not cats or "all" in cats or category in cats) else "",
+        "categories": allowed_choices,
+        "can_delete": False,
+    }
+    return render(request, "reports/admin_reports.html", context)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def platform_school_tickets(request: HttpRequest) -> HttpResponse:
+    if not _require_platform_admin_or_superuser(request):
+        messages.error(request, "لا تملك صلاحية الوصول.")
+        return redirect("reports:home")
+
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:platform_schools_directory")
+
+    if not _require_platform_school_access(request, active_school):
+        messages.error(request, "هذه المدرسة خارج نطاق صلاحياتك.")
+        return redirect("reports:platform_schools_directory")
+
+    qs = (
+        Ticket.objects.select_related("creator", "assignee", "department")
+        .prefetch_related("recipients")
+        .filter(school=active_school, is_platform=False)
+        .order_by("-created_at")
+    )
+
+    status = (request.GET.get("status") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    mine = request.GET.get("mine") == "1"
+
+    if status:
+        qs = qs.filter(status=status)
+    if mine:
+        qs = qs.filter(Q(assignee=request.user) | Q(recipients=request.user)).distinct()
+    if q:
+        for kw in q.split():
+            qs = qs.filter(Q(title__icontains=kw) | Q(body__icontains=kw))
+
+    ctx = {
+        "tickets": list(qs[:200]),
+        "status": status,
+        "q": q,
+        "mine": mine,
+        "status_choices": Ticket.Status.choices,
+    }
+    return render(request, "reports/tickets_inbox.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_school_notify(request: HttpRequest) -> HttpResponse:
+    if not _require_platform_admin_or_superuser(request):
+        messages.error(request, "لا تملك صلاحية الوصول.")
+        return redirect("reports:home")
+
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:platform_schools_directory")
+
+    if not _require_platform_school_access(request, active_school):
+        messages.error(request, "هذه المدرسة خارج نطاق صلاحياتك.")
+        return redirect("reports:platform_schools_directory")
+
+    form = PlatformSchoolNotificationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        title = (form.cleaned_data.get("title") or "").strip()
+        message_text = form.cleaned_data["message"]
+        is_important = bool(form.cleaned_data.get("is_important"))
+
+        try:
+            with transaction.atomic():
+                n = Notification.objects.create(
+                    title=title,
+                    message=message_text,
+                    is_important=is_important,
+                    school=active_school,
+                    created_by=request.user,
+                )
+                teacher_ids = list(
+                    SchoolMembership.objects.filter(
+                        school=active_school,
+                        is_active=True,
+                        teacher__is_active=True,
+                    )
+                    .values_list("teacher_id", flat=True)
+                    .distinct()
+                )
+                recipients = [NotificationRecipient(notification=n, teacher_id=tid) for tid in teacher_ids]
+                NotificationRecipient.objects.bulk_create(recipients, ignore_conflicts=True)
+            messages.success(request, "تم إرسال الإشعار إلى جميع مستخدمي المدرسة.")
+            return redirect("reports:platform_school_dashboard")
+        except Exception:
+            logger.exception("Failed to send school notification")
+            messages.error(request, "تعذّر إرسال الإشعار. حاول مرة أخرى.")
+
+    return render(request, "reports/platform_school_notify.html", {"form": form, "school": active_school})
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_admin_create(request: HttpRequest) -> HttpResponse:
+    from .models import PlatformAdminScope
+
+    form = PlatformAdminCreateForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            with transaction.atomic():
+                admin_user = form.save(commit=True)
+
+                gender_scope = (form.cleaned_data.get("gender_scope") or "all").strip().lower()
+                cities_raw = (form.cleaned_data.get("cities") or "").strip()
+                allowed_schools = form.cleaned_data.get("allowed_schools")
+
+                cities_list = []
+                if cities_raw:
+                    for part in cities_raw.replace("؛", ",").split(","):
+                        c = (part or "").strip()
+                        if c and c not in cities_list:
+                            cities_list.append(c)
+
+                scope, _created = PlatformAdminScope.objects.get_or_create(admin=admin_user)
+                scope.gender_scope = gender_scope if gender_scope in {"all", "boys", "girls"} else "all"
+                scope.allowed_cities = cities_list
+                scope.save()
+                if allowed_schools is not None:
+                    scope.allowed_schools.set(list(allowed_schools))
+
+            messages.success(request, "تم إنشاء المشرف العام بنجاح.")
+            return redirect("reports:platform_admin_dashboard")
+        except Exception:
+            logger.exception("Failed to create platform admin")
+            messages.error(request, "تعذّر إنشاء المشرف العام. تحقق من البيانات.")
+
+    return render(request, "reports/platform_admin_create.html", {"form": form})
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET"])
+def platform_admins_list(request: HttpRequest) -> HttpResponse:
+    from .models import PlatformAdminScope
+
+    q = (request.GET.get("q") or "").strip()
+    qs = (
+        Teacher.objects.filter(is_platform_admin=True)
+        .select_related("platform_scope")
+        .prefetch_related("platform_scope__allowed_schools")
+        .order_by("name", "id")
+    )
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(phone__icontains=q))
+
+    # تأكيد وجود scope لكل مشرف (اختياري/مساعد)
+    try:
+        missing_ids = list(qs.filter(platform_scope__isnull=True).values_list("id", flat=True))
+        if missing_ids:
+            for tid in missing_ids:
+                try:
+                    PlatformAdminScope.objects.get_or_create(admin_id=tid)
+                except Exception:
+                    pass
+            qs = (
+                Teacher.objects.filter(is_platform_admin=True)
+                .select_related("platform_scope")
+                .prefetch_related("platform_scope__allowed_schools")
+                .order_by("name", "id")
+            )
+            if q:
+                qs = qs.filter(Q(name__icontains=q) | Q(phone__icontains=q))
+    except Exception:
+        pass
+
+    return render(request, "reports/platform_admins_list.html", {"admins": list(qs), "q": q})
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_admin_update(request: HttpRequest, pk: int) -> HttpResponse:
+    from .models import PlatformAdminScope
+
+    admin_user = get_object_or_404(Teacher, pk=pk, is_platform_admin=True)
+    scope, _created = PlatformAdminScope.objects.get_or_create(admin=admin_user)
+
+    form = PlatformAdminCreateForm(request.POST or None, instance=admin_user)
+
+    if request.method == "POST" and form.is_valid():
+        try:
+            with transaction.atomic():
+                updated_user = form.save(commit=True)
+
+                gender_scope = (form.cleaned_data.get("gender_scope") or "all").strip().lower()
+                cities_raw = (form.cleaned_data.get("cities") or "").strip()
+                allowed_schools = form.cleaned_data.get("allowed_schools")
+
+                cities_list = []
+                if cities_raw:
+                    for part in cities_raw.replace("؛", ",").split(","):
+                        c = (part or "").strip()
+                        if c and c not in cities_list:
+                            cities_list.append(c)
+
+                scope.admin = updated_user
+                scope.gender_scope = gender_scope if gender_scope in {"all", "boys", "girls"} else "all"
+                scope.allowed_cities = cities_list
+                scope.save()
+                if allowed_schools is not None:
+                    scope.allowed_schools.set(list(allowed_schools))
+
+            messages.success(request, "تم تحديث بيانات المشرف العام.")
+            return redirect("reports:platform_admins_list")
+        except Exception:
+            logger.exception("Failed to update platform admin")
+            messages.error(request, "تعذّر حفظ التعديلات. حاول مرة أخرى.")
+
+    return render(
+        request,
+        "reports/platform_admin_edit.html",
+        {
+            "form": form,
+            "admin_user": admin_user,
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_admin_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    admin_user = get_object_or_404(Teacher, pk=pk, is_platform_admin=True)
+
+    # حماية: لا نحذف السوبر يوزر عبر هذه الشاشة
+    if getattr(admin_user, "is_superuser", False):
+        messages.error(request, "لا يمكن حذف مستخدم سوبر يوزر من هنا.")
+        return redirect("reports:platform_admins_list")
+
+    if request.method == "POST":
+        try:
+            admin_user.delete()
+            messages.success(request, "تم حذف المشرف العام.")
+        except Exception:
+            logger.exception("Failed to delete platform admin")
+            messages.error(request, "تعذّر حذف المشرف العام.")
+        return redirect("reports:platform_admins_list")
+
+    return render(request, "reports/platform_admin_delete.html", {"admin_user": admin_user})
 
 
 @login_required(login_url="reports:login")
@@ -973,9 +1367,11 @@ def _can_manage_achievement(user, active_school: Optional[School]) -> bool:
 def _can_view_achievement(user, active_school: Optional[School]) -> bool:
     if getattr(user, "is_superuser", False):
         return True
+    if is_platform_admin(user) and platform_can_access_school(user, active_school):
+        return True
     if _can_manage_achievement(user, active_school):
         return True
-    return _is_report_viewer(user, active_school)
+    return False
 
 
 @login_required(login_url="reports:login")
@@ -986,10 +1382,6 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
     if active_school is None:
         messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
         return redirect("reports:home")
-
-    # مشرف التقارير لا يملك ملف إنجاز خاص به عادةً
-    if _is_report_viewer(request.user, active_school) and not _can_manage_achievement(request.user, active_school):
-        return redirect("reports:achievement_school_files")
 
     create_form = AchievementCreateYearForm(request.POST or None)
     if request.method == "POST" and (request.POST.get("action") == "create"):
@@ -1130,16 +1522,18 @@ def achievement_school_teachers(request: HttpRequest) -> HttpResponse:
 def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
     active_school = _get_active_school(request)
     ach_file = get_object_or_404(TeacherAchievementFile, pk=pk)
+    user = request.user
 
-    if not getattr(request.user, "is_superuser", False):
+    if not getattr(user, "is_superuser", False):
         if active_school is None or ach_file.school_id != getattr(active_school, "id", None):
             raise Http404
 
-    is_manager = _can_manage_achievement(request.user, active_school)
-    is_viewer = _is_report_viewer(request.user, active_school)
-    is_owner = (ach_file.teacher_id == getattr(request.user, "id", None))
+    is_manager = _can_manage_achievement(user, active_school)
+    is_viewer = _is_report_viewer(user, active_school)
+    is_owner = (ach_file.teacher_id == getattr(user, "id", None))
+    is_platform = bool(is_platform_admin(user) and platform_can_access_school(user, active_school))
 
-    if not (getattr(request.user, "is_superuser", False) or is_manager or is_viewer or is_owner):
+    if not (getattr(user, "is_superuser", False) or is_manager or is_viewer or is_owner or is_platform):
         return HttpResponse(status=403)
 
     _ensure_achievement_sections(ach_file)
@@ -1157,6 +1551,17 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
     year_form = AchievementCreateYearForm()
     upload_form = AchievementEvidenceUploadForm()
 
+    # تعليقات خاصة (المعلّم + المشرف العام فقط)
+    show_private_comments = bool(is_owner or is_platform)
+    private_comments = (
+        TeacherPrivateComment.objects.select_related("created_by")
+        .filter(achievement_file=ach_file, teacher=ach_file.teacher)
+        .order_by("-created_at", "-id")
+        if show_private_comments
+        else TeacherPrivateComment.objects.none()
+    )
+    private_comment_form = PrivateCommentForm(request.POST or None) if is_platform else None
+
     # الرجوع ثابت حسب الدور: المعلّم -> ملفاتي، غير ذلك -> ملفات المدرسة
     if is_owner:
         back_url = reverse("reports:achievement_my_files")
@@ -1165,11 +1570,40 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
         back_url = f"{url}?{urlencode({'year': ach_file.academic_year})}"
 
     if request.method == "POST":
-        if not can_post:
-            return HttpResponse(status=403)
-
         action = (request.POST.get("action") or "").strip()
         section_id = request.POST.get("section_id")
+
+        if action == "platform_comment" and is_platform:
+            if private_comment_form is not None and private_comment_form.is_valid():
+                body = private_comment_form.cleaned_data["body"]
+                try:
+                    with transaction.atomic():
+                        TeacherPrivateComment.objects.create(
+                            teacher=ach_file.teacher,
+                            created_by=user,
+                            school=active_school,
+                            achievement_file=ach_file,
+                            body=body,
+                        )
+                        n = Notification.objects.create(
+                            title="تعليق خاص على ملف الإنجاز",
+                            message=body,
+                            is_important=True,
+                            school=active_school,
+                            created_by=user,
+                        )
+                        NotificationRecipient.objects.create(notification=n, teacher=ach_file.teacher)
+                    messages.success(request, "تم إرسال التعليق الخاص للمعلّم ✅")
+                    return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+                except Exception:
+                    logger.exception("Failed to create private achievement comment")
+                    messages.error(request, "تعذر حفظ التعليق. حاول مرة أخرى.")
+            else:
+                messages.error(request, "تحقق من نص التعليق وأعد المحاولة.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+        if not can_post:
+            return HttpResponse(status=403)
 
         if action == "save_general" and can_edit_teacher:
             if general_form.is_valid():
@@ -1295,6 +1729,10 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "is_manager": is_manager,
             "is_viewer": is_viewer,
             "is_owner": is_owner,
+            "show_private_comments": show_private_comments,
+            "private_comments": private_comments,
+            "private_comment_form": private_comment_form,
+            "can_add_private_comment": bool(is_platform),
             "year_form": year_form,
             "current_school": active_school,
             "back_url": back_url,
@@ -1783,24 +2221,77 @@ from .utils import _resolve_department_for_category, _build_head_decision
 # طباعة التقرير (نسخة مُحسّنة)
 # =========================
 @login_required(login_url="reports:login")
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "POST"])
 def report_print(request: HttpRequest, pk: int) -> HttpResponse:
     try:
         active_school = _get_active_school(request)
+        user = request.user
 
         # ✅ المدير/الموظف/السوبر يجب أن يستطيع طباعة أي تقرير ضمن نطاق المدرسة النشطة
-        if getattr(request.user, "is_superuser", False) or _is_staff(request.user):
+        if getattr(user, "is_superuser", False) or _is_staff(user):
             qs = Report.objects.select_related("teacher", "category")
-            if (not getattr(request.user, "is_superuser", False)) and active_school is None:
+            if (not getattr(user, "is_superuser", False)) and active_school is None:
                 messages.error(request, "فضلاً اختر مدرسة أولاً.")
                 return redirect("reports:select_school")
             if active_school is not None and _model_has_field(Report, "school"):
                 qs = qs.filter(school=active_school)
             r = get_object_or_404(qs, pk=pk)
+        elif is_platform_admin(user):
+            qs = Report.objects.select_related("teacher", "category")
+            if _model_has_field(Report, "school"):
+                allowed_ids = list(platform_allowed_schools_qs(user).values_list("id", flat=True))
+                qs = qs.filter(school_id__in=allowed_ids)
+                if active_school is not None:
+                    qs = qs.filter(school=active_school)
+            r = get_object_or_404(qs, pk=pk)
         else:
             r = _get_report_for_user_or_404(request, pk)
 
         school_scope = getattr(r, "school", None) or active_school
+
+        # ===== تعليقات خاصة (للمعلّم فقط + المشرف العام) =====
+        show_comments = False
+        private_comments = TeacherPrivateComment.objects.none()
+        comment_form = None
+        try:
+            is_owner = getattr(r, "teacher_id", None) == getattr(user, "id", None)
+            is_allowed_platform = bool(is_platform_admin(user) and platform_can_access_school(user, school_scope))
+            if is_owner or is_allowed_platform:
+                show_comments = True
+                private_comments = (
+                    TeacherPrivateComment.objects.select_related("created_by")
+                    .filter(report=r, teacher=getattr(r, "teacher", None))
+                    .order_by("-created_at", "-id")
+                )
+
+                if is_allowed_platform:
+                    if request.method == "POST":
+                        comment_form = PrivateCommentForm(request.POST)
+                        if comment_form.is_valid():
+                            body = comment_form.cleaned_data["body"]
+                            with transaction.atomic():
+                                TeacherPrivateComment.objects.create(
+                                    teacher=r.teacher,
+                                    created_by=user,
+                                    school=school_scope,
+                                    report=r,
+                                    body=body,
+                                )
+                                n = Notification.objects.create(
+                                    title="تعليق خاص على تقرير",
+                                    message=body,
+                                    is_important=True,
+                                    school=school_scope,
+                                    created_by=user,
+                                )
+                                NotificationRecipient.objects.create(notification=n, teacher=r.teacher)
+                            return redirect("reports:report_print", pk=r.pk)
+                    else:
+                        comment_form = PrivateCommentForm()
+        except Exception:
+            show_comments = False
+            private_comments = TeacherPrivateComment.objects.none()
+            comment_form = None
 
         # اختيار القسم يدويًا عبر ?dept=slug-or-id (اختياري)
         dept = None
@@ -1888,6 +2379,9 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "SCHOOL_NAME": school_name,
                 "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,
+                "show_comments": show_comments,
+                "private_comments": private_comments,
+                "comment_form": comment_form,
             },
         )
     except Http404:
@@ -1895,6 +2389,330 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
     except Exception as e:
         logger.exception(f"Error in report_print view for report {pk}: {e}")
         return render(request, "500.html", {"error": str(e)}, status=500)
+
+
+def _valid_sharelink_or_404(token: str, *, kind: str) -> ShareLink:
+    link = (
+        ShareLink.objects.select_related("report", "achievement_file", "school")
+        .filter(token=token, kind=kind)
+        .first()
+    )
+    if not link or (not link.is_active) or link.is_expired:
+        raise Http404
+    return link
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def report_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
+    """تفعيل/إلغاء مشاركة تقرير عبر رابط عام صالح لمدة محددة (اختياري للمعلم)."""
+    report = get_object_or_404(Report.objects.select_related("school"), pk=pk, teacher=request.user)
+
+    expiry_days = get_share_link_default_days(school=report.school)
+
+    now = timezone.now()
+    active_link = (
+        ShareLink.objects.filter(
+            kind=ShareLink.Kind.REPORT,
+            report=report,
+            is_active=True,
+            expires_at__gt=now,
+        )
+        .order_by("-id")
+        .first()
+    )
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip().lower()
+        if action == "enable":
+            with transaction.atomic():
+                ShareLink.objects.filter(kind=ShareLink.Kind.REPORT, report=report, is_active=True).update(is_active=False)
+
+                created = None
+                for _ in range(6):
+                    token = ShareLink.generate_token()
+                    try:
+                        created = ShareLink.objects.create(
+                            token=token,
+                            kind=ShareLink.Kind.REPORT,
+                            created_by=request.user,
+                            school=getattr(report, "school", None),
+                            report=report,
+                            expires_at=ShareLink.default_expires_at(),
+                            is_active=True,
+                        )
+                        break
+                    except IntegrityError:
+                        created = None
+                        continue
+
+                if created is None:
+                    messages.error(request, "تعذر إنشاء رابط مشاركة الآن. حاول مرة أخرى.")
+                    return redirect("reports:report_share_manage", pk=report.pk)
+
+            public_url = request.build_absolute_uri(reverse("reports:share_public", args=[created.token]))
+            messages.success(
+                request,
+                f"تم تفعيل مشاركة التقرير ✅ (الرابط صالح لمدة {expiry_days} أيام حتى {timezone.localtime(created.expires_at).strftime('%Y-%m-%d %H:%M')})",
+            )
+            messages.info(request, f"رابط المشاركة: {public_url}")
+            return redirect("reports:report_share_manage", pk=report.pk)
+
+        if action == "disable" and active_link is not None:
+            ShareLink.objects.filter(pk=active_link.pk).update(is_active=False)
+            messages.success(request, "تم إلغاء رابط المشاركة ✅")
+            return redirect("reports:report_share_manage", pk=report.pk)
+
+        messages.error(request, "طلب غير صالح.")
+        return redirect("reports:report_share_manage", pk=report.pk)
+
+    public_url = ""
+    expires_at_str = ""
+    if active_link is not None:
+        public_url = request.build_absolute_uri(reverse("reports:share_public", args=[active_link.token]))
+        expires_at_str = timezone.localtime(active_link.expires_at).strftime("%Y-%m-%d %H:%M")
+
+    return render(
+        request,
+        "reports/report_share_manage.html",
+        {
+            "report": report,
+            "active_link": active_link,
+            "public_url": public_url,
+            "expires_at_str": expires_at_str,
+            "expiry_days": expiry_days,
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def achievement_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
+    """تفعيل/إلغاء مشاركة ملف الإنجاز (PDF) عبر رابط عام صالح لمدة محددة (اختياري للمعلم)."""
+    ach_file = get_object_or_404(TeacherAchievementFile.objects.select_related("school"), pk=pk, teacher=request.user)
+
+    expiry_days = get_share_link_default_days(school=ach_file.school)
+
+    now = timezone.now()
+    active_link = (
+        ShareLink.objects.filter(
+            kind=ShareLink.Kind.ACHIEVEMENT,
+            achievement_file=ach_file,
+            is_active=True,
+            expires_at__gt=now,
+        )
+        .order_by("-id")
+        .first()
+    )
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip().lower()
+        if action == "enable":
+            with transaction.atomic():
+                ShareLink.objects.filter(kind=ShareLink.Kind.ACHIEVEMENT, achievement_file=ach_file, is_active=True).update(is_active=False)
+
+                created = None
+                for _ in range(6):
+                    token = ShareLink.generate_token()
+                    try:
+                        created = ShareLink.objects.create(
+                            token=token,
+                            kind=ShareLink.Kind.ACHIEVEMENT,
+                            created_by=request.user,
+                            school=getattr(ach_file, "school", None),
+                            achievement_file=ach_file,
+                            expires_at=ShareLink.default_expires_at(),
+                            is_active=True,
+                        )
+                        break
+                    except IntegrityError:
+                        created = None
+                        continue
+
+                if created is None:
+                    messages.error(request, "تعذر إنشاء رابط مشاركة الآن. حاول مرة أخرى.")
+                    return redirect("reports:achievement_share_manage", pk=ach_file.pk)
+
+            public_url = request.build_absolute_uri(reverse("reports:share_public", args=[created.token]))
+            messages.success(
+                request,
+                f"تم تفعيل مشاركة ملف الإنجاز ✅ (الرابط صالح لمدة {expiry_days} أيام حتى {timezone.localtime(created.expires_at).strftime('%Y-%m-%d %H:%M')})",
+            )
+            messages.info(request, f"رابط المشاركة: {public_url}")
+            return redirect("reports:achievement_share_manage", pk=ach_file.pk)
+
+        if action == "disable" and active_link is not None:
+            ShareLink.objects.filter(pk=active_link.pk).update(is_active=False)
+            messages.success(request, "تم إلغاء رابط المشاركة ✅")
+            return redirect("reports:achievement_share_manage", pk=ach_file.pk)
+
+        messages.error(request, "طلب غير صالح.")
+        return redirect("reports:achievement_share_manage", pk=ach_file.pk)
+
+    public_url = ""
+    expires_at_str = ""
+    if active_link is not None:
+        public_url = request.build_absolute_uri(reverse("reports:share_public", args=[active_link.token]))
+        expires_at_str = timezone.localtime(active_link.expires_at).strftime("%Y-%m-%d %H:%M")
+
+    return render(
+        request,
+        "reports/achievement_share_manage.html",
+        {
+            "file": ach_file,
+            "active_link": active_link,
+            "public_url": public_url,
+            "expires_at_str": expires_at_str,
+            "expiry_days": expiry_days,
+        },
+    )
+
+
+@require_http_methods(["GET"])
+def share_public(request: HttpRequest, token: str) -> HttpResponse:
+    """عرض عام حسب توكن: تقرير كامل + الصور، أو صفحة تحميل PDF لملف الإنجاز."""
+    link = ShareLink.objects.select_related("report", "achievement_file", "school").filter(token=token).first()
+    if not link or (not link.is_active) or link.is_expired:
+        return render(request, "reports/share_invalid.html", status=404)
+
+    ShareLink.objects.filter(pk=link.pk).update(last_accessed_at=timezone.now())
+
+    if link.kind == ShareLink.Kind.REPORT:
+        r = link.report
+        if r is None:
+            return render(request, "reports/share_invalid.html", status=404)
+
+        school_scope = getattr(r, "school", None) or getattr(link, "school", None)
+        cat = getattr(r, "category", None)
+        dept = _resolve_department_for_category(cat, school_scope)
+        head_decision = _build_head_decision(dept)
+
+        # اسم مدير المدرسة
+        school_principal = ""
+        try:
+            if school_scope is not None:
+                principal_membership = (
+                    SchoolMembership.objects.select_related("teacher")
+                    .filter(
+                        school=school_scope,
+                        role_type=SchoolMembership.RoleType.MANAGER,
+                        is_active=True,
+                    )
+                    .order_by("-id")
+                    .first()
+                )
+                if principal_membership and principal_membership.teacher:
+                    school_principal = getattr(principal_membership.teacher, "name", "") or ""
+        except Exception:
+            school_principal = ""
+        if not school_principal:
+            school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
+
+        # إعدادات المدرسة
+        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+        school_stage = ""
+        school_logo_url = ""
+        if school_scope:
+            try:
+                school_stage = getattr(school_scope, "get_stage_display", lambda: "")() or ""
+            except Exception:
+                school_stage = getattr(school_scope, "stage", "") or ""
+            try:
+                if school_scope.logo_file:
+                    school_logo_url = school_scope.logo_file.url
+            except Exception:
+                pass
+
+        return render(
+            request,
+            "reports/report_print.html",
+            {
+                "r": r,
+                "head_decision": head_decision,
+                "SCHOOL_PRINCIPAL": school_principal,
+                "SCHOOL_NAME": school_name,
+                "SCHOOL_STAGE": school_stage,
+                "SCHOOL_LOGO_URL": school_logo_url,
+                "show_comments": False,
+                "private_comments": [],
+                "comment_form": None,
+                "image1_url": reverse("reports:share_report_image", args=[token, 1]),
+                "image2_url": reverse("reports:share_report_image", args=[token, 2]),
+                "image3_url": reverse("reports:share_report_image", args=[token, 3]),
+                "image4_url": reverse("reports:share_report_image", args=[token, 4]),
+            },
+        )
+
+    if link.kind == ShareLink.Kind.ACHIEVEMENT:
+        ach_file = link.achievement_file
+        if ach_file is None:
+            return render(request, "reports/share_invalid.html", status=404)
+
+        download_url = reverse("reports:share_achievement_pdf", args=[token])
+        return render(
+            request,
+            "reports/share_achievement_public.html",
+            {
+                "file": ach_file,
+                "download_url": download_url,
+            },
+        )
+
+    return render(request, "reports/share_invalid.html", status=404)
+
+
+@require_http_methods(["GET"])
+def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpResponse:
+    link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.REPORT)
+    r = link.report
+    if r is None:
+        raise Http404
+
+    if slot not in (1, 2, 3, 4):
+        raise Http404
+    field = getattr(r, f"image{slot}", None)
+    if not field:
+        raise Http404
+
+    try:
+        f = field.open("rb")
+        resp = FileResponse(f)
+        try:
+            filename = os.path.basename(getattr(field, "name", "") or "") or f"image{slot}"
+            resp["Content-Disposition"] = f'inline; filename="{filename}"'
+        except Exception:
+            pass
+        return resp
+    except Exception:
+        url = getattr(field, "url", None)
+        if url:
+            return redirect(url)
+        raise
+
+
+@require_http_methods(["GET"])
+def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
+    link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.ACHIEVEMENT)
+    ach_file = link.achievement_file
+    if ach_file is None:
+        raise Http404
+    if not getattr(ach_file, "pdf_file", None):
+        raise Http404
+
+    try:
+        f = ach_file.pdf_file.open("rb")
+        resp = FileResponse(f, content_type="application/pdf")
+        try:
+            filename = os.path.basename(getattr(ach_file.pdf_file, "name", "") or "") or "achievement.pdf"
+            resp["Content-Disposition"] = f'inline; filename="{filename}"'
+        except Exception:
+            pass
+        return resp
+    except Exception:
+        url = getattr(ach_file.pdf_file, "url", None)
+        if url:
+            return redirect(url)
+        raise
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
@@ -1992,101 +2810,207 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
         messages.error(request, "فضلاً اختر مدرسة أولاً.")
         return redirect("reports:select_school")
 
+    # Defense-in-depth: تأكد أن المدير يملك صلاحية على المدرسة النشطة
+    try:
+        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+            messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
+            return redirect("reports:select_school")
+    except Exception:
+        pass
+
+    # الاستيراد يُنشئ عضويات TEACHER؛ نتحقق من وجود اشتراك فعّال لتجنب ValidationError العام
+    sub = getattr(active_school, "subscription", None)
+    try:
+        if sub is None or bool(getattr(sub, "is_expired", True)):
+            messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
+            return redirect("reports:my_subscription")
+    except Exception:
+        messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
+        return redirect("reports:my_subscription")
+
     if request.method == "POST":
         excel_file = request.FILES.get("excel_file")
         if not excel_file:
             messages.error(request, "الرجاء اختيار ملف Excel.")
             return render(request, "reports/bulk_import_teachers.html")
 
+        # تحقق بسيط من الامتداد لتقليل أخطاء المستخدم
         try:
-            wb = openpyxl.load_workbook(excel_file)
+            fname = (getattr(excel_file, "name", "") or "").lower()
+            if not fname.endswith(".xlsx"):
+                messages.error(request, "الملف غير صالح. الرجاء اختيار ملف بصيغة .xlsx")
+                return render(request, "reports/bulk_import_teachers.html")
+        except Exception:
+            pass
+
+        try:
+            import re
+            from django.core.exceptions import ValidationError
+
+            def _norm_str(v) -> str:
+                return (str(v).strip() if v is not None else "").strip()
+
+            def _normalize_phone(v) -> str:
+                if v is None:
+                    return ""
+                # openpyxl يعيد int/float للأرقام
+                try:
+                    if isinstance(v, bool):
+                        return ""
+                    if isinstance(v, int):
+                        s = str(v)
+                    elif isinstance(v, float):
+                        s = str(int(v)) if float(v).is_integer() else str(v)
+                    else:
+                        s = str(v)
+                except Exception:
+                    s = str(v)
+                s = s.strip()
+                # إزالة المسافات والرموز الشائعة (نحتفظ بالأرقام فقط)
+                digits = re.sub(r"\D+", "", s)
+                return digits or s
+
+            wb = openpyxl.load_workbook(excel_file, read_only=True, data_only=True)
             sheet = wb.active
-            
+
             # توقع الأعمدة: الاسم، رقم الجوال، رقم الهوية (اختياري)، التخصص (اختياري)
             # الصف الأول عناوين
-            rows = list(sheet.iter_rows(min_row=2, values_only=True))
-            if not rows:
+            parsed_rows: list[tuple[int, str, str, str | None, str | None]] = []
+            phones_in_file: set[str] = set()
+
+            max_rows_guard = 2000
+            for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                if len(parsed_rows) >= max_rows_guard:
+                    messages.error(request, f"الملف يحتوي على عدد كبير من الصفوف (>{max_rows_guard}). الرجاء تقسيم الملف.")
+                    return render(request, "reports/bulk_import_teachers.html")
+
+                row = row or ()
+                name, phone, national_id, specialty = (row + (None, None, None, None))[:4]
+
+                name_s = _norm_str(name)
+                phone_s = _normalize_phone(phone)
+                nat_s = _norm_str(national_id) or None
+                spec_s = _norm_str(specialty) or None
+
+                if not name_s or not phone_s:
+                    # نؤجل الأخطاء إلى مرحلة الرسائل حتى لا نقطع المعالجة مبكرًا
+                    parsed_rows.append((row_idx, name_s, phone_s, nat_s, spec_s))
+                    continue
+
+                if phone_s in phones_in_file:
+                    parsed_rows.append((row_idx, name_s, phone_s, nat_s, spec_s))
+                    continue
+                phones_in_file.add(phone_s)
+                parsed_rows.append((row_idx, name_s, phone_s, nat_s, spec_s))
+
+            if not parsed_rows:
                 messages.error(request, "الملف فارغ أو لا يحتوي على بيانات.")
                 return render(request, "reports/bulk_import_teachers.html")
 
-            # التحقق من حد الباقة
-            sub = getattr(active_school, "subscription", None)
-            max_teachers = 0
-            if sub and not sub.is_expired:
-                max_teachers = int(getattr(getattr(sub, "plan", None), "max_teachers", 0) or 0)
-            
+            # التحقق من حد الباقة (نحسب فقط العضويات الجديدة الفعلية)
+            max_teachers = int(getattr(getattr(sub, "plan", None), "max_teachers", 0) or 0)
             current_count = SchoolMembership.objects.filter(
                 school=active_school,
                 role_type=SchoolMembership.RoleType.TEACHER,
             ).count()
 
-            if max_teachers > 0 and (current_count + len(rows)) > max_teachers:
-                messages.error(request, f"لا يمكن استيراد {len(rows)} معلّم. الحد المتبقي في باقتك هو {max_teachers - current_count}.")
+            phones_unique = {p for p in phones_in_file if p}
+            existing_phones_in_school: set[str] = set()
+            if phones_unique:
+                existing_phones_in_school = set(
+                    SchoolMembership.objects.filter(
+                        school=active_school,
+                        role_type=SchoolMembership.RoleType.TEACHER,
+                        teacher__phone__in=phones_unique,
+                    ).values_list("teacher__phone", flat=True)
+                )
+
+            expected_new = len([p for p in phones_unique if p not in existing_phones_in_school])
+            if max_teachers > 0 and (current_count + expected_new) > max_teachers:
+                remaining = max_teachers - current_count
+                messages.error(request, f"لا يمكن استيراد {expected_new} معلّم جديد. الحد المتبقي في باقتك هو {remaining}.")
                 return render(request, "reports/bulk_import_teachers.html")
 
             created_count = 0
-            errors = []
+            reactivated_count = 0
+            errors: list[str] = []
+            seen_phone_rows: set[str] = set()
 
             with transaction.atomic():
-                for idx, row in enumerate(rows, start=2):
-                    name, phone, national_id, specialty = (row + (None, None, None, None))[:4]
-                    
-                    if not name or not phone:
-                        errors.append(f"الصف {idx}: الاسم ورقم الجوال مطلوبان.")
+                for row_idx, name_s, phone_s, nat_s in parsed_rows:
+                    if not name_s or not phone_s:
+                        errors.append(f"الصف {row_idx}: الاسم ورقم الجوال مطلوبان.")
                         continue
-                    
-                    phone = str(phone).strip()
-                    if national_id:
-                        national_id = str(national_id).strip()
-                    
+
+                    if phone_s in seen_phone_rows:
+                        errors.append(f"الصف {row_idx}: رقم الجوال مكرر داخل الملف.")
+                        continue
+                    seen_phone_rows.add(phone_s)
+
                     # التحقق من وجود المعلم مسبقاً
-                    teacher = Teacher.objects.filter(phone=phone).first()
+                    teacher = Teacher.objects.filter(phone=phone_s).first()
                     if not teacher:
                         try:
                             teacher = Teacher.objects.create(
-                                name=name,
-                                phone=phone,
-                                national_id=national_id,
-                                password=make_password(phone), # كلمة المرور الافتراضية هي رقم الجوال
+                                name=name_s,
+                                phone=phone_s,
+                                national_id=nat_s,
+                                password=make_password(phone_s),  # كلمة المرور الافتراضية هي رقم الجوال
                             )
                             # ضبط الدور الافتراضي للتوافق
                             try:
                                 teacher.role = Role.objects.filter(slug="teacher").first()
-                                teacher.save(update_fields=['role'])
+                                teacher.save(update_fields=["role"])
                             except Exception:
                                 pass
-                        except IntegrityError:
-                            errors.append(f"الصف {idx}: رقم الجوال أو الهوية مستخدم مسبقاً.")
+                        except (IntegrityError, ValidationError):
+                            errors.append(f"الصف {row_idx}: رقم الجوال أو الهوية مستخدم مسبقاً.")
                             continue
-                    
+
                     # ربط المعلم بالمدرسة
-                    membership, created = SchoolMembership.objects.get_or_create(
-                        school=active_school,
-                        teacher=teacher,
-                        role_type=SchoolMembership.RoleType.TEACHER,
-                        defaults={
-                            "role_type": SchoolMembership.RoleType.TEACHER,
-                            "is_active": True
-                        }
-                    )
+                    try:
+                        membership, created = SchoolMembership.objects.get_or_create(
+                            school=active_school,
+                            teacher=teacher,
+                            role_type=SchoolMembership.RoleType.TEACHER,
+                            defaults={
+                                "is_active": True,
+                            },
+                        )
+                    except ValidationError as ve:
+                        msg = " ".join(getattr(ve, "messages", []) or []) or str(ve)
+                        errors.append(f"الصف {row_idx}: {msg}")
+                        continue
+
                     if created:
                         created_count += 1
                     else:
-                        errors.append(f"الصف {idx}: المعلم {name} مرتبط بالفعل بهذه المدرسة.")
+                        # إن كانت العضوية موجودة لكنها غير نشطة، فعّلها
+                        try:
+                            if hasattr(membership, "is_active") and not bool(getattr(membership, "is_active", True)):
+                                membership.is_active = True
+                                membership.save(update_fields=["is_active"])
+                                reactivated_count += 1
+                            else:
+                                errors.append(f"الصف {row_idx}: المعلم مرتبط بالفعل بهذه المدرسة.")
+                        except Exception:
+                            errors.append(f"الصف {row_idx}: المعلم مرتبط بالفعل بهذه المدرسة.")
 
             if created_count > 0:
                 messages.success(request, f"✅ تم استيراد {created_count} معلّم بنجاح.")
+            if reactivated_count > 0:
+                messages.info(request, f"تم تفعيل {reactivated_count} عضوية موجودة سابقاً.")
             if errors:
-                for err in errors[:10]: # عرض أول 10 أخطاء فقط
+                for err in errors[:10]:
                     messages.warning(request, err)
                 if len(errors) > 10:
                     messages.warning(request, f"... وهناك {len(errors)-10} أخطاء أخرى.")
-            
+
             return redirect("reports:manage_teachers")
 
-        except Exception as e:
+        except Exception:
             logger.exception("Bulk import failed")
-            messages.error(request, f"حدث خطأ أثناء معالجة الملف: {str(e)}")
+            messages.error(request, "تعذّر معالجة الملف. تأكد أنه ملف .xlsx صحيح ومطابق للتعليمات.")
 
     return render(request, "reports/bulk_import_teachers.html")
 
@@ -2328,6 +3252,14 @@ def _can_act(user, ticket: Ticket) -> bool:
         ).exists():
             return True
 
+    # 3.1 المشرف العام (ضمن نطاقه) - لتذاكر المدرسة فقط
+    if not ticket.is_platform and ticket.school_id:
+        try:
+            if is_platform_admin(user) and platform_allowed_schools_qs(user).filter(id=ticket.school_id).exists():
+                return True
+        except Exception:
+            pass
+
     # 4. مسؤول القسم (Officer)
     # إذا كانت التذكرة تابعة لقسم، فمسؤول القسم يملك صلاحية عليها
     if ticket.department_id and DepartmentMembership is not None:
@@ -2499,6 +3431,7 @@ def my_requests(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
     active_school = _get_active_school(request)
+    user = request.user
 
     # احضر التذكرة مع الحقول المطلوبة مع احترام المدرسة النشطة
     base_qs = Ticket.objects.select_related("creator", "assignee", "department").prefetch_related("recipients").only(
@@ -2522,26 +3455,30 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
     # التحقق من الوصول
     if t.is_platform:
         # تذاكر المنصة: مسموحة للمنشئ (المدير) أو المشرف العام
-        if not (request.user.is_superuser or t.creator_id == request.user.id):
+        if not (user.is_superuser or t.creator_id == user.id):
              raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
     else:
         # تذاكر المدرسة: نلزم عضوية المستخدم في مدرسة التذكرة
-        if not request.user.is_superuser:
+        if not user.is_superuser:
             if not t.school_id:
                 raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
-            if not SchoolMembership.objects.filter(
-                teacher=request.user,
-                school_id=t.school_id,
-                is_active=True,
-            ).exists():
-                raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+            if is_platform_admin(user):
+                if not platform_allowed_schools_qs(user).filter(id=t.school_id).exists():
+                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+            else:
+                if not SchoolMembership.objects.filter(
+                    teacher=user,
+                    school_id=t.school_id,
+                    is_active=True,
+                ).exists():
+                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
 
             # عند تعدد المدارس: نلزم توافق المدرسة النشطة مع مدرسة التذكرة
             if active_school is not None and t.school_id != active_school.id:
                 raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
 
-    is_owner = (t.creator_id == request.user.id)
-    can_act = _can_act(request.user, t)
+    is_owner = (t.creator_id == user.id)
+    can_act = _can_act(user, t)
 
     if request.method == "POST":
         status_val = (request.POST.get("status") or "").strip()
@@ -2816,6 +3753,7 @@ class _SchoolSettingsForm(forms.ModelForm):
             "phone",
             "logo_url",
             "logo_file",
+            "share_link_default_days",
         ]
 
 
@@ -3278,6 +4216,8 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         ctx = cache.get(cache_key)
     except Exception:
         ctx = None
+
+    # لا توجد معالجة POST هنا بعد الآن
 
     if not ctx:
         reports_count = Report.objects.count()
@@ -4887,6 +5827,69 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
     except Exception:
         pass
     return render(request, "reports/my_notifications.html", {"page_obj": page})
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """Show a single notification (for the current user) in a dedicated page.
+
+    pk here refers to NotificationRecipient.pk.
+    """
+    if NotificationRecipient is None:
+        messages.error(request, "نموذج الإشعار غير متاح.")
+        return redirect("reports:my_notifications")
+
+    r = get_object_or_404(
+        NotificationRecipient.objects.select_related(
+            "notification",
+            "notification__created_by",
+            "notification__created_by__role",
+        ),
+        pk=pk,
+        teacher=request.user,
+    )
+
+    n = getattr(r, "notification", None)
+    if n is None:
+        messages.error(request, "تعذّر العثور على الإشعار.")
+        return redirect("reports:my_notifications")
+
+    body = (
+        getattr(n, "message", None)
+        or getattr(n, "body", None)
+        or getattr(n, "content", None)
+        or getattr(n, "text", None)
+        or getattr(n, "details", None)
+        or ""
+    )
+
+    # Mark as read on open (best-effort, supports different schemas)
+    try:
+        updated_fields: list[str] = []
+        if hasattr(r, "is_read") and not bool(getattr(r, "is_read", False)):
+            setattr(r, "is_read", True)
+            updated_fields.append("is_read")
+        if hasattr(r, "read_at") and getattr(r, "read_at", None) is None:
+            setattr(r, "read_at", timezone.now())
+            updated_fields.append("read_at")
+        if updated_fields:
+            try:
+                r.save(update_fields=updated_fields)
+            except Exception:
+                r.save()
+    except Exception:
+        pass
+
+    return render(
+        request,
+        "reports/my_notification_detail.html",
+        {
+            "r": r,
+            "n": n,
+            "body": body,
+        },
+    )
 
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff_or_officer, login_url="reports:login")

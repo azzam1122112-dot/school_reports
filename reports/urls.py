@@ -29,6 +29,9 @@ urlpatterns = [
     # الطباعة والتصدير
     path("reports/<int:pk>/print/", views.report_print, name="report_print"),
 
+    # مشاركة التقرير (اختياري للمعلم)
+    path("reports/<int:pk>/share/", views.report_share_manage, name="report_share_manage"),
+
     # =========================
     # تقارير الإدارة (Staff/Manager)
     # =========================
@@ -38,7 +41,7 @@ urlpatterns = [
     # =========================
     # تقارير المدرسة (مشرف عرض فقط)
     # =========================
-    path("reports/school/", views.school_reports_readonly, name="school_reports_readonly"),
+    # (تم إلغاء دور مشرف التقارير)
 
     # =========================
     # ملف إنجاز المعلّم
@@ -50,15 +53,19 @@ urlpatterns = [
     path("achievement/<int:pk>/print/", views.achievement_file_print, name="achievement_file_print"),
     path("achievement/<int:pk>/pdf/", views.achievement_file_pdf, name="achievement_file_pdf"),
 
+    # مشاركة ملف الإنجاز (اختياري للمعلم)
+    path("achievement/<int:pk>/share/", views.achievement_share_manage, name="achievement_share_manage"),
+
+    # مشاركة عامة عبر token
+    path("share/<str:token>/", views.share_public, name="share_public"),
+    path("share/<str:token>/report-image/<int:slot>/", views.share_report_image, name="share_report_image"),
+    path("share/<str:token>/achievement-pdf/", views.share_achievement_pdf, name="share_achievement_pdf"),
+
     # =========================
     # إدارة المعلّمين (للمدير)
     # =========================
     path("staff/teachers/", views.manage_teachers, name="manage_teachers"),
     path("staff/teachers/add/", views.add_teacher, name="add_teacher"),
-    path("staff/report-viewers/add/", views.report_viewer_create, name="report_viewer_create"),
-    path("staff/report-viewers/<int:pk>/edit/", views.report_viewer_update, name="report_viewer_update"),
-    path("staff/report-viewers/<int:pk>/toggle/", views.report_viewer_toggle, name="report_viewer_toggle"),
-    path("staff/report-viewers/<int:pk>/delete/", views.report_viewer_delete, name="report_viewer_delete"),
     path("staff/teachers/import/", views.bulk_import_teachers, name="bulk_import_teachers"),
     path("staff/teachers/<int:pk>/edit/", views.edit_teacher, name="edit_teacher"),
     path("staff/teachers/<int:pk>/delete/", views.delete_teacher, name="delete_teacher"),
@@ -103,6 +110,25 @@ urlpatterns = [
     path("staff/schools/<int:pk>/managers/", views.school_managers_manage, name="school_managers_manage"),
     path("staff/audit-logs/", views.school_audit_logs, name="school_audit_logs"),
     path("platform-dashboard/", views.platform_admin_dashboard, name="platform_admin_dashboard"),
+
+    # =========================
+    # المشرف العام (عرض + تواصل فقط)
+    # =========================
+    path("platform/schools/", views.platform_schools_directory, name="platform_schools_directory"),
+    path("platform/schools/<int:pk>/enter/", views.platform_enter_school, name="platform_enter_school"),
+    path("platform/school/", views.platform_school_dashboard, name="platform_school_dashboard"),
+    path("platform/school/reports/", views.platform_school_reports, name="platform_school_reports"),
+    path("platform/school/tickets/", views.platform_school_tickets, name="platform_school_tickets"),
+    path("platform/school/notify/", views.platform_school_notify, name="platform_school_notify"),
+    path("platform/admins/add/", views.platform_admin_create, name="platform_admin_create"),
+
+    # =========================
+    # إدارة المشرفين (مدير النظام فقط)
+    # =========================
+    path("platform/admins/", views.platform_admins_list, name="platform_admins_list"),
+    path("platform/admins/<int:pk>/edit/", views.platform_admin_update, name="platform_admin_update"),
+    path("platform/admins/<int:pk>/delete/", views.platform_admin_delete, name="platform_admin_delete"),
+
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("manager/", views.admin_dashboard, name="manager_dashboard"),  # alias قديم
 
@@ -149,6 +175,7 @@ urlpatterns = [
     path("notifications/create/", views.notifications_create, name="notifications_create"),
     path("notifications/sent/", views.notifications_sent, name="notifications_sent"),
     path("notifications/mine/", views.my_notifications, name="my_notifications"),
+    path("notifications/mine/<int:pk>/", views.my_notification_detail, name="my_notification_detail"),
     path("notifications/<int:pk>/read/", views.notification_mark_read, name="notification_mark_read"),
     path("notifications/mark-all-read/", views.notifications_mark_all_read, name="notifications_mark_all_read"),
     # جديد: تعليم كمقروء بالاعتماد على رقم الإشعار (للهيرو/الواجهة)

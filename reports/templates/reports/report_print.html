@@ -196,6 +196,24 @@
       page-break-inside:auto;
     }
 
+    /* ===== Private Comments ===== */
+    .comments-box{
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      margin-top:10px;
+      break-inside:avoid;
+      page-break-inside:avoid;
+    }
+    .comment-item{ padding:10px 0; border-bottom:1px dashed var(--line); }
+    .comment-item:last-child{ border-bottom:none; }
+    .comment-meta{ color:var(--muted); font-weight:900; font-size:.85rem; margin-bottom:6px; }
+    .comment-body{ white-space:pre-wrap; word-break:break-word; }
+    .comment-form{ margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+    .comment-form textarea{ width:100%; min-height:110px; padding:10px; border-radius:10px; border:1px solid #cbd5e1; font-family:inherit; }
+    @media print{ .comment-form{ display:none; } }
+
     /* ===== Media Block (الصور) ===== */
     .media-block{
       margin-top:12px;
@@ -418,7 +436,7 @@
               {% if r.image1 %}
                 <div class="photo-item">
                   <img
-                    src="{{ r.image1.url }}"
+                    src="{{ image1_url|default:r.image1.url }}"
                     alt="صورة توثيقية 1"
                     {% if not for_pdf %}loading="lazy"{% endif %}
                   />
@@ -429,7 +447,7 @@
               {% if r.image2 %}
                 <div class="photo-item">
                   <img
-                    src="{{ r.image2.url }}"
+                    src="{{ image2_url|default:r.image2.url }}"
                     alt="صورة توثيقية 2"
                     {% if not for_pdf %}loading="lazy"{% endif %}
                   />
@@ -440,7 +458,7 @@
               {% if r.image3 %}
                 <div class="photo-item">
                   <img
-                    src="{{ r.image3.url }}"
+                    src="{{ image3_url|default:r.image3.url }}"
                     alt="صورة توثيقية 3"
                     {% if not for_pdf %}loading="lazy"{% endif %}
                   />
@@ -451,7 +469,7 @@
               {% if r.image4 %}
                 <div class="photo-item">
                   <img
-                    src="{{ r.image4.url }}"
+                    src="{{ image4_url|default:r.image4.url }}"
                     alt="صورة توثيقية 4"
                     {% if not for_pdf %}loading="lazy"{% endif %}
                   />
@@ -465,6 +483,38 @@
         </div>
       {% endwith %}
     {% endwith %}
+
+    {% if show_comments %}
+      <div class="section-header">
+        {% if not for_pdf %}<i class="fa-solid fa-comment-dots"></i>{% endif %}
+        تعليقات خاصة (تظهر لك فقط)
+      </div>
+
+      <div class="comments-box">
+        {% if comment_form and not for_pdf %}
+          <form method="post" class="comment-form">
+            {% csrf_token %}
+            {{ comment_form.body }}
+            <div style="margin-top:10px; display:flex; justify-content:flex-start;">
+              <button type="submit" class="btn btn-primary">إرسال التعليق</button>
+            </div>
+          </form>
+        {% endif %}
+
+        {% if private_comments %}
+          {% for c in private_comments %}
+            <div class="comment-item">
+              <div class="comment-meta">
+                {{ c.created_by }} — {{ c.created_at|date:"Y-m-d H:i" }}
+              </div>
+              <div class="comment-body">{{ c.body }}</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="hint">لا توجد تعليقات خاصة.</div>
+        {% endif %}
+      </div>
+    {% endif %}
 
   </main>
 </div>

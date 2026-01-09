@@ -12,17 +12,30 @@
      - متوافق مع data-theme للدارك/لايت
      ========================================================= */
   .or-scope{
-    --ink: var(--ink, #0f172a);
-    --ink-soft: var(--ink-soft, #334155);
-    --muted: var(--muted, #64748b);
-    --line: var(--line, #e5e7eb);
-    --card: var(--card, #ffffff);
-    --bg: var(--bg, #f8fafc);
-    --brand: var(--brand, #2563eb);
-    --accent: var(--accent, #10b981);
-    --danger: var(--danger, #ef4444);
-    --shadow: var(--shadow, 0 10px 28px rgba(2,6,23,.08));
-    --t: var(--t-fast, .18s ease);
+    /* NOTE: do NOT self-reference CSS variables (e.g. var(--ink, ...))
+       because that creates a cycle and results in transparent/invalid styles.
+       Keep these values self-contained inside the scope. */
+    --ink:#0f172a;
+    --ink-soft:#334155;
+    --muted:#64748b;
+    --line:#e5e7eb;
+    --card:#ffffff;
+    --bg:#f8fafc;
+    --brand:#2563eb;
+    --accent:#10b981;
+    --danger:#ef4444;
+    --shadow:0 10px 28px rgba(2,6,23,.08);
+    --t:.18s ease;
+  }
+
+  html[data-theme="dark"] .or-scope{
+    --ink:#e5e7eb;
+    --ink-soft:#cbd5e1;
+    --muted:#94a3b8;
+    --line:#1b2744;
+    --card: rgba(15,23,42,.55);
+    --bg: rgba(15,23,42,.35);
+    --shadow:0 10px 28px rgba(0,0,0,.35);
   }
 
   .or-scope .wrap{max-width:1400px;margin-inline:auto;padding:18px 14px}

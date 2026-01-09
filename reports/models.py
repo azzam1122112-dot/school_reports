@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from datetime import timedelta
+from typing import Optional
+import secrets
 import os
 
 from urllib.parse import quote
@@ -113,6 +116,11 @@ class School(models.Model):
         blank=True,
         null=True,
         help_text="لون رئيسي لقالب الطباعة (مثلاً #2563eb).",
+    )
+    share_link_default_days = models.PositiveSmallIntegerField(
+        "مدة صلاحية الروابط الافتراضية (بالأيام)",
+        default=7,
+        help_text="المدة الافتراضية لروابط مشاركة التقارير/ملفات الإنجاز لهذه المدرسة.",
     )
     created_at = models.DateTimeField("أُنشئت في", auto_now_add=True)
     updated_at = models.DateTimeField("تم التحديث في", auto_now=True)
@@ -226,6 +234,7 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField("نشط", default=True)
     # يُحدَّث تلقائيًا حسب role.is_staff_by_default
     is_staff = models.BooleanField("موظّف لوحة", default=False)
+    is_platform_admin = models.BooleanField("مشرف عام للمنصة؟", default=False)
     date_joined = models.DateTimeField("تاريخ الانضمام", auto_now_add=True)
 
     USERNAME_FIELD = "phone"
@@ -250,7 +259,101 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} ({getattr(self.role, 'name', 'بدون دور')})"
+        role_name = getattr(self.role, "name", None)
+        if not role_name and getattr(self, "is_platform_admin", False):
+            role_name = "مشرف عام"
+        return f"{self.name} ({role_name or 'بدون دور'})"
+
+
+# =========================
+# نطاق مشرف عام للمنصة (عرض + تواصل فقط)
+# =========================
+class PlatformAdminScope(models.Model):
+    class GenderScope(models.TextChoices):
+        ALL = "all", "الجميع"
+        BOYS = "boys", "بنين"
+        GIRLS = "girls", "بنات"
+
+    admin = models.OneToOneField(
+        Teacher,
+        on_delete=models.CASCADE,
+        related_name="platform_scope",
+        verbose_name="المشرف العام",
+    )
+    gender_scope = models.CharField(
+        "نطاق بنين/بنات",
+        max_length=8,
+        choices=GenderScope.choices,
+        default=GenderScope.ALL,
+    )
+    allowed_cities = models.JSONField("المدن المسموحة", default=list, blank=True)
+    allowed_schools = models.ManyToManyField(
+        School,
+        blank=True,
+        related_name="platform_admins",
+        verbose_name="مدارس محددة (اختياري)",
+    )
+
+    class Meta:
+        verbose_name = "نطاق مشرف عام"
+        verbose_name_plural = "نطاقات المشرفين العامين"
+
+    def __str__(self) -> str:
+        return f"Scope for {self.admin_id}"
+
+
+# =========================
+# تعليقات خاصة (يراها المعلم فقط)
+# =========================
+class TeacherPrivateComment(models.Model):
+    teacher = models.ForeignKey(
+        Teacher,
+        on_delete=models.CASCADE,
+        related_name="private_comments_received",
+        verbose_name="المعلم المستهدف",
+    )
+    created_by = models.ForeignKey(
+        Teacher,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="private_comments_created",
+        verbose_name="أضيف بواسطة",
+    )
+    school = models.ForeignKey(
+        School,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="private_comments",
+        verbose_name="المدرسة",
+    )
+    achievement_file = models.ForeignKey(
+        "TeacherAchievementFile",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="private_comments",
+        verbose_name="ملف الإنجاز (اختياري)",
+    )
+    report = models.ForeignKey(
+        "Report",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="private_comments",
+        verbose_name="التقرير (اختياري)",
+    )
+    body = models.TextField("التعليق")
+    created_at = models.DateTimeField("تاريخ الإضافة", default=timezone.now)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        verbose_name = "تعليق خاص للمعلم"
+        verbose_name_plural = "تعليقات خاصة للمعلمين"
+
+    def __str__(self) -> str:
+        return f"PrivateComment#{self.pk} to teacher#{self.teacher_id}"
 
 
 # =========================
@@ -861,6 +964,178 @@ class AchievementEvidenceImage(models.Model):
 
     def __str__(self) -> str:
         return f"EvidenceImage #{self.pk} (section {self.section_id})"
+
+
+# =========================
+# إعدادات المنصة (Singleton)
+# =========================
+class PlatformSettings(models.Model):
+    """إعدادات عامة للمنصة تُدار من مدير النظام.
+
+    نستخدم سجلًا واحدًا فقط (singleton) ونتعامل معه عبر get_solo().
+    """
+
+    share_link_default_days = models.PositiveSmallIntegerField(
+        "مدة صلاحية رابط المشاركة (بالأيام)",
+        default=7,
+        help_text="المدة الافتراضية لروابط مشاركة التقارير/ملفات الإنجاز.",
+    )
+
+    updated_by = models.ForeignKey(
+        Teacher,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="platform_settings_updates",
+        verbose_name="آخر تعديل بواسطة",
+    )
+    updated_at = models.DateTimeField("آخر تعديل", auto_now=True)
+    created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "إعدادات المنصة"
+        verbose_name_plural = "إعدادات المنصة"
+
+    @classmethod
+    def get_solo(cls) -> "PlatformSettings":
+        obj = cls.objects.order_by("id").first()
+        if obj is not None:
+            return obj
+        return cls.objects.create()
+
+    def __str__(self) -> str:
+        return "إعدادات المنصة"
+
+
+def get_share_link_default_days(school: Optional["School"] = None) -> int:
+    """يرجع مدة صلاحية روابط المشاركة بالأيام.
+
+    الأولوية:
+    1. القيمة المحددة في نموذج School (إن تم تمريرها)
+    2. settings.SHARE_LINK_DEFAULT_DAYS
+    3. القيمة الافتراضية 7 أيام
+    
+    Args:
+        school: نموذج المدرسة (اختياري)
+    
+    Returns:
+        عدد الأيام (الحد الأدنى 1)
+    """
+    days = 7  # القيمة الافتراضية
+    
+    # محاولة قراءة القيمة من المدرسة
+    if school is not None:
+        try:
+            school_days = getattr(school, "share_link_default_days", None)
+            if school_days is not None:
+                days = int(school_days)
+        except Exception:
+            pass
+    
+    # إذا لم يتم تمرير مدرسة أو لم تكن لديها قيمة، نقرأ من settings
+    if days == 7:  # لم يتم تعديلها من المدرسة
+        try:
+            days = int(getattr(settings, "SHARE_LINK_DEFAULT_DAYS", 7))
+        except Exception:
+            days = 7
+    
+    # التأكد من أن القيمة موجبة
+    if days <= 0:
+        days = 7
+    
+    return days
+
+
+# =========================
+# روابط مشاركة عامة (بدون حساب)
+# =========================
+class ShareLink(models.Model):
+    class Kind(models.TextChoices):
+        REPORT = "report", "تقرير"
+        ACHIEVEMENT = "achievement", "ملف إنجاز"
+
+    token = models.CharField("Token", max_length=64, unique=True, db_index=True)
+    kind = models.CharField("النوع", max_length=20, choices=Kind.choices, db_index=True)
+
+    created_by = models.ForeignKey(
+        Teacher,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="share_links",
+        verbose_name="تم الإنشاء بواسطة",
+    )
+    school = models.ForeignKey(
+        School,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="share_links",
+        verbose_name="المدرسة",
+        db_index=True,
+    )
+
+    report = models.ForeignKey(
+        "Report",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="share_links",
+        verbose_name="التقرير",
+        db_index=True,
+    )
+    achievement_file = models.ForeignKey(
+        "TeacherAchievementFile",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="share_links",
+        verbose_name="ملف الإنجاز",
+        db_index=True,
+    )
+
+    is_active = models.BooleanField("مفعّل", default=True, db_index=True)
+    expires_at = models.DateTimeField("ينتهي في", db_index=True)
+    last_accessed_at = models.DateTimeField("آخر وصول", null=True, blank=True)
+    created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "رابط مشاركة"
+        verbose_name_plural = "روابط مشاركة"
+        indexes = [
+            models.Index(fields=["kind", "is_active", "expires_at"]),
+            models.Index(fields=["report", "is_active", "expires_at"]),
+            models.Index(fields=["achievement_file", "is_active", "expires_at"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                name="sharelink_kind_target_consistent",
+                check=(
+                    models.Q(kind="report", report__isnull=False, achievement_file__isnull=True)
+                    | models.Q(kind="achievement", report__isnull=True, achievement_file__isnull=False)
+                ),
+            )
+        ]
+
+    @staticmethod
+    def default_expires_at() -> timezone.datetime:
+        return timezone.now() + timedelta(days=get_share_link_default_days())
+
+    @staticmethod
+    def generate_token() -> str:
+        # طول ~43 حرف عند 32 bytes (مع هامش)
+        return secrets.token_urlsafe(32)
+
+    @property
+    def is_expired(self) -> bool:
+        try:
+            return timezone.now() >= self.expires_at
+        except Exception:
+            return True
+
+    def __str__(self) -> str:
+        target = self.report_id or self.achievement_file_id
+        return f"{self.get_kind_display()} ({target})"
 
 
 # =========================

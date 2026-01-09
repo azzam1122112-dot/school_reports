@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}تعديل مشرف{% endblock %}
+
+{% block content %}
+<div class="container" dir="rtl" style="max-width:920px;margin:0 auto;padding:18px">
+  <div class="card" style="border-radius:18px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1 style="margin:0 0 6px;font-weight:950">تعديل مشرف</h1>
+        <div class="muted" style="font-weight:850">{{ admin_user.name }} — {{ admin_user.phone }}</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-outline" href="{% url 'reports:platform_admins_list' %}">رجوع للقائمة</a>
+      </div>
+    </div>
+
+    <form method="post" style="margin-top:14px">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <div class="grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div>
+          <label class="form-label">الاسم</label>
+          {{ form.name }}
+          {{ form.name.errors }}
+        </div>
+        <div>
+          <label class="form-label">رقم الجوال</label>
+          {{ form.phone }}
+          {{ form.phone.errors }}
+        </div>
+        <div>
+          <label class="form-label">كلمة المرور (اختياري)</label>
+          {{ form.password }}
+          {{ form.password.errors }}
+          <div class="muted" style="margin-top:6px;font-weight:850">اتركها فارغة للإبقاء على كلمة المرور الحالية.</div>
+        </div>
+        <div>
+          <label class="form-label">نشط؟</label>
+          {{ form.is_active }}
+          {{ form.is_active.errors }}
+        </div>
+      </div>
+
+      <hr style="margin:16px 0;border-color:var(--line-2)">
+
+      <div class="grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div>
+          <label class="form-label">نطاق بنين/بنات</label>
+          {{ form.gender_scope }}
+          {{ form.gender_scope.errors }}
+        </div>
+        <div>
+          <label class="form-label">مدن (اختياري) — افصل بفواصل</label>
+          {{ form.cities }}
+          {{ form.cities.errors }}
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="form-label">مدارس محددة (اختياري)</label>
+        {{ form.allowed_schools }}
+        {{ form.allowed_schools.errors }}
+        <div class="muted" style="margin-top:6px;font-weight:850">إذا اخترت مدارس محددة، ستُطبّق كأقوى تقييد.</div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+        <button class="btn btn-primary" type="submit">حفظ</button>
+        <a class="btn btn-outline" href="{% url 'reports:platform_admins_list' %}">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

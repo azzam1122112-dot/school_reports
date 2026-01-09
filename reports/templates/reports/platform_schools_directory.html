@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}المدارس{% endblock %}
+
+{% block content %}
+<div class="schools-page" dir="rtl" style="max-width:1100px;margin:0 auto;padding:clamp(10px,2.2vw,18px)">
+  <div class="schools-shell" style="background:var(--card);border:1px solid var(--line-2);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;">
+
+    <div class="schools-head" style="padding:clamp(16px,2.2vw,22px) clamp(16px,3vw,26px);background:linear-gradient(135deg, rgba(37,99,235,.92), rgba(59,130,246,.86));color:#fff;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <h1 style="margin:0;font-weight:950;font-size:clamp(1.15rem,2.4vw,1.6rem)">
+            <i class="fa-solid fa-school" aria-hidden="true"></i>
+            قائمة المدارس
+          </h1>
+          <p style="margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65">عرض المدارس المسموح بها للمشرف العام مع فلاتر سريعة.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+          {% if request.user.is_superuser %}
+            <a class="btn btn-outline" href="{% url 'reports:platform_admin_dashboard' %}" style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);color:#fff;border-radius:14px">
+              لوحة المنصة
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="schools-body" style="padding:clamp(14px,2.6vw,22px)">
+      <div style="background:var(--card);border:1px solid var(--line-2);border-radius:18px;box-shadow:var(--shadow-sm);padding:14px;">
+        <div class="section-title">المدارس</div>
+
+        <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">
+          <div style="flex:1 1 320px;min-width:220px">
+            <label style="display:block;font-weight:900;color:var(--muted);margin:0 0 8px">بحث</label>
+            <input name="q" value="{{ q }}" class="search" type="search" placeholder="اسم المدرسة / الكود / المدينة…" autocomplete="off" spellcheck="false"
+                   style="width:100%;min-height:var(--tap);border-radius:14px;border:1px solid var(--line);padding:12px 14px;font-weight:850;">
+          </div>
+          <div style="min-width:160px">
+            <label style="display:block;font-weight:900;color:var(--muted);margin:0 0 8px">بنين/بنات</label>
+            <select name="gender" class="search" style="width:100%;min-height:var(--tap);border-radius:14px;border:1px solid var(--line);padding:12px 14px;font-weight:850;">
+              <option value="">الكل</option>
+              <option value="boys" {% if gender == 'boys' %}selected{% endif %}>بنين</option>
+              <option value="girls" {% if gender == 'girls' %}selected{% endif %}>بنات</option>
+            </select>
+          </div>
+          <div style="min-width:180px">
+            <label style="display:block;font-weight:900;color:var(--muted);margin:0 0 8px">المدينة</label>
+            <select name="city" class="search" style="width:100%;min-height:var(--tap);border-radius:14px;border:1px solid var(--line);padding:12px 14px;font-weight:850;">
+              <option value="">كل المدن</option>
+              {% for c in cities %}
+                <option value="{{ c }}" {% if city == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <button class="btn btn-primary" type="submit" style="border-radius:14px">تطبيق</button>
+            <a class="btn btn-outline" href="{% url 'reports:platform_schools_directory' %}" style="border-radius:14px">مسح</a>
+          </div>
+        </form>
+
+        <div style="margin-top:12px;overflow:auto">
+          <table class="rtable" style="width:100%">
+            <thead>
+              <tr>
+                <th style="text-align:right">المدرسة</th>
+                <th>المرحلة</th>
+                <th>بنين/بنات</th>
+                <th>المدينة</th>
+                <th>الحالة</th>
+                <th>إجراء</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in schools %}
+                <tr>
+                  <td style="text-align:right">
+                    <div style="font-weight:950;color:var(--ink)">{{ s.name }}</div>
+                    {% if s.code %}<div class="muted" style="font-weight:850;font-family:ui-monospace,monospace;margin-top:2px">#{{ s.code }}</div>{% endif %}
+                  </td>
+                  <td>{% if s.get_stage_display %}{{ s.get_stage_display }}{% else %}-{% endif %}</td>
+                  <td>{% if s.get_gender_display %}{{ s.get_gender_display }}{% else %}-{% endif %}</td>
+                  <td>{{ s.city|default:"-" }}</td>
+                  <td>{% if s.is_active %}<span class="badge" style="background:rgba(16,185,129,.12);color:var(--success);border:1px solid rgba(16,185,129,.22)">نشطة</span>{% else %}<span class="badge" style="background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.22)">موقوفة</span>{% endif %}</td>
+                  <td>
+                    <a class="btn btn-primary" style="border-radius:12px" href="{% url 'reports:platform_enter_school' pk=s.id %}">
+                      دخول
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="6" class="muted" style="text-align:center;padding:18px">لا توجد مدارس ضمن النطاق الحالي.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

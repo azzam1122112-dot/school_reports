@@ -34,11 +34,6 @@
           استيراد جماعي
         </a>
 
-        <a class="btn btn-outline-primary btn-add" href="{% url 'reports:report_viewer_create' %}">
-          <i class="fas fa-eye"></i>
-          إضافة مشرف 
-        </a>
-
         <a class="btn btn-primary btn-add" href="{% url 'reports:add_teacher' %}">
           <i class="fas fa-plus-circle"></i>
           إضافة معلم جديد
@@ -89,49 +84,43 @@
 
                 {# ===== عمود القسم/الدور (بدون استدعاء role.slug داخل القالب) ===== #}
                 <td data-label="القسم / الدور" class="text-center">
-                  {% if t.is_report_viewer %}
-                    <span class="chip chip-role role-report-viewer">
-                      <i class="fas fa-eye"></i> مشرف تقارير (عرض فقط)
-                    </span>
-                  {% else %}
-                    {% with memberships=t.dept_memberships.all %}
-                      {% if memberships %}
-                        <div class="chips">
-                          {% for m in memberships %}
-                            {% with dep=m.department rt=m.role_type|stringformat:"s"|lower %}
-                              <span class="chip chip-dept" data-slug="{{ dep.slug|default_if_none:''|lower }}">
-                                <i class="fas fa-building"></i>
-                                {{ dep.name|default:dep.slug }}
-                                <span class="chip-role {% if rt == 'officer' or rt == '1' %}role-officer{% else %}role-employee{% endif %}">
-                                  {% if rt == 'officer' or rt == '1' %}
-                                    <i class="fas fa-user-shield"></i> مسؤول
-                                  {% else %}
-                                    <i class="fas fa-id-badge"></i> موظف
-                                  {% endif %}
-                                </span>
-                              </span>
-                            {% endwith %}
-                          {% endfor %}
-                        </div>
-                      {% else %}
-                        {% with slug=t.role_slug|default_if_none:''|lower %}
-                          {% if slug == 'manager' %}
-                            <span class="chip chip-role role-manager"><i class="fas fa-crown"></i> مدير</span>
-                          {% elif slug == 'teacher' %}
-                            <span class="chip chip-role role-teacher"><i class="fas fa-user-graduate"></i> معلم</span>
-                          {% elif slug %}
-                            <span class="chip chip-dept" data-slug="{{ slug }}">
+                  {% with memberships=t.dept_memberships.all %}
+                    {% if memberships %}
+                      <div class="chips">
+                        {% for m in memberships %}
+                          {% with dep=m.department rt=m.role_type|stringformat:"s"|lower %}
+                            <span class="chip chip-dept" data-slug="{{ dep.slug|default_if_none:''|lower }}">
                               <i class="fas fa-building"></i>
-                              {{ t.role_label|default:t.role_dept_name|default:slug }}
-                              <span class="chip-role role-employee"><i class="fas fa-id-badge"></i> موظف</span>
+                              {{ dep.name|default:dep.slug }}
+                              <span class="chip-role {% if rt == 'officer' or rt == '1' %}role-officer{% else %}role-employee{% endif %}">
+                                {% if rt == 'officer' or rt == '1' %}
+                                  <i class="fas fa-user-shield"></i> مسؤول
+                                {% else %}
+                                  <i class="fas fa-id-badge"></i> موظف
+                                {% endif %}
+                              </span>
                             </span>
-                          {% else %}
-                            <span class="badge-muted">—</span>
-                          {% endif %}
-                        {% endwith %}
-                      {% endif %}
-                    {% endwith %}
-                  {% endif %}
+                          {% endwith %}
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      {% with slug=t.role_slug|default_if_none:''|lower %}
+                        {% if slug == 'manager' %}
+                          <span class="chip chip-role role-manager"><i class="fas fa-crown"></i> مدير</span>
+                        {% elif slug == 'teacher' %}
+                          <span class="chip chip-role role-teacher"><i class="fas fa-user-graduate"></i> معلم</span>
+                        {% elif slug %}
+                          <span class="chip chip-dept" data-slug="{{ slug }}">
+                            <i class="fas fa-building"></i>
+                            {{ t.role_label|default:t.role_dept_name|default:slug }}
+                            <span class="chip-role role-employee"><i class="fas fa-id-badge"></i> موظف</span>
+                          </span>
+                        {% else %}
+                          <span class="badge-muted">—</span>
+                        {% endif %}
+                      {% endwith %}
+                    {% endif %}
+                  {% endwith %}
                 </td>
                 {# ===================================== #}
 
@@ -146,68 +135,31 @@
                 <td data-label="الإجراءات" class="text-center">
                   {% with nxt=request.get_full_path %}
                     <div class="action-buttons">
-                      {% if t.is_report_viewer %}
-                        <a
-                          href="{% url 'reports:report_viewer_update' pk=t.id %}"
-                          class="btn btn-icon btn-edit"
-                          title="تعديل"
-                          aria-label="تعديل"
-                        >
-                          <i class="fas fa-edit"></i>
-                        </a>
+                      <a
+                        href="{% url 'reports:edit_teacher' pk=t.id %}?next={{ nxt|urlencode }}"
+                        class="btn btn-icon btn-edit"
+                        title="تعديل"
+                        aria-label="تعديل"
+                      >
+                        <i class="fas fa-edit"></i>
+                      </a>
 
-                        <form method="post" action="{% url 'reports:report_viewer_toggle' pk=t.id %}" style="display:inline">
-                          {% csrf_token %}
-                          <button
-                            type="submit"
-                            class="btn btn-icon btn-outline"
-                            title="تفعيل/إيقاف"
-                            aria-label="تفعيل/إيقاف"
-                            onclick="return confirm('تأكيد تغيير حالة الحساب؟')"
-                          >
-                            <i class="fas fa-power-off"></i>
-                          </button>
-                        </form>
-
-                        <form method="post" action="{% url 'reports:report_viewer_delete' pk=t.id %}" style="display:inline">
-                          {% csrf_token %}
-                          <button
-                            type="submit"
-                            class="btn btn-icon btn-delete"
-                            title="حذف"
-                            aria-label="حذف"
-                            onclick="return confirm('هل أنت متأكد من حذف مشرف التقارير من المدرسة؟')"
-                          >
-                            <i class="fas fa-trash-alt"></i>
-                          </button>
-                        </form>
-                      {% else %}
-                        <a
-                          href="{% url 'reports:edit_teacher' pk=t.id %}?next={{ nxt|urlencode }}"
-                          class="btn btn-icon btn-edit"
-                          title="تعديل"
-                          aria-label="تعديل"
+                      <form
+                        method="post"
+                        action="{% url 'reports:delete_teacher' pk=t.id %}?next={{ nxt|urlencode }}"
+                        style="display:inline"
+                      >
+                        {% csrf_token %}
+                        <button
+                          type="submit"
+                          class="btn btn-icon btn-delete"
+                          title="حذف"
+                          aria-label="حذف"
+                          onclick="return confirm('هل أنت متأكد من حذف هذا المعلم؟')"
                         >
-                          <i class="fas fa-edit"></i>
-                        </a>
-
-                        <form
-                          method="post"
-                          action="{% url 'reports:delete_teacher' pk=t.id %}?next={{ nxt|urlencode }}"
-                          style="display:inline"
-                        >
-                          {% csrf_token %}
-                          <button
-                            type="submit"
-                            class="btn btn-icon btn-delete"
-                            title="حذف"
-                            aria-label="حذف"
-                            onclick="return confirm('هل أنت متأكد من حذف هذا المعلم؟')"
-                          >
-                            <i class="fas fa-trash-alt"></i>
-                          </button>
-                        </form>
-                      {% endif %}
+                          <i class="fas fa-trash-alt"></i>
+                        </button>
+                      </form>
                     </div>
                   {% endwith %}
                 </td>
@@ -391,7 +343,6 @@
   /* Global roles */
   .admin-scope .chip-role.role-manager{background:#ffe4e6;color:#be123c}
   .admin-scope .chip-role.role-teacher{background:#e9d5ff;color:#6d28d9}
-  .admin-scope .chip-role.role-report-viewer{background:#e0f2fe;color:#0369a1}
 
   /* Status */
   .admin-scope .status-badge{

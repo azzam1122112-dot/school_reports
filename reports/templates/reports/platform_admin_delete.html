@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}حذف مشرف{% endblock %}
+
+{% block content %}
+<div class="container" dir="rtl" style="max-width:760px;margin:0 auto;padding:18px">
+  <div class="card" style="border-radius:18px">
+    <h1 style="margin:0 0 6px;font-weight:950">حذف مشرف</h1>
+    <div class="muted" style="font-weight:850;line-height:1.7">
+      هل أنت متأكد من حذف المشرف التالي؟
+    </div>
+
+    <div style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--line-2)">
+      <div style="font-weight:950;color:var(--ink)">{{ admin_user.name }}</div>
+      <div class="muted" style="font-weight:850;margin-top:4px">{{ admin_user.phone }}</div>
+    </div>
+
+    <div class="muted" style="margin-top:10px;font-weight:850">
+      ملاحظة: سيؤثر هذا على تسجيل الدخول لهذا الحساب ولن يستطيع الوصول للنظام.
+    </div>
+
+    <form method="post" style="margin-top:14px">
+      {% csrf_token %}
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" type="submit" style="background:var(--danger);border-color:var(--danger)">تأكيد الحذف</button>
+        <a class="btn btn-outline" href="{% url 'reports:platform_admins_list' %}">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}لوحة المدرسة{% endblock %}
+
+{% block content %}
+<div class="container" dir="rtl" style="max-width:980px;margin:0 auto;padding:18px">
+  <div class="card" style="border-radius:18px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1 style="margin:0;font-weight:950">{{ school.name }}</h1>
+        <div class="muted" style="margin-top:6px;font-weight:850">
+          {% if school.city %}{{ school.city }} • {% endif %}
+          {% if school.get_gender_display %}{{ school.get_gender_display }}{% endif %}
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-outline" href="{% url 'reports:platform_schools_directory' %}">رجوع للمدارس</a>
+      </div>
+    </div>
+
+    <hr style="margin:16px 0;border-color:var(--line-2)">
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <a class="btn btn-primary" href="{% url 'reports:platform_school_reports' %}">عرض التقارير</a>
+      <a class="btn btn-primary" href="{% url 'reports:platform_school_tickets' %}">عرض التذاكر</a>
+      <a class="btn btn-primary" href="{% url 'reports:achievement_school_files' %}">عرض ملفات الإنجاز</a>
+      <a class="btn btn-outline" href="{% url 'reports:platform_school_notify' %}">إرسال إشعار للمدرسة</a>
+    </div>
+
+    <div class="muted" style="margin-top:12px;font-weight:850">
+      صلاحياتك هنا: عرض + تواصل فقط.
+    </div>
+  </div>
+</div>
+{% endblock %}

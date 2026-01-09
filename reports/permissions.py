@@ -22,10 +22,66 @@ __all__ = [
     "get_officer_departments",
     "get_officer_department",
     "is_officer",
+    "is_platform_admin",
+    "platform_allowed_schools_qs",
+    "platform_can_access_school",
     "role_required",
     "allowed_categories_for",
     "restrict_queryset_for_user",
 ]
+
+
+def is_platform_admin(user) -> bool:
+    return bool(getattr(user, "is_authenticated", False) and getattr(user, "is_platform_admin", False))
+
+
+def platform_allowed_schools_qs(user) -> QuerySet[School]:
+    """Schools accessible to a platform admin (scope-based)."""
+    if not getattr(user, "is_authenticated", False):
+        return School.objects.none()
+
+    if getattr(user, "is_superuser", False):
+        return School.objects.filter(is_active=True)
+
+    if not is_platform_admin(user):
+        return School.objects.none()
+
+    qs = School.objects.filter(is_active=True)
+    scope = getattr(user, "platform_scope", None)
+    if scope is None:
+        return qs
+
+    try:
+        if scope.allowed_schools.exists():
+            return qs.filter(id__in=scope.allowed_schools.values_list("id", flat=True))
+    except Exception:
+        pass
+
+    try:
+        gs = (getattr(scope, "gender_scope", None) or "all").strip().lower()
+        if gs in {"boys", "girls"}:
+            qs = qs.filter(gender=gs)
+    except Exception:
+        pass
+
+    try:
+        cities = getattr(scope, "allowed_cities", None) or []
+        cities = [str(c).strip() for c in cities if str(c).strip()]
+        if cities:
+            qs = qs.filter(city__in=cities)
+    except Exception:
+        pass
+
+    return qs
+
+
+def platform_can_access_school(user, school: School | None) -> bool:
+    if school is None:
+        return False
+    try:
+        return platform_allowed_schools_qs(user).filter(id=school.id).exists()
+    except Exception:
+        return False
 
 
 # ==============================
@@ -189,8 +245,10 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
         ملاحظة: لا نستخدم Role.allowed_reporttypes هنا لأن Role عالمي وقد يخلط بين المدارس.
     """
     try:
-        # سوبر ومدير أو دور يرى الكل
+        # سوبر/مشرف عام: يرى الكل (لكن عزل المدارس يُطبّق في الـ views)
         if getattr(user, "is_superuser", False):
+            return {"all"}
+        if is_platform_admin(user):
             return {"all"}
         if active_school is not None and SchoolMembership is not None:
             try:
@@ -199,7 +257,6 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
                     school=active_school,
                     role_type__in=[
                         SchoolMembership.RoleType.MANAGER,
-                        SchoolMembership.RoleType.REPORT_VIEWER,
                     ],
                     is_active=True,
                 ).exists():
@@ -237,6 +294,19 @@ def restrict_queryset_for_user(qs: QuerySet[Any], user, active_school: Optional[
     if getattr(user, "is_superuser", False):
         return qs
 
+    # مشرف عام: رؤية مقيدة حسب المدارس المسموحة فقط (إن كان للموديل حقل school)
+    if is_platform_admin(user):
+        try:
+            # إن كانت هناك مدرسة نشطة، نتأكد أنها ضمن المسموح
+            if active_school is not None and not platform_can_access_school(user, active_school):
+                return qs.none()
+            if hasattr(qs.model, "school"):
+                allowed_ids = list(platform_allowed_schools_qs(user).values_list("id", flat=True))
+                return qs.filter(school_id__in=allowed_ids)
+        except Exception:
+            return qs.none()
+        return qs
+
     # ✅ مدير المدرسة داخل active_school يرى كل التقارير (مع مراعاة فلترة المدرسة في الـ View)
     if active_school is not None and SchoolMembership is not None:
         try:
@@ -245,7 +315,6 @@ def restrict_queryset_for_user(qs: QuerySet[Any], user, active_school: Optional[
                 school=active_school,
                 role_type__in=[
                     SchoolMembership.RoleType.MANAGER,
-                    SchoolMembership.RoleType.REPORT_VIEWER,
                 ],
                 is_active=True,
             ).exists():

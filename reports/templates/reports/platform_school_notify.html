@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}إرسال إشعار{% endblock %}
+
+{% block content %}
+<div class="container" dir="rtl" style="max-width:900px;margin:0 auto;padding:18px">
+  <div class="card" style="border-radius:18px">
+    <h1 style="margin:0 0 6px;font-weight:950">إرسال إشعار</h1>
+    <div class="muted" style="font-weight:850">سيصل الإشعار إلى جميع المستخدمين داخل المدرسة: <b>{{ school.name }}</b></div>
+
+    <form method="post" style="margin-top:14px">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <div class="form-group">
+        <label class="form-label">العنوان</label>
+        {{ form.title }}
+        {{ form.title.errors }}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">الرسالة</label>
+        {{ form.message }}
+        {{ form.message.errors }}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">مهم؟</label>
+        {{ form.is_important }}
+        {{ form.is_important.errors }}
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn btn-primary" type="submit">إرسال</button>
+        <a class="btn btn-outline" href="{% url 'reports:platform_school_dashboard' %}">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

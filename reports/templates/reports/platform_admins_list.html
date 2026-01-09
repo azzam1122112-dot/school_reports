@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة المشرفين{% endblock %}
+
+{% block head %}
+<style>
+  /* =========================================================
+     PLATFORM ADMINS LIST (page-only) — Scoped داخل .pal فقط
+     ========================================================= */
+  .pal{max-width:1200px;margin:0 auto;padding:clamp(12px,2.4vw,18px)}
+  .pal .head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .pal .ttl{margin:0;font-weight:950;color:var(--ink)}
+  .pal .sub{margin:6px 0 0;color:var(--muted);font-weight:850;line-height:1.7}
+  .pal .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .pal .filters{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+  .pal .filters input{min-height:var(--tap);border-radius:14px;border:1px solid var(--line);padding:10px 12px;font-weight:850;min-width:260px}
+  .pal .tblwrap{margin-top:12px;overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+  .pal table{width:100%;border-collapse:collapse;min-width:980px}
+  .pal th,.pal td{padding:12px 12px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+  .pal thead th{background:linear-gradient(180deg,var(--line-2),var(--card));font-weight:950}
+  .pal .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-weight:950;font-size:.82rem;border:1px solid var(--line)}
+  .pal .b-ok{background:rgba(16,185,129,.12);color:var(--success);border-color:rgba(16,185,129,.22)}
+  .pal .b-off{background:rgba(239,68,68,.10);color:var(--danger);border-color:rgba(239,68,68,.18)}
+  .pal .muted{color:var(--muted);font-weight:850}
+  .pal .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  @media(max-width:560px){
+    .pal .actions{width:100%}
+    .pal .actions .btn{width:100%;justify-content:center}
+    .pal .filters input{width:100%;min-width:unset}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pal" dir="rtl">
+  <div class="head">
+    <div>
+      <h1 class="ttl">إدارة المشرفين</h1>
+      <div class="sub">إضافة/تعديل/حذف مشرفين عامّين، مع إسناد المدارس ضمن نطاق الصلاحيات.</div>
+    </div>
+
+    <div class="actions">
+      <a class="btn btn-outline" href="{% url 'reports:platform_admin_dashboard' %}">رجوع للوحة مدير النظام</a>
+      <a class="btn btn-primary" href="{% url 'reports:platform_admin_create' %}">إضافة مشرف</a>
+    </div>
+  </div>
+
+  <div class="card" style="border-radius:18px">
+    <form method="get" class="filters">
+      <div>
+        <label class="muted" style="display:block;margin:0 0 6px">بحث</label>
+        <input name="q" value="{{ q }}" type="search" placeholder="الاسم أو الجوال…" autocomplete="off" />
+      </div>
+      <div>
+        <button class="btn btn-primary" type="submit">تطبيق</button>
+        {% if q %}
+          <a class="btn btn-outline" href="{% url 'reports:platform_admins_list' %}">مسح</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr>
+            <th>المشرف</th>
+            <th>الحالة</th>
+            <th>نطاق بنين/بنات</th>
+            <th>المدن</th>
+            <th>مدارس محددة</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in admins %}
+            <tr>
+              <td>
+                <div style="font-weight:950;color:var(--ink)">{{ a.name }}</div>
+                <div class="muted mono" style="margin-top:4px">{{ a.phone }}</div>
+              </td>
+              <td>
+                {% if a.is_active %}
+                  <span class="badge b-ok">نشط</span>
+                {% else %}
+                  <span class="badge b-off">غير نشط</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="muted">
+                  {% if a.platform_scope %}{{ a.platform_scope.get_gender_scope_display }}{% else %}-{% endif %}
+                </span>
+              </td>
+              <td>
+                {% if a.platform_scope and a.platform_scope.allowed_cities %}
+                  <div class="muted">{{ a.platform_scope.allowed_cities|join:", " }}</div>
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if a.platform_scope %}
+                  <span class="muted">{{ a.platform_scope.allowed_schools.count }} مدرسة</span>
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <a class="btn btn-outline" href="{% url 'reports:platform_admin_update' a.pk %}">تعديل</a>
+                  <a class="btn btn-outline" href="{% url 'reports:platform_admin_delete' a.pk %}">حذف</a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="muted" style="text-align:center;padding:18px">لا يوجد مشرفون مطابقون.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

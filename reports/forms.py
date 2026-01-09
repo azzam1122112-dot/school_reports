@@ -738,34 +738,121 @@ class ManagerCreateForm(forms.ModelForm):
             ),
         }
 
+
+class PlatformAdminCreateForm(forms.ModelForm):
+    """إنشاء حساب مشرف عام (عرض + تواصل) مع نطاق (Scope)."""
+
+    password = forms.CharField(
+        label="كلمة المرور",
+        required=True,
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "كلمة المرور للحساب الجديد",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    gender_scope = forms.ChoiceField(
+        label="نطاق بنين/بنات",
+        choices=[("all", "الجميع"), ("boys", "بنين"), ("girls", "بنات")],
+        required=True,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        initial="all",
+    )
+
+    cities = forms.CharField(
+        label="مدن (اختياري)",
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "مثال: الرياض, جدة, الدمام",
+            }
+        ),
+    )
+
+    allowed_schools = forms.ModelMultipleChoiceField(
+        label="مدارس محددة (اختياري)",
+        required=False,
+        queryset=School.objects.filter(is_active=True).order_by("name"),
+        widget=forms.SelectMultiple(attrs={"class": "form-control"}),
+    )
+
+    class Meta:
+        model = Teacher
+        fields = ["name", "phone", "is_active"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "الاسم الكامل", "maxlength": "150"}
+            ),
+        }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # في وضع التعديل تكون كلمة المرور اختيارية، وتُستخدم فقط عند إدخال قيمة جديدة
-        if self.instance and getattr(self.instance, "pk", None):
-            self.fields["password"].required = False
-            self.fields["password"].widget.attrs.setdefault(
-                "placeholder", "اتركه فارغًا للإبقاء على كلمة المرور الحالية"
-            )
 
-    def clean_national_id(self):
-        nid = (self.cleaned_data.get("national_id") or "").strip()
-        if nid:
-            if not nid.isdigit() or len(nid) != 10:
-                raise ValidationError("رقم الهوية يجب أن يتكون من 10 أرقام.")
-        return nid or None
+        # عند التعديل: كلمة المرور اختيارية
+        if getattr(self.instance, "pk", None):
+            self.fields["password"].required = False
+            self.fields["password"].widget.attrs["placeholder"] = "اتركه فارغًا للإبقاء على كلمة المرور الحالية"
+
+            # تعبئة نطاق الصلاحيات من PlatformAdminScope (إن وجد)
+            try:
+                from .models import PlatformAdminScope
+
+                scope = (
+                    PlatformAdminScope.objects.filter(admin=self.instance)
+                    .prefetch_related("allowed_schools")
+                    .first()
+                )
+                if scope is not None:
+                    self.initial.setdefault("gender_scope", scope.gender_scope)
+                    try:
+                        self.initial.setdefault("cities", ", ".join(list(scope.allowed_cities or [])))
+                    except Exception:
+                        self.initial.setdefault("cities", "")
+                    self.initial.setdefault("allowed_schools", scope.allowed_schools.all())
+            except Exception:
+                pass
 
     def save(self, commit: bool = True):
         instance: Teacher = super().save(commit=False)
-        new_pwd = (self.cleaned_data.get("password") or "").strip()
-        # إنشاء: إن لم تُحدّد كلمة مرور نضبط كلمة مرور غير قابلة للاستخدام.
-        # تعديل: إن تُرك الحقل فارغًا نحافظ على كلمة المرور الحالية.
-        if new_pwd:
-            instance.set_password(new_pwd)
-        elif not getattr(instance, "pk", None):
-            instance.set_unusable_password()
+        pwd = (self.cleaned_data.get("password") or "").strip()
+        if pwd:
+            instance.set_password(pwd)
+        instance.is_platform_admin = True
+        try:
+            instance.role = Role.objects.filter(slug="teacher").first()
+        except Exception:
+            instance.role = None
         if commit:
             instance.save()
         return instance
+
+
+class PlatformSchoolNotificationForm(forms.Form):
+    title = forms.CharField(
+        label="العنوان",
+        required=False,
+        max_length=120,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "عنوان مختصر (اختياري)"}),
+    )
+    message = forms.CharField(
+        label="الرسالة",
+        required=True,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 5, "placeholder": "اكتب نص الإشعار هنا…"}),
+    )
+    is_important = forms.BooleanField(label="مهم؟", required=False)
+
+
+class PrivateCommentForm(forms.Form):
+    body = forms.CharField(
+        label="تعليق للمعلّم",
+        required=True,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "اكتب تعليقًا يظهر للمعلم فقط…"}),
+    )
 
 # ==============================
 # 📌 تذاكر — إنشاء/إجراءات/ملاحظات

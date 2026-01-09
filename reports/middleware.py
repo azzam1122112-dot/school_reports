@@ -1,8 +1,8 @@
 from django.conf import settings
 from django.contrib.auth import logout
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import reverse, resolve
 from django.utils import timezone
 from django.contrib import messages
 
@@ -229,6 +229,126 @@ class SubscriptionMiddleware:
             return redirect('reports:subscription_expired')
 
         return self.get_response(request)
+
+
+class PlatformAdminAccessMiddleware:
+    """Restrict platform-admin accounts to a small allowlist of read/communicate pages.
+
+    Platform admin is intended to:
+    - View reports + add private comments
+    - View tickets + reply
+    - View achievement files + add private comments
+    - Send notifications inside the active school
+
+    Defense-in-depth: even if a view forgets to check permissions, middleware blocks.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def _wants_json(self, request) -> bool:
+        try:
+            accept = (request.headers.get("Accept") or "").lower()
+            xrw = (request.headers.get("X-Requested-With") or "").lower()
+            return ("application/json" in accept) or (xrw == "xmlhttprequest")
+        except Exception:
+            return False
+
+    def _wants_html(self, request) -> bool:
+        try:
+            headers = request.headers
+            accept = (headers.get("Accept") or "").lower()
+            sec_fetch_mode = (headers.get("Sec-Fetch-Mode") or "").lower()
+            sec_fetch_dest = (headers.get("Sec-Fetch-Dest") or "").lower()
+            if "text/html" in accept:
+                return True
+            if sec_fetch_mode == "navigate" or sec_fetch_dest == "document":
+                return True
+        except Exception:
+            pass
+        return False
+
+    def __call__(self, request):
+        # السماح بالملفات الثابتة والوسائط
+        if request.path.startswith("/static/") or request.path.startswith("/media/"):
+            return self.get_response(request)
+
+        user = getattr(request, "user", None)
+        if not getattr(user, "is_authenticated", False):
+            return self.get_response(request)
+
+        # السوبر يوزر غير مقيد
+        if getattr(user, "is_superuser", False):
+            return self.get_response(request)
+
+        # استيراد مرن حتى لا يحدث دوران استيراد
+        try:
+            from .permissions import is_platform_admin
+        except Exception:
+            is_platform_admin = None  # type: ignore
+
+        if not (is_platform_admin and is_platform_admin(user)):
+            return self.get_response(request)
+
+        # سماحات للمسارات الأساسية والصفحات المسموحة
+        allowed_names = {
+            # auth/landing
+            "reports:landing",
+            "reports:login",
+            "reports:logout",
+
+            # platform admin (scoped)
+            "reports:platform_schools_directory",
+            "reports:platform_enter_school",
+            "reports:platform_school_dashboard",
+            "reports:platform_school_reports",
+            "reports:platform_school_tickets",
+            "reports:platform_school_notify",
+
+            # reports (print page used for viewing + private comment)
+            "reports:report_print",
+
+            # tickets (view + reply)
+            "reports:ticket_detail",
+
+            # achievements (view/print/pdf + private comment)
+            "reports:achievement_school_files",
+            "reports:achievement_school_teachers",
+            "reports:achievement_file_detail",
+            "reports:achievement_file_print",
+            "reports:achievement_file_pdf",
+
+            # lightweight badge endpoint (optional; avoids noisy 403 logs)
+            "reports:unread_notifications_count",
+
+            # service worker (root scope)
+            "service_worker",
+        }
+
+        # Allow site root as it redirects appropriately
+        if request.path == "/":
+            return self.get_response(request)
+
+        try:
+            match = resolve(request.path_info)
+            url_name = match.url_name
+            namespace = match.namespace
+            full_name = f"{namespace}:{url_name}" if namespace else (url_name or "")
+        except Exception:
+            full_name = ""
+
+        if full_name in allowed_names:
+            return self.get_response(request)
+
+        if self._wants_json(request):
+            return JsonResponse({"detail": "forbidden"}, status=403)
+
+        # لا نعرض رسائل/redirect على طلبات الخلفية (service worker / images / scripts)
+        if not self._wants_html(request):
+            return HttpResponse("forbidden", status=403, content_type="text/plain")
+
+        messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة ضمن حساب المشرف العام.")
+        return redirect("reports:platform_schools_directory")
 
 
 class ReportViewerAccessMiddleware:

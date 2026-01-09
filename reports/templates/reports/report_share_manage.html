@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}مشاركة التقرير{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:900px">
+  <div class="card" style="padding:18px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1 style="margin:0;font-weight:950">مشاركة التقرير</h1>
+        <div class="muted" style="margin-top:6px">
+          {{ report.title }} — {{ report.report_date|date:"Y-m-d" }}
+        </div>
+      </div>
+      <a class="btn" href="{% url 'reports:my_reports' %}">رجوع</a>
+    </div>
+
+    <hr style="margin:16px 0;border:none;border-top:1px solid var(--line)">
+
+    <div class="muted" style="font-weight:900">
+      مدة الرابط الافتراضية: {{ expiry_days }} أيام.
+    </div>
+
+    {% if active_link %}
+      <div class="card" style="margin-top:12px;padding:14px;background:var(--bg)">
+        <div style="font-weight:950">الرابط مفعّل</div>
+        <div class="muted" style="margin-top:6px">ينتهي في: {{ expires_at_str }}</div>
+        <div style="margin-top:10px;word-break:break-word">
+          <a href="{{ public_url }}" target="_blank" rel="noopener">{{ public_url }}</a>
+        </div>
+
+        <form method="post" style="margin-top:12px">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="disable">
+          <button class="btn btn-danger" type="submit">إلغاء الرابط</button>
+        </form>
+      </div>
+    {% else %}
+      <div class="card" style="margin-top:12px;padding:14px;background:var(--bg)">
+        <div style="font-weight:950">المشاركة غير مفعّلة</div>
+        <div class="muted" style="margin-top:6px">عند التفعيل سيتم إنشاء رابط صالح لمدة {{ expiry_days }} أيام.</div>
+
+        <form method="post" style="margin-top:12px">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="enable">
+          <button class="btn btn-primary" type="submit">تفعيل مشاركة التقرير</button>
+        </form>
+      </div>
+    {% endif %}
+
+    <div class="muted" style="margin-top:14px">
+      ملاحظة: يمكنك إلغاء الرابط في أي وقت.
+    </div>
+  </div>
+</div>
+{% endblock %}

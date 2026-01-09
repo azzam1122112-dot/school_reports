@@ -128,6 +128,14 @@ def _default_csrf_trusted_origins() -> list[str]:
 _csrf_env = (os.getenv("CSRF_TRUSTED_ORIGINS") or "").strip()
 CSRF_TRUSTED_ORIGINS = _split_env_list(_csrf_env) if _csrf_env else _default_csrf_trusted_origins()
 
+# ----------------- Share Links (public, no-account) -----------------
+# Default expiry (days) for teacher-generated public share links.
+# You can override via env var: SHARE_LINK_DEFAULT_DAYS=7
+try:
+    SHARE_LINK_DEFAULT_DAYS = int(os.getenv("SHARE_LINK_DEFAULT_DAYS", "7").strip() or "7")
+except Exception:
+    SHARE_LINK_DEFAULT_DAYS = 7
+
 # ----------------- التطبيقات -----------------
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -193,12 +201,13 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
     "reports.middleware.AuditLogMiddleware",  # <--- تم الإضافة
     "reports.middleware.IdleLogoutMiddleware",  # تسجيل خروج تلقائي بعد الخمول
     "reports.middleware.SubscriptionMiddleware",  # <--- تم الإضافة
+    "reports.middleware.PlatformAdminAccessMiddleware",  # تقييد المشرف العام (عرض/تواصل فقط)
     "reports.middleware.ReportViewerAccessMiddleware",  # حسابات عرض فقط (مشرف تقارير)
     "reports.middleware.ContentSecurityPolicyMiddleware",  # CSP (production hardening)
-    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 

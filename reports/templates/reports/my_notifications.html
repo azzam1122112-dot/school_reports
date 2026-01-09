@@ -88,18 +88,16 @@
                   {{ r.created_at|date:"Y-m-d H:i" }}
                 </span>
 
-                <button
-                  type="button"
-                  class="btn-sm ghost btn-view"
+                <a
+                  class="btn-sm ghost"
                   aria-label="عرض الإشعار كاملًا"
-                  data-title="{{ n.title|default:'رسالة من الإدارة'|escape }}"
-                  data-body="{{ body|default_if_none:''|striptags|escape }}"
-                  data-sender="{% with s=n.created_by %}{% firstof s.name|escape s.phone|escape s.username|escape 'الإدارة' %}{% endwith %}{% with s=n.created_by %}{% if s and s.role %} — {% firstof s.role.name|escape s.role.slug|escape %}{% endif %}{% endwith %}"
-                  data-time="{{ r.created_at|date:'Y-m-d H:i' }}"
+                  href="{% url 'reports:my_notification_detail' r.pk %}"
+                  target="_blank"
+                  rel="noopener"
                 >
                   <i class="fa-regular fa-eye" aria-hidden="true"></i>
                   عرض
-                </button>
+                </a>
               </div>
 
               <div class="right">
@@ -158,32 +156,6 @@
     {% endif %}
   </div>
 
-  {# Modal (قد ينقله JS إلى body) #}
-  <div class="modal-overlay" id="nModal" aria-hidden="true">
-    <div class="modal" id="nModalCard" role="dialog" aria-modal="true" aria-labelledby="mTitle" aria-describedby="mBody" tabindex="-1">
-      <button class="m-close" id="mClose" type="button" aria-label="إغلاق">✕</button>
-
-      <div class="m-header">
-        <h3 class="m-title" id="mTitle">عنوان الإشعار</h3>
-        <div class="m-meta">
-          <span class="m-chip" id="mSender">الإدارة</span>
-          <span class="m-chip" id="mTime">
-            <i class="fa-regular fa-clock" aria-hidden="true"></i>
-            <span id="mTimeText">—</span>
-          </span>
-        </div>
-      </div>
-
-      <div class="m-body" id="mBody">—</div>
-
-      <div class="m-actions">
-        <button class="m-btn ghost" id="mOk" type="button">
-          <i class="fa-solid fa-times" aria-hidden="true"></i>
-          إغلاق
-        </button>
-      </div>
-    </div>
-  </div>
 </div>
 {% endblock %}
 
@@ -260,119 +232,6 @@ document.addEventListener('DOMContentLoaded', function(){
       renderUnread();
       applyOnlyUnread();
     });
-  });
-
-  // ===== Modal (آمن: textContent) =====
-  const overlay   = $('#nModal');
-  const modalCard = $('#nModalCard');
-  const mTitle    = $('#mTitle');
-  const mBody     = $('#mBody');
-  const mSender   = $('#mSender');
-  const mTimeText = $('#mTimeText');
-  const mOk       = $('#mOk');
-  const mClose    = $('#mClose');
-
-  if(overlay && overlay.parentElement !== document.body){
-    document.body.appendChild(overlay);
-  }
-
-  const root = document.documentElement;
-  const main = document.querySelector('.page-main');
-  const headerEl = document.getElementById('siteHeader');
-  const footerEl = document.querySelector('.site-footer');
-
-  const setInert = (el, v) => {
-    if(!el) return;
-    if(v) el.setAttribute('inert','');
-    else el.removeAttribute('inert');
-  };
-
-  let lastFocus = null;
-
-  function lockScroll(){ root.style.overflow = 'hidden'; }
-  function unlockScroll(){ root.style.overflow = ''; }
-
-  function setModalData(d){
-    if(mTitle) mTitle.textContent = d.title || 'إشعار';
-    if(mSender) mSender.textContent = d.sender || 'الإدارة';
-    if(mTimeText) mTimeText.textContent = d.time || '—';
-    if(mBody) mBody.textContent = d.body || '';
-  }
-
-  function openModal(data){
-    if(!overlay || !modalCard) return;
-
-    lastFocus = document.activeElement;
-    setModalData(data);
-
-    overlay.style.display = 'grid';
-    // تأخير بسيط لتفعيل الانتقال
-    setTimeout(function(){
-      overlay.classList.add('open');
-      overlay.removeAttribute('aria-hidden');
-      lockScroll();
-      setInert(main,true); setInert(headerEl,true); setInert(footerEl,true);
-      modalCard.focus({preventScroll:true});
-    }, 10);
-
-    const focusables = overlay.querySelectorAll('a,button,input,select,textarea,[tabindex]:not([tabindex="-1"])');
-    const first = focusables[0];
-    const last  = focusables[focusables.length - 1] || first;
-
-    overlay._trap = function(e){
-      if(e.key !== 'Tab') return;
-      if(!first){ e.preventDefault(); return; }
-      if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
-      else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
-    };
-    overlay.addEventListener('keydown', overlay._trap);
-  }
-
-  function closeModal(){
-    if(!overlay) return;
-
-    overlay.classList.remove('open');
-    overlay.setAttribute('aria-hidden','true');
-
-    setTimeout(function(){
-      overlay.style.display = 'none';
-      unlockScroll();
-      setInert(main,false); setInert(headerEl,false); setInert(footerEl,false);
-
-      if(overlay._trap){
-        overlay.removeEventListener('keydown', overlay._trap);
-        overlay._trap = null;
-      }
-      if(lastFocus && typeof lastFocus.focus === 'function'){
-        lastFocus.focus({preventScroll:true});
-      }
-    }, 250);
-  }
-
-  $$('.btn-view').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      openModal({
-        title:  btn.dataset.title  || '',
-        body:   btn.dataset.body   || '',
-        sender: btn.dataset.sender || '',
-        time:   btn.dataset.time   || ''
-      });
-    });
-  });
-
-  if(mOk)    mOk.addEventListener('click', function(e){ e.preventDefault(); closeModal(); });
-  if(mClose) mClose.addEventListener('click', function(e){ e.preventDefault(); closeModal(); });
-
-  if(overlay){
-    overlay.addEventListener('click', function(e){
-      if(e.target === overlay) closeModal();
-    });
-  }
-
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape' && overlay && overlay.classList.contains('open')){
-      closeModal();
-    }
   });
 
   renderUnread();

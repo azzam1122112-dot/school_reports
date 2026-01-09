@@ -334,6 +334,12 @@
         </a>
 
         {% if is_owner %}
+          <a class="af-btn" href="{% url 'reports:achievement_share_manage' file.pk %}">
+            <i class="fa-solid fa-link" aria-hidden="true"></i> مشاركة
+          </a>
+        {% endif %}
+
+        {% if is_owner %}
           <a class="af-btn" href="{% url 'reports:achievement_my_files' %}">
             <i class="fa-solid fa-folder-open" aria-hidden="true"></i> كل ملفاتي
           </a>
@@ -348,6 +354,39 @@
     <div class="af-body">
       {% if file.manager_notes %}
         <div class="af-note">ملاحظات المدير: {{ file.manager_notes|linebreaksbr }}</div>
+      {% endif %}
+
+      {% if show_private_comments %}
+        <h2 style="margin:18px 0 10px;font-weight:950">تعليقات خاصة (تظهر لك فقط)</h2>
+
+        {% if can_add_private_comment %}
+          <form class="af-form" method="post" autocomplete="off">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="platform_comment" />
+            <label class="af-label">أضف تعليقًا للمعلّم</label>
+            {{ private_comment_form.body }}
+            <div class="af-actions" style="margin-top:10px">
+              <button class="af-btn af-btn-primary" type="submit">
+                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> إرسال التعليق
+              </button>
+            </div>
+          </form>
+        {% endif %}
+
+        {% if private_comments %}
+          <div class="af-form" style="margin-top:10px">
+            {% for c in private_comments %}
+              <div style="padding:10px 0;border-bottom:1px dashed var(--line)">
+                <div class="af-muted" style="font-weight:900">
+                  {{ c.created_by }} — {{ c.created_at|date:"Y-m-d H:i" }}
+                </div>
+                <div style="margin-top:6px;white-space:pre-wrap">{{ c.body }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="af-muted">لا توجد تعليقات خاصة.</div>
+        {% endif %}
       {% endif %}
 
       <h2 style="margin:14px 0 10px;font-weight:950">البيانات العامة</h2>
