@@ -76,6 +76,21 @@ def _report_image_upload_to(instance: "Report", filename: str) -> str:
     return f"reports/{filename}"
 
 
+def _ticket_attachment_upload_to(instance: "Ticket", filename: str) -> str:
+    """مسار رفع مرفقات التذاكر"""
+    return f"tickets/attachments/{filename}"
+
+
+def _school_logo_upload_to(instance: "School", filename: str) -> str:
+    """مسار رفع شعار المدرسة"""
+    return f"schools/logos/{filename}"
+
+
+def _ticket_image_upload_to(instance: "TicketImage", filename: str) -> str:
+    """مسار رفع صور التذاكر"""
+    return f"tickets/images/{filename}"
+
+
 # =========================
 # المدرسة (Tenant)
 # =========================
