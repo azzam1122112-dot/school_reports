@@ -418,7 +418,7 @@
               {% if r.image1 %}
                 <div class="photo-item">
                   <img
-                    src="{{ r.image1.url }}"
+                    src="{{ image1_url|default:r.image1.url }}"
                     alt="صورة توثيقية 1"
                     {% if not for_pdf %}loading="lazy"{% endif %}
                   />
@@ -429,7 +429,7 @@
               {% if r.image2 %}
                 <div class="photo-item">
                   <img
-                    src="{{ r.image2.url }}"
+                    src="{{ image2_url|default:r.image2.url }}"
                     alt="صورة توثيقية 2"
                     {% if not for_pdf %}loading="lazy"{% endif %}
                   />
@@ -440,7 +440,7 @@
               {% if r.image3 %}
                 <div class="photo-item">
                   <img
-                    src="{{ r.image3.url }}"
+                    src="{{ image3_url|default:r.image3.url }}"
                     alt="صورة توثيقية 3"
                     {% if not for_pdf %}loading="lazy"{% endif %}
                   />
@@ -451,7 +451,7 @@
               {% if r.image4 %}
                 <div class="photo-item">
                   <img
-                    src="{{ r.image4.url }}"
+                    src="{{ image4_url|default:r.image4.url }}"
                     alt="صورة توثيقية 4"
                     {% if not for_pdf %}loading="lazy"{% endif %}
                   />

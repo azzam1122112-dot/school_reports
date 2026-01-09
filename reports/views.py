@@ -32,7 +32,7 @@ from django.db.models import (
     Sum,
 )
 from django.core.exceptions import ValidationError
-from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -85,6 +85,8 @@ from .models import (
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
+    ShareLink,
+    get_share_link_default_days,
 )
 
 # موديلات الإشعارات (اختياري)
@@ -1896,8 +1898,348 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
         logger.exception(f"Error in report_print view for report {pk}: {e}")
         return render(request, "500.html", {"error": str(e)}, status=500)
 
+
+# =========================
+# Share Links (public token)
+# =========================
+def _valid_sharelink_or_404(token: str, *, kind: str) -> ShareLink:
+    link = (
+        ShareLink.objects.select_related("report", "achievement_file", "school")
+        .filter(token=token, kind=kind)
+        .first()
+    )
+    if not link or (not link.is_active) or link.is_expired:
+        raise Http404
+    return link
+
+
 @login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def report_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
+    report = get_object_or_404(
+        Report.objects.select_related("school"),
+        pk=pk,
+        teacher=request.user,
+    )
+
+    expiry_days = get_share_link_default_days()
+    now = timezone.now()
+    active_link = (
+        ShareLink.objects.filter(
+            kind=ShareLink.Kind.REPORT,
+            report=report,
+            is_active=True,
+            expires_at__gt=now,
+        )
+        .order_by("-id")
+        .first()
+    )
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip().lower()
+        if action == "enable":
+            with transaction.atomic():
+                ShareLink.objects.filter(
+                    kind=ShareLink.Kind.REPORT,
+                    report=report,
+                    is_active=True,
+                ).update(is_active=False)
+
+                created = None
+                for _ in range(6):
+                    token = ShareLink.generate_token()
+                    try:
+                        created = ShareLink.objects.create(
+                            token=token,
+                            kind=ShareLink.Kind.REPORT,
+                            created_by=request.user,
+                            school=getattr(report, "school", None),
+                            report=report,
+                            expires_at=ShareLink.default_expires_at(),
+                            is_active=True,
+                        )
+                        break
+                    except IntegrityError:
+                        created = None
+                        continue
+
+                if created is None:
+                    messages.error(request, "تعذّر إنشاء رابط مشاركة. فضلاً أعد المحاولة.")
+                    return redirect("reports:report_share_manage", pk=report.pk)
+
+            public_url = request.build_absolute_uri(reverse("reports:share_public", args=[created.token]))
+            messages.success(
+                request,
+                f"تم تفعيل رابط مشاركة للتقرير (المدة {expiry_days} يوم).",
+            )
+            messages.info(request, f"رابط المشاركة: {public_url}")
+            return redirect("reports:report_share_manage", pk=report.pk)
+
+        if action == "disable" and active_link is not None:
+            ShareLink.objects.filter(pk=active_link.pk).update(is_active=False)
+            messages.success(request, "تم إيقاف رابط المشاركة.")
+            return redirect("reports:report_share_manage", pk=report.pk)
+
+        messages.error(request, "طلب غير صالح.")
+        return redirect("reports:report_share_manage", pk=report.pk)
+
+    public_url = ""
+    expires_at_str = ""
+    if active_link is not None:
+        public_url = request.build_absolute_uri(reverse("reports:share_public", args=[active_link.token]))
+        expires_at_str = timezone.localtime(active_link.expires_at).strftime("%Y-%m-%d %H:%M")
+
+    return render(
+        request,
+        "reports/report_share_manage.html",
+        {
+            "report": report,
+            "active_link": active_link,
+            "public_url": public_url,
+            "expires_at_str": expires_at_str,
+            "expiry_days": expiry_days,
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def achievement_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
+    ach_file = get_object_or_404(
+        TeacherAchievementFile.objects.select_related("school"),
+        pk=pk,
+        teacher=request.user,
+    )
+
+    expiry_days = get_share_link_default_days()
+    now = timezone.now()
+    active_link = (
+        ShareLink.objects.filter(
+            kind=ShareLink.Kind.ACHIEVEMENT,
+            achievement_file=ach_file,
+            is_active=True,
+            expires_at__gt=now,
+        )
+        .order_by("-id")
+        .first()
+    )
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip().lower()
+        if action == "enable":
+            with transaction.atomic():
+                ShareLink.objects.filter(
+                    kind=ShareLink.Kind.ACHIEVEMENT,
+                    achievement_file=ach_file,
+                    is_active=True,
+                ).update(is_active=False)
+
+                created = None
+                for _ in range(6):
+                    token = ShareLink.generate_token()
+                    try:
+                        created = ShareLink.objects.create(
+                            token=token,
+                            kind=ShareLink.Kind.ACHIEVEMENT,
+                            created_by=request.user,
+                            school=getattr(ach_file, "school", None),
+                            achievement_file=ach_file,
+                            expires_at=ShareLink.default_expires_at(),
+                            is_active=True,
+                        )
+                        break
+                    except IntegrityError:
+                        created = None
+                        continue
+
+                if created is None:
+                    messages.error(request, "تعذّر إنشاء رابط مشاركة. فضلاً أعد المحاولة.")
+                    return redirect("reports:achievement_share_manage", pk=ach_file.pk)
+
+            public_url = request.build_absolute_uri(reverse("reports:share_public", args=[created.token]))
+            messages.success(
+                request,
+                f"تم تفعيل رابط مشاركة لملف الإنجاز (المدة {expiry_days} يوم).",
+            )
+            messages.info(request, f"رابط المشاركة: {public_url}")
+            return redirect("reports:achievement_share_manage", pk=ach_file.pk)
+
+        if action == "disable" and active_link is not None:
+            ShareLink.objects.filter(pk=active_link.pk).update(is_active=False)
+            messages.success(request, "تم إيقاف رابط المشاركة.")
+            return redirect("reports:achievement_share_manage", pk=ach_file.pk)
+
+        messages.error(request, "طلب غير صالح.")
+        return redirect("reports:achievement_share_manage", pk=ach_file.pk)
+
+    public_url = ""
+    expires_at_str = ""
+    if active_link is not None:
+        public_url = request.build_absolute_uri(reverse("reports:share_public", args=[active_link.token]))
+        expires_at_str = timezone.localtime(active_link.expires_at).strftime("%Y-%m-%d %H:%M")
+
+    return render(
+        request,
+        "reports/achievement_share_manage.html",
+        {
+            "file": ach_file,
+            "active_link": active_link,
+            "public_url": public_url,
+            "expires_at_str": expires_at_str,
+            "expiry_days": expiry_days,
+        },
+    )
+
+
 @require_http_methods(["GET"])
+def share_public(request: HttpRequest, token: str) -> HttpResponse:
+    link = ShareLink.objects.select_related("report", "achievement_file", "school").filter(token=token).first()
+    if not link or (not link.is_active) or link.is_expired:
+        return render(request, "reports/share_invalid.html", status=404)
+
+    ShareLink.objects.filter(pk=link.pk).update(last_accessed_at=timezone.now())
+
+    if link.kind == ShareLink.Kind.REPORT:
+        r = link.report
+        if r is None:
+            return render(request, "reports/share_invalid.html", status=404)
+
+        school_scope = getattr(r, "school", None) or getattr(link, "school", None)
+        cat = getattr(r, "category", None)
+        dept = _resolve_department_for_category(cat, school_scope)
+        head_decision = _build_head_decision(dept)
+
+        school_principal = ""
+        try:
+            if school_scope is not None:
+                principal_membership = (
+                    SchoolMembership.objects.select_related("teacher")
+                    .filter(
+                        school=school_scope,
+                        role_type=SchoolMembership.RoleType.MANAGER,
+                        is_active=True,
+                    )
+                    .order_by("-id")
+                    .first()
+                )
+                if principal_membership and principal_membership.teacher:
+                    school_principal = getattr(principal_membership.teacher, "name", "") or ""
+        except Exception:
+            school_principal = ""
+        if not school_principal:
+            school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
+
+        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+        school_stage = ""
+        school_logo_url = ""
+        if school_scope:
+            try:
+                school_stage = getattr(school_scope, "get_stage_display", lambda: "")() or ""
+            except Exception:
+                school_stage = getattr(school_scope, "stage", "") or ""
+            try:
+                if school_scope.logo_file:
+                    school_logo_url = school_scope.logo_file.url
+            except Exception:
+                pass
+
+        return render(
+            request,
+            "reports/report_print.html",
+            {
+                "r": r,
+                "head_decision": head_decision,
+                "SCHOOL_PRINCIPAL": school_principal,
+                "SCHOOL_NAME": school_name,
+                "SCHOOL_STAGE": school_stage,
+                "SCHOOL_LOGO_URL": school_logo_url,
+                "show_comments": False,
+                "private_comments": [],
+                "comment_form": None,
+                "image1_url": reverse("reports:share_report_image", args=[token, 1]),
+                "image2_url": reverse("reports:share_report_image", args=[token, 2]),
+                "image3_url": reverse("reports:share_report_image", args=[token, 3]),
+                "image4_url": reverse("reports:share_report_image", args=[token, 4]),
+            },
+        )
+
+    if link.kind == ShareLink.Kind.ACHIEVEMENT:
+        ach_file = link.achievement_file
+        if ach_file is None:
+            return render(request, "reports/share_invalid.html", status=404)
+
+        download_url = reverse("reports:share_achievement_pdf", args=[token])
+        return render(
+            request,
+            "reports/share_achievement_public.html",
+            {
+                "file": ach_file,
+                "download_url": download_url,
+            },
+        )
+
+    return render(request, "reports/share_invalid.html", status=404)
+
+
+@require_http_methods(["GET"])
+def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpResponse:
+    link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.REPORT)
+    r = link.report
+    if r is None:
+        raise Http404
+
+    if slot not in (1, 2, 3, 4):
+        raise Http404
+    field = getattr(r, f"image{slot}", None)
+    if not field:
+        raise Http404
+
+    try:
+        f = field.open("rb")
+        resp = FileResponse(f)
+        resp["Cache-Control"] = "public, max-age=900, s-maxage=3600"
+        try:
+            filename = os.path.basename(getattr(field, "name", "") or "") or f"image{slot}"
+            resp["Content-Disposition"] = f'inline; filename="{filename}"'
+        except Exception:
+            pass
+        return resp
+    except Exception:
+        url = getattr(field, "url", None)
+        if url:
+            resp = redirect(url)
+            resp["Cache-Control"] = "public, max-age=900, s-maxage=3600"
+            return resp
+        raise
+
+
+@require_http_methods(["GET"])
+def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
+    link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.ACHIEVEMENT)
+    ach_file = link.achievement_file
+    if ach_file is None:
+        raise Http404
+    if not getattr(ach_file, "pdf_file", None):
+        raise Http404
+
+    try:
+        f = ach_file.pdf_file.open("rb")
+        resp = FileResponse(f, content_type="application/pdf")
+        resp["Cache-Control"] = "public, max-age=900, s-maxage=3600"
+        try:
+            filename = os.path.basename(getattr(ach_file.pdf_file, "name", "") or "") or "achievement.pdf"
+            resp["Content-Disposition"] = f'inline; filename="{filename}"'
+        except Exception:
+            pass
+        return resp
+    except Exception:
+        url = getattr(ach_file.pdf_file, "url", None)
+        if url:
+            resp = redirect(url)
+            resp["Cache-Control"] = "public, max-age=900, s-maxage=3600"
+            return resp
+        raise
+
 # =========================
 # إدارة المعلّمين (مدير فقط)
 # =========================

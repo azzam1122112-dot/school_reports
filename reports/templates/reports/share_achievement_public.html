@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}ملف إنجاز مشارك{% endblock %}
+
+{% block head %}
+<style>
+  .sap-wrap{max-width:760px;margin:0 auto;padding:18px}
+  .sap-card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px}
+  .sap-title{margin:0;font-weight:950;font-size:1.25rem}
+  .sap-sub{margin:8px 0 0;color:var(--muted);font-weight:850;line-height:1.8}
+  .sap-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;justify-content:flex-end}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sap-wrap">
+  <div class="sap-card">
+    <h1 class="sap-title">ملف إنجاز</h1>
+    <p class="sap-sub">يمكنك تحميل ملف الإنجاز (PDF) عبر الزر التالي.</p>
+
+    <div class="sap-row">
+      <a class="btn btn-primary" href="{{ download_url }}">تحميل PDF</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

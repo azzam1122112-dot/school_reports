@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}مشاركة ملف الإنجاز{% endblock %}
+
+{% block head %}
+<style>
+  .sl-wrap{max-width:860px;margin:0 auto;padding:18px}
+  .sl-card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px}
+  .sl-title{margin:0;font-weight:950;font-size:1.25rem}
+  .sl-sub{margin:6px 0 0;color:var(--muted);font-weight:800;line-height:1.7}
+  .sl-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .sl-box{margin-top:14px;background:rgba(248,250,252,.75);border:1px solid var(--line);border-radius:14px;padding:12px}
+  html[data-theme="dark"] .sl-box{background:rgba(2,6,23,.28)}
+  .sl-label{display:block;margin:0 0 6px;font-weight:950;color:var(--muted)}
+  .sl-input{width:100%;min-height:46px;border-radius:12px;border:1px solid var(--line);padding:10px 12px;font-weight:900;background:var(--card);color:var(--ink)}
+  .sl-meta{margin-top:8px;color:var(--muted);font-weight:850;font-size:.95rem}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sl-wrap">
+  <div class="sl-card">
+    <h1 class="sl-title">مشاركة ملف الإنجاز</h1>
+    <p class="sl-sub">أنشئ رابطًا عامًا مؤقتًا لتحميل ملف الإنجاز (PDF) بدون تسجيل دخول.</p>
+
+    <div class="sl-box">
+      <div class="sl-meta"><strong>الملف:</strong> {{ file.title|default:"ملف إنجاز" }}</div>
+
+      {% if active_link %}
+        <p class="sl-meta">الحالة: <strong>مفعّل</strong> — ينتهي في <strong>{{ expires_at_str }}</strong></p>
+
+        <label class="sl-label" for="shareUrl">رابط المشاركة</label>
+        <input id="shareUrl" class="sl-input" type="text" value="{{ public_url }}" readonly>
+
+        <div class="sl-row">
+          <button type="button" class="btn" onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('shareUrl').value)">نسخ الرابط</button>
+
+          <form method="post" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="disable">
+            <button type="submit" class="btn">إيقاف الرابط</button>
+          </form>
+        </div>
+      {% else %}
+        <p class="sl-meta">الحالة: <strong>غير مفعّل</strong></p>
+        <p class="sl-meta">المدة الافتراضية: <strong>{{ expiry_days }}</strong> يوم</p>
+
+        <form method="post" class="sl-row">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="enable">
+          <button type="submit" class="btn btn-primary">تفعيل رابط مشاركة</button>
+        </form>
+      {% endif %}
+    </div>
+
+    <div class="sl-row" style="justify-content:flex-end;margin-top:16px">
+      <a class="btn" href="{% url 'reports:achievement_my_files' %}">رجوع</a>
+      <a class="btn" href="{% url 'reports:achievement_file_detail' file.pk %}">فتح الملف</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

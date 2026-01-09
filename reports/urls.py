@@ -29,6 +29,9 @@ urlpatterns = [
     # الطباعة والتصدير
     path("reports/<int:pk>/print/", views.report_print, name="report_print"),
 
+    # مشاركة التقرير (رابط عام)
+    path("reports/<int:pk>/share/", views.report_share_manage, name="report_share_manage"),
+
     # =========================
     # تقارير الإدارة (Staff/Manager)
     # =========================
@@ -49,6 +52,14 @@ urlpatterns = [
     path("achievement/<int:pk>/", views.achievement_file_detail, name="achievement_file_detail"),
     path("achievement/<int:pk>/print/", views.achievement_file_print, name="achievement_file_print"),
     path("achievement/<int:pk>/pdf/", views.achievement_file_pdf, name="achievement_file_pdf"),
+
+    # مشاركة ملف الإنجاز (رابط عام)
+    path("achievement/<int:pk>/share/", views.achievement_share_manage, name="achievement_share_manage"),
+
+    # روابط عامة (بدون حساب)
+    path("share/<str:token>/", views.share_public, name="share_public"),
+    path("share/<str:token>/report-image/<int:slot>/", views.share_report_image, name="share_report_image"),
+    path("share/<str:token>/achievement-pdf/", views.share_achievement_pdf, name="share_achievement_pdf"),
 
     # =========================
     # إدارة المعلّمين (للمدير)
