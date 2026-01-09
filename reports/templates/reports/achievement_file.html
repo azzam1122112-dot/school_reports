@@ -334,6 +334,12 @@
         </a>
 
         {% if is_owner %}
+          <a class="af-btn" href="{% url 'reports:achievement_share_manage' file.pk %}" title="مشاركة">
+            <i class="fa-solid fa-share-nodes" aria-hidden="true"></i> مشاركة
+          </a>
+        {% endif %}
+
+        {% if is_owner %}
           <a class="af-btn" href="{% url 'reports:achievement_my_files' %}">
             <i class="fa-solid fa-folder-open" aria-hidden="true"></i> كل ملفاتي
           </a>
