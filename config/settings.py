@@ -72,6 +72,8 @@ def _default_allowed_hosts() -> list[str]:
     hosts += [
         "school-7lgm.onrender.com",
         "school-reports.onrender.com",
+        "app.tawtheeq-ksa.com",
+        "tawtheeq-ksa.com",
     ]
 
     # Render external URL (preferred, supports renames without wildcards)
@@ -104,6 +106,8 @@ def _default_csrf_trusted_origins() -> list[str]:
     origins += [
         "https://school-7lgm.onrender.com",
         "https://school-reports.onrender.com",
+        "https://app.tawtheeq-ksa.com",
+        "https://tawtheeq-ksa.com",
     ]
 
     # Render external URL (if available)
