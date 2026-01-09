@@ -66,6 +66,16 @@ def _achievement_evidence_upload_to(instance: "AchievementEvidenceImage", filena
     return f"achievements/evidence/{year}/section_{instance.section.code}/teacher_{instance.section.file.teacher_id}/{filename}"
 
 
+def _payment_receipt_upload_to(instance: "Payment", filename: str) -> str:
+    """مسار رفع صورة إيصال الدفع"""
+    return f"payments/receipts/{filename}"
+
+
+def _report_image_upload_to(instance: "Report", filename: str) -> str:
+    """مسار رفع صور التقرير"""
+    return f"reports/{filename}"
+
+
 # =========================
 # المدرسة (Tenant)
 # =========================
