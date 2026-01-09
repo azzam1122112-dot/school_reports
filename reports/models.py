@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 import os
 import secrets
+import uuid
 
 from urllib.parse import quote
 
@@ -20,7 +21,7 @@ from django.utils import timezone
 
 # تخزين المرفقات (R2 أو محلي)
 from .storage import PublicRawMediaStorage
-from .validators import validate_image_file
+from .validators import MAX_ATTACHMENT_MB, validate_attachment_file, validate_image_file, validate_pdf_file
 
 # =========================
 # ثوابت عامة
@@ -57,12 +58,40 @@ def _achievement_pdf_upload_to(instance: "TeacherAchievementFile", filename: str
     return f"achievements/pdfs/{year}/teacher_{instance.teacher_id}.pdf"
 
 
+def _safe_upload_filename(original: str, *, default_ext: str = "") -> str:
+    ext = os.path.splitext((original or "").strip())[1].lower()
+    if not ext and default_ext:
+        ext = default_ext
+    return f"{uuid.uuid4().hex}{ext}"
+
+
+def _report_image_upload_to(instance: "Report", filename: str) -> str:
+    return f"reports/{_safe_upload_filename(filename)}"
+
+
+def _school_logo_upload_to(instance: "School", filename: str) -> str:
+    return f"schools/logos/{_safe_upload_filename(filename)}"
+
+
+def _ticket_attachment_upload_to(instance: "Ticket", filename: str) -> str:
+    return f"tickets/{_safe_upload_filename(filename)}"
+
+
+def _ticket_image_upload_to(instance: "TicketImage", filename: str) -> str:
+    return f"tickets/images/{timezone.now():%Y/%m/%d}/{_safe_upload_filename(filename)}"
+
+
+def _payment_receipt_upload_to(instance: "Payment", filename: str) -> str:
+    return f"payments/receipts/{timezone.now():%Y/%m}/{_safe_upload_filename(filename)}"
+
+
 def _achievement_evidence_upload_to(instance: "AchievementEvidenceImage", filename: str) -> str:
     try:
         year = _normalize_academic_year_hijri(instance.section.file.academic_year)
     except Exception:
         year = "unknown"
-    return f"achievements/evidence/{year}/section_{instance.section.code}/teacher_{instance.section.file.teacher_id}/{filename}"
+    safe_name = _safe_upload_filename(filename)
+    return f"achievements/evidence/{year}/section_{instance.section.code}/teacher_{instance.section.file.teacher_id}/{safe_name}"
 
 
 # =========================
@@ -104,7 +133,7 @@ class School(models.Model):
     logo_url = models.URLField("رابط الشعار", blank=True, null=True)
     logo_file = models.ImageField(
         "شعار مرفوع",
-        upload_to="schools/logos/",
+        upload_to=_school_logo_upload_to,
         blank=True,
         null=True,
         validators=[validate_image_file],
@@ -625,10 +654,10 @@ class Report(models.Model):
         db_index=True,
     )
 
-    image1 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
-    image2 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
-    image3 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
-    image4 = models.ImageField(upload_to="reports/", blank=True, null=True, validators=[validate_image_file])
+    image1 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
+    image2 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
+    image3 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
+    image4 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
 
 
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
@@ -750,6 +779,7 @@ class TeacherAchievementFile(models.Model):
         storage=PublicRawMediaStorage(),
         blank=True,
         null=True,
+        validators=[validate_pdf_file],
     )
     pdf_generated_at = models.DateTimeField("آخر توليد PDF", null=True, blank=True)
 
@@ -867,7 +897,6 @@ class AchievementEvidenceImage(models.Model):
     def __str__(self) -> str:
         return f"EvidenceImage #{self.pk} (section {self.section_id})"
 
-
 def get_share_link_default_days() -> int:
     """يرجع مدة صلاحية روابط المشاركة بالأيام.
 
@@ -978,13 +1007,12 @@ class ShareLink(models.Model):
 # =========================
 # منظومة التذاكر الموحّدة
 # =========================
-MAX_ATTACHMENT_MB = 5
-_MAX_BYTES = MAX_ATTACHMENT_MB * 1024 * 1024
-
-
+# NOTE: Older migrations reference reports.models.validate_attachment_size.
+# Keep this symbol for backward compatibility.
 def validate_attachment_size(file_obj):
-    """تحقق الحجم ≤ 5MB"""
-    if getattr(file_obj, "size", 0) > _MAX_BYTES:
+    """تحقق الحجم ≤ MAX_ATTACHMENT_MB (متوافق مع المهاجرات القديمة)."""
+    max_bytes = int(MAX_ATTACHMENT_MB) * 1024 * 1024
+    if getattr(file_obj, "size", 0) > max_bytes:
         raise ValidationError(f"حجم المرفق يتجاوز {MAX_ATTACHMENT_MB}MB.")
 
 
@@ -1048,13 +1076,13 @@ class Ticket(models.Model):
     # ✅ مرفق يُرفع إلى التخزين الافتراضي (R2 أو محلي)
     attachment = models.FileField(
         "مرفق",
-        upload_to="tickets/",
+        upload_to=_ticket_attachment_upload_to,
         storage=PublicRawMediaStorage(),   # عام + raw
         blank=True,
         null=True,
         validators=[
             FileExtensionValidator(["pdf", "jpg", "jpeg", "png", "doc", "docx"]),
-            validate_attachment_size,
+            validate_attachment_file,
         ],
         help_text=f"يسمح بـ PDF/صور/DOCX حتى {MAX_ATTACHMENT_MB}MB",
     )
@@ -1217,10 +1245,13 @@ class RequestTicket(models.Model):
     body = models.TextField("تفاصيل الطلب")
     attachment = models.FileField(
         "مرفق (اختياري)",
-        upload_to="tickets/",
+        upload_to=_ticket_attachment_upload_to,
         blank=True,
         null=True,
-        validators=[FileExtensionValidator(["pdf", "jpg", "jpeg", "png", "doc", "docx"])],
+        validators=[
+            FileExtensionValidator(["pdf", "jpg", "jpeg", "png", "doc", "docx"]),
+            validate_attachment_file,
+        ],
     )
     status = models.CharField("الحالة", max_length=20, choices=Status.choices, default=Status.NEW, db_index=True)
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
@@ -1384,7 +1415,7 @@ class TicketImage(models.Model):
     )
     image = models.ImageField(
         "الصورة",
-        upload_to="tickets/images/%Y/%m/%d/",
+        upload_to=_ticket_image_upload_to,
         blank=False,
         null=False,
         validators=[validate_image_file],
@@ -1540,7 +1571,7 @@ class Payment(models.Model):
     amount = models.DecimalField("المبلغ", max_digits=10, decimal_places=2)
     receipt_image = models.ImageField(
         "صورة الإيصال",
-        upload_to="payments/receipts/%Y/%m/",
+        upload_to=_payment_receipt_upload_to,
         help_text="يرجى إرفاق صورة التحويل البنكي",
         validators=[validate_image_file],
     )

@@ -1950,6 +1950,11 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
 # =========================
 # Share Links (public token)
 # =========================
+def _apply_share_hardening_headers(resp: HttpResponse) -> HttpResponse:
+    resp["X-Robots-Tag"] = "noindex, nofollow"
+    return resp
+
+
 def _valid_sharelink_or_404(token: str, *, kind: str) -> ShareLink:
     link = (
         ShareLink.objects.select_related("report", "achievement_file", "school")
@@ -2139,18 +2144,19 @@ def achievement_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+@ratelimit(key="ip", rate="120/m", block=True)
 @require_http_methods(["GET"])
 def share_public(request: HttpRequest, token: str) -> HttpResponse:
     link = ShareLink.objects.select_related("report", "achievement_file", "school").filter(token=token).first()
     if not link or (not link.is_active) or link.is_expired:
-        return render(request, "reports/share_invalid.html", status=404)
+        return _apply_share_hardening_headers(render(request, "reports/share_invalid.html", status=404))
 
     ShareLink.objects.filter(pk=link.pk).update(last_accessed_at=timezone.now())
 
     if link.kind == ShareLink.Kind.REPORT:
         r = link.report
         if r is None:
-            return render(request, "reports/share_invalid.html", status=404)
+            return _apply_share_hardening_headers(render(request, "reports/share_invalid.html", status=404))
 
         school_scope = getattr(r, "school", None) or getattr(link, "school", None)
         cat = getattr(r, "category", None)
@@ -2191,7 +2197,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
             except Exception:
                 pass
 
-        return render(
+        resp = render(
             request,
             "reports/report_print.html",
             {
@@ -2210,14 +2216,15 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
                 "image4_url": reverse("reports:share_report_image", args=[token, 4]),
             },
         )
+        return _apply_share_hardening_headers(resp)
 
     if link.kind == ShareLink.Kind.ACHIEVEMENT:
         ach_file = link.achievement_file
         if ach_file is None:
-            return render(request, "reports/share_invalid.html", status=404)
+            return _apply_share_hardening_headers(render(request, "reports/share_invalid.html", status=404))
 
         download_url = reverse("reports:share_achievement_pdf", args=[token])
-        return render(
+        resp = render(
             request,
             "reports/share_achievement_public.html",
             {
@@ -2225,10 +2232,12 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
                 "download_url": download_url,
             },
         )
+        return _apply_share_hardening_headers(resp)
 
-    return render(request, "reports/share_invalid.html", status=404)
+    return _apply_share_hardening_headers(render(request, "reports/share_invalid.html", status=404))
 
 
+@ratelimit(key="ip", rate="200/m", block=True)
 @require_http_methods(["GET"])
 def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpResponse:
     link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.REPORT)
@@ -2245,6 +2254,7 @@ def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpRespo
     try:
         f = field.open("rb")
         resp = FileResponse(f)
+        _apply_share_hardening_headers(resp)
         resp["Cache-Control"] = "public, max-age=900, s-maxage=3600"
         try:
             filename = os.path.basename(getattr(field, "name", "") or "") or f"image{slot}"
@@ -2256,11 +2266,13 @@ def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpRespo
         url = getattr(field, "url", None)
         if url:
             resp = redirect(url)
+            _apply_share_hardening_headers(resp)
             resp["Cache-Control"] = "public, max-age=900, s-maxage=3600"
             return resp
         raise
 
 
+@ratelimit(key="ip", rate="60/m", block=True)
 @require_http_methods(["GET"])
 def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
     link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.ACHIEVEMENT)
@@ -2273,6 +2285,7 @@ def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
     try:
         f = ach_file.pdf_file.open("rb")
         resp = FileResponse(f, content_type="application/pdf")
+        _apply_share_hardening_headers(resp)
         resp["Cache-Control"] = "public, max-age=900, s-maxage=3600"
         try:
             filename = os.path.basename(getattr(ach_file.pdf_file, "name", "") or "") or "achievement.pdf"
@@ -2284,6 +2297,7 @@ def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
         url = getattr(ach_file.pdf_file, "url", None)
         if url:
             resp = redirect(url)
+            _apply_share_hardening_headers(resp)
             resp["Cache-Control"] = "public, max-age=900, s-maxage=3600"
             return resp
         raise
