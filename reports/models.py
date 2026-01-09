@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from datetime import timedelta
 import os
+import secrets
 
 from urllib.parse import quote
 
@@ -864,6 +866,113 @@ class AchievementEvidenceImage(models.Model):
 
     def __str__(self) -> str:
         return f"EvidenceImage #{self.pk} (section {self.section_id})"
+
+
+def get_share_link_default_days() -> int:
+    """يرجع مدة صلاحية روابط المشاركة بالأيام.
+
+    المصدر: settings.SHARE_LINK_DEFAULT_DAYS (وإلا 7).
+    """
+    days = getattr(settings, "SHARE_LINK_DEFAULT_DAYS", 7)
+
+    try:
+        days = int(days)
+    except Exception:
+        days = 7
+    if days <= 0:
+        days = 7
+    return days
+
+
+# =========================
+# روابط مشاركة عامة (بدون حساب)
+# =========================
+class ShareLink(models.Model):
+    class Kind(models.TextChoices):
+        REPORT = "report", "تقرير"
+        ACHIEVEMENT = "achievement", "ملف إنجاز"
+
+    token = models.CharField("Token", max_length=64, unique=True, db_index=True)
+    kind = models.CharField("النوع", max_length=20, choices=Kind.choices, db_index=True)
+
+    created_by = models.ForeignKey(
+        "Teacher",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="share_links",
+        verbose_name="تم الإنشاء بواسطة",
+    )
+    school = models.ForeignKey(
+        "School",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="share_links",
+        verbose_name="المدرسة",
+        db_index=True,
+    )
+
+    report = models.ForeignKey(
+        "Report",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="share_links",
+        verbose_name="التقرير",
+        db_index=True,
+    )
+    achievement_file = models.ForeignKey(
+        "TeacherAchievementFile",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="share_links",
+        verbose_name="ملف الإنجاز",
+        db_index=True,
+    )
+
+    is_active = models.BooleanField("مفعّل", default=True, db_index=True)
+    expires_at = models.DateTimeField("ينتهي في", db_index=True)
+    last_accessed_at = models.DateTimeField("آخر وصول", null=True, blank=True)
+    created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "رابط مشاركة"
+        verbose_name_plural = "روابط مشاركة"
+        indexes = [
+            models.Index(fields=["kind", "is_active", "expires_at"]),
+            models.Index(fields=["report", "is_active", "expires_at"]),
+            models.Index(fields=["achievement_file", "is_active", "expires_at"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                name="sharelink_kind_target_consistent",
+                check=(
+                    models.Q(kind="report", report__isnull=False, achievement_file__isnull=True)
+                    | models.Q(kind="achievement", report__isnull=True, achievement_file__isnull=False)
+                ),
+            )
+        ]
+
+    @staticmethod
+    def default_expires_at() -> timezone.datetime:
+        return timezone.now() + timedelta(days=get_share_link_default_days())
+
+    @staticmethod
+    def generate_token() -> str:
+        return secrets.token_urlsafe(32)
+
+    @property
+    def is_expired(self) -> bool:
+        try:
+            return timezone.now() >= self.expires_at
+        except Exception:
+            return True
+
+    def __str__(self) -> str:
+        target = self.report_id or self.achievement_file_id
+        return f"{self.get_kind_display()} ({target})"
 
 
 # =========================
