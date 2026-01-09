@@ -496,6 +496,9 @@ LOGIN_URL = "reports:login"
 LOGIN_REDIRECT_URL = "reports:home"
 LOGOUT_REDIRECT_URL = "reports:login"
 
+# Store Django messages in signed cookies so they survive session flush on logout.
+MESSAGE_STORAGE = "django.contrib.messages.storage.cookie.CookieStorage"
+
 # ----------------- الخمول/الجلسات -----------------
 # 30 دقيقة خمول => تسجيل خروج عند أول طلب بعد انتهاء المدة.
 # يمكن تعديلها عبر متغير البيئة IDLE_LOGOUT_SECONDS

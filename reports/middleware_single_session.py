@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import logout
+from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import redirect
 
@@ -14,6 +15,11 @@ class EnforceSingleSessionMiddleware:
             current = getattr(user, "current_session_key", "") or ""
             sk = request.session.session_key or ""
             if current and sk and current != sk:
+                # Add a friendly message for HTML navigations (cookie-based storage survives logout).
+                try:
+                    messages.warning(request, "تم تسجيل الخروج لأن الحساب تم تسجيل دخوله من جهاز آخر.")
+                except Exception:
+                    pass
                 logout(request)
                 try:
                     accept = (request.headers.get("Accept") or "").lower()
