@@ -17,6 +17,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import (
@@ -40,6 +41,8 @@ from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 from django.db.models.deletion import ProtectedError
+
+from django_ratelimit.decorators import ratelimit
 
 # ===== فورمات =====
 from .forms import (
@@ -389,6 +392,7 @@ def _is_report_viewer(user, active_school: Optional[School] = None) -> bool:
 # الدخول / الخروج
 # =========================
 @require_http_methods(["GET", "POST"])
+@ratelimit(key="ip", rate="10/m", block=True)
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         # إن كان المستخدم موظّف لوحة (مدير/سوبر أدمن) نوجّهه للوحة المناسبة
@@ -397,6 +401,15 @@ def login_view(request: HttpRequest) -> HttpResponse:
         if _is_staff(request.user):
             return redirect("reports:admin_dashboard")
         return redirect("reports:home")
+
+    def _persist_single_session_key(_user: Teacher) -> None:
+        try:
+            request.session.cycle_key()
+            request.session.save()
+            _user.current_session_key = request.session.session_key or ""
+            _user.save(update_fields=["current_session_key"])
+        except Exception:
+            return
 
     if request.method == "POST":
         phone = (request.POST.get("phone") or "").strip()
@@ -421,6 +434,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     # هذا يحدث أحياناً لحسابات قديمة أو حسابات لم تُربط بعد.
                     if not memberships.exists():
                         login(request, user)
+                        _persist_single_session_key(user)
                         messages.warning(request, "تنبيه: حسابك غير مرتبط بمدرسة فعّالة. تواصل مع إدارة النظام لربط الحساب بالمدرسة.")
                         next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
                         if getattr(user, "is_superuser", False):
@@ -469,6 +483,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                         if is_any_manager and manager_school is not None:
                             # المدير يُسمح له بالدخول للتجديد فقط
                             login(request, user)
+                            _persist_single_session_key(user)
                             _set_active_school(request, manager_school)
                             return redirect("reports:subscription_expired")
 
@@ -478,13 +493,16 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
                     # هناك اشتراك ساري واحد على الأقل → نكمل تسجيل الدخول ونثبت مدرسة نشطة مناسبة
                     login(request, user)
+                    _persist_single_session_key(user)
                     if active_school is not None:
                         _set_active_school(request, active_school)
                 except Exception:
                     # في حال أي مشكلة في تحقق الاشتراك، لا نكسر تسجيل الدخول (سيتولى Middleware المنع لاحقاً)
                     login(request, user)
+                    _persist_single_session_key(user)
             else:
                 login(request, user)
+                _persist_single_session_key(user)
 
             # بعد تسجيل الدخول مباشرةً: اختيار مدرسة افتراضية عند توفر مدرسة واحدة فقط
             try:
@@ -738,6 +756,22 @@ def home(request: HttpRequest) -> HttpResponse:
         home_notification_recipient_id = None
 
     try:
+        cache_key = f"home:stats:{request.user.id}"
+        cached = cache.get(cache_key)
+        if isinstance(cached, dict):
+            return render(
+                request,
+                "reports/home.html",
+                {
+                    "stats": cached.get("stats") or stats,
+                    "recent_reports": (cached.get("recent_reports") or [])[:2],
+                    "req_stats": cached.get("req_stats") or req_stats,
+                    "recent_tickets": (cached.get("recent_tickets") or [])[:2],
+                    "home_notification": home_notification,
+                    "home_notification_recipient_id": home_notification_recipient_id,
+                },
+            )
+
         my_qs = _filter_by_school(
             Report.objects.filter(teacher=request.user).only(
                 "id", "title", "report_date", "day_name", "beneficiaries_count"
@@ -768,6 +802,20 @@ def home(request: HttpRequest) -> HttpResponse:
         for k in req_stats.keys():
             req_stats[k] = int(agg.get(k) or 0)
         recent_tickets = list(my_tickets_qs[:5])
+
+        try:
+            cache.set(
+                cache_key,
+                {
+                    "stats": stats,
+                    "recent_reports": recent_reports,
+                    "req_stats": req_stats,
+                    "recent_tickets": recent_tickets,
+                },
+                30,
+            )
+        except Exception:
+            pass
 
         return render(
             request,

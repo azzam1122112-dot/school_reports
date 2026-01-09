@@ -193,6 +193,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "reports.middleware_single_session.EnforceSingleSessionMiddleware",
     "reports.middleware.AuditLogMiddleware",  # <--- تم الإضافة
     "reports.middleware.IdleLogoutMiddleware",  # تسجيل خروج تلقائي بعد الخمول
     "reports.middleware.SubscriptionMiddleware",  # <--- تم الإضافة

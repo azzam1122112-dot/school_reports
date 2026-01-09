@@ -228,6 +228,9 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField("موظّف لوحة", default=False)
     date_joined = models.DateTimeField("تاريخ الانضمام", auto_now_add=True)
 
+    # Single session enforcement (store last session_key issued on login)
+    current_session_key = models.CharField(max_length=64, blank=True, default="")
+
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS = ["name"]
 
