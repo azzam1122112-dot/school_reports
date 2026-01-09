@@ -139,6 +139,10 @@
                       <i class="fa-solid fa-pen"></i>
                     </a>
 
+                    <a href="{% url 'reports:report_share_manage' report.pk %}" class="mr-iconbtn" title="مشاركة" aria-label="مشاركة">
+                      <i class="fa-solid fa-share-nodes"></i>
+                    </a>
+
                     <a href="{% url 'reports:report_print' report.pk %}" target="_blank" rel="noopener" class="mr-iconbtn" title="عرض التقرير" aria-label="عرض التقرير">
                       <i class="fa-solid fa-eye"></i>
                     </a>
@@ -195,6 +199,9 @@
               <div class="mr-actions-cell">
                 <a href="{% url 'reports:edit_my_report' report.pk %}" class="mr-iconbtn" title="تعديل" aria-label="تعديل">
                   <i class="fa-solid fa-pen"></i>
+                </a>
+                <a href="{% url 'reports:report_share_manage' report.pk %}" class="mr-iconbtn" title="مشاركة" aria-label="مشاركة">
+                  <i class="fa-solid fa-share-nodes"></i>
                 </a>
                 <a href="{% url 'reports:report_print' report.pk %}" target="_blank" rel="noopener" class="mr-iconbtn" title="عرض التقرير" aria-label="عرض التقرير">
                   <i class="fa-solid fa-eye"></i>
