@@ -40,6 +40,9 @@ openpyxl==3.1.5
 # PDF
 weasyprint
 
+# MIME detection (optional; validators fall back if unavailable)
+python-magic==0.4.27
+
 # Celery
 celery==5.4.0
 django-celery-results==2.5.1
