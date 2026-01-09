@@ -5,6 +5,14 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+def create_sharelink_if_not_exists(apps, schema_editor):
+    """إنشاء جدول ShareLink فقط إذا لم يكن موجوداً"""
+    table_name = 'reports_sharelink'
+    if table_name not in schema_editor.connection.introspection.table_names():
+        # الجدول غير موجود، لا نفعل شيئاً هنا (سيتم إنشاءه عبر state_operations)
+        pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,7 +20,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                # هذا يحدّث حالة Django فقط
+                migrations.CreateModel(
             name="ShareLink",
             fields=[
                 (
@@ -125,23 +136,27 @@ class Migration(migrations.Migration):
                 ],
             },
         ),
-        migrations.AddConstraint(
-            model_name="sharelink",
-            constraint=models.CheckConstraint(
-                check=models.Q(
-                    models.Q(
-                        ("achievement_file__isnull", True),
-                        ("kind", "report"),
-                        ("report__isnull", False),
+                migrations.AddConstraint(
+                    model_name="sharelink",
+                    constraint=models.CheckConstraint(
+                        check=models.Q(
+                            models.Q(
+                                ("achievement_file__isnull", True),
+                                ("kind", "report"),
+                                ("report__isnull", False),
+                            ),
+                            models.Q(
+                                ("achievement_file__isnull", False),
+                                ("kind", "achievement"),
+                                ("report__isnull", True),
+                            ),
+                            _connector="OR",
+                        ),
+                        name="sharelink_kind_target_consistent",
                     ),
-                    models.Q(
-                        ("achievement_file__isnull", False),
-                        ("kind", "achievement"),
-                        ("report__isnull", True),
-                    ),
-                    _connector="OR",
                 ),
-                name="sharelink_kind_target_consistent",
-            ),
+            ],
+            # لا نقوم بأي عمليات قاعدة بيانات - فقط نحدث الحالة
+            database_operations=[],
         ),
     ]
