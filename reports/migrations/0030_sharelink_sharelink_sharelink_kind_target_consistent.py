@@ -5,6 +5,38 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+class CreateModelIfNotExists(migrations.CreateModel):
+    """Create the model table unless it already exists.
+
+    This protects production DBs that already have the table (e.g. from a
+    partial deploy or manual creation) from failing with DuplicateTable.
+    """
+
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        model = to_state.apps.get_model(app_label, self.name)
+        table_names = schema_editor.connection.introspection.table_names()
+        if model._meta.db_table in table_names:
+            return
+
+        super().database_forwards(app_label, schema_editor, from_state, to_state)
+
+
+class AddConstraintIfNotExists(migrations.AddConstraint):
+    """Add constraint unless it already exists (PostgreSQL-safe)."""
+
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        if schema_editor.connection.vendor == "postgresql":
+            with schema_editor.connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT 1 FROM pg_constraint WHERE conname = %s",
+                    [self.constraint.name],
+                )
+                if cursor.fetchone():
+                    return
+
+        super().database_forwards(app_label, schema_editor, from_state, to_state)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,7 +44,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name="ShareLink",
             fields=[
                 (
@@ -125,7 +157,7 @@ class Migration(migrations.Migration):
                 ],
             },
         ),
-        migrations.AddConstraint(
+        AddConstraintIfNotExists(
             model_name="sharelink",
             constraint=models.CheckConstraint(
                 check=models.Q(
