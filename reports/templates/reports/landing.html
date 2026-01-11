@@ -17,6 +17,7 @@
   <!-- PWA -->
   <link rel="manifest" href="{% static 'manifest.json' %}">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="منصة التقارير">
   <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
@@ -57,6 +58,37 @@
       background: var(--bg);
       background-image: var(--hero-overlay);
       background-attachment: fixed;
+    }
+
+    /* Emphasize login CTA */
+    .login-cta {
+      position: relative;
+      box-shadow: 0 14px 30px rgba(37,99,235,0.28);
+      transform: translateZ(0);
+    }
+    .login-cta:hover {
+      box-shadow: 0 18px 40px rgba(37,99,235,0.34);
+    }
+    .login-cta:focus-visible {
+      outline: 3px solid rgba(37,99,235,0.35);
+      outline-offset: 3px;
+    }
+    .login-cta::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: 999px;
+      padding: 2px;
+      background: linear-gradient(135deg, rgba(37,99,235,0.55), rgba(139,92,246,0.35));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      opacity: 0.85;
+    }
+
+    .footer a:hover {
+      color: #ffffff !important;
     }
 
     /* Modern Glass Card */
@@ -776,14 +808,14 @@
             <i class="fa-solid fa-headset"></i>
             تواصل
           </a>
-          <a href="{% url 'reports:login' %}" class="btn-primary">
+          <a href="{% url 'reports:login' %}" class="btn-primary login-cta">
             <i class="fa-solid fa-right-to-bracket"></i>
             دخول المنصة
           </a>
         </nav>
 
         <div class="mobile-nav-controls">
-          <a href="{% url 'reports:login' %}" class="btn-primary mobile-login-btn">
+          <a href="{% url 'reports:login' %}" class="btn-primary mobile-login-btn login-cta">
             <i class="fa-solid fa-right-to-bracket"></i>
             دخول
           </a>
@@ -803,7 +835,7 @@
           <a href="#contact">تواصل</a>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-          <a href="{% url 'reports:login' %}" class="btn-primary" style="flex:1;">
+          <a href="{% url 'reports:login' %}" class="btn-primary login-cta" style="flex:1;">
             <i class="fa-solid fa-right-to-bracket"></i>
             دخول المنصة
           </a>
@@ -1363,6 +1395,16 @@
   </footer>
 
   <script nonce="{{ CSP_NONCE }}">
+    // ===============================
+    // PWA (Service Worker)
+    // ===============================
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+      });
+    })();
+
     // ===============================
     // Helpers (safe + lightweight)
     // ===============================
