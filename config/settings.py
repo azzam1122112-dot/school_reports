@@ -153,6 +153,7 @@ INSTALLED_APPS = [
     "django_celery_results",
 
     # تطبيقاتنا
+    "core",
     "reports",
 ]
 
@@ -199,6 +200,7 @@ if _use_r2 and "storages" not in INSTALLED_APPS:
     INSTALLED_APPS.append("storages")
 
 MIDDLEWARE = [
+    "core.middleware.BlockBadPathsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # لملفات static
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -484,7 +486,8 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
     "loggers": {
-        "django.request": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        # Reduce noisy 404 warnings from scanners/probes.
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
     },
 }
 

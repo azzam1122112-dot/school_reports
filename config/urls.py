@@ -7,6 +7,7 @@ from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.http import HttpResponse
 from django.views.decorators.cache import cache_control
+from django.views.generic.base import RedirectView
 
 
 @cache_control(no_cache=True, must_revalidate=True, max_age=0)
@@ -32,8 +33,32 @@ def service_worker(request):
 
     return HttpResponse(content, content_type="application/javascript")
 
+
+def robots_txt(_request):
+    try:
+        content = None
+        try:
+            with staticfiles_storage.open("robots.txt") as fp:
+                content = fp.read()
+        except Exception:
+            content = None
+
+        if content is None:
+            return HttpResponse("User-agent: *\nDisallow:\n", content_type="text/plain")
+
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="ignore")
+        return HttpResponse(content, content_type="text/plain")
+    except Exception:
+        return HttpResponse("User-agent: *\nDisallow:\n", content_type="text/plain")
+
 urlpatterns = [
     path("admin-panel/", admin.site.urls),
+    path(
+        "favicon.ico",
+        RedirectView.as_view(url=staticfiles_storage.url("favicon.ico"), permanent=True),
+    ),
+    path("robots.txt", robots_txt),
     path("sw.js", service_worker, name="service_worker"),
     path("", include("reports.urls")),  # واجهة المشروع الأساسية
 ]
