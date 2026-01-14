@@ -52,10 +52,12 @@
       .page {
         margin: 0;
         width: 100%;
-        min-height: 100%; /* Fill the paper */
+        min-height: 297mm;
         border: none;
         box-shadow: none;
-        padding: 5mm 10mm; /* Margins handled by @page mostly, but safe padding */
+        padding: 10mm 15mm;
+        position: relative;
+        overflow: visible; /* Allow content to flow across pages if needed */
       }
       .no-print { display: none !important; }
       
@@ -264,8 +266,26 @@
       left: 0;
       right: 0;
       text-align: center;
-      font-size: 12px;
+      font-size: 11px;
       color: #666;
+    }
+
+    /* Print specific footer repetition */
+    @media print {
+      .page-number {
+        position: fixed;
+        bottom: 5mm;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 5px 0;
+        border-top: 1px solid #eee; /* Optional subtle line */
+      }
+      
+      /* Add padding to the page to prevent content overlapping fixed footer */
+      .page {
+        padding-bottom: 20mm !important; 
+      }
     }
 
   </style>
@@ -278,9 +298,9 @@
     <button onclick="window.print()" class="btn btn-print">
       <i class="fas fa-print"></i> طباعة / حفظ كـ 
     </button>
-    <a href="javascript:history.back()" class="btn">
+    <button onclick="goBack()" class="btn">
       <i class="fas fa-arrow-right"></i> عودة
-    </a>
+    </button>
   </div>
 
   <div class="page">
@@ -337,23 +357,33 @@
 
     <div class="content-section">
       <div class="section-label">1. تفاصيل التقرير / الإنجاز:</div>
-      <div style="white-space: pre-wrap; text-align: justify;">{{ r.description|default:"لا يوجد تفاصيل إضافية." }}</div>
+      <div style="white-space: pre-wrap; text-align: justify;">{{ r.description|default:r.idea|default:"لا يوجد تفاصيل إضافية." }}</div>
     </div>
     
-    {% if r.achievements.exists %}
+    {% if r.image1 or r.image2 or r.image3 or r.image4 %}
     <div class="content-section" style="border:none; padding:0;">
-      <div class="section-label">2. المرفقات و الشواهد ({{ r.achievements.count }}):</div>
+      <div class="section-label">2. المرفقات و الشواهد المصورة:</div>
       <div class="images-grid">
-        {% for img in r.achievements.all %}
+        {% if r.image1 %}
         <div class="img-box">
-           <!-- Using thumbnail or direct image based on implementation -->
-           <img src="{{ img.image.url }}" alt="Attachment">
-           <!-- Optional Caption -->
-           {% if img.description %}
-           <div class="img-caption">{{ img.description }}</div>
-           {% endif %}
+           <img src="{{ r.image1.url }}" alt="Attachment 1">
         </div>
-        {% endfor %}
+        {% endif %}
+        {% if r.image2 %}
+        <div class="img-box">
+           <img src="{{ r.image2.url }}" alt="Attachment 2">
+        </div>
+        {% endif %}
+        {% if r.image3 %}
+        <div class="img-box">
+           <img src="{{ r.image3.url }}" alt="Attachment 3">
+        </div>
+        {% endif %}
+        {% if r.image4 %}
+        <div class="img-box">
+           <img src="{{ r.image4.url }}" alt="Attachment 4">
+        </div>
+        {% endif %}
       </div>
     </div>
     {% endif %}
@@ -365,6 +395,15 @@
   </div>
 
   <script>
+    function goBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        // Safe fallback if opened in a new tab
+        window.location.href = "{% url 'reports:my_reports' %}";
+      }
+    }
+
     // Auto print if ?print=true (optional)
     if(window.location.search.includes('print=true')){
       window.print();
