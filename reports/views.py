@@ -1386,7 +1386,12 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
         messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
         return redirect("reports:home")
 
-    create_form = AchievementCreateYearForm(request.POST or None)
+    existing_years = list(
+        TeacherAchievementFile.objects.filter(school=active_school)
+        .values_list("academic_year", flat=True)
+        .distinct()
+    )
+    create_form = AchievementCreateYearForm(request.POST or None, year_choices=existing_years)
     if request.method == "POST" and (request.POST.get("action") == "create"):
         if create_form.is_valid():
             year = create_form.cleaned_data["academic_year"]
@@ -1433,26 +1438,23 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
 
     # اختيار سنة (اختياري): إن لم تُحدد، نأخذ آخر سنة موجودة في المدرسة
     year = (request.GET.get("year") or request.POST.get("year") or "").strip()
-    new_year = (request.GET.get("new_year") or request.POST.get("new_year") or "").strip()
     try:
         year = year.replace("–", "-").replace("—", "-")
     except Exception:
         pass
-    try:
-        new_year = new_year.replace("–", "-").replace("—", "-")
-    except Exception:
-        pass
 
-    year_choices = list(
+    existing_years = list(
         TeacherAchievementFile.objects.filter(school=active_school)
         .values_list("academic_year", flat=True)
         .distinct()
-        .order_by("-academic_year")
     )
+    # نفس منطق الاختيارات في نموذج الإنشاء (بدون إدخال يدوي)
+    tmp_form = AchievementCreateYearForm(year_choices=existing_years)
+    year_choices = [c[0] for c in tmp_form.fields["academic_year"].choices]
 
-    if new_year:
-        year = new_year
     if not year and year_choices:
+        year = year_choices[0]
+    if year and year_choices and year not in year_choices:
         year = year_choices[0]
 
     base_url = reverse("reports:achievement_school_files")
@@ -1495,7 +1497,6 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
         {
             "rows": rows,
             "year": year,
-            "new_year": new_year,
             "year_choices": year_choices,
             "current_school": active_school,
             "is_manager": _can_manage_achievement(request.user, active_school),
@@ -1509,9 +1510,6 @@ def achievement_school_teachers(request: HttpRequest) -> HttpResponse:
     """Alias قديم: توجيه إلى صفحة المدرسة الموحدة."""
     params = {}
     year = (request.GET.get("year") or request.POST.get("year") or "").strip()
-    new_year = (request.GET.get("new_year") or request.POST.get("new_year") or "").strip()
-    if new_year:
-        params["new_year"] = new_year
     if year:
         params["year"] = year
     url = reverse("reports:achievement_school_files")

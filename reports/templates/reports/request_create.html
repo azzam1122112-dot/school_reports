@@ -324,8 +324,9 @@
   }
   
   .btn-submit {
-    background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
-    color: white;
+    background: #007bff; /* Fallback */
+    background: linear-gradient(135deg, #1a56db, #3f83f8);
+    color: #ffffff !important;
     font-weight: 700;
     padding: 16px;
     border-radius: var(--radius-md);
@@ -335,14 +336,19 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px var(--brand-500-30);
+    box-shadow: 0 10px 15px -3px rgba(31, 88, 222, 0.3);
   }
   
+  .btn-submit svg {
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.1));
+  }
+
   .btn-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px var(--brand-500-40);
+    box-shadow: 0 20px 25px -5px rgba(31, 88, 222, 0.4);
+    filter: brightness(1.1);
   }
   
   .btn-submit:active { transform: translateY(0); }
@@ -519,8 +525,8 @@
 
           <div class="tk-actions">
             <button class="btn-submit" type="submit" id="submitBtn">
-              <span>إرسال الطلب</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              <span>إرسال الطلب الآن</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
             </button>
             <a class="btn-cancel" href="{% url 'reports:my_requests' %}">إلغاء والعودة</a>
           </div>

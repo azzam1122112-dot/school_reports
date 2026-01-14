@@ -165,18 +165,10 @@
 
           {% if year_choices %}
             <select name="year">
-              {% if year and year not in year_choices %}
-                <option value="{{ year }}" selected>{{ year }} (جديدة)</option>
-              {% endif %}
               {% for y in year_choices %}
                 <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
               {% endfor %}
             </select>
-
-            <div style="margin-top:10px">
-              <label class="aa-label">سنة جديدة (اختياري)</label>
-              <input class="aa-input" name="new_year" value="{{ new_year }}" placeholder="مثال: 1447-1448" />
-            </div>
           {% else %}
             <input class="aa-input" name="year" value="{{ year }}" placeholder="مثال: 1447-1448" />
           {% endif %}

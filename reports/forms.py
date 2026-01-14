@@ -1606,12 +1606,62 @@ class SchoolSubscriptionForm(forms.ModelForm):
 # 📁 ملف إنجاز المعلّم (سنوي)
 # ==============================
 class AchievementCreateYearForm(forms.Form):
-    academic_year = forms.CharField(
+    """اختيار سنة دراسية من قائمة لتفادي أخطاء الكتابة."""
+
+    BASE_HIJRI_YEARS: List[str] = [
+        "1447-1448",
+        "1448-1449",
+        "1449-1450",
+    ]
+
+    academic_year = forms.ChoiceField(
         label="السنة الدراسية (هجري)",
-        max_length=9,
-        help_text="مثال: 1447-1448",
-        widget=forms.TextInput(attrs={"class": "input", "placeholder": "1447-1448"}),
+        choices=[],
+        widget=forms.Select(attrs={"class": "input"}),
+        help_text="اختر السنة من القائمة.",
     )
+
+    def __init__(self, *args, year_choices: Optional[List[str]] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def _norm(v: str) -> str:
+            return (v or "").strip().replace("–", "-").replace("—", "-")
+
+        def _parse(v: str) -> Optional[Tuple[int, int]]:
+            import re
+
+            vv = _norm(v)
+            if not re.fullmatch(r"\d{4}-\d{4}", vv):
+                return None
+            s, e = vv.split("-", 1)
+            try:
+                si, ei = int(s), int(e)
+            except Exception:
+                return None
+            if ei != si + 1:
+                return None
+            return si, ei
+
+        existing = [_norm(y) for y in (year_choices or []) if (y or "").strip()]
+        all_years = set([_norm(y) for y in self.BASE_HIJRI_YEARS] + existing)
+
+        # توليد سنوات مستقبلية بدون إدخال يدوي (مثلاً: 1450-1451)
+        parsed = [_parse(y) for y in all_years]
+        parsed_ok = [p for p in parsed if p is not None]
+        max_end = max([e for _, e in parsed_ok], default=1450)
+        for i in range(0, 2):
+            s = max_end + i
+            all_years.add(f"{s}-{s + 1}")
+
+        valid = sorted(
+            [y for y in all_years if _parse(y) is not None],
+            key=lambda v: int(v.split("-", 1)[0]),
+            reverse=False,
+        )
+        choices = [(y, f"{y} هـ") for y in valid]
+        self.fields["academic_year"].choices = choices
+        if choices:
+            self.fields["academic_year"].initial = choices[0][0]
 
     def clean_academic_year(self):
         return _validate_academic_year_hijri(self.cleaned_data.get("academic_year", ""))

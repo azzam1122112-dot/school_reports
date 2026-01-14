@@ -175,18 +175,10 @@
 
           {% if year_choices %}
             <select class="af-select" name="year" onchange="this.form.submit()">
-              {% if year and year not in year_choices %}
-                <option value="{{ year }}" selected>{{ year }} (جديدة)</option>
-              {% endif %}
               {% for y in year_choices %}
                 <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} هـ</option>
               {% endfor %}
             </select>
-
-            <div style="margin-top:10px">
-              <label class="af-label">سنة جديدة (اختياري)</label>
-              <input class="af-input" name="new_year" value="{{ new_year }}" placeholder="مثال: 1447-1448" autocomplete="off" />
-            </div>
           {% else %}
             <input class="af-input" name="year" value="{{ year }}" placeholder="مثال: 1447-1448" autocomplete="off" />
           {% endif %}

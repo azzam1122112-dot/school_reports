@@ -206,19 +206,24 @@
   .ar-submit-btn {
     width: 100%;
     margin-top: 20px;
-    padding: 16px;
+    padding: 18px;
     border-radius: 16px;
     border: none;
     font-weight: 800;
-    font-size: 1.1rem;
-    color: #fff;
-    background: linear-gradient(135deg, var(--ar-primary), var(--ar-primary-dark));
-    box-shadow: 0 10px 20px -5px rgba(var(--ar-primary-rgb, 79, 70, 229), 0.4);
+    font-size: 1.15rem;
+    color: #fff !important;
+    background: #2563eb; /* Fallback */
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
     cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    transition: transform 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    transition: all 0.2s;
   }
-  .ar-submit-btn:hover { transform: translateY(-2px); }
+  .ar-submit-btn:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.5);
+    filter: brightness(1.1);
+  }
 
   /* Overlay */
   .ar-overlay {
