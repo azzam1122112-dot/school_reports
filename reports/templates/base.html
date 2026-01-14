@@ -797,6 +797,43 @@
 
       setInterval(checkNotifications, 60000);
     })();
+
+    // Smart back: always return to the page the user came from (if possible).
+    // Use: <a href="/fallback" data-smart-back="1">رجوع</a>
+    (function(){
+      function isSameOrigin(url){
+        try { return new URL(url, window.location.href).origin === window.location.origin; }
+        catch(e){ return false; }
+      }
+
+      window.smartBack = function(fallbackUrl){
+        const fallback = fallbackUrl || '/';
+        try{
+          if (window.history && window.history.length > 1) {
+            window.history.back();
+            return;
+          }
+        } catch(e) {}
+
+        try{
+          const ref = document.referrer;
+          if (ref && isSameOrigin(ref)) {
+            window.location.href = ref;
+            return;
+          }
+        } catch(e) {}
+
+        window.location.href = fallback;
+      };
+
+      document.addEventListener('click', function(e){
+        const el = e.target && e.target.closest ? e.target.closest('[data-smart-back]') : null;
+        if (!el) return;
+        const href = el.getAttribute('href') || '/';
+        e.preventDefault();
+        window.smartBack(href);
+      }, true);
+    })();
   </script>
 
   {% block scripts %}{% endblock %}

@@ -399,12 +399,26 @@
 
   <script>
     function goBack() {
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        // Safe fallback if opened in a new tab
-        window.location.href = "{% url 'reports:my_reports' %}";
-      }
+      try {
+        if (window.history && window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+      } catch (e) {}
+
+      try {
+        var ref = document.referrer;
+        if (ref) {
+          var sameOrigin = (new URL(ref, window.location.href)).origin === window.location.origin;
+          if (sameOrigin) {
+            window.location.href = ref;
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // Safe fallback if opened in a new tab
+      window.location.href = "{% url 'reports:my_reports' %}";
     }
 
     // Auto print if ?print=true (optional)

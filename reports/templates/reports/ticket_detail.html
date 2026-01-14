@@ -253,9 +253,11 @@
 
     <div class="ticket-actions">
       {% if t.is_platform %}
-        <a class="btn" href="{% url 'reports:my_support_tickets' %}">← العودة لطلبات الدعم</a>
+        <a class="btn" href="{% url 'reports:my_support_tickets' %}" data-smart-back="1">← رجوع</a>
+      {% elif request.user.is_staff %}
+        <a class="btn" href="{% url 'reports:tickets_inbox' %}" data-smart-back="1">← رجوع</a>
       {% else %}
-        <a class="btn" href="{% url 'reports:my_requests' %}">← العودة لطلباتي</a>
+        <a class="btn" href="{% url 'reports:my_requests' %}" data-smart-back="1">← رجوع</a>
       {% endif %}
 
       {% if request.user.is_staff and not t.is_platform %}

@@ -6,101 +6,317 @@
 
 {% block extra_css %}
 <style>
-
-  .rprev{
-    background: var(--card);
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --primary-gradient: linear-gradient(135deg, #2563eb, #1d4ed8);
+    --success-gradient: linear-gradient(135deg, #10b981, #059669);
+    --surface-1: #ffffff;
+    --surface-2: #f8fafc;
+    --border-color: #e2e8f0;
   }
-  .rprev img{
-    width:100%;
-    max-height: 280px;
-    object-fit: contain;
-    display:block;
-    background: #0b1220;
-  }
-  .rprev .meta{
-    padding: 10px 12px;
-    background: var(--line-2);
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font-weight: 850;
-    font-size: .92rem;
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-    justify-content:space-between;
+  
+  [data-theme="dark"] {
+    --glass-bg: rgba(30, 41, 59, 0.8);
+    --surface-1: #1e293b;
+    --surface-2: #0f172a;
+    --border-color: #334155;
   }
 
-  /* Table */
-  .twrap{ overflow-x:auto; }
-  .tbl{
-    width:100%;
-    border-collapse:collapse;
-    min-width: 680px;
+  /* Layout & Typography */
+  .sub-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Tajawal', sans-serif;
   }
-  .tbl th{
-    text-align:right;
-    padding: 12px;
-    border-bottom: 2px solid var(--line);
-    color: var(--muted);
-    font-weight: 950;
-    font-size: .92rem;
-    white-space: nowrap;
+
+  /* 2026 Header */
+  .sub-header {
+    margin-bottom: 30px;
+    padding: 30px;
+    background: var(--surface-1);
+    border-radius: 24px;
+    box-shadow: 0 4px 20px -5px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
   }
-  .tbl td{
-    padding: 12px;
-    border-bottom: 1px solid var(--line);
+  .sub-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 4px;
+    background: var(--primary-gradient);
+  }
+  .sub-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .sub-h1 {
+    font-size: 2rem;
+    font-weight: 900;
+    margin: 0;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  /* Smart Back Button */
+  .btn-smart-back {
+    background: var(--surface-2);
     color: var(--ink);
-    vertical-align: top;
+    border: 1px solid var(--border-color);
+    border-radius: 50px;
+    padding: 10px 24px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .btn-smart-back:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    background: var(--surface-1);
+    color: var(--primary);
   }
 
-  /* Mobile table -> cards */
-  @media(max-width: 720px){
-    .twrap{ overflow: visible; }
-    .tbl{ min-width: 0; border-collapse: separate; border-spacing: 0 10px; }
-    .tbl thead{ display:none; }
-    .tbl tr{
-      display:block;
-      border: 1px solid var(--line);
+  /* Grid Layout */
+  .sub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 24px;
+    margin-bottom: 30px;
+  }
+
+  /* Modern Cards */
+  .modern-card {
+    background: var(--surface-1);
+    border-radius: 24px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
+    padding: 25px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+  }
+  .modern-card:hover {
+    transform: translateY(-5px);
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .card-head h2 { font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--ink); }
+  .card-head i { color: #3b82f6; font-size: 1.2rem; }
+
+  /* Status Section */
+  .status-hero {
+    background: linear-gradient(135deg, var(--surface-2), var(--surface-1));
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+  }
+  .status-icon {
+    width: 50px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    background: #eff6ff;
+    border-radius: 12px;
+    font-size: 1.5rem;
+  }
+  [data-theme="dark"] .status-icon { background: #1e3a8a; }
+
+  .prog-wrap { margin-top: 20px; }
+  .prog-bar {
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+    border: 1px solid var(--border-color);
+  }
+  .prog-fill {
+    height: 100%;
+    background: var(--success-gradient);
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+  .prog-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  /* Bank Details */
+  .bank-accordion {
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .bank-accordion summary {
+    background: var(--surface-2);
+    padding: 16px;
+    cursor: pointer;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+  }
+  .bank-accordion summary:hover { background: var(--border-color); }
+  .bank-accordion[open] summary { border-bottom: 1px solid var(--border-color); }
+  
+  .bank-content { padding: 20px; }
+  .bank-grid-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .bank-info-box {
+    background: var(--surface-2);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    position: relative;
+    transition: transform 0.2s;
+  }
+  .bank-info-box:active { transform: scale(0.98); }
+  .bank-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+  .bank-val { font-weight: 700; font-size: 0.9rem; word-break: break-all; font-family: 'Courier New', monospace; }
+  .copy-mini {
+    position: absolute;
+    top: 8px; left: 8px;
+    background: none; border: none;
+    color: #3b82f6; cursor: pointer;
+    padding: 4px;
+  }
+
+  /* Form */
+  .modern-input-group { margin-bottom: 20px; }
+  .modern-label { display: block; margin-bottom: 8px; font-weight: 700; font-size: 0.95rem; }
+  .modern-input, .modern-select, .modern-textarea {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    background: var(--surface-1);
+    color: var(--ink);
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .modern-input:focus, .modern-select:focus, .modern-textarea:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+
+  .file-drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: 16px;
+    padding: 25px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--surface-2);
+    transition: all 0.3s;
+    display: block;
+  }
+  .file-drop-zone:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+  }
+  
+  .btn-submit {
+    width: 100%;
+    background: var(--primary-gradient);
+    color: white;
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    display: flex; justify-content: center; align-items: center; gap: 10px;
+  }
+  .btn-submit:hover { opacity: 0.9; }
+  .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+  /* History Table */
+  .history-box { overflow-x: auto; }
+  .t-modern { width: 100%; border-collapse: collapse; min-width: 650px; }
+  .t-modern th {
+    text-align: right;
+    padding: 16px;
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 0.85rem;
+    border-bottom: 2px solid var(--border-color);
+  }
+  .t-modern td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .t-modern tr:last-child td { border-bottom: none; }
+
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    .sub-top { flex-direction: column; align-items: flex-start; }
+    .btn-smart-back { width: 100%; justify-content: center; }
+    
+    .t-modern thead { display: none; }
+    .t-modern tr {
+      display: block;
+      margin-bottom: 15px;
+      border: 1px solid var(--border-color);
       border-radius: 16px;
-      background: linear-gradient(180deg, var(--line-2), var(--card));
-      overflow:hidden;
+      padding: 12px;
+      background: var(--surface-1);
     }
-    html[data-theme="dark"] .tbl tr{
-      background: rgba(20,35,73,.35);
-      border-color: #1b2744;
+    .t-modern td {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed var(--border-color);
+      padding: 10px 0;
     }
-    .tbl td{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      border-bottom: 1px solid var(--line);
-      padding: 10px 12px;
-    }
-    .tbl td:last-child{ border-bottom:none; }
-    .tbl td::before{
+    .t-modern td:last-child { border: none; }
+    .t-modern td::before {
       content: attr(data-label);
       color: var(--muted);
-      font-weight: 950;
-      white-space: nowrap;
+      font-weight: 700;
     }
   }
 
-  /* Empty state */
-  .empty{
-    padding: 18px;
-    border-radius: 16px;
-    border: 1px dashed var(--line);
-    background: linear-gradient(180deg, var(--card), var(--line-2));
-    color: var(--muted);
-    font-weight: 900;
-    text-align:center;
-  }
-  .empty .ico{ font-size: 40px; margin-bottom: 8px; }
+  /* Utility */
+  .sbadge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; display: inline-flex; align-items: center; gap:4px; }
+  .sb-active { background: #dcfce7; color: #166534; }
+  .sb-pending { background: #fef9c3; color: #854d0e; }
+  .sb-expired { background: #fee2e2; color: #991b1b; }
+  [data-theme="dark"] .sb-active { background: rgba(22, 101, 52, 0.4); color: #86efac; }
+  [data-theme="dark"] .sb-pending { background: rgba(161, 98, 7, 0.4); color: #fde047; }
+  [data-theme="dark"] .sb-expired { background: rgba(153, 27, 27, 0.4); color: #fca5a5; }
+  
+  .rprev { background: #1e293b; border-radius: 12px; overflow: hidden; margin-top:10px; display:none; }
+  .rprev img { width: 100%; max-height: 200px; object-fit: contain; display: block; }
+  .rprev .meta { padding: 8px; background: rgba(0,0,0,0.5); color: white; display:flex; justify-content:space-between; align-items:center; }
 
-  @media (prefers-reduced-motion: reduce){
-    .sub-wrap *{ transition:none !important; }
-  }
 </style>
 {% endblock %}
 
@@ -108,286 +324,220 @@
 <div class="sub-wrap" dir="rtl">
 
   <!-- Header -->
-  <div class="sub-header">
+  <header class="sub-header">
     <div class="sub-top">
       <div>
         <h1 class="sub-h1">إدارة اشتراك المدرسة</h1>
-        <div class="sub-school">{{ school.name }}</div>
-        <div class="sub-sub">هنا يمكنك متابعة حالة الاشتراك ورفع إثبات الدفع لتجديد الباقة.</div>
+        <div style="font-size:1.1rem; color:var(--muted); font-weight:600; margin-top:5px;">
+          <i class="fa-solid fa-school"></i> {{ school.name }}
+        </div>
       </div>
-
-      <a href="{% url 'reports:admin_dashboard' %}" class="btn btn-ghost">
+      
+      <!-- Smart Back Button -->
+      <button 
+        onclick="window.smartBack('{% url 'reports:admin_dashboard' %}')" 
+        class="btn-smart-back"
+        data-smart-back="1"
+      >
         <i class="fa-solid fa-arrow-right"></i> عودة للوحة التحكم
-      </a>
+      </button>
     </div>
-  </div>
+  </header>
 
   <div class="sub-grid">
-
-    <!-- Status Card -->
-    <div class="card sub-card">
-      <div class="sub-body">
-        <h2 class="sub-title"><i class="fa-solid fa-gem" style="opacity:.85"></i> حالة الاشتراك الحالي</h2>
-
-        {% if subscription %}
-          <div class="plan-hero">
-            <div class="icon">💎</div>
-            <div style="flex:1">
-              <div class="name">الباقة الحالية: {{ subscription.plan.name }}</div>
-              <div class="meta">
-                ينتهي في: <span dir="ltr">{{ subscription.end_date|date:"Y-m-d" }}</span>
-              </div>
-            </div>
-            <div>
-              {% if subscription.is_expired %}
-                <span class="sbadge sb-expired">⛔ منتهي</span>
-              {% else %}
-                <span class="sbadge sb-active">✅ نشط</span>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="stats">
-            <div class="stat">
-              <div class="v">
-                {% if subscription.days_remaining > 0 %}{{ subscription.days_remaining }}{% else %}0{% endif %}
-              </div>
-              <div class="l">الأيام المتبقية</div>
-            </div>
-
-            <div class="stat">
-              <div class="v" style="font-size:1.05rem">
-                {% if subscription.updated_at %}
-                  <span dir="ltr">{{ subscription.updated_at|date:"Y-m-d H:i" }}</span>
-                {% else %}
-                  —
-                {% endif %}
-              </div>
-              <div class="l">آخر تحديث</div>
-            </div>
-          </div>
-
-          <div class="sub-divider"></div>
-
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between">
-            <div class="note-dim">هل تحتاج مساعدة؟</div>
-            <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-ghost">
-              <i class="fa-solid fa-headset"></i> تواصل مع الدعم الفني
-            </a>
-          </div>
-
-        {% else %}
-          <div class="empty">
-            <div class="ico">🚫</div>
-            <div style="color:var(--ink); font-weight:950; font-size:1.05rem; margin-bottom:4px;">لا يوجد اشتراك نشط</div>
-            <div style="font-weight:850">يرجى اختيار باقة وتفعيل الاشتراك.</div>
-          </div>
-        {% endif %}
+    
+    <!-- Left Column: Status -->
+    <div class="modern-card">
+      <div class="card-head">
+        <i class="fa-solid fa-gem"></i>
+        <h2>حالة الاشتراك</h2>
       </div>
+
+      {% if subscription %}
+        <div class="status-hero">
+          <div class="status-icon">💎</div>
+          <div style="flex:1">
+            <div style="font-size:1.1rem; font-weight:800">{{ subscription.plan.name }}</div>
+            <div style="font-size:0.9rem; color:var(--muted)">ينتهي: <span dir="ltr">{{ subscription.end_date|date:"Y-m-d" }}</span></div>
+          </div>
+          <div>
+            {% if subscription.is_expired %}
+              <span class="sbadge sb-expired"><i class="fa-solid fa-circle-xmark"></i> منتهي</span>
+            {% else %}
+              <span class="sbadge sb-active"><i class="fa-solid fa-circle-check"></i> نشط</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Days Remaining Progress (Visual) -->
+        <div class="prog-wrap">
+          <div class="prog-stats">
+            <span>الأيام المتبقية</span>
+            <span>{% if subscription.days_remaining > 0 %}{{ subscription.days_remaining }}{% else %}0{% endif %} يوم</span>
+          </div>
+          <div class="prog-bar">
+            {% comment %} Calculate simple percentage {% endcomment %}
+            <div class="prog-fill" style="width: {% if subscription.days_remaining > 365 %}100%{% elif subscription.days_remaining <= 0 %}0%{% else %}{{ subscription.days_remaining|add:0|floatformat:0 }}%{% endif %} /* Simplified fallback; ideally math ratio */ ; width: 75%;"></div> 
+          </div>
+          <script nonce="{{ CSP_NONCE }}">
+             // Quick fix for progress bar width since Django math in templates is limited without custom tags
+             document.addEventListener('DOMContentLoaded', function(){
+                var d = {{ subscription.days_remaining|default:0 }};
+                var p = (d > 365) ? 100 : Math.max(0, (d/365)*100);
+                var el = document.querySelector('.prog-fill');
+                if(el) el.style.width = p + '%';
+             });
+          </script>
+        </div>
+
+        <div style="margin-top:auto; padding-top:20px; border-top:1px solid var(--border-color)">
+           <a href="{% url 'reports:support_ticket_create' %}" style="display:flex; align-items:center; gap:8px; color:var(--muted); text-decoration:none; font-size:0.9rem;">
+             <i class="fa-solid fa-headset"></i> هل تحتاج مساعدة؟ تواصل معنا
+           </a>
+        </div>
+
+      {% else %}
+        <div style="text-align:center; padding:40px 20px;">
+          <div style="font-size:3rem; margin-bottom:15px">🚫</div>
+          <h3 style="margin:0; color:var(--ink)">لا يوجد اشتراك نشط</h3>
+          <p style="color:var(--muted)">يرجى اختيار باقة وتجديد الاشتراك للإستفادة من الخدمات.</p>
+        </div>
+      {% endif %}
     </div>
 
-    <!-- Renewal Form -->
-    <div class="card sub-card">
-      <div class="sub-body">
-        <h2 class="sub-title"><i class="fa-solid fa-receipt" style="opacity:.85"></i> تجديد الاشتراك أو الاشتراك في باقة أخرى</h2>
-
-        <details class="bank-details" open>
-          <summary>
-            <span class="sum-left">
-              <i class="fa-solid fa-building-columns" style="opacity:.85"></i>
-              بيانات التحويل البنكي
-              <span class="sum-pill">مصرف الراجحي</span>
-            </span>
-            <span class="note-dim">اضغط للطي/الفتح</span>
-          </summary>
-
-          <div class="bank-content" aria-label="بيانات التحويل البنكي">
-            <div class="bank-grid">
-              <div class="bank-item">
-                <div>
-                  <div class="bank-label">اسم المستفيد</div>
-                  <div class="bank-value">منصور محمد بن حامد الغامدي برمجة و تطوير</div>
-                </div>
-                <button type="button" class="btn btn-ghost copy-btn" data-copy="منصور محمد بن حامد الغامدي برمجة و تطوير">
-                  <i class="fa-regular fa-copy"></i> <span class="txt">نسخ</span>
-                </button>
-              </div>
-
-              <div class="bank-item">
-                <div>
-                  <div class="bank-label">رقم الحساب</div>
-                  <div class="bank-value bank-mono" dir="ltr">660000010006086220957</div>
-                </div>
-                <button type="button" class="btn btn-ghost copy-btn" data-copy="660000010006086220957">
-                  <i class="fa-regular fa-copy"></i> <span class="txt">نسخ</span>
-                </button>
-              </div>
-
-              <div class="bank-item">
-                <div>
-                  <div class="bank-label">الآيبان</div>
-                  <div class="bank-value bank-mono" dir="ltr">SA8580000660608016220957</div>
-                </div>
-                <button type="button" class="btn btn-ghost copy-btn" data-copy="SA8580000660608016220957">
-                  <i class="fa-regular fa-copy"></i> <span class="txt">نسخ</span>
-                </button>
-              </div>
-
-              <div class="bank-item">
-                <div>
-                  <div class="bank-label">كود سويفت</div>
-                  <div class="bank-value bank-mono" dir="ltr">RJHISARI</div>
-                </div>
-                <button type="button" class="btn btn-ghost copy-btn" data-copy="RJHISARI">
-                  <i class="fa-regular fa-copy"></i> <span class="txt">نسخ</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="bank-note">
-              فضلاً اكتب في تفاصيل الحوالة: <b>اسم المدرسة</b> + <b>اسم الباقة</b> + <b>رقم جوال المدير</b> (لتسريع اعتماد الاشتراك).
-            </div>
-          </div>
-        </details>
-
-        <div class="sub-divider"></div>
-
-        <form
-          action="{% url 'reports:payment_create' %}"
-          method="POST"
-          enctype="multipart/form-data"
-          id="renewForm"
-          novalidate
-        >
-          {% csrf_token %}
-
-          <div class="fg-grid">
-            <div class="fg">
-              <label class="lbl" for="plan_select">اختر الباقة</label>
-              <select id="plan_select" class="sel" name="plan" required>
-                <option value="">-- اختر الباقة --</option>
-                {% for plan in plans %}
-                  <option
-                    value="{{ plan.pk }}"
-                    data-price="{{ plan.price }}"
-                    {% if subscription and subscription.plan_id == plan.id %}selected{% endif %}
-                    {% if not plan.is_active %}disabled{% endif %}
-                  >
-                    {{ plan.name }} - {{ plan.price }} ريال{% if not plan.is_active %} (غير نشطة){% endif %}
-                  </option>
-                {% endfor %}
-              </select>
-              <div class="help">اختر نفس الباقة للتجديد، أو اختر باقة أخرى للاشتراك بها.</div>
-            </div>
-
-            <div class="fg">
-              <label class="lbl" for="amount">المبلغ المحول (ريال)</label>
-              <input
-                type="number"
-                name="amount"
-                id="amount"
-                required
-                step="0.01"
-                min="0"
-                class="in"
-                placeholder="0.00"
-                inputmode="decimal"
-              >
-              <div class="help">سيتم تعبئته تلقائيًا من سعر الباقة (يمكنك تعديله إذا لزم).</div>
-            </div>
-          </div>
-
-          <div class="fg">
-            <label class="lbl" for="receipt_image">صورة الإيصال</label>
-            <input
-              type="file"
-              name="receipt_image"
-              id="receipt_image"
-              class="in"
-              required
-              accept="image/*"
-            >
-            <div class="help">يرجى إرفاق صورة واضحة للتحويل البنكي (JPG/PNG) — حد أقصى 10MB.</div>
-
-            <div class="rprev" id="receiptPreview" aria-live="polite">
-              <img id="receiptImg" alt="معاينة الإيصال">
-              <div class="meta">
-                <span id="receiptMeta">—</span>
-                <button type="button" class="btn btn-ghost" id="receiptClearBtn" style="min-height:40px">
-                  <i class="fa-solid fa-trash"></i> إزالة
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="fg">
-            <label class="lbl" for="notes">ملاحظات إضافية</label>
-            <textarea
-              name="notes"
-              id="notes"
-              rows="2"
-              class="ta"
-              placeholder="مثال: رقم الحوالة أو اسم المحول..."
-            ></textarea>
-          </div>
-
-          <div class="sub-actions">
-            <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1">
-              <i class="fa-solid fa-paper-plane"></i> إرسال الطلب
-            </button>
-          </div>
-        </form>
+    <!-- Right Column: Renewal Form -->
+    <div class="modern-card">
+      <div class="card-head">
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+        <h2>تجديد / اشتراك جديد</h2>
       </div>
-    </div>
 
+      <details class="bank-accordion" open>
+        <summary>
+          <span><i class="fa-solid fa-building-columns" style="opacity:0.75; margin-left:8px"></i> بيانات التحويل البنكي (الراجحي)</span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </summary>
+        <div class="bank-content">
+          <div class="bank-grid-cards">
+            <div class="bank-info-box">
+               <div class="bank-label">اسم المستفيد</div>
+               <div class="bank-val">منصور الغامدي</div>
+               <button type="button" class="copy-mini copy-btn" data-copy="منصور محمد بن حامد الغامدي"><i class="fa-regular fa-copy"></i></button>
+            </div>
+            <div class="bank-info-box">
+              <div class="bank-label">رقم الحساب</div>
+              <div class="bank-val" dir="ltr">660000010006086220957</div>
+              <button type="button" class="copy-mini copy-btn" data-copy="660000010006086220957"><i class="fa-regular fa-copy"></i></button>
+           </div>
+           <div class="bank-info-box">
+              <div class="bank-label">الآيبان IBAN</div>
+              <div class="bank-val" dir="ltr" style="font-size:0.8rem">SA8580000660608016220957</div>
+              <button type="button" class="copy-mini copy-btn" data-copy="SA8580000660608016220957"><i class="fa-regular fa-copy"></i></button>
+           </div>
+          </div>
+          <div style="margin-top:10px; font-size:0.8rem; color:var(--muted)">
+            * يفضل ذكر اسم المدرسة في ملاحظات الحوالة.
+          </div>
+        </div>
+      </details>
+
+      <form action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data" id="renewForm" novalidate class="modern-form">
+        {% csrf_token %}
+        
+        <div class="modern-input-group">
+          <label class="modern-label" for="plan_select">الباقة المطلوبة</label>
+          <select id="plan_select" class="modern-select" name="plan" required>
+            <option value="">-- اختر الباقة --</option>
+            {% for plan in plans %}
+              <option value="{{ plan.pk }}" data-price="{{ plan.price }}" {% if subscription and subscription.plan_id == plan.id %}selected{% endif %} {% if not plan.is_active %}disabled{% endif %}>
+                {{ plan.name }} - {{ plan.price }} ريال
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="modern-input-group">
+          <label class="modern-label" for="amount">المبلغ المحول</label>
+          <input type="number" name="amount" id="amount" required step="0.01" class="modern-input" placeholder="0.00">
+        </div>
+
+        <!-- Modern File Upload -->
+        <div class="modern-input-group">
+          <label class="modern-label">صورة الإيصال (JPG/PNG)</label>
+          <label for="receipt_image" class="file-drop-zone">
+             <i class="fa-solid fa-cloud-arrow-up" style="font-size:2rem; color:#3b82f6; margin-bottom:10px"></i>
+             <div style="font-weight:700">اضغط لرفع الصورة</div>
+             <div style="font-size:0.8rem; color:var(--muted)">الحد الأقصى 10MB</div>
+             <input type="file" name="receipt_image" id="receipt_image" style="display:none" required accept="image/*">
+          </label>
+          
+          <div class="rprev" id="receiptPreview">
+            <img id="receiptImg" alt="معاينة">
+            <div class="meta">
+               <span id="receiptMeta"></span>
+               <button type="button" id="receiptClearBtn" style="background:none; border:none; color:white; cursor:pointer"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modern-input-group">
+          <label class="modern-label" for="notes">ملاحظات (اختياري)</label>
+          <textarea name="notes" id="notes" class="modern-textarea" rows="2" placeholder="اسم المحول، تاريخ التحويل..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <i class="fa-solid fa-paper-plane"></i> إرسال طلب التجديد
+        </button>
+
+      </form>
+    </div>
   </div>
 
-  <!-- Payments History -->
-  <div class="card sub-card" style="margin-top:14px">
-    <div class="sub-body">
-      <h2 class="sub-title"><i class="fa-solid fa-clock-rotate-left" style="opacity:.85"></i> آخر عمليات الدفع</h2>
-
-      <div class="twrap">
-        <table class="tbl" aria-label="سجل عمليات الدفع">
-          <thead>
-            <tr>
-              <th>التاريخ</th>
-              <th>الباقة</th>
-              <th>المبلغ</th>
-              <th>الحالة</th>
-              <th>ملاحظات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for payment in payments %}
-              <tr>
-                <td data-label="التاريخ"><span dir="ltr">{{ payment.created_at|date:"Y-m-d" }}</span></td>
-                <td data-label="الباقة" style="font-weight:850">{% if payment.requested_plan %}{{ payment.requested_plan.name }}{% else %}—{% endif %}</td>
-                <td data-label="المبلغ" style="font-weight:950">{{ payment.amount }} ريال</td>
-                <td data-label="الحالة">
-                  {% if payment.status == 'approved' %}
-                    <span class="sbadge sb-active">✅ مقبول</span>
-                  {% elif payment.status == 'rejected' %}
-                    <span class="sbadge sb-expired">⛔ مرفوض</span>
-                  {% else %}
-                    <span class="sbadge sb-pending">⏳ قيد المراجعة</span>
-                  {% endif %}
-                </td>
-                <td data-label="ملاحظات" class="note-dim">{{ payment.notes|default:"-" }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="5">
-                  <div class="empty" style="margin: 6px 0">
-                    <div class="ico">🧾</div>
-                    لا توجد عمليات دفع سابقة
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+  <!-- History Section -->
+  <div class="modern-card">
+    <div class="card-head">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      <h2>سجل المدفوعات والطلبات</h2>
+    </div>
+    
+    <div class="history-box">
+      <table class="t-modern">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>الباقة</th>
+            <th>المبلغ</th>
+            <th>الحالة</th>
+            <th>ملاحظات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+          <tr>
+            <td data-label="التاريخ"><span dir="ltr">{{ payment.created_at|date:"Y-m-d" }}</span></td>
+            <td data-label="الباقة">{% if payment.requested_plan %}{{ payment.requested_plan.name }}{% else %}—{% endif %}</td>
+            <td data-label="المبلغ">{{ payment.amount }} ريال</td>
+            <td data-label="الحالة">
+              {% if payment.status == 'approved' %}
+                <span class="sbadge sb-active"><i class="fa-solid fa-check"></i> مقبول</span>
+              {% elif payment.status == 'rejected' %}
+                <span class="sbadge sb-expired"><i class="fa-solid fa-xmark"></i> مرفوض</span>
+              {% else %}
+                <span class="sbadge sb-pending"><i class="fa-solid fa-hourglass"></i> مراجعة</span>
+              {% endif %}
+            </td>
+            <td data-label="ملاحظات" style="color:var(--muted)">{{ payment.notes|default:"-" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" style="text-align:center; padding:30px; color:var(--muted)">
+               <i class="fa-solid fa-receipt" style="font-size:1.5rem; display:block; margin-bottom:10px; opacity:0.5"></i>
+               لا توجد عمليات سابقة.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -397,6 +547,7 @@
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
   (function(){
+    // Re-bind Logic matching new IDs and classes
     var planSelect = document.getElementById('plan_select');
     var amountEl   = document.getElementById('amount');
     var fileEl     = document.getElementById('receipt_image');
@@ -411,24 +562,21 @@
 
     var MAX_MB = 10;
     var MAX_BYTES = MAX_MB * 1024 * 1024;
-
     var currentObjectUrl = null;
 
     function toast(msg, type){
-      if(window.showToast){
-        window.showToast(msg, type || 'warning');
-        return;
-      }
+      if(window.showToast) { window.showToast(msg, type||'warning'); return; }
       alert(msg);
     }
 
+    // Copy to clipboard logic
     function setCopyBtnState(btn, text){
-      if(!btn) return;
-      var span = btn.querySelector('.txt');
-      if(span) span.textContent = text;
-      setTimeout(function(){
-        if(span) span.textContent = 'نسخ';
-      }, 1200);
+        // Mini animation for icon
+        var originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        setTimeout(function(){
+            btn.innerHTML = originalHTML;
+        }, 1500);
     }
 
     function copyText(text, btn){
@@ -437,146 +585,95 @@
         navigator.clipboard.writeText(text).then(function(){
           toast('تم النسخ', 'success');
           setCopyBtnState(btn, 'تم النسخ');
-        }).catch(function(){
-          fallbackCopy(text, btn);
-        });
+        }).catch(function(){ fallbackCopy(text, btn); });
         return;
       }
       fallbackCopy(text, btn);
     }
-
+    
     function fallbackCopy(text, btn){
-      try{
+      try {
         var ta = document.createElement('textarea');
         ta.value = text;
-        ta.setAttribute('readonly', 'readonly');
-        ta.style.position = 'fixed';
-        ta.style.top = '-1000px';
-        ta.style.left = '-1000px';
+        ta.style.position='fixed'; ta.style.left='-9999px';
         document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
         toast('تم النسخ', 'success');
-        setCopyBtnState(btn, 'تم النسخ');
-      }catch(e){
-        toast('تعذر النسخ، انسخها يدويًا.', 'warning');
+        setCopyBtnState(btn);
+      } catch(e){
+        toast('يرجى النسخ يدوياً', 'warning');
       }
     }
 
-    // أزرار نسخ بيانات التحويل
-    var copyBtns = document.querySelectorAll('[data-copy].copy-btn');
-    if(copyBtns && copyBtns.length){
-      copyBtns.forEach(function(btn){
-        btn.addEventListener('click', function(){
-          var t = btn.getAttribute('data-copy') || '';
-          copyText(t, btn);
-        });
+    var copyBtns = document.querySelectorAll('.copy-btn');
+    copyBtns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        copyText(btn.getAttribute('data-copy'), btn);
       });
-    }
+    });
 
-    function syncAmountFromPlan(force){
+    // Auto-fill price
+    function syncAmount(){
       if(!planSelect || !amountEl) return;
-
       var opt = planSelect.options[planSelect.selectedIndex];
-      var price = opt ? opt.getAttribute('data-price') : '';
-
-      if(!planSelect.value || !price){
-        if(force) amountEl.value = '';
-        return;
-      }
-
-      if(force || !String(amountEl.value || '').trim()){
-        amountEl.value = price;
+      if(opt && opt.getAttribute('data-price')){
+        // Only if amount is empty or was auto-filled
+        amountEl.value = opt.getAttribute('data-price');
+      } else {
+        amountEl.value = '';
       }
     }
+    if(planSelect) planSelect.addEventListener('change', syncAmount);
+    // Init check (if reloaded with value)
+    if(planSelect && !amountEl.value) syncAmount();
 
-    if(planSelect && amountEl){
-      planSelect.addEventListener('change', function(){
-        syncAmountFromPlan(true);
-      });
-      syncAmountFromPlan(false);
-    }
 
-    function revokePreviewUrl(){
-      if(currentObjectUrl){
-        try{ URL.revokeObjectURL(currentObjectUrl); }catch(e){}
-        currentObjectUrl = null;
-      }
-    }
-
+    // Image Preview
     function clearPreview(){
-      if(prevBox) prevBox.style.display = 'none';
-      if(prevImg) prevImg.removeAttribute('src');
-      if(prevMeta) prevMeta.textContent = '—';
-      revokePreviewUrl();
-    }
-
-    function clearFile(){
-      if(fileEl) fileEl.value = '';
-      clearPreview();
+       if(prevBox) prevBox.style.display='none';
+       if(fileEl) fileEl.value = '';
+       if(currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
     }
 
     if(fileEl){
       fileEl.addEventListener('change', function(){
-        var f = (fileEl.files && fileEl.files[0]) ? fileEl.files[0] : null;
-
-        if(!f){
-          clearPreview();
-          return;
-        }
-
-        var isImage = f.type && f.type.indexOf('image/') === 0;
-        if(!isImage){
-          toast('الملف المرفق يجب أن يكون صورة.', 'warning');
-          clearFile();
-          return;
-        }
-
+        var f = fileEl.files[0];
+        if(!f){ clearPreview(); return; }
         if(f.size > MAX_BYTES){
-          toast('حجم الصورة كبير. الحد الأقصى ' + MAX_MB + 'MB.', 'warning');
-          clearFile();
-          return;
+           toast('حجم الملف كبير جداً', 'warning');
+           clearPreview();
+           return;
         }
-
-        revokePreviewUrl();
+        if(currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
         currentObjectUrl = URL.createObjectURL(f);
+        if(prevImg) prevImg.src = currentObjectUrl;
+        if(prevMeta) prevMeta.textContent = (f.size/1024).toFixed(1) + ' KB';
+        if(prevBox) prevBox.style.display = 'block';
+      });
+    }
+    if(clearBtn) clearBtn.addEventListener('click', clearPreview);
 
-        prevImg.src = currentObjectUrl;
-        prevMeta.textContent = f.name + ' — ' + Math.round(f.size / 1024) + 'KB';
-        prevBox.style.display = 'block';
+    // Form Submit
+    if(form){
+      form.addEventListener('submit', function(e){
+         if(!planSelect.value){
+            e.preventDefault(); toast('اختر الباقة', 'warning'); return;
+         }
+         if(!amountEl.value){
+            e.preventDefault(); toast('حدد المبلغ', 'warning'); return;
+         }
+         if(!fileEl.files[0]){
+            e.preventDefault(); toast('ارفق الإيصال', 'warning'); return;
+         }
+         if(submitBtn){
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جار المعالجة...';
+         }
       });
     }
 
-    if(clearBtn){
-      clearBtn.addEventListener('click', function(){
-        clearFile();
-      });
-    }
-
-    if(form && submitBtn){
-      form.addEventListener('submit', function(ev){
-        if(planSelect && !planSelect.value){
-          ev.preventDefault();
-          toast('فضلاً اختر الباقة.', 'warning');
-          return;
-        }
-        if(amountEl && !String(amountEl.value || '').trim()){
-          ev.preventDefault();
-          toast('فضلاً أدخل مبلغ التحويل.', 'warning');
-          return;
-        }
-        if(fileEl && (!fileEl.files || !fileEl.files[0])){
-          ev.preventDefault();
-          toast('فضلاً أرفق صورة الإيصال.', 'warning');
-          return;
-        }
-
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.85';
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ الإرسال...';
-      });
-    }
   })();
 </script>
 {% endblock %}
