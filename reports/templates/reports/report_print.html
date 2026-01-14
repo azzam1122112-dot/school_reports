@@ -357,28 +357,31 @@
 
     <div class="content-section">
       <div class="section-label">1. تفاصيل التقرير / الإنجاز:</div>
-      <div style="white-space: pre-wrap; text-align: justify;">{{ r.description|default:r.idea|default:"لا يوجد تفاصيل إضافية." }}</div>
+      <div style="white-space: pre-wrap; text-align: justify;">{{ r.idea|default:"لا يوجد تفاصيل إضافية." }}</div>
     </div>
     
     {% if r.image1 or r.image2 or r.image3 or r.image4 %}
     <div class="content-section" style="border:none; padding:0;">
-      <div class="section-label">2. المرفقات و الشواهد المصورة:</div>
+      <div class="section-label">2. المرفقات و الشواهد (المرفوعة):</div>
       <div class="images-grid">
         {% if r.image1 %}
         <div class="img-box">
            <img src="{{ r.image1.url }}" alt="Attachment 1">
         </div>
         {% endif %}
+        
         {% if r.image2 %}
         <div class="img-box">
            <img src="{{ r.image2.url }}" alt="Attachment 2">
         </div>
         {% endif %}
+        
         {% if r.image3 %}
         <div class="img-box">
            <img src="{{ r.image3.url }}" alt="Attachment 3">
         </div>
         {% endif %}
+        
         {% if r.image4 %}
         <div class="img-box">
            <img src="{{ r.image4.url }}" alt="Attachment 4">
