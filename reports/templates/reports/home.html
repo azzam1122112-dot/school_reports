@@ -5,10 +5,88 @@
 {% block title %}مرحباً {{ request.user.name|default:"" }}{% endblock %}
 
 {% block head %}
+<style>
+  /* Local overrides for formatting specific to the new 2026 Dashboard look */
+  .dashboard-container { display: flex; flex-direction: column; gap: var(--s-5); }
+  
+  /* --- Hero Section --- */
+  .dash-hero {
+    position: relative;
+    border-radius: var(--radius-xl);
+    padding: clamp(24px, 4vw, 40px);
+    background: linear-gradient(135deg, var(--brand-700), var(--brand-ink));
+    color: #fff;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .dash-hero::after {
+    content: ""; position: absolute; inset: 0;
+    background: url("{% static 'img/pattern.svg' %}") center/cover no-repeat;
+    opacity: .10;
+    z-index: -1; mix-blend-mode: overlay;
+  }
+  .dash-hero-content { display: flex; flex-direction: column; gap: var(--s-3); position: relative; z-index: 2; max-width: 600px; }
+  .dash-hero h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); margin: 0; line-height: 1.1; font-weight: 950; }
+  .dash-hero p { font-size: 1.05rem; opacity: 0.9; margin: 0; line-height: 1.6; max-width: 48ch; }
+  
+  .dash-actions { margin-top: var(--s-4); display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn-dash-primary { background: #fff; color: var(--brand-700); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .btn-dash-primary:hover { background: #f8fafc; color: var(--brand-ink); transform: translateY(-2px); }
+  .btn-dash-outline { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(4px); }
+  .btn-dash-outline:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.5); }
+  
+  /* --- Bento Grid Stats --- */
+  .bento-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--s-3); }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--line-2); border-radius: var(--radius-lg); padding: 20px;
+    display: flex; flex-direction: column; gap: 12px; transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
+    position: relative; overflow: hidden;
+  }
+  .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--brand-ghost); }
+  .stat-icon {
+    width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; background: var(--bg); color: var(--muted);
+  }
+  .stat-val { font-size: 2.2rem; font-weight: 950; line-height: 1; color: var(--ink); }
+  .stat-lbl { font-size: 0.95rem; font-weight: 800; color: var(--muted); }
+  .stat-card.primary .stat-icon { background: var(--brand-ghost); color: var(--brand); }
+  .stat-card.accent .stat-icon { background: rgba(5,150,105,0.1); color: var(--accent); }
+  .stat-card.warn .stat-icon { background: rgba(245,158,11,0.1); color: var(--warning); }
+
+  /* --- Sections --- */
+  .dash-split { display: grid; gap: var(--s-4); }
+  @media(min-width: 900px) { .dash-split { grid-template-columns: 2fr 1fr; } }
+  
+  .dash-list { display: flex; flex-direction: column; gap: 8px; }
+  .dash-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius);
+    background: var(--bg); text-decoration: none; transition: background var(--t-fast) var(--ease);
+  }
+  .dash-item:hover { background: var(--line-2); }
+  .di-icon {
+    width: 40px; height: 40px; border-radius: 10px; background: #fff;
+    display: flex; align-items: center; justify-content: center; color: var(--brand); font-size: 1rem;
+    box-shadow: var(--shadow-sm); flex-shrink: 0;
+  }
+  .di-content { flex: 1; min-width: 0; }
+  .di-title { font-weight: 900; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem; }
+  .di-meta { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+  .hpill { font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; font-weight: 800; background: var(--line); color: var(--muted); }
+  .hpill.hp-blue { background: var(--brand-ghost); color: var(--brand-700); }
+  .hpill.hp-green { background: rgba(5,150,105,0.1); color: var(--accent); }
+  .hpill.hp-red { background: rgba(220,38,38,0.1); color: var(--danger); }
+
+  .motivate-card { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+  .motivate-card .section-title { color: #fff; opacity: 0.95; margin-bottom: 8px; }
+  .motivate-text { font-size: 1rem; line-height: 1.5; font-weight: 600; opacity: 0.9; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="home-wrap">
+<div class="dashboard-container home-wrap">
+
+  <!-- NOTIFICATION MODAL (Preserved Logic) -->
   {% if home_notification %}
     <div
       class="hn-overlay is-open"
@@ -44,175 +122,170 @@
     </div>
   {% endif %}
 
-  <!-- HERO -->
-  <section class="home-hero" aria-labelledby="welcomeTitle">
-    <div class="home-hero-inner">
-      <div class="hero-top">
-        <div>
-          <h1 class="hero-title" id="welcomeTitle">أهلًا {{ request.user.name|default:"بك" }} 👋</h1>
-          <p class="hero-sub">
-            مرحباً بعودتك! وثّق إنجازاتك، تابع طلباتك، واطّلع على آخر المستجدات بسرعة.
-          </p>
+  <!-- ZERO: HERO SECTION -->
+  <section class="dash-hero">
+    <div class="dash-hero-content">
+      <div>
+        <div style="font-size:0.9rem; font-weight:700; opacity:0.8; margin-bottom:4px; text-transform:uppercase; letter-spacing:1px;">
+           {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}لوحة التحكم{% endif %}
         </div>
-
-        <div class="hero-meta" aria-label="معلومات سريعة">
-          <span class="hero-chip">
-            <i class="fa-solid fa-building"></i>
-            {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}
-          </span>
-          <span class="hero-chip">
-            <i class="fa-solid fa-user"></i>
-            {% firstof request.user.role "مستخدم" %}
-          </span>
-        </div>
+        <h1>أهلًا، {{ request.user.name|default:"مستخدمنا العزيز" }} 👋</h1>
+        <p>مرحباً بعودتك لنظام التوثيق الذكي. لديك اليوم فرصة جديدة لتوثيق إنجازاتك ومتابعة تقدمك بكل سهولة.</p>
       </div>
 
-      <div class="hero-actions" aria-label="إجراءات سريعة">
-        <a class="btn btn-hero" href="{% url 'reports:add_report' %}">
+      <div class="dash-actions">
+        <a class="btn btn-lg btn-dash-primary" href="{% url 'reports:add_report' %}">
           <i class="fa-solid fa-plus"></i> إضافة تقرير
         </a>
-
-        <a class="btn btn-hero-outline" href="{% url 'reports:my_reports' %}">
-          <i class="fa-solid fa-file-lines"></i> تقاريري
+        <a class="btn btn-lg btn-dash-outline" href="{% url 'reports:my_reports' %}">
+          <i class="fa-solid fa-folder-open"></i> تقاريري
         </a>
-
         {% url 'reports:assigned_to_me' as inbox_url %}
         {% if inbox_url %}
-          <a class="btn btn-hero-outline" href="{{ inbox_url }}">
+          <a class="btn btn-lg btn-dash-outline" href="{{ inbox_url }}">
             <i class="fa-solid fa-inbox"></i> الوارد
           </a>
         {% endif %}
-
-        <a class="btn btn-hero-outline" href="{% url 'reports:my_requests' %}">
-          <i class="fa-solid fa-rectangle-list"></i> طلباتي
-        </a>
       </div>
     </div>
   </section>
 
-  <div class="home-grid">
-    <!-- LEFT -->
-    <div class="grid" style="align-content:start">
-      <div class="card">
-        <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
-          <i class="fa-solid fa-chart-simple" style="opacity:.85"></i> نظرة سريعة
-        </h3>
-
-        <div class="kpis" role="list">
-          <div class="kpi" role="listitem">
-            <div class="v">{{ stats.today_count|default:"0" }}</div>
-            <div class="l">تقارير اليوم</div>
-            <div class="bub" aria-hidden="true"><i class="fa-solid fa-sun"></i></div>
-          </div>
-
-          <div class="kpi" role="listitem">
-            <div class="v">{{ stats.total_count|default:"0" }}</div>
-            <div class="l">إجمالي تقاريري</div>
-            <div class="bub" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></div>
-          </div>
-
-          <div class="kpi kpi-amber" role="listitem">
-            <div class="v">{{ req_stats.open|default:"0" }}</div>
-            <div class="l">طلبات جديدة</div>
-            <div class="bub" aria-hidden="true"><i class="fa-solid fa-door-open"></i></div>
-          </div>
-
-          <div class="kpi kpi-green" role="listitem">
-            <div class="v">{{ req_stats.in_progress|default:"0" }}</div>
-            <div class="l">قيد المعالجة</div>
-            <div class="bub" aria-hidden="true"><i class="fa-solid fa-hourglass-half"></i></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
-          <i class="fa-solid fa-file-circle-check" style="opacity:.85"></i> أحدث تقاريري
-        </h3>
-
-        {% if recent_reports %}
-          <div class="list" role="list">
-            {% for r in recent_reports %}
-              <a class="item" role="listitem" href="{% url 'reports:report_print' r.id %}" title="فتح لطباعة التقرير">
-                <div>
-                  <strong>{{ r.title }}</strong>
-                  <div class="meta">بتاريخ {{ r.report_date }} — {{ r.day_name }}</div>
-                </div>
-
-                <span class="hpill hp-blue">
-                  {% if r.category and r.category.name %}{{ r.category.name }}{% else %}—{% endif %}
-                </span>
-              </a>
-            {% endfor %}
-          </div>
-
-          <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap">
-            <a class="btn btn-ghost" href="{% url 'reports:my_reports' %}">
-              <i class="fa-solid fa-list"></i> عرض جميع تقاريري
-            </a>
-            <a class="btn btn-primary" href="{% url 'reports:add_report' %}">
-              <i class="fa-solid fa-plus"></i> إضافة تقرير
-            </a>
-          </div>
-        {% else %}
-          <div class="empty">
-            لا توجد تقارير حديثة بعد — <b>ابدأ بتوثيق أول إنجاز الآن</b>.
-            <div style="margin-top:12px">
-              <a class="btn btn-primary" href="{% url 'reports:add_report' %}">
-                <i class="fa-solid fa-plus"></i> إضافة تقرير جديد
-              </a>
-            </div>
-          </div>
+  <!-- ONE: KEY METRICS (Bento Grid) -->
+  <section class="bento-grid">
+    <!-- Reports Today -->
+    <div class="stat-card primary">
+      <div class="row-between" style="align-items:flex-start">
+        <div class="stat-icon"><i class="fa-solid fa-sun"></i></div>
+        {% if stats.today_count > 0 %}
+          <span class="hpill hp-blue">نشط اليوم</span>
         {% endif %}
+      </div>
+      <div>
+        <div class="stat-val">{{ stats.today_count|default:"0" }}</div>
+        <div class="stat-lbl">تقارير اليوم</div>
       </div>
     </div>
 
-    <!-- RIGHT -->
-    <div class="grid" style="align-content:start">
-      <div class="card">
-        <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
-          <i class="fa-solid fa-clipboard-check" style="opacity:.85"></i> حالة طلباتي
-        </h3>
+    <!-- Total Reports -->
+    <div class="stat-card">
+      <div class="row-between" style="align-items:flex-start">
+        <div class="stat-icon"><i class="fa-solid fa-layer-group"></i></div>
+      </div>
+      <div>
+        <div class="stat-val">{{ stats.total_count|default:"0" }}</div>
+        <div class="stat-lbl">إجمالي التقارير</div>
+      </div>
+    </div>
 
-        <div class="list" role="list">
-          <div class="item" role="listitem" style="cursor:default">
-            <div><strong>مكتملة</strong></div>
-            <span class="hpill hp-green">{{ req_stats.done|default:"0" }}</span>
-          </div>
+    <!-- Active Requests -->
+    <div class="stat-card accent">
+      <div class="row-between" style="align-items:flex-start">
+        <div class="stat-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+        <span class="hpill hp-green">قيد المعالجة</span>
+      </div>
+      <div>
+        <div class="stat-val">{{ req_stats.in_progress|default:"0" }}</div>
+        <div class="stat-lbl">طلبات جارية</div>
+      </div>
+    </div>
 
-          <div class="item" role="listitem" style="cursor:default">
-            <div><strong>مرفوضة</strong></div>
-            <span class="hpill hp-red">{{ req_stats.rejected|default:"0" }}</span>
-          </div>
+    <!-- Inbox/New Interactions -->
+    <div class="stat-card warn">
+      <div class="row-between" style="align-items:flex-start">
+        <div class="stat-icon"><i class="fa-solid fa-bell"></i></div>
+      </div>
+      <div>
+        <div class="stat-val">{{ req_stats.open|default:"0" }}</div>
+        <div class="stat-lbl">تنبيهات / طلبات جديدة</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TWO: MAIN CONTENT SPLIT -->
+  <div class="dash-split">
+    <!-- Left: Recents -->
+    <div class="card">
+      <div class="row-between" style="margin-bottom:16px;">
+        <div>
+          <h3 class="section-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--brand);margin-left:8px"></i> أحدث النشاطات</h3>
+          <p class="section-sub">آخر التقارير التي قمت برفعها للنظام</p>
         </div>
-
-        <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap">
-          <a class="btn btn-ghost" href="{% url 'reports:request_create' %}">
-            <i class="fa-solid fa-ticket"></i> فتح طلب جديد
-          </a>
-          <a class="btn" href="{% url 'reports:my_requests' %}">
-            <i class="fa-solid fa-rectangle-list"></i> طلباتي
-          </a>
-        </div>
+        <a href="{% url 'reports:my_reports' %}" class="btn btn-sm" style="background:var(--bg)">الكل</a>
       </div>
 
-      <div class="card" id="motivateCard" aria-live="polite">
-        <h3 style="margin:0 0 10px; font-weight:950; display:flex; gap:10px; align-items:center;">
-          <i class="fa-solid fa-bolt" style="opacity:.85"></i> دفعة طاقة
-        </h3>
+      {% if recent_reports %}
+        <div class="dash-list">
+          {% for r in recent_reports %}
+            <a class="dash-item" href="{% url 'reports:report_print' r.id %}" title="عرض وطباعة">
+              <div class="di-icon">
+                <i class="fa-regular fa-file-lines"></i>
+              </div>
+              <div class="di-content">
+                <div class="di-title">{{ r.title }}</div>
+                <div class="di-meta">
+                  <i class="fa-regular fa-calendar"></i> {{ r.report_date }} 
+                  <span style="margin:0 4px">•</span> 
+                  {{ r.day_name }}
+                </div>
+              </div>
+              <span class="hpill hp-blue desktop-only">
+                {% if r.category and r.category.name %}{{ r.category.name }}{% else %}عام{% endif %}
+              </span>
+              <i class="fa-solid fa-chevron-left" style="font-size:0.8rem; color:var(--muted); opacity:0.5; margin-right:8px"></i>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="text-align:center; padding:40px 20px; color:var(--muted);">
+          <div style="font-size:3rem; margin-bottom:10px; opacity:0.3"><i class="fa-solid fa-folder-open"></i></div>
+          <p>لا توجد تقارير حديثة للعرض.</p>
+          <a class="btn btn-primary btn-sm" href="{% url 'reports:add_report' %}">ابدأ الآن</a>
+        </div>
+      {% endif %}
+    </div>
 
-        <div class="meta" style="font-weight:900">
-          ابدأ يومك بخطوة صغيرة الآن. دقيقة واحدة قد تغيّر نتيجة يومك بالكامل.
+    <!-- Right: Sidebar -->
+    <div class="stack">
+      <!-- Quick Actions / Request Status -->
+      <div class="card">
+        <h3 class="section-title"><i class="fa-solid fa-ticket" style="color:var(--accent);margin-left:8px"></i> متابعة الطلبات</h3>
+        <p class="section-sub">ملخص لحالة تذاكر الدعم والطلبات</p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+          <div style="background:var(--bg); padding:12px; border-radius:12px; text-align:center;">
+            <div style="font-weight:900; font-size:1.5rem; color:var(--accent)">{{ req_stats.done|default:"0" }}</div>
+            <div style="font-size:0.85rem; font-weight:700; color:var(--muted)">مكتملة</div>
+          </div>
+          <div style="background:var(--bg); padding:12px; border-radius:12px; text-align:center;">
+            <div style="font-weight:900; font-size:1.5rem; color:var(--danger)">{{ req_stats.rejected|default:"0" }}</div>
+            <div style="font-size:0.85rem; font-weight:700; color:var(--muted)">مرفوضة</div>
+          </div>
         </div>
 
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
-          <a class="btn btn-primary" href="{% url 'reports:add_report' %}">
-            <i class="fa-solid fa-plus"></i> توثيق إنجاز
-          </a>
+        <a class="btn btn-block btn-accent" href="{% url 'reports:request_create' %}">
+          <i class="fa-solid fa-plus"></i> فتح طلب جديد
+        </a>
+        <a class="btn btn-block" style="background:var(--bg); margin-top:8px;" href="{% url 'reports:my_requests' %}">
+          عرض كل الطلبات
+        </a>
+      </div>
+
+      <!-- Motivation / Banner -->
+      <div class="card motivate-card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+          <h3 class="section-title" style="margin:0"><i class="fa-solid fa-bolt"></i> إنجاز سريع</h3>
+          <i class="fa-solid fa-star" style="opacity:0.6"></i>
         </div>
+        <p class="motivate-text" style="margin:12px 0 20px;">
+          هل تعلم؟ توثيق الأعمال فور انتهائها يوفر عليك 70% من وقت كتابة التقارير لاحقاً.
+        </p>
+        <a class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.4);" href="{% url 'reports:add_report' %}">
+          وثّق الآن
+        </a>
       </div>
     </div>
   </div>
+
 </div>
 {% endblock %}
 

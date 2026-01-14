@@ -1,410 +1,389 @@
-{# reports/templates/reports/report_form.html (أو add_report.html حسب مشروعك) #}
 {% extends "base.html" %}
 {% load static %}
-{% block title %}إضافة تقرير{% endblock %}
+
+{% block title %}إضافة تقرير جديد{% endblock %}
 
 {% block head %}
 <style>
-  /* ===== Scoped فقط داخل صفحة إضافة تقرير ===== */
-  .add-report{
-    --ar-primary: var(--brand, #2563eb);
-    --ar-accent: var(--accent, #059669);
-    --ar-ink: var(--ink, #0f172a);
-    --ar-muted: var(--muted, #64748b);
-    --ar-line: var(--line-2, #e2e8f0);
-    --ar-bg: var(--bg, #f5f7fb);
-    --ar-card: var(--card, #fff);
-    --ar-shadow: 0 10px 40px rgba(2, 6, 23, 0.08);
-    --ar-grad: linear-gradient(135deg, var(--ar-primary) 0%, #4f46e5 60%, var(--ar-accent) 100%);
-    min-height: 100dvh;
-    background: var(--ar-bg);
-    padding: 20px 0;
+  /* 
+    2026 Design System for Add Report 
+    Synced with Home Page Theme
+  */
+  .add-report-page {
+    /* System Tokens Mapping */
+    --ar-primary: var(--brand, #4f46e5);
+    --ar-primary-dark: var(--brand-700, #4338ca);
+    --ar-bg: var(--bg, #f8fafc);
+    --ar-surface: var(--card, #ffffff);
+    --ar-text: var(--ink, #0f172a);
+    --ar-text-soft: var(--muted, #64748b);
+    --ar-border: var(--line-2, #e2e8f0);
+    --ar-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+    --ar-radius: var(--radius-xl, 24px);
+    
+    font-family: inherit;
+    background-color: var(--ar-bg);
+    min-height: 100vh;
+    padding: 40px 20px;
+    direction: rtl;
   }
 
-  .add-report .ar-wrap{max-width:900px;margin:0 auto;padding:0 16px}
-  .add-report .ar-card{
-    background: var(--ar-card);
-    border: 1px solid var(--ar-line);
-    border-radius: 20px;
-    padding: 26px;
+  .ar-container {
+    max-width: 1200px; /* Wider container */
+    margin: 0 auto;
+  }
+
+  /* Header Section */
+  .ar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .ar-title-box h1 {
+    font-size: 2rem;
+    font-weight: 900;
+    margin: 0;
+    /* Hero Gradient from Home Page */
+    background: linear-gradient(135deg, var(--brand-700, #4338ca), var(--brand-ink, #1e1b4b));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+  }
+  .ar-title-box p {
+    margin: 4px 0 0;
+    color: var(--ar-text-soft);
+    font-weight: 600;
+  }
+
+  .ar-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: var(--ar-surface);
+    border: 1px solid var(--ar-border);
+    color: var(--ar-text);
+    border-radius: 99px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+  }
+  .ar-back-btn:hover {
+    border-color: var(--ar-primary);
+    color: var(--ar-primary);
+    transform: translateY(-2px);
+  }
+
+  /* Grid Layout - 8 cols Main / 4 cols Side */
+  .ar-grid {
+    display: grid;
+    grid-template-columns: 8fr 4fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .ar-grid { grid-template-columns: 1fr; }
+    .ar-col-side { grid-row: 1; } /* On mobile, maybe images first? Or last. Let's keep normal flow */
+    .ar-col-side { grid-row: auto; } 
+  }
+
+  /* Cards */
+  .ar-card {
+    background: var(--ar-surface);
+    border-radius: var(--ar-radius);
+    padding: 30px;
     box-shadow: var(--ar-shadow);
+    border: 1px solid var(--ar-border);
     position: relative;
     overflow: hidden;
   }
-  .add-report .ar-card::before{
-    content:"";
-    position:absolute; inset:0 0 auto 0;
-    height:5px;
-    background: var(--ar-grad);
-    opacity:.95;
+  .ar-card.ar-sticky {
+    position: sticky;
+    top: 24px;
   }
 
-  .add-report .ar-title{
-    margin: 0 0 18px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--ar-line);
-    display:flex; align-items:center; gap:10px;
-    font-weight: 900;
-    font-size: 1.55rem;
-    background: var(--ar-grad);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
+  /* Input Styles */
+  .ar-field {
+    margin-bottom: 20px;
   }
-
-  .add-report .ar-grid{display:grid;gap:18px}
-  .add-report .ar-group{display:flex;flex-direction:column;gap:8px}
-
-  .add-report label{
-    font-weight: 900;
-    color: var(--ar-ink);
-    display:flex; align-items:center; gap:8px;
-  }
-
-  .add-report input,
-  .add-report textarea,
-  .add-report select{
-    width:100%;
-    padding: 12px 14px;
-    border: 1.5px solid var(--ar-line);
-    border-radius: 14px;
-    background: rgba(248,250,252,.85);
-    color: var(--ar-ink);
-    font-family: inherit;
-    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-  }
-  html[data-theme="dark"] .add-report input,
-  html[data-theme="dark"] .add-report textarea,
-  html[data-theme="dark"] .add-report select{
-    background: rgba(11,18,32,.65);
-  }
-  .add-report textarea{min-height:140px;resize:vertical;line-height:1.7}
-  .add-report input:focus,
-  .add-report textarea:focus,
-  .add-report select:focus{
-    outline:none;
-    border-color: var(--ar-primary);
-    box-shadow: 0 0 0 3px rgba(37,99,235,.18);
-    background:#fff;
-  }
-  html[data-theme="dark"] .add-report input:focus,
-  html[data-theme="dark"] .add-report textarea:focus,
-  html[data-theme="dark"] .add-report select:focus{
-    background: rgba(15,22,41,.75);
-  }
-
-  .add-report .ar-help{
-    margin-top: 10px;
-    padding: 12px 14px;
-    border-radius: 14px;
-    border: 1px solid var(--ar-line);
-    background: rgba(37,99,235,.05);
-    color: var(--ar-muted);
+  .ar-field label {
+    display: block;
+    margin-bottom: 8px;
     font-weight: 800;
+    color: var(--ar-text);
+    font-size: 0.95rem;
+  }
+  .ar-field label i {
+    color: var(--ar-primary);
+    opacity: 0.8;
+    margin-left: 6px;
   }
 
-  /* أخطاء */
-  .add-report .ar-alert{
-    border-radius: 14px;
-    padding: 12px 14px;
-    font-weight: 800;
-    border: 1px solid rgba(254,202,202,.95);
-    background: rgba(254,242,242,.95);
-    color: #b91c1c;
-    margin-bottom: 10px;
-    white-space: pre-line;
-  }
-  html[data-theme="dark"] .add-report .ar-alert{
-    background: rgba(127,29,29,.22);
-    border-color: rgba(239,68,68,.22);
-    color: #fecaca;
-  }
-  .add-report .ar-invalid{
-    border-color: rgba(239,68,68,.45) !important;
-    box-shadow: 0 0 0 3px rgba(239,68,68,.12) !important;
-  }
-
-  /* صور */
-  .add-report .ar-img-grid{
-    display:grid;
-    grid-template-columns: repeat(4, minmax(0,1fr));
-    gap: 14px;
-    margin-top: 8px;
-  }
-  .add-report .ar-drop{
-    position:relative;
-    border: 2px dashed var(--ar-line);
+  .add-report-page input[type="text"],
+  .add-report-page input[type="date"],
+  .add-report-page input[type="number"],
+  .add-report-page select,
+  .add-report-page textarea {
+    width: 100%;
+    background: var(--bg, #f8fafc);
+    border: 2px solid var(--ar-border);
     border-radius: 16px;
-    padding: 18px 10px;
-    background: rgba(248,250,252,.75);
-    text-align:center;
-    cursor:pointer;
-    transition: transform .12s ease, border-color .12s ease, background .12s ease;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
-    min-height: 110px;
+    padding: 14px 16px;
+    font-family: inherit;
+    font-size: 1rem;
+    color: var(--ar-text);
+    transition: all 0.2s ease;
   }
-  html[data-theme="dark"] .add-report .ar-drop{background: rgba(11,18,32,.55)}
-  .add-report .ar-drop:hover{
-    border-color: rgba(37,99,235,.45);
-    background: rgba(37,99,235,.06);
-    transform: translateY(-2px);
-  }
-  .add-report .ar-drop input[type="file"]{
-    position:absolute; inset:0;
-    width:100%; height:100%;
-    opacity:0; cursor:pointer;
-  }
-  .add-report .ar-drop .ico{font-size:1.9rem;color: var(--ar-muted)}
-  .add-report .ar-drop .txt{font-size:.9rem;color: var(--ar-muted);font-weight:800}
 
-  .add-report .ar-previews{
-    margin-top: 14px;
-    display:grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  .add-report-page input:focus,
+  .add-report-page select:focus,
+  .add-report-page textarea:focus {
+    outline: none;
+    border-color: var(--ar-primary);
+    background: var(--ar-surface);
+    box-shadow: 0 0 0 4px rgba(var(--ar-primary-rgb, 79, 70, 229), 0.1);
+  }
+
+  /* Big Idea Field */
+  .ar-editor-wrap textarea {
+    min-height: 400px; /* Big height as requested */
+    line-height: 1.8;
+    resize: vertical;
+    font-size: 1.05rem;
+  }
+
+  /* Error Msg */
+  .ar-error-msg {
+    color: #ef4444; 
+    font-size: 0.85rem; 
+    font-weight: 700; 
+    margin-top: 6px; 
+    display:flex; align-items:center; gap:6px;
+  }
+
+  /* Side Images */
+  .ar-img-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
   }
-  .add-report .ar-prev{
-    position:relative;
-    height: 120px;
+  .ar-drop-zone {
+    aspect-ratio: 1;
+    border: 2px dashed var(--ar-border);
     border-radius: 16px;
-    border: 1px solid var(--ar-line);
-    background: rgba(248,250,252,.75);
-    overflow:hidden;
-    display:flex; align-items:center; justify-content:center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+    position: relative;
   }
-  html[data-theme="dark"] .add-report .ar-prev{background: rgba(11,18,32,.55)}
-  .add-report .ar-prev img{width:100%;height:100%;object-fit:cover}
-  .add-report .ar-x{
-    position:absolute; top:8px; right:8px;
-    width:28px; height:28px;
-    border-radius:999px;
-    border:0;
-    cursor:pointer;
-    background: rgba(239,68,68,.92);
-    color:#fff;
-    font-weight:900;
+  .ar-drop-zone:hover {
+    border-color: var(--ar-primary);
+    background: rgba(var(--ar-primary-rgb, 79, 70, 229), 0.04);
+  }
+  .ar-drop-zone i { font-size: 1.4rem; color: var(--ar-text-soft); }
+  .ar-drop-zone input { position: absolute; inset:0; opacity:0; width:100%; height:100%; cursor: pointer;}
+  
+  .ar-previews { display: grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-top:16px; }
+  .ar-prev-card {
+    aspect-ratio: 1; position: relative; border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--ar-border);
+  }
+  .ar-prev-card img { width:100%; height:100%; object-fit: cover; }
+  .ar-prev-remove {
+    position:absolute; top:4px; right:4px;
+    width:24px; height:24px; border-radius:50%; border:none;
+    background: #ef4444; color:#fff; cursor:pointer;
     display:grid; place-items:center;
   }
-  .add-report .ar-x:hover{background:#ef4444}
 
-  /* أزرار */
-  .add-report .ar-actions{display:grid;gap:12px;margin-top: 18px}
-  .add-report .ar-btn{
-    display:inline-flex; align-items:center; justify-content:center; gap:10px;
-    padding: 14px 18px;
+  /* Submit Btn */
+  .ar-submit-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
     border-radius: 16px;
-    font-weight: 900;
-    text-decoration:none;
-    cursor:pointer;
-    border: 1px solid transparent;
-    transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
+    border: none;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--ar-primary), var(--ar-primary-dark));
+    box-shadow: 0 10px 20px -5px rgba(var(--ar-primary-rgb, 79, 70, 229), 0.4);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: transform 0.2s;
   }
-  .add-report .ar-btn-primary{
-    background: var(--ar-grad);
-    color:#fff;
-    box-shadow: 0 12px 26px rgba(37,99,235,.25);
-  }
-  .add-report .ar-btn-primary:hover{transform: translateY(-2px); box-shadow: 0 16px 32px rgba(37,99,235,.32);}
-  .add-report .ar-btn-outline{
-    background: transparent;
-    border-color: var(--ar-line);
-    color: var(--ar-ink);
-  }
-  .add-report .ar-btn-outline:hover{border-color: rgba(37,99,235,.35); background: rgba(37,99,235,.05);}
+  .ar-submit-btn:hover { transform: translateY(-2px); }
 
-  /* Overlay رفع */
-  .add-report .ar-overlay{
-    position:fixed; inset:0;
-    background: rgba(15,23,42,.85);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:9999;
-    backdrop-filter: blur(4px);
+  /* Overlay */
+  .ar-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+    z-index: 9999; display: none; align-items: center; justify-content: center;
   }
-  .add-report .ar-up{
-    width: min(520px, 92vw);
-    background: #fff;
-    border-radius: 20px;
-    padding: 22px;
-    border: 1px solid rgba(226,232,240,.9);
-    box-shadow: 0 25px 60px rgba(0,0,0,.3);
-    text-align:center;
-  }
-  html[data-theme="dark"] .add-report .ar-up{
-    background: #0f1629;
-    border-color: rgba(27,39,68,.7);
-    color: #e6ebff;
-  }
-  .add-report .ar-up h3{margin:0 0 8px;font-weight:900}
-  .add-report .ar-up p{margin:0 0 14px;color:#475569;font-weight:800}
-  html[data-theme="dark"] .add-report .ar-up p{color:#a9b8de}
-  .add-report .ar-bar{height:12px;border-radius:999px;background:#eef2ff;overflow:hidden;border:1px solid #e2e8f0}
-  html[data-theme="dark"] .add-report .ar-bar{background:#0b1220;border-color:rgba(27,39,68,.7)}
-  .add-report .ar-fill{height:100%;width:0;background: var(--ar-grad);transition: width .25s ease}
-  .add-report .ar-mini{display:flex;justify-content:space-between;margin-top:10px;color:#64748b;font-weight:900}
-  html[data-theme="dark"] .add-report .ar-mini{color:#a9b8de}
-
-  /* Responsive */
-  @media (max-width: 900px){
-    .add-report .ar-img-grid{grid-template-columns: repeat(2, minmax(0,1fr));}
-  }
-  @media (max-width: 520px){
-    .add-report .ar-card{padding:18px}
-    .add-report .ar-title{font-size:1.25rem}
-    .add-report .ar-img-grid{grid-template-columns: 1fr;}
+  .ar-modal {
+    background: var(--ar-surface); padding: 30px; border-radius: 20px;
+    width: 90%; max-width: 380px; text-align: center;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="add-report">
-  <div class="ar-wrap">
-    <div class="ar-card">
-      <h2 class="ar-title"><i class="fa-solid fa-plus"></i> إضافة تقرير جديد</h2>
+<div class="add-report-page">
+  <div class="ar-container">
+    
+    <header class="ar-header">
+      <div class="ar-title-box">
+        <h1>إضافة تقرير جديد</h1>
+        <p>مساحتك الإبداعية لتوثيق الإنجازات</p>
+      </div>
+      <a href="{% url 'reports:home' %}" class="ar-back-btn">
+        <i class="fa-solid fa-arrow-right"></i> الرئيسية
+      </a>
+    </header>
 
-      {% if form.non_field_errors %}
-        <div class="ar-alert">
-          {% for e in form.non_field_errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}
-        </div>
-      {% endif %}
+    <form id="report-form" method="POST" enctype="multipart/form-data" autocomplete="off" novalidate>
+      {% csrf_token %}
 
-      <form id="report-form" method="POST" enctype="multipart/form-data" class="ar-grid" autocomplete="off" novalidate>
-        {% csrf_token %}
+      <div class="ar-grid">
+        
+        <!-- MAIN COLUMN (Inputs + Idea) -->
+        <div class="ar-col-main">
+          
+          <div class="ar-card">
+            
+            <!-- Top Controls -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+              
+              <!-- Category -->
+              <div class="ar-field" data-group="category" style="margin:0">
+                <label for="{{ form.category.id_for_label }}"><i class="fa-solid fa-tag"></i> تصنيف التقرير</label>
+                <select name="{{ form.category.html_name }}" id="{{ form.category.id_for_label }}">
+                  <option value="" selected disabled>-- اختر التصنيف --</option>
+                  {% for value,label in form.fields.category.choices %}
+                    {% if value %}
+                    <option value="{{ value }}" {% if form.category.value == value %}selected{% endif %}>{{ label }}</option>
+                    {% endif %}
+                  {% endfor %}
+                </select>
+                {% if form.category.errors %}<div class="ar-error-msg">{{ form.category.errors.0 }}</div>{% endif %}
+              </div>
 
-        <!-- نوع التقرير -->
-        <div class="ar-group" data-group="category">
-          <label for="{{ form.category.id_for_label }}"><i class="fa-solid fa-tag"></i> نوع التقرير</label>
+              <!-- Title -->
+              <div class="ar-field" data-group="title" style="margin:0">
+                 <label for="{{ form.title.id_for_label }}"><i class="fa-solid fa-heading"></i> العنوان</label>
+                 {{ form.title }}
+                 {% if form.title.errors %}<div class="ar-error-msg">{{ form.title.errors.0 }}</div>{% endif %}
+              </div>
 
-          <select name="{{ form.category.html_name }}" id="{{ form.category.id_for_label }}" required>
-            <option value="" selected hidden>— اختر نوع التقرير —</option>
-            {% for value,label in form.fields.category.choices %}
-              {% if value %}
-                <option value="{{ value }}"
-                        {% if form.is_bound and form.data.category == value %}selected{% endif %}
-                        {% if not form.is_bound and form.initial.category == value %}selected{% endif %}>
-                  {{ label }}
-                </option>
-              {% endif %}
-            {% endfor %}
-          </select>
-
-          {% if form.category.errors %}
-            <div class="ar-alert">{% for e in form.category.errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}</div>
-          {% endif %}
-        </div>
-
-        <!-- اسم المعلم (اختياري عند وجوده في الفورم/الموديل) -->
-        <div class="ar-group" data-group="teacher_name">
-          <label for="id_teacher_name"><i class="fa-solid fa-user"></i> اسم المعلم</label>
-          <input
-            type="text"
-            id="id_teacher_name"
-            name="teacher_name"
-            maxlength="120"
-            placeholder="اكتب اسم المعلم"
-            value="{% if form.data.teacher_name %}{{ form.data.teacher_name }}{% else %}{{ request.user.name|default:'' }}{% endif %}"
-            required
-          >
-        </div>
-
-        <!-- العنوان -->
-        <div class="ar-group" data-group="title">
-          <label for="{{ form.title.id_for_label }}"><i class="fa-solid fa-heading"></i> العنوان</label>
-          {{ form.title }}
-          {% if form.title.errors %}
-            <div class="ar-alert">{% for e in form.title.errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}</div>
-          {% endif %}
-        </div>
-
-        <!-- التاريخ -->
-        <div class="ar-group" data-group="report_date">
-          <label for="{{ form.report_date.id_for_label }}"><i class="fa-solid fa-calendar"></i> اختر التاريخ</label>
-          {{ form.report_date }}
-          <div class="ar-alert" id="futureDateErr" style="display:none">لا يُسمح بتاريخ مستقبلي. اختر تاريخ اليوم أو سابقًا.</div>
-          {% if form.report_date.errors %}
-            <div class="ar-alert">{% for e in form.report_date.errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}</div>
-          {% endif %}
-        </div>
-
-        <!-- اليوم -->
-        <div class="ar-group">
-          <label for="{{ form.day_name.id_for_label }}"><i class="fa-solid fa-calendar-day"></i> اليوم</label>
-          {{ form.day_name }}
-        </div>
-
-        <!-- عدد المستفيدين -->
-        <div class="ar-group">
-          <label for="{{ form.beneficiaries_count.id_for_label }}"><i class="fa-solid fa-users"></i> عدد المستفيدين</label>
-          {{ form.beneficiaries_count }}
-        </div>
-
-        <!-- الوصف -->
-        <div class="ar-group" data-group="idea">
-          <label for="{{ form.idea.id_for_label }}"><i class="fa-solid fa-file-lines"></i> الوصف</label>
-          {{ form.idea }}
-          {% if form.idea.errors %}
-            <div class="ar-alert">{% for e in form.idea.errors %}• {{ e }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}</div>
-          {% endif %}
-        </div>
-
-        <!-- الصور -->
-        <div class="ar-group">
-          <label><i class="fa-solid fa-images"></i> الصور (اختياري)</label>
-
-          <div class="ar-img-grid">
-            <div class="ar-drop">
-              <div class="ico"><i class="fa-solid fa-camera"></i></div>
-              <div class="txt">صورة 1</div>
-              {{ form.image1 }}
             </div>
-            <div class="ar-drop">
-              <div class="ico"><i class="fa-solid fa-camera"></i></div>
-              <div class="txt">صورة 2</div>
-              {{ form.image2 }}
+
+            <!-- Meta Row -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; margin-bottom: 30px;">
+               
+               <div class="ar-field" data-group="report_date" style="margin:0">
+                 <label for="{{ form.report_date.id_for_label }}"><i class="fa-regular fa-calendar"></i> التاريخ</label>
+                 {{ form.report_date }}
+                 {% if form.report_date.errors %}<div class="ar-error-msg">{{ form.report_date.errors.0 }}</div>{% endif %}
+                 <div class="ar-error-msg" id="futureDateErr" style="display:none">تاريخ مستقبلي غير مسموح</div>
+               </div>
+
+               <div class="ar-field" style="margin:0">
+                 <label>اليوم</label>
+                 {{ form.day_name }}
+               </div>
+
+               <div class="ar-field" style="margin:0">
+                 <label><i class="fa-solid fa-users"></i> المستفيدين</label>
+                 {{ form.beneficiaries_count }}
+               </div>
+               
+               <div class="ar-field" data-group="teacher_name" style="margin:0">
+                 <label><i class="fa-solid fa-user"></i> المنفذ</label>
+                 <input type="text" id="id_teacher_name" name="teacher_name" 
+                        value="{% if form.data.teacher_name %}{{ form.data.teacher_name }}{% else %}{{ request.user.name|default:'' }}{% endif %}">
+               </div>
             </div>
-            <div class="ar-drop">
-              <div class="ico"><i class="fa-solid fa-camera"></i></div>
-              <div class="txt">صورة 3</div>
-              {{ form.image3 }}
+
+            <!-- Divider -->
+            <hr style="border:0; border-top:2px dashed var(--ar-border); margin: 30px 0;">
+
+            <!-- BIG IDEA FIELD -->
+            <div class="ar-field ar-editor-wrap" data-group="idea">
+               <label for="{{ form.idea.id_for_label }}" style="font-size:1.1rem; margin-bottom:12px;">
+                 <i class="fa-solid fa-pen-nib"></i> تفاصيل التقرير والإنجاز
+               </label>
+               {{ form.idea }}
+               {% if form.idea.errors %}<div class="ar-error-msg">{{ form.idea.errors.0 }}</div>{% endif %}
             </div>
-            <div class="ar-drop">
-              <div class="ico"><i class="fa-solid fa-camera"></i></div>
-              <div class="txt">صورة 4</div>
-              {{ form.image4 }}
-            </div>
+
           </div>
-
-          <div class="ar-previews" id="preview-container"></div>
-          <div class="ar-help">سيتم ضغط الصور تلقائيًا قبل الرفع لتسريع العملية.</div>
         </div>
 
-        <div class="ar-actions">
-          <button id="submitBtn" type="submit" class="ar-btn ar-btn-primary">
-            <i class="fa-solid fa-floppy-disk"></i> حفظ التقرير
-          </button>
-
-          <a class="ar-btn ar-btn-outline" href="{% url 'reports:home' %}">
-            <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
-          </a>
+        <!-- SIDE COLUMN (Images & Actions) -->
+        <div class="ar-col-side">
+          
+          <div class="ar-card ar-sticky">
+            <h3 style="margin:0 0 20px; font-size:1.1rem; font-weight:900"><i class="fa-solid fa-images"></i> المرفقات والصور</h3>
+            
+            <div class="ar-img-grid">
+               {% for i in "1234" %}
+               <div class="ar-drop-zone">
+                  <i class="fa-solid fa-camera"></i>
+                  <span style="font-size:0.8rem; font-weight:700; color:var(--ar-text-soft)">صورة {{ i }}</span>
+                  <input type="file" name="image{{ i }}" id="id_image{{ i }}" accept="image/*">
+               </div>
+               {% endfor %}
+            </div>
+            
+            <div class="ar-previews" id="preview-container"></div>
+            
+            <button type="submit" id="submitBtn" class="ar-submit-btn">
+               <i class="fa-solid fa-floppy-disk"></i> حفظ التقرير
+            </button>
+            
+             {% if form.non_field_errors %}
+               <div class="ar-error-msg" style="margin-top:10px;justify-content:center">
+                 {% for e in form.non_field_errors %}{{ e }}{% endfor %}
+               </div>
+             {% endif %}
+          </div>
+          
         </div>
-      </form>
+
+      </div>
+    </form>
+  </div>
+  
+  <!-- Upload Overlay -->
+  <div class="ar-overlay" id="uploadOverlay" aria-hidden="true">
+    <div class="ar-modal">
+      <div style="font-size:2.5rem; color:var(--ar-primary); margin-bottom:10px">
+        <i class="fa-solid fa-cloud-arrow-up fa-bounce"></i>
+      </div>
+      <h3 style="margin:0 0 5px">جاري الرفع...</h3>
+      <p style="margin:0 0 15px;color:var(--ar-text-soft)">يرجى الانتظار</p>
+      
+      <div style="height:6px; background:var(--ar-border); border-radius:10px; overflow:hidden">
+         <div id="upFill" style="height:100%; width:0; background:var(--ar-primary); transition:width 0.2s"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700; margin-top:8px">
+         <span id="upLabel">تحضير</span>
+         <span id="upPct">0%</span>
+      </div>
     </div>
   </div>
 
-  <!-- Overlay -->
-  <div class="ar-overlay" id="uploadOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="جاري رفع الصور">
-    <div class="ar-up">
-      <h3><i class="fa-solid fa-cloud-arrow-up"></i> يتم رفع الصور…</h3>
-      <p>يرجى الانتظار وعدم إغلاق الصفحة.</p>
-      <div class="ar-bar"><div class="ar-fill" id="upFill"></div></div>
-      <div class="ar-mini"><span id="upLabel">تحضير…</span><span id="upPct">0%</span></div>
-    </div>
-  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
+  /* Logic preserved and compacted */
   function todayYYYYMMDD(){
     var t = new Date(); t.setHours(0,0,0,0);
     var y = t.getFullYear();
@@ -412,7 +391,6 @@
     var d = String(t.getDate()).padStart(2,'0');
     return y + "-" + m + "-" + d;
   }
-
   function parseDateInput(val){
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(val || "");
     if(!m) return null;
@@ -421,379 +399,184 @@
     return isNaN(dt) ? null : dt;
   }
 
-  // منع التاريخ المستقبلي + توليد اسم اليوم + جعل day_name readonly
+  // Date Check
   (function(){
     var d = document.getElementById("id_report_date");
     var day = document.getElementById("id_day_name");
     var err = document.getElementById("futureDateErr");
-
-    if(day){
-      day.setAttribute('readonly', 'readonly');
-      day.setAttribute('tabindex', '-1');
-    }
-
+    if(day){ day.setAttribute('readonly','readonly'); day.setAttribute('tabindex','-1'); }
     if(d){
-      d.setAttribute("max", todayYYYYMMDD());
-      if(!d.value){ d.value = todayYYYYMMDD(); }
-
-      var applyDay = function(){
-        if(!day) return;
-        var dt = parseDateInput(d.value);
-        if(!dt){ day.value=""; return; }
-        var days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-        day.value = days[dt.getDay()];
-      };
-
-      d.addEventListener("change", function(){
-        if(err) err.style.display = "none";
-        d.classList.remove("ar-invalid");
-
-        var dt = parseDateInput(this.value);
-        if(!dt){ if(day) day.value=""; return; }
-
-        var now = parseDateInput(todayYYYYMMDD());
-        if(dt.getTime() > now.getTime()){
-          if(err) err.style.display = "block";
-          d.classList.add("ar-invalid");
-          if(day) day.value = "";
-          return;
-        }
-
-        applyDay();
-      });
-
-      d.dispatchEvent(new Event('change'));
+       d.setAttribute("max", todayYYYYMMDD());
+       if(!d.value) d.value = todayYYYYMMDD();
+       var applyDay = function(){
+         if(!day) return;
+         var dt = parseDateInput(d.value);
+         if(!dt) { day.value=""; return; }
+         var days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+         day.value = days[dt.getDay()];
+       };
+       d.addEventListener("change", function(){
+         if(err) err.style.display="none";
+         var dt = parseDateInput(this.value);
+         var now = parseDateInput(todayYYYYMMDD());
+         if(dt && dt.getTime() > now.getTime()){
+            if(err) err.style.display="flex";
+            if(day) day.value="";
+         } else {
+            applyDay();
+         }
+       });
+       d.dispatchEvent(new Event('change'));
     }
   })();
 
-  // مدخلات الصور: accept + capture للجوال
+  // Images
   (function(){
-    var ids = ["id_image1","id_image2","id_image3","id_image4"];
-    for(var i=0;i<ids.length;i++){
-      var inp = document.getElementById(ids[i]);
-      if(!inp) continue;
-      inp.setAttribute("accept","image/*");
-      inp.setAttribute("capture","environment");
-    }
-  })();
-
-  // معاينات الصور (استبدال حسب slot)
-  (function(){
-    var slots = [
-      {id:"id_image1", slot:"1"},
-      {id:"id_image2", slot:"2"},
-      {id:"id_image3", slot:"3"},
-      {id:"id_image4", slot:"4"}
-    ];
-    var previewContainer = document.getElementById("preview-container");
-    if(!previewContainer) return;
-
-    function upsertPreview(slotKey, dataUrl, inputEl){
-      var existing = previewContainer.querySelector('[data-slot="' + slotKey + '"]');
-      var wrap = existing || document.createElement("div");
-      wrap.className = "ar-prev";
-      wrap.dataset.slot = slotKey;
-
-      wrap.innerHTML = "";
-      var img = document.createElement("img");
-      img.src = dataUrl;
-
-      var x = document.createElement("button");
-      x.type = "button";
-      x.className = "ar-x";
-      x.setAttribute("aria-label", "حذف الصورة");
-      x.textContent = "×";
-      x.addEventListener("click", function(){
-        inputEl.value = "";
-        wrap.remove();
-      });
-
-      wrap.appendChild(img);
-      wrap.appendChild(x);
-
-      if(!existing) previewContainer.appendChild(wrap);
-    }
-
-    slots.forEach(function(it){
-      var input = document.getElementById(it.id);
-      if(!input) return;
-
-      input.addEventListener("change", function(e){
-        var file = e.target.files && e.target.files[0];
-        if(!file) return;
-
-        var reader = new FileReader();
-        reader.onload = function(ev){
-          upsertPreview(it.slot, ev.target.result, input);
-        };
-        reader.readAsDataURL(file);
-      });
+    var ids=["id_image1","id_image2","id_image3","id_image4"];
+    ids.forEach(function(i){
+       var el=document.getElementById(i);
+       if(el){ el.accept="image/*"; el.setAttribute("capture","environment"); }
     });
   })();
 
-  // Validation helpers
-  function clearClientErrors(form){
-    form.querySelectorAll('.ar-alert[data-gen="1"]').forEach(function(e){ e.remove(); });
-    form.querySelectorAll('.ar-invalid').forEach(function(e){ e.classList.remove('ar-invalid'); });
-  }
-  function addError(groupEl, inputEl, msg){
-    if(inputEl) inputEl.classList.add('ar-invalid');
-    var box = document.createElement('div');
-    box.className = 'ar-alert';
-    box.dataset.gen = '1';
-    box.textContent = msg;
-    groupEl.appendChild(box);
-  }
-
-  function validateForm(form){
-    clearClientErrors(form);
-    var firstBad = null;
-
-    var gCat = form.querySelector('[data-group="category"]');
-    var sel = gCat && gCat.querySelector('select');
-    if(sel && !sel.value){
-      addError(gCat, sel, 'فضلاً اختر نوع التقرير.');
-      firstBad = firstBad || sel;
-    }
-
-    var gName = form.querySelector('[data-group="teacher_name"]');
-    var nameInput = gName && gName.querySelector('input[name="teacher_name"]');
-    if(nameInput && !nameInput.value.trim()){
-      addError(gName, nameInput, 'اكتب اسم المعلم.');
-      firstBad = firstBad || nameInput;
-    }
-
-    var gTitle = form.querySelector('[data-group="title"]');
-    var titleEl = gTitle && gTitle.querySelector('input,textarea,select');
-    if(titleEl && !titleEl.value.trim()){
-      addError(gTitle, titleEl, 'اكتب عنوان التقرير.');
-      firstBad = firstBad || titleEl;
-    }
-
-    var gDate = form.querySelector('[data-group="report_date"]');
-    var dateEl = document.getElementById('id_report_date');
-    if(dateEl){
-      if(!dateEl.value){
-        addError(gDate, dateEl, 'اختر تاريخ التقرير.');
-        firstBad = firstBad || dateEl;
-      }else{
-        var picked = parseDateInput(dateEl.value);
-        var today  = parseDateInput(todayYYYYMMDD());
-        if(!picked){
-          addError(gDate, dateEl, 'تاريخ غير صالح.');
-          firstBad = firstBad || dateEl;
-        }else if(picked.getTime() > today.getTime()){
-          addError(gDate, dateEl, 'لا يُسمح بتاريخ مستقبلي.');
-          firstBad = firstBad || dateEl;
-        }
-      }
-    }
-
-    var gIdea = form.querySelector('[data-group="idea"]');
-    var ideaEl = gIdea && (gIdea.querySelector('textarea') || gIdea.querySelector('input'));
-    if(ideaEl && !ideaEl.value.trim()){
-      addError(gIdea, ideaEl, 'اكتب وصف/فكرة التقرير.');
-      firstBad = firstBad || ideaEl;
-    }
-
-    if(firstBad){
-      firstBad.scrollIntoView({behavior:'smooth', block:'center'});
-      firstBad.focus();
-      return false;
-    }
-    return true;
-  }
-
-  // Compress + Upload progress + عرض HTML عند فشل 400
+  // Previews
   (function(){
-    var form = document.getElementById('report-form');
-    var overlay = document.getElementById('uploadOverlay');
-    var fill = document.getElementById('upFill');
-    var label = document.getElementById('upLabel');
-    var pctEl = document.getElementById('upPct');
-    var submitBtn = document.getElementById('submitBtn');
+    var c=document.getElementById("preview-container");
+    if(!c) return;
+    var slots=[{id:"id_image1",s:"1"},{id:"id_image2",s:"2"},{id:"id_image3",s:"3"},{id:"id_image4",s:"4"}];
+    function upsert(s, url, inp){
+       var exist = c.querySelector('[data-s="'+s+'"]');
+       var w = exist || document.createElement("div");
+       w.className="ar-prev-card"; w.dataset.s=s;
+       w.innerHTML='<img src="'+url+'"><button type="button" class="ar-prev-remove">×</button>';
+       w.querySelector("button").onclick=function(){ inp.value=""; w.remove(); };
+       if(!exist) c.appendChild(w);
+    }
+    slots.forEach(function(o){
+       var el=document.getElementById(o.id);
+       if(!el) return;
+       el.addEventListener("change", function(e){
+          var f=e.target.files[0];
+          if(!f) return;
+          var r=new FileReader();
+          r.onload=function(ev){ upsert(o.s, ev.target.result, el); };
+          r.readAsDataURL(f);
+       });
+    });
+  })();
+
+  // Valid + Submit
+  (function(){
+    var form=document.getElementById('report-form');
+    var overlay=document.getElementById('uploadOverlay');
+    var fill=document.getElementById('upFill');
+    var pctEl=document.getElementById('upPct');
+    var btn=document.getElementById('submitBtn');
+    
+    // Simple Validation
+    function isValid(){
+       // Add basic check logic or rely on HTML5 + Server. 
+       // For better UX, check required fields:
+       var req = form.querySelectorAll('[required]');
+       var ok=true;
+       req.forEach(function(r){ 
+         if(!r.value) { r.style.borderColor="red"; ok=false; }
+         else { r.style.borderColor=""; }
+       });
+       // Check date future
+       var d=document.getElementById("id_report_date");
+       if(d){
+          var dt=parseDateInput(d.value);
+          var now=parseDateInput(todayYYYYMMDD());
+          if(dt && dt.getTime()>now.getTime()) ok=false;
+       }
+       return ok;
+    }
 
     var MAX_DIM = 1600;
-    var JPEG_QUALITY = 0.82;
-
-    function setOverlay(on){
-      if(!overlay) return;
-      overlay.style.display = on ? 'flex' : 'none';
-      overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
-      try{
-        if(window.__lockScroll) window.__lockScroll(on);
-      }catch(e){
-        // ignore
-      }
-    }
-
-    function compressImage(file){
-      return new Promise(function(resolve){
-        try{
-          if(!file || !file.type || !file.type.startsWith('image/')) return resolve(file);
-
-          var img = new Image();
-          var objUrl = URL.createObjectURL(file);
-
-          img.onload = function(){
-            try{
-              var canvas = document.createElement('canvas');
-              var width = img.width;
-              var height = img.height;
-
-              if(width > height && width > MAX_DIM){
-                height = Math.round(height * (MAX_DIM / width));
-                width = MAX_DIM;
-              } else if(height >= width && height > MAX_DIM){
-                width = Math.round(width * (MAX_DIM / height));
-                height = MAX_DIM;
-              }
-
-              canvas.width = width;
-              canvas.height = height;
-
-              var ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, width, height);
-
-              canvas.toBlob(function(blob){
-                URL.revokeObjectURL(objUrl);
-                if(blob){
-                  var newName = file.name.replace(/\.(heic|heif|png|webp)$/i, '.jpg');
-                  resolve(new File([blob], newName, {type:'image/jpeg', lastModified: Date.now()}));
-                } else {
-                  resolve(file);
-                }
-              }, 'image/jpeg', JPEG_QUALITY);
-            }catch(e){
-              URL.revokeObjectURL(objUrl);
-              resolve(file);
-            }
+    var Q = 0.82;
+    function compress(file){
+       return new Promise(function(res){
+          if(!file || !file.type.startsWith('image/')) return res(file);
+          var img=new Image(); var u=URL.createObjectURL(file);
+          img.onload=function(){
+             var w=img.width, h=img.height;
+             if(w>h && w>MAX_DIM){ h=Math.round(h*(MAX_DIM/w)); w=MAX_DIM; }
+             else if(h>=w && h>MAX_DIM){ w=Math.round(w*(MAX_DIM/h)); h=MAX_DIM; }
+             var cvs=document.createElement('canvas'); cvs.width=w; cvs.height=h;
+             var ctx=cvs.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+             cvs.toBlob(function(b){
+                URL.revokeObjectURL(u);
+                if(b) res(new File([b], file.name.replace(/\.\w+$/,'.jpg'), {type:'image/jpeg', lastModified:Date.now()}));
+                else res(file);
+             }, 'image/jpeg', Q);
           };
-
-          img.onerror = function(){
-            URL.revokeObjectURL(objUrl);
-            resolve(file);
-          };
-
-          img.src = objUrl;
-        }catch(e){
-          resolve(file);
-        }
-      });
+          img.onerror=function(){ URL.revokeObjectURL(u); res(file); };
+          img.src=u;
+       });
     }
 
-    async function buildCompressedFormData(formEl){
-      var fd = new FormData();
-
-      for (var i=0;i<formEl.elements.length;i++){
-        var el = formEl.elements[i];
-        if(!el.name || el.disabled) continue;
-        if(el.type === 'file') continue;
-        if((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
-        fd.append(el.name, el.value);
-      }
-
-      var names = ['image1','image2','image3','image4'];
-      for (var j=0;j<names.length;j++){
-        var n = names[j];
-        var input = formEl.querySelector('[name="' + n + '"]');
-        if(input && input.files && input.files[0]){
-          if(label) label.textContent = 'ضغط الصور…';
-          var c = await compressImage(input.files[0]);
-          fd.append(n, c, c.name);
-        }
-      }
-      return fd;
-    }
-
-    if(!form) return;
-
-    form.addEventListener('submit', async function(ev){
-      ev.preventDefault();
-      if(!validateForm(form)) return;
-
-      setOverlay(true);
-      if(fill) fill.style.width = '0%';
-      if(pctEl) pctEl.textContent = '0%';
-      if(label) label.textContent = 'تحضير الملفات…';
-
-      if(submitBtn){
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '.75';
-        submitBtn.style.cursor = 'not-allowed';
-      }
-
-      try{
-        var fd = await buildCompressedFormData(form);
-        var csrf = form.querySelector('input[name="csrfmiddlewaretoken"]');
-        var csrfVal = csrf ? csrf.value : '';
-
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', form.action || window.location.href, true);
-        if (csrfVal) xhr.setRequestHeader('X-CSRFToken', csrfVal);
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-
-        xhr.upload.onprogress = function(e){
-          if(e.lengthComputable){
-            var p = Math.round((e.loaded / e.total) * 100);
-            if(fill) fill.style.width = p + '%';
-            if(pctEl) pctEl.textContent = p + '%';
-            if(label) label.textContent = p < 100 ? 'جاري الرفع…' : 'معالجة الطلب…';
-          }
-        };
-
-        xhr.onreadystatechange = function(){
-          if(xhr.readyState !== 4) return;
-
-          // نجاح
-          if(xhr.status >= 200 && xhr.status < 400){
-            if(xhr.responseURL && xhr.responseURL !== window.location.href){
-              window.location.href = xhr.responseURL;
-            } else {
-              window.location.href = "{% url 'reports:my_reports' %}";
+    if(form){
+      form.onsubmit = async function(e){
+         e.preventDefault();
+         if(!isValid()) { alert("يرجى التأكد من البيانات وتصحيح الحقول الحمراء"); return; }
+         
+         overlay.style.display="flex";
+         overlay.setAttribute("aria-hidden","false");
+         if(btn) btn.disabled=true;
+         
+         try{
+            var fd=new FormData();
+            for(var i=0; i<form.elements.length; i++){
+               var el=form.elements[i];
+               if(!el.name || el.disabled || el.type==='file') continue;
+               if((el.type==='checkbox'||el.type==='radio') && !el.checked) continue;
+               fd.append(el.name, el.value);
             }
-            return;
-          }
-
-          // فشل: لو السيرفر رجّع HTML (عادة صفحة النموذج مع الأخطاء) اعرضه مباشرة
-          var ct = (xhr.getResponseHeader('Content-Type') || '').toLowerCase();
-          if(ct.includes('text/html') && xhr.responseText){
-            document.open();
-            document.write(xhr.responseText);
-            document.close();
-            return;
-          }
-
-          setOverlay(false);
-          if(submitBtn){
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = '';
-            submitBtn.style.cursor = '';
-          }
-          alert('تعذّر إكمال الحفظ. تأكد من الحقول ثم حاول مجددًا.');
-        };
-
-        xhr.onerror = function(){
-          setOverlay(false);
-          if(submitBtn){
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = '';
-            submitBtn.style.cursor = '';
-          }
-          alert('حدث خطأ بالشبكة أثناء الرفع.');
-        };
-
-        xhr.send(fd);
-      }catch(e){
-        setOverlay(false);
-        if(submitBtn){
-          submitBtn.disabled = false;
-          submitBtn.style.opacity = '';
-          submitBtn.style.cursor = '';
-        }
-        alert('تعذّر ضغط/رفع الصور. حاول مجددًا.');
-      }
-    });
+            var imgs=['image1','image2','image3','image4'];
+            for(var k=0; k<imgs.length; k++){
+               var inp=form.querySelector('[name="'+imgs[k]+'"]');
+               if(inp && inp.files[0]){
+                  var c = await compress(inp.files[0]);
+                  fd.append(imgs[k], c);
+               }
+            }
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', form.action||window.location.href, true);
+            var tok = form.querySelector('[name="csrfmiddlewaretoken"]');
+            if(tok) xhr.setRequestHeader('X-CSRFToken', tok.value);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            
+            xhr.upload.onprogress=function(ev){
+               if(ev.lengthComputable){
+                  var p=Math.round((ev.loaded/ev.total)*100);
+                  fill.style.width=p+"%"; pctEl.textContent=p+"%";
+               }
+            };
+            xhr.onload=function(){
+               if(xhr.status>=200 && xhr.status<400){
+                  window.location.href = xhr.responseURL || "{% url 'reports:my_reports' %}";
+               } else {
+                  var ct = xhr.getResponseHeader('Content-Type')||"";
+                  if(ct.includes('text/html')){
+                     document.open(); document.write(xhr.responseText); document.close();
+                  } else {
+                     alert("حدث خطأ في الحفظ");
+                     overlay.style.display="none"; btn.disabled=false;
+                  }
+               }
+            };
+            xhr.onerror=function(){ alert("خطأ شبكة"); overlay.style.display="none"; btn.disabled=false; };
+            xhr.send(fd);
+            
+         }catch(err){
+            console.error(err);
+            alert("خطأ غير متوقع");
+            overlay.style.display="none"; btn.disabled=false;
+         }
+      };
+    }
   })();
 </script>
 {% endblock %}

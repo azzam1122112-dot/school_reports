@@ -386,7 +386,7 @@ def _is_report_viewer(user, active_school: Optional[School] = None) -> bool:
 # =========================
 # الدخول / الخروج
 # =========================
-@ratelimit(key="ip", rate="5/m", block=True)
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
 @require_http_methods(["GET", "POST"])
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
@@ -5756,22 +5756,21 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
     }
     return render(request, "reports/notification_detail.html", ctx)
 
-@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
 def unread_notifications_count(request: HttpRequest) -> HttpResponse:
+    """إرجاع عدد الإشعارات غير المقروءة بتنسيق JSON لاستخدامه في الـ Polling.
+
+    ملاحظة: لا نُعيد توجيه المستخدمين غير المسجلين لصفحة الدخول لأن هذا المسار يُستدعى بشكل دوري
+    من الواجهة (Polling)، وإعادة التوجيه قد تسبب ضغطاً وتداخل مع RateLimit.
     """
-    إرجاع عدد الإشعارات غير المقروءة بتنسيق JSON لاستخدامه في الـ Polling.
-    """
-    from django.http import JsonResponse
-    
+    if not getattr(request.user, "is_authenticated", False):
+        return JsonResponse({"count": 0, "authenticated": False})
+
     if NotificationRecipient is None:
-        return JsonResponse({"count": 0})
-        
-    count = NotificationRecipient.objects.filter(
-        teacher=request.user,
-        is_read=False
-    ).count()
-    
-    return JsonResponse({"count": count})
+        return JsonResponse({"count": 0, "authenticated": True})
+
+    count = NotificationRecipient.objects.filter(teacher=request.user, is_read=False).count()
+    return JsonResponse({"count": count, "authenticated": True})
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])

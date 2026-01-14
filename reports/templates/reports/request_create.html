@@ -1,373 +1,463 @@
-{# reports/templates/reports/ticket_create.html (أو الاسم الذي تستخدمه) #}
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}طلب جديد{% endblock %}
+{% block title %}طلب جديد | المنصة{% endblock %}
 
 {% block head %}
 <style>
   /* =========================================================
-     Ticket Create — scoped داخل .ticket-page فقط
-     - بدون لمس أنماط base العامة خارج الصفحة
-     - متوافق مع data-theme (dark/light)
+     Request Create 2026 — Modern & Professional
      ========================================================= */
-  .ticket-page{
-    --ink:#0f172a;
-    --ink-soft:#1f2937;
-    --muted:#64748b;
-    --line:#e5e7eb;
-
-    --brand:#2563eb;
-    --brand-light:#3b82f6;
-
-    --accent:#059669;
-    --accent-light:#10b981;
-
-    --card:#ffffff;
-    --bg:#f8fafc;
-
-    --error:#ef4444;
-    --error-bg:#fef2f2;
-
-    --radius:16px;
-    --rsm:12px;
-    --shadow:0 10px 30px rgba(2,6,23,.08);
-
-    /* لو base فيه --t-fast بنستفيد منه */
-    --t: var(--t-fast);
+  .ticket-page {
+    --gap: 24px;
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  html[data-theme="dark"] .ticket-page{
-    --ink:#e5e7eb;
-    --ink-soft:#f1f5f9;
-    --muted:#94a3b8;
-    --line:#1f2a44;
-
-    --card:#0b1220;
-    --bg:#070b14;
-
-    --error-bg: rgba(239,68,68,.10);
-    --shadow:0 14px 42px rgba(0,0,0,.35);
-  }
-
-  .ticket-page{
-    background: transparent;
-    color: var(--ink);
-  }
-
-  .ticket-page .ticket-container{
-    max-width: 900px;
+  .ticket-wrap {
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 18px;
+    padding: var(--gap);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--gap);
+    animation: fade-up 0.6s var(--ease-out);
   }
 
-  .ticket-page .ticket-card{
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 22px;
+  @media (min-width: 1024px) {
+    .ticket-wrap {
+      grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+      align-items: start;
+    }
+  }
+
+  /* Cards */
+  .tk-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 32px;
+    position: relative;
     overflow: hidden;
   }
-
-  .ticket-page .section-title{
-    font-size: 1.35rem;
-    font-weight: 950;
-    color: var(--ink-soft);
-    display:flex;
-    gap:10px;
-    align-items:center;
-    margin:0 0 16px;
+  
+  .tk-card.is-sticky {
+    position: sticky;
+    top: 24px;
+    z-index: 10;
   }
 
-  .ticket-page .form-grid{display:grid;gap:18px}
-  .ticket-page .form-row{display:grid;gap:16px}
-  @media(min-width:720px){
-    .ticket-page .form-row{grid-template-columns:1fr 1fr}
+  /* Header & Titles */
+  .tk-header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
   }
 
-  .ticket-page .form-group{display:flex;flex-direction:column;gap:8px}
-  .ticket-page label{font-weight:900;color:var(--ink-soft)}
-
-  .ticket-page input[type="text"],
-  .ticket-page select,
-  .ticket-page textarea{
-    width:100%;
-    padding:14px 16px;
-    border:1px solid var(--line);
-    border-radius: var(--rsm);
-    font:inherit;
-    background: var(--card);
+  .tk-title {
+    font-size: 1.8rem;
+    font-weight: 800;
     color: var(--ink);
-    transition: var(--t);
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
-  .ticket-page select:disabled{
-    opacity:.85;
-    cursor:not-allowed;
+  .tk-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: var(--brand-500-10);
+    color: var(--brand-600);
+    border-radius: var(--radius-md);
+    font-size: 1.5rem;
   }
 
-  .ticket-page input:focus,
-  .ticket-page select:focus,
-  .ticket-page textarea:focus{
-    outline:none;
-    border-color: var(--brand-light);
-    box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+  .tk-subtitle {
+     font-size: 1rem;
+     color: var(--ink-light);
+     line-height: 1.5;
   }
 
-  .ticket-page textarea{min-height:140px;resize:vertical}
+  /* Form Elements */
+  .tk-form-group {
+    margin-bottom: 24px;
+  }
+  
+  .tk-label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  
+  .tk-label span.req { color: var(--danger-500); margin-right: 4px; }
 
-  .ticket-page .help{
-    font-size:.92rem;
-    color: var(--muted);
-    font-weight: 850;
-    line-height:1.55;
-  }
-
-  .ticket-page .field-error{
-    color: var(--error);
-    background: var(--error-bg);
-    border: 1px solid rgba(239,68,68,.25);
-    padding:10px 12px;
-    border-radius: var(--rsm);
-    font-size:.92rem;
-    font-weight: 950;
-  }
-
-  /* مستلمون (Dropdown + Search + Checkboxes) */
-  .ticket-page .recipients-box{
-    border:0;
-    padding:0;
-    background:transparent;
-    min-height:52px;
-  }
-
-  .ticket-page .recipients-dd{
-    width:100%;
-    border:1px solid var(--line);
-    border-radius: var(--rsm);
-    background: var(--card);
-    overflow:hidden;
-  }
-
-  .ticket-page .recipients-dd > summary{
-    list-style:none;
-    cursor:pointer;
-    padding:12px 14px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    font-weight: 950;
-    color: var(--ink-soft);
-    user-select:none;
-  }
-
-  .ticket-page .recipients-dd > summary::-webkit-details-marker{display:none}
-  .ticket-page .recipients-dd > summary:focus{outline:none}
-  .ticket-page .recipients-dd[open] > summary{
-    border-bottom:1px solid var(--line);
-    background: rgba(148,163,184,.10);
-  }
-
-  .ticket-page .recipients-dd-title{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    min-width:0;
-  }
-  .ticket-page .recipients-dd-title .txt{
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .ticket-page .recipients-dd-title .count{
-    font-size:.85rem;
-    color: var(--muted);
-    font-weight: 950;
-    flex:0 0 auto;
-  }
-  .ticket-page .recipients-dd-caret{
-    color: var(--muted);
+  .tk-input, .tk-select, .tk-textarea {
+    width: 100%;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    color: var(--ink);
     font-size: 1rem;
-    flex:0 0 auto;
+    font-family: inherit;
+    transition: all 0.2s var(--ease-out);
+  }
+  
+  .tk-input:focus, .tk-select:focus, .tk-textarea:focus {
+    outline: none;
+    border-color: var(--brand-500);
+    box-shadow: 0 0 0 4px var(--brand-500-20);
+    background: var(--surface);
   }
 
-  .ticket-page .recipients-panel{padding:10px 12px}
+  .tk-textarea {
+    min-height: 400px;
+    line-height: 1.7;
+    resize: vertical;
+  }
+  
+  .tk-select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 1rem center;
+    background-size: 1.25em;
+  }
 
-  .ticket-page .recipients-search{
-    width:100%;
-    padding:10px 12px;
-    border:1px solid var(--line);
-    border-radius: 10px;
-    font-size:.95rem;
-    background: var(--card);
+  /* Recipients Styling (Matches JS structure) */
+  .recipients-dd {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .recipients-dd[open] {
+    box-shadow: var(--shadow-md);
+    border-color: var(--brand-500);
+  }
+  
+  .recipients-dd > summary {
+    list-style: none;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+    background: var(--surface-alt);
+    color: var(--ink);
+    transition: background 0.2s;
+  }
+  
+  .recipients-dd > summary:hover,
+  .recipients-dd[open] > summary {
+    background: var(--surface);
+  }
+  
+  .recipients-dd[open] > summary {
+    border-bottom: 1px solid var(--border);
+  }
+  
+  /* Hide standard details marker */
+  .recipients-dd > summary::-webkit-details-marker { display:none; }
+
+  .recipients-panel { padding: 12px; }
+  
+  .recipients-search {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    background: var(--surface-alt);
     color: var(--ink);
   }
-
-  .ticket-page .recipients-scroll{
-    margin-top:10px;
-    max-height:320px;
-    overflow-y:auto;
-    padding-inline-end:4px;
+  
+  .recipients-scroll {
+    max-height: 280px;
+    overflow-y: auto;
+    padding-left: 8px; /* For scrollbar space RTL */
   }
+  
+  /* Scrollbar */
+  .recipients-scroll::-webkit-scrollbar { width: 6px; }
+  .recipients-scroll::-webkit-scrollbar-track { background: transparent; }
+  .recipients-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  .recipients-scroll::-webkit-scrollbar-thumb:hover { background: var(--ink-lighter); }
 
-  .ticket-page .recipients-grid{
-    display:grid;
-    gap:10px;
-    grid-template-columns:1fr;
+  .recipients-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
-
-  .ticket-page .rcpt{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:10px 12px;
-    border:1px solid var(--line);
-    border-radius: 12px;
-    background: rgba(148,163,184,.10);
-    font-weight: 950;
+  
+  .rcpt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    font-size: 0.95rem;
     color: var(--ink-soft);
-    cursor:pointer;
-    transition: var(--t);
+    background: transparent;
+  }
+  
+  .rcpt:hover {
+    background: var(--surface-alt);
+    border-color: var(--brand-300);
+  }
+  
+  .rcpt.selected {
+    background: var(--brand-500-10);
+    border-color: var(--brand-500);
+    color: var(--brand-700);
+    font-weight: 600;
   }
 
-  .ticket-page .rcpt:hover{
-    border-color: rgba(59,130,246,.55);
-    background: rgba(59,130,246,.10);
+  .rcpt input { 
+    accent-color: var(--brand-600); 
+    width: 18px; 
+    height: 18px; 
+    cursor: pointer;
   }
 
-  .ticket-page .rcpt.selected{
-    background: rgba(37,99,235,.12);
-    border-color: rgba(37,99,235,.75);
-    color: var(--brand);
-    box-shadow: 0 0 0 1px rgba(37,99,235,.35);
+  /* File Upload */
+  .tk-upload-container {
+      margin-top: 10px;
   }
 
-  .ticket-page .rcpt input{
-    width:20px;
-    height:20px;
-    accent-color: var(--brand);
-    cursor:pointer;
-    flex:0 0 auto;
+  .tk-upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-alt);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  
+  .tk-upload-label:hover {
+    border-color: var(--brand-400);
+    background: var(--brand-500-05);
+  }
+  
+  .tk-upload-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    color: var(--brand-500);
+    opacity: 0.8;
+  }
+  
+  .tk-upload-text {
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  
+  .tk-upload-hint {
+    font-size: 0.85rem;
+    color: var(--ink-light);
   }
 
-  /* معاينات الصور */
-  .ticket-page .previews{
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap:10px;
-    margin-top:8px;
+  /* Image Previews */
+  .previews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
   }
-  .ticket-page .thumb{
-    position:relative;
-    border:1px solid var(--line);
-    border-radius: 12px;
-    overflow:hidden;
-    background: var(--card);
+  
+  .thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
   }
-  .ticket-page .thumb img{
-    display:block;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    aspect-ratio: 4 / 3;
+  
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
-  .ticket-page .thumb .badge{
-    position:absolute;
-    top:6px;
-    left:6px;
-    background: rgba(15,23,42,.75);
-    color:#fff;
-    font-size:.78rem;
-    padding:2px 6px;
-    border-radius: 999px;
-  }
-  html[data-theme="dark"] .ticket-page .thumb .badge{
-    background: rgba(0,0,0,.55);
+  
+  .thumb .badge {
+    position: absolute;
+    top: 4px;
+    right: 4px; /* RTL flip check? No, absolute positioning */
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 99px;
+    backdrop-filter: blur(4px);
   }
 
   /* Actions */
-  .ticket-page .form-actions{
-    display:grid;
-    gap:12px;
+  .tk-actions {
+    display: grid;
+    gap: 16px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
   }
-  @media(min-width:560px){
-    .ticket-page .form-actions{grid-template-columns:1fr 1fr}
+  
+  .btn-submit {
+    background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+    color: white;
+    font-weight: 700;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px var(--brand-500-30);
+  }
+  
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px var(--brand-500-40);
+  }
+  
+  .btn-submit:active { transform: translateY(0); }
+  
+  .btn-cancel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    color: var(--ink-light);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  
+  .btn-cancel:hover { color: var(--ink); background: var(--surface-alt); }
+
+  /* Utilities */
+  .help-text {
+    font-size: 0.85rem;
+    color: var(--ink-lighter);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+  
+  .error-text {
+    color: var(--danger-600);
+    background: var(--danger-500-10);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .ticket-page .btn{
-    padding:14px 18px;
-    border:0;
-    border-radius: 12px;
-    font-weight: 950;
-    cursor:pointer;
-    transition: var(--t);
-    display:inline-flex;
-    justify-content:center;
-    align-items:center;
-    gap:8px;
-    text-decoration:none;
+  .status-msg {
+    margin-top: 16px;
+    text-align: center;
+    font-weight: 600;
+    min-height: 24px;
   }
 
-  .ticket-page .btn:disabled{
-    opacity:.75;
-    cursor:not-allowed;
-    transform:none !important;
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-
-  .ticket-page .btn-accent{
-    background: linear-gradient(135deg, var(--accent), var(--accent-light));
-    color:#fff;
-  }
-  .ticket-page .btn-accent:hover{transform: translateY(-2px)}
-  .ticket-page .btn-outline{
-    background: transparent;
-    border:1px solid var(--line);
-    color: var(--ink-soft);
-  }
-  .ticket-page .btn-outline:hover{
-    background: rgba(148,163,184,.10);
-  }
-
-  .ticket-page #dynamic-msg{min-height:22px}
-
-  @media(max-width:520px){
-    .ticket-page .ticket-container{padding:14px 12px}
-    .ticket-page .ticket-card{padding:16px}
-    .ticket-page .section-title{font-size:1.18rem}
-    .ticket-page input[type="text"], .ticket-page select, .ticket-page textarea{font-size:16px}
-    .ticket-page .form-actions{grid-template-columns:1fr}
-    .ticket-page .btn{width:100%}
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    .ticket-page *{transition:none !important}
-    .ticket-page .btn-accent:hover{transform:none !important}
+  
+  @media (max-width: 768px) {
+    .tk-title { font-size: 1.4rem; }
+    .tk-card { padding: 20px; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="ticket-page" dir="rtl">
-  <div class="ticket-container">
-    <div class="ticket-card">
-      <h2 class="section-title">📝 إنشاء طلب جديد</h2>
+  
+  <form method="post" enctype="multipart/form-data" id="ticket-form" novalidate>
+    {% csrf_token %}
+    
+    <div class="ticket-wrap">
+      
+      <!-- MAIN COLUMN: Content (Title, Body) -->
+      <section class="tk-column-main">
+        <div class="tk-card">
+          <div class="tk-header">
+            <h1 class="tk-title">
+              <span class="tk-title-icon">📝</span>
+              إنشاء طلب جديد
+            </h1>
+            <p class="tk-subtitle">قم بتعبئة تفاصيل الطلب بدقة لضمان معالجته من قبل القسم المختص في أسرع وقت.</p>
+          </div>
 
-      {% if form.non_field_errors %}
-        <div class="field-error" style="margin-bottom:12px">
-          {% for e in form.non_field_errors %}• {{ e }}<br>{% endfor %}
+          <!-- Title -->
+          <div class="tk-form-group">
+            <label for="{{ form.title.id_for_label }}" class="tk-label">
+              عنوان الطلب <span class="req">*</span>
+            </label>
+            {{ form.title }} 
+            <!-- Django usually renders input class via attrs, but if not we can assume default styling or JS enhancement -->
+            <!-- We will rely on CSS selectors targeting inputs inside .ticket-page -->
+            {% for e in form.title.errors %}<div class="error-text">⚠️ {{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Body -->
+          <div class="tk-form-group">
+            <label for="{{ form.body.id_for_label }}" class="tk-label">
+              تفاصيل الطلب <span class="req">*</span>
+            </label>
+            <div class="help-text" style="margin-bottom:8px">اشرح المشكلة أو الطلب بالتفصيل.</div>
+            {{ form.body }}
+            {% for e in form.body.errors %}<div class="error-text">⚠️ {{ e }}</div>{% endfor %}
+          </div>
+          
         </div>
-      {% endif %}
+      </section>
 
-      <form method="post" enctype="multipart/form-data" class="form-grid" id="ticket-form" novalidate>
-        {% csrf_token %}
+      <!-- SIDE COLUMN: Routing (Dept, Recipients) & Attachments & Actions -->
+      <aside class="tk-column-side">
+        <div class="tk-card is-sticky">
+          
+          {% if form.non_field_errors %}
+            <div class="error-text" style="margin-bottom:20px">
+              {% for e in form.non_field_errors %}⚠️ {{ e }}<br>{% endfor %}
+            </div>
+          {% endif %}
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="{{ form.department.id_for_label }}">القسم <span aria-hidden="true" style="color:#ef4444">*</span></label>
-
-            <select id="{{ form.department.id_for_label }}" name="{{ form.department.html_name }}" required>
+          <div class="tk-form-group">
+            <label for="{{ form.department.id_for_label }}" class="tk-label">
+              القسم المختص <span class="req">*</span>
+            </label>
+            <select id="{{ form.department.id_for_label }}" name="{{ form.department.html_name }}" class="tk-select" required>
               <option value="" selected hidden>— اختر القسم —</option>
               {% for d in form.fields.department.queryset %}
                 {% with v=d.slug %}
@@ -381,15 +471,13 @@
                 {% endwith %}
               {% endfor %}
             </select>
-
-            {% for e in form.department.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
-            <div class="help">اختر القسم أولًا ليتم تحميل الموظفين تلقائيًا.</div>
+            {% for e in form.department.errors %}<div class="error-text">⚠️ {{ e }}</div>{% endfor %}
           </div>
 
-          <div class="form-group">
-            <label for="{{ form.recipients.id_for_label }}">المستلمون <span aria-hidden="true" style="color:#ef4444">*</span></label>
-
-            {# يمكن تمرير selected_recipient_ids من الـView (اختياري) لاستعادة التحديد بعد فشل الإرسال #}
+          <div class="tk-form-group">
+            <label class="tk-label">
+              المستلمون <span class="req">*</span>
+            </label>
             <div
               id="id_recipients"
               class="recipients-box"
@@ -397,56 +485,68 @@
               {% if selected_recipient_ids %}
                 data-selected="{% for rid in selected_recipient_ids %}{{ rid }}{% if not forloop.last %},{% endif %}{% endfor %}"
               {% endif %}
-            ></div>
-
-            <div class="help" id="recipientsHelp">اختر مستلمًا واحدًا على الأقل.</div>
-            {% for e in form.recipients.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+            >
+             <div class="help-text">يرجى اختيار القسم أولاً.</div>
+            </div>
+            
+            {% for e in form.recipients.errors %}<div class="error-text">⚠️ {{ e }}</div>{% endfor %}
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="{{ form.title.id_for_label }}">عنوان الطلب <span aria-hidden="true" style="color:#ef4444">*</span></label>
-          {{ form.title }}
-          {% for e in form.title.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
-        </div>
+          <hr style="border:0; border-top:1px solid var(--border); margin: 24px 0;">
 
-        <div class="form-group">
-          <label for="{{ form.body.id_for_label }}">تفاصيل الطلب</label>
-          {{ form.body }}
-          {% for e in form.body.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
-          <div class="help">اكتب التفاصيل بشكل واضح، ويمكن إرفاق صور لتوضيح المشكلة.</div>
-        </div>
-
-        <div class="form-group">
-          <label for="id_images">الصور (حتى 4)</label>
-          <input id="id_images" name="images" type="file" accept="image/*" capture="environment" multiple>
-          <div class="help">المسموح: JPG / PNG / WebP — سيتم ضغط الصور تلقائيًا قبل الإرسال. الحد الأقصى 4 صور.</div>
-
-          {# عرض أخطاء الصور بشكل آمن حتى لو الحقل غير موجود داخل الـForm #}
-          {% if form.errors %}
-            {% if 'images' in form.errors %}
-              <div class="field-error" style="margin-top:8px">• {{ form.errors.images.0 }}</div>
+          <!-- Attachments -->
+          <div class="tk-form-group">
+            <label class="tk-label">المرفقات (صور فقط)</label>
+            
+            <div class="tk-upload-container">
+              <input id="id_images" name="images" type="file" accept="image/*" capture="environment" multiple hidden>
+              <label for="id_images" class="tk-upload-label">
+                <span class="tk-upload-icon">📷</span>
+                <span class="tk-upload-text">اضغط لرفع الصور</span>
+                <span class="tk-upload-hint">JPG, PNG, WebP (Max 4)</span>
+              </label>
+            </div>
+            
+            <!-- Error container for images -->
+            {% if form.errors and form.errors.images %}
+               <div class="error-text">⚠️ {{ form.errors.images.0 }}</div>
             {% endif %}
-          {% endif %}
 
-          <div class="previews" id="previews"></div>
+            <div class="previews-grid" id="previews"></div>
+          </div>
+          
+          <div id="dynamic-msg" class="status-msg" aria-live="polite"></div>
+
+          <div class="tk-actions">
+            <button class="btn-submit" type="submit" id="submitBtn">
+              <span>إرسال الطلب</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+            <a class="btn-cancel" href="{% url 'reports:my_requests' %}">إلغاء والعودة</a>
+          </div>
+
         </div>
+      </aside>
 
-        <div id="dynamic-msg" class="help" aria-live="polite"></div>
-
-        <div class="form-actions">
-          <button class="btn btn-accent" type="submit" id="submitBtn">إرسال الطلب</button>
-          <a class="btn btn-outline" href="{% url 'reports:my_requests' %}">عرض طلباتي</a>
-        </div>
-      </form>
     </div>
-  </div>
+  </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
 (function(){
+  // --- Add CSS Classes to Django Rendered Inputs ---
+  document.querySelectorAll('.ticket-page input[type="text"], .ticket-page textarea').forEach(el => {
+    if(el.tagName === 'TEXTAREA') el.classList.add('tk-textarea');
+    else el.classList.add('tk-input');
+    
+    // Placeholder enhancements
+    if(el.name === 'title' && !el.placeholder) el.placeholder = 'مثال: عطل في جهاز العرض بالمعمل رقم 3...';
+    if(el.name === 'body' && !el.placeholder) el.placeholder = 'اكتب تفاصيل الطلب هنا...';
+  });
+
+  // --- Logic Preservation ---
   const form = document.getElementById('ticket-form');
   const dept = document.getElementById('{{ form.department.id_for_label }}');
   const recipientsBox = document.getElementById('id_recipients');
@@ -456,7 +556,7 @@
   const submitBtn = document.getElementById('submitBtn');
 
   const MAX_FILES = 4;
-  const MAX_FILE_MB = 6; // قبل الضغط
+  const MAX_FILE_MB = 6;
   const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 
   const CSRF = (window.getCsrfToken ? window.getCsrfToken() : (window.csrfToken || ''));
@@ -464,24 +564,32 @@
   function setMsg(text, type){
     if(!msg) return;
     msg.textContent = text || '';
-    if(type === 'error') msg.style.color = '#b91c1c';
-    else if(type === 'ok') msg.style.color = '#065f46';
-    else msg.style.color = '';
+    if(type === 'error') msg.style.color = '#e11d48';
+    else if(type === 'ok') msg.style.color = '#059669';
+    else msg.style.color = 'var(--ink-light)';
   }
 
   function setLoading(isLoading, text){
     if(submitBtn){
       submitBtn.disabled = !!isLoading;
-      submitBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+      const originalText = submitBtn.querySelector('span');
+      if(isLoading){
+        submitBtn.style.opacity = '0.7';
+        if(originalText) originalText.dataset.original = originalText.textContent;
+        if(originalText) originalText.textContent = text || 'جاري المعالجة...';
+      } else {
+        submitBtn.style.opacity = '1';
+        if(originalText && originalText.dataset.original) originalText.textContent = originalText.dataset.original;
+      }
     }
-    if(isLoading) setMsg(text || '...جاري المعالجة');
   }
 
   function setRecipientsDisabled(disabled){
     if(!recipientsBox) return;
+    recipientsBox.classList.toggle('disabled', disabled);
     recipientsBox.dataset.disabled = disabled ? '1' : '0';
     if(disabled){
-      recipientsBox.innerHTML = '';
+      recipientsBox.innerHTML = '<div class="help-text">اختر القسم أولاً لعرض الموظفين.</div>';
     }
   }
 
@@ -512,7 +620,7 @@
 
     if(n === 0){
       txtEl.textContent = 'اختر المستلمين';
-      countEl.textContent = 'غير محدد';
+      countEl.textContent = '';
       return;
     }
 
@@ -520,19 +628,19 @@
       const label = selected[0].closest('label');
       const name = label ? (label.textContent || '').trim() : '';
       txtEl.textContent = name || 'تم اختيار مستلم';
-      countEl.textContent = '1 مختار';
+      countEl.textContent = '(1)';
       return;
     }
 
     txtEl.textContent = 'تم اختيار مستلمين';
-    countEl.textContent = n + ' مختار';
+    countEl.textContent = '(' + n + ')';
   }
 
   function renderRecipients(list){
     if(!recipientsBox) return;
 
     if(!Array.isArray(list) || list.length === 0){
-      recipientsBox.innerHTML = '<div class="help">لا يوجد موظفون لهذا القسم</div>';
+      recipientsBox.innerHTML = '<div class="help-text">⚠️ لا يوجد موظفون مسجلون في هذا القسم حالياً.</div>';
       return;
     }
 
@@ -540,17 +648,20 @@
 
     const details = document.createElement('details');
     details.className = 'recipients-dd';
-    details.open = false;
+    details.open = true; // Open by default for better visibility in sidebar? No, maybe collapsed is cleaner. Let's keep closed.
+    // Actually in the sidebar it might be better to be collapsible.
 
     const summary = document.createElement('summary');
-
     const title = document.createElement('div');
     title.className = 'recipients-dd-title';
-    title.innerHTML = '<span class="txt">اختر المستلمين</span><span class="count">غير محدد</span>';
+    title.style.display = 'flex';
+    title.style.gap = '8px';
+    title.style.alignItems = 'center';
+    
+    title.innerHTML = '<span class="txt">اختر المستلمين</span><span class="count" style="color:var(--brand-600);font-weight:700"></span>';
 
     const caret = document.createElement('span');
-    caret.className = 'recipients-dd-caret';
-    caret.textContent = '▾';
+    caret.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
 
     summary.appendChild(title);
     summary.appendChild(caret);
@@ -569,7 +680,7 @@
     const grid = document.createElement('div');
     grid.className = 'recipients-grid';
 
-    // استعادة التحديد إن توفر (بعد فشل الإرسال مثلاً)
+    // Restore Pre-selection if any
     const preSelected = new Set(parseSelectedIds());
 
     let searchTimer = null;
@@ -594,7 +705,6 @@
       cb.name = 'recipients';
       cb.value = String(u.id);
 
-      // restore
       if(preSelected.has(String(u.id))){
         cb.checked = true;
         label.classList.add('selected');
@@ -630,7 +740,8 @@
     if(!recipientsBox) return;
 
     setRecipientsDisabled(true);
-    setMsg('...جاري تحميل الموظفين');
+    // Show spinner in box
+    recipientsBox.innerHTML = '<div style="padding:10px;text-align:center;color:var(--ink-light)">...جاري تحميل الموظفين</div>';
 
     try{
       const baseUrl = "{% url 'reports:api_department_members' %}";
@@ -653,7 +764,7 @@
       renderRecipients(list);
       setRecipientsDisabled(false);
 
-      // لو فيه موظف واحد: نختاره تلقائيًا (ما لم يكن هناك تحديد مُسبق)
+      // Auto-select if only 1
       const preSelected = parseSelectedIds();
       if(list.length === 1 && preSelected.length === 0){
         const first = recipientsBox.querySelector('input[type="checkbox"][name="recipients"]');
@@ -663,29 +774,24 @@
           if(lbl) lbl.classList.add('selected');
         }
         updateRecipientsSummary();
-        setMsg('تم اختيار الموظف تلقائيًا لأن القسم يحتوي موظفًا واحدًا', 'ok');
+        setMsg('تم اختيار الموظف الوحيد تلقائيًا', 'ok');
         return;
       }
-
-      if(list.length){
-        setMsg('تم تحميل ' + list.length + ' موظف. اختر المستلمين ثم أرسل الطلب.', 'ok');
-      } else {
-        setMsg('لا يوجد موظفون لهذا القسم');
-      }
+      
+      setMsg('', 'ok'); // Clear msg
 
     } catch(err){
       console.error(err);
-      setMsg('تعذر تحميل الموظفين. حاول مجددًا.', 'error');
-      setRecipientsDisabled(true);
+      recipientsBox.innerHTML = '<div class="error-text">تعذر تحميل بيانات الموظفين.</div>';
+      setMsg('حدث خطأ في الاتصال', 'error');
     }
   }
 
-  // تغيير القسم
+  // Event Listeners
   if(dept && recipientsBox){
     dept.addEventListener('change', (e) => {
       const slug = (e.target.value || '').trim();
-      // عند تغيير القسم: نلغي أي data-selected قديم حتى لا يُعاد تطبيقه على قسم آخر
-      recipientsBox.removeAttribute('data-selected');
+      recipientsBox.removeAttribute('data-selected'); // Clear preserved selection on change
 
       if(!slug){
         setRecipientsDisabled(true);
@@ -695,18 +801,13 @@
       loadMembers(slug);
     });
 
-    // عند تحميل الصفحة: لو فيه قيمة مسبقة
+    // On Load
     {% if form.is_bound %}
-      if(dept.value){
-        loadMembers(dept.value);
-        setMsg('تم استعادة القيم من المحاولة السابقة', 'ok');
-      } else {
-        setRecipientsDisabled(true);
-        setMsg('اختر قسمًا أولاً');
-      }
-    {% else %}
       if(dept.value){ loadMembers(dept.value); }
       else { setRecipientsDisabled(true); setMsg('اختر قسمًا أولاً'); }
+    {% else %}
+      if(dept.value){ loadMembers(dept.value); }
+      else { setRecipientsDisabled(true); }
     {% endif %}
   }
 
@@ -720,7 +821,7 @@
       const url = URL.createObjectURL(f);
       const box = document.createElement('div');
       box.className = 'thumb';
-      box.innerHTML = '<span class="badge">#' + (idx + 1) + '</span><img src="' + url + '" alt="preview">';
+      box.innerHTML = '<span class="badge">' + (idx + 1) + '</span><img src="' + url + '" alt="preview">';
       previews.appendChild(box);
 
       const img = box.querySelector('img');
@@ -741,20 +842,13 @@
     for(const f of files){
       const name = (f.name || '').toLowerCase();
       const type = (f.type || '').toLowerCase();
-
-      const isImage = type.startsWith('image/');
-      const okExt = name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.webp');
-
-      if(!isImage){
-        setMsg('الملفات المرفوعة يجب أن تكون صورًا فقط.', 'error');
-        return false;
-      }
-      if(!okExt){
-        setMsg('يُسمح فقط بصور JPG/PNG/WebP.', 'error');
+      
+      if(!type.startsWith('image/')){
+        setMsg('يسمح فقط بملفات الصور.', 'error');
         return false;
       }
       if(f.size > MAX_FILE_BYTES){
-        setMsg('حجم الصورة كبير. الحد قبل الضغط: ' + MAX_FILE_MB + 'MB لكل صورة.', 'error');
+        setMsg('حجم الصورة كبير جداً (Max ' + MAX_FILE_MB + 'MB).', 'error');
         return false;
       }
     }
@@ -771,6 +865,7 @@
     });
   }
 
+  // Compression Logic
   async function compressImage(file, opts){
     const maxW = opts.maxW || 1600;
     const maxH = opts.maxH || 1600;
@@ -789,7 +884,6 @@
     const w = img.naturalWidth || 1;
     const h = img.naturalHeight || 1;
     const r = Math.min(maxW / w, maxH / h, 1);
-
     const tw = Math.max(1, Math.round(w * r));
     const th = Math.max(1, Math.round(h * r));
 
@@ -798,23 +892,15 @@
     canvas.height = th;
 
     const ctx = canvas.getContext('2d');
-    if(!ctx){
-      try{ URL.revokeObjectURL(src); }catch(e){}
-      return file;
-    }
+    if(!ctx) return file;
 
     ctx.drawImage(img, 0, 0, tw, th);
-
+    
     const blob = await new Promise(resolve => {
-      try{
         canvas.toBlob(resolve, format, quality);
-      }catch(e){
-        resolve(null);
-      }
     });
 
     try{ URL.revokeObjectURL(src); }catch(e){}
-
     if(!blob) return file;
 
     const ext = blob.type === 'image/webp' ? '.webp' : '.jpg';
@@ -824,69 +910,63 @@
 
   async function replaceWithCompressed(files){
     const dt = new DataTransfer();
-
     for(const f of files){
-      const c1 = await compressImage(f, { maxW:1600, maxH:1600, quality:0.82, format:'image/webp' });
-
-      if(c1.size > 1.2 * 1024 * 1024){
-        const c2 = await compressImage(f, { maxW:1600, maxH:1600, quality:0.70, format:'image/webp' });
-        dt.items.add(c2);
-      } else {
-        dt.items.add(c1);
-      }
+      const c1 = await compressImage(f, { maxW:1600, maxH:1600, quality:0.82 });
+      dt.items.add(c1);
     }
-
     input.files = dt.files;
   }
 
   if(form){
     form.addEventListener('submit', async (e) => {
-      // تحقق سريع قبل الإرسال
+      
+      // Basic Validation
       if(dept && !dept.value){
         e.preventDefault();
-        setMsg('الرجاء اختيار القسم.', 'error');
+        setMsg('الرجاء اختيار القسم', 'error');
         dept.focus();
         return;
       }
-
-      if(recipientsBox && recipientsBox.dataset.disabled === '1'){
-        e.preventDefault();
-        setMsg('الرجاء الانتظار حتى يتم تحميل الموظفين.', 'error');
-        return;
-      }
-
+      
+      // Check recipients
       if(recipientsBox && getSelectedRecipientIds().length === 0){
         e.preventDefault();
-        setMsg('الرجاء اختيار مستلم واحد على الأقل.', 'error');
-        recipientsBox.scrollIntoView({behavior:'smooth', block:'center'});
+        setMsg('يجب اختيار مستلم واحد على الأقل', 'error');
+        recipientsBox.scrollIntoView();
+        // Shake animation
+        recipientsBox.animate([
+           { transform: 'translateX(0)' }, 
+           { transform: 'translateX(-5px)' }, 
+           { transform: 'translateX(5px)' }, 
+           { transform: 'translateX(0)' }
+        ], { duration: 300 });
         return;
       }
 
-      // ضغط الصور قبل الإرسال
+      // Images Compression
       if(input){
         const files = Array.from(input.files || []);
         if(files.length){
-          if(!validateFiles(files)){
-            e.preventDefault();
-            return;
-          }
-
+          if(!validateFiles(files)){ e.preventDefault(); return; }
+          
           e.preventDefault();
-          setLoading(true, '...جاري ضغط الصور');
-
+          setLoading(true, 'جاري ضغط الصور...');
           try{
             await replaceWithCompressed(files);
-            setLoading(false, '');
+            setLoading(false);
             form.submit();
           }catch(err){
             console.error(err);
-            setLoading(false, '');
-            setMsg('تعذر ضغط الصور. حاول مجددًا أو ارفع صورًا أصغر.', 'error');
+            setLoading(false);
+            setMsg('فشل ضغط الصور، جاري الرفع بدون ضغط...', 'error');
+            // Allow fallback
+            form.submit();
           }
         }
       }
     });
   }
+
 })();
 </script>
 {% endblock %}

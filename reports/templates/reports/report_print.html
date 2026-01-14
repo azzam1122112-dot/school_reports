@@ -3,530 +3,372 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="light" />
-  <title>تقرير {% firstof r.title "بدون عنوان" %}</title>
-
+  <title>تقرير: {% firstof r.title "بدون عنوان" %}</title>
+  
   {% if not for_pdf %}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   {% endif %}
 
   <style>
-    :root{
-      --ink:#0f172a;
-      --muted:#64748b;
-      --line:#e2e8f0;
-      --brand:#2563eb;
-      --bg:#f8fafc;
-      --card:#ffffff;
-      --radius:12px;
-      --print-margin:15mm;
+    :root {
+      --font-body: 'Tajawal', system-ui, sans-serif;
+      --color-black: #000000;
+      --color-gray: #4b5563;
+      --color-border: #000000; /* Official reports often use strong borders */
     }
 
-    *{ box-sizing:border-box }
-    html,body{ margin:0; padding:0 }
-    body{
-      font-family: {% if not for_pdf %}'Tajawal',{% endif %} system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
-      color:var(--ink);
-      background:#fff;
-      line-height:1.65;
-      text-align:right;
-    }
-    img{ max-width:100%; height:auto; display:block }
-
-    /* ===== شريط الأدوات (لا يُطبع) ===== */
-    .toolbar{
-      display:flex;
-      gap:12px;
-      justify-content:center;
-      align-items:center;
-      padding:15px;
-      background:#fff;
-      border-bottom:1px solid var(--line);
-      z-index:99;
-    }
-    .btn{
-      padding:10px 18px;
-      border-radius:10px;
-      border:1px solid #cbd5e1;
-      background:#fff;
-      cursor:pointer;
-      font-weight:900;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      text-decoration:none;
-      color:var(--ink);
-      transition: .15s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:hover{ transform: translateY(-1px) }
-    .btn-primary{ background:var(--brand); color:#fff; border-color:var(--brand) }
-    .hint{ font-size:.9rem; color:var(--muted); font-weight:800 }
-
-    /* ===== حاوية التقرير ===== */
-    .report-wrapper{
-      max-width:210mm;
-      margin:0 auto;
-      background:#fff;
+    * { box-sizing: border-box; }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-body);
+      background: #e5e5e5; /* Grey background for screen preview */
+      color: var(--color-black);
+      -webkit-font-smoothing: antialiased;
     }
 
-    @media screen{
-      body{ background:#f1f5f9; padding:20px 0 }
-      .report-wrapper{
-        padding:var(--print-margin);
-        min-height:297mm;
-        box-shadow:0 0 20px rgba(0,0,0,.10);
-        border-radius:14px;
+    /* A4 Container */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      background: white;
+      padding: 20mm 20mm; /* Standard margin */
+      position: relative;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      overflow: hidden; /* Ensure content stays within */
+    }
+
+    /* Print Settings */
+    @media print {
+      body {
+        margin: 0;
+        background: white;
       }
-      .toolbar{
-        position:sticky;
-        top:0;
-        margin-bottom:20px;
-        box-shadow:0 2px 10px rgba(0,0,0,.05);
+      .page {
+        margin: 0;
+        width: 100%;
+        min-height: 100%; /* Fill the paper */
+        border: none;
+        box-shadow: none;
+        padding: 5mm 10mm; /* Margins handled by @page mostly, but safe padding */
+      }
+      .no-print { display: none !important; }
+      
+      @page {
+        size: A4;
+        margin: 10mm; /* Printer margin */
       }
     }
 
-    /* ===== Header ===== */
-    .hero{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      padding:18px;
-      border-radius:var(--radius);
-      margin-bottom:18px;
-      background: linear-gradient(135deg, rgba(37,99,235,.92), rgba(16,185,129,.78));
-      color:#fff;
+    /* Toolbar for Screen */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #333;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+    }
+    .btn {
+      background: white;
+      color: #333;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: bold;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .btn:hover { background: #f0f0f0; }
+    .btn-print { background: #2563eb; color: white; }
+    .btn-print:hover { background: #1d4ed8; }
+
+    /* --- OFFICIAL HEADER --- */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--color-black);
+      padding-bottom: 15px;
+      margin-bottom: 30px;
+    }
+
+    .header-col {
+      flex: 1;
+      text-align: center;
+    }
+
+    .header-right {
+      text-align: right;
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+    
+    .header-left {
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+    
+    .header-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-img {
+      height: 90px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    /* --- CONTENT --- */
+    .report-title-box {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .report-title {
+      font-size: 24px;
+      font-weight: 800;
+      text-decoration: underline;
+      text-underline-offset: 8px;
+      margin: 0;
+    }
+    
+    .report-meta {
+      font-size: 14px;
+      color: var(--color-gray);
+      margin-top: 8px;
+    }
+
+    /* Meta Table - Official Grid Style */
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+      font-size: 15px;
+    }
+    
+    .meta-table th, .meta-table td {
+      border: 1px solid #000;
+      padding: 10px 12px;
+      text-align: right;
+    }
+    
+    .meta-table th {
+      background-color: #f3f3f3; /* Light grey for headers */
+      font-weight: 800;
+      width: 150px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
-    .hero-side{ flex:1; min-width:0 }
-    .hero-right{ text-align:right }
-    .hero-left{ text-align:left }
-    .hero-center{ flex:0 0 auto; display:flex; align-items:center; justify-content:center }
-
-    .ministry-logo{
-      width:74px;
-      height:74px;
-      object-fit:contain;
-      background:#fff;
-      border-radius:14px;
-      padding:8px;
-      border:1px solid rgba(255,255,255,.22);
+    /* Main Body Text */
+    .content-section {
+      margin-bottom: 30px;
+      font-size: 16px;
+      line-height: 2;
+      border: 1px solid #000;
+      padding: 15px;
+      min-height: 150px;
     }
 
-    .hero-school{
-      margin:0;
-      font-weight:950;
-      font-size:1.15rem;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .hero-stage{
-      margin-top:6px;
-      opacity:.95;
-      font-weight:850;
-      font-size:.95rem;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .hero-type-label{ opacity:.92; font-weight:850; font-size:.9rem }
-    .hero-type{
-      margin-top:6px;
-      font-weight:950;
-      font-size:1.15rem;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .section-label {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 15px;
+      display: inline-block;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 5px;
     }
 
-    /* ===== Cards ===== */
-    .details-grid{
-      display:grid;
-      grid-template-columns:repeat(2, 1fr);
-      gap:12px;
-      margin-bottom:16px;
+    /* Images Grid */
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+      page-break-inside: avoid;
     }
-    .info-card--wide{ grid-column:span 2 }
-    .info-card{
-      padding:12px 14px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      background:var(--bg);
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      break-inside:avoid;
-      page-break-inside:avoid;
+    
+    .img-box {
+      border: 1px solid #ccc;
+      padding: 5px;
+      background: #fff;
+      text-align: center;
     }
-    .info-card .label{ color:var(--muted); font-size:.85rem; font-weight:900 }
-    .info-card .value{ font-weight:950; font-size:1rem }
-
-    .section-header{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      margin:18px 0 10px;
-      color:var(--brand);
-      font-weight:950;
-      font-size:1.08rem;
-      border-bottom:2px solid #dbeafe;
-      padding-bottom:8px;
+    
+    .img-box img {
+      max-width: 100%;
+      height: 200px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+    
+    .img-caption {
+      font-size: 12px;
+      margin-top: 5px;
+      color: #666;
     }
 
-    .description-box{
-      padding:14px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      background:#fff;
-      white-space:pre-wrap;
-      font-size:1rem;
-      color:#0f172a;
-      line-height:1.9;
-      word-break:break-word;
-      margin-bottom:14px;
-      break-inside:auto;
-      page-break-inside:auto;
+    /* Achievements / Table Data */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .data-table th, .data-table td {
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: center;
+    }
+    .data-table th {
+      background: #eee;
+      font-weight: bold;
     }
 
-    /* ===== Private Comments ===== */
-    .comments-box{
-      padding:14px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      background:#fff;
-      margin-top:10px;
-      break-inside:avoid;
-      page-break-inside:avoid;
+    /* Watermark for draft/unofficial if needed */
+    .watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 100px;
+      opacity: 0.05;
+      font-weight: 900;
+      pointer-events: none;
+      z-index: 0;
     }
-    .comment-item{ padding:10px 0; border-bottom:1px dashed var(--line); }
-    .comment-item:last-child{ border-bottom:none; }
-    .comment-meta{ color:var(--muted); font-weight:900; font-size:.85rem; margin-bottom:6px; }
-    .comment-body{ white-space:pre-wrap; word-break:break-word; }
-    .comment-form{ margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--line); }
-    .comment-form textarea{ width:100%; min-height:110px; padding:10px; border-radius:10px; border:1px solid #cbd5e1; font-family:inherit; }
-    @media print{ .comment-form{ display:none; } }
-
-    /* ===== Media Block (الصور) ===== */
-    .media-block{
-      margin-top:12px;
-      break-inside:avoid;
-      page-break-inside:avoid;
-    }
-    .media-block--newpage{
-      page-break-before:always;
-      break-before:page;
+    
+    .page-number {
+      position: absolute;
+      bottom: 10mm;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
     }
 
-    /* ===== Photos ===== */
-    .photos-grid{
-      display:grid;
-      grid-template-columns:repeat(2, 1fr);
-      gap:14px;
-      margin-top:12px;
-    }
-    .photo-item{
-      border:1px solid var(--line);
-      border-radius:12px;
-      overflow:hidden;
-      background:#fff;
-      display:flex;
-      flex-direction:column;
-      break-inside:avoid;
-      page-break-inside:avoid;
-    }
-    .photo-item img{
-      width:100%;
-      height:220px;
-      object-fit:contain;
-      object-position:center;
-      background:#fff;
-    }
-    .photo-caption{
-      padding:8px;
-      font-size:.85rem;
-      text-align:center;
-      background:var(--bg);
-      border-top:1px solid var(--line);
-      color:var(--muted);
-      font-weight:900;
-    }
-
-    .photos-grid--4{ grid-template-columns:repeat(4, 1fr) }
-    .photos-grid--4 .photo-item img{ height:110px }
-    .photos-grid--1{ grid-template-columns:1fr }
-    .photos-grid--1 .photo-item img{ height:260px }
-
-    /* ===== Print rules ===== */
-    @media print{
-      @page{ size:A4; margin:10mm; }
-      *{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
-      .toolbar{ display:none !important; }
-      body{ background:#fff; }
-
-      .report-wrapper{
-        padding:0 !important;
-        box-shadow:none !important;
-        border-radius:0 !important;
-      }
-
-      .for-pdf .report-wrapper{
-        padding: var(--print-margin) !important;
-      }
-
-      .for-screen .hero,
-      .for-pdf .hero{
-        background: linear-gradient(135deg, rgba(37,99,235,.92), rgba(16,185,129,.78)) !important;
-        color:#fff !important;
-        border:none !important;
-        padding:18px !important;
-        margin-bottom:18px !important;
-      }
-
-      .ministry-logo{
-        width:64px;
-        height:64px;
-        padding:6px;
-        border:1px solid var(--line);
-      }
-
-      .hero-school,.hero-type{ font-size:1.05rem; }
-      .hero-stage,.hero-type-label{ font-size:.9rem; }
-
-      .for-pdf .details-grid{ gap:9px; margin-bottom:12px; }
-      .for-pdf .section-header{ margin:12px 0 8px; }
-      .for-pdf .description-box{ padding:10px; margin-bottom:10px; font-size:.95rem; }
-
-      /* تجنب مشاكل Grid في طباعة Chrome -> Flex */
-      .photos-grid{
-        display:flex;
-        flex-wrap:wrap;
-        gap:10px;
-      }
-      .photo-item{ width: calc(50% - 5px); }
-      .photo-item img{ height:140px; object-fit:contain; background:#fff; }
-
-      .photos-grid--4 .photo-item{ width: calc(25% - 8px); }
-      .photos-grid--4 .photo-item img{ height:95px; }
-
-      .photos-grid--1 .photo-item{ width: 100%; }
-      .photos-grid--1 .photo-item img{ height:165px; }
-
-      .photo-caption{ padding:6px 8px; font-size:.76rem; }
-      .info-card{ background:#fff; border:1px solid var(--line); }
-      .info-card .value{ font-size:.92rem; }
-      .section-header{ font-size:1rem; border-bottom-color:var(--line); }
-    }
-
-    @media (max-width: 720px){
-      .details-grid{ grid-template-columns:1fr; }
-      .info-card--wide{ grid-column:auto; }
-      .hero{ padding:14px; }
-      .ministry-logo{ width:62px; height:62px; }
-    }
   </style>
 </head>
+<body>
 
-<body class="{% if for_pdf %}for-pdf{% else %}for-screen{% endif %}">
-
-{% if not for_pdf %}
-  <div class="toolbar">
-    <a href="{% url 'reports:my_reports' %}" class="btn">
-      <i class="fas fa-arrow-right"></i> رجوع
-    </a>
-    <button class="btn btn-primary" type="button" id="printBtn">
-      <i class="fas fa-print"></i> طباعة
+  <!-- Screen Toolbar -->
+  <div class="toolbar no-print">
+    <span>معاينة الطباعة (A4)</span>
+    <button onclick="window.print()" class="btn btn-print">
+      <i class="fas fa-print"></i> طباعة / حفظ كـ 
     </button>
-    <span class="hint">من نافذة الطباعة اختر “Save as PDF” وألغِ “Headers and footers” لنتيجة مطابقة</span>
+    <a href="javascript:history.back()" class="btn">
+      <i class="fas fa-arrow-right"></i> عودة
+    </a>
   </div>
-{% endif %}
 
-<div class="report-wrapper">
-  <header class="hero">
-    <div class="hero-side hero-right">
-      <div class="hero-school">
-        {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير المدرسية{% endif %}
+  <div class="page">
+    
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-col header-right">
+        <div>المملكة العربية السعودية</div>
+        <div>وزارة التعليم</div>
+         <div>مدرسة: {{ r.school.name|default:"غير محدد" }}</div>
       </div>
-      {% if SCHOOL_STAGE %}
-        <div class="hero-stage">{{ SCHOOL_STAGE }}</div>
-      {% endif %}
-    </div>
-
-    <div class="hero-center">
-      <img class="ministry-logo" src="{% static 'img/UntiTtled-1.png' %}" alt="شعار الوزارة" />
-    </div>
-
-    <div class="hero-side hero-left">
-      <div class="hero-type-label">نوع التقرير</div>
-      <div class="hero-type">
-        {% if r.category and r.category.name %}{{ r.category.name }}{% else %}عام{% endif %}
-      </div>
-    </div>
-  </header>
-
-  <main class="main-content">
-
-    <div class="details-grid">
-      <div class="info-card">
-        <span class="label">عنوان التقرير</span>
-        <span class="value">{% firstof r.title "—" %}</span>
-      </div>
-
-      <div class="info-card">
-        <span class="label">التاريخ واليوم</span>
-        <span class="value">{{ r.report_date|date:"Y-m-d" }}{% if r.day_name %} - {{ r.day_name }}{% endif %}</span>
-      </div>
-
-      <div class="info-card">
-        <span class="label">معد التقرير</span>
-        <span class="value">{% firstof r.teacher_display_name "—" %}</span>
-      </div>
-
-      <div class="info-card">
-        <span class="label">عدد المستفيدين</span>
-        <span class="value">{{ r.beneficiaries_count|default:"0" }}</span>
-      </div>
-
-      {% if r.department %}
-        <div class="info-card info-card--wide">
-          <span class="label">القسم / الجهة</span>
-          <span class="value">{{ r.department.name }}</span>
-        </div>
-      {% endif %}
-    </div>
-
-    <div class="section-header">
-      {% if not for_pdf %}<i class="fa-solid fa-file-lines"></i>{% endif %}
-      تفاصيل ومحتوى التقرير
-    </div>
-
-    {% with idea_text=r.idea|default:"" %}
-      {% with idea_len=idea_text|length %}
-        <div class="description-box">{{ idea_text|default:"لا يوجد وصف مضاف." }}</div>
-
-        <div class="media-block
-          {% if idea_len > 850 %} media-block--newpage{% endif %}
-          {% if idea_len > 520 %}
-            {% if r.image1 and r.image2 and r.image3 %} media-block--newpage{% endif %}
-          {% endif %}
-        ">
-
-          {% if r.image1 or r.image2 or r.image3 or r.image4 %}
-            <div class="section-header">
-              {% if not for_pdf %}<i class="fa-solid fa-images"></i>{% endif %}
-              الصور المرفقة
-            </div>
-
-            <div class="photos-grid
-              {% if r.image1 and r.image2 and r.image3 and r.image4 %} photos-grid--4{% endif %}
-              {% if r.image1 and not r.image2 and not r.image3 and not r.image4 %} photos-grid--1{% endif %}
-              {% if not r.image1 and r.image2 and not r.image3 and not r.image4 %} photos-grid--1{% endif %}
-              {% if not r.image1 and not r.image2 and r.image3 and not r.image4 %} photos-grid--1{% endif %}
-              {% if not r.image1 and not r.image2 and not r.image3 and r.image4 %} photos-grid--1{% endif %}
-            ">
-
-              {% if r.image1 %}
-                <div class="photo-item">
-                  <img
-                    src="{{ image1_url|default:r.image1.url }}"
-                    alt="صورة توثيقية 1"
-                    {% if not for_pdf %}loading="lazy"{% endif %}
-                  />
-                  <div class="photo-caption">صورة توثيقية (1)</div>
-                </div>
-              {% endif %}
-
-              {% if r.image2 %}
-                <div class="photo-item">
-                  <img
-                    src="{{ image2_url|default:r.image2.url }}"
-                    alt="صورة توثيقية 2"
-                    {% if not for_pdf %}loading="lazy"{% endif %}
-                  />
-                  <div class="photo-caption">صورة توثيقية (2)</div>
-                </div>
-              {% endif %}
-
-              {% if r.image3 %}
-                <div class="photo-item">
-                  <img
-                    src="{{ image3_url|default:r.image3.url }}"
-                    alt="صورة توثيقية 3"
-                    {% if not for_pdf %}loading="lazy"{% endif %}
-                  />
-                  <div class="photo-caption">صورة توثيقية (3)</div>
-                </div>
-              {% endif %}
-
-              {% if r.image4 %}
-                <div class="photo-item">
-                  <img
-                    src="{{ image4_url|default:r.image4.url }}"
-                    alt="صورة توثيقية 4"
-                    {% if not for_pdf %}loading="lazy"{% endif %}
-                  />
-                  <div class="photo-caption">صورة توثيقية (4)</div>
-                </div>
-              {% endif %}
-
-            </div>
-          {% endif %}
-
-        </div>
-      {% endwith %}
-    {% endwith %}
-
-    {% if show_comments %}
-      <div class="section-header">
-        {% if not for_pdf %}<i class="fa-solid fa-comment-dots"></i>{% endif %}
-        تعليقات خاصة (تظهر لك فقط)
-      </div>
-
-      <div class="comments-box">
-        {% if comment_form and not for_pdf %}
-          <form method="post" class="comment-form">
-            {% csrf_token %}
-            {{ comment_form.body }}
-            <div style="margin-top:10px; display:flex; justify-content:flex-start;">
-              <button type="submit" class="btn btn-primary">إرسال التعليق</button>
-            </div>
-          </form>
-        {% endif %}
-
-        {% if private_comments %}
-          {% for c in private_comments %}
-            <div class="comment-item">
-              <div class="comment-meta">
-                {{ c.created_by }} — {{ c.created_at|date:"Y-m-d H:i" }}
-              </div>
-              <div class="comment-body">{{ c.body }}</div>
-            </div>
-          {% endfor %}
+      
+      <div class="header-col header-center">
+        <!-- Default Logo or Specific -->
+        {% if r.school.logo_file %}
+          <img src="{{ r.school.logo_file.url }}" alt="Logo" class="logo-img">
         {% else %}
-          <div class="hint">لا توجد تعليقات خاصة.</div>
+           <!-- Fallback Ministry Logo placeholder or text -->
+           <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Ministry_of_Education_%28Saudi_Arabia%29.svg/1200px-Ministry_of_Education_%28Saudi_Arabia%29.svg.png" alt="MOE" class="logo-img" style="opacity:0.8; height:80px;">
         {% endif %}
       </div>
+      
+      <div class="header-col header-left">
+        <div>التاريخ: {{ r.created_at|date:"Y/m/d" }}</div>
+        <div>رقم التقرير: #{{ r.id }}</div>
+        {% if r.category %}
+        <div>نوع التقرير: {{ r.category.name }}</div>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <div class="report-title-box">
+      <h1 class="report-title">عنوان التقرير: {{ r.title }}</h1>
+    </div>
+
+    <!-- Info Table -->
+    <table class="meta-table">
+      <tr>
+        <th>المسؤول (معد التقرير)</th>
+        <td>{{ r.teacher_display_name }}</td>
+        <th>القسم / المجال</th>
+        <td>{{ r.category.name|default:"عام" }}</td>
+      </tr>
+      <tr>
+        <th>الفترة / التاريخ</th>
+        <td>{{ r.created_at|date:"l d F Y" }}</td>
+        <th>حالة التقرير</th>
+        <td>
+          {% if r.is_draft %}مسودة{% else %}معتمد{% endif %}
+        </td>
+      </tr>
+    </table>
+
+    <div class="content-section">
+      <div class="section-label">1. تفاصيل التقرير / الإنجاز:</div>
+      <div style="white-space: pre-wrap; text-align: justify;">{{ r.description|default:"لا يوجد تفاصيل إضافية." }}</div>
+    </div>
+    
+    {% if r.achievements.exists %}
+    <div class="content-section" style="border:none; padding:0;">
+      <div class="section-label">2. المرفقات و الشواهد ({{ r.achievements.count }}):</div>
+      <div class="images-grid">
+        {% for img in r.achievements.all %}
+        <div class="img-box">
+           <!-- Using thumbnail or direct image based on implementation -->
+           <img src="{{ img.image.url }}" alt="Attachment">
+           <!-- Optional Caption -->
+           {% if img.description %}
+           <div class="img-caption">{{ img.description }}</div>
+           {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
     {% endif %}
+    
+    <div class="page-number">
+       تم استخراج هذا التقرير آلياً من منصة توثـيق
+    </div>
 
-  </main>
-</div>
+  </div>
 
-{% if not for_pdf %}
-  <script nonce="{{ CSP_NONCE }}">
-    (function(){
-      var btn = document.getElementById('printBtn');
-      if(btn) btn.addEventListener('click', function(){ window.print(); });
-    })();
+  <script>
+    // Auto print if ?print=true (optional)
+    if(window.location.search.includes('print=true')){
+      window.print();
+    }
   </script>
-{% endif %}
-
 </body>
 </html>
