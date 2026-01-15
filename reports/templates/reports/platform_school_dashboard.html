@@ -1,34 +1,146 @@
-{% extends "base.html" %}
-{% block title %}لوحة المدرسة{% endblock %}
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}المشرف العام - المدرسة{% endblock %}
+
+{% block head %}
+<style>
+    /* Clean Supervisor View */
+    .supervisor-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    .sup-header {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .school-title h1 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0;
+        color: #1e293b;
+    }
+    .badge-role {
+        background: #f1f5f9;
+        color: #64748b;
+        padding: 0.25rem 0.75rem;
+        border-radius: 99px;
+        font-size: 0.8rem;
+        vertical-align: middle;
+        margin-right: 0.5rem;
+    }
+    
+    .grid-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .card-sup {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+    }
+    .card-sup h3 { font-size: 1rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; margin-top: 0; }
+    
+    .big-num { font-size: 2.5rem; font-weight: 800; color: #0f172a; margin: 0.5rem 0; }
+    
+    .action-row {
+        margin-top: 2rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-sup {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: white;
+        border: 1px solid #cbd5e1;
+        color: #334155;
+        transition: all 0.2s;
+    }
+    .btn-sup:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+    .btn-sup.primary {
+        background: #0f172a;
+        color: white;
+        border-color: #0f172a;
+    }
+    .btn-sup.primary:hover {
+        background: #1e293b;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container" dir="rtl" style="max-width:980px;margin:0 auto;padding:18px">
-  <div class="card" style="border-radius:18px">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <div>
-        <h1 style="margin:0;font-weight:950">{{ school.name }}</h1>
-        <div class="muted" style="margin-top:6px;font-weight:850">
-          {% if school.city %}{{ school.city }} • {% endif %}
-          {% if school.get_gender_display %}{{ school.get_gender_display }}{% endif %}
+<div class="supervisor-container">
+    <div class="sup-header">
+        <div class="school-title">
+            <span class="badge-role">لوحة المشرف العام</span>
+            <h1>{{ school.name }}</h1>
         </div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a class="btn btn-outline" href="{% url 'reports:platform_schools_directory' %}">رجوع للمدارس</a>
-      </div>
+        <div>
+            <a href="{% url 'reports:platform_schools_directory' %}" class="btn-sup">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+        </div>
     </div>
 
-    <hr style="margin:16px 0;border-color:var(--line-2)">
-
-    <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <a class="btn btn-primary" href="{% url 'reports:platform_school_reports' %}">عرض التقارير</a>
-      <a class="btn btn-primary" href="{% url 'reports:platform_school_tickets' %}">عرض التذاكر</a>
-      <a class="btn btn-primary" href="{% url 'reports:achievement_school_files' %}">عرض ملفات الإنجاز</a>
-      <a class="btn btn-outline" href="{% url 'reports:platform_school_notify' %}">إرسال إشعار للمدرسة</a>
+    <div class="grid-cards">
+        <div class="card-sup">
+            <h3>التقارير</h3>
+            <div class="big-num">{{ school.reports.count }}</div>
+            <p style="color:#64748b; font-size:0.9rem">إجمالي التقارير المرفوعة</p>
+        </div>
+        <div class="card-sup">
+            <h3>المعلمين</h3>
+            <div class="big-num">{{ school.memberships.count }}</div>
+            <p style="color:#64748b; font-size:0.9rem">أعضاء الهيئة التعليمية</p>
+        </div>
+        <div class="card-sup">
+            <h3>حالة الاشتراك</h3>
+            <div class="big-num" style="font-size:1.5rem; color:#10b981;">
+                {% if school.subscription.is_active %}نشط{% else %}غير نشط{% endif %}
+            </div>
+            <p style="color:#64748b; font-size:0.9rem">ينتهي: {{ school.subscription.end_date|default:"-" }}</p>
+        </div>
     </div>
 
-    <div class="muted" style="margin-top:12px;font-weight:850">
-      صلاحياتك هنا: عرض + تواصل فقط.
+    <div class="action-row">
+        <a href="{% url 'reports:platform_school_reports' %}" class="btn-sup primary">
+            <i class="fas fa-file-alt"></i> استعراض التقارير
+        </a>
+        <a href="{% url 'reports:platform_school_tickets' %}" class="btn-sup">
+            <i class="fas fa-ticket-alt"></i> متابعة التذاكر
+        </a>
+        <a href="{% url 'reports:platform_school_notify' %}" class="btn-sup">
+            <i class="fas fa-bell"></i> إرسال تعميم
+        </a>
     </div>
-  </div>
+
+    <!-- Alert Section -->
+    <div style="margin-top:3rem; padding: 2rem; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px; color: #92400e;">
+        <h4 style="margin:0 0 0.5rem 0; font-weight:700"><i class="fas fa-info-circle"></i> ملاحظات المشرف</h4>
+        <p style="margin:0; font-size:0.95rem;">
+            تأكد من متابعة مؤشرات الأداء بشكل دوري. في حال انخفاض عدد التقارير عن المعدل الطبيعي، يرجى التواصل مع إدارة المدرسة.
+        </p>
+    </div>
 </div>
 {% endblock %}

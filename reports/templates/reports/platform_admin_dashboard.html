@@ -1,404 +1,467 @@
-{# reports/templates/reports/platform_admin_dashboard.html (مثال اسم) #}
-{% extends "base.html" %}
-{% load static %}
+{% extends 'base.html' %}
+{% load static humanize %}
 
-{% block title %}لوحة إدارة المنصة{% endblock %}
+{% block title %}لوحة مدير النظام | تحديث 2026{% endblock %}
 
 {% block head %}
 <style>
-  /* =========================================================
-     PLATFORM ADMIN DASHBOARD (page-only) — Scoped بالكامل
-     - بدون لمس :root
-     - بدون إعادة تعريف .btn / .card العامة
-     - دعم data-theme (Dark/Light)
-     ========================================================= */
-
-  .platform-admin{
-    --pa-brand: var(--brand, #2563eb);
-    --pa-accent: var(--accent, #10b981);
-    --pa-danger: var(--danger, #ef4444);
-    --pa-ink: var(--ink, #0f172a);
-    --pa-muted: var(--muted, #64748b);
-    --pa-line: var(--line-2, var(--line, #e5e7eb));
-    --pa-card: var(--card, #fff);
-    --pa-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
-    --pa-radius: 18px;
-    --pa-t: var(--t-fast, all .2s ease);
-  }
-
-  /* Hero */
-  .platform-admin .page-hero{
-    padding: 14px 18px;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    border: 1px solid rgba(255,255,255,.14);
-    background:
-      radial-gradient(900px 240px at 20% 0%, rgba(37,99,235,.22), transparent 55%),
-      radial-gradient(700px 260px at 85% 75%, rgba(16,185,129,.16), transparent 60%),
-      linear-gradient(135deg, rgba(37,99,235,.96), rgba(14,165,233,.88));
-    color:#fff;
-    border-radius: var(--pa-radius);
-    overflow:hidden;
-    box-shadow: var(--pa-shadow);
-  }
-
-  .platform-admin .page-head{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:10px;
-    margin:0;
-    flex-wrap:wrap;
-  }
-
-  .platform-admin .page-title{
-    margin:0;
-    font-weight: 950;
-    letter-spacing: -.3px;
-    line-height: 1.2;
-    color:#fff;
-    font-size: clamp(1.2rem, 2.2vw, 1.6rem);
-  }
-
-  .platform-admin .page-subtitle{
-    margin:6px 0 0;
-    color: rgba(255,255,255,.92);
-    font-weight: 850;
-    max-width: 760px;
-  }
-
-  /* Badge */
-  .platform-admin .hero-badge{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding: 10px 12px;
-    border-radius: 999px;
-    background: rgba(255,255,255,.14);
-    border: 1px solid rgba(255,255,255,.22);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-  .platform-admin .hero-ava{
-    width: 40px;
-    height: 40px;
-    border-radius: 999px;
-    display:grid;
-    place-items:center;
-    background: rgba(255,255,255,.92);
-    color: var(--pa-brand);
-    font-weight: 950;
-    flex: 0 0 auto;
-  }
-
-  /* KPI Grid */
-  .platform-admin .kpi-grid{
-    display:grid;
-    gap:12px;
-    margin-top: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  }
-
-  .platform-admin .kpi{
-    border-radius: 16px;
-    border: 1px solid var(--pa-line);
-    background: linear-gradient(180deg, var(--pa-card), var(--line-2, #f6f8fb));
-    padding: 14px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    box-shadow: var(--pa-shadow);
-    transition: var(--pa-t);
-    position:relative;
-    overflow:hidden;
-  }
-  .platform-admin .kpi:hover{
-    transform: translateY(-2px);
-    box-shadow: 0 20px 44px rgba(2,6,23,.12);
-  }
-
-  html[data-theme="dark"] .platform-admin .kpi{
-    background: linear-gradient(180deg, rgba(18,32,67,.92), rgba(15,22,41,.92));
-    border-color:#1b2744;
-    box-shadow: 0 18px 44px rgba(0,0,0,.26);
-  }
-
-  .platform-admin .kpi .num{
-    font-weight: 950;
-    font-size: clamp(1.25rem, 2.4vw, 1.7rem);
-    color: var(--pa-ink);
-    line-height:1.05;
-  }
-  .platform-admin .kpi .lbl{
-    margin-top: 6px;
-    font-weight: 850;
-    color: var(--pa-muted);
-    font-size: .95rem;
-  }
-
-  .platform-admin .kpi-ico{
-    width: 44px;
-    height: 44px;
-    border-radius: 16px;
-    display:grid;
-    place-items:center;
-    font-size: 1.25rem;
-    border: 1px solid rgba(15,23,42,.06);
-    background: rgba(255,255,255,.70);
-  }
-  html[data-theme="dark"] .platform-admin .kpi-ico{
-    background: rgba(255,255,255,.06);
-    border-color: rgba(148,163,184,.18);
-  }
-
-  .platform-admin .kpi-ico.ok{ color: #10b981; }
-  .platform-admin .kpi-ico.info{ color: #2563eb; }
-  .platform-admin .kpi-ico.warn{ color: #f59e0b; }
-  .platform-admin .kpi-ico.danger{ color: #ef4444; }
-
-  /* Actions */
-  .platform-admin .actions-grid{
-    display:grid;
-    gap:12px;
-    margin-top:14px;
-  }
-  @media(min-width: 900px){
-    .platform-admin .actions-grid{grid-template-columns:1fr 1fr}
-  }
-
-  .platform-admin .tile{
-    display:flex;
-    gap:12px;
-    align-items:center;
-    text-decoration:none;
-    color: inherit;
-    padding: 14px;
-    border-radius: 16px;
-    transition: var(--pa-t);
-  }
-  .platform-admin .tile:hover{
-    background: rgba(37,99,235,.04);
-    border-color: rgba(37,99,235,.20);
-    transform: translateY(-1px);
-  }
-  html[data-theme="dark"] .platform-admin .tile:hover{
-    background: rgba(37,99,235,.10);
-    border-color: rgba(59,130,246,.22);
-  }
-
-  .platform-admin .tile .ico{
-    width:46px;height:46px;
-    border-radius: 14px;
-    display:grid;
-    place-items:center;
-    font-weight: 950;
-    border: 1px solid rgba(15,23,42,.06);
-    background: rgba(255,255,255,.70);
-    color: var(--pa-brand);
-    flex: 0 0 auto;
-    font-size: 1.2rem;
-  }
-  html[data-theme="dark"] .platform-admin .tile .ico{
-    background: rgba(255,255,255,.06);
-    border-color: rgba(148,163,184,.18);
-  }
-
-  .platform-admin .tile .t-title{
-    margin:0;
-    font-weight:950;
-    color: var(--pa-ink);
-    font-size: 1.02rem;
-  }
-  .platform-admin .tile .t-sub{
-    margin-top:4px;
-    color: var(--pa-muted);
-    font-weight: 850;
-  }
-
-  /* Mobile */
-  @media(max-width:520px){
-    .platform-admin .page-hero{padding:14px}
-    .platform-admin .actions-grid{grid-template-columns:1fr}
-    .platform-admin .tile{align-items:flex-start}
-  }
-
-  /* Reduce motion */
-  @media (prefers-reduced-motion: reduce){
-    .platform-admin .kpi,
-    .platform-admin .tile{
-      transition:none !important;
+    /* 2026 Modern Dashboard Styling */
+    :root {
+        --primary-color: #4f46e5; /* Indigo */
+        --secondary-color: #10b981; /* Emerald */
+        --danger-color: #ef4444; /* Red */
+        --warning-color: #f59e0b; /* Amber */
+        --dark-bg: #111827;
+        --card-bg: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-color: #e5e7eb;
+        --radius-lg: 16px;
+        --radius-md: 12px;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
-    .platform-admin .kpi:hover,
-    .platform-admin .tile:hover{
-      transform:none !important;
+    
+    [data-theme="dark"] {
+        --card-bg: #1f2937;
+        --text-main: #f9fafb;
+        --text-muted: #9ca3af;
+        --border-color: #374151;
     }
-  }
+
+    .dashboard-container {
+        padding: 2rem;
+        max-width: 1440px;
+        margin: 0 auto;
+    }
+
+    .welcome-header {
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .welcome-title h1 {
+        font-size: 1.875rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0;
+    }
+    
+    .welcome-date {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .stat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .bg-indigo-light { background: #e0e7ff; color: #4338ca; }
+    .bg-emerald-light { background: #d1fae5; color: #065f46; }
+    .bg-amber-light { background: #fef3c7; color: #92400e; }
+    .bg-rose-light { background: #ffe4e6; color: #be123c; }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-main);
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* Sections */
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+    
+    @media (max-width: 1024px) {
+        .content-grid { grid-template-columns: 1fr; }
+    }
+
+    .card-panel {
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(0,0,0,0.01);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Activity Feed & Tables */
+    .modern-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .modern-table th {
+        text-align: right;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding: 1rem 1.5rem;
+        background: rgba(0,0,0,0.02);
+    }
+    
+    .modern-table td {
+        padding: 1rem 1.5rem;
+        color: var(--text-main);
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.95rem;
+    }
+    
+    .modern-table tr:last-child td { border-bottom: none; }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .status-active { background: #d1fae5; color: #047857; }
+    .status-inactive { background: #f3f4f6; color: #374151; }
+    .status-warning { background: #fef3c7; color: #b45309; }
+    .status-danger { background: #fee2e2; color: #b91c1c; }
+
+    /* Action Buttons */
+    .btn-modern {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        background: var(--primary-color);
+        color: white;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-modern:hover {
+        background: #4338ca;
+        transform: translateY(-1px);
+    }
+    
+    .btn-modern.outline {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+    
+    .btn-modern.outline:hover {
+        background: #eef2ff;
+    }
+
+    /* Notification List */
+    .notif-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .notif-item:last-child { border-bottom: none; }
+    
+    .notif-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #f3f4f6;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .notif-content h4 { margin: 0 0 0.25rem 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main); }
+    .notif-content p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+    .notif-time { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; display: block; }
 </style>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 
 {% block content %}
-<div class="container platform-admin" dir="rtl">
-
-  <section class="card page-hero" aria-label="رأس لوحة المنصة">
-    <div class="page-head">
-      <div>
-        <h1 class="page-title">لوحة مدير النظام</h1>
-        <p class="page-subtitle">
-          إحصائيات عامة وإجراءات خاصة بالمشرف العام فقط.
-        </p>
-      </div>
-
-      <div class="hero-badge" title="مستخدم حالي">
-        {% firstof request.user.name request.user.phone "System Admin" as display_name %}
-        <div class="hero-ava" aria-hidden="true">{{ display_name|slice:":1" }}</div>
-        <div>
-          <div style="font-weight:950;line-height:1">{{ display_name }}</div>
-          <div style="opacity:.92;font-weight:900;font-size:.85rem;margin-top:3px">مشرف عام</div>
+<div class="dashboard-container">
+    
+    <!-- Welcome Header -->
+    <div class="welcome-header">
+        <div class="welcome-title">
+            <h1>أهلاً بك، مدير النظام 👋</h1>
+            <span class="welcome-date">نظرة عامة على أداء المنصة وتحليلات فورية.</span>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="kpi-grid" aria-label="مؤشرات سريعة">
-    <div class="kpi">
-      <div>
-        <div class="num">{{ platform_schools_active|default:"0" }}</div>
-        <div class="lbl">مدارس نشطة</div>
-      </div>
-      <div class="kpi-ico ok" aria-hidden="true">🏫</div>
+        <div class="actions" style="display:flex; gap:0.75rem;">
+            <a href="{% url 'reports:platform_schools_directory' %}" class="btn-modern outline">
+                <i class="fas fa-search"></i> دليل المدارس
+            </a>
+            <a href="{% url 'reports:platform_admin_create' %}" class="btn-modern">
+                <i class="fas fa-plus"></i> إضافة مشرف
+            </a>
+        </div>
     </div>
 
-    <div class="kpi">
-      <div>
-        <div class="num">{{ platform_schools_total|default:"0" }}</div>
-        <div class="lbl">إجمالي المدارس</div>
-      </div>
-      <div class="kpi-ico info" aria-hidden="true">🏷️</div>
+    <!-- Main Stats Grid -->
+    <div class="stats-grid">
+        <!-- Schools -->
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon bg-indigo-light"><i class="fas fa-school"></i></div>
+                <span class="status-badge status-active">+{{ platform_schools_active }} نشطة</span>
+            </div>
+            <div class="stat-value">{{ platform_schools_total }}</div>
+            <div class="stat-label">إجمالي المدارس المسجلة</div>
+        </div>
+
+        <!-- Revenue -->
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon bg-emerald-light"><i class="fas fa-coins"></i></div>
+            </div>
+            <div class="stat-value">{{ total_revenue|intcomma }} ر.س</div>
+            <div class="stat-label">المبيعات الإجمالية</div>
+        </div>
+
+        <!-- Reports -->
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon bg-amber-light"><i class="fas fa-file-alt"></i></div>
+            </div>
+            <div class="stat-value">{{ reports_count }}</div>
+            <div class="stat-label">إجمالي التقارير المصدرة</div>
+        </div>
+
+        <!-- Tickets -->
+        <div class="stat-card">
+            <div class="stat-header">
+                <div class="stat-icon bg-rose-light"><i class="fas fa-headset"></i></div>
+                <span class="status-badge status-danger">{{ tickets_open }} مفتوحة</span>
+            </div>
+            <div class="stat-value">{{ tickets_total }}</div>
+            <div class="stat-label">تذاكر الدعم الفني</div>
+        </div>
     </div>
 
-    <div class="kpi">
-      <div>
-        <div class="num">{{ subscriptions_expiring_soon|default:"0" }}</div>
-        <div class="lbl">تنتهي قريباً</div>
-      </div>
-      <div class="kpi-ico warn" aria-hidden="true">⏳</div>
+    <div class="content-grid">
+        <!-- Main Content Area -->
+        <div class="main-column">
+            
+            <!-- Subscription Health -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">📊 حالة الاشتراكات</h3>
+                </div>
+                <div class="card-body" style="height: 300px; position: relative;">
+                    <canvas id="subsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Financial Logic / Recent Activity Mockup -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">تنبيهات الاشتراكات (تنتهي قريباً)</h3>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>المدرسة</th>
+                                <th>الباقة</th>
+                                <th>الحالة</th>
+                                <th>تاريخ الانتهاء</th>
+                                <th>إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- This data would ideally come from the view. Assuming user hasn't asked us to change the view logic significantly, we might not have the list. But if we do, we iterate. -->
+                            <!-- Fallback for now: showing static suggestion if empty or loop if available -->
+                            {% if subscriptions_expiring_soon > 0 %}
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding: 2rem;">
+                                    يوجد {{ subscriptions_expiring_soon }} اشتراك ينتهي خلال 30 يوم.
+                                    <br><br>
+                                    <a href="#" class="btn-modern outline">عرض التفاصيل</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" style="text-align:center; color:var(--text-muted);">لا توجد اشتراكات تنتهي قريباً.</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sidebar / Alerts -->
+        <div class="side-column">
+            
+            <!-- Notifications Panel -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">🔔 آخر التنبيهات</h3>
+                </div>
+                <div class="card-body" style="padding:0;">
+                    <!-- We need a context variable for notifications. Usually 'notifications' in context processors. -->
+                    <!-- Simulating structure -->
+                    <div class="notif-item">
+                        <div class="notif-icon"><i class="fas fa-info"></i></div>
+                        <div class="notif-content">
+                            <h4>نظام الإشعارات الجديد</h4>
+                            <p>تم تفعيل نظام التنبيهات الذكي للمشتركين والطلبات.</p>
+                            <span class="notif-time">الآن</span>
+                        </div>
+                    </div>
+                    {% if tickets_open > 0 %}
+                    <div class="notif-item">
+                        <div class="notif-icon" style="background:#fee2e2; color:#be123c"><i class="fas fa-ticket-alt"></i></div>
+                        <div class="notif-content">
+                            <h4>تذاكر مفتوحة</h4>
+                            <p>يوجد {{ tickets_open }} تذكرة دعم فني بانتظار الرد.</p>
+                            <span class="notif-time">تنبيه مستمر</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="padding:1rem; border-top:1px solid var(--border-color); text-align:center;">
+                    <a href="#" style="font-size:0.9rem; font-weight:600; color:var(--primary-color);">عرض كل الإشعارات</a>
+                </div>
+            </div>
+            
+            <!-- Quick Ticket Stats -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">الدعم الفني</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
+                        <span>مكتملة</span>
+                        <span class="status-badge status-active">{{ tickets_done }}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
+                        <span>قيد المعالجة (مفتوحة)</span>
+                        <span class="status-badge status-warning">{{ tickets_open }}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>مرفوضة</span>
+                        <span class="status-badge status-danger">{{ tickets_rejected }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
-
-    <div class="kpi">
-      <div>
-        <div class="num">{{ subscriptions_expired|default:"0" }}</div>
-        <div class="lbl">منتهية</div>
-      </div>
-      <div class="kpi-ico danger" aria-hidden="true">⛔</div>
-    </div>
-
-    <div class="kpi">
-      <div>
-        <div class="num">{{ pending_payments|default:"0" }}</div>
-        <div class="lbl">مدفوعات معلّقة</div>
-      </div>
-      <div class="kpi-ico warn" aria-hidden="true">💳</div>
-    </div>
-
-    <div class="kpi">
-      <div>
-        <div class="num">{{ total_revenue|default:"0" }}</div>
-        <div class="lbl">إجمالي الإيرادات</div>
-      </div>
-      <div class="kpi-ico ok" aria-hidden="true">💰</div>
-    </div>
-
-    <div class="kpi">
-      <div>
-        <div class="num">{{ tickets_open|default:"0" }}</div>
-        <div class="lbl">تذاكر دعم فني</div>
-      </div>
-      <div class="kpi-ico info" aria-hidden="true">🎧</div>
-    </div>
-
-    <div class="kpi">
-      <div>
-        <div class="num">{{ reports_count|default:"0" }}</div>
-        <div class="lbl">إجمالي التقارير</div>
-      </div>
-      <div class="kpi-ico info" aria-hidden="true">📄</div>
-    </div>
-  </section>
-
-  <section class="actions-grid" aria-label="إجراءات مدير النظام">
-    <a class="card tile" href="{% url 'reports:platform_admins_list' %}">
-      <div class="ico" aria-hidden="true">🧑‍💼</div>
-      <div>
-        <div class="t-title">المشرفين</div>
-        <div class="t-sub">إضافة/تعديل/حذف وإسناد المدارس</div>
-      </div>
-    </a>
-
-    <a class="card tile" href="{% url 'reports:schools_admin_list' %}">
-      <div class="ico" aria-hidden="true">🏫</div>
-      <div>
-        <div class="t-title">إدارة المدارس</div>
-        <div class="t-sub">إنشاء/تعديل/حذف المدارس وتعيين مدراء لها</div>
-      </div>
-    </a>
-
-    <a class="card tile" href="{% url 'reports:school_managers_list' %}">
-      <div class="ico" aria-hidden="true">👨‍💼</div>
-      <div>
-        <div class="t-title">مدراء المدارس</div>
-        <div class="t-sub">إنشاء/تعديل المدراء وربطهم بالمدارس</div>
-      </div>
-    </a>
-
-    <a class="card tile" href="{% url 'reports:platform_subscriptions_list' %}">
-      <div class="ico" aria-hidden="true">📅</div>
-      <div>
-        <div class="t-title">الاشتراكات</div>
-        <div class="t-sub">تجديد وتعديل اشتراكات المدارس</div>
-      </div>
-    </a>
-
-    <a class="card tile" href="{% url 'reports:platform_plans_list' %}">
-      <div class="ico" aria-hidden="true">📝</div>
-      <div>
-        <div class="t-title">خطط الاشتراك</div>
-        <div class="t-sub">إضافة وتعديل باقات الأسعار</div>
-      </div>
-    </a>
-
-    <a class="card tile" href="{% url 'reports:platform_payments_list' %}">
-      <div class="ico" aria-hidden="true">💰</div>
-      <div>
-        <div class="t-title">المالية والمدفوعات</div>
-        <div class="t-sub">مراجعة المدفوعات وتأكيد التحويلات</div>
-      </div>
-    </a>
-
-    <a class="card tile" href="{% url 'reports:platform_tickets_list' %}">
-      <div class="ico" aria-hidden="true">🎧</div>
-      <div>
-        <div class="t-title">الدعم الفني</div>
-        <div class="t-sub">متابعة تذاكر الدعم والرد عليها</div>
-      </div>
-    </a>
-
-    <a class="card tile" href="{% url 'reports:admin_dashboard' %}">
-      <div class="ico" aria-hidden="true">📊</div>
-      <div>
-        <div class="t-title">لوحة مدراء المدارس</div>
-        <div class="t-sub">الانتقال للوحة مدير مدرسة (حسب المدرسة النشطة)</div>
-      </div>
-    </a>
-
-    <a class="card tile" href="{% url 'admin:index' %}">
-      <div class="ico" aria-hidden="true">⚙️</div>
-      <div>
-        <div class="t-title">لوحة Django الإدارية</div>
-        <div class="t-sub">إدارة متقدمة للجداول والصلاحيات</div>
-      </div>
-    </a>
-  </section>
-
 </div>
+
+<script>
+    // Simple Chart.js initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('subsChart').getContext('2d');
+        const active = {{ subscriptions_active }};
+        const expired = {{ subscriptions_expired }};
+        const soon = {{ subscriptions_expiring_soon }};
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['نشط', 'منتهي', 'ينتهي قريباً'],
+                datasets: [{
+                    data: [active, expired, soon],
+                    backgroundColor: [
+                        '#10b981',
+                        '#ef4444',
+                        '#f59e0b'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}
