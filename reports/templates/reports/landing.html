@@ -480,9 +480,21 @@
       </div>
 
       <!-- Pricing Panels Wrapper -->
-      <div class="pricing-panels">
-         <div class="pricing-panel active">
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+      <div id="pricing-container">
+         <!-- Toggle Switch -->
+         <div class="flex justify-center" style="margin-bottom: 40px;">
+            <div class="glass-card flex items-center p-1" style="background: var(--surface-2); padding: 6px; border-radius: 99px; gap: 4px; display: inline-flex;">
+               <button class="btn-toggle" data-period="6m" onclick="togglePeriod('6m')" style="border-radius: 99px; padding: 10px 24px; font-weight: 800; border:none; background: var(--primary); color: white; transition: all 0.2s;">
+                  6 أشهر
+               </button>
+               <button class="btn-toggle" data-period="1y" onclick="togglePeriod('1y')" style="border-radius: 99px; padding: 10px 24px; font-weight: 800; border:none; background: transparent; color: var(--text-muted); transition: all 0.2s;">
+                  سنوي 
+                  <span style="font-size: 0.75em; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 6px; margin-right: 6px;">توفير</span>
+               </button>
+            </div>
+         </div>
+
+         <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px;">
                
                <!-- Free Plan -->
                <div class="glass-card pricing-card" style="background: var(--bg);">
@@ -495,70 +507,168 @@
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> صلاحية 14 يوم</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-outline" style="width: 100%;">تجربة الآن</button>
+                     <button onclick="requestPlan('المجانية', '0', '14 يوم')" class="btn btn-outline" style="width: 100%;">تجربة الآن</button>
                   </div>
                </div>
 
                <!-- 25 Teachers -->
-               <div class="glass-card pricing-card" style="background: var(--bg);">
+               <div class="glass-card pricing-card" data-plan="25" style="background: var(--bg);">
                   <div style="padding: 30px;">
                      <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">باقة 25 معلم</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">595 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 25 معلم</p>
+                     
+                     <!-- 6m -->
+                     <div class="price-block p-6m">
+                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">599 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
+                     </div>
+                     <!-- 1y -->
+                     <div class="price-block p-1y" style="display:none">
+                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">999 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                        <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 199 ريال</div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
+                     </div>
+
                      <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> دعم فني</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
+                     <button onclick="requestSub(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
                   </div>
                </div>
 
                <!-- 50 Teachers -->
-               <div class="glass-card pricing-card featured" style="background: var(--bg);">
+               <div class="glass-card pricing-card featured" data-plan="50" style="background: var(--bg);">
                   <div style="background: var(--primary); color: white; text-align: center; padding: 6px; font-weight: 800; font-size: 0.85rem;">الأكثر طلباً</div>
                   <div style="padding: 30px;">
                      <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">باقة 50 معلم</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">895 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 50 معلم</p>
+                     
+                     <div class="price-block p-6m">
+                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">899 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
+                     </div>
+                     <div class="price-block p-1y" style="display:none">
+                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,499 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                        <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 299 ريال</div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
+                     </div>
+
                      <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> دعم فني متقدم</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
+                     <button onclick="requestSub(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
                   </div>
                </div>
 
                <!-- 75 Teachers -->
-               <div class="glass-card pricing-card" style="background: var(--bg);">
+               <div class="glass-card pricing-card" data-plan="75" style="background: var(--bg);">
                   <div style="padding: 30px;">
                      <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">باقة 75 معلم</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,095 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 75 معلم</p>
+                     
+                     <div class="price-block p-6m">
+                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,099 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
+                     </div>
+                     <div class="price-block p-1y" style="display:none">
+                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,849 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                        <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 349 ريال</div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
+                     </div>
+
                      <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> دعم فني</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
+                     <button onclick="requestSub(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
                   </div>
                </div>
 
                <!-- 100 Teachers -->
-               <div class="glass-card pricing-card" style="background: var(--bg);">
+               <div class="glass-card pricing-card" data-plan="100" style="background: var(--bg);">
                   <div style="padding: 30px;">
                      <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">باقة 100 معلم</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,305 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 100 معلم</p>
+                     <div class="price-block p-6m">
+                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,299 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 100 معلم</p>
+                     </div>
+                     <div class="price-block p-1y" style="display:none">
+                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">2,199 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                        <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 399 ريال</div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
+                     </div>
+
                      <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> دعم فني VIP</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
+                     <button onclick="requestSub(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
                   </div>
                </div>
 
             </div>
-         </div>
       </div>
+
+      <script>
+         let currentPeriod = '6m';
+         
+         function togglePeriod(period) {
+            currentPeriod = period;
+            // Update Buttons
+            document.querySelectorAll('.btn-toggle').forEach(btn => {
+               if(btn.dataset.period === period) {
+                  btn.style.background = 'var(--primary)';
+                  btn.style.color = 'white';
+               } else {
+                  btn.style.background = 'transparent';
+                  btn.style.color = 'var(--text-muted)';
+               }
+            });
+
+            // Update Cards
+            document.querySelectorAll('.pricing-card').forEach(card => {
+               const p6m = card.querySelector('.p-6m');
+               const p1y = card.querySelector('.p-1y');
+               if(p6m && p1y) {
+                  if(period === '6m') {
+                     p6m.style.display = 'block';
+                     p1y.style.display = 'none';
+                  } else {
+                     p6m.style.display = 'none';
+                     p1y.style.display = 'block';
+                  }
+               }
+            });
+         }
+
+         function requestSub(btn) {
+            const card = btn.closest('.pricing-card');
+            const title = card.querySelector('h3').innerText;
+            
+            // Get visible price
+            let price = '';
+            let duration = '';
+            
+            if(currentPeriod === '6m') {
+               price = card.querySelector('.p-6m div').innerText;
+               duration = '6 أشهر';
+            } else {
+               price = card.querySelector('.p-1y div').innerText;
+               duration = 'سنة كاملة';
+            }
+            
+            requestPlan(title, price, duration);
+         }
+
+         function requestPlan(title, price, duration) {
+            let waBase = "https://wa.me/966537720207?text=";
+            let msg = `السلام عليكم، أرغب بالاشتراك في منصة توثـيق.%0A`;
+            msg += `الباقة: ${title}%0A`;
+            msg += `المدة: ${duration}%0A`;
+            msg += `السعر: ${price}%0A%0A`;
+            msg += `أرجو تزويدي بالتفاصيل وإتمام الاشتراك.`;
+            window.open(waBase + msg, '_blank');
+         }
+      </script>
     </div>
   </section>
 
