@@ -157,6 +157,38 @@
     display: flex; flex-direction: column; height: 100%;
     justify-content: center; align-items: center; text-align: center;
   }
+
+  /* ✅ Selected plan highlight */
+  .plan-card-label:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(79, 70, 229, 0.18);
+  }
+  .plan-card-radio:checked + .plan-card-label{
+    border-color: rgba(99, 102, 241, 0.75);
+    background: linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.08));
+    box-shadow: 0 16px 34px rgba(79, 70, 229, 0.25);
+    transform: translateY(-2px) scale(1.01);
+  }
+  .plan-card-radio:checked + .plan-card-label::after{
+    content: "✓";
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    font-size: 0.95rem;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    box-shadow: 0 10px 18px rgba(79, 70, 229, 0.28);
+  }
+  .plan-card-radio:focus-visible + .plan-card-label{
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.20), 0 16px 34px rgba(79, 70, 229, 0.18);
+  }
   
   /* Bank New Card */
   .neon-bank {
@@ -454,6 +486,8 @@
            <td>
               {% if payment.status == 'approved' %}
                 <span style="color:#10b981"><i class="fa-solid fa-check"></i> تم التفعيل</span>
+              {% elif payment.status == 'cancelled' %}
+                <span style="color:#64748b"><i class="fa-solid fa-ban"></i> ملغي</span>
               {% elif payment.status == 'rejected' %}
                 <span style="color:#ef4444"><i class="fa-solid fa-xmark"></i> مرفوض</span>
               {% else %}
