@@ -1640,6 +1640,18 @@ class SchoolSubscription(models.Model):
         default=True, 
         help_text="يمكن استخدامه لتعطيل الاشتراك مؤقتاً بغض النظر عن التاريخ"
     )
+
+    canceled_at = models.DateTimeField(
+        "تاريخ الإلغاء",
+        null=True,
+        blank=True,
+        help_text="يُعبّأ عند إلغاء الاشتراك من مدير النظام.",
+    )
+    cancel_reason = models.TextField(
+        "سبب الإلغاء",
+        blank=True,
+        help_text="يظهر للمدرسة عند إلغاء الاشتراك.",
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1691,9 +1703,21 @@ class SchoolSubscription(models.Model):
 
     @property
     def is_expired(self):
+        if bool(self.is_cancelled):
+            return True
         if not self.is_active:
             return True
         return timezone.now().date() > self.end_date
+
+    @property
+    def is_cancelled(self) -> bool:
+        # الإلغاء المقصود: وجود تاريخ إلغاء (أو سبب) مع إيقاف الاشتراك.
+        # لا نعتمد فقط على is_active=False لأن ذلك قد يُستخدم للإيقاف المؤقت.
+        if bool(self.canceled_at) and not bool(self.is_active):
+            return True
+        if (self.cancel_reason or "").strip() and not bool(self.is_active):
+            return True
+        return False
 
     @property
     def days_remaining(self):

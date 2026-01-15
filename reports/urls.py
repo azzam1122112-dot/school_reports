@@ -200,6 +200,7 @@ urlpatterns = [
     path("platform/subscriptions/add/", views.platform_subscription_form, name="platform_subscription_add"),
     path("platform/subscriptions/<int:pk>/edit/", views.platform_subscription_form, name="platform_subscription_edit"),
     path("platform/subscriptions/<int:pk>/renew/", views.platform_subscription_renew, name="platform_subscription_renew"),
+    path("platform/subscriptions/<int:pk>/delete/", views.platform_subscription_delete, name="platform_subscription_delete"),
     path("platform/plans/", views.platform_plans_list, name="platform_plans_list"),
     path("platform/plans/add/", views.platform_plan_form, name="platform_plan_add"),
     path("platform/plans/<int:pk>/edit/", views.platform_plan_form, name="platform_plan_edit"),

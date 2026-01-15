@@ -15,11 +15,56 @@
     --sl-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
     --sl-danger: var(--danger, #ef4444);
     --sl-ok: var(--accent, #10b981);
+    --sl-warn: #f59e0b;
     --sl-grad: linear-gradient(135deg, rgba(37,99,235,.95), rgba(59,130,246,.88));
+    --sl-grad-2: linear-gradient(135deg, rgba(15,23,42,.94), rgba(30,41,59,.86));
     --sl-t: var(--t-fast, 180ms ease);
   }
 
   .subslist-scope .wrap{max-width:1100px;margin-inline:auto}
+
+  .subslist-scope .kpis{
+    display:grid;
+    grid-template-columns: repeat(4, minmax(190px, 1fr));
+    gap: 12px;
+    margin: 12px 0 14px;
+  }
+  @media(max-width:980px){
+    .subslist-scope .kpis{grid-template-columns: repeat(2, minmax(160px, 1fr));}
+  }
+  @media(max-width:520px){
+    .subslist-scope .kpis{grid-template-columns:1fr;}
+  }
+
+  .subslist-scope .kpi{
+    background: var(--sl-card);
+    border:1px solid var(--sl-line);
+    border-radius: 16px;
+    box-shadow: var(--sl-shadow);
+    padding: 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+  }
+  .subslist-scope .kpi .meta{display:grid;gap:4px;min-width:0}
+  .subslist-scope .kpi .label{color:var(--sl-muted);font-weight:900}
+  .subslist-scope .kpi .value{font-weight:950;font-size:1.25rem;color:var(--sl-ink)}
+  .subslist-scope .kpi .chip{
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(37,99,235,.10);
+    color: var(--sl-brand);
+    border: 1px solid rgba(37,99,235,.14);
+    flex: 0 0 auto;
+  }
+  .subslist-scope .kpi.ok .chip{background: rgba(16,185,129,.10); color: var(--sl-ok); border-color: rgba(16,185,129,.16)}
+  .subslist-scope .kpi.bad .chip{background: rgba(239,68,68,.10); color: var(--sl-danger); border-color: rgba(239,68,68,.16)}
+  .subslist-scope .kpi.warn .chip{background: rgba(245,158,11,.12); color: var(--sl-warn); border-color: rgba(245,158,11,.18)}
 
   /* Hero */
   .subslist-scope .hero{
@@ -98,7 +143,7 @@
   .subslist-scope .filters{
     display:grid;
     gap: 12px;
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
     align-items:end;
   }
   .subslist-scope .filters .f-actions{
@@ -118,6 +163,10 @@
     font-weight: 900;
   }
   .subslist-scope .filters select{
+    width:100%;
+    min-height: 44px;
+  }
+  .subslist-scope .filters input[type="search"]{
     width:100%;
     min-height: 44px;
   }
@@ -142,6 +191,16 @@
     min-height: 38px;
     padding: 8px 10px;
     border-radius: 12px;
+  }
+
+  .subslist-scope .row-actions .btn-danger{
+    background: rgba(239,68,68,.10);
+    border-color: rgba(239,68,68,.22);
+    color: var(--sl-danger);
+  }
+  .subslist-scope .row-actions .btn-danger:hover{
+    background: rgba(239,68,68,.14);
+    border-color: rgba(239,68,68,.30);
   }
 
   /* Badges fallback */
@@ -208,6 +267,40 @@
       </div>
     </section>
 
+    <section class="kpis" aria-label="ملخص الاشتراكات">
+      <div class="kpi">
+        <div class="meta">
+          <div class="label">إجمالي الاشتراكات</div>
+          <div class="value">{{ stats_total|default:0 }}</div>
+        </div>
+        <div class="chip" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></div>
+      </div>
+
+      <div class="kpi ok">
+        <div class="meta">
+          <div class="label">اشتراكات سارية</div>
+          <div class="value">{{ stats_active|default:0 }}</div>
+        </div>
+        <div class="chip" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></div>
+      </div>
+
+      <div class="kpi bad">
+        <div class="meta">
+          <div class="label">اشتراكات ملغاة</div>
+          <div class="value">{{ stats_cancelled|default:0 }}</div>
+        </div>
+        <div class="chip" aria-hidden="true"><i class="fa-solid fa-ban"></i></div>
+      </div>
+
+      <div class="kpi warn">
+        <div class="meta">
+          <div class="label">اشتراكات منتهية</div>
+          <div class="value">{{ stats_expired|default:0 }}</div>
+        </div>
+        <div class="chip" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      </div>
+    </section>
+
     <div class="card fcard">
       <form method="get" class="filters" novalidate>
         <div>
@@ -215,6 +308,7 @@
           <select name="status" class="input">
             <option value="all" {% if status == 'all' or not status %}selected{% endif %}>الكل</option>
             <option value="active" {% if status == 'active' %}selected{% endif %}>ساري</option>
+            <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>ملغي</option>
             <option value="expired" {% if status == 'expired' %}selected{% endif %}>منتهي</option>
           </select>
         </div>
@@ -231,6 +325,11 @@
           </select>
         </div>
 
+        <div>
+          <label class="f-label">بحث باسم المدرسة</label>
+          <input type="search" name="q" class="input" placeholder="اكتب اسم المدرسة..." value="{{ q|default:'' }}">
+        </div>
+
         <div class="f-actions">
           <button type="submit" class="btn btn-outline">
             <i class="fa-solid fa-filter" aria-hidden="true"></i>
@@ -245,6 +344,10 @@
           {% endif %}
         </div>
       </form>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 2px 10px;">
+      <div class="muted" style="font-weight:900">عرض {{ results_count|default:0 }} نتيجة</div>
     </div>
 
     <div class="card tcard table-responsive">
@@ -279,7 +382,9 @@
               </td>
 
               <td data-label="الحالة">
-                {% if sub.is_expired %}
+                {% if sub.is_cancelled %}
+                  <span class="badge danger"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
+                {% elif sub.is_expired %}
                   <span class="badge danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> منتهي</span>
                 {% else %}
                   <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ساري</span>
@@ -306,6 +411,22 @@
                     <i class="fa-solid fa-pen" aria-hidden="true"></i>
                     تعديل
                   </a>
+
+                  <form method="post" action="{% url 'reports:platform_subscription_delete' sub.id %}" style="display:inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <input type="hidden" name="reason" value="">
+
+                    <button
+                      type="submit"
+                      class="btn btn-outline btn-danger"
+                      data-reason-prompt="سبب الإلغاء (سيظهر للمدرسة):"
+                      data-confirm="سيتم إلغاء اشتراك مدرسة: {{ sub.school.name }}. هل أنت متأكد؟"
+                    >
+                      <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                      إلغاء
+                    </button>
+                  </form>
                 </div>
               </td>
             </tr>
@@ -333,6 +454,30 @@
 
     for(var i=0;i<buttons.length;i++){
       buttons[i].addEventListener('click', function(ev){
+        // لو كان هذا الزر خاص بـ "إلغاء الاشتراك": اجلب سبب الإلغاء
+        var promptLabel = this.getAttribute('data-reason-prompt');
+        if(promptLabel){
+          var form = this.closest ? this.closest('form') : null;
+          var reasonInput = form ? form.querySelector('input[name="reason"]') : null;
+          var current = reasonInput && reasonInput.value ? reasonInput.value : '';
+          var reason = window.prompt(promptLabel, current);
+          if(reason === null){
+            ev.preventDefault();
+            ev.stopPropagation();
+            return false;
+          }
+          reason = (reason || '').trim();
+          if(!reason){
+            window.alert('سبب الإلغاء مطلوب.');
+            ev.preventDefault();
+            ev.stopPropagation();
+            return false;
+          }
+          if(reasonInput){
+            reasonInput.value = reason;
+          }
+        }
+
         var msg = this.getAttribute('data-confirm') || 'هل أنت متأكد؟';
         if(!window.confirm(msg)){
           ev.preventDefault();

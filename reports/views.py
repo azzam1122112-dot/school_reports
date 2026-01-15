@@ -4538,26 +4538,93 @@ def platform_audit_logs(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
-    today = timezone.now().date()
+    today = timezone.localdate()
     status = (request.GET.get("status") or "all").strip().lower()
     plan_id = (request.GET.get("plan") or "").strip()
+    q = (request.GET.get("q") or "").strip()
 
-    subscriptions = SchoolSubscription.objects.select_related('school', 'plan').order_by('-start_date')
+    base_qs = SchoolSubscription.objects.select_related("school", "plan")
+
+    stats = base_qs.aggregate(
+        total=Count("id"),
+        active=Count("id", filter=Q(is_active=True, end_date__gte=today)),
+        cancelled=Count("id", filter=Q(is_active=False, canceled_at__isnull=False)),
+        expired=Count(
+            "id",
+            filter=Q(
+                Q(end_date__lt=today, canceled_at__isnull=True)
+                | Q(is_active=False, canceled_at__isnull=True)
+            ),
+        ),
+    )
+
+    subscriptions = base_qs
     if status == "active":
         subscriptions = subscriptions.filter(is_active=True, end_date__gte=today)
+    elif status == "cancelled":
+        subscriptions = subscriptions.filter(is_active=False, canceled_at__isnull=False)
     elif status == "expired":
-        subscriptions = subscriptions.filter(Q(is_active=False) | Q(end_date__lt=today))
+        subscriptions = subscriptions.filter(
+            Q(end_date__lt=today, canceled_at__isnull=True)
+            | Q(is_active=False, canceled_at__isnull=True)
+        )
 
     if plan_id:
         subscriptions = subscriptions.filter(plan_id=plan_id)
 
+    if q:
+        subscriptions = subscriptions.filter(school__name__icontains=q)
+
+    subscriptions = subscriptions.order_by("-start_date")
+
     plans = SubscriptionPlan.objects.all().order_by("price", "name")
 
-    return render(
-        request,
-        "reports/platform_subscriptions.html",
-        {"subscriptions": subscriptions, "status": status, "plans": plans, "plan_id": plan_id},
-    )
+    ctx = {
+        "subscriptions": subscriptions,
+        "status": status,
+        "plans": plans,
+        "plan_id": plan_id,
+        "q": q,
+        "stats_total": stats.get("total") or 0,
+        "stats_active": stats.get("active") or 0,
+        "stats_cancelled": stats.get("cancelled") or 0,
+        "stats_expired": stats.get("expired") or 0,
+        "results_count": subscriptions.count(),
+    }
+
+    return render(request, "reports/platform_subscriptions.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["POST"])
+def platform_subscription_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    subscription = get_object_or_404(SchoolSubscription.objects.select_related("school", "plan"), pk=pk)
+
+    reason = (request.POST.get("reason") or "").strip()
+    if not reason:
+        messages.error(request, "سبب الإلغاء مطلوب لإلغاء الاشتراك.")
+        next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+        return redirect(next_url or "reports:platform_subscriptions_list")
+
+    try:
+        today = timezone.localdate()
+        school_name = subscription.school.name
+
+        subscription.is_active = False
+        subscription.end_date = today
+        if getattr(subscription, "canceled_at", None) is None:
+            subscription.canceled_at = timezone.now()
+        subscription.cancel_reason = reason
+
+        subscription.save(update_fields=["is_active", "end_date", "canceled_at", "cancel_reason", "updated_at"])
+        messages.success(request, f"تم إلغاء اشتراك مدرسة {school_name}.")
+    except Exception:
+        logger.exception("platform_subscription_delete failed")
+        messages.error(request, "حدث خطأ غير متوقع أثناء إلغاء الاشتراك.")
+
+    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+    return redirect(next_url or "reports:platform_subscriptions_list")
 
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
@@ -6607,6 +6674,11 @@ def platform_subscription_renew(request: HttpRequest, pk: int) -> HttpResponse:
         subscription.end_date = today + timedelta(days=days - 1)
 
     subscription.is_active = True
+    # عند التجديد: امسح بيانات الإلغاء
+    if getattr(subscription, "canceled_at", None) is not None:
+        subscription.canceled_at = None
+    if getattr(subscription, "cancel_reason", ""):
+        subscription.cancel_reason = ""
     subscription.save()
     messages.success(request, f"تم تجديد اشتراك مدرسة {subscription.school.name} حتى {subscription.end_date:%Y-%m-%d}.")
 

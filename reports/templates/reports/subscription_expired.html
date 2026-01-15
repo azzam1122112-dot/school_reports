@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}الاشتراك منتهي{% endblock %}
+{% block title %}{% if subscription and subscription.is_cancelled %}الاشتراك ملغي{% else %}الاشتراك منتهي{% endif %}{% endblock %}
 
 {% block head %}
 <style>
@@ -111,13 +111,27 @@
       <div class="se-ico" aria-hidden="true">⛔</div>
 
       <div class="se-body">
-        <h1 class="page-title se-title">عفوًا، انتهت فترة الاشتراك</h1>
+        <h1 class="page-title se-title">
+          {% if subscription and subscription.is_cancelled %}
+            عفوًا، تم إلغاء الاشتراك
+          {% else %}
+            عفوًا، انتهت فترة الاشتراك
+          {% endif %}
+        </h1>
 
         <p class="page-subtitle se-sub">
           {% if school %}
-            انتهت صلاحية اشتراك مدرسة <b>{{ school.name }}</b>.
+            {% if subscription and subscription.is_cancelled %}
+              تم إلغاء اشتراك مدرسة <b>{{ school.name }}</b>.
+            {% else %}
+              انتهت صلاحية اشتراك مدرسة <b>{{ school.name }}</b>.
+            {% endif %}
           {% else %}
-            انتهت صلاحية اشتراك المدرسة.
+            {% if subscription and subscription.is_cancelled %}
+              تم إلغاء اشتراك المدرسة.
+            {% else %}
+              انتهت صلاحية اشتراك المدرسة.
+            {% endif %}
           {% endif %}
 
           {% if user.is_authenticated and is_manager %}
@@ -140,6 +154,13 @@
               <div class="se-box-ttl" style="font-weight:850">لا تتوفر تفاصيل اشتراك</div>
             {% endif %}
           </div>
+
+          {% if subscription and subscription.is_cancelled and subscription.cancel_reason %}
+            <div style="margin-top:10px; font-weight:900; color: var(--ink)">سبب الإلغاء</div>
+            <div style="margin-top:6px; font-weight:850; color: var(--muted); line-height:1.9">
+              {{ subscription.cancel_reason }}
+            </div>
+          {% endif %}
         </div>
 
         {% if user.is_authenticated and not is_manager %}
