@@ -149,12 +149,20 @@
 
         {% url 'reports:my_notifications' as myNotificationsUrl %}
         {% if myNotificationsUrl %}
-          <a class="btn btn-lg btn-dash-outline" href="{{ myNotificationsUrl }}" title="عرض التعاميم والإشعارات">
+          <a class="btn btn-lg btn-dash-outline" href="{{ myNotificationsUrl }}" title="عرض الإشعارات">
+            <i class="fa-solid fa-bell"></i> الإشعارات
+            {% if NAV_NOTIFICATIONS_UNREAD %}
+              <span class="hpill hp-blue" style="margin-inline-start:8px">{{ NAV_NOTIFICATIONS_UNREAD }} جديد</span>
+            {% endif %}
+          </a>
+        {% endif %}
+
+        {% url 'reports:my_circulars' as myCircularsUrl %}
+        {% if myCircularsUrl %}
+          <a class="btn btn-lg btn-dash-outline" href="{{ myCircularsUrl }}" title="عرض التعاميم">
             <i class="fa-solid fa-pen-to-square"></i> التعاميم
             {% if NAV_SIGNATURES_PENDING %}
               <span class="hpill hp-red" style="margin-inline-start:8px">{{ NAV_SIGNATURES_PENDING }} بانتظار التوقيع</span>
-            {% elif NAV_NOTIFICATIONS_UNREAD %}
-              <span class="hpill hp-blue" style="margin-inline-start:8px">{{ NAV_NOTIFICATIONS_UNREAD }} جديد</span>
             {% endif %}
           </a>
         {% endif %}
@@ -174,8 +182,8 @@
             عدد التعاميم غير الموقّعة: <strong>{{ NAV_SIGNATURES_PENDING }}</strong> — الرجاء الاطلاع والتوقيع لتأكيد الاستلام.
           </div>
         </div>
-        {% if myNotificationsUrl %}
-          <a class="btn btn-sm" href="{{ myNotificationsUrl }}" style="background:#fff">
+        {% if myCircularsUrl %}
+          <a class="btn btn-sm" href="{{ myCircularsUrl }}" style="background:#fff">
             فتح التعاميم
           </a>
         {% endif %}

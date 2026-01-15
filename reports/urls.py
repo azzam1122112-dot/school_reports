@@ -201,10 +201,14 @@ urlpatterns = [
         name="circulars_sent",
     ),
     path("notifications/mine/", views.my_notifications, name="my_notifications"),
+    path("circulars/mine/", views.my_circulars, name="my_circulars"),
     path("notifications/mine/<int:pk>/", views.my_notification_detail, name="my_notification_detail"),
+    path("circulars/mine/<int:pk>/", views.my_notification_detail, name="my_circular_detail"),
     path("notifications/mine/<int:pk>/sign/", views.notification_sign, name="notification_sign"),
+    path("circulars/mine/<int:pk>/sign/", views.notification_sign, name="circular_sign"),
     path("notifications/<int:pk>/read/", views.notification_mark_read, name="notification_mark_read"),
     path("notifications/mark-all-read/", views.notifications_mark_all_read, name="notifications_mark_all_read"),
+    path("circulars/mark-all-read/", views.circulars_mark_all_read, name="circulars_mark_all_read"),
     # جديد: تعليم كمقروء بالاعتماد على رقم الإشعار (للهيرو/الواجهة)
     path(
         "notifications/<int:pk>/read-by-notification/",

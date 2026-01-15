@@ -1,0 +1,336 @@
+{# reports/templates/reports/circulars_sent.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}التعاميم المرسلة{% endblock %}
+
+{% block head %}
+<style>
+	/* =========================================================
+		 Sent Circulars (Scoped)
+		 - نسخة مستقلة 100% عن الإشعارات
+		 ========================================================= */
+
+	.ns-scope{
+		--primary: #4361ee;
+		--secondary: #7209b7;
+		--accent: #f72585;
+
+		--bg: var(--bg, #f8fafc);
+		--card: var(--card, #ffffff);
+		--text: var(--ink, #1e293b);
+		--text-light: var(--muted, #64748b);
+		--border: var(--line, #e2e8f0);
+
+		--radius-lg: 20px;
+		--radius-md: 12px;
+		--shadow: var(--shadow, 0 10px 40px rgba(2, 6, 23, 0.08));
+		--gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+		--t: var(--t-fast);
+	}
+
+	.ns-scope .wrap{max-width:1400px;margin-inline:auto;padding:20px}
+
+	.ns-scope .page-header{
+		display:flex;align-items:center;justify-content:space-between;gap:16px;
+		margin-bottom:18px;flex-wrap:wrap;
+	}
+	.ns-scope .page-header h1{
+		margin:0;font-size:1.75rem;font-weight:950;
+		background:var(--gradient);
+		-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+		position:relative;padding-bottom:8px;
+	}
+	.ns-scope .page-header h1::after{
+		content:"";position:absolute;bottom:0;right:0;width:60px;height:4px;
+		background:var(--gradient);border-radius:2px;
+	}
+
+	.ns-scope .create-btn{
+		display:inline-flex;align-items:center;gap:8px;
+		padding:12px 18px;border-radius:var(--radius-md);
+		background:var(--gradient);color:#fff;text-decoration:none;
+		font-weight:950;border:1px solid rgba(255,255,255,.20);
+		box-shadow:0 8px 25px rgba(67, 97, 238, 0.28);
+		transition: var(--t);
+	}
+	.ns-scope .create-btn:hover{transform:translateY(-2px)}
+
+	.ns-scope .cards-grid{
+		display:grid;grid-template-columns:repeat(3, 1fr);gap:18px;
+	}
+	@media (max-width: 1100px){
+		.ns-scope .cards-grid{grid-template-columns:repeat(2, 1fr)}
+	}
+	@media (max-width: 700px){
+		.ns-scope .cards-grid{grid-template-columns:1fr}
+	}
+
+	.ns-scope .notif-card{
+		background:var(--card);
+		border:1px solid var(--border);
+		border-radius:var(--radius-lg);
+		overflow:hidden;
+		box-shadow: var(--shadow);
+		position:relative;
+		display:flex;flex-direction:column;
+		min-height: 320px;
+		transition: var(--t);
+	}
+	.ns-scope .notif-card:hover{transform: translateY(-4px)}
+
+	.ns-scope .notif-head{
+		padding:18px 18px 10px 18px;
+		display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+	}
+	.ns-scope .notif-title{
+		margin:0;
+		font-size:1.05rem;
+		font-weight:950;
+		color:var(--text);
+		line-height:1.4;
+	}
+
+	.ns-scope .badges-container{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+	.ns-scope .pill{
+		display:inline-flex;align-items:center;gap:6px;
+		padding:6px 10px;
+		border-radius:999px;
+		border:1px solid var(--border);
+		background: rgba(148,163,184,.10);
+		color: var(--text);
+		font-weight:950;
+		font-size:.82rem;
+	}
+	.ns-scope .pill.important{border-color: rgba(239,68,68,.30); background: rgba(239,68,68,.08); color:#b91c1c;}
+	.ns-scope .pill.blue{border-color: rgba(37,99,235,.22); background: rgba(37,99,235,.08); color:#1e40af;}
+
+	.ns-scope .notif-time{
+		font-size:.86rem;color:var(--text-light);
+		display:flex;align-items:center;gap:6px;
+		white-space:nowrap;
+		font-weight:850;
+	}
+
+	.ns-scope .notif-body{
+		padding:0 18px 14px 18px;
+		color: var(--text);
+		line-height:1.85;
+		font-weight:850;
+		opacity:.95;
+		flex:1;
+		display:-webkit-box;
+		-webkit-line-clamp: 5;
+		-webkit-box-orient: vertical;
+		overflow:hidden;
+	}
+
+	.ns-scope .meta{
+		padding:0 18px 14px 18px;
+		color: var(--text-light);
+		display:flex;gap:12px;flex-wrap:wrap;
+		font-size:.88rem;
+		font-weight:850;
+	}
+	.ns-scope .meta span{display:inline-flex;align-items:center;gap:7px}
+
+	.ns-scope .progress-container{padding:0 18px 18px 18px}
+	.ns-scope .progress-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+	.ns-scope .progress-label{font-weight:950;color:var(--text)}
+	.ns-scope .rate{font-weight:950;color:var(--text)}
+	.ns-scope .progress{height:10px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden}
+	.ns-scope .progress .bar{height:100%;width:0;background:var(--gradient);border-radius:999px;transition:width .9s ease}
+
+	.ns-scope .actions{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+	.ns-scope .ns-btn{
+		display:inline-flex;align-items:center;gap:8px;
+		padding:10px 14px;border-radius:var(--radius-md);
+		border:1px solid var(--border);
+		background:transparent;color:var(--text);
+		text-decoration:none;font-weight:950;
+		cursor:pointer;
+		transition: var(--t);
+	}
+	.ns-scope .ns-btn:hover{transform:translateY(-1px)}
+	.ns-scope .ns-btn.primary{background:var(--gradient);color:#fff;border-color:rgba(255,255,255,.18)}
+	.ns-scope .ns-btn.danger{border-color:rgba(239,68,68,.28);color:#b91c1c;background:rgba(239,68,68,.06)}
+
+	.ns-scope .empty-state{
+		text-align:center;padding:40px 20px;color:var(--text-light);
+		border:1px dashed var(--border);border-radius:18px;background:var(--card);
+	}
+	.ns-scope .empty-state i{font-size:3rem;margin-bottom:16px;opacity:.55}
+	.ns-scope .empty-state h3{margin:0 0 8px 0;color:var(--text);font-weight:950}
+
+	.ns-scope .pager{
+		display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap;
+	}
+	.ns-scope .pager .ns-btn{padding:10px 16px}
+	.ns-scope .pager .current{background:var(--gradient);color:#fff;border:1px solid rgba(255,255,255,.18)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ns-scope" dir="rtl">
+	<div class="wrap">
+		<div class="page-header">
+			<h1>التعاميم المرسلة</h1>
+			<a class="create-btn" href="{% url 'reports:circulars_create' %}">
+				<i class="fa-solid fa-plus" aria-hidden="true"></i> إنشاء تعميم جديد
+			</a>
+		</div>
+
+		{% if page_obj and page_obj.object_list %}
+			<div class="cards-grid">
+				{% for n in page_obj %}
+					<article class="notif-card" data-id="{{ n.id }}" data-requires-signature="1">
+						<div class="notif-head">
+							<div>
+								<h3 class="notif-title"><span>{{ n.title|default:"تعميم" }}</span></h3>
+
+								<div class="badges-container">
+									{% if n.is_important %}
+										<span class="pill important"><i class="fa-solid fa-exclamation-circle" aria-hidden="true"></i> هام</span>
+									{% endif %}
+									{% if n.is_broadcast %}
+										<span class="pill blue"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> للجميع</span>
+									{% endif %}
+									<span class="pill blue"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> يتطلب توقيع</span>
+								</div>
+							</div>
+
+							<time class="notif-time" datetime="{{ n.created_at|date:'c' }}">
+								<i class="fa-regular fa-clock" aria-hidden="true"></i> {{ n.created_at|date:"Y-m-d H:i" }}
+							</time>
+						</div>
+
+						{% firstof n.message n.body n.content n.text n.details as body %}
+						{% if body %}
+							<div class="notif-body">{{ body|linebreaksbr }}</div>
+						{% endif %}
+
+						<div class="meta">
+							{% if n.expires_at %}
+								<span><i class="fa-regular fa-calendar-times" aria-hidden="true"></i> ينتهي: {{ n.expires_at|date:"Y-m-d H:i" }}</span>
+							{% endif %}
+							{% if n.created_by and n.created_by.name %}
+								<span><i class="fa-regular fa-user" aria-hidden="true"></i> المُرسِل: {{ n.created_by.name }}</span>
+							{% endif %}
+						</div>
+
+						<div class="progress-container">
+							<div class="progress-info">
+								<span class="progress-label">معدل التوقيع</span>
+								<span class="rate" id="rate-{{ n.id }}">0%</span>
+							</div>
+							<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+								<div class="bar"></div>
+							</div>
+						</div>
+
+						<div class="actions">
+							<a class="ns-btn" href="{% url 'reports:notification_detail' n.id %}">
+								<i class="fa-regular fa-eye" aria-hidden="true"></i> عرض التفاصيل
+							</a>
+
+							{% if n.action_url %}
+								<a class="ns-btn primary" href="{{ n.action_url }}" rel="noopener">
+									<i class="fa-solid fa-link" aria-hidden="true"></i> فتح الرابط
+								</a>
+							{% endif %}
+
+							<form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form" style="display:inline">
+								{% csrf_token %}
+								<button class="ns-btn danger" type="submit">
+									<i class="fa-regular fa-trash-can" aria-hidden="true"></i> حذف
+								</button>
+							</form>
+						</div>
+					</article>
+				{% endfor %}
+			</div>
+
+			{% if page_obj.paginator.num_pages > 1 %}
+				<nav class="pager" aria-label="التنقل بين الصفحات">
+					{% if page_obj.has_previous %}
+						<a class="ns-btn" href="?page={{ page_obj.previous_page_number }}">
+							<i class="fa-solid fa-arrow-right" aria-hidden="true"></i> السابق
+						</a>
+					{% endif %}
+
+					<span class="ns-btn current">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+
+					{% if page_obj.has_next %}
+						<a class="ns-btn" href="?page={{ page_obj.next_page_number }}">
+							التالي <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+						</a>
+					{% endif %}
+				</nav>
+			{% endif %}
+		{% else %}
+			<div class="empty-state">
+				<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+				<h3>لا توجد تعاميم مرسلة حتى الآن</h3>
+				<p>يمكنك إنشاء أول تعميم بالنقر على زر “إنشاء تعميم جديد”.</p>
+			</div>
+		{% endif %}
+	</div>
+</div>
+
+{{ stats|json_script:"notif-stats-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
+	(function(){
+		const script = document.getElementById('notif-stats-data');
+		let stats = {};
+		if(script){
+			try{ stats = JSON.parse(script.textContent || "{}"); }
+			catch(e){ stats = {}; }
+		}
+
+		function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+		document.querySelectorAll('.ns-scope .notif-card').forEach(function(card){
+			const id = card.getAttribute('data-id');
+			const bucket = stats[String(id)] || stats[id] || {};
+			const total = Number(bucket.total || 0);
+			const signed = Number(bucket.signed || 0);
+			const rate  = total ? Math.round((signed / total) * 100) : 0;
+			const safeRate = clamp(rate, 0, 100);
+
+			const bar = card.querySelector('.progress .bar');
+			const rateEl = card.querySelector('#rate-' + id);
+			const pb = card.querySelector('.progress');
+
+			if(pb){ pb.setAttribute('aria-valuenow', String(safeRate)); }
+			if(bar){ setTimeout(function(){ bar.style.width = safeRate + '%'; }, 120); }
+
+			if(rateEl){
+				let current = 0;
+				const duration = 900;
+				const steps = 45;
+				const inc = safeRate / steps;
+				const t = setInterval(function(){
+					current += inc;
+					if(current >= safeRate){
+						current = safeRate;
+						clearInterval(t);
+					}
+					rateEl.textContent = Math.round(current) + '%';
+				}, duration / steps);
+			}
+		});
+
+		document.querySelectorAll('form.js-delete-form').forEach(function(f){
+			f.addEventListener('submit', function(e){
+				try{
+					var ok = window.confirm('هل تريد حذف هذا التعميم نهائيًا؟');
+					if(!ok){ e.preventDefault(); }
+				}catch(err){}
+			});
+		});
+	})();
+</script>
+{% endblock %}

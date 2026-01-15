@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل التعميم{% endblock %}
+
+{% block head %}
+<style>
+  .nd-scope{
+    --nd-ink: var(--ink, #0f172a);
+    --nd-muted: var(--muted, #64748b);
+    --nd-line: var(--line, #e5e7eb);
+    --nd-card: var(--card, #ffffff);
+    --nd-soft: var(--line-2, #f1f5f9);
+    --nd-shadow: 0 12px 30px rgba(2,6,23,.08);
+    --nd-brand: var(--brand, #2563eb);
+    --nd-brand-ghost: rgba(37,99,235,.10);
+    --nd-t: var(--t-fast, .18s ease);
+  }
+  .nd-scope .nd-wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .nd-scope .nd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .nd-scope .nd-title{margin:0;font-weight:950;color:var(--nd-ink)}
+  .nd-scope .nd-hint{color:var(--nd-muted);font-weight:850}
+  .nd-scope .nd-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--nd-line);background:#fff;color:var(--nd-ink);font-weight:900;text-decoration:none}
+  .nd-scope .nd-card{background:var(--nd-card);border:1px solid var(--nd-line);border-radius:16px;box-shadow:var(--nd-shadow);overflow:hidden}
+  .nd-scope .nd-card-hd{padding:14px 16px;border-bottom:1px solid var(--nd-line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg,var(--nd-soft),var(--nd-card))}
+  .nd-scope .nd-card-bd{padding:16px}
+  .nd-scope .nd-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--nd-line);background:var(--nd-soft);color:var(--nd-ink);border-radius:999px;font-weight:950;font-size:.86rem;white-space:nowrap}
+  .nd-scope .nd-pill.danger{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.18);color:#b91c1c}
+  .nd-scope .nd-pill.success{background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.20);color:#166534}
+  .nd-scope .nd-body{line-height:1.95;color:var(--nd-ink);font-weight:850}
+  .nd-scope .field{margin-top:12px}
+  .nd-scope input[type="text"]{width:100%;padding:12px 14px;border:1px solid var(--nd-line);border-radius:12px;outline:none}
+  .nd-scope .btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--nd-brand);color:#fff;border:1px solid var(--nd-brand);padding:10px 14px;border-radius:12px;font-weight:950;cursor:pointer}
+  .nd-scope .btn-ghost{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--nd-ink);border:1px solid var(--nd-line);padding:10px 14px;border-radius:12px;font-weight:950;cursor:pointer}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nd-scope" dir="rtl">
+  <div class="nd-wrap">
+    <header class="nd-head">
+      <div>
+        <h1 class="nd-title">تفاصيل التعميم</h1>
+        <div class="nd-hint">عرض التعميم وتأكيد الاستلام بالتوقيع</div>
+      </div>
+      <a class="nd-btn" href="{% url 'reports:my_circulars' %}">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        رجوع إلى التعاميم
+      </a>
+    </header>
+
+    <section class="nd-card" aria-label="التعميم">
+      <div class="nd-card-hd">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <strong style="font-weight:950">{{ n.title|default:"تعميم" }}</strong>
+          {% if r.is_signed %}
+            <span class="nd-pill success"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> تم التوقيع</span>
+          {% else %}
+            <span class="nd-pill danger"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> يتطلب توقيع</span>
+          {% endif %}
+        </div>
+        <div style="color:var(--nd-muted);font-weight:900">
+          {% if r.created_at %}{{ r.created_at|date:"Y-m-d H:i" }}{% endif %}
+        </div>
+      </div>
+
+      <div class="nd-card-bd">
+        {% if body %}
+          <div class="nd-body">{{ body|linebreaksbr }}</div>
+        {% else %}
+          <div class="nd-hint">لا يوجد محتوى نصي.</div>
+        {% endif %}
+
+        {% if not r.is_signed %}
+          <hr style="border:none;border-top:1px solid var(--nd-line);margin:18px 0" />
+          <form method="post" action="{% url 'reports:circular_sign' r.pk %}">
+            {% csrf_token %}
+
+            <div class="field">
+              <label style="font-weight:950;display:block;margin-bottom:6px">أدخل رقم الجوال المسجل للتوقيع</label>
+              <input type="text" name="phone" inputmode="numeric" autocomplete="tel" placeholder="05xxxxxxxx" required>
+            </div>
+
+            <div class="field" style="display:flex;gap:10px;align-items:flex-start">
+              <input id="ack" type="checkbox" name="ack" value="1" required style="margin-top:6px">
+              <label for="ack" style="font-weight:900">
+                أقرّ بأنني اطلعت على التعميم واستلمته.
+              </label>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+              <button class="btn-primary" type="submit">
+                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                اعتماد التوقيع
+              </button>
+              <a class="btn-ghost" href="{% url 'reports:my_circulars' %}">لاحقاً</a>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

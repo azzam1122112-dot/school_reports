@@ -123,17 +123,19 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
         if getattr(n, "school", None):
             qs = qs.filter(
                 school_memberships__school=n.school,
-                school_memberships__role_type__in=[
-                    "teacher",
-                    "report_viewer",
-                ],
+                school_memberships__role_type__in=(
+                    ["teacher"]
+                    if bool(getattr(n, "requires_signature", False))
+                    else ["teacher", "report_viewer"]
+                ),
             ).distinct()
         else:
             qs = qs.filter(
-                school_memberships__role_type__in=[
-                    "teacher",
-                    "report_viewer",
-                ]
+                school_memberships__role_type__in=(
+                    ["teacher"]
+                    if bool(getattr(n, "requires_signature", False))
+                    else ["teacher", "report_viewer"]
+                )
             ).distinct()
 
         teachers = qs

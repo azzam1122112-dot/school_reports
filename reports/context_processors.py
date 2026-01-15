@@ -467,6 +467,14 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
             if notif_fk:
                 fN = _model_fields(N)
                 now = timezone.now()
+
+                # فصل: احتساب غير المقروء للإشعارات فقط (يستبعد التعاميم)
+                try:
+                    if "requires_signature" in fN:
+                        qs = qs.filter(**{f"{notif_fk}__requires_signature": False})
+                except Exception:
+                    pass
+
                 if "expires_at" in fN:
                     qs = qs.filter(**{f"{notif_fk}__expires_at__gt": now}) | qs.filter(
                         **{f"{notif_fk}__expires_at__isnull": True}

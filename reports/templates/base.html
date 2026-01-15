@@ -142,10 +142,18 @@
               {% if myNotificationsUrl %}
                 <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات" id="notifBell">
                   <i class="fa-solid fa-bell"></i>
-                  {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" pending=NAV_SIGNATURES_PENDING|default_if_none:"0"|add:"0" %}
-                    <span class="dot" id="notifDot" {% if unread == 0 and pending == 0 %}style="display:none"{% endif %}>
-                      {% if unread %}{{ unread }}{% elif pending %}{{ pending }}{% endif %}
-                    </span>
+                  {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" %}
+                    <span class="dot" id="notifDot" {% if unread == 0 %}style="display:none"{% endif %}>{{ unread }}</span>
+                  {% endwith %}
+                </a>
+              {% endif %}
+
+              {% url 'reports:my_circulars' as myCircularsUrl %}
+              {% if myCircularsUrl %}
+                <a class="icon-btn" href="{{ myCircularsUrl }}" aria-label="التعاميم" id="circBell" title="التعاميم">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                  {% with pending=NAV_SIGNATURES_PENDING|default_if_none:"0"|add:"0" %}
+                    <span class="dot" id="circDot" {% if pending == 0 %}style="display:none"{% endif %}>{{ pending }}</span>
                   {% endwith %}
                 </a>
               {% endif %}
@@ -250,10 +258,18 @@
           {% if myNotificationsUrlMobile %}
             <a class="icon-btn" href="{{ myNotificationsUrlMobile }}" aria-label="الإشعارات" id="notifBellMobile">
               <i class="fa-solid fa-bell"></i>
-              {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" pending=NAV_SIGNATURES_PENDING|default_if_none:"0"|add:"0" %}
-                <span class="dot" id="notifDotMobile" {% if unread == 0 and pending == 0 %}style="display:none"{% endif %}>
-                  {% if unread %}{{ unread }}{% elif pending %}{{ pending }}{% endif %}
-                </span>
+              {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" %}
+                <span class="dot" id="notifDotMobile" {% if unread == 0 %}style="display:none"{% endif %}>{{ unread }}</span>
+              {% endwith %}
+            </a>
+          {% endif %}
+
+          {% url 'reports:my_circulars' as myCircularsUrlMobile %}
+          {% if myCircularsUrlMobile %}
+            <a class="icon-btn" href="{{ myCircularsUrlMobile }}" aria-label="التعاميم" id="circBellMobile" title="التعاميم">
+              <i class="fa-solid fa-pen-to-square"></i>
+              {% with pending=NAV_SIGNATURES_PENDING|default_if_none:"0"|add:"0" %}
+                <span class="dot" id="circDotMobile" {% if pending == 0 %}style="display:none"{% endif %}>{{ pending }}</span>
               {% endwith %}
             </a>
           {% endif %}
@@ -848,23 +864,28 @@
       }
     })();
 
-    // Notification polling
+    // Notifications/Circulars polling
     (function() {
       const notifDot = document.getElementById('notifDot');
       const notifDotMobile = document.getElementById('notifDotMobile');
-      if (!notifDot && !notifDotMobile) return;
+      const circDot = document.getElementById('circDot');
+      const circDotMobile = document.getElementById('circDotMobile');
+      if (!notifDot && !notifDotMobile && !circDot && !circDotMobile) return;
 
       function checkNotifications() {
         fetch('{% url "reports:unread_notifications_count" %}')
           .then(r => r.json())
           .then(data => {
-            const update = (dot) => {
+            const update = (dot, n) => {
               if (!dot) return;
-              if (data.count > 0) { dot.textContent = data.count; dot.style.display = 'flex'; }
+              const v = Number(n || 0);
+              if (v > 0) { dot.textContent = String(v); dot.style.display = 'flex'; }
               else { dot.style.display = 'none'; }
             };
-            update(notifDot);
-            update(notifDotMobile);
+            update(notifDot, data.unread);
+            update(notifDotMobile, data.unread);
+            update(circDot, data.signatures_pending);
+            update(circDotMobile, data.signatures_pending);
           })
           .catch(() => {});
       }

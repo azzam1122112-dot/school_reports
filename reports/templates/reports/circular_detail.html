@@ -1,0 +1,135 @@
+{# reports/templates/reports/circular_detail.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل التعميم{% endblock %}
+
+{% block head %}
+<style>
+  .nd-scope{
+    --nd-ink: var(--ink, #0f172a);
+    --nd-muted: var(--muted, #64748b);
+    --nd-line: var(--line, #e5e7eb);
+    --nd-card: var(--card, #ffffff);
+    --nd-soft: var(--line-2, #f1f5f9);
+    --nd-shadow: 0 12px 30px rgba(2,6,23,.08);
+    --nd-brand: var(--brand, #2563eb);
+    --nd-brand-ghost: rgba(37,99,235,.10);
+    --nd-danger: #ef4444;
+    --nd-t: var(--t-fast, .18s ease);
+  }
+  html[data-theme="dark"] .nd-scope{--nd-shadow:0 18px 46px rgba(0,0,0,.45)}
+  .nd-scope .nd-wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .nd-scope .nd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .nd-scope .nd-title{margin:0;font-weight:950;color:var(--nd-ink)}
+  .nd-scope .nd-hint{color:var(--nd-muted);font-weight:850}
+  .nd-scope .nd-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--nd-line);background:#fff;color:var(--nd-ink);font-weight:950;text-decoration:none;transition:var(--nd-t)}
+  html[data-theme="dark"] .nd-scope .nd-btn{background:rgba(255,255,255,.06)}
+  .nd-scope .nd-btn:hover{transform:translateY(-1px)}
+
+  .nd-scope .nd-grid{display:grid;grid-template-columns:1fr;gap:14px}
+  .nd-scope .nd-card{background:var(--nd-card);border:1px solid var(--nd-line);border-radius:16px;box-shadow:var(--nd-shadow);overflow:hidden}
+  .nd-scope .nd-card-hd{padding:14px 16px;border-bottom:1px solid var(--nd-line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg,var(--nd-soft),var(--nd-card))}
+  .nd-scope .nd-card-bd{padding:16px}
+
+  .nd-scope .nd-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--nd-line);background:var(--nd-soft);color:var(--nd-ink);border-radius:999px;font-weight:950;font-size:.86rem;white-space:nowrap}
+  .nd-scope .nd-pill.blue{background:rgba(37,99,235,.08);border-color:rgba(37,99,235,.18);color:#1e40af}
+
+  .nd-scope .nd-body{line-height:1.95;color:var(--nd-ink);font-weight:850}
+
+  .nd-scope table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--nd-line);border-radius:14px}
+  .nd-scope th,.nd-scope td{padding:10px 12px;border-bottom:1px solid var(--nd-line);text-align:right;font-weight:850}
+  .nd-scope th{background:var(--nd-soft);font-weight:950}
+  .nd-scope tbody tr:last-child td{border-bottom:none}
+
+  .nd-scope .tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .nd-scope .tools a{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--nd-line);background:#fff;text-decoration:none;color:var(--nd-ink);font-weight:950}
+  html[data-theme="dark"] .nd-scope .tools a{background:rgba(255,255,255,.06)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nd-scope">
+  <div class="nd-wrap" dir="rtl">
+    <header class="nd-head">
+      <div>
+        <h1 class="nd-title">تفاصيل التعميم</h1>
+        <div class="nd-hint">عرض الرسالة + حالة وصولها للمستلمين + حالة التوقيع</div>
+      </div>
+      <a class="nd-btn" href="{% url 'reports:circulars_sent' %}">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع إلى التعاميم
+      </a>
+    </header>
+
+    <div class="nd-grid">
+      <section class="nd-card" aria-label="التعميم">
+        <div class="nd-card-hd">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <strong style="font-weight:950">{{ n.title|default:"تعميم" }}</strong>
+            {% if n.is_important %}<span class="nd-pill" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.20);color:#b91c1c">هام</span>{% endif %}
+            {% if n.is_broadcast %}<span class="nd-pill blue">للجميع</span>{% endif %}
+            <span class="nd-pill blue"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> تعميم بتوقيع</span>
+          </div>
+          <div style="color:var(--nd-muted);font-weight:900">{% if n.created_at %}{{ n.created_at|date:"Y-m-d H:i" }}{% endif %}</div>
+        </div>
+
+        <div class="nd-card-bd">
+          {% if body %}
+            <div class="nd-body">{{ body|linebreaksbr }}</div>
+          {% else %}
+            <div class="nd-hint">لا يوجد محتوى نصي.</div>
+          {% endif %}
+
+          <div class="tools">
+            <a href="{% url 'reports:notification_signatures_print' n.pk %}"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة تقرير التواقيع</a>
+            <a href="{% url 'reports:notification_signatures_csv' n.pk %}"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</a>
+          </div>
+
+          {% if signature_stats %}
+            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+              <span class="nd-pill">الإجمالي: {{ signature_stats.total }}</span>
+              <span class="nd-pill" style="background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.22);color:#166534">الموقّع: {{ signature_stats.signed }}</span>
+              <span class="nd-pill" style="background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.22);color:#b91c1c">غير الموقّع: {{ signature_stats.unsigned }}</span>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="nd-card" aria-label="المستلمون">
+        <div class="nd-card-hd">
+          <strong style="font-weight:950">حالة المستلمين</strong>
+          <span class="nd-pill">{{ recipients|length }} مستلم</span>
+        </div>
+        <div class="nd-card-bd" style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>الدور</th>
+                <th>مقروء</th>
+                <th>وقت القراءة</th>
+                <th>موقّع</th>
+                <th>وقت التوقيع</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in recipients %}
+                <tr>
+                  <td>{{ r.name }}</td>
+                  <td>{{ r.role }}</td>
+                  <td>{% if r.read %}نعم{% else %}لا{% endif %}</td>
+                  <td>{{ r.read_at|default:"-" }}</td>
+                  <td>{% if r.signed %}نعم{% else %}لا{% endif %}</td>
+                  <td>{{ r.signed_at|default:"-" }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="6" style="text-align:center;color:var(--nd-muted)">لا يوجد مستلمون</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1326,9 +1326,12 @@ class NotificationCreateForm(forms.Form):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         active_school = kwargs.pop("active_school", None)
+        mode = (kwargs.pop("mode", None) or "notification").strip().lower()
         super().__init__(*args, **kwargs)
 
         self.user = user
+        self.mode = mode if mode in {"notification", "circular"} else "notification"
+        is_circular = self.mode == "circular"
 
         is_superuser = bool(getattr(user, "is_superuser", False))
         
@@ -1358,7 +1361,64 @@ class NotificationCreateForm(forms.Form):
             else:
                 self.fields.pop("target_department", None)
 
+        # في وضع التعميم: لا علاقة للأقسام بالتوجيه حسب متطلبات المنتج
+        if is_circular:
+            self.fields.pop("target_department", None)
+
+            # التعميم دائمًا يتطلب توقيعًا (والـ view يفرضه كذلك)
+            if "requires_signature" in self.fields:
+                try:
+                    self.fields["requires_signature"].initial = True
+                except Exception:
+                    pass
+
         qs = Teacher.objects.filter(is_active=True).order_by("name")
+
+        # ==============================
+        # فصل التعميمات 100% (المستلمون)
+        # ==============================
+        if is_circular:
+            # مدير النظام (superuser): يرسل التعميمات لمدراء المدارس فقط
+            if is_superuser:
+                qs = qs.filter(
+                    school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
+                    school_memberships__is_active=True,
+                    school_memberships__school__is_active=True,
+                ).distinct()
+
+                # إعادة تسمية الحقل ليتوافق مع الواقع (مدراء مدارس)
+                if "teachers" in self.fields:
+                    self.fields["teachers"].label = "مدراء المدارس (يمكن اختيار أكثر من مدير)"
+                    self.fields["teachers"].help_text = "يمكنك ترك الاختيار فارغًا لإرسال التعميم لجميع مدراء المدارس ضمن النطاق المحدد."
+
+                # لو اختار السوبر مدرسة محددة، قيد المدراء بهذه المدرسة
+                scope_val = (self.data.get("audience_scope") or self.initial.get("audience_scope") or "").strip()
+                school_id = self.data.get("target_school") or self.initial.get("target_school")
+                if (not scope_val or scope_val == "school") and school_id:
+                    try:
+                        qs = qs.filter(school_memberships__school_id=int(school_id)).distinct()
+                    except ValueError:
+                        pass
+
+            # مدير المدرسة: يرسل التعميمات للمعلمين ضمن مدرسته فقط
+            else:
+                if active_school is not None:
+                    qs = qs.filter(
+                        school_memberships__school=active_school,
+                        school_memberships__is_active=True,
+                        school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+                    ).exclude(
+                        is_platform_admin=True,
+                    ).distinct()
+                else:
+                    qs = qs.none()
+
+                if "teachers" in self.fields:
+                    self.fields["teachers"].label = "المعلمون (يمكن اختيار معلم أو أكثر)"
+                    self.fields["teachers"].help_text = "يمكنك ترك الاختيار فارغًا لإرسال التعميم لجميع المعلمين في المدرسة."
+
+            self.fields["teachers"].queryset = qs
+            return
 
         # تقليص القائمة حسب الأقسام التي يديرها المستخدم (للضباط)
         try:
@@ -1441,7 +1501,7 @@ class NotificationCreateForm(forms.Form):
             school=school_for_notification,
         )
         
-        # تجميع المعلمين المستهدفين
+        # تجميع المستهدفين
         teacher_ids_set = set()
         
         # 1. المعلمون المختارون يدوياً
@@ -1449,16 +1509,23 @@ class NotificationCreateForm(forms.Form):
         if selected_teachers:
             teacher_ids_set.update([t.pk for t in selected_teachers])
             
-        # 2. معلمو القسم المختار (إن وجد)
+        # 2. توجيه حسب القسم (للإشعارات فقط)
         target_dept = cleaned.get("target_department")
-        if target_dept:
+        if target_dept and not bool(requires_signature):
             from .models import DepartmentMembership
-            dept_teachers = DepartmentMembership.objects.filter(
-                department=target_dept
-            ).values_list('teacher_id', flat=True)
+            dept_teachers = DepartmentMembership.objects.filter(department=target_dept).values_list("teacher_id", flat=True)
             teacher_ids_set.update(dept_teachers)
         
         teacher_ids = list(teacher_ids_set) if teacher_ids_set else None
+
+        # التعميمات (requires_signature=True): مدير النظام يرسل لمدراء المدارس
+        # لو لم يحدد أسماء، نعتبره "إرسال للكل" ضمن النطاق المحدد.
+        if bool(requires_signature) and bool(getattr(creator, "is_superuser", False)) and not teacher_ids:
+            try:
+                qs = self.fields["teachers"].queryset
+                teacher_ids = list(qs.values_list("pk", flat=True))
+            except Exception:
+                teacher_ids = None
 
         # Trigger background task to create recipients
         # - Prefer async (Celery)

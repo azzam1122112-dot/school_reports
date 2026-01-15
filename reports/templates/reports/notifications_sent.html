@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% if mode == 'circular' %}التعاميم المرسلة{% else %}الإشعارات المرسلة{% endif %}{% endblock %}
+{% block title %}الإشعارات المرسلة{% endblock %}
 
 {% block head %}
 <style>
@@ -189,16 +189,10 @@
 <div class="ns-scope" dir="rtl">
   <div class="wrap">
     <div class="page-header">
-      <h1>{% if mode == 'circular' %}التعاميم المرسلة{% else %}الإشعارات المرسلة{% endif %}</h1>
-      {% if mode == 'circular' %}
-        <a class="create-btn" href="{% url 'reports:circulars_create' %}">
-          <i class="fa-solid fa-plus" aria-hidden="true"></i> إنشاء تعميم جديد
-        </a>
-      {% else %}
-        <a class="create-btn" href="{% url 'reports:notifications_create' %}">
-          <i class="fa-solid fa-plus" aria-hidden="true"></i> إنشاء إشعار جديد
-        </a>
-      {% endif %}
+      <h1>الإشعارات المرسلة</h1>
+      <a class="create-btn" href="{% url 'reports:notifications_create' %}">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i> إنشاء إشعار جديد
+      </a>
     </div>
 
     {% if page_obj and page_obj.object_list %}

@@ -35,16 +35,9 @@
           إظهار غير المقروء فقط
         </label>
 
-        <label class="toggle" for="onlyUnsigned" title="إظهار التعاميم التي تتطلب توقيعاً ولم يتم توقيعها بعد">
-          <input type="checkbox" id="onlyUnsigned">
-          إظهار غير الموقّعة فقط
-          {% if NAV_SIGNATURES_PENDING %}
-            <span class="chip info" style="margin-inline-start:8px">{{ NAV_SIGNATURES_PENDING }} بانتظار التوقيع</span>
-          {% endif %}
-        </label>
-
         <form class="head-actions mark-all" method="post" action="{% url 'reports:notifications_mark_all_read' %}">
           {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'reports:my_notifications' %}">
           <button class="btn-outline" type="submit" id="markAllBtn">
             <i class="fa-solid fa-check-double" aria-hidden="true"></i>
             تحديد الكل كمقروء
@@ -57,18 +50,11 @@
       <section class="cards" id="cards">
         {% for r in page_obj %}
           {% with n=r.notification %}
-          <article class="n-card {% if r.is_read %}read{% endif %}" data-read="{% if r.is_read %}1{% else %}0{% endif %}" data-requires-signature="{% if n.requires_signature %}1{% else %}0{% endif %}" data-signed="{% if r.is_signed %}1{% else %}0{% endif %}">
+          <article class="n-card {% if r.is_read %}read{% endif %}" data-read="{% if r.is_read %}1{% else %}0{% endif %}">
             <div class="n-head">
               <h3 class="n-title">
                 {% if n.is_important %}
                   <span class="chip danger"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> هام</span>
-                {% endif %}
-                {% if n.requires_signature %}
-                  {% if r.is_signed %}
-                    <span class="chip success"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> تم التوقيع</span>
-                  {% else %}
-                    <span class="chip danger"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> يتطلب توقيع</span>
-                  {% endif %}
                 {% endif %}
                 {{ n.title|default:"رسالة من الإدارة" }}
               </h3>
@@ -186,7 +172,6 @@ document.addEventListener('DOMContentLoaded', function(){
   const $$ = s => Array.from(document.querySelectorAll(s));
 
   const LS_ONLY_KEY = 'notif_only_unread_v1';
-  const LS_UNSIGNED_KEY = 'notif_only_unsigned_v1';
 
   const unreadCountEl = $('#unreadCount');
   const unreadNumEl   = $('#unreadCountNum');
@@ -203,18 +188,13 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   const onlyUnread = $('#onlyUnread');
-  const onlyUnsigned = $('#onlyUnsigned');
 
   function applyFilters(){
     const only = !!(onlyUnread && onlyUnread.checked);
-    const onlyUns = !!(onlyUnsigned && onlyUnsigned.checked);
     $$('.n-card').forEach(c=>{
       const isRead = c.classList.contains('read');
-      const reqSig = c.getAttribute('data-requires-signature') === '1';
-      const isSigned = c.getAttribute('data-signed') === '1';
       const passUnread = !only || !isRead;
-      const passUnsigned = !onlyUns || (reqSig && !isSigned);
-      c.style.display = (passUnread && passUnsigned) ? '' : 'none';
+      c.style.display = (passUnread) ? '' : 'none';
     });
   }
 
@@ -228,18 +208,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
     onlyUnread.addEventListener('change', function(){
       try{ localStorage.setItem(LS_ONLY_KEY, onlyUnread.checked ? '1' : '0'); }catch(e){}
-      applyFilters();
-    });
-  }
-
-  if(onlyUnsigned){
-    try{
-      const saved = localStorage.getItem(LS_UNSIGNED_KEY);
-      if(saved === '1') onlyUnsigned.checked = true;
-    }catch(e){}
-
-    onlyUnsigned.addEventListener('change', function(){
-      try{ localStorage.setItem(LS_UNSIGNED_KEY, onlyUnsigned.checked ? '1' : '0'); }catch(e){}
       applyFilters();
     });
   }

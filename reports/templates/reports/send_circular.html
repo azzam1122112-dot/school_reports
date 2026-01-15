@@ -1,0 +1,576 @@
+{# reports/templates/reports/send_circular.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}إرسال تعميم{% endblock %}
+
+{% block head %}
+<style>
+  .notify-scope{
+    --primary:#2563eb;
+    --secondary:#1d4ed8;
+    --accent:#0ea5e9;
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --text:#1e293b;
+    --text-light:#64748b;
+    --border:#e2e8f0;
+    --radius-lg:20px;
+    --radius-md:12px;
+    --radius-sm:10px;
+    --shadow:0 10px 40px rgba(2, 6, 23, 0.08);
+    --gradient:linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    --transition:all .25s ease;
+    color: var(--text);
+  }
+  html[data-theme="dark"] .notify-scope{
+    --bg:#0f172a;
+    --card:#111c33;
+    --text:#f1f5f9;
+    --text-light:#94a3b8;
+    --border:#22314f;
+    --shadow:0 18px 46px rgba(0,0,0,.45);
+  }
+
+  .notify-scope .wrap{max-width:1400px;margin-inline:auto;padding:20px}
+  .notify-scope .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  .notify-scope .title{margin:0;font-size:1.9rem;font-weight:950;letter-spacing:.2px}
+  .notify-scope .hint{color:var(--text-light);font-weight:850}
+
+  .notify-scope .grid{display:grid;grid-template-columns: 1.25fr .85fr;gap:16px;align-items:start}
+  @media (max-width:980px){.notify-scope .grid{grid-template-columns:1fr}}
+
+  .notify-scope .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden}
+  .notify-scope .card-hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .notify-scope .card-bd{padding:16px}
+
+  .notify-scope .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--text);font-weight:950;text-decoration:none;cursor:pointer;transition:var(--transition)}
+  html[data-theme="dark"] .notify-scope .btn{background:rgba(255,255,255,.06)}
+  .notify-scope .btn:hover{transform:translateY(-1px)}
+  .notify-scope .btn-primary{background:var(--gradient);color:#fff;border-color:rgba(255,255,255,.16)}
+  .notify-scope .btn-ghost{background:transparent}
+
+  .notify-scope .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:560px){.notify-scope .form-grid{grid-template-columns:1fr}}
+
+  .notify-scope .field{display:flex;flex-direction:column;gap:6px}
+  .notify-scope .field.full{grid-column:1 / -1}
+  .notify-scope label{font-weight:950}
+  .notify-scope input[type="text"],
+  .notify-scope input[type="url"],
+  .notify-scope input[type="datetime-local"],
+  .notify-scope select,
+  .notify-scope textarea{
+    width:100%;padding:12px 12px;border:1px solid var(--border);border-radius:12px;background:transparent;color:inherit;outline:none
+  }
+  .notify-scope textarea{min-height:140px;resize:vertical}
+  .notify-scope .help{color:var(--text-light);font-weight:800;font-size:.9rem}
+  .notify-scope .errors{color:#b91c1c;font-weight:900;margin-top:4px}
+
+  .notify-scope .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+  .notify-scope .teacher-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  .notify-scope .teacher-tools input[type="search"]{flex:1;min-width:220px}
+  .notify-scope .teacher-list{border:1px solid var(--border);border-radius:14px;padding:10px;max-height:320px;overflow:auto;background:rgba(148,163,184,.06)}
+  .notify-scope .teacher-list ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  @media (max-width:560px){.notify-scope .teacher-list ul{grid-template-columns:1fr}}
+  .notify-scope .teacher-list li label{display:flex;align-items:center;gap:10px;font-weight:900}
+
+  .notify-scope .notif{border:1px solid var(--border);border-radius:16px;padding:14px;background:linear-gradient(180deg, rgba(37,99,235,.06), rgba(14,165,233,.03))}
+  .notify-scope .nt-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .notify-scope .nt-title{margin:0;font-size:1.05rem;font-weight:950}
+  .notify-scope .nt-body{margin-top:10px;line-height:1.9;font-weight:850;white-space:pre-wrap}
+  .notify-scope .nt-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .notify-scope .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.7);font-weight:950;font-size:.86rem}
+  html[data-theme="dark"] .notify-scope .pill{background:rgba(255,255,255,.06)}
+
+  .notify-scope .sig-box{border:1px dashed rgba(37,99,235,.45);background:rgba(37,99,235,.05);border-radius:16px;padding:14px}
+
+  @media (prefers-reduced-motion: reduce){
+    .notify-scope .btn{transition:none !important;}
+    .notify-scope .btn:hover{transform:none !important;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notify-scope" dir="rtl">
+  <div class="wrap">
+
+    <header class="page-head">
+      <div>
+        <h1 class="title">إرسال تعميم</h1>
+        <div class="hint">التعميم مخصص للتوثيق الرسمي، ويُطلب من المستلمين تأكيد الاستلام بالتوقيع.</div>
+      </div>
+      <div>
+        <a class="btn btn-ghost" href="{% url 'reports:circulars_sent' %}">
+          <i class="fa-solid fa-list"></i> التعاميم المرسلة
+        </a>
+      </div>
+    </header>
+
+    <div class="grid">
+
+      <section class="card" aria-labelledby="form-title">
+        <div class="card-hd">
+          <strong id="form-title">نموذج التعميم</strong>
+          <span class="help">يظهر هذا الخيار للمصرّح لهم فقط</span>
+        </div>
+
+        <div class="card-bd">
+          {% if form %}
+            {% if form.media %}{{ form.media }}{% endif %}
+
+            <form method="post" enctype="multipart/form-data" action="" id="notifyForm" novalidate>
+              {% csrf_token %}
+
+              {% if form.non_field_errors %}
+                <div class="errors">{{ form.non_field_errors }}</div>
+              {% endif %}
+
+              {# enforce requires_signature=True even if field exists #}
+              {% if form.requires_signature %}
+                <div style="display:none">
+                  {{ form.requires_signature }}
+                </div>
+              {% endif %}
+
+              <div class="actions" style="margin-top:0">
+                <button class="btn btn-primary" type="submit">
+                  <i class="fa-solid fa-paper-plane"></i> إرسال التعميم
+                </button>
+                <a class="btn" href="{% url 'reports:home' %}">
+                  <i class="fa-solid fa-home"></i> الرجوع للرئيسية
+                </a>
+              </div>
+
+              <div class="form-grid" style="margin-top:12px">
+                {% for field in form.visible_fields %}
+                  {% if field.name == "requires_signature" or field.name == "signature_deadline_at" or field.name == "signature_ack_text" %}
+                    {# rendered in signature box below #}
+                  {% elif field.name == "teachers" or field.name == "target_department" %}
+                    <div class="field full" data-name="{{ field.html_name|lower }}">
+                      <label for="{{ field.id_for_label }}" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                        <span>
+                          {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
+                          {{ field.label }}
+                        </span>
+                        {% if field.name == "teachers" %}
+                          <span class="help" style="font-weight:950">
+                            <button type="button" class="btn btn-ghost" id="selectAllTeachers" style="padding:6px 10px">تحديد الكل</button>
+                            <button type="button" class="btn btn-ghost" id="clearAllTeachers" style="padding:6px 10px">إلغاء</button>
+                          </span>
+                        {% endif %}
+                      </label>
+
+                      {% if field.name == "teachers" %}
+                        <div class="teacher-tools">
+                          <input id="teacherSearch" type="search" placeholder="ابحث باسم المعلّم…" aria-label="البحث عن معلّم">
+                          <span class="help">المحدّد: <strong id="selCount">0</strong></span>
+                        </div>
+                        <div class="teacher-list" id="teacherList">{{ field }}</div>
+                      {% else %}
+                        {{ field }}
+                      {% endif %}
+
+                      {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+                      {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="field" data-name="{{ field.html_name|lower }}">
+                      <label for="{{ field.id_for_label }}">
+                        {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
+                        {{ field.label|default:"الحقل" }}
+                      </label>
+                      {{ field }}
+                      {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+                      {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+
+                <div class="field full sig-box" data-name="signature_settings">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                    <div>
+                      <div style="font-weight:950">إعدادات التوقيع</div>
+                      <div class="help" style="margin-top:4px">التوقيع يتم عبر إدخال الجوال المسجل + الموافقة على الإقرار.</div>
+                    </div>
+                    <span class="help" style="font-weight:950">إلزامي</span>
+                  </div>
+
+                  {% if form.signature_deadline_at %}
+                    <div class="field" style="margin-top:10px">
+                      <label for="{{ form.signature_deadline_at.id_for_label }}">{{ form.signature_deadline_at.label }}</label>
+                      {{ form.signature_deadline_at }}
+                      {% if form.signature_deadline_at.help_text %}<div class="help">{{ form.signature_deadline_at.help_text|safe }}</div>{% endif %}
+                      {% for e in form.signature_deadline_at.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                    </div>
+                  {% endif %}
+
+                  {% if form.signature_ack_text %}
+                    <div class="field" style="margin-top:10px">
+                      <label for="{{ form.signature_ack_text.id_for_label }}">{{ form.signature_ack_text.label }}</label>
+                      {{ form.signature_ack_text }}
+                      {% if form.signature_ack_text.help_text %}<div class="help">{{ form.signature_ack_text.help_text|safe }}</div>{% endif %}
+                      {% for e in form.signature_ack_text.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="actions">
+                <button class="btn btn-primary" type="submit">
+                  <i class="fa-solid fa-paper-plane"></i> إرسال التعميم
+                </button>
+                <a class="btn" href="{% url 'reports:home' %}">
+                  <i class="fa-solid fa-home"></i> الرجوع للرئيسية
+                </a>
+              </div>
+            </form>
+          {% else %}
+            <div class="errors">لم يتم تمرير الفورم من الـ view.</div>
+          {% endif %}
+        </div>
+      </section>
+
+      <aside class="card preview" aria-labelledby="preview-title">
+        <div class="card-hd">
+          <strong id="preview-title">معاينة فورية</strong>
+          <span class="help">تحدَّث تلقائيًا</span>
+        </div>
+        <div class="card-bd">
+          <div class="notif">
+            <div class="nt-h">
+              <h3 class="nt-title" id="pv_title">عنوان التعميم</h3>
+              <div id="pv_important" title="هام" style="display:none">
+                <i class="fa-solid fa-circle-exclamation" style="color:#ef4444"></i>
+              </div>
+            </div>
+            <div class="nt-body" id="pv_body">سيظهر نص التعميم هنا…</div>
+            <div class="nt-meta">
+              <span class="pill">
+                <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
+                <span>مرسل: {% firstof request.user.name request.user.phone "الإدارة" %}</span>
+              </span>
+              <span class="pill">
+                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                يتطلب توقيع
+              </span>
+              <span class="pill" id="pv_deadline" style="display:none">
+                <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
+                آخر موعد للتوقيع
+              </span>
+              <span class="pill" id="pv_action" style="display:none">
+                <i class="fa-solid fa-link"></i> يحتوي على رابط إجراء
+              </span>
+              <span class="pill" id="pv_expires" style="display:none">
+                <i class="fa-solid fa-clock"></i> ينتهي لاحقًا
+              </span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
+(function(){
+  const $ = s => document.querySelector(s);
+
+  // Force requires_signature to be checked if present
+  const rs = document.getElementById('id_requires_signature');
+  if(rs && rs.type === 'checkbox'){ rs.checked = true; }
+
+  const titleInput = $("#id_title") || document.querySelector('[name$="title"],[name*="title"],[name*="subject"],[name*="heading"]');
+  const msgInput = $("#id_message") || document.querySelector('textarea[name*="message"],textarea[name*="body"],textarea[name*="content"],textarea[name*="text"],textarea[name*="details"]');
+  const urlInput = $("#id_action_url") || document.querySelector('input[type="url"][name*="action_url"],input[type="url"]');
+  const impInput = $("#id_is_important") || document.querySelector('input[type="checkbox"][name*="is_important"]');
+  const expInput = $("#id_expires_at") || document.querySelector('input[type="datetime-local"][name*="expires_at"],input[name*="expires_at"]');
+  const sigDeadlineInput = $("#id_signature_deadline_at") || document.querySelector('input[type="datetime-local"][name*="signature_deadline"],input[name*="signature_deadline"]');
+
+  const pvTitle = $("#pv_title");
+  const pvBody  = $("#pv_body");
+  const pvImportant = $("#pv_important");
+  const pvDeadline = $("#pv_deadline");
+  const pvAction = $("#pv_action");
+  const pvExpires = $("#pv_expires");
+
+  function updatePreview(){
+    if(pvTitle && titleInput){ pvTitle.textContent = (titleInput.value || '').trim() || 'عنوان التعميم'; }
+    if(pvBody && msgInput){ pvBody.textContent = (msgInput.value || '').trim() || 'سيظهر نص التعميم هنا…'; }
+    if(pvImportant && impInput){ pvImportant.style.display = impInput.checked ? 'block' : 'none'; }
+    if(pvDeadline && sigDeadlineInput){ pvDeadline.style.display = (sigDeadlineInput.value || '').trim() ? 'inline-flex' : 'none'; }
+    if(pvAction && urlInput){ pvAction.style.display = (urlInput.value || '').trim() ? 'inline-flex' : 'none'; }
+    if(pvExpires && expInput){ pvExpires.style.display = (expInput.value || '').trim() ? 'inline-flex' : 'none'; }
+  }
+
+  [titleInput, msgInput, urlInput, impInput, expInput, sigDeadlineInput].forEach(el => {
+    if(!el) return;
+    el.addEventListener('input', updatePreview);
+    el.addEventListener('change', updatePreview);
+  });
+  updatePreview();
+
+  // ===== Teachers filter/select-all (checkboxes OR select[multiple]) =====
+  const teacherField = document.querySelector('.form-grid .field[data-name*="teachers"]');
+  if(teacherField){
+    const searchInput = $('#teacherSearch');
+    const selCount = $('#selCount');
+    const btnSelectAll = $('#selectAllTeachers');
+    const btnClearAll = $('#clearAllTeachers');
+
+    const teacherListBox = document.getElementById('teacherList') || teacherField;
+
+    function getTeachersFieldName(){
+      const cb = teacherField.querySelector('input[type="checkbox"][name]');
+      if(cb && cb.name) return cb.name;
+      const ms = teacherField.querySelector('select[multiple][name]');
+      if(ms && ms.name) return ms.name;
+      return 'teachers';
+    }
+    const teachersFieldName = getTeachersFieldName();
+
+    const scopeSel = document.getElementById('id_audience_scope');
+    const schoolSel = document.getElementById('id_target_school');
+    const deptSel = document.getElementById('id_target_department');
+
+    function escapeHtml(val){
+      return String(val ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      })[ch]);
+    }
+
+    let isLoadingTeachers = false;
+    let isLoadingDepts = false;
+
+    function getCheckboxInputs(){
+      return Array.from(teacherField.querySelectorAll('input[type="checkbox"][name="' + CSS.escape(teachersFieldName) + '"]'));
+    }
+
+    function getMultiSelect(){
+      const ms = teacherField.querySelector('select[multiple][name="' + CSS.escape(teachersFieldName) + '"]');
+      return ms || teacherField.querySelector('select[multiple]');
+    }
+
+    function updateCount(){
+      let count = 0;
+      const checkboxInputs = getCheckboxInputs();
+      const multiSelect = getMultiSelect();
+
+      if(checkboxInputs.length){
+        checkboxInputs.forEach(cb => { if(cb.checked) count++; });
+      } else if(multiSelect){
+        Array.from(multiSelect.options).forEach(op => { if(op.selected) count++; });
+      }
+
+      if(selCount) selCount.textContent = String(count);
+    }
+
+    function applyFilter(term){
+      const q = (term || '').trim().toLowerCase();
+
+      const checkboxInputs = getCheckboxInputs();
+      const multiSelect = getMultiSelect();
+
+      if(checkboxInputs.length){
+        checkboxInputs.forEach(cb => {
+          const wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
+          const txt = (wrap && wrap.textContent || '').toLowerCase();
+          const show = !q || txt.includes(q);
+          if(wrap) wrap.style.display = show ? '' : 'none';
+        });
+      } else if(multiSelect){
+        Array.from(multiSelect.options).forEach(op => {
+          const txt = (op.textContent || '').toLowerCase();
+          op.hidden = !!q && !txt.includes(q);
+        });
+      }
+
+      updateCount();
+    }
+
+    function toggleAll(select){
+      const checkboxInputs = getCheckboxInputs();
+      const multiSelect = getMultiSelect();
+
+      if(checkboxInputs.length){
+        checkboxInputs.forEach(cb => {
+          const wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
+          const hidden = wrap && wrap.style.display === 'none';
+          if(hidden) return;
+          cb.checked = !!select;
+        });
+      } else if(multiSelect){
+        Array.from(multiSelect.options).forEach(op => {
+          if(op.hidden) return;
+          op.selected = !!select;
+        });
+      }
+
+      updateCount();
+    }
+
+    if(searchInput){ searchInput.addEventListener('input', () => applyFilter(searchInput.value)); }
+    if(btnSelectAll){ btnSelectAll.addEventListener('click', () => toggleAll(true)); }
+    if(btnClearAll){ btnClearAll.addEventListener('click', () => toggleAll(false)); }
+
+    teacherField.addEventListener('change', updateCount);
+
+    async function refreshTeachers(){
+      if(isLoadingTeachers) return;
+      if(!scopeSel && !schoolSel && !deptSel) return;
+
+      // Preserve current selections
+      const selected = new Set(getCheckboxInputs().filter(cb => cb.checked).map(cb => String(cb.value)));
+      const multiSelect = getMultiSelect();
+      if(multiSelect){
+        Array.from(multiSelect.options).forEach(op => { if(op.selected) selected.add(String(op.value)); });
+      }
+
+      const params = new URLSearchParams();
+      if(scopeSel && scopeSel.value) params.set('audience_scope', scopeSel.value);
+      if(schoolSel && schoolSel.value) params.set('target_school', schoolSel.value);
+      if(deptSel && deptSel.value) params.set('target_department', deptSel.value);
+      if(params.toString() === '') return;
+
+      const url = '{% url "reports:api_notification_teachers" %}?mode=circular&' + params.toString();
+      isLoadingTeachers = true;
+
+      const prevHtml = teacherListBox.innerHTML;
+      teacherListBox.innerHTML = '<div class="help">جارٍ تحديث قائمة المستلمين…</div>';
+      if(btnSelectAll) btnSelectAll.disabled = true;
+      if(btnClearAll) btnClearAll.disabled = true;
+
+      try{
+        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const payload = await res.json();
+        const results = Array.isArray(payload && payload.results) ? payload.results : [];
+
+        if(!results.length){
+          teacherListBox.innerHTML = '<div class="help">لا يوجد مستلمون مطابقون للاختيار الحالي.</div>';
+          updateCount();
+          return;
+        }
+
+        const items = ['<ul>'];
+        for(const t of results){
+          const id = String(t.id);
+          const nm = escapeHtml(t.name || '—');
+          const checked = selected.has(id) ? ' checked' : '';
+          items.push(
+            `<li><label><input type="checkbox" name="${escapeHtml(teachersFieldName)}" value="${escapeHtml(id)}"${checked}> <span>${nm}</span></label></li>`
+          );
+        }
+        items.push('</ul>');
+        teacherListBox.innerHTML = items.join('');
+
+        if(searchInput) applyFilter(searchInput.value);
+        updateCount();
+      }catch(e){
+        teacherListBox.innerHTML = prevHtml;
+        updateCount();
+      }finally{
+        isLoadingTeachers = false;
+        if(btnSelectAll) btnSelectAll.disabled = false;
+        if(btnClearAll) btnClearAll.disabled = false;
+      }
+    }
+
+    async function refreshDepartments(opts){
+      const options = opts || {};
+      if(!deptSel) return;
+      if(isLoadingDepts) return;
+
+      const prevVal = String(deptSel.value || "");
+      const params = new URLSearchParams();
+
+      const scopeVal = scopeSel ? String(scopeSel.value || "") : "";
+      if(scopeVal !== 'all' && schoolSel && schoolSel.value){
+        params.set('school', schoolSel.value);
+      }
+
+      const url = '{% url "reports:api_school_departments" %}' + (params.toString() ? ('?' + params.toString()) : '');
+      isLoadingDepts = true;
+      deptSel.disabled = true;
+
+      const oldOptions = Array.from(deptSel.options).map(o => ({value: o.value, text: o.text, selected: o.selected}));
+      deptSel.innerHTML = '<option value="">—</option>';
+
+      try{
+        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const payload = await res.json();
+        const results = Array.isArray(payload && payload.results) ? payload.results : [];
+
+        for(const d of results){
+          const opt = document.createElement('option');
+          opt.value = String(d.id);
+          opt.textContent = d.name || '—';
+          deptSel.appendChild(opt);
+        }
+
+        if(options.clearSelection){
+          deptSel.value = '';
+        } else if(prevVal && Array.from(deptSel.options).some(o => o.value === prevVal)){
+          deptSel.value = prevVal;
+        } else {
+          deptSel.value = '';
+        }
+      }catch(e){
+        deptSel.innerHTML = '';
+        for(const o of oldOptions){
+          const opt = document.createElement('option');
+          opt.value = o.value;
+          opt.textContent = o.text;
+          if(o.selected) opt.selected = true;
+          deptSel.appendChild(opt);
+        }
+      }finally{
+        deptSel.disabled = false;
+        isLoadingDepts = false;
+      }
+    }
+
+    if(scopeSel){
+      scopeSel.addEventListener('change', async () => {
+        await refreshDepartments({clearSelection: true});
+        await refreshTeachers();
+      });
+    }
+    if(schoolSel){
+      schoolSel.addEventListener('change', async () => {
+        await refreshDepartments({clearSelection: true});
+        await refreshTeachers();
+      });
+    }
+    if(deptSel){
+      deptSel.addEventListener('change', refreshTeachers);
+    }
+
+    applyFilter('');
+    updateCount();
+
+    try{
+      if((scopeSel && scopeSel.value) || (schoolSel && schoolSel.value) || (deptSel && deptSel.value)){
+        Promise.resolve(refreshDepartments({clearSelection: false})).then(refreshTeachers);
+      }
+    }catch(e){}
+  }
+
+  // Prevent double submit
+  const form = document.getElementById('notifyForm');
+  if(form){
+    form.addEventListener('submit', function(){
+      const btns = Array.from(form.querySelectorAll('button[type="submit"]'));
+      btns.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading" style="width:16px;height:16px;border-radius:999px;border:2px solid rgba(255,255,255,.55);border-top-color:#fff;display:inline-block;animation:spin 1s ease-in-out infinite"></span> جارٍ الإرسال…';
+      });
+    });
+  }
+})();
+</script>
+{% endblock %}
