@@ -462,7 +462,7 @@
                       ><i class="fa-solid fa-eye" aria-hidden="true"></i> عرض</button>
 
                       <a
-                        href="{% url 'reports:report_print' r.pk %}"
+                        href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}"
                         target="_blank"
                         rel="noopener"
                         class="btn btn-print"
@@ -539,7 +539,7 @@
                   data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
                 >👁 عرض</button>
 
-                <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="btn btn-print">🖨 طباعة</a>
+                <a href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="btn btn-print">🖨 طباعة</a>
 
                 {% if can_delete %}
                   <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">

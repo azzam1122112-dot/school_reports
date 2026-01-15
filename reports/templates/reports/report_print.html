@@ -411,6 +411,19 @@
 
   <script nonce="{{ CSP_NONCE }}">
     function goBack() {
+      // Prefer an explicit next= (works even when opened in a new tab)
+      try {
+        var params = new URLSearchParams(window.location.search || '');
+        var next = (params.get('next') || '').trim();
+        if (next) {
+          var nextUrl = new URL(next, window.location.origin);
+          if (nextUrl.origin === window.location.origin) {
+            window.location.href = nextUrl.href;
+            return;
+          }
+        }
+      } catch (e) {}
+
       try {
         if (window.history && window.history.length > 1) {
           window.history.back();
@@ -429,7 +442,7 @@
         }
       } catch (e) {}
 
-      // Safe fallback if opened in a new tab
+      // Safe fallback if opened directly
       window.location.href = "{% url 'reports:my_reports' %}";
     }
 

@@ -111,7 +111,12 @@
   html[data-theme="dark"] .nores{background:rgba(255,255,255,.03)}
 
   /* Table */
-  .table-wrap{overflow:auto;margin-top:12px}
+  /*
+    ملاحظة: في app.css يتم إخفاء .table-wrap على الشاشات الصغيرة
+    (لاستخدام عرض cards في بعض الصفحات). هذه الصفحة لا تحتوي عرض cards،
+    لذلك نُجبر إظهار الجدول على الجوال.
+  */
+  .schools-page .table-wrap{display:block;overflow:auto;margin-top:12px}
   table.rtable{width:100%}
   table.rtable thead th{white-space:nowrap}
 

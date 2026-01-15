@@ -2423,7 +2423,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                                     created_by=user,
                                 )
                                 NotificationRecipient.objects.create(notification=n, teacher=r.teacher)
-                            return redirect("reports:report_print", pk=r.pk)
+                            return redirect(request.get_full_path())
 
                     # update/delete (only comment author, or superuser)
                     if action in {"private_comment_update", "private_comment_delete"}:
@@ -2434,7 +2434,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                             comment_id_int = None
 
                         if not comment_id_int:
-                            return redirect("reports:report_print", pk=r.pk)
+                            return redirect(request.get_full_path())
 
                         comment = TeacherPrivateComment.objects.filter(
                             pk=comment_id_int,
@@ -2442,7 +2442,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                             teacher=getattr(r, "teacher", None),
                         ).first()
                         if comment is None:
-                            return redirect("reports:report_print", pk=r.pk)
+                            return redirect(request.get_full_path())
 
                         is_owner_of_comment = getattr(comment, "created_by_id", None) == getattr(user, "id", None)
 
@@ -2469,7 +2469,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                                 TeacherPrivateComment.objects.filter(pk=comment.pk).update(body=body)
                             except Exception:
                                 pass
-                        return redirect("reports:report_print", pk=r.pk)
+                        return redirect(request.get_full_path())
                 else:
                     comment_form = PrivateCommentForm()
         except Exception:

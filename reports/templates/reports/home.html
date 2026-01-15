@@ -216,7 +216,7 @@
       {% if recent_reports %}
         <div class="dash-list">
           {% for r in recent_reports %}
-            <a class="dash-item" href="{% url 'reports:report_print' r.id %}" title="عرض وطباعة">
+            <a class="dash-item" href="{% url 'reports:report_print' r.id %}?next={{ request.get_full_path|urlencode }}" title="عرض وطباعة">
               <div class="di-icon">
                 <i class="fa-regular fa-file-lines"></i>
               </div>

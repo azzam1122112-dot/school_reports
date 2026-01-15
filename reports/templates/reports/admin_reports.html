@@ -552,7 +552,7 @@
                       <i class="fa-solid fa-eye"></i>
                     </button>
 
-                    <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="rd-iconbtn" title="طباعة">
+                    <a href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="rd-iconbtn" title="طباعة">
                       <i class="fa-solid fa-print"></i>
                     </a>
 
@@ -636,7 +636,7 @@
               <i class="fa-solid fa-eye"></i>
             </button>
 
-            <a href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" class="btn btn-ghost" style="min-height:40px;">
+            <a href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="btn btn-ghost" style="min-height:40px;">
               <i class="fa-solid fa-print"></i>
             </a>
 
