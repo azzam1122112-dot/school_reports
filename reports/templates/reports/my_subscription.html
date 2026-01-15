@@ -162,50 +162,91 @@
     color: var(--muted);
   }
 
-  /* Bank Details */
-  .bank-accordion {
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 20px;
-  }
-  .bank-accordion summary {
-    background: var(--surface-2);
-    padding: 16px;
-    cursor: pointer;
-    font-weight: 700;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    list-style: none;
-  }
-  .bank-accordion summary:hover { background: var(--border-color); }
-  .bank-accordion[open] summary { border-bottom: 1px solid var(--border-color); }
-  
-  .bank-content { padding: 20px; }
-  .bank-grid-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-  }
-  .bank-info-box {
-    background: var(--surface-2);
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    position: relative;
-    transition: transform 0.2s;
-  }
-  .bank-info-box:active { transform: scale(0.98); }
-  .bank-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
-  .bank-val { font-weight: 700; font-size: 0.9rem; word-break: break-all; font-family: 'Courier New', monospace; }
-  .copy-mini {
-    position: absolute;
-    top: 8px; left: 8px;
-    background: none; border: none;
-    color: #3b82f6; cursor: pointer;
-    padding: 4px;
-  }
+    /* Bank Details */
+    .bank-card-container {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        border-radius: 20px;
+        padding: 24px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 24px;
+        box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.4);
+    }
+    .bank-card-container::before {
+        content: '';
+        position: absolute;
+        top: -50px; right: -50px;
+        width: 150px; height: 150px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 50%;
+    }
+    .bank-card-container::after {
+        content: '';
+        position: absolute;
+        bottom: -30px; left: -30px;
+        width: 120px; height: 120px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 50%;
+    }
+    
+    .bank-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+    }
+    .bank-logo { font-size: 1.5rem; font-weight: 900; letter-spacing: 1px; }
+    .bank-chip { 
+        width: 40px; height: 28px; 
+        background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); 
+        border-radius: 6px; 
+        position: relative;
+        overflow: hidden;
+    }
+    .bank-chip::before {
+        content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(0,0,0,0.2);
+    }
+
+    .bank-row {
+        margin-bottom: 16px;
+        position: relative;
+        z-index: 1;
+    }
+    .bank-label-sm { font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+    .bank-value-lg { 
+        font-family: 'Courier New', monospace; 
+        font-size: 1.15rem; 
+        font-weight: 700; 
+        letter-spacing: 1px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .bank-copy-icon {
+        font-size: 0.9rem;
+        color: rgba(255,255,255,0.6);
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .bank-copy-icon:hover { color: #fff; }
+
+    .bank-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-top: 10px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .bank-note {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.5);
+        margin-top: 12px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding-top: 8px;
+    }
 
   /* Form */
   .modern-input-group { margin-bottom: 20px; }
@@ -412,34 +453,45 @@
         <h2>تجديد / اشتراك جديد</h2>
       </div>
 
-      <details class="bank-accordion" open>
-        <summary>
-          <span><i class="fa-solid fa-building-columns" style="opacity:0.75; margin-left:8px"></i> بيانات التحويل البنكي (الراجحي)</span>
-          <i class="fa-solid fa-chevron-down"></i>
-        </summary>
-        <div class="bank-content">
-          <div class="bank-grid-cards">
-            <div class="bank-info-box">
-               <div class="bank-label">اسم المستفيد</div>
-               <div class="bank-val">منصور الغامدي</div>
-               <button type="button" class="copy-mini copy-btn" data-copy="منصور محمد بن حامد الغامدي"><i class="fa-regular fa-copy"></i></button>
-            </div>
-            <div class="bank-info-box">
-              <div class="bank-label">رقم الحساب</div>
-              <div class="bank-val" dir="ltr">660000010006086220957</div>
-              <button type="button" class="copy-mini copy-btn" data-copy="660000010006086220957"><i class="fa-regular fa-copy"></i></button>
-           </div>
-           <div class="bank-info-box">
-              <div class="bank-label">الآيبان IBAN</div>
-              <div class="bank-val" dir="ltr" style="font-size:0.8rem">SA8580000660608016220957</div>
-              <button type="button" class="copy-mini copy-btn" data-copy="SA8580000660608016220957"><i class="fa-regular fa-copy"></i></button>
-           </div>
-          </div>
-          <div style="margin-top:10px; font-size:0.8rem; color:var(--muted)">
-            * يفضل ذكر اسم المدرسة في ملاحظات الحوالة.
-          </div>
+      <div class="bank-card-container">
+        <div class="bank-header">
+           <div class="bank-chip"></div>
+           <div class="bank-logo">alrajhi bank</div>
         </div>
-      </details>
+
+        <div class="bank-row">
+           <div class="bank-label-sm">عن طريق التحويل إلى (اسم المستفيد)</div>
+           <div class="bank-value-lg">
+             منصور الغامدي 
+             <i class="fa-regular fa-copy bank-copy-icon copy-btn" data-copy="منصور محمد بن حامد الغامدي" title="نسخ"></i>
+           </div>
+        </div>
+
+        <div class="bank-row">
+           <div class="bank-label-sm">رقم الحساب</div>
+           <div class="bank-value-lg" dir="ltr">
+             6600 0001 0006 0862 2095 7
+             <i class="fa-regular fa-copy bank-copy-icon copy-btn" data-copy="660000010006086220957" title="نسخ"></i>
+           </div>
+        </div>
+
+        <div class="bank-footer">
+           <div style="flex:1">
+             <div class="bank-label-sm">IBAN</div>
+             <div class="bank-value-lg" style="font-size:0.95rem" dir="ltr">
+               SA85 8000 0660 6080 1622 0957
+               <i class="fa-regular fa-copy bank-copy-icon copy-btn" data-copy="SA8580000660608016220957" title="نسخ"></i>
+             </div>
+           </div>
+           <div>
+             <img src="https://companieslogo.com/img/orig/1120.SR-d7293521.png?t=1720244494" alt="Al Rajhi" style="height:30px; filter: brightness(0) invert(1);">
+           </div>
+        </div>
+
+        <div class="bank-note">
+           * الرجاء التأكد من كتابة اسم المدرسة في ملاحظات الحوالة البنكية لسهولة التحقق.
+        </div>
+      </div>
 
       <form action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data" id="renewForm" novalidate class="modern-form">
         {% csrf_token %}
@@ -457,8 +509,14 @@
         </div>
 
         <div class="modern-input-group">
-          <label class="modern-label" for="amount">المبلغ المحول</label>
-          <input type="number" name="amount" id="amount" required step="0.01" class="modern-input" placeholder="0.00">
+          <label class="modern-label" for="amount">المبلغ المطلوب (ريال سعودي)</label>
+          <div style="position:relative">
+            <input type="number" name="amount" id="amount" required step="0.01" class="modern-input" placeholder="0.00" readonly style="background-color: var(--surface-2); cursor: not-allowed; font-weight:800; color:var(--brand-700);">
+            <div style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:0.9rem; font-weight:700">SAR</div>
+          </div>
+          <div style="font-size:0.8rem; color:var(--muted); margin-top:4px">
+            <i class="fa-solid fa-circle-info"></i> يتم تعبئة المبلغ تلقائياً بناءً على الباقة المختارة.
+          </div>
         </div>
 
         <!-- Modern File Upload -->
