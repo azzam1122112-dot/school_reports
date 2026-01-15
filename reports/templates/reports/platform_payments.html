@@ -240,6 +240,10 @@
                 <span class="badge warning">معلّق</span>
               {% elif payment.status == 'rejected' %}
                 <span class="badge danger">مرفوض</span>
+              {% elif payment.status == 'cancelled' %}
+                <span class="badge" style="background:rgba(100,116,139,.12);color:#475569;border:1px solid rgba(100,116,139,.25);font-weight:950">
+                  ملغي
+                </span>
               {% else %}
                 <span class="badge" style="background:rgba(100,116,139,.12);color:#475569;border:1px solid rgba(100,116,139,.25);font-weight:950">
                   غير معروف

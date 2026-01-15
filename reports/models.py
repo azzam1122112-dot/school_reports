@@ -1730,6 +1730,7 @@ class Payment(models.Model):
         PENDING = "pending", "قيد المراجعة"
         APPROVED = "approved", "مقبول"
         REJECTED = "rejected", "مرفوض"
+        CANCELLED = "cancelled", "ملغي"
 
     school = models.ForeignKey(
         School,

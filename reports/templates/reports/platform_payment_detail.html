@@ -224,6 +224,8 @@
         <span class="value" aria-label="الحالة">
           {% if payment.status == 'approved' %}
             <span class="badge success"><i class="fa-solid fa-circle-check"></i> مقبول</span>
+          {% elif payment.status == 'cancelled' %}
+            <span class="badge" style="background: rgba(100,116,139,.12); color: #475569; border-color: rgba(100,116,139,.25)"><i class="fa-solid fa-ban"></i> ملغي</span>
           {% elif payment.status == 'rejected' %}
             <span class="badge danger"><i class="fa-solid fa-circle-xmark"></i> مرفوض</span>
           {% else %}
@@ -296,6 +298,7 @@
             <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>قيد المراجعة</option>
             <option value="approved" {% if payment.status == 'approved' %}selected{% endif %}>قبول الدفع</option>
             <option value="rejected" {% if payment.status == 'rejected' %}selected{% endif %}>رفض الدفع</option>
+            <option value="cancelled" {% if payment.status == 'cancelled' %}selected{% endif %}>إلغاء العملية</option>
           </select>
           <div class="help">اختر الحالة ثم احفظ. يفضّل كتابة سبب الرفض عند الرفض.</div>
         </div>

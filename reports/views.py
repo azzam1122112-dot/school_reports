@@ -4611,13 +4611,35 @@ def platform_subscription_delete(request: HttpRequest, pk: int) -> HttpResponse:
         today = timezone.localdate()
         school_name = subscription.school.name
 
-        subscription.is_active = False
-        subscription.end_date = today
-        if getattr(subscription, "canceled_at", None) is None:
-            subscription.canceled_at = timezone.now()
-        subscription.cancel_reason = reason
+        with transaction.atomic():
+            subscription.is_active = False
+            subscription.end_date = today
+            if getattr(subscription, "canceled_at", None) is None:
+                subscription.canceled_at = timezone.now()
+            subscription.cancel_reason = reason
 
-        subscription.save(update_fields=["is_active", "end_date", "canceled_at", "cancel_reason", "updated_at"])
+            subscription.save(update_fields=["is_active", "end_date", "canceled_at", "cancel_reason", "updated_at"])
+
+            # ✅ المالية: عند إلغاء الاشتراك نُلغي مبالغ هذا الاشتراك داخل المالية.
+            # نُطبّق ذلك عبر تحويل مدفوعات فترة الاشتراك الحالية إلى حالة (cancelled)
+            # ثم نستبعد cancelled من صفحة المالية وإحصاءاتها.
+            try:
+                period_start = getattr(subscription, "start_date", None)
+                payments_qs = Payment.objects.filter(
+                    subscription=subscription,
+                    status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
+                )
+                if period_start:
+                    payments_qs = payments_qs.filter(payment_date__gte=period_start)
+
+                cancel_note = f"تم إلغاء الاشتراك: {reason}"
+                for p in payments_qs.only("id", "status", "notes"):
+                    p.status = Payment.Status.CANCELLED
+                    p.notes = (f"{p.notes}\n" if (p.notes or "").strip() else "") + cancel_note
+                    p.save(update_fields=["status", "notes", "updated_at"])
+            except Exception:
+                logger.exception("Failed to cancel payments for cancelled subscription")
+
         messages.success(request, f"تم إلغاء اشتراك مدرسة {school_name}.")
     except Exception:
         logger.exception("platform_subscription_delete failed")
@@ -4635,7 +4657,12 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_payments_list(request: HttpRequest) -> HttpResponse:
-    payments = Payment.objects.select_related('school').order_by('-created_at')
+    # ✅ لا نعرض (cancelled) ضمن المالية حسب طلب الإدارة.
+    payments = (
+        Payment.objects.select_related('school')
+        .exclude(status=Payment.Status.CANCELLED)
+        .order_by('-created_at')
+    )
     
     # حساب الإحصائيات لعرضها في الكروت العلوية
     stats = payments.aggregate(
