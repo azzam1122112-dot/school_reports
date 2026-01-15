@@ -124,36 +124,40 @@
       <div class="hdr-actions">
         {% if request.user.is_authenticated %}
 
-          {% if USER_SCHOOLS|length > 1 and not (request.user.is_platform_admin and not request.user.is_superuser) %}
-            <button type="button" class="btn btn-outline btn-sm" id="openSchoolModal" aria-haspopup="dialog" aria-controls="schoolModal" aria-expanded="false">
-              <i class="fa-solid fa-school" aria-hidden="true"></i>
-              <span style="font-weight:950;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}اختر مدرسة{% endif %}
-              </span>
-              <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-            </button>
+          {% if USER_SCHOOLS|length > 1 %}
+            {% if not request.user.is_platform_admin or request.user.is_superuser %}
+              <button type="button" class="btn btn-outline btn-sm" id="openSchoolModal" aria-haspopup="dialog" aria-controls="schoolModal" aria-expanded="false">
+                <i class="fa-solid fa-school" aria-hidden="true"></i>
+                <span style="font-weight:950;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                  {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}اختر مدرسة{% endif %}
+                </span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+              </button>
+            {% endif %}
           {% endif %}
 
-          {% if not IS_REPORT_VIEWER and not (request.user.is_platform_admin and not request.user.is_superuser) %}
-            {% url 'reports:my_notifications' as myNotificationsUrl %}
-            {% if myNotificationsUrl %}
-              <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات" id="notifBell">
-                <i class="fa-solid fa-bell"></i>
-                <span class="dot" id="notifDot" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
-                  {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
-                </span>
-              </a>
-            {% endif %}
+          {% if not IS_REPORT_VIEWER %}
+            {% if not request.user.is_platform_admin or request.user.is_superuser %}
+              {% url 'reports:my_notifications' as myNotificationsUrl %}
+              {% if myNotificationsUrl %}
+                <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات" id="notifBell">
+                  <i class="fa-solid fa-bell"></i>
+                  <span class="dot" id="notifDot" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
+                    {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
+                  </span>
+                </a>
+              {% endif %}
 
-            {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
-              <a class="icon-btn" href="{{ SEND_NOTIFICATION_URL }}" aria-label="إرسال إشعار" title="إرسال إشعار">
-                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-              </a>
-            {% endif %}
+              {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
+                <a class="icon-btn" href="{{ SEND_NOTIFICATION_URL }}" aria-label="إرسال إشعار" title="إرسال إشعار">
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                </a>
+              {% endif %}
 
-            <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="تبديل الثيم" title="تبديل الثيم">
-              <i class="fa-solid fa-moon"></i>
-            </button>
+              <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="تبديل الثيم" title="تبديل الثيم">
+                <i class="fa-solid fa-moon"></i>
+              </button>
+            {% endif %}
           {% endif %}
 
           <div class="userbox">
@@ -237,28 +241,30 @@
       <button class="btn btn-sm" id="drawerClose" aria-label="إغلاق">إغلاق</button>
     </div>
 
-    {% if request.user.is_authenticated and not IS_REPORT_VIEWER and not (request.user.is_platform_admin and not request.user.is_superuser) %}
-      <div class="drawer-actions">
-        {% url 'reports:my_notifications' as myNotificationsUrlMobile %}
-        {% if myNotificationsUrlMobile %}
-          <a class="icon-btn" href="{{ myNotificationsUrlMobile }}" aria-label="الإشعارات" id="notifBellMobile">
-            <i class="fa-solid fa-bell"></i>
-            <span class="dot" id="notifDotMobile" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
-              {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
-            </span>
-          </a>
-        {% endif %}
+    {% if request.user.is_authenticated and not IS_REPORT_VIEWER %}
+      {% if not request.user.is_platform_admin or request.user.is_superuser %}
+        <div class="drawer-actions">
+          {% url 'reports:my_notifications' as myNotificationsUrlMobile %}
+          {% if myNotificationsUrlMobile %}
+            <a class="icon-btn" href="{{ myNotificationsUrlMobile }}" aria-label="الإشعارات" id="notifBellMobile">
+              <i class="fa-solid fa-bell"></i>
+              <span class="dot" id="notifDotMobile" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
+                {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
+              </span>
+            </a>
+          {% endif %}
 
-        {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
-          <a class="icon-btn" href="{{ SEND_NOTIFICATION_URL }}" aria-label="إرسال إشعار" title="إرسال إشعار">
-            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-          </a>
-        {% endif %}
+          {% if CAN_SEND_NOTIFICATIONS and SEND_NOTIFICATION_URL %}
+            <a class="icon-btn" href="{{ SEND_NOTIFICATION_URL }}" aria-label="إرسال إشعار" title="إرسال إشعار">
+              <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+            </a>
+          {% endif %}
 
-        <button class="icon-btn theme-toggle" type="button" aria-label="تبديل الثيم" title="تبديل الثيم">
-          <i class="fa-solid fa-moon"></i>
-        </button>
-      </div>
+          <button class="icon-btn theme-toggle" type="button" aria-label="تبديل الثيم" title="تبديل الثيم">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+        </div>
+      {% endif %}
     {% endif %}
 
     {% with active=request.resolver_match.url_name %}
