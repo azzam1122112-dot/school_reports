@@ -224,7 +224,7 @@
   <div class="toolbar no-print">
     <span>معاينة الطباعة (A4)</span>
     <button type="button" id="achievementPrintBtn" class="btn btn-print">طباعة / حفظ كـ PDF</button>
-    <button type="button" class="btn" onclick="history.back()">عودة</button>
+    <a href="{% url 'reports:achievement_file_detail' file.pk %}" class="btn">عودة</a>
   </div>
 
   <script nonce="{{ CSP_NONCE }}">
