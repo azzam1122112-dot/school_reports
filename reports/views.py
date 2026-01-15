@@ -731,7 +731,17 @@ def platform_school_dashboard(request: HttpRequest) -> HttpResponse:
         messages.error(request, "هذه المدرسة خارج نطاق صلاحياتك.")
         return redirect("reports:platform_schools_directory")
 
-    return render(request, "reports/platform_school_dashboard.html", {"school": active_school})
+    subscription = (
+        SchoolSubscription.objects.filter(school=active_school)
+        .select_related("plan")
+        .first()
+    )
+
+    return render(
+        request,
+        "reports/platform_school_dashboard.html",
+        {"school": active_school, "subscription": subscription},
+    )
 
 
 @login_required(login_url="reports:login")

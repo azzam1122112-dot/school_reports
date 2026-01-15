@@ -116,10 +116,24 @@
         </div>
         <div class="card-sup">
             <h3>حالة الاشتراك</h3>
-            <div class="big-num" style="font-size:1.5rem; color:#10b981;">
-                {% if school.subscription.is_active %}نشط{% else %}غير نشط{% endif %}
+            <div class="big-num" style="font-size:1.5rem;">
+                {% if subscription %}
+                    {% if subscription.is_cancelled %}
+                        <span style="color:#ef4444;">ملغي</span>
+                    {% elif subscription.is_expired %}
+                        <span style="color:#f59e0b;">منتهي</span>
+                    {% elif subscription.is_active %}
+                        <span style="color:#10b981;">نشط</span>
+                    {% else %}
+                        <span style="color:#64748b;">غير نشط</span>
+                    {% endif %}
+                {% else %}
+                    <span style="color:#64748b;">غير مشترك</span>
+                {% endif %}
             </div>
-            <p style="color:#64748b; font-size:0.9rem">ينتهي: {{ school.subscription.end_date|default:"-" }}</p>
+            <p style="color:#64748b; font-size:0.9rem">
+                ينتهي: {% if subscription and subscription.end_date %}{{ subscription.end_date|date:"Y-m-d" }}{% else %}-{% endif %}
+            </p>
         </div>
     </div>
 
