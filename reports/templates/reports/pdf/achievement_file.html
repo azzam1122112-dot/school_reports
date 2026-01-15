@@ -4,278 +4,227 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>ملف إنجاز - {{ file.teacher_name }} - {{ file.academic_year }}</title>
+  <title>ملف الإنجاز - {{ file.teacher_name }} - {{ file.academic_year }}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
 
   <style>
-    /* =========================
-       Print setup
-       ========================= */
     @page { size: A4; margin: 14mm 12mm; }
 
     :root {
-      --brand: {{ theme.brand|default:"#2563eb" }};
-      --ink: #0f172a;
-      --muted: #475569;
-      --line: #e2e8f0;
-      --soft: #f8fafc;
+      --font-body: 'Tajawal', DejaVu Sans, Tahoma, Arial, sans-serif;
+      --ink: #111;
+      --muted: #444;
+      --line: #000;
+      --shade: #f3f3f3;
     }
 
     * { box-sizing: border-box; }
-    body{
-      font-family: DejaVu Sans, Arial, sans-serif;
-      color: var(--ink);
+
+    body {
       margin: 0;
       padding: 0;
-      line-height: 1.65;
+      font-family: var(--font-body);
+      background: #e5e5e5; /* معاينة فقط */
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* A4 canvas */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 18px auto;
       background: #fff;
+      padding: 14mm 12mm 18mm;
+      position: relative;
+      box-shadow: 0 0 14px rgba(0,0,0,0.10);
     }
 
-    /* =========================
-       Screen-only wrapper
-       ========================= */
-    .screen-only{ display:none; }
-
-    @media screen {
-      body{ background: #f1f5f9; }
-      .screen-only{ display:block; }
-
-      .screen-bar{
-        max-width: 920px;
-        margin: 12px auto 0;
-        padding: 10px 12px;
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        background: #fff;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        justify-content: space-between;
+    @media print {
+      body { background: #fff; }
+      .page {
+        width: auto;
+        min-height: auto;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
       }
-
-      .btn{
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 10px 14px;
-        border-radius: 12px;
-        border: 1px solid rgba(2,6,23,.08);
-        background: var(--brand);
-        color: #fff;
-        font-weight: 900;
-        text-decoration: none;
-        cursor: pointer;
-        box-shadow: 0 10px 24px rgba(2,6,23,.08);
-      }
-      .btn:active{ transform: translateY(1px); }
-
-      .hint{
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 800;
-      }
-
-      .paper{
-        max-width: 920px;
-        margin: 12px auto 16px;
-        background: #fff;
-        border: 1px solid rgba(2,6,23,.06);
-        border-radius: 16px;
-        padding: 14mm 12mm;
-        box-shadow: 0 18px 50px rgba(2,6,23,.10);
-      }
+      .no-print { display: none !important; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
 
-    @media print{
-      .screen-only{ display:none !important; }
-      .paper{ padding: 0 !important; }
+    /* Toolbar (screen only) */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #111;
+      color: #fff;
+      padding: 10px;
+      text-align: center;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      font-weight: 800;
     }
 
-    /* =========================
-       Header (Hero)
-       ========================= */
-    .hero{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      padding:18px;
-      border-radius:14px;
-      margin: 0 0 12px 0;
-      background: linear-gradient(135deg, rgba(37,99,235,.92), rgba(16,185,129,.78));
-      color:#fff;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      border: 1px solid rgba(255,255,255,.14);
+    .btn {
+      background: #fff;
+      color: #111;
+      border: 1px solid rgba(0,0,0,0.15);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .btn-print { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+    /* Official header */
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: start;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--line);
+    }
+    .hdr-block {
+      font-size: 13px;
+      line-height: 1.7;
+      font-weight: 800;
+    }
+    .hdr-center { text-align: center; }
+    .hdr-right { text-align: right; }
+    .hdr-left { text-align: left; direction: ltr; }
+    .logo {
+      height: 78px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
     }
 
-    .hero-side{ flex:1; min-width:0; }
-    .hero-right{ text-align:right; }
-    .hero-left{ text-align:left; }
-
-    .hero-center{
-      flex:0 0 auto;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      min-width: 92px;
+    .title {
+      text-align: center;
+      margin: 14px 0 10px;
+      font-weight: 1000;
+      font-size: 20px;
+    }
+    .subtitle {
+      text-align: center;
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 13px;
     }
 
-    .ministry-logo{
-      width:74px;
-      height:74px;
-      object-fit:contain;
-      background:#fff;
-      border-radius:14px;
-      padding:8px;
-      border:1px solid rgba(255,255,255,.22);
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 0 0 14px;
     }
-
-    .hero-school{
-      margin:0;
-      font-weight:950;
-      font-size:18px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .hero-stage{
-      margin-top:6px;
-      opacity:.95;
-      font-weight:850;
-      font-size:13px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .hero-type-label{
-      opacity:.98;
-      font-weight:950;
-      font-size:18px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .hero-teacher{
-      margin-top:6px;
-      opacity:.98;
-      font-weight:900;
-      font-size:15px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .hero-year{
-      opacity:.95;
-      font-weight:900;
-      font-size:12.5px;
-      white-space:nowrap;
-    }
-
-    /* =========================
-       Sections
-       ========================= */
-    .section{
+    .meta-table th, .meta-table td {
       border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px 14px;
-      margin: 10px 0;
-      background: #fff;
-      break-inside: avoid;
+      padding: 9px 10px;
+      vertical-align: top;
+    }
+    .meta-table th {
+      background: var(--shade);
+      font-weight: 900;
+      width: 22%;
+      white-space: nowrap;
+      text-align: right;
+    }
+    .meta-table td { text-align: right; }
+
+    .section {
+      border: 1px solid var(--line);
+      padding: 10px;
+      margin: 0 0 14px;
       page-break-inside: avoid;
+      break-inside: avoid;
     }
-
-    .section-title{
+    .section-h {
+      font-weight: 1000;
+      font-size: 15px;
       margin: 0 0 8px;
-      font-size: 14.5px;
-      font-weight: 950;
-      color: var(--ink);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
     }
-
-    .badge{
-      display:inline-block;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(37,99,235,.25);
-      background: rgba(37,99,235,.06);
-      color: var(--ink);
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      background: var(--shade);
       font-size: 12px;
       font-weight: 900;
-      white-space:nowrap;
+      white-space: nowrap;
+    }
+    .section-body {
+      font-size: 15px;
+      line-height: 2;
+      white-space: pre-wrap;
+      text-align: justify;
     }
 
-    .two-col{ display: table; width: 100%; }
-    .two-col .col{
-      display: table-cell;
-      vertical-align: top;
-      width: 50%;
-      padding-left: 10px;
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
     }
+    .images-grid-4 { grid-template-columns: repeat(4, 1fr); }
 
-    .kv{ margin: 0 0 10px; }
-    .k{
-      font-weight: 950;
-      color: var(--ink);
-      font-size: 12.5px;
-      margin: 0 0 2px 0;
-    }
-    .v{
-      color: var(--muted);
-      font-weight: 800;
-      font-size: 12.5px;
-      white-space: pre-line;
-    }
-
-    /* Evidence grid */
-    .evidence{
-      margin-top: 8px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-    }
-
-    .evidence .cell{
-      width: calc(25% - 4.5px);
+    .img-box {
       border: 1px solid var(--line);
-      border-radius: 12px;
-      overflow: hidden;
-      background: var(--soft);
-      height: 92px;
-    }
-
-    .evidence .cell img{
-      width: 100%;
-      height: 92px;
-      object-fit: cover;
-      display:block;
-    }
-
-    @media screen and (max-width: 680px){
-      .evidence .cell{ width: calc(50% - 3px); }
-      .two-col, .two-col .col{ display:block; width:100%; padding-left:0; }
-    }
-
-    .footer{
-      margin-top: 12px;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 800;
+      padding: 6px;
       text-align: center;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .img-box img {
+      width: 100%;
+      height: 180px;
+      object-fit: contain;
+      display: block;
+      background: #fff;
+    }
+    .images-grid-4 .img-box img { height: 120px; }
+
+    .img-cap {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .footer {
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
     }
   </style>
 </head>
 
 <body>
-  <div class="screen-only screen-bar">
-    <button class="btn" type="button" id="achievementPrintBtn">طباعة / حفظ PDF</button>
-    <div class="hint">من نافذة الطباعة اختر “Save as PDF” وألغِ “Headers and footers” لنتيجة مطابقة</div>
+  <div class="toolbar no-print">
+    <span>معاينة الطباعة (A4)</span>
+    <button type="button" id="achievementPrintBtn" class="btn btn-print">طباعة / حفظ كـ PDF</button>
+    <button type="button" class="btn" onclick="history.back()">عودة</button>
   </div>
 
   <script nonce="{{ CSP_NONCE }}">
@@ -285,103 +234,96 @@
     })();
   </script>
 
-  <div class="paper">
-    <header class="hero">
-      <div class="hero-side hero-right">
-        <div class="hero-school">{{ school.name }}</div>
-        <div class="hero-stage">{{ school.get_stage_display }}</div>
+  <div class="page">
+    <header class="header">
+      <div class="hdr-block hdr-right">
+        <div>المملكة العربية السعودية</div>
+        <div>وزارة التعليم</div>
+        <div>{{ school.name|default:"المدرسة" }}</div>
       </div>
 
-      <div class="hero-center">
-        <img class="ministry-logo" src="{% if ministry_logo_src %}{{ ministry_logo_src }}{% else %}{% static 'img/UntiTtled-1.png' %}{% endif %}" alt="شعار الوزارة">
-        <div class="hero-year">{{ file.academic_year }} هـ</div>
+      <div class="hdr-center">
+        <img src="{% static 'img/UntiTtled-1.png' %}" alt="شعار وزارة التعليم" class="logo" />
       </div>
 
-      <div class="hero-side hero-left">
-        <div class="hero-type-label">ملف الإنجاز</div>
-        <div class="hero-teacher">{{ file.teacher_name }}</div>
+      <div class="hdr-block hdr-left">
+        <div>التاريخ: {{ now|date:"Y/m/d" }}</div>
+        <div>رقم الملف: {{ file.id }}</div>
+        <div>العام: {{ file.academic_year }} هـ</div>
       </div>
     </header>
 
-    <div class="section">
-      <div class="section-title">
-        <span>البيانات العامة</span>
-        <span class="badge">العام الدراسي: {{ file.academic_year }} هـ</span>
-      </div>
+    <div class="title">ملف الإنجاز</div>
+    <div class="subtitle">اسم المعلّم/ة: {{ file.teacher_name }} — المرحلة: {{ school.get_stage_display }}</div>
 
-      <div class="two-col">
-        <div class="col">
-          <div class="kv">
-            <div class="k">المؤهلات</div>
-            <div class="v">{{ file.qualifications|default:"-" }}</div>
-          </div>
+    <table class="meta-table">
+      <tr>
+        <th>حالة الملف</th>
+        <td>{{ file.get_status_display|default:"—" }}</td>
+        <th>العام الدراسي</th>
+        <td>{{ file.academic_year }} هـ</td>
+      </tr>
+      <tr>
+        <th>التخصص</th>
+        <td>{{ file.specialization|default:"—" }}</td>
+        <th>نصاب الحصص</th>
+        <td>{{ file.teaching_load|default:"—" }}</td>
+      </tr>
+    </table>
 
-          <div class="kv">
-            <div class="k">الخبرات المهنية</div>
-            <div class="v">{{ file.professional_experience|default:"-" }}</div>
-          </div>
-
-          <div class="kv">
-            <div class="k">التخصص</div>
-            <div class="v">{{ file.specialization|default:"-" }}</div>
-          </div>
-        </div>
-
-        <div class="col">
-          <div class="kv">
-            <div class="k">نصاب الحصص</div>
-            <div class="v">{{ file.teaching_load|default:"-" }}</div>
-          </div>
-
-          <div class="kv">
-            <div class="k">مواد التدريس</div>
-            <div class="v">{{ file.subjects_taught|default:"-" }}</div>
-          </div>
-
-          <div class="kv">
-            <div class="k">بيانات التواصل</div>
-            <div class="v">{{ file.contact_info|default:"-" }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <section class="section">
+      <div class="section-h">أولاً: البيانات العامة</div>
+      <table class="meta-table" style="margin:0;">
+        <tr>
+          <th>المؤهلات</th>
+          <td>{{ file.qualifications|default:"—" }}</td>
+          <th>مواد التدريس</th>
+          <td>{{ file.subjects_taught|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>الخبرات المهنية</th>
+          <td>{{ file.professional_experience|default:"—" }}</td>
+          <th>بيانات التواصل</th>
+          <td>{{ file.contact_info|default:"—" }}</td>
+        </tr>
+      </table>
+    </section>
 
     {% if file.manager_notes %}
-      <div class="section">
-        <div class="section-title"><span>ملاحظات المدير</span></div>
-        <div class="v">{{ file.manager_notes|linebreaksbr }}</div>
-      </div>
+      <section class="section">
+        <div class="section-h">ثانياً: ملاحظات المدير</div>
+        <div class="section-body">{{ file.manager_notes|default:"—" }}</div>
+      </section>
     {% endif %}
 
     {% for s in sections %}
-      <div class="section">
-        <div class="section-title">
+      <section class="section">
+        <div class="section-h">
           <span>{{ s.get_code_display }}</span>
           {% if s.is_completed %}<span class="badge">مكتمل</span>{% endif %}
         </div>
 
-        <div class="kv">
-          <div class="k">ملاحظات المعلّم</div>
-          <div class="v">{{ s.teacher_notes|default:"-"|linebreaksbr }}</div>
-        </div>
+        <div class="section-body">{{ s.teacher_notes|default:"—" }}</div>
 
         {% with imgs=s.evidence_images.all %}
           {% if imgs %}
-            <div class="kv">
-              <div class="k">الشواهد (حتى 8)</div>
-              <div class="evidence">
-                {% for img in imgs|slice:":8" %}
-                  <div class="cell"><img src="{{ img.image.url }}" alt="شاهد" /></div>
-                {% endfor %}
-              </div>
+            <div style="margin-top:10px;font-weight:1000;">الشواهد (حتى 8)</div>
+            <div class="images-grid images-grid-4" style="margin-top:8px;">
+              {% for img in imgs|slice:":8" %}
+                <div class="img-box">
+                  <img src="{{ img.image.url }}" alt="شاهد" />
+                  <div class="img-cap">شاهد ({{ forloop.counter }})</div>
+                </div>
+              {% endfor %}
             </div>
           {% endif %}
         {% endwith %}
-      </div>
+      </section>
     {% endfor %}
 
     <div class="footer">
-      تم توليد هذا الملف آليًا من النظام — {{ now|date:"Y-m-d H:i" }}
+      <div>تم توليد هذا الملف آليًا من النظام</div>
+      <div>{{ now|date:"Y-m-d H:i" }}</div>
     </div>
   </div>
 </body>

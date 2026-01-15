@@ -369,7 +369,7 @@
       <div class="section-header">
          <span style="color: var(--primary); font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">لماذا نحن؟</span>
          <h2>كل أدوات الإدارة المدرسية<br>تحت سقف واحد</h2>
-         <p style="color: var(--text-muted); font-size: 1.1rem;">تغنيك منصة التقارير عن استخدام 4 تطبيقات مختلفة وتوفر عليك الوقت في تجميع الملفات.</p>
+         <p style="color: var(--text-muted); font-size: 1.1rem;">تغنيك منصة توثـيق عن استخدام 4 تطبيقات مختلفة وتوفر عليك الوقت في تجميع الملفات.</p>
       </div>
 
       <div class="bento-grid">
@@ -477,119 +477,85 @@
       <div class="section-header">
         <h2>استثمر في راحة بالك</h2>
         <p>باقات مرنة تناسب حجم كل مدرسة. شاملة جميع المزايا، الفرق فقط في السعة.</p>
-        
-        <!-- Tabs -->
-        <div class="glass-card flex" style="display: inline-flex; padding: 6px; margin-top: 30px; border-radius: 99px; background: var(--bg);">
-            <button class="pricing-tab active" data-tab="6m" style="padding: 10px 24px; border-radius: 99px; font-weight: 800; font-size: 0.9rem; transition: all 0.3s; color: var(--text-muted);">6 أشهر</button>
-            <button class="pricing-tab" data-tab="12m" style="padding: 10px 24px; border-radius: 99px; font-weight: 800; font-size: 0.9rem; transition: all 0.3s; color: var(--text-muted);">سنة كاملة (توفير)</button>
-        </div>
       </div>
 
       <!-- Pricing Panels Wrapper -->
       <div class="pricing-panels">
-         
-         <!-- 6 Months Panel -->
-         <div class="pricing-panel active" data-tab-panel="6m">
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
-               <!-- Small -->
+         <div class="pricing-panel active">
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+               
+               <!-- Free Plan -->
                <div class="glass-card pricing-card" style="background: var(--bg);">
                   <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">مدرسة صغيرة</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">360 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">حتى 20 معلم • لمدة فصل دراسي</p>
+                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">المجانية</h3>
+                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">0 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">تجربة 14 يوم • حتى 5 معلمين</p>
                      <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> تقارير مصورة لا محدودة</li>
-                        <li><i class="fa-solid fa-check"></i> ملفات إنجاز لكل معلم</li>
-                        <li><i class="fa-solid fa-check"></i> 5 حسابات إدارية</li>
+                        <li><i class="fa-solid fa-check"></i> <strong>تجربة مجانية</strong></li>
+                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                        <li><i class="fa-solid fa-check"></i> صلاحية 14 يوم</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-outline" style="width: 100%;">اطلب الباقة</button>
+                     <button onclick="selectPlan(this)" class="btn btn-outline" style="width: 100%;">تجربة الآن</button>
                   </div>
                </div>
 
-               <!-- Medium (Featured) -->
+               <!-- 25 Teachers -->
+               <div class="glass-card pricing-card" style="background: var(--bg);">
+                  <div style="padding: 30px;">
+                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">باقة 25 معلم</h3>
+                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">595 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 25 معلم</p>
+                     <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
+                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                        <li><i class="fa-solid fa-check"></i> دعم فني</li>
+                     </ul>
+                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
+                  </div>
+               </div>
+
+               <!-- 50 Teachers -->
                <div class="glass-card pricing-card featured" style="background: var(--bg);">
                   <div style="background: var(--primary); color: white; text-align: center; padding: 6px; font-weight: 800; font-size: 0.85rem;">الأكثر طلباً</div>
                   <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">مدرسة متوسطة</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">690 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">حتى 50 معلم • تغطية شاملة</p>
+                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">باقة 50 معلم</h3>
+                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">895 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 50 معلم</p>
                      <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> <strong>كل مزايا باقة الصغرى</strong></li>
-                        <li><i class="fa-solid fa-check"></i> دعم فني ذو أولوية</li>
-                        <li><i class="fa-solid fa-check"></i> مساحة تخزين مضاعفة</li>
-                        <li><i class="fa-solid fa-check"></i> 10 حسابات إدارية</li>
+                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                        <li><i class="fa-solid fa-check"></i> دعم فني متقدم</li>
                      </ul>
                      <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
-                     <div class="hidden miniTitle">مدرسة متوسطة</div>
-                     <div class="hidden price-main">690</div>
                   </div>
                </div>
 
-               <!-- Large -->
+               <!-- 75 Teachers -->
                <div class="glass-card pricing-card" style="background: var(--bg);">
                   <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">مدرسة كبيرة</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,150 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">حتى 100 معلم • للمجمعات</p>
+                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">باقة 75 معلم</h3>
+                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,095 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 75 معلم</p>
                      <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> <strong>إمكانيات غير محدودة</strong></li>
-                        <li><i class="fa-solid fa-check"></i> إدارة أقسام متعددة</li>
-                        <li><i class="fa-solid fa-check"></i> تخصيص كامل للتقارير</li>
-                     </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-outline" style="width: 100%;">اطلب الباقة</button>
-                  </div>
-               </div>
-            </div>
-         </div>
-
-         <!-- 12 Months Panel -->
-         <div class="pricing-panel hidden" data-tab-panel="12m">
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
-               <!-- Small -->
-               <div class="glass-card pricing-card" style="background: var(--bg);">
-                  <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">مدرسة صغيرة</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">600 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">حتى 20 معلم • سنة كاملة</p>
-                     <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> تقارير مصورة لا محدودة</li>
-                        <li><i class="fa-solid fa-check"></i> ملفات إنجاز كامل العام</li>
-                     </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-outline" style="width: 100%;">اطلب الباقة</button>
-                  </div>
-               </div>
-
-               <!-- Medium (Featured) -->
-               <div class="glass-card pricing-card featured" style="background: var(--bg);">
-                  <div style="background: var(--accent); color: white; text-align: center; padding: 6px; font-weight: 800; font-size: 0.85rem;">الأكثر توفيراً</div>
-                  <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">مدرسة متوسطة</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,200 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">حتى 50 معلم • سنة كاملة</p>
-                     <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> <strong>خصم خاص للسنوي</strong></li>
-                        <li><i class="fa-solid fa-check"></i> استمرارية البيانات</li>
-                        <li><i class="fa-solid fa-check"></i> دعم فني طوال العام</li>
+                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                        <li><i class="fa-solid fa-check"></i> دعم فني</li>
                      </ul>
                      <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
-                      <div class="hidden miniTitle">مدرسة متوسطة</div>
-                     <div class="hidden price-main">1200</div>
                   </div>
                </div>
 
-               <!-- Large -->
+               <!-- 100 Teachers -->
                <div class="glass-card pricing-card" style="background: var(--bg);">
                   <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">مدرسة كبيرة</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">2,000 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">حتى 100 معلم • سنة كاملة</p>
+                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">باقة 100 معلم</h3>
+                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,305 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 100 معلم</p>
                      <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> <strong>أفضل قيمة للمجمعات</strong></li>
-                        <li><i class="fa-solid fa-check"></i> أرشفة تاريخية كاملة</li>
+                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                        <li><i class="fa-solid fa-check"></i> دعم فني VIP</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-outline" style="width: 100%;">اطلب الباقة</button>
+                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
                   </div>
                </div>
+
             </div>
          </div>
       </div>
@@ -616,7 +582,7 @@
       <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 60px;">
          <div>
             <div class="logo" style="margin-bottom: 20px;">
-               <img src="{% static 'img/logo1.png' %}" alt="Logo"> <span style="font-size: 1.3rem;">منصة التقارير</span>
+               <img src="{% static 'img/logo1.png' %}" alt="Logo"> <span style="font-size: 1.3rem;">منصة توثـيق</span>
             </div>
             <p style="color: #94a3b8; font-size: 0.95rem;">نظام إدارة المدرسة الحديث. نوفر عليك الوقت والجهد في التوثيق والمتابعة.</p>
          </div>
@@ -639,7 +605,7 @@
       </div>
 
       <div style="border-top: 1px solid #1e293b; padding-top: 30px; text-align: center; color: #64748b; font-size: 0.9rem;">
-        &copy; {% now "Y" %} منصة التقارير والتذاكر. جميع الحقوق محفوظة.
+        &copy; {% now "Y" %} منصة توثـيق والتذاكر. جميع الحقوق محفوظة.
       </div>
     </div>
   </footer>
@@ -667,63 +633,27 @@
     if(closeMobile) closeMobile.addEventListener('click', toggleMenu);
     mobileLinks.forEach(l => l.addEventListener('click', toggleMenu));
 
-    // --- Pricing Tabs ---
-    const tabs = document.querySelectorAll('.pricing-tab');
-    const panels = document.querySelectorAll('.pricing-panel');
-
-    tabs.forEach(tab => {
-       tab.addEventListener('click', () => {
-          // Remove active
-          tabs.forEach(t => { t.classList.remove('active'); t.style.background = 'transparent'; t.style.color = 'var(--text-muted)'; });
-          panels.forEach(p => p.classList.add('hidden'));
-          panels.forEach(p => p.classList.remove('active')); // logic consistency
-
-          // Add active
-          tab.classList.add('active');
-          tab.style.background = 'white';
-          tab.style.color = 'var(--primary)';
-          if(document.body.getAttribute('data-theme') === 'dark') { tab.style.background = '#1e293b'; }
-          
-          const target = tab.getAttribute('data-tab');
-          const targetPanel = document.querySelector(`.pricing-panel[data-tab-panel="${target}"]`);
-          if(targetPanel) {
-             targetPanel.classList.remove('hidden');
-             targetPanel.classList.add('active');
-          }
-       });
-    });
-    
-    // Set initial active tab style
-    const activeTab = document.querySelector('.pricing-tab.active');
-    if(activeTab){
-       activeTab.style.background = document.body.getAttribute('data-theme') === 'dark' ? '#1e293b' : 'white';
-       activeTab.style.color = 'var(--primary)';
-    }
-
     // --- Select Plan (WhatsApp) ---
     function selectPlan(btn) {
       if (!btn) return;
       // Traverse up to find card container
       let card = btn.closest('.pricing-card');
-      // If not finding titles in new structure, fallback to simple scrape
       
-      // Try to find hidden fields first or visible headers
       let title = card.querySelector('h3') ? card.querySelector('h3').innerText : 'باقة';
       let priceRaw = card.querySelector('div[style*="font-size: 2.5rem"]') ? card.querySelector('div[style*="font-size: 2.5rem"]').innerText : '';
       
       // Clean price
       let price = priceRaw.replace(/[^0-9]/g, '');
       
-      // Determine duration based on active panel
-      let activePanel = document.querySelector('.pricing-panel.active');
-      let period = activePanel && activePanel.getAttribute('data-tab-panel') === '6m' ? '6 أشهر' : '12 شهر (سنة)';
+      // Get description/period
+      let desc = card.querySelector('p') ? card.querySelector('p').innerText : '';
 
       let waBase = "https://wa.me/966537720207?text=";
-      let msg = `السلام عليكم، أرغب بالاشتراك في منصة التقارير.%0A`;
+      let msg = `السلام عليكم، أرغب بالاشتراك في منصة توثـيق.%0A`;
       msg += `الباقة: ${title}%0A`;
-      msg += `المدة: ${period}%0A`;
-      msg += `السعر التقريبي: ${price} ريال%0A%0A`;
-      msg += `أرجو تزويدي بالتفاصيل.`;
+      msg += `التفاصيل: ${desc}%0A`;
+      msg += `السعر: ${price} ريال%0A%0A`;
+      msg += `أرجو تزويدي بالتفاصيل وإتمام الاشتراك.`;
 
       window.open(waBase + msg, '_blank');
     }

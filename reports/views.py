@@ -41,6 +41,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 from django.db.models.deletion import ProtectedError
 
+from django.templatetags.static import static
+
 from django_ratelimit.decorators import ratelimit
 
 # ===== فورمات =====
@@ -271,6 +273,29 @@ def _filter_by_school(qs, school: Optional[School]):
     except Exception:
         return qs
     return qs
+
+
+def _private_comment_role_label(author, school: Optional[School]) -> str:
+    if author is None:
+        return "النظام"
+    if getattr(author, "is_superuser", False):
+        return "سوبر"
+    if getattr(author, "is_platform_admin", False):
+        return "مشرف عام"
+    try:
+        if _is_manager_in_school(author, school):
+            return "مدير المدرسة"
+    except Exception:
+        pass
+    try:
+        if _is_staff(author):
+            return "موظف"
+    except Exception:
+        pass
+    try:
+        return (getattr(getattr(author, "role", None), "name", None) or "").strip() or "بدون دور"
+    except Exception:
+        return "بدون دور"
 
 
 def _model_has_field(model, field_name: str) -> bool:
@@ -1552,8 +1577,10 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
     year_form = AchievementCreateYearForm()
     upload_form = AchievementEvidenceUploadForm()
 
-    # تعليقات خاصة (المعلّم + المشرف العام فقط)
-    show_private_comments = bool(is_owner or is_platform)
+    # تعليقات خاصة (يراها المعلم + أصحاب الصلاحية داخل المدرسة/المنصة)
+    is_staff_user = _is_staff(user)
+    can_add_private_comment = bool(is_platform or is_manager or is_staff_user or getattr(user, "is_superuser", False))
+    show_private_comments = bool(is_owner or can_add_private_comment)
     private_comments = (
         TeacherPrivateComment.objects.select_related("created_by")
         .filter(achievement_file=ach_file, teacher=ach_file.teacher)
@@ -1561,7 +1588,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
         if show_private_comments
         else TeacherPrivateComment.objects.none()
     )
-    private_comment_form = PrivateCommentForm(request.POST or None) if is_platform else None
+    private_comment_form = PrivateCommentForm(request.POST or None) if can_add_private_comment else None
 
     # الرجوع ثابت حسب الدور: المعلّم -> ملفاتي، غير ذلك -> ملفات المدرسة
     if is_owner:
@@ -1574,33 +1601,88 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
         action = (request.POST.get("action") or "").strip()
         section_id = request.POST.get("section_id")
 
-        if action == "platform_comment" and is_platform:
-            if private_comment_form is not None and private_comment_form.is_valid():
-                body = private_comment_form.cleaned_data["body"]
-                try:
-                    with transaction.atomic():
-                        TeacherPrivateComment.objects.create(
-                            teacher=ach_file.teacher,
-                            created_by=user,
-                            school=active_school,
-                            achievement_file=ach_file,
-                            body=body,
-                        )
-                        n = Notification.objects.create(
-                            title="تعليق خاص على ملف الإنجاز",
-                            message=body,
-                            is_important=True,
-                            school=active_school,
-                            created_by=user,
-                        )
-                        NotificationRecipient.objects.create(notification=n, teacher=ach_file.teacher)
-                    messages.success(request, "تم إرسال التعليق الخاص للمعلّم ✅")
+        # ===== تعليقات خاصة (لا تظهر في الطباعة أو المشاركة) =====
+        # توافق خلفي: platform_comment
+        if action in {"platform_comment", "private_comment_create", "private_comment_update", "private_comment_delete"}:
+            if not can_add_private_comment:
+                return HttpResponse(status=403)
+
+            # create
+            if action in {"platform_comment", "private_comment_create"}:
+                if private_comment_form is not None and private_comment_form.is_valid():
+                    body = private_comment_form.cleaned_data["body"]
+                    try:
+                        with transaction.atomic():
+                            TeacherPrivateComment.objects.create(
+                                teacher=ach_file.teacher,
+                                created_by=user,
+                                school=active_school,
+                                achievement_file=ach_file,
+                                body=body,
+                            )
+                            n = Notification.objects.create(
+                                title="تعليق خاص على ملف الإنجاز",
+                                message=body,
+                                is_important=True,
+                                school=active_school,
+                                created_by=user,
+                            )
+                            NotificationRecipient.objects.create(notification=n, teacher=ach_file.teacher)
+                        messages.success(request, "تم إرسال التعليق الخاص للمعلّم ✅")
+                        return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+                    except Exception:
+                        logger.exception("Failed to create private achievement comment")
+                        messages.error(request, "تعذر حفظ التعليق. حاول مرة أخرى.")
+                else:
+                    messages.error(request, "تحقق من نص التعليق وأعد المحاولة.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+            # update/delete (only comment owner, or superuser)
+            comment_id = request.POST.get("comment_id")
+            try:
+                comment_id_int = int(comment_id) if comment_id else None
+            except (TypeError, ValueError):
+                comment_id_int = None
+
+            if not comment_id_int:
+                messages.error(request, "تعذر تحديد التعليق.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+            comment = TeacherPrivateComment.objects.filter(
+                pk=comment_id_int,
+                achievement_file=ach_file,
+                teacher=ach_file.teacher,
+            ).first()
+            if comment is None:
+                messages.error(request, "التعليق غير موجود.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+            is_owner_of_comment = getattr(comment, "created_by_id", None) == getattr(user, "id", None)
+
+            if action == "private_comment_update":
+                # تعديل: لصاحب التعليق فقط
+                if not is_owner_of_comment:
+                    return HttpResponse(status=403)
+                body = (request.POST.get("body") or "").strip()
+                if not body:
+                    messages.error(request, "نص التعليق مطلوب.")
                     return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+                try:
+                    TeacherPrivateComment.objects.filter(pk=comment.pk).update(body=body)
+                    messages.success(request, "تم تعديل التعليق ✅")
                 except Exception:
-                    logger.exception("Failed to create private achievement comment")
-                    messages.error(request, "تعذر حفظ التعليق. حاول مرة أخرى.")
-            else:
-                messages.error(request, "تحقق من نص التعليق وأعد المحاولة.")
+                    messages.error(request, "تعذر تعديل التعليق.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+            if action == "private_comment_delete":
+                # حذف: لصاحب التعليق فقط، والسوبر يمكنه حذف أي تعليق
+                if not (is_owner_of_comment or getattr(user, "is_superuser", False)):
+                    return HttpResponse(status=403)
+                try:
+                    comment.delete()
+                    messages.success(request, "تم حذف التعليق ✅")
+                except Exception:
+                    messages.error(request, "تعذر حذف التعليق.")
                 return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         if not can_post:
@@ -1717,6 +1799,16 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
         messages.error(request, "تعذر تنفيذ العملية.")
 
+    try:
+        if show_private_comments and private_comments is not None:
+            for c in private_comments:
+                try:
+                    c.created_by_role_label = _private_comment_role_label(getattr(c, "created_by", None), active_school)
+                except Exception:
+                    c.created_by_role_label = ""
+    except Exception:
+        pass
+
     return render(
         request,
         "reports/achievement_file.html",
@@ -1733,7 +1825,9 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "show_private_comments": show_private_comments,
             "private_comments": private_comments,
             "private_comment_form": private_comment_form,
-            "can_add_private_comment": bool(is_platform),
+            "can_add_private_comment": can_add_private_comment,
+            "current_user_id": getattr(user, "id", None),
+            "is_superuser": bool(getattr(user, "is_superuser", False)),
             "year_form": year_form,
             "current_school": active_school,
             "back_url": back_url,
@@ -2250,23 +2344,45 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
 
         school_scope = getattr(r, "school", None) or active_school
 
-        # ===== تعليقات خاصة (للمعلّم فقط + المشرف العام) =====
+        # ===== تعليقات خاصة (تظهر للمعلم فقط) =====
         show_comments = False
+        is_report_owner = False
+        can_add_private_comment = False
         private_comments = TeacherPrivateComment.objects.none()
         comment_form = None
         try:
-            is_owner = getattr(r, "teacher_id", None) == getattr(user, "id", None)
+            is_report_owner = getattr(r, "teacher_id", None) == getattr(user, "id", None)
             is_allowed_platform = bool(is_platform_admin(user) and platform_can_access_school(user, school_scope))
-            if is_owner or is_allowed_platform:
-                show_comments = True
+            is_manager = _is_manager_in_school(user, school_scope)
+            is_staff_user = _is_staff(user)
+            can_add_private_comment = bool(is_allowed_platform or is_manager or is_staff_user)
+            show_comments = bool(is_report_owner or can_add_private_comment)
+
+            # عرض سجل التعليقات للمعلم + أصحاب الصلاحية (ولا تظهر في الطباعة/المشاركة)
+            if is_report_owner or can_add_private_comment:
                 private_comments = (
                     TeacherPrivateComment.objects.select_related("created_by")
                     .filter(report=r, teacher=getattr(r, "teacher", None))
                     .order_by("-created_at", "-id")
                 )
 
-                if is_allowed_platform:
-                    if request.method == "POST":
+            try:
+                if private_comments is not None:
+                    for c in private_comments:
+                        try:
+                            c.created_by_role_label = _private_comment_role_label(getattr(c, "created_by", None), school_scope)
+                        except Exception:
+                            c.created_by_role_label = ""
+            except Exception:
+                pass
+
+            # السماح بإضافة تعليق (يصل للمعلم فقط)
+            if can_add_private_comment:
+                if request.method == "POST":
+                    action = (request.POST.get("action") or "").strip() or "private_comment_create"
+
+                    # create (default)
+                    if action == "private_comment_create":
                         comment_form = PrivateCommentForm(request.POST)
                         if comment_form.is_valid():
                             body = comment_form.cleaned_data["body"]
@@ -2287,10 +2403,58 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                                 )
                                 NotificationRecipient.objects.create(notification=n, teacher=r.teacher)
                             return redirect("reports:report_print", pk=r.pk)
-                    else:
-                        comment_form = PrivateCommentForm()
+
+                    # update/delete (only comment author, or superuser)
+                    if action in {"private_comment_update", "private_comment_delete"}:
+                        comment_id = request.POST.get("comment_id")
+                        try:
+                            comment_id_int = int(comment_id) if comment_id else None
+                        except (TypeError, ValueError):
+                            comment_id_int = None
+
+                        if not comment_id_int:
+                            return redirect("reports:report_print", pk=r.pk)
+
+                        comment = TeacherPrivateComment.objects.filter(
+                            pk=comment_id_int,
+                            report=r,
+                            teacher=getattr(r, "teacher", None),
+                        ).first()
+                        if comment is None:
+                            return redirect("reports:report_print", pk=r.pk)
+
+                        is_owner_of_comment = getattr(comment, "created_by_id", None) == getattr(user, "id", None)
+
+                        if action == "private_comment_update":
+                            # تعديل: لصاحب التعليق فقط
+                            if not is_owner_of_comment:
+                                return HttpResponse(status=403)
+
+                        if action == "private_comment_delete":
+                            # حذف: لصاحب التعليق فقط، والسوبر يمكنه حذف أي تعليق
+                            if not (is_owner_of_comment or getattr(user, "is_superuser", False)):
+                                return HttpResponse(status=403)
+
+                        if action == "private_comment_delete":
+                            try:
+                                comment.delete()
+                            except Exception:
+                                pass
+                            return redirect("reports:report_print", pk=r.pk)
+
+                        body = (request.POST.get("body") or "").strip()
+                        if body:
+                            try:
+                                TeacherPrivateComment.objects.filter(pk=comment.pk).update(body=body)
+                            except Exception:
+                                pass
+                        return redirect("reports:report_print", pk=r.pk)
+                else:
+                    comment_form = PrivateCommentForm()
         except Exception:
             show_comments = False
+            is_report_owner = False
+            can_add_private_comment = False
             private_comments = TeacherPrivateComment.objects.none()
             comment_form = None
 
@@ -2370,6 +2534,20 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
             except Exception:
                 pass
 
+        moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
+        # Optional fallback: allow providing a static path via env/settings
+        if not moe_logo_url:
+            try:
+                moe_logo_static_path = (getattr(settings, "MOE_LOGO_STATIC", "") or "").strip()
+                if moe_logo_static_path:
+                    moe_logo_url = static(moe_logo_static_path)
+            except Exception:
+                moe_logo_url = ""
+
+        # Final fallback: always use the bundled ministry logo for printing
+        if not moe_logo_url:
+            moe_logo_url = static("img/UntiTtled-1.png")
+
         return render(
             request,
             "reports/report_print.html",
@@ -2380,7 +2558,12 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "SCHOOL_NAME": school_name,
                 "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,
+                "MOE_LOGO_URL": moe_logo_url,
                 "show_comments": show_comments,
+                "is_report_owner": is_report_owner,
+                "can_add_private_comment": can_add_private_comment,
+                "current_user_id": getattr(user, "id", None),
+                "is_superuser": bool(getattr(user, "is_superuser", False)),
                 "private_comments": private_comments,
                 "comment_form": comment_form,
             },
@@ -2624,6 +2807,19 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
             except Exception:
                 pass
 
+        moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
+        if not moe_logo_url:
+            try:
+                moe_logo_static_path = (getattr(settings, "MOE_LOGO_STATIC", "") or "").strip()
+                if moe_logo_static_path:
+                    moe_logo_url = static(moe_logo_static_path)
+            except Exception:
+                moe_logo_url = ""
+
+        # Final fallback: always use the bundled ministry logo for printing
+        if not moe_logo_url:
+            moe_logo_url = static("img/UntiTtled-1.png")
+
         return render(
             request,
             "reports/report_print.html",
@@ -2634,6 +2830,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
                 "SCHOOL_NAME": school_name,
                 "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,
+                "MOE_LOGO_URL": moe_logo_url,
                 "show_comments": False,
                 "private_comments": [],
                 "comment_form": None,

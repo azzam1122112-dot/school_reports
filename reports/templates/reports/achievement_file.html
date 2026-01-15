@@ -362,7 +362,7 @@
         {% if can_add_private_comment %}
           <form class="af-form" method="post" autocomplete="off">
             {% csrf_token %}
-            <input type="hidden" name="action" value="platform_comment" />
+            <input type="hidden" name="action" value="private_comment_create" />
             <label class="af-label">أضف تعليقًا للمعلّم</label>
             {{ private_comment_form.body }}
             <div class="af-actions" style="margin-top:10px">
@@ -378,9 +378,40 @@
             {% for c in private_comments %}
               <div style="padding:10px 0;border-bottom:1px dashed var(--line)">
                 <div class="af-muted" style="font-weight:900">
-                  {{ c.created_by }} — {{ c.created_at|date:"Y-m-d H:i" }}
+                  {% if c.created_by %}{{ c.created_by.name }}{% else %}النظام{% endif %}
+                  {% if c.created_by_role_label %} ({{ c.created_by_role_label }}){% endif %}
+                  — {{ c.created_at|date:"Y-m-d H:i" }}
                 </div>
                 <div style="margin-top:6px;white-space:pre-wrap">{{ c.body }}</div>
+
+                {% if can_add_private_comment and current_user_id %}
+                  <div class="af-actions" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+                    {% if c.created_by_id == current_user_id %}
+                      <details>
+                        <summary class="af-btn" style="cursor:pointer">تعديل</summary>
+                        <form method="post" class="af-form" style="margin-top:10px" autocomplete="off">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="private_comment_update" />
+                          <input type="hidden" name="comment_id" value="{{ c.id }}" />
+                          <label class="af-label">نص التعليق</label>
+                          <textarea name="body" class="form-control" rows="3" required>{{ c.body }}</textarea>
+                          <div class="af-actions" style="margin-top:10px">
+                            <button class="af-btn af-btn-primary" type="submit">حفظ التعديل</button>
+                          </div>
+                        </form>
+                      </details>
+                    {% endif %}
+
+                    {% if c.created_by_id == current_user_id or is_superuser %}
+                      <form method="post" onsubmit="return confirm('حذف التعليق نهائيًا؟');" style="display:inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="private_comment_delete" />
+                        <input type="hidden" name="comment_id" value="{{ c.id }}" />
+                        <button class="af-btn" type="submit" style="border-color:var(--danger);color:var(--danger)">حذف</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                {% endif %}
               </div>
             {% endfor %}
           </div>
