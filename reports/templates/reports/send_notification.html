@@ -306,13 +306,19 @@
 
     <header class="page-head">
       <div>
-        <h1 class="title">إرسال إشعار</h1>
-        <div class="hint">اكتب عنوانًا جذابًا ومحتوى واضحًا. يمكنك معاينة الشكل قبل الإرسال.</div>
+        <h1 class="title">{% if mode == 'circular' %}إرسال تعميم{% else %}إرسال إشعار{% endif %}</h1>
+        <div class="hint">اكتب عنوانًا واضحًا ومحتوى رسميًا. يمكنك معاينة الشكل قبل الإرسال.</div>
       </div>
       <div>
-        <a class="btn btn-ghost" href="{% url 'reports:notifications_sent' %}">
-          <i class="fa-solid fa-list"></i> الإشعارات المرسلة
-        </a>
+        {% if mode == 'circular' %}
+          <a class="btn btn-ghost" href="{% url 'reports:circulars_sent' %}">
+            <i class="fa-solid fa-list"></i> التعاميم المرسلة
+          </a>
+        {% else %}
+          <a class="btn btn-ghost" href="{% url 'reports:notifications_sent' %}">
+            <i class="fa-solid fa-list"></i> الإشعارات المرسلة
+          </a>
+        {% endif %}
       </div>
     </header>
 
@@ -321,7 +327,7 @@
       <!-- العمود الأيسر: النموذج -->
       <section class="card" aria-labelledby="form-title">
         <div class="card-hd">
-          <strong id="form-title">نموذج الإشعار</strong>
+          <strong id="form-title">{% if mode == 'circular' %}نموذج التعميم{% else %}نموذج الإشعار{% endif %}</strong>
           <span class="help">يظهر هذا الخيار للمصرّح لهم فقط</span>
         </div>
 
@@ -338,7 +344,7 @@
 
               <div class="actions actions--top">
                 <button class="btn btn-primary" type="submit">
-                  <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
+                  <i class="fa-solid fa-paper-plane"></i> {% if mode == 'circular' %}إرسال التعميم{% else %}إرسال الإشعار{% endif %}
                 </button>
                 <a class="btn" href="{% url 'reports:home' %}">
                   <i class="fa-solid fa-home"></i> الرجوع للرئيسية
@@ -380,6 +386,53 @@
                       {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
                       {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
                     </div>
+                  {% elif field.name == "requires_signature" %}
+                    {% if mode == 'circular' %}
+                    <div class="field full" data-name="signature_settings" style="border:1px dashed rgba(37,99,235,.35);background:rgba(37,99,235,.04);border-radius:16px;padding:14px">
+                      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                        <div>
+                          <div style="font-weight:950">إعدادات التعميم والتوقيع</div>
+                          <div class="help" style="margin-top:4px">
+                            خيار رسمي لتوثيق الاطلاع: توقيع إلزامي عبر إدخال الجوال + الإقرار.
+                          </div>
+                        </div>
+                        <span class="help" style="font-weight:950">اختياري</span>
+                      </div>
+
+                      <div style="margin-top:10px">
+                        <label for="{{ field.id_for_label }}" style="display:flex;align-items:center;gap:10px">
+                          {{ field }}
+                          <span style="font-weight:950">{{ field.label }}</span>
+                        </label>
+                        {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+                        {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                      </div>
+
+                      {% if form.signature_deadline_at %}
+                        <div class="field" style="margin-top:10px">
+                          <label for="{{ form.signature_deadline_at.id_for_label }}">{{ form.signature_deadline_at.label }}</label>
+                          {{ form.signature_deadline_at }}
+                          {% if form.signature_deadline_at.help_text %}<div class="help">{{ form.signature_deadline_at.help_text|safe }}</div>{% endif %}
+                          {% for e in form.signature_deadline_at.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                        </div>
+                      {% endif %}
+
+                      {% if form.signature_ack_text %}
+                        <div class="field" style="margin-top:10px">
+                          <label for="{{ form.signature_ack_text.id_for_label }}">{{ form.signature_ack_text.label }}</label>
+                          {{ form.signature_ack_text }}
+                          {% if form.signature_ack_text.help_text %}<div class="help">{{ form.signature_ack_text.help_text|safe }}</div>{% endif %}
+                          {% for e in form.signature_ack_text.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+
+                    {% else %}
+                      {# لا نعرض إعدادات التوقيع عند إرسال إشعار (فصل واضح بين النوعين) #}
+                    {% endif %}
+
+                  {% elif field.name == "signature_deadline_at" or field.name == "signature_ack_text" %}
+                    {# rendered ضمن كتلة requires_signature أعلاه #}
                   {% else %}
                     <div class="field" data-name="{{ field.html_name|lower }}">
                       <label for="{{ field.id_for_label }}">
@@ -396,7 +449,7 @@
 
               <div class="actions">
                 <button class="btn btn-primary" type="submit">
-                  <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
+                  <i class="fa-solid fa-paper-plane"></i> {% if mode == 'circular' %}إرسال التعميم{% else %}إرسال الإشعار{% endif %}
                 </button>
                 <a class="btn" href="{% url 'reports:home' %}">
                   <i class="fa-solid fa-home"></i> الرجوع للرئيسية
@@ -418,7 +471,7 @@
         <div class="card-bd">
           <div class="notif">
             <div class="nt-h">
-              <h3 class="nt-title" id="pv_title">عنوان الإشعار</h3>
+              <h3 class="nt-title" id="pv_title">{% if mode == 'circular' %}عنوان التعميم{% else %}عنوان الإشعار{% endif %}</h3>
               <div id="pv_important" title="هام" style="display:none">
                 <i class="fa-solid fa-circle-exclamation" style="color:#ef4444"></i>
               </div>
@@ -429,6 +482,16 @@
                 <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
                 <span>مرسل: {% firstof request.user.name request.user.phone "الإدارة" %}</span>
               </span>
+              {% if mode == 'circular' %}
+                <span class="pill" id="pv_signature" style="display:none">
+                  <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                  يتطلب توقيع
+                </span>
+                <span class="pill" id="pv_deadline" style="display:none">
+                  <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
+                  آخر موعد للتوقيع
+                </span>
+              {% endif %}
               <span class="pill" id="pv_action" style="display:none">
                 <i class="fa-solid fa-link"></i> يحتوي على رابط إجراء
               </span>
@@ -481,21 +544,37 @@
       $("#id_expires_at") ||
       document.querySelector('input[type="datetime-local"][name*="expires_at"],input[name*="expires_at"]');
 
+    const sigInput =
+      $("#id_requires_signature") ||
+      document.querySelector('input[type="checkbox"][name*="requires_signature"],input[type="checkbox"][name*="signature"]');
+
+    const sigDeadlineInput =
+      $("#id_signature_deadline_at") ||
+      document.querySelector('input[type="datetime-local"][name*="signature_deadline"],input[name*="signature_deadline"]');
+
     const pvTitle = $("#pv_title");
     const pvBody  = $("#pv_body");
     const pvImportant = $("#pv_important");
+    const pvSignature = $("#pv_signature");
+    const pvDeadline = $("#pv_deadline");
     const pvAction = $("#pv_action");
     const pvExpires = $("#pv_expires");
 
     function updatePreview(){
       if(pvTitle && titleInput){
-        pvTitle.textContent = (titleInput.value || "").trim() || "عنوان الإشعار";
+        pvTitle.textContent = (titleInput.value || "").trim() || "{% if mode == 'circular' %}عنوان التعميم{% else %}عنوان الإشعار{% endif %}";
       }
       if(pvBody && msgInput){
-        pvBody.textContent = (msgInput.value || "").trim() || "سيظهر نص الإشعار هنا…";
+        pvBody.textContent = (msgInput.value || "").trim() || "{% if mode == 'circular' %}سيظهر نص التعميم هنا…{% else %}سيظهر نص الإشعار هنا…{% endif %}";
       }
       if(pvImportant && impInput){
         pvImportant.style.display = impInput.checked ? "block" : "none";
+      }
+      if(pvSignature && sigInput){
+        pvSignature.style.display = sigInput.checked ? "inline-flex" : "none";
+      }
+      if(pvDeadline && sigDeadlineInput){
+        pvDeadline.style.display = (sigDeadlineInput.value || "").trim() ? "inline-flex" : "none";
       }
       if(pvAction && urlInput){
         pvAction.style.display = (urlInput.value || "").trim() ? "inline-flex" : "none";
@@ -505,7 +584,7 @@
       }
     }
 
-    [titleInput, msgInput, urlInput, impInput, expInput].forEach(el=>{
+    [titleInput, msgInput, urlInput, impInput, expInput, sigInput, sigDeadlineInput].forEach(el=>{
       if(el){
         el.addEventListener("input", updatePreview);
         el.addEventListener("change", updatePreview);

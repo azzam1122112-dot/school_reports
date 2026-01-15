@@ -173,10 +173,36 @@ urlpatterns = [
     path("notifications/<int:pk>/", views.notification_detail, name="notification_detail"),
     path("notifications/<int:pk>/delete/", views.notification_delete, name="notification_delete"),
     path("notifications/send/", views.send_notification, name="send_notification"),  # تحويل للإنشاء (توافق قديم)
-    path("notifications/create/", views.notifications_create, name="notifications_create"),
-    path("notifications/sent/", views.notifications_sent, name="notifications_sent"),
+    # إشعارات (تنبيه/رسالة)
+    path(
+        "notifications/create/",
+        views.notifications_create,
+        {"mode": "notification"},
+        name="notifications_create",
+    ),
+    path(
+        "notifications/sent/",
+        views.notifications_sent,
+        {"mode": "notification"},
+        name="notifications_sent",
+    ),
+
+    # تعاميم (قد تتطلب توقيع وتتبع)
+    path(
+        "circulars/create/",
+        views.notifications_create,
+        {"mode": "circular"},
+        name="circulars_create",
+    ),
+    path(
+        "circulars/sent/",
+        views.notifications_sent,
+        {"mode": "circular"},
+        name="circulars_sent",
+    ),
     path("notifications/mine/", views.my_notifications, name="my_notifications"),
     path("notifications/mine/<int:pk>/", views.my_notification_detail, name="my_notification_detail"),
+    path("notifications/mine/<int:pk>/sign/", views.notification_sign, name="notification_sign"),
     path("notifications/<int:pk>/read/", views.notification_mark_read, name="notification_mark_read"),
     path("notifications/mark-all-read/", views.notifications_mark_all_read, name="notifications_mark_all_read"),
     # جديد: تعليم كمقروء بالاعتماد على رقم الإشعار (للهيرو/الواجهة)
@@ -184,6 +210,18 @@ urlpatterns = [
         "notifications/<int:pk>/read-by-notification/",
         views.notification_mark_read_by_notification,
         name="notification_mark_read_by_notification",
+    ),
+
+    # تقارير التواقيع للتعاميم (للمدير/المسؤول)
+    path(
+        "notifications/<int:pk>/signatures/print/",
+        views.notification_signatures_print,
+        name="notification_signatures_print",
+    ),
+    path(
+        "notifications/<int:pk>/signatures.csv",
+        views.notification_signatures_csv,
+        name="notification_signatures_csv",
     ),
 
     # =========================

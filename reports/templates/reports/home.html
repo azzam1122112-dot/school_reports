@@ -146,9 +146,42 @@
             <i class="fa-solid fa-inbox"></i> الوارد
           </a>
         {% endif %}
+
+        {% url 'reports:my_notifications' as myNotificationsUrl %}
+        {% if myNotificationsUrl %}
+          <a class="btn btn-lg btn-dash-outline" href="{{ myNotificationsUrl }}" title="عرض التعاميم والإشعارات">
+            <i class="fa-solid fa-pen-to-square"></i> التعاميم
+            {% if NAV_SIGNATURES_PENDING %}
+              <span class="hpill hp-red" style="margin-inline-start:8px">{{ NAV_SIGNATURES_PENDING }} بانتظار التوقيع</span>
+            {% elif NAV_NOTIFICATIONS_UNREAD %}
+              <span class="hpill hp-blue" style="margin-inline-start:8px">{{ NAV_NOTIFICATIONS_UNREAD }} جديد</span>
+            {% endif %}
+          </a>
+        {% endif %}
       </div>
     </div>
   </section>
+
+  {% if NAV_SIGNATURES_PENDING %}
+    <div class="card" style="border:1px solid rgba(220,38,38,.25); background:rgba(220,38,38,.06)">
+      <div class="row-between" style="gap:12px; align-items:center">
+        <div>
+          <h3 class="section-title" style="margin:0 0 6px 0">
+            <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);margin-left:8px"></i>
+            لديك تعاميم تتطلب توقيعاً
+          </h3>
+          <div class="section-sub" style="margin:0">
+            عدد التعاميم غير الموقّعة: <strong>{{ NAV_SIGNATURES_PENDING }}</strong> — الرجاء الاطلاع والتوقيع لتأكيد الاستلام.
+          </div>
+        </div>
+        {% if myNotificationsUrl %}
+          <a class="btn btn-sm" href="{{ myNotificationsUrl }}" style="background:#fff">
+            فتح التعاميم
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 
   <!-- ONE: KEY METRICS (Bento Grid) -->
   <section class="bento-grid">

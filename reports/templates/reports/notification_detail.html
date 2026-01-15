@@ -206,12 +206,18 @@
   <div class="nd-wrap" dir="rtl">
     <header class="nd-head">
       <div>
-        <h1 class="nd-title">تفاصيل الإشعار</h1>
+        <h1 class="nd-title">{% if n.requires_signature %}تفاصيل التعميم{% else %}تفاصيل الإشعار{% endif %}</h1>
         <div class="nd-hint">عرض الرسالة + حالة وصولها للمستلمين</div>
       </div>
-      <a class="nd-btn" href="{% url 'reports:notifications_sent' %}">
-        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع إلى المرسلة
-      </a>
+      {% if n.requires_signature %}
+        <a class="nd-btn" href="{% url 'reports:circulars_sent' %}">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع إلى التعاميم
+        </a>
+      {% else %}
+        <a class="nd-btn" href="{% url 'reports:notifications_sent' %}">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع إلى الإشعارات
+        </a>
+      {% endif %}
     </header>
 
     <div class="nd-grid">
@@ -223,6 +229,7 @@
             <strong style="font-weight:950">{{ n.title|default:"رسالة" }}</strong>
             {% if n.is_important %}<span class="nd-pill important">هام</span>{% endif %}
             {% if n.is_broadcast %}<span class="nd-pill blue">للجميع</span>{% endif %}
+            {% if n.requires_signature %}<span class="nd-pill blue"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> تعميم بتوقيع</span>{% endif %}
           </div>
           <div class="nd-when">{% if n.created_at %}{{ n.created_at|date:"Y-m-d H:i" }}{% endif %}</div>
         </div>
@@ -246,8 +253,17 @@
               </a>
             {% endif %}
 
+            {% if n.requires_signature %}
+              <a class="nd-btn" href="{% url 'reports:notification_signatures_print' n.id %}">
+                <i class="fa-solid fa-print" aria-hidden="true"></i> طباعة تقرير التواقيع
+              </a>
+              <a class="nd-btn" href="{% url 'reports:notification_signatures_csv' n.id %}">
+                <i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV
+              </a>
+            {% endif %}
+
             {% if n.id %}
-              <form method="post" action="{% url 'reports:notification_delete' n.id %}" onsubmit="return confirm('حذف الإشعار نهائيًا؟');">
+              <form method="post" action="{% url 'reports:notification_delete' n.id %}" id="deleteNotifForm">
                 {% csrf_token %}
                 <button class="nd-btn danger" type="submit">
                   <i class="fa-solid fa-trash" aria-hidden="true"></i> حذف
@@ -272,8 +288,20 @@
               <div class="nd-toggle" role="tablist" aria-label="تصفية">
                 <button id="toggleAll" class="on" type="button" aria-pressed="true">الكل</button>
                 <button id="toggleUnread" type="button" aria-pressed="false">غير المقروء فقط</button>
+                {% if n.requires_signature %}
+                  <button id="toggleUnsigned" type="button" aria-pressed="false">غير الموقّع فقط</button>
+                {% endif %}
               </div>
             </div>
+
+            {% if n.requires_signature and signature_stats %}
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                <span class="nd-pill">الإجمالي: {{ signature_stats.total }}</span>
+                <span class="nd-pill" style="background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.22);color:#166534;">موقّع: {{ signature_stats.signed }}</span>
+                <span class="nd-pill" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.22);color:#b91c1c;">غير موقّع: {{ signature_stats.unsigned }}</span>
+                {% if n.signature_deadline_at %}<span class="nd-pill">آخر موعد للتوقيع: {{ n.signature_deadline_at|date:"Y-m-d H:i" }}</span>{% endif %}
+              </div>
+            {% endif %}
 
             <div class="nd-table-wrap">
               <table id="recTable" aria-label="جدول المستلمين">
@@ -282,11 +310,12 @@
                     <th style="width:45%">الاسم</th>
                     <th style="width:25%">الدور</th>
                     <th style="width:30%">الحالة</th>
+                    {% if n.requires_signature %}<th style="width:22%">التوقيع</th>{% endif %}
                   </tr>
                 </thead>
                 <tbody>
                   {% for r in recipients %}
-                    <tr data-read="{{ r.read|yesno:'1,0' }}">
+                    <tr data-read="{{ r.read|yesno:'1,0' }}" data-signed="{{ r.signed|yesno:'1,0' }}">
                       <td>{{ r.name }}</td>
                       <td>{{ r.role }}</td>
                       <td>
@@ -296,6 +325,15 @@
                           <span class="nd-chip unread" title="غير مقروء">غير مقروء</span>
                         {% endif %}
                       </td>
+                      {% if n.requires_signature %}
+                        <td>
+                          {% if r.signed %}
+                            <span class="nd-chip read" title="{% if r.signed_at %}{{ r.signed_at|date:'Y-m-d H:i' }}{% else %}تم التوقيع{% endif %}">موقّع</span>
+                          {% else %}
+                            <span class="nd-chip unread" title="غير موقّع">غير موقّع</span>
+                          {% endif %}
+                        </td>
+                      {% endif %}
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -325,6 +363,7 @@
     var tbl = document.getElementById('recTable');
     var btnAll = document.getElementById('toggleAll');
     var btnUn  = document.getElementById('toggleUnread');
+    var btnUns = document.getElementById('toggleUnsigned');
     if(!tbl) return;
 
     var rows = Array.prototype.slice.call(tbl.querySelectorAll('tbody tr'));
@@ -333,18 +372,24 @@
       if(!btnAll || !btnUn) return;
       btnAll.setAttribute('aria-pressed', btnAll.classList.contains('on') ? 'true' : 'false');
       btnUn.setAttribute('aria-pressed', btnUn.classList.contains('on') ? 'true' : 'false');
+      if(btnUns){
+        btnUns.setAttribute('aria-pressed', btnUns.classList.contains('on') ? 'true' : 'false');
+      }
     }
 
     function applyFilter(){
       var term = (q && q.value ? q.value : '').trim().toLowerCase();
       var unreadOnly = btnUn && btnUn.classList.contains('on');
+      var unsignedOnly = btnUns && btnUns.classList.contains('on');
 
       rows.forEach(function(tr){
         var txt = (tr.textContent || '').toLowerCase();
         var isRead = tr.getAttribute('data-read') === '1';
+        var isSigned = tr.getAttribute('data-signed') === '1';
         var match = !term || txt.indexOf(term) !== -1;
         var pass  = !unreadOnly || !isRead;
-        tr.style.display = (match && pass) ? '' : 'none';
+        var pass2 = !unsignedOnly || !isSigned;
+        tr.style.display = (match && pass && pass2) ? '' : 'none';
       });
 
       setPressed();
@@ -358,13 +403,35 @@
       btnAll.addEventListener('click', function(){
         btnAll.classList.add('on');
         btnUn.classList.remove('on');
+        if(btnUns) btnUns.classList.remove('on');
         applyFilter();
       });
 
       btnUn.addEventListener('click', function(){
         btnUn.classList.add('on');
         btnAll.classList.remove('on');
+        if(btnUns) btnUns.classList.remove('on');
         applyFilter();
+      });
+    }
+
+    if(btnUns){
+      btnUns.addEventListener('click', function(){
+        btnUns.classList.add('on');
+        if(btnAll) btnAll.classList.remove('on');
+        if(btnUn) btnUn.classList.remove('on');
+        applyFilter();
+      });
+    }
+
+    // Confirm delete (CSP-safe)
+    var delForm = document.getElementById('deleteNotifForm');
+    if(delForm){
+      delForm.addEventListener('submit', function(e){
+        try{
+          var ok = window.confirm('حذف الإشعار نهائيًا؟');
+          if(!ok){ e.preventDefault(); }
+        }catch(err){}
       });
     }
 

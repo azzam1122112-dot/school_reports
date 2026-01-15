@@ -5949,10 +5949,15 @@ def delete_my_report(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff_or_officer, login_url="reports:login")
 @require_http_methods(["GET", "POST"])
-def notifications_create(request: HttpRequest) -> HttpResponse:
+def notifications_create(request: HttpRequest, mode: str = "notification") -> HttpResponse:
     if NotificationCreateForm is None:
         messages.error(request, "نموذج إنشاء الإشعار غير متوفر.")
         return redirect("reports:home")
+
+    mode = (mode or "notification").strip().lower()
+    if mode not in {"notification", "circular"}:
+        mode = "notification"
+    is_circular = mode == "circular"
 
     # نربط الإشعارات بمدرسة معيّنة للمدير/الضابط عبر المدرسة النشطة
     active_school = None
@@ -5966,20 +5971,42 @@ def notifications_create(request: HttpRequest) -> HttpResponse:
         messages.error(request, "يرجى اختيار المدرسة أولاً قبل إرسال الإشعارات.")
         return redirect("reports:home")
 
-    form = NotificationCreateForm(request.POST or None, user=request.user, active_school=active_school)
+    initial = {}
+    if request.method == "GET" and is_circular:
+        initial["requires_signature"] = True
+
+    form = NotificationCreateForm(
+        request.POST or None,
+        user=request.user,
+        active_school=active_school,
+        initial=initial,
+    )
     if request.method == "POST":
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    form.save(creator=request.user, default_school=active_school)
-                messages.success(request, "✅ تم إرسال الإشعار.")
-                return redirect("reports:notifications_sent")
+                    form.save(
+                        creator=request.user,
+                        default_school=active_school,
+                        force_requires_signature=True if is_circular else False,
+                    )
+                messages.success(request, "✅ تم إرسال التعميم." if is_circular else "✅ تم إرسال الإشعار.")
+                return redirect("reports:circulars_sent" if is_circular else "reports:notifications_sent")
             except Exception:
                 logger.exception("notifications_create failed")
                 messages.error(request, "تعذّر الإرسال. جرّب لاحقًا.")
         else:
             messages.error(request, "الرجاء تصحيح الأخطاء.")
-    return render(request, "reports/notifications_create.html", {"form": form, "title": "إنشاء إشعار"})
+
+    return render(
+        request,
+        "reports/notifications_create.html",
+        {
+            "form": form,
+            "mode": mode,
+            "title": "إنشاء تعميم" if is_circular else "إنشاء إشعار",
+        },
+    )
 
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff_or_officer, login_url="reports:login")
@@ -5995,21 +6022,22 @@ def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("reports:home")
 
     n = get_object_or_404(Notification, pk=pk)
+    sent_list_url = "reports:circulars_sent" if bool(getattr(n, "requires_signature", False)) else "reports:notifications_sent"
     is_owner = getattr(n, "created_by_id", None) == request.user.id
     is_manager = _is_manager_in_school(request.user, active_school)
     if not (is_manager or is_owner):
         messages.error(request, "لا تملك صلاحية حذف هذا الإشعار.")
-        return redirect("reports:notifications_sent")
+        return redirect(sent_list_url)
 
     # عزل حسب المدرسة النشطة (غير السوبر)
     try:
         if not request.user.is_superuser and hasattr(n, "school_id"):
             if getattr(n, "school_id", None) is None:
                 messages.error(request, "لا تملك صلاحية حذف إشعار عام.")
-                return redirect("reports:notifications_sent")
+                return redirect(sent_list_url)
             if getattr(n, "school_id", None) != getattr(active_school, "id", None):
                 messages.error(request, "لا تملك صلاحية حذف إشعار من مدرسة أخرى.")
-                return redirect("reports:notifications_sent")
+                return redirect(sent_list_url)
     except Exception:
         pass
     try:
@@ -6018,7 +6046,7 @@ def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
     except Exception:
         logger.exception("notification_delete failed")
         messages.error(request, "تعذّر حذف الإشعار.")
-    return redirect("reports:notifications_sent")
+    return redirect(sent_list_url)
 
 def _recipient_is_read(rec) -> tuple[bool, str | None]:
     for flag in ("is_read", "read", "seen", "opened"):
@@ -6046,6 +6074,33 @@ def _recipient_is_read(rec) -> tuple[bool, str | None]:
 def _arabic_role_label(role_slug: str, active_school: Optional[School] = None) -> str:
     return _role_display_map(active_school).get((role_slug or "").lower(), role_slug or "")
 
+
+def _digits_only(val: str) -> str:
+    return "".join(ch for ch in str(val or "") if ch.isdigit())
+
+
+def _phone_key(val: str) -> str:
+    """Normalize phone for comparison.
+
+    We compare by the last 9 digits to support common Saudi formats:
+    - 05xxxxxxxx
+    - 5xxxxxxxx
+    - 9665xxxxxxxx
+    """
+    d = _digits_only(val)
+    if len(d) >= 9:
+        return d[-9:]
+    return d
+
+
+def _mask_phone(val: str) -> str:
+    d = _digits_only(val)
+    if not d:
+        return ""
+    if len(d) <= 4:
+        return "*" * len(d)
+    return ("*" * (len(d) - 4)) + d[-4:]
+
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff_or_officer, login_url="reports:login")
 @require_http_methods(["GET"])
@@ -6060,23 +6115,24 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("reports:home")
 
     n = get_object_or_404(Notification, pk=pk)
+    sent_list_url = "reports:circulars_sent" if bool(getattr(n, "requires_signature", False)) else "reports:notifications_sent"
 
     # عزل حسب المدرسة النشطة (غير السوبر)
     try:
         if not request.user.is_superuser and hasattr(n, "school_id"):
             if getattr(n, "school_id", None) is None:
                 messages.error(request, "لا تملك صلاحية عرض إشعار عام.")
-                return redirect("reports:notifications_sent")
+                return redirect(sent_list_url)
             if getattr(n, "school_id", None) != getattr(active_school, "id", None):
                 messages.error(request, "لا تملك صلاحية عرض إشعار من مدرسة أخرى.")
-                return redirect("reports:notifications_sent")
+                return redirect(sent_list_url)
     except Exception:
         pass
 
     if not _is_manager_in_school(request.user, active_school):
         if getattr(n, "created_by_id", None) != request.user.id:
             messages.error(request, "لا تملك صلاحية عرض هذا الإشعار.")
-            return redirect("reports:notifications_sent")
+            return redirect(sent_list_url)
 
     body = (
         getattr(n, "message", None) or getattr(n, "body", None) or
@@ -6085,6 +6141,8 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
     recipients = []
+    sig_total = 0
+    sig_signed = 0
     if NotificationRecipient is not None:
         # اكتشف اسم FK للإشعار
         notif_fk = None
@@ -6114,19 +6172,275 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 rslug = getattr(getattr(t, "role", None), "slug", "") or ""
                 role_label = _arabic_role_label(rslug, active_school)
                 is_read, read_at_str = _recipient_is_read(r)
+
+                signed = bool(getattr(r, "is_signed", False))
+                signed_at_str = None
+                try:
+                    v = getattr(r, "signed_at", None)
+                    signed_at_str = v.strftime("%Y-%m-%d %H:%M") if v else None
+                except Exception:
+                    signed_at_str = None
+
+                if bool(getattr(n, "requires_signature", False)):
+                    sig_total += 1
+                    if signed:
+                        sig_signed += 1
+
                 recipients.append({
                     "name": str(name),
                     "role": role_label,
                     "read": bool(is_read),
                     "read_at": read_at_str,
+                    "signed": signed,
+                    "signed_at": signed_at_str,
                 })
 
     ctx = {
         "n": n,
         "body": body,
         "recipients": recipients,
+        "signature_stats": {
+            "total": int(sig_total),
+            "signed": int(sig_signed),
+            "unsigned": int(max(sig_total - sig_signed, 0)),
+        },
     }
     return render(request, "reports/notification_detail.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def notification_sign(request: HttpRequest, pk: int) -> HttpResponse:
+    """Teacher signs a circular (NotificationRecipient.pk) using phone re-entry + acknowledgement."""
+    if NotificationRecipient is None:
+        messages.error(request, "نظام الإشعارات غير متاح حالياً.")
+        return redirect(request.POST.get("next") or "reports:my_notifications")
+
+    rec = get_object_or_404(
+        NotificationRecipient.objects.select_related(
+            "notification",
+            "notification__created_by",
+        ),
+        pk=pk,
+        teacher=request.user,
+    )
+
+    n = getattr(rec, "notification", None)
+    if n is None:
+        messages.error(request, "تعذّر العثور على التعميم.")
+        return redirect("reports:my_notifications")
+
+    if not bool(getattr(n, "requires_signature", False)):
+        messages.error(request, "هذا الإشعار لا يتطلب توقيعاً.")
+        return redirect("reports:my_notification_detail", pk=rec.pk)
+
+    if bool(getattr(rec, "is_signed", False)):
+        messages.info(request, "تم تسجيل توقيعك مسبقاً على هذا التعميم.")
+        return redirect("reports:my_notification_detail", pk=rec.pk)
+
+    now = timezone.now()
+    max_attempts = 5
+    window = timedelta(minutes=15)
+
+    try:
+        attempts = int(getattr(rec, "signature_attempt_count", 0) or 0)
+    except Exception:
+        attempts = 0
+    last_attempt = getattr(rec, "signature_last_attempt_at", None)
+
+    # Reset attempts after window
+    if last_attempt and (now - last_attempt) > window:
+        attempts = 0
+
+    if last_attempt and (now - last_attempt) <= window and attempts >= max_attempts:
+        minutes_left = int(max(1, (window - (now - last_attempt)).total_seconds() // 60))
+        messages.error(request, f"تم تجاوز عدد المحاولات. حاول مرة أخرى بعد {minutes_left} دقيقة.")
+        return redirect("reports:my_notification_detail", pk=rec.pk)
+
+    entered_phone = (request.POST.get("phone") or "").strip()
+    ack = request.POST.get("ack") in {"1", "on", "true", "yes"}
+
+    # Register an attempt (best-effort)
+    try:
+        rec.signature_attempt_count = attempts + 1
+        rec.signature_last_attempt_at = now
+        rec.save(update_fields=["signature_attempt_count", "signature_last_attempt_at"])
+    except Exception:
+        pass
+
+    if not ack:
+        messages.error(request, "يلزم الموافقة على الإقرار قبل اعتماد التوقيع.")
+        return redirect("reports:my_notification_detail", pk=rec.pk)
+
+    if not entered_phone:
+        messages.error(request, "يرجى إدخال رقم الجوال المسجل للتوقيع.")
+        return redirect("reports:my_notification_detail", pk=rec.pk)
+
+    if _phone_key(entered_phone) != _phone_key(getattr(request.user, "phone", "")):
+        messages.error(request, "رقم الجوال غير مطابق للرقم المسجل. تأكد وحاول مرة أخرى.")
+        return redirect("reports:my_notification_detail", pk=rec.pk)
+
+    # Sign + mark read
+    try:
+        update_fields: list[str] = []
+        if hasattr(rec, "is_signed"):
+            rec.is_signed = True
+            update_fields.append("is_signed")
+        if hasattr(rec, "signed_at"):
+            rec.signed_at = now
+            update_fields.append("signed_at")
+        if hasattr(rec, "is_read") and not bool(getattr(rec, "is_read", False)):
+            rec.is_read = True
+            update_fields.append("is_read")
+        if hasattr(rec, "read_at") and getattr(rec, "read_at", None) is None:
+            rec.read_at = now
+            update_fields.append("read_at")
+        if update_fields:
+            try:
+                rec.save(update_fields=update_fields)
+            except Exception:
+                rec.save()
+    except Exception:
+        logger.exception("notification_sign failed")
+        messages.error(request, "تعذّر تسجيل التوقيع. جرّب لاحقًا.")
+        return redirect("reports:my_notification_detail", pk=rec.pk)
+
+    messages.success(request, "✅ تم تسجيل توقيعك على التعميم بنجاح.")
+    return redirect("reports:my_notification_detail", pk=rec.pk)
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@require_http_methods(["GET"])
+def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse:
+    if Notification is None or NotificationRecipient is None:
+        messages.error(request, "نظام الإشعارات غير متاح.")
+        return redirect("reports:notifications_sent")
+
+    active_school = _get_active_school(request)
+    if not request.user.is_superuser and active_school is None:
+        messages.error(request, "يرجى اختيار المدرسة أولاً.")
+        return redirect("reports:home")
+
+    n = get_object_or_404(Notification, pk=pk)
+    sent_list_url = "reports:circulars_sent" if bool(getattr(n, "requires_signature", False)) else "reports:notifications_sent"
+
+    # Permission: manager in school or creator
+    if not _is_manager_in_school(request.user, active_school):
+        if getattr(n, "created_by_id", None) != request.user.id:
+            messages.error(request, "لا تملك صلاحية عرض تقرير هذا التعميم.")
+            return redirect(sent_list_url)
+
+    # School isolation
+    try:
+        if not request.user.is_superuser and hasattr(n, "school_id"):
+            if getattr(n, "school_id", None) != getattr(active_school, "id", None):
+                messages.error(request, "لا تملك صلاحية عرض تعميم من مدرسة أخرى.")
+                return redirect(sent_list_url)
+    except Exception:
+        pass
+
+    qs = (
+        NotificationRecipient.objects
+        .filter(notification=n)
+        .select_related("teacher", "teacher__role")
+        .order_by("teacher__name", "id")
+    )
+
+    rows = []
+    signed = 0
+    total = 0
+    for r in qs:
+        t = getattr(r, "teacher", None)
+        if not t:
+            continue
+        total += 1
+        is_signed = bool(getattr(r, "is_signed", False))
+        if is_signed:
+            signed += 1
+        rows.append({
+            "name": getattr(t, "name", "") or str(t),
+            "role": _arabic_role_label(getattr(getattr(t, "role", None), "slug", "") or "", active_school),
+            "phone": _mask_phone(getattr(t, "phone", "")),
+            "read": bool(getattr(r, "is_read", False)),
+            "read_at": getattr(r, "read_at", None),
+            "signed": is_signed,
+            "signed_at": getattr(r, "signed_at", None),
+        })
+
+    ctx = {
+        "n": n,
+        "rows": rows,
+        "stats": {"total": total, "signed": signed, "unsigned": max(total - signed, 0)},
+    }
+    return render(request, "reports/notification_signatures_print.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(_is_staff_or_officer, login_url="reports:login")
+@require_http_methods(["GET"])
+def notification_signatures_csv(request: HttpRequest, pk: int) -> HttpResponse:
+    if Notification is None or NotificationRecipient is None:
+        return HttpResponse("unavailable", status=400)
+
+    active_school = _get_active_school(request)
+    if not request.user.is_superuser and active_school is None:
+        return HttpResponse("active_school_required", status=403)
+
+    n = get_object_or_404(Notification, pk=pk)
+
+    if not _is_manager_in_school(request.user, active_school):
+        if getattr(n, "created_by_id", None) != request.user.id:
+            return HttpResponse("forbidden", status=403)
+
+    try:
+        if not request.user.is_superuser and hasattr(n, "school_id"):
+            if getattr(n, "school_id", None) != getattr(active_school, "id", None):
+                return HttpResponse("forbidden", status=403)
+    except Exception:
+        pass
+
+    import csv
+    from io import StringIO
+
+    out = StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        "الاسم",
+        "الدور",
+        "الجوال (مخفي)",
+        "الحالة (مقروء)",
+        "وقت القراءة",
+        "الحالة (موقّع)",
+        "وقت التوقيع",
+    ])
+
+    qs = (
+        NotificationRecipient.objects
+        .filter(notification=n)
+        .select_related("teacher", "teacher__role")
+        .order_by("teacher__name", "id")
+    )
+
+    for r in qs:
+        t = getattr(r, "teacher", None)
+        if not t:
+            continue
+        role_label = _arabic_role_label(getattr(getattr(t, "role", None), "slug", "") or "", active_school)
+        writer.writerow([
+            getattr(t, "name", "") or str(t),
+            role_label,
+            _mask_phone(getattr(t, "phone", "")),
+            "نعم" if bool(getattr(r, "is_read", False)) else "لا",
+            getattr(getattr(r, "read_at", None), "strftime", lambda fmt: "")("%Y-%m-%d %H:%M") if getattr(r, "read_at", None) else "",
+            "نعم" if bool(getattr(r, "is_signed", False)) else "لا",
+            getattr(getattr(r, "signed_at", None), "strftime", lambda fmt: "")("%Y-%m-%d %H:%M") if getattr(r, "signed_at", None) else "",
+        ])
+
+    resp = HttpResponse(out.getvalue(), content_type="text/csv; charset=utf-8")
+    safe_title = (getattr(n, "title", "") or "notification").strip().replace("\n", " ").replace("\r", " ")
+    resp["Content-Disposition"] = f'attachment; filename="signatures_{pk}_{safe_title[:40]}.csv"'
+    return resp
 
 @require_http_methods(["GET"])
 def unread_notifications_count(request: HttpRequest) -> HttpResponse:
@@ -6139,10 +6453,57 @@ def unread_notifications_count(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"count": 0, "authenticated": False})
 
     if NotificationRecipient is None:
-        return JsonResponse({"count": 0, "authenticated": True})
+        return JsonResponse({"count": 0, "unread": 0, "signatures_pending": 0, "authenticated": True})
 
-    count = NotificationRecipient.objects.filter(teacher=request.user, is_read=False).count()
-    return JsonResponse({"count": count, "authenticated": True})
+    active_school = _get_active_school(request)
+    now = timezone.now()
+
+    qs = NotificationRecipient.objects.filter(teacher=request.user)
+
+    # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
+    try:
+        if active_school is not None and Notification is not None and hasattr(Notification, "school"):
+            qs = qs.filter(Q(notification__school=active_school) | Q(notification__school__isnull=True))
+    except Exception:
+        pass
+
+    # استبعاد المنتهي
+    try:
+        if Notification is not None and hasattr(Notification, "expires_at"):
+            qs = qs.filter(Q(notification__expires_at__gt=now) | Q(notification__expires_at__isnull=True))
+    except Exception:
+        pass
+
+    # count = items needing attention: unread OR unsigned signature-required circular
+    attention_q = Q(is_read=False)
+    try:
+        if Notification is not None and hasattr(Notification, "requires_signature") and hasattr(NotificationRecipient, "is_signed"):
+            attention_q |= Q(notification__requires_signature=True, is_signed=False)
+    except Exception:
+        pass
+
+    unread_q = Q(is_read=False)
+    pending_sig_q = Q(pk__in=[])
+    try:
+        if Notification is not None and hasattr(Notification, "requires_signature") and hasattr(NotificationRecipient, "is_signed"):
+            pending_sig_q = Q(notification__requires_signature=True, is_signed=False)
+    except Exception:
+        pending_sig_q = Q(pk__in=[])
+
+    agg = qs.aggregate(
+        count=Count("id", filter=attention_q),
+        unread=Count("id", filter=unread_q),
+        signatures_pending=Count("id", filter=pending_sig_q),
+    )
+
+    return JsonResponse(
+        {
+            "count": int(agg.get("count") or 0),
+            "unread": int(agg.get("unread") or 0),
+            "signatures_pending": int(agg.get("signatures_pending") or 0),
+            "authenticated": True,
+        }
+    )
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
@@ -6268,9 +6629,23 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff_or_officer, login_url="reports:login")
 @require_http_methods(["GET"])
-def notifications_sent(request: HttpRequest) -> HttpResponse:
+def notifications_sent(request: HttpRequest, mode: str = "notification") -> HttpResponse:
+    mode = (mode or "notification").strip().lower()
+    if mode not in {"notification", "circular"}:
+        mode = "notification"
+    is_circular = mode == "circular"
+
     if Notification is None:
-        return render(request, "reports/notifications_sent.html", {"page_obj": Paginator([], 20).get_page(1), "stats": {}})
+        return render(
+            request,
+            "reports/notifications_sent.html",
+            {
+                "page_obj": Paginator([], 20).get_page(1),
+                "stats": {},
+                "mode": mode,
+                "title": "التعاميم المرسلة" if is_circular else "الإشعارات المرسلة",
+            },
+        )
 
     active_school = _get_active_school(request)
     if not request.user.is_superuser and active_school is None:
@@ -6278,6 +6653,13 @@ def notifications_sent(request: HttpRequest) -> HttpResponse:
         return redirect("reports:home")
 
     qs = Notification.objects.all().order_by("-created_at", "-id")
+
+    # فصل التعاميم عن الإشعارات
+    try:
+        if hasattr(Notification, "requires_signature"):
+            qs = qs.filter(requires_signature=True) if is_circular else qs.filter(requires_signature=False)
+    except Exception:
+        pass
 
     # غير السوبر: لا يرى إلا إشعارات المدرسة النشطة (لا إشعارات عامة)
     try:
@@ -6319,12 +6701,32 @@ def notifications_sent(request: HttpRequest) -> HttpResponse:
             else:
                 read_filter = Q(pk__in=[])
 
-            rc = (NotificationRecipient.objects
-                  .filter(**{f"{notif_fk_name}_id__in": notif_ids})
-                  .values(f"{notif_fk_name}_id")
-                  .annotate(total=Count("id"), read=Count("id", filter=read_filter)))
+            fields = {f.name for f in NotificationRecipient._meta.get_fields()}
+            signed_filter = None
+            if "is_signed" in fields:
+                signed_filter = Q(is_signed=True)
+            elif "signed_at" in fields:
+                signed_filter = Q(signed_at__isnull=False)
+
+            ann = {
+                "total": Count("id"),
+                "read": Count("id", filter=read_filter),
+            }
+            if signed_filter is not None:
+                ann["signed"] = Count("id", filter=signed_filter)
+
+            rc = (
+                NotificationRecipient.objects
+                .filter(**{f"{notif_fk_name}_id__in": notif_ids})
+                .values(f"{notif_fk_name}_id")
+                .annotate(**ann)
+            )
             for row in rc:
-                stats[row[f"{notif_fk_name}_id"]] = {"total": row["total"], "read": row["read"]}
+                stats[row[f"{notif_fk_name}_id"]] = {
+                    "total": row.get("total", 0),
+                    "read": row.get("read", 0),
+                    "signed": row.get("signed", 0),
+                }
 
     # أسماء مستلمين مختصرة
     rec_names_map: dict[int, list[str]] = {i: [] for i in notif_ids}
@@ -6380,7 +6782,16 @@ def notifications_sent(request: HttpRequest) -> HttpResponse:
     for n in page.object_list:
         n.rec_names = rec_names_map.get(n.id, [])
 
-    return render(request, "reports/notifications_sent.html", {"page_obj": page, "stats": stats})
+    return render(
+        request,
+        "reports/notifications_sent.html",
+        {
+            "page_obj": page,
+            "stats": stats,
+            "mode": mode,
+            "title": "التعاميم المرسلة" if is_circular else "الإشعارات المرسلة",
+        },
+    )
 
 # تعليم الإشعار كمقروء (حسب Recipient pk)
 @login_required(login_url="reports:login")

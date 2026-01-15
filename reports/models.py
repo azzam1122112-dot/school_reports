@@ -1526,6 +1526,26 @@ class Notification(models.Model):
     message = models.TextField()
     is_important = models.BooleanField(default=False)
     expires_at = models.DateTimeField(null=True, blank=True)
+
+    # =========================
+    # التواقيع (للتعاميم الإلزامية)
+    # =========================
+    requires_signature = models.BooleanField(
+        "يتطلب توقيع؟",
+        default=False,
+        help_text="عند التفعيل يصبح الإشعار تعميمًا ويتطلب إقرار + إدخال الجوال للتوقيع.",
+    )
+    signature_deadline_at = models.DateTimeField(
+        "آخر موعد للتوقيع",
+        null=True,
+        blank=True,
+        help_text="اختياري: يظهر للمعلمين في صفحة التوقيع ويستخدم للتقارير.",
+    )
+    signature_ack_text = models.TextField(
+        "نص الإقرار",
+        blank=True,
+        default="أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه وأتعهد بالالتزام به.",
+    )
     created_at = models.DateTimeField(default=timezone.now)
     school = models.ForeignKey(
         School,
@@ -1553,12 +1573,19 @@ class NotificationRecipient(models.Model):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="notifications")
     is_read = models.BooleanField(default=False)
     read_at = models.DateTimeField(null=True, blank=True)
+
+    # توقيع التعميم (على مستوى المستلم)
+    is_signed = models.BooleanField(default=False)
+    signed_at = models.DateTimeField(null=True, blank=True)
+    signature_attempt_count = models.PositiveSmallIntegerField(default=0)
+    signature_last_attempt_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "reports_notification_recipient"
         indexes = [
             models.Index(fields=["teacher", "is_read", "-created_at"]),
+            models.Index(fields=["teacher", "is_signed", "-created_at"]),
         ]
         unique_together = (("notification", "teacher"),)
 

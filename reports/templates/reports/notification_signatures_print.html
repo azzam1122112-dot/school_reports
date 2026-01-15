@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}تقرير التواقيع — {{ n.title|default:"تعميم" }}{% endblock %}
+
+{% block head %}
+<style>
+  .sp-scope{
+    --ink: var(--ink, #0f172a);
+    --muted: var(--muted, #64748b);
+    --line: var(--line, #e5e7eb);
+    --card: var(--card, #ffffff);
+    --soft: var(--line-2, #f1f5f9);
+    --shadow: 0 12px 30px rgba(2,6,23,.08);
+    --brand: var(--brand, #2563eb);
+  }
+
+  .sp-scope .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .sp-scope .head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .sp-scope h1{margin:0;font-weight:950;color:var(--ink)}
+  .sp-scope .sub{color:var(--muted);font-weight:850}
+
+  .sp-scope .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .sp-scope .card-hd{padding:14px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--soft),var(--card));display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .sp-scope .card-bd{padding:16px}
+
+  .sp-scope .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);background:var(--soft);border-radius:999px;font-weight:950;font-size:.86rem;white-space:nowrap}
+  .sp-scope .pill.good{background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.22);color:#166534}
+  .sp-scope .pill.bad{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.22);color:#b91c1c}
+
+  .sp-scope .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:950;text-decoration:none;color:var(--ink);min-height:44px;cursor:pointer}
+  .sp-scope .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  .sp-scope .tblwrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+  .sp-scope table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card)}
+  .sp-scope th{background:linear-gradient(180deg,var(--soft),var(--card));text-align:right;padding:10px;border-bottom:1px solid var(--line);font-weight:950;white-space:nowrap}
+  .sp-scope td{padding:10px;border-bottom:1px solid var(--line);font-weight:850;white-space:nowrap}
+
+  @media print{
+    header.site-header, .sub-banner, .drawer, .drawer-overlay, .progress-bar {display:none !important;}
+    body{background:#fff !important;}
+    .sp-scope .wrap{padding:0}
+    .sp-scope .btn{display:none !important;}
+    .sp-scope .card{box-shadow:none !important;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sp-scope" dir="rtl">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <h1>تقرير التواقيع</h1>
+        <div class="sub">{{ n.title|default:"تعميم" }} — {{ n.created_at|date:"Y-m-d H:i" }}</div>
+        {% if n.signature_deadline_at %}<div class="sub">آخر موعد للتوقيع: {{ n.signature_deadline_at|date:"Y-m-d H:i" }}</div>{% endif %}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn" href="{% url 'reports:notification_detail' n.id %}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع</a>
+        <a class="btn" href="{% url 'reports:notification_signatures_csv' n.id %}"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</a>
+        <button class="btn primary" type="button" id="printBtn"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+      </div>
+    </div>
+
+    <section class="card" aria-label="ملخص">
+      <div class="card-hd">
+        <strong style="font-weight:950">ملخص الالتزام</strong>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="pill">الإجمالي: {{ stats.total }}</span>
+          <span class="pill good">موقّع: {{ stats.signed }}</span>
+          <span class="pill bad">غير موقّع: {{ stats.unsigned }}</span>
+        </div>
+      </div>
+      <div class="card-bd">
+        {% if n.signature_ack_text %}
+          <div style="color:var(--muted);font-weight:850;line-height:1.9">نص الإقرار: {{ n.signature_ack_text }}</div>
+        {% endif %}
+      </div>
+    </section>
+
+    <div style="height:12px"></div>
+
+    <section class="card" aria-label="قائمة المستلمين">
+      <div class="card-hd">
+        <strong style="font-weight:950">قائمة المستلمين</strong>
+        <span class="sub">يظهر الجوال بشكل مخفي حفاظاً على الخصوصية</span>
+      </div>
+      <div class="card-bd">
+        <div class="tblwrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34%">الاسم</th>
+                <th style="width:18%">الدور</th>
+                <th style="width:16%">الجوال</th>
+                <th style="width:16%">التوقيع</th>
+                <th style="width:16%">وقت التوقيع</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rows %}
+                <tr>
+                  <td>{{ r.name }}</td>
+                  <td>{{ r.role }}</td>
+                  <td>{{ r.phone }}</td>
+                  <td>{% if r.signed %}<span class="pill good">موقّع</span>{% else %}<span class="pill bad">غير موقّع</span>{% endif %}</td>
+                  <td>{% if r.signed_at %}{{ r.signed_at|date:"Y-m-d H:i" }}{% endif %}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" style="text-align:center;color:var(--muted)">لا توجد بيانات.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
+  (function(){
+    var btn = document.getElementById('printBtn');
+    if(btn){
+      btn.addEventListener('click', function(){
+        try{ window.print(); }catch(e){}
+      });
+    }
+  })();
+</script>
+{% endblock %}

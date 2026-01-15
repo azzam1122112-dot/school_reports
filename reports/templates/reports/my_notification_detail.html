@@ -64,6 +64,37 @@
     padding:14px;
   }
 
+  .nd-scope .nd-form{
+    display:grid;
+    gap:10px;
+    margin-top:12px;
+  }
+  .nd-scope .nd-input{
+    width:100%;
+    min-height:44px;
+    border:1px solid var(--nd-line);
+    border-radius:12px;
+    padding:10px 12px;
+    font:inherit;
+    background:var(--nd-card);
+    color:var(--nd-ink);
+    font-weight:850;
+    outline:none;
+  }
+  .nd-scope .nd-input:focus{
+    border-color: rgba(37,99,235,.35);
+    box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+  }
+  .nd-scope .nd-check{
+    display:flex;align-items:flex-start;gap:10px;
+    padding:10px 12px;
+    border:1px solid var(--nd-line);
+    border-radius:12px;
+    background: var(--nd-soft);
+  }
+  .nd-scope .nd-check input{margin-top:3px}
+  .nd-scope .nd-note{color:var(--nd-muted);font-weight:850;line-height:1.9}
+
   .nd-scope .nd-btn{
     padding:10px 12px;border-radius:12px;border:1px solid var(--nd-line);
     background: var(--nd-card);
@@ -134,9 +165,72 @@
           </span>
           {% if r.is_read %}<span class="nd-pill">الحالة: مقروء</span>{% else %}<span class="nd-pill">الحالة: غير مقروء</span>{% endif %}
           {% if r.read_at %}<span class="nd-pill">وقت القراءة: {{ r.read_at|date:"Y-m-d H:i" }}</span>{% endif %}
+
+          {% if n.requires_signature %}
+            {% if r.is_signed %}
+              <span class="nd-pill" style="background: rgba(16,185,129,.10);border-color: rgba(16,185,129,.22);color:#166534;">تم التوقيع</span>
+              {% if r.signed_at %}<span class="nd-pill">وقت التوقيع: {{ r.signed_at|date:"Y-m-d H:i" }}</span>{% endif %}
+            {% else %}
+              <span class="nd-pill" style="background: rgba(239,68,68,.08);border-color: rgba(239,68,68,.22);color:#b91c1c;">بانتظار التوقيع</span>
+              {% if n.signature_deadline_at %}<span class="nd-pill">آخر موعد للتوقيع: {{ n.signature_deadline_at|date:"Y-m-d H:i" }}</span>{% endif %}
+            {% endif %}
+          {% endif %}
         </div>
       </div>
     </section>
+
+    {% if n.requires_signature %}
+      <div style="height:12px"></div>
+      <section class="nd-card" aria-label="التوقيع على التعميم">
+        <div class="nd-card-hd">
+          <div class="nd-meta-row">
+            <strong style="font-weight:950">التوقيع على التعميم</strong>
+            <span class="nd-pill">توثيق رسمي</span>
+          </div>
+          <div class="nd-when">لأمان أعلى: إدخال الجوال + إقرار</div>
+        </div>
+        <div class="nd-card-bd">
+          {% if r.is_signed %}
+            <div class="nd-note">تم اعتماد توقيعك على هذا التعميم بنجاح.</div>
+          {% else %}
+            <div class="nd-body" style="margin-bottom:10px">
+              {% if n.signature_ack_text %}
+                {{ n.signature_ack_text|linebreaksbr }}
+              {% else %}
+                أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه وأتعهد بالالتزام به.
+              {% endif %}
+            </div>
+
+            <form class="nd-form" method="post" action="{% url 'reports:notification_sign' r.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'reports:my_notification_detail' r.pk %}">
+
+              <div>
+                <label style="font-weight:950;display:block;margin-bottom:6px" for="sig_phone">رقم الجوال المسجل</label>
+                <input class="nd-input" id="sig_phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="مثال: 05xxxxxxxx" required>
+                <div class="nd-note" style="margin-top:6px">يُستخدم هذا الإجراء للتأكد من هوية الحساب قبل اعتماد التوقيع.</div>
+              </div>
+
+              <label class="nd-check" for="sig_ack">
+                <input id="sig_ack" name="ack" type="checkbox" required>
+                <span style="font-weight:900">أقرّ بصحة البيانات وأوافق على الإقرار أعلاه.</span>
+              </label>
+
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="nd-btn" type="submit" style="background: var(--nd-brand);border-color: var(--nd-brand);color:#fff;">
+                  <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                  اعتماد التوقيع
+                </button>
+                <a class="nd-btn" href="{% url 'reports:my_notifications' %}">
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  رجوع
+                </a>
+              </div>
+            </form>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

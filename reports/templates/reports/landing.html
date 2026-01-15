@@ -338,7 +338,7 @@
   <!-- ================= HERO ================= -->
   <header class="relative" style="padding: 180px 0 100px; overflow: hidden;">
     <!-- Abstract Shape BG -->
-    <div style="position: absolute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%); filter: blur(50px); z-index: -1;"></div>
+    <div style="position: absolغute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%); filter: blur(50px); z-index: -1;"></div>
     
     <div class="container grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 50px; align-items: center;">
       
@@ -528,10 +528,10 @@
          <!-- Toggle Switch -->
          <div class="flex justify-center" style="margin-bottom: 40px;">
             <div class="glass-card flex items-center p-1" style="background: var(--surface-2); padding: 6px; border-radius: 99px; gap: 4px; display: inline-flex;">
-               <button class="btn-toggle" data-period="6m" onclick="togglePeriod('6m')" style="border-radius: 99px; padding: 10px 24px; font-weight: 800; border:none; background: var(--primary); color: white; transition: all 0.2s;">
+               <button type="button" class="btn-toggle" data-period="6m" style="border-radius: 99px; padding: 10px 24px; font-weight: 800; border:none; background: var(--primary); color: white; transition: all 0.2s;">
                   6 أشهر
                </button>
-               <button class="btn-toggle" data-period="1y" onclick="togglePeriod('1y')" style="border-radius: 99px; padding: 10px 24px; font-weight: 800; border:none; background: transparent; color: var(--text-muted); transition: all 0.2s;">
+               <button type="button" class="btn-toggle" data-period="1y" style="border-radius: 99px; padding: 10px 24px; font-weight: 800; border:none; background: transparent; color: var(--text-muted); transition: all 0.2s;">
                   سنوي 
                   <span style="font-size: 0.75em; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 6px; margin-right: 6px;">توفير</span>
                </button>
@@ -551,7 +551,7 @@
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> صلاحية 14 يوم</li>
                      </ul>
-                     <button onclick="openOrderModalDirect('المجانية', '0 ريال', '14 يوم')" class="btn btn-outline" style="width: 100%;">تجربة الآن</button>
+                     <button type="button" class="btn btn-outline js-open-order" data-plan-title="المجانية" data-plan-price="0 ريال" data-plan-duration="14 يوم" style="width: 100%;">تجربة الآن</button>
                   </div>
                </div>
 
@@ -576,7 +576,7 @@
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> دعم فني</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
+                     <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
                   </div>
                </div>
 
@@ -600,7 +600,7 @@
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> دعم فني متقدم</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
+                     <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
                   </div>
                </div>
 
@@ -623,7 +623,7 @@
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> دعم فني</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
+                     <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
                   </div>
                </div>
 
@@ -645,45 +645,14 @@
                         <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
                         <li><i class="fa-solid fa-check"></i> دعم فني VIP</li>
                      </ul>
-                     <button onclick="selectPlan(this)" class="btn btn-primary" style="width: 100%;">اطلب الباقة</button>
+                     <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
                   </div>
                </div>
 
             </div>
       </div>
 
-      <script>
-         let currentPeriod = '6m';
-         
-         function togglePeriod(period) {
-            currentPeriod = period;
-            // Update Buttons
-            document.querySelectorAll('.btn-toggle').forEach(btn => {
-               if(btn.dataset.period === period) {
-                  btn.style.background = 'var(--primary)';
-                  btn.style.color = 'white';
-               } else {
-                  btn.style.background = 'transparent';
-                  btn.style.color = 'var(--text-muted)';
-               }
-            });
 
-            // Update Cards
-            document.querySelectorAll('.pricing-card').forEach(card => {
-               const p6m = card.querySelector('.p-6m');
-               const p1y = card.querySelector('.p-1y');
-               if(p6m && p1y) {
-                  if(period === '6m') {
-                     p6m.style.display = 'block';
-                     p1y.style.display = 'none';
-                  } else {
-                     p6m.style.display = 'none';
-                     p1y.style.display = 'block';
-                  }
-               }
-            });
-         }
-      </script>
     </div>
   </section>
 
@@ -757,6 +726,39 @@
     if(closeMobile) closeMobile.addEventListener('click', toggleMenu);
     mobileLinks.forEach(l => l.addEventListener('click', toggleMenu));
 
+      // --- Pricing Period Toggle (CSP-safe) ---
+      let currentPeriod = '6m';
+
+      function togglePeriod(period) {
+         currentPeriod = period;
+
+         // Update Buttons
+         document.querySelectorAll('.btn-toggle').forEach(btn => {
+            if (btn.dataset.period === period) {
+               btn.style.background = 'var(--primary)';
+               btn.style.color = 'white';
+            } else {
+               btn.style.background = 'transparent';
+               btn.style.color = 'var(--text-muted)';
+            }
+         });
+
+         // Update Cards
+         document.querySelectorAll('.pricing-card').forEach(card => {
+            const p6m = card.querySelector('.p-6m');
+            const p1y = card.querySelector('.p-1y');
+            if (p6m && p1y) {
+               if (period === '6m') {
+                  p6m.style.display = 'block';
+                  p1y.style.display = 'none';
+               } else {
+                  p6m.style.display = 'none';
+                  p1y.style.display = 'block';
+               }
+            }
+         });
+      }
+
     // --- Order Modal Logic ---
     const orderModal = document.getElementById('orderModal');
     let selectedPlanData = {};
@@ -776,6 +778,7 @@
     function selectPlan(btn) {
       if (!btn) return;
       let card = btn.closest('.pricing-card');
+         if (!card) return;
       
       let title = card.querySelector('h3') ? card.querySelector('h3').innerText : 'باقة';
       
@@ -853,10 +856,61 @@
        msg += `💰 *السعر:* ${selectedPlanData.price}%0A%0A`;
        msg += `أرجو إتمام إجراءات الاشتراك.`;
 
-       window.open(waBase + msg, '_blank');
+          window.open(waBase + msg, '_blank', 'noopener');
        
        closeOrderModal();
     }
+
+      // --- Bind UI handlers (avoid inline onclick/onsubmit which may be blocked by CSP) ---
+      document.addEventListener('DOMContentLoaded', function () {
+         // Default period state
+         try { togglePeriod(currentPeriod); } catch (e) {}
+
+         // Toggle period buttons
+         document.querySelectorAll('.btn-toggle').forEach(btn => {
+            btn.addEventListener('click', function () {
+               togglePeriod(btn.dataset.period);
+            });
+         });
+
+         // Free plan / direct open
+         document.querySelectorAll('.js-open-order').forEach(btn => {
+            btn.addEventListener('click', function () {
+               openOrderModalDirect(
+                  btn.getAttribute('data-plan-title') || 'باقة',
+                  btn.getAttribute('data-plan-price') || '',
+                  btn.getAttribute('data-plan-duration') || ''
+               );
+            });
+         });
+
+         // Paid plans
+         document.querySelectorAll('.js-select-plan').forEach(btn => {
+            btn.addEventListener('click', function () {
+               selectPlan(btn);
+            });
+         });
+
+         // Modal close button
+         const modalCloseBtn = document.querySelector('#orderModal .modal-close');
+         if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeOrderModal);
+
+         // Close when clicking overlay
+         if (orderModal) {
+            orderModal.addEventListener('click', function (e) {
+               if (e.target === orderModal) closeOrderModal();
+            });
+         }
+
+         // Close on ESC
+         document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeOrderModal();
+         });
+
+         // Form submit
+         const form = document.getElementById('orderForm');
+         if (form) form.addEventListener('submit', submitOrder);
+      });
 
     // --- PWA ---
     if ('serviceWorker' in navigator) {
@@ -869,14 +923,14 @@
   <!-- Order Modal Markup -->
   <div id="orderModal" class="modal-overlay">
     <div class="modal-content glass-card">
-      <button class="modal-close" onclick="closeOrderModal()"><i class="fa-solid fa-xmark"></i></button>
+         <button type="button" class="modal-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
       <h3 style="margin-bottom:20px; font-weight:900; font-size:1.4rem;">بيانات المدرسة</h3>
       
       <div id="selectedPlanInfo" style="background:rgba(59,130,246,0.08); padding:12px 16px; border-radius:14px; margin-bottom:24px; border:1px solid rgba(59,130,246,0.15);">
          <!-- Filled by JS -->
       </div>
       
-      <form id="orderForm" onsubmit="submitOrder(event)">
+      <form id="orderForm">
          <div class="form-group">
             <label>اسم المدرسة</label>
             <input type="text" id="ord_school" required placeholder="مثال: مدرسة المستقبل الأهلية">

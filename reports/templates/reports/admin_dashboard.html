@@ -240,9 +240,25 @@
             <div class="action-icon" style="color:#6366f1; background:#e0e7ff"><i class="fas fa-list-alt"></i></div>
             <span class="action-title">أنواع التقارير</span>
         </a>
+
+        <a href="{% url 'reports:notifications_sent' %}" class="action-card">
+            <div class="action-icon" style="color:#0ea5e9; background:#e0f2fe"><i class="fas fa-bell"></i></div>
+            <span class="action-title">الإشعارات</span>
+        </a>
+
+        <a href="{% url 'reports:circulars_sent' %}" class="action-card">
+            <div class="action-icon" style="color:#2563eb; background:#eef2ff"><i class="fas fa-clipboard-check"></i></div>
+            <span class="action-title">التعاميم</span>
+        </a>
+
         <a href="{% url 'reports:notifications_create' %}" class="action-card">
-            <div class="action-icon" style="color:#f59e0b; background:#fff7ed"><i class="fas fa-bullhorn"></i></div>
+            <div class="action-icon" style="color:#f59e0b; background:#fff7ed"><i class="fas fa-bell"></i></div>
             <span class="action-title">إرسال إشعار</span>
+        </a>
+
+        <a href="{% url 'reports:circulars_create' %}" class="action-card">
+            <div class="action-icon" style="color:#2563eb; background:#eff6ff"><i class="fas fa-bullhorn"></i></div>
+            <span class="action-title">إرسال تعميم</span>
         </a>
         <a href="{% url 'reports:my_support_tickets' %}" class="action-card">
             <div class="action-icon" style="color:#e11d48; background:#ffe4e6"><i class="fas fa-headset"></i></div>

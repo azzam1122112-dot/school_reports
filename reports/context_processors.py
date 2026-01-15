@@ -504,6 +504,67 @@ def _reverse_any(names: Iterable[str]) -> Optional[str]:
     return None
 
 
+def _pending_signatures_count(user, request: Optional[HttpRequest] = None) -> int:
+    """عدد التعاميم التي تتطلب توقيع ولم يتم توقيعها بعد للمستخدم."""
+    N, R = _notification_models()
+    if N is None or R is None:
+        return 0
+
+    fR = _model_fields(R)
+    if "is_signed" not in fR:
+        return 0
+
+    # تحديد اسم FK للإشعار داخل سجل الاستلام
+    notif_fk = None
+    for cand in ("notification", "notif", "announcement", "message"):
+        if cand in fR:
+            notif_fk = cand
+            break
+    if not notif_fk:
+        return 0
+
+    # تحديد اسم المستخدم داخل السجل
+    user_fk = None
+    for cand in ("teacher", "user"):
+        if cand in fR:
+            user_fk = cand
+            break
+    if not user_fk:
+        return 0
+
+    now = timezone.now()
+    try:
+        qs = R.objects.filter(**{user_fk: user, "is_signed": False, f"{notif_fk}__requires_signature": True})
+
+        # فلترة نشر/انتهاء على مستوى Notification إن وُجدت
+        fN = _model_fields(N)
+        try:
+            if "is_active" in fN:
+                qs = qs.filter(**{f"{notif_fk}__is_active": True})
+        except Exception:
+            pass
+        try:
+            if "expires_at" in fN:
+                qs = qs.filter(
+                    Q(**{f"{notif_fk}__expires_at__gte": now}) | Q(**{f"{notif_fk}__expires_at__isnull": True})
+                )
+        except Exception:
+            pass
+
+        # عزل حسب المدرسة النشطة (مع السماح بإشعارات عامة school=NULL)
+        try:
+            sid = request.session.get("active_school_id") if request is not None else None
+            if sid and "school" in fN:
+                qs = qs.filter(Q(**{f"{notif_fk}__school_id": sid}) | Q(**{f"{notif_fk}__school__isnull": True}))
+        except Exception:
+            pass
+
+        qs = _exclude_notif_dismissed_cookies_recipient_qs(qs, request, notif_fk=notif_fk)
+        return _safe_count(qs)
+    except Exception:
+        return 0
+
+
 # -----------------------------
 # المُعالج الرئيس لكونتكست التنقل
 # -----------------------------
@@ -522,6 +583,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "NAV_OFFICER_REPORTS": 0,
             "SHOW_ADMIN_DASHBOARD_LINK": False,
             "NAV_NOTIFICATIONS_UNREAD": 0,
+            "NAV_SIGNATURES_PENDING": 0,
             "NAV_NOTIFICATION_HERO": None,
             "CAN_SEND_NOTIFICATIONS": False,
             "SEND_NOTIFICATION_URL": None,
@@ -658,6 +720,11 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         unread_count = _unread_count(u, request=request)
     except Exception:
         unread_count = 0
+
+    try:
+        signatures_pending = _pending_signatures_count(u, request=request)
+    except Exception:
+        signatures_pending = 0
     try:
         hero = _pick_hero_notification(u, request=request)
     except Exception:
@@ -740,6 +807,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,
         "IS_REPORT_VIEWER": is_report_viewer,
         "NAV_NOTIFICATIONS_UNREAD": unread_count,
+        "NAV_SIGNATURES_PENDING": signatures_pending,
         "NAV_NOTIFICATION_HERO": hero,
         "CAN_SEND_NOTIFICATIONS": can_send_notifications,
         "SEND_NOTIFICATION_URL": send_notification_url,

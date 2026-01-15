@@ -1272,6 +1272,28 @@ class NotificationCreateForm(forms.Form):
     is_important = forms.BooleanField(required=False, initial=False, label="مهم")
     expires_at = forms.DateTimeField(required=False, label="ينتهي في (اختياري)",
                                      widget=forms.DateTimeInput(attrs={"type":"datetime-local"}))
+
+    # ==============================
+    # التعميمات والتوقيع الإلزامي
+    # ==============================
+    requires_signature = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="يتطلب توقيع إلزامي (تعميم)",
+        help_text="عند تفعيل هذا الخيار سيُطلب من المستلم إدخال جواله المسجل + الإقرار قبل اعتماد التوقيع.",
+    )
+    signature_deadline_at = forms.DateTimeField(
+        required=False,
+        label="آخر موعد للتوقيع (اختياري)",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+    )
+    signature_ack_text = forms.CharField(
+        required=False,
+        label="نص الإقرار (اختياري)",
+        widget=forms.Textarea(attrs={"rows": 3}),
+        initial="أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه وأتعهد بالالتزام به.",
+        help_text="سيظهر نص الإقرار للمستلم داخل صفحة التوقيع.",
+    )
     audience_scope = forms.ChoiceField(
         label="نطاق الإرسال",
         required=False,
@@ -1387,7 +1409,7 @@ class NotificationCreateForm(forms.Form):
                 raise ValidationError("الرجاء اختيار مدرسة مستهدفة أو تغيير النطاق إلى \"كل المدارس\".")
         return cleaned
 
-    def save(self, creator, default_school=None):
+    def save(self, creator, default_school=None, force_requires_signature: Optional[bool] = None):
         from .tasks import send_notification_task
         from django.db import transaction
 
@@ -1402,11 +1424,19 @@ class NotificationCreateForm(forms.Form):
             else:
                 school_for_notification = cleaned.get("target_school") or None
 
+        requires_signature = bool(cleaned.get("requires_signature"))
+        if force_requires_signature is not None:
+            requires_signature = bool(force_requires_signature)
+
         n = Notification.objects.create(
             title=cleaned.get("title") or "",
             message=cleaned["message"],
             is_important=bool(cleaned.get("is_important")),
             expires_at=cleaned.get("expires_at") or None,
+            requires_signature=requires_signature,
+            signature_deadline_at=(cleaned.get("signature_deadline_at") or None) if requires_signature else None,
+            signature_ack_text=(cleaned.get("signature_ack_text") or "").strip()
+            or "أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه وأتعهد بالالتزام به.",
             created_by=creator,
             school=school_for_notification,
         )

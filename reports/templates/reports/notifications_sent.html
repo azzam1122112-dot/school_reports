@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}الإشعارات المرسلة{% endblock %}
+{% block title %}{% if mode == 'circular' %}التعاميم المرسلة{% else %}الإشعارات المرسلة{% endif %}{% endblock %}
 
 {% block head %}
 <style>
@@ -189,16 +189,22 @@
 <div class="ns-scope" dir="rtl">
   <div class="wrap">
     <div class="page-header">
-      <h1>الإشعارات المرسلة</h1>
-      <a class="create-btn" href="{% url 'reports:notifications_create' %}">
-        <i class="fa-solid fa-plus" aria-hidden="true"></i> إنشاء إشعار جديد
-      </a>
+      <h1>{% if mode == 'circular' %}التعاميم المرسلة{% else %}الإشعارات المرسلة{% endif %}</h1>
+      {% if mode == 'circular' %}
+        <a class="create-btn" href="{% url 'reports:circulars_create' %}">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i> إنشاء تعميم جديد
+        </a>
+      {% else %}
+        <a class="create-btn" href="{% url 'reports:notifications_create' %}">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i> إنشاء إشعار جديد
+        </a>
+      {% endif %}
     </div>
 
     {% if page_obj and page_obj.object_list %}
       <div class="cards-grid">
         {% for n in page_obj %}
-          <article class="notif-card" data-id="{{ n.id }}">
+          <article class="notif-card" data-id="{{ n.id }}" data-requires-signature="{% if n.requires_signature %}1{% else %}0{% endif %}">
             <div class="notif-head">
               <div>
                 <h3 class="notif-title">
@@ -211,6 +217,9 @@
                   {% endif %}
                   {% if n.is_broadcast %}
                     <span class="pill blue"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> للجميع</span>
+                  {% endif %}
+                  {% if n.requires_signature %}
+                    <span class="pill blue"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> تعميم بتوقيع</span>
                   {% endif %}
                 </div>
               </div>
@@ -236,7 +245,7 @@
 
             <div class="progress-container">
               <div class="progress-info">
-                <span>معدل القراءة</span>
+                <span class="progress-label">معدل القراءة</span>
                 <span class="rate" id="rate-{{ n.id }}">0%</span>
               </div>
               <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -255,8 +264,7 @@
                 </a>
               {% endif %}
 
-              <form method="post" action="{% url 'reports:notification_delete' n.id %}"
-                    style="display:inline" onsubmit="return confirm('هل تريد حذف هذا الإشعار نهائيًا؟');">
+              <form method="post" action="{% url 'reports:notification_delete' n.id %}" class="js-delete-form" style="display:inline">
                 {% csrf_token %}
                 <button class="ns-btn danger" type="submit">
                   <i class="fa-regular fa-trash-can" aria-hidden="true"></i> حذف
@@ -311,15 +319,23 @@
 
     document.querySelectorAll('.ns-scope .notif-card').forEach(function(card){
       const id = card.getAttribute('data-id');
+      const requiresSig = card.getAttribute('data-requires-signature') === '1';
       const bucket = stats[String(id)] || stats[id] || {};
       const total = Number(bucket.total || 0);
       const read  = Number(bucket.read  || 0);
-      const rate  = total ? Math.round((read / total) * 100) : 0;
+      const signed = Number(bucket.signed || 0);
+      const used = requiresSig ? signed : read;
+      const rate  = total ? Math.round((used / total) * 100) : 0;
       const safeRate = clamp(rate, 0, 100);
 
       const bar = card.querySelector('.progress .bar');
       const rateEl = card.querySelector('#rate-' + id);
       const pb = card.querySelector('.progress');
+      const lblEl = card.querySelector('.progress-label');
+
+      if(lblEl){
+        lblEl.textContent = requiresSig ? 'معدل التوقيع' : 'معدل القراءة';
+      }
 
       if(pb){ pb.setAttribute('aria-valuenow', String(safeRate)); }
 
@@ -342,6 +358,16 @@
           rateEl.textContent = Math.round(current) + '%';
         }, duration / steps);
       }
+    });
+
+    // Confirm delete (CSP-safe)
+    document.querySelectorAll('form.js-delete-form').forEach(function(f){
+      f.addEventListener('submit', function(e){
+        try{
+          var ok = window.confirm('هل تريد حذف هذا الإشعار نهائيًا؟');
+          if(!ok){ e.preventDefault(); }
+        }catch(err){}
+      });
     });
   })();
 </script>

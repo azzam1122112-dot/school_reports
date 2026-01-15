@@ -142,9 +142,11 @@
               {% if myNotificationsUrl %}
                 <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات" id="notifBell">
                   <i class="fa-solid fa-bell"></i>
-                  <span class="dot" id="notifDot" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
-                    {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
-                  </span>
+                  {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" pending=NAV_SIGNATURES_PENDING|default_if_none:"0"|add:"0" %}
+                    <span class="dot" id="notifDot" {% if unread == 0 and pending == 0 %}style="display:none"{% endif %}>
+                      {% if unread %}{{ unread }}{% elif pending %}{{ pending }}{% endif %}
+                    </span>
+                  {% endwith %}
                 </a>
               {% endif %}
 
@@ -248,9 +250,11 @@
           {% if myNotificationsUrlMobile %}
             <a class="icon-btn" href="{{ myNotificationsUrlMobile }}" aria-label="الإشعارات" id="notifBellMobile">
               <i class="fa-solid fa-bell"></i>
-              <span class="dot" id="notifDotMobile" {% if not NAV_NOTIFICATIONS_UNREAD %}style="display:none"{% endif %}>
-                {{ NAV_NOTIFICATIONS_UNREAD|default:"" }}
-              </span>
+              {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" pending=NAV_SIGNATURES_PENDING|default_if_none:"0"|add:"0" %}
+                <span class="dot" id="notifDotMobile" {% if unread == 0 and pending == 0 %}style="display:none"{% endif %}>
+                  {% if unread %}{{ unread }}{% elif pending %}{{ pending }}{% endif %}
+                </span>
+              {% endwith %}
             </a>
           {% endif %}
 
