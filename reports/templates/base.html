@@ -72,7 +72,7 @@
         <span></span><span></span><span></span>
       </button>
 
-      <a class="hdr-brand" href="{% if IS_REPORT_VIEWER %}{% url 'reports:school_reports_readonly' %}{% else %}{% url 'reports:home' %}{% endif %}">
+      <a class="hdr-brand" href="{% if IS_REPORT_VIEWER %}{% url 'reports:school_reports_readonly' %}{% elif request.user.is_platform_admin and not request.user.is_superuser %}{% if SCHOOL_ID %}{% url 'reports:platform_school_dashboard' %}{% else %}{% url 'reports:platform_schools_directory' %}{% endif %}{% else %}{% url 'reports:home' %}{% endif %}">
         <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="الشعار" width="42" height="42" loading="eager" decoding="async">
         <div class="hdr-brand-txt">
           <div class="hdr-brand-name">{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</div>
@@ -86,6 +86,14 @@
           {% if IS_REPORT_VIEWER %}
             <a class="tab {% if active == 'school_reports_readonly' %}is-active{% endif %}" href="{% url 'reports:school_reports_readonly' %}">التقارير</a>
             <a class="tab {% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
+          {% elif request.user.is_platform_admin and not request.user.is_superuser %}
+            <a class="tab {% if active == 'home' or active == 'platform_school_dashboard' or active == 'platform_schools_directory' %}is-active{% endif %}" href="{% if SCHOOL_ID %}{% url 'reports:platform_school_dashboard' %}{% else %}{% url 'reports:platform_schools_directory' %}{% endif %}">الرئيسية</a>
+            <a class="tab {% if active == 'platform_schools_directory' %}is-active{% endif %}" href="{% url 'reports:platform_schools_directory' %}">المدارس</a>
+            {% if SCHOOL_ID %}
+              <a class="tab {% if active == 'platform_school_reports' %}is-active{% endif %}" href="{% url 'reports:platform_school_reports' %}">التقارير</a>
+              <a class="tab {% if active == 'platform_school_tickets' or active == 'ticket_detail' %}is-active{% endif %}" href="{% url 'reports:platform_school_tickets' %}">التذاكر</a>
+              <a class="tab {% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
+            {% endif %}
           {% else %}
             <a class="tab {% if active == 'home' %}is-active{% endif %}" href="{% url 'reports:home' %}">الرئيسية</a>
 
@@ -101,12 +109,10 @@
               <a class="tab {% if active == 'officer_reports' %}is-active{% endif %}" href="{% url 'reports:officer_reports' %}">تقارير قسمي</a>
             {% endif %}
 
-            {% if SHOW_ADMIN_DASHBOARD_LINK %}
-              {% if request.user.is_superuser %}
-                <a class="tab {% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
-              {% else %}
-                <a class="tab {% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
-              {% endif %}
+            {% if request.user.is_superuser %}
+              <a class="tab {% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
+            {% elif SHOW_ADMIN_DASHBOARD_LINK %}
+              <a class="tab {% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
             {% endif %}
           {% endif %}
         {% else %}
@@ -118,7 +124,7 @@
       <div class="hdr-actions">
         {% if request.user.is_authenticated %}
 
-          {% if USER_SCHOOLS|length > 1 %}
+          {% if USER_SCHOOLS|length > 1 and not (request.user.is_platform_admin and not request.user.is_superuser) %}
             <button type="button" class="btn btn-outline btn-sm" id="openSchoolModal" aria-haspopup="dialog" aria-controls="schoolModal" aria-expanded="false">
               <i class="fa-solid fa-school" aria-hidden="true"></i>
               <span style="font-weight:950;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
@@ -128,7 +134,7 @@
             </button>
           {% endif %}
 
-          {% if not IS_REPORT_VIEWER %}
+          {% if not IS_REPORT_VIEWER and not (request.user.is_platform_admin and not request.user.is_superuser) %}
             {% url 'reports:my_notifications' as myNotificationsUrl %}
             {% if myNotificationsUrl %}
               <a class="icon-btn" href="{{ myNotificationsUrl }}" aria-label="الإشعارات" id="notifBell">
@@ -173,7 +179,29 @@
                   ملفات الإنجاز
                 </a>
               {% else %}
-                {% if request.user.is_superuser or SHOW_ADMIN_DASHBOARD_LINK %}
+                {% if request.user.is_platform_admin and not request.user.is_superuser %}
+                  {% if SCHOOL_ID %}
+                    <a href="{% url 'reports:platform_school_reports' %}" class="mi" role="menuitem">
+                      <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                      التقارير
+                    </a>
+                    <a href="{% url 'reports:platform_school_tickets' %}" class="mi" role="menuitem">
+                      <i class="fa-solid fa-ticket" aria-hidden="true"></i>
+                      التذاكر
+                    </a>
+                  {% else %}
+                    <a href="{% url 'reports:platform_schools_directory' %}" class="mi" role="menuitem">
+                      <i class="fa-solid fa-school" aria-hidden="true"></i>
+                      المدارس
+                    </a>
+                  {% endif %}
+
+                  <a href="{% url 'reports:achievement_school_files' %}" class="mi" role="menuitem">
+                    <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                    ملفات الإنجاز
+                  </a>
+
+                {% elif request.user.is_superuser or SHOW_ADMIN_DASHBOARD_LINK %}
                   <a href="{% url 'reports:achievement_school_files' %}" class="mi" role="menuitem">
                     <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                     ملفات الإنجاز
@@ -209,7 +237,7 @@
       <button class="btn btn-sm" id="drawerClose" aria-label="إغلاق">إغلاق</button>
     </div>
 
-    {% if request.user.is_authenticated and not IS_REPORT_VIEWER %}
+    {% if request.user.is_authenticated and not IS_REPORT_VIEWER and not (request.user.is_platform_admin and not request.user.is_superuser) %}
       <div class="drawer-actions">
         {% url 'reports:my_notifications' as myNotificationsUrlMobile %}
         {% if myNotificationsUrlMobile %}
@@ -250,6 +278,42 @@
             <span>تسجيل الخروج</span>
             <i class="fa-solid fa-right-to-bracket"></i>
           </a>
+        {% elif request.user.is_platform_admin and not request.user.is_superuser %}
+
+        <a class="{% if active == 'home' or active == 'platform_school_dashboard' or active == 'platform_schools_directory' %}is-active{% endif %}" href="{% if SCHOOL_ID %}{% url 'reports:platform_school_dashboard' %}{% else %}{% url 'reports:platform_schools_directory' %}{% endif %}">
+          <span>الرئيسية</span>
+          <i class="fa-solid fa-house"></i>
+        </a>
+
+        <a class="{% if active == 'platform_schools_directory' %}is-active{% endif %}" href="{% url 'reports:platform_schools_directory' %}">
+          <span>المدارس</span>
+          <i class="fa-solid fa-school"></i>
+        </a>
+
+        {% if SCHOOL_ID %}
+          <a class="{% if active == 'platform_school_reports' %}is-active{% endif %}" href="{% url 'reports:platform_school_reports' %}">
+            <span>التقارير</span>
+            <i class="fa-solid fa-file-lines"></i>
+          </a>
+          <a class="{% if active == 'platform_school_tickets' or active == 'ticket_detail' %}is-active{% endif %}" href="{% url 'reports:platform_school_tickets' %}">
+            <span>التذاكر</span>
+            <i class="fa-solid fa-ticket"></i>
+          </a>
+          <a class="{% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">
+            <span>ملفات الإنجاز</span>
+            <i class="fa-solid fa-file-lines"></i>
+          </a>
+        {% endif %}
+
+        <a class="{% if active == 'my_profile' %}is-active{% endif %}" href="{% url 'reports:my_profile' %}">
+          <span>حسابي</span>
+          <i class="fa-solid fa-user"></i>
+        </a>
+
+        <div class="drawer-footer">
+          <a class="btn btn-outline btn-block" href="{% url 'reports:logout' %}">تسجيل الخروج</a>
+        </div>
+
         {% else %}
 
         <a class="{% if active == 'home' %}is-active{% endif %}" href="{% url 'reports:home' %}">

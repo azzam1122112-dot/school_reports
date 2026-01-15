@@ -332,11 +332,6 @@
       <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
            <h2 class="panel-h2" style="margin:0"><i class="fa-solid fa-layer-group"></i> اختر الباقة</h2>
-           
-           <div class="duration-toggle">
-              <button type="button" class="d-tog-btn active" onclick="filterPlans('6months', this)">6 أشهر</button>
-              <button type="button" class="d-tog-btn" onclick="filterPlans('year', this)">سنوي</button>
-           </div>
         </div>
 
         <div class="plans-container" id="plansbox">
@@ -532,9 +527,11 @@
      
      fileInput.addEventListener('change', function(){
         if(this.files && this.files[0]){
-     // Initial Filter Run
-     filterPlans('6months', document.querySelector('.d-tog-btn.active'));
-
+            fileName.textContent = this.files[0].name;
+            dropZone.style.borderColor = '#10b981';
+            dropZone.style.background = 'rgba(16, 185, 129, 0.05)';
+        }
+     });
   });
 
   // Global Copy Helper
@@ -548,45 +545,6 @@
         setTimeout(() => div.remove(), 2500);
      }).catch(err => alert('Copied: ' + text));
   }
-
-  // Filter Logic
-  window.filterPlans = function(mode, btn) {
-      if(btn) {
-          document.querySelectorAll('.d-tog-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-      }
-
-      const items = document.querySelectorAll('.plan-item');
-      items.forEach(item => {
-          const days = parseInt(item.getAttribute('data-days') || 0);
-          const price = parseFloat(item.getAttribute('data-price') || 0);
-          const isFree = price <= 0;
-          
-          let show = false;
-          if (mode === '6months') {
-              // Show free or plans roughly < 300 days
-              if (isFree || days < 300) show = true;
-          } else {
-              // Yearly: Show free or plans >= 300 days
-              if (isFree || days >= 300) show = true;
-          }
-          
-          if(show) {
-              item.style.display = 'block';
-              item.style.animation = 'fadeIn 0.4s ease';
-          } else {
-              item.style.display = 'none';
-          }
-      });
-  }
-  navigator.clipboard.writeText(text).then(() => {
-        // Simple toast
-        const div = document.createElement('div');
-        div.textContent = 'تم نسخ النص بنجاح ✅';
-        div.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#10b981; color:white; padding:10px 20px; border-radius:30px; z-index:9999; font-weight:bold; box-shadow:0 10px 20px rgba(0,0,0,0.2); animation: fadeInUp 0.3s ease-out;';
-        document.body.appendChild(div);
-        setTimeout(() => div.remove(), 2500);
-     }).catch(err => alert('Copied: ' + text));
-  }
+</script>
 </script>
 {% endblock %}

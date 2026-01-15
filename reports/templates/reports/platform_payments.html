@@ -1,6 +1,6 @@
 {# reports/templates/reports/platform_payments_list.html #}
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 
 {% block title %}المالية والمدفوعات{% endblock %}
 
@@ -222,7 +222,7 @@
             </td>
 
             <td data-label="المبلغ" style="font-weight:950;color:var(--brand)">
-              {% if payment.amount %}{{ payment.amount }}{% else %}0{% endif %} ريال
+              {{ payment.amount|intcomma }} ريال
             </td>
 
             <td data-label="التاريخ">

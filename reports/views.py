@@ -1109,6 +1109,17 @@ def switch_school(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def home(request: HttpRequest) -> HttpResponse:
+    # --- Platform Admin Redirect (Not Superuser) ---
+    # إذا كان مشرف منصة (وليس سوبر يوزر)، وجهه لصفحة مدارسه أو المدرسة النشطة
+    if is_platform_admin(request.user) and not getattr(request.user, "is_superuser", False):
+        active_school = _get_active_school(request)
+        if active_school:
+            # توجيه للوحة المدرسة الخاصة بالمشرف
+            return redirect("reports:platform_school_dashboard")
+        # توجيه لدليل المدارس لاختيار مدرسة
+        return redirect("reports:platform_schools_directory")
+    # -----------------------------------------------
+
     active_school = _get_active_school(request)
     stats = {"today_count": 0, "total_count": 0, "last_title": "—"}
     req_stats = {"open": 0, "in_progress": 0, "done": 0, "rejected": 0, "total": 0}
@@ -4558,7 +4569,23 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_payments_list(request: HttpRequest) -> HttpResponse:
     payments = Payment.objects.select_related('school').order_by('-created_at')
-    return render(request, "reports/platform_payments.html", {"payments": payments})
+    
+    # حساب الإحصائيات لعرضها في الكروت العلوية
+    stats = payments.aggregate(
+        total=Count('id'),
+        pending=Count('id', filter=Q(status=Payment.Status.PENDING)),
+        approved=Count('id', filter=Q(status=Payment.Status.APPROVED)),
+        rejected=Count('id', filter=Q(status=Payment.Status.REJECTED)),
+    )
+
+    ctx = {
+        "payments": payments,
+        "payments_total": stats['total'] or 0,
+        "payments_pending": stats['pending'] or 0,
+        "payments_approved": stats['approved'] or 0,
+        "payments_rejected": stats['rejected'] or 0,
+    }
+    return render(request, "reports/platform_payments.html", ctx)
 
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
@@ -6420,7 +6447,7 @@ def my_subscription(request):
         "school": membership.school,
         # ✅ أظهر كل الخطط (حتى لو غير نشطة) حتى لا تبدو "مفقودة".
         # سيتم تعطيل غير النشطة في القالب.
-        "plans": SubscriptionPlan.objects.all().order_by("price", "name"),
+        "plans": SubscriptionPlan.objects.all().order_by("days_duration", "price"),
         "payments": payments,
     }
     return render(request, 'reports/my_subscription.html', context)

@@ -296,8 +296,9 @@ class PlatformAdminAccessMiddleware:
             "reports:landing",
             "reports:login",
             "reports:logout",
+            "reports:my_profile",
 
-            # platform admin (scoped)
+            # platform admin (scoped only)
             "reports:platform_schools_directory",
             "reports:platform_enter_school",
             "reports:platform_school_dashboard",
@@ -305,13 +306,13 @@ class PlatformAdminAccessMiddleware:
             "reports:platform_school_tickets",
             "reports:platform_school_notify",
 
-            # reports (print page used for viewing + private comment)
+            # reports (view + private comments)
             "reports:report_print",
 
             # tickets (view + reply)
             "reports:ticket_detail",
 
-            # achievements (view/print/pdf + private comment)
+            # achievements (view + private comments)
             "reports:achievement_school_files",
             "reports:achievement_school_teachers",
             "reports:achievement_file_detail",
