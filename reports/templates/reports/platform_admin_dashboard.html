@@ -253,8 +253,6 @@
     .notif-content p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
     .notif-time { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; display: block; }
 </style>
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -341,6 +339,22 @@
                 <div class="stat-icon" style="background:#f3f4f6; color:#374151; margin-bottom:1rem;"><i class="fas fa-users-cog"></i></div>
                 <span class="stat-value" style="font-size:1.1rem;">مشرفي المنصة</span>
             </a>
+            <a href="{% url 'reports:school_managers_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
+                <div class="stat-icon" style="background:#e0e7ff; color:#4338ca; margin-bottom:1rem;"><i class="fas fa-user-tie"></i></div>
+                <span class="stat-value" style="font-size:1.1rem;">مدراء المدارس</span>
+            </a>
+            <a href="{% url 'reports:schools_admin_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
+                <div class="stat-icon" style="background:#d1fae5; color:#065f46; margin-bottom:1rem;"><i class="fas fa-school"></i></div>
+                <span class="stat-value" style="font-size:1.1rem;">إدارة المدارس</span>
+            </a>
+            <a href="{% url 'reports:school_create' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
+                <div class="stat-icon" style="background:#fef3c7; color:#92400e; margin-bottom:1rem;"><i class="fas fa-plus"></i></div>
+                <span class="stat-value" style="font-size:1.1rem;">إضافة مدرسة</span>
+            </a>
+            <a href="{% url 'reports:platform_audit_logs' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
+                <div class="stat-icon" style="background:#f3f4f6; color:#1f2937; margin-bottom:1rem;"><i class="fas fa-history"></i></div>
+                <span class="stat-value" style="font-size:1.1rem;">سجل النظام</span>
+            </a>
         </div>
     </div>
 
@@ -348,16 +362,6 @@
         <!-- Main Content Area -->
         <div class="main-column">
             
-            <!-- Subscription Health -->
-            <div class="card-panel">
-                <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">📊 حالة الاشتراكات</h3>
-                </div>
-                <div class="card-body" style="height: 300px; position: relative;">
-                    <canvas id="subsChart"></canvas>
-                </div>
-            </div>
-
             <!-- Financial Logic / Recent Activity Mockup -->
             <div class="card-panel">
                 <div class="card-header">
@@ -457,38 +461,4 @@
     </div>
 </div>
 
-<script>
-    // Simple Chart.js initialization
-    document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('subsChart').getContext('2d');
-        const active = {{ subscriptions_active }};
-        const expired = {{ subscriptions_expired }};
-        const soon = {{ subscriptions_expiring_soon }};
-        
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['نشط', 'منتهي', 'ينتهي قريباً'],
-                datasets: [{
-                    data: [active, expired, soon],
-                    backgroundColor: [
-                        '#10b981',
-                        '#ef4444',
-                        '#f59e0b'
-                    ],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    });
-</script>
 {% endblock %}

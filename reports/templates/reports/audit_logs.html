@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}📜 سجل العمليات - {{ active_school.name }}{% endblock %}
+{% block title %}📜 سجل العمليات - {% if is_platform %}المنصة{% else %}{{ active_school.name }}{% endif %}{% endblock %}
 
 {% block head %}
 <style>

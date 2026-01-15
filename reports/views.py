@@ -4489,6 +4489,43 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
 
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_audit_logs(request: HttpRequest) -> HttpResponse:
+    """عرض سجل العمليات للنظام بالكامل (للمشرف العام)."""
+    
+    logs_qs = AuditLog.objects.all().select_related("teacher", "school").order_by("-timestamp")
+
+    teacher_id = request.GET.get("teacher")
+    action = request.GET.get("action")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if teacher_id:
+        logs_qs = logs_qs.filter(teacher_id=teacher_id)
+    if action:
+        logs_qs = logs_qs.filter(action=action)
+    if start_date:
+        logs_qs = logs_qs.filter(timestamp__date__gte=start_date)
+    if end_date:
+        logs_qs = logs_qs.filter(timestamp__date__lte=end_date)
+
+    paginator = Paginator(logs_qs, 50)
+    page = request.GET.get("page")
+    logs = paginator.get_page(page)
+
+    ctx = {
+        "logs": logs,
+        "actions": AuditLog.Action.choices,
+        "is_platform": True,
+        "q_teacher": teacher_id,
+        "q_action": action,
+        "q_start": start_date,
+        "q_end": end_date,
+    }
+    return render(request, "reports/audit_logs.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
     today = timezone.now().date()
     status = (request.GET.get("status") or "all").strip().lower()
