@@ -4657,12 +4657,18 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_payments_list(request: HttpRequest) -> HttpResponse:
-    # ✅ لا نعرض (cancelled) ضمن المالية حسب طلب الإدارة.
-    payments = (
-        Payment.objects.select_related('school')
-        .exclude(status=Payment.Status.CANCELLED)
-        .order_by('-created_at')
-    )
+    status = (request.GET.get("status") or "active").strip().lower()
+
+    base_qs = Payment.objects.select_related('school').order_by('-created_at')
+
+    # ✅ افتراضيًا: لا نعرض (cancelled) ضمن المالية.
+    if status == "cancelled":
+        payments = base_qs.filter(status=Payment.Status.CANCELLED)
+    elif status == "all":
+        payments = base_qs
+    else:
+        status = "active"
+        payments = base_qs.exclude(status=Payment.Status.CANCELLED)
     
     # حساب الإحصائيات لعرضها في الكروت العلوية
     stats = payments.aggregate(
@@ -4670,14 +4676,17 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
         pending=Count('id', filter=Q(status=Payment.Status.PENDING)),
         approved=Count('id', filter=Q(status=Payment.Status.APPROVED)),
         rejected=Count('id', filter=Q(status=Payment.Status.REJECTED)),
+        cancelled=Count('id', filter=Q(status=Payment.Status.CANCELLED)),
     )
 
     ctx = {
         "payments": payments,
+        "status": status,
         "payments_total": stats['total'] or 0,
         "payments_pending": stats['pending'] or 0,
         "payments_approved": stats['approved'] or 0,
         "payments_rejected": stats['rejected'] or 0,
+        "payments_cancelled": stats['cancelled'] or 0,
     }
     return render(request, "reports/platform_payments.html", ctx)
 

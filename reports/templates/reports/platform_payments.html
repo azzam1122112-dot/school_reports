@@ -60,7 +60,7 @@
 
   /* KPIs */
   .paylist-scope .kpis{display:grid;gap:12px;margin-bottom:14px}
-  @media(min-width:900px){.paylist-scope .kpis{grid-template-columns:repeat(4,1fr)}}
+  @media(min-width:900px){.paylist-scope .kpis{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
 
   .paylist-scope .kpi{
     background:var(--card);
@@ -117,6 +117,23 @@
     white-space:nowrap;
   }
   html[data-theme="dark"] .paylist-scope .pill{background:rgba(255,255,255,.04)}
+
+  .paylist-scope .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .paylist-scope .filter-pill{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:6px 10px;border-radius:999px;
+    border:1px solid var(--line-2);
+    background:rgba(248,250,252,.7);
+    color:var(--ink);
+    font-weight:950;
+    text-decoration:none;
+    white-space:nowrap;
+    transition:var(--t-fast);
+  }
+  .paylist-scope .filter-pill:hover{transform:translateY(-1px)}
+  .paylist-scope .filter-pill.is-active{background:rgba(37,99,235,.10);border-color:rgba(37,99,235,.30)}
+  html[data-theme="dark"] .paylist-scope .filter-pill{background:rgba(255,255,255,.04)}
+  html[data-theme="dark"] .paylist-scope .filter-pill.is-active{background:rgba(37,99,235,.16)}
 
   /* Table */
   .paylist-scope .table-responsive{border:0}
@@ -188,6 +205,14 @@
       </div>
       <div class="ico ico-danger" aria-hidden="true">⛔</div>
     </div>
+
+    <div class="kpi">
+      <div>
+        <div class="num">{% if payments_cancelled %}{{ payments_cancelled }}{% else %}—{% endif %}</div>
+        <div class="lbl">ملغاة</div>
+      </div>
+      <div class="ico" aria-hidden="true" style="background:rgba(100,116,139,.12);color:#475569">🚫</div>
+    </div>
   </section>
 
   <div class="paylist-card">
@@ -196,10 +221,34 @@
         <i class="fa-regular fa-circle-check" aria-hidden="true"></i>
         <span>اضغط على “تفاصيل” لمراجعة الإيصال واتخاذ القرار.</span>
       </div>
-      <span class="pill">
-        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-        إجراءات آمنة
-      </span>
+      <div class="filters" aria-label="فلترة">
+        <a
+          class="filter-pill {% if status == 'active' %}is-active{% endif %}"
+          href="{% url 'reports:platform_payments_list' %}?status=active"
+        >
+          <i class="fa-solid fa-list" aria-hidden="true"></i>
+          النشطة
+        </a>
+        <a
+          class="filter-pill {% if status == 'cancelled' %}is-active{% endif %}"
+          href="{% url 'reports:platform_payments_list' %}?status=cancelled"
+        >
+          <i class="fa-solid fa-ban" aria-hidden="true"></i>
+          الملغاة
+        </a>
+        <a
+          class="filter-pill {% if status == 'all' %}is-active{% endif %}"
+          href="{% url 'reports:platform_payments_list' %}?status=all"
+        >
+          <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+          الكل
+        </a>
+
+        <span class="pill">
+          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+          إجراءات آمنة
+        </span>
+      </div>
     </div>
 
     <div class="table-responsive">
