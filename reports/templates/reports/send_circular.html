@@ -1,279 +1,632 @@
+
 {# reports/templates/reports/send_circular.html #}
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}إرسال تعميم{% endblock %}
+{% block title %}إرسال تعميم رسمي{% endblock %}
 
 {% block head %}
 <style>
-  .notify-scope{
-    --primary:#2563eb;
-    --secondary:#1d4ed8;
-    --accent:#0ea5e9;
-    --bg:#f8fafc;
-    --card:#ffffff;
-    --text:#1e293b;
-    --text-light:#64748b;
-    --border:#e2e8f0;
-    --radius-lg:20px;
-    --radius-md:12px;
-    --radius-sm:10px;
-    --shadow:0 10px 40px rgba(2, 6, 23, 0.08);
-    --gradient:linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    --transition:all .25s ease;
-    color: var(--text);
+  :root {
+    --c-primary: #3b82f6; /* Blue 500 */
+    --c-primary-dark: #2563eb; /* Blue 600 */
+    --c-secondary: #0f172a; /* Slate 900 */
+    --c-bg: #f1f5f9; /* Slate 100 */
+    --c-card: #ffffff;
+    --c-border: #e2e8f0; /* Slate 200 */
+    --c-text: #334155; /* Slate 700 */
+    --c-text-head: #0f172a; /* Slate 900 */
+    --c-w-bg: #f8fafc; /* For input backgrounds */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    --radius: 12px;
   }
-  html[data-theme="dark"] .notify-scope{
-    --bg:#0f172a;
-    --card:#111c33;
-    --text:#f1f5f9;
-    --text-light:#94a3b8;
-    --border:#22314f;
-    --shadow:0 18px 46px rgba(0,0,0,.45);
+  html[data-theme="dark"] {
+    --c-primary: #3b82f6;
+    --c-primary-dark: #60a5fa;
+    --c-secondary: #f8fafc;
+    --c-bg: #0f172a;
+    --c-card: #1e293b;
+    --c-border: #334155;
+    --c-text: #cbd5e1;
+    --c-text-head: #f8fafc;
+    --c-w-bg: #1e293b;
+    --shadow-sm: none;
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
   }
 
-  .notify-scope .wrap{max-width:1400px;margin-inline:auto;padding:20px}
-  .notify-scope .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
-  .notify-scope .title{margin:0;font-size:1.9rem;font-weight:950;letter-spacing:.2px}
-  .notify-scope .hint{color:var(--text-light);font-weight:850}
-
-  .notify-scope .grid{display:grid;grid-template-columns: 1.25fr .85fr;gap:16px;align-items:start}
-  @media (max-width:980px){.notify-scope .grid{grid-template-columns:1fr}}
-
-  .notify-scope .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden}
-  .notify-scope .card-hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-  .notify-scope .card-bd{padding:16px}
-
-  .notify-scope .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--text);font-weight:950;text-decoration:none;cursor:pointer;transition:var(--transition)}
-  html[data-theme="dark"] .notify-scope .btn{background:rgba(255,255,255,.06)}
-  .notify-scope .btn:hover{transform:translateY(-1px)}
-  .notify-scope .btn-primary{background:var(--gradient);color:#fff;border-color:rgba(255,255,255,.16)}
-  .notify-scope .btn-ghost{background:transparent}
-
-  .notify-scope .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media (max-width:560px){.notify-scope .form-grid{grid-template-columns:1fr}}
-
-  .notify-scope .field{display:flex;flex-direction:column;gap:6px}
-  .notify-scope .field.full{grid-column:1 / -1}
-  .notify-scope label{font-weight:950}
-  .notify-scope input[type="text"],
-  .notify-scope input[type="url"],
-  .notify-scope input[type="datetime-local"],
-  .notify-scope select,
-  .notify-scope textarea{
-    width:100%;padding:12px 12px;border:1px solid var(--border);border-radius:12px;background:transparent;color:inherit;outline:none
+  .circular-page {
+    background-color: var(--c-bg);
+    min-height: 100vh;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--c-text);
+    padding-block: 2rem;
   }
-  .notify-scope textarea{min-height:140px;resize:vertical}
-  .notify-scope .help{color:var(--text-light);font-weight:800;font-size:.9rem}
-  .notify-scope .errors{color:#b91c1c;font-weight:900;margin-top:4px}
 
-  .notify-scope .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-
-  .notify-scope .teacher-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
-  .notify-scope .teacher-tools input[type="search"]{flex:1;min-width:220px}
-  .notify-scope .teacher-list{border:1px solid var(--border);border-radius:14px;padding:10px;max-height:320px;overflow:auto;background:rgba(148,163,184,.06)}
-  .notify-scope .teacher-list ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  @media (max-width:560px){.notify-scope .teacher-list ul{grid-template-columns:1fr}}
-  .notify-scope .teacher-list li label{display:flex;align-items:center;gap:10px;font-weight:900}
-
-  .notify-scope .notif{border:1px solid var(--border);border-radius:16px;padding:14px;background:linear-gradient(180deg, rgba(37,99,235,.06), rgba(14,165,233,.03))}
-  .notify-scope .nt-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-  .notify-scope .nt-title{margin:0;font-size:1.05rem;font-weight:950}
-  .notify-scope .nt-body{margin-top:10px;line-height:1.9;font-weight:850;white-space:pre-wrap}
-  .notify-scope .nt-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .notify-scope .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.7);font-weight:950;font-size:.86rem}
-  html[data-theme="dark"] .notify-scope .pill{background:rgba(255,255,255,.06)}
-
-  .notify-scope .sig-box{border:1px dashed rgba(37,99,235,.45);background:rgba(37,99,235,.05);border-radius:16px;padding:14px}
-
-  @media (prefers-reduced-motion: reduce){
-    .notify-scope .btn{transition:none !important;}
-    .notify-scope .btn:hover{transform:none !important;}
+  .circular-container {
+    max-width: 1400px;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
   }
+
+  /* Header Section */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .header-content h1 {
+    font-size: 1.875rem;
+    font-weight: 800;
+    color: var(--c-text-head);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .header-subtitle {
+    margin-top: 0.5rem;
+    color: var(--c-text);
+    opacity: 0.8;
+    font-size: 0.95rem;
+  }
+  .header-actions .btn-link {
+    color: var(--c-primary);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    transition: background-color 0.2s;
+  }
+  .header-actions .btn-link:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+
+  /* Grid Layout Main */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+    .preview-col {
+        display: none; /* Consider hiding or moving below on mobile if too cramped */
+    }
+  }
+
+  /* Cards */
+  .app-card {
+    background-color: var(--c-card);
+    border-radius: var(--radius); /* Start bigger radius */
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--c-border);
+    overflow: hidden;
+  }
+  .app-card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--c-border);
+    background-color: rgba(255,255,255,0.02);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-card-header h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--c-text-head);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .app-card-body {
+    padding: 1.5rem;
+  }
+
+  /* Form Elements */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+  .form-grid .full-width {
+    grid-column: 1 / -1;
+  }
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .form-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--c-text-head);
+    display: flex;
+    justify-content: space-between;
+  }
+  .form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px; /* Slightly tighter elements */
+    border: 1px solid var(--c-border);
+    background-color: var(--c-w-bg);
+    color: var(--c-text-head);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+  }
+  .form-control:focus {
+    outline: none;
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+  textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  .form-hint {
+    font-size: 0.8rem;
+    color: var(--c-text);
+    opacity: 0.7;
+    margin-top: 0.25rem;
+  }
+  .error-list {
+    color: #ef4444;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+  }
+
+  /* Custom Checkboxes/Radios */
+  input[type="checkbox"] {
+    accent-color: var(--c-primary);
+    width: 1.1em;
+    height: 1.1em;
+  }
+
+  /* Teacher Selection specific */
+  .teacher-selector {
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    background-color: var(--c-w-bg);
+    padding: 0.75rem;
+  }
+  .teacher-tools {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .teacher-search {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--c-border);
+    font-size: 0.9rem;
+  }
+  .teacher-list-container {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+  .teacher-list-container ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.5rem;
+  }
+  .teacher-item label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 0.9rem;
+  }
+  .teacher-item label:hover {
+    background-color: rgba(0,0,0,0.05);
+  }
+  html[data-theme="dark"] .teacher-item label:hover {
+    background-color: rgba(255,255,255,0.05);
+  }
+
+  /* Signature Box */
+  .sig-settings-box {
+    background: linear-gradient(to bottom right, rgba(59, 130, 246, 0.03), rgba(168, 85, 247, 0.03));
+    border: 1px dashed var(--c-primary);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    position: relative;
+    margin-top: 0.5rem;
+  }
+  .sig-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    color: var(--c-primary-dark);
+    font-weight: 700;
+  }
+  .sig-badge {
+    background-color: var(--c-primary);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Actions */
+  .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--c-border);
+  }
+  .btn-submit {
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
+    color: #fff;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 8px -2px rgba(59, 130, 246, 0.5);
+  }
+  .btn-cancel {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--c-border);
+    background: transparent;
+    color: var(--c-text);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.1s;
+  }
+  .btn-cancel:hover {
+    background-color: var(--c-border);
+  }
+
+  /* Preview Styles */
+  .preview-col {
+    position: sticky;
+    top: 2rem;
+  }
+  .doc-preview {
+    background: #fff;
+    color: #1e293b; /* Always dark text on paper style */
+    border: 1px solid #e2e8f0;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  html[data-theme="dark"] .doc-preview {
+    background: #e2e8f0; /* Slightly dimmed paper in dark mode but still light */
+    color: #0f172a;
+  }
+  
+  .doc-header {
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .doc-brand {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 800;
+    opacity: 0.6;
+  }
+  .doc-title {
+    font-family: 'Amiri', serif; /* Use serif for official feel if available */
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #000;
+  }
+  .doc-meta {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+  .doc-tag {
+    background: #f1f5f9;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid #cbd5e1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .doc-body {
+    font-size: 1rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    flex: 1;
+  }
+  .doc-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #cbd5e1;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+  
+  /* Utilities */
+  .hidden { display: none !important; }
+  .text-sm { font-size: 0.85rem; }
+  .text-red { color: #dc2626; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="notify-scope" dir="rtl">
-  <div class="wrap">
+<div class="circular-page" dir="rtl">
+  <div class="circular-container">
 
-    <header class="page-head">
-      <div>
-        <h1 class="title">إرسال تعميم</h1>
-        <div class="hint">التعميم مخصص للتوثيق الرسمي، ويُطلب من المستلمين تأكيد الاستلام بالتوقيع.</div>
+    <!-- HEADER -->
+    <header class="page-header">
+      <div class="header-content">
+        <h1>
+          <i class="fa-solid fa-file-signature" style="color:var(--c-primary)"></i>
+          <span>إرسال تعميم رسمي</span>
+        </h1>
+        <div class="header-subtitle">
+          التعميم هو مستند رسمي يتطلب توقيع وإقرار بالاطلاع من قبل المستلمين
+        </div>
       </div>
-      <div>
-        <a class="btn btn-ghost" href="{% url 'reports:circulars_sent' %}">
-          <i class="fa-solid fa-list"></i> التعاميم المرسلة
+      <div class="header-actions">
+        <a href="{% url 'reports:circulars_sent' %}" class="btn-link">
+          <i class="fa-solid fa-list-check"></i>
+          الأرشيف والمرسلة
         </a>
       </div>
     </header>
 
-    <div class="grid">
+    <div class="main-grid">
 
-      <section class="card" aria-labelledby="form-title">
-        <div class="card-hd">
-          <strong id="form-title">نموذج التعميم</strong>
-          <span class="help">يظهر هذا الخيار للمصرّح لهم فقط</span>
-        </div>
+      <!-- LEFT: FORM SECTION -->
+      <section>
+        <div class="app-card">
+          <div class="app-card-header">
+            <h2>
+              <i class="fa-solid fa-pen-nib"></i>
+              بيانات التعميم
+            </h2>
+            <span class="text-sm form-hint">الحقول بعلامة <span class="text-red">*</span> مطلوبة</span>
+          </div>
 
-        <div class="card-bd">
-          {% if form %}
-            {% if form.media %}{{ form.media }}{% endif %}
+          <div class="app-card-body">
+            {% if form %}
+              <form method="post" enctype="multipart/form-data" id="notifyForm" novalidate>
+                {% csrf_token %}
 
-            <form method="post" enctype="multipart/form-data" action="" id="notifyForm" novalidate>
-              {% csrf_token %}
+                <!-- Hidden/System Fields -->
+                {% if form.requires_signature %}
+                  <div class="hidden">{{ form.requires_signature }}</div>
+                {% endif %}
+                
+                {% if form.non_field_errors %}
+                  <div class="error-list" style="margin-bottom:1rem;padding:1rem;background:#fee2e2;border-radius:8px;border:1px solid #fecaca">
+                    {{ form.non_field_errors }}
+                  </div>
+                {% endif %}
 
-              {% if form.non_field_errors %}
-                <div class="errors">{{ form.non_field_errors }}</div>
-              {% endif %}
+                <div class="form-grid">
 
-              {# enforce requires_signature=True even if field exists #}
-              {% if form.requires_signature %}
-                <div style="display:none">
-                  {{ form.requires_signature }}
-                </div>
-              {% endif %}
-
-              <div class="actions" style="margin-top:0">
-                <button class="btn btn-primary" type="submit">
-                  <i class="fa-solid fa-paper-plane"></i> إرسال التعميم
-                </button>
-                <a class="btn" href="{% url 'reports:home' %}">
-                  <i class="fa-solid fa-home"></i> الرجوع للرئيسية
-                </a>
-              </div>
-
-              <div class="form-grid" style="margin-top:12px">
-                {% for field in form.visible_fields %}
-                  {% if field.name == "requires_signature" or field.name == "signature_deadline_at" or field.name == "signature_ack_text" %}
-                    {# rendered in signature box below #}
-                  {% elif field.name == "teachers" or field.name == "target_department" %}
-                    <div class="field full" data-name="{{ field.html_name|lower }}">
-                      <label for="{{ field.id_for_label }}" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                        <span>
-                          {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
-                          {{ field.label }}
-                        </span>
-                        {% if field.name == "teachers" %}
-                          <span class="help" style="font-weight:950">
-                            <button type="button" class="btn btn-ghost" id="selectAllTeachers" style="padding:6px 10px">تحديد الكل</button>
-                            <button type="button" class="btn btn-ghost" id="clearAllTeachers" style="padding:6px 10px">إلغاء</button>
-                          </span>
-                        {% endif %}
-                      </label>
-
-                      {% if field.name == "teachers" %}
-                        <div class="teacher-tools">
-                          <input id="teacherSearch" type="search" placeholder="ابحث باسم المعلّم…" aria-label="البحث عن معلّم">
-                          <span class="help">المحدّد: <strong id="selCount">0</strong></span>
-                        </div>
-                        <div class="teacher-list" id="teacherList">{{ field }}</div>
-                      {% else %}
-                        {{ field }}
-                      {% endif %}
-
-                      {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
-                      {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
-                    </div>
-                  {% else %}
-                    <div class="field" data-name="{{ field.html_name|lower }}">
-                      <label for="{{ field.id_for_label }}">
-                        {% if field.field.required %}<span style="color:#ef4444">*</span>{% endif %}
-                        {{ field.label|default:"الحقل" }}
-                      </label>
-                      {{ field }}
-                      {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
-                      {% for e in field.errors %}<div class="errors">{{ e }}</div>{% endfor %}
-                    </div>
-                  {% endif %}
-                {% endfor %}
-
-                <div class="field full sig-box" data-name="signature_settings">
-                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
-                    <div>
-                      <div style="font-weight:950">إعدادات التوقيع</div>
-                      <div class="help" style="margin-top:4px">التوقيع يتم عبر إدخال الجوال المسجل + الموافقة على الإقرار.</div>
-                    </div>
-                    <span class="help" style="font-weight:950">إلزامي</span>
+                  <!-- Title: Full Width -->
+                  <div class="full-width form-group">
+                    <label class="form-label" for="{{ form.title.id_for_label }}">{{ form.title.label }} <span class="text-red">*</span></label>
+                    {{ form.title }}
+                    {% if form.title.errors %}<div class="error-list">{{ form.title.errors }}</div>{% endif %}
                   </div>
 
-                  {% if form.signature_deadline_at %}
-                    <div class="field" style="margin-top:10px">
-                      <label for="{{ form.signature_deadline_at.id_for_label }}">{{ form.signature_deadline_at.label }}</label>
-                      {{ form.signature_deadline_at }}
-                      {% if form.signature_deadline_at.help_text %}<div class="help">{{ form.signature_deadline_at.help_text|safe }}</div>{% endif %}
-                      {% for e in form.signature_deadline_at.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+                  <!-- Body: Full Width -->
+                  <div class="full-width form-group">
+                    <label class="form-label" for="{{ form.message.id_for_label }}">{{ form.message.label }} <span class="text-red">*</span></label>
+                    {{ form.message }}
+                    {% if form.message.errors %}<div class="error-list">{{ form.message.errors }}</div>{% endif %}
+                  </div>
+
+                  <!-- Target Departments (if applicable) -->
+                  {% if form.target_department %}
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.target_department.id_for_label }}">{{ form.target_department.label }}</label>
+                        {{ form.target_department }}
+                        {% if form.target_department.errors %}<div class="error-list">{{ form.target_department.errors }}</div>{% endif %}
+                    </div>
+                  {% endif %}
+                  
+                   <!-- Image / Attachment -->
+                  {% if form.image %}
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
+                        {{ form.image }}
+                        {% if form.image.errors %}<div class="error-list">{{ form.image.errors }}</div>{% endif %}
                     </div>
                   {% endif %}
 
-                  {% if form.signature_ack_text %}
-                    <div class="field" style="margin-top:10px">
-                      <label for="{{ form.signature_ack_text.id_for_label }}">{{ form.signature_ack_text.label }}</label>
-                      {{ form.signature_ack_text }}
-                      {% if form.signature_ack_text.help_text %}<div class="help">{{ form.signature_ack_text.help_text|safe }}</div>{% endif %}
-                      {% for e in form.signature_ack_text.errors %}<div class="errors">{{ e }}</div>{% endfor %}
-                    </div>
+                  <!-- Priority / Switch Toggles -->
+                  <div class="full-width" style="display:flex;gap:1.5rem;margin-block:0.5rem">
+                    {% if form.is_important %}
+                      <label class="form-label" style="justify-content:flex-start;gap:0.5rem;cursor:pointer">
+                         {{ form.is_important }}
+                         <span style="font-weight:normal">تعميم هام وعاجل <i class="fa-solid fa-circle-exclamation text-red"></i></span>
+                      </label>
+                    {% endif %}
+                  </div>
+
+                  <!-- RECIPIENTS SECTION -->
+                  {% if form.teachers %}
+                  <div class="full-width field" data-name="teachers">
+                     <div class="form-group">
+                        <label class="form-label">
+                           {{ form.teachers.label }} <span class="text-red">*</span>
+                           <div class="text-sm" style="font-weight:400">
+                             <button type="button" id="selectAllTeachers" class="btn-link" style="padding:0;background:none;border:none">تحديد الكل</button> | 
+                             <button type="button" id="clearAllTeachers" class="btn-link" style="padding:0;color:var(--c-text);background:none;border:none">إلغاء</button>
+                           </div>
+                        </label>
+                        <div class="teacher-selector">
+                           <div class="teacher-tools">
+                              <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث عن الاسم...">
+                              <span class="form-hint" style="align-self:center">المختار: <b id="selCount">0</b></span>
+                           </div>
+                           <div class="teacher-list-container" id="teacherList">
+                              {{ form.teachers }}
+                           </div>
+                        </div>
+                        {% if form.teachers.errors %}<div class="error-list">{{ form.teachers.errors }}</div>{% endif %}
+                     </div>
+                  </div>
                   {% endif %}
+
+                  <!-- SIGNATURE SETTINGS BLOCK -->
+                  <div class="full-width sig-settings-box">
+                    <div class="sig-header">
+                       <i class="fa-solid fa-file-contract"></i>
+                       إعدادات التوقيع والإقرار
+                       <span class="sig-badge">إلزامي</span>
+                    </div>
+
+                    <div class="form-grid">
+                      <!-- Deadline -->
+                      {% if form.signature_deadline_at %}
+                        <div class="form-group">
+                          <label class="form-label" for="{{ form.signature_deadline_at.id_for_label }}">{{ form.signature_deadline_at.label }}</label>
+                          {{ form.signature_deadline_at }}
+                          {% if form.signature_deadline_at.errors %}<div class="error-list">{{ form.signature_deadline_at.errors }}</div>{% endif %}
+                        </div>
+                      {% endif %}
+
+                      <!-- Action URL -->
+                      {% if form.action_url %}
+                        <div class="form-group">
+                          <label class="form-label" for="{{ form.action_url.id_for_label }}">{{ form.action_url.label }}</label>
+                          {{ form.action_url }}
+                          {% if form.action_url.errors %}<div class="error-list">{{ form.action_url.errors }}</div>{% endif %}
+                        </div>
+                      {% endif %}
+
+                      <!-- Acknowledgement Text -->
+                      {% if form.signature_ack_text %}
+                        <div class="full-width form-group">
+                          <label class="form-label" for="{{ form.signature_ack_text.id_for_label }}">{{ form.signature_ack_text.label }}</label>
+                          {{ form.signature_ack_text }}
+                          {% if form.signature_ack_text.errors %}<div class="error-list">{{ form.signature_ack_text.errors }}</div>{% endif %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+
                 </div>
-              </div>
 
-              <div class="actions">
-                <button class="btn btn-primary" type="submit">
-                  <i class="fa-solid fa-paper-plane"></i> إرسال التعميم
-                </button>
-                <a class="btn" href="{% url 'reports:home' %}">
-                  <i class="fa-solid fa-home"></i> الرجوع للرئيسية
-                </a>
-              </div>
-            </form>
-          {% else %}
-            <div class="errors">لم يتم تمرير الفورم من الـ view.</div>
-          {% endif %}
+                <!-- Submit Area -->
+                <div class="form-actions">
+                  <button type="submit" class="btn-submit">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    اعتماد وإرسال التعميم
+                  </button>
+                  <a href="{% url 'reports:home' %}" class="btn-cancel">إلغاء</a>
+                </div>
+
+              </form>
+            {% else %}
+               <p class="error-list">خطأ: لم يتم تحميل النموذج بشكل صحيح.</p>
+            {% endif %}
+          </div>
         </div>
       </section>
 
-      <aside class="card preview" aria-labelledby="preview-title">
-        <div class="card-hd">
-          <strong id="preview-title">معاينة فورية</strong>
-          <span class="help">تحدَّث تلقائيًا</span>
-        </div>
-        <div class="card-bd">
-          <div class="notif">
-            <div class="nt-h">
-              <h3 class="nt-title" id="pv_title">عنوان التعميم</h3>
-              <div id="pv_important" title="هام" style="display:none">
-                <i class="fa-solid fa-circle-exclamation" style="color:#ef4444"></i>
-              </div>
-            </div>
-            <div class="nt-body" id="pv_body">سيظهر نص التعميم هنا…</div>
-            <div class="nt-meta">
-              <span class="pill">
-                <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
-                <span>مرسل: {% firstof request.user.name request.user.phone "الإدارة" %}</span>
-              </span>
-              <span class="pill">
-                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                يتطلب توقيع
-              </span>
-              <span class="pill" id="pv_deadline" style="display:none">
-                <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
-                آخر موعد للتوقيع
-              </span>
-              <span class="pill" id="pv_action" style="display:none">
-                <i class="fa-solid fa-link"></i> يحتوي على رابط إجراء
-              </span>
-              <span class="pill" id="pv_expires" style="display:none">
-                <i class="fa-solid fa-clock"></i> ينتهي لاحقًا
-              </span>
-            </div>
+      <!-- RIGHT: PREVIEW SECTION -->
+      <aside class="preview-col">
+          <div class="app-card doc-preview">
+             <div class="app-card-body" style="height:100%;display:flex;flex-direction:column">
+                <div class="doc-header">
+                  <div>
+                    <div class="doc-brand">نظام التقارير المدرسية</div>
+                    <div class="doc-title" id="pv_title">عنوان التعميم</div>
+                  </div>
+                  <div style="text-align:left">
+                    <i class="fa-solid fa-school fa-2x" style="opacity:0.1"></i>
+                  </div>
+                </div>
+
+                <div class="doc-meta">
+                   <span class="doc-tag">
+                     <i class="fa-solid fa-user"></i>
+                     <span>من: {% firstof request.user.name request.user.first_name "الإدارة" %}</span>
+                   </span>
+                   <span class="doc-tag" id="pv_imp" style="display:none;color:#dc2626;border-color:#fecaca;background:#fef2f2">
+                     <i class="fa-solid fa-circle-exclamation"></i> هام
+                   </span>
+                   <span class="doc-tag">
+                     <i class="fa-solid fa-signature"></i> توقيع إلزامي
+                   </span>
+                </div>
+
+                <div class="doc-body" id="pv_body">
+                  نص التعميم سيظهر هنا كما يراه المعلم...
+                </div>
+
+                <div class="doc-footer">
+                   <div>
+                     <span id="pv_deadline_box" style="display:none">
+                       ينتهي التوقيع: <b id="pv_deadline">--</b>
+                     </span>
+                   </div>
+                   <div>
+                     <i class="fa-solid fa-qrcode"></i> وثيقة رسمية
+                   </div>
+                </div>
+             </div>
           </div>
-        </div>
+          <div style="text-align:center;margin-top:1rem;color:var(--c-text);opacity:0.6;font-size:0.85rem">
+            هذه معاينة تقريبية لكيفية ظهور التعميم
+          </div>
       </aside>
 
     </div>
   </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -281,296 +634,186 @@
 (function(){
   const $ = s => document.querySelector(s);
 
-  // Force requires_signature to be checked if present
+  // Force requires_signature
   const rs = document.getElementById('id_requires_signature');
-  if(rs && rs.type === 'checkbox'){ rs.checked = true; }
+  if(rs){ rs.checked = true; }
 
-  const titleInput = $("#id_title") || document.querySelector('[name$="title"],[name*="title"],[name*="subject"],[name*="heading"]');
-  const msgInput = $("#id_message") || document.querySelector('textarea[name*="message"],textarea[name*="body"],textarea[name*="content"],textarea[name*="text"],textarea[name*="details"]');
-  const urlInput = $("#id_action_url") || document.querySelector('input[type="url"][name*="action_url"],input[type="url"]');
-  const impInput = $("#id_is_important") || document.querySelector('input[type="checkbox"][name*="is_important"]');
-  const expInput = $("#id_expires_at") || document.querySelector('input[type="datetime-local"][name*="expires_at"],input[name*="expires_at"]');
-  const sigDeadlineInput = $("#id_signature_deadline_at") || document.querySelector('input[type="datetime-local"][name*="signature_deadline"],input[name*="signature_deadline"]');
+  // Live Preview Logic
+  const titleInput = document.getElementById("id_title");
+  const msgInput = document.getElementById("id_message");
+  const impInput = document.getElementById("id_is_important");
+  const dlineInput = document.getElementById("id_signature_deadline_at");
 
   const pvTitle = $("#pv_title");
   const pvBody  = $("#pv_body");
-  const pvImportant = $("#pv_important");
-  const pvDeadline = $("#pv_deadline");
-  const pvAction = $("#pv_action");
-  const pvExpires = $("#pv_expires");
+  const pvImp   = $("#pv_imp");
+  const pvDeadlineBox = $("#pv_deadline_box");
+  const pvDeadlineVal = $("#pv_deadline");
 
   function updatePreview(){
-    if(pvTitle && titleInput){ pvTitle.textContent = (titleInput.value || '').trim() || 'عنوان التعميم'; }
-    if(pvBody && msgInput){ pvBody.textContent = (msgInput.value || '').trim() || 'سيظهر نص التعميم هنا…'; }
-    if(pvImportant && impInput){ pvImportant.style.display = impInput.checked ? 'block' : 'none'; }
-    if(pvDeadline && sigDeadlineInput){ pvDeadline.style.display = (sigDeadlineInput.value || '').trim() ? 'inline-flex' : 'none'; }
-    if(pvAction && urlInput){ pvAction.style.display = (urlInput.value || '').trim() ? 'inline-flex' : 'none'; }
-    if(pvExpires && expInput){ pvExpires.style.display = (expInput.value || '').trim() ? 'inline-flex' : 'none'; }
-  }
-
-  [titleInput, msgInput, urlInput, impInput, expInput, sigDeadlineInput].forEach(el => {
-    if(!el) return;
-    el.addEventListener('input', updatePreview);
-    el.addEventListener('change', updatePreview);
-  });
-  updatePreview();
-
-  // ===== Teachers filter/select-all (checkboxes OR select[multiple]) =====
-  const teacherField = document.querySelector('.form-grid .field[data-name*="teachers"]');
-  if(teacherField){
-    const searchInput = $('#teacherSearch');
-    const selCount = $('#selCount');
-    const btnSelectAll = $('#selectAllTeachers');
-    const btnClearAll = $('#clearAllTeachers');
-
-    const teacherListBox = document.getElementById('teacherList') || teacherField;
-
-    function getTeachersFieldName(){
-      const cb = teacherField.querySelector('input[type="checkbox"][name]');
-      if(cb && cb.name) return cb.name;
-      const ms = teacherField.querySelector('select[multiple][name]');
-      if(ms && ms.name) return ms.name;
-      return 'teachers';
-    }
-    const teachersFieldName = getTeachersFieldName();
-
-    const scopeSel = document.getElementById('id_audience_scope');
-    const schoolSel = document.getElementById('id_target_school');
-    const deptSel = document.getElementById('id_target_department');
-
-    function escapeHtml(val){
-      return String(val ?? '').replace(/[&<>"']/g, ch => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-      })[ch]);
-    }
-
-    let isLoadingTeachers = false;
-    let isLoadingDepts = false;
-
-    function getCheckboxInputs(){
-      return Array.from(teacherField.querySelectorAll('input[type="checkbox"][name="' + CSS.escape(teachersFieldName) + '"]'));
-    }
-
-    function getMultiSelect(){
-      const ms = teacherField.querySelector('select[multiple][name="' + CSS.escape(teachersFieldName) + '"]');
-      return ms || teacherField.querySelector('select[multiple]');
-    }
-
-    function updateCount(){
-      let count = 0;
-      const checkboxInputs = getCheckboxInputs();
-      const multiSelect = getMultiSelect();
-
-      if(checkboxInputs.length){
-        checkboxInputs.forEach(cb => { if(cb.checked) count++; });
-      } else if(multiSelect){
-        Array.from(multiSelect.options).forEach(op => { if(op.selected) count++; });
-      }
-
-      if(selCount) selCount.textContent = String(count);
-    }
-
-    function applyFilter(term){
-      const q = (term || '').trim().toLowerCase();
-
-      const checkboxInputs = getCheckboxInputs();
-      const multiSelect = getMultiSelect();
-
-      if(checkboxInputs.length){
-        checkboxInputs.forEach(cb => {
-          const wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
-          const txt = (wrap && wrap.textContent || '').toLowerCase();
-          const show = !q || txt.includes(q);
-          if(wrap) wrap.style.display = show ? '' : 'none';
-        });
-      } else if(multiSelect){
-        Array.from(multiSelect.options).forEach(op => {
-          const txt = (op.textContent || '').toLowerCase();
-          op.hidden = !!q && !txt.includes(q);
-        });
-      }
-
-      updateCount();
-    }
-
-    function toggleAll(select){
-      const checkboxInputs = getCheckboxInputs();
-      const multiSelect = getMultiSelect();
-
-      if(checkboxInputs.length){
-        checkboxInputs.forEach(cb => {
-          const wrap = cb.closest('li') || cb.closest('.form-check') || cb.closest('label') || cb.parentElement;
-          const hidden = wrap && wrap.style.display === 'none';
-          if(hidden) return;
-          cb.checked = !!select;
-        });
-      } else if(multiSelect){
-        Array.from(multiSelect.options).forEach(op => {
-          if(op.hidden) return;
-          op.selected = !!select;
-        });
-      }
-
-      updateCount();
-    }
-
-    if(searchInput){ searchInput.addEventListener('input', () => applyFilter(searchInput.value)); }
-    if(btnSelectAll){ btnSelectAll.addEventListener('click', () => toggleAll(true)); }
-    if(btnClearAll){ btnClearAll.addEventListener('click', () => toggleAll(false)); }
-
-    teacherField.addEventListener('change', updateCount);
-
-    async function refreshTeachers(){
-      if(isLoadingTeachers) return;
-      if(!scopeSel && !schoolSel && !deptSel) return;
-
-      // Preserve current selections
-      const selected = new Set(getCheckboxInputs().filter(cb => cb.checked).map(cb => String(cb.value)));
-      const multiSelect = getMultiSelect();
-      if(multiSelect){
-        Array.from(multiSelect.options).forEach(op => { if(op.selected) selected.add(String(op.value)); });
-      }
-
-      const params = new URLSearchParams();
-      if(scopeSel && scopeSel.value) params.set('audience_scope', scopeSel.value);
-      if(schoolSel && schoolSel.value) params.set('target_school', schoolSel.value);
-      if(deptSel && deptSel.value) params.set('target_department', deptSel.value);
-      if(params.toString() === '') return;
-
-      const url = '{% url "reports:api_notification_teachers" %}?mode=circular&' + params.toString();
-      isLoadingTeachers = true;
-
-      const prevHtml = teacherListBox.innerHTML;
-      teacherListBox.innerHTML = '<div class="help">جارٍ تحديث قائمة المستلمين…</div>';
-      if(btnSelectAll) btnSelectAll.disabled = true;
-      if(btnClearAll) btnClearAll.disabled = true;
-
-      try{
-        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        const payload = await res.json();
-        const results = Array.isArray(payload && payload.results) ? payload.results : [];
-
-        if(!results.length){
-          teacherListBox.innerHTML = '<div class="help">لا يوجد مستلمون مطابقون للاختيار الحالي.</div>';
-          updateCount();
-          return;
-        }
-
-        const items = ['<ul>'];
-        for(const t of results){
-          const id = String(t.id);
-          const nm = escapeHtml(t.name || '—');
-          const checked = selected.has(id) ? ' checked' : '';
-          items.push(
-            `<li><label><input type="checkbox" name="${escapeHtml(teachersFieldName)}" value="${escapeHtml(id)}"${checked}> <span>${nm}</span></label></li>`
-          );
-        }
-        items.push('</ul>');
-        teacherListBox.innerHTML = items.join('');
-
-        if(searchInput) applyFilter(searchInput.value);
-        updateCount();
-      }catch(e){
-        teacherListBox.innerHTML = prevHtml;
-        updateCount();
-      }finally{
-        isLoadingTeachers = false;
-        if(btnSelectAll) btnSelectAll.disabled = false;
-        if(btnClearAll) btnClearAll.disabled = false;
-      }
-    }
-
-    async function refreshDepartments(opts){
-      const options = opts || {};
-      if(!deptSel) return;
-      if(isLoadingDepts) return;
-
-      const prevVal = String(deptSel.value || "");
-      const params = new URLSearchParams();
-
-      const scopeVal = scopeSel ? String(scopeSel.value || "") : "";
-      if(scopeVal !== 'all' && schoolSel && schoolSel.value){
-        params.set('school', schoolSel.value);
-      }
-
-      const url = '{% url "reports:api_school_departments" %}' + (params.toString() ? ('?' + params.toString()) : '');
-      isLoadingDepts = true;
-      deptSel.disabled = true;
-
-      const oldOptions = Array.from(deptSel.options).map(o => ({value: o.value, text: o.text, selected: o.selected}));
-      deptSel.innerHTML = '<option value="">—</option>';
-
-      try{
-        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        const payload = await res.json();
-        const results = Array.isArray(payload && payload.results) ? payload.results : [];
-
-        for(const d of results){
-          const opt = document.createElement('option');
-          opt.value = String(d.id);
-          opt.textContent = d.name || '—';
-          deptSel.appendChild(opt);
-        }
-
-        if(options.clearSelection){
-          deptSel.value = '';
-        } else if(prevVal && Array.from(deptSel.options).some(o => o.value === prevVal)){
-          deptSel.value = prevVal;
+    if(pvTitle && titleInput) pvTitle.textContent = titleInput.value || 'عنوان التعميم';
+    if(pvBody && msgInput) pvBody.textContent = msgInput.value || 'نص التعميم...';
+    if(pvImp && impInput) pvImp.style.display = impInput.checked ? 'inline-flex' : 'none';
+    
+    if(pvDeadlineBox && dlineInput){
+        if(dlineInput.value){
+           pvDeadlineBox.style.display = 'inline';
+           pvDeadlineVal.textContent = dlineInput.value.replace('T', ' ');
         } else {
-          deptSel.value = '';
+           pvDeadlineBox.style.display = 'none';
         }
-      }catch(e){
-        deptSel.innerHTML = '';
-        for(const o of oldOptions){
-          const opt = document.createElement('option');
-          opt.value = o.value;
-          opt.textContent = o.text;
-          if(o.selected) opt.selected = true;
-          deptSel.appendChild(opt);
-        }
-      }finally{
-        deptSel.disabled = false;
-        isLoadingDepts = false;
-      }
     }
-
-    if(scopeSel){
-      scopeSel.addEventListener('change', async () => {
-        await refreshDepartments({clearSelection: true});
-        await refreshTeachers();
-      });
-    }
-    if(schoolSel){
-      schoolSel.addEventListener('change', async () => {
-        await refreshDepartments({clearSelection: true});
-        await refreshTeachers();
-      });
-    }
-    if(deptSel){
-      deptSel.addEventListener('change', refreshTeachers);
-    }
-
-    applyFilter('');
-    updateCount();
-
-    try{
-      if((scopeSel && scopeSel.value) || (schoolSel && schoolSel.value) || (deptSel && deptSel.value)){
-        Promise.resolve(refreshDepartments({clearSelection: false})).then(refreshTeachers);
-      }
-    }catch(e){}
   }
 
-  // Prevent double submit
+  [titleInput, msgInput, impInput, dlineInput].forEach(el => {
+     if(el){
+       el.addEventListener('input', updatePreview);
+       el.addEventListener('change', updatePreview);
+     }
+  });
+
+  // ========== TEACHER LIST LOGIC (Restoring Filter/AJAX capabilities) ==========
+  const teacherField = document.querySelector('.field[data-name="teachers"]');
+  const teacherListBox = document.getElementById('teacherList');
+  const searchInput = document.getElementById('teacherSearch');
+  const countDisplay = document.getElementById('selCount');
+  const btnSelectAll = document.getElementById('selectAllTeachers');
+  const btnClearAll = document.getElementById('clearAllTeachers');
+
+  // Helper to find inputs
+  function getCheckboxes(){
+     if(!teacherListBox) return [];
+     return Array.from(teacherListBox.querySelectorAll('input[type="checkbox"]'));
+  }
+
+  function updateCount(){
+     const checks = getCheckboxes();
+     const c = checks.filter(cb => cb.checked).length;
+     if(countDisplay) countDisplay.textContent = c;
+  }
+
+  function filterTeachers(term){
+     const checks = getCheckboxes();
+     const q = term.toLowerCase();
+     checks.forEach(cb => {
+        const span = cb.nextElementSibling; // Usually <span>Name</span>
+        const label = cb.closest('label'); // or parent li
+        const li = cb.closest('li');
+        
+        let txt = "";
+        if(span) txt = span.textContent;
+        else if(label) txt = label.textContent;
+        
+        const match = txt.toLowerCase().includes(q);
+        if(li) li.style.display = match ? '' : 'none';
+     });
+  }
+
+  if(searchInput){
+     searchInput.addEventListener('input', e => filterTeachers(e.target.value));
+  }
+
+  if(btnSelectAll){
+     btnSelectAll.addEventListener('click', e => {
+        // e.preventDefault(); // removed preventDefault if it's button type=button
+        getCheckboxes().forEach(cb => {
+            if(cb.closest('li').style.display !== 'none') cb.checked = true;
+        });
+        updateCount();
+     });
+  }
+
+  if(btnClearAll){
+     btnClearAll.addEventListener('click', e => {
+        // e.preventDefault();
+        getCheckboxes().forEach(cb => {
+            if(cb.closest('li').style.display !== 'none') cb.checked = false;
+        });
+        updateCount();
+     });
+  }
+
+  if(teacherListBox){
+     teacherListBox.addEventListener('change', updateCount);
+  }
+  
+  // Initialize count
+  updateCount();
+
+
+  // ========== AJAX RELOAD LOGIC (If needed by backend logic) ==========
+  // The original code had logic to reload teachers if Dept/School/Scope changes.
+  // We must preserve it if those fields exist. 
+  
+  const scopeSel = document.getElementById('id_audience_scope'); // If user sends to admins
+  const schoolSel = document.getElementById('id_target_school');
+  const deptSel = document.getElementById('id_target_department');
+  
+  let isLoading = false;
+
+  async function refreshTeachers(){
+      if(isLoading) return;
+      // If we don't have these selectors, we assume static list for manager -> teachers
+      if(!scopeSel && !schoolSel && !deptSel) return; 
+
+      // Build Params
+      const params = new URLSearchParams();
+      params.set('mode', 'circular'); // Force mode
+      if(scopeSel) params.set('audience_scope', scopeSel.value);
+      if(schoolSel) params.set('target_school', schoolSel.value);
+      if(deptSel) params.set('target_department', deptSel.value);
+
+      const url = '{% url "reports:api_notification_teachers" %}?' + params.toString();
+      
+      isLoading = true;
+      const prevContent = teacherListBox.innerHTML;
+      teacherListBox.innerHTML = '<div style="padding:10px;text-align:center;color:#64748b">جارٍ التحديث...</div>';
+      
+      try {
+         const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+         const data = await res.json();
+         const results = data.results || [];
+         
+         if(results.length === 0){
+            teacherListBox.innerHTML = '<div style="padding:10px;text-align:center;color:#64748b">لا يوجد مستلمون.</div>';
+         } else {
+            let html = '<ul>';
+            // Determine field name from existing or default 'teachers'
+            const fieldName = 'teachers'; // simplified assumption
+            results.forEach(t => {
+                html += `<li><label><input type="checkbox" name="${fieldName}" value="${t.id}"> <span>${t.name}</span></label></li>`;
+            });
+            html += '</ul>';
+            teacherListBox.innerHTML = html;
+         }
+         updateCount();
+         if(searchInput) filterTeachers(searchInput.value); // Re-apply filter
+         
+      } catch(e){
+         console.error(e);
+         teacherListBox.innerHTML = prevContent; // Revert on error
+      } finally {
+         isLoading = false;
+      }
+  }
+
+  if(deptSel) deptSel.addEventListener('change', refreshTeachers);
+  if(scopeSel) scopeSel.addEventListener('change', refreshTeachers);
+  if(schoolSel) schoolSel.addEventListener('change', refreshTeachers);
+
+
+  // ========== PREVENT DOUBLE SUBMIT ==========
   const form = document.getElementById('notifyForm');
   if(form){
     form.addEventListener('submit', function(){
-      const btns = Array.from(form.querySelectorAll('button[type="submit"]'));
-      btns.forEach(btn => {
+      const btn = form.querySelector('button[type="submit"]');
+      if(btn){
         btn.disabled = true;
-        btn.innerHTML = '<span class="loading" style="width:16px;height:16px;border-radius:999px;border:2px solid rgba(255,255,255,.55);border-top-color:#fff;display:inline-block;animation:spin 1s ease-in-out infinite"></span> جارٍ الإرسال…';
-      });
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ الإرسال...';
+      }
     });
   }
+
 })();
 </script>
 {% endblock %}
