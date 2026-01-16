@@ -474,12 +474,13 @@
                     </div>
                   {% endif %}
                   
-                   <!-- Image / Attachment -->
-                  {% if form.image %}
+                  <!-- Attachment -->
+                  {% if form.attachment %}
                     <div class="form-group">
-                        <label class="form-label" for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
-                        {{ form.image }}
-                        {% if form.image.errors %}<div class="error-list">{{ form.image.errors }}</div>{% endif %}
+                        <label class="form-label" for="{{ form.attachment.id_for_label }}">{{ form.attachment.label }}</label>
+                        {{ form.attachment }}
+                        <div class="form-hint">يسمح بـ PDF / Word / صور — حد أقصى 5MB</div>
+                        {% if form.attachment.errors %}<div class="error-list">{{ form.attachment.errors }}</div>{% endif %}
                     </div>
                   {% endif %}
 
@@ -594,6 +595,9 @@
                      <i class="fa-solid fa-user"></i>
                      <span>من: {% firstof request.user.name request.user.first_name "الإدارة" %}</span>
                    </span>
+                   <span class="doc-tag" id="pv_att" style="display:none">
+                     <i class="fa-solid fa-paperclip"></i> مرفق
+                   </span>
                    <span class="doc-tag" id="pv_imp" style="display:none;color:#dc2626;border-color:#fecaca;background:#fef2f2">
                      <i class="fa-solid fa-circle-exclamation"></i> هام
                    </span>
@@ -643,10 +647,12 @@
   const msgInput = document.getElementById("id_message");
   const impInput = document.getElementById("id_is_important");
   const dlineInput = document.getElementById("id_signature_deadline_at");
+  const attInput = document.getElementById("id_attachment");
 
   const pvTitle = $("#pv_title");
   const pvBody  = $("#pv_body");
   const pvImp   = $("#pv_imp");
+  const pvAtt   = $("#pv_att");
   const pvDeadlineBox = $("#pv_deadline_box");
   const pvDeadlineVal = $("#pv_deadline");
 
@@ -654,6 +660,10 @@
     if(pvTitle && titleInput) pvTitle.textContent = titleInput.value || 'عنوان التعميم';
     if(pvBody && msgInput) pvBody.textContent = msgInput.value || 'نص التعميم...';
     if(pvImp && impInput) pvImp.style.display = impInput.checked ? 'inline-flex' : 'none';
+
+    if(pvAtt && attInput){
+      pvAtt.style.display = (attInput.files && attInput.files.length) ? 'inline-flex' : 'none';
+    }
     
     if(pvDeadlineBox && dlineInput){
         if(dlineInput.value){
@@ -665,7 +675,7 @@
     }
   }
 
-  [titleInput, msgInput, impInput, dlineInput].forEach(el => {
+  [titleInput, msgInput, impInput, dlineInput, attInput].forEach(el => {
      if(el){
        el.addEventListener('input', updatePreview);
        el.addEventListener('change', updatePreview);

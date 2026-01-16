@@ -5998,6 +5998,7 @@ def notifications_create(request: HttpRequest, mode: str = "notification") -> Ht
 
     form = NotificationCreateForm(
         request.POST or None,
+        request.FILES or None,
         user=request.user,
         active_school=active_school,
         initial=initial,

@@ -17,6 +17,8 @@ from django.db.models import Q
 from django.utils.text import slugify
 from django.utils import timezone
 
+from .validators import validate_attachment_file
+
 # ==============================
 # استيراد الموديلات (من models.py فقط)
 # ==============================
@@ -1273,6 +1275,16 @@ class NotificationCreateForm(forms.Form):
     expires_at = forms.DateTimeField(required=False, label="ينتهي في (اختياري)",
                                      widget=forms.DateTimeInput(attrs={"type":"datetime-local"}))
 
+    attachment = forms.FileField(
+        required=False,
+        label="مرفق (اختياري)",
+        help_text="PDF/Word/صورة (حد أقصى 5MB).",
+        validators=[validate_attachment_file],
+        widget=forms.ClearableFileInput(attrs={
+            "accept": ".pdf,.doc,.docx,.jpg,.jpeg,.png",
+        }),
+    )
+
     # ==============================
     # التعميمات والتوقيع الإلزامي
     # ==============================
@@ -1493,6 +1505,7 @@ class NotificationCreateForm(forms.Form):
             message=cleaned["message"],
             is_important=bool(cleaned.get("is_important")),
             expires_at=cleaned.get("expires_at") or None,
+            attachment=cleaned.get("attachment") or None,
             requires_signature=requires_signature,
             signature_deadline_at=(cleaned.get("signature_deadline_at") or None) if requires_signature else None,
             signature_ack_text=(cleaned.get("signature_ack_text") or "").strip()

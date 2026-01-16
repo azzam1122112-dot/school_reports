@@ -81,6 +81,11 @@ def _ticket_attachment_upload_to(instance: "Ticket", filename: str) -> str:
     return f"tickets/attachments/{filename}"
 
 
+def _notification_attachment_upload_to(instance: "Notification", filename: str) -> str:
+    """مسار رفع مرفقات الإشعارات/التعاميم"""
+    return f"notifications/attachments/{filename}"
+
+
 def _school_logo_upload_to(instance: "School", filename: str) -> str:
     """مسار رفع شعار المدرسة"""
     return f"schools/logos/{filename}"
@@ -1526,6 +1531,15 @@ class Notification(models.Model):
     message = models.TextField()
     is_important = models.BooleanField(default=False)
     expires_at = models.DateTimeField(null=True, blank=True)
+
+    attachment = models.FileField(
+        "مرفق (اختياري)",
+        upload_to=_notification_attachment_upload_to,
+        null=True,
+        blank=True,
+        validators=[validate_attachment_file],
+        help_text="يسمح بـ PDF/Word/صور. حد أقصى 5MB.",
+    )
 
     # =========================
     # التواقيع (للتعاميم الإلزامية)

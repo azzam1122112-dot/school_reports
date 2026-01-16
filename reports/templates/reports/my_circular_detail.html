@@ -71,6 +71,15 @@
           <div class="nd-hint">لا يوجد محتوى نصي.</div>
         {% endif %}
 
+        {% if n.attachment %}
+          <div class="field" style="margin-top:14px">
+            <a class="nd-btn" href="{{ n.attachment.url }}" target="_blank" rel="noopener">
+              <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
+              فتح/تحميل المرفق
+            </a>
+          </div>
+        {% endif %}
+
         {% if not r.is_signed %}
           <hr style="border:none;border-top:1px solid var(--nd-line);margin:18px 0" />
           <form method="post" action="{% url 'reports:circular_sign' r.pk %}">
