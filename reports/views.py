@@ -6641,12 +6641,16 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
 
     active_school = _get_active_school(request)
 
-    qs = (
-        NotificationRecipient.objects
-        .select_related("notification")
-        .filter(teacher=request.user)
-        .order_by("-created_at", "-id")
-    )
+    try:
+        qs = (
+            NotificationRecipient.objects
+            .select_related("notification")
+            .filter(teacher=request.user)
+            .order_by("-created_at", "-id")
+        )
+    except Exception:
+        messages.error(request, "تعذر تحميل التعاميم حالياً. سيتم تسجيل المشكلة تلقائياً.")
+        return render(request, "reports/my_circulars.html", {"page_obj": Paginator([], 12).get_page(1)})
 
     # فصل: هذه الصفحة للتعاميم فقط
     try:
@@ -6672,7 +6676,11 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
     except Exception:
         pass
 
-    page = Paginator(qs, 12).get_page(request.GET.get("page") or 1)
+    try:
+        page = Paginator(qs, 12).get_page(request.GET.get("page") or 1)
+    except Exception:
+        messages.error(request, "تعذر تحميل التعاميم حالياً. سيتم تسجيل المشكلة تلقائياً.")
+        return render(request, "reports/my_circulars.html", {"page_obj": Paginator([], 12).get_page(1)})
 
     # عند فتح تبويب "تعاميمي" غالباً يتوقع المستخدم أن تصبح العناصر المعروضة كمقروءة.
     try:
