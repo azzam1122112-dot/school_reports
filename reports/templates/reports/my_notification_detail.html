@@ -94,6 +94,7 @@
   }
   .nd-scope .nd-check input{margin-top:3px}
   .nd-scope .nd-note{color:var(--nd-muted);font-weight:850;line-height:1.9}
+  .nd-scope .nd-error{margin-top:6px;color:#b91c1c;font-weight:900;display:none}
 
   .nd-scope .nd-btn{
     padding:10px 12px;border-radius:12px;border:1px solid var(--nd-line);
@@ -103,6 +104,7 @@
     transition: transform var(--nd-t), box-shadow var(--nd-t), border-color var(--nd-t), background var(--nd-t);
     min-height:44px;
   }
+  .nd-scope .nd-btn[disabled]{opacity:.55;cursor:not-allowed;filter:saturate(.8)}
   .nd-scope .nd-btn:hover{
     transform:translateY(-1px);
     box-shadow: 0 14px 26px rgba(2,6,23,.10);
@@ -209,6 +211,7 @@
                 <label style="font-weight:950;display:block;margin-bottom:6px" for="sig_phone">رقم الجوال المسجل</label>
                 <input class="nd-input" id="sig_phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="مثال: 05xxxxxxxx" required>
                 <div class="nd-note" style="margin-top:6px">يُستخدم هذا الإجراء للتأكد من هوية الحساب قبل اعتماد التوقيع.</div>
+                <div class="nd-error" id="sig_phone_error" aria-live="polite"></div>
               </div>
 
               <label class="nd-check" for="sig_ack">
@@ -217,7 +220,7 @@
               </label>
 
               <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="nd-btn" type="submit" style="background: var(--nd-brand);border-color: var(--nd-brand);color:#fff;">
+                <button id="sigSubmit" class="nd-btn" type="submit" disabled style="background: var(--nd-brand);border-color: var(--nd-brand);color:#fff;">
                   <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
                   اعتماد التوقيع
                 </button>
@@ -226,6 +229,7 @@
                   رجوع
                 </a>
               </div>
+              <div class="nd-note" id="sigSubmitHint">بالضغط على "اعتماد التوقيع" سيتم تسجيل إقرارك ووقت التوقيع.</div>
             </form>
           {% endif %}
         </div>
@@ -233,4 +237,71 @@
     {% endif %}
   </div>
 </div>
+
+<script>
+  (function(){
+    const form = document.querySelector('form.nd-form');
+    const phoneInput = document.getElementById('sig_phone');
+    const ackInput = document.getElementById('sig_ack');
+    const submitBtn = document.getElementById('sigSubmit');
+    const phoneError = document.getElementById('sig_phone_error');
+
+    if (!form || !phoneInput || !ackInput || !submitBtn) return;
+
+    function digitsOnly(value){
+      return String(value || '').replace(/\D+/g, '');
+    }
+    function normalizePhone(raw){
+      const d = digitsOnly(raw);
+      if (d.startsWith('9665') && d.length === 12) return '0' + d.slice(3);
+      return d;
+    }
+    function isValidPhone(value){
+      return /^05\d{8}$/.test(value);
+    }
+    function setPhoneError(message){
+      if (!phoneError) return;
+      if (!message) {
+        phoneError.style.display = 'none';
+        phoneError.textContent = '';
+        return;
+      }
+      phoneError.style.display = 'block';
+      phoneError.textContent = message;
+    }
+    function updateState(){
+      const normalized = normalizePhone(phoneInput.value);
+      const okPhone = isValidPhone(normalized);
+      const okAck = !!ackInput.checked;
+      submitBtn.disabled = !(okPhone && okAck) || submitBtn.dataset.busy === '1';
+      if (phoneInput.value && !okPhone) setPhoneError('رقم الجوال غير صحيح. أدخل 10 أرقام تبدأ بـ 05.');
+      else setPhoneError('');
+    }
+
+    phoneInput.addEventListener('input', function(){
+      const normalized = normalizePhone(phoneInput.value);
+      if (normalized && normalized !== phoneInput.value.replace(/\s+/g, '')) phoneInput.value = normalized;
+      updateState();
+    });
+    ackInput.addEventListener('change', updateState);
+
+    form.addEventListener('submit', function(e){
+      updateState();
+      if (submitBtn.disabled) {
+        e.preventDefault();
+        return;
+      }
+      const ok = window.confirm('تأكيد: سيتم تسجيل إقرارك واعتماد توقيعك الآن.');
+      if (!ok) {
+        e.preventDefault();
+        return;
+      }
+      submitBtn.dataset.busy = '1';
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'جارٍ اعتماد التوقيع...';
+    });
+
+    updateState();
+  })();
+</script>
 {% endblock %}
