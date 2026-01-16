@@ -1578,6 +1578,25 @@ class Notification(models.Model):
         db_table = "reports_notification"
         ordering = ("-created_at", "-id")
 
+    # Backwards-compatible aliases for templates/legacy code.
+    # Some templates reference n.body / n.content / n.text / n.details.
+    # The canonical field is `message`.
+    @property
+    def body(self) -> str:
+        return self.message
+
+    @property
+    def content(self) -> str:
+        return self.message
+
+    @property
+    def text(self) -> str:
+        return self.message
+
+    @property
+    def details(self) -> str:
+        return self.message
+
     def __str__(self):
         return self.title or (self.message[:30] + ("..." if len(self.message) > 30 else ""))
 

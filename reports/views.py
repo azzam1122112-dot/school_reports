@@ -6649,6 +6649,7 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
             .order_by("-created_at", "-id")
         )
     except Exception:
+        logger.exception("my_circulars: failed to build base queryset")
         messages.error(request, "تعذر تحميل التعاميم حالياً. سيتم تسجيل المشكلة تلقائياً.")
         return render(request, "reports/my_circulars.html", {"page_obj": Paginator([], 12).get_page(1)})
 
@@ -6679,6 +6680,7 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
     try:
         page = Paginator(qs, 12).get_page(request.GET.get("page") or 1)
     except Exception:
+        logger.exception("my_circulars: failed to paginate")
         messages.error(request, "تعذر تحميل التعاميم حالياً. سيتم تسجيل المشكلة تلقائياً.")
         return render(request, "reports/my_circulars.html", {"page_obj": Paginator([], 12).get_page(1)})
 
@@ -6687,6 +6689,7 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
     try:
         page.object_list = list(page.object_list)
     except Exception:
+        logger.exception("my_circulars: failed to evaluate page object_list")
         messages.error(request, "تعذر تحميل التعاميم حالياً. سيتم تسجيل المشكلة تلقائياً.")
         return render(request, "reports/my_circulars.html", {"page_obj": Paginator([], 12).get_page(1)})
 
@@ -6728,15 +6731,20 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, "نموذج الإشعار غير متاح.")
         return redirect("reports:my_notifications")
 
-    r = get_object_or_404(
-        NotificationRecipient.objects.select_related(
-            "notification",
-            "notification__created_by",
-            "notification__created_by__role",
-        ),
-        pk=pk,
-        teacher=request.user,
-    )
+    try:
+        r = get_object_or_404(
+            NotificationRecipient.objects.select_related(
+                "notification",
+                "notification__created_by",
+                "notification__created_by__role",
+            ),
+            pk=pk,
+            teacher=request.user,
+        )
+    except Exception:
+        logger.exception("my_notification_detail: failed to load recipient row", extra={"pk": pk})
+        messages.error(request, "تعذر فتح التعميم/الإشعار حالياً. سيتم تسجيل المشكلة تلقائياً.")
+        return redirect("reports:my_circulars")
 
     n = getattr(r, "notification", None)
     if n is None:
