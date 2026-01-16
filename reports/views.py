@@ -6682,6 +6682,14 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
         messages.error(request, "تعذر تحميل التعاميم حالياً. سيتم تسجيل المشكلة تلقائياً.")
         return render(request, "reports/my_circulars.html", {"page_obj": Paginator([], 12).get_page(1)})
 
+    # مهم: QuerySet داخل Page قد يبقى كسولاً، وقد يحدث الخطأ أثناء عرض القالب.
+    # هنا نجبر التقييم داخل الـ view حتى نلتقط أخطاء قاعدة البيانات (مثل نقص migrations) ونمنع 500.
+    try:
+        page.object_list = list(page.object_list)
+    except Exception:
+        messages.error(request, "تعذر تحميل التعاميم حالياً. سيتم تسجيل المشكلة تلقائياً.")
+        return render(request, "reports/my_circulars.html", {"page_obj": Paginator([], 12).get_page(1)})
+
     # عند فتح تبويب "تعاميمي" غالباً يتوقع المستخدم أن تصبح العناصر المعروضة كمقروءة.
     try:
         items = list(page.object_list)
