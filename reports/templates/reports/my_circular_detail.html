@@ -5,416 +5,258 @@
 {% block title %}تفاصيل التعميم | 2026 UI{% endblock %}
 
 {% block head %}
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+{% extends "base.html" %}
+{% load static %}
 
+{% block title %}تفاصيل التعميم{% endblock %}
+
+{% block head %}
 <style>
-  :root {
-    --cd-primary: #3b82f6;
-    --cd-primary-glow: rgba(59, 130, 246, 0.5);
-    --cd-secondary: #8b5cf6;
-    --cd-bg-canvas: #f8fafc;
-    --cd-card-bg: #ffffff;
-    --cd-text-main: #0f172a;
-    --cd-text-muted: #64748b;
-    --cd-border: #e2e8f0;
-    --cd-success: #10b981;
-    --cd-danger: #ef4444;
-    --cd-warning: #f59e0b;
-    --radius-lg: 24px;
-    --radius-md: 16px;
-    --shadow-sm: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+  .nd-scope{
+    --nd-ink: var(--ink, #0f172a);
+    --nd-muted: var(--muted, #64748b);
+    --nd-line: var(--line, #e5e7eb);
+    --nd-card: var(--card, #ffffff);
+    --nd-soft: var(--line-2, #f1f5f9);
+    --nd-shadow: 0 12px 30px rgba(2,6,23,.08);
+    --nd-brand: var(--brand, #2563eb);
+    --nd-t: var(--t-fast, .18s ease);
   }
 
-  /* وضع الليل 2026 */
-  html[data-theme="dark"] {
-    --cd-bg-canvas: #020617;
-    --cd-card-bg: #1e293b;
-    --cd-text-main: #f1f5f9;
-    --cd-text-muted: #94a3b8;
-    --cd-border: #334155;
+  .nd-scope .nd-wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .nd-scope .nd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .nd-scope .nd-title{margin:0;font-weight:950;color:var(--nd-ink)}
+  .nd-scope .nd-hint{color:var(--nd-muted);font-weight:850}
+
+  .nd-scope .nd-card{background:var(--nd-card);border:1px solid var(--nd-line);border-radius:16px;box-shadow:var(--nd-shadow);overflow:hidden}
+  .nd-scope .nd-card-hd{padding:14px 16px;border-bottom:1px solid var(--nd-line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg,var(--nd-soft),var(--nd-card))}
+  .nd-scope .nd-card-bd{padding:16px}
+  .nd-scope .nd-meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .nd-scope .nd-when{color:var(--nd-muted);font-weight:900}
+
+  .nd-scope .nd-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--nd-line);background:var(--nd-soft);color:var(--nd-ink);border-radius:999px;font-weight:950;font-size:.86rem;white-space:nowrap}
+  .nd-scope .nd-pill.danger{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.18);color:#b91c1c}
+  .nd-scope .nd-pill.success{background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.20);color:#166534}
+
+  .nd-scope .nd-body{line-height:1.95;color:var(--nd-ink);font-weight:850;background:linear-gradient(180deg,var(--nd-card),rgba(248,250,252,.55));border:1px solid var(--nd-line);border-radius:14px;padding:14px}
+  .nd-scope .nd-note{color:var(--nd-muted);font-weight:850;line-height:1.85}
+  .nd-scope .nd-error{margin-top:6px;color:#b91c1c;font-weight:900;display:none}
+
+  .nd-scope .nd-input{width:100%;min-height:44px;border:1px solid var(--nd-line);border-radius:12px;padding:10px 12px;font:inherit;background:var(--nd-card);color:var(--nd-ink);font-weight:850;outline:none}
+  .nd-scope .nd-input:focus{border-color: rgba(37,99,235,.35);box-shadow:0 0 0 4px rgba(37,99,235,.12)}
+
+  .nd-scope .nd-btn{padding:10px 12px;border-radius:12px;border:1px solid var(--nd-line);background:var(--nd-card);font-weight:950;text-decoration:none;color:var(--nd-ink);display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:44px;transition: transform var(--nd-t), box-shadow var(--nd-t), border-color var(--nd-t), background var(--nd-t)}
+  .nd-scope .nd-btn:hover{transform:translateY(-1px);box-shadow:0 14px 26px rgba(2,6,23,.10);border-color:rgba(37,99,235,.25);background:rgba(248,250,252,.80)}
+  .nd-scope .nd-btn[disabled]{opacity:.55;cursor:not-allowed;filter:saturate(.8)}
+
+  .nd-scope .ack-row{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--nd-line);border-radius:12px;background:var(--nd-soft)}
+  .nd-scope .ack-row:hover{border-color: rgba(37,99,235,.25)}
+  .nd-scope .nd-switch{position:relative;display:inline-flex;align-items:center;flex:0 0 auto}
+  .nd-scope .nd-switch input{position:absolute;opacity:0;inline-size:1px;block-size:1px}
+  .nd-scope .nd-slider{inline-size:46px;block-size:26px;background:rgba(100,116,139,.25);border:1px solid rgba(100,116,139,.25);border-radius:999px;display:inline-block;position:relative;transition: background var(--nd-t), border-color var(--nd-t)}
+  .nd-scope .nd-slider:before{content:"";position:absolute;inline-size:22px;block-size:22px;inset-block-start:1px;inset-inline-start:2px;background:#fff;border-radius:999px;box-shadow:0 8px 16px rgba(2,6,23,.10);transition: transform var(--nd-t)}
+  .nd-scope .nd-switch input:checked + .nd-slider{background:rgba(37,99,235,.95);border-color:rgba(37,99,235,.95)}
+  .nd-scope .nd-switch input:checked + .nd-slider:before{transform: translateX(20px)}
+  .nd-scope .nd-switch input:focus-visible + .nd-slider{box-shadow:0 0 0 4px rgba(37,99,235,.16)}
+
+  html[data-theme="dark"] .nd-scope{--nd-shadow: 0 18px 46px rgba(0,0,0,.45)}
+  html[data-theme="dark"] .nd-scope .nd-body{background:linear-gradient(180deg,var(--nd-card),rgba(2,6,23,.25))}
+
+  @media (prefers-reduced-motion: reduce){
+    .nd-scope .nd-btn{transition:none !important;}
+    .nd-scope .nd-btn:hover{transform:none !important;}
+    .nd-scope .nd-slider,.nd-scope .nd-slider:before{transition:none !important;}
+  }
   }
 
-  .cd-scope {
-    font-family: 'Tajawal', sans-serif;
-    background-color: var(--cd-bg-canvas);
-    min-height: 100vh;
-    padding: 20px;
-    color: var(--cd-text-main);
-  }
-
-  .cd-wrap {
-    max-width: 1250px;
-    margin: 0 auto;
-  }
-
-  /* Header Hero Section */
-  .cd-hero {
-    background: linear-gradient(135deg, var(--cd-primary), var(--cd-secondary));
-    border-radius: var(--radius-lg);
-    padding: 40px;
-    color: white;
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 30px;
-    box-shadow: var(--shadow-glow);
-  }
-
-  .cd-hero::before {
-    content: "";
-    position: absolute;
-    top: -50%;
-    right: -10%;
-    width: 400px;
-    height: 400px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    filter: blur(80px);
-  }
-
-  .cd-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 20px;
-    position: relative;
-    z-index: 2;
-  }
-
-  .cd-title {
-    font-size: 2rem;
-    font-weight: 900;
-    margin: 0;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  }
-
-  .cd-sub {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    font-weight: 500;
-  }
-
-  /* Buttons */
-  .cd-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-  
-  .cd-btn {
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    padding: 12px 24px;
-    border-radius: var(--radius-md);
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .cd-btn:hover {
-    background: white;
-    color: var(--cd-primary);
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-  }
-
-  .cd-btn.primary {
-    background: white;
-    color: var(--cd-primary);
-  }
-
-  /* Pills Layout */
-  .cd-pills {
-    display: flex;
-    gap: 10px;
-    margin-top: 25px;
-    flex-wrap: wrap;
-  }
-
-  .pill {
-    background: rgba(255, 255, 255, 0.15);
-    padding: 8px 16px;
-    border-radius: 100px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  /* Main Content Grid */
-  .cd-grid {
-    display: grid;
-    gap: 24px;
-    grid-template-columns: 1fr 400px;
-  }
-
-  @media (max-width: 1100px) {
-    .cd-grid { grid-template-columns: 1fr; }
-  }
-
-  .card {
-    background: var(--cd-card-bg);
-    border: 1px solid var(--cd-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.3s ease;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .card-hd {
-    padding: 24px;
-    border-bottom: 1px solid var(--cd-border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .card-hd strong { font-size: 1.3rem; font-weight: 800; }
-
-  .card-bd { padding: 24px; flex-grow: 1; }
-
-  /* Document Style */
-  .doc-box {
-    background: var(--cd-bg-canvas);
-    border-radius: var(--radius-md);
-    padding: 25px;
-    line-height: 2;
-    font-size: 1.1rem;
-    border: 1px solid var(--cd-border);
-  }
-
-  /* KPIs Morden */
-  .kpi-wrapper {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    margin: 20px 0;
-  }
-
-  .kpi-item {
-    padding: 20px;
-    border-radius: var(--radius-md);
-    text-align: center;
-    background: var(--cd-bg-canvas);
-    border: 1px solid var(--cd-border);
-  }
-
-  .kpi-item .lbl { font-size: 0.85rem; color: var(--cd-text-muted); font-weight: 700; margin-bottom: 5px; }
-  .kpi-item .val { font-size: 1.8rem; font-weight: 900; }
-
-  /* Table Style */
-  .search-box {
-    width: 100%;
-    padding: 14px 20px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--cd-border);
-    background: var(--cd-bg-canvas);
-    color: var(--cd-text-main);
-    margin-bottom: 15px;
-    transition: 0.3s;
-  }
-
-  .search-box:focus {
-    outline: none;
-    border-color: var(--cd-primary);
-    box-shadow: 0 0 0 4px var(--cd-primary-glow);
-  }
-
-  .table-wrap {
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    border: 1px solid var(--cd-border);
-  }
-
-  table { width: 100%; border-collapse: collapse; }
-  thead th {
-    background: var(--cd-bg-canvas);
-    padding: 15px;
-    text-align: right;
-    font-size: 0.9rem;
-    color: var(--cd-text-muted);
-    border-bottom: 2px solid var(--cd-border);
-  }
-
-  tbody td {
-    padding: 15px;
-    border-bottom: 1px solid var(--cd-border);
-    font-weight: 600;
-  }
-
-  /* Custom Badges */
-  .badge {
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 700;
-  }
-  .badge-yes { background: rgba(16, 185, 129, 0.1); color: var(--cd-success); }
-  .badge-no { background: rgba(239, 68, 68, 0.1); color: var(--cd-danger); }
-
-  /* Switch Toggle */
-  .toggle-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    font-weight: 700;
-    margin-bottom: 15px;
-  }
-
-  .switch {
-    width: 50px;
-    height: 26px;
-    background: #cbd5e1;
-    border-radius: 50px;
-    position: relative;
-    transition: 0.3s;
-  }
-
-  .switch::before {
-    content: "";
-    width: 20px;
-    height: 20px;
-    background: white;
-    border-radius: 50%;
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    transition: 0.3s;
-  }
-
-  input[type="checkbox"]:checked + .switch { background: var(--cd-success); }
-  input[type="checkbox"]:checked + .switch::before { transform: translateX(-24px); }
-  input[type="checkbox"] { display: none; }
-
-</style>
-{% endblock %}
 
 {% block content %}
-<div class="cd-scope" dir="rtl">
-  <div class="cd-wrap">
-
-    <header class="cd-hero">
-      <div class="cd-head">
-        <div>
-          <h1 class="cd-title">تفاصيل التعميم الإداري</h1>
-          <p class="cd-sub">متابعة دقيقة لحالة التوقيع والوصول في الزمن الحقيقي</p>
-        </div>
-
-        <div class="cd-actions">
-          <a class="cd-btn" href="{% url 'reports:circulars_sent' %}">
-            <i class="fa-solid fa-arrow-right"></i> التعاميم
-          </a>
-          <a class="cd-btn primary" href="{% url 'reports:notification_signatures_print' n.pk %}">
-            <i class="fa-solid fa-print"></i> طباعة التواقيع
-          </a>
-          <a class="cd-btn" href="{% url 'reports:notification_signatures_csv' n.pk %}">
-            <i class="fa-solid fa-file-csv"></i> تصدير CSV
-          </a>
-        </div>
+<div class="nd-scope">
+  <div class="nd-wrap" dir="rtl">
+    <header class="nd-head">
+      <div>
+        <h1 class="nd-title">تفاصيل التعميم</h1>
+        <div class="nd-hint">عرض التعميم وتأكيد الاستلام بالتوقيع</div>
       </div>
-
-      <div class="cd-pills">
-        <span class="pill"><i class="fa-solid fa-hashtag"></i> الرقم: #{{ n.pk }}</span>
-        {% if n.is_important %}<span class="pill" style="background: var(--cd-danger)"><i class="fa-solid fa-bolt"></i> هام جداً</span>{% endif %}
-        {% if n.is_broadcast %}<span class="pill" style="background: var(--cd-primary)"><i class="fa-solid fa-users"></i> تعميم عام</span>{% endif %}
-        <span class="pill"><i class="fa-regular fa-calendar-check"></i> {{ n.created_at|date:"Y-m-d" }}</span>
-        {% if n.attachment %}
-          <a href="{{ n.attachment.url }}" target="_blank" class="pill" style="color:white; text-decoration:none">
-            <i class="fa-solid fa-paperclip"></i> عرض المرفق
-          </a>
-        {% endif %}
-      </div>
+      <a class="nd-btn" href="{% url 'reports:my_circulars' %}">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        رجوع إلى التعاميم
+      </a>
     </header>
 
-    <div class="cd-grid">
-      <section class="card">
-        <div class="card-hd">
-          <strong>{{ n.title|default:"محتوى التعميم" }}</strong>
-          <span class="badge badge-yes">{{ signature_stats.signed }} موقّع</span>
-        </div>
-        <div class="card-bd">
-          <div class="doc-box">
-            {{ body|linebreaksbr|default:"لا يوجد نص لهذا التعميم." }}
-          </div>
-
-          <div class="kpi-wrapper">
-            <div class="kpi-item">
-              <div class="lbl">إجمالي المستهدفين</div>
-              <div class="val">{{ signature_stats.total }}</div>
-            </div>
-            <div class="kpi-item" style="border-bottom: 4px solid var(--cd-success)">
-              <div class="lbl">تم التوقيع</div>
-              <div class="val" style="color: var(--cd-success)">{{ signature_stats.signed }}</div>
-            </div>
-            <div class="kpi-item" style="border-bottom: 4px solid var(--cd-danger)">
-              <div class="lbl">بانتظار التوقيع</div>
-              <div class="val" style="color: var(--cd-danger)">{{ signature_stats.unsigned }}</div>
-            </div>
-          </div>
-
-          {% if n.signature_ack_text %}
-          <div style="margin-top: 25px; border-top: 1px solid var(--cd-border); padding-top: 20px;">
-             <h4 style="font-weight: 800; margin-bottom: 10px;"><i class="fa-solid fa-file-signature"></i> نص الإقرار المطلوب:</h4>
-             <div class="doc-box" style="background: rgba(59, 130, 246, 0.05); border-style: dashed;">
-               {{ n.signature_ack_text|linebreaksbr }}
-             </div>
-          </div>
+    <section class="nd-card" aria-label="التعميم">
+      <div class="nd-card-hd">
+        <div class="nd-meta-row">
+          <strong style="font-weight:950">{{ n.title|default:"تعميم" }}</strong>
+          {% if r.is_signed %}
+            <span class="nd-pill success"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> تم التوقيع</span>
+          {% else %}
+            <span class="nd-pill danger"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> يتطلب توقيع</span>
           {% endif %}
         </div>
-      </section>
+        <div class="nd-when">{% if r.created_at %}{{ r.created_at|date:"Y-m-d H:i" }}{% endif %}</div>
+      </div>
 
-      <section class="card">
-        <div class="card-hd">
-          <strong>قائمة المستلمين</strong>
+      <div class="nd-card-bd">
+        {% if body %}
+          <div class="nd-body">{{ body|linebreaksbr }}</div>
+        {% else %}
+          <div class="nd-note">لا يوجد محتوى نصي.</div>
+        {% endif %}
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <span class="nd-pill">
+            المرسِل:
+            {% if n.created_by %}
+              {% firstof n.created_by.name n.created_by.phone n.created_by.username "الإدارة" %}
+              {% if n.created_by.role %} — {% firstof n.created_by.role.name n.created_by.role.slug %}{% endif %}
+            {% else %}
+              الإدارة
+            {% endif %}
+          </span>
+          {% if r.is_read %}<span class="nd-pill">الحالة: مقروء</span>{% else %}<span class="nd-pill">الحالة: غير مقروء</span>{% endif %}
+          {% if r.read_at %}<span class="nd-pill">وقت القراءة: {{ r.read_at|date:"Y-m-d H:i" }}</span>{% endif %}
+          {% if r.is_signed %}
+            {% if r.signed_at %}<span class="nd-pill">وقت التوقيع: {{ r.signed_at|date:"Y-m-d H:i" }}</span>{% endif %}
+          {% endif %}
         </div>
-        <div class="card-bd">
-          <input type="text" id="cdSearch" class="search-box" placeholder="ابحث عن اسم أو وظيفة...">
-          
-          <label class="toggle-container">
-            <input type="checkbox" id="cdOnlyUnsigned">
-            <div class="switch"></div>
-            <span>غير الموقّعين فقط</span>
-          </label>
 
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المستلم</th>
-                  <th>الحالة</th>
-                  <th>التوقيع</th>
-                </tr>
-              </thead>
-              <tbody id="cdRows">
-                {% for r in recipients %}
-                <tr data-name="{{ r.name|default:'' }}" data-role="{{ r.role|default:'' }}" data-signed="{% if r.signed %}1{% else %}0{% endif %}">
-                  <td>
-                    <div style="font-weight: 800;">{{ r.name }}</div>
-                    <div style="font-size: 0.75rem; color: var(--cd-text-muted);">{{ r.role }}</div>
-                  </td>
-                  <td>
-                    {% if r.read %}
-                      <span class="badge badge-yes" title="{{ r.read_at }}">تم الاطلاع</span>
-                    {% else %}
-                      <span class="badge badge-no">لم يصل</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if r.signed %}
-                      <i class="fa-solid fa-circle-check" style="color: var(--cd-success)"></i>
-                    {% else %}
-                      <i class="fa-solid fa-circle-minus" style="color: var(--cd-text-muted)"></i>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="3" style="text-align: center; padding: 40px; color: var(--cd-text-muted);">لا يوجد مستلمون حالياً.</td></tr>
+        {% if n.attachment %}
+          <div style="margin-top:12px">
+            <a class="nd-btn" href="{{ n.attachment.url }}" target="_blank" rel="noopener">
+              <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
+              فتح/تحميل المرفق
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if not r.is_signed %}
+      <div style="height:12px"></div>
+      <section class="nd-card" aria-label="التوقيع على التعميم">
+        <div class="nd-card-hd">
+          <div class="nd-meta-row">
+            <strong style="font-weight:950">التوقيع على التعميم</strong>
+            <span class="nd-pill">توثيق رسمي</span>
+          </div>
+          <div class="nd-when">لأمان أعلى: إدخال الجوال + إقرار</div>
+        </div>
+        <div class="nd-card-bd">
+          <div class="nd-body" style="margin-bottom:10px">
+            {% if n.signature_ack_text %}
+              {{ n.signature_ack_text|linebreaksbr }}
+            {% else %}
+              أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه وأتعهد بالالتزام به.
+            {% endif %}
+          </div>
+
+          <form id="sigForm" method="post" action="{% url 'reports:circular_sign' r.pk %}" novalidate>
+            {% csrf_token %}
+
+            <div>
+              <label style="font-weight:950;display:block;margin-bottom:6px" for="sig_phone">رقم الجوال المسجل</label>
+              <input class="nd-input" id="sig_phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="مثال: 05xxxxxxxx" required>
+              <div class="nd-note" style="margin-top:6px">اكتب الرقم كما هو مسجل في حسابك (10 أرقام يبدأ بـ 05).</div>
+              <div class="nd-error" id="sig_phone_error" aria-live="polite"></div>
+            </div>
+
+            <div style="height:10px"></div>
+
+            <label class="ack-row" for="sig_ack" style="cursor:pointer">
+              <span class="nd-switch">
+                <input id="sig_ack" name="ack" type="checkbox" required>
+                <span class="nd-slider" aria-hidden="true"></span>
+              </span>
+              <span style="font-weight:900">أوافق على الإقرار أعلاه وأقرّ بصحة البيانات.</span>
+            </label>
+            <div class="nd-note" style="margin-top:6px">لن يتم اعتماد التوقيع إلا بعد تفعيل الإقرار وإدخال رقم جوال صحيح.</div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+              <button id="sigSubmit" class="nd-btn" type="submit" disabled style="background: var(--nd-brand);border-color: var(--nd-brand);color:#fff;">
+                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                اعتماد التوقيع
+              </button>
+              <a class="nd-btn" href="{% url 'reports:my_circulars' %}">
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                لاحقاً
+              </a>
+            </div>
+            <div class="nd-note" id="sigSubmitHint" style="margin-top:8px">بالضغط على "اعتماد التوقيع" سيتم تسجيل إقرارك ووقت التوقيع.</div>
+          </form>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  (function(){
+    const form = document.getElementById('sigForm');
+    const phoneInput = document.getElementById('sig_phone');
+    const ackInput = document.getElementById('sig_ack');
+    const submitBtn = document.getElementById('sigSubmit');
+    const phoneError = document.getElementById('sig_phone_error');
+
+    if (!form || !phoneInput || !ackInput || !submitBtn) return;
+
+    function digitsOnly(value){
+      return String(value || '').replace(/\D+/g, '');
+    }
+    function normalizePhone(raw){
+      const d = digitsOnly(raw);
+      if (d.startsWith('9665') && d.length === 12) return '0' + d.slice(3);
+      return d;
+    }
+    function isValidPhone(value){
+      return /^05\d{8}$/.test(value);
+    }
+    function setPhoneError(message){
+      if (!phoneError) return;
+      if (!message) {
+        phoneError.style.display = 'none';
+        phoneError.textContent = '';
+        return;
+      }
+      phoneError.style.display = 'block';
+      phoneError.textContent = message;
+    }
+    function updateState(){
+      const normalized = normalizePhone(phoneInput.value);
+      const okPhone = isValidPhone(normalized);
+      const okAck = !!ackInput.checked;
+      submitBtn.disabled = !(okPhone && okAck) || submitBtn.dataset.busy === '1';
+      if (phoneInput.value && !okPhone) setPhoneError('رقم الجوال غير صحيح. أدخل 10 أرقام تبدأ بـ 05.');
+      else setPhoneError('');
+    }
+
+    phoneInput.addEventListener('input', function(){
+      const normalized = normalizePhone(phoneInput.value);
+      if (normalized && normalized !== phoneInput.value.replace(/\s+/g, '')) phoneInput.value = normalized;
+      updateState();
+    });
+    ackInput.addEventListener('change', updateState);
+
+    form.addEventListener('submit', function(e){
+      updateState();
+      if (submitBtn.disabled) {
+        e.preventDefault();
+        return;
+      }
+      const ok = window.confirm('تأكيد: سيتم تسجيل إقرارك واعتماد توقيعك الآن.');
+      if (!ok) {
+        e.preventDefault();
+        return;
+      }
+      submitBtn.dataset.busy = '1';
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'جارٍ اعتماد التوقيع...';
+    });
+
+    updateState();
+  })();
+</script>
+{% endblock %}
                 {% endfor %}
               </tbody>
             </table>
