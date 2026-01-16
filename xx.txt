@@ -15,7 +15,7 @@ celery -A config worker --loglevel=info --pool=solo
 
 
 git add . 
-git commit -m "الرفع55ريندر"
+git commit -m "تعاميم 8"
 git push origin main
 
 
