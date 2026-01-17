@@ -281,6 +281,23 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     def role_display(self) -> str:
         return getattr(self.role, "name", "-")
 
+    @property
+    def display_role_label(self) -> str:
+        """اسم الدور للعرض بالعربية (للواجهات).
+
+        - المشرف العام (is_platform_admin) يجب أن يظهر بهذه التسمية حتى لو كان role فارغاً أو افتراضياً.
+        """
+        if getattr(self, "is_superuser", False):
+            return "سوبر"
+        if getattr(self, "is_platform_admin", False):
+            return "المشرف العام"
+        try:
+            if self.role is not None:
+                return (getattr(self.role, "name", None) or getattr(self.role, "slug", None) or "").strip() or "المعلم"
+        except Exception:
+            pass
+        return "المعلم"
+
     def save(self, *args, **kwargs):
         try:
             if self.role is not None:

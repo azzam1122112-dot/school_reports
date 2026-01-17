@@ -160,7 +160,7 @@
             المرسِل:
             {% if n.created_by %}
               {% firstof n.created_by.name n.created_by.phone n.created_by.username "الإدارة" %}
-              {% if n.created_by.role %} — {% firstof n.created_by.role.name n.created_by.role.slug %}{% endif %}
+              {% if n.created_by.is_platform_admin or n.created_by.role %} — {{ n.created_by.display_role_label }}{% endif %}
             {% else %}
               الإدارة
             {% endif %}
