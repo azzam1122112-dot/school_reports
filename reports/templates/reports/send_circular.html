@@ -8,395 +8,461 @@
 {% block head %}
 <style>
   :root {
-    --c-primary: #2563eb;
-    --c-primary-light: #60a5fa;
-    --c-primary-dark: #1d4ed8;
+    --c-primary: #3b82f6; 
+    --c-primary-dark: #2563eb;
+    --c-primary-light: #eff6ff;
     --c-success: #10b981;
-    --c-bg: #f8fafc;
-    --c-card: #ffffff;
-    --c-border: #e2e8f0;
     --c-text-main: #0f172a;
     --c-text-muted: #64748b;
-    --radius-lg: 24px;
-    --radius-md: 16px;
-    --shadow-elegant: 0 10px 30px -10px rgba(0,0,0,0.08);
+    --c-bg: #f8fafc;
+    --c-card-bg: #ffffff;
+    --c-border: #e2e8f0;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-elegant: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --font-heading: 'Tajawal', system-ui, sans-serif;
   }
 
-  html[data-theme="dark"] {
-    --c-bg: #020617;
-    --c-card: #0f172a;
-    --c-border: #1e293b;
-    --c-text-main: #f8fafc;
-    --c-text-muted: #94a3b8;
+  body {
+    background-color: var(--c-bg);
+    color: var(--c-text-main);
+    font-family: var(--font-heading);
   }
 
+  /* Page Wrapper with subtle gradient mesh */
   .circular-page {
-    background: var(--c-bg);
     min-height: 100vh;
-    padding: 3rem 0;
-    font-family: 'Tajawal', sans-serif;
+    padding: 2rem 1rem;
+    background-image: 
+        radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, transparent 50%), 
+        radial-gradient(at 50% 0%, hsla(225,39%,30%,0) 0, transparent 50%), 
+        radial-gradient(at 100% 0%, hsla(339,49%,30%,0) 0, transparent 50%);
   }
 
   .circular-container {
-    max-width: 1440px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 0 2rem;
   }
 
-  /* Header Section */
+  /* Header Styles */
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
+    padding: 0 0.5rem;
   }
+
   .header-content h1 {
-    font-size: 2.5rem;
-    font-weight: 900;
-    background: linear-gradient(135deg, var(--c-primary), #8b5cf6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-size: 2rem;
+    font-weight: 800;
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 1rem;
-  }
-  .header-subtitle {
-    margin-top: 0.75rem;
-    color: var(--c-text-muted);
-    font-size: 1.1rem;
-    font-weight: 500;
+    gap: 0.75rem;
+    background: linear-gradient(135deg, var(--c-primary-dark), #4f46e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
-  /* App Card Polish */
-  .app-card {
-    background: var(--c-card);
-    border-radius: var(--radius-lg);
+  .header-subtitle {
+    margin-top: 0.5rem;
+    color: var(--c-text-muted);
+    font-size: 1rem;
+  }
+
+  .header-actions .btn-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    color: var(--c-text-main);
     border: 1px solid var(--c-border);
-    box-shadow: var(--shadow-elegant);
+    padding: 0.6rem 1.25rem;
+    border-radius: 99px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  .header-actions .btn-link:hover {
+    background: var(--c-primary-light);
+    color: var(--c-primary-dark);
+    border-color: var(--c-primary);
+  }
+
+  /* Grid Layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  /* Modern Card */
+  .app-card {
+    background: var(--c-card-bg);
+    border-radius: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--c-border);
     overflow: hidden;
-    transition: transform 0.3s ease;
   }
+
   .app-card-header {
-    padding: 2rem;
-    background: rgba(255,255,255,0.01);
+    padding: 1.5rem 2rem;
     border-bottom: 1px solid var(--c-border);
+    background: linear-gradient(to right, #ffffff, #f8fafc);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
+  
   .app-card-header h2 {
-    font-size: 1.5rem;
-    font-weight: 800;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     color: var(--c-text-main);
   }
 
-  /* Form Elements 2026 */
-  .form-control {
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
+  .app-card-body {
+    padding: 2rem;
+  }
+
+  /* Form Controls */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+
+  .full-width { grid-column: 1 / -1; }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--c-text-main);
+  }
+
+  .form-control, input[type="text"], input[type="file"], input[type="date"], input[type="url"], textarea, select {
+    width: 100%;
+    padding: 0.75rem 1rem;
     border: 1.5px solid var(--c-border);
-    background: var(--c-bg);
-    font-weight: 500;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 0.75rem;
+    background-color: #fff;
+    font-size: 0.95rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
   }
-  .form-control:focus {
+
+  input:focus, textarea:focus, select:focus {
+    outline: none;
     border-color: var(--c-primary);
-    background: var(--c-card);
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
   }
 
-  .btn-submit {
-    background: linear-gradient(135deg, var(--c-primary), var(--c-primary-dark));
-    color: white;
-    padding: 1.25rem 3rem;
-    border-radius: 99px;
-    font-weight: 800;
-    font-size: 1.2rem;
-    box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.4);
-    transition: all 0.3s ease;
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.6;
   }
-  .btn-submit:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 25px 50px -12px rgba(37, 99, 235, 0.5);
+  
+  /* Hints & Errors */
+  .form-hint {
+    font-size: 0.8rem;
+    color: var(--c-text-muted);
+    margin-top: 0.25rem;
+  }
+  .error-list {
+    color: #ef4444;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    list-style: none;
+    padding: 0;
   }
 
-  /* Teacher Selection specific */
+  /* Teacher Selector Modernization */
   .teacher-selector {
     border: 1px solid var(--c-border);
-    border-radius: var(--radius);
-    background-color: var(--c-w-bg);
+    border-radius: 1rem;
+    background: #f8fafc;
     padding: 1rem;
-    box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.03);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
   }
+
   .teacher-tools {
     display: flex;
     gap: 0.75rem;
     margin-bottom: 1rem;
     align-items: center;
   }
+
   .teacher-search {
     flex: 1;
-    padding: 0.6rem 1rem;
-    border-radius: 99px;
-    border: 1px solid var(--c-border);
-    background: var(--c-card);
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
+    border-radius: 2rem !important; 
+    border-color: var(--c-border);
+    padding-left: 2.5rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 0.75rem center;
+    background-size: 1.25rem;
   }
-  .teacher-search:focus {
-    border-color: var(--c-primary);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-    outline: none;
-  }
+
   .teacher-list-container {
-    max-height: 350px;
+    max-height: 280px;
     overflow-y: auto;
-    padding-right: 0.5rem;
+    padding-right: 0.25rem;
+    /* Custom Scrollbar */
     scrollbar-width: thin;
-    scrollbar-color: var(--c-border) transparent;
+    scrollbar-color: #cbd5e1 transparent;
   }
   .teacher-list-container::-webkit-scrollbar { width: 6px; }
-  .teacher-list-container::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 10px; }
+  .teacher-list-container::-webkit-scrollbar-track { background: transparent; }
+  .teacher-list-container::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
 
-  .teacher-list-container ul {
+  /* Grid of Teachers */
+  .teacher-list-container ul, #id_teachers {
     list-style: none;
     padding: 0;
     margin: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.75rem;
-  }
-  
-  .teacher-item, #teacherList li {
-    list-style: none;
+    gap: 0.5rem;
   }
 
-  .teacher-item label, #teacherList label {
+  .teacher-list-container li { display: contents; } /* Let labels be grid items directly if li wrapper exists */
+
+  .teacher-list-container label, #id_teachers label {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    cursor: pointer;
+    padding: 0.6rem 0.75rem;
+    background: #fff;
     border: 1px solid var(--c-border);
-    background: var(--c-card);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 0.95rem;
-    font-weight: 600;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.9rem;
     position: relative;
     user-select: none;
   }
-  
-  .teacher-item label:hover, #teacherList label:hover {
-    background-color: var(--c-w-bg);
+
+  .teacher-list-container label:hover {
     border-color: var(--c-primary);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   }
 
-  /* Checked state highlight - THE CORE FIX */
-  .teacher-item input:checked + span, 
-  #teacherList input:checked + span,
-  .teacher-item label:has(input:checked),
-  #teacherList label:has(input:checked) {
-    background-color: var(--c-primary);
-    color: #ffffff !important;
-    border-color: var(--c-primary-dark);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  /* Active State (Checked) */
+  .teacher-list-container label:has(input:checked), 
+  #id_teachers label:has(input:checked) {
+    background-color: var(--c-primary-light);
+    border-color: var(--c-primary);
+    color: var(--c-primary-dark);
+    font-weight: 600;
+    box-shadow: 0 0 0 1px var(--c-primary);
   }
 
-  #teacherList label:has(input:checked) span {
-    color: #ffffff !important;
-  }
-
-  /* Custom Checkbox within item */
-  .teacher-item input[type="checkbox"], 
-  #teacherList input[type="checkbox"] {
-    width: 1.2rem;
-    height: 1.2rem;
-    margin: 0;
+  .teacher-list-container input[type="checkbox"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    accent-color: var(--c-primary);
+    border-radius: 4px;
     cursor: pointer;
   }
 
-  /* Signature Box */
+  /* Signature Settings - Highlight Box */
   .sig-settings-box {
-    background: linear-gradient(to bottom right, rgba(59, 130, 246, 0.03), rgba(168, 85, 247, 0.03));
-    border: 1px dashed var(--c-primary);
-    border-radius: var(--radius);
+    margin-top: 1.5rem;
     padding: 1.5rem;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 1px dashed #3b82f6;
+    border-radius: 1rem;
     position: relative;
-    margin-top: 0.5rem;
   }
-  .sig-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    color: var(--c-primary-dark);
-    font-weight: 700;
-  }
+  
   .sig-badge {
-    background-color: var(--c-primary);
-    color: #fff;
-    font-size: 0.7rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 9999px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    position: absolute;
+    top: -0.75rem;
+    right: 1.5rem;
+    background: #2563eb;
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-weight: 800;
+    box-shadow: 0 2px 4px rgba(37,99,235,0.2);
   }
 
-  /* Actions */
+  /* Footer Actions */
   .form-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-top: 2rem;
+    margin-top: 2.5rem;
     padding-top: 1.5rem;
     border-top: 1px solid var(--c-border);
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
   }
-  .btn-submit { /* Re-defined in 2026 style block above but we ensure layout props here */
+
+  .btn-submit {
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
+    color: white;
+    border: none;
+    padding: 0.875rem 2.5rem;
+    border-radius: 99px; /* Pill shape */
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
+    gap: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    transition: all 0.3s ease;
   }
+  
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.4);
+    filter: brightness(1.1);
+  }
+
   .btn-cancel {
-    padding: 0.75rem 1.5rem;
-    border-radius: 99px;
-    border: 1px solid var(--c-border);
-    background: transparent;
+    padding: 0.875rem 2rem;
     color: var(--c-text-muted);
     font-weight: 600;
-    cursor: pointer;
     text-decoration: none;
-    transition: background 0.1s;
+    transition: color 0.2s;
   }
   .btn-cancel:hover {
-    background-color: var(--c-border);
     color: var(--c-text-main);
   }
 
-  /* Preview Styles */
+  /* --- Right Column: Live 3D Preview --- */
   .preview-col {
     position: sticky;
     top: 2rem;
-  }
-  .doc-preview {
-    background: #fff;
-    color: #1e293b; /* Always dark text on paper style */
-    border: 1px solid #e2e8f0;
-    min-height: 480px;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    /* 3D Effect for desktop */
-    transform: perspective(1000px) rotateY(-2deg);
-    box-shadow: -10px 10px 30px rgba(0,0,0,0.05);
-    transition: transform 0.4s ease;
-  }
-  .doc-preview:hover {
-    transform: perspective(1000px) rotateY(0deg);
-  }
-
-  html[data-theme="dark"] .doc-preview {
-    background: #e2e8f0; /* Slightly dimmed paper in dark mode but still light */
-    color: #0f172a;
+    perspective: 2000px; /* Enhanced depth */
+    z-index: 10;
   }
   
+  .doc-preview {
+    background: white;
+    min-height: 700px;
+    padding: 3rem;
+    border-radius: 2px;
+    /* Realistic Paper Shadow */
+    box-shadow: 
+      0 1px 1px rgba(0,0,0,0.15), 
+      0 10px 0 -5px #eee, 
+      0 10px 1px -4px rgba(0,0,0,0.15), 
+      0 20px 0 -10px #eee, 
+      0 20px 1px -9px rgba(0,0,0,0.15),
+      0 10px 40px rgba(0,0,0,0.1);
+    
+    /* 3D Transform */
+    transform: rotateY(-3deg) rotateX(2deg);
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    border: 1px solid #f0f0f0;
+  }
+
+  .doc-preview:hover {
+    transform: rotateY(0deg) rotateX(0deg) scale(1.02);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    z-index: 20;
+  }
+
+  /* Paper Content */
   .doc-header {
-    border-bottom: 2px solid #0f172a;
-    padding-bottom: 1rem;
-    margin-bottom: 1.5rem;
+    border-bottom: 3px double #1e293b;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
   }
-  .doc-brand {
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 800;
-    opacity: 0.6;
-  }
+
   .doc-title {
-    font-family: 'Amiri', serif; /* Use serif for official feel if available */
-    font-size: 1.8rem;
-    font-weight: 800;
+    font-family: 'Amiri', 'Times New Roman', serif;
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1.2;
     color: #000;
+    margin: 0.5rem 0;
   }
+  
   .doc-meta {
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    font-size: 0.8rem;
-    color: #64748b;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    font-size: 0.85rem;
   }
+
   .doc-tag {
     background: #f1f5f9;
-    padding: 0.2rem 0.6rem;
-    border-radius: 4px;
     border: 1px solid #cbd5e1;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    color: #475569;
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.4rem;
   }
-  .doc-body {
-    font-size: 1.05rem;
-    line-height: 1.8;
-    white-space: pre-wrap;
-    flex: 1;
-  }
-  .doc-footer {
-    margin-top: 2rem;
-    padding-top: 1rem;
-    border-top: 1px solid #cbd5e1;
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    color: #64748b;
-  }
-  
-  /* Utilities */
-  .hidden { display: none !important; }
-  .text-sm { font-size: 0.85rem; }
-  .text-red { color: #ef4444; }
 
-  /* Responsive Adjustments */
+  .doc-body {
+    font-family: 'Amiri', serif;
+    font-size: 1.15rem;
+    line-height: 1.9;
+    color: #334155;
+    text-align: justify;
+    white-space: pre-wrap;
+    min-height: 200px;
+  }
+
+  .doc-footer {
+     margin-top: auto;
+     border-top: 1px solid #e2e8f0;
+     padding-top: 2rem;
+     display: flex;
+     justify-content: space-between;
+     align-items: flex-end;
+     color: #94a3b8;
+     font-size: 0.8rem;
+  }
+
+  /* Mobile Responsive */
   @media (max-width: 1024px) {
     .main-grid {
       grid-template-columns: 1fr;
     }
     .preview-col {
-      display: block; /* Show preview below form on tablets/mobile */
+      order: 2;
       margin-top: 3rem;
     }
     .doc-preview {
-      transform: none !important; /* Disable 3D effect on smaller screens */
+      transform: none !important;
       min-height: auto;
+      box-shadow: var(--shadow-md);
     }
   }
 
-  @media (max-width: 768px) {
-    .circular-page { padding: 1.5rem 0; }
-    .circular-container { padding: 0 1rem; }
-    
-    .page-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1.5rem;
-    }
-    .header-content h1 { font-size: 1.8rem; }
-    
+  @media (max-width: 640px) {
     .form-grid { grid-template-columns: 1fr; }
-    
-    .teacher-item label, #teacherList label {
-      padding: 0.6rem;
-      font-size: 0.9rem;
-    }
-    .teacher-list-container ul {
-      grid-template-columns: 1fr; /* Stack teachers vertically on mobile */
-    }
-    
+    .teacher-list-container ul { grid-template-columns: 1fr; }
+    .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
     .btn-submit { width: 100%; justify-content: center; }
-    .btn-cancel { width: 100%; text-align: center; }
   }
 </style>
 {% endblock %}
@@ -409,16 +475,16 @@
     <header class="page-header">
       <div class="header-content">
         <h1>
-          <i class="fa-solid fa-file-signature" style="color:var(--c-primary)"></i>
+          <i class="fa-solid fa-feather-pointed" style="color:var(--c-primary)"></i>
           <span>إرسال تعميم رسمي</span>
         </h1>
         <div class="header-subtitle">
-          التعميم هو مستند رسمي يتطلب توقيع وإقرار بالاطلاع من قبل المستلمين
+          إصدار وثيقة رسمية للمعلمين (أو الإداريين) تتطلب التوقيع والإقرار
         </div>
       </div>
       <div class="header-actions">
         <a href="{% url 'reports:circulars_sent' %}" class="btn-link">
-          <i class="fa-solid fa-list-check"></i>
+          <i class="fa-solid fa-box-archive"></i>
           الأرشيف والمرسلة
         </a>
       </div>
@@ -426,16 +492,15 @@
 
     <div class="main-grid">
 
-
       <!-- LEFT: FORM SECTION -->
-      <section>
+      <section class="form-col">
         <div class="app-card">
           <div class="app-card-header">
             <h2>
-              <i class="fa-solid fa-pen-nib"></i>
+              <i class="fa-solid fa-pen-to-square"></i>
               بيانات التعميم
             </h2>
-            <span class="text-sm form-hint">الحقول بعلامة <span class="text-red">*</span> مطلوبة</span>
+            <div class="text-sm form-hint">الحقول بعلامة <span class="text-red">*</span> مطلوبة</div>
           </div>
 
           <div class="app-card-body">
@@ -443,37 +508,37 @@
               <form method="post" enctype="multipart/form-data" id="notifyForm" novalidate>
                 {% csrf_token %}
 
-                <!-- Hidden/System Fields -->
+                <!-- Hidden Fields -->
                 {% if form.requires_signature %}
                   <div class="hidden">{{ form.requires_signature }}</div>
                 {% endif %}
                 
                 {% if form.non_field_errors %}
-                  <div class="error-list" style="margin-bottom:1rem;padding:1rem;background:#fee2e2;border-radius:8px;border:1px solid #fecaca">
+                  <div class="error-list" style="margin-bottom:1.5rem;padding:1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;">
                     {{ form.non_field_errors }}
                   </div>
                 {% endif %}
 
                 <div class="form-grid">
 
-                  <!-- Title: Full Width -->
+                  <!-- Title -->
                   <div class="full-width form-group">
                     <label class="form-label" for="{{ form.title.id_for_label }}">{{ form.title.label }} <span class="text-red">*</span></label>
                     {{ form.title }}
                     {% if form.title.errors %}<div class="error-list">{{ form.title.errors }}</div>{% endif %}
                   </div>
 
-                  <!-- Body: Full Width -->
+                  <!-- Body -->
                   <div class="full-width form-group">
                     <label class="form-label" for="{{ form.message.id_for_label }}">{{ form.message.label }} <span class="text-red">*</span></label>
                     {{ form.message }}
                     {% if form.message.errors %}<div class="error-list">{{ form.message.errors }}</div>{% endif %}
                   </div>
 
-                  <!-- Target Departments (if applicable) -->
-                  {% if form.target_department %}
+                  <!-- Optional Filters (Department / School) -->
+                   {% if form.target_department %}
                     <div class="form-group">
-                        <label class="form-label" for="{{ form.target_department.id_for_label }}">{{ form.target_department.label }}</label>
+                        <label class="form-label">{{ form.target_department.label }}</label>
                         {{ form.target_department }}
                         {% if form.target_department.errors %}<div class="error-list">{{ form.target_department.errors }}</div>{% endif %}
                     </div>
@@ -482,46 +547,43 @@
                   <!-- Attachment -->
                   {% if form.attachment %}
                     <div class="form-group">
-                        <label class="form-label" for="{{ form.attachment.id_for_label }}">{{ form.attachment.label }}</label>
+                        <label class="form-label">{{ form.attachment.label }}</label>
                         {{ form.attachment }}
-                        <div class="form-hint">يسمح بـ PDF / Word / صور — حد أقصى 5MB</div>
+                        <div class="form-hint">يسمح بـ PDF / Word / صور (Max 5MB)</div>
                         {% if form.attachment.errors %}<div class="error-list">{{ form.attachment.errors }}</div>{% endif %}
                     </div>
                   {% endif %}
 
-                  <!-- Priority / Switch Toggles -->
-                  <div class="full-width" style="display:flex;gap:1.5rem;margin-block:0.5rem">
+                  <!-- Important Toggle -->
+                  <div class="full-width" style="margin-block:0.5rem">
                     {% if form.is_important %}
-                      <label class="form-label" style="justify-content:flex-start;gap:0.5rem;cursor:pointer">
+                      <label class="form-label" style="flex-direction:row; justify-content:flex-start; gap:0.75rem; cursor:pointer; align-items:center;">
                          {{ form.is_important }}
-                         <span style="font-weight:normal">تعميم هام وعاجل <i class="fa-solid fa-circle-exclamation text-red"></i></span>
+                         <span style="font-weight:normal; font-size:1rem;">هل هذا التعميم هام وعاجل؟ <i class="fa-solid fa-fire text-red"></i></span>
                       </label>
                     {% endif %}
                   </div>
 
-                  <!-- RECIPIENTS SECTION -->
+                  <!-- RECIPIENTS -->
                   {% if form.teachers %}
                   <div class="full-width field" data-name="teachers">
                      <div class="form-group">
-                        <label class="form-label" style="margin-bottom: 0.5rem; font-size: 1rem; border-bottom: 2px solid var(--c-primary); display: inline-block; padding-bottom: 4px; width: fit-content;">
-                           {{ form.teachers.label }} <span class="text-red">*</span>
-                        </label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+                           <label class="form-label">
+                              {{ form.teachers.label }} <span class="text-red">*</span>
+                           </label>
+                           <span class="text-sm" style="color:var(--c-primary); font-weight:700">
+                             تم اختيار: <span id="selCount">0</span>
+                           </span>
+                        </div>
                         
                         <div class="teacher-selector">
                            <div class="teacher-tools">
-                              <div style="position: relative; flex: 1;">
-                                <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); opacity: 0.5;"></i>
-                                <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث عن اسم المعلم..." style="padding-right: 40px;">
-                              </div>
-                              <div class="flex items-center" style="gap: 8px;">
-                                 <button type="button" id="selectAllTeachers" class="btn-cancel" style="padding: 6px 16px; font-size: 0.85rem; border-color: var(--c-primary); color: var(--c-primary);">تحديد الكل</button>
-                                 <button type="button" id="clearAllTeachers" class="btn-cancel" style="padding: 6px 16px; font-size: 0.85rem;">إلغاء التحديد</button>
-                              </div>
+                              <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث باسم المعلم...">
+                              <button type="button" id="selectAllTeachers" class="btn-link" style="color:var(--c-primary); font-size:0.85rem">الكل</button>
+                              <button type="button" id="clearAllTeachers" class="btn-link" style="color:#ef4444; font-size:0.85rem">إلغاء</button>
                            </div>
-                           <div style="margin-bottom: 12px; font-size: 0.85rem; color: var(--c-text); display: flex; align-items: center; gap: 8px;">
-                              <i class="fa-solid fa-users-check" style="color: var(--c-primary);"></i>
-                              <span>عدد المستلمين المختارين حالياً: <b id="selCount" style="color: var(--c-primary); font-size: 1rem;">0</b></span>
-                           </div>
+                           
                            <div class="teacher-list-container" id="teacherList">
                               {{ form.teachers }}
                            </div>
@@ -531,20 +593,21 @@
                   </div>
                   {% endif %}
 
-                  <!-- SIGNATURE SETTINGS BLOCK -->
+                  <!-- Signature Requirements -->
                   <div class="full-width sig-settings-box">
+                    <div class="sig-badge">إلزامي</div>
                     <div class="sig-header">
-                       <i class="fa-solid fa-file-contract"></i>
+                       <i class="fa-solid fa-signature"></i>
                        إعدادات التوقيع والإقرار
-                       <span class="sig-badge">إلزامي</span>
                     </div>
 
                     <div class="form-grid">
                       <!-- Deadline -->
                       {% if form.signature_deadline_at %}
                         <div class="form-group">
-                          <label class="form-label" for="{{ form.signature_deadline_at.id_for_label }}">{{ form.signature_deadline_at.label }}</label>
+                          <label class="form-label">{{ form.signature_deadline_at.label }}</label>
                           {{ form.signature_deadline_at }}
+                          <div class="form-hint">أقصى موعد مسموح للتوقيع</div>
                           {% if form.signature_deadline_at.errors %}<div class="error-list">{{ form.signature_deadline_at.errors }}</div>{% endif %}
                         </div>
                       {% endif %}
@@ -552,18 +615,17 @@
                       <!-- Action URL -->
                       {% if form.action_url %}
                         <div class="form-group">
-                          <label class="form-label" for="{{ form.action_url.id_for_label }}">{{ form.action_url.label }}</label>
+                          <label class="form-label">{{ form.action_url.label }}</label>
                           {{ form.action_url }}
-                          {% if form.action_url.errors %}<div class="error-list">{{ form.action_url.errors }}</div>{% endif %}
+                          <div class="form-hint">رابط زر إجراء (اختياري)</div>
                         </div>
                       {% endif %}
 
                       <!-- Acknowledgement Text -->
                       {% if form.signature_ack_text %}
                         <div class="full-width form-group">
-                          <label class="form-label" for="{{ form.signature_ack_text.id_for_label }}">{{ form.signature_ack_text.label }}</label>
+                          <label class="form-label">{{ form.signature_ack_text.label }}</label>
                           {{ form.signature_ack_text }}
-                          {% if form.signature_ack_text.errors %}<div class="error-list">{{ form.signature_ack_text.errors }}</div>{% endif %}
                         </div>
                       {% endif %}
                     </div>
@@ -571,258 +633,243 @@
 
                 </div>
 
-                <!-- Submit Area -->
+                <!-- Submit -->
                 <div class="form-actions">
                   <button type="submit" class="btn-submit">
                     <i class="fa-solid fa-paper-plane"></i>
-                    اعتماد وإرسال التعميم
+                    <span>اعتماد ونشر التعميم</span>
                   </button>
-                  <a href="{% url 'reports:home' %}" class="btn-cancel">إلغاء</a>
+                  <a href="{% url 'reports:home' %}" class="btn-cancel">إلغاء الأمر</a>
                 </div>
 
               </form>
             {% else %}
-               <p class="error-list">خطأ: لم يتم تحميل النموذج بشكل صحيح.</p>
+               <p class="error-list">عذراً، لم يتم تحميل النموذج. يرجى تحديث الصفحة.</p>
             {% endif %}
           </div>
         </div>
       </section>
 
-      <!-- RIGHT: PREVIEW SECTION -->
+      <!-- RIGHT: LIVE PREVIEW -->
       <aside class="preview-col">
-          <div class="app-card doc-preview">
-             <div class="app-card-body" style="height:100%;display:flex;flex-direction:column">
-                <div class="doc-header">
-                  <div>
-                    <div class="doc-brand">نظام التقارير المدرسية</div>
+          <div class="doc-preview">
+             <!-- Header -->
+             <div class="doc-header">
+                <div>
+                    <div class="doc-brand">نظام إدارة المدرسة</div>
                     <div class="doc-title" id="pv_title">عنوان التعميم</div>
-                  </div>
-                  <div style="text-align:left">
-                    <i class="fa-solid fa-school fa-2x" style="opacity:0.1"></i>
-                  </div>
                 </div>
+                <!-- Logo Placehoder -->
+                <div style="opacity:0.15">
+                    <i class="fa-solid fa-school fa-3x"></i>
+                </div>
+             </div>
+             
+             <!-- Meta Tags -->
+             <div class="doc-meta">
+                 <span class="doc-tag">
+                     <i class="fa-solid fa-user-tie"></i>
+                     <span>من: {% firstof request.user.name request.user.phone "الإدارة المدرسية" %}</span>
+                 </span>
+                 <span class="doc-tag" id="pv_att" style="display:none">
+                     <i class="fa-solid fa-paperclip"></i> يوجد مرفقات
+                 </span>
+                 <span class="doc-tag" id="pv_imp" style="display:none; color:#dc2626; border-color:#fecaca; background:#fef2f2">
+                     <i class="fa-solid fa-fire"></i> هام وعاجل
+                 </span>
+             </div>
 
-                <div class="doc-meta">
-                   <span class="doc-tag">
-                     <i class="fa-solid fa-user"></i>
-                     <span>من: {% firstof request.user.name request.user.phone "الإدارة" %}</span>
-                   </span>
-                   <span class="doc-tag" id="pv_att" style="display:none">
-                     <i class="fa-solid fa-paperclip"></i> مرفق
-                   </span>
-                   <span class="doc-tag" id="pv_imp" style="display:none;color:#dc2626;border-color:#fecaca;background:#fef2f2">
-                     <i class="fa-solid fa-circle-exclamation"></i> هام
-                   </span>
-                   <span class="doc-tag">
-                     <i class="fa-solid fa-signature"></i> توقيع إلزامي
+             <!-- Body -->
+             <div class="doc-body" id="pv_body">
+                نص التعميم سيظهر هنا كما يراه المعلم... يرجى الكتابة في الحقل المخصص للمعاينة الفورية.
+             </div>
+
+             <!-- Footer -->
+             <div class="doc-footer">
+                <div>
+                   <span id="pv_deadline_box" style="display:none">
+                     <i class="fa-regular fa-clock"></i> ينتهي التوقيع: <b id="pv_deadline">--</b>
                    </span>
                 </div>
-
-                <div class="doc-body" id="pv_body">
-                  نص التعميم سيظهر هنا كما يراه المعلم...
-                </div>
-
-                <div class="doc-footer">
-                   <div>
-                     <span id="pv_deadline_box" style="display:none">
-                       ينتهي التوقيع: <b id="pv_deadline">--</b>
-                     </span>
-                   </div>
-                   <div>
-                     <i class="fa-solid fa-qrcode"></i> وثيقة رسمية
-                   </div>
+                <div>
+                   <i class="fa-solid fa-fingerprint"></i> وثيقة إلكترونية معتمدة
                 </div>
              </div>
           </div>
-          <div style="text-align:center;margin-top:1rem;color:var(--c-text);opacity:0.6;font-size:0.85rem">
-            هذه معاينة تقريبية لكيفية ظهور التعميم
+          
+          <div style="text-align:center; margin-top:1.5rem; opacity:0.7; font-size:0.9rem">
+             <i class="fa-solid fa-eye"></i> معاينة حية لشكل المستند
           </div>
       </aside>
 
     </div>
   </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
 (function(){
   const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
 
-  // Force requires_signature
+  // Auto-check hidden signature requirement
   const rs = document.getElementById('id_requires_signature');
   if(rs){ rs.checked = true; }
 
-  // Live Preview Logic
-  const titleInput = document.getElementById("id_title");
-  const msgInput = document.getElementById("id_message");
-  const impInput = document.getElementById("id_is_important");
-  const dlineInput = document.getElementById("id_signature_deadline_at");
-  const attInput = document.getElementById("id_attachment");
+  // --- LIVE PREVIEW LOGIC ---
+  const inputs = {
+      title: document.getElementById("id_title"),
+      msg: document.getElementById("id_message"),
+      imp: document.getElementById("id_is_important"),
+      date: document.getElementById("id_signature_deadline_at"),
+      file: document.getElementById("id_attachment")
+  };
 
-  const pvTitle = $("#pv_title");
-  const pvBody  = $("#pv_body");
-  const pvImp   = $("#pv_imp");
-  const pvAtt   = $("#pv_att");
-  const pvDeadlineBox = $("#pv_deadline_box");
-  const pvDeadlineVal = $("#pv_deadline");
+  const preview = {
+      title: $("#pv_title"),
+      body: $("#pv_body"),
+      imp: $("#pv_imp"),
+      att: $("#pv_att"),
+      dlineBox: $("#pv_deadline_box"),
+      dlineVal: $("#pv_deadline")
+  };
 
   function updatePreview(){
-    if(pvTitle && titleInput) pvTitle.textContent = titleInput.value || 'عنوان التعميم';
-    if(pvBody && msgInput) pvBody.textContent = msgInput.value || 'نص التعميم...';
-    if(pvImp && impInput) pvImp.style.display = impInput.checked ? 'inline-flex' : 'none';
+    if(preview.title && inputs.title) preview.title.textContent = inputs.title.value || 'عنوان التعميم';
+    if(preview.body && inputs.msg) preview.body.textContent = inputs.msg.value || 'نص التعميم...';
+    
+    if(preview.imp && inputs.imp) preview.imp.style.display = inputs.imp.checked ? 'inline-flex' : 'none';
 
-    if(pvAtt && attInput){
-      pvAtt.style.display = (attInput.files && attInput.files.length) ? 'inline-flex' : 'none';
+    if(preview.att && inputs.file){
+      preview.att.style.display = (inputs.file.files && inputs.file.files.length) ? 'inline-flex' : 'none';
     }
     
-    if(pvDeadlineBox && dlineInput){
-        if(dlineInput.value){
-           pvDeadlineBox.style.display = 'inline';
-           pvDeadlineVal.textContent = dlineInput.value.replace('T', ' ');
+    if(preview.dlineBox && inputs.date){
+        if(inputs.date.value){
+           preview.dlineBox.style.display = 'inline';
+           preview.dlineVal.textContent = inputs.date.value.replace('T', ' ');
         } else {
-           pvDeadlineBox.style.display = 'none';
+           preview.dlineBox.style.display = 'none';
         }
     }
   }
 
-  [titleInput, msgInput, impInput, dlineInput, attInput].forEach(el => {
+  // Attach Listeners
+  Object.values(inputs).forEach(el => {
      if(el){
        el.addEventListener('input', updatePreview);
        el.addEventListener('change', updatePreview);
      }
   });
 
-  // ========== TEACHER LIST LOGIC (Restoring Filter/AJAX capabilities) ==========
-  const teacherField = document.querySelector('.field[data-name="teachers"]');
-  const teacherListBox = document.getElementById('teacherList');
+  // --- TEACHER SELECTOR LOGIC ---
+  const teacherList = document.getElementById('teacherList');
   const searchInput = document.getElementById('teacherSearch');
   const countDisplay = document.getElementById('selCount');
-  const btnSelectAll = document.getElementById('selectAllTeachers');
-  const btnClearAll = document.getElementById('clearAllTeachers');
-
-  // Helper to find inputs
+  
   function getCheckboxes(){
-     if(!teacherListBox) return [];
-     return Array.from(teacherListBox.querySelectorAll('input[type="checkbox"]'));
+     return teacherList ? Array.from(teacherList.querySelectorAll('input[type="checkbox"]')) : [];
   }
 
   function updateCount(){
-     const checks = getCheckboxes();
-     const c = checks.filter(cb => cb.checked).length;
-     if(countDisplay) countDisplay.textContent = c;
+     if(!countDisplay) return;
+     const c = getCheckboxes().filter(cb => cb.checked).length;
+     countDisplay.textContent = c;
   }
 
-  function filterTeachers(term){
-     const checks = getCheckboxes();
-     const q = term.toLowerCase();
-     checks.forEach(cb => {
-        const span = cb.nextElementSibling; // Usually <span>Name</span>
-        const label = cb.closest('label'); // or parent li
-        const li = cb.closest('li');
-        
-        let txt = "";
-        if(span) txt = span.textContent;
-        else if(label) txt = label.textContent;
-        
-        const match = txt.toLowerCase().includes(q);
-        if(li) li.style.display = match ? '' : 'none';
+  // Filter List
+  if(searchInput){
+     searchInput.addEventListener('input', e => {
+        const term = e.target.value.toLowerCase();
+        getCheckboxes().forEach(cb => {
+            const label = cb.closest('label'); // Only looking for label as per new structure
+            if(label){
+                const txt = label.textContent || "";
+                const match = txt.toLowerCase().includes(term);
+                // Also handle LI wrapper if it exists (for compatibility)
+                const li = cb.closest('li');
+                if(li) li.style.display = match ? '' : 'none';
+                else label.style.display = match ? 'flex' : 'none';
+            }
+        });
      });
   }
 
-  if(searchInput){
-     searchInput.addEventListener('input', e => filterTeachers(e.target.value));
-  }
-
-  if(btnSelectAll){
-     btnSelectAll.addEventListener('click', e => {
-        e.preventDefault(); 
-        console.log("Selecting all visible teachers...");
+  // Select All
+  const btnAll = document.getElementById('selectAllTeachers');
+  if(btnAll){
+     btnAll.addEventListener('click', () => {
         getCheckboxes().forEach(cb => {
-            const li = cb.closest('li') || cb.closest('.teacher-item');
-            if(li && li.style.display !== 'none') {
+            // Only select visible ones
+            const container = cb.closest('li') || cb.closest('label'); 
+            if(container && container.style.display !== 'none'){
                 cb.checked = true;
-                // Dispatch change event to trigger highlight or other listeners
-                cb.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
         updateCount();
      });
   }
 
-  if(btnClearAll){
-     btnClearAll.addEventListener('click', e => {
-        e.preventDefault();
-        getCheckboxes().forEach(cb => {
-            cb.checked = false;
-            cb.dispatchEvent(new Event('change', { bubbles: true }));
-        });
+  // Clear All
+  const btnClear = document.getElementById('clearAllTeachers');
+  if(btnClear){
+     btnClear.addEventListener('click', () => {
+        getCheckboxes().forEach(cb => cb.checked = false);
         updateCount();
      });
   }
 
-  if(teacherListBox){
-     teacherListBox.addEventListener('change', updateCount);
+  // Listen for manual checkbox changes
+  if(teacherList){
+     teacherList.addEventListener('change', updateCount);
   }
-  
-  // Initialize count
+
+  // Initial Count
   updateCount();
 
-
-  // ========== AJAX RELOAD LOGIC (If needed by backend logic) ==========
-  // The original code had logic to reload teachers if Dept/School/Scope changes.
-  // We must preserve it if those fields exist. 
-  
-  const scopeSel = document.getElementById('id_audience_scope'); // If user sends to admins
+  // --- AJAX RELOAD (Backwards Compatibility) ---
+  const scopeSel = document.getElementById('id_audience_scope');
   const schoolSel = document.getElementById('id_target_school');
   const deptSel = document.getElementById('id_target_department');
-  
-  let isLoading = false;
 
   async function refreshTeachers(){
-      if(isLoading) return;
-      // If we don't have these selectors, we assume static list for manager -> teachers
       if(!scopeSel && !schoolSel && !deptSel) return; 
 
-      // Build Params
       const params = new URLSearchParams();
-      params.set('mode', 'circular'); // Force mode
+      params.set('mode', 'circular');
       if(scopeSel) params.set('audience_scope', scopeSel.value);
       if(schoolSel) params.set('target_school', schoolSel.value);
       if(deptSel) params.set('target_department', deptSel.value);
 
       const url = '{% url "reports:api_notification_teachers" %}?' + params.toString();
       
-      isLoading = true;
-      const prevContent = teacherListBox.innerHTML;
-      teacherListBox.innerHTML = '<div style="padding:10px;text-align:center;color:#64748b">جارٍ التحديث...</div>';
+      teacherList.style.opacity = '0.5';
       
       try {
          const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
          const data = await res.json();
          const results = data.results || [];
          
+         let html = '<ul>'; // Using UL structure
+         const fieldName = 'teachers';
+         
          if(results.length === 0){
-            teacherListBox.innerHTML = '<div style="padding:10px;text-align:center;color:#64748b">لا يوجد مستلمون.</div>';
+            html = '<div style="padding:1rem;text-align:center;color:#64748b">لا يوجد مستلمون مطابقون.</div>';
          } else {
-            let html = '<ul>';
-            // Determine field name from existing or default 'teachers'
-            const fieldName = 'teachers'; // simplified assumption
-            results.forEach(t => {
+             results.forEach(t => {
+                // Generates structure compatible with CSS: label > input
                 html += `<li><label><input type="checkbox" name="${fieldName}" value="${t.id}"> <span>${t.name}</span></label></li>`;
-            });
-            html += '</ul>';
-            teacherListBox.innerHTML = html;
+             });
+             html += '</ul>';
          }
+         teacherList.innerHTML = html;
          updateCount();
-         if(searchInput) filterTeachers(searchInput.value); // Re-apply filter
          
       } catch(e){
-         console.error(e);
-         teacherListBox.innerHTML = prevContent; // Revert on error
+         console.error("Failed to load teachers", e);
       } finally {
-         isLoading = false;
+         teacherList.style.opacity = '1';
       }
   }
 
@@ -830,16 +877,21 @@
   if(scopeSel) scopeSel.addEventListener('change', refreshTeachers);
   if(schoolSel) schoolSel.addEventListener('change', refreshTeachers);
 
-
-  // ========== PREVENT DOUBLE SUBMIT ==========
+  // --- SUBMIT LOADING STATE ---
   const form = document.getElementById('notifyForm');
   if(form){
     form.addEventListener('submit', function(){
-      const btn = form.querySelector('button[type="submit"]');
-      if(btn){
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ الإرسال...';
-      }
+       const btn = form.querySelector('button[type="submit"]');
+       if(btn && !btn.disabled){
+           // Simple validation check before disabling? Browser does it via 'required'
+           setTimeout(() => {
+               if(form.checkValidity()){ 
+                   btn.disabled = true;
+                   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
+                   btn.style.opacity = '0.8';
+               }
+           }, 100);
+       }
     });
   }
 

@@ -168,9 +168,10 @@
     .signatures-footer {
       margin-top: 50px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 50px;
+      grid-template-columns: 1fr;
+      gap: 20px;
       text-align: center;
+      max-width: 420px;
     }
     .sig-block { font-weight: 900; }
     .sig-space { height: 60px; }
@@ -220,7 +221,7 @@
       </div>
       
       <div class="header-center">
-        <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="Logo" class="header-logo" style="margin-bottom: 5px;">
+        <img src="{% static 'img/UntiTtled-1.png' %}" alt="Logo" class="header-logo" style="margin-bottom: 5px;">
         <div style="font-size: 11px; font-weight: 900;">منصة توثـيق التقارير</div>
       </div>
 
@@ -261,7 +262,7 @@
       <tr>
         <th>حالة التقرير</th>
         <td colspan="3">
-          {% if stats.unsigned == 0 %}كتمل التوقيع من جميع الأطراف{% else %}جاري جمع التواقيع...{% endif %}
+          {% if stats.unsigned == 0 %}اكتمل التوقيع من جميع الأطراف{% else %}جاري جمع التواقيع...{% endif %}
         </td>
       </tr>
     </table>
@@ -312,15 +313,10 @@
         <div class="sig-space"></div>
         <div style="font-size: 0.9rem;">{{ request.user.name|default:request.user.phone }}</div>
       </div>
-      <div class="sig-block">
-        <div>الختم الرسمي للمدرسة</div>
-        <div class="sig-space"></div>
-        <div style="font-size: 0.8rem; color: #ccc;">(يختم هنا)</div>
-      </div>
     </footer>
 
     <div class="footer-meta">
-      <span>نظام توثيق التقارير الذكي 2026 — تم إنشاؤه بواسطة {{ request.user.name }}</span>
+      <span>نظام توثيق التقارير الذكي 2026 — تم إنشاؤه بواسطة {{ request.user.name|default:request.user.phone }}</span>
       <span>صفحة 1 من 1</span>
     </div>
   </div>
