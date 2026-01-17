@@ -3,55 +3,394 @@
 
 {% block title %}مشاركة ملف الإنجاز{% endblock %}
 
+{% block head %}
+<style>
+  /* =========================================================
+     Share Management 2026 — Match report sharing UX
+     ========================================================= */
+  .share-page {
+    --gap: 24px;
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --anim-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Brand Colors */
+    --whatsapp: #25D366;
+    --whatsapp-dark: #128C7E;
+
+    /* Fix missing variables */
+    --brand-600: var(--brand, #2563eb);
+    --brand-500: #3b82f6;
+    --brand-300: #93c5fd;
+    --brand-500-10: rgba(59, 130, 246, 0.1);
+    --brand-500-30: rgba(59, 130, 246, 0.3);
+    --brand-500-40: rgba(59, 130, 246, 0.4);
+    --brand-500-05: rgba(59, 130, 246, 0.05);
+
+    /* Map system variables */
+    --surface: var(--card, #ffffff);
+    --surface-alt: var(--bg, #f5f7fb);
+    --border: var(--line, #e2e8f0);
+    --ink-light: var(--muted, #64748b);
+    --ink-lighter: #94a3b8;
+    --shadow-md: var(--shadow, 0 10px 28px rgba(2,6,23,.10));
+
+    --danger-600: var(--danger, #dc2626);
+    --danger-700: #b91c1c;
+    --danger-500-10: rgba(220, 38, 38, 0.1);
+    --danger-500-20: rgba(220, 38, 38, 0.2);
+  }
+
+  .share-max-w {
+    max-width: 680px;
+    margin: 40px auto;
+    padding: 0 20px;
+    animation: fade-up 0.5s var(--anim-ease);
+  }
+
+  /* Header */
+  .share-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .share-title-grp h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--ink);
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .share-subtitle {
+    color: var(--ink-light);
+    margin-top: 6px;
+    font-size: 0.95rem;
+  }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-back:hover { background: var(--surface-alt); }
+
+  /* Main Card */
+  .share-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .share-status-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--surface-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 32px;
+    color: var(--ink-light);
+  }
+
+  .share-status-icon.active {
+    background: var(--brand-500-10);
+    color: var(--brand-600);
+    box-shadow: 0 0 0 8px var(--brand-500-05);
+  }
+
+  .share-intro {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .share-intro h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+
+  .share-intro p {
+    color: var(--ink-light);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Active State Components */
+  .link-box {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .link-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 0 12px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    direction: ltr;
+    text-align: left;
+  }
+  .link-input:focus { outline: none; }
+
+  .btn-copy {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-copy:hover {
+    background: var(--brand-500-05);
+    border-color: var(--brand-300);
+    color: var(--brand-700);
+  }
+
+  .share-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .btn-whatsapp {
+    background: var(--whatsapp);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 14px;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-whatsapp:hover {
+    background: var(--whatsapp-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+  }
+
+  .btn-danger-soft {
+    background: var(--danger-500-10);
+    color: var(--danger-600);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .btn-danger-soft:hover {
+    background: var(--danger-500-20);
+    color: var(--danger-700);
+  }
+
+  .btn-activate {
+    width: 100%;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    cursor: pointer;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-activate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.25);
+  }
+
+  .expiry-info {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--ink-light);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .icon { width: 20px; height: 20px; }
+  .icon-lg { width: 32px; height: 32px; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container" style="max-width:900px">
-  <div class="card" style="padding:18px">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <div>
-        <h1 style="margin:0;font-weight:950">مشاركة ملف الإنجاز</h1>
-        <div class="muted" style="margin-top:6px">
+<div class="share-page" dir="rtl">
+  <div class="share-max-w">
+
+    <div class="share-header">
+      <div class="share-title-grp">
+        <h1>مشاركة ملف الإنجاز</h1>
+        <div class="share-subtitle">
           {{ file.teacher_name }} — {{ file.academic_year }}
         </div>
       </div>
-      <a class="btn" href="{% url 'reports:achievement_file_detail' file.pk %}">رجوع</a>
+      <a href="{% url 'reports:achievement_file_detail' file.pk %}" class="btn-back" data-smart-back="1">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>رجوع</span>
+      </a>
     </div>
 
-    <hr style="margin:16px 0;border:none;border-top:1px solid var(--line)">
-
-    <div class="muted" style="font-weight:900">
-      مدة الرابط الافتراضية: {{ expiry_days }} أيام.
-    </div>
-
-    {% if active_link %}
-      <div class="card" style="margin-top:12px;padding:14px;background:var(--bg)">
-        <div style="font-weight:950">الرابط مفعّل</div>
-        <div class="muted" style="margin-top:6px">ينتهي في: {{ expires_at_str }}</div>
-        <div style="margin-top:10px;word-break:break-word">
-          <a href="{{ public_url }}" target="_blank" rel="noopener">{{ public_url }}</a>
+    <div class="share-card">
+      {% if active_link %}
+        <div class="share-status-icon active">
+          <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
         </div>
 
-        <form method="post" style="margin-top:12px">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="disable">
-          <button class="btn btn-danger" type="submit">إلغاء الرابط</button>
-        </form>
-      </div>
-    {% else %}
-      <div class="card" style="margin-top:12px;padding:14px;background:var(--bg)">
-        <div style="font-weight:950">المشاركة غير مفعّلة</div>
-        <div class="muted" style="margin-top:6px">عند التفعيل سيتم إنشاء رابط صالح لمدة {{ expiry_days }} أيام.</div>
+        <div class="share-intro">
+          <h2>الرابط فعال وجاهز للمشاركة</h2>
+          <p>يمكن لأي شخص لديه الرابط استعراض ملف الإنجاز وتنزيله (PDF).<br>ينتهي الرابط تلقائياً في {{ expires_at_str }}</p>
+        </div>
 
-        <form method="post" style="margin-top:12px">
+        <label style="display:block;margin-bottom:8px;font-weight:700;font-size:0.9rem;color:var(--ink)">رابط ملف الإنجاز العام:</label>
+        <div class="link-box">
+          <input type="text" class="link-input" id="shareUrl" value="{{ public_url }}" readonly>
+          <button class="btn-copy" type="button" onclick="copyLink()">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="copyIcon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span id="copyText">نسخ</span>
+          </button>
+        </div>
+
+        <div class="share-actions-grid">
+          <a href="https://wa.me/?text={{ public_url|urlencode }}" target="_blank" rel="noopener" class="btn-whatsapp">
+            <i class="fab fa-whatsapp" style="font-size:1.2rem"></i>
+            <span>عبر واتساب</span>
+          </a>
+
+          <form method="post" style="display:block">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="disable">
+            <button type="submit" class="btn-danger-soft">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom;margin-left:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              إيقاف المشاركة
+            </button>
+          </form>
+        </div>
+
+        <div class="expiry-info">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>صلاحية الرابط تعتمد على النظام ({{ expiry_days }} أيام افتراضياً)</span>
+        </div>
+
+      {% else %}
+        <div class="share-status-icon">
+          <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+
+        <div class="share-intro">
+          <h2>مشاركة ملف الإنجاز مع الآخرين</h2>
+          <p>عند تفعيل الرابط، سيتم إنشاء صفحة عامة لملف الإنجاز تسهل إرسالها لمدير المدرسة أو المشرفين عبر واتساب.</p>
+        </div>
+
+        <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="enable">
-          <button class="btn btn-primary" type="submit">تفعيل مشاركة ملف الإنجاز</button>
+          <button type="submit" class="btn-activate">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            توليد رابط المشاركة
+          </button>
         </form>
-      </div>
-    {% endif %}
 
-    <div class="muted" style="margin-top:14px">
-      مشاركة ملف الإنجاز تعتمد على وجود PDF مُولّد.
+        <div class="expiry-info">
+          <span>يتم تأمين الرابط برمز تشفير فريد يصعب تخمينه.</span>
+        </div>
+      {% endif %}
+
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
+  function copyLink() {
+    var copyText = document.getElementById("shareUrl");
+    if(!copyText) return;
+
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+
+    try {
+      navigator.clipboard.writeText(copyText.value);
+    } catch(err) {
+      document.execCommand("copy");
+    }
+
+    var btn = document.querySelector('.btn-copy');
+    var txt = document.getElementById('copyText');
+    var icon = document.getElementById('copyIcon');
+
+    if(btn) {
+      var originalHTML = btn.innerHTML;
+      btn.style.borderColor = 'var(--brand-500)';
+      btn.style.color = 'var(--brand-600)';
+      btn.style.background = 'var(--brand-500-10)';
+
+      if(txt) txt.textContent = 'تم النسخ!';
+      if(icon) {
+         icon.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+      }
+
+      setTimeout(function(){
+        if(btn) btn.innerHTML = originalHTML;
+        btn.style = '';
+      }, 2000);
+    }
+  }
+</script>
 {% endblock %}
