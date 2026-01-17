@@ -79,8 +79,8 @@
 
               <span class="sender-role">
                 {% with s=n.created_by %}
-                  {% if s and s.role %}
-                    — {% firstof s.role.name s.role.slug %}
+                  {% if s and s.display_role_label %}
+                    — {{ s.display_role_label }}
                   {% endif %}
                 {% endwith %}
               </span>

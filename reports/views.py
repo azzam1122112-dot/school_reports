@@ -1646,7 +1646,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                                 message=body,
                                 is_important=True,
                                 school=active_school,
-                                created_by=None,
+                                created_by=user,
                             )
                             NotificationRecipient.objects.create(notification=n, teacher=ach_file.teacher)
                         messages.success(request, "تم إرسال التعليق الخاص للمعلّم ✅")
@@ -2420,7 +2420,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                                     message=body,
                                     is_important=True,
                                     school=school_scope,
-                                    created_by=None,
+                                    created_by=user,
                                 )
                                 NotificationRecipient.objects.create(notification=n, teacher=r.teacher)
                             return redirect(request.get_full_path())

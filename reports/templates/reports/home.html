@@ -114,7 +114,17 @@
           {% endif %}
           <div class="hn-body">{{ home_notification.message|linebreaksbr }}</div>
           <div class="hn-meta">
-            <span>المرسل: {% firstof home_notification.created_by.name home_notification.created_by.phone "الإدارة" %}</span>
+            <span>
+              المرسل:
+              {% if home_notification.created_by %}
+                {% firstof home_notification.created_by.name home_notification.created_by.phone home_notification.created_by.username "الإدارة" %}
+                {% if home_notification.created_by.is_platform_admin or home_notification.created_by.role %}
+                  — {{ home_notification.created_by.display_role_label }}
+                {% endif %}
+              {% else %}
+                الإدارة
+              {% endif %}
+            </span>
             {% if home_notification.created_at %}<span dir="ltr">{{ home_notification.created_at|date:"Y-m-d H:i" }}</span>{% endif %}
           </div>
         </div>
