@@ -1,3 +1,4 @@
+
 {# reports/templates/reports/circular_detail.html #}
 {% extends "base.html" %}
 {% load static %}
@@ -6,354 +7,427 @@
 
 {% block head %}
 <style>
-  /* =========================================================
-     Circular Detail (Admin) — 2026 UI
-     - Modern, responsive, dark-mode friendly
-     - Clear toggle (checkbox) + search + recipients filters
-     ========================================================= */
-
-  .cd-scope{
-    --cd-ink: var(--ink, #0f172a);
-    --cd-muted: var(--muted, #64748b);
-    --cd-line: var(--line, #e5e7eb);
-    --cd-card: var(--card, #ffffff);
-    --cd-soft: var(--line-2, #f1f5f9);
-    --cd-shadow: 0 16px 42px rgba(2,6,23,.10);
-    --cd-brand: var(--brand, #2563eb);
-    --cd-brand2: #7c3aed;
-    --cd-brand-ghost: rgba(37,99,235,.10);
-    --cd-danger: #ef4444;
-    --cd-success: #10b981;
-    --cd-warn: #f59e0b;
-    --cd-t: var(--t-fast, .18s ease);
+  :root {
+    --c-primary: #3b82f6; 
+    --c-primary-dark: #2563eb;
+    --c-primary-light: #eff6ff;
+    --c-success: #10b981;
+    --c-danger: #ef4444;
+    --c-warn: #f59e0b;
+    --c-text-main: #0f172a;
+    --c-text-muted: #64748b;
+    --c-bg: #f8fafc;
+    --c-card-bg: #ffffff;
+    --c-border: #e2e8f0;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-elegant: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --font-heading: 'Tajawal', system-ui, sans-serif;
   }
 
-  .cd-scope .cd-wrap{max-width:1180px;margin:0 auto;padding:18px}
-
-  .cd-scope .cd-hero{
-    border-radius:18px;
-    border:1px solid rgba(148,163,184,.35);
-    background:
-      radial-gradient(1200px 300px at 100% 0%, rgba(37,99,235,.12), transparent 60%),
-      radial-gradient(900px 300px at 0% 0%, rgba(124,58,237,.10), transparent 60%),
-      linear-gradient(180deg, var(--cd-soft), var(--cd-card));
-    box-shadow: var(--cd-shadow);
-    overflow:hidden;
-  }
-  html[data-theme="dark"] .cd-scope .cd-hero{
-    box-shadow: 0 22px 64px rgba(0,0,0,.45);
-    border-color: rgba(148,163,184,.25);
+  body {
+    background-color: var(--c-bg);
+    color: var(--c-text-main);
+    font-family: var(--font-heading);
   }
 
-  .cd-scope .cd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px}
-  .cd-scope .cd-title{margin:0;font-weight:1000;letter-spacing:-.2px;color:var(--cd-ink)}
-  .cd-scope .cd-sub{color:var(--cd-muted);font-weight:850;margin-top:4px}
-
-  .cd-scope .cd-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .cd-scope .cd-btn{
-    display:inline-flex;align-items:center;gap:8px;
-    padding:10px 14px;border-radius:14px;
-    border:1px solid var(--cd-line);
-    background: var(--cd-card);
-    color: var(--cd-ink);
-    font-weight:950;text-decoration:none;
-    transition: transform var(--cd-t), box-shadow var(--cd-t), border-color var(--cd-t), background var(--cd-t);
-    min-height:44px;
+  /* Page Wrapper */
+  .circular-page {
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    background-image: 
+        radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, transparent 50%), 
+        radial-gradient(at 50% 0%, hsla(225,39%,30%,0) 0, transparent 50%), 
+        radial-gradient(at 100% 0%, hsla(339,49%,30%,0) 0, transparent 50%);
   }
-  .cd-scope .cd-btn:hover{transform:translateY(-1px);box-shadow: 0 14px 28px rgba(2,6,23,.10);border-color: rgba(37,99,235,.25)}
-  .cd-scope .cd-btn.primary{background: linear-gradient(135deg, var(--cd-brand), var(--cd-brand2));border-color: transparent;color:#fff}
-  .cd-scope .cd-btn.primary:hover{box-shadow: 0 18px 34px rgba(37,99,235,.22)}
-  html[data-theme="dark"] .cd-scope .cd-btn{background: rgba(255,255,255,.06)}
 
-  .cd-scope .cd-pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:0 16px 14px}
-  .cd-scope .pill{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:7px 10px;border-radius:999px;
-    border:1px solid rgba(148,163,184,.35);
-    background: rgba(248,250,252,.75);
-    color: var(--cd-ink);
-    font-weight:950;font-size:.86rem;
-    white-space:nowrap;
+  .circular-container {
+    max-width: 1400px;
+    margin: 0 auto;
   }
-  html[data-theme="dark"] .cd-scope .pill{background: rgba(2,6,23,.20)}
-  .cd-scope .pill.important{background: rgba(239,68,68,.10);border-color: rgba(239,68,68,.22);color:#b91c1c}
-  .cd-scope .pill.blue{background: rgba(37,99,235,.10);border-color: rgba(37,99,235,.22);color:#1e40af}
-  .cd-scope .pill.success{background: rgba(16,185,129,.12);border-color: rgba(16,185,129,.22);color:#166534}
-  .cd-scope .pill.warn{background: rgba(245,158,11,.14);border-color: rgba(245,158,11,.22);color:#92400e}
 
-  .cd-scope .cd-grid{display:grid;gap:14px;margin-top:14px}
-  @media(min-width: 1050px){.cd-scope .cd-grid{grid-template-columns:1.2fr .8fr}}
-
-  .cd-scope .card{background: var(--cd-card);border:1px solid var(--cd-line);border-radius:18px;box-shadow: var(--cd-shadow);overflow:hidden}
-  .cd-scope .card-hd{padding:14px 16px;border-bottom:1px solid var(--cd-line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg,var(--cd-soft),var(--cd-card))}
-  .cd-scope .card-bd{padding:16px}
-
-  .cd-scope .doc{line-height:1.95;color:var(--cd-ink);font-weight:850}
-  .cd-scope .doc-box{
-    border:1px solid rgba(148,163,184,.35);
-    border-radius:16px;
-    padding:14px;
-    background: linear-gradient(180deg, var(--cd-card), rgba(248,250,252,.60));
+  /* Header Styles */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 0 0.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
   }
-  html[data-theme="dark"] .cd-scope .doc-box{background: linear-gradient(180deg, var(--cd-card), rgba(2,6,23,.22))}
 
-  .cd-scope .kpi{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr))}
-  @media(max-width: 520px){.cd-scope .kpi{grid-template-columns:1fr}}
-  .cd-scope .kpi .k{
-    border:1px solid rgba(148,163,184,.35);
-    background: rgba(248,250,252,.75);
-    border-radius:16px;
-    padding:12px;
+  .header-content h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: linear-gradient(135deg, var(--c-primary-dark), #4f46e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-  html[data-theme="dark"] .cd-scope .kpi .k{background: rgba(2,6,23,.18)}
-  .cd-scope .k .lbl{color:var(--cd-muted);font-weight:900;font-size:.88rem}
-  .cd-scope .k .val{font-weight:1000;font-size:1.35rem;color:var(--cd-ink);margin-top:2px}
 
-  .cd-scope .field-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .cd-scope .search{
-    flex:1;
-    min-width:220px;
-    border:1px solid var(--cd-line);
-    border-radius:14px;
-    padding:10px 12px;
-    font:inherit;
-    min-height:44px;
-    background: var(--cd-card);
-    color: var(--cd-ink);
-    outline:none;
-    font-weight:850;
+  .header-subtitle {
+    margin-top: 0.5rem;
+    color: var(--c-text-muted);
+    font-size: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
   }
-  .cd-scope .search:focus{border-color: rgba(37,99,235,.35);box-shadow: 0 0 0 4px rgba(37,99,235,.12)}
 
-  .cd-scope .toggle{
-    display:inline-flex;
-    align-items:center;
-    gap:10px;
-    padding:9px 12px;
-    border-radius:14px;
-    border:1px solid var(--cd-line);
-    background: var(--cd-card);
-    user-select:none;
-    cursor:pointer;
-    min-height:44px;
-    font-weight:950;
-    color: var(--cd-ink);
-  }
-  .cd-scope .toggle input{position:absolute;opacity:0;pointer-events:none}
-  .cd-scope .switch{
-    width:44px;height:26px;border-radius:999px;
-    background: rgba(100,116,139,.25);
-    border:1px solid rgba(148,163,184,.45);
-    position:relative;
-    transition: background var(--cd-t), border-color var(--cd-t);
-    flex:0 0 auto;
-  }
-  .cd-scope .switch::after{
-    content:"";
-    width:20px;height:20px;border-radius:999px;
-    background: var(--cd-card);
-    border:1px solid rgba(148,163,184,.45);
-    position:absolute;top:2px;right:2px;
-    transition: transform var(--cd-t);
-    box-shadow: 0 6px 14px rgba(2,6,23,.18);
-  }
-  .cd-scope .toggle input:checked + .switch{background: rgba(16,185,129,.22);border-color: rgba(16,185,129,.35)}
-  .cd-scope .toggle input:checked + .switch::after{transform: translateX(-18px)}
+  .header-actions { display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; }
 
-  .cd-scope .table-wrap{overflow:auto;border-radius:18px;border:1px solid var(--cd-line)}
-  .cd-scope table{width:100%;border-collapse:separate;border-spacing:0;background: var(--cd-card)}
-  .cd-scope thead th{
-    position:sticky;top:0;z-index:1;
-    background: linear-gradient(180deg, var(--cd-soft), var(--cd-card));
-    padding:11px 12px;
-    border-bottom:1px solid var(--cd-line);
-    text-align:right;
-    font-weight:1000;
-    color: var(--cd-ink);
-    white-space:nowrap;
+  .btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 99px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid var(--c-border);
+    background: white;
+    color: var(--c-text-main);
+    box-shadow: var(--shadow-sm);
   }
-  .cd-scope tbody td{padding:11px 12px;border-bottom:1px solid var(--cd-line);text-align:right;font-weight:850;color:var(--cd-ink);white-space:nowrap}
-  .cd-scope tbody tr:nth-child(even){background: rgba(248,250,252,.55)}
-  html[data-theme="dark"] .cd-scope tbody tr:nth-child(even){background: rgba(2,6,23,.18)}
-  .cd-scope tbody tr:last-child td{border-bottom:none}
-
-  .cd-scope .badge{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:6px 10px;border-radius:999px;
-    font-weight:1000;font-size:.86rem;
-    border:1px solid transparent;
+  .btn-action:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  
+  .btn-action.primary {
+    background: linear-gradient(135deg, var(--c-primary), var(--c-primary-dark));
+    color: white;
+    border: none;
   }
-  .cd-scope .badge.yes{background: rgba(16,185,129,.12);border-color: rgba(16,185,129,.22);color:#166534}
-  .cd-scope .badge.no{background: rgba(239,68,68,.10);border-color: rgba(239,68,68,.22);color:#b91c1c}
+  .btn-action.primary:hover {
+     box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+  }
 
-  @media (prefers-reduced-motion: reduce){
-    .cd-scope .cd-btn, .cd-scope .switch, .cd-scope .switch::after{transition:none !important;}
-    .cd-scope .cd-btn:hover{transform:none !important;}
+  /* Pills */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: white;
+    border: 1px solid var(--c-border);
+    color: var(--c-text-muted);
+  }
+  .pill.blue { background: var(--c-primary-light); color: var(--c-primary-dark); border-color: transparent; }
+  .pill.red { background: #fef2f2; color: #ef4444; border-color: transparent; }
+  .pill.amber { background: #fffbeb; color: #d97706; border-color: transparent; }
+  .pill.link { cursor: pointer; text-decoration: none; }
+  .pill.link:hover { border-color: var(--c-primary); }
+
+  /* Grid Layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px; /* 1fr document, 400px sidebar */
+    gap: 2rem;
+    align-items: start;
+  }
+  @media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* 3D Document View (The Paper) */
+  .paper-col {
+     perspective: 2000px;
+  }
+  
+  .doc-paper {
+    background: white;
+    min-height: 700px;
+    padding: 4rem;
+    border-radius: 2px;
+    position: relative;
+    /* Realistic Paper Shadow */
+    box-shadow: 
+      0 1px 1px rgba(0,0,0,0.15), 
+      0 10px 0 -5px #eee, 
+      0 10px 1px -4px rgba(0,0,0,0.15), 
+      0 20px 0 -10px #eee, 
+      0 20px 1px -9px rgba(0,0,0,0.15),
+      0 10px 40px rgba(0,0,0,0.1);
+    
+    border: 1px solid #f0f0f0;
+    /* Initial slight tilt for presentation */
+    transform: rotateY(-1deg);
+    transition: transform 0.5s ease;
+  }
+  .doc-paper:hover { transform: rotateY(0deg); }
+
+  .doc-content {
+    font-family: 'Amiri', serif; 
+    font-size: 1.25rem;
+    line-height: 2;
+    color: #1e293b;
+    white-space: pre-wrap;
+  }
+  
+  .doc-meta-box {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  /* Right Column Cards */
+  .app-card {
+    background: var(--c-card-bg);
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--c-border);
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .app-card-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--c-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to right, #fff, #f8fafc);
+  }
+  .app-card-header h3 { font-size: 1.1rem; font-weight: 700; margin: 0; display: flex; gap: 0.5rem; align-items: center; }
+  
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--c-border);
+    border-bottom: 1px solid var(--c-border);
+  }
+  .stat-item {
+    background: white;
+    padding: 1rem;
+    text-align: center;
+  }
+  .stat-val { font-size: 1.5rem; font-weight: 800; color: var(--c-text-main); line-height: 1; }
+  .stat-lbl { font-size: 0.75rem; color: var(--c-text-muted); margin-top: 0.25rem; font-weight: 600; }
+  
+  /* Filters */
+  .filter-bar {
+    padding: 1rem;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--c-border);
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column;
+  }
+  .search-input {
+    width: 100%; padding: 0.6rem 1rem; border: 1px solid var(--c-border); border-radius: 0.5rem;
+    font-family: inherit; font-size: 0.9rem;
+  }
+  .search-input:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px var(--c-primary-light); }
+  
+  .filter-toggle {
+    display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--c-text-main);
+    cursor: pointer; user-select: none;
+  }
+
+  /* Recipients Table */
+  .table-container {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  .clean-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .clean-table th {
+    position: sticky; top: 0; background: #f8fafc;
+    padding: 0.85rem 1rem; text-align: right;
+    font-size: 0.8rem; color: var(--c-text-muted); font-weight: 700;
+    border-bottom: 1px solid var(--c-border);
+    z-index: 10;
+  }
+  .clean-table td {
+    padding: 0.85rem 1rem; border-bottom: 1px solid var(--c-border);
+    font-size: 0.9rem; color: var(--c-text-main);
+  }
+  .clean-table tr:hover td { background: var(--c-primary-light); }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; }
+  .status-dot.green { background: var(--c-success); box-shadow: 0 0 0 2px #dcfce7; }
+  .status-dot.red { background: var(--c-danger); box-shadow: 0 0 0 2px #fee2e2; }
+  .status-dot.gray { background: #cbd5e1; }
+
+  @media (max-width: 768px) {
+    .header-actions { width: 100%; }
+    .btn-action { flex: 1; justify-content: center; }
+    .doc-paper { padding: 2rem 1.5rem; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="cd-scope" dir="rtl">
-  <div class="cd-wrap">
+<div class="circular-page" dir="rtl">
+  <div class="circular-container">
 
-    <section class="cd-hero" aria-label="معلومات التعميم">
-      <header class="cd-head">
-        <div>
-          <h1 class="cd-title">تفاصيل التعميم</h1>
-          <div class="cd-sub">عرض الرسالة + حالة وصولها للمستلمين + حالة التوقيع بشكل احترافي</div>
+    <!-- Header -->
+    <header class="page-header">
+      <div class="header-content">
+        <h1>
+           <i class="fa-solid fa-envelope-open-text" style="color:var(--c-primary)"></i>
+           تفاصيل التعميم
+        </h1>
+        <div class="header-subtitle">
+           <span>{{ n.title|default:"بدون عنوان" }}</span>
+           {% if n.is_important %}
+             <span class="pill red"><i class="fa-solid fa-fire"></i> هام</span>
+           {% endif %}
+           {% if n.is_broadcast %}
+             <span class="pill blue"><i class="fa-solid fa-bullhorn"></i> للجميع</span>
+           {% endif %}
+           <span class="pill"><i class="fa-regular fa-clock"></i> {{ n.created_at|date:"Y-m-d H:i" }}</span>
         </div>
-
-        <div class="cd-actions">
-          <a class="cd-btn" href="{% url 'reports:circulars_sent' %}">
-            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            رجوع إلى التعاميم
-          </a>
-          <a class="cd-btn primary" href="{% url 'reports:notification_signatures_print' n.pk %}">
-            <i class="fa-solid fa-print" aria-hidden="true"></i>
-            طباعة التواقيع
-          </a>
-          <a class="cd-btn" href="{% url 'reports:notification_signatures_csv' n.pk %}">
-            <i class="fa-solid fa-file-csv" aria-hidden="true"></i>
-            CSV
-          </a>
-        </div>
-      </header>
-
-      <div class="cd-pills">
-        <span class="pill blue"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> تعميم بتوقيع</span>
-        {% if n.is_important %}<span class="pill important"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i> هام</span>{% endif %}
-        {% if n.is_broadcast %}<span class="pill blue"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> للجميع</span>{% endif %}
-        {% if n.created_at %}<span class="pill"><i class="fa-regular fa-clock" aria-hidden="true"></i> {{ n.created_at|date:"Y-m-d H:i" }}</span>{% endif %}
-        {% if n.attachment %}
-          <a class="pill" href="{{ n.attachment.url }}" target="_blank" rel="noopener" style="text-decoration:none">
-            <i class="fa-solid fa-paperclip" aria-hidden="true"></i> مرفق
-          </a>
-        {% endif %}
       </div>
-    </section>
+      
+      <div class="header-actions">
+         <a href="{% url 'reports:circulars_sent' %}" class="btn-action">
+           <i class="fa-solid fa-arrow-right"></i> رجوع
+         </a>
+         <a href="{% url 'reports:notification_signatures_print' n.pk %}" class="btn-action primary">
+           <i class="fa-solid fa-print"></i> طباعة التواقيع
+         </a>
+         <a href="{% url 'reports:notification_signatures_csv' n.pk %}" class="btn-action">
+           <i class="fa-solid fa-file-csv"></i> CSV
+         </a>
+      </div>
+    </header>
 
-    <div class="cd-grid">
-      <!-- Left: Document body -->
-      <section class="card" aria-label="نص التعميم">
-        <div class="card-hd">
-          <strong style="font-weight:1000">{{ n.title|default:"تعميم" }}</strong>
-          {% if signature_stats %}
-            <span class="pill warn" id="cdShownCount">{{ signature_stats.unsigned }} بانتظار التوقيع</span>
-          {% endif %}
-        </div>
-        <div class="card-bd">
-          {% if body %}
-            <div class="doc-box">
-              <div class="doc">{{ body|linebreaksbr }}</div>
+    <div class="main-grid">
+      
+      <!-- Left Column: The Document (Paper) -->
+      <div class="paper-col">
+         <div class="doc-paper">
+            {% if n.attachment %}
+            <div style="position:absolute; top:2rem; left:2rem;">
+               <a href="{{ n.attachment.url }}" target="_blank" class="pill link blue">
+                 <i class="fa-solid fa-paperclip"></i> تحميل المرفق
+               </a>
             </div>
-          {% else %}
-            <div class="cd-sub">لا يوجد محتوى نصي.</div>
-          {% endif %}
-
-          <div style="margin-top:14px;display:grid;gap:12px">
-            {% if signature_stats %}
-              <div class="kpi" aria-label="إحصائيات التوقيع">
-                <div class="k">
-                  <div class="lbl">الإجمالي</div>
-                  <div class="val">{{ signature_stats.total }}</div>
-                </div>
-                <div class="k">
-                  <div class="lbl">الموقّع</div>
-                  <div class="val" style="color:#166534">{{ signature_stats.signed }}</div>
-                </div>
-                <div class="k">
-                  <div class="lbl">غير الموقّع</div>
-                  <div class="val" style="color:#b91c1c">{{ signature_stats.unsigned }}</div>
-                </div>
-              </div>
             {% endif %}
+
+            <h2 style="font-family:'Tajawal',sans-serif; margin-bottom:2rem; font-size:1.75rem;">{{ n.title }}</h2>
+
+            <div class="doc-content">{% if body %}{{ body|linebreaksbr }}{% else %}<span style="color:var(--c-text-muted); font-style:italic">لا يوجد محتوى نصي (فقط مرفق أو عنوان)</span>{% endif %}</div>
 
             {% if n.signature_deadline_at or n.signature_ack_text %}
-              <div class="doc-box" aria-label="متطلبات الإقرار">
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-                  <span class="pill blue"><i class="fa-solid fa-file-contract" aria-hidden="true"></i> متطلبات الإقرار</span>
-                  {% if n.signature_deadline_at %}
-                    <span class="pill warn"><i class="fa-regular fa-clock" aria-hidden="true"></i> ينتهي: {{ n.signature_deadline_at|date:"Y-m-d H:i" }}</span>
-                  {% endif %}
-                </div>
-                {% if n.signature_ack_text %}
-                  <div class="doc" style="background:rgba(37,99,235,.06);border:1px dashed rgba(37,99,235,.25);border-radius:14px;padding:12px">
-                    <div style="color:var(--cd-muted);font-weight:950;margin-bottom:6px">نص الإقرار الذي يراه المعلم:</div>
-                    {{ n.signature_ack_text|linebreaksbr }}
-                  </div>
-                {% else %}
-                  <div class="cd-sub">لا يوجد نص إقرار مخصص.</div>
-                {% endif %}
+              <div class="doc-meta-box">
+                 {% if n.signature_deadline_at %}
+                   <div style="margin-bottom:1rem; display:flex; gap:0.5rem; align-items:center;">
+                      <i class="fa-regular fa-calendar-xmark text-red"></i>
+                      <strong>آخر موعد للتوقيع:</strong>
+                      <span style="color:var(--c-danger)">{{ n.signature_deadline_at|date:"Y-m-d H:i" }}</span>
+                   </div>
+                 {% endif %}
+
+                 {% if n.signature_ack_text %}
+                   <div style="font-weight:700; margin-bottom:0.5rem">نص الإقرار:</div>
+                   <div style="color:var(--c-text-muted); line-height:1.6">{{ n.signature_ack_text|linebreaksbr }}</div>
+                 {% endif %}
               </div>
             {% endif %}
-          </div>
-        </div>
-      </section>
+         </div>
+      </div>
 
-      <!-- Right: Recipients -->
-      <section class="card" aria-label="حالة المستلمين">
-        <div class="card-hd">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <strong style="font-weight:1000">حالة المستلمين</strong>
-            <span class="pill" id="cdTotal">{{ recipients|length }} مستلم</span>
-            <span class="pill success" id="cdVisible" style="display:none"></span>
-          </div>
-          <span class="pill" style="opacity:.9">فلترة وبحث</span>
+      <!-- Right Column: Stats & Recipients -->
+      <div class="sidebar-col">
+        
+        <!-- Stats Card -->
+        {% if signature_stats %}
+        <div class="app-card">
+           <div class="app-card-header">
+              <h3><i class="fa-solid fa-chart-pie" style="color:var(--c-primary)"></i> الإحصائيات</h3>
+           </div>
+           <div class="stats-grid">
+              <div class="stat-item">
+                 <div class="stat-val">{{ signature_stats.total }}</div>
+                 <div class="stat-lbl">الكل</div>
+              </div>
+              <div class="stat-item">
+                 <div class="stat-val" style="color:var(--c-success)">{{ signature_stats.signed }}</div>
+                 <div class="stat-lbl">وقّع</div>
+              </div>
+              <div class="stat-item">
+                 <div class="stat-val" style="color:var(--c-danger)">{{ signature_stats.unsigned }}</div>
+                 <div class="stat-lbl">لم يوقّع</div>
+              </div>
+           </div>
+           <div style="padding:1rem; text-align:center;">
+             <div style="width:100%; height:6px; background:#f1f5f9; border-radius:99px; overflow:hidden; margin-bottom:0.5rem">
+                <!-- Simple progress bar logic if we had percentages, but ignoring for now -->
+                <div style="width:0%; background:var(--c-primary); height:100%"></div> 
+             </div>
+             <small class="text-muted">متابعة حية لحالة التواقيع</small>
+           </div>
         </div>
-        <div class="card-bd">
-          <div class="field-row" style="margin-bottom:12px">
-            <input id="cdSearch" class="search" type="search" placeholder="ابحث بالاسم أو الدور...">
+        {% endif %}
 
-            <label class="toggle" for="cdOnlyUnsigned" title="إظهار غير الموقّعين فقط">
-              <input id="cdOnlyUnsigned" type="checkbox">
-              <span class="switch" aria-hidden="true"></span>
-              إظهار غير الموقّعين فقط
-            </label>
-          </div>
+        <!-- Recipients List -->
+        <div class="app-card">
+           <div class="app-card-header">
+              <h3><i class="fa-solid fa-users"></i> المستلمين <span class="pill" id="cdTotal">{{ recipients|length }}</span></h3>
+           </div>
+           
+           <div class="filter-bar">
+              <input type="search" id="cdSearch" class="search-input" placeholder="بحث بالاسم أو الدور...">
+              <label class="filter-toggle">
+                 <input type="checkbox" id="cdOnlyUnsigned" style="accent-color:var(--c-primary)">
+                 إظهار غير الموقّعين فقط
+              </label>
+           </div>
 
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الاسم</th>
-                  <th>الدور</th>
-                  <th>مقروء</th>
-                  <th>وقت القراءة</th>
-                  <th>موقّع</th>
-                  <th>وقت التوقيع</th>
-                </tr>
-              </thead>
-              <tbody id="cdRows">
-                {% for r in recipients %}
-                  <tr data-name="{{ r.name|default:'' }}" data-role="{{ r.role|default:'' }}" data-signed="{% if r.signed %}1{% else %}0{% endif %}">
-                    <td>{{ r.name }}</td>
-                    <td>{{ r.role }}</td>
-                    <td>
-                      {% if r.read %}
-                        <span class="badge yes"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> نعم</span>
-                      {% else %}
-                        <span class="badge no"><i class="fa-regular fa-circle" aria-hidden="true"></i> لا</span>
-                      {% endif %}
-                    </td>
-                    <td>{{ r.read_at|default:"-" }}</td>
-                    <td>
-                      {% if r.signed %}
-                        <span class="badge yes"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> نعم</span>
-                      {% else %}
-                        <span class="badge no"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> لا</span>
-                      {% endif %}
-                    </td>
-                    <td>{{ r.signed_at|default:"-" }}</td>
-                  </tr>
-                {% empty %}
-                  <tr><td colspan="6" style="text-align:center;color:var(--cd-muted)">لا يوجد مستلمون</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+           <div class="table-container">
+             <table class="clean-table">
+                <thead>
+                   <tr>
+                      <th>الاسم</th>
+                      <th>الحالة</th>
+                      <th>التوقيع</th>
+                   </tr>
+                </thead>
+                <tbody id="cdRows">
+                   {% for r in recipients %}
+                    <tr data-name="{{ r.name|default:'' }}" data-role="{{ r.role|default:'' }}" data-signed="{% if r.signed %}1{% else %}0{% endif %}">
+                       <td>
+                          <div style="font-weight:700">{{ r.name }}</div>
+                          <div style="font-size:0.75rem; color:var(--c-text-muted)">{{ r.role }}</div>
+                       </td>
+                       <td>
+                          {% if r.read %}
+                            <span class="status-dot green" title="تمت القراءة: {{ r.read_at }}"></span>
+                          {% else %}
+                            <span class="status-dot gray" title="لم يتم الفتح"></span>
+                          {% endif %}
+                       </td>
+                       <td>
+                          {% if r.signed %}
+                            <span class="badge success"><i class="fa-solid fa-check"></i></span>
+                          {% else %}
+                             <span class="badge failure"><i class="fa-solid fa-xmark"></i></span>
+                          {% endif %}
+                       </td>
+                    </tr>
+                   {% empty %}
+                     <tr><td colspan="3" style="text-align:center; padding:2rem">لا يوجد مستلمون</td></tr>
+                   {% endfor %}
+                </tbody>
+             </table>
+           </div>
+           <div style="padding:0.5rem 1rem; border-top:1px solid var(--c-border); font-size:0.8rem; color:var(--c-text-muted); text-align:center" id="cdVisible">
+             جاري التحميل...
+           </div>
         </div>
-      </section>
+
+      </div>
+
     </div>
   </div>
 </div>
