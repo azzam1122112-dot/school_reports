@@ -4,9 +4,54 @@ from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
-from reports.models import Ticket, SchoolSubscription, Notification, NotificationRecipient, School
+from reports.models import (
+    AuditLog,
+    Notification,
+    NotificationRecipient,
+    School,
+    SchoolMembership,
+    SchoolSubscription,
+    Ticket,
+)
 
 User = get_user_model()
+
+
+def _infer_school_for_audit(request, user) -> School | None:
+    """Best-effort school inference for audit events.
+
+    - Prefer the active school in session.
+    - Otherwise, if the user has exactly one active membership, use it.
+    - Otherwise, return None.
+    """
+    if request is None or user is None:
+        return None
+
+    try:
+        sid = request.session.get("active_school_id")
+    except Exception:
+        sid = None
+
+    try:
+        if sid:
+            school = School.objects.filter(pk=sid, is_active=True).first()
+            if school is not None:
+                return school
+    except Exception:
+        pass
+
+    try:
+        schools = (
+            School.objects.filter(memberships__teacher=user, memberships__is_active=True, is_active=True)
+            .distinct()
+            .order_by("id")
+        )
+        if schools.count() == 1:
+            return schools.first()
+    except Exception:
+        pass
+
+    return None
 
 
 @receiver(user_logged_in)
@@ -50,6 +95,22 @@ def _single_session_on_login(sender, request, user, **kwargs):
     except Exception:
         pass
 
+    # Audit: login
+    try:
+        AuditLog.objects.create(
+            school=_infer_school_for_audit(request, user),
+            teacher=user,
+            action=AuditLog.Action.LOGIN,
+            model_name="Auth",
+            object_id=getattr(user, "pk", None),
+            object_repr=f"Login: {str(user)[:200]}",
+            ip_address=(request.META.get("REMOTE_ADDR") if request else None),
+            user_agent=(request.META.get("HTTP_USER_AGENT", "")[:500] if request else ""),
+        )
+    except Exception:
+        # لا نكسر تسجيل الدخول بسبب فشل سجل العمليات
+        pass
+
 
 @receiver(user_logged_out)
 def _single_session_on_logout(sender, request, user, **kwargs):
@@ -66,6 +127,21 @@ def _single_session_on_logout(sender, request, user, **kwargs):
         if sk and getattr(user, "current_session_key", "") == sk:
             user.current_session_key = ""
             user.save(update_fields=["current_session_key"])
+    except Exception:
+        pass
+
+    # Audit: logout
+    try:
+        AuditLog.objects.create(
+            school=_infer_school_for_audit(request, user),
+            teacher=user,
+            action=AuditLog.Action.LOGOUT,
+            model_name="Auth",
+            object_id=getattr(user, "pk", None),
+            object_repr=f"Logout: {str(user)[:200]}",
+            ip_address=(request.META.get("REMOTE_ADDR") if request else None),
+            user_agent=(request.META.get("HTTP_USER_AGENT", "")[:500] if request else ""),
+        )
     except Exception:
         pass
 

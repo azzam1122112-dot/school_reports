@@ -366,6 +366,39 @@ class AuditLogAdmin(admin.ModelAdmin):
     readonly_fields = ("timestamp", "teacher", "action", "model_name", "object_id", "object_repr", "changes", "ip_address", "user_agent", "school")
     date_hierarchy = "timestamp"
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        user = getattr(request, "user", None)
+        if user is None:
+            return qs.none()
+        if getattr(user, "is_superuser", False):
+            return qs
+
+        # تقييد سجل العمليات داخل لوحة Django Admin:
+        # مدير المدرسة/الموظف يرى فقط سجلات المدارس المرتبط بها عبر العضويات النشطة.
+        from django.db.models import Q
+        from .models import SchoolMembership
+
+        allowed_school_ids = list(
+            SchoolMembership.objects.filter(teacher=user, is_active=True).values_list("school_id", flat=True)
+        )
+        if not allowed_school_ids:
+            # لا توجد عضويات: لا نُظهر سجلات (بدلاً من عرض كل شيء بالخطأ)
+            return qs.none()
+
+        qs = qs.filter(school_id__in=allowed_school_ids)
+
+        # لا نعرض سجلات أنشأها مستخدمون خارج المدرسة (مثل السوبر/مشرف المنصة)
+        # حتى لو أثّرت على المدرسة، لتجنب خلط السجلات بين المدارس.
+        qs = qs.filter(
+            Q(teacher__isnull=True)
+            | Q(
+                teacher__school_memberships__school_id__in=allowed_school_ids,
+                teacher__school_memberships__is_active=True,
+            )
+        ).distinct()
+        return qs
+
     def has_add_permission(self, request):
         return False
 
