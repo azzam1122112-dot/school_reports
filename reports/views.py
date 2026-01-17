@@ -291,9 +291,9 @@ def _canonical_role_label(user, school: Optional[School]) -> str:
     if user is None:
         return ""
 
-    # مدير النظام
+    # مدير النظام (الأعلى أولوية): سوبر يوزر دائمًا
     try:
-        if getattr(user, "is_superuser", False) or _is_staff(user):
+        if getattr(user, "is_superuser", False):
             return "مدير النظام"
     except Exception:
         pass
@@ -315,6 +315,13 @@ def _canonical_role_label(user, school: Optional[School]) -> str:
         role = getattr(user, "role", None)
         if role is not None and (getattr(role, "slug", "") or "").strip().lower() == "manager":
             return "مدير المدرسة"
+    except Exception:
+        pass
+
+    # مدير النظام (is_staff فقط) — لا نستخدم _is_staff هنا لأنه يُعيد True لمدير المدرسة
+    try:
+        if getattr(user, "is_staff", False):
+            return "مدير النظام"
     except Exception:
         pass
 
