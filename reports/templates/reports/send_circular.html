@@ -252,30 +252,18 @@
     padding-top: 1.5rem;
     border-top: 1px solid var(--c-border);
   }
-  .btn-submit {
-    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
-    color: #fff;
-    border: none;
-    padding: 0.75rem 2rem;
-    border-radius: 8px;
-    font-weight: 700;
-    cursor: pointer;
+  .btn-submit { /* Re-defined in 2026 style block above but we ensure layout props here */
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .btn-submit:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 8px -2px rgba(59, 130, 246, 0.5);
+    cursor: pointer;
   }
   .btn-cancel {
     padding: 0.75rem 1.5rem;
-    border-radius: 8px;
+    border-radius: 99px;
     border: 1px solid var(--c-border);
     background: transparent;
-    color: var(--c-text);
+    color: var(--c-text-muted);
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
@@ -283,6 +271,7 @@
   }
   .btn-cancel:hover {
     background-color: var(--c-border);
+    color: var(--c-text-main);
   }
 
   /* Preview Styles */
@@ -294,11 +283,19 @@
     background: #fff;
     color: #1e293b; /* Always dark text on paper style */
     border: 1px solid #e2e8f0;
-    min-height: 400px;
+    min-height: 480px;
     display: flex;
     flex-direction: column;
     position: relative;
+    /* 3D Effect for desktop */
+    transform: perspective(1000px) rotateY(-2deg);
+    box-shadow: -10px 10px 30px rgba(0,0,0,0.05);
+    transition: transform 0.4s ease;
   }
+  .doc-preview:hover {
+    transform: perspective(1000px) rotateY(0deg);
+  }
+
   html[data-theme="dark"] .doc-preview {
     background: #e2e8f0; /* Slightly dimmed paper in dark mode but still light */
     color: #0f172a;
@@ -321,7 +318,7 @@
   }
   .doc-title {
     font-family: 'Amiri', serif; /* Use serif for official feel if available */
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: 800;
     color: #000;
   }
@@ -342,7 +339,7 @@
     gap: 0.3rem;
   }
   .doc-body {
-    font-size: 1rem;
+    font-size: 1.05rem;
     line-height: 1.8;
     white-space: pre-wrap;
     flex: 1;
@@ -360,7 +357,47 @@
   /* Utilities */
   .hidden { display: none !important; }
   .text-sm { font-size: 0.85rem; }
-  .text-red { color: #dc2626; }
+  .text-red { color: #ef4444; }
+
+  /* Responsive Adjustments */
+  @media (max-width: 1024px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+    .preview-col {
+      display: block; /* Show preview below form on tablets/mobile */
+      margin-top: 3rem;
+    }
+    .doc-preview {
+      transform: none !important; /* Disable 3D effect on smaller screens */
+      min-height: auto;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .circular-page { padding: 1.5rem 0; }
+    .circular-container { padding: 0 1rem; }
+    
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.5rem;
+    }
+    .header-content h1 { font-size: 1.8rem; }
+    
+    .form-grid { grid-template-columns: 1fr; }
+    
+    .teacher-item label, #teacherList label {
+      padding: 0.6rem;
+      font-size: 0.9rem;
+    }
+    .teacher-list-container ul {
+      grid-template-columns: 1fr; /* Stack teachers vertically on mobile */
+    }
+    
+    .btn-submit { width: 100%; justify-content: center; }
+    .btn-cancel { width: 100%; text-align: center; }
+  }
 </style>
 {% endblock %}
 
@@ -388,6 +425,7 @@
     </header>
 
     <div class="main-grid">
+
 
       <!-- LEFT: FORM SECTION -->
       <section>
@@ -567,7 +605,7 @@
                 <div class="doc-meta">
                    <span class="doc-tag">
                      <i class="fa-solid fa-user"></i>
-                     <span>من: {% firstof request.user.name request.user.first_name "الإدارة" %}</span>
+                     <span>من: {% firstof request.user.name request.user.phone "الإدارة" %}</span>
                    </span>
                    <span class="doc-tag" id="pv_att" style="display:none">
                      <i class="fa-solid fa-paperclip"></i> مرفق
