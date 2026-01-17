@@ -127,6 +127,14 @@ class TeacherAdmin(UserAdmin):
         ),
     )
 
+    def delete_queryset(self, request, queryset):
+        AuditLog.objects.filter(teacher__in=queryset).delete()
+        return super().delete_queryset(request, queryset)
+
+    def delete_model(self, request, obj):
+        AuditLog.objects.filter(teacher=obj).delete()
+        return super().delete_model(request, obj)
+
 
 # =========================
 # إدارة الأدوار/التصنيفات/الأقسام (ديناميكي)
