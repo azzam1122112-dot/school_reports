@@ -222,7 +222,6 @@
       
       <div class="header-center">
         <img src="{% static 'img/UntiTtled-1.png' %}" alt="Logo" class="header-logo" style="margin-bottom: 5px;">
-        <div style="font-size: 11px; font-weight: 900;">منصة توثـيق التقارير</div>
       </div>
 
       <div class="header-block" style="text-align: left; direction: ltr;">
@@ -232,7 +231,6 @@
     </header>
 
     <!-- Title Area -->
-    <div class="report-title">تقرير حالة التوقيع على التعميم</div>
     <div class="report-subtitle">{{ n.title }}</div>
 
     <!-- Stats -->
@@ -260,19 +258,14 @@
         <td>{% if n.signature_deadline_at %}{{ n.signature_deadline_at|date:"Y-m-d H:i" }}{% else %}مفتوح{% endif %}</td>
       </tr>
       <tr>
-        <th>حالة التقرير</th>
+        <th>حالة التواقيع</th>
         <td colspan="3">
           {% if stats.unsigned == 0 %}اكتمل التوقيع من جميع الأطراف{% else %}جاري جمع التواقيع...{% endif %}
         </td>
       </tr>
     </table>
 
-    {% if n.signature_ack_text %}
-    <div class="ack-box">
-      <div class="ack-title">نص الإقرار الرسمي:</div>
-      <div class="ack-text">"{{ n.signature_ack_text }}"</div>
-    </div>
-    {% endif %}
+
 
     <!-- Items Table -->
     <table class="official-table">
@@ -307,13 +300,6 @@
     </table>
 
     <!-- Bottom Signatures -->
-    <footer class="signatures-footer">
-      <div class="sig-block">
-        <div>معد التقرير</div>
-        <div class="sig-space"></div>
-        <div style="font-size: 0.9rem;">{{ request.user.name|default:request.user.phone }}</div>
-      </div>
-    </footer>
 
     <div class="footer-meta">
       <span>نظام توثيق التقارير الذكي 2026 — تم إنشاؤه بواسطة {{ request.user.name|default:request.user.phone }}</span>
