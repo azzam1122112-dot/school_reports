@@ -543,17 +543,17 @@
                         {% if form.target_department.errors %}<div class="error-list">{{ form.target_department.errors }}</div>{% endif %}
                     </div>
                   {% endif %}
-                  
-                  <!-- Attachment -->
+
+                  <!-- Attachment (Circulars only) -->
                   {% if form.attachment %}
                     <div class="form-group">
-                        <label class="form-label">{{ form.attachment.label }}</label>
+                        <label class="form-label" for="{{ form.attachment.id_for_label }}">{{ form.attachment.label }}</label>
                         {{ form.attachment }}
-                        <div class="form-hint">يسمح بـ PDF / Word / صور (Max 5MB)</div>
+                        <div class="form-hint">يسمح بـ PDF / صور (Max 5MB)</div>
                         {% if form.attachment.errors %}<div class="error-list">{{ form.attachment.errors }}</div>{% endif %}
                     </div>
                   {% endif %}
-
+                  
                   <!-- Important Toggle -->
                   <div class="full-width" style="margin-block:0.5rem">
                     {% if form.is_important %}
@@ -671,9 +671,9 @@
                      <i class="fa-solid fa-user-tie"></i>
                      <span>من: {% firstof request.user.name request.user.phone "الإدارة المدرسية" %}</span>
                  </span>
-                 <span class="doc-tag" id="pv_att" style="display:none">
-                     <i class="fa-solid fa-paperclip"></i> يوجد مرفقات
-                 </span>
+                <span class="doc-tag" id="pv_att" style="display:none">
+                  <i class="fa-solid fa-paperclip"></i> يوجد مرفق
+                </span>
                  <span class="doc-tag" id="pv_imp" style="display:none; color:#dc2626; border-color:#fecaca; background:#fef2f2">
                      <i class="fa-solid fa-fire"></i> هام وعاجل
                  </span>

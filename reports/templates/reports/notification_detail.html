@@ -241,14 +241,6 @@
             <div class="nd-hint">لا يوجد محتوى نصي.</div>
           {% endif %}
 
-          {% if n.attachment %}
-            <div class="nd-tools" style="margin-top:12px">
-              <a class="nd-btn primary" href="{{ n.attachment.url }}" target="_blank" rel="noopener">
-                <i class="fa-solid fa-paperclip" aria-hidden="true"></i> فتح/تحميل المرفق
-              </a>
-            </div>
-          {% endif %}
-
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
             {% if n.expires_at %}<span class="nd-pill">ينتهي: {{ n.expires_at|date:"Y-m-d H:i" }}</span>{% endif %}
             {% if n.created_by and n.created_by.name %}<span class="nd-pill">المرسِل: {{ n.created_by.name }}</span>{% endif %}

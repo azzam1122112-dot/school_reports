@@ -21,7 +21,7 @@ from django.utils import timezone
 
 # تخزين المرفقات (R2 أو محلي)
 from .storage import PublicRawMediaStorage
-from .validators import validate_attachment_file, validate_image_file, validate_pdf_file
+from .validators import validate_attachment_file, validate_circular_attachment_file, validate_image_file, validate_pdf_file
 
 # =========================
 # ثوابت عامة
@@ -1537,8 +1537,8 @@ class Notification(models.Model):
         upload_to=_notification_attachment_upload_to,
         null=True,
         blank=True,
-        validators=[validate_attachment_file],
-        help_text="يسمح بـ PDF/Word/صور. حد أقصى 5MB.",
+        validators=[validate_circular_attachment_file],
+        help_text="يسمح بـ PDF/صور. حد أقصى 5MB.",
     )
 
     # =========================

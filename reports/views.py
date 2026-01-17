@@ -1646,7 +1646,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                                 message=body,
                                 is_important=True,
                                 school=active_school,
-                                created_by=user,
+                                created_by=None,
                             )
                             NotificationRecipient.objects.create(notification=n, teacher=ach_file.teacher)
                         messages.success(request, "تم إرسال التعليق الخاص للمعلّم ✅")
@@ -2420,7 +2420,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                                     message=body,
                                     is_important=True,
                                     school=school_scope,
-                                    created_by=user,
+                                    created_by=None,
                                 )
                                 NotificationRecipient.objects.create(notification=n, teacher=r.teacher)
                             return redirect(request.get_full_path())
@@ -6834,6 +6834,14 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
         return redirect("reports:home")
 
     qs = Notification.objects.all().order_by("-created_at", "-id")
+
+    # صفحة "المرسلة" تعرض فقط الإشعارات التي أرسلها مستخدم فعلياً.
+    # إشعارات النظام (created_by=NULL) مثل التعليقات الخاصة والتنبيهات الآلية لا تظهر هنا.
+    try:
+        if hasattr(Notification, "created_by"):
+            qs = qs.filter(created_by__isnull=False)
+    except Exception:
+        pass
 
     # فصل التعاميم عن الإشعارات
     try:

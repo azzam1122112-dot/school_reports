@@ -35,6 +35,7 @@ MAX_ATTACHMENT_BYTES = MAX_ATTACHMENT_MB * 1024 * 1024
 
 ALLOWED_IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 ALLOWED_ATTACHMENT_EXTS = (".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx")
+ALLOWED_CIRCULAR_ATTACHMENT_EXTS = (".pdf", ".jpg", ".jpeg", ".png")
 
 BLOCKED_EXTS = (".svg", ".html", ".htm", ".js")
 BLOCKED_MIME_PREFIXES = (
@@ -157,6 +158,21 @@ def validate_attachment_file(file_obj) -> None:
     sniffed = _sniff_mime(file_obj, name)
     if sniffed in BLOCKED_MIME_PREFIXES:
         raise ValidationError("نوع الملف غير مسموح.")
+
+
+def validate_circular_attachment_file(file_obj) -> None:
+    """Validate circular attachments (PDF/images only)."""
+    _validate_size(file_obj, max_bytes=MAX_ATTACHMENT_BYTES, label_ar="المرفق")
+    name = (getattr(file_obj, "name", "") or "").lower()
+    _validate_ext(name, allowed_exts=ALLOWED_CIRCULAR_ATTACHMENT_EXTS, label_ar="المرفق")
+
+    sniffed = _sniff_mime(file_obj, name)
+    if sniffed in BLOCKED_MIME_PREFIXES:
+        raise ValidationError("نوع الملف غير مسموح.")
+
+    # Allow only PDF or images by MIME when we can detect it.
+    if sniffed and not (sniffed == "application/pdf" or sniffed.startswith("image/")):
+        raise ValidationError("يُسمح برفع PDF أو صور فقط.")
 
 
 def validate_pdf_file(file_obj) -> None:

@@ -80,7 +80,7 @@
 - `TicketImage`: صور إضافية للتذكرة.
 
 ### 5.4 الإشعارات والتعاميم
-- `Notification`: إشعار نصي مع مرفق اختياري.
+- `Notification`: إشعار نصي؛ لا توجد مرفقات للإشعارات العادية، بينما يمكن للتعاميم (عند تفعيل `requires_signature`) إضافة مرفق (PDF/صور).
 - `NotificationRecipient`: مستلمون مع تتبع:
   - القراءة `is_read/read_at`
   - التوقيع على التعميم `is_signed/signed_at` عند تفعيل `requires_signature`.

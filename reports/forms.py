@@ -17,7 +17,7 @@ from django.db.models import Q
 from django.utils.text import slugify
 from django.utils import timezone
 
-from .validators import validate_attachment_file
+from .validators import validate_circular_attachment_file
 
 # ==============================
 # استيراد الموديلات (من models.py فقط)
@@ -1278,11 +1278,13 @@ class NotificationCreateForm(forms.Form):
     attachment = forms.FileField(
         required=False,
         label="مرفق (اختياري)",
-        help_text="PDF/Word/صورة (حد أقصى 5MB).",
-        validators=[validate_attachment_file],
-        widget=forms.ClearableFileInput(attrs={
-            "accept": ".pdf,.doc,.docx,.jpg,.jpeg,.png",
-        }),
+        help_text="PDF/صور (حد أقصى 5MB).",
+        validators=[validate_circular_attachment_file],
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".pdf,.jpg,.jpeg,.png",
+            }
+        ),
     )
 
     # ==============================
@@ -1344,6 +1346,10 @@ class NotificationCreateForm(forms.Form):
         self.user = user
         self.mode = mode if mode in {"notification", "circular"} else "notification"
         is_circular = self.mode == "circular"
+
+        # المرفقات للتعاميم فقط
+        if not is_circular:
+            self.fields.pop("attachment", None)
 
         is_superuser = bool(getattr(user, "is_superuser", False))
         
@@ -1500,12 +1506,17 @@ class NotificationCreateForm(forms.Form):
         if force_requires_signature is not None:
             requires_signature = bool(force_requires_signature)
 
+        # المرفقات للتعاميم فقط
+        attachment = None
+        if requires_signature:
+            attachment = cleaned.get("attachment") if "attachment" in cleaned else None
+
         n = Notification.objects.create(
             title=cleaned.get("title") or "",
             message=cleaned["message"],
             is_important=bool(cleaned.get("is_important")),
             expires_at=cleaned.get("expires_at") or None,
-            attachment=cleaned.get("attachment") or None,
+            attachment=attachment,
             requires_signature=requires_signature,
             signature_deadline_at=(cleaned.get("signature_deadline_at") or None) if requires_signature else None,
             signature_ack_text=(cleaned.get("signature_ack_text") or "").strip()
