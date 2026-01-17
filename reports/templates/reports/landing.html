@@ -773,10 +773,13 @@
       });
     }
 
-    const orderModal = document.getElementById('orderModal');
+    function getOrderModal() {
+      return document.getElementById('orderModal');
+    }
     let selectedPlanData = {};
 
     function closeOrderModal() {
+      const orderModal = getOrderModal();
       if(orderModal) orderModal.classList.remove('open');
     }
 
@@ -796,6 +799,7 @@
     function openOrderModalDirect(title, price, duration) {
       selectedPlanData = { title, price, duration };
       updateModalInfo();
+      const orderModal = getOrderModal();
       if(orderModal) orderModal.classList.add('open');
     }
 
@@ -886,6 +890,7 @@
       const modalCloseBtn = document.querySelector('#orderModal .modal-close');
       if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeOrderModal);
 
+      const orderModal = getOrderModal();
       if (orderModal) {
         orderModal.addEventListener('click', function (e) {
           if (e.target === orderModal) closeOrderModal();
