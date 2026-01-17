@@ -10,7 +10,7 @@
   <title>منصة التقارير والتذاكر | مستقبل التوثيق المدرسي 2026</title>
   <meta name="description" content="الحل الرقمي المتكامل لإدارة المدارس الذكية. تقارير مصوّرة، تذاكر صيانة، وملفات إنجاز إلكترونية في منصة واحدة تغنيك عن الورق تماماً.">
   <meta name="keywords" content="منصة مدارس, تقارير مدرسية, تذاكر صيانة, ملف إنجاز, تعليم إلكتروني, السعودية, 2026">
-  
+
   <link rel="canonical" href="{{ request.build_absolute_uri }}">
   <link rel="manifest" href="{% static 'manifest.json' %}">
   <link rel="icon" href="{% static 'img/logo1.png' %}">
@@ -27,24 +27,24 @@
        CORE VARIABLES & RESET (2026 Modern Stack)
        ========================================= */
     :root {
-      --primary: #3b82f6; /* Electric Blue */
+      --primary: #3b82f6;
       --primary-dark: #2563eb;
       --primary-glow: rgba(59, 130, 246, 0.4);
-      
-      --secondary: #8b5cf6; /* Violet */
-      --accent: #f59e0b;    /* Amber */
-      
+
+      --secondary: #8b5cf6;
+      --accent: #f59e0b;
+
       --bg: #ffffff;
       --surface-1: #f8fafc;
       --surface-2: #f1f5f9;
       --text-main: #0f172a;
       --text-muted: #64748b;
       --border: #e2e8f0;
-      
+
       --glass-bg: rgba(255, 255, 255, 0.7);
       --glass-border: rgba(255, 255, 255, 0.5);
       --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
-      
+
       --mesh-1: radial-gradient(at 0% 0%, rgba(59,130,246,0.15) 0px, transparent 50%);
       --mesh-2: radial-gradient(at 98% 1%, rgba(139,92,246,0.15) 0px, transparent 50%);
 
@@ -62,8 +62,7 @@
       --glass-bg: rgba(15, 23, 42, 0.6);
       --glass-border: rgba(255, 255, 255, 0.08);
     }
-    
-    /* Global Reset */
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; font-size: 16px; overflow-x: hidden; }
     body {
@@ -74,8 +73,9 @@
       color: var(--text-main);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
-    
+
     a { text-decoration: none; color: inherit; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     ul { list-style: none; }
     img { max-width: 100%; height: auto; display: block; }
@@ -87,10 +87,11 @@
     .items-center { align-items: center; }
     .justify-between { justify-content: space-between; }
     .grid { display: grid; }
-    .hidden { display: none; }
     .text-center { text-align: center; }
     .relative { position: relative; }
-    
+    .gap-2 { gap: 10px; }
+    .flex-1 { flex: 1; }
+
     /* Typography */
     .text-gradient {
       background: linear-gradient(135deg, var(--primary), var(--secondary));
@@ -99,12 +100,13 @@
       background-clip: text;
     }
     .display-text { font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; }
-    
+
     /* Buttons */
     .btn {
-      display: inline-flex; align-items: center; justify-content: center;gap: 10px;
-      padding: 14px 28px; border-radius: 99px; font-weight: 800; font-size: 1rem;
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 14px 28px; border-radius: 999px; font-weight: 800; font-size: 1rem;
       transition: all 0.3s ease; position: relative; overflow: hidden;
+      white-space: nowrap;
     }
     .btn-primary {
       background: linear-gradient(135deg, var(--primary), var(--primary-dark));
@@ -112,7 +114,7 @@
       box-shadow: 0 10px 25px -5px var(--primary-glow);
     }
     .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 35px -5px var(--primary-glow); }
-    
+
     .btn-outline {
       border: 2px solid var(--border);
       color: var(--text-main);
@@ -128,10 +130,6 @@
     }
     .btn-glass:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
 
-    /* =========================================
-       COMPONENTS
-       ========================================= */
-    
     /* Glass Card */
     .glass-card {
       background: var(--glass-bg);
@@ -146,7 +144,7 @@
     /* Badge */
     .badge {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 14px; border-radius: 99px; font-size: 0.85rem; font-weight: 700;
+      padding: 6px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 800;
       background: rgba(59, 130, 246, 0.1); color: var(--primary);
     }
 
@@ -154,7 +152,9 @@
     .navbar {
       height: var(--nav-height);
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      transition: all 0.4s ease;
+      transition: all 0.35s ease;
+      display: flex;
+      align-items: center;
     }
     .navbar.scrolled {
       background: var(--glass-bg);
@@ -162,12 +162,43 @@
       border-bottom: 1px solid var(--border);
       height: 70px;
     }
-    
+
     .logo { font-size: 1.25rem; font-weight: 900; display: flex; align-items: center; gap: 10px; }
     .logo img { width: 40px; border-radius: 10px; }
 
-    .nav-links a { font-weight: 700; color: var(--text-muted); font-size: 0.95rem; }
+    .nav-links a { font-weight: 800; color: var(--text-muted); font-size: 0.95rem; }
     .nav-links a:hover { color: var(--primary); }
+
+    .mobile-toggle { display: none; font-size: 1.5rem; padding: 10px; }
+
+    /* Mobile Menu */
+    .mobile-menu {
+      position: fixed; inset: 0; background: var(--bg); z-index: 999;
+      transform: translateX(100%); transition: transform 0.25s ease;
+      display: flex; flex-direction: column; padding: 100px 30px 40px;
+      overflow-y: auto;
+    }
+    .mobile-menu.open { transform: translateX(0); }
+
+    /* HERO (Fix top spacing) */
+    .hero {
+      padding-top: calc(var(--nav-height) + env(safe-area-inset-top) + 20px);
+      padding-bottom: 80px;
+      overflow: hidden;
+    }
+
+    /* Abstract Shape BG */
+    .hero-blob {
+      position: absolute;
+      top: -20%;
+      right: -10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+      filter: blur(50px);
+      z-index: -1;
+      pointer-events: none;
+    }
 
     /* Bento Grid */
     .bento-grid {
@@ -176,22 +207,22 @@
       gap: 20px;
     }
     .bento-card {
-      padding: 30px; border-radius: 24px;
+      padding: 30px;
+      border-radius: 24px;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    /* Hover Effect for Bento */
     .bento-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05); }
 
     /* Section Headers */
     .section-header { text-align: center; max-width: 700px; margin: 0 auto 60px; }
     .section-header h2 { font-size: 2.5rem; font-weight: 900; margin-bottom: 16px; line-height: 1.2; }
-    
+
     /* Feature Rows */
-    .feature-row { 
+    .feature-row {
       display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; margin-bottom: 100px;
     }
-    .feature-content h3 { font-size: 2rem; font-weight: 800; margin-bottom: 16px; }
-    .feature-content li { margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--text-muted); }
+    .feature-content h3 { font-size: 2rem; font-weight: 900; margin-bottom: 16px; }
+    .feature-content li { margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text-muted); }
     .feature-content li i { color: var(--primary); }
 
     /* Pricing */
@@ -204,16 +235,7 @@
       border: 2px solid var(--primary);
       background: linear-gradient(to bottom, rgba(59,130,246,0.03), rgba(59,130,246,0.01));
     }
-    
-    /* Mobile Menu */
-    .mobile-menu {
-      position: fixed; inset: 0; background: var(--bg); z-index: 999;
-      transform: translateX(100%); transition: transform 0.3s ease;
-      display: flex; flex-direction: column; padding: 100px 30px 40px;
-      overflow-y: auto;
-    }
-    .mobile-menu.open { transform: translateX(0); }
-    
+
     /* Modal */
     .modal-overlay {
       position: fixed; inset: 0; z-index: 2000;
@@ -222,13 +244,13 @@
       animation: fadeIn 0.2s ease;
     }
     .modal-overlay.open { display: grid; }
-    
+
     .modal-content {
       width: 100%; max-width: 480px;
       padding: 30px;
       max-height: 90vh; overflow-y: auto;
     }
-    
+
     .modal-close {
       position: absolute; top: 20px; left: 20px;
       background: rgba(0,0,0,0.05); width: 36px; height: 36px; border-radius: 50%;
@@ -238,24 +260,21 @@
     .modal-close:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 
     .form-group { margin-bottom: 16px; text-align: right; }
-    .form-group label { display: block; font-weight: 800; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-main); }
+    .form-group label { display: block; font-weight: 900; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-main); }
     .form-group input, .form-group select {
       width: 100%; padding: 12px 16px; border-radius: 12px;
       border: 1px solid var(--border); background: var(--surface-1);
       color: var(--text-main); font-family: inherit; font-size: 0.95rem;
-      font-weight: 600;
+      font-weight: 700;
       transition: all 0.2s;
     }
     .form-group input:focus, .form-group select:focus {
       outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow);
       background: var(--bg);
     }
-    
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-    .gap-2 { gap: 10px; }
-    .flex-1 { flex: 1; }
 
-    /* Animations */
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
     @keyframes floating { 0% { transform: translateY(0); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0); } }
     .float-anim { animation: floating 6s ease-in-out infinite; }
 
@@ -266,31 +285,24 @@
       .feature-row.reverse .feature-content { direction: rtl; }
       .display-text-lg { font-size: 4rem; }
     }
+
     @media (max-width: 991px) {
-      .display-text-lg { font-size: 2.8rem; }
+      .display-text-lg { font-size: 2.5rem; }
       .navbar .nav-links { display: none; }
-      .mobile-toggle { display: block; }
+      .mobile-toggle { display: inline-flex; }
+      .hero { padding-bottom: 60px; }
     }
+
     @media (max-width: 768px) {
-      .container { padding: 0 20px; }
+      .container { padding: 0 18px; }
       .section-header h2 { font-size: 2rem; }
-      .display-text-lg { font-size: 2.2rem; }
-      
-      /* Reset grid Spans for mobile */
-      .bento-card { grid-column: auto !important; }
-      
-      /* Adjust paddings */
-      header.relative { padding-top: 120px !important; padding-bottom: 60px !important; }
+      .display-text-lg { font-size: 2.1rem; }
+
       section { padding: 60px 0 !important; }
-      
-      /* Grids to single column */
       .bento-grid { grid-template-columns: 1fr; }
       .grid { grid-template-columns: 1fr !important; }
-      
-      /* Font adjustments */
       h1, h2, h3 { line-height: 1.3; }
-      
-      .mobile-menu { width: 100%; }
+      .hero { padding-top: calc(var(--nav-height) + env(safe-area-inset-top) + 12px); }
     }
   </style>
 </head>
@@ -298,8 +310,8 @@
 <body>
 
   <!-- ================= NAV ================= -->
-  <nav class="navbar" id="navbar">
-    <div class="container flex items-center justify-between" style="height: 100%;">
+  <nav class="navbar" id="navbar" aria-label="القائمة الرئيسية">
+    <div class="container flex items-center justify-between" style="width:100%;">
       <a href="#" class="logo">
         <img src="{% static 'img/logo1.png' %}" alt="Logo">
         <span>منصة تـوثيـق</span>
@@ -310,50 +322,57 @@
         <a href="#features">المميزات</a>
         <a href="#how">كيف نعمل</a>
         <a href="#pricing">الأسعار</a>
-        <a href="{% url 'reports:login' %}" style="margin-right: 20px;" class="btn btn-primary" style="padding: 10px 24px; font-size: 0.9rem;">
+        <a href="{% url 'reports:login' %}" class="btn btn-primary" style="padding: 10px 24px; font-size: 0.9rem;">
           <i class="fa-solid fa-right-to-bracket"></i> دخول
         </a>
       </div>
 
       <!-- Mobile Toggle -->
-      <button class="mobile-toggle hidden" id="mobileToggle" aria-label="Menu" style="font-size: 1.5rem; padding: 10px;">
+      <button class="mobile-toggle" id="mobileToggle" aria-label="فتح القائمة">
         <i class="fa-solid fa-bars-staggered"></i>
       </button>
     </div>
   </nav>
 
   <!-- Mobile Menu -->
-  <div class="mobile-menu" id="mobileMenu">
-    <a href="#features" class="btn-outline mobile-link" style="margin-bottom: 20px; border:none; text-align:right; font-size:1.5rem;">المميزات</a>
-    <a href="#how" class="mobile-link" style="margin-bottom: 20px; font-size:1.5rem; font-weight:700;">كيف نعمل</a>
-    <a href="#pricing" class="mobile-link" style="margin-bottom: 40px; font-size:1.5rem; font-weight:700;">الأسعار</a>
-      <a href="{% url 'reports:login' %}" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 16px 22px; font-size: 1.05rem; box-shadow: 0 14px 34px -12px var(--primary-glow);">
-         <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
-         دخول النظام
-      </a>
-    <button id="closeMobile" style="position: absolute; top: 30px; left: 30px; font-size: 1.5rem;"><i class="fa-solid fa-xmark"></i></button>
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+    <a href="#features" class="mobile-link" style="margin-bottom: 20px; font-size:1.3rem; font-weight:900;">المميزات</a>
+    <a href="#how" class="mobile-link" style="margin-bottom: 20px; font-size:1.3rem; font-weight:900;">كيف نعمل</a>
+    <a href="#pricing" class="mobile-link" style="margin-bottom: 40px; font-size:1.3rem; font-weight:900;">الأسعار</a>
+
+    <a href="{% url 'reports:login' %}" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 16px 22px; font-size: 1.05rem; box-shadow: 0 14px 34px -12px var(--primary-glow);">
+      <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+      دخول النظام
+    </a>
+
+    <button id="closeMobile" aria-label="إغلاق القائمة" style="position: absolute; top: 30px; left: 30px; font-size: 1.8rem;">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
 
-
   <!-- ================= HERO ================= -->
-  <header class="relative" style="padding-top: 120px; padding-bottom: 80px; overflow: hidden;">
-    <!-- Abstract Shape BG -->
-    <div style="position: absolغute; top: -20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%); filter: blur(50px); z-index: -1;"></div>
-    
+  <header class="hero relative">
+    <div class="hero-blob"></div>
+
     <div class="container grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 50px; align-items: center;">
-      
+
       <!-- Text -->
       <div style="max-width: 600px;">
-        <div class="badge" style="margin-bottom: 24px;">
+        <div class="badge" style="margin hookup-bottom: 24px; margin-bottom: 24px;">
           <i class="fa-solid fa-rocket"></i> الإصدار الجديد 2026
         </div>
+
         <h1 class="display-text display-text-lg" style="margin-bottom: 24px;">
           ودّع الفوضى الورقية..<br>
           <span class="text-gradient">ووثّق إنجازك بذكاء</span>
         </h1>
-        <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 40px; line-height: 1.7;">
-          الأداة الأولى لمدراء الميدان والمعلمين. حولنا <span style="font-weight: 700; color: var(--text-main);">التقارير اليومية، تذاكر الصيانة، وملفات الإنجاز</span> إلى تجربة رقمية ممتعة، تعمل بسلاسة على جوالك.
+
+        <p style="font-size: 1.15rem; color: var(--text-muted); margin-bottom: 34px; line-height: 1.8;">
+          الأداة الأولى لمدراء الميدان والمعلمين. حولنا
+          <span style="font-weight: 800; color: var(--text-main);">التقارير اليومية، تذاكر الصيانة، وملفات الإنجاز</span>
+          إلى تجربة رقمية ممتعة، تعمل بسلاسة على جوالك.
         </p>
+
         <div class="flex" style="gap: 16px; flex-wrap: wrap;">
           <a href="#pricing" class="btn btn-primary">
             ابدأ التجربة المجانية <i class="fa-solid fa-arrow-left"></i>
@@ -362,46 +381,45 @@
             <i class="fa-solid fa-play"></i> جولة سريعة
           </a>
         </div>
-        <div style="margin-top: 40px; display: flex; align-items: center; gap: 20px; font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">
+
+        <div style="margin-top: 32px; display: flex; align-items: center; gap: 18px; font-size: 0.95rem; color: var(--text-muted); font-weight: 700; flex-wrap: wrap;">
           <span><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> بيانات آمنة 100%</span>
           <span><i class="fa-solid fa-bolt" style="color: var(--accent);"></i> دعم فوري</span>
         </div>
       </div>
 
-      <!-- Visual 3D Composition -->
-      <div class="relative float-anim" style="perspective: 1000px; padding: 20px;">
-         <div class="glass-card" style="padding: 24px; position: relative; z-index: 2; transform: rotateY(-10deg) rotateX(5deg);">
-            <!-- Mockup Items -->
-            <div class="flex items-center justify-between" style="border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 15px;">
-               <div style="width: 40px; height: 40px; background: #eff6ff; border-radius: 12px; display: grid; place-items: center; color: var(--primary);"><i class="fa-solid fa-chart-pie"></i></div>
-               <div style="flex:1; margin-right: 15px;">
-                  <div style="font-weight: 800;">تقرير المقصف المدرسي</div>
-                  <div style="font-size: 0.8rem; color: var(--text-muted);">تم الرفع قبل 5 دقائق — المعلم أحمد</div>
-               </div>
-               <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
+      <!-- Visual -->
+      <div class="relative float-anim" style="perspective: 1000px; padding: 10px;">
+        <div class="glass-card" style="padding: 24px; position: relative; z-index: 2; transform: rotateY(-10deg) rotateX(5deg);">
+          <div class="flex items-center justify-between" style="border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 15px;">
+            <div style="width: 40px; height: 40px; background: #eff6ff; border-radius: 12px; display: grid; place-items: center; color: var(--primary);"><i class="fa-solid fa-chart-pie"></i></div>
+            <div style="flex:1; margin-right: 15px;">
+              <div style="font-weight: 900;">تقرير المقصف المدرسي</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">تم الرفع قبل 5 دقائق — المعلم أحمد</div>
             </div>
-            
-            <div class="flex items-center justify-between" style="border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 15px;">
-               <div style="width: 40px; height: 40px; background: #fff7ed; border-radius: 12px; display: grid; place-items: center; color: var(--accent);"><i class="fa-solid fa-ticket"></i></div>
-               <div style="flex:1; margin-right: 15px;">
-                  <div style="font-weight: 800;">عطل في بروجكتر المعمل</div>
-                  <div style="font-size: 0.8rem; color: var(--text-muted);">حالة التذكرة: جاري العمل 🛠️</div>
-               </div>
-            </div>
+            <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
+          </div>
 
-            <div class="flex items-center justify-between">
-               <div style="width: 40px; height: 40px; background: #fdf2f8; border-radius: 12px; display: grid; place-items: center; color: #db2777;"><i class="fa-solid fa-file-pdf"></i></div>
-               <div style="flex:1; margin-right: 15px;">
-                  <div style="font-weight: 800;">ملف الإنجاز الفصلي</div>
-                  <div style="font-size: 0.8rem; color: var(--text-muted);">جاهز للتصدير والطباعة</div>
-               </div>
-               <button class="btn-primary" style="padding: 5px 12px; font-size: 0.75rem; border-radius: 8px;">PDF</button>
+          <div class="flex items-center justify-between" style="border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 15px;">
+            <div style="width: 40px; height: 40px; background: #fff7ed; border-radius: 12px; display: grid; place-items: center; color: var(--accent);"><i class="fa-solid fa-ticket"></i></div>
+            <div style="flex:1; margin-right: 15px;">
+              <div style="font-weight: 900;">عطل في بروجكتر المعمل</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">حالة التذكرة: جاري العمل 🛠️</div>
             </div>
-         </div>
-         
-         <!-- Decorative backdrop elements -->
-         <div style="position: absolute; top: -30px; left: -30px; width: 100px; height: 100px; background: var(--secondary); border-radius: 20px; opacity: 0.1; z-index: 1;"></div>
-         <div style="position: absolute; bottom: -30px; right: -30px; width: 120px; height: 120px; background: var(--primary); border-radius: 50%; opacity: 0.1; z-index: 1;"></div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div style="width: 40px; height: 40px; background: #fdf2f8; border-radius: 12px; display: grid; place-items: center; color: #db2777;"><i class="fa-solid fa-file-pdf"></i></div>
+            <div style="flex:1; margin-right: 15px;">
+              <div style="font-weight: 900;">ملف الإنجاز الفصلي</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">جاهز للتصدير والطباعة</div>
+            </div>
+            <span class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem; border-radius: 10px; display:inline-flex; align-items:center; justify-content:center;">PDF</span>
+          </div>
+        </div>
+
+        <div style="position: absolute; top: -30px; left: -30px; width: 100px; height: 100px; background: var(--secondary); border-radius: 20px; opacity: 0.1; z-index: 1;"></div>
+        <div style="position: absolute; bottom: -30px; right: -30px; width: 120px; height: 120px; background: var(--primary); border-radius: 50%; opacity: 0.1; z-index: 1;"></div>
       </div>
 
     </div>
@@ -411,55 +429,51 @@
   <section id="features" style="padding: 100px 0; background: var(--surface-1);">
     <div class="container">
       <div class="section-header">
-         <span style="color: var(--primary); font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">لماذا نحن؟</span>
-         <h2>كل أدوات الإدارة المدرسية<br>تحت سقف واحد</h2>
-         <p style="color: var(--text-muted); font-size: 1.1rem;">تغنيك منصة توثـيق عن استخدام 4 تطبيقات مختلفة وتوفر عليك الوقت في تجميع الملفات.</p>
+        <span style="color: var(--primary); font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">لماذا نحن؟</span>
+        <h2>كل أدوات الإدارة المدرسية<br>تحت سقف واحد</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem;">تغنيك منصة توثـيق عن استخدام 4 تطبيقات مختلفة وتوفر عليك الوقت في تجميع الملفات.</p>
       </div>
 
       <div class="bento-grid">
-         <!-- Card 1 -->
-         <div class="glass-card bento-card" style="grid-column: span 2;">
-            <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(59,130,246,0.1); color: var(--primary); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
-               <i class="fa-solid fa-camera-rotate"></i>
-            </div>
-            <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 12px;">توثيق فوري بالصور</h3>
-            <p style="color: var(--text-muted); font-size: 1.1rem;">
-               الكلّ بالمدرسة يشارك. التقط صور الفعاليات، المناوبة، أو الصيانة من جوالك، والنظام يرتبها تلقائياً في قوالب رسمية جاهزة للطباعة بترويسة المدرسة.
-            </p>
-         </div>
+        <div class="glass-card bento-card" style="grid-column: span 2;">
+          <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(59,130,246,0.1); color: var(--primary); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
+            <i class="fa-solid fa-camera-rotate"></i>
+          </div>
+          <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px;">توثيق فوري بالصور</h3>
+          <p style="color: var(--text-muted); font-size: 1.1rem;">
+            الكلّ بالمدرسة يشارك. التقط صور الفعاليات، المناوبة، أو الصيانة من جوالك، والنظام يرتبها تلقائياً في قوالب رسمية جاهزة للطباعة بترويسة المدرسة.
+          </p>
+        </div>
 
-         <!-- Card 2 -->
-         <div class="glass-card bento-card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
-            <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(255,255,255,0.1); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
-               <i class="fa-solid fa-wand-sparkles"></i>
-            </div>
-            <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 12px;">ملف انجاز بنقرة زر</h3>
-            <p style="color: #cbd5e1;">وداعاً لملفات الإنجاز الورقية. كل معلم لديه مساحته الخاصة لرفع الشواهد، وفي نهاية العام يطبع الملف كامل PDF.</p>
-         </div>
+        <div class="glass-card bento-card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
+          <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(255,255,255,0.1); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
+            <i class="fa-solid fa-wand-sparkles"></i>
+          </div>
+          <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px;">ملف انجاز بنقرة زر</h3>
+          <p style="color: #cbd5e1;">وداعاً لملفات الإنجاز الورقية. كل معلم لديه مساحته الخاصة لرفع الشواهد، وفي نهاية العام يطبع الملف كامل PDF.</p>
+        </div>
 
-         <!-- Card 3 -->
-         <div class="glass-card bento-card">
-            <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(245,158,11,0.1); color: var(--accent); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
-               <i class="fa-solid fa-headset"></i>
-            </div>
-            <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 12px;">تذاكر الصيانة</h3>
-            <p style="color: var(--text-muted);">نظام داخلي لإدارة طلبات المعلمين. من "اللمبة محروقة" إلى "مشكلة في التكييف"، تابع الطلبات وأسندها للمسؤول.</p>
-         </div>
+        <div class="glass-card bento-card">
+          <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(245,158,11,0.1); color: var(--accent); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
+            <i class="fa-solid fa-headset"></i>
+          </div>
+          <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px;">تذاكر الصيانة</h3>
+          <p style="color: var(--text-muted);">نظام داخلي لإدارة طلبات المعلمين. من "اللمبة محروقة" إلى "مشكلة في التكييف"، تابع الطلبات وأسندها للمسؤول.</p>
+        </div>
 
-         <!-- Card 4 -->
-         <div class="glass-card bento-card" style="grid-column: span 2;">
-            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-               <div style="flex: 1; min-width: 250px;">
-                  <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 12px;">طباعة PDF بهوية المدرسة</h3>
-                  <p style="color: var(--text-muted);">
-                     لا قلق بشأن التنسيق. النظام يصمم التقارير، يضيف الشعار، الأسماء، التواريخ، وحتى كود QR للتوثيق. كل ما عليك فعله هو الضغط على "طباعة".
-                  </p>
-               </div>
-               <div style="flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; align-items: center; justify-content: center;">
-                  <i class="fa-solid fa-file-pdf" style="font-size: 4rem; color: #ef4444;"></i>
-               </div>
+        <div class="glass-card bento-card" style="grid-column: span 2;">
+          <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px;">
+              <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px;">طباعة PDF بهوية المدرسة</h3>
+              <p style="color: var(--text-muted);">
+                لا قلق بشأن التنسيق. النظام يصمم التقارير، يضيف الشعار، الأسماء، التواريخ، وحتى كود QR للتوثيق. كل ما عليك فعله هو الضغط على "طباعة".
+              </p>
             </div>
-         </div>
+            <div style="flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; align-items: center; justify-content: center;">
+              <i class="fa-solid fa-file-pdf" style="font-size: 4rem; color: #ef4444;"></i>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -473,21 +487,23 @@
       </div>
 
       <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; text-align: center;">
-         <div style="position: relative;">
-            <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; font-size: 2rem; font-weight: 900; display: grid; place-items: center; margin: 0 auto 24px; box-shadow: 0 10px 20px rgba(59,130,246,0.3);">1</div>
-            <h3 style="font-weight: 800; font-size: 1.25rem;">سجّل مدرستك</h3>
-            <p style="color: var(--text-muted); margin-top: 10px;">أنشئ حساباً للمدرسة وأضف المعلمين بضغطة زر واحدة.</p>
-         </div>
-         <div style="position: relative;">
-            <div style="width: 80px; height: 80px; background: var(--surface-1); color: var(--text-main); border: 2px solid var(--border); border-radius: 50%; font-size: 2rem; font-weight: 900; display: grid; place-items: center; margin: 0 auto 24px;">2</div>
-            <h3 style="font-weight: 800; font-size: 1.25rem;">الجميع يوثّق</h3>
-            <p style="color: var(--text-muted); margin-top: 10px;">المعلمون يرفعون تقاريرهم وتذاكرهم من هواتفهم مباشرة.</p>
-         </div>
-         <div style="position: relative;">
-            <div style="width: 80px; height: 80px; background: var(--surface-1); color: var(--text-main); border: 2px solid var(--border); border-radius: 50%; font-size: 2rem; font-weight: 900; display: grid; place-items: center; margin: 0 auto 24px;">3</div>
-            <h3 style="font-weight: 800; font-size: 1.25rem;">أرشف واطبع</h3>
-            <p style="color: var(--text-muted); margin-top: 10px;">لوحة تحكم المدير تظهر كل شيء. راقب، قيّم، واطبع الأرشيف.</p>
-         </div>
+        <div>
+          <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; font-size: 2rem; font-weight: 900; display: grid; place-items: center; margin: 0 auto 24px; box-shadow: 0 10px 20px rgba(59,130,246,0.3);">1</div>
+          <h3 style="font-weight: 900; font-size: 1.25rem;">سجّل مدرستك</h3>
+          <p style="color: var(--text-muted); margin-top: 10px;">أنشئ حساباً للمدرسة وأضف المعلمين بضغطة زر واحدة.</p>
+        </div>
+
+        <div>
+          <div style="width: 80px; height: 80px; background: var(--surface-1); color: var(--text-main); border: 2px solid var(--border); border-radius: 50%; font-size: 2rem; font-weight: 900; display: grid; place-items: center; margin: 0 auto 24px;">2</div>
+          <h3 style="font-weight: 900; font-size: 1.25rem;">الجميع يوثّق</h3>
+          <p style="color: var(--text-muted); margin-top: 10px;">المعلمون يرفعون تقاريرهم وتذاكرهم من هواتفهم مباشرة.</p>
+        </div>
+
+        <div>
+          <div style="width: 80px; height: 80px; background: var(--surface-1); color: var(--text-main); border: 2px solid var(--border); border-radius: 50%; font-size: 2rem; font-weight: 900; display: grid; place-items: center; margin: 0 auto 24px;">3</div>
+          <h3 style="font-weight: 900; font-size: 1.25rem;">أرشف واطبع</h3>
+          <p style="color: var(--text-muted); margin-top: 10px;">لوحة تحكم المدير تظهر كل شيء. راقب، قيّم، واطبع الأرشيف.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -496,21 +512,21 @@
   <section style="padding: 60px 0;">
     <div class="container">
       <div class="glass-card" style="background: linear-gradient(120deg, var(--primary-dark), var(--secondary)); padding: 60px; color: white; text-align: center; border:none; box-shadow: 0 20px 50px rgba(37,99,235,0.3);">
-         <h2 style="font-size: 2rem; font-weight: 900; margin-bottom: 40px;">أرقام نفخر بها في مسيرتنا</h2>
-         <div class="flex justify-between items-center" style="max-width: 800px; margin: 0 auto; flex-wrap: wrap; gap: 40px; justify-content: center;">
-            <div>
-               <div style="font-size: 3.5rem; font-weight: 900; line-height: 1;">+500K</div>
-               <div style="opacity: 0.8; font-weight: 600;">تقرير مُصدر</div>
-            </div>
-            <div>
-               <div style="font-size: 3.5rem; font-weight: 900; line-height: 1;">+200</div>
-               <div style="opacity: 0.8; font-weight: 600;">مدرسة ذكية</div>
-            </div>
-            <div>
-               <div style="font-size: 3.5rem; font-weight: 900; line-height: 1;">100%</div>
-               <div style="opacity: 0.8; font-weight: 600;">رضا العملاء</div>
-            </div>
-         </div>
+        <h2 style="font-size: 2rem; font-weight: 900; margin-bottom: 40px;">أرقام نفخر بها في مسيرتنا</h2>
+        <div class="flex items-center" style="max-width: 800px; margin: 0 auto; flex-wrap: wrap; gap: 40px; justify-content: center;">
+          <div>
+            <div style="font-size: 3.2rem; font-weight: 900; line-height: 1;">+500K</div>
+            <div style="opacity: 0.85; font-weight: 700;">تقرير مُصدر</div>
+          </div>
+          <div>
+            <div style="font-size: 3.2rem; font-weight: 900; line-height: 1;">+200</div>
+            <div style="opacity: 0.85; font-weight: 700;">مدرسة ذكية</div>
+          </div>
+          <div>
+            <div style="font-size: 3.2rem; font-weight: 900; line-height: 1;">100%</div>
+            <div style="opacity: 0.85; font-weight: 700;">رضا العملاء</div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -523,136 +539,135 @@
         <p>باقات مرنة تناسب حجم كل مدرسة. شاملة جميع المزايا، الفرق فقط في السعة.</p>
       </div>
 
-      <!-- Pricing Panels Wrapper -->
       <div id="pricing-container">
-         <!-- Toggle Switch -->
-         <div class="flex justify-center" style="margin-bottom: 40px;">
-            <div class="glass-card flex items-center p-1" style="background: var(--surface-2); padding: 6px; border-radius: 99px; gap: 4px; display: inline-flex;">
-               <button type="button" class="btn-toggle" data-period="6m" style="border-radius: 99px; padding: 10px 24px; font-weight: 800; border:none; background: var(--primary); color: white; transition: all 0.2s;">
-                  6 أشهر
-               </button>
-               <button type="button" class="btn-toggle" data-period="1y" style="border-radius: 99px; padding: 10px 24px; font-weight: 800; border:none; background: transparent; color: var(--text-muted); transition: all 0.2s;">
-                  سنوي 
-                  <span style="font-size: 0.75em; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 6px; margin-right: 6px;">توفير</span>
-               </button>
+        <div class="flex justify-center" style="margin-bottom: 40px;">
+          <div class="glass-card flex items-center p-1" style="background: var(--surface-2); padding: 6px; border-radius: 999px; gap: 4px; display: inline-flex;">
+            <button type="button" class="btn-toggle" data-period="6m" style="border-radius: 999px; padding: 10px 24px; font-weight: 900; border:none; background: var(--primary); color: white; transition: all 0.2s;">
+              6 أشهر
+            </button>
+            <button type="button" class="btn-toggle" data-period="1y" style="border-radius: 999px; padding: 10px 24px; font-weight: 900; border:none; background: transparent; color: var(--text-muted); transition: all 0.2s;">
+              سنوي
+              <span style="font-size: 0.75em; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 8px; margin-right: 6px;">توفير</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px;">
+
+          <!-- Free Plan -->
+          <div class="glass-card pricing-card" style="background: var(--bg);">
+            <div style="padding: 30px;">
+              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--text-muted);">المجانية</h3>
+              <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">0 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">تجربة 14 يوم • حتى 5 معلمين</p>
+              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
+                <li><i class="fa-solid fa-check"></i> <strong>تجربة مجانية</strong></li>
+                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                <li><i class="fa-solid fa-check"></i> صلاحية 14 يوم</li>
+              </ul>
+              <button type="button" class="btn btn-outline js-open-order" data-plan-title="المجانية" data-plan-price="0 ريال" data-plan-duration="14 يوم" style="width: 100%;">تجربة الآن</button>
             </div>
-         </div>
+          </div>
 
-         <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px;">
-               
-               <!-- Free Plan -->
-               <div class="glass-card pricing-card" style="background: var(--bg);">
-                  <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">المجانية</h3>
-                     <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">0 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">تجربة 14 يوم • حتى 5 معلمين</p>
-                     <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> <strong>تجربة مجانية</strong></li>
-                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                        <li><i class="fa-solid fa-check"></i> صلاحية 14 يوم</li>
-                     </ul>
-                     <button type="button" class="btn btn-outline js-open-order" data-plan-title="المجانية" data-plan-price="0 ريال" data-plan-duration="14 يوم" style="width: 100%;">تجربة الآن</button>
-                  </div>
-               </div>
+          <!-- 25 Teachers -->
+          <div class="glass-card pricing-card" data-plan="25" style="background: var(--bg);">
+            <div style="padding: 30px;">
+              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--text-muted);">باقة 25 معلم</h3>
 
-               <!-- 25 Teachers -->
-               <div class="glass-card pricing-card" data-plan="25" style="background: var(--bg);">
-                  <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">باقة 25 معلم</h3>
-                     
-                     <!-- 6m -->
-                     <div class="price-block p-6m">
-                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">599 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
-                     </div>
-                     <!-- 1y -->
-                     <div class="price-block p-1y" style="display:none">
-                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">999 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                        <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 199 ريال</div>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
-                     </div>
+              <div class="price-block p-6m">
+                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">599 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
+              </div>
 
-                     <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                        <li><i class="fa-solid fa-check"></i> دعم فني</li>
-                     </ul>
-                     <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
-                  </div>
-               </div>
+              <div class="price-block p-1y" style="display:none">
+                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">999 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 199 ريال</div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
+              </div>
 
-               <!-- 50 Teachers -->
-               <div class="glass-card pricing-card featured" data-plan="50" style="background: var(--bg);">
-                  <div style="background: var(--primary); color: white; text-align: center; padding: 6px; font-weight: 800; font-size: 0.85rem;">الأكثر طلباً</div>
-                  <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">باقة 50 معلم</h3>
-                     
-                     <div class="price-block p-6m">
-                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">899 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
-                     </div>
-                     <div class="price-block p-1y" style="display:none">
-                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,499 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                        <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 299 ريال</div>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
-                     </div>
-
-                     <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                        <li><i class="fa-solid fa-check"></i> دعم فني متقدم</li>
-                     </ul>
-                     <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
-                  </div>
-               </div>
-
-               <!-- 75 Teachers -->
-               <div class="glass-card pricing-card" data-plan="75" style="background: var(--bg);">
-                  <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">باقة 75 معلم</h3>
-                     
-                     <div class="price-block p-6m">
-                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,099 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
-                     </div>
-                     <div class="price-block p-1y" style="display:none">
-                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,849 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                        <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 349 ريال</div>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
-                     </div>
-
-                     <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                        <li><i class="fa-solid fa-check"></i> دعم فني</li>
-                     </ul>
-                     <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
-                  </div>
-               </div>
-
-               <!-- 100 Teachers -->
-               <div class="glass-card pricing-card" data-plan="100" style="background: var(--bg);">
-                  <div style="padding: 30px;">
-                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-muted);">باقة 100 معلم</h3>
-                     <div class="price-block p-6m">
-                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,299 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 100 معلم</p>
-                     </div>
-                     <div class="price-block p-1y" style="display:none">
-                        <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">2,199 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                        <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 399 ريال</div>
-                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
-                     </div>
-
-                     <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                        <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                        <li><i class="fa-solid fa-check"></i> دعم فني VIP</li>
-                     </ul>
-                     <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
-                  </div>
-               </div>
-
+              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
+                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                <li><i class="fa-solid fa-check"></i> دعم فني</li>
+              </ul>
+              <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
             </div>
+          </div>
+
+          <!-- 50 Teachers -->
+          <div class="glass-card pricing-card featured" data-plan="50" style="background: var(--bg);">
+            <div style="background: var(--primary); color: white; text-align: center; padding: 6px; font-weight: 900; font-size: 0.85rem;">الأكثر طلباً</div>
+            <div style="padding: 30px;">
+              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--primary);">باقة 50 معلم</h3>
+
+              <div class="price-block p-6m">
+                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">899 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
+              </div>
+
+              <div class="price-block p-1y" style="display:none">
+                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,499 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 299 ريال</div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
+              </div>
+
+              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
+                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                <li><i class="fa-solid fa-check"></i> دعم فني متقدم</li>
+              </ul>
+              <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
+            </div>
+          </div>
+
+          <!-- 75 Teachers -->
+          <div class="glass-card pricing-card" data-plan="75" style="background: var(--bg);">
+            <div style="padding: 30px;">
+              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--text-muted);">باقة 75 معلم</h3>
+
+              <div class="price-block p-6m">
+                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,099 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
+              </div>
+
+              <div class="price-block p-1y" style="display:none">
+                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,849 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 349 ريال</div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
+              </div>
+
+              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
+                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                <li><i class="fa-solid fa-check"></i> دعم فني</li>
+              </ul>
+              <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
+            </div>
+          </div>
+
+          <!-- 100 Teachers -->
+          <div class="glass-card pricing-card" data-plan="100" style="background: var(--bg);">
+            <div style="padding: 30px;">
+              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--text-muted);">باقة 100 معلم</h3>
+
+              <div class="price-block p-6m">
+                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,299 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 100 معلم</p>
+              </div>
+
+              <div class="price-block p-1y" style="display:none">
+                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">2,199 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
+                <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 399 ريال</div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
+              </div>
+
+              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
+                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+                <li><i class="fa-solid fa-check"></i> دعم فني VIP</li>
+              </ul>
+              <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
+            </div>
+          </div>
+
+        </div>
       </div>
-
-
     </div>
   </section>
 
@@ -660,42 +675,42 @@
   <footer style="background: #020617; color: white; padding: 80px 0 30px; margin-top: 60px;">
     <div class="container">
       <div class="glass-card" style="background: var(--primary); border: none; padding: 50px; text-align: center; margin-bottom: 80px; position: relative; overflow: hidden;">
-         <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);"></div>
-         <h2 style="color: white; font-size: 2rem; margin-bottom: 20px; font-weight: 900;">ابدأ رحلة التوثيق الرقمي اليوم</h2>
-         <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-bottom: 30px;">انضم لأكثر من 200 مدرسة ذكية تركت الورق واختارت المستقبل.</p>
-         <div class="flex" style="justify-content: center; gap: 16px; flex-wrap: wrap;">
-            <a href="https://wa.me/966537720207" class="btn btn-glass" style="background: white; color: var(--primary);">
-               <i class="fa-brands fa-whatsapp"></i> تواصل معنا واتساب
-            </a>
-            <a href="{% url 'reports:login' %}" class="btn btn-glass">
-               دخول النظام
-            </a>
-         </div>
+        <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);"></div>
+        <h2 style="color: white; font-size: 2rem; margin-bottom: 20px; font-weight: 900;">ابدأ رحلة التوثيق الرقمي اليوم</h2>
+        <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-bottom: 30px;">انضم لأكثر من 200 مدرسة ذكية تركت الورق واختارت المستقبل.</p>
+        <div class="flex" style="justify-content: center; gap: 16px; flex-wrap: wrap;">
+          <a href="https://wa.me/966537720207" class="btn btn-glass" style="background: white; color: var(--primary);">
+            <i class="fa-brands fa-whatsapp"></i> تواصل معنا واتساب
+          </a>
+          <a href="{% url 'reports:login' %}" class="btn btn-glass">
+            دخول النظام
+          </a>
+        </div>
       </div>
 
       <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 60px;">
-         <div>
-            <div class="logo" style="margin-bottom: 20px;">
-               <img src="{% static 'img/logo1.png' %}" alt="Logo"> <span style="font-size: 1.3rem;">منصة توثـيق</span>
-            </div>
-            <p style="color: #94a3b8; font-size: 0.95rem;">نظام إدارة المدرسة الحديث. نوفر عليك الوقت والجهد في التوثيق والمتابعة.</p>
-         </div>
-         <div>
-            <h4 style="font-weight: 800; margin-bottom: 20px; font-size: 1.1rem;">روابط هامة</h4>
-            <ul style="color: #cbd5e1; font-size: 0.95rem; display: grid; gap: 10px;">
-               <li><a href="#features">المميزات</a></li>
-               <li><a href="#compare">مقارنة النظام</a></li>
-               <li><a href="#achievement">ملف الإنجاز</a></li>
-            </ul>
-         </div>
-         <div>
-            <h4 style="font-weight: 800; margin-bottom: 20px; font-size: 1.1rem;">تواصل معنا</h4>
-            <ul style="color: #cbd5e1; font-size: 0.95rem; display: grid; gap: 10px;">
-               <li><i class="fa-brands fa-whatsapp" style="margin-left: 8px;"></i> 0537720207</li>
-               <li><i class="fa-regular fa-envelope" style="margin-left: 8px;"></i> mansour9999@hotmail.com</li>
-               <li><i class="fa-solid fa-location-dot" style="margin-left: 8px;"></i> المملكة العربية السعودية</li>
-            </ul>
-         </div>
+        <div>
+          <div class="logo" style="margin-bottom: 20px;">
+            <img src="{% static 'img/logo1.png' %}" alt="Logo"> <span style="font-size: 1.3rem;">منصة توثـيق</span>
+          </div>
+          <p style="color: #94a3b8; font-size: 0.95rem;">نظام إدارة المدرسة الحديث. نوفر عليك الوقت والجهد في التوثيق والمتابعة.</p>
+        </div>
+        <div>
+          <h4 style="font-weight: 900; margin-bottom: 20px; font-size: 1.1rem;">روابط هامة</h4>
+          <ul style="color: #cbd5e1; font-size: 0.95rem; display: grid; gap: 10px;">
+            <li><a href="#features">المميزات</a></li>
+            <li><a href="#how">كيف نعمل</a></li>
+            <li><a href="#pricing">الأسعار</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="font-weight: 900; margin-bottom: 20px; font-size: 1.1rem;">تواصل معنا</h4>
+          <ul style="color: #cbd5e1; font-size: 0.95rem; display: grid; gap: 10px;">
+            <li><i class="fa-brands fa-whatsapp" style="margin-left: 8px;"></i> 0537720207</li>
+            <li><i class="fa-regular fa-envelope" style="margin-left: 8px;"></i> mansour9999@hotmail.com</li>
+            <li><i class="fa-solid fa-location-dot" style="margin-left: 8px;"></i> المملكة العربية السعودية</li>
+          </ul>
+        </div>
       </div>
 
       <div style="border-top: 1px solid #1e293b; padding-top: 30px; text-align: center; color: #64748b; font-size: 0.9rem;">
@@ -704,12 +719,12 @@
     </div>
   </footer>
 
-<script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}">
     // --- Navbar Scroll ---
     window.addEventListener('scroll', function() {
-       const nav = document.getElementById('navbar');
-       if(window.scrollY > 50) nav.classList.add('scrolled');
-       else nav.classList.remove('scrolled');
+      const nav = document.getElementById('navbar');
+      if(window.scrollY > 50) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
     });
 
     // --- Mobile Menu ---
@@ -718,259 +733,236 @@
     const closeMobile = document.getElementById('closeMobile');
     const mobileLinks = document.querySelectorAll('.mobile-link');
 
-    function toggleMenu() {
-       mobileMenu.classList.toggle('open');
+    function openMenu() {
+      mobileMenu.classList.add('open');
+      mobileMenu.setAttribute('aria-hidden', 'false');
     }
 
-    if(mobileBtn) mobileBtn.addEventListener('click', toggleMenu);
-    if(closeMobile) closeMobile.addEventListener('click', toggleMenu);
-    mobileLinks.forEach(l => l.addEventListener('click', toggleMenu));
+    function closeMenu() {
+      mobileMenu.classList.remove('open');
+      mobileMenu.setAttribute('aria-hidden', 'true');
+    }
 
-      // --- Pricing Period Toggle (CSP-safe) ---
-      let currentPeriod = '6m';
+    if(mobileBtn) mobileBtn.addEventListener('click', openMenu);
+    if(closeMobile) closeMobile.addEventListener('click', closeMenu);
+    mobileLinks.forEach(l => l.addEventListener('click', closeMenu));
 
-      function togglePeriod(period) {
-         currentPeriod = period;
+    // --- Pricing Period Toggle ---
+    let currentPeriod = '6m';
 
-         // Update Buttons
-         document.querySelectorAll('.btn-toggle').forEach(btn => {
-            if (btn.dataset.period === period) {
-               btn.style.background = 'var(--primary)';
-               btn.style.color = 'white';
-            } else {
-               btn.style.background = 'transparent';
-               btn.style.color = 'var(--text-muted)';
-            }
-         });
+    function togglePeriod(period) {
+      currentPeriod = period;
 
-         // Update Cards
-         document.querySelectorAll('.pricing-card').forEach(card => {
-            const p6m = card.querySelector('.p-6m');
-            const p1y = card.querySelector('.p-1y');
-            if (p6m && p1y) {
-               if (period === '6m') {
-                  p6m.style.display = 'block';
-                  p1y.style.display = 'none';
-               } else {
-                  p6m.style.display = 'none';
-                  p1y.style.display = 'block';
-               }
-            }
-         });
-      }
+      document.querySelectorAll('.btn-toggle').forEach(btn => {
+        if (btn.dataset.period === period) {
+          btn.style.background = 'var(--primary)';
+          btn.style.color = 'white';
+        } else {
+          btn.style.background = 'transparent';
+          btn.style.color = 'var(--text-muted)';
+        }
+      });
 
-    // --- Order Modal Logic ---
+      document.querySelectorAll('.pricing-card').forEach(card => {
+        const p6m = card.querySelector('.p-6m');
+        const p1y = card.querySelector('.p-1y');
+        if (p6m && p1y) {
+          if (period === '6m') { p6m.style.display = 'block'; p1y.style.display = 'none'; }
+          else { p6m.style.display = 'none'; p1y.style.display = 'block'; }
+        }
+      });
+    }
+
     const orderModal = document.getElementById('orderModal');
     let selectedPlanData = {};
 
     function closeOrderModal() {
-       if(orderModal) orderModal.classList.remove('open');
+      if(orderModal) orderModal.classList.remove('open');
     }
 
-    // Called by "requestPlan" from Free plan button
+    function updateModalInfo() {
+      const infoDiv = document.getElementById('selectedPlanInfo');
+      if(infoDiv) {
+        infoDiv.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong><i class="fa-solid fa-cart-shopping"></i> &nbsp; ${selectedPlanData.title}</strong>
+            <span class="badge" style="background:var(--surface-1); color:var(--text-main);">${selectedPlanData.duration}</span>
+          </div>
+          <div style="margin-top:6px; font-weight:900; color:var(--primary);">${selectedPlanData.price}</div>
+        `;
+      }
+    }
+
     function openOrderModalDirect(title, price, duration) {
-       selectedPlanData = { title, price, duration };
-       updateModalInfo();
-       if(orderModal) orderModal.classList.add('open');
+      selectedPlanData = { title, price, duration };
+      updateModalInfo();
+      if(orderModal) orderModal.classList.add('open');
     }
 
-    // Called by "selectPlan" from Pricing Cards
     function selectPlan(btn) {
       if (!btn) return;
       let card = btn.closest('.pricing-card');
-         if (!card) return;
-      
+      if (!card) return;
+
       let title = card.querySelector('h3') ? card.querySelector('h3').innerText : 'باقة';
-      
-      // Get visible price
+
       let price = '';
       let duration = '';
-      
-      // Check which period is active (based on global 'currentPeriod' from toggle script)
-      // We need to access the variable 'currentPeriod' defined in the HTML script block
-      // Ideally, we should unify the scripts. For now, we will re-detect or assume.
-      // Or we can just read the visible block.
-      
+
       const p6m = card.querySelector('.p-6m');
       const p1y = card.querySelector('.p-1y');
-      
-      // Simple visibility check
+
       if (p6m && getComputedStyle(p6m).display !== 'none') {
-         price = p6m.querySelector('div').innerText;
-         duration = '6 أشهر';
+        price = p6m.querySelector('div').innerText;
+        duration = '6 أشهر';
       } else if (p1y) {
-         price = p1y.querySelector('div').innerText;
-         duration = 'سنة كاملة';
+        price = p1y.querySelector('div').innerText;
+        duration = 'سنة كاملة';
       } else {
-         // Fallback/Free
-         price = 'مجاناً';
-         duration = '14 يوم';
+        price = 'مجاناً';
+        duration = '14 يوم';
       }
-      
+
       openOrderModalDirect(title, price, duration);
-    }
-    
-    // For compatibility with the Free Plan button which calls requestPlan directly
-    // The original script had requestPlan(title, price, duration)
-    // We overwrite/redefine it here, OR we can change the onclick in HTML.
-    // Since this script runs after the inline script, we can define a global handler.
-    
-    function updateModalInfo() {
-       const infoDiv = document.getElementById('selectedPlanInfo');
-       if(infoDiv) {
-          infoDiv.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-               <strong><i class="fa-solid fa-cart-shopping"></i> &nbsp; ${selectedPlanData.title}</strong>
-               <span class="badge" style="background:var(--surface-1); color:var(--text-main);">${selectedPlanData.duration}</span>
-            </div>
-            <div style="margin-top:6px; font-weight:bold; color:var(--primary);">${selectedPlanData.price}</div>
-          `;
-       }
     }
 
     function submitOrder(e) {
-       e.preventDefault();
-       
-       const school = document.getElementById('ord_school').value;
-       const stageSelect = document.getElementById('ord_stage');
-       const stage = stageSelect.options[stageSelect.selectedIndex].text;
-       
-       const genderSelect = document.getElementById('ord_gender');
-       const gender = genderSelect.options[genderSelect.selectedIndex].text;
-       
-       const city = document.getElementById('ord_city').value;
-       const manager = document.getElementById('ord_manager').value;
-       const phone = document.getElementById('ord_phone').value;
-       
-       let waBase = "https://wa.me/966537720207?text=";
-       let msg = `*طلب اشتراك جديد - منصة توثيق*%0A%0A`;
-       msg += `🏫 *المدرسة:* ${school}%0A`;
-       msg += `🎓 *المرحلة:* ${stage}%0A`;
-       msg += `🚻 *النوع:* ${gender}%0A`;
-       msg += `📍 *المدينة:* ${city}%0A`;
-       msg += `👤 *المدير:* ${manager}%0A`;
-       msg += `📱 *الجوال:* ${phone}%0A`;
-       msg += `------------------%0A`;
-       msg += `📦 *الباقة:* ${selectedPlanData.title}%0A`;
-       msg += `⏳ *المدة:* ${selectedPlanData.duration}%0A`;
-       msg += `💰 *السعر:* ${selectedPlanData.price}%0A%0A`;
-       msg += `أرجو إتمام إجراءات الاشتراك.`;
+      e.preventDefault();
 
-          window.open(waBase + msg, '_blank', 'noopener');
-       
-       closeOrderModal();
+      const school = document.getElementById('ord_school').value;
+      const stageSelect = document.getElementById('ord_stage');
+      const stage = stageSelect.options[stageSelect.selectedIndex].text;
+
+      const genderSelect = document.getElementById('ord_gender');
+      const gender = genderSelect.options[genderSelect.selectedIndex].text;
+
+      const city = document.getElementById('ord_city').value;
+      const manager = document.getElementById('ord_manager').value;
+      const phone = document.getElementById('ord_phone').value;
+
+      let waBase = "https://wa.me/966537720207?text=";
+      let msg = `*طلب اشتراك جديد - منصة توثيق*%0A%0A`;
+      msg += `🏫 *المدرسة:* ${school}%0A`;
+      msg += `🎓 *المرحلة:* ${stage}%0A`;
+      msg += `🚻 *النوع:* ${gender}%0A`;
+      msg += `📍 *المدينة:* ${city}%0A`;
+      msg += `👤 *المدير:* ${manager}%0A`;
+      msg += `📱 *الجوال:* ${phone}%0A`;
+      msg += `------------------%0A`;
+      msg += `📦 *الباقة:* ${selectedPlanData.title}%0A`;
+      msg += `⏳ *المدة:* ${selectedPlanData.duration}%0A`;
+      msg += `💰 *السعر:* ${selectedPlanData.price}%0A%0A`;
+      msg += `أرجو إتمام إجراءات الاشتراك.`;
+
+      window.open(waBase + msg, '_blank', 'noopener');
+      closeOrderModal();
     }
 
-      // --- Bind UI handlers (avoid inline onclick/onsubmit which may be blocked by CSP) ---
-      document.addEventListener('DOMContentLoaded', function () {
-         // Default period state
-         try { togglePeriod(currentPeriod); } catch (e) {}
+    document.addEventListener('DOMContentLoaded', function () {
+      togglePeriod(currentPeriod);
 
-         // Toggle period buttons
-         document.querySelectorAll('.btn-toggle').forEach(btn => {
-            btn.addEventListener('click', function () {
-               togglePeriod(btn.dataset.period);
-            });
-         });
-
-         // Free plan / direct open
-         document.querySelectorAll('.js-open-order').forEach(btn => {
-            btn.addEventListener('click', function () {
-               openOrderModalDirect(
-                  btn.getAttribute('data-plan-title') || 'باقة',
-                  btn.getAttribute('data-plan-price') || '',
-                  btn.getAttribute('data-plan-duration') || ''
-               );
-            });
-         });
-
-         // Paid plans
-         document.querySelectorAll('.js-select-plan').forEach(btn => {
-            btn.addEventListener('click', function () {
-               selectPlan(btn);
-            });
-         });
-
-         // Modal close button
-         const modalCloseBtn = document.querySelector('#orderModal .modal-close');
-         if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeOrderModal);
-
-         // Close when clicking overlay
-         if (orderModal) {
-            orderModal.addEventListener('click', function (e) {
-               if (e.target === orderModal) closeOrderModal();
-            });
-         }
-
-         // Close on ESC
-         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeOrderModal();
-         });
-
-         // Form submit
-         const form = document.getElementById('orderForm');
-         if (form) form.addEventListener('submit', submitOrder);
+      document.querySelectorAll('.btn-toggle').forEach(btn => {
+        btn.addEventListener('click', function () {
+          togglePeriod(btn.dataset.period);
+        });
       });
+
+      document.querySelectorAll('.js-open-order').forEach(btn => {
+        btn.addEventListener('click', function () {
+          openOrderModalDirect(
+            btn.getAttribute('data-plan-title') || 'باقة',
+            btn.getAttribute('data-plan-price') || '',
+            btn.getAttribute('data-plan-duration') || ''
+          );
+        });
+      });
+
+      document.querySelectorAll('.js-select-plan').forEach(btn => {
+        btn.addEventListener('click', function () {
+          selectPlan(btn);
+        });
+      });
+
+      const modalCloseBtn = document.querySelector('#orderModal .modal-close');
+      if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeOrderModal);
+
+      if (orderModal) {
+        orderModal.addEventListener('click', function (e) {
+          if (e.target === orderModal) closeOrderModal();
+        });
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeOrderModal();
+      });
+
+      const form = document.getElementById('orderForm');
+      if (form) form.addEventListener('submit', submitOrder);
+    });
 
     // --- PWA ---
     if ('serviceWorker' in navigator) {
-       window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').catch(function(err) {});
-       });
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').catch(function(err) {});
+      });
     }
   </script>
 
   <!-- Order Modal Markup -->
   <div id="orderModal" class="modal-overlay">
     <div class="modal-content glass-card">
-         <button type="button" class="modal-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+      <button type="button" class="modal-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
       <h3 style="margin-bottom:20px; font-weight:900; font-size:1.4rem;">بيانات المدرسة</h3>
-      
+
       <div id="selectedPlanInfo" style="background:rgba(59,130,246,0.08); padding:12px 16px; border-radius:14px; margin-bottom:24px; border:1px solid rgba(59,130,246,0.15);">
-         <!-- Filled by JS -->
       </div>
-      
+
       <form id="orderForm">
-         <div class="form-group">
-            <label>اسم المدرسة</label>
-            <input type="text" id="ord_school" required placeholder="مثال: مدرسة المستقبل الأهلية">
-         </div>
-         <div class="flex gap-2">
-            <div class="form-group flex-1">
-               <label>المرحلة</label>
-               <select id="ord_stage" required>
-                  <option value="primary">ابتدائي</option>
-                  <option value="middle">متوسط</option>
-                  <option value="high">ثانوي</option>
-                  <option value="kg">رياض أطفال</option>
-               </select>
-            </div>
-            <div class="form-group flex-1">
-               <label>النوع</label>
-               <select id="ord_gender" required>
-                  <option value="boys">بنين</option>
-                  <option value="girls">بنات</option>
-               </select>
-            </div>
-         </div>
-         <div class="form-group">
-            <label>المدينة</label>
-            <input type="text" id="ord_city" required placeholder="الرياض، جدة...">
-         </div>
-         <div class="form-group">
-            <label>اسم المدير/ة</label>
-            <input type="text" id="ord_manager" required placeholder="الاسم الثلاثي">
-         </div>
-         <div class="form-group">
-            <label>رقم الجوال</label>
-            <input type="tel" id="ord_phone" required placeholder="05xxxxxxxx" pattern="05[0-9]{8}" title="رقم جوال سعودي يبدأ بـ 05">
-         </div>
-         
-         <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px; padding:16px; font-size:1.1rem;">
-            إرسال الطلب واتساب <i class="fa-brands fa-whatsapp" style="margin-right:6px"></i>
-         </button>
+        <div class="form-group">
+          <label>اسم المدرسة</label>
+          <input type="text" id="ord_school" required placeholder="مثال: مدرسة المستقبل الأهلية">
+        </div>
+
+        <div class="flex gap-2">
+          <div class="form-group flex-1">
+            <label>المرحلة</label>
+            <select id="ord_stage" required>
+              <option value="primary">ابتدائي</option>
+              <option value="middle">متوسط</option>
+              <option value="high">ثانوي</option>
+              <option value="kg">رياض أطفال</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label>النوع</label>
+            <select id="ord_gender" required>
+              <option value="boys">بنين</option>
+              <option value="girls">بنات</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>المدينة</label>
+          <input type="text" id="ord_city" required placeholder="الرياض، جدة...">
+        </div>
+
+        <div class="form-group">
+          <label>اسم المدير/ة</label>
+          <input type="text" id="ord_manager" required placeholder="الاسم الثلاثي">
+        </div>
+
+        <div class="form-group">
+          <label>رقم الجوال</label>
+          <input type="tel" id="ord_phone" required placeholder="05xxxxxxxx" pattern="05[0-9]{8}" title="رقم جوال سعودي يبدأ بـ 05">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px; padding:16px; font-size:1.1rem;">
+          إرسال الطلب واتساب <i class="fa-brands fa-whatsapp" style="margin-right:6px"></i>
+        </button>
       </form>
     </div>
   </div>
+
 </body>
 </html>

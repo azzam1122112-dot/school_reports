@@ -8,47 +8,39 @@
 {% block head %}
 <style>
   :root {
-    --c-primary: #3b82f6; /* Blue 500 */
-    --c-primary-dark: #2563eb; /* Blue 600 */
-    --c-secondary: #0f172a; /* Slate 900 */
-    --c-bg: #f1f5f9; /* Slate 100 */
+    --c-primary: #2563eb;
+    --c-primary-light: #60a5fa;
+    --c-primary-dark: #1d4ed8;
+    --c-success: #10b981;
+    --c-bg: #f8fafc;
     --c-card: #ffffff;
-    --c-border: #e2e8f0; /* Slate 200 */
-    --c-text: #334155; /* Slate 700 */
-    --c-text-head: #0f172a; /* Slate 900 */
-    --c-w-bg: #f8fafc; /* For input backgrounds */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-    --radius: 12px;
+    --c-border: #e2e8f0;
+    --c-text-main: #0f172a;
+    --c-text-muted: #64748b;
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --shadow-elegant: 0 10px 30px -10px rgba(0,0,0,0.08);
   }
+
   html[data-theme="dark"] {
-    --c-primary: #3b82f6;
-    --c-primary-dark: #60a5fa;
-    --c-secondary: #f8fafc;
-    --c-bg: #0f172a;
-    --c-card: #1e293b;
-    --c-border: #334155;
-    --c-text: #cbd5e1;
-    --c-text-head: #f8fafc;
-    --c-w-bg: #1e293b;
-    --shadow-sm: none;
-    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
+    --c-bg: #020617;
+    --c-card: #0f172a;
+    --c-border: #1e293b;
+    --c-text-main: #f8fafc;
+    --c-text-muted: #94a3b8;
   }
 
   .circular-page {
-    background-color: var(--c-bg);
+    background: var(--c-bg);
     min-height: 100vh;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    color: var(--c-text);
-    padding-block: 2rem;
+    padding: 3rem 0;
+    font-family: 'Tajawal', sans-serif;
   }
 
   .circular-container {
-    max-width: 1400px;
-    margin-inline: auto;
-    padding-inline: 1.5rem;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 2rem;
   }
 
   /* Header Section */
@@ -56,197 +48,172 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
+    margin-bottom: 3rem;
   }
   .header-content h1 {
-    font-size: 1.875rem;
-    font-weight: 800;
-    color: var(--c-text-head);
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--c-primary), #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem;
   }
   .header-subtitle {
-    margin-top: 0.5rem;
-    color: var(--c-text);
-    opacity: 0.8;
-    font-size: 0.95rem;
-  }
-  .header-actions .btn-link {
-    color: var(--c-primary);
-    text-decoration: none;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius);
-    transition: background-color 0.2s;
-  }
-  .header-actions .btn-link:hover {
-    background-color: rgba(59, 130, 246, 0.1);
+    margin-top: 0.75rem;
+    color: var(--c-text-muted);
+    font-size: 1.1rem;
+    font-weight: 500;
   }
 
-  /* Grid Layout Main */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 2rem;
-    align-items: start;
-  }
-  @media (max-width: 1024px) {
-    .main-grid {
-      grid-template-columns: 1fr;
-    }
-    .preview-col {
-        display: none; /* Consider hiding or moving below on mobile if too cramped */
-    }
-  }
-
-  /* Cards */
+  /* App Card Polish */
   .app-card {
-    background-color: var(--c-card);
-    border-radius: var(--radius); /* Start bigger radius */
-    box-shadow: var(--shadow-md);
+    background: var(--c-card);
+    border-radius: var(--radius-lg);
     border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-elegant);
     overflow: hidden;
+    transition: transform 0.3s ease;
   }
   .app-card-header {
-    padding: 1.25rem 1.5rem;
+    padding: 2rem;
+    background: rgba(255,255,255,0.01);
     border-bottom: 1px solid var(--c-border);
-    background-color: rgba(255,255,255,0.02);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
   }
   .app-card-header h2 {
-    font-size: 1.125rem;
-    font-weight: 700;
-    margin: 0;
-    color: var(--c-text-head);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .app-card-body {
-    padding: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--c-text-main);
   }
 
-  /* Form Elements */
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-  }
-  .form-grid .full-width {
-    grid-column: 1 / -1;
-  }
-  @media (max-width: 640px) {
-    .form-grid { grid-template-columns: 1fr; }
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  .form-label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--c-text-head);
-    display: flex;
-    justify-content: space-between;
-  }
+  /* Form Elements 2026 */
   .form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: 8px; /* Slightly tighter elements */
-    border: 1px solid var(--c-border);
-    background-color: var(--c-w-bg);
-    color: var(--c-text-head);
-    font-size: 0.95rem;
-    transition: all 0.2s;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    border: 1.5px solid var(--c-border);
+    background: var(--c-bg);
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .form-control:focus {
-    outline: none;
     border-color: var(--c-primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-  }
-  textarea.form-control {
-    min-height: 120px;
-    resize: vertical;
-    line-height: 1.6;
-  }
-  .form-hint {
-    font-size: 0.8rem;
-    color: var(--c-text);
-    opacity: 0.7;
-    margin-top: 0.25rem;
-  }
-  .error-list {
-    color: #ef4444;
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-top: 0.25rem;
+    background: var(--c-card);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
   }
 
-  /* Custom Checkboxes/Radios */
-  input[type="checkbox"] {
-    accent-color: var(--c-primary);
-    width: 1.1em;
-    height: 1.1em;
+  .btn-submit {
+    background: linear-gradient(135deg, var(--c-primary), var(--c-primary-dark));
+    color: white;
+    padding: 1.25rem 3rem;
+    border-radius: 99px;
+    font-weight: 800;
+    font-size: 1.2rem;
+    box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.4);
+    transition: all 0.3s ease;
+  }
+  .btn-submit:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 25px 50px -12px rgba(37, 99, 235, 0.5);
   }
 
   /* Teacher Selection specific */
   .teacher-selector {
     border: 1px solid var(--c-border);
-    border-radius: 8px;
+    border-radius: var(--radius);
     background-color: var(--c-w-bg);
-    padding: 0.75rem;
+    padding: 1rem;
+    box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.03);
   }
   .teacher-tools {
     display: flex;
     gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    align-items: center;
   }
   .teacher-search {
     flex: 1;
-    padding: 0.5rem;
-    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    border-radius: 99px;
     border: 1px solid var(--c-border);
+    background: var(--c-card);
     font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+  .teacher-search:focus {
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    outline: none;
   }
   .teacher-list-container {
-    max-height: 250px;
+    max-height: 350px;
     overflow-y: auto;
-    padding-right: 0.25rem;
+    padding-right: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--c-border) transparent;
   }
+  .teacher-list-container::-webkit-scrollbar { width: 6px; }
+  .teacher-list-container::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 10px; }
+
   .teacher-list-container ul {
     list-style: none;
     padding: 0;
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
   }
-  .teacher-item label {
+  
+  .teacher-item, #teacherList li {
+    list-style: none;
+  }
+
+  .teacher-item label, #teacherList label {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    border-radius: 6px;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background 0.1s;
-    font-size: 0.9rem;
+    border: 1px solid var(--c-border);
+    background: var(--c-card);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.95rem;
+    font-weight: 600;
+    position: relative;
+    user-select: none;
   }
-  .teacher-item label:hover {
-    background-color: rgba(0,0,0,0.05);
+  
+  .teacher-item label:hover, #teacherList label:hover {
+    background-color: var(--c-w-bg);
+    border-color: var(--c-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
   }
-  html[data-theme="dark"] .teacher-item label:hover {
-    background-color: rgba(255,255,255,0.05);
+
+  /* Checked state highlight - THE CORE FIX */
+  .teacher-item input:checked + span, 
+  #teacherList input:checked + span,
+  .teacher-item label:has(input:checked),
+  #teacherList label:has(input:checked) {
+    background-color: var(--c-primary);
+    color: #ffffff !important;
+    border-color: var(--c-primary-dark);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  }
+
+  #teacherList label:has(input:checked) span {
+    color: #ffffff !important;
+  }
+
+  /* Custom Checkbox within item */
+  .teacher-item input[type="checkbox"], 
+  #teacherList input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin: 0;
+    cursor: pointer;
   }
 
   /* Signature Box */
@@ -498,17 +465,24 @@
                   {% if form.teachers %}
                   <div class="full-width field" data-name="teachers">
                      <div class="form-group">
-                        <label class="form-label">
+                        <label class="form-label" style="margin-bottom: 0.5rem; font-size: 1rem; border-bottom: 2px solid var(--c-primary); display: inline-block; padding-bottom: 4px; width: fit-content;">
                            {{ form.teachers.label }} <span class="text-red">*</span>
-                           <div class="text-sm" style="font-weight:400">
-                             <button type="button" id="selectAllTeachers" class="btn-link" style="padding:0;background:none;border:none">تحديد الكل</button> | 
-                             <button type="button" id="clearAllTeachers" class="btn-link" style="padding:0;color:var(--c-text);background:none;border:none">إلغاء</button>
-                           </div>
                         </label>
+                        
                         <div class="teacher-selector">
                            <div class="teacher-tools">
-                              <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث عن الاسم...">
-                              <span class="form-hint" style="align-self:center">المختار: <b id="selCount">0</b></span>
+                              <div style="position: relative; flex: 1;">
+                                <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); opacity: 0.5;"></i>
+                                <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث عن اسم المعلم..." style="padding-right: 40px;">
+                              </div>
+                              <div class="flex items-center" style="gap: 8px;">
+                                 <button type="button" id="selectAllTeachers" class="btn-cancel" style="padding: 6px 16px; font-size: 0.85rem; border-color: var(--c-primary); color: var(--c-primary);">تحديد الكل</button>
+                                 <button type="button" id="clearAllTeachers" class="btn-cancel" style="padding: 6px 16px; font-size: 0.85rem;">إلغاء التحديد</button>
+                              </div>
+                           </div>
+                           <div style="margin-bottom: 12px; font-size: 0.85rem; color: var(--c-text); display: flex; align-items: center; gap: 8px;">
+                              <i class="fa-solid fa-users-check" style="color: var(--c-primary);"></i>
+                              <span>عدد المستلمين المختارين حالياً: <b id="selCount" style="color: var(--c-primary); font-size: 1rem;">0</b></span>
                            </div>
                            <div class="teacher-list-container" id="teacherList">
                               {{ form.teachers }}
@@ -725,9 +699,15 @@
 
   if(btnSelectAll){
      btnSelectAll.addEventListener('click', e => {
-        // e.preventDefault(); // removed preventDefault if it's button type=button
+        e.preventDefault(); 
+        console.log("Selecting all visible teachers...");
         getCheckboxes().forEach(cb => {
-            if(cb.closest('li').style.display !== 'none') cb.checked = true;
+            const li = cb.closest('li') || cb.closest('.teacher-item');
+            if(li && li.style.display !== 'none') {
+                cb.checked = true;
+                // Dispatch change event to trigger highlight or other listeners
+                cb.dispatchEvent(new Event('change', { bubbles: true }));
+            }
         });
         updateCount();
      });
@@ -735,9 +715,10 @@
 
   if(btnClearAll){
      btnClearAll.addEventListener('click', e => {
-        // e.preventDefault();
+        e.preventDefault();
         getCheckboxes().forEach(cb => {
-            if(cb.closest('li').style.display !== 'none') cb.checked = false;
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
         });
         updateCount();
      });

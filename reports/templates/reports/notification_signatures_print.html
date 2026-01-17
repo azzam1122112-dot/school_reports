@@ -1,133 +1,338 @@
-{% extends "base.html" %}
 {% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>تقرير تواقيع: {{ n.title|default:"تعميم" }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
-{% block title %}تقرير التواقيع — {{ n.title|default:"تعميم" }}{% endblock %}
+  <style>
+    :root {
+      --font-main: 'Tajawal', sans-serif;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #000;
+      --shade: #f8fafc;
+      --brand: #2563eb;
+    }
 
-{% block head %}
-<style>
-  .sp-scope{
-    --ink: var(--ink, #0f172a);
-    --muted: var(--muted, #64748b);
-    --line: var(--line, #e5e7eb);
-    --card: var(--card, #ffffff);
-    --soft: var(--line-2, #f1f5f9);
-    --shadow: 0 12px 30px rgba(2,6,23,.08);
-    --brand: var(--brand, #2563eb);
-  }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-main);
+      background: #f1f5f9;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
 
-  .sp-scope .wrap{max-width:1100px;margin:0 auto;padding:18px}
-  .sp-scope .head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-  .sp-scope h1{margin:0;font-weight:950;color:var(--ink)}
-  .sp-scope .sub{color:var(--muted);font-weight:850}
+    /* Screen Toolbar */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .toolbar-title { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+    .toolbar-actions { display: flex; gap: 12px; }
+    
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 99px;
+      font-weight: 700; font-size: 0.9rem;
+      cursor: pointer; transition: all 0.3s ease;
+      text-decoration: none; border: none;
+    }
+    .btn-white { background: #fff; color: var(--ink); }
+    .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+    .btn:hover { transform: translateY(-2px); opacity: 0.9; }
 
-  .sp-scope .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
-  .sp-scope .card-hd{padding:14px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--soft),var(--card));display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-  .sp-scope .card-bd{padding:16px}
+    /* A4 Canvas Look */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 30px auto;
+      background: #fff;
+      padding: 15mm 15mm;
+      position: relative;
+      box-shadow: 0 0 40px rgba(0,0,0,0.1);
+    }
 
-  .sp-scope .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);background:var(--soft);border-radius:999px;font-weight:950;font-size:.86rem;white-space:nowrap}
-  .sp-scope .pill.good{background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.22);color:#166534}
-  .sp-scope .pill.bad{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.22);color:#b91c1c}
+    @page { size: A4; margin: 0; }
+    @media print {
+      body { background: #fff; }
+      .page {
+        width: 100%;
+        margin: 0;
+        padding: 15mm 15mm;
+        box-shadow: none;
+      }
+      .no-print { display: none !important; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
 
-  .sp-scope .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:950;text-decoration:none;color:var(--ink);min-height:44px;cursor:pointer}
-  .sp-scope .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+    /* Official Header */
+    .official-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+    .header-block { font-size: 13px; line-height: 1.8; font-weight: 700; }
+    .header-logo { height: 80px; width: auto; }
+    .header-center { text-align: center; }
 
-  .sp-scope .tblwrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
-  .sp-scope table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card)}
-  .sp-scope th{background:linear-gradient(180deg,var(--soft),var(--card));text-align:right;padding:10px;border-bottom:1px solid var(--line);font-weight:950;white-space:nowrap}
-  .sp-scope td{padding:10px;border-bottom:1px solid var(--line);font-weight:850;white-space:nowrap}
+    /* Report Content */
+    .report-title {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 900;
+      margin-bottom: 5px;
+      color: #000;
+    }
+    .report-subtitle {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--muted);
+      margin-bottom: 25px;
+      font-weight: 700;
+    }
 
-  @media print{
-    header.site-header, .sub-banner, .drawer, .drawer-overlay, .progress-bar {display:none !important;}
-    body{background:#fff !important;}
-    .sp-scope .wrap{padding:0}
-    .sp-scope .btn{display:none !important;}
-    .sp-scope .card{box-shadow:none !important;}
-  }
-</style>
-{% endblock %}
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+    .stat-card {
+      border: 1px solid var(--line);
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.4rem; font-weight: 900; display: block; }
+    .stat-lbl { font-size: 0.85rem; font-weight: 700; color: var(--muted); }
 
-{% block content %}
-<div class="sp-scope" dir="rtl">
-  <div class="wrap">
-    <div class="head">
-      <div>
-        <h1>تقرير التواقيع</h1>
-        <div class="sub">{{ n.title|default:"تعميم" }} — {{ n.created_at|date:"Y-m-d H:i" }}</div>
-        {% if n.signature_deadline_at %}<div class="sub">آخر موعد للتوقيع: {{ n.signature_deadline_at|date:"Y-m-d H:i" }}</div>{% endif %}
+    /* Table Styling */
+    .official-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+    .official-table th, .official-table td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: right;
+      font-size: 14px;
+    }
+    .official-table th {
+      background: #f3f4f6;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .official-table td { font-weight: 700; }
+
+    .status-pill {
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 900;
+      display: inline-block;
+      border: 1px solid #000;
+    }
+    .status-signed { background: #dcfce7; color: #166534; }
+    .status-pending { background: #fee2e2; color: #991b1b; }
+
+    .ack-box {
+      border: 1px solid var(--line);
+      padding: 15px;
+      margin-bottom: 25px;
+      background: #fdfdfd;
+    }
+    .ack-title { font-weight: 900; margin-bottom: 8px; font-size: 14px; text-decoration: underline; }
+    .ack-text { font-size: 14px; line-height: 1.7; text-align: justify; }
+
+    /* Signature Section at Footer */
+    .signatures-footer {
+      margin-top: 50px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      text-align: center;
+    }
+    .sig-block { font-weight: 900; }
+    .sig-space { height: 60px; }
+
+    .footer-meta {
+      position: absolute;
+      bottom: 15mm;
+      left: 15mm;
+      right: 15mm;
+      font-size: 10px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Toolbar -->
+  <div class="toolbar no-print">
+    <div class="toolbar-title">
+      <i class="fa-solid fa-file-invoice" style="font-size: 1.4rem; color: var(--brand);"></i>
+      <span>معاينة تقرير التواقيع الرسمي</span>
+    </div>
+    <div class="toolbar-actions">
+      <a href="{% url 'reports:notification_detail' n.id %}" class="btn btn-white">
+        <i class="fa-solid fa-arrow-right"></i> عودة
+      </a>
+      <a href="{% url 'reports:notification_signatures_csv' n.id %}" class="btn btn-white">
+        <i class="fa-solid fa-file-csv"></i> تصدير CSV
+      </a>
+      <button onclick="window.print()" class="btn btn-primary">
+        <i class="fa-solid fa-print"></i> طباعة التقرير
+      </button>
+    </div>
+  </div>
+
+  <div class="page">
+    <!-- Header -->
+    <header class="official-header">
+      <div class="header-block">
+        <div>المملكة العربية السعودية</div>
+        <div>وزارة التعليم</div>
+        <div>{% firstof SCHOOL_NAME "المدرسة النشطة" %}</div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a class="btn" href="{% url 'reports:notification_detail' n.id %}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع</a>
-        <a class="btn" href="{% url 'reports:notification_signatures_csv' n.id %}"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</a>
-        <button class="btn primary" type="button" id="printBtn"><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</button>
+      
+      <div class="header-center">
+        <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="Logo" class="header-logo" style="margin-bottom: 5px;">
+        <div style="font-size: 11px; font-weight: 900;">منصة توثـيق التقارير</div>
+      </div>
+
+      <div class="header-block" style="text-align: left; direction: ltr;">
+        <div>Date: {% now "Y/m/d" %}</div>
+        <div>No: CIR-{{ n.id }}</div>
+      </div>
+    </header>
+
+    <!-- Title Area -->
+    <div class="report-title">تقرير حالة التوقيع على التعميم</div>
+    <div class="report-subtitle">{{ n.title }}</div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-val">{{ stats.total }}</span>
+        <span class="stat-lbl">إجمالي المستلمين</span>
+      </div>
+      <div class="stat-card" style="border-color: #166534;">
+        <span class="stat-val" style="color: #166534;">{{ stats.signed }}</span>
+        <span class="stat-lbl">تم التوقيع</span>
+      </div>
+      <div class="stat-card" style="border-color: #991b1b;">
+        <span class="stat-val" style="color: #991b1b;">{{ stats.unsigned }}</span>
+        <span class="stat-lbl">انتظار التوقيع</span>
       </div>
     </div>
 
-    <section class="card" aria-label="ملخص">
-      <div class="card-hd">
-        <strong style="font-weight:950">ملخص الالتزام</strong>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <span class="pill">الإجمالي: {{ stats.total }}</span>
-          <span class="pill good">موقّع: {{ stats.signed }}</span>
-          <span class="pill bad">غير موقّع: {{ stats.unsigned }}</span>
-        </div>
-      </div>
-      <div class="card-bd">
-        {% if n.signature_ack_text %}
-          <div style="color:var(--muted);font-weight:850;line-height:1.9">نص الإقرار: {{ n.signature_ack_text }}</div>
-        {% endif %}
-      </div>
-    </section>
+    <!-- Details Box -->
+    <table class="official-table" style="margin-bottom: 20px;">
+      <tr>
+        <th style="width: 20%;">تاريخ الإصدار</th>
+        <td>{{ n.created_at|date:"Y-m-d H:i" }}</td>
+        <th style="width: 20%;">الموعد النهائي</th>
+        <td>{% if n.signature_deadline_at %}{{ n.signature_deadline_at|date:"Y-m-d H:i" }}{% else %}مفتوح{% endif %}</td>
+      </tr>
+      <tr>
+        <th>حالة التقرير</th>
+        <td colspan="3">
+          {% if stats.unsigned == 0 %}كتمل التوقيع من جميع الأطراف{% else %}جاري جمع التواقيع...{% endif %}
+        </td>
+      </tr>
+    </table>
 
-    <div style="height:12px"></div>
+    {% if n.signature_ack_text %}
+    <div class="ack-box">
+      <div class="ack-title">نص الإقرار الرسمي:</div>
+      <div class="ack-text">"{{ n.signature_ack_text }}"</div>
+    </div>
+    {% endif %}
 
-    <section class="card" aria-label="قائمة المستلمين">
-      <div class="card-hd">
-        <strong style="font-weight:950">قائمة المستلمين</strong>
-        <span class="sub">يظهر الجوال بشكل مخفي حفاظاً على الخصوصية</span>
+    <!-- Items Table -->
+    <table class="official-table">
+      <thead>
+        <tr>
+          <th style="width: 5%;">#</th>
+          <th>اسم المعلم / الموظف</th>
+          <th style="width: 15%;">الدور</th>
+          <th style="width: 15%;">الحالة</th>
+          <th style="width: 20%;">تاريخ التوقيع</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td style="text-align: center;">{{ forloop.counter }}</td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.role }}</td>
+          <td style="text-align: center;">
+            {% if r.signed %}
+            <span class="status-pill status-signed">موقّع</span>
+            {% else %}
+            <span class="status-pill status-pending">انتظار</span>
+            {% endif %}
+          </td>
+          <td>{% if r.signed_at %}{{ r.signed_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align: center; height: 100px;">لا توجد سجلات حالياً</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Bottom Signatures -->
+    <footer class="signatures-footer">
+      <div class="sig-block">
+        <div>معد التقرير</div>
+        <div class="sig-space"></div>
+        <div style="font-size: 0.9rem;">{{ request.user.name|default:request.user.first_name }}</div>
       </div>
-      <div class="card-bd">
-        <div class="tblwrap">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:34%">الاسم</th>
-                <th style="width:18%">الدور</th>
-                <th style="width:16%">الجوال</th>
-                <th style="width:16%">التوقيع</th>
-                <th style="width:16%">وقت التوقيع</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for r in rows %}
-                <tr>
-                  <td>{{ r.name }}</td>
-                  <td>{{ r.role }}</td>
-                  <td>{{ r.phone }}</td>
-                  <td>{% if r.signed %}<span class="pill good">موقّع</span>{% else %}<span class="pill bad">غير موقّع</span>{% endif %}</td>
-                  <td>{% if r.signed_at %}{{ r.signed_at|date:"Y-m-d H:i" }}{% endif %}</td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="5" style="text-align:center;color:var(--muted)">لا توجد بيانات.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+      <div class="sig-block">
+        <div>الختم الرسمي للمدرسة</div>
+        <div class="sig-space"></div>
+        <div style="font-size: 0.8rem; color: #ccc;">(يختم هنا)</div>
       </div>
-    </section>
+    </footer>
+
+    <div class="footer-meta">
+      <span>نظام توثيق التقارير الذكي 2026 — تم إنشاؤه بواسطة {{ request.user.name }}</span>
+      <span>صفحة 1 من 1</span>
+    </div>
   </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
-{{ block.super }}
-<script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
-  (function(){
-    var btn = document.getElementById('printBtn');
-    if(btn){
-      btn.addEventListener('click', function(){
-        try{ window.print(); }catch(e){}
-      });
+  <script>
+    function goBack() {
+      window.history.back();
     }
-  })();
-</script>
-{% endblock %}
+    // Auto print if URL has print=1
+    if (window.location.search.includes('print=1')) {
+      window.print();
+    }
+  </script>
+</body>
+</html>
