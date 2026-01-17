@@ -7,7 +7,7 @@ import logging
 import os
 import traceback
 from typing import Optional, Tuple
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 import openpyxl
 
@@ -2908,13 +2908,22 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
         if ach_file is None:
             return render(request, "reports/share_invalid.html", status=404)
 
-        download_url = reverse("reports:share_achievement_pdf", args=[token])
+        public_url = request.build_absolute_uri(reverse("reports:share_public", args=[token]))
+        download_url = request.build_absolute_uri(reverse("reports:share_achievement_pdf", args=[token]))
+
+        whatsapp_text = (
+            f"ملف الإنجاز: {getattr(ach_file, 'teacher_name', '') or ''} — {getattr(ach_file, 'academic_year', '') or ''}\n"
+            f"رابط العرض: {public_url}\n"
+            f"PDF: {download_url}"
+        ).strip()
+        whatsapp_url = f"https://wa.me/?text={quote(whatsapp_text)}"
         return render(
             request,
             "reports/share_achievement_public.html",
             {
                 "file": ach_file,
                 "download_url": download_url,
+                "whatsapp_url": whatsapp_url,
             },
         )
 
@@ -2956,8 +2965,50 @@ def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
     ach_file = link.achievement_file
     if ach_file is None:
         raise Http404
+
+    # إذا لم يكن الـ PDF مخزنًا بعد، ولّدْه عند الطلب واحتفظ به لتعمل المشاركة دائمًا.
     if not getattr(ach_file, "pdf_file", None):
-        raise Http404
+        try:
+            from django.core.files.base import ContentFile
+            from .pdf_achievement import generate_achievement_pdf
+
+            pdf_bytes, filename = generate_achievement_pdf(request=request, ach_file=ach_file)
+
+            try:
+                ach_file.pdf_file.save(filename, ContentFile(pdf_bytes), save=False)
+                ach_file.pdf_generated_at = timezone.now()
+                ach_file.save(update_fields=["pdf_file", "pdf_generated_at"])
+            except Exception:
+                # حتى لو فشل التخزين (S3/permissions..)، نُرجع الملف للمستخدم.
+                pass
+
+            resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+            resp["Content-Disposition"] = f'inline; filename="{filename}"'
+            return resp
+        except OSError as ex:
+            # WeasyPrint قد يفشل بسبب مكتبات النظام (خصوصًا على Windows).
+            msg = str(ex) or ""
+            if "libgobject" in msg or "gobject-2.0" in msg:
+                return HttpResponse(
+                    "تعذر توليد ملف PDF حاليًا بسبب نقص مكتبات الطباعة على الخادم.",
+                    status=503,
+                    content_type="text/plain; charset=utf-8",
+                )
+            if settings.DEBUG:
+                raise
+            return HttpResponse(
+                "تعذر توليد ملف PDF حاليًا.",
+                status=503,
+                content_type="text/plain; charset=utf-8",
+            )
+        except Exception:
+            if settings.DEBUG:
+                raise
+            return HttpResponse(
+                "تعذر توليد ملف PDF حاليًا.",
+                status=503,
+                content_type="text/plain; charset=utf-8",
+            )
 
     try:
         f = ach_file.pdf_file.open("rb")

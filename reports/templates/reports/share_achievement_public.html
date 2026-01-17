@@ -8,11 +8,19 @@
     <div class="muted" style="margin-top:6px">{{ file.teacher_name }} — {{ file.academic_year }}</div>
 
     <div style="margin-top:14px">
-      {% if file.pdf_file %}
-        <a class="btn btn-primary" href="{{ download_url }}" target="_blank" rel="noopener">عرض / تنزيل PDF</a>
-      {% else %}
-        <div class="muted">لا يوجد PDF متاح حاليًا.</div>
+      {% if pdf_error %}
+        <div class="muted">{{ pdf_error }}</div>
       {% endif %}
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-primary" href="{{ download_url }}" target="_blank" rel="noopener">
+          {% if file.pdf_file %}عرض / تنزيل PDF{% else %}توليد / تنزيل PDF{% endif %}
+        </a>
+
+        {% if whatsapp_url %}
+          <a class="btn" style="background:#25D366;color:white" href="{{ whatsapp_url }}" target="_blank" rel="noopener">مشاركة واتساب</a>
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>
