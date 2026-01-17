@@ -150,6 +150,9 @@
         <a class="btn btn-lg btn-dash-outline" href="{% url 'reports:my_reports' %}">
           <i class="fa-solid fa-folder-open"></i> تقاريري
         </a>
+        <a class="btn btn-lg btn-dash-outline" href="{% url 'reports:achievement_my_files' %}">
+          <i class="fa-solid fa-briefcase"></i> ملف الإنجاز
+        </a>
         {% url 'reports:assigned_to_me' as inbox_url %}
         {% if inbox_url %}
           <a class="btn btn-lg btn-dash-outline" href="{{ inbox_url }}">
