@@ -32,7 +32,7 @@ BEGIN
     LIMIT 1;
 
     IF cname IS NOT NULL THEN
-        EXECUTE format('ALTER TABLE reports_auditlog DROP CONSTRAINT %I', cname);
+        EXECUTE 'ALTER TABLE reports_auditlog DROP CONSTRAINT ' || quote_ident(cname);
     END IF;
 
     -- Recreate FK with ON DELETE CASCADE using a stable name
