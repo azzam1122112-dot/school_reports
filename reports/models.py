@@ -1990,7 +1990,7 @@ class AuditLog(models.Model):
     )
     teacher = models.ForeignKey(
         "Teacher",
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="audit_logs",
