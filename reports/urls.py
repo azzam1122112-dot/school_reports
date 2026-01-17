@@ -50,6 +50,8 @@ urlpatterns = [
     path("achievement/school/", views.achievement_school_files, name="achievement_school_files"),
     path("achievement/school/teachers/", views.achievement_school_teachers, name="achievement_school_teachers"),
     path("achievement/<int:pk>/", views.achievement_file_detail, name="achievement_file_detail"),
+    path("achievement/<int:pk>/delete/", views.achievement_file_delete, name="achievement_file_delete"),
+    path("achievement/<int:pk>/update-year/", views.achievement_file_update_year, name="achievement_file_update_year"),
     path("achievement/<int:pk>/print/", views.achievement_file_print, name="achievement_file_print"),
     path("achievement/<int:pk>/pdf/", views.achievement_file_pdf, name="achievement_file_pdf"),
 

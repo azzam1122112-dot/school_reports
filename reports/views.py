@@ -1506,6 +1506,55 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
 
 
 @login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def achievement_file_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """حذف ملف إنجاز (للمالك فقط)."""
+    file = get_object_or_404(TeacherAchievementFile, pk=pk, teacher=request.user)
+    
+    # يمكن إضافة شرط الحالة لو أردنا منع حذف المعتمد، لكن السؤال يوحي بالحرية للتصحيح
+    file.delete()
+    messages.success(request, "تم حذف ملف الإنجاز بنجاح ✅")
+    return redirect("reports:achievement_my_files")
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def achievement_file_update_year(request: HttpRequest, pk: int) -> HttpResponse:
+    """تصحيح السنة الدراسية لملف الإنجاز (للمالك فقط)."""
+    file = get_object_or_404(TeacherAchievementFile, pk=pk, teacher=request.user)
+    active_school = _get_active_school(request)
+
+    # نموذج بسيط للتحقق من السنة (نستخدم نفس فورم الإنشاء للتحقق مع تمرير القيمة المرسلة كخيار مقبول)
+    # هذا يسمح بقبول أي سنة صحيحة (هيئة + تتابع) حتى لو لم تكن في القائمة الافتراضية
+    submitted_year = request.POST.get("academic_year", "")
+    form = AchievementCreateYearForm(request.POST, year_choices=[submitted_year]) 
+    
+    if form.is_valid():
+        new_year = form.cleaned_data["academic_year"]
+        
+        # 1. التحقق من عدم التكرار
+        duplicate = TeacherAchievementFile.objects.filter(
+            teacher=request.user, 
+            school=file.school, 
+            academic_year=new_year
+        ).exclude(pk=file.pk).exists()
+
+        if duplicate:
+            messages.error(request, f" لا يمكن التعديل: لديك ملف آخر بالفعل للسنة {new_year}")
+        else:
+            file.academic_year = new_year
+            file.save(update_fields=["academic_year", "updated_at"])
+            messages.success(request, f"تم تعديل السنة الدراسية إلى {new_year} ✅")
+
+    else:
+        # استخراج أول خطأ
+        err = next(iter(form.errors.values()))[0] if form.errors else "بيانات غير صالحة"
+        messages.error(request, f"تعذر تحديث السنة: {err}")
+
+    return redirect("reports:achievement_my_files")
+
+
+@login_required(login_url="reports:login")
 @require_http_methods(["GET", "POST"])
 def achievement_school_files(request: HttpRequest) -> HttpResponse:
     """قائمة ملفات الإنجاز للمدرسة (مدير/مشرف عرض فقط).
