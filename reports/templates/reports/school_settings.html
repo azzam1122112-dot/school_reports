@@ -290,6 +290,16 @@
             {% endif %}
           </div>
 
+          <!-- السنوات الدراسية -->
+          <div class="ss-group span-2">
+            <label class="ss-label" for="{{ form.years_text.id_for_label }}">
+              <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> السنوات الدراسية المتاحة (هجري)
+            </label>
+            {{ form.years_text }}
+            {% for e in form.years_text.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+            <div class="ss-hint">{{ form.years_text.help_text }}</div>
+          </div>
+
           <!-- مدة صلاحية الروابط -->
           <div class="ss-group span-2">
             <label class="ss-label" for="{{ form.share_link_default_days.id_for_label }}">

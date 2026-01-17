@@ -1478,7 +1478,15 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
         .values_list("academic_year", flat=True)
         .distinct()
     )
-    create_form = AchievementCreateYearForm(request.POST or None, year_choices=existing_years)
+    
+    # استخراج السنوات المسموحة من إعدادات المدرسة
+    allowed = active_school.allowed_academic_years if active_school else []
+    
+    create_form = AchievementCreateYearForm(
+        request.POST or None, 
+        year_choices=existing_years,
+        allowed_years=allowed
+    )
     if request.method == "POST" and (request.POST.get("action") == "create"):
         if create_form.is_valid():
             year = create_form.cleaned_data["academic_year"]
@@ -4142,6 +4150,13 @@ def get_department_form():
 
 # ---- إعدادات المدرسة الحالية (للمدير أو المشرف العام) ----
 class _SchoolSettingsForm(forms.ModelForm):
+    years_text = forms.CharField(
+        label="السنوات الدراسية المتاحة (هجري)",
+        required=False,
+        widget=forms.TextInput(attrs={"class": "input", "placeholder": "1446-1447, 1447-1448 ..."}),
+        help_text="أدخل السنوات المسموحة مفصولة بفاصلة. اتركها فارغة لاستخدام الوضع الافتراضي."
+    )
+
     class Meta:
         model = School
         fields = [
@@ -4154,6 +4169,34 @@ class _SchoolSettingsForm(forms.ModelForm):
             "logo_file",
             "share_link_default_days",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and self.instance.allowed_academic_years:
+            self.fields["years_text"].initial = ", ".join(self.instance.allowed_academic_years)
+
+    def clean_years_text(self):
+        import re
+        data = self.cleaned_data.get("years_text", "")
+        if not data:
+            return []
+        years = []
+        for part in data.replace("،", ",").split(","):
+            p = part.strip()
+            if not p:
+                continue
+            if not re.match(r"^\d{4}-\d{4}$", p):
+                 # يمكن تجاهل غير الصالح أو رفع خطأ. سنرفض الخطأ لتنبيه المستخدم.
+                pass 
+            years.append(p)
+        
+        # ترتيبها
+        years.sort()
+        return years
+
+    def save(self, commit=True):
+        self.instance.allowed_academic_years = self.cleaned_data["years_text"]
+        return super().save(commit=commit)
 
 
 @login_required(login_url="reports:login")

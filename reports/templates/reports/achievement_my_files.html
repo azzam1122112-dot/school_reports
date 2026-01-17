@@ -276,7 +276,11 @@
     </div>
     <div style="padding:18px;">
       <label class="af-label">السنة الجديدة (هجري)</label>
-      <input type="text" name="academic_year" required pattern="\d{4}-\d{4}" title="الصيغة المطلوبة: 14xx-14yy" class="input" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;font-weight:700" placeholder="مثال: 1448-1449">
+      <select name="academic_year" required class="input" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;font-weight:700">
+        {% for val, label in create_form.fields.academic_year.choices %}
+          <option value="{{ val }}">{{ label }}</option>
+        {% endfor %}
+      </select>
       <div style="margin-top:10px;font-size:0.85rem;color:var(--muted);line-height:1.4">
         تنبيه: لا يمكن اختيار سنة يوجد لها ملف آخر بالفعل.
       </div>
@@ -292,12 +296,12 @@
   function openYearModal(btn, currentYear) {
     var modal = document.getElementById('yearModal');
     var form = document.getElementById('yearForm');
-    var input = form.querySelector('input[name="academic_year"]');
+    var select = form.querySelector('select[name="academic_year"]');
     
     // Set Action URL
     form.action = btn.dataset.url;
     // Set Current Value
-    input.value = currentYear;
+    select.value = currentYear;
     
     modal.showModal();
   }

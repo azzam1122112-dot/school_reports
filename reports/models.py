@@ -152,6 +152,12 @@ class School(models.Model):
         default=7,
         help_text="المدة الافتراضية لروابط مشاركة التقارير/ملفات الإنجاز لهذه المدرسة.",
     )
+    allowed_academic_years = models.JSONField(
+        "السنوات الدراسية المتاحة/المقبولة",
+        default=list,
+        blank=True,
+        help_text="قائمة بالسنوات الدراسية (هجري) التي تظهر للمعلم عند إنشاء ملف إنجاز.",
+    )
     created_at = models.DateTimeField("أُنشئت في", auto_now_add=True)
     updated_at = models.DateTimeField("تم التحديث في", auto_now=True)
 
