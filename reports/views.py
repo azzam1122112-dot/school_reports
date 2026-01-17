@@ -276,26 +276,60 @@ def _filter_by_school(qs, school: Optional[School]):
 
 
 def _private_comment_role_label(author, school: Optional[School]) -> str:
-    if author is None:
-        return "النظام"
-    if getattr(author, "is_superuser", False):
-        return "سوبر"
-    if getattr(author, "is_platform_admin", False):
-        return "مشرف عام"
+    return _canonical_role_label(author, school)
+
+
+def _canonical_role_label(user, school: Optional[School]) -> str:
+    """إرجاع تسمية دور موحّدة (بدون تداخلات).
+
+    الأدوار المعتمدة فقط:
+    - معلم
+    - مدير المدرسة
+    - المشرف العام
+    - مدير النظام
+    """
+    if user is None:
+        return ""
+
+    # مدير النظام
     try:
-        if _is_manager_in_school(author, school):
+        if getattr(user, "is_superuser", False) or _is_staff(user):
+            return "مدير النظام"
+    except Exception:
+        pass
+
+    # المشرف العام
+    try:
+        if is_platform_admin(user) or getattr(user, "is_platform_admin", False):
+            return "المشرف العام"
+    except Exception:
+        pass
+
+    # مدير المدرسة
+    try:
+        if school is not None and _is_manager_in_school(user, school):
             return "مدير المدرسة"
     except Exception:
         pass
     try:
-        if _is_staff(author):
-            return "موظف"
+        role = getattr(user, "role", None)
+        if role is not None and (getattr(role, "slug", "") or "").strip().lower() == "manager":
+            return "مدير المدرسة"
     except Exception:
         pass
-    try:
-        return (getattr(getattr(author, "role", None), "name", None) or "").strip() or "بدون دور"
-    except Exception:
-        return "بدون دور"
+
+    return "معلم"
+
+
+def _canonical_sender_name(user) -> str:
+    if user is None:
+        return "الإدارة"
+    return (
+        (getattr(user, "name", None) or "").strip()
+        or (getattr(user, "phone", None) or "").strip()
+        or (getattr(user, "username", None) or "").strip()
+        or "الإدارة"
+    )
 
 
 def _model_has_field(model, field_name: str) -> bool:
@@ -6574,10 +6608,12 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
 
     active_school = _get_active_school(request)
 
-    qs = (NotificationRecipient.objects
-          .select_related("notification")
-          .filter(teacher=request.user)
-          .order_by("-created_at", "-id"))
+    qs = (
+        NotificationRecipient.objects
+        .select_related("notification", "notification__created_by", "notification__created_by__role")
+        .filter(teacher=request.user)
+        .order_by("-created_at", "-id")
+    )
 
     # فصل: هذه الصفحة للإشعارات فقط (بدون التعاميم)
     try:
@@ -6627,6 +6663,19 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
                         if "read_at" in upd:
                             setattr(x, "read_at", now)
             page.object_list = items
+    except Exception:
+        pass
+
+    # اسم المرسل + الدور الصحيح (مُوحّد)
+    try:
+        items = list(page.object_list)
+        for rr in items:
+            n = getattr(rr, "notification", None)
+            sender = getattr(n, "created_by", None) if n is not None else None
+            school_scope = (getattr(n, "school", None) if n is not None else None) or active_school
+            rr.sender_name = _canonical_sender_name(sender)
+            rr.sender_role_label = _canonical_role_label(sender, school_scope)
+        page.object_list = items
     except Exception:
         pass
     return render(request, "reports/my_notifications.html", {"page_obj": page})
@@ -6772,6 +6821,16 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
         or ""
     )
 
+    # اسم/دور المرسل (موحّد)
+    try:
+        sender = getattr(n, "created_by", None)
+        school_scope = getattr(n, "school", None) or _get_active_school(request)
+        sender_name = _canonical_sender_name(sender)
+        sender_role_label = _canonical_role_label(sender, school_scope)
+    except Exception:
+        sender_name = "الإدارة"
+        sender_role_label = ""
+
     # Mark as read on open (best-effort, supports different schemas)
     try:
         updated_fields: list[str] = []
@@ -6796,6 +6855,8 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "r": r,
             "n": n,
             "body": body,
+            "sender_name": sender_name,
+            "sender_role_label": sender_role_label,
         },
     )
 

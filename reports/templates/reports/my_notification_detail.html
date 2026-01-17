@@ -158,12 +158,8 @@
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
           <span class="nd-pill">
             المرسِل:
-            {% if n.created_by %}
-              {% firstof n.created_by.name n.created_by.phone n.created_by.username "الإدارة" %}
-              {% if n.created_by.is_platform_admin or n.created_by.role %} — {{ n.created_by.display_role_label }}{% endif %}
-            {% else %}
-              الإدارة
-            {% endif %}
+            {% firstof sender_name "الإدارة" %}
+            {% if sender_role_label %} — {{ sender_role_label }}{% endif %}
           </span>
           {% if r.is_read %}<span class="nd-pill">الحالة: مقروء</span>{% else %}<span class="nd-pill">الحالة: غير مقروء</span>{% endif %}
           {% if r.read_at %}<span class="nd-pill">وقت القراءة: {{ r.read_at|date:"Y-m-d H:i" }}</span>{% endif %}

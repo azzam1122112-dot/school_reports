@@ -74,15 +74,11 @@
               <span class="avatar-dot" aria-hidden="true"></span>
 
               <span class="sender-name">
-                {% with s=n.created_by %}{% firstof s.name s.phone s.username "الإدارة" %}{% endwith %}
+                {% firstof r.sender_name "الإدارة" %}
               </span>
 
               <span class="sender-role">
-                {% with s=n.created_by %}
-                  {% if s and s.display_role_label %}
-                    — {{ s.display_role_label }}
-                  {% endif %}
-                {% endwith %}
+                {% if r.sender_role_label %}— {{ r.sender_role_label }}{% endif %}
               </span>
             </div>
 
