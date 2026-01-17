@@ -111,6 +111,15 @@
       margin: 0 auto;
     }
 
+    .logos {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+    .logos .logo { margin: 0; }
+    .logo-school { height: 64px; }
+
     .title {
       text-align: center;
       margin: 14px 0 10px;
@@ -224,7 +233,13 @@
   <div class="toolbar no-print">
     <span>معاينة الطباعة (A4)</span>
     <button type="button" id="achievementPrintBtn" class="btn btn-print">طباعة / حفظ كـ PDF</button>
-    <a href="{% url 'reports:achievement_file_detail' file.pk %}" class="btn">عودة</a>
+    {% if public_mode %}
+      {% if public_download_url %}
+        <a href="{{ public_download_url }}" class="btn" target="_blank" rel="noopener">تنزيل PDF</a>
+      {% endif %}
+    {% else %}
+      <a href="{% url 'reports:achievement_file_detail' file.pk %}" class="btn">عودة</a>
+    {% endif %}
   </div>
 
   <script nonce="{{ CSP_NONCE }}">
@@ -243,7 +258,17 @@
       </div>
 
       <div class="hdr-center">
-        <img src="{% static 'img/UntiTtled-1.png' %}" alt="شعار وزارة التعليم" class="logo" />
+        <div class="logos">
+          {% if school_logo_url %}
+            <img src="{{ school_logo_url }}" alt="شعار المدرسة" class="logo logo-school" />
+          {% endif %}
+
+          <img
+            src="{% if ministry_logo_src %}{{ ministry_logo_src }}{% else %}{% static 'img/UntiTtled-1.png' %}{% endif %}"
+            alt=""
+            class="logo"
+          />
+        </div>
       </div>
 
       <div class="hdr-block hdr-left">

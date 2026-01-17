@@ -1969,6 +1969,20 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
     school = ach_file.school
     primary = (getattr(school, "print_primary_color", None) or "").strip() or "#2563eb"
 
+    school_logo_url = ""
+    try:
+        if getattr(school, "logo_file", None):
+            school_logo_url = school.logo_file.url
+    except Exception:
+        school_logo_url = ""
+
+    try:
+        from .pdf_achievement import _static_png_as_data_uri
+
+        ministry_logo_src = _static_png_as_data_uri("img/UntiTtled-1.png")
+    except Exception:
+        ministry_logo_src = None
+
     return render(
         request,
         "reports/pdf/achievement_file.html",
@@ -1978,6 +1992,8 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
             "sections": sections,
             "theme": {"brand": primary},
             "now": timezone.localtime(timezone.now()),
+            "school_logo_url": school_logo_url,
+            "ministry_logo_src": ministry_logo_src,
         },
     )
 
@@ -2908,22 +2924,45 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
         if ach_file is None:
             return render(request, "reports/share_invalid.html", status=404)
 
-        public_url = request.build_absolute_uri(reverse("reports:share_public", args=[token]))
-        download_url = request.build_absolute_uri(reverse("reports:share_achievement_pdf", args=[token]))
+        # نفس تجربة مشاركة التقارير: فتح الرابط يعرض "الملف" مباشرة (صفحة طباعة/معاينة)، مع خيار تنزيل PDF.
+        _ensure_achievement_sections(ach_file)
+        sections = (
+            AchievementSection.objects.filter(file=ach_file)
+            .prefetch_related("evidence_images")
+            .order_by("code", "id")
+        )
 
-        whatsapp_text = (
-            f"ملف الإنجاز: {getattr(ach_file, 'teacher_name', '') or ''} — {getattr(ach_file, 'academic_year', '') or ''}\n"
-            f"رابط العرض: {public_url}\n"
-            f"PDF: {download_url}"
-        ).strip()
-        whatsapp_url = f"https://wa.me/?text={quote(whatsapp_text)}"
+        school = ach_file.school
+        primary = (getattr(school, "print_primary_color", None) or "").strip() or "#2563eb"
+
+        school_logo_url = ""
+        try:
+            if getattr(school, "logo_file", None):
+                school_logo_url = school.logo_file.url
+        except Exception:
+            school_logo_url = ""
+
+        try:
+            from .pdf_achievement import _static_png_as_data_uri
+
+            ministry_logo_src = _static_png_as_data_uri("img/UntiTtled-1.png")
+        except Exception:
+            ministry_logo_src = None
+
+        download_url = request.build_absolute_uri(reverse("reports:share_achievement_pdf", args=[token]))
         return render(
             request,
-            "reports/share_achievement_public.html",
+            "reports/pdf/achievement_file.html",
             {
                 "file": ach_file,
-                "download_url": download_url,
-                "whatsapp_url": whatsapp_url,
+                "school": school,
+                "sections": sections,
+                "theme": {"brand": primary},
+                "now": timezone.localtime(timezone.now()),
+                "public_mode": True,
+                "public_download_url": download_url,
+                "school_logo_url": school_logo_url,
+                "ministry_logo_src": ministry_logo_src,
             },
         )
 
