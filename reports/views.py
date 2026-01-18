@@ -191,7 +191,7 @@ def _is_staff_or_officer(user) -> bool:
     """يسمح للموظّفين (is_staff) أو لمسؤولي الأقسام (Officer)."""
     return bool(
         getattr(user, "is_authenticated", False)
-        and (_is_staff(user) or is_officer(user))
+        and (_is_staff(user) or is_officer(user) or is_platform_admin(user))
     )
 
 
@@ -6200,17 +6200,17 @@ def notifications_create(request: HttpRequest, mode: str = "notification") -> Ht
     except Exception:
         active_school = None
 
-    # حماية: غير السوبر يجب أن يختار مدرسة نشطة قبل الإرسال
-    if not getattr(request.user, "is_superuser", False) and active_school is None:
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(request.user)) and not is_superuser
+
+    # حماية: مدير المدرسة/الضابط يحتاج مدرسة نشطة. المشرف العام يختار المدرسة من النموذج.
+    if (not is_superuser) and (not is_platform) and active_school is None:
         messages.error(request, "يرجى اختيار المدرسة أولاً قبل إرسال الإشعارات.")
         return redirect("reports:home")
 
-    # التعميمات: فقط مدير المدرسة أو مدير النظام. المشرف العام/الضابط لا علاقة له.
+    # التعميمات: مدير المدرسة، مدير النظام، والمشرف العام (ضمن نطاقه فقط).
     if is_circular:
-        if bool(getattr(request.user, "is_platform_admin", False)) and not getattr(request.user, "is_superuser", False):
-            messages.error(request, "لا تملك صلاحية إرسال التعاميم.")
-            return redirect("reports:home")
-        if not getattr(request.user, "is_superuser", False):
+        if not is_superuser and not is_platform:
             if active_school is None or not _is_manager_in_school(request.user, active_school):
                 messages.error(request, "التعاميم متاحة لمدير المدرسة فقط.")
                 return redirect("reports:home")
@@ -6263,30 +6263,43 @@ def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("reports:notifications_sent")
 
     active_school = _get_active_school(request)
-    if not request.user.is_superuser and active_school is None:
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(request.user)) and not is_superuser
+    if (not is_superuser) and (not is_platform) and active_school is None:
         messages.error(request, "يرجى اختيار المدرسة أولاً.")
         return redirect("reports:home")
 
     n = get_object_or_404(Notification, pk=pk)
     sent_list_url = "reports:circulars_sent" if bool(getattr(n, "requires_signature", False)) else "reports:notifications_sent"
 
-    # التعميمات: منع أي دور غير مدير المدرسة/مدير النظام
+    # التعميمات: سماح لمدير المدرسة/مدير النظام/المشرف العام (ضمن نطاقه)
     if bool(getattr(n, "requires_signature", False)):
-        if bool(getattr(request.user, "is_platform_admin", False)) and not getattr(request.user, "is_superuser", False):
-            messages.error(request, "لا تملك صلاحية التعامل مع التعاميم.")
-            return redirect(sent_list_url)
-        if not request.user.is_superuser and not _is_manager_in_school(request.user, active_school):
+        if is_platform:
+            if getattr(n, "created_by_id", None) != request.user.id:
+                messages.error(request, "لا تملك صلاحية التعامل مع هذا التعميم.")
+                return redirect(sent_list_url)
+            try:
+                if getattr(n, "school", None) is not None and not platform_can_access_school(request.user, getattr(n, "school", None)):
+                    messages.error(request, "لا تملك صلاحية التعامل مع تعميم خارج نطاقك.")
+                    return redirect(sent_list_url)
+            except Exception:
+                pass
+        elif not is_superuser and not _is_manager_in_school(request.user, active_school):
             messages.error(request, "لا تملك صلاحية التعامل مع التعاميم.")
             return redirect(sent_list_url)
     is_owner = getattr(n, "created_by_id", None) == request.user.id
     is_manager = _is_manager_in_school(request.user, active_school)
-    if not (is_manager or is_owner):
+    if is_platform:
+        if not is_owner:
+            messages.error(request, "لا تملك صلاحية حذف هذا الإشعار.")
+            return redirect(sent_list_url)
+    elif not (is_manager or is_owner):
         messages.error(request, "لا تملك صلاحية حذف هذا الإشعار.")
         return redirect(sent_list_url)
 
     # عزل حسب المدرسة النشطة (غير السوبر)
     try:
-        if not request.user.is_superuser and hasattr(n, "school_id"):
+        if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
             if getattr(n, "school_id", None) is None:
                 messages.error(request, "لا تملك صلاحية حذف إشعار عام.")
                 return redirect(sent_list_url)
@@ -6365,25 +6378,34 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("reports:notifications_sent")
 
     active_school = _get_active_school(request)
-    if not request.user.is_superuser and active_school is None:
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(request.user)) and not is_superuser
+    if (not is_superuser) and (not is_platform) and active_school is None:
         messages.error(request, "يرجى اختيار المدرسة أولاً.")
         return redirect("reports:home")
 
     n = get_object_or_404(Notification, pk=pk)
     sent_list_url = "reports:circulars_sent" if bool(getattr(n, "requires_signature", False)) else "reports:notifications_sent"
 
-    # التعميمات: منع أي دور غير مدير المدرسة/مدير النظام
+    # التعميمات: سماح لمدير المدرسة/مدير النظام/المشرف العام (ضمن نطاقه)
     if bool(getattr(n, "requires_signature", False)):
-        if bool(getattr(request.user, "is_platform_admin", False)) and not getattr(request.user, "is_superuser", False):
-            messages.error(request, "لا تملك صلاحية عرض التعاميم.")
-            return redirect(sent_list_url)
-        if not request.user.is_superuser and not _is_manager_in_school(request.user, active_school):
+        if is_platform:
+            if getattr(n, "created_by_id", None) != request.user.id:
+                messages.error(request, "لا تملك صلاحية عرض هذا التعميم.")
+                return redirect(sent_list_url)
+            try:
+                if getattr(n, "school", None) is not None and not platform_can_access_school(request.user, getattr(n, "school", None)):
+                    messages.error(request, "لا تملك صلاحية عرض تعميم خارج نطاقك.")
+                    return redirect(sent_list_url)
+            except Exception:
+                pass
+        elif (not is_superuser) and (not _is_manager_in_school(request.user, active_school)):
             messages.error(request, "لا تملك صلاحية عرض التعاميم.")
             return redirect(sent_list_url)
 
     # عزل حسب المدرسة النشطة (غير السوبر)
     try:
-        if not request.user.is_superuser and hasattr(n, "school_id"):
+        if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
             if getattr(n, "school_id", None) is None:
                 messages.error(request, "لا تملك صلاحية عرض إشعار عام.")
                 return redirect(sent_list_url)
@@ -6583,7 +6605,9 @@ def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse
         return redirect("reports:notifications_sent")
 
     active_school = _get_active_school(request)
-    if not request.user.is_superuser and active_school is None:
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(request.user)) and not is_superuser
+    if (not is_superuser) and (not is_platform) and active_school is None:
         messages.error(request, "يرجى اختيار المدرسة أولاً.")
         return redirect("reports:home")
 
@@ -6595,20 +6619,27 @@ def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse
         messages.error(request, "هذا التقرير متاح للتعاميم فقط.")
         return redirect(sent_list_url)
 
-    # المشرف العام/الضابط لا علاقة له بالتعاميم
-    if bool(getattr(request.user, "is_platform_admin", False)) and not getattr(request.user, "is_superuser", False):
-        messages.error(request, "لا تملك صلاحية عرض تقارير التعاميم.")
-        return redirect(sent_list_url)
+    # سماح للمشرف العام بتقارير التعاميم التي أنشأها ضمن نطاقه
+    if is_platform:
+        if getattr(n, "created_by_id", None) != request.user.id:
+            messages.error(request, "لا تملك صلاحية عرض تقرير هذا التعميم.")
+            return redirect(sent_list_url)
+        try:
+            if getattr(n, "school", None) is not None and not platform_can_access_school(request.user, getattr(n, "school", None)):
+                messages.error(request, "لا تملك صلاحية عرض تعميم خارج نطاقك.")
+                return redirect(sent_list_url)
+        except Exception:
+            pass
 
     # Permission: manager in school or creator
-    if not _is_manager_in_school(request.user, active_school):
+    if (not is_platform) and (not _is_manager_in_school(request.user, active_school)):
         if getattr(n, "created_by_id", None) != request.user.id:
             messages.error(request, "لا تملك صلاحية عرض تقرير هذا التعميم.")
             return redirect(sent_list_url)
 
     # School isolation
     try:
-        if not request.user.is_superuser and hasattr(n, "school_id"):
+        if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
             if getattr(n, "school_id", None) != getattr(active_school, "id", None):
                 messages.error(request, "لا تملك صلاحية عرض تعميم من مدرسة أخرى.")
                 return redirect(sent_list_url)
@@ -6659,7 +6690,9 @@ def notification_signatures_csv(request: HttpRequest, pk: int) -> HttpResponse:
         return HttpResponse("unavailable", status=400)
 
     active_school = _get_active_school(request)
-    if not request.user.is_superuser and active_school is None:
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(request.user)) and not is_superuser
+    if (not is_superuser) and (not is_platform) and active_school is None:
         return HttpResponse("active_school_required", status=403)
 
     n = get_object_or_404(Notification, pk=pk)
@@ -6667,15 +6700,21 @@ def notification_signatures_csv(request: HttpRequest, pk: int) -> HttpResponse:
     if not bool(getattr(n, "requires_signature", False)):
         return HttpResponse("forbidden", status=403)
 
-    if bool(getattr(request.user, "is_platform_admin", False)) and not getattr(request.user, "is_superuser", False):
-        return HttpResponse("forbidden", status=403)
+    if is_platform:
+        if getattr(n, "created_by_id", None) != request.user.id:
+            return HttpResponse("forbidden", status=403)
+        try:
+            if getattr(n, "school", None) is not None and not platform_can_access_school(request.user, getattr(n, "school", None)):
+                return HttpResponse("forbidden", status=403)
+        except Exception:
+            pass
 
-    if not _is_manager_in_school(request.user, active_school):
+    if (not is_platform) and (not _is_manager_in_school(request.user, active_school)):
         if getattr(n, "created_by_id", None) != request.user.id:
             return HttpResponse("forbidden", status=403)
 
     try:
-        if not request.user.is_superuser and hasattr(n, "school_id"):
+        if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
             if getattr(n, "school_id", None) != getattr(active_school, "id", None):
                 return HttpResponse("forbidden", status=403)
     except Exception:
@@ -7058,11 +7097,10 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
         mode = "notification"
     is_circular = mode == "circular"
 
+    is_platform = bool(is_platform_admin(request.user)) and not bool(getattr(request.user, "is_superuser", False))
+
     if is_circular:
-        if bool(getattr(request.user, "is_platform_admin", False)) and not getattr(request.user, "is_superuser", False):
-            messages.error(request, "لا تملك صلاحية عرض التعاميم.")
-            return redirect("reports:home")
-        if not request.user.is_superuser and not _is_manager_in_school(request.user, _get_active_school(request)):
+        if not request.user.is_superuser and not is_platform and not _is_manager_in_school(request.user, _get_active_school(request)):
             messages.error(request, "التعاميم متاحة لمدير المدرسة فقط.")
             return redirect("reports:home")
 
@@ -7079,7 +7117,7 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
         )
 
     active_school = _get_active_school(request)
-    if not request.user.is_superuser and active_school is None:
+    if not request.user.is_superuser and (not is_platform) and active_school is None:
         messages.error(request, "يرجى اختيار المدرسة أولاً.")
         return redirect("reports:home")
 
@@ -7102,10 +7140,19 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
 
     # غير السوبر: لا يرى إلا إشعارات المدرسة النشطة (لا إشعارات عامة)
     try:
-        if not request.user.is_superuser and hasattr(Notification, "school"):
+        if (not request.user.is_superuser) and (not is_platform) and hasattr(Notification, "school"):
             qs = qs.filter(school=active_school)
     except Exception:
         pass
+
+    # المشرف العام: يرى فقط ما قام بإرساله، وبحد نطاقه إن كانت المدرسة محددة
+    if is_platform:
+        qs = qs.filter(created_by=request.user)
+        try:
+            if hasattr(Notification, "school"):
+                qs = qs.filter(Q(school__isnull=True) | Q(school__in=platform_allowed_schools_qs(request.user)))
+        except Exception:
+            pass
 
     if not request.user.is_superuser and not _is_manager_in_school(request.user, active_school):
         qs = qs.filter(created_by=request.user)

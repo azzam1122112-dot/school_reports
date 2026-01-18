@@ -1351,7 +1351,10 @@ class NotificationCreateForm(forms.Form):
         if not is_circular:
             self.fields.pop("attachment", None)
 
+        from .permissions import is_platform_admin, platform_allowed_schools_qs
+
         is_superuser = bool(getattr(user, "is_superuser", False))
+        is_platform = bool(is_platform_admin(user)) and not is_superuser
         
         # التحقق مما إذا كان المستخدم مديراً ضمن المدرسة النشطة (عزل مدارس)
         try:
@@ -1361,15 +1364,22 @@ class NotificationCreateForm(forms.Form):
             is_manager = False
 
         # إعداد حقول نطاق الإرسال/المدرسة حسب نوع المستخدم
-        if is_superuser:
-            self.fields["target_school"].queryset = School.objects.filter(is_active=True).order_by("name")
-            # السوبر يوزر يمكنه اختيار أي قسم في المنصة
-            self.fields["target_department"].queryset = Department.objects.filter(is_active=True).order_by("name")
+        if is_superuser or is_platform:
+            if is_superuser:
+                self.fields["target_school"].queryset = School.objects.filter(is_active=True).order_by("name")
+            else:
+                self.fields["target_school"].queryset = platform_allowed_schools_qs(user).order_by("name")
+
+            # الأقسام: ليست ضمن نطاق ميزة التعاميم/المشرف العام، فنبقيها للسوبر فقط
+            if is_superuser and "target_department" in self.fields:
+                self.fields["target_department"].queryset = Department.objects.filter(is_active=True).order_by("name")
+            else:
+                self.fields.pop("target_department", None)
         else:
             # لا يحتاج المدير/الضابط لاختيار النطاق أو المدرسة؛ نستخدم المدرسة النشطة تلقائياً
             self.fields.pop("audience_scope", None)
             self.fields.pop("target_school", None)
-            
+
             # جلب أقسام المدرسة النشطة فقط (للمدير فقط حسب الطلب)
             if is_manager and active_school:
                 self.fields["target_department"].queryset = Department.objects.filter(
@@ -1410,6 +1420,28 @@ class NotificationCreateForm(forms.Form):
                     self.fields["teachers"].help_text = "يمكنك ترك الاختيار فارغًا لإرسال التعميم لجميع مدراء المدارس ضمن النطاق المحدد."
 
                 # لو اختار السوبر مدرسة محددة، قيد المدراء بهذه المدرسة
+                scope_val = (self.data.get("audience_scope") or self.initial.get("audience_scope") or "").strip()
+                school_id = self.data.get("target_school") or self.initial.get("target_school")
+                if (not scope_val or scope_val == "school") and school_id:
+                    try:
+                        qs = qs.filter(school_memberships__school_id=int(school_id)).distinct()
+                    except ValueError:
+                        pass
+
+            # المشرف العام: يرسل التعميمات لمدراء المدارس ضمن نطاقه فقط
+            elif is_platform:
+                allowed_schools_qs = platform_allowed_schools_qs(user)
+                qs = qs.filter(
+                    school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
+                    school_memberships__is_active=True,
+                    school_memberships__school__is_active=True,
+                    school_memberships__school__in=allowed_schools_qs,
+                ).distinct()
+
+                if "teachers" in self.fields:
+                    self.fields["teachers"].label = "مدراء المدارس (ضمن نطاقك)"
+                    self.fields["teachers"].help_text = "يمكنك ترك الاختيار فارغًا لإرسال التعميم لجميع مدراء المدارس ضمن نطاقك."
+
                 scope_val = (self.data.get("audience_scope") or self.initial.get("audience_scope") or "").strip()
                 school_id = self.data.get("target_school") or self.initial.get("target_school")
                 if (not scope_val or scope_val == "school") and school_id:
@@ -1480,7 +1512,15 @@ class NotificationCreateForm(forms.Form):
     def clean(self):
         cleaned = super().clean()
         user = getattr(self, "user", None)
-        if getattr(user, "is_superuser", False):
+        try:
+            from .permissions import is_platform_admin
+            is_superuser = bool(getattr(user, "is_superuser", False))
+            is_platform = bool(is_platform_admin(user)) and not is_superuser
+        except Exception:
+            is_superuser = bool(getattr(user, "is_superuser", False))
+            is_platform = False
+
+        if is_superuser or is_platform:
             scope = cleaned.get("audience_scope") or "school"
             target_school = cleaned.get("target_school")
             if scope == "school" and not target_school:
@@ -1495,7 +1535,15 @@ class NotificationCreateForm(forms.Form):
 
         # تحديد المدرسة المرتبطة بالإشعار
         school_for_notification = default_school
-        if getattr(creator, "is_superuser", False):
+        try:
+            from .permissions import is_platform_admin
+            is_superuser = bool(getattr(creator, "is_superuser", False))
+            is_platform = bool(is_platform_admin(creator)) and not is_superuser
+        except Exception:
+            is_superuser = bool(getattr(creator, "is_superuser", False))
+            is_platform = False
+
+        if is_superuser or is_platform:
             scope = cleaned.get("audience_scope") or "school"
             if scope == "all":
                 school_for_notification = None
@@ -1542,9 +1590,15 @@ class NotificationCreateForm(forms.Form):
         
         teacher_ids = list(teacher_ids_set) if teacher_ids_set else None
 
-        # التعميمات (requires_signature=True): مدير النظام يرسل لمدراء المدارس
+        # التعميمات (requires_signature=True): مدير النظام/المشرف العام يرسل لمدراء المدارس
         # لو لم يحدد أسماء، نعتبره "إرسال للكل" ضمن النطاق المحدد.
-        if bool(requires_signature) and bool(getattr(creator, "is_superuser", False)) and not teacher_ids:
+        try:
+            from .permissions import is_platform_admin
+            is_platform_creator = bool(is_platform_admin(creator)) and not bool(getattr(creator, "is_superuser", False))
+        except Exception:
+            is_platform_creator = False
+
+        if bool(requires_signature) and (bool(getattr(creator, "is_superuser", False)) or is_platform_creator) and not teacher_ids:
             try:
                 qs = self.fields["teachers"].queryset
                 teacher_ids = list(qs.values_list("pk", flat=True))
