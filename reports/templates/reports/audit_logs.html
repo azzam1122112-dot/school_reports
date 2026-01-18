@@ -426,7 +426,19 @@
                 <span class="model-pill">{{ log.model_name }}</span>
               </td>
 
-              <td class="obj" title="{{ log.object_repr }}">{{ log.object_repr }}</td>
+              <td class="obj">
+                {% if log.model_name == "Auth" and log.teacher %}
+                  {% if log.action == "login" %}
+                    Login: {{ log.teacher }}
+                  {% elif log.action == "logout" %}
+                    Logout: {{ log.teacher }}
+                  {% else %}
+                    {{ log.object_repr }}
+                  {% endif %}
+                {% else %}
+                  {{ log.object_repr }}
+                {% endif %}
+              </td>
 
               <td class="ip">{{ log.ip_address|default:"—" }}</td>
             </tr>

@@ -293,8 +293,8 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
 
         - المشرف العام (is_platform_admin) يجب أن يظهر بهذه التسمية حتى لو كان role فارغاً أو افتراضياً.
         """
-        if getattr(self, "is_superuser", False):
-            return "سوبر"
+        if getattr(self, "is_superuser", False) or getattr(self, "is_staff", False):
+            return "مدير النظام"
         if getattr(self, "is_platform_admin", False):
             return "المشرف العام"
         try:
@@ -314,8 +314,10 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         role_name = getattr(self.role, "name", None)
-        if not role_name and getattr(self, "is_platform_admin", False):
-            role_name = "مشرف عام"
+        if getattr(self, "is_superuser", False) or getattr(self, "is_staff", False):
+            role_name = "مدير النظام"
+        elif getattr(self, "is_platform_admin", False):
+            role_name = "المشرف العام"
         return f"{self.name} ({role_name or 'بدون دور'})"
 
 
