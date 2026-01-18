@@ -27,7 +27,7 @@
           {{ request.user.name|default:"المستخدم" }}
         </div>
         <small style="opacity:.92;">
-          {% firstof request.user.role "مستخدم" %}
+          {{ USER_ROLE_LABEL|default:"مستخدم" }}
         </small>
       </div>
     </div>

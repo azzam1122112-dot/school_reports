@@ -597,6 +597,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "SEND_NOTIFICATION_URL": None,
             "SCHOOL_NAME": None,
             "SCHOOL_LOGO_URL": None,
+            "USER_ROLE_LABEL": None,
         }
 
     # نحدد المدرسة النشطة (إن وُجدت) لاستخدامها في العدادات
@@ -705,6 +706,26 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         pass
 
     show_admin_link = bool(getattr(u, "is_staff", False)) or any_school_manager
+
+    # تسمية دور المستخدم الحالي (لعرضها في الواجهة)
+    user_role_label: Optional[str] = None
+    try:
+        if getattr(u, "is_superuser", False) or getattr(u, "is_staff", False):
+            user_role_label = "مدير النظام"
+        elif bool(getattr(u, "is_platform_admin", False)):
+            user_role_label = "المشرف العام"
+        elif bool(any_school_manager) or (role_slug or "").strip().lower() == "manager":
+            user_role_label = "مدير المدرسة"
+        else:
+            role_obj = getattr(u, "role", None)
+            # Prefer explicit role name if available, else string representation.
+            user_role_label = (
+                (getattr(role_obj, "name", None) or "").strip()
+                or (str(role_obj).strip() if role_obj is not None else "")
+                or "مستخدم"
+            )
+    except Exception:
+        user_role_label = "مستخدم"
 
     # من يحق له إرسال إشعارات؟
     # الإرسال يجب أن يكون ضمن مدرسة محددة لغير السوبر
@@ -825,6 +846,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "USER_SCHOOLS": user_schools,
         "SUBSCRIPTION_WARNING": subscription_warning,
         "SUBSCRIPTION_DAYS_LEFT": subscription_days_left,
+        "USER_ROLE_LABEL": user_role_label,
     }
 
 
