@@ -1363,6 +1363,16 @@ class NotificationCreateForm(forms.Form):
         except Exception:
             is_manager = False
 
+        # إضافة حقل "إرسال للكل" للمشرف العام في وضع التعميمات
+        if is_circular and is_platform:
+            self.fields["send_to_all_managers"] = forms.BooleanField(
+                label="إرسال لجميع مدراء المدارس ضمن نطاقي",
+                required=False,
+                initial=False,
+                widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                help_text="اختر هذا الخيار لإرسال التعميم لجميع مدراء المدارس ضمن نطاقك، أو اترك الخيار فارغًا واختر مدراء معينين من القائمة.",
+            )
+
         # إعداد حقول نطاق الإرسال/المدرسة حسب نوع المستخدم
         if is_superuser or is_platform:
             if is_superuser:
@@ -1439,8 +1449,9 @@ class NotificationCreateForm(forms.Form):
                 ).distinct()
 
                 if "teachers" in self.fields:
-                    self.fields["teachers"].label = "مدراء المدارس (ضمن نطاقك)"
-                    self.fields["teachers"].help_text = "يمكنك ترك الاختيار فارغًا لإرسال التعميم لجميع مدراء المدارس ضمن نطاقك."
+                    self.fields["teachers"].label = "مدراء معينين (اختياري)"
+                    self.fields["teachers"].help_text = "اختر مدراء معينين فقط، أو فعّل خيار 'إرسال للكل' أعلاه."
+                    self.fields["teachers"].required = False
 
                 scope_val = (self.data.get("audience_scope") or self.initial.get("audience_scope") or "").strip()
                 school_id = self.data.get("target_school") or self.initial.get("target_school")
@@ -1525,6 +1536,15 @@ class NotificationCreateForm(forms.Form):
             target_school = cleaned.get("target_school")
             if scope == "school" and not target_school:
                 raise ValidationError("الرجاء اختيار مدرسة مستهدفة أو تغيير النطاق إلى \"كل المدارس\".")
+
+        # التحقق من اختيار المشرف العام: إما إرسال للكل أو اختيار مدراء معينين
+        mode = getattr(self, "mode", "notification") or "notification"
+        is_circular = mode == "circular"
+        if is_circular and is_platform:
+            send_to_all = cleaned.get("send_to_all_managers", False)
+            teachers = cleaned.get("teachers", [])
+            if not send_to_all and not teachers:
+                raise ValidationError("يرجى اختيار مدراء معينين أو تفعيل خيار 'إرسال لجميع مدراء المدارس ضمن نطاقي'.")
         return cleaned
 
     def save(self, creator, default_school=None, force_requires_signature: Optional[bool] = None):
@@ -1591,19 +1611,21 @@ class NotificationCreateForm(forms.Form):
         teacher_ids = list(teacher_ids_set) if teacher_ids_set else None
 
         # التعميمات (requires_signature=True): مدير النظام/المشرف العام يرسل لمدراء المدارس
-        # لو لم يحدد أسماء، نعتبره "إرسال للكل" ضمن النطاق المحدد.
+        # لو لم يحدد أسماء أو فعّل "إرسال للكل"، نعتبره "إرسال للكل" ضمن النطاق المحدد.
         try:
             from .permissions import is_platform_admin
             is_platform_creator = bool(is_platform_admin(creator)) and not bool(getattr(creator, "is_superuser", False))
         except Exception:
             is_platform_creator = False
 
-        if bool(requires_signature) and (bool(getattr(creator, "is_superuser", False)) or is_platform_creator) and not teacher_ids:
-            try:
-                qs = self.fields["teachers"].queryset
-                teacher_ids = list(qs.values_list("pk", flat=True))
-            except Exception:
-                teacher_ids = None
+        send_to_all_managers = cleaned.get("send_to_all_managers", False)
+        if bool(requires_signature) and (bool(getattr(creator, "is_superuser", False)) or is_platform_creator):
+            if send_to_all_managers or not teacher_ids:
+                try:
+                    qs = self.fields["teachers"].queryset
+                    teacher_ids = list(qs.values_list("pk", flat=True))
+                except Exception:
+                    teacher_ids = None
 
         # Trigger background task to create recipients
         # - Prefer async (Celery)
