@@ -332,7 +332,7 @@
           {% for n in notes %}
             <div class="note">
               <div class="note-meta">
-                <div>الكاتب: {% firstof n.author.name n.author "—" %}</div>
+            <div>الكاتب: {% if n.author %}{% firstof n.author.name n.author "—" %} — {{ n.author.display_role_label }}{% else %}—{% endif %}</div>
                 <div dir="ltr">{{ n.created_at|date:"Y-m-d H:i" }}</div>
               </div>
               <div class="note-body">{{ n.body|ticket_note_ar|default_if_none:"" }}</div>

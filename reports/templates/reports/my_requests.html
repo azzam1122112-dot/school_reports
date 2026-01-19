@@ -151,7 +151,7 @@
                   {% if t.pub_notes %}
                     {% for n in t.pub_notes|slice:":1" %}
                       <div class="note-preview">
-                        <b>{{ n.author.name|default:"—" }}</b>
+                    <b>{% if n.author %}{{ n.author.name|default:"—" }} — {{ n.author.display_role_label }}{% else %}—{% endif %}</b>
                         • {{ n.created_at|date:"Y-m-d H:i" }}
                         — {{ n.body|default:"—"|truncatechars:100 }}
                       </div>
@@ -213,7 +213,7 @@
                 {% for n in t.pub_notes|slice:":1" %}
                   <div class="last-note">
                     <b>آخر إجراء:</b>
-                    {{ n.author.name|default:"—" }} • {{ n.created_at|date:"Y-m-d H:i" }} —
+                {% if n.author %}{{ n.author.name|default:"—" }} — {{ n.author.display_role_label }}{% else %}—{% endif %} • {{ n.created_at|date:"Y-m-d H:i" }} —
                     {{ n.body|default:"—"|truncatechars:120 }}
                   </div>
                 {% endfor %}

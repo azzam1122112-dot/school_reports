@@ -21,6 +21,7 @@ from .models import (
     School,
     SchoolMembership,
     PlatformAdminScope,
+    PlatformAdminRole,
     SubscriptionPlan,
     SchoolSubscription,
     Payment,
@@ -352,8 +353,16 @@ class PlatformAdminScopeAdmin(admin.ModelAdmin):
     list_display = ("admin", "role", "gender_scope")
     list_filter = ("role", "gender_scope")
     search_fields = ("admin__name", "admin__phone")
-    autocomplete_fields = ("admin", "allowed_schools")
+    autocomplete_fields = ("admin", "role")
     filter_horizontal = ("allowed_schools",)
+
+
+@admin.register(PlatformAdminRole)
+class PlatformAdminRoleAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "is_active", "order")
+    list_filter = ("is_active",)
+    search_fields = ("name", "slug")
+    ordering = ("order", "name")
 
 
 

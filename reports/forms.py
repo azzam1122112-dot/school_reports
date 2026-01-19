@@ -798,17 +798,11 @@ class PlatformAdminCreateForm(forms.ModelForm):
         initial="all",
     )
 
-    role = forms.ChoiceField(
+    role = forms.ModelChoiceField(
         label="دور المشرف",
-        choices=[
-            ("general", "مشرف عام"),
-            ("education_manager", "مدير التعليم"),
-            ("minister", "وزير التعليم"),
-            ("resident", "مشرف مقيم"),
-        ],
         required=True,
+        queryset=None,
         widget=forms.Select(attrs={"class": "form-control"}),
-        initial="general",
     )
 
     cities = forms.CharField(
@@ -841,6 +835,20 @@ class PlatformAdminCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # أدوار مشرفي المنصة (قابلة للإدارة من Django Admin)
+        try:
+            from .models import PlatformAdminRole
+
+            roles_qs = PlatformAdminRole.objects.filter(is_active=True).order_by("order", "name", "id")
+            self.fields["role"].queryset = roles_qs
+            # Default role: "general" if exists, else first active
+            default_role = roles_qs.filter(slug="general").first() or roles_qs.first()
+            if default_role is not None:
+                self.fields["role"].initial = default_role
+        except Exception:
+            # إذا لم تكن الهجرة مطبقة بعد، نترك الحقل كما هو (قد يُسبب خطأ عرضي)
+            pass
+
         # عند التعديل: كلمة المرور اختيارية
         if getattr(self.instance, "pk", None):
             self.fields["password"].required = False
@@ -858,9 +866,11 @@ class PlatformAdminCreateForm(forms.ModelForm):
                 if scope is not None:
                     # الدور
                     try:
-                        self.initial.setdefault("role", getattr(scope, "role", None) or "general")
+                        role_obj = getattr(scope, "role", None)
+                        if role_obj is not None:
+                            self.initial.setdefault("role", role_obj)
                     except Exception:
-                        self.initial.setdefault("role", "general")
+                        pass
                     self.initial.setdefault("gender_scope", scope.gender_scope)
                     try:
                         self.initial.setdefault("cities", ", ".join(list(scope.allowed_cities or [])))

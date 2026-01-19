@@ -378,8 +378,10 @@
             {% for c in private_comments %}
               <div style="padding:10px 0;border-bottom:1px dashed var(--line)">
                 <div class="af-muted" style="font-weight:900">
-                  {% if c.created_by %}{{ c.created_by.name }}{% else %}النظام{% endif %}
-                  {% if c.created_by_role_label %} ({{ c.created_by_role_label }}){% endif %}
+                {% if c.created_by %}{{ c.created_by.name }}{% else %}النظام{% endif %}
+                {% if c.created_by %}
+                {% if c.created_by_role_label %} ({{ c.created_by_role_label }}){% else %} ({{ c.created_by.display_role_label }}){% endif %}
+                {% endif %}
                   — {{ c.created_at|date:"Y-m-d H:i" }}
                 </div>
                 <div style="margin-top:6px;white-space:pre-wrap">{{ c.body }}</div>

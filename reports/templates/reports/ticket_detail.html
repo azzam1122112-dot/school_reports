@@ -393,7 +393,9 @@
             {% for n in notes %}
               <div class="note">
                 <div class="note-meta">
-                  <span><i class="fa-solid fa-user" style="opacity:.75"></i> {{ n.author.name|default:"—" }}</span>
+                <span><i class="fa-solid fa-user" style="opacity:.75"></i>
+                {% if n.author %}{{ n.author.name|default:"—" }} — {{ n.author.display_role_label }}{% else %}—{% endif %}
+                </span>
                   <span>•</span>
                   <span dir="ltr">{{ n.created_at|date:"Y-m-d H:i" }}</span>
 

@@ -214,7 +214,7 @@
 								<span><i class="fa-regular fa-calendar-times" aria-hidden="true"></i> ينتهي: {{ n.expires_at|date:"Y-m-d H:i" }}</span>
 							{% endif %}
 							{% if n.created_by and n.created_by.name %}
-								<span><i class="fa-regular fa-user" aria-hidden="true"></i> المُرسِل: {{ n.created_by.name }}</span>
+								<span><i class="fa-regular fa-user" aria-hidden="true"></i> المُرسِل: {{ n.created_by.name }} — {{ n.created_by.display_role_label }}</span>
 							{% endif %}
 						</div>
 

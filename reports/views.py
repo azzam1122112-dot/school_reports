@@ -303,7 +303,10 @@ def _canonical_role_label(user, school: Optional[School]) -> str:
     # المشرف العام
     try:
         if is_platform_admin(user) or getattr(user, "is_platform_admin", False):
-            return "المشرف العام"
+            scope = getattr(user, "platform_scope", None)
+            role_obj = getattr(scope, "role", None) if scope is not None else None
+            role_name = (getattr(role_obj, "name", "") or "").strip()
+            return role_name or "المشرف العام"
     except Exception:
         pass
 
@@ -991,7 +994,7 @@ def platform_admin_create(request: HttpRequest) -> HttpResponse:
             with transaction.atomic():
                 admin_user = form.save(commit=True)
 
-                role = (form.cleaned_data.get("role") or "general").strip().lower()
+                role_obj = form.cleaned_data.get("role")
                 gender_scope = (form.cleaned_data.get("gender_scope") or "all").strip().lower()
                 cities_raw = (form.cleaned_data.get("cities") or "").strip()
                 allowed_schools = form.cleaned_data.get("allowed_schools")
@@ -1004,7 +1007,7 @@ def platform_admin_create(request: HttpRequest) -> HttpResponse:
                             cities_list.append(c)
 
                 scope, _created = PlatformAdminScope.objects.get_or_create(admin=admin_user)
-                scope.role = role if role in {"general", "education_manager", "minister", "resident"} else "general"
+                scope.role = role_obj
                 scope.gender_scope = gender_scope if gender_scope in {"all", "boys", "girls"} else "all"
                 scope.allowed_cities = cities_list
                 scope.save()
@@ -1075,7 +1078,7 @@ def platform_admin_update(request: HttpRequest, pk: int) -> HttpResponse:
             with transaction.atomic():
                 updated_user = form.save(commit=True)
 
-                role = (form.cleaned_data.get("role") or "general").strip().lower()
+                role_obj = form.cleaned_data.get("role")
                 gender_scope = (form.cleaned_data.get("gender_scope") or "all").strip().lower()
                 cities_raw = (form.cleaned_data.get("cities") or "").strip()
                 allowed_schools = form.cleaned_data.get("allowed_schools")
@@ -1088,7 +1091,7 @@ def platform_admin_update(request: HttpRequest, pk: int) -> HttpResponse:
                             cities_list.append(c)
 
                 scope.admin = updated_user
-                scope.role = role if role in {"general", "education_manager", "minister", "resident"} else "general"
+                scope.role = role_obj
                 scope.gender_scope = gender_scope if gender_scope in {"all", "boys", "girls"} else "all"
                 scope.allowed_cities = cities_list
                 scope.save()

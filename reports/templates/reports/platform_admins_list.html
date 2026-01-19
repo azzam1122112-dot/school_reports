@@ -81,7 +81,7 @@
               </td>
               <td>
                 <span class="muted">
-                  {% if a.platform_scope %}{{ a.platform_scope.get_role_display }}{% else %}مشرف عام{% endif %}
+                  {% if a.platform_scope and a.platform_scope.role %}{{ a.platform_scope.role.name }}{% else %}مشرف عام{% endif %}
                 </span>
               </td>
               <td>

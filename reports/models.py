@@ -291,18 +291,28 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     def display_role_label(self) -> str:
         """اسم الدور للعرض بالعربية (للواجهات).
 
-        - المشرف العام (is_platform_admin) يجب أن يظهر بهذه التسمية حتى لو كان role فارغاً أو افتراضياً.
+        - المشرف العام (is_platform_admin) يجب أن يظهر بدوره الحقيقي المسجل في نطاق المشرف (PlatformAdminScope).
+        - مدير المدرسة يجب أن يظهر كـ "مدير المدرسة" حتى لو كان is_staff=True.
         """
-        if getattr(self, "is_superuser", False) or getattr(self, "is_staff", False):
+        if getattr(self, "is_superuser", False):
             return "مدير النظام"
         if getattr(self, "is_platform_admin", False):
             try:
                 scope = getattr(self, "platform_scope", None)
-                if scope is not None and hasattr(scope, "get_role_display"):
-                    return (scope.get_role_display() or "المشرف العام").strip() or "المشرف العام"
+                if scope is not None:
+                    role_obj = getattr(scope, "role", None)
+                    role_name = (getattr(role_obj, "name", "") or "").strip()
+                    if role_name:
+                        return role_name
             except Exception:
                 pass
             return "المشرف العام"
+        try:
+            role = getattr(self, "role", None)
+            if role is not None and (getattr(role, "slug", "") or "").strip().lower() == "manager":
+                return "مدير المدرسة"
+        except Exception:
+            pass
         try:
             if self.role is not None:
                 return (getattr(self.role, "name", None) or getattr(self.role, "slug", None) or "").strip() or "المعلم"
@@ -320,30 +330,49 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         role_name = getattr(self.role, "name", None)
-        if getattr(self, "is_superuser", False) or getattr(self, "is_staff", False):
+        if getattr(self, "is_superuser", False):
             role_name = "مدير النظام"
         elif getattr(self, "is_platform_admin", False):
             try:
                 scope = getattr(self, "platform_scope", None)
-                if scope is not None and hasattr(scope, "get_role_display"):
-                    role_name = (scope.get_role_display() or "المشرف العام").strip() or "المشرف العام"
-                else:
-                    role_name = "المشرف العام"
+                if scope is not None:
+                    role_obj = getattr(scope, "role", None)
+                    role_name = (getattr(role_obj, "name", "") or "").strip() or "المشرف العام"
             except Exception:
                 role_name = "المشرف العام"
+        else:
+            try:
+                role = getattr(self, "role", None)
+                if role is not None and (getattr(role, "slug", "") or "").strip().lower() == "manager":
+                    role_name = "مدير المدرسة"
+            except Exception:
+                pass
         return f"{self.name} ({role_name or 'بدون دور'})"
 
 
 # =========================
 # نطاق مشرف عام للمنصة (عرض + تواصل فقط)
 # =========================
-class PlatformAdminScope(models.Model):
-    class AdminRole(models.TextChoices):
-        GENERAL = "general", "مشرف عام"
-        EDUCATION_MANAGER = "education_manager", "مدير التعليم"
-        MINISTER = "minister", "وزير التعليم"
-        RESIDENT = "resident", "مشرف مقيم"
 
+
+class PlatformAdminRole(models.Model):
+    """أدوار مشرفي المنصة (قابلة للإضافة/التعديل/الحذف من Django Admin)."""
+
+    name = models.CharField("اسم الدور", max_length=64, unique=True)
+    slug = models.SlugField("المعرّف (slug)", max_length=64, unique=True)
+    is_active = models.BooleanField("نشط", default=True)
+    order = models.PositiveIntegerField("ترتيب", default=0)
+
+    class Meta:
+        ordering = ("order", "id")
+        verbose_name = "دور مشرف منصة"
+        verbose_name_plural = "أدوار مشرفي المنصة"
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class PlatformAdminScope(models.Model):
     class GenderScope(models.TextChoices):
         ALL = "all", "الجميع"
         BOYS = "boys", "بنين"
@@ -355,11 +384,15 @@ class PlatformAdminScope(models.Model):
         related_name="platform_scope",
         verbose_name="المشرف العام",
     )
-    role = models.CharField(
-        "الدور",
-        max_length=32,
-        choices=AdminRole.choices,
-        default=AdminRole.GENERAL,
+
+    role = models.ForeignKey(
+        PlatformAdminRole,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="scopes",
+        verbose_name="الدور",
+        help_text="يمكن إدارة الأدوار (إضافة/تعديل/حذف) من Django Admin.",
     )
     gender_scope = models.CharField(
         "نطاق بنين/بنات",
