@@ -89,6 +89,8 @@
           {% elif request.user.is_platform_admin and not request.user.is_superuser %}
             <a class="tab {% if active == 'home' or active == 'platform_school_dashboard' or active == 'platform_schools_directory' %}is-active{% endif %}" href="{% if SCHOOL_ID %}{% url 'reports:platform_school_dashboard' %}{% else %}{% url 'reports:platform_schools_directory' %}{% endif %}">الرئيسية</a>
             <a class="tab {% if active == 'platform_schools_directory' %}is-active{% endif %}" href="{% url 'reports:platform_schools_directory' %}">المدارس</a>
+            <a class="tab {% if active == 'circulars_sent' or active == 'notifications_create' or active == 'notification_detail' %}is-active{% endif %}" href="{% url 'reports:circulars_sent' %}">التعاميم</a>
+            <a class="tab {% if active == 'notifications_sent' %}is-active{% endif %}" href="{% url 'reports:notifications_sent' %}">الإشعارات</a>
             {% if SCHOOL_ID %}
               <a class="tab {% if active == 'platform_school_reports' %}is-active{% endif %}" href="{% url 'reports:platform_school_reports' %}">التقارير</a>
               <a class="tab {% if active == 'platform_school_tickets' or active == 'ticket_detail' %}is-active{% endif %}" href="{% url 'reports:platform_school_tickets' %}">التذاكر</a>

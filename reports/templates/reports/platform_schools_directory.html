@@ -15,6 +15,14 @@
           <p style="margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65">عرض المدارس المسموح بها للمشرف العام مع فلاتر سريعة.</p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+          {% if request.user.is_platform_admin and not request.user.is_superuser %}
+            <a class="btn btn-outline" href="{% url 'reports:circulars_sent' %}" style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);color:#fff;border-radius:14px">
+              التعاميم المرسلة
+            </a>
+            <a class="btn btn-primary" href="{% url 'reports:circulars_create' %}" style="border-radius:14px">
+              إنشاء تعميم
+            </a>
+          {% endif %}
           {% if request.user.is_superuser %}
             <a class="btn btn-outline" href="{% url 'reports:platform_admin_dashboard' %}" style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);color:#fff;border-radius:14px">
               لوحة المنصة
