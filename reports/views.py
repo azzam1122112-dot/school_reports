@@ -3446,6 +3446,24 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
             if phone_raw:
                 existing_teacher = Teacher.objects.filter(phone=phone_raw).first()
             if existing_teacher is not None and active_school is not None:
+                # تأكيد: صفحة "إضافة معلم" يجب أن تجعل الدور Teacher
+                # (لتوافق عرض "القسم/الدور" في شاشة إدارة المعلمين)
+                try:
+                    if getattr(existing_teacher, "role_id", None) is None:
+                        role_obj, _ = Role.objects.get_or_create(
+                            slug="teacher",
+                            defaults={
+                                "name": "المعلم",
+                                "is_staff_by_default": False,
+                                "can_view_all_reports": False,
+                                "is_active": True,
+                            },
+                        )
+                        existing_teacher.role = role_obj
+                        existing_teacher.save(update_fields=["role"])
+                except Exception:
+                    pass
+
                 # هل هو مرتبط فعلاً بهذه المدرسة كـ TEACHER؟
                 already = SchoolMembership.objects.filter(
                     school=active_school,

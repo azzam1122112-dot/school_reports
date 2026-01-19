@@ -572,9 +572,18 @@ class TeacherCreateForm(forms.ModelForm):
         instance.set_password(pwd)
 
         # توافق تراثي: Teacher.role ليس مصدر الصلاحيات (SchoolMembership/DepartmentMembership)
-        # لكن نضبطه على teacher إن كان موجودًا.
+        # لكن نضبطه على teacher (وننشئ Role إن لم يكن موجوداً) لتفادي ظهور "—" في واجهات الإدارة.
         try:
-            instance.role = Role.objects.filter(slug="teacher").first()
+            role_obj, _ = Role.objects.get_or_create(
+                slug="teacher",
+                defaults={
+                    "name": "المعلم",
+                    "is_staff_by_default": False,
+                    "can_view_all_reports": False,
+                    "is_active": True,
+                },
+            )
+            instance.role = role_obj
         except Exception:
             instance.role = None
 
@@ -664,9 +673,18 @@ class TeacherEditForm(forms.ModelForm):
         elif self.instance and getattr(self.instance, "pk", None):
             instance.password = self.instance.password
 
-        # توافق تراثي: نجعل role=teacher.
+        # توافق تراثي: نجعل role=teacher (وننشئ Role إن لم يكن موجوداً).
         try:
-            instance.role = Role.objects.filter(slug="teacher").first()
+            role_obj, _ = Role.objects.get_or_create(
+                slug="teacher",
+                defaults={
+                    "name": "المعلم",
+                    "is_staff_by_default": False,
+                    "can_view_all_reports": False,
+                    "is_active": True,
+                },
+            )
+            instance.role = role_obj
         except Exception:
             instance.role = None
 
