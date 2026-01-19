@@ -36,7 +36,7 @@
   <div class="head">
     <div>
       <h1 class="ttl">إدارة المشرفين</h1>
-      <div class="sub">إضافة/تعديل/حذف مشرفين عامّين، مع إسناد المدارس ضمن نطاق الصلاحيات.</div>
+      <div class="sub">إضافة/تعديل/حذف مشرفي المنصة، مع إسناد المدارس ضمن نطاق الصلاحيات.</div>
     </div>
 
     <div class="actions">
@@ -64,6 +64,7 @@
         <thead>
           <tr>
             <th>المشرف</th>
+            <th>الدور</th>
             <th>الحالة</th>
             <th>نطاق بنين/بنات</th>
             <th>المدن</th>
@@ -77,6 +78,11 @@
               <td>
                 <div style="font-weight:950;color:var(--ink)">{{ a.name }}</div>
                 <div class="muted mono" style="margin-top:4px">{{ a.phone }}</div>
+              </td>
+              <td>
+                <span class="muted">
+                  {% if a.platform_scope %}{{ a.platform_scope.get_role_display }}{% else %}مشرف عام{% endif %}
+                </span>
               </td>
               <td>
                 {% if a.is_active %}
@@ -113,7 +119,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" class="muted" style="text-align:center;padding:18px">لا يوجد مشرفون مطابقون.</td>
+              <td colspan="7" class="muted" style="text-align:center;padding:18px">لا يوجد مشرفون مطابقون.</td>
             </tr>
           {% endfor %}
         </tbody>

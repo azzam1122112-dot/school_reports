@@ -5,6 +5,7 @@ from __future__ import annotations
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.utils import timezone
 from django.utils.html import format_html
 
 from .forms import DepartmentForm  # نموذج القسم الذي يحتوي على reporttypes
@@ -19,6 +20,7 @@ from .models import (
     TicketNote,
     School,
     SchoolMembership,
+    PlatformAdminScope,
     SubscriptionPlan,
     SchoolSubscription,
     Payment,
@@ -345,6 +347,15 @@ class SchoolMembershipAdmin(admin.ModelAdmin):
     autocomplete_fields = ("teacher", "school")
 
 
+@admin.register(PlatformAdminScope)
+class PlatformAdminScopeAdmin(admin.ModelAdmin):
+    list_display = ("admin", "role", "gender_scope")
+    list_filter = ("role", "gender_scope")
+    search_fields = ("admin__name", "admin__phone")
+    autocomplete_fields = ("admin", "allowed_schools")
+    filter_horizontal = ("allowed_schools",)
+
+
 
 from django.contrib import admin
 from .models import Notification, NotificationRecipient  # استورد من موضعك الفعلي
@@ -380,6 +391,53 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
     search_fields = ("school__name", "school__code")
     autocomplete_fields = ("school", "plan")
     date_hierarchy = "start_date"
+
+    def save_model(self, request, obj, form, change):
+        """عند إضافة/تحديث اشتراك من Django Admin نسجل عملية مالية تلقائياً.
+
+        الهدف: أي اشتراك يُفعّل يدوياً من الأدمن يجب أن يظهر في صفحة المالية بدون الحاجة لرفع إيصال.
+        """
+        super().save_model(request, obj, form, change)
+
+        # لا نسجل دفعات لاشتراك غير نشط أو باقة مجانية.
+        try:
+            if not bool(getattr(obj, "is_active", False)):
+                return
+            plan = getattr(obj, "plan", None)
+            price = getattr(plan, "price", None)
+            if price is None:
+                return
+            try:
+                if float(price) <= 0:
+                    return
+            except Exception:
+                pass
+
+            period_start = getattr(obj, "start_date", None)
+            qs = Payment.objects.filter(
+                subscription=obj,
+                status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
+            )
+            if period_start:
+                qs = qs.filter(payment_date__gte=period_start)
+            if qs.exists():
+                return
+
+            today = timezone.localdate()
+            Payment.objects.create(
+                school=obj.school,
+                subscription=obj,
+                requested_plan=obj.plan,
+                amount=obj.plan.price,
+                receipt_image=None,
+                payment_date=today,
+                status=Payment.Status.APPROVED,
+                notes="تم تسجيل الدفعة تلقائياً عند إضافة/تفعيل الاشتراك من Django Admin.",
+                created_by=getattr(request, "user", None),
+            )
+        except Exception:
+            # لا نُفشل حفظ الاشتراك بسبب مشكلة تسجيل المالية.
+            return
 
 
 @admin.register(Payment)

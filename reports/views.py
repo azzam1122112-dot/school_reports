@@ -990,6 +990,7 @@ def platform_admin_create(request: HttpRequest) -> HttpResponse:
             with transaction.atomic():
                 admin_user = form.save(commit=True)
 
+                role = (form.cleaned_data.get("role") or "general").strip().lower()
                 gender_scope = (form.cleaned_data.get("gender_scope") or "all").strip().lower()
                 cities_raw = (form.cleaned_data.get("cities") or "").strip()
                 allowed_schools = form.cleaned_data.get("allowed_schools")
@@ -1002,17 +1003,18 @@ def platform_admin_create(request: HttpRequest) -> HttpResponse:
                             cities_list.append(c)
 
                 scope, _created = PlatformAdminScope.objects.get_or_create(admin=admin_user)
+                scope.role = role if role in {"general", "education_manager", "minister", "resident"} else "general"
                 scope.gender_scope = gender_scope if gender_scope in {"all", "boys", "girls"} else "all"
                 scope.allowed_cities = cities_list
                 scope.save()
                 if allowed_schools is not None:
                     scope.allowed_schools.set(list(allowed_schools))
 
-            messages.success(request, "تم إنشاء المشرف العام بنجاح.")
+            messages.success(request, "تم إنشاء مشرف المنصة بنجاح.")
             return redirect("reports:platform_admin_dashboard")
         except Exception:
             logger.exception("Failed to create platform admin")
-            messages.error(request, "تعذّر إنشاء المشرف العام. تحقق من البيانات.")
+            messages.error(request, "تعذّر إنشاء مشرف المنصة. تحقق من البيانات.")
 
     return render(request, "reports/platform_admin_create.html", {"form": form})
 
@@ -1072,6 +1074,7 @@ def platform_admin_update(request: HttpRequest, pk: int) -> HttpResponse:
             with transaction.atomic():
                 updated_user = form.save(commit=True)
 
+                role = (form.cleaned_data.get("role") or "general").strip().lower()
                 gender_scope = (form.cleaned_data.get("gender_scope") or "all").strip().lower()
                 cities_raw = (form.cleaned_data.get("cities") or "").strip()
                 allowed_schools = form.cleaned_data.get("allowed_schools")
@@ -1084,13 +1087,14 @@ def platform_admin_update(request: HttpRequest, pk: int) -> HttpResponse:
                             cities_list.append(c)
 
                 scope.admin = updated_user
+                scope.role = role if role in {"general", "education_manager", "minister", "resident"} else "general"
                 scope.gender_scope = gender_scope if gender_scope in {"all", "boys", "girls"} else "all"
                 scope.allowed_cities = cities_list
                 scope.save()
                 if allowed_schools is not None:
                     scope.allowed_schools.set(list(allowed_schools))
 
-            messages.success(request, "تم تحديث بيانات المشرف العام.")
+            messages.success(request, "تم تحديث بيانات مشرف المنصة.")
             return redirect("reports:platform_admins_list")
         except Exception:
             logger.exception("Failed to update platform admin")

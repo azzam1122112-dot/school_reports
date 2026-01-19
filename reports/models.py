@@ -296,6 +296,12 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
         if getattr(self, "is_superuser", False) or getattr(self, "is_staff", False):
             return "مدير النظام"
         if getattr(self, "is_platform_admin", False):
+            try:
+                scope = getattr(self, "platform_scope", None)
+                if scope is not None and hasattr(scope, "get_role_display"):
+                    return (scope.get_role_display() or "المشرف العام").strip() or "المشرف العام"
+            except Exception:
+                pass
             return "المشرف العام"
         try:
             if self.role is not None:
@@ -317,7 +323,14 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
         if getattr(self, "is_superuser", False) or getattr(self, "is_staff", False):
             role_name = "مدير النظام"
         elif getattr(self, "is_platform_admin", False):
-            role_name = "المشرف العام"
+            try:
+                scope = getattr(self, "platform_scope", None)
+                if scope is not None and hasattr(scope, "get_role_display"):
+                    role_name = (scope.get_role_display() or "المشرف العام").strip() or "المشرف العام"
+                else:
+                    role_name = "المشرف العام"
+            except Exception:
+                role_name = "المشرف العام"
         return f"{self.name} ({role_name or 'بدون دور'})"
 
 
@@ -325,6 +338,12 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
 # نطاق مشرف عام للمنصة (عرض + تواصل فقط)
 # =========================
 class PlatformAdminScope(models.Model):
+    class AdminRole(models.TextChoices):
+        GENERAL = "general", "مشرف عام"
+        EDUCATION_MANAGER = "education_manager", "مدير التعليم"
+        MINISTER = "minister", "وزير التعليم"
+        RESIDENT = "resident", "مشرف مقيم"
+
     class GenderScope(models.TextChoices):
         ALL = "all", "الجميع"
         BOYS = "boys", "بنين"
@@ -335,6 +354,12 @@ class PlatformAdminScope(models.Model):
         on_delete=models.CASCADE,
         related_name="platform_scope",
         verbose_name="المشرف العام",
+    )
+    role = models.CharField(
+        "الدور",
+        max_length=32,
+        choices=AdminRole.choices,
+        default=AdminRole.GENERAL,
     )
     gender_scope = models.CharField(
         "نطاق بنين/بنات",

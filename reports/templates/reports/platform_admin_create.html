@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}إضافة مشرف عام{% endblock %}
+{% block title %}إضافة مشرف منصة{% endblock %}
 
 {% block content %}
 <div class="container" dir="rtl" style="max-width:920px;margin:0 auto;padding:18px">
   <div class="card" style="border-radius:18px">
-    <h1 style="margin:0 0 6px;font-weight:950">إضافة مشرف عام</h1>
+    <h1 style="margin:0 0 6px;font-weight:950">إضافة مشرف منصة</h1>
     <div class="muted" style="font-weight:850">ينشئ هذا الحساب بصلاحية (عرض + تواصل) مع نطاق مدارس محدد.</div>
 
     <form method="post" style="margin-top:14px">
@@ -21,6 +21,11 @@
           <label class="form-label">رقم الجوال</label>
           {{ form.phone }}
           {{ form.phone.errors }}
+        </div>
+        <div>
+          <label class="form-label">الدور</label>
+          {{ form.role }}
+          {{ form.role.errors }}
         </div>
         <div>
           <label class="form-label">كلمة المرور</label>

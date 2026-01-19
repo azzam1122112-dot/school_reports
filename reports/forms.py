@@ -798,6 +798,19 @@ class PlatformAdminCreateForm(forms.ModelForm):
         initial="all",
     )
 
+    role = forms.ChoiceField(
+        label="دور المشرف",
+        choices=[
+            ("general", "مشرف عام"),
+            ("education_manager", "مدير التعليم"),
+            ("minister", "وزير التعليم"),
+            ("resident", "مشرف مقيم"),
+        ],
+        required=True,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        initial="general",
+    )
+
     cities = forms.CharField(
         label="مدن (اختياري)",
         required=False,
@@ -843,6 +856,11 @@ class PlatformAdminCreateForm(forms.ModelForm):
                     .first()
                 )
                 if scope is not None:
+                    # الدور
+                    try:
+                        self.initial.setdefault("role", getattr(scope, "role", None) or "general")
+                    except Exception:
+                        self.initial.setdefault("role", "general")
                     self.initial.setdefault("gender_scope", scope.gender_scope)
                     try:
                         self.initial.setdefault("cities", ", ".join(list(scope.allowed_cities or [])))
