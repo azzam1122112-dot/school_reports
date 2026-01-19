@@ -1,6 +1,6 @@
 {# templates/reports/tickets_inbox.html #}
 {% extends "base.html" %}
-{% block title %}صندوق الطلبات{% endblock %}
+{% block title %}{{ page_title|default:"صندوق الطلبات" }}{% endblock %}
 
 {% block head %}
 <style>
@@ -239,10 +239,8 @@
 {% block content %}
 <div class="container inbox-wrap" dir="rtl">
   <div class="inbox-card">
-    <h2 class="title">📥 صندوق الطلبات</h2>
-    <div class="subtitle">
-      استعرض الطلبات الواردة، فلتر حسب الحالة أو ابحث بالعنوان/التفاصيل.
-    </div>
+    <h2 class="title">{{ page_heading|default:"📥 صندوق الطلبات" }}</h2>
+    <div class="subtitle">{{ page_subtitle|default:"استعرض الطلبات الواردة، فلتر حسب الحالة أو ابحث بالعنوان/التفاصيل." }}</div>
 
     <form method="get" class="inbox-filters" aria-label="فلترة الطلبات" novalidate>
       <div class="grid">

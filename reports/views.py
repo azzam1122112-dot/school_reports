@@ -880,6 +880,54 @@ def platform_school_tickets(request: HttpRequest) -> HttpResponse:
 
 
 @login_required(login_url="reports:login")
+@user_passes_test(_is_staff, login_url="reports:login")
+@role_required({"manager"})
+@require_http_methods(["GET"])
+def manager_school_tickets(request: HttpRequest) -> HttpResponse:
+    """قائمة جميع طلبات المدرسة للمدير (مع فلترة وبحث)."""
+    active_school = _get_active_school(request)
+
+    if School.objects.filter(is_active=True).exists():
+        if active_school is None:
+            messages.error(request, "فضلاً اختر مدرسة أولاً.")
+            return redirect("reports:select_school")
+        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+            messages.error(request, "ليست لديك صلاحية كمدير على هذه المدرسة.")
+            return redirect("reports:select_school")
+
+    qs = (
+        Ticket.objects.select_related("creator", "assignee", "department")
+        .prefetch_related("recipients")
+        .filter(school=active_school, is_platform=False)
+        .order_by("-created_at")
+    )
+
+    status = (request.GET.get("status") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+    mine = request.GET.get("mine") == "1"
+
+    if status:
+        qs = qs.filter(status=status)
+    if mine:
+        qs = qs.filter(Q(assignee=request.user) | Q(recipients=request.user)).distinct()
+    if q:
+        for kw in q.split():
+            qs = qs.filter(Q(title__icontains=kw) | Q(body__icontains=kw))
+
+    ctx = {
+        "tickets": list(qs[:200]),
+        "status": status,
+        "q": q,
+        "mine": mine,
+        "status_choices": Ticket.Status.choices,
+        "page_title": "طلبات المدرسة",
+        "page_heading": "📌 طلبات المدرسة",
+        "page_subtitle": "استعرض جميع الطلبات التابعة للمدرسة، ويمكنك إضافة ملاحظات وتغيير الحالة من داخل الطلب.",
+    }
+    return render(request, "reports/tickets_inbox.html", ctx)
+
+
+@login_required(login_url="reports:login")
 @require_http_methods(["GET", "POST"])
 def platform_school_notify(request: HttpRequest) -> HttpResponse:
     if not _require_platform_admin_or_superuser(request):

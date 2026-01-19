@@ -147,6 +147,7 @@ urlpatterns = [
     # =========================
     path("requests/new/", views.request_create, name="request_create"),
     path("requests/mine/", views.my_requests, name="my_requests"),
+    path("requests/school/", views.manager_school_tickets, name="manager_school_tickets"),
     path("requests/inbox/", views.tickets_inbox, name="tickets_inbox"),
     path("requests/assigned/", views.assigned_to_me, name="assigned_to_me"),
     path("requests/<int:pk>/", views.ticket_detail, name="ticket_detail"),
