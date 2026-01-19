@@ -1,0 +1,368 @@
+{% load static ticket_notes %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>طلب: {% firstof t.title "بدون عنوان" %}</title>
+
+  {% if not for_pdf %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  {% endif %}
+
+  <style>
+    :root {
+      --font-body: 'Tajawal', Tahoma, Arial, sans-serif;
+      --ink: #111;
+      --muted: #444;
+      --line: #000;
+      --shade: #f3f3f3;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-body);
+      background: #e5e5e5;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 18px auto;
+      background: #fff;
+      padding: 14mm 12mm 18mm;
+      position: relative;
+      box-shadow: 0 0 14px rgba(0,0,0,0.10);
+    }
+
+    @page { size: A4; margin: 14mm 12mm; }
+    @media print {
+      body { background: #fff; }
+      .page {
+        width: auto;
+        min-height: auto;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+      .no-print { display: none !important; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #111;
+      color: #fff;
+      padding: 10px;
+      text-align: center;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      font-weight: 800;
+    }
+    .btn {
+      background: #fff;
+      color: #111;
+      border: 1px solid rgba(0,0,0,0.15);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .btn-print { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: start;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--line);
+    }
+    .hdr-block {
+      font-size: 13px;
+      line-height: 1.7;
+      font-weight: 800;
+    }
+    .hdr-center { text-align: center; }
+    .hdr-right { text-align: right; }
+    .hdr-left { text-align: left; direction: ltr; }
+    .logo {
+      height: 78px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .title {
+      text-align: center;
+      margin: 14px 0 10px;
+      font-weight: 1000;
+      font-size: 20px;
+    }
+    .subtitle {
+      text-align: center;
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 0 0 14px;
+    }
+    .meta-table th, .meta-table td {
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      vertical-align: middle;
+    }
+    .meta-table th {
+      background: var(--shade);
+      font-weight: 900;
+      width: 22%;
+      white-space: nowrap;
+      text-align: right;
+    }
+    .meta-table td { text-align: right; }
+
+    .section {
+      border: 1px solid var(--line);
+      padding: 10px;
+      margin: 0 0 14px;
+    }
+    .section-h {
+      font-weight: 1000;
+      font-size: 15px;
+      margin: 0 0 8px;
+    }
+    .section-body {
+      font-size: 15px;
+      line-height: 2;
+      white-space: pre-wrap;
+      text-align: justify;
+      min-height: 60px;
+    }
+
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .img-box {
+      border: 1px solid var(--line);
+      padding: 6px;
+      text-align: center;
+      page-break-inside: avoid;
+    }
+    .img-box img {
+      width: 100%;
+      height: 180px;
+      object-fit: contain;
+      display: block;
+    }
+    .img-cap {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .notes {
+      border: 1px solid var(--line);
+      padding: 10px;
+    }
+    .note {
+      border: 1px solid var(--line);
+      padding: 10px;
+      margin-bottom: 10px;
+      page-break-inside: avoid;
+    }
+    .note:last-child { margin-bottom: 0; }
+    .note-meta {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 900;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .note-body {
+      margin-top: 6px;
+      font-size: 14px;
+      line-height: 1.9;
+      white-space: pre-wrap;
+    }
+
+    .footer {
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar no-print">
+    <span>معاينة الطباعة (A4)</span>
+    <button onclick="window.print()" class="btn btn-print">
+      <i class="fas fa-print"></i> طباعة / حفظ كـ
+    </button>
+    <button onclick="goBack()" class="btn">
+      <i class="fas fa-arrow-right"></i> عودة
+    </button>
+  </div>
+
+  <div class="page">
+    <header class="header">
+      <div class="hdr-block hdr-right">
+        <div>المملكة العربية السعودية</div>
+        <div>وزارة التعليم</div>
+        <div>{% firstof SCHOOL_NAME "المدرسة" %}</div>
+      </div>
+
+      <div class="hdr-center">
+        <img
+          src="{% if MOE_LOGO_URL %}{{ MOE_LOGO_URL }}{% else %}{% static 'img/UntiTtled-1.png' %}{% endif %}"
+          alt="شعار وزارة التعليم"
+          class="logo"
+        />
+      </div>
+
+      <div class="hdr-block hdr-left">
+        <div>التاريخ: {{ now|date:"Y/m/d" }}</div>
+        <div>وقت الطباعة: {{ now|date:"H:i" }}</div>
+        <div>رقم الطلب: {{ t.id }}</div>
+      </div>
+    </header>
+
+    <div class="title">{% if t.is_platform %}طلب دعم فني للمنصة{% else %}طلب / تذكرة{% endif %}</div>
+    <div class="subtitle">العنوان: {% firstof t.title "—" %}</div>
+
+    <table class="meta-table">
+      <tr>
+        <th>الحالة</th>
+        <td>{{ t.get_status_display|default:t.status }}</td>
+        <th>تاريخ الإنشاء</th>
+        <td>{{ t.created_at|date:"Y/m/d H:i" }}</td>
+      </tr>
+      <tr>
+        <th>القسم</th>
+        <td>{% firstof t.department.name t.department "—" %}</td>
+        <th>المرسل</th>
+        <td>{% firstof t.creator.name t.creator "—" %}</td>
+      </tr>
+      <tr>
+        <th>المستلمون</th>
+        <td colspan="3">
+          {% if t.recipients.exists %}
+            {% for u in t.recipients.all %}
+              {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
+            {% endfor %}
+          {% else %}
+            {% firstof t.assignee.name t.assignee "—" %}
+          {% endif %}
+        </td>
+      </tr>
+      {% if t.school %}
+      <tr>
+        <th>المدرسة</th>
+        <td colspan="3">{{ t.school.name }}</td>
+      </tr>
+      {% endif %}
+    </table>
+
+    <section class="section">
+      <div class="section-h">تفاصيل الطلب</div>
+      <div class="section-body">{% firstof t.body "—" %}</div>
+    </section>
+
+    {% if t.attachment or images %}
+      <section class="section">
+        <div class="section-h">المرفقات</div>
+
+        {% if t.attachment %}
+          {% if attachment_is_image %}
+            <div class="images-grid" style="margin-bottom:10px;">
+              <div class="img-box">
+                <img src="{{ t.attachment.url }}" alt="المرفق الرئيسي">
+                <div class="img-cap">المرفق الرئيسي</div>
+              </div>
+            </div>
+          {% else %}
+            <div style="font-weight:900;color:var(--muted);">
+              ملف مرفق: <a href="{{ t.attachment.url }}" target="_blank" rel="noopener">فتح / تنزيل</a>
+            </div>
+          {% endif %}
+        {% endif %}
+
+        {% if images %}
+          <div class="images-grid">
+            {% for im in images %}
+              <div class="img-box">
+                <img src="{{ im.image.url }}" alt="صورة إضافية">
+                <div class="img-cap">صورة إضافية ({{ forloop.counter }})</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    <section class="section">
+      <div class="section-h">سجل الملاحظات</div>
+      <div class="notes">
+        {% if notes %}
+          {% for n in notes %}
+            <div class="note">
+              <div class="note-meta">
+                <div>الكاتب: {% firstof n.author.name n.author "—" %}</div>
+                <div dir="ltr">{{ n.created_at|date:"Y-m-d H:i" }}</div>
+              </div>
+              <div class="note-body">{{ n.body|ticket_note_ar|default_if_none:"" }}</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div style="color:var(--muted);font-weight:900;">لا توجد ملاحظات.</div>
+        {% endif %}
+      </div>
+    </section>
+
+    <div class="footer">
+      <div>تمت الطباعة عبر نظام التقارير المدرسية</div>
+      <div dir="ltr">{{ now|date:"Y-m-d H:i" }}</div>
+    </div>
+  </div>
+
+  <script>
+    function goBack(){
+      try {
+        if (window.history.length > 1) return window.history.back();
+      } catch(e) {}
+      window.location.href = "{% url 'reports:ticket_detail' t.id %}";
+    }
+  </script>
+</body>
+</html>

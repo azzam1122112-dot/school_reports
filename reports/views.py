@@ -3926,6 +3926,8 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         note_txt   = (request.POST.get("note") or "").strip()
         changed = False
 
+        status_label = dict(getattr(Ticket.Status, "choices", [])).get
+
         # إضافة ملاحظة (المرسل أو من يملك الصلاحية)
         # يسمح للمرسل بإضافة ملاحظات (للتواصل) ولكن لا يملك صلاحية تغيير الحالة إلا إذا كان من ضمن المستلمين/الإدارة
         can_comment = False
@@ -3952,7 +3954,7 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
                         TicketNote.objects.create(
                             ticket=t,
                             author=request.user,
-                            body=f"تغيير الحالة تلقائيًا بسبب ملاحظة المرسل: {old_status} → {Ticket.Status.OPEN}",
+                            body=f"تغيير الحالة تلقائيًا بسبب ملاحظة المرسل: {status_label(old_status, old_status)} → {status_label(Ticket.Status.OPEN, Ticket.Status.OPEN)}",
                             is_public=True,
                         )
                     changed = True
@@ -3978,7 +3980,7 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
                         TicketNote.objects.create(
                             ticket=t,
                             author=request.user,
-                            body="تغيير الحالة: {} → {}".format(old, status_val),
+                            body="تغيير الحالة: {} → {}".format(status_label(old, old), status_label(status_val, status_val)),
                             is_public=True,
                         )
                     except Exception:
@@ -4018,6 +4020,123 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "is_owner": is_owner,
     }
     return render(request, "reports/ticket_detail.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def ticket_print(request: HttpRequest, pk: int) -> HttpResponse:
+    """طباعة رسمية للطلب (A4) بنفس أسلوب طباعة التقارير."""
+    active_school = _get_active_school(request)
+    user = request.user
+
+    base_qs = Ticket.objects.select_related("creator", "assignee", "department", "school").prefetch_related("recipients").only(
+        "id",
+        "title",
+        "body",
+        "status",
+        "department",
+        "created_at",
+        "creator__name",
+        "assignee__name",
+        "assignee_id",
+        "creator_id",
+        "is_platform",
+        "school_id",
+        "attachment",
+        "school__name",
+        "school__stage",
+        "school__logo_file",
+    )
+
+    t = get_object_or_404(base_qs, pk=pk)
+
+    # نفس منطق الصلاحيات في ticket_detail
+    if t.is_platform:
+        if not (user.is_superuser or t.creator_id == user.id):
+            raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+    else:
+        if not user.is_superuser:
+            if not t.school_id:
+                raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
+            if is_platform_admin(user):
+                if not platform_allowed_schools_qs(user).filter(id=t.school_id).exists():
+                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+            else:
+                if not SchoolMembership.objects.filter(
+                    teacher=user,
+                    school_id=t.school_id,
+                    is_active=True,
+                ).exists():
+                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+
+            if active_school is not None and t.school_id != active_school.id:
+                raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
+
+    # المرفقات/الصور
+    images_manager = getattr(t, "images", None)
+    if images_manager is None:
+        images_manager = getattr(t, "ticketimage_set", None)
+    if images_manager is not None and hasattr(images_manager, "all"):
+        images = list(images_manager.all().only("id", "image"))
+    else:
+        images = list(TicketImage.objects.filter(ticket_id=t.id).only("id", "image"))
+
+    notes_qs = (
+        t.notes.select_related("author")
+        .only("id", "body", "created_at", "author__name")
+        .order_by("-created_at", "-id")
+    )
+
+    # إعدادات المدرسة/الشعارات مثل report_print
+    school_scope = getattr(t, "school", None) or active_school
+    school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+    school_stage = ""
+    school_logo_url = ""
+    if school_scope:
+        try:
+            school_stage = getattr(school_scope, "get_stage_display", lambda: "")() or ""
+        except Exception:
+            school_stage = getattr(school_scope, "stage", "") or ""
+        try:
+            if getattr(school_scope, "logo_file", None):
+                school_logo_url = school_scope.logo_file.url
+        except Exception:
+            pass
+
+    moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
+    if not moe_logo_url:
+        try:
+            moe_logo_static_path = (getattr(settings, "MOE_LOGO_STATIC", "") or "").strip()
+            if moe_logo_static_path:
+                moe_logo_url = static(moe_logo_static_path)
+        except Exception:
+            moe_logo_url = ""
+    if not moe_logo_url:
+        moe_logo_url = static("img/UntiTtled-1.png")
+
+    # خصائص المرفق الرئيسي
+    attachment_name_lower = (getattr(getattr(t, "attachment", None), "name", "") or "").lower()
+    attachment_is_image = attachment_name_lower.endswith((".jpg", ".jpeg", ".png", ".webp"))
+    attachment_is_pdf = attachment_name_lower.endswith(".pdf")
+
+    now_local = timezone.localtime(timezone.now())
+
+    return render(
+        request,
+        "reports/ticket_print.html",
+        {
+            "t": t,
+            "notes": notes_qs,
+            "images": images,
+            "now": now_local,
+            "SCHOOL_NAME": school_name,
+            "SCHOOL_STAGE": school_stage,
+            "SCHOOL_LOGO_URL": school_logo_url,
+            "MOE_LOGO_URL": moe_logo_url,
+            "attachment_is_image": attachment_is_image,
+            "attachment_is_pdf": attachment_is_pdf,
+        },
+    )
 
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff, login_url="reports:login")
