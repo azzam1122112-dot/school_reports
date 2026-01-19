@@ -232,6 +232,74 @@
   
   .support-link:hover { color: var(--secondary-color); }
 
+  /* Plan Selector */
+  .plans-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .plan-option {
+    display: block;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+  }
+  
+  .plan-option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .plan-content {
+    background: white;
+    border: 2px solid transparent; 
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .plan-option input:checked + .plan-content {
+    border-color: var(--primary-color);
+    background: rgba(79, 70, 229, 0.04);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.15);
+  }
+  
+  .plan-option:hover .plan-content {
+    background: #f8fafc;
+  }
+
+  .plan-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  
+  .plan-price {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: var(--primary-color);
+  }
+  
+  .plan-days {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
   /* Payment Panel (Right) */
   .section-title {
     font-size: 1.25rem;
@@ -533,50 +601,72 @@
       
       <!-- Payment Form Box -->
       <div class="glass-card" style="margin-bottom: 2rem;">
-        <h2 class="section-title"><i class="fa-regular fa-credit-card"></i> تجديد الاشتراك / سداد رسوم</h2>
         
-        <!-- Bank Card Style -->
-        <div class="bank-card">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div class="chip"></div>
-            <div style="text-align: left;">
-              <div style="font-weight: 800; font-size: 1.1rem; letter-spacing: 1px;">Al Rajhi Bank</div>
-              <div style="font-size: 0.8rem; opacity: 0.8;">مصرف الراجحي</div>
-            </div>
-          </div>
-
-          <div style="margin-top: 1rem;">
-            <div class="iban-label">IBAN</div>
-            <div class="iban-number">
-              <span dir="ltr">SA85 8000 0660 6080 1622 0957</span>
-              <button class="copy-btn" onclick="copyToClip('SA8580000660608016220957')" title="نسخ">
-                <i class="fa-regular fa-copy"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="bank-details" style="margin-top: 1.5rem;">
-            <div>
-              <div class="iban-label">Account Number</div>
-              <div class="iban-number" style="font-size: 1rem;">
-                <span dir="ltr">6600 0001 0006 0862 2095 7</span>
-              </div>
-            </div>
-            <div style="text-align: left;">
-              <div class="iban-label">Beneficiary Name</div>
-              <div style="font-weight: 700; letter-spacing: 1px;">MANSOUR ALGHAMDI</div>
-            </div>
-          </div>
-        </div>
-
         <form action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data" id="paymentForm">
           {% csrf_token %}
           
+          <!-- Plans Section -->
+          <h2 class="section-title"><i class="fa-solid fa-layer-group"></i> اختر الباقة</h2>
+          
+          <div class="plans-grid">
+            {% for plan in plans %}
+            <label class="plan-option">
+              <input type="radio" name="plan_id" value="{{ plan.id }}" data-price="{{ plan.price|stringformat:'f'|floatformat:2 }}" 
+                     {% if subscription.plan.id == plan.id %}checked{% endif %} required>
+              <div class="plan-content">
+                <span class="plan-title">{{ plan.name }}</span>
+                <span class="plan-price">{{ plan.price }} <small>ريال</small></span>
+                <div class="plan-days"><i class="fa-regular fa-calendar"></i> {{ plan.days_duration }} يوم</div>
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+  
+          <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 2rem 0;">
+
+          <!-- Payment Details -->
+          <h2 class="section-title"><i class="fa-regular fa-credit-card"></i> سداد الرسوم</h2>
+          
+          <!-- Bank Card Style -->
+          <div class="bank-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div class="chip"></div>
+              <div style="text-align: left;">
+                <div style="font-weight: 800; font-size: 1.1rem; letter-spacing: 1px;">Al Rajhi Bank</div>
+                <div style="font-size: 0.8rem; opacity: 0.8;">مصرف الراجحي</div>
+              </div>
+            </div>
+  
+            <div style="margin-top: 1rem;">
+              <div class="iban-label">IBAN</div>
+              <div class="iban-number">
+                <span dir="ltr">SA85 8000 0660 6080 1622 0957</span>
+                <button type="button" class="copy-btn" onclick="copyToClip('SA8580000660608016220957')" title="نسخ">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+  
+            <div class="bank-details" style="margin-top: 1.5rem;">
+              <div>
+                <div class="iban-label">Account Number</div>
+                <div class="iban-number" style="font-size: 1rem;">
+                  <span dir="ltr">6600 0001 0006 0862 2095 7</span>
+                </div>
+              </div>
+              <div style="text-align: left;">
+                <div class="iban-label">Beneficiary Name</div>
+                <div style="font-weight: 700; letter-spacing: 1px;">MANSOUR ALGHAMDI</div>
+              </div>
+            </div>
+          </div>
+
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label">المبلغ المطلوب (ريال)</label>
               <input 
                 type="text" 
+                id="amountDisplay"
                 name="amount" 
                 class="form-input" 
                 readonly 
@@ -670,7 +760,34 @@
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
   document.addEventListener('DOMContentLoaded', () => {
-     // 1. Ring Animation
+     // 1. Plan Amount Logic
+     const amountInput = document.getElementById('amountDisplay');
+     const planRadios = document.querySelectorAll('input[name="plan_id"]');
+     
+     if(planRadios.length > 0) {
+        // Init Check
+        const checked = document.querySelector('input[name="plan_id"]:checked');
+        if(checked) updateAmount(checked);
+        else if(planRadios[0]) {
+            planRadios[0].checked = true;
+            updateAmount(planRadios[0]);
+        }
+
+        // Listener
+        planRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                updateAmount(this);
+            });
+        });
+     }
+
+     function updateAmount(radio) {
+         if(amountInput) {
+             amountInput.value = radio.dataset.price;
+         }
+     }
+
+     // 2. Ring Animation
      const days = {{ subscription.days_remaining|default:0 }};
      const maxDays = 365; // Or plan duration if available
      const circle = document.querySelector('.ring-circle-fg');
@@ -680,11 +797,9 @@
          const circumference = radius * 2 * Math.PI;
          circle.style.strokeDasharray = `${circumference} ${circumference}`;
          
-         // Calculate offset
          const percent = Math.min(Math.max(days / maxDays, 0), 1);
          const offset = circumference - (percent * circumference);
          
-         // Set color based on days
          let color = '#10b981'; // Green
          if(days < 10) color = '#ef4444'; // Red
          else if(days < 30) color = '#f59e0b'; // Orange
@@ -696,7 +811,7 @@
          }, 500);
      }
 
-     // 2. File Upload Interaction
+     // 3. File Upload Interaction
      const fileInput = document.getElementById('receipt');
      const fileLabel = document.getElementById('fileLabel');
      const dropArea = document.getElementById('dropArea');

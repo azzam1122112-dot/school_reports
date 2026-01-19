@@ -7991,17 +7991,30 @@ def payment_create(request):
     if request.method == 'POST':
         receipt = request.FILES.get('receipt_image')
         notes = request.POST.get('notes')
+        plan_id = request.POST.get('plan_id')
 
-        # ✅ تم إلغاء تغيير الباقة من النظام: طلب الدفع دائماً لتجديد الباقة الحالية.
-        if subscription is None or getattr(subscription, "plan", None) is None:
-            messages.error(request, "لا يوجد اشتراك/باقة حالية لهذه المدرسة. تواصل مع إدارة المنصة.")
+        requested_plan = None
+        
+        # 1. محاولة أخذ الباقة من اختيار المستخدم
+        if plan_id:
+            try:
+                requested_plan = SubscriptionPlan.objects.get(pk=plan_id)
+            except SubscriptionPlan.DoesNotExist:
+                pass
+        
+        # 2. إذا لم يختر، نأخذ الباقة الحالية
+        if not requested_plan and subscription:
+            requested_plan = subscription.plan
+
+        # التحقق النهائي
+        if not requested_plan:
+            messages.error(request, "يرجى اختيار باقة للاشتراك/التجديد.")
             return redirect('reports:my_subscription')
 
-        requested_plan = subscription.plan
         amount = getattr(requested_plan, "price", None)
         try:
             if amount is None or float(amount) <= 0:
-                messages.error(request, "لا يمكن إنشاء طلب دفع لأن الباقة الحالية مجانية/غير صالحة.")
+                messages.error(request, "لا يمكن إنشاء طلب دفع لأن الباقة المختارة مجانية/غير صالحة.")
                 return redirect('reports:my_subscription')
         except Exception:
             pass
