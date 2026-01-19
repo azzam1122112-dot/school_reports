@@ -12,6 +12,7 @@ from .models import (
 	SchoolSubscription,
 	SubscriptionPlan,
 	Payment,
+	PlatformAdminScope,
 	Teacher,
 	Ticket,
 )
@@ -505,3 +506,65 @@ class MySubscriptionViewTests(TestCase):
 		url = reverse("reports:my_subscription")
 		res = self.client.get(url)
 		self.assertEqual(res.status_code, 200)
+
+
+class PlatformAdminApiScopeTests(TestCase):
+	def setUp(self):
+		self.school_a = School.objects.create(name="School A", code="pa-a")
+		self.school_b = School.objects.create(name="School B", code="pa-b")
+
+		plan = SubscriptionPlan.objects.create(name="Test", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school_a, plan=plan, start_date=today, end_date=today)
+		SchoolSubscription.objects.create(school=self.school_b, plan=plan, start_date=today, end_date=today)
+
+		self.dept_a = Department.objects.create(school=self.school_a, name="Dept A", slug="dept-a", is_active=True)
+		self.dept_b = Department.objects.create(school=self.school_b, name="Dept B", slug="dept-b", is_active=True)
+		self.global_dept = Department.objects.create(school=None, name="Global", slug="global", is_active=True)
+
+		self.platform = Teacher.objects.create_user(
+			phone="0500000099",
+			name="Platform",
+			password="pass",
+			is_platform_admin=True,
+		)
+		scope = PlatformAdminScope.objects.create(admin=self.platform)
+		scope.allowed_schools.add(self.school_a)
+		self.client.force_login(self.platform)
+
+	def test_api_school_departments_allows_platform_within_scope(self):
+		url = reverse("reports:api_school_departments")
+		res = self.client.get(url, {"school": self.school_a.id})
+		self.assertEqual(res.status_code, 200)
+		data = res.json()
+		names = {row.get("name") for row in data.get("results", [])}
+		self.assertIn("Dept A", names)
+		self.assertIn("Global", names)
+		self.assertNotIn("Dept B", names)
+
+	def test_api_school_departments_forbids_platform_outside_scope(self):
+		url = reverse("reports:api_school_departments")
+		res = self.client.get(url, {"school": self.school_b.id})
+		self.assertEqual(res.status_code, 403)
+
+	def test_api_department_members_allows_platform_within_scope(self):
+		member = Teacher.objects.create_user(phone="0500000101", name="Member", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school_a,
+			teacher=member,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+		DepartmentMembership.objects.create(department=self.dept_a, teacher=member, role_type=DepartmentMembership.TEACHER)
+
+		url = reverse("reports:api_department_members")
+		res = self.client.get(url, {"department": self.dept_a.slug, "target_school": self.school_a.id})
+		self.assertEqual(res.status_code, 200)
+		data = res.json()
+		ids = {row.get("id") for row in data.get("results", [])}
+		self.assertIn(member.id, ids)
+
+	def test_api_department_members_forbids_platform_outside_scope(self):
+		url = reverse("reports:api_department_members")
+		res = self.client.get(url, {"department": self.dept_a.slug, "target_school": self.school_b.id})
+		self.assertEqual(res.status_code, 403)

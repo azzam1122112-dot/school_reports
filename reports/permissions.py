@@ -48,8 +48,10 @@ def platform_allowed_schools_qs(user) -> QuerySet[School]:
 
     qs = School.objects.filter(is_active=True)
     scope = getattr(user, "platform_scope", None)
+    # Defense-in-depth: if scope is missing, do NOT grant broad access.
+    # A scope row should exist for every platform admin (created in admin flows).
     if scope is None:
-        return qs
+        return School.objects.none()
 
     try:
         if scope.allowed_schools.exists():

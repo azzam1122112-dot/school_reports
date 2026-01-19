@@ -6312,28 +6312,59 @@ def api_department_members(request: HttpRequest) -> HttpResponse:
     if not dept:
         return JsonResponse({"results": []})
 
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(request.user)) and not is_superuser
+
+    # Allow platform admin (and superuser) to specify a school explicitly when needed.
+    requested_school_id = (request.GET.get("school") or request.GET.get("target_school") or "").strip()
+    selected_school = None
+    if is_superuser:
+        selected_school = active_school
+        if requested_school_id:
+            try:
+                selected_school = School.objects.filter(pk=int(requested_school_id), is_active=True).first()
+            except (TypeError, ValueError):
+                selected_school = None
+    elif is_platform:
+        if requested_school_id:
+            try:
+                candidate = School.objects.filter(pk=int(requested_school_id), is_active=True).first()
+            except (TypeError, ValueError):
+                candidate = None
+            if candidate is None or not platform_can_access_school(request.user, candidate):
+                return JsonResponse({"detail": "forbidden", "results": []}, status=403)
+            selected_school = candidate
+        else:
+            selected_school = active_school
+            if selected_school is None:
+                return JsonResponse({"detail": "target_school_required", "results": []}, status=403)
+            if not platform_can_access_school(request.user, selected_school):
+                return JsonResponse({"detail": "forbidden", "results": []}, status=403)
+    else:
+        selected_school = active_school
+
     # عزل صارم: في وضع تعدد المدارس يجب أن تكون هناك مدرسة نشطة لغير السوبر.
     try:
         has_active_schools = School.objects.filter(is_active=True).exists()
     except Exception:
         has_active_schools = False
 
-    if has_active_schools and active_school is None and not getattr(request.user, "is_superuser", False):
+    if has_active_schools and selected_school is None and not is_superuser:
         return JsonResponse({"detail": "active_school_required", "results": []}, status=403)
 
     # تحقق عضوية المستخدم في المدرسة النشطة (حتى لا تُحقن session لمدرسة لا ينتمي لها المستخدم)
-    if active_school is not None and not getattr(request.user, "is_superuser", False):
+    if selected_school is not None and (not is_superuser) and (not is_platform):
         try:
             if not SchoolMembership.objects.filter(
                 teacher=request.user,
-                school=active_school,
+                school=selected_school,
                 is_active=True,
             ).exists():
                 return JsonResponse({"detail": "forbidden", "results": []}, status=403)
         except Exception:
             return JsonResponse({"detail": "forbidden", "results": []}, status=403)
 
-    users = _members_for_department(dept, active_school).values("id", "name")
+    users = _members_for_department(dept, selected_school).values("id", "name")
     return JsonResponse({"results": list(users)})
 
 
@@ -6352,38 +6383,56 @@ def api_school_departments(request: HttpRequest) -> HttpResponse:
 
     active_school = _get_active_school(request)
 
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(request.user)) and not is_superuser
+
     # عزل صارم: في وضع تعدد المدارس يجب أن تكون هناك مدرسة نشطة لغير السوبر.
     try:
         has_active_schools = School.objects.filter(is_active=True).exists()
     except Exception:
         has_active_schools = False
 
-    if has_active_schools and active_school is None and not getattr(request.user, "is_superuser", False):
+    if has_active_schools and active_school is None and (not is_superuser) and (not is_platform):
         return JsonResponse({"detail": "active_school_required", "results": []}, status=403)
-
-    # تحقق عضوية المستخدم في المدرسة النشطة
-    if active_school is not None and not getattr(request.user, "is_superuser", False):
-        try:
-            if not SchoolMembership.objects.filter(
-                teacher=request.user,
-                school=active_school,
-                is_active=True,
-            ).exists():
-                return JsonResponse({"detail": "forbidden", "results": []}, status=403)
-        except Exception:
-            return JsonResponse({"detail": "forbidden", "results": []}, status=403)
 
     requested_school_id = (request.GET.get("school") or request.GET.get("target_school") or "").strip()
     selected_school = None
 
-    if getattr(request.user, "is_superuser", False):
+    if is_superuser:
         if requested_school_id:
             try:
                 selected_school = School.objects.filter(pk=int(requested_school_id), is_active=True).first()
             except (TypeError, ValueError):
                 selected_school = None
+    elif is_platform:
+        if requested_school_id:
+            try:
+                candidate = School.objects.filter(pk=int(requested_school_id), is_active=True).first()
+            except (TypeError, ValueError):
+                candidate = None
+            if candidate is None or not platform_can_access_school(request.user, candidate):
+                return JsonResponse({"detail": "forbidden", "results": []}, status=403)
+            selected_school = candidate
+        else:
+            # If the platform admin already entered a school, reuse it.
+            selected_school = active_school
+            if selected_school is None:
+                return JsonResponse({"detail": "target_school_required", "results": []}, status=403)
+            if not platform_can_access_school(request.user, selected_school):
+                return JsonResponse({"detail": "forbidden", "results": []}, status=403)
     else:
         selected_school = active_school
+        # تحقق عضوية المستخدم في المدرسة النشطة
+        if selected_school is not None:
+            try:
+                if not SchoolMembership.objects.filter(
+                    teacher=request.user,
+                    school=selected_school,
+                    is_active=True,
+                ).exists():
+                    return JsonResponse({"detail": "forbidden", "results": []}, status=403)
+            except Exception:
+                return JsonResponse({"detail": "forbidden", "results": []}, status=403)
 
     qs = Department.objects.filter(is_active=True)
 
