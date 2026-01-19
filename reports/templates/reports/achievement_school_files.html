@@ -170,18 +170,18 @@
 
     <div class="af-body">
       <div class="af-toolbar">
-        <form method="get" class="af-form" aria-label="فلترة" style="max-width: 100%; flex-basis: 100%;">
+        <form id="afFilterForm" method="get" class="af-form" aria-label="فلترة" style="max-width: 100%; flex-basis: 100%;">
           <div style="display: flex; flex-wrap: wrap; gap: 16px;">
             <div style="flex: 0 1 250px; min-width: 200px;">
               <label class="af-label">السنة الدراسية (هجري)</label>
               {% if year_choices %}
-                <select class="af-select" name="year">
+                <select id="afYearSelect" class="af-select" name="year">
                   {% for y in year_choices %}
                     <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} هـ</option>
                   {% endfor %}
                 </select>
               {% else %}
-                <input class="af-input" name="year" value="{{ year }}" placeholder="مثال: 1447-1448" autocomplete="off" />
+                <input id="afYearInput" class="af-input" name="year" value="{{ year }}" placeholder="مثال: 1447-1448" autocomplete="off" />
               {% endif %}
             </div>
 
@@ -204,10 +204,6 @@
           </div>
 
           <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <button class="btn btn-primary" type="submit">
-              <i class="fa-solid fa-filter"></i> عرض
-            </button>
-
             {% if q %}
               <a class="btn" href="{% url 'reports:achievement_school_files' %}?year={{ year }}" style="color:var(--danger)">
                   <i class="fa-solid fa-times"></i> مسح البحث
@@ -215,10 +211,6 @@
             {% endif %}
 
             <div style="flex-grow:1"></div>
-
-            <a class="btn" href="{% url 'reports:home' %}">
-              <i class="fa-solid fa-house"></i> الرئيسية
-            </a>
           </div>
         </form>
 
@@ -306,6 +298,10 @@
 
 <script>
   (function(){
+    const form = document.getElementById('afFilterForm');
+    const yearSelect = document.getElementById('afYearSelect');
+    const yearInput = document.getElementById('afYearInput');
+
     const input = document.getElementById('afSearchInput');
     const list = document.getElementById('afList');
     const countEl = document.getElementById('afCount');
@@ -344,6 +340,36 @@
         e.preventDefault();
       }
     });
+
+    // Auto-apply year filter on change (no need for an "عرض" button)
+    if (form && yearSelect){
+      yearSelect.addEventListener('change', function(){
+        form.submit();
+      });
+    }
+    if (form && yearInput){
+      let t;
+      yearInput.addEventListener('input', function(){
+        window.clearTimeout(t);
+        t = window.setTimeout(function(){
+          // Submit only if value looks non-empty
+          if ((yearInput.value || '').trim().length >= 3){
+            form.submit();
+          }
+        }, 550);
+      });
+      yearInput.addEventListener('keydown', function(e){
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          form.submit();
+        }
+      });
+      yearInput.addEventListener('blur', function(){
+        if ((yearInput.value || '').trim()){
+          form.submit();
+        }
+      });
+    }
 
     input.addEventListener('input', applyFilter);
     // Apply once on load (in case q is present in URL)
