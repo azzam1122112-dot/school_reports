@@ -188,7 +188,16 @@
             <div style="flex: 1 1 250px; min-width: 200px;">
               <label class="af-label">بحث عن معلم</label>
               <div style="position:relative;">
-                <input class="af-input" type="text" name="q" value="{{ q }}" placeholder="ابحث باسم المعلم..." style="padding-left:42px;" />
+                <input
+                  id="afSearchInput"
+                  class="af-input"
+                  type="search"
+                  name="q"
+                  value="{{ q }}"
+                  placeholder="ابحث باسم المعلم..."
+                  autocomplete="off"
+                  style="padding-left:42px;"
+                />
                 <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); opacity:0.6; pointer-events:none;"></i>
               </div>
             </div>
@@ -222,7 +231,7 @@
 
             <span class="af-chip">
               <i class="fa-solid fa-users"></i>
-              {{ rows|length }} معلم
+              <span id="afCount">{{ rows|length }}</span> معلم
             </span>
           </div>
 
@@ -234,9 +243,14 @@
         </div>
       </div>
 
-      <div class="af-list" aria-label="قائمة المعلمين">
+      <div id="afNoResults" class="af-empty" style="display:none; margin-bottom:12px">
+        <b>لا توجد نتائج</b>
+        <div class="af-muted" style="margin-top:6px">جرّب كتابة اسم مختلف.</div>
+      </div>
+
+      <div id="afList" class="af-list" aria-label="قائمة المعلمين">
         {% for row in rows %}
-          <div class="af-item">
+          <div class="af-item" data-teacher-name="{{ row.teacher.name|default:'' }}" data-teacher-phone="{{ row.teacher.phone|default:'' }}">
             <div class="af-meta">
               <b title="{{ row.teacher.name }}">{{ row.teacher.name }}</b>
               <small dir="ltr">{{ row.teacher.phone }}</small>
@@ -289,4 +303,51 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function(){
+    const input = document.getElementById('afSearchInput');
+    const list = document.getElementById('afList');
+    const countEl = document.getElementById('afCount');
+    const noResults = document.getElementById('afNoResults');
+    if (!input || !list) return;
+
+    const items = Array.from(list.querySelectorAll('.af-item'));
+    const total = items.length;
+
+    function norm(s){
+      return (s || '')
+        .toString()
+        .toLowerCase()
+        .trim();
+    }
+
+    function applyFilter(){
+      const q = norm(input.value);
+      let shown = 0;
+
+      for (const el of items){
+        const name = norm(el.getAttribute('data-teacher-name'));
+        const phone = norm(el.getAttribute('data-teacher-phone'));
+        const ok = !q || name.includes(q) || phone.includes(q);
+        el.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+      }
+
+      if (countEl) countEl.textContent = String(shown);
+      if (noResults) noResults.style.display = (shown === 0 && total > 0) ? '' : 'none';
+    }
+
+    // Prevent form submit on Enter inside search (dynamic filtering instead)
+    input.addEventListener('keydown', function(e){
+      if (e.key === 'Enter'){
+        e.preventDefault();
+      }
+    });
+
+    input.addEventListener('input', applyFilter);
+    // Apply once on load (in case q is present in URL)
+    applyFilter();
+  })();
+</script>
 {% endblock %}

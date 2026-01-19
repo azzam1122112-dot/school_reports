@@ -1623,13 +1623,17 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
             school_memberships__is_active=True,
         )
         .distinct()
-        .only("id", "name", "phone")
+        .only("id", "name", "phone", "national_id")
         .order_by("name")
     )
     
     if q:
         from django.db.models import Q
-        teachers = teachers.filter(Q(name__icontains=q) | Q(username__icontains=q))
+        teachers = teachers.filter(
+            Q(name__icontains=q)
+            | Q(phone__icontains=q)
+            | Q(national_id__icontains=q)
+        )
 
     files_by_teacher_id = {}
     if year:
