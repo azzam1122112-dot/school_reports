@@ -1678,6 +1678,7 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
     
     if q:
         from django.db.models import Q
+        from django.db.models import Prefetch
         teachers = teachers.filter(
             Q(name__icontains=q)
             | Q(phone__icontains=q)
@@ -5075,6 +5076,29 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
 
     subscriptions = subscriptions.order_by("-start_date")
 
+    # ✅ لتفادي N+1: نجلب المدفوعات المرتبطة بكل اشتراك (pending/approved فقط)
+    subscriptions = subscriptions.prefetch_related(
+        Prefetch(
+            "payments",
+            queryset=Payment.objects.filter(
+                status__in=[Payment.Status.PENDING, Payment.Status.APPROVED]
+            ).only("id", "subscription_id", "payment_date"),
+            to_attr="_prefetched_active_payments",
+        )
+    )
+
+    # ✅ حساب بسيط: هل يوجد دفع ضمن فترة الاشتراك الحالية؟
+    # نستخدم payment_date >= start_date لتحديد أنه يخص نفس الفترة.
+    for sub in subscriptions:
+        try:
+            pref = getattr(sub, "_prefetched_active_payments", []) or []
+            sub.has_payment_for_period = any(
+                (getattr(p, "payment_date", None) is not None and p.payment_date >= sub.start_date)
+                for p in pref
+            )
+        except Exception:
+            sub.has_payment_for_period = False
+
     plans = SubscriptionPlan.objects.all().order_by("price", "name")
 
     ctx = {
@@ -5091,6 +5115,57 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "reports/platform_subscriptions.html", ctx)
+
+
+def _record_subscription_payment_if_missing(
+    *,
+    subscription: SchoolSubscription,
+    actor,
+    note: str,
+) -> bool:
+    """تسجيل عملية دفع (approved) لاشتراك مدرسة في حال عدم وجود دفعة للفترة الحالية.
+
+    نستخدم ذلك لحالات "الاشتراك أُضيف/فُعِّل يدويًا" حتى يظهر في صفحة المالية.
+    """
+    try:
+        if not bool(getattr(subscription, "is_active", False)):
+            return False
+
+        plan = getattr(subscription, "plan", None)
+        price = getattr(plan, "price", None)
+        if price is None:
+            return False
+        try:
+            if float(price) <= 0:
+                return False
+        except Exception:
+            pass
+
+        period_start = getattr(subscription, "start_date", None)
+        existing_qs = Payment.objects.filter(
+            subscription=subscription,
+            status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
+        )
+        if period_start:
+            existing_qs = existing_qs.filter(payment_date__gte=period_start)
+        if existing_qs.exists():
+            return False
+
+        Payment.objects.create(
+            school=subscription.school,
+            subscription=subscription,
+            requested_plan=subscription.plan,
+            amount=subscription.plan.price,
+            receipt_image=None,
+            payment_date=timezone.localdate(),
+            status=Payment.Status.APPROVED,
+            notes=(note or "").strip(),
+            created_by=actor,
+        )
+        return True
+    except Exception:
+        logger.exception("Failed to record manual payment for subscription")
+        return False
 
 
 @login_required(login_url="reports:login")
@@ -7888,8 +7963,20 @@ def platform_subscription_form(request: HttpRequest, pk: Optional[int] = None) -
     if request.method == "POST":
         form = SchoolSubscriptionForm(request.POST, instance=subscription)
         if form.is_valid():
-            form.save()
-            messages.success(request, "تم حفظ الاشتراك بنجاح.")
+            subscription_obj = form.save()
+
+            # ✅ المالية: عند إضافة/تفعيل اشتراك يدويًا من لوحة المنصة، سجّل دفعة (approved)
+            # حتى تظهر في صفحة (المدفوعات) بدون انتظار رفع إيصال.
+            created_payment = _record_subscription_payment_if_missing(
+                subscription=subscription_obj,
+                actor=request.user,
+                note="تم تسجيل الدفعة يدويًا بواسطة إدارة المنصة.",
+            )
+
+            if created_payment:
+                messages.success(request, "تم حفظ الاشتراك وتسجيل عملية الدفع بنجاح.")
+            else:
+                messages.success(request, "تم حفظ الاشتراك بنجاح.")
             return redirect("reports:platform_subscriptions_list")
         else:
             messages.error(request, "يرجى تصحيح الأخطاء أدناه.")
@@ -7930,7 +8017,40 @@ def platform_subscription_renew(request: HttpRequest, pk: int) -> HttpResponse:
     if getattr(subscription, "cancel_reason", ""):
         subscription.cancel_reason = ""
     subscription.save()
-    messages.success(request, f"تم تجديد اشتراك مدرسة {subscription.school.name} حتى {subscription.end_date:%Y-%m-%d}.")
+
+    created_payment = _record_subscription_payment_if_missing(
+        subscription=subscription,
+        actor=request.user,
+        note="تم تجديد الاشتراك وتسجيل الدفعة يدويًا بواسطة إدارة المنصة.",
+    )
+    if created_payment:
+        messages.success(
+            request,
+            f"تم تجديد اشتراك مدرسة {subscription.school.name} حتى {subscription.end_date:%Y-%m-%d}، وتم تسجيل عملية الدفع.",
+        )
+    else:
+        messages.success(request, f"تم تجديد اشتراك مدرسة {subscription.school.name} حتى {subscription.end_date:%Y-%m-%d}.")
+
+    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+    return redirect(next_url or "reports:platform_subscriptions_list")
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["POST"])
+def platform_subscription_record_payment(request: HttpRequest, pk: int) -> HttpResponse:
+    """تسجيل دفعة يدوية لاشتراك موجود بدون تغيير تواريخه."""
+    subscription = get_object_or_404(SchoolSubscription.objects.select_related("plan", "school"), pk=pk)
+
+    ok = _record_subscription_payment_if_missing(
+        subscription=subscription,
+        actor=request.user,
+        note="تم تسجيل الدفعة يدويًا بواسطة إدارة المنصة.",
+    )
+    if ok:
+        messages.success(request, "تم تسجيل عملية الدفع بنجاح.")
+    else:
+        messages.info(request, "لا يمكن تسجيل دفعة جديدة (يوجد دفع بالفعل أو الاشتراك غير نشط/مجاني).")
 
     next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
     return redirect(next_url or "reports:platform_subscriptions_list")

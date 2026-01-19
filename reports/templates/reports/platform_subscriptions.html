@@ -407,6 +407,21 @@
                     </button>
                   </form>
 
+                  {% if sub.is_active and not sub.has_payment_for_period and sub.plan.price %}
+                    <form method="post" action="{% url 'reports:platform_subscription_record_payment' sub.id %}" style="display:inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button
+                        type="submit"
+                        class="btn btn-outline"
+                        data-confirm="تسجيل دفعة لهذا الاشتراك؟"
+                      >
+                        <i class="fa-solid fa-receipt" aria-hidden="true"></i>
+                        تسجيل دفعة
+                      </button>
+                    </form>
+                  {% endif %}
+
                   <a href="{% url 'reports:platform_subscription_edit' sub.id %}" class="btn btn-outline">
                     <i class="fa-solid fa-pen" aria-hidden="true"></i>
                     تعديل

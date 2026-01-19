@@ -1845,6 +1845,8 @@ class Payment(models.Model):
         "صورة الإيصال",
         upload_to=_payment_receipt_upload_to,
         help_text="يرجى إرفاق صورة التحويل البنكي",
+        null=True,
+        blank=True,
         validators=[validate_image_file],
     )
     payment_date = models.DateField("تاريخ التحويل", default=timezone.now)
