@@ -1137,6 +1137,15 @@ class TicketNoteForm(forms.ModelForm):
             "body": forms.Textarea(attrs={"rows": 3, "class": "textarea", "placeholder": "أضف ملاحظة"}),
         }
 
+
+class TicketNoteEditForm(forms.ModelForm):
+    class Meta:
+        model = TicketNote
+        fields = ["body"]
+        widgets = {
+            "body": forms.Textarea(attrs={"rows": 4, "class": "textarea", "placeholder": "عدّل ملاحظتك"}),
+        }
+
 # ==============================
 # 📌 نموذج الطلب التراثي (اختياري)
 # ==============================

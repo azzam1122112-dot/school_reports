@@ -116,6 +116,16 @@
     box-shadow: 0 6px 18px rgba(2,6,23,.06);
   }
   .note-meta{color:var(--muted);font-size:.92rem;font-weight:850;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .note-actions{margin-inline-start:auto;display:flex;gap:8px;align-items:center}
+  .note-edit{
+    width:36px;height:36px;border-radius:10px;
+    border:1px solid var(--line);
+    background: var(--card);
+    display:inline-flex;align-items:center;justify-content:center;
+    text-decoration:none;color:var(--muted);
+    transition: var(--t-fast);
+  }
+  .note-edit:hover{color:var(--ink);box-shadow:0 10px 22px rgba(2,6,23,.10);transform:translateY(-1px)}
   .note-txt{margin-top:6px;white-space:pre-wrap;line-height:1.85;color:var(--ink);font-weight:850}
   .empty{color:var(--muted);font-weight:850}
 
@@ -366,13 +376,7 @@
         </div>
       </div>
 
-      {% if is_owner and not can_act and not t.is_platform %}
-        <div class="sticky-hint">
-          <span class="help">
-            أضِف ملاحظة للتواصل — ستتحوّل الحالة تلقائيًا إلى <b>جــديد</b>.
-          </span>
-        </div>
-      {% endif %}
+
     </article>
 
     <!-- Notes -->
@@ -393,6 +397,14 @@
                   <span><i class="fa-solid fa-user" style="opacity:.75"></i> {{ n.author.name|default:"—" }}</span>
                   <span>•</span>
                   <span dir="ltr">{{ n.created_at|date:"Y-m-d H:i" }}</span>
+
+                  <span class="note-actions">
+                    {% if n.author_id == request.user.id and t.status != 'done' %}
+                      <a class="note-edit" title="تعديل" aria-label="تعديل" href="{% url 'reports:ticket_note_edit' n.id %}?next={{ request.get_full_path|urlencode }}">
+                        <i class="fa-solid fa-pen"></i>
+                      </a>
+                    {% endif %}
+                  </span>
                 </div>
                 <div class="note-txt">{{ n.body|ticket_note_ar|default_if_none:""|linebreaksbr }}</div>
               </div>
@@ -429,7 +441,11 @@
 
             <div>
               <label class="help" for="noteTxt">ملاحظة (تظهر للمرسل)</label>
-              <textarea id="noteTxt" name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك (اختياري)"></textarea>
+              {% if t.status == 'done' %}
+                <div class="help">الطلب مكتمل — لا يمكن إضافة ملاحظات.</div>
+              {% else %}
+                <textarea id="noteTxt" name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك (اختياري)"></textarea>
+              {% endif %}
             </div>
 
             <div class="ticket-actions">
@@ -451,6 +467,9 @@
         </div>
 
         <div class="ticket-card-bd">
+          {% if t.status == 'done' %}
+            <div class="help">الطلب مكتمل — لا يمكن إضافة ملاحظات.</div>
+          {% else %}
           <form method="post" class="form" novalidate>
             {% csrf_token %}
             <div>
@@ -462,6 +481,7 @@
               <a class="btn" href="{% url 'reports:ticket_detail' t.id %}">إلغاء</a>
             </div>
           </form>
+          {% endif %}
         </div>
       </article>
     {% endif %}

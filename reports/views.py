@@ -66,6 +66,7 @@ from .forms import (
     PlatformAdminCreateForm,
     PlatformSchoolNotificationForm,
     PrivateCommentForm,
+    TicketNoteEditForm,
 )
 
 # إشعارات (اختياري)
@@ -3928,13 +3929,18 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
         status_label = dict(getattr(Ticket.Status, "choices", [])).get
 
+        is_or_will_be_done = (t.status == Ticket.Status.DONE) or (status_val == Ticket.Status.DONE)
+
         # إضافة ملاحظة (المرسل أو من يملك الصلاحية)
         # يسمح للمرسل بإضافة ملاحظات (للتواصل) ولكن لا يملك صلاحية تغيير الحالة إلا إذا كان من ضمن المستلمين/الإدارة
         can_comment = False
         if is_owner or can_act:
             can_comment = True
 
-        if note_txt and can_comment:
+        if note_txt and can_comment and is_or_will_be_done:
+            messages.warning(request, "لا يمكن إضافة ملاحظة عندما تكون حالة الطلب مكتمل.")
+
+        if note_txt and can_comment and (not is_or_will_be_done):
             try:
                 with transaction.atomic():
                     TicketNote.objects.create(
@@ -3957,7 +3963,7 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
                             body=f"تغيير الحالة تلقائيًا بسبب ملاحظة المرسل: {status_label(old_status, old_status)} → {status_label(Ticket.Status.OPEN, Ticket.Status.OPEN)}",
                             is_public=True,
                         )
-                    changed = True
+                changed = True
             except Exception:
                 logger.exception("Failed to create note")
                 messages.error(request, "تعذّر حفظ الملاحظة.")
@@ -4020,6 +4026,64 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "is_owner": is_owner,
     }
     return render(request, "reports/ticket_detail.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def ticket_note_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    """تعديل ملاحظة طلب: فقط صاحب الملاحظة."""
+    active_school = _get_active_school(request)
+    user = request.user
+
+    note = get_object_or_404(
+        TicketNote.objects.select_related("ticket", "ticket__school", "author"),
+        pk=pk,
+    )
+    t = note.ticket
+
+    if note.author_id != user.id:
+        raise Http404("ليس لديك صلاحية لتعديل هذه الملاحظة.")
+
+    # لا نسمح بالتعديل بعد اكتمال الطلب
+    if getattr(t, "status", None) == Ticket.Status.DONE:
+        messages.warning(request, "لا يمكن تعديل الملاحظات بعد تحويل الطلب إلى مكتمل.")
+        return redirect("reports:ticket_detail", pk=t.id)
+
+    # تحقق الوصول للتذكرة (نفس منطق ticket_detail)
+    if getattr(t, "is_platform", False):
+        if not (user.is_superuser or t.creator_id == user.id or note.author_id == user.id):
+            raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+    else:
+        if not user.is_superuser:
+            if not getattr(t, "school_id", None):
+                raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
+            if is_platform_admin(user):
+                if not platform_allowed_schools_qs(user).filter(id=t.school_id).exists():
+                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+            else:
+                if not SchoolMembership.objects.filter(teacher=user, school_id=t.school_id, is_active=True).exists():
+                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+            if active_school is not None and t.school_id != active_school.id:
+                raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
+
+    next_url = (request.GET.get("next") or "").strip()
+    if next_url and not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = ""
+
+    if request.method == "POST":
+        form = TicketNoteEditForm(request.POST, instance=note)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم تعديل الملاحظة.")
+            return redirect(next_url or "reports:ticket_detail", pk=t.id)
+    else:
+        form = TicketNoteEditForm(instance=note)
+
+    return render(
+        request,
+        "reports/ticket_note_edit.html",
+        {"t": t, "note": note, "form": form, "next": next_url or ""},
+    )
 
 
 @login_required(login_url="reports:login")

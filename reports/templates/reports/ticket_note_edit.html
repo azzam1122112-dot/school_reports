@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}تعديل الملاحظة{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;margin:20px auto;padding:0 14px" dir="rtl">
+  <div class="card">
+    <div class="card-h" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <h2 style="margin:0;font-weight:950">تعديل الملاحظة</h2>
+      <div style="color:var(--muted);font-weight:850">طلب #{{ t.id }}</div>
+    </div>
+
+    <div class="card-b">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div style="margin-bottom:10px;color:var(--muted);font-weight:850">
+          يمكنك تعديل ملاحظتك فقط.
+        </div>
+
+        {{ form.body }}
+        {% if form.body.errors %}
+          <div style="margin-top:8px;color:#b91c1c;font-weight:850">{{ form.body.errors }}</div>
+        {% endif %}
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+          <button type="submit" class="btn btn-primary">حفظ التعديل</button>
+          <a class="btn" href="{% if next %}{{ next }}{% else %}{% url 'reports:ticket_detail' t.id %}{% endif %}">إلغاء</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
