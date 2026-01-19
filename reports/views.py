@@ -3978,7 +3978,8 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
         status_label = dict(getattr(Ticket.Status, "choices", [])).get
 
-        is_or_will_be_done = (t.status == Ticket.Status.DONE) or (status_val == Ticket.Status.DONE)
+        locked_statuses = {Ticket.Status.DONE, Ticket.Status.REJECTED}
+        is_locked_now_or_will_be = (t.status in locked_statuses) or (status_val in locked_statuses)
 
         # إضافة ملاحظة (المرسل أو من يملك الصلاحية)
         # يسمح للمرسل بإضافة ملاحظات (للتواصل) ولكن لا يملك صلاحية تغيير الحالة إلا إذا كان من ضمن المستلمين/الإدارة
@@ -3986,10 +3987,10 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         if is_owner or can_act:
             can_comment = True
 
-        if note_txt and can_comment and is_or_will_be_done:
-            messages.warning(request, "لا يمكن إضافة ملاحظة عندما تكون حالة الطلب مكتمل.")
+        if note_txt and can_comment and is_locked_now_or_will_be:
+            messages.warning(request, "لا يمكن إضافة ملاحظة عندما تكون حالة الطلب مكتمل أو مرفوض.")
 
-        if note_txt and can_comment and (not is_or_will_be_done):
+        if note_txt and can_comment and (not is_locked_now_or_will_be):
             try:
                 with transaction.atomic():
                     TicketNote.objects.create(
@@ -4093,9 +4094,9 @@ def ticket_note_edit(request: HttpRequest, pk: int) -> HttpResponse:
     if note.author_id != user.id:
         raise Http404("ليس لديك صلاحية لتعديل هذه الملاحظة.")
 
-    # لا نسمح بالتعديل بعد اكتمال الطلب
-    if getattr(t, "status", None) == Ticket.Status.DONE:
-        messages.warning(request, "لا يمكن تعديل الملاحظات بعد تحويل الطلب إلى مكتمل.")
+    # لا نسمح بالتعديل بعد اكتمال/رفض الطلب
+    if getattr(t, "status", None) in {Ticket.Status.DONE, Ticket.Status.REJECTED}:
+        messages.warning(request, "لا يمكن تعديل الملاحظات بعد تحويل الطلب إلى مكتمل أو مرفوض.")
         return redirect("reports:ticket_detail", pk=t.id)
 
     # تحقق الوصول للتذكرة (نفس منطق ticket_detail)

@@ -398,7 +398,7 @@
                   <span dir="ltr">{{ n.created_at|date:"Y-m-d H:i" }}</span>
 
                   <span class="note-actions">
-                    {% if n.author_id == request.user.id and t.status != 'done' %}
+                    {% if n.author_id == request.user.id and t.status != 'done' and t.status != 'rejected' %}
                       <a class="note-edit" title="تعديل" aria-label="تعديل" href="{% url 'reports:ticket_note_edit' n.id %}?next={{ request.get_full_path|urlencode }}">
                         <i class="fa-solid fa-pen"></i>
                       </a>
@@ -440,8 +440,8 @@
 
             <div>
               <label class="help" for="noteTxt">الملاحظات   </label>
-              {% if t.status == 'done' %}
-                <div class="help">الطلب مكتمل — لا يمكن إضافة ملاحظات.</div>
+              {% if t.status == 'done' or t.status == 'rejected' %}
+                <div class="help">الطلب مكتمل/مرفوض — لا يمكن إضافة ملاحظات.</div>
               {% else %}
                 <textarea id="noteTxt" name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك (اختياري)"></textarea>
               {% endif %}
@@ -466,8 +466,8 @@
         </div>
 
         <div class="ticket-card-bd">
-          {% if t.status == 'done' %}
-            <div class="help">الطلب مكتمل — لا يمكن إضافة ملاحظات.</div>
+          {% if t.status == 'done' or t.status == 'rejected' %}
+            <div class="help">الطلب مكتمل/مرفوض — لا يمكن إضافة ملاحظات.</div>
           {% else %}
           <form method="post" class="form" novalidate>
             {% csrf_token %}
