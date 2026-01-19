@@ -1857,13 +1857,16 @@ class SchoolSubscriptionForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self._allow_plan_change = bool(kwargs.pop("allow_plan_change", False))
         super().__init__(*args, **kwargs)
-        # ✅ عند تعديل اشتراك موجود: لا نسمح بتغيير المدرسة أو الباقة نهائياً.
+        # ✅ عند تعديل اشتراك موجود: لا نسمح بتغيير المدرسة.
+        # ✅ الباقة: افتراضياً لا نسمح بتغييرها، لكن يمكن السماح بذلك في حالات
+        # تجديد اشتراك مُلغى/منتهي من لوحة المنصة.
         try:
             if getattr(self.instance, "pk", None):
                 if "school" in self.fields:
                     self.fields["school"].disabled = True
-                if "plan" in self.fields:
+                if (not self._allow_plan_change) and "plan" in self.fields:
                     self.fields["plan"].disabled = True
         except Exception:
             pass
@@ -1876,7 +1879,7 @@ class SchoolSubscriptionForm(forms.ModelForm):
 
     def clean_plan(self):
         # تحصين: حتى مع التلاعب بالـ POST لا نسمح بتغيير الباقة للاشتراك الموجود.
-        if getattr(self.instance, "pk", None):
+        if getattr(self.instance, "pk", None) and (not self._allow_plan_change):
             return self.instance.plan
         return self.cleaned_data.get("plan")
 

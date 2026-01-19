@@ -8211,34 +8211,61 @@ def platform_subscription_form(request: HttpRequest, pk: Optional[int] = None) -
                 .first()
             )
             if existing is not None:
-                # إن كان الاشتراك ملغي/منتهي: نجدد بنفس الباقة الحالية (تم إلغاء تغيير الباقة نهائياً)
+                # إن كان الاشتراك ملغي/منتهي: نجدد/نفعّل نفس السجل (OneToOne)
+                # لكن نسمح بتغيير الباقة حسب اختيار الإدارة (إن لزم).
                 if bool(getattr(existing, "is_cancelled", False)) or bool(getattr(existing, "is_expired", False)):
                     from datetime import timedelta
 
                     today = timezone.localdate()
-                    days = int(getattr(getattr(existing, "plan", None), "days_duration", 0) or 0)
+                    prev_plan_id = getattr(existing, "plan_id", None)
+                    form = SchoolSubscriptionForm(request.POST, instance=existing, allow_plan_change=True)
+                    if form.is_valid():
+                        subscription_obj = form.save(commit=False)
 
-                    existing.start_date = today
-                    existing.end_date = today if days <= 0 else today + timedelta(days=days - 1)
-                    existing.is_active = True
-                    if getattr(existing, "canceled_at", None) is not None:
-                        existing.canceled_at = None
-                    if (getattr(existing, "cancel_reason", "") or "").strip():
-                        existing.cancel_reason = ""
-                    existing.save()
+                        # عند التجديد: فعّل وامسح بيانات الإلغاء
+                        subscription_obj.is_active = True
+                        if getattr(subscription_obj, "canceled_at", None) is not None:
+                            subscription_obj.canceled_at = None
+                        if (getattr(subscription_obj, "cancel_reason", "") or "").strip():
+                            subscription_obj.cancel_reason = ""
 
-                    _record_subscription_payment_if_missing(
-                        subscription=existing,
-                        actor=request.user,
-                        note="تم تجديد الاشتراك وتسجيل الدفعة بواسطة إدارة المنصة.",
-                        force=True,
-                    )
+                        # إذا لم تتغير الباقة، فاعتبرها تجديداً أيضاً واضبط التواريخ لليوم
+                        # (لأن منطق model.save يعيد الحساب فقط عند تغيير plan).
+                        if getattr(subscription_obj, "plan_id", None) == prev_plan_id:
+                            days = int(getattr(getattr(subscription_obj, "plan", None), "days_duration", 0) or 0)
+                            subscription_obj.start_date = today
+                            subscription_obj.end_date = today if days <= 0 else today + timedelta(days=days - 1)
 
-                    messages.success(
-                        request,
-                        f"تم تجديد اشتراك مدرسة {existing.school.name} حتى {existing.end_date:%Y-%m-%d}.",
-                    )
-                    return redirect("reports:platform_subscriptions_list")
+                        subscription_obj.save()
+
+                        # تحصين مالي: أي دفعات pending قديمة لا يجب أن تبقى عالقة بعد التجديد.
+                        try:
+                            Payment.objects.filter(
+                                subscription=subscription_obj,
+                                status=Payment.Status.PENDING,
+                                created_at__date__lt=subscription_obj.start_date,
+                            ).update(
+                                status=Payment.Status.CANCELLED,
+                                notes="تم إلغاء هذه العملية تلقائياً بسبب تجديد/تغيير الاشتراك.",
+                            )
+                        except Exception:
+                            pass
+
+                        _record_subscription_payment_if_missing(
+                            subscription=subscription_obj,
+                            actor=request.user,
+                            note="تم تجديد الاشتراك (مع تحديث الباقة عند الحاجة) وتسجيل الدفعة بواسطة إدارة المنصة.",
+                            force=True,
+                        )
+
+                        messages.success(
+                            request,
+                            f"تم تفعيل/تجديد اشتراك مدرسة {subscription_obj.school.name} حتى {subscription_obj.end_date:%Y-%m-%d}.",
+                        )
+                        return redirect("reports:platform_subscriptions_list")
+                    else:
+                        messages.error(request, "يرجى تصحيح الأخطاء أدناه.")
+                        return render(request, "reports/platform_subscription_add.html", {"form": form})
 
                 messages.info(
                     request,

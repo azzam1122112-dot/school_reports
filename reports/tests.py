@@ -266,7 +266,7 @@ class PlatformSubscriptionAddRenewsCancelledTests(TestCase):
 			url,
 			{
 				"school": self.school.id,
-				"plan": self.plan_b.id,  # يجب تجاهله (إلغاء تغيير الباقة)
+				"plan": self.plan_b.id,
 				"is_active": "on",
 			},
 		)
@@ -276,15 +276,16 @@ class PlatformSubscriptionAddRenewsCancelledTests(TestCase):
 		self.assertTrue(self.sub.is_active)
 		self.assertIsNone(self.sub.canceled_at)
 		self.assertEqual((self.sub.cancel_reason or "").strip(), "")
-		# الباقة لا تتغير
-		self.assertEqual(self.sub.plan_id, self.plan_a.id)
+		# الباقة تتغير حسب اختيار الإدارة عند إضافة اشتراك جديد بعد الإلغاء
+		self.assertEqual(self.sub.plan_id, self.plan_b.id)
 
 		# تم تسجيل عملية مالية approved
 		self.assertTrue(
 			Payment.objects.filter(
 				subscription=self.sub,
 				status=Payment.Status.APPROVED,
-				amount=self.plan_a.price,
+				amount=self.plan_b.price,
+				requested_plan=self.plan_b,
 			).exists()
 		)
 
@@ -294,8 +295,8 @@ class PlatformSubscriptionAddRenewsCancelledTests(TestCase):
 		old = Payment.objects.create(
 			school=self.school,
 			subscription=self.sub,
-			requested_plan=self.plan_a,
-			amount=self.plan_a.price,
+			requested_plan=self.plan_b,
+			amount=self.plan_b.price,
 			receipt_image=None,
 			payment_date=today,
 			status=Payment.Status.APPROVED,
@@ -321,7 +322,8 @@ class PlatformSubscriptionAddRenewsCancelledTests(TestCase):
 			Payment.objects.filter(
 				subscription=self.sub,
 				status=Payment.Status.APPROVED,
-				amount=self.plan_a.price,
+				amount=self.plan_b.price,
+				requested_plan=self.plan_b,
 			).count(),
 			2,
 		)
