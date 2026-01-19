@@ -38,6 +38,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
 from django.db.models.deletion import ProtectedError
 
@@ -8032,7 +8033,20 @@ def payment_create(request):
             notes=notes,
             created_by=request.user
         )
-        messages.success(request, "تم رفع طلب الدفع بنجاح، سيتم مراجعته قريباً.")
+        
+        msg = f"""
+        <div style="text-align: center; line-height: 1.6;">
+            <p style="margin-bottom: 0.5rem; font-weight: 700; font-size: 1.1rem;">تم استلام طلبك بنجاح ✅</p>
+            <p style="margin-bottom: 0.5rem;">جاري مراجعة الإيصال والتحقق منه، وسيتم تفعيل الباقة التالية فور الاعتماد:</p>
+            <div style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.75rem 1rem; border-radius: 12px; display: inline-block; margin-top: 0.5rem; color: #fff;">
+                <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 0.25rem;">{requested_plan.name}</div>
+                <div style="font-size: 0.9rem;">
+                    السعر: {requested_plan.price} ريال &bull; المدة: {requested_plan.days_duration} يوم
+                </div>
+            </div>
+        </div>
+        """
+        messages.success(request, mark_safe(msg))
         return redirect('reports:my_subscription')
             
     return redirect('reports:my_subscription')

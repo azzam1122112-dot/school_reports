@@ -274,6 +274,22 @@
         </div>
     </div>
 
+    <!-- Alerts -->
+    {% if pending_payments > 0 %}
+    <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #fca5a5; border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1.5rem; color: #991b1b; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.1);">
+        <div style="background: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #ef4444; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <i class="fas fa-bell fa-shake"></i>
+        </div>
+        <div style="flex-grow: 1;">
+            <h3 style="margin:0 0 0.5rem 0; font-weight:800; font-size:1.25rem;">تنبيه: يوجد طلبات اشتراك جديدة!</h3>
+            <p style="margin:0; opacity: 0.9;">يوجد <strong>{{ pending_payments }}</strong> طلب اشتراك/تجديد بانتظار الموافقة والمراجعة المالية.</p>
+        </div>
+        <a href="{% url 'reports:platform_payments_list' %}" style="background: #ef4444; color: white; padding: 0.75rem 2rem; border-radius: 12px; text-decoration: none; font-weight: 800; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.4); transition: transform 0.2s;">
+            مراجعة الطلبات <i class="fas fa-arrow-left" style="margin-right: 0.5rem;"></i>
+        </a>
+    </div>
+    {% endif %}
+
     <!-- Main Stats Grid -->
     <div class="stats-grid">
         <!-- Schools -->
@@ -327,9 +343,17 @@
                 <div class="stat-icon bg-emerald-light" style="margin-bottom:1rem;"><i class="fas fa-tags"></i></div>
                 <span class="stat-value" style="font-size:1.1rem;">باقات الاشتراك</span>
             </a>
-            <a href="{% url 'reports:platform_payments_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
+            <a href="{% url 'reports:platform_payments_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center; position: relative; {% if pending_payments > 0 %}border: 2px solid #ef4444; background: #fff1f2; transform: scale(1.02);{% endif %}">
+                {% if pending_payments > 0 %}
+                <span style="position: absolute; top: 15px; right: 15px; background: #ef4444; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3); animation: pulse 2s infinite;">{{ pending_payments }}</span>
+                {% endif %}
                 <div class="stat-icon bg-amber-light" style="margin-bottom:1rem;"><i class="fas fa-receipt"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">المدفوعات المالية</span>
+                <span class="stat-value" style="font-size:1.1rem; {% if pending_payments > 0 %}color: #991b1b; font-weight: 800;{% endif %}">المدفوعات المالية</span>
+                {% if pending_payments > 0 %}
+                <small style="color: #ef4444; font-weight: 700; margin-top: 0.5rem; display: block; font-size: 0.8rem;">
+                    <i class="fas fa-clock"></i> طلبات معلقة
+                </small>
+                {% endif %}
             </a>
             <a href="{% url 'reports:platform_tickets_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
                 <div class="stat-icon bg-rose-light" style="margin-bottom:1rem;"><i class="fas fa-headset"></i></div>

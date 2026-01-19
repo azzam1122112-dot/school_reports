@@ -686,7 +686,7 @@
               <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
               <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">اضغط هنا لرفع الصورة</div>
               <div style="font-size: 0.85rem; color: var(--text-secondary);" id="fileLabel">يدعم JPG, PNG (الحد الأقصى 10MB)</div>
-              <input type="file" name="receipt_image" id="receipt" style="display: none;" accept="image/*" required>
+              <input type="file" name="receipt_image" id="receipt" style="opacity: 0; position: absolute; z-index: -1; width: 1px; height: 1px;" accept="image/*" required>
             </label>
           </div>
 
@@ -861,6 +861,30 @@
          dropArea.style.borderColor = '#10b981';
          dropArea.style.background = 'rgba(16, 185, 129, 0.05)';
      }
+
+     // 4. Form Validation UI
+     const form = document.getElementById('paymentForm');
+     form.addEventListener('submit', function(e) {
+        if (!fileInput.value) {
+            e.preventDefault();
+            dropArea.style.borderColor = '#ef4444';
+            dropArea.style.backgroundColor = 'rgba(239, 68, 68, 0.05)';
+            dropArea.scrollIntoView({behavior: 'smooth', block: 'center'});
+            
+            // Create or update error message
+            let errorMsg = document.getElementById('file-error-msg');
+            if(!errorMsg) {
+                errorMsg = document.createElement('div');
+                errorMsg.id = 'file-error-msg';
+                errorMsg.style.color = '#ef4444';
+                errorMsg.style.fontSize = '0.9rem';
+                errorMsg.style.fontWeight = '700';
+                errorMsg.style.marginTop = '0.5rem';
+                errorMsg.textContent = 'يرجى إرفاق صورة الإيصال للمتابعة';
+                dropArea.parentNode.appendChild(errorMsg);
+            }
+        }
+     });
   });
 
   window.copyToClip = function(text) {

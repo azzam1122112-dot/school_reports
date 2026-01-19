@@ -416,6 +416,7 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
             period_start = getattr(obj, "start_date", None)
             qs = Payment.objects.filter(
                 subscription=obj,
+                requested_plan=obj.plan,
                 status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
             )
             if period_start:
