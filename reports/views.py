@@ -5175,6 +5175,7 @@ def _record_subscription_payment_if_missing(
             pass
 
         today = timezone.localdate()
+        period_start = getattr(subscription, "start_date", None) or today
 
         # ✅ تحصين: عند التفعيل/التجديد اليدوي (force=True) لا نريد منع التسجيل
         # بسبب وجود دفعات قديمة، لكن نمنع تكرار نفس العملية في نفس اليوم.
@@ -5182,20 +5183,20 @@ def _record_subscription_payment_if_missing(
             dup_qs = Payment.objects.filter(
                 subscription=subscription,
                 status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
-                payment_date=today,
+                created_at__date=today,
                 requested_plan=subscription.plan,
                 amount=subscription.plan.price,
             )
             if dup_qs.exists():
                 return False
         else:
-            period_start = getattr(subscription, "start_date", None)
             existing_qs = Payment.objects.filter(
                 subscription=subscription,
                 status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
             )
-            if period_start:
-                existing_qs = existing_qs.filter(payment_date__gte=period_start)
+            # نعتمد created_at بدلاً من payment_date لأن payment_date قد تكون "اليوم" دائماً
+            # في التسجيلات اليدوية، مما يمنع تسجيل دفعة جديدة عند التجديد في نفس اليوم.
+            existing_qs = existing_qs.filter(created_at__date__gte=period_start)
             if existing_qs.exists():
                 return False
 

@@ -103,6 +103,44 @@ class PlatformSubscriptionAddRenewsCancelledTests(TestCase):
 			).exists()
 		)
 
+	def test_renewal_records_finance_even_if_old_payment_has_same_payment_date(self):
+		# Payment قديم (نفس payment_date=اليوم) لكن تم إنشاؤه قبل فترة.
+		today = timezone.localdate()
+		old = Payment.objects.create(
+			school=self.school,
+			subscription=self.sub,
+			requested_plan=self.plan_a,
+			amount=self.plan_a.price,
+			receipt_image=None,
+			payment_date=today,
+			status=Payment.Status.APPROVED,
+			notes="old",
+			created_by=self.admin,
+		)
+		# نجعل created_at في الماضي لتُمثل دفعة لفترة سابقة
+		Payment.objects.filter(pk=old.pk).update(created_at=timezone.now() - timezone.timedelta(days=10))
+
+		url = reverse("reports:platform_subscription_add")
+		res = self.client.post(
+			url,
+			{
+				"school": self.school.id,
+				"plan": self.plan_b.id,
+				"is_active": "on",
+			},
+		)
+		self.assertEqual(res.status_code, 302)
+
+		# يجب تسجيل دفعة جديدة عند التجديد
+		self.assertGreaterEqual(
+			Payment.objects.filter(
+				subscription=self.sub,
+				status=Payment.Status.APPROVED,
+				amount=self.plan_a.price,
+			).count(),
+			2,
+		)
+
 
 class ResolveDepartmentForCategoryTests(TestCase):
 	def test_resolve_department_scoped_by_school(self):

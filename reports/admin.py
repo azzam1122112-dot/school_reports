@@ -419,7 +419,7 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
                 status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
             )
             if period_start:
-                qs = qs.filter(payment_date__gte=period_start)
+                qs = qs.filter(created_at__date__gte=period_start)
             if qs.exists():
                 return
 
