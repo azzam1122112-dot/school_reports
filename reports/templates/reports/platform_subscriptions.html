@@ -384,6 +384,16 @@
               <td data-label="الحالة">
                 {% if sub.is_cancelled %}
                   <span class="badge danger"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
+                  {% if sub.cancel_reason %}
+                    <div class="muted" style="margin-top:6px">
+                      <span style="font-weight:950">سبب الإلغاء:</span>
+                      {{ sub.cancel_reason }}
+                    </div>
+                  {% endif %}
+                  <div class="muted" style="margin-top:6px">
+                    <span style="font-weight:950">المبلغ المسترجع:</span>
+                    {{ sub.refund_amount_for_period|default:0 }} ريال
+                  </div>
                 {% elif sub.is_expired %}
                   <span class="badge danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> منتهي</span>
                 {% else %}
@@ -430,12 +440,14 @@
                   <form method="post" action="{% url 'reports:platform_subscription_delete' sub.id %}" style="display:inline">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <input type="hidden" name="reason" value="">
+                    <input type="hidden" name="reason" value="{{ sub.cancel_reason|default:'' }}">
+                    <input type="hidden" name="refund_amount" value="">
 
                     <button
                       type="submit"
                       class="btn btn-outline btn-danger"
                       data-reason-prompt="سبب الإلغاء (سيظهر للمدرسة):"
+                      data-refund-prompt="استرجاع مبلغ؟ اتركه فارغًا بدون استرجاع. اكتب (كامل) للاسترجاع الكامل أو اكتب رقمًا مثل 150.00 للاسترجاع الجزئي."
                       data-confirm="سيتم إلغاء اشتراك مدرسة: {{ sub.school.name }}. هل أنت متأكد؟"
                     >
                       <i class="fa-solid fa-ban" aria-hidden="true"></i>
@@ -474,6 +486,7 @@
         if(promptLabel){
           var form = this.closest ? this.closest('form') : null;
           var reasonInput = form ? form.querySelector('input[name="reason"]') : null;
+          var refundInput = form ? form.querySelector('input[name="refund_amount"]') : null;
           var current = reasonInput && reasonInput.value ? reasonInput.value : '';
           var reason = window.prompt(promptLabel, current);
           if(reason === null){
@@ -490,6 +503,21 @@
           }
           if(reasonInput){
             reasonInput.value = reason;
+          }
+
+          // خيار استرجاع مبلغ (اختياري)
+          var refundPrompt = this.getAttribute('data-refund-prompt');
+          if(refundPrompt && refundInput){
+            var currentRefund = refundInput.value ? refundInput.value : '';
+            var refund = window.prompt(refundPrompt, currentRefund);
+            if(refund === null){
+              // إلغاء كامل العملية
+              ev.preventDefault();
+              ev.stopPropagation();
+              return false;
+            }
+            refund = (refund || '').trim();
+            refundInput.value = refund; // قد يكون فارغًا (بدون استرجاع)
           }
         }
 

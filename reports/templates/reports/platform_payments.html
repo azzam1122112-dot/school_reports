@@ -236,6 +236,14 @@
           <i class="fa-solid fa-ban" aria-hidden="true"></i>
           الملغاة
         </a>
+
+        <a
+          class="filter-pill {% if status == 'refunds' %}is-active{% endif %}"
+          href="{% url 'reports:platform_payments_list' %}?status=refunds"
+        >
+          <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+          الاسترجاعات
+        </a>
         <a
           class="filter-pill {% if status == 'all' %}is-active{% endif %}"
           href="{% url 'reports:platform_payments_list' %}?status=all"
@@ -271,7 +279,16 @@
             </td>
 
             <td data-label="المبلغ" style="font-weight:950;color:var(--brand)">
-              {{ payment.amount|intcomma }} ريال
+              {% if payment.amount < 0 %}
+                <span style="color: var(--danger, #ef4444)">
+                  {{ payment.amount|intcomma }} ريال
+                </span>
+                <span class="badge" style="margin-inline-start:8px;background:rgba(239,68,68,.12);color:#b91c1c;border:1px solid rgba(239,68,68,.22);font-weight:950">
+                  استرجاع
+                </span>
+              {% else %}
+                {{ payment.amount|intcomma }} ريال
+              {% endif %}
             </td>
 
             <td data-label="التاريخ">
@@ -283,7 +300,11 @@
             </td>
 
             <td data-label="الحالة">
-              {% if payment.status == 'approved' %}
+              {% if payment.status == 'approved' and payment.amount < 0 %}
+                <span class="badge" style="background:rgba(239,68,68,.12);color:#b91c1c;border:1px solid rgba(239,68,68,.22);font-weight:950">
+                  استرجاع
+                </span>
+              {% elif payment.status == 'approved' %}
                 <span class="badge success">مقبول</span>
               {% elif payment.status == 'pending' %}
                 <span class="badge warning">معلّق</span>

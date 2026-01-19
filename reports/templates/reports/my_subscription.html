@@ -482,9 +482,20 @@
          <tr>
            <td><span dir="ltr">{{ payment.created_at|date:"Y-m-d" }}</span></td>
            <td>{{ payment.requested_plan.name|default:"-" }}</td>
-           <td style="font-family:'Courier New'; font-weight:700">{{ payment.amount }} SAR</td>
+           <td style="font-family:'Courier New'; font-weight:700">
+             {% if payment.amount < 0 %}
+               <span style="color:#ef4444">{{ payment.amount }} SAR</span>
+               <span style="margin-inline-start:8px;color:#ef4444;font-weight:800">
+                 <i class="fa-solid fa-rotate-left"></i> استرجاع
+               </span>
+             {% else %}
+               {{ payment.amount }} SAR
+             {% endif %}
+           </td>
            <td>
-              {% if payment.status == 'approved' %}
+              {% if payment.status == 'approved' and payment.amount < 0 %}
+                <span style="color:#ef4444"><i class="fa-solid fa-rotate-left"></i> استرجاع</span>
+              {% elif payment.status == 'approved' %}
                 <span style="color:#10b981"><i class="fa-solid fa-check"></i> تم التفعيل</span>
               {% elif payment.status == 'cancelled' %}
                 <span style="color:#64748b"><i class="fa-solid fa-ban"></i> ملغي</span>

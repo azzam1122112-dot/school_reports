@@ -5077,7 +5077,7 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
 
     subscriptions = subscriptions.order_by("-start_date")
 
-    # ✅ لتفادي N+1: نجلب المدفوعات المرتبطة بكل اشتراك (pending/approved فقط)
+    # ✅ لتفادي N+1: نجلب المدفوعات المرتبطة بكل اشتراك
     subscriptions = subscriptions.prefetch_related(
         Prefetch(
             "payments",
@@ -5088,8 +5088,22 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
         )
     )
 
+    # ✅ استرجاعات (refunds): مدفوعات approved بمبالغ سالبة
+    subscriptions = subscriptions.prefetch_related(
+        Prefetch(
+            "payments",
+            queryset=Payment.objects.filter(
+                status=Payment.Status.APPROVED,
+                amount__lt=0,
+            ).only("id", "subscription_id", "payment_date", "amount"),
+            to_attr="_prefetched_refunds",
+        )
+    )
+
     # ✅ حساب بسيط: هل يوجد دفع ضمن فترة الاشتراك الحالية؟
     # نستخدم payment_date >= start_date لتحديد أنه يخص نفس الفترة.
+    from decimal import Decimal
+
     for sub in subscriptions:
         try:
             pref = getattr(sub, "_prefetched_active_payments", []) or []
@@ -5099,6 +5113,19 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
             )
         except Exception:
             sub.has_payment_for_period = False
+
+        # مبلغ الاسترجاع لهذه الفترة (مجموع القيم السالبة كقيمة موجبة)
+        try:
+            refunds = getattr(sub, "_prefetched_refunds", []) or []
+            total = Decimal("0")
+            for p in refunds:
+                if getattr(p, "payment_date", None) is not None and p.payment_date >= sub.start_date:
+                    amt = getattr(p, "amount", None)
+                    if amt is not None:
+                        total += (-amt)
+            sub.refund_amount_for_period = total
+        except Exception:
+            sub.refund_amount_for_period = Decimal("0")
 
     plans = SubscriptionPlan.objects.all().order_by("price", "name")
 
@@ -5176,6 +5203,7 @@ def platform_subscription_delete(request: HttpRequest, pk: int) -> HttpResponse:
     subscription = get_object_or_404(SchoolSubscription.objects.select_related("school", "plan"), pk=pk)
 
     reason = (request.POST.get("reason") or "").strip()
+    refund_raw = (request.POST.get("refund_amount") or "").strip()
     if not reason:
         messages.error(request, "سبب الإلغاء مطلوب لإلغاء الاشتراك.")
         next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
@@ -5194,23 +5222,90 @@ def platform_subscription_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
             subscription.save(update_fields=["is_active", "end_date", "canceled_at", "cancel_reason", "updated_at"])
 
-            # ✅ المالية: عند إلغاء الاشتراك نُلغي مبالغ هذا الاشتراك داخل المالية.
-            # نُطبّق ذلك عبر تحويل مدفوعات فترة الاشتراك الحالية إلى حالة (cancelled)
-            # ثم نستبعد cancelled من صفحة المالية وإحصاءاتها.
+            # ✅ المالية:
+            # - عند الإلغاء: نُلغي فقط المدفوعات المعلّقة لهذه الفترة حتى لا يتم اعتمادها لاحقاً بالخطأ.
+            # - خيار إضافي: "استرجاع مبلغ" (كامل/جزئي) عبر تسجيل عملية مالية سالبة (approved)
+            #   بحيث يظهر الاسترجاع ويخصم من إجمالي المالية.
             try:
                 period_start = getattr(subscription, "start_date", None)
-                payments_qs = Payment.objects.filter(
+
+                # 1) إلغاء المعلّق فقط
+                pending_qs = Payment.objects.filter(
                     subscription=subscription,
-                    status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
+                    status=Payment.Status.PENDING,
                 )
                 if period_start:
-                    payments_qs = payments_qs.filter(payment_date__gte=period_start)
+                    pending_qs = pending_qs.filter(payment_date__gte=period_start)
 
                 cancel_note = f"تم إلغاء الاشتراك: {reason}"
-                for p in payments_qs.only("id", "status", "notes"):
+                for p in pending_qs.only("id", "status", "notes"):
                     p.status = Payment.Status.CANCELLED
                     p.notes = (f"{p.notes}\n" if (p.notes or "").strip() else "") + cancel_note
                     p.save(update_fields=["status", "notes", "updated_at"])
+
+                # 2) استرجاع مبلغ (اختياري)
+                if refund_raw:
+                    from decimal import Decimal, InvalidOperation
+                    from django.db.models import Sum
+                    from django.db.models.functions import Coalesce
+
+                    raw = refund_raw.strip().lower()
+
+                    approved_qs = Payment.objects.filter(
+                        subscription=subscription,
+                        status=Payment.Status.APPROVED,
+                    )
+                    if period_start:
+                        approved_qs = approved_qs.filter(payment_date__gte=period_start)
+
+                    net_paid = approved_qs.aggregate(total=Coalesce(Sum("amount"), Decimal("0"))).get("total")
+                    try:
+                        net_paid = Decimal(str(net_paid or "0"))
+                    except Exception:
+                        net_paid = Decimal("0")
+
+                    max_refund = net_paid if net_paid > 0 else Decimal("0")
+                    refund_amount = Decimal("0")
+
+                    if raw in {"full", "كامل", "كاملًا", "كاملا", "استرجاع كامل", "استرجاع كاملًا"}:
+                        refund_amount = max_refund
+                    else:
+                        # السماح بأرقام مثل 100 أو 100.50 أو 100,50
+                        try:
+                            normalized = raw.replace(",", ".")
+                            refund_amount = Decimal(normalized)
+                        except (InvalidOperation, ValueError):
+                            refund_amount = Decimal("0")
+
+                    if refund_amount < 0:
+                        refund_amount = Decimal("0")
+                    if refund_amount > max_refund:
+                        refund_amount = max_refund
+
+                    # منع الاسترجاع المكرر لنفس اليوم/المبلغ (تحصين بسيط)
+                    if refund_amount > 0:
+                        exists_refund = Payment.objects.filter(
+                            subscription=subscription,
+                            status=Payment.Status.APPROVED,
+                            amount=-refund_amount,
+                            payment_date=today,
+                        ).exists()
+
+                        if not exists_refund:
+                            Payment.objects.create(
+                                school=subscription.school,
+                                subscription=subscription,
+                                requested_plan=subscription.plan,
+                                amount=-refund_amount,
+                                receipt_image=None,
+                                payment_date=today,
+                                status=Payment.Status.APPROVED,
+                                notes=(
+                                    f"استرجاع مبلغ: {refund_amount} ريال.\n"
+                                    f"سبب الإلغاء: {reason}"
+                                ),
+                                created_by=request.user,
+                            )
             except Exception:
                 logger.exception("Failed to cancel payments for cancelled subscription")
 
@@ -5236,7 +5331,10 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
     base_qs = Payment.objects.select_related('school').order_by('-created_at')
 
     # ✅ افتراضيًا: لا نعرض (cancelled) ضمن المالية.
-    if status == "cancelled":
+    # ملاحظة: الاسترجاعات = عمليات مقبولة بمبلغ سالب.
+    if status == "refunds":
+        payments = base_qs.filter(status=Payment.Status.APPROVED, amount__lt=0)
+    elif status == "cancelled":
         payments = base_qs.filter(status=Payment.Status.CANCELLED)
     elif status == "all":
         payments = base_qs
@@ -5251,6 +5349,7 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
         approved=Count('id', filter=Q(status=Payment.Status.APPROVED)),
         rejected=Count('id', filter=Q(status=Payment.Status.REJECTED)),
         cancelled=Count('id', filter=Q(status=Payment.Status.CANCELLED)),
+        refunds=Count('id', filter=Q(status=Payment.Status.APPROVED, amount__lt=0)),
     )
 
     ctx = {
@@ -5261,6 +5360,7 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
         "payments_approved": stats['approved'] or 0,
         "payments_rejected": stats['rejected'] or 0,
         "payments_cancelled": stats['cancelled'] or 0,
+        "payments_refunds": stats['refunds'] or 0,
     }
     return render(request, "reports/platform_payments.html", ctx)
 
