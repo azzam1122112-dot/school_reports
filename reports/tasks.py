@@ -1,12 +1,44 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from celery import shared_task
 from django.apps import apps
+from django.conf import settings
+from django.utils import timezone
 
 from .storage import _compress_image_file
 
 logger = logging.getLogger(__name__)
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 2000) -> int:
+    """Delete AuditLog rows older than N days.
+
+    Note: archiving is intentionally handled via the management command because
+    many production setups use ephemeral disks for workers.
+    """
+    AuditLog = apps.get_model("reports", "AuditLog")
+
+    retention_days = int(days) if days is not None else int(getattr(settings, "AUDIT_LOG_RETENTION_DAYS", 30))
+    retention_days = max(retention_days, 0)
+
+    chunk_size = max(int(chunk_size), 100)
+    cutoff = timezone.now() - timedelta(days=retention_days)
+
+    qs = AuditLog.objects.filter(timestamp__lt=cutoff).order_by("pk")
+
+    deleted_total = 0
+    while True:
+        batch_pks = list(qs.values_list("pk", flat=True)[:chunk_size])
+        if not batch_pks:
+            break
+        deleted, _ = AuditLog.objects.filter(pk__in=batch_pks).delete()
+        deleted_total += int(deleted)
+
+    logger.info("AuditLog cleanup deleted %s rows older than %s days.", deleted_total, retention_days)
+    return deleted_total
 
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})

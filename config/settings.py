@@ -376,6 +376,26 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 
+# ----------------- Audit Logs Retention -----------------
+# Deletes old AuditLog rows via Celery beat (if beat process is running).
+AUDIT_LOG_RETENTION_DAYS = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "30"))
+AUDIT_LOG_CLEANUP_ENABLED = _env_bool("AUDIT_LOG_CLEANUP_ENABLED", True)
+
+try:
+    from celery.schedules import crontab
+except Exception:  # pragma: no cover
+    crontab = None  # type: ignore
+
+if AUDIT_LOG_CLEANUP_ENABLED and crontab is not None:
+    CELERY_BEAT_SCHEDULE = {
+        "cleanup-audit-logs-daily": {
+            "task": "reports.tasks.cleanup_audit_logs_task",
+            # 03:15 Asia/Riyadh
+            "schedule": crontab(minute=15, hour=3),
+            "args": (AUDIT_LOG_RETENTION_DAYS,),
+        }
+    }
+
 # ----------------- الملفات الثابتة -----------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

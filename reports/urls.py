@@ -110,7 +110,6 @@ urlpatterns = [
     path("staff/schools/managers/<int:pk>/delete/", views.school_manager_delete, name="school_manager_delete"),
     path("staff/schools/managers/add/", views.school_manager_create, name="school_manager_create"),
     path("staff/schools/<int:pk>/managers/", views.school_managers_manage, name="school_managers_manage"),
-    path("staff/audit-logs/", views.school_audit_logs, name="school_audit_logs"),
     path("platform/audit-logs/", views.platform_audit_logs, name="platform_audit_logs"),
     path("platform-dashboard/", views.platform_admin_dashboard, name="platform_admin_dashboard"),
 

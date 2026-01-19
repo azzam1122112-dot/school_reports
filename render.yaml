@@ -60,6 +60,33 @@ services:
       - key: AWS_QUERYSTRING_AUTH
         sync: false
 
+  - type: worker
+    name: school-beat
+    runtime: docker
+    startCommand: "celery -A config beat --loglevel=info"
+    envVars:
+      - key: ENV
+        value: "production"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: school-redis
+          property: connectionString
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_ENDPOINT_URL
+        sync: false
+      - key: R2_PUBLIC_DOMAIN
+        sync: false
+      - key: AWS_QUERYSTRING_AUTH
+        sync: false
+
   - type: redis
     name: school-redis
     ipAllowList: [] # Only allow internal connections
