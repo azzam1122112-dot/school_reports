@@ -309,7 +309,9 @@ class PlatformAdminAccessMiddleware:
             # platform admin: circulars + sent notifications
             "reports:circulars_create",
             "reports:circulars_sent",
+            "reports:notifications_create",
             "reports:notifications_sent",
+            "reports:send_notification",
             "reports:notification_detail",
             "reports:notification_delete",
             "reports:notification_signatures_print",
@@ -325,6 +327,7 @@ class PlatformAdminAccessMiddleware:
 
             # tickets (view + reply)
             "reports:ticket_detail",
+            "reports:ticket_print",
 
             # achievements (view + private comments)
             "reports:achievement_school_files",

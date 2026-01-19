@@ -406,7 +406,69 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
 
         الهدف: أي اشتراك يُفعّل يدوياً من الأدمن يجب أن يظهر في صفحة المالية بدون الحاجة لرفع إيصال.
         """
+        prev = None
+        if change and getattr(obj, "pk", None):
+            try:
+                prev = SchoolSubscription.objects.filter(pk=obj.pk).only(
+                    "is_active",
+                    "canceled_at",
+                    "cancel_reason",
+                    "start_date",
+                    "end_date",
+                    "plan_id",
+                ).first()
+            except Exception:
+                prev = None
+
         super().save_model(request, obj, form, change)
+
+        # ✅ إذا تم إلغاء الاشتراك (إلغاء مقصود)، نسجل حدث الإلغاء في المالية وسجل عمليات المدرسة.
+        # لا نعتبر is_active=False وحده إلغاءً لأنه قد يُستخدم للإيقاف المؤقت.
+        try:
+            became_cancelled = bool(getattr(obj, "is_cancelled", False)) and (not bool(getattr(prev, "is_cancelled", False)))
+        except Exception:
+            became_cancelled = False
+
+        if became_cancelled:
+            try:
+                today = timezone.localdate()
+                reason = (getattr(obj, "cancel_reason", "") or "").strip()
+                note = "تم إلغاء الاشتراك بواسطة Django Admin."
+                if reason:
+                    note = f"{note}\nسبب الإلغاء: {reason}"
+
+                # 1) سجل حدث الإلغاء نفسه
+                exists_cancel_event = Payment.objects.filter(
+                    subscription=obj,
+                    status=Payment.Status.CANCELLED,
+                    payment_date=today,
+                    amount=0,
+                ).exists()
+                if not exists_cancel_event:
+                    Payment.objects.create(
+                        school=obj.school,
+                        subscription=obj,
+                        requested_plan=obj.plan,
+                        amount=0,
+                        receipt_image=None,
+                        payment_date=today,
+                        status=Payment.Status.CANCELLED,
+                        notes=note,
+                        created_by=getattr(request, "user", None),
+                    )
+
+                # 2) إلغاء أي مدفوعات معلّقة تخص فترة الاشتراك (تحصين حتى لا تُعتمد لاحقًا)
+                period_start = getattr(obj, "start_date", None)
+                pending_qs = Payment.objects.filter(subscription=obj, status=Payment.Status.PENDING)
+                if period_start:
+                    pending_qs = pending_qs.filter(payment_date__gte=period_start)
+                for p in pending_qs.only("id", "status", "notes"):
+                    p.status = Payment.Status.CANCELLED
+                    p.notes = (f"{p.notes}\n" if (p.notes or "").strip() else "") + note
+                    p.save(update_fields=["status", "notes", "updated_at"])
+            except Exception:
+                # لا نُفشل حفظ الاشتراك بسبب مشكلة تسجيل المالية.
+                return
 
         # لا نسجل دفعات لاشتراك غير نشط أو باقة مجانية.
         try:

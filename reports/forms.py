@@ -1601,15 +1601,21 @@ class NotificationCreateForm(forms.Form):
             is_superuser = bool(getattr(user, "is_superuser", False))
             is_platform = False
 
+        mode = getattr(self, "mode", "notification") or "notification"
+        is_circular = mode == "circular"
+
         if is_superuser or is_platform:
             scope = cleaned.get("audience_scope") or "school"
             target_school = cleaned.get("target_school")
             if scope == "school" and not target_school:
-                raise ValidationError("الرجاء اختيار مدرسة مستهدفة أو تغيير النطاق إلى \"كل المدارس\".")
+                # للتعاميم: المشرف العام قد يرسل لمدراء من عدة مدارس ضمن نطاقه،
+                # لذلك لا نجبره على اختيار مدرسة واحدة؛ نعاملها كنطاق "كل المدارس" ضمن النطاق.
+                if is_platform and is_circular:
+                    cleaned["audience_scope"] = "all"
+                else:
+                    raise ValidationError("الرجاء اختيار مدرسة مستهدفة أو تغيير النطاق إلى \"كل المدارس\".")
 
         # التحقق من اختيار المشرف العام: إما إرسال للكل أو اختيار مدراء معينين
-        mode = getattr(self, "mode", "notification") or "notification"
-        is_circular = mode == "circular"
         if is_circular and is_platform:
             send_to_all = cleaned.get("send_to_all_managers", False)
             teachers = cleaned.get("teachers", [])
@@ -1635,6 +1641,9 @@ class NotificationCreateForm(forms.Form):
 
         if is_superuser or is_platform:
             scope = cleaned.get("audience_scope") or "school"
+            # للتعاميم: لو لم تُحدد مدرسة بعينها (خصوصاً للمشرف العام)، نعاملها كنطاق "all".
+            if is_platform and scope == "school" and not cleaned.get("target_school"):
+                scope = "all"
             if scope == "all":
                 school_for_notification = None
             else:

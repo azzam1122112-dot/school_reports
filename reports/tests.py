@@ -1,11 +1,13 @@
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.contrib.admin.sites import AdminSite
+from django.test import TestCase, RequestFactory
 from django.urls import reverse
 from django.utils import timezone
 
 from .models import (
 	Department,
 	DepartmentMembership,
+	Notification,
 	Report,
 	School,
 	SchoolMembership,
@@ -16,6 +18,188 @@ from .models import (
 	Teacher,
 	Ticket,
 )
+
+
+class PlatformAdminCircularAndTicketPrintTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="School A", code="pa-circ")
+		plan = SubscriptionPlan.objects.create(name="Test", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+		self.manager = Teacher.objects.create_user(phone="0500000200", name="Manager", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.platform = Teacher.objects.create_user(
+			phone="0500000299",
+			name="Platform",
+			password="pass",
+			is_platform_admin=True,
+		)
+		scope = PlatformAdminScope.objects.create(admin=self.platform)
+		scope.allowed_schools.add(self.school)
+		self.client.force_login(self.platform)
+
+	def test_platform_admin_can_send_circular_without_target_school(self):
+		url = reverse("reports:circulars_create")
+		res = self.client.post(
+			url,
+			{
+				"title": "Circular",
+				"message": "Hello",
+				"send_to_all_managers": "on",
+				# intentionally omit target_school to ensure platform admin can send scoped-all
+			},
+		)
+		self.assertEqual(res.status_code, 302)
+		n = Notification.objects.order_by("-id").first()
+		self.assertIsNotNone(n)
+		self.assertTrue(bool(getattr(n, "requires_signature", False)))
+		self.assertEqual(getattr(n, "created_by_id", None), self.platform.id)
+		# "scoped-all" for platform admin circulars
+		self.assertIsNone(getattr(n, "school_id", None))
+
+	def test_platform_admin_can_print_ticket_details(self):
+		creator = Teacher.objects.create_user(phone="0500000300", name="Creator", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=creator,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+		t = Ticket.objects.create(
+			school=self.school,
+			creator=creator,
+			title="Request",
+			body="Details",
+		)
+		url = reverse("reports:ticket_print", args=[t.pk])
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
+
+	def test_platform_admin_can_send_notification(self):
+		teacher = Teacher.objects.create_user(phone="0500000310", name="Teacher", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=teacher,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+		url = reverse("reports:notifications_create")
+		res = self.client.post(
+			url,
+			{
+				"title": "Notify",
+				"message": "Hello",
+				"audience_scope": "school",
+				"target_school": str(self.school.id),
+				"teachers": [str(teacher.id)],
+			},
+		)
+		self.assertEqual(res.status_code, 302)
+		n = Notification.objects.order_by("-id").first()
+		self.assertIsNotNone(n)
+		self.assertFalse(bool(getattr(n, "requires_signature", False)))
+		self.assertEqual(getattr(n, "created_by_id", None), self.platform.id)
+		self.assertEqual(getattr(n, "school_id", None), self.school.id)
+
+
+class SubscriptionCancellationFinanceLogTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="School", code="school-fin")
+		self.plan = SubscriptionPlan.objects.create(name="Plan", price=100, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		self.sub = SchoolSubscription.objects.create(
+			school=self.school,
+			plan=self.plan,
+			start_date=today,
+			end_date=today,
+			is_active=True,
+		)
+		self.admin = Teacher.objects.create_superuser(phone="0577777777", name="Admin", password="pass")
+		self.client.force_login(self.admin)
+
+	def test_platform_subscription_delete_creates_cancelled_payment_event(self):
+		# Pending payment for same period should be cancelled too
+		pending = Payment.objects.create(
+			school=self.school,
+			subscription=self.sub,
+			requested_plan=self.plan,
+			amount=self.plan.price,
+			receipt_image=None,
+			payment_date=timezone.localdate(),
+			status=Payment.Status.PENDING,
+			notes="pending",
+			created_by=self.admin,
+		)
+
+		url = reverse("reports:platform_subscription_delete", args=[self.sub.pk])
+		res = self.client.post(url, {"reason": "cancel", "next": reverse("reports:platform_subscriptions_list")})
+		self.assertEqual(res.status_code, 302)
+
+		self.sub.refresh_from_db()
+		self.assertFalse(self.sub.is_active)
+		self.assertTrue(bool(self.sub.canceled_at))
+		self.assertEqual((self.sub.cancel_reason or "").strip(), "cancel")
+
+		# Event row exists
+		self.assertTrue(
+			Payment.objects.filter(
+				subscription=self.sub,
+				status=Payment.Status.CANCELLED,
+				amount=0,
+			).exists()
+		)
+
+		pending.refresh_from_db()
+		self.assertEqual(pending.status, Payment.Status.CANCELLED)
+
+	def test_django_admin_cancellation_creates_cancelled_payment_event(self):
+		from .admin import SchoolSubscriptionAdmin
+
+		# Prepare a pending payment to ensure it gets cancelled
+		p = Payment.objects.create(
+			school=self.school,
+			subscription=self.sub,
+			requested_plan=self.plan,
+			amount=self.plan.price,
+			receipt_image=None,
+			payment_date=timezone.localdate(),
+			status=Payment.Status.PENDING,
+			notes="pending",
+			created_by=self.admin,
+		)
+
+		# Simulate admin change: set cancellation fields
+		self.sub.is_active = False
+		self.sub.canceled_at = timezone.now()
+		self.sub.cancel_reason = "admin cancel"
+
+		admin_obj = SchoolSubscriptionAdmin(SchoolSubscription, AdminSite())
+		rf = RequestFactory()
+		req = rf.post("/admin-panel/reports/schoolsubscription/")
+		req.user = self.admin
+		admin_obj.save_model(request=req, obj=self.sub, form=None, change=True)
+
+		self.sub.refresh_from_db()
+		self.assertFalse(self.sub.is_active)
+		self.assertTrue(bool(self.sub.canceled_at))
+		self.assertEqual((self.sub.cancel_reason or "").strip(), "admin cancel")
+
+		self.assertTrue(
+			Payment.objects.filter(
+				subscription=self.sub,
+				status=Payment.Status.CANCELLED,
+				amount=0,
+			).exists()
+		)
+
+		p.refresh_from_db()
+		self.assertEqual(p.status, Payment.Status.CANCELLED)
 
 
 class PaymentApprovalAppliesRequestedPlanTests(TestCase):

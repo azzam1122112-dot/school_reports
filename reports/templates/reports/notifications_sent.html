@@ -190,9 +190,15 @@
   <div class="wrap">
     <div class="page-header">
       <h1>الإشعارات المرسلة</h1>
-      <a class="create-btn" href="{% url 'reports:notifications_create' %}">
-        <i class="fa-solid fa-plus" aria-hidden="true"></i> إنشاء إشعار جديد
-      </a>
+      {% if request.user.is_platform_admin and not request.user.is_superuser %}
+        <a class="create-btn" href="{% url 'reports:platform_school_notify' %}">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i> إرسال إشعار للمدرسة
+        </a>
+      {% else %}
+        <a class="create-btn" href="{% url 'reports:notifications_create' %}">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i> إنشاء إشعار جديد
+        </a>
+      {% endif %}
     </div>
 
     {% if page_obj and page_obj.object_list %}

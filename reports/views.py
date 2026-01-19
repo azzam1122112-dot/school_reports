@@ -5247,6 +5247,36 @@ def platform_subscription_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
             subscription.save(update_fields=["is_active", "end_date", "canceled_at", "cancel_reason", "updated_at"])
 
+            # ✅ سجل مالي/سجل عمليات المدرسة:
+            # نُسجل حدث الإلغاء نفسه كعملية (cancelled) حتى يظهر في:
+            # - صفحة المالية (ضمن تبويب cancelled)
+            # - صفحة "سجل العمليات السابقة" للمدرسة
+            # ولا يؤثر على إجمالي الإيرادات (لأنه مبلغ 0 وبحالة cancelled).
+            try:
+                exists_cancel_event = Payment.objects.filter(
+                    subscription=subscription,
+                    status=Payment.Status.CANCELLED,
+                    payment_date=today,
+                    amount=0,
+                ).exists()
+                if not exists_cancel_event:
+                    Payment.objects.create(
+                        school=subscription.school,
+                        subscription=subscription,
+                        requested_plan=subscription.plan,
+                        amount=0,
+                        receipt_image=None,
+                        payment_date=today,
+                        status=Payment.Status.CANCELLED,
+                        notes=(
+                            "تم إلغاء الاشتراك بواسطة إدارة المنصة.\n"
+                            f"سبب الإلغاء: {reason}"
+                        ),
+                        created_by=request.user,
+                    )
+            except Exception:
+                logger.exception("Failed to record subscription cancellation event")
+
             # ✅ المالية:
             # - عند الإلغاء: نُلغي فقط المدفوعات المعلّقة لهذه الفترة حتى لا يتم اعتمادها لاحقاً بالخطأ.
             # - خيار إضافي: "استرجاع مبلغ" (كامل/جزئي) عبر تسجيل عملية مالية سالبة (approved)
@@ -8010,8 +8040,8 @@ def my_subscription(request):
         .first()
     )
     
-    # جلب آخر المدفوعات
-    payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:5]
+    # جلب آخر العمليات (أوسع قليلاً لتظهر الإلغاء/الاسترجاع سريعًا)
+    payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:20]
     
     context = {
         "subscription": subscription,
