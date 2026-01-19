@@ -28,7 +28,7 @@ class PaymentApprovalAppliesRequestedPlanTests(TestCase):
 		self.admin = Teacher.objects.create_superuser(phone="0599999999", name="Admin", password="pass")
 		self.client.force_login(self.admin)
 
-	def test_approving_payment_changes_subscription_plan(self):
+	def test_approving_payment_does_not_change_subscription_plan(self):
 		# 1x1 PNG (valid)
 		png_bytes = (
 			b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
@@ -51,7 +51,8 @@ class PaymentApprovalAppliesRequestedPlanTests(TestCase):
 
 		self.school.refresh_from_db()
 		sub = self.school.subscription
-		self.assertEqual(sub.plan_id, self.plan_b.id)
+		# تغيير الباقة تم إلغاؤه من النظام: يبقى الاشتراك على نفس الباقة.
+		self.assertEqual(sub.plan_id, self.plan_a.id)
 
 
 class ResolveDepartmentForCategoryTests(TestCase):

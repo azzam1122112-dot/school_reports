@@ -1,7 +1,6 @@
-{# reports/templates/reports/platform_subscription_form.html (مثال اسم) #}
 {% extends "base.html" %}
 
-{% block title %}{% if subscription %}تعديل اشتراك{% else %}إضافة اشتراك جديد{% endif %}{% endblock %}
+{% block title %}إضافة اشتراك جديد{% endblock %}
 
 {% block head %}
 <style>
@@ -156,15 +155,9 @@
     <section class="sf-hero" aria-label="رأس صفحة الاشتراك">
       <div class="sf-head">
         <div>
-          <h1 class="sf-title">
-            {% if subscription %}
-              تعديل اشتراك: {{ subscription.school.name }}
-            {% else %}
-              إضافة اشتراك مدرسة جديد
-            {% endif %}
-          </h1>
+          <h1 class="sf-title">إضافة اشتراك مدرسة جديد</h1>
           <p class="sf-sub">
-            ربط المدارس بخطط الاشتراك. يتم حساب تاريخ البدء والانتهاء تلقائياً حسب مدة الباقة (بالتاريخ الميلادي).
+            ربط المدرسة بخطة اشتراك. يتم حساب تاريخ البدء والانتهاء تلقائياً حسب مدة الباقة (بالتاريخ الميلادي).
           </p>
         </div>
 

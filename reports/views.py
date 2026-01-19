@@ -8065,10 +8065,11 @@ def platform_plan_delete(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_subscription_form(request: HttpRequest, pk: Optional[int] = None) -> HttpResponse:
-    """إضافة أو تعديل اشتراك مدرسة"""
+    """إضافة اشتراك مدرسة (تم إلغاء تعديل الباقة/الاشتراك نهائياً)."""
     subscription = None
-    if pk:
-        subscription = get_object_or_404(SchoolSubscription, pk=pk)
+    # ✅ تم إلغاء التعديل نهائياً: أي محاولة لفتح رابط قديم للتعديل تُرفض.
+    if pk is not None:
+        raise Http404
     
     if request.method == "POST":
         was_existing = bool(subscription and getattr(subscription, "pk", None))
@@ -8102,8 +8103,8 @@ def platform_subscription_form(request: HttpRequest, pk: Optional[int] = None) -
             messages.error(request, "يرجى تصحيح الأخطاء أدناه.")
     else:
         form = SchoolSubscriptionForm(instance=subscription)
-    
-    return render(request, "reports/platform_subscription_form.html", {"form": form, "subscription": subscription})
+
+    return render(request, "reports/platform_subscription_add.html", {"form": form})
 
 
 @login_required(login_url="reports:login")

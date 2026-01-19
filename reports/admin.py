@@ -282,6 +282,9 @@ class SchoolAdmin(admin.ModelAdmin):
     search_fields = ("name", "code")
     prepopulated_fields = {"code": ("name",)}
 
+    # عرض سجل العمليات الخاصة بهذه المدرسة داخل صفحة المدرسة في Django Admin
+    inlines = ()
+
     def has_delete_permission(self, request, obj=None):
         # Only superusers can delete schools.
         return bool(getattr(request.user, "is_superuser", False))
@@ -309,6 +312,29 @@ class SchoolAdmin(admin.ModelAdmin):
             return super().delete_queryset(request, queryset)
         finally:
             set_audit_logging_suppressed(False)
+
+
+class AuditLogInline(admin.TabularInline):
+    model = AuditLog
+    extra = 0
+    can_delete = False
+    show_change_link = False
+    fields = ("timestamp", "teacher", "action", "model_name", "object_repr", "ip_address")
+    readonly_fields = fields
+    ordering = ("-timestamp",)
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+# ربط الـ inline بعد تعريفه (حتى لا يتطلب ترتيب تعريفات مختلف)
+SchoolAdmin.inlines = (AuditLogInline,)
 
 
 @admin.register(SchoolMembership)
@@ -373,6 +399,28 @@ class AuditLogAdmin(admin.ModelAdmin):
     search_fields = ("teacher__name", "object_repr", "ip_address", "changes")
     readonly_fields = ("timestamp", "teacher", "action", "model_name", "object_id", "object_repr", "changes", "ip_address", "user_agent", "school")
     date_hierarchy = "timestamp"
+
+    def get_model_perms(self, request):
+        """إظهار الموديل في قائمة Django Admin حتى لو لم تُمنح صلاحية view صراحةً للموظف.
+
+        يظل الوصول فعلياً محكوماً بـ get_queryset (تصفية حسب عضوية المدارس) وبأن الصفحة read-only.
+        """
+        perms = super().get_model_perms(request)
+        user = getattr(request, "user", None)
+        if user is None:
+            return perms
+        if getattr(user, "is_superuser", False):
+            return perms
+        if getattr(user, "is_staff", False):
+            perms["view"] = True
+            perms["add"] = False
+            perms["change"] = False
+            perms["delete"] = False
+        return perms
+
+    def has_view_permission(self, request, obj=None):
+        user = getattr(request, "user", None)
+        return bool(user and getattr(user, "is_staff", False))
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

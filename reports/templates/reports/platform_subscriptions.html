@@ -434,11 +434,6 @@
                     </form>
                   {% endif %}
 
-                  <a href="{% url 'reports:platform_subscription_edit' sub.id %}" class="btn btn-outline">
-                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                    تعديل
-                  </a>
-
                   {% if not sub.is_cancelled and not sub.is_expired %}
                     <form method="post" action="{% url 'reports:platform_subscription_delete' sub.id %}" style="display:inline">
                       {% csrf_token %}
