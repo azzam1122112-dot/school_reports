@@ -403,19 +403,21 @@
 
               <td data-label="إجراء">
                 <div class="row-actions">
-                  <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}" style="display:inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  {% if not sub.is_cancelled %}
+                    <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}" style="display:inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
-                    <button
-                      type="submit"
-                      class="btn btn-primary"
-                      data-confirm="تأكيد تجديد الاشتراك؟"
-                    >
-                      <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-                      تجديد
-                    </button>
-                  </form>
+                      <button
+                        type="submit"
+                        class="btn btn-primary"
+                        data-confirm="تأكيد تجديد الاشتراك؟"
+                      >
+                        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                        تجديد
+                      </button>
+                    </form>
+                  {% endif %}
 
                   {% if sub.is_active and not sub.has_payment_for_period and sub.plan.price %}
                     <form method="post" action="{% url 'reports:platform_subscription_record_payment' sub.id %}" style="display:inline">
@@ -437,23 +439,25 @@
                     تعديل
                   </a>
 
-                  <form method="post" action="{% url 'reports:platform_subscription_delete' sub.id %}" style="display:inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <input type="hidden" name="reason" value="{{ sub.cancel_reason|default:'' }}">
-                    <input type="hidden" name="refund_amount" value="">
+                  {% if not sub.is_cancelled and not sub.is_expired %}
+                    <form method="post" action="{% url 'reports:platform_subscription_delete' sub.id %}" style="display:inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <input type="hidden" name="reason" value="{{ sub.cancel_reason|default:'' }}">
+                      <input type="hidden" name="refund_amount" value="">
 
-                    <button
-                      type="submit"
-                      class="btn btn-outline btn-danger"
-                      data-reason-prompt="سبب الإلغاء (سيظهر للمدرسة):"
-                      data-refund-prompt="استرجاع مبلغ؟ اتركه فارغًا بدون استرجاع. اكتب (كامل) للاسترجاع الكامل أو اكتب رقمًا مثل 150.00 للاسترجاع الجزئي."
-                      data-confirm="سيتم إلغاء اشتراك مدرسة: {{ sub.school.name }}. هل أنت متأكد؟"
-                    >
-                      <i class="fa-solid fa-ban" aria-hidden="true"></i>
-                      إلغاء
-                    </button>
-                  </form>
+                      <button
+                        type="submit"
+                        class="btn btn-outline btn-danger"
+                        data-reason-prompt="سبب الإلغاء (سيظهر للمدرسة):"
+                        data-refund-prompt="استرجاع مبلغ؟ اتركه فارغًا بدون استرجاع. اكتب (كامل) للاسترجاع الكامل أو اكتب رقمًا مثل 150.00 للاسترجاع الجزئي."
+                        data-confirm="سيتم إلغاء اشتراك مدرسة: {{ sub.school.name }}. هل أنت متأكد؟"
+                      >
+                        <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                        إلغاء
+                      </button>
+                    </form>
+                  {% endif %}
                 </div>
               </td>
             </tr>

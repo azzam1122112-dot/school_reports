@@ -1819,22 +1819,48 @@ class SchoolSubscriptionForm(forms.ModelForm):
             "is_active": "نشط؟",
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # ✅ عند تعديل اشتراك موجود: لا نسمح بتغيير المدرسة أو الباقة نهائياً.
+        try:
+            if getattr(self.instance, "pk", None):
+                if "school" in self.fields:
+                    self.fields["school"].disabled = True
+                if "plan" in self.fields:
+                    self.fields["plan"].disabled = True
+        except Exception:
+            pass
+
+    def clean_school(self):
+        # تحصين: حتى مع التلاعب بالـ POST لا نسمح بتغيير المدرسة للاشتراك الموجود.
+        if getattr(self.instance, "pk", None):
+            return self.instance.school
+        return self.cleaned_data.get("school")
+
+    def clean_plan(self):
+        # تحصين: حتى مع التلاعب بالـ POST لا نسمح بتغيير الباقة للاشتراك الموجود.
+        if getattr(self.instance, "pk", None):
+            return self.instance.plan
+        return self.cleaned_data.get("plan")
+
     def save(self, commit=True):
         from datetime import timedelta
 
         subscription: SchoolSubscription = super().save(commit=False)
         plan = self.cleaned_data.get("plan")
-        today = timezone.now().date()
 
-        # تجديد/إنشاء: نبدأ من اليوم دائماً
-        subscription.start_date = today
+        # ✅ عند الإنشاء فقط: احسب التواريخ تلقائياً.
+        # عند التعديل: لا نغير التواريخ (التجديد له زر/مسار مستقل).
+        if getattr(subscription, "pk", None) is None:
+            today = timezone.localdate()
+            subscription.start_date = today
 
-        days = int(getattr(plan, "days_duration", 0) or 0)
-        if days <= 0:
-            subscription.end_date = today
-        else:
-            # end_date = اليوم + (المدة - 1) حتى تكون الأيام الفعلية = days_duration
-            subscription.end_date = today + timedelta(days=days - 1)
+            days = int(getattr(plan, "days_duration", 0) or 0)
+            if days <= 0:
+                subscription.end_date = today
+            else:
+                # end_date = اليوم + (المدة - 1) حتى تكون الأيام الفعلية = days_duration
+                subscription.end_date = today + timedelta(days=days - 1)
 
         if commit:
             subscription.save()

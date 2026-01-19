@@ -5150,6 +5150,7 @@ def _record_subscription_payment_if_missing(
     subscription: SchoolSubscription,
     actor,
     note: str,
+    force: bool = False,
 ) -> bool:
     """تسجيل عملية دفع (approved) لاشتراك مدرسة في حال عدم وجود دفعة للفترة الحالية.
 
@@ -5169,15 +5170,30 @@ def _record_subscription_payment_if_missing(
         except Exception:
             pass
 
-        period_start = getattr(subscription, "start_date", None)
-        existing_qs = Payment.objects.filter(
-            subscription=subscription,
-            status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
-        )
-        if period_start:
-            existing_qs = existing_qs.filter(payment_date__gte=period_start)
-        if existing_qs.exists():
-            return False
+        today = timezone.localdate()
+
+        # ✅ تحصين: عند التفعيل/التجديد اليدوي (force=True) لا نريد منع التسجيل
+        # بسبب وجود دفعات قديمة، لكن نمنع تكرار نفس العملية في نفس اليوم.
+        if force:
+            dup_qs = Payment.objects.filter(
+                subscription=subscription,
+                status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
+                payment_date=today,
+                requested_plan=subscription.plan,
+                amount=subscription.plan.price,
+            )
+            if dup_qs.exists():
+                return False
+        else:
+            period_start = getattr(subscription, "start_date", None)
+            existing_qs = Payment.objects.filter(
+                subscription=subscription,
+                status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
+            )
+            if period_start:
+                existing_qs = existing_qs.filter(payment_date__gte=period_start)
+            if existing_qs.exists():
+                return False
 
         Payment.objects.create(
             school=subscription.school,
@@ -5185,7 +5201,7 @@ def _record_subscription_payment_if_missing(
             requested_plan=subscription.plan,
             amount=subscription.plan.price,
             receipt_image=None,
-            payment_date=timezone.localdate(),
+            payment_date=today,
             status=Payment.Status.APPROVED,
             notes=(note or "").strip(),
             created_by=actor,
@@ -5387,7 +5403,7 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
             payment.save()
 
             # ✅ عند اعتماد الدفع لأول مرة: حدّث/جدّد اشتراك المدرسة.
-            # الهدف: لا يوجد مسار منفصل "تغيير الباقة"؛ نفس طلب الدفع يحدد الباقة المطلوبة.
+            # ملاحظة: تم إلغاء تغيير الباقة من النظام؛ عند وجود اشتراك قائم نقوم بالتجديد فقط.
             if prev_status != Payment.Status.APPROVED and payment.status == Payment.Status.APPROVED:
                 plan_to_apply = payment.requested_plan
                 subscription = getattr(payment.school, "subscription", None)
@@ -5412,17 +5428,11 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 else:
                     subscription.is_active = True
 
-                    # تغيير باقة أو تجديد نفس الباقة (كلاهما عبر طلب واحد)
-                    if plan_to_apply is not None and subscription.plan_id != plan_to_apply.id:
-                        subscription.plan = plan_to_apply
-                        subscription.save()
-                    else:
-                        # تجديد بنفس الباقة: نُعيد حساب التواريخ يدويًا لأن save() لا يعيد الحساب
-                        # إلا عند تغيير plan.
-                        days = int(getattr(subscription.plan, "days_duration", 0) or 0)
-                        subscription.start_date = today
-                        subscription.end_date = today if days <= 0 else today + timedelta(days=days - 1)
-                        subscription.save(update_fields=["start_date", "end_date", "is_active", "updated_at"])
+                    # ✅ تجديد بنفس الباقة فقط (بدون تغيير الباقة)
+                    days = int(getattr(subscription.plan, "days_duration", 0) or 0)
+                    subscription.start_date = today
+                    subscription.end_date = today if days <= 0 else today + timedelta(days=days - 1)
+                    subscription.save(update_fields=["start_date", "end_date", "is_active", "updated_at"])
 
                 if subscription is not None and payment.subscription_id != subscription.id:
                     payment.subscription = subscription
@@ -7974,39 +7984,38 @@ def payment_create(request):
     )
 
     if request.method == 'POST':
-        plan_id = request.POST.get('plan')
-        amount = request.POST.get('amount')
         receipt = request.FILES.get('receipt_image')
         notes = request.POST.get('notes')
 
-        requested_plan = None
-        if plan_id:
-            try:
-                requested_plan = SubscriptionPlan.objects.filter(pk=plan_id).first()
-            except Exception:
-                requested_plan = None
-        if not requested_plan:
-            messages.error(request, "يرجى اختيار الباقة.")
+        # ✅ تم إلغاء تغيير الباقة من النظام: طلب الدفع دائماً لتجديد الباقة الحالية.
+        if subscription is None or getattr(subscription, "plan", None) is None:
+            messages.error(request, "لا يوجد اشتراك/باقة حالية لهذه المدرسة. تواصل مع إدارة المنصة.")
             return redirect('reports:my_subscription')
 
-        if not bool(getattr(requested_plan, 'is_active', True)):
-            messages.error(request, "هذه الباقة غير متاحة حالياً.")
+        requested_plan = subscription.plan
+        amount = getattr(requested_plan, "price", None)
+        try:
+            if amount is None or float(amount) <= 0:
+                messages.error(request, "لا يمكن إنشاء طلب دفع لأن الباقة الحالية مجانية/غير صالحة.")
+                return redirect('reports:my_subscription')
+        except Exception:
+            pass
+
+        if not receipt:
+            messages.error(request, "يرجى إرفاق صورة الإيصال.")
             return redirect('reports:my_subscription')
-        
-        if not amount or not receipt:
-            messages.error(request, "يرجى إدخال المبلغ وإرفاق صورة الإيصال.")
-        else:
-            Payment.objects.create(
-                school=membership.school,
-                subscription=subscription,
-                requested_plan=requested_plan,
-                amount=amount,
-                receipt_image=receipt,
-                notes=notes,
-                created_by=request.user
-            )
-            messages.success(request, "تم رفع طلب الدفع بنجاح، سيتم مراجعته قريباً.")
-            return redirect('reports:my_subscription')
+
+        Payment.objects.create(
+            school=membership.school,
+            subscription=subscription,
+            requested_plan=requested_plan,
+            amount=amount,
+            receipt_image=receipt,
+            notes=notes,
+            created_by=request.user
+        )
+        messages.success(request, "تم رفع طلب الدفع بنجاح، سيتم مراجعته قريباً.")
+        return redirect('reports:my_subscription')
             
     return redirect('reports:my_subscription')
 
@@ -8062,17 +8071,27 @@ def platform_subscription_form(request: HttpRequest, pk: Optional[int] = None) -
         subscription = get_object_or_404(SchoolSubscription, pk=pk)
     
     if request.method == "POST":
+        was_existing = bool(subscription and getattr(subscription, "pk", None))
+        prev_is_active = bool(getattr(subscription, "is_active", False)) if subscription else False
         form = SchoolSubscriptionForm(request.POST, instance=subscription)
         if form.is_valid():
             subscription_obj = form.save()
 
-            # ✅ المالية: عند إضافة/تفعيل اشتراك يدويًا من لوحة المنصة، سجّل دفعة (approved)
-            # حتى تظهر في صفحة (المدفوعات) بدون انتظار رفع إيصال.
-            created_payment = _record_subscription_payment_if_missing(
-                subscription=subscription_obj,
-                actor=request.user,
-                note="تم تسجيل الدفعة يدويًا بواسطة إدارة المنصة.",
-            )
+            # ✅ المالية:
+            # - عند إنشاء اشتراك جديد من لوحة المنصة: نسجّل دفعة (approved) لتظهر في المالية.
+            # - عند تعديل اشتراك موجود: لا نسجّل دفعة إلا إذا كان غير نشط ثم تم تفعيله.
+            created_payment = False
+            try:
+                became_active = (not prev_is_active) and bool(getattr(subscription_obj, "is_active", False))
+                if (not was_existing) or became_active:
+                    created_payment = _record_subscription_payment_if_missing(
+                        subscription=subscription_obj,
+                        actor=request.user,
+                        note="تم تسجيل الدفعة يدويًا بواسطة إدارة المنصة.",
+                        force=False,
+                    )
+            except Exception:
+                created_payment = False
 
             if created_payment:
                 messages.success(request, "تم حفظ الاشتراك وتسجيل عملية الدفع بنجاح.")
@@ -8123,6 +8142,7 @@ def platform_subscription_renew(request: HttpRequest, pk: int) -> HttpResponse:
         subscription=subscription,
         actor=request.user,
         note="تم تجديد الاشتراك وتسجيل الدفعة يدويًا بواسطة إدارة المنصة.",
+        force=True,
     )
     if created_payment:
         messages.success(

@@ -371,22 +371,19 @@
       <!-- Plans Selector -->
       <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
-           <h2 class="panel-h2" style="margin:0"><i class="fa-solid fa-layer-group"></i> اختر الباقة</h2>
+           <h2 class="panel-h2" style="margin:0"><i class="fa-solid fa-layer-group"></i> الباقة الحالية</h2>
         </div>
 
-        <div class="plans-container" id="plansbox">
-          {% for plan in plans %}
-          <div class="plan-item" data-days="{{ plan.days_duration|default:0 }}" data-price="{{ plan.price|stringformat:'f' }}">
-            <input type="radio" name="plan_visual" id="p_{{ plan.id }}" class="plan-card-radio" 
-                   value="{{ plan.id }}" data-price="{{ plan.price|stringformat:'f' }}"
-                   {% if subscription and subscription.plan_id == plan.id %}checked{% endif %}>
-            <label for="p_{{ plan.id }}" class="plan-card-label">
-              <div class="pc-name">{{ plan.name }}</div>
-              <div class="pc-price">{{ plan.price }} <span style="font-size:0.8rem; color:var(--text-muted)">ريال</span></div>
-               {% if plan.days_duration > 300 %}<div style="color:#10b981; font-size:0.75rem; font-weight:700; margin-top:5px;">قيمة توفيرية</div>{% endif %}
-            </label>
+        <div class="plans-container">
+          <div class="plan-item" style="flex:1 1 100%">
+            <div class="plan-card-label" style="cursor:default">
+              <div class="pc-name">{{ subscription.plan.name|default:"-" }}</div>
+              <div class="pc-price">{{ subscription.plan.price|default:"0" }} <span style="font-size:0.8rem; color:var(--text-muted)">ريال</span></div>
+              <div style="margin-top:8px;color:var(--text-muted);font-weight:700;font-size:.85rem">
+                لا يمكن تغيير الباقة من حساب المدرسة.
+              </div>
+            </div>
           </div>
-          {% endfor %}
         </div>
       </div>
 
@@ -430,13 +427,18 @@
         <!-- Actual Form -->
         <form action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data" id="mainForm">
           {% csrf_token %}
-          <!-- Hidden input synced with radio buttons -->
-          <input type="hidden" name="plan" id="hidden_plan_id" required>
-
           <div class="f-row">
             <div class="f-group">
               <label class="f-label">المبلغ المطلوب (ريال)</label>
-              <input type="text" name="amount" id="amount_field" class="magic-input" readonly placeholder="0.00">
+              <input
+                type="text"
+                name="amount"
+                id="amount_field"
+                class="magic-input"
+                readonly
+                placeholder="0.00"
+                value="{% if subscription and subscription.plan %}{{ subscription.plan.price|stringformat:'f' }}{% else %}0.00{% endif %}"
+              >
             </div>
             <div class="f-group">
                <label class="f-label">ملاحظات التحويل</label>
@@ -545,35 +547,7 @@
          }, 500);
      }
 
-     // 2. Plan Selection Logic
-     const radios = document.querySelectorAll('input[name="plan_visual"]');
-     const hiddenInput = document.getElementById('hidden_plan_id');
-     const amountDisplay = document.getElementById('amount_field');
-     
-     radios.forEach(r => {
-        r.addEventListener('change', function(){
-           if(this.checked){
-              hiddenInput.value = this.value;
-              // Format price
-              const rawPrice = parseFloat(this.getAttribute('data-price') || 0);
-              amountDisplay.value = rawPrice.toFixed(2);
-              
-              // Visual Bounce
-              amountDisplay.style.transform = "scale(1.05)";
-              setTimeout(() => amountDisplay.style.transform = "scale(1)", 200);
-           }
-        });
-     });
-
-     // Select default if exists
-     const checkedRadio = document.querySelector('input[name="plan_visual"]:checked');
-     if(checkedRadio) {
-        checkedRadio.dispatchEvent(new Event('change'));
-     } else if(radios.length > 0) {
-        // Auto select first one if none selected? Optional.
-     }
-
-     // 3. File Upload Preview Text
+      // 2. File Upload Preview Text
      const fileInput = document.getElementById('receipt');
      const fileName = document.getElementById('fileName');
      const dropZone = document.getElementById('dropZone');
