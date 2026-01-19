@@ -170,23 +170,42 @@
 
     <div class="af-body">
       <div class="af-toolbar">
-        <form method="get" class="af-form" aria-label="فلترة السنة الدراسية">
-          <label class="af-label">السنة الدراسية (هجري)</label>
+        <form method="get" class="af-form" aria-label="فلترة" style="max-width: 100%; flex-basis: 100%;">
+          <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+            <div style="flex: 0 1 250px; min-width: 200px;">
+              <label class="af-label">السنة الدراسية (هجري)</label>
+              {% if year_choices %}
+                <select class="af-select" name="year">
+                  {% for y in year_choices %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} هـ</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input class="af-input" name="year" value="{{ year }}" placeholder="مثال: 1447-1448" autocomplete="off" />
+              {% endif %}
+            </div>
 
-          {% if year_choices %}
-            <select class="af-select" name="year" onchange="this.form.submit()">
-              {% for y in year_choices %}
-                <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} هـ</option>
-              {% endfor %}
-            </select>
-          {% else %}
-            <input class="af-input" name="year" value="{{ year }}" placeholder="مثال: 1447-1448" autocomplete="off" />
-          {% endif %}
+            <div style="flex: 1 1 250px; min-width: 200px;">
+              <label class="af-label">بحث عن معلم</label>
+              <div style="position:relative;">
+                <input class="af-input" type="text" name="q" value="{{ q }}" placeholder="ابحث باسم المعلم..." style="padding-left:42px;" />
+                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); opacity:0.6; pointer-events:none;"></i>
+              </div>
+            </div>
+          </div>
 
-          <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap">
+          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <button class="btn btn-primary" type="submit">
               <i class="fa-solid fa-filter"></i> عرض
             </button>
+
+            {% if q %}
+              <a class="btn" href="{% url 'reports:achievement_school_files' %}?year={{ year }}" style="color:var(--danger)">
+                  <i class="fa-solid fa-times"></i> مسح البحث
+              </a>
+            {% endif %}
+
+            <div style="flex-grow:1"></div>
 
             <a class="btn" href="{% url 'reports:home' %}">
               <i class="fa-solid fa-house"></i> الرئيسية

@@ -1614,6 +1614,9 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
         messages.error(request, "إنشاء ملف الإنجاز متاح للمعلّم فقط.")
         return _redirect_with_year(year)
 
+    # Search Logic
+    q = request.GET.get("q", "").strip()
+
     teachers = (
         Teacher.objects.filter(
             school_memberships__school=active_school,
@@ -1623,6 +1626,10 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
         .only("id", "name", "phone")
         .order_by("name")
     )
+    
+    if q:
+        from django.db.models import Q
+        teachers = teachers.filter(Q(name__icontains=q) | Q(username__icontains=q))
 
     files_by_teacher_id = {}
     if year:
@@ -1631,6 +1638,10 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
             .select_related("teacher")
             .only("id", "teacher_id", "status", "academic_year")
         )
+        if q:
+            # تصفية الملفات أيضاً لتحسين الأداء
+            files = files.filter(teacher__in=teachers)
+
         files_by_teacher_id = {f.teacher_id: f for f in files}
 
     rows = [{"teacher": t, "file": files_by_teacher_id.get(t.id)} for t in teachers]
@@ -1644,6 +1655,7 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
             "year_choices": year_choices,
             "current_school": active_school,
             "is_manager": _can_manage_achievement(request.user, active_school),
+            "q": q,
         },
     )
 
