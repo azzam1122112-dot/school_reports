@@ -740,6 +740,21 @@ class ManagerCreateForm(forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields["password"].required = False
+            self.fields["password"].widget.attrs["placeholder"] = "اتركها فارغة للإبقاء على الحالية"
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        password = self.cleaned_data.get("password")
+        if password:
+            instance.set_password(password)
+        if commit:
+            instance.save()
+        return instance
+
 
 class PlatformAdminCreateForm(forms.ModelForm):
     """إنشاء حساب مشرف عام (عرض + تواصل) مع نطاق (Scope)."""
