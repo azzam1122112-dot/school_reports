@@ -8076,6 +8076,56 @@ def platform_subscription_form(request: HttpRequest, pk: Optional[int] = None) -
         raise Http404
     
     if request.method == "POST":
+        # ✅ إذا كانت المدرسة لديها اشتراك سابق (ملغي/منتهي) فلا ننشئ سجل جديد (OneToOne)
+        # بل نجدد/نفعّل الاشتراك الموجود لتفادي خطأ "المدرسة موجودة مسبقاً".
+        school_id_raw = (request.POST.get("school") or "").strip()
+        try:
+            school_id = int(school_id_raw)
+        except Exception:
+            school_id = None
+
+        if school_id is not None:
+            existing = (
+                SchoolSubscription.objects.filter(school_id=school_id)
+                .select_related("school", "plan")
+                .first()
+            )
+            if existing is not None:
+                # إن كان الاشتراك ملغي/منتهي: نجدد بنفس الباقة الحالية (تم إلغاء تغيير الباقة نهائياً)
+                if bool(getattr(existing, "is_cancelled", False)) or bool(getattr(existing, "is_expired", False)):
+                    from datetime import timedelta
+
+                    today = timezone.localdate()
+                    days = int(getattr(getattr(existing, "plan", None), "days_duration", 0) or 0)
+
+                    existing.start_date = today
+                    existing.end_date = today if days <= 0 else today + timedelta(days=days - 1)
+                    existing.is_active = True
+                    if getattr(existing, "canceled_at", None) is not None:
+                        existing.canceled_at = None
+                    if (getattr(existing, "cancel_reason", "") or "").strip():
+                        existing.cancel_reason = ""
+                    existing.save()
+
+                    _record_subscription_payment_if_missing(
+                        subscription=existing,
+                        actor=request.user,
+                        note="تم تجديد الاشتراك وتسجيل الدفعة بواسطة إدارة المنصة.",
+                        force=True,
+                    )
+
+                    messages.success(
+                        request,
+                        f"تم تجديد اشتراك مدرسة {existing.school.name} حتى {existing.end_date:%Y-%m-%d}.",
+                    )
+                    return redirect("reports:platform_subscriptions_list")
+
+                messages.info(
+                    request,
+                    "هذه المدرسة لديها اشتراك قائم بالفعل. استخدم زر (تجديد) من قائمة الاشتراكات.",
+                )
+                return redirect("reports:platform_subscriptions_list")
+
         was_existing = bool(subscription and getattr(subscription, "pk", None))
         prev_is_active = bool(getattr(subscription, "is_active", False)) if subscription else False
         form = SchoolSubscriptionForm(request.POST, instance=subscription)

@@ -55,6 +55,55 @@ class PaymentApprovalAppliesRequestedPlanTests(TestCase):
 		self.assertEqual(sub.plan_id, self.plan_a.id)
 
 
+class PlatformSubscriptionAddRenewsCancelledTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="School", code="school-cancel")
+		self.plan_a = SubscriptionPlan.objects.create(name="Plan A", price=100, days_duration=30, is_active=True)
+		self.plan_b = SubscriptionPlan.objects.create(name="Plan B", price=200, days_duration=90, is_active=True)
+
+		today = timezone.localdate()
+		self.sub = SchoolSubscription.objects.create(
+			school=self.school,
+			plan=self.plan_a,
+			start_date=today,
+			end_date=today,
+			is_active=False,
+			canceled_at=timezone.now(),
+			cancel_reason="test",
+		)
+
+		self.admin = Teacher.objects.create_superuser(phone="0588888888", name="Admin", password="pass")
+		self.client.force_login(self.admin)
+
+	def test_add_subscription_renews_cancelled_instead_of_duplicate(self):
+		url = reverse("reports:platform_subscription_add")
+		res = self.client.post(
+			url,
+			{
+				"school": self.school.id,
+				"plan": self.plan_b.id,  # يجب تجاهله (إلغاء تغيير الباقة)
+				"is_active": "on",
+			},
+		)
+		self.assertEqual(res.status_code, 302)
+
+		self.sub.refresh_from_db()
+		self.assertTrue(self.sub.is_active)
+		self.assertIsNone(self.sub.canceled_at)
+		self.assertEqual((self.sub.cancel_reason or "").strip(), "")
+		# الباقة لا تتغير
+		self.assertEqual(self.sub.plan_id, self.plan_a.id)
+
+		# تم تسجيل عملية مالية approved
+		self.assertTrue(
+			Payment.objects.filter(
+				subscription=self.sub,
+				status=Payment.Status.APPROVED,
+				amount=self.plan_a.price,
+			).exists()
+		)
+
+
 class ResolveDepartmentForCategoryTests(TestCase):
 	def test_resolve_department_scoped_by_school(self):
 		from .models import ReportType
