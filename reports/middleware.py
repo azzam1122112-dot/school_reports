@@ -306,6 +306,20 @@ class PlatformAdminAccessMiddleware:
             "reports:platform_school_tickets",
             "reports:platform_school_notify",
 
+            # platform admin: circulars + sent notifications
+            "reports:circulars_create",
+            "reports:circulars_sent",
+            "reports:notifications_sent",
+            "reports:notification_detail",
+            "reports:notification_delete",
+            "reports:notification_signatures_print",
+            "reports:notification_signatures_csv",
+
+            # supporting APIs for send_circular / send_notification
+            "reports:api_notification_teachers",
+            "reports:api_school_departments",
+            "reports:api_department_members",
+
             # reports (view + private comments)
             "reports:report_print",
 

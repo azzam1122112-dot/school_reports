@@ -6408,23 +6408,35 @@ def api_notification_teachers(request: HttpRequest) -> HttpResponse:
 
     active_school = _get_active_school(request)
 
-    # عزل صارم: في وضع تعدد المدارس يجب أن تكون هناك مدرسة نشطة لغير السوبر.
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(request.user)) and not is_superuser
+
+    # عزل صارم: في وضع تعدد المدارس يجب أن تكون هناك مدرسة نشطة لغير السوبر
+    # (باستثناء مشرف المنصة لأنه يختار المدرسة من النموذج).
     try:
         has_active_schools = School.objects.filter(is_active=True).exists()
     except Exception:
         has_active_schools = False
 
-    if has_active_schools and active_school is None and not getattr(request.user, "is_superuser", False):
+    if has_active_schools and active_school is None and (not is_superuser) and (not is_platform):
         return JsonResponse({"detail": "active_school_required", "results": []}, status=403)
 
     # تحقق عضوية المستخدم في المدرسة النشطة (حتى لا تُحقن session لمدرسة لا ينتمي لها المستخدم)
-    if active_school is not None and not getattr(request.user, "is_superuser", False):
+    # مشرف المنصة لا يملك SchoolMembership، لذا نستخدم تحقق النطاق بدلًا من ذلك.
+    if active_school is not None and (not is_superuser) and (not is_platform):
         try:
             if not SchoolMembership.objects.filter(
                 teacher=request.user,
                 school=active_school,
                 is_active=True,
             ).exists():
+                return JsonResponse({"detail": "forbidden", "results": []}, status=403)
+        except Exception:
+            return JsonResponse({"detail": "forbidden", "results": []}, status=403)
+
+    if active_school is not None and is_platform:
+        try:
+            if not platform_can_access_school(request.user, active_school):
                 return JsonResponse({"detail": "forbidden", "results": []}, status=403)
         except Exception:
             return JsonResponse({"detail": "forbidden", "results": []}, status=403)
@@ -6436,9 +6448,7 @@ def api_notification_teachers(request: HttpRequest) -> HttpResponse:
     is_circular = mode == "circular"
 
     if is_circular:
-        if bool(getattr(request.user, "is_platform_admin", False)) and not getattr(request.user, "is_superuser", False):
-            return JsonResponse({"detail": "forbidden", "results": []}, status=403)
-        if not getattr(request.user, "is_superuser", False):
+        if not is_superuser and not is_platform:
             if active_school is None or not _is_manager_in_school(request.user, active_school):
                 return JsonResponse({"detail": "forbidden", "results": []}, status=403)
     # allow alternate query param names
