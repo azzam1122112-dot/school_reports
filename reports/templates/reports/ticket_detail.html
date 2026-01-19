@@ -321,51 +321,50 @@
           <div class="sv">{{ t.creator.name|default:"—" }}</div>
         </div>
 
-        <!-- ✅ المرفق (صورة فقط) -->
+        <!-- ✅ المرفقات (صور فقط) — مطابق لصفحة إنشاء الطلب -->
         <div class="srow">
-          <div class="sk">المرفق</div>
+          <div class="sk">المرفقات (صور فقط)</div>
           <div class="sv">
-            {% if t.attachment %}
+            {% if t.attachment or images %}
               <div class="gallery">
-                <a
-                  class="thumb"
-                  href="{{ t.attachment.url }}"
-                  data-lightbox
-                  data-full="{{ t.attachment.url }}"
-                  data-caption="الصورة الرئيسية"
-                >
-                  <img src="{{ t.attachment.url }}" alt="مرفق الطلب" loading="lazy">
-                  <span class="cap">الصورة الرئيسية</span>
-                </a>
-              </div>
-            {% else %}
-              <span class="help">لا يوجد مرفق.</span>
-            {% endif %}
-          </div>
-        </div>
+                {% if t.attachment %}
+                  {% with att_url=t.attachment.url|lower %}
+                    {% if '.jpg' in att_url or '.jpeg' in att_url or '.png' in att_url or '.webp' in att_url %}
+                      <a
+                        class="thumb"
+                        href="{{ t.attachment.url }}"
+                        data-lightbox
+                        data-full="{{ t.attachment.url }}"
+                        data-caption="مرفق #1"
+                      >
+                        <img src="{{ t.attachment.url }}" alt="مرفق #1" loading="lazy">
+                        <span class="cap">مرفق #1</span>
+                      </a>
+                    {% else %}
+                      <a class="thumb" href="{{ t.attachment.url }}" target="_blank" rel="noopener">
+                        <span class="cap" style="padding:12px 10px">فتح/تحميل المرفق</span>
+                      </a>
+                    {% endif %}
+                  {% endwith %}
+                {% endif %}
 
-        <!-- الصور المرفقة المتعددة (تمرّر من الفيو في المتغيّر images) -->
-        <div class="srow">
-          <div class="sk">صور إضافية</div>
-          <div class="sv">
-            {% if images %}
-              <div class="gallery">
-                {% for im in images %}
-                  {# غيّر im.image إلى اسم حقل الملف إن كان مختلفًا #}
-                  <a
-                    class="thumb"
-                    href="{{ im.image.url }}"
-                    data-lightbox
-                    data-full="{{ im.image.url }}"
-                    data-caption="صورة #{{ forloop.counter }}"
-                  >
-                    <img src="{{ im.image.url }}" alt="صورة {{ forloop.counter }}" loading="lazy">
-                    <span class="cap">صورة #{{ forloop.counter }}</span>
-                  </a>
-                {% endfor %}
+                {% if images %}
+                  {% for im in images %}
+                    <a
+                      class="thumb"
+                      href="{{ im.image.url }}"
+                      data-lightbox
+                      data-full="{{ im.image.url }}"
+                      data-caption="صورة #{{ forloop.counter }}"
+                    >
+                      <img src="{{ im.image.url }}" alt="صورة {{ forloop.counter }}" loading="lazy">
+                      <span class="cap">صورة #{{ forloop.counter }}</span>
+                    </a>
+                  {% endfor %}
+                {% endif %}
               </div>
             {% else %}
-              <span class="help">لا توجد صور إضافية.</span>
+              <span class="help">لا توجد مرفقات.</span>
             {% endif %}
           </div>
         </div>
