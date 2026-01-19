@@ -1,379 +1,469 @@
-{# reports/templates/reports/achievement_files_school.html #}
+{# reports/templates/reports/achievement_school_files.html #}
 {% extends "base.html" %}
 {% load static %}
 
 {% block title %}ملفات الإنجاز - المدرسة{% endblock %}
 
 {% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
-  /* =========================================================
-     Achievement Files (School) — page-only polish
-     - بدون إعادة تعريف .btn / .card العامة
-     - Scoped داخل .af-wrap لتجنب التعارض
-     ========================================================= */
-  .af-wrap{max-width:1150px;margin:0 auto;padding:clamp(12px,2.4vw,18px)}
-  .af-card{
-    overflow:hidden;
-    border-radius:18px;
-    border:1px solid var(--line-2);
-    box-shadow: var(--shadow);
-    background: var(--card);
+  :root {
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --secondary: #ec4899;
+    --accent: #8b5cf6;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --dark-bg: #0f172a;
+    --light-bg: #f8fafc;
+    --card-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   }
 
-  .af-head{
-    padding:16px 18px;
-    background: linear-gradient(135deg, rgba(16,185,129,.90), rgba(37,99,235,.88));
-    color:#fff;
-  }
-  .af-head h1{margin:0;font-weight:950;font-size:1.25rem;letter-spacing:-.2px}
-  .af-head p{margin:6px 0 0;opacity:.95;font-weight:850}
-
-  .af-body{padding:16px 18px}
-
-  .af-toolbar{
-    display:flex;
-    gap:12px;
-    flex-wrap:wrap;
-    align-items:flex-end;
-    justify-content:space-between;
-    margin-bottom: 14px;
+  [data-theme="dark"] {
+    --card-bg: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --light-bg: #0f172a;
   }
 
-  .af-form{
-    min-width: 290px;
-    flex: 1 1 360px;
-    max-width: 520px;
+  body {
+    font-family: 'Tajawal', sans-serif;
+    background-color: var(--light-bg);
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.10) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.10) 0px, transparent 50%);
+    background-attachment: fixed;
+    color: var(--text-main);
   }
 
-  .af-label{
-    display:block;
-    margin:0 0 6px;
-    font-weight:900;
-    color: var(--ink);
+  .page-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+    direction: rtl;
   }
 
-  .af-input,
-  .af-select{
-    width:100%;
-    min-height: var(--tap);
-    border-radius:14px;
-    border:1px solid var(--line);
-    padding:12px 14px;
-    background: rgba(248,250,252,.85);
-    font-weight:850;
-    color: var(--ink);
-    outline: none;
-    transition: var(--t-fast);
-  }
-  .af-input:focus,
-  .af-select:focus{
-    box-shadow: 0 0 0 4px rgba(37,99,235,.18);
-    border-color: rgba(37,99,235,.40);
-  }
-  html[data-theme="dark"] .af-input,
-  html[data-theme="dark"] .af-select{
-    background: rgba(255,255,255,.04);
-    border-color: rgba(148,163,184,.18);
+  /* Header */
+  .header-section {
+    margin-bottom: 2.5rem;
+    position: relative;
+    z-index: 2;
   }
 
-  .af-side{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:flex-end;
-    justify-content:flex-end;
-  }
-
-  .af-stats{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
-  .af-chip{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:8px 10px;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: linear-gradient(180deg, var(--line-2), var(--card));
+  .page-title {
+    font-size: 2.2rem;
     font-weight: 900;
-    color: var(--ink);
-    white-space: nowrap;
-  }
-  .af-chip i{ opacity:.85; }
-
-  .af-list{margin-top: 12px;display:grid;gap:10px}
-
-  .af-item{
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-    align-items:center;
-    padding:12px 14px;
-    border-radius:14px;
-    border:1px solid var(--line-2);
-    background: rgba(255,255,255,.55);
-  }
-  html[data-theme="dark"] .af-item{ background: rgba(255,255,255,.03); }
-
-  .af-meta{display:grid;gap:4px;min-width:0}
-  .af-meta b{font-weight:950;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .af-meta small{color: var(--muted); font-weight: 850; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-
-  .af-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
-
-  .af-badge{
-    display:inline-flex;
-    align-items:center;
-    padding:6px 10px;
-    border-radius:999px;
-    font-weight:950;
-    font-size:.85rem;
-    color:#fff;
-    white-space:nowrap;
-  }
-  .af-b-blue{ background:#2563eb; }
-  .af-b-green{ background:#10b981; }
-  .af-b-amber{ background:#f59e0b; }
-  .af-b-red{ background:#ef4444; }
-  .af-b-gray{ background:#64748b; }
-
-  .af-empty{
-    padding:14px;
-    border-radius:16px;
-    border:1px dashed var(--line);
-    background: linear-gradient(180deg, var(--card), var(--line-2));
-    color: var(--muted);
-    font-weight: 900;
-  }
-  .af-muted{color: var(--muted); font-weight: 850}
-
-  @media(max-width:860px){
-    .af-actions{justify-content:flex-start}
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    .af-input, .af-select{ transition:none !important; }
+  .page-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* Controls Bar */
+  .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      padding: 1.5rem;
+      border-radius: 24px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 2rem;
+      align-items: flex-end;
+  }
+
+  .control-group {
+      flex: 1;
+      min-width: 250px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+  }
+
+  .control-label {
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      margin-inline-start: 4px;
+  }
+
+  .glass-input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 14px;
+      border: 2px solid transparent;
+      background: rgba(255,255,255,0.6);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text-main);
+      transition: 0.3s;
+      outline: none;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+  }
+  
+  [data-theme="dark"] .glass-input { background: rgba(0,0,0,0.2); }
+
+  .glass-input:focus {
+      background: white;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+  }
+
+  .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-weight: 800;
+      transition: 0.3s;
+      cursor: pointer;
+      border: none;
+  }
+
+  .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(79, 70, 229, 0.4); }
+
+  .btn-dashboard {
+      background: white;
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+  }
+  .btn-dashboard:hover { transform: translateY(-2px); color: var(--primary); }
+
+  /* Stats Chips */
+  .stats-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      overflow-x: auto;
+      padding-bottom: 5px;
+  }
+  
+  .stat-chip {
+      background: rgba(255,255,255,0.5);
+      border: 1px solid var(--glass-border);
+      padding: 8px 16px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      color: var(--text-main);
+  }
+  
+  .stat-chip i { color: var(--primary); }
+
+  /* Grid for Teachers */
+  .teachers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+  }
+
+  .teacher-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+  }
+
+  .teacher-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(79, 70, 229, 0.3);
+  }
+  
+  .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+  }
+
+  .avatar-placeholder {
+      width: 50px; height: 50px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #e0e7ff, #eef2ff);
+      color: var(--primary);
+      display: grid;
+      place-items: center;
+      font-size: 1.25rem;
+      font-weight: 800;
+  }
+
+  .status-dot {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+  }
+  
+  .st-approved { background: rgba(16, 185, 129, 0.15); color: #059669; }
+  .st-rejected { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+  .st-submitted { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+  .st-draft { background: rgba(100, 116, 139, 0.15); color: #475569; }
+
+  .t-name {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 4px;
+  }
+
+  .t-info {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 1.5rem;
+  }
+
+  .card-actions {
+      margin-top: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+  }
+
+  .btn-card {
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: 0.2s;
+  }
+
+  .btn-view { background: rgba(79, 70, 229, 0.1); color: var(--primary); }
+  .btn-view:hover { background: var(--primary); color: white; }
+
+  .btn-print { background: rgba(248, 250, 252, 0.8); color: var(--text-muted); border: 1px solid transparent; }
+  .btn-print:hover { border-color: var(--text-muted); color: var(--text-main); }
+  
+  .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+      background: var(--card-bg);
+      border-radius: 24px;
+      border: 1px dashed var(--glass-border);
+  }
+
+  @media (max-width: 768px) {
+    .controls-bar { flex-direction: column; align-items: stretch; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="af-wrap">
-  <div class="card af-card">
-    <div class="af-head">
-      <h1>ملفات الإنجاز - المدرسة</h1>
-      <p>عرض ملفات الإنجاز للمدرسة حسب السنة الدراسية</p>
-    </div>
+<div class="page-container">
 
-    <div class="af-body">
-      <div class="af-toolbar">
-        <form id="afFilterForm" method="get" class="af-form" aria-label="فلترة" style="max-width: 100%; flex-basis: 100%;">
-          <div style="display: flex; flex-wrap: wrap; gap: 16px;">
-            <div style="flex: 0 1 250px; min-width: 200px;">
-              <label class="af-label">السنة الدراسية (هجري)</label>
+  <!-- Header -->
+  <div class="header-section">
+      <div class="page-title">ملفات إنجاز المعلمين</div>
+      <div class="page-subtitle">استعراض ومتابعة ملفات الإنجاز للكادر التعليمي حسب السنة الدراسية</div>
+  </div>
+
+  <!-- Tools & Filters -->
+  <div class="controls-bar">
+      <!-- Filter Form -->
+      <form id="filterForm" method="get" style="flex: 2; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+          <div class="control-group">
+              <label class="control-label">السنة الدراسية</label>
               {% if year_choices %}
-                <select id="afYearSelect" class="af-select" name="year">
+                <select name="year" class="glass-input" onchange="this.form.submit()">
                   {% for y in year_choices %}
                     <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} هـ</option>
                   {% endfor %}
                 </select>
               {% else %}
-                <input id="afYearInput" class="af-input" name="year" value="{{ year }}" placeholder="مثال: 1447-1448" autocomplete="off" />
+                <input name="year" class="glass-input" value="{{ year }}" placeholder="YYYY-YYYY" onblur="this.form.submit()">
               {% endif %}
-            </div>
+          </div>
 
-            <div style="flex: 1 1 250px; min-width: 200px;">
-              <label class="af-label">بحث عن معلم</label>
-              <div style="position:relative;">
-                <input
-                  id="afSearchInput"
-                  class="af-input"
-                  type="search"
-                  name="q"
-                  value="{{ q }}"
-                  placeholder="ابحث باسم المعلم..."
-                  autocomplete="off"
-                  style="padding-left:42px;"
-                />
-                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); opacity:0.6; pointer-events:none;"></i>
+          <div class="control-group">
+              <label class="control-label">بحث عن معلم</label>
+              <div style="position: relative;">
+                  <input type="search" id="searchInput" name="q" value="{{ q }}" class="glass-input" placeholder="اكتب اسم المعلم للبحث السريع..." style="padding-inline-start: 44px;">
+                  <i class="fa-solid fa-search" style="position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: var(--text-muted);"></i>
               </div>
-            </div>
           </div>
+      </form>
 
-          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            {% if q %}
-              <a class="btn" href="{% url 'reports:achievement_school_files' %}?year={{ year }}" style="color:var(--danger)">
-                  <i class="fa-solid fa-times"></i> مسح البحث
-              </a>
-            {% endif %}
-
-            <div style="flex-grow:1"></div>
-          </div>
-        </form>
-
-        <div class="af-side">
-          <div class="af-stats" aria-label="معلومات سريعة">
-            <span class="af-chip">
-              <i class="fa-solid fa-calendar-days"></i>
-              {% if year %}{{ year }} هـ{% else %}—{% endif %}
-            </span>
-
-            <span class="af-chip">
-              <i class="fa-solid fa-users"></i>
-              <span id="afCount">{{ rows|length }}</span> معلم
-            </span>
-          </div>
-
-          {% if is_manager %}
-            <a class="btn" href="{% url 'reports:admin_dashboard' %}">
-              <i class="fa-solid fa-gauge-high"></i> لوحة المدير
-            </a>
-          {% endif %}
-        </div>
+      <!-- Dashboard Button -->
+      {% if is_manager %}
+      <div style="flex-shrink: 0;">
+          <a href="{% url 'reports:admin_dashboard' %}" class="btn-action btn-dashboard">
+              <i class="fa-solid fa-gauge"></i> لوحة المدير
+          </a>
       </div>
-
-      <div id="afNoResults" class="af-empty" style="display:none; margin-bottom:12px">
-        <b>لا توجد نتائج</b>
-        <div class="af-muted" style="margin-top:6px">جرّب كتابة اسم مختلف.</div>
-      </div>
-
-      <div id="afList" class="af-list" aria-label="قائمة المعلمين">
-        {% for row in rows %}
-          <div class="af-item" data-teacher-name="{{ row.teacher.name|default:'' }}" data-teacher-phone="{{ row.teacher.phone|default:'' }}">
-            <div class="af-meta">
-              <b title="{{ row.teacher.name }}">{{ row.teacher.name }}</b>
-              <small dir="ltr">{{ row.teacher.phone }}</small>
-              <small>{% if year %}{{ year }} هـ{% endif %}</small>
-
-              <small>
-                {% if row.file %}
-                  الحالة:
-                  {% if row.file.status == "approved" %}
-                    <span class="af-badge af-b-green">معتمد</span>
-                  {% elif row.file.status == "rejected" %}
-                    <span class="af-badge af-b-red">مرفوض</span>
-                  {% elif row.file.status == "submitted" %}
-                    <span class="af-badge af-b-amber">مُرسل للمراجعة</span>
-                  {% elif row.file.status == "draft" %}
-                    <span class="af-badge af-b-gray">مسودة</span>
-                  {% else %}
-                    <span class="af-badge af-b-blue">{{ row.file.get_status_display }}</span>
-                  {% endif %}
-                {% else %}
-                  <span class="af-badge af-b-gray">لا يوجد ملف</span>
-                {% endif %}
-              </small>
-            </div>
-
-            <div class="af-actions">
-              {% if row.file %}
-                <a class="btn" href="{% url 'reports:achievement_file_detail' row.file.pk %}">
-                  <i class="fa-solid fa-folder-open"></i> فتح
-                </a>
-                <a class="btn" href="{% url 'reports:achievement_file_print' row.file.pk %}" target="_blank" rel="noopener">
-                  <i class="fa-solid fa-print"></i> طباعة / حفظ PDF
-                </a>
-              {% endif %}
-            </div>
-          </div>
-        {% empty %}
-          <div class="af-empty">
-            <b>لا يوجد معلمون</b>
-            <div class="af-muted" style="margin-top:6px">تأكد من ربط المعلمين بمدرسة المدير.</div>
-          </div>
-        {% endfor %}
-      </div>
-
-      <div style="margin-top:12px">
-        <small class="af-muted">
-          ملاحظة: الاعتماد/الرفض يتم من داخل صفحة الملف بعد فتحه.
-        </small>
-      </div>
-    </div>
+      {% endif %}
   </div>
+
+  <!-- Stats Strip -->
+  <div class="stats-row">
+      <div class="stat-chip">
+          <i class="fa-regular fa-calendar-check"></i>
+          السنة: {{ year|default:"-" }}
+      </div>
+      <div class="stat-chip">
+          <i class="fa-solid fa-users-viewfinder"></i>
+          <span id="resultCount">{{ rows|length }}</span> معلم
+      </div>
+      {% if q %}
+      <a href="{% url 'reports:achievement_school_files' %}?year={{ year }}" class="stat-chip" style="background: #fee2e2; color: #ef4444; text-decoration: none; cursor: pointer;">
+          <i class="fa-solid fa-times"></i> إلغاء البحث
+      </a>
+      {% endif %}
+  </div>
+
+  <!-- Content Grid -->
+  <div class="teachers-grid" id="teachersGrid">
+      {% for row in rows %}
+      <div class="teacher-card item-row" 
+           data-name="{{ row.teacher.name|default:'' }}" 
+           data-phone="{{ row.teacher.phone|default:'' }}">
+          
+          <div class="card-header">
+              <div class="avatar-placeholder">
+                  {{ row.teacher.name|slice:":1" }}
+              </div>
+              
+              <!-- Status Badge -->
+              {% if row.file %}
+                  {% if row.file.status == "approved" %}
+                      <div class="status-dot st-approved"><i class="fa-solid fa-check-circle"></i> معتمد</div>
+                  {% elif row.file.status == "rejected" %}
+                      <div class="status-dot st-rejected"><i class="fa-solid fa-circle-xmark"></i> مرفوض</div>
+                  {% elif row.file.status == "submitted" %}
+                      <div class="status-dot st-submitted"><i class="fa-solid fa-clock"></i> للمراجعة</div>
+                  {% elif row.file.status == "draft" %}
+                      <div class="status-dot st-draft"><i class="fa-solid fa-pencil"></i> مسودة</div>
+                  {% else %}
+                      <div class="status-dot st-draft">{{ row.file.get_status_display }}</div>
+                  {% endif %}
+              {% else %}
+                  <div class="status-dot st-draft" style="opacity: 0.6;">لا يوجد ملف</div>
+              {% endif %}
+          </div>
+
+          <div class="t-name" title="{{ row.teacher.name }}">{{ row.teacher.name }}</div>
+          <div class="t-info">
+              <i class="fa-solid fa-phone"></i> 
+              <span dir="ltr">{{ row.teacher.phone }}</span>
+          </div>
+
+          {% if row.file %}
+          <div class="card-actions">
+              <a href="{% url 'reports:achievement_file_detail' row.file.pk %}" class="btn-card btn-view">
+                  <i class="fa-solid fa-folder-open"></i> فتح الملف
+              </a>
+              <a href="{% url 'reports:achievement_file_print' row.file.pk %}" target="_blank" class="btn-card btn-print">
+                  <i class="fa-solid fa-print"></i> PDF
+              </a>
+          </div>
+          {% else %}
+          <div style="margin-top: auto; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 8px; text-align: center; font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">
+              لم يتم إنشاء ملف لهذا العام
+          </div>
+          {% endif %}
+      </div>
+      {% empty %}
+      <div class="empty-state">
+           <i class="fa-solid fa-person-chalkboard" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem; opacity: 0.5;"></i>
+           <h3>لا يوجد معلمون</h3>
+           <p style="color: var(--text-muted);">تأكد من إضافة معلمين إلى المدرسة أو تغيير سنة البحث</p>
+      </div>
+      {% endfor %}
+  </div>
+
+  <div id="noResultsMsg" class="empty-state" style="display: none;">
+      <i class="fa-solid fa-search" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+      <h3>لا توجد نتائج مطابقة</h3>
+      <p style="color: var(--text-muted);">حاول البحث باسم مختلف أو رقم جوال آخر</p>
+  </div>
+
 </div>
+{% endblock %}
 
-<script>
-  (function(){
-    const form = document.getElementById('afFilterForm');
-    const yearSelect = document.getElementById('afYearSelect');
-    const yearInput = document.getElementById('afYearInput');
-
-    const input = document.getElementById('afSearchInput');
-    const list = document.getElementById('afList');
-    const countEl = document.getElementById('afCount');
-    const noResults = document.getElementById('afNoResults');
-    if (!input || !list) return;
-
-    const items = Array.from(list.querySelectorAll('.af-item'));
-    const total = items.length;
-
-    function norm(s){
-      return (s || '')
-        .toString()
-        .toLowerCase()
-        .trim();
-    }
-
-    function applyFilter(){
-      const q = norm(input.value);
-      let shown = 0;
-
-      for (const el of items){
-        const name = norm(el.getAttribute('data-teacher-name'));
-        const phone = norm(el.getAttribute('data-teacher-phone'));
-        const ok = !q || name.includes(q) || phone.includes(q);
-        el.style.display = ok ? '' : 'none';
-        if (ok) shown++;
-      }
-
-      if (countEl) countEl.textContent = String(shown);
-      if (noResults) noResults.style.display = (shown === 0 && total > 0) ? '' : 'none';
-    }
-
-    // Prevent form submit on Enter inside search (dynamic filtering instead)
-    input.addEventListener('keydown', function(e){
-      if (e.key === 'Enter'){
-        e.preventDefault();
-      }
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const grid = document.getElementById('teachersGrid');
+    const items = grid.querySelectorAll('.item-row');
+    const noResults = document.getElementById('noResultsMsg');
+    const countLabel = document.getElementById('resultCount');
+    
+    // Prevent Enter key in search (client-side only filter)
+    searchInput.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter') e.preventDefault();
     });
 
-    // Auto-apply year filter on change (no need for an "عرض" button)
-    if (form && yearSelect){
-      yearSelect.addEventListener('change', function(){
-        form.submit();
-      });
-    }
-    if (form && yearInput){
-      let t;
-      yearInput.addEventListener('input', function(){
-        window.clearTimeout(t);
-        t = window.setTimeout(function(){
-          // Submit only if value looks non-empty
-          if ((yearInput.value || '').trim().length >= 3){
-            form.submit();
-          }
-        }, 550);
-      });
-      yearInput.addEventListener('keydown', function(e){
-        if (e.key === 'Enter'){
-          e.preventDefault();
-          form.submit();
-        }
-      });
-      yearInput.addEventListener('blur', function(){
-        if ((yearInput.value || '').trim()){
-          form.submit();
-        }
-      });
-    }
+    searchInput.addEventListener('input', function(e) {
+        const query = e.target.value.toLowerCase().trim();
+        let visibleCount = 0;
 
-    input.addEventListener('input', applyFilter);
-    // Apply once on load (in case q is present in URL)
-    applyFilter();
-  })();
+        items.forEach(item => {
+            const name = (item.dataset.name || '').toLowerCase();
+            const phone = (item.dataset.phone || '').toLowerCase();
+            
+            if (name.includes(query) || phone.includes(query)) {
+                item.style.display = 'flex';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Update UI states
+        if (visibleCount === 0 && items.length > 0) {
+            noResults.style.display = 'block';
+        } else {
+            noResults.style.display = 'none';
+        }
+        
+        if (countLabel) countLabel.textContent = visibleCount;
+    });
+});
 </script>
 {% endblock %}
