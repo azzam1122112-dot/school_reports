@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% load static ticket_notes %}
 
-{% block title %}تفاصيل الطلب #{{ t.id }}{% endblock %}
+{% block title %}{% if t.is_platform %}تفاصيل طلب الدعم الفني #{{ t.id }}{% else %}تفاصيل الطلب #{{ t.id }}{% endif %}{% endblock %}
 
 {% block head %}
 <style>
@@ -247,7 +247,7 @@
   <!-- Top bar -->
   <section class="ticket-bar" aria-label="شريط الصفحة">
     <div>
-      <h1>تفاصيل الطلب #{{ t.id }}</h1>
+      <h1>{% if t.is_platform %}تفاصيل طلب الدعم الفني{% else %}تفاصيل الطلب{% endif %} #{{ t.id }}</h1>
       <div class="ticket-minor">
         <span>أُنشئ بتاريخ {{ t.created_at|date:"Y-m-d H:i" }}</span>
         <span>•</span>
@@ -298,23 +298,35 @@
           <div class="sv">{{ t.title|default:"—" }}</div>
         </div>
 
-        <div class="srow">
-          <div class="sk">القسم</div>
-          <div class="sv">{{ t.get_department_display|default:t.department|default:"—" }}</div>
-        </div>
-
-        <div class="srow">
-          <div class="sk">المستلمون</div>
-          <div class="sv">
-            {% if t.recipients.exists %}
-              {% for u in t.recipients.all %}
-                {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
-              {% endfor %}
-            {% else %}
-              {% firstof t.assignee.name t.assignee "—" %}
-            {% endif %}
+        {% if t.is_platform %}
+          <div class="srow">
+            <div class="sk">المدرسة</div>
+            <div class="sv">{% firstof t.school.name t.school "—" %}</div>
           </div>
-        </div>
+
+          <div class="srow">
+            <div class="sk">المستهدف</div>
+            <div class="sv">إدارة المنصة</div>
+          </div>
+        {% else %}
+          <div class="srow">
+            <div class="sk">القسم</div>
+            <div class="sv">{{ t.get_department_display|default:t.department|default:"—" }}</div>
+          </div>
+
+          <div class="srow">
+            <div class="sk">المستلمون</div>
+            <div class="sv">
+              {% if t.recipients.exists %}
+                {% for u in t.recipients.all %}
+                  {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
+                {% endfor %}
+              {% else %}
+                {% firstof t.assignee.name t.assignee "—" %}
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
 
         <div class="srow">
           <div class="sk">المرسل</div>

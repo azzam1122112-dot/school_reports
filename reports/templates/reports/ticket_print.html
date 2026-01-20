@@ -268,24 +268,38 @@
         <th>تاريخ الإنشاء</th>
         <td>{{ t.created_at|date:"Y/m/d H:i" }}</td>
       </tr>
-      <tr>
-        <th>القسم</th>
-        <td>{% firstof t.department.name t.department "—" %}</td>
-        <th>المرسل</th>
-        <td>{% firstof t.creator.name t.creator "—" %}</td>
-      </tr>
-      <tr>
-        <th>المستلمون</th>
-        <td colspan="3">
-          {% if t.recipients.exists %}
-            {% for u in t.recipients.all %}
-              {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
-            {% endfor %}
-          {% else %}
-            {% firstof t.assignee.name t.assignee "—" %}
-          {% endif %}
-        </td>
-      </tr>
+
+      {% if t.is_platform %}
+        <tr>
+          <th>المدرسة</th>
+          <td>{% firstof t.school.name t.school "—" %}</td>
+          <th>المرسل</th>
+          <td>{% firstof t.creator.name t.creator "—" %}</td>
+        </tr>
+        <tr>
+          <th>المستهدف</th>
+          <td colspan="3">إدارة المنصة</td>
+        </tr>
+      {% else %}
+        <tr>
+          <th>القسم</th>
+          <td>{% firstof t.department.name t.department "—" %}</td>
+          <th>المرسل</th>
+          <td>{% firstof t.creator.name t.creator "—" %}</td>
+        </tr>
+        <tr>
+          <th>المستلمون</th>
+          <td colspan="3">
+            {% if t.recipients.exists %}
+              {% for u in t.recipients.all %}
+                {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
+              {% endfor %}
+            {% else %}
+              {% firstof t.assignee.name t.assignee "—" %}
+            {% endif %}
+          </td>
+        </tr>
+      {% endif %}
     </table>
 
     <section class="section">
