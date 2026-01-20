@@ -267,7 +267,7 @@
             <span style="font-weight:700">
                 <i class="fa-solid fa-user-pen"></i>&nbsp;
                 {% if home_notification.created_by %}
-                    {{ home_notification.created_by.name|default:home_notification.created_by.username }}
+                {% firstof home_notification.created_by.name home_notification.created_by.phone "—" %}
                 {% else %}
                     الإدارة
                 {% endif %}
