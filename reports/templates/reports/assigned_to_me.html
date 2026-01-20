@@ -461,7 +461,7 @@
                   {% firstof t.creator.name t.creator.phone "—" %}
                 </div>
               </td>
-              <td>{{ t.department.name|default:t.department.title|default:"—" }}</td>
+              <td>{{ t.department|default:"—" }}</td>
               <td>{{ t.created_at|date:"Y-m-d" }}</td>
               <td>
                 <span class="status-pill 
@@ -513,7 +513,7 @@
               </span>
               <span class="t-meta-item">
                 <i class="fa-solid fa-layer-group"></i> 
-                {{ t.department.name|default:t.department.title|default:"—" }}
+                {{ t.department|default:"—" }}
               </span>
               <span class="t-meta-item">
                 <i class="fa-regular fa-clock"></i> {{ t.created_at|date:"Y-m-d H:i" }}
