@@ -5506,13 +5506,32 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_tickets_list(request: HttpRequest) -> HttpResponse:
-    # تذاكر الدعم الفني فقط
+    query = request.GET.get("q", "").strip()
+    status_filter = request.GET.get("status", "").strip()
+
+    # تذاكر الدعم الفني فقط (platform tickets)
     tickets = (
         Ticket.objects.filter(is_platform=True)
         .select_related("creator", "school")
         .order_by("-created_at")
     )
-    return render(request, "reports/platform_tickets.html", {"tickets": tickets})
+
+    if status_filter and status_filter != "all":
+        tickets = tickets.filter(status=status_filter)
+
+    if query:
+        tickets = tickets.filter(
+            Q(school__name__icontains=query) |
+            Q(school__code__icontains=query) |
+            Q(title__icontains=query) |
+            Q(id__icontains=query)
+        )
+
+    return render(request, "reports/platform_tickets.html", {
+        "tickets": tickets,
+        "search_query": query,
+        "current_status": status_filter,
+    })
 
 
 # ---- الأقسام: عرض/إنشاء/تعديل/حذف ----

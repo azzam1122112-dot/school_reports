@@ -4,296 +4,422 @@
 
 {% block head %}
 <style>
-  /* ✅ Scoped فقط لهذه الصفحة — بدون لمس .btn / .card العامة */
+  /* 
+     PLATFORM TICKETS 2026 — NEO-PROFESSIONAL
+     Theme: Corporate Blue & Clean White
+  */
   .plat-tickets-scope{
-    --pt-brand: var(--brand, #2563eb);
-    --pt-ink: var(--ink, #0f172a);
-    --pt-muted: var(--muted, #64748b);
-    --pt-line: var(--line-2, var(--line, #e5e7eb));
-    --pt-card: var(--card, #fff);
-    --pt-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
-    --pt-danger: var(--danger, #ef4444);
-    --pt-ok: var(--accent, #10b981);
-    --pt-grad: linear-gradient(135deg, rgba(37,99,235,.95), rgba(59,130,246,.88));
-    --pt-t: var(--t-fast, 160ms ease);
+    --c-brand: #2563eb;
+    --c-brand-light: #eff6ff;
+    --c-ink: #0f172a;
+    --c-muted: #64748b;
+    --c-border: #e2e8f0;
+    --c-bg: #f8fafc;
+    --c-card: #ffffff;
+    
+    --shadow-soft: 0 4px 6px -1px rgba(0,0,0,0.05);
+    --shadow-hard: 0 10px 15px -3px rgba(0,0,0,0.05);
+    
+    --radius-xl: 16px;
+    --radius-lg: 12px;
+    
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .plat-tickets-scope .wrap{max-width:1100px;margin-inline:auto}
-
-  /* Hero */
-  .plat-tickets-scope .hero{
-    padding: 16px 18px;
-    border-radius: 16px;
-    color:#fff;
-    background:
-      radial-gradient(900px 240px at 15% 0%, rgba(16,185,129,.16), transparent 55%),
-      radial-gradient(700px 220px at 90% 70%, rgba(255,255,255,.14), transparent 60%),
-      var(--pt-grad);
-    border: 1px solid rgba(255,255,255,.14);
-    box-shadow: var(--pt-shadow);
-    margin-bottom: 12px;
-  }
-  .plat-tickets-scope .hero-head{
-    display:flex;align-items:flex-start;justify-content:space-between;
-    gap:12px;flex-wrap:wrap;
-  }
-  .plat-tickets-scope .hero h1{margin:0;font-weight:950;font-size:clamp(1.15rem,2.4vw,1.55rem)}
-  .plat-tickets-scope .hero p{margin:6px 0 0;opacity:.95;font-weight:850;line-height:1.65;max-width:70ch}
-  .plat-tickets-scope .hero-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .plat-tickets-scope .hero-actions .btn{border-radius:14px;min-height:42px;transition: var(--pt-t)}
-  .plat-tickets-scope .hero-actions .btn-outline{
-    background: rgba(255,255,255,.12);
-    border-color: rgba(255,255,255,.22);
-    color:#fff;
-  }
-  .plat-tickets-scope .hero-actions .btn-outline:hover{
-    background: rgba(255,255,255,.16);
-    border-color: rgba(255,255,255,.28);
-    transform: translateY(-1px);
+  .plat-tickets-scope .wrap {
+      max-width: 1400px; /* Wider for table */
+      margin: 0 auto;
+      padding: 24px;
+      font-family: system-ui, -apple-system, sans-serif;
   }
 
-  /* Table card */
-  .plat-tickets-scope .tcard{
-    border: 1px solid var(--pt-line);
-    border-radius: 16px;
-    box-shadow: var(--pt-shadow);
-    overflow: hidden;
-    background: var(--pt-card);
+  /* Header Section */
+  .pt-header {
+      background: linear-gradient(135deg, var(--c-brand), #1e40af);
+      color: white;
+      padding: 32px;
+      border-radius: var(--radius-xl);
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-hard);
+      position: relative;
+      overflow: hidden;
   }
-  .plat-tickets-scope .tcard table{width:100%}
-  .plat-tickets-scope .rtable thead th{font-weight:950}
-
-  /* Row hover polish */
-  .plat-tickets-scope .rtable tbody tr{
-    transition: var(--pt-t);
-  }
-  .plat-tickets-scope .rtable tbody tr:hover{
-    background: rgba(219,234,254,.55);
-  }
-  html[data-theme="dark"] .plat-tickets-scope .rtable tbody tr:hover{
-    background: rgba(26,44,83,.45);
+  
+  /* Decorative noise/pattern */
+  .pt-header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   }
 
-  /* Ticket bits */
-  .plat-tickets-scope .mono{
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
-  }
-  .plat-tickets-scope .t-title{font-weight:950;color:var(--pt-ink)}
-  .plat-tickets-scope .sender{display:grid;gap:2px}
-  .plat-tickets-scope .sender b{font-weight:950}
-  .plat-tickets-scope .sender small{color:var(--pt-muted);font-weight:850}
-
-  .plat-tickets-scope .school{
-    display:grid;
-    gap:2px;
-    min-width: 0;
-  }
-  .plat-tickets-scope .school b{
-    font-weight: 950;
-    color: var(--pt-ink);
-    overflow:hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 360px;
-  }
-  .plat-tickets-scope .school small{
-    color: var(--pt-muted);
-    font-weight: 850;
-    overflow:hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 360px;
+  .pt-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+      flex-wrap: wrap;
+      gap: 16px;
   }
 
-  .plat-tickets-scope .chip{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-weight: 950;
-    font-size: .86rem;
-    border: 1px solid rgba(15,23,42,.08);
-    background: rgba(148,163,184,.12);
-    color: var(--pt-ink);
-    white-space: nowrap;
-  }
-  .plat-tickets-scope .chip.city{
-    background: rgba(14,165,233,.10);
-    border-color: rgba(14,165,233,.20);
-    color: #075985;
+  .pt-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.02em;
   }
 
-  /* badges fallback (لو موجودة في base/app.css ما راح تتعارض) */
-  .plat-tickets-scope .badge{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-weight: 900;
-    font-size: .86rem;
-    border: 1px solid rgba(15,23,42,.08);
-    background: rgba(148,163,184,.15);
-    color: var(--pt-ink);
-    white-space:nowrap;
-  }
-  .plat-tickets-scope .badge.info{
-    background: rgba(37,99,235,.12);
-    border-color: rgba(37,99,235,.22);
-    color: var(--pt-brand);
-  }
-  .plat-tickets-scope .badge.warning{
-    background: rgba(245,158,11,.14);
-    border-color: rgba(245,158,11,.22);
-    color: #b45309;
-  }
-  .plat-tickets-scope .badge.success{
-    background: rgba(16,185,129,.12);
-    border-color: rgba(16,185,129,.22);
-    color: var(--pt-ok);
-  }
-  .plat-tickets-scope .badge.danger{
-    background: rgba(239,68,68,.12);
-    border-color: rgba(239,68,68,.22);
-    color: var(--pt-danger);
+  .pt-subtitle {
+      opacity: 0.9;
+      margin-top: 6px;
+      font-size: 1.05rem;
   }
 
-  /* Empty state */
-  .plat-tickets-scope .empty{
-    padding: 18px 14px;
-    border-radius: 14px;
-    border: 1px dashed var(--pt-line);
-    background: linear-gradient(180deg, var(--pt-card), rgba(148,163,184,.10));
-    color: var(--pt-muted);
-    font-weight: 900;
+  .pt-actions .btn-glass {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 10px 20px;
+      border-radius: var(--radius-lg);
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s var(--ease);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+  }
+  
+  .pt-actions .btn-glass:hover {
+      background: rgba(255,255,255,0.25);
+      transform: translateY(-2px);
   }
 
-  /* Mobile tweaks */
-  @media(max-width:520px){
-    .plat-tickets-scope .hero{padding:14px}
-    .plat-tickets-scope .hero-actions .btn{width:100%;justify-content:center}
+  /* Filter & Search Bar */
+  .pt-controls {
+      background: var(--c-card);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-xl);
+      padding: 16px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      align-items: center;
+      justify-content: space-between;
   }
 
-  /* Reduce motion */
-  @media (prefers-reduced-motion: reduce){
-    .plat-tickets-scope .hero-actions .btn,
-    .plat-tickets-scope .rtable tbody tr{
-      transition:none !important;
-    }
-    .plat-tickets-scope .hero-actions .btn:hover{
-      transform:none !important;
-    }
+  .pt-filters {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px; /* Scrollbar space */
   }
+
+  .filter-tab {
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      color: var(--c-muted);
+      background: transparent;
+      border: 1px solid transparent; /* fixed layout shift */
+      text-decoration: none;
+      white-space: nowrap;
+      transition: all 0.2s;
+  }
+
+  .filter-tab:hover {
+      background: var(--c-bg);
+      color: var(--c-ink);
+  }
+
+  .filter-tab.active {
+      background: var(--c-brand-light);
+      color: var(--c-brand);
+      border-color: rgba(37,99,235,0.15);
+  }
+
+  .pt-search {
+      flex-grow: 1;
+      max-width: 400px;
+      position: relative;
+  }
+
+  .pt-search input {
+      width: 100%;
+      padding: 10px 16px 10px 42px; /* RTL padding needs check */
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      background: var(--c-bg); /* Slight background */
+  }
+
+  .pt-search input:focus {
+      background: white;
+      border-color: var(--c-brand);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+
+  .pt-search svg {
+      position: absolute;
+      left: 14px; /* RTL Logic: in RTL usually icons on right ? no standard is left for LTR. Let's force check dir */
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--c-muted);
+      pointer-events: none;
+  }
+  
+  /* RTL specific fix for search icon */
+  .plat-tickets-scope[dir="rtl"] .pt-search input { padding: 10px 42px 10px 16px; }
+  .plat-tickets-scope[dir="rtl"] .pt-search svg { left: auto; right: 14px; }
+
+  /* Table */
+  .pt-table-card {
+      background: var(--c-card);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+  }
+
+  .pt-table-responsive {
+      width: 100%;
+      overflow-x: auto;
+  }
+
+  .pt-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+  }
+
+  .pt-table th {
+      background: #f8fafc;
+      text-align: right;
+      padding: 16px 20px;
+      font-weight: 700;
+      color: var(--c-muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border-bottom: 1px solid var(--c-border);
+  }
+
+  .pt-table td {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--c-border);
+      color: var(--c-ink);
+      vertical-align: middle;
+      font-size: 0.95rem;
+      transition: background 0.1s;
+  }
+
+  .pt-table tr:hover td {
+      background: rgba(241,245,249, 0.5);
+  }
+
+  .pt-table tr:last-child td { border-bottom: none; }
+
+  /* Table Cells */
+  .cell-primary {
+      font-weight: 600;
+      color: var(--c-ink);
+  }
+
+  .cell-sub {
+      font-size: 0.85rem;
+      color: var(--c-muted);
+      display: block;
+      margin-top: 2px;
+  }
+
+  .cell-mono {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 0.9em;
+      color: var(--c-muted);
+  }
+
+  /* Chips */
+  .pt-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #f1f5f9;
+      border-radius: 99px;
+      font-size: 0.85rem;
+      color: #475569;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+  }
+  
+  .pt-chip.city {
+      background: #e0f2fe;
+      color: #0369a1;
+      border-color: #bae6fd;
+  }
+
+  /* Status Badges */
+  .pt-badge {
+      padding: 6px 12px;
+      border-radius: 99px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+  }
+  
+  .pt-badge.open { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+  .pt-badge.in_progress { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+  .pt-badge.done { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+  .pt-badge.rejected { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+  /* Empty State */
+  .pt-empty {
+      text-align: center;
+      padding: 48px;
+      color: var(--c-muted);
+  }
+  .pt-empty-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.3;
+  }
+
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container plat-tickets-scope" dir="rtl">
-  <div class="wrap">
+<div class="plat-tickets-scope" dir="rtl">
+    <div class="wrap">
+        
+        <!-- Header -->
+        <header class="pt-header">
+            <div class="pt-title-row">
+                <div>
+                    <h1 class="pt-title">تذاكر الدعم الفني</h1>
+                    <p class="pt-subtitle">إدارة ومتابعة طلبات الدعم الواردة من المدارس (المنصة المركزية).</p>
+                </div>
+                <div class="pt-actions">
+                    <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn-glass">
+                        <span>العودة للوحة القيادة</span>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    </a>
+                </div>
+            </div>
+        </header>
 
-    <section class="hero" aria-label="رأس تذاكر الدعم الفني">
-      <div class="hero-head">
-        <div>
-          <h1>تذاكر الدعم الفني (المنصة)</h1>
-          <p>متابعة تذاكر الدعم للمدارس على مستوى المنصة.</p>
+        <!-- Controls -->
+        <div class="pt-controls">
+            <!-- Filter Tabs -->
+            <div class="pt-filters">
+                <a href="?status=all&q={{ search_query }}" class="filter-tab {% if not current_status or current_status == 'all' %}active{% endif %}">الكل</a>
+                <a href="?status=open&q={{ search_query }}" class="filter-tab {% if current_status == 'open' %}active{% endif %}">جديد</a>
+                <a href="?status=in_progress&q={{ search_query }}" class="filter-tab {% if current_status == 'in_progress' %}active{% endif %}">قيد المعالجة</a>
+                <a href="?status=done&q={{ search_query }}" class="filter-tab {% if current_status == 'done' %}active{% endif %}">مكتمل</a>
+                <a href="?status=rejected&q={{ search_query }}" class="filter-tab {% if current_status == 'rejected' %}active{% endif %}">مرفوض</a>
+            </div>
+
+            <!-- Search Form -->
+            <form method="get" class="pt-search" action="">
+                {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" name="q" placeholder="بحث باسم المدرسة، الكود، أو رقم التذكرة..." value="{{ search_query }}">
+            </form>
         </div>
 
-        <div class="hero-actions">
-          <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
-            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            عودة للوحة المنصة
-          </a>
+        <!-- Data Table -->
+        <div class="pt-table-card">
+            <div class="pt-table-responsive">
+                <table class="pt-table">
+                    <thead>
+                        <tr>
+                            <th width="80">#</th>
+                            <th>العنوان</th>
+                            <th>المدرسة</th>
+                            <th>المدينة</th>
+                            <th>المرسل</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                            <th width="100">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr>
+                            <td>
+                                <span class="cell-mono">#{{ ticket.id }}</span>
+                            </td>
+                            
+                            <td>
+                                <div class="cell-primary">{{ ticket.title }}</div>
+                            </td>
+
+                            <td>
+                                <div class="cell-primary">{% firstof ticket.school.name ticket.school "—" %}</div>
+                                <span class="cell-sub cell-mono">{% firstof ticket.school.code "" %}</span>
+                            </td>
+                            
+                            <td>
+                                {% if ticket.school and ticket.school.city %}
+                                    <span class="pt-chip city">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                        {{ ticket.school.city }}
+                                    </span>
+                                {% else %}
+                                    <span class="cell-sub">—</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <div class="cell-primary">{% firstof ticket.creator.name ticket.creator.username %}</div>
+                                <span class="cell-sub">{% firstof ticket.creator.phone "—" %}</span>
+                            </td>
+
+                            <td>
+                                <div class="cell-primary">{{ ticket.created_at|date:"Y-m-d" }}</div>
+                                <span class="cell-sub">{{ ticket.created_at|date:"H:i A" }}</span>
+                            </td>
+
+                            <td>
+                                {% if ticket.status == 'open' %}
+                                    <span class="pt-badge open">جديد</span>
+                                {% elif ticket.status == 'in_progress' %}
+                                    <span class="pt-badge in_progress">قيد المعالجة</span>
+                                {% elif ticket.status == 'done' %}
+                                    <span class="pt-badge done">مكتمل</span>
+                                {% elif ticket.status == 'rejected' %}
+                                    <span class="pt-badge rejected">مرفوض</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <a href="{% url 'reports:ticket_detail' ticket.id %}" class="btn btn-sm btn-outline-primary" style="border-radius:8px;">
+                                    عرض
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8">
+                                <div class="pt-empty">
+                                    <div class="pt-empty-icon">📂</div>
+                                    <h3>لا توجد تذاكر حالياً</h3>
+                                    <p>حاول تغيير فلاتر البحث أو الحالة.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-      </div>
-    </section>
-
-    <div class="card tcard table-responsive">
-      <table class="rtable">
-        <thead>
-          <tr>
-            <th style="text-align:right">رقم التذكرة</th>
-            <th style="text-align:right">العنوان</th>
-            <th style="text-align:right">المدرسة</th>
-            <th style="text-align:right">المدينة</th>
-            <th style="text-align:right">المرسل</th>
-            <th>التاريخ</th>
-            <th>الحالة</th>
-            <th>إجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ticket in tickets %}
-            <tr>
-              <td data-label="#" style="text-align:right">
-                <span class="mono" style="font-weight:950;color:var(--pt-brand)">#{{ ticket.id }}</span>
-              </td>
-
-              <td data-label="العنوان" style="text-align:right">
-                <span class="t-title">{{ ticket.title }}</span>
-              </td>
-
-              <td data-label="المدرسة" style="text-align:right">
-                <div class="school">
-                  <b>{% firstof ticket.school.name ticket.school "—" %}</b>
-                  <small class="mono">{% firstof ticket.school.code "" %}</small>
-                </div>
-              </td>
-
-              <td data-label="المدينة" style="text-align:right">
-                {% if ticket.school and ticket.school.city %}
-                  <span class="chip city"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ ticket.school.city }}</span>
-                {% else %}
-                  <span class="muted" style="font-weight:850">—</span>
-                {% endif %}
-              </td>
-
-              <td data-label="المرسل" style="text-align:right">
-                <div class="sender">
-                  <b>{% firstof ticket.creator.name ticket.creator.phone "—" %}</b>
-                  <small class="mono">{% firstof ticket.creator.phone "—" %}</small>
-                </div>
-              </td>
-
-              <td data-label="التاريخ" class="muted" style="font-weight:850">
-                {{ ticket.created_at|date:"Y-m-d H:i" }}
-              </td>
-
-              <td data-label="الحالة">
-                {% if ticket.status == 'open' %}
-                  <span class="badge info"><i class="fa-regular fa-circle-dot" aria-hidden="true"></i> جديد</span>
-                {% elif ticket.status == 'in_progress' %}
-                  <span class="badge warning"><i class="fa-solid fa-spinner" aria-hidden="true"></i> قيد المعالجة</span>
-                {% elif ticket.status == 'done' %}
-                  <span class="badge success"><i class="fa-solid fa-check" aria-hidden="true"></i> مكتمل</span>
-                {% else %}
-                  <span class="badge danger"><i class="fa-solid fa-xmark" aria-hidden="true"></i> مرفوض</span>
-                {% endif %}
-              </td>
-
-              <td data-label="إجراء">
-                <a href="{% url 'reports:ticket_detail' ticket.id %}"
-                   class="btn btn-outline"
-                   style="min-height:38px;padding:8px 10px;border-radius:12px">
-                  <i class="fa-regular fa-eye" aria-hidden="true"></i>
-                  عرض
-                </a>
-              </td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="8" style="padding:22px;text-align:center">
-                <div class="empty">
-                  <div style="font-weight:950;color:var(--pt-ink)">لا توجد تذاكر دعم فني.</div>
-                  <div style="margin-top:6px;font-weight:850">ستظهر التذاكر هنا فور إنشائها من المدارس.</div>
-                </div>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        
     </div>
-
-  </div>
 </div>
 {% endblock %}
