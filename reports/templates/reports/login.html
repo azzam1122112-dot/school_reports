@@ -5,8 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2563eb">
-  <meta name="description" content="تسجيل الدخول لنظام التقارير الذكي">
-  <title>تسجيل الدخول | {{ SCHOOL_NAME|default:"نظام التقارير الذكي" }}</title>
+  <meta name="description" content="تسجيل الدخول لمنصة توثيق">
+  <title>تسجيل الدخول | منصة توثيق</title>
 
   <!-- Typography & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -300,14 +300,9 @@
         <!-- Brand -->
         <div class="brand-area">
           <div class="logo-circle">
-            {% if SCHOOL_LOGO %}
-              <img src="{{ SCHOOL_LOGO }}" alt="Logo" class="brand-logo-img">
-            {% else %}
-               <!-- Icon Fallback -->
-               <i class="fa-solid fa-shapes"></i>
-            {% endif %}
+            <img src="{% static 'img/logo1.png' %}" alt="منصة توثيق" class="brand-logo-img">
           </div>
-          <h1 class="brand-title">{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التوثيق الذكي{% endif %}</h1>
+          <h1 class="brand-title">منصة توثيق</h1>
           <div class="brand-sub">سجّل دخولك لمتابعة أعمالك</div>
         </div>
 
@@ -341,10 +336,10 @@
           <input type="hidden" name="next" value="{{ next }}">
 
           <div class="form-group">
-            <label for="username" class="form-label">اسم المستخدم / رقم الهوية</label>
+            <label for="identifier" class="form-label">رقم الجوال / رقم الهوية</label>
             <div class="input-wrapper">
-              <input type="text" name="username" id="username" class="form-input" 
-                     placeholder="أدخل اسم المستخدم" required autofocus autocomplete="username">
+              <input type="text" name="phone" id="identifier" class="form-input" 
+                     placeholder="05XXXXXXXX أو رقم الهوية" required autofocus autocomplete="username">
               <i class="fa-regular fa-user input-icon"></i>
             </div>
           </div>
@@ -376,7 +371,7 @@
   </div>
 
   <footer class="auth-footer">
-    &copy; {% now "Y" %} جميع الحقوق محفوظة — نظام التوثيق الذكي
+    &copy; {% now "Y" %} جميع الحقوق محفوظة — منصة توثيق
   </footer>
 
   <script nonce="{{ CSP_NONCE }}">

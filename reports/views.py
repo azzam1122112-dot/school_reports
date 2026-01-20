@@ -471,9 +471,47 @@ def login_view(request: HttpRequest) -> HttpResponse:
         return redirect("reports:home")
 
     if request.method == "POST":
-        phone = (request.POST.get("phone") or "").strip()
+        identifier = (
+            request.POST.get("phone")
+            or request.POST.get("username")
+            or request.POST.get("identifier")
+            or ""
+        ).strip()
         password = request.POST.get("password") or ""
-        user = authenticate(request, username=phone, password=password)
+
+        # يدعم تسجيل الدخول عبر:
+        # - رقم الجوال (المعرف الافتراضي USERNAME_FIELD)
+        # - رقم الهوية (نبحث عنه ثم نستخدم phone)
+        # مع بعض التطبيع الخفيف لأشكال رقم الجوال الشائعة.
+        attempts: list[str] = []
+        if identifier:
+            attempts.append(identifier)
+            ident_no_plus = identifier.lstrip("+")
+            if ident_no_plus != identifier:
+                attempts.append(ident_no_plus)
+            if identifier.isdigit() and len(identifier) == 9:
+                attempts.append("0" + identifier)
+            if ident_no_plus.isdigit() and ident_no_plus.startswith("966") and len(ident_no_plus) >= 12:
+                # +9665XXXXXXXX -> 05XXXXXXXX
+                attempts.append("0" + ident_no_plus[-9:])
+
+        # إزالة التكرارات مع الحفاظ على الترتيب
+        seen: set[str] = set()
+        attempts = [a for a in attempts if a and not (a in seen or seen.add(a))]
+
+        user = None
+        for phone_candidate in attempts:
+            user = authenticate(request, username=phone_candidate, password=password)
+            if user is not None:
+                break
+
+        if user is None and identifier:
+            try:
+                potential_by_national = Teacher.objects.filter(national_id=identifier).only("phone").first()
+                if potential_by_national is not None and getattr(potential_by_national, "phone", None):
+                    user = authenticate(request, username=potential_by_national.phone, password=password)
+            except Exception:
+                user = None
         if user is not None:
             # ✅ قواعد الاشتراك عند تسجيل الدخول:
             # - السوبر: يتجاوز دائمًا.
@@ -590,13 +628,21 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
         # فشل المصادقة: نتحقق هل السبب هو أن الحساب موقوف (is_active=False)
         try:
-            potential_user = Teacher.objects.get(phone=phone)
-            if not potential_user.is_active and potential_user.check_password(password):
+            from django.db.models import Q
+
+            q = Q()
+            if attempts:
+                q |= Q(phone__in=attempts)
+            if identifier:
+                q |= Q(national_id=identifier)
+
+            potential_user = Teacher.objects.filter(q).first() if q else None
+            if potential_user is not None and (not potential_user.is_active) and potential_user.check_password(password):
                 messages.error(request, "عذرًا، حسابك موقوف. يرجى التواصل مع الإدارة.")
             else:
-                messages.error(request, "رقم الجوال أو كلمة المرور غير صحيحة")
-        except Teacher.DoesNotExist:
-            messages.error(request, "رقم الجوال أو كلمة المرور غير صحيحة")
+                messages.error(request, "رقم الجوال/الهوية أو كلمة المرور غير صحيحة")
+        except Exception:
+            messages.error(request, "رقم الجوال/الهوية أو كلمة المرور غير صحيحة")
 
     context = {"next": _safe_next_url(request.GET.get("next"))}
     return render(request, "reports/login.html", context)
