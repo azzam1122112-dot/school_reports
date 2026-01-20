@@ -237,6 +237,7 @@ urlpatterns = [
     # =========================
     path("subscription/expired/", views.subscription_expired, name="subscription_expired"),
     path("subscription/my/", views.my_subscription, name="my_subscription"),
+    path("subscription/history/", views.subscription_history, name="subscription_history"),
     path("subscription/payment/create/", views.payment_create, name="payment_create"),
 
     # =========================

@@ -3247,6 +3247,14 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
     # ✅ تمييز مشرف التقارير داخل المدرسة النشطة
     if active_school is not None:
         try:
+            title_sq = (
+                SchoolMembership.objects.filter(
+                    school=active_school,
+                    teacher=OuterRef("pk"),
+                    role_type=SchoolMembership.RoleType.TEACHER,
+                )
+                .values("job_title")[:1]
+            )
             viewer_m = SchoolMembership.objects.filter(
                 school=active_school,
                 teacher=OuterRef("pk"),
@@ -3254,6 +3262,7 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
             )
             qs = qs.annotate(
                 is_report_viewer=Exists(viewer_m),
+                school_job_title=Subquery(title_sq),
             )
         except Exception:
             pass
@@ -3512,6 +3521,12 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         # إنشاء معلّم فقط: بدون قسم/بدون دور داخل قسم. التكاليف تتم من صفحة أعضاء القسم.
         form = TeacherCreateForm(request.POST)
+        job_title = None
+        try:
+            # يحدد المسمى الوظيفي داخل المدرسة (بنفس الصلاحيات)
+            job_title = (request.POST.get("job_title") or "").strip() or None
+        except Exception:
+            job_title = None
 
         # ✅ إذا كان رقم الجوال موجودًا مسبقًا: لا ننشئ مستخدمًا جديدًا، بل نربطه بهذه المدرسة
         try:
@@ -3575,7 +3590,10 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                             school=active_school,
                             teacher=existing_teacher,
                             role_type=SchoolMembership.RoleType.TEACHER,
-                            defaults={"is_active": True},
+                            defaults={
+                                "is_active": True,
+                                **({"job_title": job_title} if job_title else {}),
+                            },
                         )
                     messages.success(request, "✅ تم ربط المستخدم الموجود بهذه المدرسة بنجاح (بدون إنشاء حساب جديد).")
                     next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
@@ -3620,7 +3638,10 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                             school=active_school,
                             teacher=teacher,
                             role_type=SchoolMembership.RoleType.TEACHER,
-                            defaults={"is_active": True},
+                            defaults={
+                                "is_active": True,
+                                **({"job_title": job_title} if job_title else {}),
+                            },
                         )
                 messages.success(request, "✅ تم إضافة المستخدم بنجاح.")
                 next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
@@ -3659,7 +3680,7 @@ def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect("reports:manage_teachers")
     if request.method == "POST":
         # تعديل بيانات المعلّم فقط — التكاليف تتم من صفحة أعضاء القسم
-        form = TeacherEditForm(request.POST, instance=teacher)
+        form = TeacherEditForm(request.POST, instance=teacher, active_school=active_school)
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -3673,7 +3694,7 @@ def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
         else:
             messages.error(request, "الرجاء تصحيح الأخطاء الظاهرة.")
     else:
-        form = TeacherEditForm(instance=teacher)
+        form = TeacherEditForm(instance=teacher, active_school=active_school)
 
     return render(request, "reports/edit_teacher.html", {"form": form, "teacher": teacher, "title": "تعديل مستخدم"})
 
@@ -7703,7 +7724,9 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
         except Exception:
             pass
 
-    if not request.user.is_superuser and not _is_manager_in_school(request.user, active_school):
+    # ✅ صفحة "المرسلة" يجب أن تُظهر ما أرسله المستخدم الحالي فقط
+    # (مدير المدرسة كان يرى سابقًا جميع إشعارات المدرسة بما فيها إشعارات المشرفين)
+    if not request.user.is_superuser:
         qs = qs.filter(created_by=request.user)
 
     qs = qs.select_related("created_by")
@@ -8040,8 +8063,8 @@ def my_subscription(request):
         .first()
     )
     
-    # جلب آخر العمليات (أوسع قليلاً لتظهر الإلغاء/الاسترجاع سريعًا)
-    payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:20]
+    # تظهر آخر 4 عمليات فقط
+    payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:4]
     
     context = {
         "subscription": subscription,
@@ -8052,6 +8075,39 @@ def my_subscription(request):
         "payments": payments,
     }
     return render(request, 'reports/my_subscription.html', context)
+
+def subscription_history(request):
+    """عرض سجل العمليات الكامل للاشتراكات"""
+    active_school = _get_active_school(request)
+    
+    # جلب جميع عضويات الإدارة للمستخدم
+    memberships = SchoolMembership.objects.filter(
+        teacher=request.user, 
+        role_type=SchoolMembership.RoleType.MANAGER,
+        is_active=True
+    ).select_related('school')
+    
+    membership = None
+    # محاولة استخدام المدرسة النشطة إذا كان المستخدم مديراً فيها
+    if active_school:
+        membership = memberships.filter(school=active_school).first()
+    
+    # إذا لم توجد مدرسة نشطة أو المستخدم ليس مديراً فيها، نأخذ أول مدرسة يديرها
+    if not membership:
+        membership = memberships.first()
+    
+    if not membership:
+        messages.error(request, "عفواً، هذه الصفحة مخصصة لمدير المدرسة فقط.")
+        return redirect('reports:home')
+
+    # جلب كامل العمليات
+    payments = Payment.objects.filter(school=membership.school).order_by('-created_at')
+    
+    context = {
+        "school": membership.school,
+        "payments": payments,
+    }
+    return render(request, 'reports/subscription_history.html', context)
 
 @login_required(login_url="reports:login")
 def payment_create(request):

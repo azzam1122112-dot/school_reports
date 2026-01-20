@@ -591,8 +591,8 @@
         <span style="font-weight: 700; color: var(--text-primary);" dir="ltr">{{ subscription.end_date|date:"Y-m-d"|default:"-" }}</span>
       </div>
 
-      <a href="https://wa.me/966537720207" target="_blank" class="support-link">
-        <i class="fa-brands fa-whatsapp"></i> تواصل مع الدعم الفني
+      <a href="{% url 'reports:support_ticket_create' %}" class="support-link">
+        <i class="fa-solid fa-life-ring"></i> تواصل مع الدعم الفني
       </a>
     </aside>
 
@@ -698,7 +698,12 @@
 
       <!-- History Section -->
       <div class="glass-card history-container">
-        <h2 class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات السابقة</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 class="section-title" style="margin-bottom: 0;"><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات السابقة</h2>
+          <a href="{% url 'reports:subscription_history' %}" style="font-size: 0.9rem; color: var(--primary); font-weight: 700; text-decoration: none;">
+            عرض الكل <i class="fa-solid fa-arrow-left" style="font-size: 0.8em;"></i>
+          </a>
+        </div>
         
         <div class="table-responsive">
           <table class="custom-table">

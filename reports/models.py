@@ -313,6 +313,33 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
                 return "مدير المدرسة"
         except Exception:
             pass
+
+        # ✅ لو هناك مدرسة نشطة في الطلب الحالي: اعرض المسمى الوظيفي حسب العضوية (يدعم تعدد المدارس)
+        try:
+            from .middleware import get_current_request
+
+            request = get_current_request()
+            sid = None
+            if request is not None:
+                sid = request.session.get("active_school_id")
+            if sid and getattr(self, "pk", None):
+                m = (
+                    SchoolMembership.objects.filter(
+                        school_id=sid,
+                        teacher_id=self.pk,
+                        role_type=SchoolMembership.RoleType.TEACHER,
+                        is_active=True,
+                    )
+                    .only("job_title")
+                    .first()
+                )
+                if m is not None and getattr(m, "job_title", None):
+                    try:
+                        return m.get_job_title_display() or "المعلم"
+                    except Exception:
+                        return "المعلم"
+        except Exception:
+            pass
         try:
             if self.role is not None:
                 return (getattr(self.role, "name", None) or getattr(self.role, "slug", None) or "").strip() or "المعلم"
@@ -621,6 +648,11 @@ class SchoolMembership(models.Model):
         MANAGER = "manager", "مدير مدرسة"
         REPORT_VIEWER = "report_viewer", "مشرف تقارير (عرض فقط)"
 
+    class JobTitle(models.TextChoices):
+        TEACHER = "teacher", "معلم"
+        ADMIN_STAFF = "admin_staff", "موظف إداري"
+        LAB_TECH = "lab_tech", "محضر مختبر"
+
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
@@ -638,6 +670,14 @@ class SchoolMembership(models.Model):
         max_length=16,
         choices=RoleType.choices,
         default=RoleType.TEACHER,
+    )
+
+    job_title = models.CharField(
+        "المسمى الوظيفي داخل المدرسة",
+        max_length=16,
+        choices=JobTitle.choices,
+        default=JobTitle.TEACHER,
+        help_text="للعرض فقط داخل المدرسة (بنفس الصلاحيات).",
     )
     is_active = models.BooleanField("نشط؟", default=True)
     created_at = models.DateTimeField("أُنشئ في", auto_now_add=True)

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}سجل عمليات الاشتراك{% endblock %}
+
+{% block content %}
+<div class="container section-padding">
+  
+  <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+      <h1 class="page-title" style="margin-bottom:0.5rem">سجل العمليات</h1>
+      <p style="color:var(--text-secondary)">{{ school.name }}</p>
+    </div>
+    <a href="{% url 'reports:my_subscription' %}" class="btn-back">
+      <i class="fa-solid fa-arrow-right"></i>
+      <span>عودة للاشتراك</span>
+    </a>
+  </header>
+
+  <!-- History Section -->
+  <div class="glass-card history-container">
+    <div class="table-responsive">
+      <table class="custom-table" style="width:100%; border-collapse: separate; border-spacing: 0 0.5rem;">
+        <thead>
+          <tr>
+            <th style="text-align:right">التاريخ</th>
+            <th style="text-align:right">الباقة</th>
+            <th style="text-align:right">المبلغ</th>
+            <th style="text-align:right">الحالة</th>
+            <th style="text-align:right">ملاحظات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+          <tr style="background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <td style="padding:1rem; border-radius: 0 8px 8px 0;"><span dir="ltr" style="font-weight: 600;">{{ payment.created_at|date:"Y-m-d" }}</span></td>
+            <td style="padding:1rem;">{{ payment.requested_plan.name|default:"-" }}</td>
+            <td style="padding:1rem; font-family: 'Courier New', monospace; font-weight: 700;">
+                {% if payment.amount < 0 %}
+                <span style="color:#ef4444" dir="ltr">{{ payment.amount }} SAR</span>
+                {% else %}
+                <span dir="ltr">{{ payment.amount }} SAR</span>
+                {% endif %}
+            </td>
+            <td style="padding:1rem;">
+               {% if payment.status == 'approved' and payment.amount < 0 %}
+                 <span style="color:#ef4444; font-weight:700"><i class="fa-solid fa-rotate-left"></i> استرجاع</span>
+               {% elif payment.status == 'approved' %}
+                 <span style="color:var(--success-color); font-weight:700"><i class="fa-solid fa-check"></i> تم التفعيل</span>
+               {% elif payment.status == 'cancelled' %}
+                 <span style="color:var(--text-secondary); font-weight:700"><i class="fa-solid fa-ban"></i> ملغي</span>
+               {% elif payment.status == 'rejected' %}
+                 <span style="color:var(--danger-color); font-weight:700"><i class="fa-solid fa-xmark"></i> مرفوض</span>
+               {% else %}
+                 <span style="color:var(--warning-color); font-weight:700"><i class="fa-solid fa-clock"></i> قيد المراجعة</span>
+               {% endif %}
+            </td>
+            <td style="padding:1rem; border-radius: 8px 0 0 8px; max-width: 300px;">
+                {{ payment.notes|default:"-"|linebreaksbr }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+              لا توجد عمليات سابقة.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

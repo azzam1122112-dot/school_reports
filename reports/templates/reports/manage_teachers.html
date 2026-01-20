@@ -105,7 +105,13 @@
                       </div>
                     {% else %}
                       {% with slug=t.role_slug|default_if_none:''|lower %}
-                        {% if slug == 'manager' %}
+                        {% if t.is_report_viewer %}
+                          <span class="chip chip-role role-officer"><i class="fas fa-user-shield"></i> مشرف تقارير</span>
+                        {% elif t.school_job_title == 'admin_staff' %}
+                          <span class="chip chip-role role-employee"><i class="fas fa-id-badge"></i> موظف إداري</span>
+                        {% elif t.school_job_title == 'lab_tech' %}
+                          <span class="chip chip-role role-employee"><i class="fas fa-flask"></i> محضر مختبر</span>
+                        {% elif slug == 'manager' %}
                           <span class="chip chip-role role-manager"><i class="fas fa-crown"></i> مدير</span>
                         {% elif slug == 'teacher' %}
                           <span class="chip chip-role role-teacher"><i class="fas fa-user-graduate"></i> معلم</span>

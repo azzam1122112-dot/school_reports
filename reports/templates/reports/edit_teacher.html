@@ -343,6 +343,18 @@
             <div class="te-hint">يبدأ بـ 05 ويحتوي على 10 أرقام</div>
           </div>
 
+          {% if form.job_title %}
+          <div class="te-group">
+            <label class="te-label" for="{{ form.job_title.id_for_label }}">
+              <i class="fa-solid fa-user-tag te-icon" aria-hidden="true"></i>
+              الدور
+            </label>
+            {{ form.job_title }}
+            {% for e in form.job_title.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
+            <div class="te-hint">اختر (معلم / موظف إداري / محضر مختبر) — بنفس الصلاحيات</div>
+          </div>
+          {% endif %}
+
           <div class="te-group">
             <label class="te-label" for="{{ form.password.id_for_label }}">
               <i class="fa-solid fa-key te-icon" aria-hidden="true"></i>

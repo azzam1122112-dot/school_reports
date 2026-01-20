@@ -559,6 +559,14 @@ class TeacherCreateForm(forms.ModelForm):
             ),
         }
 
+    job_title = forms.ChoiceField(
+        label="الدور",
+        required=True,
+        choices=SchoolMembership.JobTitle.choices,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        help_text="(بنفس الصلاحيات) — للاسم المعروض داخل المدرسة فقط.",
+    )
+
     def clean_national_id(self):
         nid = (self.cleaned_data.get("national_id") or "").strip()
         if nid:
@@ -656,6 +664,49 @@ class TeacherEditForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": "الاسم الكامل", "maxlength": "150"}
             ),
         }
+
+    job_title = forms.ChoiceField(
+        label="الدور",
+        required=False,
+        choices=SchoolMembership.JobTitle.choices,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        help_text="(بنفس الصلاحيات) — للاسم المعروض داخل المدرسة فقط.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        self._active_school = kwargs.pop("active_school", None)
+        super().__init__(*args, **kwargs)
+
+        # initial job title from membership for active school (if available)
+        try:
+            if self._active_school is not None and self.instance and self.instance.pk:
+                m = SchoolMembership.objects.filter(
+                    school=self._active_school,
+                    teacher=self.instance,
+                    role_type=SchoolMembership.RoleType.TEACHER,
+                ).only("job_title").first()
+                if m is not None and getattr(m, "job_title", None):
+                    self.fields["job_title"].initial = m.job_title
+        except Exception:
+            pass
+
+    def save(self, commit: bool = True):
+        instance: Teacher = super().save(commit=commit)
+
+        # persist job title to membership (per-school)
+        try:
+            if self._active_school is not None and instance and instance.pk:
+                jt = (self.cleaned_data.get("job_title") or "").strip() or None
+                if jt:
+                    SchoolMembership.objects.filter(
+                        school=self._active_school,
+                        teacher=instance,
+                        role_type=SchoolMembership.RoleType.TEACHER,
+                    ).update(job_title=jt)
+        except Exception:
+            pass
+
+        return instance
 
     def clean_national_id(self):
         nid = (self.cleaned_data.get("national_id") or "").strip()
