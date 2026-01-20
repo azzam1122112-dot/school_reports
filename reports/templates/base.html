@@ -40,7 +40,413 @@
   <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    /* 
+       NEO-PROFESSIONAL THEME 2026 
+       Global Design System Overlay
+    */
+    :root {
+      --font-base: 'Tajawal', system-ui, -apple-system, sans-serif;
+      
+      /* Palette */
+      --brand: #1e293b;       /* Slate 900 (Professional Dark) */
+      --brand-alpha: rgba(30, 41, 59, 0.95);
+      --accent: #2563eb;      /* Royal Blue */
+      --accent-hover: #1d4ed8;
+      
+      --surface: #ffffff;
+      --bg-body: #f8fafc;     /* Slate 50 */
+      --bg-sub: #f1f5f9;      /* Slate 100 */
+      
+      --text-main: #0f172a;   /* Slate 900 */
+      --text-muted: #64748b;  /* Slate 500 */
+      --text-light: #94a3b8;  /* Slate 400 */
+      
+      --border-light: #e2e8f0;
+      --border-focus: #cbd5e1;
+      
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      
+      /* Elevations */
+      --shadow-xs: 0 1px 2px 0 rgba(0,0,0,0.05);
+      --shadow-sm: 0 4px 6px -1px rgba(0,0,0,0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+      --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+      
+      /* Radii */
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 16px;
+      --r-full: 9999px;
+      
+      /* Transitions */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-feedback: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    body {
+      font-family: var(--font-base);
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+    }
+
+    /* --- NEW HEADER (Glassmorphism) --- */
+    .site-header {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s var(--ease-out);
+    }
+    
+    .site-header.scrolled {
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      width: 100%;
+      max-width: 1400px; /* Wider Global Layout */
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Brand */
+    .hdr-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--brand);
+      transition: transform 0.2s;
+    }
+    .hdr-brand:hover { transform: scale(1.02); }
+    .hdr-brand img { 
+      border-radius: 10px; 
+      box-shadow: var(--shadow-sm);
+    }
+    .hdr-brand-name {
+      font-weight: 800;
+      font-size: 1.1rem;
+      line-height: 1.2;
+    }
+    .hdr-brand-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Navigation Tabs (Modern Pill/Underline) */
+    .hdr-nav {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-sub);
+      padding: 4px;
+      border-radius: var(--r-full);
+      border: 1px solid var(--border-light);
+    }
+    
+    @media (max-width: 991px) { .hdr-nav { display: none; } } /* Hide on Mobile */
+
+    .hdr-nav .tab {
+      padding: 6px 16px;
+      border-radius: var(--r-full);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: all 0.2s var(--ease-out);
+      position: relative;
+    }
+    
+    .hdr-nav .tab:hover {
+      color: var(--text-main);
+      background: rgba(255,255,255,0.5);
+    }
+    
+    .hdr-nav .tab.is-active {
+      background: var(--surface);
+      color: var(--accent);
+      box-shadow: var(--shadow-sm);
+    }
+    .hdr-nav .tab .pill {
+      background: var(--danger);
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 99px;
+      margin-inline-start: 6px;
+    }
+
+    /* Actions Area */
+    .hdr-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+      text-decoration: none;
+    }
+    .icon-btn:hover {
+      background: var(--bg-sub);
+      color: var(--accent);
+      border-color: var(--border-light);
+    }
+    .icon-btn .dot {
+      position: absolute;
+      top: -2px; right: -2px;
+      background: var(--danger);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 800;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 99px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--surface);
+    }
+
+    /* User Avatar */
+    .userbox { position: relative; }
+    .avatar {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      border: 2px solid rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: transform 0.2s var(--ease-feedback);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .avatar:hover { transform: scale(1.05) rotate(3deg); box-shadow: 0 0 0 3px var(--bg-sub); }
+    
+    .userbox .menu {
+      position: absolute;
+      top: 120%;
+      left: 0; /* RTL adjusted */
+      min-width: 220px;
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-xl);
+      padding: 8px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: all 0.2s var(--ease-out);
+      z-index: 1001;
+    }
+    .userbox .menu[aria-expanded="true"], .userbox:focus-within .menu, .userbox:hover .menu {
+      opacity: 1; visibility: visible; transform: translateY(0);
+    }
+    
+    .mi {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--r-md);
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+    .mi:hover { background: var(--bg-sub); color: var(--accent); }
+    .mi i { width: 20px; text-align: center; color: var(--text-muted); }
+    .mi:hover i { color: var(--accent); }
+    .mi .meta { font-size: 0.8rem; color: var(--text-muted); font-weight: normal; }
+
+    /* --- TOAST MESSAGES (Luxury) --- */
+    .messages {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: none;
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+    }
+    
+    .msg {
+      pointer-events: auto;
+      background: var(--surface);
+      border-radius: var(--r-lg);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-glass), var(--shadow-xl);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      animation: msgSlideIn 0.5s var(--ease-out) forwards;
+      border-right: 4px solid var(--accent); /* RTL indicator */
+      position: relative;
+      overflow: hidden;
+    }
+    
+    @keyframes msgSlideIn {
+      from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    
+    .msg.success { border-color: var(--success); }
+    .msg.error { border-color: var(--danger); }
+    .msg.warning { border-color: var(--warning); }
+    
+    .msg-icon { font-size: 1.2rem; margin-top: 2px; }
+    .msg.success .msg-icon { color: var(--success); }
+    .msg.error .msg-icon { color: var(--danger); }
+    
+    .msg-content { flex: 1; font-weight: 600; font-size: 0.95rem; }
+    .msg-close {
+      background: transparent; border: none; color: var(--text-muted);
+      cursor: pointer; padding: 4px; border-radius: 4px;
+    }
+    .msg-close:hover { background: var(--bg-sub); color: var(--text-main); }
+    
+    /* --- FOOTER (Minimal) --- */
+    .site-footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border-light);
+      margin-top: 64px;
+      padding: 32px 0;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    
+    @media (max-width: 768px) {
+      .hdr-brand-name { display: none; } /* Simpler mobile brand */
+      .hdr { padding: 0 16px; }
+      .container { padding: 0 16px; }
+    }
+
+    /* --- GLOBAL COMPONENT OVERRIDES --- */
+    
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: var(--r-md);
+        font-weight: 600;
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        border: 1px solid transparent;
+        line-height: 1.5;
+    }
+    .btn-sm { font-size: 0.85rem; padding: 6px 12px; }
+    
+    .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border-light);
+        color: var(--text-main);
+    }
+    .btn-outline:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--bg-sub);
+    }
+    
+    .btn-primary {
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 2px 4px rgba(37,99,235,0.2);
+    }
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+    }
+
+    /* Mobile Drawer (Glass) */
+    .drawer {
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(20px);
+        width: 300px;
+        max-width: 85vw;
+        box-shadow: var(--shadow-xl);
+    }
+    
+    .drawer-nav a {
+        border-radius: var(--r-md);
+        margin-bottom: 4px;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+    .drawer-nav a:hover, .drawer-nav a.is-active {
+        background: var(--bg-sub);
+        color: var(--accent);
+    }
+
+    /* Modals (School Switcher) */
+    .school-panel {
+        border-radius: var(--r-lg);
+        box-shadow: var(--shadow-xl), var(--shadow-glass);
+        background: var(--surface);
+        border: 1px solid var(--border-light);
+        max-width: 500px;
+    }
+    .school-list li button {
+        border-radius: var(--r-md);
+        transition: 0.1s;
+    }
+    .school-list li button:hover {
+        background: var(--bg-sub);
+        transform: translateX(-4px); /* RTL Slide */
+    }
+
+    /* Footer */
+    .site-footer { margin-top: auto; }
+    
+    /* Scroll Progress */
+    .progress-bar {
+        background: linear-gradient(90deg, var(--accent), #60a5fa);
+        height: 3px;
+        box-shadow: 0 1px 2px rgba(37,99,235,0.3);
+    }
+  </style>
 
   <!-- Icons (محليًا لضمان ظهورها بالجوال حتى لو تعطل CDN) -->
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
@@ -420,10 +826,20 @@
   {% if messages %}
     <div class="messages" id="messages-container" aria-live="polite" aria-atomic="true">
       {% for message in messages %}
-        <div class="msg {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" data-autohide="true">
-          <button class="msg-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
-          {{ message }}
-          <div class="msg-progress"></div>
+        <div class="msg {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" role="alert">
+          <div class="msg-icon">
+             {% if 'success' in message.tags %}
+               <i class="fa-solid fa-check-circle"></i>
+             {% elif 'error' in message.tags or 'danger' in message.tags %}
+               <i class="fa-solid fa-circle-exclamation"></i>
+             {% elif 'warning' in message.tags %}
+               <i class="fa-solid fa-triangle-exclamation"></i>
+             {% else %}
+               <i class="fa-solid fa-circle-info"></i>
+             {% endif %}
+          </div>
+          <div class="msg-content">{{ message }}</div>
+          <button class="msg-close" aria-label="إغلاق" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
         </div>
       {% endfor %}
     </div>
