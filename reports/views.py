@@ -6696,7 +6696,13 @@ def assigned_to_me(request: HttpRequest) -> HttpResponse:
     else:
         qs = qs.order_by(order)
 
-    raw_counts = dict(qs.values("status").annotate(c=Count("id")).values_list("status", "c"))
+    # Use a clean copy for stats to avoid grouping by order fields
+    raw_counts = dict(
+        qs.order_by()
+        .values("status")
+        .annotate(c=Count("id", distinct=True))
+        .values_list("status", "c")
+    )
     stats = {
         "open": raw_counts.get("open", 0),
         "in_progress": raw_counts.get("in_progress", 0),
