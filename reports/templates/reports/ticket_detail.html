@@ -2,525 +2,601 @@
 {% extends "base.html" %}
 {% load static ticket_notes %}
 
-{% block title %}{% if t.is_platform %}تفاصيل طلب الدعم الفني #{{ t.id }}{% else %}تفاصيل الطلب #{{ t.id }}{% endif %}{% endblock %}
+{% block title %}
+  {% if t.is_platform %}دعم فني #{{ t.id }} - {{ t.title }}{% else %}طلب #{{ t.id }} - {{ t.title }}{% endif %}
+{% endblock %}
 
 {% block head %}
 <style>
-  /* =========================================================
-     Ticket Detail (page-only)
-     - Scoped داخل .ticket-wrap (بدون :root وبدون كسر base)
-     - Dark mode عبر html[data-theme="dark"]
-     - لا نعيد تعريف .btn/.card العامة، فقط تحسينات داخل الصفحة
-     ========================================================= */
+/* =========================================================
+   Neo-Professional 2026 Ticket Detail System
+   - Luxuriously clean, distinct, and unambiguous.
+   ========================================================= */
 
-  .ticket-wrap{max-width:1100px;margin-inline:auto;padding:18px}
-  @media(max-width:520px){ .ticket-wrap{padding:14px 12px} }
+:root {
+  /* Unified Palette */
+  --c-brand: #2563eb;       /* Brand Blue */
+  --c-brand-rgb: 37, 99, 235;
+  --c-text: #0f172a;        /* Slate 900 */
+  --c-text-muted: #64748b;  /* Slate 500 */
+  --c-surface: #ffffff;
+  --c-surface-alt: #f8fafc; /* Slate 50 */
+  --c-border: #e2e8f0;      /* Slate 200 */
+  
+  /* Type Specific Colors (Crucial for distinction) */
+  --c-platform: #7c3aed;    /* Violet for Tech Support */
+  --c-platform-bg: #f5f3ff;
+  --c-request: #0ea5e9;     /* Sky for Requests */
+  --c-request-bg: #f0f9ff;
 
-  /* ===== Top bar ===== */
-  .ticket-bar{
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    box-shadow: 0 12px 30px rgba(2,6,23,.10);
-    padding: 12px 14px;
-    display:flex;
-    gap: 12px;
-    align-items:flex-start;
-    justify-content:space-between;
-    flex-wrap:wrap;
-  }
-  .ticket-bar h1{margin:0;font-size:1.15rem;font-weight:950;color:var(--ink)}
-  .ticket-minor{color:var(--muted);font-weight:850;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .ticket-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  @media(max-width:520px){
-    .ticket-actions{width:100%}
-    .ticket-actions .btn{flex:1;justify-content:center}
-  }
+  /* Status Colors */
+  --s-new: #3b82f6; --s-new-bg: #eff6ff;
+  --s-pro: #8b5cf6; --s-pro-bg: #f5f3ff;
+  --s-don: #10b981; --s-don-bg: #ecfdf5;
+  --s-rej: #ef4444; --s-rej-bg: #fef2f2;
+}
 
-  /* تحسين بسيط لأزرار هذه الصفحة فقط */
-  .ticket-wrap .btn{min-height:44px;border-radius:12px}
-  .ticket-wrap .btn.btn-danger{
-    background: rgba(239,68,68,.10);
-    border-color: rgba(239,68,68,.22);
-    color: #991b1b;
-  }
+.ticket-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Tajawal', sans-serif;
+  color: var(--c-text);
+  padding-bottom: 60px;
+}
 
-  /* ===== Layout ===== */
-  .ticket-grid{display:grid;gap:18px;margin-top:14px}
-  @media(min-width:980px){ .ticket-grid{grid-template-columns:1.1fr .9fr} }
+/* 1. Header Hero Section */
+.hero-header {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  margin-bottom: 24px;
+  overflow: hidden;
+  position: relative;
+}
 
-  /* ===== Cards (نعتمد card من base) ===== */
-  .ticket-card-hd{
-    padding:16px 18px;
-    border-bottom:1px solid var(--line);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    background: linear-gradient(180deg, var(--line-2), var(--card));
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
-  }
-  .ticket-card-ttl{margin:0;font-weight:950;color:var(--ink);display:flex;gap:10px;align-items:center}
-  .ticket-card-bd{padding:16px 18px}
-  @media(max-width:520px){
-    .ticket-card-hd{padding:14px 14px}
-    .ticket-card-bd{padding:14px 14px}
-    .ticket-wrap .input,
-    .ticket-wrap .select,
-    .ticket-wrap .textarea{font-size:16px}
-  }
+/* Distinct Top Stripe */
+.hero-stripe {
+  height: 6px;
+  width: 100%;
+  background: var(--c-request); /* Default */
+}
+.hero-stripe.is-platform { background: var(--c-platform); }
 
-  /* ===== Status pill ===== */
-  .t-status{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:6px 12px;
-    border-radius:999px;
-    font-weight:950;
-    font-size:.85rem;
-    border:1px solid transparent;
-    background: rgba(37,99,235,.10);
-    color: #1e40af;
-  }
-  .t-dot{width:8px;height:8px;border-radius:999px;background:#2563eb}
+.hero-body {
+  padding: 24px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
+}
 
-  .t-new,.t-open{background: rgba(16,185,129,.12); color:#166534; border-color: rgba(16,185,129,.22)}
-  .t-new .t-dot,.t-open .t-dot{background:#16a34a}
+.hero-main {
+  flex: 1;
+  min-width: 300px;
+}
 
-  .t-in_progress,.t-pending{background: rgba(124,58,237,.12); color:#5b21b6; border-color: rgba(124,58,237,.22)}
-  .t-in_progress .t-dot,.t-pending .t-dot{background:#7c3aed}
+.ticket-badges {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
 
-  .t-done{background: rgba(14,165,233,.12); color:#075985; border-color: rgba(14,165,233,.22)}
-  .t-done .t-dot{background:#0ea5e9}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
 
-  .t-rejected,.t-cancelled{background: rgba(239,68,68,.12); color:#991b1b; border-color: rgba(239,68,68,.22)}
-  .t-rejected .t-dot,.t-cancelled .t-dot{background:#ef4444}
+.badge-id {
+  background: var(--c-surface-alt);
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-border);
+  font-family: 'Fira Code', monospace;
+}
 
-  /* ===== Summary rows ===== */
-  .summary{display:grid;gap:12px}
-  .srow{display:grid;grid-template-columns:180px 1fr;gap:12px}
-  .sk{color:var(--muted);font-weight:900}
-  .sv{color:var(--ink);font-weight:950}
-  .content-pre{white-space:pre-wrap;line-height:1.9;color:var(--ink);font-weight:850}
-  @media(max-width:600px){ .srow{grid-template-columns:1fr} }
+.badge-type {
+  background: var(--c-request-bg);
+  color: var(--c-request);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+}
+.badge-type.platform {
+  background: var(--c-platform-bg);
+  color: var(--c-platform);
+  border-color: rgba(124, 58, 237, 0.2);
+}
 
-  /* ===== Notes ===== */
-  .notes{display:grid;gap:12px}
-  .note{
-    border:1px solid var(--line);
-    border-radius: 14px;
-    padding: 12px 14px;
-    background: var(--card);
-    box-shadow: 0 6px 18px rgba(2,6,23,.06);
-  }
-  .note-meta{color:var(--muted);font-size:.92rem;font-weight:850;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .note-actions{margin-inline-start:auto;display:flex;gap:8px;align-items:center}
-  .note-edit{
-    width:36px;height:36px;border-radius:10px;
-    border:1px solid var(--line);
-    background: var(--card);
-    display:inline-flex;align-items:center;justify-content:center;
-    text-decoration:none;color:var(--muted);
-    transition: var(--t-fast);
-  }
-  .note-edit:hover{color:var(--ink);box-shadow:0 10px 22px rgba(2,6,23,.10);transform:translateY(-1px)}
-  .note-txt{margin-top:6px;white-space:pre-wrap;line-height:1.85;color:var(--ink);font-weight:850}
-  .empty{color:var(--muted);font-weight:850}
+.hero-title {
+  margin: 0 0 8px 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--c-text);
+}
 
-  /* ===== Forms ===== */
-  .form{display:grid;gap:12px}
-  .input,.select,.textarea{
-    width:100%;
-    padding:12px;
-    border:1px solid var(--line);
-    border-radius:12px;
-    background: var(--card);
-    font: inherit;
-    color: var(--ink);
-  }
-  .textarea{min-height:120px;white-space:pre-wrap}
-  .help{color:var(--muted);font-size:.92rem;font-weight:850}
+.hero-meta {
+  display: flex;
+  gap: 16px;
+  color: var(--c-text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  flex-wrap: wrap;
+}
+.hero-meta span { display: flex; align-items: center; gap: 6px; }
 
-  /* ===== Gallery ===== */
-  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
-  .thumb{
-    display:block;
-    border:1px solid var(--line);
-    border-radius:12px;
-    overflow:hidden;
-    background: var(--card);
-    text-decoration:none;
-    color: inherit;
-    transition: var(--t-fast);
-  }
-  .thumb:hover{box-shadow:0 10px 22px rgba(2,6,23,.10);transform:translateY(-1px)}
-  .thumb img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/3;display:block}
-  .cap{display:block;padding:6px 8px;font-size:.85rem;color:var(--muted);font-weight:850}
+/* Status Pill */
+.status-pill {
+  padding: 8px 16px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+}
+.st-open { background: var(--s-new-bg); color: var(--s-new); border-color: rgba(59,130,246,0.2); }
+.st-in_progress { background: var(--s-pro-bg); color: var(--s-pro); border-color: rgba(139,92,246,0.2); }
+.st-done { background: var(--s-don-bg); color: var(--s-don); border-color: rgba(16,185,129,0.2); }
+.st-rejected { background: var(--s-rej-bg); color: var(--s-rej); border-color: rgba(239,68,68,0.2); }
 
-  @media(max-width:520px){
-    .gallery{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
-  }
+/* 2. Grid Layout */
+.layout-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 900px) {
+  .layout-grid { grid-template-columns: 1fr; }
+}
 
-  /* ===== Sticky hint (mobile) ===== */
-  @media(max-width:720px){
-    .sticky-hint{
-      position: sticky;
-      bottom: 0;
-      background: linear-gradient(0deg, rgba(248,250,252,.98), rgba(248,250,252,.75));
-      border-top: 1px solid var(--line);
-      padding: 10px;
-      border-bottom-left-radius: 16px;
-      border-bottom-right-radius: 16px;
-    }
-    html[data-theme="dark"] .sticky-hint{
-      background: linear-gradient(0deg, rgba(2,6,23,.88), rgba(2,6,23,.55));
-    }
-  }
+/* 3. Cards */
+.lux-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.lux-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lux-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--c-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lux-card-body {
+  padding: 24px;
+}
 
-  /* ===== Lightbox ===== */
-  .lb-overlay{
-    position: fixed;
-    inset: 0;
-    background: rgba(2,6,23,.62);
-    z-index: 14000;
-    display: none;
-    place-items: center;
-    padding: 12px;
-  }
-  .lb-overlay.is-open{display:grid}
-  .lb-modal{
-    width: min(920px, 96vw);
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 40px 90px rgba(2,6,23,.30);
-  }
-  .lb-hd{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--line);
-    background: linear-gradient(180deg, var(--line-2), var(--card));
-  }
-  .lb-ttl{margin:0;font-weight:950;color:var(--ink);font-size:1rem}
-  .lb-close{
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: var(--card);
-    cursor: pointer;
-    font-weight: 950;
-    color: var(--ink);
-  }
-  .lb-bd{padding: 12px 14px}
-  .lb-img{
-    width:100%;
-    height:auto;
-    max-height: 72vh;
-    object-fit: contain;
-    border-radius: 14px;
-    border: 1px solid var(--line);
-    background: var(--line-2);
-  }
-  .lb-meta{
-    margin-top: 10px;
-    color: var(--muted);
-    font-weight: 850;
-    font-size: .92rem;
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    justify-content:space-between;
-  }
+/* Details List */
+.details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.dl-item {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 16px;
+  align-items: baseline;
+}
+@media (max-width: 600px) { .dl-item { grid-template-columns: 1fr; gap: 4px; } }
+
+.dl-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+.dl-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--c-text);
+  line-height: 1.6;
+}
+.dl-value.pre {
+  white-space: pre-wrap;
+  background: var(--c-surface-alt);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  font-size: 0.95rem;
+}
+
+/* Actions Buttons in Sidebar */
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text);
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.action-btn:hover { background: var(--c-surface-alt); border-color: #cbd5e1; }
+.action-btn.primary {
+  background: var(--c-brand);
+  color: #fff;
+  border-color: var(--c-brand);
+  box-shadow: 0 4px 6px rgba(37,99,235,0.2);
+}
+.action-btn.primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* Notes Feed */
+.notes-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.note-bubble {
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--c-surface);
+  position: relative;
+}
+.note-bubble.is-mine {
+  background: #eff6ff; /* Light Blue tint */
+  border-color: #bfdbfe;
+}
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: var(--c-text-muted);
+}
+.note-author {
+  font-weight: 700;
+  color: var(--c-text);
+}
+.note-content {
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Inputs */
+.lux-input, .lux-select, .lux-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border 0.2s;
+}
+.lux-input:focus, .lux-select:focus, .lux-textarea:focus {
+  outline: none;
+  border-color: var(--c-brand);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+/* Gallery */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.gallery-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  position: relative;
+  transition: transform 0.2s;
+}
+.gallery-item:hover { transform: scale(1.02); shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.gallery-item img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+/* Lightbox Styles (inline for reliability) */
+.lb-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(15, 23, 42, 0.9);
+  display: none; place-items: center;
+  backdrop-filter: blur(4px);
+}
+.lb-overlay.active { display: grid; }
+.lb-img { max-width: 90vw; max-height: 85vh; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+.lb-close {
+  position: absolute; top: 20px; right: 20px;
+  color: #fff; font-size: 2rem; cursor: pointer; background: none; border: none;
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="ticket-wrap" dir="rtl">
+<div class="ticket-wrapper" dir="rtl">
 
-  <!-- Top bar -->
-  <section class="ticket-bar" aria-label="شريط الصفحة">
-    <div>
-      <h1>{% if t.is_platform %}تفاصيل طلب الدعم الفني{% else %}تفاصيل الطلب{% endif %} #{{ t.id }}</h1>
-      <div class="ticket-minor">
-        <span>أُنشئ بتاريخ {{ t.created_at|date:"Y-m-d H:i" }}</span>
-        <span>•</span>
-        <span>
-          الحالة:
-          <span class="t-status t-{{ t.status|default:'open' }}">
-            <span class="t-dot" aria-hidden="true"></span>
-            {{ t.get_status_display|default:t.status }}
-          </span>
+  <!-- 1. HEADER (HERO) -->
+  <header class="hero-header">
+    <div class="hero-stripe {% if t.is_platform %}is-platform{% endif %}"></div>
+    <div class="hero-body">
+      <div class="hero-main">
+        <div class="ticket-badges">
+          <span class="badge badge-id">#{{ t.id }}</span>
+          {% if t.is_platform %}
+            <span class="badge badge-type platform">
+              <i class="fa-solid fa-server"></i> طلب دعم فني (المنصة)
+            </span>
+          {% else %}
+            <span class="badge badge-type">
+              <i class="fa-solid fa-file-signature"></i> طلب إداري
+            </span>
+          {% endif %}
+        </div>
+        
+        <h1 class="hero-title">{{ t.title|default:"(بدون عنوان)" }}</h1>
+        
+        <div class="hero-meta">
+          <span><i class="fa-regular fa-calendar"></i> {{ t.created_at|date:"Y-m-d H:i" }}</span>
+          <span><i class="fa-regular fa-user"></i> {{ t.creator.name|default:"غير معروف" }}</span>
+          {% if not t.is_platform %}
+            <span><i class="fa-solid fa-building-columns"></i> {{ t.department.name|default:"—" }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="hero-status">
+        <span class="status-pill {% if t.status == 'open' %}st-open{% elif t.status == 'in_progress' %}st-in_progress{% elif t.status == 'done' %}st-done{% else %}st-rejected{% endif %}">
+          {% if t.status == 'open' %}<i class="fa-regular fa-circle-dot"></i> جديدة
+          {% elif t.status == 'in_progress' %}<i class="fa-solid fa-spinner fa-spin-pulse"></i> قيد التنفيذ
+          {% elif t.status == 'done' %}<i class="fa-solid fa-check-circle"></i> مكتملة
+          {% else %}<i class="fa-solid fa-ban"></i> {{ t.get_status_display }}{% endif %}
         </span>
       </div>
     </div>
+  </header>
 
-    <div class="ticket-actions">
-      {% if t.is_platform %}
-        <a class="btn" href="{% url 'reports:my_support_tickets' %}" data-smart-back="1">← رجوع</a>
-      {% elif request.user.is_staff %}
-        <a class="btn" href="{% url 'reports:tickets_inbox' %}" data-smart-back="1">← رجوع</a>
-      {% else %}
-        <a class="btn" href="{% url 'reports:my_requests' %}" data-smart-back="1">← رجوع</a>
-      {% endif %}
-
-      <a class="btn" href="{% url 'reports:ticket_print' t.id %}" target="_blank" rel="noopener">
-        <i class="fa-solid fa-print"></i>
-        طباعة
-      </a>
-
-      {% if request.user.is_staff and not t.is_platform %}
-        <a class="btn" href="{% url 'reports:tickets_inbox' %}">صندوق الطلبات</a>
-      {% endif %}
-    </div>
-  </section>
-
-  <section class="ticket-grid" aria-label="تفاصيل وملاحظات">
-
-    <!-- Details -->
-    <article class="card" aria-labelledby="details-h">
-      <div class="ticket-card-hd">
-        <h2 id="details-h" class="ticket-card-ttl">
-          <i class="fa-solid fa-circle-info" style="opacity:.85"></i>
-          تفاصيل الطلب
-        </h2>
-      </div>
-
-      <div class="ticket-card-bd summary">
-        <div class="srow">
-          <div class="sk">العنوان</div>
-          <div class="sv">{{ t.title|default:"—" }}</div>
+  <div class="layout-grid">
+    
+    <!-- 2. MAIN COLUMN -->
+    <main>
+      <!-- Description Card -->
+      <section class="lux-card">
+        <div class="lux-card-header">
+          <h3 class="lux-card-title"><i class="fa-solid fa-align-right"></i> تفاصيل الطلب</h3>
         </div>
-
-        {% if t.is_platform %}
-          <div class="srow">
-            <div class="sk">المدرسة</div>
-            <div class="sv">{% firstof t.school.name t.school "—" %}</div>
-          </div>
-
-          <div class="srow">
-            <div class="sk">المدينة</div>
-            <div class="sv">{% firstof t.school.city "—" %}</div>
-          </div>
-
-          <div class="srow">
-            <div class="sk">المستهدف</div>
-            <div class="sv">إدارة المنصة</div>
-          </div>
-        {% else %}
-          <div class="srow">
-            <div class="sk">القسم</div>
-            <div class="sv">{{ t.get_department_display|default:t.department|default:"—" }}</div>
-          </div>
-
-          <div class="srow">
-            <div class="sk">المستلمون</div>
-            <div class="sv">
-              {% if t.recipients.exists %}
-                {% for u in t.recipients.all %}
-                  {{ u.name|default:u }}{% if not forloop.last %}، {% endif %}
-                {% endfor %}
-              {% else %}
-                {% firstof t.assignee.name t.assignee "—" %}
-              {% endif %}
+        <div class="lux-card-body">
+          <div class="details-list">
+            
+            <div class="dl-item">
+              <div class="dl-label">نص الطلب:</div>
+              <div class="dl-value pre">{{ t.body|default:"—"|linebreaksbr }}</div>
             </div>
-          </div>
-        {% endif %}
 
-        <div class="srow">
-          <div class="sk">المرسل</div>
-          <div class="sv">{{ t.creator.name|default:"—" }}</div>
-        </div>
-
-        <!-- ✅ المرفقات (صور فقط) — مطابق لصفحة إنشاء الطلب -->
-        <div class="srow">
-          <div class="sk">المرفقات (صور فقط)</div>
-          <div class="sv">
+            <!-- Attachments -->
             {% if t.attachment or images %}
-              <div class="gallery">
-                {% if t.attachment %}
-                  {% with att_url=t.attachment.url|lower %}
-                    {% if '.jpg' in att_url or '.jpeg' in att_url or '.png' in att_url or '.webp' in att_url %}
-                      <a
-                        class="thumb"
-                        href="{{ t.attachment.url }}"
-                        data-lightbox
-                        data-full="{{ t.attachment.url }}"
-                        data-caption="مرفق #1"
-                      >
-                        <img src="{{ t.attachment.url }}" alt="مرفق #1" loading="lazy">
-                        <span class="cap">مرفق #1</span>
-                      </a>
-                    {% else %}
-                      <a class="thumb" href="{{ t.attachment.url }}" target="_blank" rel="noopener">
-                        <span class="cap" style="padding:12px 10px">فتح/تحميل المرفق</span>
-                      </a>
-                    {% endif %}
-                  {% endwith %}
-                {% endif %}
-
-                {% if images %}
+            <div class="dl-item">
+              <div class="dl-label">المرفقات:</div>
+              <div class="dl-value">
+                <div class="gallery-grid">
+                  {% if t.attachment %}
+                    {% with att_url=t.attachment.url|lower %}
+                      {% if '.jpg' in att_url or '.png' in att_url or '.jpeg' in att_url or '.webp' in att_url %}
+                        <a href="{{ t.attachment.url }}" class="gallery-item lightbox-trigger">
+                          <img src="{{ t.attachment.url }}" alt="Attachment">
+                        </a>
+                      {% else %}
+                        <a href="{{ t.attachment.url }}" target="_blank" class="gallery-item" style="display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#64748b;text-decoration:none;">
+                          <i class="fa-solid fa-paperclip fa-2x"></i>
+                        </a>
+                      {% endif %}
+                    {% endwith %}
+                  {% endif %}
+                  
                   {% for im in images %}
-                    <a
-                      class="thumb"
-                      href="{{ im.image.url }}"
-                      data-lightbox
-                      data-full="{{ im.image.url }}"
-                      data-caption="صورة #{{ forloop.counter }}"
-                    >
-                      <img src="{{ im.image.url }}" alt="صورة {{ forloop.counter }}" loading="lazy">
-                      <span class="cap">صورة #{{ forloop.counter }}</span>
+                    <a href="{{ im.image.url }}" class="gallery-item lightbox-trigger">
+                      <img src="{{ im.image.url }}" alt="Image">
                     </a>
                   {% endfor %}
-                {% endif %}
-              </div>
-            {% else %}
-              <span class="help">لا توجد مرفقات.</span>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="srow">
-          <div class="sk">المحتوى</div>
-          <div class="content-pre">{{ t.body|default_if_none:"—"|linebreaksbr }}</div>
-        </div>
-      </div>
-
-
-    </article>
-
-    <!-- Notes -->
-    <article class="card" aria-labelledby="notes-h">
-      <div class="ticket-card-hd">
-        <h2 id="notes-h" class="ticket-card-ttl">
-          <i class="fa-solid fa-clipboard-list" style="opacity:.85"></i>
-          سجلّ الملاحظات
-        </h2>
-      </div>
-
-      <div class="ticket-card-bd">
-        {% if notes %}
-          <div class="notes">
-            {% for n in notes %}
-              <div class="note">
-                <div class="note-meta">
-                <span><i class="fa-solid fa-user" style="opacity:.75"></i>
-                {% if n.author %}{{ n.author.name|default:"—" }} — {{ n.author.display_role_label }}{% else %}—{% endif %}
-                </span>
-                  <span>•</span>
-                  <span dir="ltr">{{ n.created_at|date:"Y-m-d H:i" }}</span>
-
-                  <span class="note-actions">
-                    {% if n.author_id == request.user.id and t.status != 'done' and t.status != 'rejected' %}
-                      <a class="note-edit" title="تعديل" aria-label="تعديل" href="{% url 'reports:ticket_note_edit' n.id %}?next={{ request.get_full_path|urlencode }}">
-                        <i class="fa-solid fa-pen"></i>
-                      </a>
-                    {% endif %}
-                  </span>
                 </div>
-                <div class="note-txt">{{ n.body|ticket_note_ar|default_if_none:""|linebreaksbr }}</div>
               </div>
-            {% endfor %}
+            </div>
+            {% endif %}
+
           </div>
-        {% else %}
-          <div class="empty">لا توجد ملاحظات بعد.</div>
-        {% endif %}
-      </div>
-    </article>
-
-    {% if can_act and form %}
-      <!-- Assignee action form -->
-      <article class="card" id="act" aria-labelledby="act-h">
-        <div class="ticket-card-hd">
-          <h2 id="act-h" class="ticket-card-ttl">
-            <i class="fa-solid fa-pen-to-square" style="opacity:.85"></i>
-            إجراء على الطلب
-          </h2>
         </div>
+      </section>
 
-        <div class="ticket-card-bd">
-          <form method="post" class="form" novalidate>
-            {% csrf_token %}
-
-            <div>
-              <label class="help" for="statusSel">الحالة</label>
-              <select id="statusSel" name="status" class="select">
-                {% for value,label in form.fields.status.choices %}
-                  <option value="{{ value }}" {% if value == t.status %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div>
-              <label class="help" for="noteTxt">الملاحظات   </label>
-              {% if t.status == 'done' or t.status == 'rejected' %}
-                <div class="help">الطلب مكتمل/مرفوض — لا يمكن إضافة ملاحظات.</div>
-              {% else %}
-                <textarea id="noteTxt" name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك (اختياري)"></textarea>
-              {% endif %}
-            </div>
-
-            <div class="ticket-actions">
-              <button type="submit" class="btn btn-primary">حفظ</button>
-              <a class="btn" href="{% url 'reports:ticket_detail' t.id %}">إلغاء</a>
-            </div>
-          </form>
+      <!-- Notes / History -->
+      <section class="lux-card">
+        <div class="lux-card-header">
+          <h3 class="lux-card-title"><i class="fa-solid fa-comments"></i> الملاحظات والردود</h3>
         </div>
-      </article>
-
-    {% elif is_owner and not can_act %}
-      <!-- Creator note-only form -->
-      <article class="card" id="note-only" aria-labelledby="note-h">
-        <div class="ticket-card-hd">
-          <h2 id="note-h" class="ticket-card-ttl">
-            <i class="fa-solid fa-comment-dots" style="opacity:.85"></i>
-            إضافة ملاحظة
-          </h2>
-        </div>
-
-        <div class="ticket-card-bd">
-          {% if t.status == 'done' or t.status == 'rejected' %}
-            <div class="help">الطلب مكتمل/مرفوض — لا يمكن إضافة ملاحظات.</div>
+        <div class="lux-card-body">
+          {% if notes %}
+            <div class="notes-feed">
+              {% for n in notes %}
+                <div class="note-bubble {% if n.author_id == request.user.id %}is-mine{% endif %}">
+                  <div class="note-header">
+                    <span class="note-author">
+                      <i class="fa-solid fa-user-circle"></i> {{ n.author.name|default:"مسؤول النظام" }}
+                      {% if n.author.display_role_label %}
+                        <span style="opacity:0.7;font-weight:400">({{ n.author.display_role_label }})</span>
+                      {% endif %}
+                    </span>
+                    <span>{{ n.created_at|date:"Y-m-d H:i" }}</span>
+                  </div>
+                  <div class="note-content">{{ n.body|ticket_note_ar|default:""|linebreaksbr }}</div>
+                  
+                  {% if n.author_id == request.user.id and t.status != 'done' and t.status != 'rejected' %}
+                    <div style="margin-top:8px;border-top:1px dashed rgba(0,0,0,0.1);padding-top:4px;text-align:left;">
+                        <a href="{% url 'reports:ticket_note_edit' n.id %}?next={{ request.get_full_path|urlencode }}" style="font-size:0.8rem;color:var(--c-brand);text-decoration:none;">
+                            <i class="fa-solid fa-pen"></i> تعديل
+                        </a>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
           {% else %}
-          <form method="post" class="form" novalidate>
-            {% csrf_token %}
-            <div>
-              <label class="help" for="noteOnly">نص الملاحظة</label>
-              <textarea id="noteOnly" name="note" class="textarea" rows="3" placeholder="اكتب ملاحظتك هنا…"></textarea>
+            <div style="text-align:center;padding:20px;color:var(--c-text-muted);">
+              <i class="fa-regular fa-comment-dots fa-2x" style="margin-bottom:8px;opacity:0.5"></i>
+              <p>لا توجد ملاحظات أو ردود حتى الآن.</p>
             </div>
-            <div class="ticket-actions">
-              <button type="submit" class="btn btn-primary">إضافة الملاحظة</button>
-              <a class="btn" href="{% url 'reports:ticket_detail' t.id %}">إلغاء</a>
-            </div>
-          </form>
           {% endif %}
         </div>
-      </article>
-    {% endif %}
+      </section>
 
-  </section>
+      <!-- Action Forms -->
+      {% if can_act and form %}
+        <section class="lux-card" style="border-color:var(--c-brand);">
+          <div class="lux-card-header" style="background:var(--c-brand-light);">
+            <h3 class="lux-card-title" style="color:var(--c-brand);"><i class="fa-solid fa-gavel"></i> اتخاذ إجراء</h3>
+          </div>
+          <div class="lux-card-body">
+            <form method="post" novalidate>
+              {% csrf_token %}
+              <div style="margin-bottom:16px;">
+                <label class="dl-label" style="display:block;margin-bottom:8px;">تحديث الحالة:</label>
+                <select name="status" class="lux-select">
+                    {% for value,label in form.fields.status.choices %}
+                    <option value="{{ value }}" {% if value == t.status %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+              </div>
+              
+              <div style="margin-bottom:16px;">
+                <label class="dl-label" style="display:block;margin-bottom:8px;">إضافة رد أو ملاحظة:</label>
+                {% if t.status == 'done' or t.status == 'rejected' %}
+                    <div style="color:red;font-size:0.9rem;">الطلب مغلق (مكتمل أو مرفوض)، لا يمكن إضافة ملاحظات جديدة.</div>
+                {% else %}
+                    <textarea name="note" class="lux-textarea" rows="4" placeholder="اكتب ردّك هنا..."></textarea>
+                {% endif %}
+              </div>
 
-  <!-- Lightbox -->
-  <div class="lb-overlay" id="lbOverlay" role="dialog" aria-modal="true" aria-label="عرض الصورة">
-    <div class="lb-modal" role="document">
-      <div class="lb-hd">
-        <h3 class="lb-ttl" id="lbTitle">الصورة</h3>
-        <button type="button" class="lb-close" id="lbClose" aria-label="إغلاق">✕</button>
-      </div>
-      <div class="lb-bd">
-        <img class="lb-img" id="lbImg" src="" alt="صورة مرفقة">
-        <div class="lb-meta">
-          <span id="lbCaption">—</span>
-          <a class="btn" id="lbOpenNew" href="#" target="_blank" rel="noopener">فتح في نافذة جديدة</a>
+              <button type="submit" class="action-btn primary">
+                <i class="fa-regular fa-paper-plane"></i> حفظ التحديث
+              </button>
+            </form>
+          </div>
+        </section>
+
+      {% elif is_owner and t.status != 'done' and t.status != 'rejected' and not can_act %}
+        <section class="lux-card">
+            <div class="lux-card-header">
+              <h3 class="lux-card-title"><i class="fa-solid fa-reply"></i> إضافة رد</h3>
+            </div>
+            <div class="lux-card-body">
+              <form method="post" novalidate>
+                {% csrf_token %}
+                <div style="margin-bottom:16px;">
+                  <textarea name="note" class="lux-textarea" rows="4" placeholder="هل تود إضافة معلومات أخرى؟"></textarea>
+                </div>
+                <button type="submit" class="action-btn primary">
+                  <i class="fa-solid fa-plus"></i> إضافة الرد
+                </button>
+              </form>
+            </div>
+        </section>
+      {% endif %}
+
+    </main>
+
+    <!-- 3. SIDEBAR -->
+    <aside>
+      <!-- Meta Card -->
+      <section class="lux-card">
+        <div class="lux-card-header">
+          <h3 class="lux-card-title"><i class="fa-solid fa-circle-info"></i> معلومات</h3>
         </div>
-      </div>
-    </div>
+        <div class="lux-card-body" style="padding:0;">
+          <div style="padding:16px; border-bottom:1px solid var(--c-border);">
+            <div class="dl-label" style="margin-bottom:4px">الجهة/المدرسة</div>
+            <div style="font-weight:600;">
+              {% if t.is_platform %}
+                <span style="color:var(--c-platform);">إدارة المنصة</span>
+              {% else %}
+                {{ t.school.name|default:"—" }}
+              {% endif %}
+            </div>
+            {% if t.school.city %}<div style="font-size:0.85rem;color:var(--c-text-muted);">{{ t.school.city }}</div>{% endif %}
+          </div>
+          
+          {% if not t.is_platform %}
+          <div style="padding:16px; border-bottom:1px solid var(--c-border);">
+             <div class="dl-label" style="margin-bottom:4px">المستلمون</div>
+             <div style="font-size:0.9rem;">
+                {% if t.recipients.exists %}
+                    {% for u in t.recipients.all %}
+                    <div style="margin-bottom:2px;"><i class="fa-solid fa-check-double" style="color:var(--s-don);font-size:0.7em;"></i> {{ u.name }}</div>
+                    {% endfor %}
+                {% else %}
+                    {% firstof t.assignee.name t.assignee "—" %}
+                {% endif %}
+             </div>
+          </div>
+          {% endif %}
+          
+          <div style="padding:16px;">
+            <div class="dl-label" style="margin-bottom:4px">رابط مباشر</div>
+            <input type="text" readonly value="{{ request.build_absolute_uri }}" onclick="this.select()" class="lux-input" style="font-size:0.8rem; color:var(--c-text-muted);">
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Actions -->
+      <section>
+        <div style="margin-bottom:8px;font-weight:700;color:var(--c-text-muted);font-size:0.85rem;padding-right:4px;">إجراءات سريعة</div>
+        
+        <a href="{% url 'reports:ticket_print' t.id %}" target="_blank" class="action-btn">
+          <i class="fa-solid fa-print"></i> طباعة الطلب
+        </a>
+
+        {% if t.is_platform %}
+          <a href="{% url 'reports:my_support_tickets' %}" class="action-btn">
+             <i class="fa-solid fa-arrow-right"></i> كل طلبات الدعم
+          </a>
+        {% elif request.user.is_staff %}
+          <a href="{% url 'reports:tickets_inbox' %}" class="action-btn">
+             <i class="fa-solid fa-inbox"></i> صندوق الوارد
+          </a>
+        {% else %}
+          <a href="{% url 'reports:my_requests' %}" class="action-btn">
+             <i class="fa-solid fa-list-check"></i> طلباتي
+          </a>
+        {% endif %}
+      </section>
+    </aside>
+
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div class="lb-overlay" id="lightbox">
+    <button class="lb-close" id="lb-close">&times;</button>
+    <img src="" class="lb-img" id="lb-img">
   </div>
 
 </div>
@@ -528,56 +604,35 @@
 
 {% block scripts %}
 <script>
-  (function(){
-    var overlay = document.getElementById('lbOverlay');
-    if(!overlay) return;
+  document.addEventListener('DOMContentLoaded', () => {
+    const triggers = document.querySelectorAll('.lightbox-trigger');
+    const lightbox = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lb-img');
+    const lbClose = document.getElementById('lb-close');
 
-    var imgEl = document.getElementById('lbImg');
-    var capEl = document.getElementById('lbCaption');
-    var ttlEl = document.getElementById('lbTitle');
-    var closeBtn = document.getElementById('lbClose');
-    var openNew = document.getElementById('lbOpenNew');
-
-    var links = Array.prototype.slice.call(document.querySelectorAll('[data-lightbox]'));
-    if(!links.length) return;
-
-    function openLightbox(url, caption){
-      imgEl.src = url || '';
-      capEl.textContent = caption || '—';
-      ttlEl.textContent = caption || 'الصورة';
-      openNew.href = url || '#';
-      overlay.classList.add('is-open');
-      try{ if(window.__lockScroll) window.__lockScroll(true); }catch(e){}
-    }
-
-    function closeLightbox(){
-      overlay.classList.remove('is-open');
-      imgEl.src = '';
-      try{ if(window.__lockScroll) window.__lockScroll(false); }catch(e){}
-    }
-
-    links.forEach(function(a){
-      a.addEventListener('click', function(ev){
-        ev.preventDefault();
-        var url = a.getAttribute('data-full') || a.getAttribute('href') || '';
-        var caption = a.getAttribute('data-caption') || 'الصورة';
-        openLightbox(url, caption);
+    triggers.forEach(trig => {
+      trig.addEventListener('click', (e) => {
+        e.preventDefault();
+        const src = trig.getAttribute('href');
+        lbImg.src = src;
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
       });
     });
 
-    if(closeBtn){
-      closeBtn.addEventListener('click', function(){ closeLightbox(); });
-    }
+    const closeLb = () => {
+        lightbox.classList.remove('active');
+        document.body.style.overflow = '';
+        setTimeout(() => { lbImg.src = ''; }, 200);
+    };
 
-    overlay.addEventListener('click', function(ev){
-      if(ev.target === overlay){ closeLightbox(); }
+    lbClose.addEventListener('click', closeLb);
+    lightbox.addEventListener('click', (e) => {
+        if(e.target === lightbox) closeLb();
     });
-
-    document.addEventListener('keydown', function(ev){
-      if(ev.key === 'Escape' && overlay.classList.contains('is-open')){
-        closeLightbox();
-      }
+    document.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape' && lightbox.classList.contains('active')) closeLb();
     });
-  })();
+  });
 </script>
 {% endblock %}
