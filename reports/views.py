@@ -200,6 +200,17 @@ def _is_staff_or_officer(user) -> bool:
 def _safe_next_url(next_url: str | None) -> str | None:
     if not next_url:
         return None
+    next_url = (next_url or "").strip()
+    if not next_url:
+        return None
+    # حماية من قيم template الشائعة عند وجود None
+    if next_url.lower() in {"none", "null", "undefined"}:
+        return None
+
+    # نسمح فقط بمسارات داخلية تبدأ بـ / (ونمنع //)
+    if not next_url.startswith("/") or next_url.startswith("//"):
+        return None
+
     parsed = urlparse(next_url)
     if parsed.scheme == "" and parsed.netloc == "":
         return next_url

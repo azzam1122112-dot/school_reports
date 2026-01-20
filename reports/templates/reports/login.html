@@ -333,7 +333,7 @@
         <form method="post" action="{% url 'reports:login' %}">
           {% csrf_token %}
           <!-- Redirect Next -->
-          <input type="hidden" name="next" value="{{ next }}">
+          <input type="hidden" name="next" value="{{ next|default:'' }}">
 
           <div class="form-group">
             <label for="identifier" class="form-label">رقم الجوال / رقم الهوية</label>

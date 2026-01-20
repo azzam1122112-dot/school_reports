@@ -24,285 +24,228 @@
 
   <style>
     /* =========================================
-       CORE VARIABLES & RESET (2026 Modern Stack)
+       LUXURY & PROFESSIONAL THEME (2026)
        ========================================= */
     :root {
-      --primary: #3b82f6;
-      --primary-dark: #2563eb;
-      --primary-glow: rgba(59, 130, 246, 0.4);
+      /* Brand Palette - Deep Royal Blue */
+      --brand: #2563eb;
+      --brand-dark: #0f368e;
+      --brand-light: #eff6ff;
+      --accent: #d97706; /* Golden/Bronze for luxury feel */
 
-      --secondary: #8b5cf6;
-      --accent: #f59e0b;
-
+      /* Neutrals */
       --bg: #ffffff;
-      --surface-1: #f8fafc;
-      --surface-2: #f1f5f9;
+      --surface: #f8fafc;
+      --surface-glass: rgba(255, 255, 255, 0.85);
+      
       --text-main: #0f172a;
-      --text-muted: #64748b;
+      --text-secondary: #475569;
+      --text-light: #94a3b8;
+
+      /* Borders & Shadows */
       --border: #e2e8f0;
+      --border-glass: rgba(255, 255, 255, 0.6);
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+      --shadow-glow: 0 0 40px rgba(37, 99, 235, 0.15);
 
-      --glass-bg: rgba(255, 255, 255, 0.7);
-      --glass-border: rgba(255, 255, 255, 0.5);
-      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
-
-      --mesh-1: radial-gradient(at 0% 0%, rgba(59,130,246,0.15) 0px, transparent 50%);
-      --mesh-2: radial-gradient(at 98% 1%, rgba(139,92,246,0.15) 0px, transparent 50%);
-
-      --container: 1200px;
-      --nav-height: 80px;
+      --container: 1280px;
+      --nav-height: 90px;
+      --radius: 20px;
     }
 
-    [data-theme="dark"] {
-      --bg: #020617;
-      --surface-1: #0f172a;
-      --surface-2: #1e293b;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --border: #1e293b;
-      --glass-bg: rgba(15, 23, 42, 0.6);
-      --glass-border: rgba(255, 255, 255, 0.08);
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; font-size: 16px; overflow-x: hidden; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    
     body {
+      margin: 0;
       font-family: 'Tajawal', sans-serif;
-      background-color: var(--bg);
-      background-image: var(--mesh-1), var(--mesh-2);
+      background: #f8fafc;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(37,99,235,0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(217,119,6,0.05) 0px, transparent 50%);
       background-attachment: fixed;
       color: var(--text-main);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
+      line-height: 1.7;
       overflow-x: hidden;
     }
 
-    a { text-decoration: none; color: inherit; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    ul { list-style: none; }
+    /* Reset & Utils */
+    *, *::before, *::after { box-sizing: border-box; }
+    a { text-decoration: none; color: inherit; transition: all 0.3s ease; }
     img { max-width: 100%; height: auto; display: block; }
-    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    button { background: none; border: none; cursor: pointer; font-family: inherit; }
+    ul { list-style: none; padding: 0; margin: 0; }
 
-    /* Utilities */
-    .container { width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 24px; }
+    .container { width: 90%; max-width: var(--container); margin: 0 auto; }
+    .grid { display: grid; gap: 30px; }
     .flex { display: flex; }
     .items-center { align-items: center; }
     .justify-between { justify-content: space-between; }
-    .grid { display: grid; }
+    .justify-center { justify-content: center; }
     .text-center { text-align: center; }
     .relative { position: relative; }
-    .gap-2 { gap: 10px; }
-    .flex-1 { flex: 1; }
-
+    
     /* Typography */
+    h1, h2, h3, h4 { margin: 0; font-weight: 800; line-height: 1.25; color: var(--text-main); }
+    h1 { font-size: 3.5rem; letter-spacing: -1px; }
+    h2 { font-size: 2.5rem; letter-spacing: -0.5px; }
+    h3 { font-size: 1.5rem; }
+    p { margin-top: 10px; color: var(--text-secondary); }
+
     .text-gradient {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
     }
-    .display-text { font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; }
+    .text-accent { color: var(--accent); }
 
     /* Buttons */
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-      padding: 14px 28px; border-radius: 999px; font-weight: 800; font-size: 1rem;
-      transition: all 0.3s ease; position: relative; overflow: hidden;
-      white-space: nowrap;
+      padding: 16px 32px; border-radius: 12px; font-weight: 700; font-size: 1rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      background: var(--brand);
       color: white;
-      box-shadow: 0 10px 25px -5px var(--primary-glow);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
     }
-    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 35px -5px var(--primary-glow); }
-
+    .btn-primary:hover {
+      background: var(--brand-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    }
     .btn-outline {
-      border: 2px solid var(--border);
+      background: white;
+      border: 1px solid var(--border);
       color: var(--text-main);
-      background: var(--bg);
     }
-    .btn-outline:hover { border-color: var(--text-main); background: var(--surface-1); }
-
+    .btn-outline:hover {
+      border-color: var(--brand);
+      color: var(--brand);
+      background: var(--brand-light);
+    }
     .btn-glass {
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      backdrop-filter: blur(4px);
       color: white;
     }
-    .btn-glass:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+    .btn-glass:hover { background: rgba(255,255,255,0.25); transform: translateY(-2px); }
 
-    /* Glass Card */
+    /* Glass Cards */
     .glass-card {
-      background: var(--glass-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-shadow);
-      border-radius: 24px;
-      position: relative;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.4s ease;
+      overflow: hidden;
     }
-
-    /* Badge */
-    .badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 800;
-      background: rgba(59, 130, 246, 0.1); color: var(--primary);
+    .glass-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-xl);
+      border-color: rgba(37, 99, 235, 0.2);
     }
 
     /* Navbar */
     .navbar {
       height: var(--nav-height);
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      transition: all 0.35s ease;
-      display: flex;
-      align-items: center;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,0,0,0.03);
+      transition: all 0.3s;
     }
     .navbar.scrolled {
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
       height: 70px;
+      box-shadow: var(--shadow-md);
+      background: rgba(255, 255, 255, 0.95);
     }
-
-    .logo { font-size: 1.25rem; font-weight: 900; display: flex; align-items: center; gap: 10px; }
-    .logo img { width: 40px; border-radius: 10px; }
-
-    .nav-links a { font-weight: 800; color: var(--text-muted); font-size: 0.95rem; }
-    .nav-links a:hover { color: var(--primary); }
-
-    .mobile-toggle { display: none; font-size: 1.5rem; padding: 10px; }
-
-    /* Mobile Menu */
+    .logo {
+      font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 12px;
+      color: var(--text-main);
+    }
+    .logo img { height: 45px; width: auto; }
+    .nav-links { gap: 40px; }
+    .nav-links a { font-weight: 700; font-size: 0.95rem; color: var(--text-secondary); }
+    .nav-links a:hover { color: var(--brand); }
+    
+    .mobile-toggle { display: none; font-size: 1.5rem; color: var(--text-main); }
     .mobile-menu {
-      position: fixed; inset: 0; background: var(--bg); z-index: 999;
-      transform: translateX(100%); transition: transform 0.25s ease;
-      display: flex; flex-direction: column; padding: 100px 30px 40px;
-      overflow-y: auto;
+      position: fixed; inset: 0; background: white; z-index: 999;
+      transform: translateX(100%); transition: transform 0.3s ease;
+      padding: 100px 30px; display: flex; flex-direction: column; gap: 20px;
     }
     .mobile-menu.open { transform: translateX(0); }
+    .mobile-link { font-size: 1.5rem; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
 
-    /* HERO (Fix top spacing) */
-    .hero {
-      padding-top: calc(var(--nav-height) + env(safe-area-inset-top) + 20px);
-      padding-bottom: 80px;
-      overflow: hidden;
+    /* Sections */
+    section { padding: 100px 0; }
+    .section-header { text-align: center; max-width: 700px; margin: 0 auto 80px; }
+    .section-header h2 { margin-bottom: 20px; }
+    .badge {
+      display: inline-block; padding: 6px 16px; background: var(--brand-light); color: var(--brand);
+      border-radius: 50px; font-size: 0.85rem; font-weight: 700; margin-bottom: 20px;
     }
 
-    /* Abstract Shape BG */
-    .hero-blob {
-      position: absolute;
-      top: -20%;
-      right: -10%;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
-      filter: blur(50px);
-      z-index: -1;
-      pointer-events: none;
+    /* Hero */
+    .hero { padding: 160px 0 100px; position: relative; overflow: hidden; }
+    .hero-bg-anim {
+      position: absolute; width: 600px; height: 600px; background: var(--brand); opacity: 0.05;
+      filter: blur(80px); border-radius: 50%; top: -200px; right: -200px; z-index: -1;
+      animation: float 10s infinite alternate;
     }
+    @keyframes float { 0% { transform: translate(0,0); } 100% { transform: translate(-50px, 50px); } }
 
     /* Bento Grid */
     .bento-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
     }
-    .bento-card {
-      padding: 30px;
-      border-radius: 24px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    .bento-card { padding: 40px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+    .bento-icon {
+      width: 60px; height: 60px; border-radius: 16px; background: var(--surface);
+      display: grid; place-items: center; font-size: 1.5rem; color: var(--brand); margin-bottom: 25px;
     }
-    .bento-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05); }
-
-    /* Section Headers */
-    .section-header { text-align: center; max-width: 700px; margin: 0 auto 60px; }
-    .section-header h2 { font-size: 2.5rem; font-weight: 900; margin-bottom: 16px; line-height: 1.2; }
-
-    /* Feature Rows */
-    .feature-row {
-      display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; margin-bottom: 100px;
-    }
-    .feature-content h3 { font-size: 2rem; font-weight: 900; margin-bottom: 16px; }
-    .feature-content li { margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text-muted); }
-    .feature-content li i { color: var(--primary); }
 
     /* Pricing */
-    .pricing-card {
-      position: relative; overflow: hidden;
-      display: flex; flex-direction: column;
-      height: 100%;
-    }
+    .pricing-card { padding: 40px; text-align: center; border-radius: 24px; position: relative; }
     .pricing-card.featured {
-      border: 2px solid var(--primary);
-      background: linear-gradient(to bottom, rgba(59,130,246,0.03), rgba(59,130,246,0.01));
+      border: 2px solid var(--brand);
+      transform: scale(1.05);
+      z-index: 10;
+      box-shadow: var(--shadow-xl);
     }
+    .price-tag { font-size: 3rem; font-weight: 800; color: var(--text-main); margin: 20px 0; }
+    .price-tag span { font-size: 1rem; color: var(--text-secondary); font-weight: 500; }
+    .features-list li { margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-secondary); font-weight: 600; }
+    .features-list i { color: var(--brand); }
 
-    /* Modal */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 2000;
-      background: rgba(2, 6, 23, 0.65); backdrop-filter: blur(8px);
-      display: none; place-items: center; padding: 20px;
-      animation: fadeIn 0.2s ease;
+    /* Footer */
+    footer { background: #0f172a; color: white; padding: 80px 0 40px; margin-top: 50px; }
+    footer a { color: #94a3b8; }
+    footer a:hover { color: white; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .bento-grid { grid-template-columns: repeat(2, 1fr); }
+      h1 { font-size: 2.8rem; }
     }
-    .modal-overlay.open { display: grid; }
-
-    .modal-content {
-      width: 100%; max-width: 480px;
-      padding: 30px;
-      max-height: 90vh; overflow-y: auto;
-    }
-
-    .modal-close {
-      position: absolute; top: 20px; left: 20px;
-      background: rgba(0,0,0,0.05); width: 36px; height: 36px; border-radius: 50%;
-      display: grid; place-items: center; cursor: pointer; color: var(--text-muted);
-      transition: all 0.2s;
-    }
-    .modal-close:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-
-    .form-group { margin-bottom: 16px; text-align: right; }
-    .form-group label { display: block; font-weight: 900; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-main); }
-    .form-group input, .form-group select {
-      width: 100%; padding: 12px 16px; border-radius: 12px;
-      border: 1px solid var(--border); background: var(--surface-1);
-      color: var(--text-main); font-family: inherit; font-size: 0.95rem;
-      font-weight: 700;
-      transition: all 0.2s;
-    }
-    .form-group input:focus, .form-group select:focus {
-      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow);
-      background: var(--bg);
-    }
-
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-
-    @keyframes floating { 0% { transform: translateY(0); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0); } }
-    .float-anim { animation: floating 6s ease-in-out infinite; }
-
-    /* Media Queries */
-    @media (min-width: 992px) {
-      .feature-row { grid-template-columns: 1fr 1fr; }
-      .feature-row.reverse { direction: ltr; }
-      .feature-row.reverse .feature-content { direction: rtl; }
-      .display-text-lg { font-size: 4rem; }
-    }
-
-    @media (max-width: 991px) {
-      .display-text-lg { font-size: 2.5rem; }
-      .navbar .nav-links { display: none; }
-      .mobile-toggle { display: inline-flex; }
-      .hero { padding-bottom: 60px; }
-    }
-
     @media (max-width: 768px) {
-      .container { padding: 0 18px; }
-      .section-header h2 { font-size: 2rem; }
-      .display-text-lg { font-size: 2.1rem; }
-
-      section { padding: 60px 0 !important; }
-      .bento-grid { grid-template-columns: 1fr; }
+      .navbar .nav-links { display: none; }
+      .mobile-toggle { display: block; }
       .grid { grid-template-columns: 1fr !important; }
-      h1, h2, h3 { line-height: 1.3; }
-      .hero { padding-top: calc(var(--nav-height) + env(safe-area-inset-top) + 12px); }
+      .bento-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 2.2rem; }
+      .hero { padding-top: 130px; text-align: center; }
+      .hero .flex.justify-between { justify-content: center; }
+      .hero .btn-group { justify-content: center; }
+      .pricing-card.featured { transform: scale(1); }
     }
   </style>
 </head>
@@ -311,18 +254,18 @@
 
   <!-- ================= NAV ================= -->
   <nav class="navbar" id="navbar" aria-label="القائمة الرئيسية">
-    <div class="container flex items-center justify-between" style="width:100%;">
+    <div class="container flex items-center justify-between">
       <a href="#" class="logo">
         <img src="{% static 'img/logo1.png' %}" alt="Logo">
-        <span>منصة تـوثيـق</span>
+        <span>منصة توثيق</span>
       </a>
 
       <!-- Desktop Links -->
-      <div class="nav-links flex items-center" style="gap: 30px;">
+      <div class="nav-links flex items-center">
         <a href="#features">المميزات</a>
         <a href="#how">كيف نعمل</a>
         <a href="#pricing">الأسعار</a>
-        <a href="{% url 'reports:login' %}" class="btn btn-primary" style="padding: 10px 24px; font-size: 0.9rem;">
+        <a href="{% url 'reports:login' %}" class="btn btn-primary" style="padding: 12px 28px;">
           <i class="fa-solid fa-right-to-bracket"></i> دخول
         </a>
       </div>
@@ -336,207 +279,201 @@
 
   <!-- Mobile Menu -->
   <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
-    <a href="#features" class="mobile-link" style="margin-bottom: 20px; font-size:1.3rem; font-weight:900;">المميزات</a>
-    <a href="#how" class="mobile-link" style="margin-bottom: 20px; font-size:1.3rem; font-weight:900;">كيف نعمل</a>
-    <a href="#pricing" class="mobile-link" style="margin-bottom: 40px; font-size:1.3rem; font-weight:900;">الأسعار</a>
+    <a href="#features" class="mobile-link">المميزات</a>
+    <a href="#how" class="mobile-link">كيف نعمل</a>
+    <a href="#pricing" class="mobile-link" style="margin-bottom: 40px;">الأسعار</a>
 
-    <a href="{% url 'reports:login' %}" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 16px 22px; font-size: 1.05rem; box-shadow: 0 14px 34px -12px var(--primary-glow);">
+    <a href="{% url 'reports:login' %}" class="btn btn-primary" style="width: 100%;">
       <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
-      دخول النظام
+       تسجيل الدخول
     </a>
 
-    <button id="closeMobile" aria-label="إغلاق القائمة" style="position: absolute; top: 30px; left: 30px; font-size: 1.8rem;">
+    <button id="closeMobile" aria-label="إغلاق القائمة" style="position: absolute; top: 30px; left: 30px; font-size: 2rem; color: var(--text-secondary);">
       <i class="fa-solid fa-xmark"></i>
     </button>
   </div>
 
   <!-- ================= HERO ================= -->
-  <header class="hero relative">
-    <div class="hero-blob"></div>
+  <header class="hero">
+    <div class="hero-bg-anim"></div>
 
-    <div class="container grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 50px; align-items: center;">
+    <div class="container grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: center;">
 
       <!-- Text -->
-      <div style="max-width: 600px;">
-        <div class="badge" style="margin hookup-bottom: 24px; margin-bottom: 24px;">
-          <i class="fa-solid fa-rocket"></i> الإصدار الجديد 2026
+      <div>
+        <div class="badge">
+          <i class="fa-solid fa-star"></i> الخيار الأول للمدارس الذكية
         </div>
 
-        <h1 class="display-text display-text-lg" style="margin-bottom: 24px;">
-          ودّع الفوضى الورقية..<br>
-          <span class="text-gradient">ووثّق إنجازك بذكاء</span>
+        <h1 style="margin-bottom: 24px;">
+          إدارة مدرسية متكاملة<br>
+          <span class="text-gradient">بلمسة واحدة</span>
         </h1>
 
-        <p style="font-size: 1.15rem; color: var(--text-muted); margin-bottom: 34px; line-height: 1.8;">
-          الأداة الأولى لمدراء الميدان والمعلمين. حولنا
-          <span style="font-weight: 800; color: var(--text-main);">التقارير، التذاكر والطلبات، والتعاميم</span>
-          إلى تجربة رقمية ممتعة، تعمل بسلاسة على جوالك.
+        <p style="font-size: 1.2rem; margin-bottom: 40px; line-height: 1.8;">
+          من التذاكر والصيانة إلى ملفات الإنجاز والتقارير. <strong style="color:var(--brand)">منصة توثيق</strong> تجمع لك كل ما تحتاجه في مكان واحد، بتصميم فخم وسهل الاستخدام.
         </p>
 
-        <div class="flex" style="gap: 16px; flex-wrap: wrap;">
+        <div class="flex" style="gap: 16px; flex-wrap: wrap;" class="btn-group">
           <a href="#pricing" class="btn btn-primary">
             ابدأ التجربة المجانية <i class="fa-solid fa-arrow-left"></i>
           </a>
           <a href="#features" class="btn btn-outline">
-            <i class="fa-solid fa-play"></i> جولة سريعة
+            تصفح المميزات
           </a>
         </div>
-
-        <div style="margin-top: 32px; display: flex; align-items: center; gap: 18px; font-size: 0.95rem; color: var(--text-muted); font-weight: 700; flex-wrap: wrap;">
-          <span><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> بيانات آمنة 100%</span>
-          <span><i class="fa-solid fa-bolt" style="color: var(--accent);"></i> دعم فوري</span>
+        
+        <div style="margin-top: 40px; display: flex; gap: 30px; color: var(--text-secondary); font-weight: 700;">
+           <span><i class="fa-solid fa-shield-halved" class="text-gradient"></i> بيانات آمنة</span>
+           <span><i class="fa-solid fa-check-circle" style="color:var(--brand);"></i> معتمد وزارياً</span>
         </div>
       </div>
 
       <!-- Visual -->
-      <div class="relative float-anim" style="perspective: 1000px; padding: 10px;">
-        <div class="glass-card" style="padding: 24px; position: relative; z-index: 2; transform: rotateY(-10deg) rotateX(5deg);">
-          <div class="flex items-center justify-between" style="border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 15px;">
-            <div style="width: 40px; height: 40px; background: #eff6ff; border-radius: 12px; display: grid; place-items: center; color: var(--secondary);"><i class="fa-solid fa-file-signature"></i></div>
-            <div style="flex:1; margin-right: 15px;">
-              <div style="font-weight: 900;">تعميم: الاختبارات النهائية</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted);">تم التوقيع: 48/50 معلم</div>
+      <div class="relative" style="perspective: 1000px; padding: 20px;">
+        <div class="glass-card" style="padding: 30px; transform: rotateY(-5deg) rotateX(2deg); box-shadow: var(--shadow-xl);">
+          
+          <!-- Mock Item 1 -->
+          <div class="flex items-center" style="margin-bottom: 20px; border-bottom: 1px solid var(--surface); padding-bottom: 20px;">
+            <div style="width: 50px; height: 50px; background: var(--brand-light); border-radius: 12px; display: grid; place-items: center; color: var(--brand); font-size: 1.2rem; margin-left: 15px;">
+              <i class="fa-solid fa-file-signature"></i>
             </div>
-            <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
+            <div style="flex:1;">
+              <div style="font-weight: 800; font-size: 1.1rem;">تعميم: الاختبارات النهائية</div>
+              <div style="font-size: 0.9rem; color: var(--text-light);">تم التوقيع: 48/50 معلم</div>
+            </div>
+            <i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 1.5rem;"></i>
           </div>
 
-          <div class="flex items-center justify-between" style="border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 15px;">
-            <div style="width: 40px; height: 40px; background: #fff7ed; border-radius: 12px; display: grid; place-items: center; color: #f59e0b;"><i class="fa-solid fa-user-graduate"></i></div>
-            <div style="flex:1; margin-right: 15px;">
-              <div style="font-weight: 900;">تحويل طالب للمرشد</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted);">الحالة: جاري المتابعة ⏳</div>
+          <!-- Mock Item 2 -->
+          <div class="flex items-center" style="margin-bottom: 20px;">
+            <div style="width: 50px; height: 50px; background: #fff7ed; border-radius: 12px; display: grid; place-items: center; color: var(--accent); font-size: 1.2rem; margin-left: 15px;">
+               <i class="fa-solid fa-wand-magic-sparkles"></i>
             </div>
+            <div style="flex:1;">
+              <div style="font-weight: 800; font-size: 1.1rem;">ملف إنجاز إلكتروني</div>
+              <div style="font-size: 0.9rem; color: var(--text-light);">تم الرفع بنجاح PDF</div>
+            </div>
+            <span style="font-size: 0.8rem; background: var(--brand); color: white; padding: 4px 10px; border-radius: 8px;">جديد</span>
           </div>
 
-          <div class="flex items-center justify-between">
-            <div style="width: 40px; height: 40px; background: #fdf2f8; border-radius: 12px; display: grid; place-items: center; color: #db2777;"><i class="fa-solid fa-file-pdf"></i></div>
-            <div style="flex:1; margin-right: 15px;">
-              <div style="font-weight: 900;">ملف الإنجاز الفصلي</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted);">جاهز للتصدير والطباعة</div>
-            </div>
-            <span class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem; border-radius: 10px; display:inline-flex; align-items:center; justify-content:center;">PDF</span>
+          <!-- Floating Badge -->
+          <div style="position: absolute; bottom: 20px; left: 20px; background: var(--text-main); color: white; padding: 10px 20px; border-radius: 12px; font-weight: 700; box-shadow: var(--shadow-lg);">
+            <i class="fa-solid fa-bolt" style="color: #fbbf24;"></i> أداء سريع
           </div>
+
         </div>
-
-        <div style="position: absolute; top: -30px; left: -30px; width: 100px; height: 100px; background: var(--secondary); border-radius: 20px; opacity: 0.1; z-index: 1;"></div>
-        <div style="position: absolute; bottom: -30px; right: -30px; width: 120px; height: 120px; background: var(--primary); border-radius: 50%; opacity: 0.1; z-index: 1;"></div>
       </div>
 
     </div>
   </header>
 
   <!-- ================= FEATURES GRID ================= -->
-  <section id="features" style="padding: 100px 0; background: var(--surface-1);">
+  <section id="features">
     <div class="container">
       <div class="section-header">
-        <span style="color: var(--primary); font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">لماذا نحن؟</span>
+        <span class="badge">لماذا نحن؟</span>
         <h2>كل أدوات الإدارة المدرسية<br>تحت سقف واحد</h2>
-        <p style="color: var(--text-muted); font-size: 1.1rem;">تغنيك منصة توثـيق عن استخدام 4 تطبيقات مختلفة وتوفر عليك الوقت في تجميع الملفات.</p>
+        <p>تغنيك <strong class="text-accent">منصة توثيق</strong> عن استخدام 4 تطبيقات مختلفة وتوفر عليك الوقت في تجميع الملفات.</p>
       </div>
 
       <div class="bento-grid">
-        <div class="glass-card bento-card" style="grid-column: span 2;">
-          <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(59,130,246,0.1); color: var(--primary); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
-            <i class="fa-solid fa-camera-rotate"></i>
-          </div>
-          <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px;">توثيق فوري بالصور</h3>
-          <p style="color: var(--text-muted); font-size: 1.1rem;">
-            الكلّ بالمدرسة يشارك. التقط صور الفعاليات، المناوبة، أو الصيانة من جوالك، والنظام يرتبها تلقائياً في قوالب رسمية جاهزة للطباعة بترويسة المدرسة.
-          </p>
-        </div>
-
-        <div class="glass-card bento-card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
-          <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(255,255,255,0.1); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
-            <i class="fa-solid fa-wand-sparkles"></i>
-          </div>
-          <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px;">ملف انجاز بنقرة زر</h3>
-          <p style="color: #cbd5e1;">وداعاً لملفات الإنجاز الورقية. كل معلم لديه مساحته الخاصة لرفع الشواهد، وفي نهاية العام يطبع الملف كامل PDF.</p>
-        </div>
-
+        <!-- Card 1 -->
         <div class="glass-card bento-card">
-          <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(245,158,11,0.1); color: var(--accent); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
-            <i class="fa-solid fa-clipboard-check"></i>
+          <div>
+            <div class="bento-icon"><i class="fa-solid fa-camera-rotate"></i></div>
+            <h3>توثيق فوري بالصور</h3>
+            <p>التقط صور الفعاليات والمناوبات من جوالك، والنظام يرتبها تلقائياً في قوالب رسمية جاهزة للطباعة.</p>
           </div>
-          <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px;">تذاكر وطلبات متكاملة</h3>
-          <p style="color: var(--text-muted);">
-            منظومة شاملة لا تقتصر على الصيانة. حوّل الطلاب للمرشد الطلابي، اطلب احتياجات تعليمية، وتابع حالة كل طلب ومساره حتى الإغلاق.
-          </p>
         </div>
 
+        <!-- Card 2 -->
+        <div class="glass-card bento-card" style="background: linear-gradient(135deg, #0f172a, #1e293b); border:none;">
+          <div>
+            <div class="bento-icon" style="background: rgba(255,255,255,0.1); color: white;"><i class="fa-solid fa-wand-sparkles"></i></div>
+            <h3 style="color: white;">ملف إنجاز بنقرة زر</h3>
+            <p style="color: #94a3b8;">وداعاً لملفات الإنجاز الورقية. كل معلم لديه مساحته الخاصة لرفع الشواهد، وفي نهاية العام يطبع الملف كامل PDF.</p>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
         <div class="glass-card bento-card">
-          <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(139, 92, 246, 0.1); color: var(--secondary); font-size: 1.5rem; display: grid; place-items: center; margin-bottom: 24px;">
-            <i class="fa-solid fa-file-signature"></i>
+          <div>
+            <div class="bento-icon" style="color: var(--accent);"><i class="fa-solid fa-clipboard-check"></i></div>
+            <h3>تذاكر وطلبات متكاملة</h3>
+            <p>حوّل الطلاب للمرشد، اطلب احتياجات تعليمية، وتابع حالة كل طلب ومساره حتى الإغلاق.</p>
           </div>
-          <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px;">التعاميم والتوقيعات</h3>
-          <p style="color: var(--text-muted);">
-            أرسل التعاميم للمعلمين إلكترونياً وتتبع من (شاهد) ومن (وقع). لوحة متابعة دقيقة تغنيك عن المطاردة الورقية وتضمن وصول المعلومة.
-          </p>
         </div>
 
-        <div class="glass-card bento-card" style="grid-column: span 2;">
-          <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 250px;">
-              <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px;">طباعة PDF بهوية المدرسة</h3>
-              <p style="color: var(--text-muted);">
-                لا قلق بشأن التنسيق. النظام يصمم التقارير، يضيف الشعار، الأسماء، التواريخ، وحتى كود QR للتوثيق. كل ما عليك فعله هو الضغط على "طباعة".
-              </p>
-            </div>
-            <div style="flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; align-items: center; justify-content: center;">
-              <i class="fa-solid fa-file-pdf" style="font-size: 4rem; color: #ef4444;"></i>
-            </div>
+        <!-- Card 4 -->
+        <div class="glass-card bento-card">
+          <div>
+            <div class="bento-icon"><i class="fa-solid fa-file-signature"></i></div>
+            <h3>التعاميم والتوقيعات</h3>
+            <p>أرسل التعاميم وتتبع من شاهد ومن وقع. لوحة متابعة دقيقة تغنيك عن المطاردة الورقية.</p>
           </div>
+        </div>
+
+        <!-- Card 5 (Span 2 cols on large screens via grid-column if needed, but keeping simple grid for responsive) -->
+        <div class="glass-card bento-card" style="grid-column: span 2; position: relative; overflow: hidden;">
+          <div style="position: relative; z-index: 2; max-width: 60%;">
+             <div class="bento-icon" style="color: #ef4444;"><i class="fa-solid fa-file-pdf"></i></div>
+             <h3>طباعة PDF بهوية المدرسة</h3>
+             <p>النظام يصمم التقارير، يضيف الشعار، الأسماء، التواريخ، وكود QR للتوثيق تلقائياً.</p>
+          </div>
+          <i class="fa-solid fa-file-pdf" style="position: absolute; bottom: -20px; left: -20px; font-size: 10rem; color: rgba(239, 68, 68, 0.05); transform: rotate(15deg);"></i>
         </div>
       </div>
     </div>
   </section>
 
   <!-- ================= HOW IT WORKS ================= -->
-  <section id="how" style="padding: 100px 0;">
+  <section id="how" style="background: white;">
     <div class="container">
       <div class="section-header">
         <h2>بساطة في الاستخدام</h2>
-        <p style="color: var(--text-muted);">لا تحتاج لدورات تدريبية. المنصة مصممة لتكون بديهية.</p>
+        <p>لا تحتاج لدورات تدريبية. المنصة مصممة لتكون بديهية.</p>
       </div>
 
-      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; text-align: center;">
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); text-align: center; gap: 40px;">
         <div>
-          <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; font-size: 2rem; font-weight: 900; display: grid; place-items: center; margin: 0 auto 24px; box-shadow: 0 10px 20px rgba(59,130,246,0.3);">1</div>
-          <h3 style="font-weight: 900; font-size: 1.25rem;">سجّل مدرستك</h3>
-          <p style="color: var(--text-muted); margin-top: 10px;">أنشئ حساباً للمدرسة وأضف المعلمين بضغطة زر واحدة.</p>
+          <div style="width: 80px; height: 80px; background: var(--brand); color: white; border-radius: 24px; font-size: 2rem; font-weight: 800; display: grid; place-items: center; margin: 0 auto 24px; box-shadow: var(--shadow-lg);">1</div>
+          <h3>سجّل مدرستك</h3>
+          <p>أنشئ حساباً للمدرسة وأضف المعلمين بضغطة زر وتفعيل فوري.</p>
         </div>
 
         <div>
-          <div style="width: 80px; height: 80px; background: var(--surface-1); color: var(--text-main); border: 2px solid var(--border); border-radius: 50%; font-size: 2rem; font-weight: 900; display: grid; place-items: center; margin: 0 auto 24px;">2</div>
-          <h3 style="font-weight: 900; font-size: 1.25rem;">الجميع يوثّق</h3>
-          <p style="color: var(--text-muted); margin-top: 10px;">المعلمون يرفعون تقاريرهم وتذاكرهم من هواتفهم مباشرة.</p>
+           <div style="width: 80px; height: 80px; background: var(--surface); color: var(--text-main); border-radius: 24px; font-size: 2rem; font-weight: 800; display: grid; place-items: center; margin: 0 auto 24px;">2</div>
+          <h3>الجميع يوثّق</h3>
+          <p>المعلمون يرفعون تقاريرهم وتذاكرهم من هواتفهم مباشرة بون تعقيد.</p>
         </div>
 
         <div>
-          <div style="width: 80px; height: 80px; background: var(--surface-1); color: var(--text-main); border: 2px solid var(--border); border-radius: 50%; font-size: 2rem; font-weight: 900; display: grid; place-items: center; margin: 0 auto 24px;">3</div>
-          <h3 style="font-weight: 900; font-size: 1.25rem;">أرشف واطبع</h3>
-          <p style="color: var(--text-muted); margin-top: 10px;">لوحة تحكم المدير تظهر كل شيء. راقب، قيّم، واطبع الأرشيف.</p>
+          <div style="width: 80px; height: 80px; background: var(--surface); color: var(--text-main); border-radius: 24px; font-size: 2rem; font-weight: 800; display: grid; place-items: center; margin: 0 auto 24px;">3</div>
+          <h3>أرشف واطبع</h3>
+          <p>لوحة تحكم المدير تظهر كل شيء. راقب، قيّم، واطبع الأرشيف بضغطة زر.</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- ================= STATS ================= -->
-  <section style="padding: 60px 0;">
+  <section>
     <div class="container">
-      <div class="glass-card" style="background: linear-gradient(120deg, var(--primary-dark), var(--secondary)); padding: 60px; color: white; text-align: center; border:none; box-shadow: 0 20px 50px rgba(37,99,235,0.3);">
-        <h2 style="font-size: 2rem; font-weight: 900; margin-bottom: 40px;">أرقام نفخر بها في مسيرتنا</h2>
-        <div class="flex items-center" style="max-width: 800px; margin: 0 auto; flex-wrap: wrap; gap: 40px; justify-content: center;">
+      <div class="glass-card" style="background: linear-gradient(120deg, var(--brand-dark), var(--brand)); padding: 80px 40px; color: white; text-align: center; border:none; box-shadow: var(--shadow-xl);">
+        <h2 style="color: white; margin-bottom: 50px;">أرقام نفخر بها</h2>
+        <div class="flex" style="flex-wrap: wrap; gap: 60px; justify-content: center;">
           <div>
-            <div style="font-size: 3.2rem; font-weight: 900; line-height: 1;">+500K</div>
-            <div style="opacity: 0.85; font-weight: 700;">تقرير مُصدر</div>
+            <div style="font-size: 4rem; font-weight: 900; line-height: 1;">+500K</div>
+            <div style="opacity: 0.8; font-weight: 700; font-size: 1.2rem;">تقرير مُصدر</div>
           </div>
           <div>
-            <div style="font-size: 3.2rem; font-weight: 900; line-height: 1;">+200</div>
-            <div style="opacity: 0.85; font-weight: 700;">مدرسة ذكية</div>
+            <div style="font-size: 4rem; font-weight: 900; line-height: 1;">99%</div>
+            <div style="opacity: 0.8; font-weight: 700; font-size: 1.2rem;">توفير الورق</div>
           </div>
           <div>
-            <div style="font-size: 3.2rem; font-weight: 900; line-height: 1;">100%</div>
-            <div style="opacity: 0.85; font-weight: 700;">رضا العملاء</div>
+            <div style="font-size: 4rem; font-weight: 900; line-height: 1;">100%</div>
+            <div style="opacity: 0.8; font-weight: 700; font-size: 1.2rem;">أمان البيانات</div>
           </div>
         </div>
       </div>
@@ -544,146 +481,119 @@
   </section>
 
   <!-- ================= PRICING ================= -->
-  <section id="pricing" style="padding: 100px 0; background: var(--surface-1);">
+  <section id="pricing">
     <div class="container">
       <div class="section-header">
-        <h2>استثمر في راحة بالك</h2>
-        <p>باقات مرنة تناسب حجم كل مدرسة. شاملة جميع المزايا، الفرق فقط في السعة.</p>
+        <h2>باقات تناسب الجميع</h2>
+        <p>استثمر في راحة بالك مع باقات مرنة وشاملة.</p>
       </div>
 
       <div id="pricing-container">
-        <div class="flex justify-center" style="margin-bottom: 40px;">
-          <div class="glass-card flex items-center p-1" style="background: var(--surface-2); padding: 6px; border-radius: 999px; gap: 4px; display: inline-flex;">
-            <button type="button" class="btn-toggle" data-period="6m" style="border-radius: 999px; padding: 10px 24px; font-weight: 900; border:none; background: var(--primary); color: white; transition: all 0.2s;">
+        <!-- Toggle -->
+        <div class="flex justify-center" style="margin-bottom: 50px;">
+          <div style="background: white; padding: 6px; border-radius: 100px; box-shadow: var(--shadow-md); border: 1px solid var(--border); display: inline-flex;">
+            <button type="button" class="btn-toggle" data-period="6m" style="border-radius: 100px; padding: 12px 28px; font-weight: 800; background: var(--text-main); color: white; transition: all 0.3s;">
               6 أشهر
             </button>
-            <button type="button" class="btn-toggle" data-period="1y" style="border-radius: 999px; padding: 10px 24px; font-weight: 900; border:none; background: transparent; color: var(--text-muted); transition: all 0.2s;">
+            <button type="button" class="btn-toggle" data-period="1y" style="border-radius: 100px; padding: 12px 28px; font-weight: 800; color: var(--text-secondary); transition: all 0.3s;">
               سنوي
-              <span style="font-size: 0.75em; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 8px; margin-right: 6px;">توفير</span>
+              <span style="font-size: 0.7em; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 8px; margin-right: 6px;">توفير</span>
             </button>
           </div>
         </div>
 
-        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px;">
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; align-items: start;">
 
           <!-- Free Plan -->
-          <div class="glass-card pricing-card" style="background: var(--bg);">
-            <div style="padding: 30px;">
-              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--text-muted);">المجانية</h3>
-              <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">0 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">تجربة 14 يوم • حتى 5 معلمين</p>
-              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                <li><i class="fa-solid fa-check"></i> <strong>تجربة مجانية</strong></li>
-                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                <li><i class="fa-solid fa-check"></i> التذاكر والطلبات</li>
-                <li><i class="fa-solid fa-check"></i> صلاحية 14 يوم</li>
-              </ul>
-              <button type="button" class="btn btn-outline js-open-order" data-plan-title="المجانية" data-plan-price="0 ريال" data-plan-duration="14 يوم" style="width: 100%;">تجربة الآن</button>
-            </div>
+          <div class="glass-card pricing-card">
+            <h3 style="color: var(--text-secondary);">المجانية</h3>
+            <div class="price-tag">0 <span>ريال</span></div>
+            <p>تجربة 14 يوم • حتى 5 معلمين</p>
+            <ul class="features-list">
+              <li><i class="fa-solid fa-check"></i> تجربة كاملة للمنصة</li>
+              <li><i class="fa-solid fa-check"></i> صلاحية 14 يوم</li>
+            </ul>
+            <button class="btn btn-outline js-open-order" data-plan-title="المجانية" data-plan-price="0 ريال" data-plan-duration="14 يوم" style="width: 100%; margin-top: 30px;">
+              تجربة الآن
+            </button>
           </div>
 
           <!-- 25 Teachers -->
-          <div class="glass-card pricing-card" data-plan="25" style="background: var(--bg);">
-            <div style="padding: 30px;">
-              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--text-muted);">باقة 25 معلم</h3>
-
-              <div class="price-block p-6m">
-                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">699 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
-              </div>
-
-              <div class="price-block p-1y" style="display:none">
-                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,299 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 99 ريال</div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
-              </div>
-
-              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                <li><i class="fa-solid fa-check"></i> نظام التذاكر والطلبات</li>
-                <li><i class="fa-solid fa-check"></i> نظام التعاميم</li>
-                <li><i class="fa-solid fa-check"></i> دعم فني</li>
-              </ul>
-              <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
-            </div>
+          <div class="glass-card pricing-card" data-plan="25">
+             <h3>باقة 25 معلم</h3>
+             <div class="price-block p-6m">
+               <div class="price-tag">699 <span>ريال</span></div>
+               <p>لمدة 6 أشهر</p>
+             </div>
+             <div class="price-block p-1y" style="display:none">
+                <div class="price-tag">1,299 <span>ريال</span></div>
+                <p>لمدة سنة كاملة (توفير 99 ريال)</p>
+             </div>
+             <ul class="features-list">
+               <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+               <li><i class="fa-solid fa-check"></i> تذاكر وطلبات</li>
+               <li><i class="fa-solid fa-check"></i> دعم فني</li>
+             </ul>
+             <button class="btn btn-outline js-select-plan" style="width: 100%; margin-top: 30px;">اطلب الباقة</button>
           </div>
 
-          <!-- 50 Teachers -->
-          <div class="glass-card pricing-card featured" data-plan="50" style="background: var(--bg);">
-            <div style="background: var(--primary); color: white; text-align: center; padding: 6px; font-weight: 900; font-size: 0.85rem;">الأكثر طلباً</div>
-            <div style="padding: 30px;">
-              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--primary);">باقة 50 معلم</h3>
-
-              <div class="price-block p-6m">
-                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">999 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
-              </div>
-
-              <div class="price-block p-1y" style="display:none">
-                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,899 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 99 ريال</div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
-              </div>
-
-              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                <li><i class="fa-solid fa-check"></i> جميع أنواع التذاكر</li>
-                <li><i class="fa-solid fa-check"></i> تعاميم + توقيعات إلكترونية</li>
-                <li><i class="fa-solid fa-check"></i> دعم فني متقدم</li>
-              </ul>
-              <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
+          <!-- 50 Teachers (Featured) -->
+          <div class="glass-card pricing-card featured" data-plan="50">
+            <div style="background: var(--brand); color: white; padding: 5px 15px; position: absolute; top: 20px; right: 20px; border-radius: 20px; font-size: 0.8rem; font-weight: 800;">الأكثر طلباً</div>
+            <h3 style="color: var(--brand);">باقة 50 معلم</h3>
+            
+            <div class="price-block p-6m">
+              <div class="price-tag" style="color: var(--brand);">999 <span>ريال</span></div>
+              <p>لمدة 6 أشهر</p>
             </div>
-          </div>
-
-          <!-- 75 Teachers -->
-          <div class="glass-card pricing-card" data-plan="75" style="background: var(--bg);">
-            <div style="padding: 30px;">
-              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--text-muted);">باقة 75 معلم</h3>
-
-              <div class="price-block p-6m">
-                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,299 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر</p>
-              </div>
-
-              <div class="price-block p-1y" style="display:none">
-                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">2,399 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 199 ريال</div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
-              </div>
-
-              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                <li><i class="fa-solid fa-check"></i> دعم فني</li>
-              </ul>
-              <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
+            <div class="price-block p-1y" style="display:none">
+               <div class="price-tag" style="color: var(--brand);">1,899 <span>ريال</span></div>
+               <p>لمدة سنة كاملة (توفير 99 ريال)</p>
             </div>
+
+            <ul class="features-list">
+              <li><i class="fa-solid fa-check"></i> كل مميزات الباقة السابقة</li>
+              <li><i class="fa-solid fa-check"></i> تعاميم + توقيع إلكتروني</li>
+              <li><i class="fa-solid fa-check"></i> أولوية الدعم الفني</li>
+            </ul>
+            <button class="btn btn-primary js-select-plan" style="width: 100%; margin-top: 30px;">اطلب الباقة</button>
           </div>
-
-          <!-- 100 Teachers -->
-          <div class="glass-card pricing-card" data-plan="100" style="background: var(--bg);">
-            <div style="padding: 30px;">
-              <h3 style="font-size: 1.25rem; font-weight: 900; color: var(--text-muted);">باقة 100 معلم</h3>
-
-              <div class="price-block p-6m">
-                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">1,599 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة 6 أشهر • حتى 100 معلم</p>
-              </div>
-
-              <div class="price-block p-1y" style="display:none">
-                <div style="font-size: 2.5rem; font-weight: 900; margin: 16px 0;">2,899 <span style="font-size: 1rem; color: var(--text-muted);">ريال</span></div>
-                <div style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85rem; margin-top:-10px; margin-bottom:10px">وفر 299 ريال</div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">لمدة سنة كاملة</p>
-              </div>
-
-              <ul class="feature-content" style="font-size: 0.95rem; margin-bottom: 30px;">
-                <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-                <li><i class="fa-solid fa-check"></i> جميع أنواع التذاكر</li>
-                <li><i class="fa-solid fa-check"></i> تعاميم + توقيعات إلكترونية</li>
-                <li><i class="fa-solid fa-check"></i> دعم فني VIP</li>
-              </ul>
-              <button type="button" class="btn btn-primary js-select-plan" style="width: 100%;">اطلب الباقة</button>
+          
+           <!-- 75 Teachers -->
+           <div class="glass-card pricing-card" data-plan="75">
+            <h3>باقة 75 معلم</h3>
+            <div class="price-block p-6m">
+              <div class="price-tag">1,299 <span>ريال</span></div>
+              <p>لمدة 6 أشهر</p>
             </div>
-          </div>
+            <div class="price-block p-1y" style="display:none">
+               <div class="price-tag">2,399 <span>ريال</span></div>
+               <p>لمدة سنة كاملة</p>
+            </div>
+            <ul class="features-list">
+              <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
+              <li><i class="fa-solid fa-check"></i> دعم فني</li>
+            </ul>
+            <button class="btn btn-outline js-select-plan" style="width: 100%; margin-top: 30px;">اطلب الباقة</button>
+         </div>
+
+         <!-- 100 Teachers -->
+         <div class="glass-card pricing-card" data-plan="100">
+            <h3>باقة 100 معلم</h3>
+            <div class="price-block p-6m">
+              <div class="price-tag">1,599 <span>ريال</span></div>
+              <p>لمدة 6 أشهر</p>
+            </div>
+            <div class="price-block p-1y" style="display:none">
+               <div class="price-tag">2,899 <span>ريال</span></div>
+               <p>لمدة سنة كاملة</p>
+            </div>
+            <ul class="features-list">
+              <li><i class="fa-solid fa-check"></i> مميزات VIP كاملة</li>
+              <li><i class="fa-solid fa-check"></i> سعة تخزين عالية</li>
+            </ul>
+            <button class="btn btn-outline js-select-plan" style="width: 100%; margin-top: 30px;">اطلب الباقة</button>
+         </div>
 
         </div>
       </div>
@@ -691,15 +601,15 @@
   </section>
 
   <!-- ================= FOOTER & CTA ================= -->
-  <footer style="background: #020617; color: white; padding: 80px 0 30px; margin-top: 60px;">
+  <footer>
     <div class="container">
-      <div class="glass-card" style="background: var(--primary); border: none; padding: 50px; text-align: center; margin-bottom: 80px; position: relative; overflow: hidden;">
-        <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);"></div>
-        <h2 style="color: white; font-size: 2rem; margin-bottom: 20px; font-weight: 900;">ابدأ رحلة التوثيق الرقمي اليوم</h2>
-        <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-bottom: 30px;">انضم لأكثر من 200 مدرسة ذكية تركت الورق واختارت المستقبل.</p>
-        <div class="flex" style="justify-content: center; gap: 16px; flex-wrap: wrap;">
-          <a href="https://wa.me/966537720207" class="btn btn-glass" style="background: white; color: var(--primary);">
-            <i class="fa-brands fa-whatsapp"></i> تواصل معنا واتساب
+      <div class="glass-card" style="background: var(--brand); border: none; padding: 60px; text-align: center; margin-bottom: 80px; position: relative;">
+        <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%); pointer-events:none;"></div>
+        <h2 style="color: white; margin-bottom: 20px;">جاهز للتغيير؟</h2>
+        <p style="color: rgba(255,255,255,0.9); font-size: 1.2rem; margin-bottom: 40px;">انضم لمئات المدارس التي اختارت التوثيق الذكي.</p>
+        <div class="flex" style="justify-content: center; gap: 20px; flex-wrap: wrap;">
+          <a href="https://wa.me/966537720207" class="btn btn-glass" style="background: white; color: var(--brand);">
+            <i class="fa-brands fa-whatsapp"></i> تواصل واتساب
           </a>
           <a href="{% url 'reports:login' %}" class="btn btn-glass">
             دخول النظام
@@ -707,33 +617,35 @@
         </div>
       </div>
 
-      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 60px;">
-        <div>
-          <div class="logo" style="margin-bottom: 20px;">
-            <img src="{% static 'img/logo1.png' %}" alt="Logo"> <span style="font-size: 1.3rem;">منصة توثـيق</span>
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 60px; margin-bottom: 60px;">
+        <div style="text-align: right;">
+          <div class="logo" style="margin-bottom: 20px; color: white;">
+            <img src="{% static 'img/logo1.png' %}" alt="Logo"> <span>منصة توثيق</span>
           </div>
-          <p style="color: #94a3b8; font-size: 0.95rem;">نظام إدارة المدرسة الحديث. نوفر عليك الوقت والجهد في التوثيق والمتابعة.</p>
+          <p style="color: #94a3b8;">الحل الرقمي المتكامل لإدارة المدارس السعودية. موثّق، آمن، وسهل الاستخدام.</p>
         </div>
+        
         <div>
-          <h4 style="font-weight: 900; margin-bottom: 20px; font-size: 1.1rem;">روابط هامة</h4>
-          <ul style="color: #cbd5e1; font-size: 0.95rem; display: grid; gap: 10px;">
+          <h4 style="color: white; margin-bottom: 25px;">روابط سريعة</h4>
+          <ul style="display: grid; gap: 15px;">
             <li><a href="#features">المميزات</a></li>
             <li><a href="#how">كيف نعمل</a></li>
             <li><a href="#pricing">الأسعار</a></li>
           </ul>
         </div>
+        
         <div>
-          <h4 style="font-weight: 900; margin-bottom: 20px; font-size: 1.1rem;">تواصل معنا</h4>
-          <ul style="color: #cbd5e1; font-size: 0.95rem; display: grid; gap: 10px;">
-            <li><i class="fa-brands fa-whatsapp" style="margin-left: 8px;"></i> 0537720207</li>
-            <li><i class="fa-regular fa-envelope" style="margin-left: 8px;"></i> mansour9999@hotmail.com</li>
-            <li><i class="fa-solid fa-location-dot" style="margin-left: 8px;"></i> المملكة العربية السعودية</li>
+          <h4 style="color: white; margin-bottom: 25px;">تواصل معنا</h4>
+          <ul style="display: grid; gap: 15px; color: #94a3b8;">
+            <li><i class="fa-brands fa-whatsapp" style="margin-left: 10px;"></i> 0537720207</li>
+            <li><i class="fa-regular fa-envelope" style="margin-left: 10px;"></i> mansour9999@hotmail.com</li>
+            <li><i class="fa-solid fa-location-dot" style="margin-left: 10px;"></i> السعودية - الرياض</li>
           </ul>
         </div>
       </div>
 
       <div style="border-top: 1px solid #1e293b; padding-top: 30px; text-align: center; color: #64748b; font-size: 0.9rem;">
-        &copy; {% now "Y" %} منصة توثـيق. جميع الحقوق محفوظة.
+        &copy; {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.
       </div>
     </div>
   </footer>
