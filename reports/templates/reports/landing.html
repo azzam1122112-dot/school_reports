@@ -33,6 +33,12 @@
       --brand-light: #eff6ff;
       --accent: #d97706; /* Golden/Bronze for luxury feel */
 
+      /* Compatibility aliases (used by existing JS/snippets) */
+      --primary: var(--brand);
+      --primary-dark: var(--brand-dark);
+      --text-muted: var(--text-light);
+      --surface-1: var(--surface);
+
       /* Neutrals */
       --bg: #ffffff;
       --surface: #f8fafc;
@@ -82,6 +88,8 @@
     .container { width: 90%; max-width: var(--container); margin: 0 auto; }
     .grid { display: grid; gap: 30px; }
     .flex { display: flex; }
+    .gap-2 { gap: 12px; }
+    .flex-1 { flex: 1 1 0%; }
     .items-center { align-items: center; }
     .justify-between { justify-content: space-between; }
     .justify-center { justify-content: center; }
@@ -208,10 +216,32 @@
       gap: 24px;
     }
     .bento-card { padding: 40px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+    .bento-card--wide { grid-column: span 2; }
     .bento-icon {
       width: 60px; height: 60px; border-radius: 16px; background: var(--surface);
       display: grid; place-items: center; font-size: 1.5rem; color: var(--brand); margin-bottom: 25px;
     }
+
+    /* Detailed feature list */
+    .feature-list {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .feature-item i { color: var(--brand); margin-top: 3px; }
+    .feature-item strong { display: block; font-weight: 900; color: var(--text-main); }
+    .feature-item span { display: block; color: var(--text-secondary); font-weight: 600; font-size: 0.95rem; margin-top: 4px; }
 
     /* Pricing */
     .pricing-card { padding: 40px; text-align: center; border-radius: 24px; position: relative; }
@@ -226,6 +256,95 @@
     .features-list li { margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-secondary); font-weight: 600; }
     .features-list i { color: var(--brand); }
 
+    /* Pricing toggle (segmented control) */
+    .pricing-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(6px);
+      width: fit-content;
+    }
+    .btn-toggle {
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-weight: 900;
+      color: var(--text-secondary);
+      transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-toggle:hover { transform: translateY(-1px); color: var(--text-main); }
+    .btn-toggle.is-active {
+      background: var(--brand);
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+    }
+    .toggle-badge {
+      font-size: 0.75em;
+      background: #dcfce7;
+      color: #15803d;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-right: 8px;
+      font-weight: 900;
+    }
+
+    /* Modal (Order) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(15, 23, 42, 0.60);
+      backdrop-filter: blur(6px);
+      z-index: 3000;
+    }
+    .modal-overlay.open { display: grid; }
+    .modal-content {
+      width: 100%;
+      max-width: 620px;
+      padding: 28px;
+      position: relative;
+    }
+    .modal-content.glass-card:hover { transform: none; }
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+    }
+    .modal-close:hover { background: #fff; box-shadow: var(--shadow-md); }
+    .form-group { margin-bottom: 16px; text-align: right; }
+    .form-group label { display: block; font-weight: 900; color: var(--text-main); margin-bottom: 8px; }
+    input, select {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text-main);
+      font-weight: 700;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    input:focus, select:focus {
+      border-color: rgba(37, 99, 235, 0.45);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
     /* Footer */
     footer { background: #0f172a; color: white; padding: 80px 0 40px; margin-top: 50px; }
     footer a { color: #94a3b8; }
@@ -234,6 +353,7 @@
     /* Responsive */
     @media (max-width: 1024px) {
       .bento-grid { grid-template-columns: repeat(2, 1fr); }
+      .feature-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       h1 { font-size: 2.8rem; }
     }
     @media (max-width: 768px) {
@@ -241,11 +361,18 @@
       .mobile-toggle { display: block; }
       .grid { grid-template-columns: 1fr !important; }
       .bento-grid { grid-template-columns: 1fr; }
+      .bento-card--wide { grid-column: auto; }
+      .feature-list { grid-template-columns: 1fr; }
       h1 { font-size: 2.2rem; }
       .hero { padding-top: 130px; text-align: center; }
       .hero .flex.justify-between { justify-content: center; }
       .hero .btn-group { justify-content: center; }
       .pricing-card.featured { transform: scale(1); }
+    }
+
+    @media (max-width: 480px) {
+      .pricing-toggle { width: 100%; }
+      .btn-toggle { flex: 1; }
     }
   </style>
 </head>
@@ -314,7 +441,7 @@
           من التذاكر والصيانة إلى ملفات الإنجاز والتقارير. <strong style="color:var(--brand)">منصة توثيق</strong> تجمع لك كل ما تحتاجه في مكان واحد، بتصميم فخم وسهل الاستخدام.
         </p>
 
-        <div class="flex" style="gap: 16px; flex-wrap: wrap;" class="btn-group">
+        <div class="flex btn-group" style="gap: 16px; flex-wrap: wrap;">
           <a href="#pricing" class="btn btn-primary">
             ابدأ التجربة المجانية <i class="fa-solid fa-arrow-left"></i>
           </a>
@@ -414,8 +541,8 @@
           </div>
         </div>
 
-        <!-- Card 5 (Span 2 cols on large screens via grid-column if needed, but keeping simple grid for responsive) -->
-        <div class="glass-card bento-card" style="grid-column: span 2; position: relative; overflow: hidden;">
+        <!-- Card 5 (Wide) -->
+        <div class="glass-card bento-card bento-card--wide" style="position: relative; overflow: hidden;">
           <div style="position: relative; z-index: 2; max-width: 60%;">
              <div class="bento-icon" style="color: #ef4444;"><i class="fa-solid fa-file-pdf"></i></div>
              <h3>طباعة PDF بهوية المدرسة</h3>
@@ -423,6 +550,27 @@
           </div>
           <i class="fa-solid fa-file-pdf" style="position: absolute; bottom: -20px; left: -20px; font-size: 10rem; color: rgba(239, 68, 68, 0.05); transform: rotate(15deg);"></i>
         </div>
+      </div>
+
+      <!-- Full features (visible for visitors) -->
+      <div class="section-header" style="margin-top: 70px; margin-bottom: 40px;">
+        <span class="badge">مميزات النظام</span>
+        <h3 style="font-size: 2rem;">كل شيء واضح للزائر قبل الاشتراك</h3>
+        <p>هذه نظرة شاملة على الوحدات الرئيسية داخل <strong class="text-accent">منصة توثيق</strong>.</p>
+      </div>
+      <div class="feature-list" aria-label="قائمة مميزات النظام">
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>التقارير المصوّرة</strong><span>نماذج جاهزة، أرشفة تلقائية، وطباعة PDF.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>التذاكر والطلبات</strong><span>مسارات متابعة، إسناد، حالات، وتقارير إغلاق.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>ملفات الإنجاز</strong><span>رفع شواهد وإخراج ملف كامل بنقرة زر.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>التعاميم والتوقيع</strong><span>إرسال تعاميم وتتبع المشاهدة والتوقيع.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>لوحة تحكم الإدارة</strong><span>إحصائيات، متابعة الأداء، وتقارير جاهزة.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>صلاحيات وأدوار</strong><span>تحديد الصلاحيات حسب الدور والمهام.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>هوية المدرسة</strong><span>شعار، ألوان طباعة، وختم بصري للمدرسة.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>QR للتوثيق</strong><span>كود تحقق على الملفات والتقارير عند الطباعة.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>إشعارات وتنبيهات</strong><span>تنبيهات بالمهام والتذاكر والتعاميم.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>إدارة المدارس والمعلمين</strong><span>إضافة أعضاء المدرسة وإدارة بياناتهم وصلاحياتهم.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>مرفقات وسعة تخزين</strong><span>رفع صور/ملفات منظمة حسب النوع والتاريخ.</span></div></div>
+        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>جاهزية للطباعة</strong><span>مخرجات رسمية منسقة ومناسبة للأرشفة.</span></div></div>
       </div>
     </div>
   </section>
@@ -491,13 +639,13 @@
       <div id="pricing-container">
         <!-- Toggle -->
         <div class="flex justify-center" style="margin-bottom: 50px;">
-          <div style="background: white; padding: 6px; border-radius: 100px; box-shadow: var(--shadow-md); border: 1px solid var(--border); display: inline-flex;">
-            <button type="button" class="btn-toggle" data-period="6m" style="border-radius: 100px; padding: 12px 28px; font-weight: 800; background: var(--text-main); color: white; transition: all 0.3s;">
+          <div class="pricing-toggle" role="tablist" aria-label="مدة الاشتراك">
+            <button type="button" class="btn-toggle is-active" data-period="6m" role="tab" aria-selected="true">
               6 أشهر
             </button>
-            <button type="button" class="btn-toggle" data-period="1y" style="border-radius: 100px; padding: 12px 28px; font-weight: 800; color: var(--text-secondary); transition: all 0.3s;">
+            <button type="button" class="btn-toggle" data-period="1y" role="tab" aria-selected="false">
               سنوي
-              <span style="font-size: 0.7em; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 8px; margin-right: 6px;">توفير</span>
+              <span class="toggle-badge">توفير</span>
             </button>
           </div>
         </div>
@@ -516,11 +664,11 @@
             <button class="btn btn-outline js-open-order" data-plan-title="المجانية" data-plan-price="0 ريال" data-plan-duration="14 يوم" style="width: 100%; margin-top: 30px;">
               تجربة الآن
             </button>
-          </div>
-
-          <!-- 25 Teachers -->
-          <div class="glass-card pricing-card" data-plan="25">
-             <h3>باقة 25 معلم</h3>
+          <div>
+           <div style="width: 80px; height: 80px; background: var(--surface); color: var(--text-main); border-radius: 24px; font-size: 2rem; font-weight: 800; display: grid; place-items: center; margin: 0 auto 24px;">2</div>
+          <h3>الجميع يوثّق</h3>
+          <p>المعلمون يرفعون تقاريرهم وتذاكرهم من هواتفهم مباشرة بدون تعقيد.</p>
+        </div>
              <div class="price-block p-6m">
                <div class="price-tag">699 <span>ريال</span></div>
                <p>لمدة 6 أشهر</p>
@@ -685,13 +833,9 @@
       currentPeriod = period;
 
       document.querySelectorAll('.btn-toggle').forEach(btn => {
-        if (btn.dataset.period === period) {
-          btn.style.background = 'var(--primary)';
-          btn.style.color = 'white';
-        } else {
-          btn.style.background = 'transparent';
-          btn.style.color = 'var(--text-muted)';
-        }
+        const isActive = btn.dataset.period === period;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
 
       document.querySelectorAll('.pricing-card').forEach(card => {
