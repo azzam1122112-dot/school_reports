@@ -237,6 +237,15 @@
         border-bottom: 1px solid var(--border-color);
     }
     .notif-item:last-child { border-bottom: none; }
+
+    .notif-item-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .notif-item-link:hover {
+        background: #f9fafb;
+    }
     
     .notif-icon {
         width: 36px;
@@ -414,7 +423,7 @@
                                 <td colspan="5" style="text-align:center; padding: 2rem;">
                                     يوجد {{ subscriptions_expiring_soon }} اشتراك ينتهي خلال 30 يوم.
                                     <br><br>
-                                    <a href="#" class="btn-modern outline">عرض التفاصيل</a>
+                                    <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn-modern outline">عرض التفاصيل</a>
                                 </td>
                             </tr>
                             {% else %}
@@ -431,39 +440,59 @@
 
         <!-- Sidebar / Alerts -->
         <div class="side-column">
-            
-            <!-- Notifications Panel -->
+
+            <!-- Alerts Card (Actionable) -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">🔔 آخر التنبيهات</h3>
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">🔔 تنبيهات</h3>
                 </div>
                 <div class="card-body" style="padding:0;">
-                    <!-- We need a context variable for notifications. Usually 'notifications' in context processors. -->
-                    <!-- Simulating structure -->
-                    <div class="notif-item">
-                        <div class="notif-icon"><i class="fas fa-info"></i></div>
-                        <div class="notif-content">
-                            <h4>نظام الإشعارات الجديد</h4>
-                            <p>تم تفعيل نظام التنبيهات الذكي للمشتركين والطلبات.</p>
-                            <span class="notif-time">الآن</span>
-                        </div>
-                    </div>
                     {% if tickets_open > 0 %}
-                    <div class="notif-item">
+                    <a href="{% url 'reports:platform_tickets_list' %}" class="notif-item notif-item-link">
                         <div class="notif-icon" style="background:#fee2e2; color:#be123c"><i class="fas fa-ticket-alt"></i></div>
                         <div class="notif-content">
-                            <h4>تذاكر مفتوحة</h4>
-                            <p>يوجد {{ tickets_open }} تذكرة دعم فني بانتظار الرد.</p>
-                            <span class="notif-time">تنبيه مستمر</span>
+                            <h4>طلبات دعم فني تحتاج مراجعة</h4>
+                            <p>يوجد {{ tickets_open }} تذكرة مفتوحة/قيد المعالجة.</p>
+                            <span class="notif-time">اضغط لعرض التذاكر</span>
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    {% if pending_payments > 0 %}
+                    <a href="{% url 'reports:platform_payments_list' %}?status=active" class="notif-item notif-item-link">
+                        <div class="notif-icon" style="background:#fef3c7; color:#b45309"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div class="notif-content">
+                            <h4>فواتير/مدفوعات معلّقة</h4>
+                            <p>يوجد {{ pending_payments }} عملية دفع بانتظار الاعتماد.</p>
+                            <span class="notif-time">اضغط لعرض المالية</span>
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    {% if subscriptions_expiring_soon > 0 %}
+                    <a href="{% url 'reports:platform_subscriptions_list' %}" class="notif-item notif-item-link">
+                        <div class="notif-icon" style="background:#e0f2fe; color:#0369a1"><i class="fas fa-calendar-alt"></i></div>
+                        <div class="notif-content">
+                            <h4>اشتراكات تنتهي قريباً</h4>
+                            <p>يوجد {{ subscriptions_expiring_soon }} اشتراك ينتهي خلال 30 يوم.</p>
+                            <span class="notif-time">اضغط لعرض الاشتراكات</span>
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    {% if tickets_open == 0 and pending_payments == 0 and subscriptions_expiring_soon == 0 %}
+                    <div class="notif-item">
+                        <div class="notif-icon"><i class="fas fa-check"></i></div>
+                        <div class="notif-content">
+                            <h4>لا توجد تنبيهات حالياً</h4>
+                            <p>كل شيء يبدو جيداً.</p>
+                            <span class="notif-time">—</span>
                         </div>
                     </div>
                     {% endif %}
                 </div>
-                <div style="padding:1rem; border-top:1px solid var(--border-color); text-align:center;">
-                    <a href="#" style="font-size:0.9rem; font-weight:600; color:var(--primary-color);">عرض كل الإشعارات</a>
-                </div>
             </div>
-            
+
             <!-- Quick Ticket Stats -->
             <div class="card-panel">
                 <div class="card-header">
