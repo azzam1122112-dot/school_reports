@@ -184,9 +184,12 @@
     
     .mobile-toggle { display: none; font-size: 1.5rem; color: var(--text-main); }
     .mobile-menu {
-      position: fixed; inset: 0; background: white; z-index: 999;
+      position: fixed; inset: 0; background: white; z-index: 1200;
       transform: translateX(100%); transition: transform 0.3s ease;
-      padding: 100px 30px; display: flex; flex-direction: column; gap: 20px;
+      padding: calc(100px + env(safe-area-inset-top)) 30px calc(24px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 20px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .mobile-menu.open { transform: translateX(0); }
     .mobile-link { font-size: 1.5rem; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
@@ -411,6 +414,9 @@
       .feature-card > div {
         width: 100%;
       }
+
+      /* Prevent overflow from inline min-width on child blocks */
+      .feature-card div[style*="min-width"] { min-width: 0 !important; }
       
       /* Reset specific card flex layouts */
       .feature-card[style*="align-items: center"] {
@@ -944,18 +950,26 @@
     const mobileLinks = document.querySelectorAll('.mobile-link');
 
     function openMenu() {
+      if (!mobileMenu) return;
       mobileMenu.classList.add('open');
       mobileMenu.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
     }
 
     function closeMenu() {
+      if (!mobileMenu) return;
       mobileMenu.classList.remove('open');
       mobileMenu.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
     }
 
     if(mobileBtn) mobileBtn.addEventListener('click', openMenu);
     if(closeMobile) closeMobile.addEventListener('click', closeMenu);
     mobileLinks.forEach(l => l.addEventListener('click', closeMenu));
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeMenu();
+    });
 
     // --- Pricing Period Toggle ---
     let currentPeriod = '6m';
