@@ -20,7 +20,7 @@ git push origin main
 
 
 ---------------------------------
-
+   
 
 تحديث قاعدة البيانات على ريندر 
 python manage.py migrate

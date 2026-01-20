@@ -277,8 +277,10 @@
           <td>{% firstof t.creator.name t.creator "—" %}</td>
         </tr>
         <tr>
+          <th>المدينة</th>
+          <td>{% firstof t.school.city "—" %}</td>
           <th>المستهدف</th>
-          <td colspan="3">إدارة المنصة</td>
+          <td>إدارة المنصة</td>
         </tr>
       {% else %}
         <tr>

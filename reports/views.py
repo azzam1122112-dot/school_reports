@@ -5507,7 +5507,11 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_tickets_list(request: HttpRequest) -> HttpResponse:
     # تذاكر الدعم الفني فقط
-    tickets = Ticket.objects.filter(is_platform=True).select_related('creator').order_by('-created_at')
+    tickets = (
+        Ticket.objects.filter(is_platform=True)
+        .select_related("creator", "school")
+        .order_by("-created_at")
+    )
     return render(request, "reports/platform_tickets.html", {"tickets": tickets})
 
 

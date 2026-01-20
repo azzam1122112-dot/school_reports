@@ -83,6 +83,47 @@
   .plat-tickets-scope .sender b{font-weight:950}
   .plat-tickets-scope .sender small{color:var(--pt-muted);font-weight:850}
 
+  .plat-tickets-scope .school{
+    display:grid;
+    gap:2px;
+    min-width: 0;
+  }
+  .plat-tickets-scope .school b{
+    font-weight: 950;
+    color: var(--pt-ink);
+    overflow:hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 360px;
+  }
+  .plat-tickets-scope .school small{
+    color: var(--pt-muted);
+    font-weight: 850;
+    overflow:hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 360px;
+  }
+
+  .plat-tickets-scope .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .86rem;
+    border: 1px solid rgba(15,23,42,.08);
+    background: rgba(148,163,184,.12);
+    color: var(--pt-ink);
+    white-space: nowrap;
+  }
+  .plat-tickets-scope .chip.city{
+    background: rgba(14,165,233,.10);
+    border-color: rgba(14,165,233,.20);
+    color: #075985;
+  }
+
   /* badges fallback (لو موجودة في base/app.css ما راح تتعارض) */
   .plat-tickets-scope .badge{
     display:inline-flex;
@@ -173,6 +214,8 @@
           <tr>
             <th style="text-align:right">رقم التذكرة</th>
             <th style="text-align:right">العنوان</th>
+            <th style="text-align:right">المدرسة</th>
+            <th style="text-align:right">المدينة</th>
             <th style="text-align:right">المرسل</th>
             <th>التاريخ</th>
             <th>الحالة</th>
@@ -188,6 +231,21 @@
 
               <td data-label="العنوان" style="text-align:right">
                 <span class="t-title">{{ ticket.title }}</span>
+              </td>
+
+              <td data-label="المدرسة" style="text-align:right">
+                <div class="school">
+                  <b>{% firstof ticket.school.name ticket.school "—" %}</b>
+                  <small class="mono">{% firstof ticket.school.code "" %}</small>
+                </div>
+              </td>
+
+              <td data-label="المدينة" style="text-align:right">
+                {% if ticket.school and ticket.school.city %}
+                  <span class="chip city"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ ticket.school.city }}</span>
+                {% else %}
+                  <span class="muted" style="font-weight:850">—</span>
+                {% endif %}
               </td>
 
               <td data-label="المرسل" style="text-align:right">
@@ -224,7 +282,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" style="padding:22px;text-align:center">
+              <td colspan="8" style="padding:22px;text-align:center">
                 <div class="empty">
                   <div style="font-weight:950;color:var(--pt-ink)">لا توجد تذاكر دعم فني.</div>
                   <div style="margin-top:6px;font-weight:850">ستظهر التذاكر هنا فور إنشائها من المدارس.</div>
