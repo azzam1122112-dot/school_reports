@@ -86,6 +86,20 @@
      line-height: 1.5;
   }
 
+  .info-text {
+    color: #1e40af;
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-top: 14px;
+    font-weight: 600;
+  }
+
+  .info-text b { font-weight: 800; }
+
   /* Form Elements */
   .tk-form-group {
     margin-bottom: 24px;
@@ -121,7 +135,7 @@
   }
 
   .tk-textarea {
-    min-height: 400px;
+    min-height: 280px;
     line-height: 1.7;
     resize: vertical;
   }
@@ -422,7 +436,12 @@
               <span class="tk-title-icon">📝</span>
               إنشاء طلب جديد
             </h1>
-            <p class="tk-subtitle">قم بتعبئة تفاصيل الطلب بدقة لضمان معالجته من قبل القسم المختص في أسرع وقت.</p>
+            <p class="tk-subtitle">املأ البيانات التالية ليصل طلبك للقسم المختص بسرعة.</p>
+
+            <div class="info-text" role="note" aria-label="إرشادات إنشاء الطلب">
+              <div><b>خطوات سريعة:</b> 1) اكتب عنوانًا واضحًا 2) اشرح التفاصيل 3) اختر القسم ثم حدّد الموظف/الموظفين 4) أرفق صورًا (اختياري).</div>
+              <div style="margin-top:6px;opacity:.95">معلومة: يمكنك اختيار أكثر من مستلم من نفس القسم.</div>
+            </div>
           </div>
 
           <!-- Title -->
@@ -431,6 +450,7 @@
               عنوان الطلب <span class="req">*</span>
             </label>
             {{ form.title }} 
+            <div class="help-text">اكتب العنوان بشكل مختصر وواضح (مثال: عطل في جهاز العرض، طلب صيانة، مشكلة في النظام).</div>
             <!-- Django usually renders input class via attrs, but if not we can assume default styling or JS enhancement -->
             <!-- We will rely on CSS selectors targeting inputs inside .ticket-page -->
             {% for e in form.title.errors %}<div class="error-text">⚠️ {{ e }}</div>{% endfor %}
@@ -441,7 +461,7 @@
             <label for="{{ form.body.id_for_label }}" class="tk-label">
               تفاصيل الطلب <span class="req">*</span>
             </label>
-            <div class="help-text" style="margin-bottom:8px">اشرح المشكلة أو الطلب بالتفصيل.</div>
+            <div class="help-text" style="margin-bottom:8px">اذكر (المكان/الفصل) + وصف المشكلة + ما الذي جرّبته + الوقت التقريبي لحدوثها.</div>
             {{ form.body }}
             {% for e in form.body.errors %}<div class="error-text">⚠️ {{ e }}</div>{% endfor %}
           </div>
@@ -463,6 +483,7 @@
             <label for="{{ form.department.id_for_label }}" class="tk-label">
               القسم المختص <span class="req">*</span>
             </label>
+            <div class="help-text" style="margin-bottom:8px">بعد اختيار القسم ستظهر قائمة الموظفين لتحديد المستلم.</div>
             <select id="{{ form.department.id_for_label }}" name="{{ form.department.html_name }}" class="tk-select" required>
               <option value="" selected hidden>— اختر القسم —</option>
               {% for d in form.fields.department.queryset %}
@@ -484,6 +505,7 @@
             <label class="tk-label">
               المستلمون <span class="req">*</span>
             </label>
+            <div class="help-text" style="margin-bottom:8px">اختر موظفًا واحدًا على الأقل من القسم المختار.</div>
             <div
               id="id_recipients"
               class="recipients-box"
@@ -502,7 +524,8 @@
 
           <!-- Attachments -->
           <div class="tk-form-group">
-            <label class="tk-label">المرفقات (صور فقط)</label>
+            <label class="tk-label">المرفقات (اختياري — صور فقط)</label>
+            <div class="help-text" style="margin-bottom:8px">ارفق صورة واضحة للمشكلة إن أمكن (حد أقصى 4 صور).</div>
             
             <div class="tk-upload-container">
               <input id="id_images" name="images" type="file" accept="image/*" multiple hidden>
@@ -548,8 +571,8 @@
     else el.classList.add('tk-input');
     
     // Placeholder enhancements
-    if(el.name === 'title' && !el.placeholder) el.placeholder = 'مثال: عطل في جهاز العرض بالمعمل رقم 3...';
-    if(el.name === 'body' && !el.placeholder) el.placeholder = 'اكتب تفاصيل الطلب هنا...';
+    if(el.name === 'title' && !el.placeholder) el.placeholder = 'مثال: عطل في جهاز العرض بالمعمل رقم 3';
+    if(el.name === 'body' && !el.placeholder) el.placeholder = 'المكان/الفصل: ...\nوصف المشكلة: ...\nوقت حدوثها: ...\nإجراءات تم تجربتها: ...\nملاحظات إضافية: ...';
   });
 
   // --- Logic Preservation ---
