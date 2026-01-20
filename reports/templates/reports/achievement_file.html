@@ -7,284 +7,266 @@
 {% block head %}
 <style>
   /* =========================================================
-     Achievement File (page-scoped) — بدون كسر base.css
-     - لا نعيد تعريف .btn / .card العامة
-     - كل شيء scoped داخل .af-wrap
+     Achievement File Detail — Luxury 2026 Theme
      ========================================================= */
+  :root {
+    --brand: #2563eb;
+    --brand-dark: #1e40af;
+    --brand-light: #eff6ff;
+    --accent: #d97706; /* Gold/Bronze */
+    --surface: #f8fafc;
+    --border-color: #e2e8f0;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    --text-main: #0f172a;
+    --text-secondary: #64748b;
+  }
+
+  .af-wrap{ 
+    max-width:1150px; 
+    margin:30px auto; 
+    padding:clamp(16px, 3vw, 24px);
+    animation: fadeIn 0.6s ease-out;
+  }
   
-  .af-wrap{max-width:1200px;margin:0 auto;padding:clamp(12px,2.4vw,18px)}
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
   .af-card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:18px;
-    box-shadow:var(--shadow);
-    overflow:hidden;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
   }
-  .af-head{padding:16px 18px}
-  .af-body{padding:16px 18px}
+  
+  .af-head { padding: 0; background: white; }
+  .af-body { padding: 32px; background: white; }
 
-  /* HERO */
-  .af-hero{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    padding:18px;
-    border-radius:16px;
-    background: linear-gradient(135deg, rgba(37,99,235,.92), rgba(16,185,129,.78));
-    color:#fff;
-    position:relative;
-    overflow:hidden;
-    border:1px solid rgba(255,255,255,.16);
+  /* New Modern Hero */
+  .af-hero {
+    position: relative;
+    padding: 40px 32px;
+    background: white;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
   }
-  .af-hero::before{
-    content:"";
-    position:absolute;
-    inset:-2px;
-    background:
-      radial-gradient(closest-side, rgba(255,255,255,.14), transparent 60%) 20% 15%/220px 220px no-repeat,
-      radial-gradient(closest-side, rgba(255,255,255,.10), transparent 60%) 85% 70%/260px 260px no-repeat;
-    pointer-events:none;
-    opacity:.85;
+  /* Decorative background element */
+  .af-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -10%; width: 50%; height: 200%;
+    background: radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%);
+    transform: rotate(-15deg);
+    pointer-events: none;
   }
 
-  .af-hero-side{flex:1;min-width:0;position:relative}
-  .af-hero-right{text-align:right}
-  .af-hero-left{text-align:left}
-  .af-hero-center{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative}
-
-  .af-ministry-logo{
-    width:74px;
-    height:74px;
-    object-fit:contain;
-    background:#fff;
-    border-radius:14px;
-    padding:8px;
-    border:1px solid rgba(255,255,255,.22);
-    box-shadow: 0 14px 30px rgba(2,6,23,.18);
+  .af-hero-start {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .af-ministry-logo {
+    width: 80px; height: 80px;
+    object-fit: contain;
   }
 
-  .af-hero-school{margin:0;font-weight:950;font-size:1.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
-  .af-hero-stage{margin-top:6px;opacity:.95;font-weight:850;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .af-hero-type{opacity:.95;font-weight:950;font-size:1.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
-  .af-hero-teacher{margin-top:6px;opacity:.98;font-weight:900;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .af-hero-year{opacity:.95;font-weight:900;font-size:.95rem;white-space:nowrap}
-
-  @media(max-width:820px){
-    .af-hero{flex-direction:column;align-items:center;text-align:center;padding:24px 18px}
-    .af-hero-center{order:-1;margin-bottom:12px}
-    .af-hero-left, .af-hero-right{text-align:center;width:100%}
-    
-    /* السماح بالتفاف النص في الجوال لقراءته بوضوح */
-    .af-hero-school, .af-hero-stage, .af-hero-type, .af-hero-teacher{
-      white-space:normal;
-      overflow:visible;
-      text-overflow:clip;
-    }
+  .af-hero-info h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 0 0 6px;
+    color: var(--text-main);
+    letter-spacing: -0.5px;
   }
-
-  /* Top meta */
-  .af-head-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-top:12px}
-
-  .af-badge{
-    display:inline-flex;
-    gap:8px;
-    align-items:center;
-    padding:8px 12px;
-    border-radius:999px;
-    background:rgba(255,255,255,.14);
-    border:1px solid rgba(255,255,255,.22);
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
-    font-weight:950;
-    color:#fff;
+  .af-hero-info .sub-info {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
-  .af-badge i{opacity:.95}
+  .af-hero-info .sub-info i { color: var(--brand); font-size: 0.9em; }
 
-  /* Status pill */
-  .af-status{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:8px 12px;
-    border-radius:999px;
-    font-weight:950;
-    border:1px solid rgba(255,255,255,.22);
-    background:rgba(255,255,255,.14);
-    color:#fff;
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
+  .af-hero-end {
+    text-align: left;
+    position: relative;
+    z-index: 2;
   }
-  .af-status-dot{width:10px;height:10px;border-radius:999px;background:#cbd5e1}
-  .af-s-draft   .af-status-dot{background:#94a3b8}
-  .af-s-submit  .af-status-dot{background:#f59e0b}
-  .af-s-approve .af-status-dot{background:#10b981}
-  .af-s-return  .af-status-dot{background:#ef4444}
-
-  .af-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-
-  /* Page buttons (scoped) */
-  .af-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    min-height:44px;
-    padding:0 14px;
-    border-radius:14px;
-    border:1px solid var(--line);
-    background:var(--card);
-    color:var(--ink);
-    text-decoration:none;
-    font-weight:950;
-    cursor:pointer;
-    transition: var(--t-fast);
-  }
-  .af-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(2,6,23,.07)}
-  .af-btn-primary{background:var(--brand);border-color:rgba(37,99,235,.2);color:#fff}
-  .af-btn-danger{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.22);color:var(--ink)}
-  html[data-theme="dark"] .af-btn-danger{color:#fff}
-
-  /* Forms layout */
-  .af-grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
-  @media(max-width:900px){.af-grid{grid-template-columns:1fr}}
-
-  .af-label{display:block;margin:0 0 6px;font-weight:900;color:var(--ink)}
-  .af-muted{color:var(--muted);font-weight:850}
-
-  /* Style any Django form widgets داخل هذا القسم بدون الحاجة لتعديل الـForm */
-  .af-form input[type="text"],
-  .af-form input[type="number"],
-  .af-form input[type="email"],
-  .af-form input[type="tel"],
-  .af-form input[type="url"],
-  .af-form input[type="date"],
-  .af-form select,
-  .af-form textarea{
-    width:100%;
-    border-radius:14px;
-    border:1px solid var(--line);
-    padding:12px 14px;
-    background:rgba(248,250,252,.85);
-    font-weight:800;
-    outline:none;
-    font-size:16px; /* منع التكبير التلقائي في آيفون */
-  }
-  .af-form textarea{min-height:110px;resize:vertical}
-  html[data-theme="dark"] .af-form input,
-  html[data-theme="dark"] .af-form select,
-  html[data-theme="dark"] .af-form textarea{
-    background:rgba(255,255,255,.04);
-    border-color:rgba(148,163,184,.16);
-    color:var(--ink);
+  .af-year-badge {
+    background: var(--surface);
+    color: var(--text-main);
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .af-note{
-    padding:12px 14px;
-    border-radius:16px;
-    border:1px solid rgba(245,158,11,.25);
-    background:rgba(245,158,11,.08);
-    font-weight:900;
+  /* Status Bar */
+  .af-status-bar {
+    background: var(--surface);
+    padding: 12px 32px;
+    border-bottom: 1px dashed var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  .af-status-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 999px;
+    font-weight: 700; font-size: 0.9rem;
+  }
+  .status-draft { background: #e2e8f0; color: #475569; }
+  .status-submit { background: #e0f2fe; color: #0284c7; }
+  .status-approve { background: #dcfce7; color: #16a34a; }
+  .status-return { background: #fee2e2; color: #dc2626; }
+
+  /* Action Buttons */
+  .af-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  
+  .af-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 42px; padding: 0 18px; border-radius: 12px;
+    font-weight: 700; font-size: 0.95rem; cursor: pointer; text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-color); background: white; color: var(--text-secondary);
+  }
+  .af-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    color: var(--brand); border-color: var(--brand);
+  }
+  .af-btn-primary {
+    background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+    color: white; border: none;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+  .af-btn-primary:hover {
+    color: white; transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+  }
+  .af-btn-danger {
+    background: #fee2e2; color: #dc2626; border-color: #fecaca;
+  }
+  .af-btn-danger:hover {
+    background: #fecaca; color: #b91c1c; transform: translateY(-2px);
   }
 
-  /* Sections */
-  .af-sections{display:grid;gap:12px}
-  .af-details{
-    border:1px solid var(--line);
-    border-radius:16px;
-    overflow:hidden;
-    background:rgba(255,255,255,.50);
+  /* Section Titles */
+  h2.af-section-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 30px 0 20px;
+    display: flex; align-items: center; gap: 10px;
   }
-  html[data-theme="dark"] .af-details{background:rgba(255,255,255,.03)}
-  .af-summary{
-    cursor:pointer;
-    list-style:none;
-    padding:12px 14px;
-    font-weight:950;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
+  h2.af-section-title::before {
+    content: ''; width: 4px; height: 24px;
+    background: var(--accent); border-radius: 4px;
   }
-  .af-summary::-webkit-details-marker{display:none}
-  .af-sec-body{padding:12px 14px;border-top:1px solid var(--line)}
 
-  /* Evidence grid */
-  .af-evidence{
-    margin-top:10px;
-    display:grid;
-    gap:10px;
-    grid-template-columns:repeat(4,minmax(0,1fr));
+  /* Comment Box */
+  .af-comment-box {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
   }
-  @media(max-width:1024px){.af-evidence{grid-template-columns:repeat(3,minmax(0,1fr))}}
-  @media(max-width:768px){.af-evidence{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media(max-width:480px){.af-evidence{grid-template-columns:1fr}}
+  .af-comment-item {
+    padding: 16px 0;
+    border-bottom: 1px dashed var(--border-color);
+  }
+  .af-comment-item:last-child { border-bottom: none; }
+  .af-comment-meta { font-weight: 800; font-size: 0.9rem; color: var(--text-main); margin-bottom: 6px; }
+  .af-comment-body { color: var(--text-secondary); line-height: 1.6; }
 
-  .af-imgbox{
-    border:1px solid var(--line);
-    border-radius:14px;
-    overflow:hidden;
-    background:var(--card);
+  /* Form & Grid */
+  .af-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;
+    background: white; border: 1px solid var(--border-color);
+    border-radius: 20px; padding: 24px;
   }
-  .af-imgbtn{
-    padding:0;
-    border:none;
-    background:transparent;
-    cursor:pointer;
-    display:block;
-    width:100%;
-    text-align:inherit;
+  @media(max-width: 800px) { .af-grid { grid-template-columns: 1fr; } }
+  
+  .af-label { display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-secondary); font-size: 0.9rem; }
+  .af-form input, .af-form select, .af-form textarea, .af-muted {
+    width: 100%; padding: 12px 16px; border-radius: 12px;
+    border: 1px solid var(--border-color); background: var(--surface);
+    outline: none; transition: 0.2s;
+    font-weight: 600; color: var(--text-main);
+    font-size: 1rem;
+    box-sizing: border-box;
   }
-  .af-imgbox img{
-    display:block;
-    width:100%;
-    height:140px;
-    object-fit:cover;
+  .af-form input:focus, .af-form select:focus, .af-form textarea:focus {
+    background: white; border-color: var(--brand);
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.08);
   }
-  .af-img-actions{padding:8px;display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap}
-  .af-empty-mini{grid-column:1/-1}
+  textarea { min-height: 120px; resize: vertical; }
 
-  /* Image preview modal */
-  .af-modal{
-    position:fixed;
-    inset:0;
-    background:rgba(2,6,23,.62);
-    z-index:14000;
-    display:none;
-    place-items:center;
-    padding:12px;
+  /* Details/Accordions (Evidence) */
+  .af-details {
+    border: 1px solid var(--border-color); border-radius: 16px;
+    background: white; margin-bottom: 16px; overflow: hidden;
+    transition: 0.3s;
   }
-  .af-modal.is-open{display:grid}
-  .af-modal-card{
-    width:min(980px, 96vw);
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:18px;
-    overflow:hidden;
-    box-shadow:0 40px 90px rgba(2,6,23,.28);
+  .af-details[open] { box-shadow: 0 8px 20px -4px rgba(0,0,0,0.05); border-color: var(--brand); }
+  .af-summary {
+    padding: 16px 20px; font-weight: 800; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    background: white;
   }
-  .af-modal-hd{
-    padding:12px 14px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    border-bottom:1px solid var(--line);
-    background:linear-gradient(180deg, var(--line-2), var(--card));
-  }
-  .af-modal-ttl{margin:0;font-weight:950;color:var(--ink);display:flex;align-items:center;gap:8px}
-  .af-modal-close{
-    width:44px;height:44px;border-radius:999px;
-    border:1px solid var(--line);background:var(--card);
-    cursor:pointer;font-weight:900;color:var(--ink);
-  }
-  .af-modal-bd{padding:10px}
-  .af-modal-bd img{width:100%;height:auto;display:block}
+  .af-summary::-webkit-details-marker { display: none; }
+  .af-sec-body { padding: 20px; border-top: 1px solid var(--border-color); background: var(--surface); }
 
-  @media (prefers-reduced-motion: reduce){
-    .af-btn{transition:none}
-    .af-btn:hover{transform:none;box-shadow:none}
+  /* Evidence Images */
+  .af-evidence { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+  .af-imgbox {
+    border-radius: 12px; overflow: hidden; position: relative;
+    border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);
+    background: white; transition: 0.3s;
+  }
+  .af-imgbox:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .af-imgbox img { width: 100%; height: 140px; object-fit: cover; display: block; }
+  .af-imgbtn { padding:0; border:none; background:transparent; width:100%; cursor:pointer; }
+  .af-img-actions { padding: 8px; }
+  
+  /* Manager Note Box */
+  .af-note {
+    padding: 16px; border-radius: 16px; margin-bottom: 24px;
+    background: #fffbeb; border: 1px solid #fcd34d;
+    color: #b45309; font-weight: 700;
+  }
+
+  /* Modal */
+  .af-modal { display: none; position: fixed; inset: 0; z-index: 14000; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); place-items: center; }
+  .af-modal.is-open { display: grid; }
+  .af-modal-card { background: white; border-radius: 20px; width: min(900px, 95vw); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+  .af-modal-hd { padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+  .af-modal-bd { padding: 20px; overflow: auto; text-align: center; background: #f0f0f0; }
+  
+  /* Responsive Hero */
+  @media(max-width:768px){
+    .af-hero { flex-direction: column; text-align: center; gap: 20px; }
+    .af-hero-start { flex-direction: column; }
+    .af-hero-info .sub-info { justify-content: center; }
+    .af-status-bar { flex-direction: column; align-items: stretch; text-align: center; }
+    .af-status-bar > div:first-child { justify-content: center; }
+    .af-actions { justify-content: center; }
   }
 </style>
 {% endblock %}
@@ -292,85 +274,75 @@
 {% block content %}
 <div class="af-wrap">
   <div class="af-card">
-    <div class="af-head">
-      <header class="af-hero" aria-label="رأس ملف الإنجاز">
-        <div class="af-hero-side af-hero-right">
-          <div class="af-hero-school">{{ file.school_name }}</div>
-          <div class="af-hero-stage">
-            {% if current_school %}{{ current_school.get_stage_display }}{% else %}{{ file.school_stage }}{% endif %}
+    
+    <!-- Modern Header -->
+    <header class="af-hero" aria-label="رأس الملف">
+      <div class="af-hero-start">
+        <img class="af-ministry-logo" src="{% static 'img/logo1.png' %}" alt="شعار">
+        <div class="af-hero-info">
+          <h1>{{ file.school_name }}</h1>
+          <div class="sub-info">
+            <i class="fa-solid fa-user-tie"></i>
+            {{ file.teacher_name }}
           </div>
         </div>
-
-        <div class="af-hero-center" aria-label="شعار والعام الدراسي">
-          <img class="af-ministry-logo" src="{% static 'img/UntiTtled-1.png' %}" alt="شعار الوزارة">
-          <div class="af-hero-year">{{ file.academic_year }} هـ</div>
+      </div>
+      <div class="af-hero-end">
+        <div class="af-year-badge">
+            <i class="fa-solid fa-calendar-check" style="color:var(--brand);"></i>
+            {{ file.academic_year }} هـ
         </div>
+      </div>
+    </header>
 
-        <div class="af-hero-side af-hero-left">
-          <div class="af-hero-type">ملف الإنجاز</div>
-          <div class="af-hero-teacher">{{ file.teacher_name }}</div>
-        </div>
-      </header>
-
-      <div class="af-head-top">
-        {# حالة ملوّنة بشكل دفاعي حسب الأكواد الشائعة #}
-        {% if file.status == "approved" or file.status == "APPROVED" %}
-          <div class="af-status af-s-approve"><span class="af-status-dot" aria-hidden="true"></span> الحالة: {{ file.get_status_display }}</div>
-        {% else %}
-          {% if file.status == "submitted" or file.status == "SUBMITTED" %}
-            <div class="af-status af-s-submit"><span class="af-status-dot" aria-hidden="true"></span> الحالة: {{ file.get_status_display }}</div>
-          {% else %}
-            {% if file.status == "returned" or file.status == "RETURNED" or file.status == "rejected" or file.status == "REJECTED" %}
-              <div class="af-status af-s-return"><span class="af-status-dot" aria-hidden="true"></span> الحالة: {{ file.get_status_display }}</div>
+    <!-- Status & Meta Bar -->
+    <div class="af-status-bar">
+        <div style="display:flex; gap:16px; align-items:center;">
+            {% if file.status == "approved" or file.status == "APPROVED" %}
+              <div class="af-status-pill status-approve"><i class="fa-solid fa-check-circle"></i> معتمد</div>
+            {% elif file.status == "submitted" or file.status == "SUBMITTED" %}
+              <div class="af-status-pill status-submit"><i class="fa-solid fa-hourglass-half"></i> بانتظار الاعتماد</div>
+            {% elif file.status == "returned" or file.status == "RETURNED" %}
+              <div class="af-status-pill status-return"><i class="fa-solid fa-rotate-left"></i> معاد للمراجعة</div>
             {% else %}
-              <div class="af-status af-s-draft"><span class="af-status-dot" aria-hidden="true"></span> الحالة: {{ file.get_status_display }}</div>
+              <div class="af-status-pill status-draft"><i class="fa-solid fa-pen-ruler"></i> مسودة</div>
             {% endif %}
-          {% endif %}
-        {% endif %}
 
-        <div class="af-badge" aria-label="معلومة">
-          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-          {% if can_edit_teacher %}وضع التحرير{% else %}عرض فقط{% endif %}
+            <div class="af-status-pill" style="background:rgba(255,255,255,0.5); border:1px solid var(--border-color); color:var(--text-secondary);">
+                {% if can_edit_teacher %}وضع التحرير{% else %}وضع العرض{% endif %}
+            </div>
         </div>
-      </div>
 
-      <div class="af-actions" aria-label="إجراءات">
-        <a class="af-btn" href="{{ back_url }}" title="رجوع">
-          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع
-        </a>
-
-        <a class="af-btn" href="{% url 'reports:achievement_file_print' file.pk %}" target="_blank" rel="noopener">
-          <i class="fa-solid fa-print" aria-hidden="true"></i> طباعة / حفظ PDF
-        </a>
-
-        {% if is_owner %}
-          <a class="af-btn" href="{% url 'reports:achievement_share_manage' file.pk %}">
-            <i class="fa-solid fa-link" aria-hidden="true"></i> مشاركة
-          </a>
-        {% endif %}
-
-        {% if is_owner %}
-          <a class="af-btn" href="{% url 'reports:achievement_my_files' %}">
-            <i class="fa-solid fa-folder-open" aria-hidden="true"></i> كل ملفاتي
-          </a>
-        {% else %}
-          <a class="af-btn" href="{% url 'reports:achievement_school_files' %}">
-            <i class="fa-solid fa-school" aria-hidden="true"></i> ملفات المدرسة
-          </a>
-        {% endif %}
-      </div>
+        <div class="af-actions">
+            <a class="af-btn" href="{{ back_url }}">
+              <i class="fa-solid fa-arrow-right"></i> رجوع
+            </a>
+            <a class="af-btn" href="{% url 'reports:achievement_file_print' file.pk %}" target="_blank">
+              <i class="fa-solid fa-print"></i> PDF
+            </a>
+            {% if is_owner %}
+            <a class="af-btn" href="{% url 'reports:achievement_share_manage' file.pk %}">
+              <i class="fa-solid fa-share-nodes"></i> مشاركة
+            </a>
+            <a class="af-btn" href="{% url 'reports:achievement_my_files' %}">
+              <i class="fa-solid fa-folder-open"></i> ملفاتي
+            </a>
+            {% endif %}
+        </div>
     </div>
 
     <div class="af-body">
+      
       {% if file.manager_notes %}
         <div class="af-note">ملاحظات المدير: {{ file.manager_notes|linebreaksbr }}</div>
       {% endif %}
 
+      <!-- Private Comments -->
       {% if show_private_comments %}
-        <h2 style="margin:18px 0 10px;font-weight:950">تعليقات خاصة (تظهر لك فقط)</h2>
+        <h2 class="af-section-title">تعليقات خاصة (تظهر لك فقط)</h2>
 
         {% if can_add_private_comment %}
-          <form class="af-form" method="post" autocomplete="off">
+          <form class="af-form" method="post" autocomplete="off" style="margin-bottom:24px;">
             {% csrf_token %}
             <input type="hidden" name="action" value="private_comment_create" />
             <label class="af-label">أضف تعليقًا للمعلّم</label>
@@ -384,42 +356,43 @@
         {% endif %}
 
         {% if private_comments %}
-          <div class="af-form" style="margin-top:10px">
+          <div class="af-comment-box">
             {% for c in private_comments %}
-              <div style="padding:10px 0;border-bottom:1px dashed var(--line)">
-                <div class="af-muted" style="font-weight:900">
-                {% if c.created_by %}{{ c.created_by.name }}{% else %}النظام{% endif %}
-                {% if c.created_by %}
-                {% if c.created_by_role_label %} ({{ c.created_by_role_label }}){% else %} ({{ c.created_by.display_role_label }}){% endif %}
-                {% endif %}
-                  — {{ c.created_at|date:"Y-m-d H:i" }}
+              <div class="af-comment-item">
+                <div class="af-comment-meta">
+                  {% if c.created_by %}{{ c.created_by.name }}{% else %}النظام{% endif %}
+                  <span style="font-weight:400; color:var(--text-secondary)">
+                   {% if c.created_by %}
+                    {% if c.created_by_role_label %} ({{ c.created_by_role_label }}){% else %} ({{ c.created_by.display_role_label }}){% endif %}
+                   {% endif %}
+                   — {{ c.created_at|date:"Y-m-d H:i" }}
+                  </span>
                 </div>
-                <div style="margin-top:6px;white-space:pre-wrap">{{ c.body }}</div>
+                <div class="af-comment-body" style="white-space:pre-wrap">{{ c.body }}</div>
 
                 {% if can_add_private_comment and current_user_id %}
                   <div class="af-actions" style="margin-top:10px;gap:8px;flex-wrap:wrap">
                     {% if c.created_by_id == current_user_id %}
                       <details>
-                        <summary class="af-btn" style="cursor:pointer">تعديل</summary>
+                        <summary class="af-btn" style="cursor:pointer; font-size:0.85rem; height:32px;">تعديل</summary>
                         <form method="post" class="af-form" style="margin-top:10px" autocomplete="off">
                           {% csrf_token %}
                           <input type="hidden" name="action" value="private_comment_update" />
                           <input type="hidden" name="comment_id" value="{{ c.id }}" />
                           <label class="af-label">نص التعليق</label>
-                          <textarea name="body" class="form-control" rows="3" required>{{ c.body }}</textarea>
+                          <textarea name="body" rows="3" required>{{ c.body }}</textarea>
                           <div class="af-actions" style="margin-top:10px">
                             <button class="af-btn af-btn-primary" type="submit">حفظ التعديل</button>
                           </div>
                         </form>
                       </details>
                     {% endif %}
-
                     {% if c.created_by_id == current_user_id or is_superuser %}
                       <form method="post" onsubmit="return confirm('حذف التعليق نهائيًا؟');" style="display:inline">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="private_comment_delete" />
                         <input type="hidden" name="comment_id" value="{{ c.id }}" />
-                        <button class="af-btn" type="submit" style="border-color:var(--danger);color:var(--danger)">حذف</button>
+                        <button class="af-btn af-btn-danger" type="submit" style="font-size:0.85rem; height:32px;">حذف</button>
                       </form>
                     {% endif %}
                   </div>
@@ -432,7 +405,8 @@
         {% endif %}
       {% endif %}
 
-      <h2 style="margin:14px 0 10px;font-weight:950">البيانات العامة</h2>
+      <!-- General Data -->
+      <h2 class="af-section-title">البيانات العامة</h2>
 
       {% if can_edit_teacher %}
         <form class="af-form" method="post" autocomplete="off">
@@ -465,58 +439,60 @@
             </div>
           </div>
 
-          <div class="af-actions" style="margin-top:12px">
-            <button class="af-btn af-btn-primary" type="submit">حفظ البيانات العامة</button>
-            <button class="af-btn" type="submit" name="action" value="import_prev">
-              <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> استيراد من آخر ملف
+          <div class="af-actions" style="margin-top:24px; justify-content:flex-end;">
+            <button class="af-btn" type="submit" name="action" value="import_prev" title="استيراد البيانات من آخر ملف إنجاز">
+              <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> استيراد من السابق
             </button>
-            <button class="af-btn af-btn-primary" type="submit" name="action" value="submit">
+            <button class="af-btn af-btn-primary" type="submit">
+                <i class="fa-solid fa-floppy-disk"></i> حفظ البيانات
+            </button>
+            <button class="af-btn af-btn-primary" type="submit" name="action" value="submit" style="background:#0f172a; border-color:#0f172a;">
               <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> إرسال للاعتماد
             </button>
           </div>
-
-          <p class="af-muted" style="margin:10px 0 0">
-            ملاحظة: بعد الإرسال يصبح الملف للعرض فقط حتى قرار المدير.
-          </p>
         </form>
       {% else %}
         <div class="af-grid">
-          <div><b>المؤهلات</b><div class="af-muted">{{ file.qualifications|default:"-"|linebreaksbr }}</div></div>
-          <div><b>الخبرات المهنية</b><div class="af-muted">{{ file.professional_experience|default:"-"|linebreaksbr }}</div></div>
-          <div><b>التخصص</b><div class="af-muted">{{ file.specialization|default:"-"|linebreaksbr }}</div></div>
-          <div><b>نصاب الحصص</b><div class="af-muted">{{ file.teaching_load|default:"-"|linebreaksbr }}</div></div>
-          <div><b>مواد التدريس</b><div class="af-muted">{{ file.subjects_taught|default:"-"|linebreaksbr }}</div></div>
-          <div><b>بيانات التواصل</b><div class="af-muted">{{ file.contact_info|default:"-"|linebreaksbr }}</div></div>
+          <div><label class="af-label">المؤهلات</label><div class="af-muted">{{ file.qualifications|default:"-"|linebreaksbr }}</div></div>
+          <div><label class="af-label">الخبرات المهنية</label><div class="af-muted">{{ file.professional_experience|default:"-"|linebreaksbr }}</div></div>
+          <div><label class="af-label">التخصص</label><div class="af-muted">{{ file.specialization|default:"-"|linebreaksbr }}</div></div>
+          <div><label class="af-label">نصاب الحصص</label><div class="af-muted">{{ file.teaching_load|default:"-"|linebreaksbr }}</div></div>
+          <div><label class="af-label">مواد التدريس</label><div class="af-muted">{{ file.subjects_taught|default:"-"|linebreaksbr }}</div></div>
+          <div><label class="af-label">بيانات التواصل</label><div class="af-muted">{{ file.contact_info|default:"-"|linebreaksbr }}</div></div>
         </div>
       {% endif %}
 
+      <!-- Manager Actions -->
       {% if is_manager %}
-        <h2 style="margin:18px 0 10px;font-weight:950">اعتماد مدير المدرسة</h2>
-        <form class="af-form" method="post" autocomplete="off">
+        <h2 class="af-section-title">اعتماد مدير المدرسة</h2>
+        <form class="af-form" method="post" autocomplete="off" class="af-card" style="padding:24px; box-shadow:none; border:2px dashed var(--brand); background:var(--brand-light);">
           {% csrf_token %}
           <div>
             <label class="af-label">ملاحظات المدير</label>
             {{ manager_notes_form.manager_notes }}
           </div>
-          <div class="af-actions" style="margin-top:12px">
+          <div class="af-actions" style="margin-top:16px">
             <button class="af-btn af-btn-primary" type="submit" name="action" value="approve">
-              <i class="fa-solid fa-circle-check" aria-hidden="true"></i> اعتماد + شكر/تحفيز
+              <i class="fa-solid fa-circle-check" aria-hidden="true"></i> اعتماد + شكر
             </button>
-            <button class="af-btn" type="submit" name="action" value="return">
-              <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> رفض/إرجاع مع ملاحظة
+            <button class="af-btn af-btn-danger" type="submit" name="action" value="return">
+              <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> رفض/إرجاع
             </button>
           </div>
         </form>
       {% endif %}
 
-      <h2 style="margin:18px 0 10px;font-weight:950">المحاور والشواهد</h2>
+      <!-- Sections -->
+      <h2 class="af-section-title">المحاور والشواهد</h2>
 
       <div class="af-sections">
         {% for s in sections %}
           <details class="af-details">
             <summary class="af-summary">
               <span>{{ s.get_code_display }}</span>
-              <span class="af-muted">({{ s.evidence_images.count }}/8)</span>
+              <span style="font-size:0.85rem; padding:4px 10px; background:var(--surface); border-radius:8px;">
+                 {{ s.evidence_images.count }} / 8
+              </span>
             </summary>
 
             <div class="af-sec-body">
@@ -527,27 +503,28 @@
                   <input type="hidden" name="section_id" value="{{ s.id }}" />
                   <label class="af-label">ملاحظات المعلّم</label>
                   <textarea name="teacher_notes">{{ s.teacher_notes }}</textarea>
-                  <div class="af-actions" style="margin-top:10px">
+                  <div class="af-actions" style="margin-top:10px; justify-content:flex-end;">
                     <button class="af-btn af-btn-primary" type="submit">
-                      <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ ملاحظات المحور
+                      <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ
                     </button>
                   </div>
                 </form>
 
-                <form class="af-form" method="post" enctype="multipart/form-data" style="margin-top:10px" autocomplete="off">
+                <form class="af-form" method="post" enctype="multipart/form-data" style="margin-top:20px; padding-top:20px; border-top:1px dashed var(--border-color);" autocomplete="off">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="upload_evidence" />
                   <input type="hidden" name="section_id" value="{{ s.id }}" />
-                  <label class="af-label">إضافة صور (حتى 8)</label>
+                  <label class="af-label">إضافة صور (يمكنك تحديد عدة صور)</label>
                   <input type="file" name="images" multiple accept="image/*" />
-                  <div class="af-actions" style="margin-top:10px">
+                  <div class="af-actions" style="margin-top:10px; justify-content:flex-end;">
                     <button class="af-btn af-btn-primary" type="submit">
                       <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> رفع الصور
                     </button>
                   </div>
                 </form>
               {% else %}
-                <div><b>ملاحظات المعلّم</b><div class="af-muted">{{ s.teacher_notes|default:"-"|linebreaksbr }}</div></div>
+                <label class="af-label">ملاحظات المعلّم</label>
+                <div class="af-muted" style="min-height:auto;">{{ s.teacher_notes|default:"-"|linebreaksbr }}</div>
               {% endif %}
 
               <div class="af-evidence" aria-label="صور الشواهد">
@@ -568,7 +545,7 @@
                           {% csrf_token %}
                           <input type="hidden" name="action" value="delete_evidence" />
                           <input type="hidden" name="image_id" value="{{ img.id }}" />
-                          <button class="af-btn af-btn-danger" type="submit">
+                          <button class="af-btn af-btn-danger" type="submit" style="width:100%; height:32px; font-size:0.85rem;">
                             <i class="fa-solid fa-trash" aria-hidden="true"></i> حذف
                           </button>
                         </form>
@@ -576,7 +553,7 @@
                     {% endif %}
                   </div>
                 {% empty %}
-                  <div class="af-muted af-empty-mini">لا توجد شواهد بعد.</div>
+                  <div class="af-muted af-empty-mini" style="grid-column:1/-1; text-align:center; padding:20px;">لا توجد شواهد بعد.</div>
                 {% endfor %}
               </div>
             </div>
