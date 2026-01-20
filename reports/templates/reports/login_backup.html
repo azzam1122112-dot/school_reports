@@ -1,0 +1,501 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="color-scheme" content="light dark">
+  <title>تسجيل الدخول — {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</title>
+
+  <!-- Fonts / Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=login-20251231">
+
+  <style>
+    /* ===== Safe fallbacks without overriding app.css ===== */
+    :root{
+      --auth-card: var(--card, #ffffff);
+      --auth-ink: var(--ink, #0f172a);
+      --auth-muted: var(--muted, #64748b);
+      --auth-brand: var(--brand, #2563eb);
+      --auth-accent: var(--accent, #059669);
+      --auth-line: var(--line-2, var(--line, #e2e8f0));
+      --auth-shadow: var(--shadow, 0 22px 50px rgba(2,6,23,.12));
+      --auth-shadow-sm: var(--shadow-sm, 0 10px 22px rgba(2,6,23,.08));
+    }
+
+    html,body{font-family:'Tajawal',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+
+    /* ===== Login-only polish (small + fast) ===== */
+    .auth-shell{
+      min-height:100dvh;
+      display:grid;
+      place-items:center;
+      padding: clamp(14px, 3vw, 28px);
+      position:relative;
+      overflow:hidden;
+      background:
+        radial-gradient(900px 520px at 20% 10%, rgba(37,99,235,.12), transparent 60%),
+        radial-gradient(800px 500px at 90% 75%, rgba(5,150,105,.10), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.40), transparent 40%);
+    }
+    html[data-theme="dark"] .auth-shell{
+      background:
+        radial-gradient(900px 520px at 20% 10%, rgba(37,99,235,.16), transparent 60%),
+        radial-gradient(800px 500px at 90% 75%, rgba(5,150,105,.12), transparent 60%),
+        linear-gradient(180deg, rgba(2,6,23,.35), transparent 40%);
+    }
+
+    .blob{
+      position:absolute;
+      width: 520px; height: 520px;
+      border-radius: 999px;
+      filter: blur(26px);
+      opacity:.18;
+      pointer-events:none;
+      transform: translateZ(0);
+      animation: blobFloat 16s ease-in-out infinite;
+    }
+    .blob.b1{ background: #2563eb; top:-260px; right:-220px; }
+    .blob.b2{ background: #059669; bottom:-280px; left:-240px; animation-delay:-6s; }
+    .blob.b3{ background: #7c3aed; top:35%; left:65%; width:360px; height:360px; opacity:.12; animation-delay:-10s; }
+    @keyframes blobFloat{
+      0%,100%{ transform: translate3d(0,0,0) scale(1); }
+      50%{ transform: translate3d(0,22px,0) scale(1.03); }
+    }
+    @media (prefers-reduced-motion: reduce){ .blob{animation:none} }
+
+    .auth-card{
+      width: min(520px, 92vw);
+      background: var(--auth-card);
+      border: 1px solid var(--auth-line);
+      border-radius: 22px;
+      box-shadow: var(--auth-shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .auth-card::before{
+      content:"";
+      position:absolute;
+      inset:0 0 auto 0;
+      height:5px;
+      background: linear-gradient(90deg, var(--auth-brand), var(--auth-accent));
+      opacity:.95;
+    }
+
+    .auth-head{
+      padding: 18px 18px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .mini-brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      text-decoration:none;
+      color:inherit;
+    }
+    .mini-brand .logo{
+      width:42px;height:42px;border-radius:14px;
+      background: rgba(37,99,235,.08);
+      border: 1px solid rgba(37,99,235,.18);
+      display:grid;place-items:center;
+      overflow:hidden;
+    }
+    .mini-brand .logo img{width:26px;height:26px;object-fit:contain}
+    .mini-brand .t1{font-weight:900}
+    .mini-brand .t2{font-weight:800;color:var(--auth-muted);font-size:.92rem;margin-top:2px}
+
+    .auth-body{ padding: 10px 18px 18px; }
+    .hero{
+      display:flex; flex-direction:column; align-items:center; gap:10px;
+      padding: 10px 0 2px;
+      text-align:center;
+    }
+    .school-mark{
+      width:96px;height:96px;border-radius:18px;
+      background:#fff;
+      border:1px solid var(--auth-line);
+      box-shadow: 0 10px 22px rgba(2,6,23,.08);
+      display:grid;place-items:center;
+      overflow:hidden;
+    }
+    html[data-theme="dark"] .school-mark{ background: rgba(255,255,255,.06); }
+    .school-mark img{width:70px;height:70px;object-fit:contain}
+
+    .hero h1{
+      margin:0;
+      font-size: 1.55rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--auth-brand), #4f46e5, var(--auth-accent));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+    .hero p{
+      margin:0;
+      color: var(--auth-muted);
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .auth-form{ margin-top: 14px; }
+    .field{ margin-top: 12px; }
+    .label{
+      display:flex; align-items:center; gap:10px;
+      font-weight: 900;
+      color: var(--auth-ink);
+      margin-bottom: 8px;
+    }
+    .label i{ color: rgba(37,99,235,.95); }
+
+    .control{ position:relative; }
+    .control .input{
+      padding: 12px 46px 12px 44px;
+      background: rgba(248,250,252,.85);
+    }
+    html[data-theme="dark"] .control .input{ background: rgba(255,255,255,.04); }
+
+    .ltr-input{ direction:ltr; text-align:left; }
+
+    .in-ico{
+      position:absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(100,116,139,.95);
+      font-size: 1.05rem;
+      pointer-events:none;
+    }
+
+    .toggle{
+      position:absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.75);
+      cursor:pointer;
+      display:grid;place-items:center;
+      color: rgba(100,116,139,.95);
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .toggle:hover{ transform: translateY(-50%) translateY(-1px); border-color: rgba(37,99,235,.28); color: var(--auth-brand); }
+    html[data-theme="dark"] .toggle{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(148,163,184,.18);
+    }
+
+    .submit{
+      margin-top: 16px;
+      width:100%;
+      border-radius: 16px;
+      min-height: 54px;
+      font-size: 1.05rem;
+    }
+
+    .hint{
+      margin-top: 12px;
+      padding: 12px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--auth-line);
+      background: rgba(37,99,235,.05);
+      color: var(--auth-muted);
+      font-weight: 800;
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .hint i{ margin-top:2px; color: rgba(37,99,235,.95); }
+
+    .auth-footer{
+      padding: 12px 18px 16px;
+      border-top: 1px solid var(--auth-line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      color: var(--auth-muted);
+      font-weight: 800;
+      flex-wrap:wrap;
+    }
+    .tiny{ display:flex; align-items:center; gap:8px; }
+    .tiny .dot{opacity:.55}
+    .foot-logo{
+      width:34px;height:34px;border-radius:999px;
+      background: rgba(255,255,255,.75);
+      border: 1px solid var(--auth-line);
+      display:grid;place-items:center;
+      overflow:hidden;
+    }
+    html[data-theme="dark"] .foot-logo{ background: rgba(255,255,255,.06); }
+    .foot-logo img{width:18px;height:18px;object-fit:contain}
+
+    /* Toasts */
+    .toasts{margin-top:12px; display:grid; gap:10px;}
+    .toast{
+      border-radius: 16px;
+      padding: 12px 12px;
+      border: 1px solid var(--auth-line);
+      box-shadow: var(--auth-shadow-sm);
+      display:flex; gap:10px; align-items:flex-start;
+      background: rgba(255,255,255,.90);
+      position:relative;
+      overflow:hidden;
+    }
+    html[data-theme="dark"] .toast{ background: rgba(15,23,42,.72); }
+    .toast .ico{margin-top:2px}
+    .toast .txt{font-weight:800}
+    .toast .close{
+      margin-right:auto;
+      background:none;border:0;cursor:pointer;
+      opacity:.7;
+      color: inherit;
+      padding: 2px 6px;
+    }
+    .toast .close:hover{opacity:1}
+    .toast::after{
+      content:"";
+      position:absolute;
+      inset:auto 0 0 0;
+      height:3px;
+      background: currentColor;
+      opacity:.20;
+      transform: translateX(-100%);
+      animation: toastBar 3.2s linear forwards;
+    }
+    @keyframes toastBar{to{transform:none}}
+
+    .toast.info{ color: #1d4ed8; border-color: rgba(191,219,254,.9); background: rgba(239,246,255,.90); }
+    .toast.success{ color:#065f46; border-color: rgba(167,243,208,.9); background: rgba(236,253,245,.92); }
+    .toast.warning{ color:#92400e; border-color: rgba(253,230,138,.9); background: rgba(255,251,235,.92); }
+    .toast.error{ color: #b91c1c; border-color: rgba(254,202,202,.9); background: rgba(254,242,242,.92); }
+    html[data-theme="dark"] .toast.info{ background: rgba(30,58,138,.25); border-color: rgba(59,130,246,.25); }
+    html[data-theme="dark"] .toast.success{ background: rgba(6,95,70,.25); border-color: rgba(16,185,129,.22); }
+    html[data-theme="dark"] .toast.warning{ background: rgba(146,64,14,.25); border-color: rgba(245,158,11,.22); }
+    html[data-theme="dark"] .toast.error{ background: rgba(185,28,28,.22); border-color: rgba(239,68,68,.22); }
+
+    @media (min-width: 1400px){
+      .auth-card{ width: min(560px, 92vw); }
+      .hero h1{ font-size: 1.75rem; }
+      .hero p{ font-size: 1.05rem; }
+      .submit{ min-height: 58px; }
+    }
+  </style>
+
+  <script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
+    // Theme sync with base/app (if you store it in localStorage)
+    (function(){
+      try{
+        var t = localStorage.getItem('theme');
+        if(t === 'dark' || t === 'light'){
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      }catch(e){}
+    })();
+  </script>
+</head>
+
+<body class="page">
+  <div class="auth-shell">
+    <div class="blob b1" aria-hidden="true"></div>
+    <div class="blob b2" aria-hidden="true"></div>
+    <div class="blob b3" aria-hidden="true"></div>
+
+    <section class="auth-card" aria-label="تسجيل الدخول">
+      <div class="auth-head">
+        <a class="mini-brand" href="{% url 'reports:login' %}">
+          <span class="logo">
+            <img src="{% static 'img/logo1.png' %}" alt="الشعار">
+          </span>
+          <span>
+            <div class="t1">Tawtheeq</div>
+            <div class="t2">منصّة توثيق</div>
+          </span>
+        </a>
+
+        <span class="muted" style="font-weight:900;color:var(--auth-muted)">
+          {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}
+        </span>
+      </div>
+
+      <div class="auth-body">
+        <div class="hero">
+          <div class="school-mark">
+            <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="شعار المدرسة">
+          </div>
+          <h1>تسجيل الدخول</h1>
+          <p>مرحبًا بك، أدخل بيانات الدخول للمتابعة</p>
+        </div>
+
+        <!-- Toasts -->
+        <div class="toasts" aria-live="polite">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="toast {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" data-autohide="true">
+                <div class="ico">
+                  {% if message.tags %}
+                    {% if "success" in message.tags %}<i class="fa-solid fa-circle-check"></i>
+                    {% elif "warning" in message.tags %}<i class="fa-solid fa-triangle-exclamation"></i>
+                    {% elif "error" in message.tags %}<i class="fa-solid fa-circle-exclamation"></i>
+                    {% else %}<i class="fa-solid fa-circle-info"></i>
+                    {% endif %}
+                  {% else %}
+                    <i class="fa-solid fa-circle-info"></i>
+                  {% endif %}
+                </div>
+                <div class="txt">{{ message }}</div>
+                <button class="close" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          {% if form.errors %}
+            <div class="toast error" data-autohide="true">
+              <div class="ico"><i class="fa-solid fa-circle-exclamation"></i></div>
+              <div class="txt">رقم الجوال أو كلمة المرور غير صحيحة</div>
+              <button class="close" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          {% endif %}
+        </div>
+
+        <form method="post" class="auth-form" autocomplete="on" novalidate>
+          {% csrf_token %}
+
+          <div class="field">
+            <label class="label" for="phone">
+              <i class="fa-solid fa-phone"></i>
+              رقم الجوال
+            </label>
+            <div class="control">
+              <input
+                id="phone"
+                class="input ltr-input"
+                type="tel"
+                name="phone"
+                inputmode="numeric"
+                pattern="0\d{9}"
+                minlength="10"
+                maxlength="10"
+                placeholder="05XXXXXXXX"
+                autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+                enterkeyhint="next"
+                required
+                aria-required="true"
+                {% if form.errors %}aria-invalid="true"{% endif %}
+                autofocus
+              >
+              <span class="in-ico" aria-hidden="true"><i class="fa-solid fa-mobile-screen-button"></i></span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="password">
+              <i class="fa-solid fa-key"></i>
+              كلمة المرور
+            </label>
+            <div class="control">
+              <input
+                id="password"
+                class="input ltr-input"
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                autocomplete="current-password"
+                autocapitalize="none"
+                spellcheck="false"
+                enterkeyhint="done"
+                required
+                aria-required="true"
+                {% if form.errors %}aria-invalid="true"{% endif %}
+              >
+              <span class="in-ico" aria-hidden="true"><i class="fa-solid fa-lock"></i></span>
+
+              <button type="button" class="toggle" id="togglePwd" aria-label="إظهار كلمة المرور">
+                <i class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary submit" type="submit">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            دخول
+          </button>
+
+          <div class="hint">
+            <i class="fa-solid fa-shield-halved"></i>
+            <div>
+              نسيت كلمة المرور تواصل مع مدير النظام في
+              <b>{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}المدرسة{% endif %}</b>.
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="auth-footer">
+        <div class="tiny">
+          <span class="foot-logo"><img src="{% static 'img/logo1.png' %}" alt=""></span>
+          <span><b>Tawtheeq</b></span>
+          <span class="dot">•</span>
+          <span>© {% now "Y" %} تصميم <b>MANS</b></span>
+        </div>
+
+        <div style="color:var(--auth-muted)">
+          آمن • سريع • متجاوب
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
+    (function(){
+      // Toggle password
+      var btn = document.getElementById('togglePwd');
+      var inp = document.getElementById('password');
+      if(btn && inp){
+        btn.addEventListener('click', function(){
+          var isPwd = inp.type === 'password';
+          inp.type = isPwd ? 'text' : 'password';
+          btn.setAttribute('aria-label', isPwd ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+          btn.innerHTML = isPwd ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
+        });
+      }
+
+      // Phone sanitize (digits only, max 10) + keep leading 0
+      var phone = document.getElementById('phone');
+      if(phone){
+        phone.addEventListener('input', function(){
+          var v = (phone.value || '').replace(/[^\d]/g,'').slice(0,10);
+          if(phone.value !== v) phone.value = v;
+        });
+      }
+
+      // Toast auto-hide
+      var toasts = document.querySelectorAll('.toast[data-autohide="true"]');
+      for(var i=0;i<toasts.length;i++){
+        (function(t){
+          var close = t.querySelector('.close');
+          var remove = function(){
+            t.style.opacity='0';
+            t.style.transform='translateY(-6px)';
+            setTimeout(function(){ try{ t.remove(); }catch(e){} }, 220);
+          };
+          if(close) close.addEventListener('click', remove);
+          setTimeout(remove, 3200);
+        })(toasts[i]);
+      }
+    })();
+  </script>
+</body>
+</html>

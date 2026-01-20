@@ -5,497 +5,403 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2563eb">
-  <meta name="color-scheme" content="light dark">
-  <title>تسجيل الدخول — {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</title>
+  <meta name="description" content="تسجيل الدخول لنظام التقارير الذكي">
+  <title>تسجيل الدخول | {{ SCHOOL_NAME|default:"نظام التقارير الذكي" }}</title>
 
-  <!-- Fonts / Icons -->
+  <!-- Typography & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
-
-  <!-- App CSS -->
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=login-20251231">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <style>
-    /* ===== Safe fallbacks without overriding app.css ===== */
-    :root{
-      --auth-card: var(--card, #ffffff);
-      --auth-ink: var(--ink, #0f172a);
-      --auth-muted: var(--muted, #64748b);
-      --auth-brand: var(--brand, #2563eb);
-      --auth-accent: var(--accent, #059669);
-      --auth-line: var(--line-2, var(--line, #e2e8f0));
-      --auth-shadow: var(--shadow, 0 22px 50px rgba(2,6,23,.12));
-      --auth-shadow-sm: var(--shadow-sm, 0 10px 22px rgba(2,6,23,.08));
+    /* === Neo-Professional 2026 Login Theme === */
+    :root {
+      --brand: #2563eb;
+      --brand-dark: #1e40af;
+      --brand-light: #eff6ff;
+      --accent: #059669;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 16px;
+      --shadow-soft: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+      --shadow-card: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+      
+      --gradient-bg: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
     }
 
-    html,body{font-family:'Tajawal',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    * { box-sizing: border-box; }
 
-    /* ===== Login-only polish (small + fast) ===== */
-    .auth-shell{
-      min-height:100dvh;
-      display:grid;
-      place-items:center;
-      padding: clamp(14px, 3vw, 28px);
-      position:relative;
-      overflow:hidden;
-      background:
-        radial-gradient(900px 520px at 20% 10%, rgba(37,99,235,.12), transparent 60%),
-        radial-gradient(800px 500px at 90% 75%, rgba(5,150,105,.10), transparent 60%),
-        linear-gradient(180deg, rgba(255,255,255,.40), transparent 40%);
-    }
-    html[data-theme="dark"] .auth-shell{
-      background:
-        radial-gradient(900px 520px at 20% 10%, rgba(37,99,235,.16), transparent 60%),
-        radial-gradient(800px 500px at 90% 75%, rgba(5,150,105,.12), transparent 60%),
-        linear-gradient(180deg, rgba(2,6,23,.35), transparent 40%);
+    body {
+      margin: 0;
+      font-family: 'Tajawal', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--gradient-bg);
+      color: var(--ink);
     }
 
-    .blob{
-      position:absolute;
-      width: 520px; height: 520px;
-      border-radius: 999px;
-      filter: blur(26px);
-      opacity:.18;
-      pointer-events:none;
-      transform: translateZ(0);
-      animation: blobFloat 16s ease-in-out infinite;
-    }
-    .blob.b1{ background: #2563eb; top:-260px; right:-220px; }
-    .blob.b2{ background: #059669; bottom:-280px; left:-240px; animation-delay:-6s; }
-    .blob.b3{ background: #7c3aed; top:35%; left:65%; width:360px; height:360px; opacity:.12; animation-delay:-10s; }
-    @keyframes blobFloat{
-      0%,100%{ transform: translate3d(0,0,0) scale(1); }
-      50%{ transform: translate3d(0,22px,0) scale(1.03); }
-    }
-    @media (prefers-reduced-motion: reduce){ .blob{animation:none} }
-
-    .auth-card{
-      width: min(520px, 92vw);
-      background: var(--auth-card);
-      border: 1px solid var(--auth-line);
-      border-radius: 22px;
-      box-shadow: var(--auth-shadow);
-      overflow:hidden;
-      position:relative;
-    }
-    .auth-card::before{
-      content:"";
-      position:absolute;
-      inset:0 0 auto 0;
-      height:5px;
-      background: linear-gradient(90deg, var(--auth-brand), var(--auth-accent));
-      opacity:.95;
+    /* Background Pattern - Subtle & Professional */
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(#2563eb 0.5px, transparent 0.5px), radial-gradient(#2563eb 0.5px, #f0f9ff 0.5px);
+      background-size: 20px 20px;
+      background-position: 0 0, 10px 10px;
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: -1;
     }
 
-    .auth-head{
-      padding: 18px 18px 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
+    /* Main Container */
+    .auth-wrapper {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      position: relative;
     }
-    .mini-brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      text-decoration:none;
-      color:inherit;
-    }
-    .mini-brand .logo{
-      width:42px;height:42px;border-radius:14px;
-      background: rgba(37,99,235,.08);
-      border: 1px solid rgba(37,99,235,.18);
-      display:grid;place-items:center;
-      overflow:hidden;
-    }
-    .mini-brand .logo img{width:26px;height:26px;object-fit:contain}
-    .mini-brand .t1{font-weight:900}
-    .mini-brand .t2{font-weight:800;color:var(--auth-muted);font-size:.92rem;margin-top:2px}
 
-    .auth-body{ padding: 10px 18px 18px; }
-    .hero{
-      display:flex; flex-direction:column; align-items:center; gap:10px;
-      padding: 10px 0 2px;
-      text-align:center;
+    /* Card Design */
+    .auth-card {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.8);
+      position: relative;
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .school-mark{
-      width:96px;height:96px;border-radius:18px;
-      background:#fff;
-      border:1px solid var(--auth-line);
-      box-shadow: 0 10px 22px rgba(2,6,23,.08);
-      display:grid;place-items:center;
-      overflow:hidden;
-    }
-    html[data-theme="dark"] .school-mark{ background: rgba(255,255,255,.06); }
-    .school-mark img{width:70px;height:70px;object-fit:contain}
 
-    .hero h1{
-      margin:0;
-      font-size: 1.55rem;
-      font-weight: 900;
-      background: linear-gradient(135deg, var(--auth-brand), #4f46e5, var(--auth-accent));
-      -webkit-background-clip:text;
-      -webkit-text-fill-color:transparent;
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .hero p{
-      margin:0;
-      color: var(--auth-muted);
+
+    /* Top Brand Stripe */
+    .brand-stripe {
+      height: 6px;
+      background: linear-gradient(90deg, var(--brand), var(--brand-dark));
+      width: 100%;
+    }
+
+    .card-body {
+      padding: 40px 32px;
+    }
+
+    /* Branding Section */
+    .brand-area {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    .logo-circle {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, var(--brand-light), #fff);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+      font-size: 2rem;
+      color: var(--brand);
+    }
+    
+    .brand-logo-img {
+      width: 50px; height: 50px; object-fit: contain;
+    }
+
+    .brand-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--ink);
+      margin: 0 0 6px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-sub {
+      color: var(--muted);
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--ink);
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 44px 14px 14px; /* Right padding for icon */
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--ink);
+      transition: all 0.2s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      background: #fff;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+    
+    .input-icon {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+      font-size: 1.1rem;
+      transition: color 0.2s;
+    }
+    
+    .form-input:focus + .input-icon {
+      color: var(--brand);
+    }
+
+    /* Password Toggle */
+    .password-toggle {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .password-toggle:hover { color: var(--ink); background: #f1f5f9; }
+
+    /* Button */
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
       font-weight: 700;
       font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .btn-login:hover {
+      background: var(--brand-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 12px -1px rgba(37, 99, 235, 0.4);
+    }
+    
+    .btn-login:active {
+      transform: translateY(0);
     }
 
-    .auth-form{ margin-top: 14px; }
-    .field{ margin-top: 12px; }
-    .label{
-      display:flex; align-items:center; gap:10px;
-      font-weight: 900;
-      color: var(--auth-ink);
-      margin-bottom: 8px;
+    /* Links */
+    .form-footer {
+      display: flex;
+      justify-content: center;
+      margin-top: 24px;
     }
-    .label i{ color: rgba(37,99,235,.95); }
-
-    .control{ position:relative; }
-    .control .input{
-      padding: 12px 46px 12px 44px;
-      background: rgba(248,250,252,.85);
+    
+    .link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: color 0.2s;
     }
-    html[data-theme="dark"] .control .input{ background: rgba(255,255,255,.04); }
+    .link:hover { color: var(--brand); text-decoration: underline; }
 
-    .ltr-input{ direction:ltr; text-align:left; }
-
-    .in-ico{
-      position:absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: rgba(100,116,139,.95);
-      font-size: 1.05rem;
-      pointer-events:none;
+    /* Messages/Toasts */
+    .messages-area {
+      margin-bottom: 20px;
     }
-
-    .toggle{
-      position:absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 40px; height: 40px;
-      border-radius: 12px;
-      border: 1px solid rgba(15,23,42,.10);
-      background: rgba(255,255,255,.75);
-      cursor:pointer;
-      display:grid;place-items:center;
-      color: rgba(100,116,139,.95);
-      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    .msg {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
     }
-    .toggle:hover{ transform: translateY(-50%) translateY(-1px); border-color: rgba(37,99,235,.28); color: var(--auth-brand); }
-    html[data-theme="dark"] .toggle{
-      background: rgba(255,255,255,.06);
-      border-color: rgba(148,163,184,.18);
+    .msg.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .msg.success { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .msg.info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+    /* Footer */
+    .auth-footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      opacity: 0.8;
     }
 
-    .submit{
-      margin-top: 16px;
-      width:100%;
-      border-radius: 16px;
-      min-height: 54px;
-      font-size: 1.05rem;
-    }
-
-    .hint{
-      margin-top: 12px;
-      padding: 12px 12px;
-      border-radius: 16px;
-      border: 1px solid var(--auth-line);
-      background: rgba(37,99,235,.05);
-      color: var(--auth-muted);
-      font-weight: 800;
-      display:flex;
-      align-items:flex-start;
-      gap:10px;
-    }
-    .hint i{ margin-top:2px; color: rgba(37,99,235,.95); }
-
-    .auth-footer{
-      padding: 12px 18px 16px;
-      border-top: 1px solid var(--auth-line);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      color: var(--auth-muted);
-      font-weight: 800;
-      flex-wrap:wrap;
-    }
-    .tiny{ display:flex; align-items:center; gap:8px; }
-    .tiny .dot{opacity:.55}
-    .foot-logo{
-      width:34px;height:34px;border-radius:999px;
-      background: rgba(255,255,255,.75);
-      border: 1px solid var(--auth-line);
-      display:grid;place-items:center;
-      overflow:hidden;
-    }
-    html[data-theme="dark"] .foot-logo{ background: rgba(255,255,255,.06); }
-    .foot-logo img{width:18px;height:18px;object-fit:contain}
-
-    /* Toasts */
-    .toasts{margin-top:12px; display:grid; gap:10px;}
-    .toast{
-      border-radius: 16px;
-      padding: 12px 12px;
-      border: 1px solid var(--auth-line);
-      box-shadow: var(--auth-shadow-sm);
-      display:flex; gap:10px; align-items:flex-start;
-      background: rgba(255,255,255,.90);
-      position:relative;
-      overflow:hidden;
-    }
-    html[data-theme="dark"] .toast{ background: rgba(15,23,42,.72); }
-    .toast .ico{margin-top:2px}
-    .toast .txt{font-weight:800}
-    .toast .close{
-      margin-right:auto;
-      background:none;border:0;cursor:pointer;
-      opacity:.7;
-      color: inherit;
-      padding: 2px 6px;
-    }
-    .toast .close:hover{opacity:1}
-    .toast::after{
-      content:"";
-      position:absolute;
-      inset:auto 0 0 0;
-      height:3px;
-      background: currentColor;
-      opacity:.20;
-      transform: translateX(-100%);
-      animation: toastBar 3.2s linear forwards;
-    }
-    @keyframes toastBar{to{transform:none}}
-
-    .toast.info{ color: #1d4ed8; border-color: rgba(191,219,254,.9); background: rgba(239,246,255,.90); }
-    .toast.success{ color:#065f46; border-color: rgba(167,243,208,.9); background: rgba(236,253,245,.92); }
-    .toast.warning{ color:#92400e; border-color: rgba(253,230,138,.9); background: rgba(255,251,235,.92); }
-    .toast.error{ color: #b91c1c; border-color: rgba(254,202,202,.9); background: rgba(254,242,242,.92); }
-    html[data-theme="dark"] .toast.info{ background: rgba(30,58,138,.25); border-color: rgba(59,130,246,.25); }
-    html[data-theme="dark"] .toast.success{ background: rgba(6,95,70,.25); border-color: rgba(16,185,129,.22); }
-    html[data-theme="dark"] .toast.warning{ background: rgba(146,64,14,.25); border-color: rgba(245,158,11,.22); }
-    html[data-theme="dark"] .toast.error{ background: rgba(185,28,28,.22); border-color: rgba(239,68,68,.22); }
-
-    @media (min-width: 1400px){
-      .auth-card{ width: min(560px, 92vw); }
-      .hero h1{ font-size: 1.75rem; }
-      .hero p{ font-size: 1.05rem; }
-      .submit{ min-height: 58px; }
+    /* Responsive */
+    @media (max-width: 480px) {
+      .auth-card {
+        box-shadow: none;
+        border: none;
+        background: transparent;
+      }
+      .card-body { padding: 0; }
+      body { background: #fff; } /* Simplify on mobile */
+      body::before { display: none; }
+      
+      .brand-title { font-size: 1.7rem; }
+      .logo-circle { width: 70px; height: 70px; }
+      
+      .brand-stripe { display: none; }
     }
   </style>
-
-  <script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
-    // Theme sync with base/app (if you store it in localStorage)
-    (function(){
-      try{
-        var t = localStorage.getItem('theme');
-        if(t === 'dark' || t === 'light'){
-          document.documentElement.setAttribute('data-theme', t);
-        }
-      }catch(e){}
-    })();
-  </script>
 </head>
+<body>
 
-<body class="page">
-  <div class="auth-shell">
-    <div class="blob b1" aria-hidden="true"></div>
-    <div class="blob b2" aria-hidden="true"></div>
-    <div class="blob b3" aria-hidden="true"></div>
-
-    <section class="auth-card" aria-label="تسجيل الدخول">
-      <div class="auth-head">
-        <a class="mini-brand" href="{% url 'reports:login' %}">
-          <span class="logo">
-            <img src="{% static 'img/logo1.png' %}" alt="الشعار">
-          </span>
-          <span>
-            <div class="t1">Tawtheeq</div>
-            <div class="t2">منصّة توثيق</div>
-          </span>
-        </a>
-
-        <span class="muted" style="font-weight:900;color:var(--auth-muted)">
-          {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}
-        </span>
-      </div>
-
-      <div class="auth-body">
-        <div class="hero">
-          <div class="school-mark">
-            <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="شعار المدرسة">
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <div class="brand-stripe"></div>
+      
+      <div class="card-body">
+        
+        <!-- Brand -->
+        <div class="brand-area">
+          <div class="logo-circle">
+            {% if SCHOOL_LOGO %}
+              <img src="{{ SCHOOL_LOGO }}" alt="Logo" class="brand-logo-img">
+            {% else %}
+               <!-- Icon Fallback -->
+               <i class="fa-solid fa-shapes"></i>
+            {% endif %}
           </div>
-          <h1>تسجيل الدخول</h1>
-          <p>مرحبًا بك، أدخل بيانات الدخول للمتابعة</p>
+          <h1 class="brand-title">{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التوثيق الذكي{% endif %}</h1>
+          <div class="brand-sub">سجّل دخولك لمتابعة أعمالك</div>
         </div>
 
-        <!-- Toasts -->
-        <div class="toasts" aria-live="polite">
-          {% if messages %}
+        <!-- Messages -->
+        {% if messages %}
+          <div class="messages-area">
             {% for message in messages %}
-              <div class="toast {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" data-autohide="true">
-                <div class="ico">
-                  {% if message.tags %}
-                    {% if "success" in message.tags %}<i class="fa-solid fa-circle-check"></i>
-                    {% elif "warning" in message.tags %}<i class="fa-solid fa-triangle-exclamation"></i>
-                    {% elif "error" in message.tags %}<i class="fa-solid fa-circle-exclamation"></i>
-                    {% else %}<i class="fa-solid fa-circle-info"></i>
-                    {% endif %}
-                  {% else %}
-                    <i class="fa-solid fa-circle-info"></i>
-                  {% endif %}
-                </div>
-                <div class="txt">{{ message }}</div>
-                <button class="close" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+              <div class="msg {{ message.tags|default:'info' }}">
+                {% if message.tags == 'error' %}<i class="fa-solid fa-circle-exclamation"></i>
+                {% elif message.tags == 'success' %}<i class="fa-solid fa-circle-check"></i>
+                {% else %}<i class="fa-solid fa-circle-info"></i>{% endif %}
+                <span>{{ message }}</span>
               </div>
             {% endfor %}
-          {% endif %}
+          </div>
+        {% endif %}
 
-          {% if form.errors %}
-            <div class="toast error" data-autohide="true">
-              <div class="ico"><i class="fa-solid fa-circle-exclamation"></i></div>
-              <div class="txt">رقم الجوال أو كلمة المرور غير صحيحة</div>
-              <button class="close" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+        {% if form.errors %}
+          <div class="messages-area">
+            <div class="msg error">
+                <i class="fa-solid fa-circle-xmark"></i>
+                <span>اسم المستخدم أو كلمة المرور غير صحيحة.</span>
             </div>
-          {% endif %}
-        </div>
+          </div>
+        {% endif %}
 
-        <form method="post" class="auth-form" autocomplete="on" novalidate>
+        <!-- Form -->
+        <form method="post" action="{% url 'reports:login' %}">
           {% csrf_token %}
+          <!-- Redirect Next -->
+          <input type="hidden" name="next" value="{{ next }}">
 
-          <div class="field">
-            <label class="label" for="phone">
-              <i class="fa-solid fa-phone"></i>
-              رقم الجوال
-            </label>
-            <div class="control">
-              <input
-                id="phone"
-                class="input ltr-input"
-                type="tel"
-                name="phone"
-                inputmode="numeric"
-                pattern="0\d{9}"
-                minlength="10"
-                maxlength="10"
-                placeholder="05XXXXXXXX"
-                autocomplete="username"
-                autocapitalize="none"
-                spellcheck="false"
-                enterkeyhint="next"
-                required
-                aria-required="true"
-                {% if form.errors %}aria-invalid="true"{% endif %}
-                autofocus
-              >
-              <span class="in-ico" aria-hidden="true"><i class="fa-solid fa-mobile-screen-button"></i></span>
+          <div class="form-group">
+            <label for="username" class="form-label">اسم المستخدم / رقم الهوية</label>
+            <div class="input-wrapper">
+              <input type="text" name="username" id="username" class="form-input" 
+                     placeholder="أدخل اسم المستخدم" required autofocus autocomplete="username">
+              <i class="fa-regular fa-user input-icon"></i>
             </div>
           </div>
 
-          <div class="field">
-            <label class="label" for="password">
-              <i class="fa-solid fa-key"></i>
-              كلمة المرور
-            </label>
-            <div class="control">
-              <input
-                id="password"
-                class="input ltr-input"
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                autocomplete="current-password"
-                autocapitalize="none"
-                spellcheck="false"
-                enterkeyhint="done"
-                required
-                aria-required="true"
-                {% if form.errors %}aria-invalid="true"{% endif %}
-              >
-              <span class="in-ico" aria-hidden="true"><i class="fa-solid fa-lock"></i></span>
-
-              <button type="button" class="toggle" id="togglePwd" aria-label="إظهار كلمة المرور">
-                <i class="fa-regular fa-eye"></i>
+          <div class="form-group">
+            <label for="password" class="form-label">كلمة المرور</label>
+            <div class="input-wrapper">
+              <input type="password" name="password" id="password" class="form-input" 
+                     placeholder="••••••••" required autocomplete="current-password">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <button type="button" class="password-toggle" id="togglePass" title="إظهار كلمة المرور">
+                <i class="fa-regular fa-eye-slash"></i>
               </button>
             </div>
           </div>
 
-          <button class="btn btn-primary submit" type="submit">
-            <i class="fa-solid fa-right-to-bracket"></i>
-            دخول
+          <button type="submit" class="btn-login">
+            تسجيل الدخول <i class="fa-solid fa-arrow-left"></i>
           </button>
 
-          <div class="hint">
-            <i class="fa-solid fa-shield-halved"></i>
-            <div>
-              نسيت كلمة المرور تواصل مع مدير النظام في
-              <b>{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}المدرسة{% endif %}</b>.
-            </div>
+          <div class="form-footer">
+             <a href="#" class="link" onclick="alert('يرجى التواصل مع إدارة المدرسة لاستعادة كلمة المرور.');return false;">
+               هل نسيت كلمة المرور؟
+             </a>
           </div>
         </form>
       </div>
-
-      <div class="auth-footer">
-        <div class="tiny">
-          <span class="foot-logo"><img src="{% static 'img/logo1.png' %}" alt=""></span>
-          <span><b>Tawtheeq</b></span>
-          <span class="dot">•</span>
-          <span>© {% now "Y" %} تصميم <b>MANS</b></span>
-        </div>
-
-        <div style="color:var(--auth-muted)">
-          آمن • سريع • متجاوب
-        </div>
-      </div>
-    </section>
+    </div>
   </div>
 
-  <script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
-    (function(){
-      // Toggle password
-      var btn = document.getElementById('togglePwd');
-      var inp = document.getElementById('password');
-      if(btn && inp){
-        btn.addEventListener('click', function(){
-          var isPwd = inp.type === 'password';
-          inp.type = isPwd ? 'text' : 'password';
-          btn.setAttribute('aria-label', isPwd ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
-          btn.innerHTML = isPwd ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
-        });
-      }
+  <footer class="auth-footer">
+    &copy; {% now "Y" %} جميع الحقوق محفوظة — نظام التوثيق الذكي
+  </footer>
 
-      // Phone sanitize (digits only, max 10) + keep leading 0
-      var phone = document.getElementById('phone');
-      if(phone){
-        phone.addEventListener('input', function(){
-          var v = (phone.value || '').replace(/[^\d]/g,'').slice(0,10);
-          if(phone.value !== v) phone.value = v;
-        });
-      }
+  <script nonce="{{ CSP_NONCE }}">
+    // Password Toggle
+    const toggleBtn = document.getElementById('togglePass');
+    const passInput = document.getElementById('password');
+    
+    if(toggleBtn && passInput){
+      toggleBtn.addEventListener('click', function(){
+        const isPass = passInput.type === 'password';
+        passInput.type = isPass ? 'text' : 'password';
+        toggleBtn.innerHTML = isPass ? '<i class="fa-regular fa-eye"></i>' : '<i class="fa-regular fa-eye-slash"></i>';
+      });
+    }
 
-      // Toast auto-hide
-      var toasts = document.querySelectorAll('.toast[data-autohide="true"]');
-      for(var i=0;i<toasts.length;i++){
-        (function(t){
-          var close = t.querySelector('.close');
-          var remove = function(){
-            t.style.opacity='0';
-            t.style.transform='translateY(-6px)';
-            setTimeout(function(){ try{ t.remove(); }catch(e){} }, 220);
-          };
-          if(close) close.addEventListener('click', remove);
-          setTimeout(remove, 3200);
-        })(toasts[i]);
-      }
-    })();
+    // Auto-hide messages
+    setTimeout(() => {
+        const msgs = document.querySelectorAll('.msg.success, .msg.info');
+        msgs.forEach(m => {
+            m.style.transition = 'opacity 0.5s';
+            m.style.opacity = '0';
+            setTimeout(()=>m.remove(), 500);
+        });
+    }, 5000);
   </script>
+
 </body>
 </html>
