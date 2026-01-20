@@ -2,341 +2,478 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}مرحباً {{ request.user.name|default:"" }}{% endblock %}
+{% block title %}الرئيسية | {{ request.user.name|default:"مرحباً" }}{% endblock %}
 
 {% block head %}
 <style>
-  /* Local overrides for formatting specific to the new 2026 Dashboard look */
-  .dashboard-container { display: flex; flex-direction: column; gap: var(--s-5); }
-  
-  /* --- Hero Section --- */
-  .dash-hero {
+  /* === Neo-Professional 2026 Dashboard Theme === */
+  :root {
+    --dash-brand: #2563eb;       /* Royal Blue */
+    --dash-brand-dark: #1e40af;
+    --dash-brand-light: #eff6ff;
+    --dash-accent: #059669;      /* Emerald */
+    --dash-ink: #0f172a;         /* Slate 900 */
+    --dash-muted: #64748b;       /* Slate 500 */
+    --dash-border: #e2e8f0;      /* Slate 200 */
+    --dash-bg: #f8fafc;          /* Slate 50 */
+    --dash-card: #ffffff;
+    
+    --radius-xl: 20px;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
+  }
+
+  .home-wrapper {
+    max-width: 1280px;
+    margin: 0 auto;
+    font-family: 'Tajawal', sans-serif;
+    color: var(--dash-ink);
+    padding-bottom: 60px;
+  }
+
+  /* 1. Hero Section */
+  .hero-section {
     position: relative;
+    background: linear-gradient(135deg, var(--dash-brand) 0%, var(--dash-brand-dark) 100%);
     border-radius: var(--radius-xl);
-    padding: clamp(24px, 4vw, 40px);
-    background: linear-gradient(135deg, var(--brand-700), var(--brand-ink));
+    padding: 32px 40px;
     color: #fff;
-    box-shadow: var(--shadow-lg);
     overflow: hidden;
-    isolation: isolate;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
   }
-  .dash-hero::after {
-    content: ""; position: absolute; inset: 0;
-    background: url("{% static 'img/pattern.svg' %}") center/cover no-repeat;
-    opacity: .10;
-    z-index: -1; mix-blend-mode: overlay;
+  
+  /* Abstract Pattern Overlay */
+  .hero-section::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 10% 10%, rgba(255,255,255,0.08) 0%, transparent 20%),
+                      radial-gradient(circle at 90% 90%, rgba(255,255,255,0.08) 0%, transparent 20%);
+    pointer-events: none;
   }
-  .dash-hero-content { display: flex; flex-direction: column; gap: var(--s-3); position: relative; z-index: 2; max-width: 600px; }
-  .dash-hero h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); margin: 0; line-height: 1.1; font-weight: 950; }
-  .dash-hero p { font-size: 1.05rem; opacity: 0.9; margin: 0; line-height: 1.6; max-width: 48ch; }
+
+  .hero-content { position: relative; z-index: 2; max-width: 650px; }
+  .hero-sub { 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+    font-size: 0.85rem; 
+    font-weight: 700; 
+    opacity: 0.8; 
+    margin-bottom: 8px; 
+  }
+  .hero-title { 
+    font-size: clamp(1.8rem, 4vw, 2.5rem); 
+    font-weight: 800; 
+    margin: 0 0 12px 0; 
+    line-height: 1.2; 
+  }
+  .hero-desc { 
+    font-size: 1.05rem; 
+    line-height: 1.6; 
+    opacity: 0.95; 
+    max-width: 50ch; 
+  }
+
+  .hero-grid-actions {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px;
+  }
+
+  .btn-white {
+    background: #fff; color: var(--dash-brand); border: none; font-weight: 700;
+    padding: 12px 24px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-white:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); color: var(--dash-brand-dark); }
   
-  .dash-actions { margin-top: var(--s-4); display: flex; flex-wrap: wrap; gap: 12px; }
-  .btn-dash-primary { background: #fff; color: var(--brand-700); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-  .btn-dash-primary:hover { background: #f8fafc; color: var(--brand-ink); transform: translateY(-2px); }
-  .btn-dash-outline { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(4px); }
-  .btn-dash-outline:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.5); }
-  
-  /* --- Bento Grid Stats --- */
-  .bento-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--s-3); }
+  .btn-glass {
+    background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    font-weight: 600; padding: 12px 24px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none; backdrop-filter: blur(4px); transition: background 0.2s;
+  }
+  .btn-glass:hover { background: rgba(255,255,255,0.25); border-color: #fff; }
+
+  /* 2. Stats Grid */
+  .stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
   .stat-card {
-    background: var(--card); border: 1px solid var(--line-2); border-radius: var(--radius-lg); padding: 20px;
-    display: flex; flex-direction: column; gap: 12px; transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
-    position: relative; overflow: hidden;
+    background: var(--dash-card);
+    border: 1px solid var(--dash-border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: var(--shadow-sm);
   }
-  .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--brand-ghost); }
-  .stat-icon {
-    width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; background: var(--bg); color: var(--muted);
-  }
-  .stat-val { font-size: 2.2rem; font-weight: 950; line-height: 1; color: var(--ink); }
-  .stat-lbl { font-size: 0.95rem; font-weight: 800; color: var(--muted); }
-  .stat-card.primary .stat-icon { background: var(--brand-ghost); color: var(--brand); }
-  .stat-card.accent .stat-icon { background: rgba(5,150,105,0.1); color: var(--accent); }
-  .stat-card.warn .stat-icon { background: rgba(245,158,11,0.1); color: var(--warning); }
-
-  /* --- Sections --- */
-  .dash-split { display: grid; gap: var(--s-4); }
-  @media(min-width: 900px) { .dash-split { grid-template-columns: 2fr 1fr; } }
+  .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: #cbd5e1; }
   
-  .dash-list { display: flex; flex-direction: column; gap: 8px; }
-  .dash-item {
-    display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius);
-    background: var(--bg); text-decoration: none; transition: background var(--t-fast) var(--ease);
+  .stat-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .stat-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
   }
-  .dash-item:hover { background: var(--line-2); }
-  .di-icon {
-    width: 40px; height: 40px; border-radius: 10px; background: #fff;
-    display: flex; align-items: center; justify-content: center; color: var(--brand); font-size: 1rem;
-    box-shadow: var(--shadow-sm); flex-shrink: 0;
-  }
-  .di-content { flex: 1; min-width: 0; }
-  .di-title { font-weight: 900; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem; }
-  .di-meta { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
-  .hpill { font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; font-weight: 800; background: var(--line); color: var(--muted); }
-  .hpill.hp-blue { background: var(--brand-ghost); color: var(--brand-700); }
-  .hpill.hp-green { background: rgba(5,150,105,0.1); color: var(--accent); }
-  .hpill.hp-red { background: rgba(220,38,38,0.1); color: var(--danger); }
+  .stat-val { font-size: 2.2rem; font-weight: 800; color: var(--dash-ink); line-height: 1; margin-bottom: 4px; }
+  .stat-lbl { font-size: 0.95rem; font-weight: 600; color: var(--dash-muted); }
 
-  .motivate-card { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
-  .motivate-card .section-title { color: #fff; opacity: 0.95; margin-bottom: 8px; }
-  .motivate-text { font-size: 1rem; line-height: 1.5; font-weight: 600; opacity: 0.9; }
+  /* Stat Variants */
+  .st-prim .stat-icon { background: var(--dash-brand-light); color: var(--dash-brand); }
+  .st-accent .stat-icon { background: #ecfdf5; color: #059669; } /* Green */
+  .st-warn .stat-icon { background: #fffbeb; color: #d97706; }   /* Amber */
+  .st-info .stat-icon { background: #f0f9ff; color: #0ea5e9; }   /* Sky */
+
+  /* 3. Main Split */
+  .main-split { display: grid; gap: 24px; grid-template-columns: 2.2fr 1fr; }
+  @media (max-width: 900px) { .main-split { grid-template-columns: 1fr; } }
+  
+  /* Section Headers */
+  .sec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .sec-title { font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .sec-link { font-size: 0.9rem; color: var(--dash-brand); text-decoration: none; font-weight: 600; }
+  .sec-link:hover { text-decoration: underline; }
+
+  /* List Items */
+  .lux-list { display: flex; flex-direction: column; gap: 10px; }
+  .lux-item {
+    background: var(--dash-card);
+    border: 1px solid var(--dash-border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-decoration: none;
+    color: var(--dash-ink);
+    transition: all 0.2s;
+  }
+  .lux-item:hover { transform: translateX(-4px); border-color: var(--dash-border); box-shadow: var(--shadow-sm); }
+  
+  .li-icon {
+    width: 42px; height: 42px; background: var(--dash-bg); color: var(--dash-muted);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+  }
+  .li-body { flex: 1; min-width: 0; }
+  .li-title { font-weight: 700; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .li-meta { font-size: 0.85rem; color: var(--dash-muted); display: flex; align-items: center; gap: 10px; }
+  
+  /* Sidebar Widgets */
+  .widget-card {
+    background: var(--dash-card);
+    border: 1px solid var(--dash-border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  /* Notifications Badge */
+  .notif-badge { 
+    background: #ef4444; color: #fff; font-size: 0.75rem; font-weight: 700; 
+    padding: 2px 8px; border-radius: 99px; margin-right: 6px; 
+  }
+
+  /* Motivation Banner */
+  .motiv-banner {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    color: #fff;
+    padding: 24px;
+    border-radius: var(--radius-lg);
+  }
+
+  /* --- Notification Modal (Overlay) --- */
+  .hn-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+    display: none; place-items: center; padding: 16px;
+  }
+  .hn-overlay.is-open { display: grid; }
+  
+  .hn-modal {
+    width: 100%; max-width: 500px;
+    background: #fff; border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    overflow: hidden; animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes popIn { from { opacity:0; transform:scale(0.95) translateY(10px); } to { opacity:1; transform:none; } }
+  
+  .hn-head {
+    background: #f8fafc; padding: 16px 20px; border-bottom: 1px solid #e2e8f0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .hn-head h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+  .hn-close { 
+    background: transparent; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer; line-height: 1; 
+  }
+  .hn-close:hover { color: #ef4444; }
+  
+  .hn-body { padding: 24px; font-size: 1rem; line-height: 1.6; color: #334155; }
+  .hn-foot { 
+    padding: 12px 24px; background: #fff; font-size: 0.9rem; color: #64748b; 
+    border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between;
+  }
+
+  /* Mobile tweaks */
+  @media (max-width: 600px) {
+    .hero-section { padding: 24px; flex-direction: column; align-items: stretch; }
+    .hero-title { font-size: 1.8rem; }
+    .hero-grid-actions { flex-direction: column; }
+    .btn-white, .btn-glass { width: 100%; justify-content: center; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container home-wrap">
+<div class="home-wrapper" dir="rtl">
 
-  <!-- NOTIFICATION MODAL (Preserved Logic) -->
+  <!-- NOTIFICATION POPUP -->
   {% if home_notification %}
-    <div
-      class="hn-overlay is-open"
-      id="homeNotifOverlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="إشعار جديد"
-      {% if home_notification_recipient_id %}
-        data-recipient-id="{{ home_notification_recipient_id }}"
-        data-mark-url="{% url 'reports:notification_mark_read' home_notification_recipient_id %}"
-      {% endif %}
-    >
-      <div class="hn-modal" role="document">
-        <div class="hn-hd">
-          <h3 class="ttl">
-            <i class="fa-solid fa-bell" style="opacity:.9"></i>
-            رسالة جديدة
-            {% if home_notification.is_important %}<span class="hpill hp-red">هام</span>{% endif %}
+    <div class="hn-overlay is-open" id="notifOverlay"
+         {% if home_notification_recipient_id %}
+           data-recipient="{{ home_notification_recipient_id }}"
+           data-url="{% url 'reports:notification_mark_read' home_notification_recipient_id %}"
+         {% endif %}>
+      <div class="hn-modal">
+        <div class="hn-head">
+          <h3>
+             <i class="fa-solid fa-bell" style="color:#f59e0b;"></i>
+             رسالة جديدة
+             {% if home_notification.is_important %}
+               <span style="background:#fee2e2;color:#ef4444;font-size:0.7em;padding:2px 8px;border-radius:12px;margin-right:6px">هام</span>
+             {% endif %}
           </h3>
-          <button type="button" class="hn-close" id="homeNotifClose" aria-label="إغلاق">✕</button>
+          <button type="button" class="hn-close" id="notifClose">×</button>
         </div>
-        <div class="hn-bd">
-          {% if home_notification.title %}
-            <div class="hn-title">{{ home_notification.title }}</div>
-          {% endif %}
-          <div class="hn-body">{{ home_notification.message|linebreaksbr }}</div>
-          <div class="hn-meta">
-            <span>
-              المرسل:
-              {% if home_notification.created_by %}
-                {% firstof home_notification.created_by.name home_notification.created_by.phone home_notification.created_by.username "الإدارة" %}
-                {% if home_notification.created_by.is_platform_admin or home_notification.created_by.role %}
-                  — {{ home_notification.created_by.display_role_label }}
+        <div class="hn-body">
+            {% if home_notification.title %}
+              <div style="font-weight:800; margin-bottom:8px; font-size:1.1rem; color:#0f172a;">{{ home_notification.title }}</div>
+            {% endif %}
+            {{ home_notification.message|linebreaksbr }}
+        </div>
+        <div class="hn-foot">
+            <span style="font-weight:700">
+                <i class="fa-solid fa-user-pen"></i>&nbsp;
+                {% if home_notification.created_by %}
+                    {{ home_notification.created_by.name|default:home_notification.created_by.username }}
+                {% else %}
+                    الإدارة
                 {% endif %}
-              {% else %}
-                الإدارة
-              {% endif %}
             </span>
-            {% if home_notification.created_at %}<span dir="ltr">{{ home_notification.created_at|date:"Y-m-d H:i" }}</span>{% endif %}
-          </div>
+            <span dir="ltr">{{ home_notification.created_at|date:"Y-m-d H:i" }}</span>
         </div>
       </div>
     </div>
   {% endif %}
 
-  <!-- ZERO: HERO SECTION -->
-  <section class="dash-hero">
-    <div class="dash-hero-content">
-      <div>
-        <div style="font-size:0.9rem; font-weight:700; opacity:0.8; margin-bottom:4px; text-transform:uppercase; letter-spacing:1px;">
-           {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}لوحة التحكم{% endif %}
-        </div>
-        <h1>أهلًا، {{ request.user.name|default:"مستخدمنا العزيز" }} 👋</h1>
-        <p>مرحباً بعودتك لنظام التوثيق الذكي. لديك اليوم فرصة جديدة لتوثيق إنجازاتك ومتابعة تقدمك بكل سهولة.</p>
-      </div>
+  <!-- 1. HERO SECTION -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="hero-sub">{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التوثيق الذكي{% endif %}</div>
+      <h1 class="hero-title">أهلًا، {{ request.user.name|default:"مستخدمنا العزيز" }} 👋</h1>
+      <p class="hero-desc">
+        عودة حميدة! لديك اليوم فرصة جديدة لتوثيق إنجازاتك ومتابعة تقدمك بكل سهولة.
+      </p>
 
-      <div class="dash-actions">
-        <a class="btn btn-lg btn-dash-primary" href="{% url 'reports:add_report' %}">
-          <i class="fa-solid fa-plus"></i> إضافة تقرير
+      <div class="hero-grid-actions">
+        <!-- Main CTAs -->
+        <a href="{% url 'reports:add_report' %}" class="btn-white">
+          <i class="fa-solid fa-plus-circle"></i> إضافة تقرير
         </a>
-        <a class="btn btn-lg btn-dash-outline" href="{% url 'reports:my_reports' %}">
-          <i class="fa-solid fa-folder-open"></i> تقاريري
+        <a href="{% url 'reports:my_reports' %}" class="btn-glass">
+            <i class="fa-solid fa-folder-open"></i> تقاريري
         </a>
-        <a class="btn btn-lg btn-dash-outline" href="{% url 'reports:achievement_my_files' %}">
-          <i class="fa-solid fa-briefcase"></i> ملف الإنجاز
-        </a>
-        {% url 'reports:assigned_to_me' as inbox_url %}
-        {% if inbox_url %}
-          <a class="btn btn-lg btn-dash-outline" href="{{ inbox_url }}">
-            <i class="fa-solid fa-inbox"></i> الوارد
-          </a>
+        
+        <!-- Conditional CTAs based on nav/context -->
+        {% url 'reports:my_notifications' as notifUrl %}
+        {% if notifUrl %}
+            <a href="{{ notifUrl }}" class="btn-glass" style="position:relative">
+                <i class="fa-regular fa-bell"></i>
+                {% if NAV_NOTIFICATIONS_UNREAD %}
+                    <span style="position:absolute;top:-5px;right:-5px;background:#ef4444;width:10px;height:10px;border-radius:50%;border:2px solid var(--dash-brand)"></span>
+                {% endif %}
+            </a>
         {% endif %}
 
-        {% url 'reports:my_notifications' as myNotificationsUrl %}
-        {% if myNotificationsUrl %}
-          <a class="btn btn-lg btn-dash-outline" href="{{ myNotificationsUrl }}" title="عرض الإشعارات">
-            <i class="fa-solid fa-bell"></i> الإشعارات
-            {% if NAV_NOTIFICATIONS_UNREAD %}
-              <span class="hpill hp-blue" style="margin-inline-start:8px">{{ NAV_NOTIFICATIONS_UNREAD }} جديد</span>
-            {% endif %}
-          </a>
-        {% endif %}
-
-        {% url 'reports:my_circulars' as myCircularsUrl %}
-        {% if myCircularsUrl %}
-          <a class="btn btn-lg btn-dash-outline" href="{{ myCircularsUrl }}" title="عرض التعاميم">
-            <i class="fa-solid fa-pen-to-square"></i> التعاميم
-            {% if NAV_SIGNATURES_PENDING %}
-              <span class="hpill hp-red" style="margin-inline-start:8px">{{ NAV_SIGNATURES_PENDING }} بانتظار التوقيع</span>
-            {% endif %}
-          </a>
+        {% url 'reports:my_circulars' as circUrl %}
+        {% if circUrl %}
+            <a href="{{ circUrl }}" class="btn-glass" title="التعاميم">
+                <i class="fa-solid fa-bullhorn"></i>
+                {% if NAV_SIGNATURES_PENDING %}<span class="notif-badge" style="background:#fff;color:#ef4444;margin-right:6px">{{ NAV_SIGNATURES_PENDING }}</span>{% endif %}
+            </a>
         {% endif %}
       </div>
+    </div>
+    
+    <!-- Optional Graphic/Icon on the left for larger screens -->
+    <div style="font-size:8rem; opacity:0.15; transform:rotate(-15deg); display:none; @media(min-width:768px){display:block;}">
+        <i class="fa-solid fa-chart-pie"></i>
     </div>
   </section>
 
+  <!-- PENDING SIGNATURES ALERT -->
   {% if NAV_SIGNATURES_PENDING %}
-    <div class="card" style="border:1px solid rgba(220,38,38,.25); background:rgba(220,38,38,.06)">
-      <div class="row-between" style="gap:12px; align-items:center">
-        <div>
-          <h3 class="section-title" style="margin:0 0 6px 0">
-            <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);margin-left:8px"></i>
-            لديك تعاميم تتطلب توقيعاً
-          </h3>
-          <div class="section-sub" style="margin:0">
-            عدد التعاميم غير الموقّعة: <strong>{{ NAV_SIGNATURES_PENDING }}</strong> — الرجاء الاطلاع والتوقيع لتأكيد الاستلام.
-          </div>
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:16px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <div style="display:flex; align-items:center; gap:12px; color:#991b1b;">
+            <i class="fa-solid fa-triangle-exclamation fa-lg"></i>
+            <div>
+                <div style="font-weight:800; font-size:1.05rem;">تنبيه: تعاميم بانتظار التوقيع</div>
+                <div style="font-size:0.9rem; opacity:0.9;">لديك <strong>{{ NAV_SIGNATURES_PENDING }}</strong> تعميم يتطلب اطلاعك وتوقيعك.</div>
+            </div>
         </div>
-        {% if myCircularsUrl %}
-          <a class="btn btn-sm" href="{{ myCircularsUrl }}" style="background:#fff">
-            فتح التعاميم
-          </a>
-        {% endif %}
-      </div>
+        <a href="{% url 'reports:my_circulars' %}" style="background:#dc2626; color:#fff; text-decoration:none; padding:8px 16px; border-radius:8px; font-weight:700; font-size:0.9rem;">عرض وتوقيع</a>
     </div>
   {% endif %}
 
-  <!-- ONE: KEY METRICS (Bento Grid) -->
-  <section class="bento-grid">
-    <!-- Reports Today -->
-    <div class="stat-card primary">
-      <div class="row-between" style="align-items:flex-start">
-        <div class="stat-icon"><i class="fa-solid fa-sun"></i></div>
-        {% if stats.today_count > 0 %}
-          <span class="hpill hp-blue">نشط اليوم</span>
-        {% endif %}
+  <!-- 2. STATS OVERVIEW -->
+  <section class="stats-container">
+    <!-- Today -->
+    <div class="stat-card st-prim">
+      <div class="stat-head">
+        <div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div>
+        {% if stats.today_count > 0 %} <span style="background:#dbeafe;color:#1e40af;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:700;">نشط اليوم</span> {% endif %}
       </div>
-      <div>
-        <div class="stat-val">{{ stats.today_count|default:"0" }}</div>
-        <div class="stat-lbl">تقارير اليوم</div>
-      </div>
+      <div class="stat-val">{{ stats.today_count|default:"0" }}</div>
+      <div class="stat-lbl">تقارير اليوم</div>
     </div>
 
-    <!-- Total Reports -->
-    <div class="stat-card">
-      <div class="row-between" style="align-items:flex-start">
+    <!-- Total -->
+    <div class="stat-card st-info">
+      <div class="stat-head">
         <div class="stat-icon"><i class="fa-solid fa-layer-group"></i></div>
       </div>
-      <div>
-        <div class="stat-val">{{ stats.total_count|default:"0" }}</div>
-        <div class="stat-lbl">إجمالي التقارير</div>
-      </div>
+      <div class="stat-val">{{ stats.total_count|default:"0" }}</div>
+      <div class="stat-lbl">إجمالي التقارير</div>
     </div>
 
-    <!-- Active Requests -->
-    <div class="stat-card accent">
-      <div class="row-between" style="align-items:flex-start">
+    <!-- In Progress Requests -->
+    <div class="stat-card st-accent">
+      <div class="stat-head">
         <div class="stat-icon"><i class="fa-solid fa-hourglass-half"></i></div>
-        <span class="hpill hp-green">قيد المعالجة</span>
       </div>
-      <div>
-        <div class="stat-val">{{ req_stats.in_progress|default:"0" }}</div>
-        <div class="stat-lbl">طلبات جارية</div>
-      </div>
+      <div class="stat-val">{{ req_stats.in_progress|default:"0" }}</div>
+      <div class="stat-lbl">طلبات جارية</div>
     </div>
 
-    <!-- Inbox/New Interactions -->
-    <div class="stat-card warn">
-      <div class="row-between" style="align-items:flex-start">
-        <div class="stat-icon"><i class="fa-solid fa-bell"></i></div>
+    <!-- Alerts/Inbox -->
+    <div class="stat-card st-warn">
+      <div class="stat-head">
+        <div class="stat-icon"><i class="fa-regular fa-bell"></i></div>
       </div>
-      <div>
-        <div class="stat-val">{{ req_stats.open|default:"0" }}</div>
-        <div class="stat-lbl">تنبيهات / طلبات جديدة</div>
-      </div>
+      <div class="stat-val">{{ req_stats.open|default:"0" }}</div>
+      <div class="stat-lbl">طلبات جديدة/تنبيهات</div>
     </div>
   </section>
 
-  <!-- TWO: MAIN CONTENT SPLIT -->
-  <div class="dash-split">
-    <!-- Left: Recents -->
-    <div class="card">
-      <div class="row-between" style="margin-bottom:16px;">
-        <div>
-          <h3 class="section-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--brand);margin-left:8px"></i> أحدث النشاطات</h3>
-          <p class="section-sub">آخر التقارير التي قمت برفعها للنظام</p>
+  <!-- 3. MAIN SPLIT CONTENT -->
+  <div class="main-split">
+    
+    <!-- LEFT: RECENT REPORTS -->
+    <div>
+        <div class="sec-header">
+            <h3 class="sec-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--dash-brand);"></i> أحدث النشاطات</h3>
+            <a href="{% url 'reports:my_reports' %}" class="sec-link">عرض الكل</a>
         </div>
-        <a href="{% url 'reports:my_reports' %}" class="btn btn-sm" style="background:var(--bg)">الكل</a>
-      </div>
-
-      {% if recent_reports %}
-        <div class="dash-list">
-          {% for r in recent_reports %}
-            <a class="dash-item" href="{% url 'reports:report_print' r.id %}?next={{ request.get_full_path|urlencode }}" title="عرض وطباعة">
-              <div class="di-icon">
-                <i class="fa-regular fa-file-lines"></i>
-              </div>
-              <div class="di-content">
-                <div class="di-title">{{ r.title }}</div>
-                <div class="di-meta">
-                  <i class="fa-regular fa-calendar"></i> {{ r.report_date }} 
-                  <span style="margin:0 4px">•</span> 
-                  {{ r.day_name }}
-                </div>
-              </div>
-              <span class="hpill hp-blue desktop-only">
-                {% if r.category and r.category.name %}{{ r.category.name }}{% else %}عام{% endif %}
-              </span>
-              <i class="fa-solid fa-chevron-left" style="font-size:0.8rem; color:var(--muted); opacity:0.5; margin-right:8px"></i>
-            </a>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div style="text-align:center; padding:40px 20px; color:var(--muted);">
-          <div style="font-size:3rem; margin-bottom:10px; opacity:0.3"><i class="fa-solid fa-folder-open"></i></div>
-          <p>لا توجد تقارير حديثة للعرض.</p>
-          <a class="btn btn-primary btn-sm" href="{% url 'reports:add_report' %}">ابدأ الآن</a>
-        </div>
-      {% endif %}
+        
+        {% if recent_reports %}
+            <div class="lux-list">
+                {% for r in recent_reports %}
+                <a href="{% url 'reports:report_print' r.id %}?next={{ request.get_full_path|urlencode }}" class="lux-item">
+                    <div class="li-icon">
+                        <i class="fa-regular fa-file-lines"></i>
+                    </div>
+                    <div class="li-body">
+                        <div class="li-title">{{ r.title }}</div>
+                        <div class="li-meta">
+                            <span><i class="fa-regular fa-calendar" style="font-size:0.8em"></i> {{ r.report_date }}</span>
+                            <span>•</span>
+                            <span>{{ r.day_name }}</span>
+                            {% if r.category %}<span style="background:#f1f5f9;padding:2px 8px;border-radius:6px;font-size:0.8em;font-weight:600">{{ r.category.name }}</span>{% endif %}
+                        </div>
+                    </div>
+                    <div style="color:var(--dash-muted);opacity:0.5">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="background:var(--dash-card); border:1px dashed var(--dash-border); border-radius:var(--radius-lg); padding:40px; text-align:center;">
+                <i class="fa-regular fa-folder-open fa-3x" style="color:#cbd5e1; margin-bottom:16px; display:block;"></i>
+                <div style="font-weight:700; color:var(--dash-text); margin-bottom:8px;">لا توجد تقارير حديثة</div>
+                <div style="color:var(--dash-muted); margin-bottom:16px;">ابدأ بإضافة إنجازاتك اليومية لتوثيقها هنا.</div>
+                <a href="{% url 'reports:add_report' %}" style="color:var(--dash-brand); font-weight:700; text-decoration:none;">أضف تقرير الآن &larr;</a>
+            </div>
+        {% endif %}
     </div>
 
-    <!-- Right: Sidebar -->
-    <div class="stack">
-      <!-- Quick Actions / Request Status -->
-      <div class="card">
-        <h3 class="section-title"><i class="fa-solid fa-ticket" style="color:var(--accent);margin-left:8px"></i> متابعة الطلبات</h3>
-        <p class="section-sub">ملخص لحالة تذاكر الدعم والطلبات</p>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
-          <div style="background:var(--bg); padding:12px; border-radius:12px; text-align:center;">
-            <div style="font-weight:900; font-size:1.5rem; color:var(--accent)">{{ req_stats.done|default:"0" }}</div>
-            <div style="font-size:0.85rem; font-weight:700; color:var(--muted)">مكتملة</div>
-          </div>
-          <div style="background:var(--bg); padding:12px; border-radius:12px; text-align:center;">
-            <div style="font-weight:900; font-size:1.5rem; color:var(--danger)">{{ req_stats.rejected|default:"0" }}</div>
-            <div style="font-size:0.85rem; font-weight:700; color:var(--muted)">مرفوضة</div>
-          </div>
+    <!-- RIGHT: SIDEBAR -->
+    <div class="sidebar-stack">
+        
+        <!-- Requests Summary Widget -->
+        <div class="widget-card">
+            <h4 style="margin:0 0 12px 0; font-size:1rem; font-weight:800; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-ticket" style="color:#8b5cf6;"></i> ملخص الطلبات
+            </h4>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                <div style="background:var(--dash-bg); padding:10px; border-radius:10px; text-align:center;">
+                    <div style="font-size:1.4rem; font-weight:800; color:#059669">{{ req_stats.done|default:"0" }}</div>
+                    <div style="font-size:0.8rem; font-weight:600; color:#64748b">مكتملة</div>
+                </div>
+                <div style="background:var(--dash-bg); padding:10px; border-radius:10px; text-align:center;">
+                    <div style="font-size:1.4rem; font-weight:800; color:#ef4444">{{ req_stats.rejected|default:"0" }}</div>
+                    <div style="font-size:0.8rem; font-weight:600; color:#64748b">مرفوضة</div>
+                </div>
+            </div>
+            
+            <a href="{% url 'reports:request_create' %}" style="display:block; width:100%; padding:10px; text-align:center; background:#8b5cf6; color:#fff; border-radius:8px; text-decoration:none; font-weight:700; margin-bottom:8px; transition:opacity 0.2s;">
+                <i class="fa-solid fa-plus"></i> فتح طلب جديد
+            </a>
+            <a href="{% url 'reports:my_requests' %}" style="display:block; width:100%; padding:10px; text-align:center; background:var(--dash-bg); color:var(--dash-ink); border-radius:8px; text-decoration:none; font-weight:600;">
+                عرض كل الطلبات
+            </a>
         </div>
 
-        <a class="btn btn-block btn-accent" href="{% url 'reports:request_create' %}">
-          <i class="fa-solid fa-plus"></i> فتح طلب جديد
+        {% url 'reports:assigned_to_me' as assignedUrl %}
+        {% if assignedUrl %}
+        <a href="{{ assignedUrl }}" class="widget-card" style="display:flex; align-items:center; justify-content:space-between; text-decoration:none; color:inherit; transition:transform 0.2s;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:36px; height:36px; background:#eff6ff; color:#2563eb; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-inbox"></i></div>
+                <div style="font-weight:700;">الوارد (المعين لي)</div>
+            </div>
+            <i class="fa-solid fa-chevron-left" style="font-size:0.8em; opacity:0.5"></i>
         </a>
-        <a class="btn btn-block" style="background:var(--bg); margin-top:8px;" href="{% url 'reports:my_requests' %}">
-          عرض كل الطلبات
-        </a>
-      </div>
+        {% endif %}
 
-      <!-- Motivation / Banner -->
-      <div class="card motivate-card">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start">
-          <h3 class="section-title" style="margin:0"><i class="fa-solid fa-bolt"></i> إنجاز سريع</h3>
-          <i class="fa-solid fa-star" style="opacity:0.6"></i>
-        </div>
-        <p class="motivate-text" style="margin:12px 0 20px;">
-          هل تعلم؟ توثيق الأعمال فور انتهائها يوفر عليك 70% من وقت كتابة التقارير لاحقاً.
-        </p>
-        <a class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.4);" href="{% url 'reports:add_report' %}">
-          وثّق الآن
+        <a href="{% url 'reports:achievement_my_files' %}" class="widget-card" style="display:flex; align-items:center; justify-content:space-between; text-decoration:none; color:inherit; transition:transform 0.2s;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:36px; height:36px; background:#fff7ed; color:#ea580c; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-briefcase"></i></div>
+                <div style="font-weight:700;">ملف الإنجاز</div>
+            </div>
+            <i class="fa-solid fa-chevron-left" style="font-size:0.8em; opacity:0.5"></i>
         </a>
-      </div>
+
+        <!-- Motivation -->
+        <div class="motiv-banner">
+            <h4 style="margin:0 0 8px 0; font-size:1.1rem;"><i class="fa-solid fa-bolt"></i> إنجاز سريع!</h4>
+            <p style="margin:0 0 16px 0; font-size:0.95rem; opacity:0.9; line-height:1.5;">
+                التوثيق الفوري يوفر جهدك ووقتك لاحقاً. لا تؤجل عمل اليوم.
+            </p>
+            <a href="{% url 'reports:add_report' %}" style="display:inline-block; background:rgba(255,255,255,0.2); color:#fff; padding:6px 14px; border-radius:6px; font-size:0.9rem; font-weight:700; text-decoration:none;">وثّق الآن</a>
+        </div>
+
     </div>
   </div>
 
@@ -344,107 +481,48 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
-  (function(){
-    var overlay = document.getElementById('homeNotifOverlay');
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('notifOverlay');
     if(!overlay) return;
 
-    var closeBtn = document.getElementById('homeNotifClose');
-    var modal = overlay.querySelector('.hn-modal');
+    const closeBtn = document.getElementById('notifClose');
+    const recipientId = overlay.dataset.recipient;
+    const markUrl = overlay.dataset.url;
+    const storageKey = recipientId ? `hn_saw_${recipientId}` : null;
 
-    var recipientId = overlay.getAttribute('data-recipient-id') || '';
-    var storageKey = recipientId ? ('hn_dismissed_recipient_' + recipientId) : '';
-
-    function hide(){
-      overlay.classList.remove('is-open');
-      try{
-        if(window.__lockScroll) window.__lockScroll(false);
-        if(window.__trapFocus && modal) window.__trapFocus(modal, false);
-      }catch(e){
-        // ignore
-      }
-    }
-
-    async function markRead(){
-      var url = overlay.getAttribute('data-mark-url');
-      if(!url) return;
-
-      try{
-        var csrftoken = (window.getCsrfToken ? window.getCsrfToken() : (window.csrfToken || ''));
-        await fetch(url, {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': csrftoken || '',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          credentials: 'same-origin'
-        });
-      }catch(e){
-        // ignore
-      }
-    }
-
-    function openModal(){
-      try{
-        if(window.__lockScroll) window.__lockScroll(true);
-        if(window.__trapFocus && modal) window.__trapFocus(modal, true);
-      }catch(e){
-        // ignore
-      }
-    }
-
-    // إن كان المستخدم أغلقها سابقاً لنفس المستلم
-    try{
-      if(storageKey && window.localStorage && localStorage.getItem(storageKey) === '1'){
-        hide();
-        markRead();
+    // Check localStorage
+    if(storageKey && localStorage.getItem(storageKey)){
+        overlay.classList.remove('is-open');
+        overlay.remove(); // Remove entirely
+        if(markUrl) markRead(markUrl); // Should be marked read anyway
         return;
-      }
-    }catch(e){
-      // ignore
     }
 
-    // مودال مفتوح افتراضياً عند وجود إشعار
-    openModal();
+    const closeNotif = () => {
+        overlay.classList.remove('is-open');
+        if(storageKey) localStorage.setItem(storageKey, '1');
+        if(markUrl) markRead(markUrl);
+    };
 
-    // إغلاق بالزر
-    if(closeBtn){
-      closeBtn.addEventListener('click', function(){
-        try{
-          if(storageKey && window.localStorage) localStorage.setItem(storageKey, '1');
-        }catch(e){
-          // ignore
-        }
-        markRead();
-        hide();
-      });
+    if(closeBtn) closeBtn.addEventListener('click', closeNotif);
+    overlay.addEventListener('click', (e) => {
+        if(e.target === overlay) closeNotif();
+    });
+    document.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape') closeNotif();
+    });
+
+    async function markRead(url){
+        try {
+            const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value 
+                          || document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': token, 'X-Requested-With': 'XMLHttpRequest' }
+            });
+        } catch(e) { console.error(e); }
     }
-
-    // إغلاق بالنقر خارج المحتوى
-    overlay.addEventListener('click', function(ev){
-      if(ev.target === overlay){
-        try{
-          if(storageKey && window.localStorage) localStorage.setItem(storageKey, '1');
-        }catch(e){
-          // ignore
-        }
-        markRead();
-        hide();
-      }
-    });
-
-    // إغلاق بـ ESC
-    document.addEventListener('keydown', function(ev){
-      if(ev.key === 'Escape' && overlay.classList.contains('is-open')){
-        try{
-          if(storageKey && window.localStorage) localStorage.setItem(storageKey, '1');
-        }catch(e){
-          // ignore
-        }
-        markRead();
-        hide();
-      }
-    });
-  })();
+});
 </script>
 {% endblock %}
