@@ -65,16 +65,23 @@
     box-shadow: 0 14px 30px rgba(2,6,23,.18);
   }
 
-  .af-hero-school{margin:0;font-weight:950;font-size:1.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .af-hero-school{margin:0;font-weight:950;font-size:1.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
   .af-hero-stage{margin-top:6px;opacity:.95;font-weight:850;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .af-hero-type{opacity:.95;font-weight:950;font-size:1.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .af-hero-type{opacity:.95;font-weight:950;font-size:1.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
   .af-hero-teacher{margin-top:6px;opacity:.98;font-weight:900;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .af-hero-year{opacity:.95;font-weight:900;font-size:.95rem;white-space:nowrap}
 
   @media(max-width:820px){
-    .af-hero{flex-direction:column;align-items:stretch}
-    .af-hero-center{order:-1}
-    .af-hero-left, .af-hero-right{text-align:center}
+    .af-hero{flex-direction:column;align-items:center;text-align:center;padding:24px 18px}
+    .af-hero-center{order:-1;margin-bottom:12px}
+    .af-hero-left, .af-hero-right{text-align:center;width:100%}
+    
+    /* السماح بالتفاف النص في الجوال لقراءته بوضوح */
+    .af-hero-school, .af-hero-stage, .af-hero-type, .af-hero-teacher{
+      white-space:normal;
+      overflow:visible;
+      text-overflow:clip;
+    }
   }
 
   /* Top meta */
@@ -162,6 +169,7 @@
     background:rgba(248,250,252,.85);
     font-weight:800;
     outline:none;
+    font-size:16px; /* منع التكبير التلقائي في آيفون */
   }
   .af-form textarea{min-height:110px;resize:vertical}
   html[data-theme="dark"] .af-form input,
@@ -209,7 +217,9 @@
     gap:10px;
     grid-template-columns:repeat(4,minmax(0,1fr));
   }
-  @media(max-width:1024px){.af-evidence{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:1024px){.af-evidence{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media(max-width:768px){.af-evidence{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:480px){.af-evidence{grid-template-columns:1fr}}
 
   .af-imgbox{
     border:1px solid var(--line);
@@ -535,7 +545,6 @@
                       <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> رفع الصور
                     </button>
                   </div>
-                  <div class="af-muted" style="margin-top:8px">تلميح: على الجوال يمكنك اختيار الكاميرا أو الاستديو من نافذة الاختيار.</div>
                 </form>
               {% else %}
                 <div><b>ملاحظات المعلّم</b><div class="af-muted">{{ s.teacher_notes|default:"-"|linebreaksbr }}</div></div>
