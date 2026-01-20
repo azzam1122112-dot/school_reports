@@ -247,9 +247,8 @@
     .pricing-card { padding: 40px; text-align: center; border-radius: 24px; position: relative; }
     .pricing-card.featured {
       border: 2px solid var(--brand);
-      transform: scale(1.05);
-      z-index: 10;
       box-shadow: var(--shadow-xl);
+      background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(255,255,255,0.0));
     }
     .price-tag { font-size: 3rem; font-weight: 800; color: var(--text-main); margin: 20px 0; }
     .price-tag span { font-size: 1rem; color: var(--text-secondary); font-weight: 500; }
@@ -367,7 +366,6 @@
       .hero { padding-top: 130px; text-align: center; }
       .hero .flex.justify-between { justify-content: center; }
       .hero .btn-group { justify-content: center; }
-      .pricing-card.featured { transform: scale(1); }
     }
 
     @media (max-width: 480px) {
@@ -438,7 +436,7 @@
         </h1>
 
         <p style="font-size: 1.2rem; margin-bottom: 40px; line-height: 1.8;">
-          من التذاكر والصيانة إلى ملفات الإنجاز والتقارير. <strong style="color:var(--brand)">منصة توثيق</strong> تجمع لك كل ما تحتاجه في مكان واحد، بتصميم فخم وسهل الاستخدام.
+           من التذاكر والصيانة إلى ملفات الإنجاز والتقارير و الاشعارات و التعاميم. <strong style="color:var(--brand)">منصة توثيق</strong> تجمع لك كل ما تحتاجه في مكان واحد، بتصميم فخم وسهل الاستخدام.
         </p>
 
         <div class="flex btn-group" style="gap: 16px; flex-wrap: wrap;">
@@ -452,41 +450,75 @@
         
         <div style="margin-top: 40px; display: flex; gap: 30px; color: var(--text-secondary); font-weight: 700;">
            <span><i class="fa-solid fa-shield-halved" class="text-gradient"></i> بيانات آمنة</span>
-           <span><i class="fa-solid fa-check-circle" style="color:var(--brand);"></i> معتمد وزارياً</span>
         </div>
       </div>
 
       <!-- Visual -->
       <div class="relative" style="perspective: 1000px; padding: 20px;">
-        <div class="glass-card" style="padding: 30px; transform: rotateY(-5deg) rotateX(2deg); box-shadow: var(--shadow-xl);">
+        <div class="glass-card" style="padding: 30px; transform: rotateY(-5deg) rotateX(2deg); box-shadow: var(--shadow-xl); background: rgba(255,255,255,0.9);">
           
-          <!-- Mock Item 1 -->
-          <div class="flex items-center" style="margin-bottom: 20px; border-bottom: 1px solid var(--surface); padding-bottom: 20px;">
-            <div style="width: 50px; height: 50px; background: var(--brand-light); border-radius: 12px; display: grid; place-items: center; color: var(--brand); font-size: 1.2rem; margin-left: 15px;">
-              <i class="fa-solid fa-file-signature"></i>
-            </div>
-            <div style="flex:1;">
-              <div style="font-weight: 800; font-size: 1.1rem;">تعميم: الاختبارات النهائية</div>
-              <div style="font-size: 0.9rem; color: var(--text-light);">تم التوقيع: 48/50 معلم</div>
-            </div>
-            <i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 1.5rem;"></i>
+          <!-- Header of Mock App -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(0,0,0,0.05); padding-bottom:15px;">
+             <div style="font-weight:800; color:var(--text-main); font-size:1.1rem;"><i class="fa-solid fa-gauge-high" style="color:var(--brand);margin-left:8px;"></i>  نظرة عامة</div>
+             <div style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:8px; font-weight:700;">متصل الآن</div>
           </div>
 
-          <!-- Mock Item 2 -->
-          <div class="flex items-center" style="margin-bottom: 20px;">
-            <div style="width: 50px; height: 50px; background: #fff7ed; border-radius: 12px; display: grid; place-items: center; color: var(--accent); font-size: 1.2rem; margin-left: 15px;">
-               <i class="fa-solid fa-wand-magic-sparkles"></i>
-            </div>
-            <div style="flex:1;">
-              <div style="font-weight: 800; font-size: 1.1rem;">ملف إنجاز إلكتروني</div>
-              <div style="font-size: 0.9rem; color: var(--text-light);">تم الرفع بنجاح PDF</div>
-            </div>
-            <span style="font-size: 0.8rem; background: var(--brand); color: white; padding: 4px 10px; border-radius: 8px;">جديد</span>
+          <!-- List of Modules -->
+          <div style="display:grid; gap:12px;">
+             
+             <!-- Item 1: Reports -->
+             <div class="flex items-center" style="background:white; padding:10px; border-radius:12px; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,0.03);">
+                <div style="width:42px; height:42px; background:var(--brand-light); border-radius:10px; display:grid; place-items:center; color:var(--brand); font-size:1.1rem; margin-left:12px;">
+                  <i class="fa-solid fa-camera"></i>
+                </div>
+                <div style="flex:1;">
+                   <div style="font-weight:800; font-size:0.95rem;">التقارير المصوّرة</div>
+                   <div style="font-size:0.8rem; color:var(--text-light);">طباعة PDF فورية</div>
+                </div>
+                <i class="fa-solid fa-circle-check" style="color:#10b981; font-size:1.2rem;"></i>
+             </div>
+
+             <!-- Item 2: Achievements -->
+             <div class="flex items-center" style="background:white; padding:10px; border-radius:12px; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,0.03);">
+                <div style="width:42px; height:42px; background:#fff7ed; border-radius:10px; display:grid; place-items:center; color:var(--accent); font-size:1.1rem; margin-left:12px;">
+                   <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div style="flex:1;">
+                   <div style="font-weight:800; font-size:0.95rem;">ملفات الإنجاز</div>
+                   <div style="font-size:0.8rem; color:var(--text-light);">أرشفة وبناء تلقائي</div>
+                </div>
+                <span style="font-size:0.7rem; background:var(--brand); color:white; padding:2px 8px; border-radius:6px; font-weight:700;">جديد</span>
+             </div>
+
+             <!-- Item 3: Tickets -->
+             <div class="flex items-center" style="background:white; padding:10px; border-radius:12px; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,0.03);">
+                <div style="width:42px; height:42px; background:#f1f5f9; border-radius:10px; display:grid; place-items:center; color:#64748b; font-size:1.1rem; margin-left:12px;">
+                   <i class="fa-solid fa-ticket"></i>
+                </div>
+                <div style="flex:1;">
+                   <div style="font-weight:800; font-size:0.95rem;">التذاكر والطلبات</div>
+                   <div style="font-size:0.8rem; color:var(--text-light);">مسارات إلكترونية</div>
+                </div>
+                <div style="font-size:0.8rem; font-weight:700; color:var(--brand);">قيد المعالجة</div>
+             </div>
+
+             <!-- Item 4: Circulars -->
+             <div class="flex items-center" style="background:white; padding:10px; border-radius:12px; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,0.03);">
+                <div style="width:42px; height:42px; background:#fef2f2; border-radius:10px; display:grid; place-items:center; color:#ef4444; font-size:1.1rem; margin-left:12px;">
+                   <i class="fa-solid fa-file-signature"></i>
+                </div>
+                <div style="flex:1;">
+                   <div style="font-weight:800; font-size:0.95rem;">التعاميم والتوقيع</div>
+                   <div style="font-size:0.8rem; color:var(--text-light);">إحصائيات المشاهدة</div>
+                </div>
+                <div style="font-size:0.8rem; font-weight:700; color:#10b981;">مكتمل</div>
+             </div>
+
           </div>
 
           <!-- Floating Badge -->
-          <div style="position: absolute; bottom: 20px; left: 20px; background: var(--text-main); color: white; padding: 10px 20px; border-radius: 12px; font-weight: 700; box-shadow: var(--shadow-lg);">
-            <i class="fa-solid fa-bolt" style="color: #fbbf24;"></i> أداء سريع
+          <div style="position: absolute; bottom: 20px; left: -10px; background: var(--text-main); color: white; padding: 8px 16px; border-radius: 12px; font-weight: 700; box-shadow: var(--shadow-lg); font-size:0.9rem;">
+            <i class="fa-solid fa-bolt" style="color: #fbbf24;"></i> شامل ومتكامل
           </div>
 
         </div>
@@ -496,82 +528,112 @@
   </header>
 
   <!-- ================= FEATURES GRID ================= -->
-  <section id="features">
+  <section id="features" style="background: linear-gradient(to bottom, #f8fafc, white); padding: 100px 0;">
     <div class="container">
-      <div class="section-header">
-        <span class="badge">لماذا نحن؟</span>
-        <h2>كل أدوات الإدارة المدرسية<br>تحت سقف واحد</h2>
-        <p>تغنيك <strong class="text-accent">منصة توثيق</strong> عن استخدام 4 تطبيقات مختلفة وتوفر عليك الوقت في تجميع الملفات.</p>
+      
+      <div class="section-header" style="max-width: 800px; margin: 0 auto 60px;">
+        <span class="badge">إمكانيات النظام</span>
+        <h2 style="font-size: 2.2rem; margin-bottom: 20px;">تجربة رقمية متكاملة<br>تليق بمكانة مدرستك</h2>
+        <p style="font-size: 1.1rem; color: var(--text-light);">جمعنا لك كل الأدوات التي تحتاجها للإدارة المدرسية والتوثيق في منصة واحدة، واجهة عصرية، وأداء فائق السرعة.</p>
       </div>
 
-      <div class="bento-grid">
-        <!-- Card 1 -->
-        <div class="glass-card bento-card">
-          <div>
-            <div class="bento-icon"><i class="fa-solid fa-camera-rotate"></i></div>
-            <h3>توثيق فوري بالصور</h3>
-            <p>التقط صور الفعاليات والمناوبات من جوالك، والنظام يرتبها تلقائياً في قوالب رسمية جاهزة للطباعة.</p>
-          </div>
+      <div class="luxury-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
+        
+        <!-- Feature 1: Reports (Large) -->
+        <div class="glass-card feature-card" style="grid-column: span 2; background: white; padding: 40px; display: flex; align-items: flex-start; gap: 30px; position:relative; overflow:hidden;">
+            <div style="position: absolute; top:0; left:0; width:100%; height:5px; background:linear-gradient(to right, var(--brand), var(--accent));"></div>
+           <div class="icon-box" style="width: 70px; height: 70px; background: var(--brand-light); color: var(--brand); border-radius: 20px; font-size: 2rem; display: grid; place-items: center; flex-shrink: 0; box-shadow: var(--shadow-md);">
+             <i class="fa-solid fa-camera"></i>
+           </div>
+           <div>
+             <h3 style="font-size: 1.6rem; margin-bottom: 15px;">التقارير المصوّرة والتوثيق</h3>
+             <p style="color: var(--text-light); line-height: 1.8; font-size: 1.05rem; max-width: 600px;">حوّل أنشطة مدرستك وفعالياتها إلى تقارير PDF احترافية توثق جهودك بضغطة زر. يوفر النظام قوالب جاهزة تدمج الصور والنصوص والعناوين بتنسيق رسمي مبهر، جاهز للطباعة أو الإرسال الفوري.</p>
+             <div style="margin-top: 25px; display: flex; gap: 12px; flex-wrap:wrap;">
+                <span style="font-size: 0.85rem; background: #f1f5f9; padding: 8px 16px; border-radius: 20px; color: var(--text-secondary); font-weight:600;"><i class="fa-solid fa-layer-group" style="margin-left:5px;"></i>قوالب جاهزة</span>
+                <span style="font-size: 0.85rem; background: #f1f5f9; padding: 8px 16px; border-radius: 20px; color: var(--text-secondary); font-weight:600;"><i class="fa-solid fa-print" style="margin-left:5px;"></i>طباعة فورية</span>
+                <span style="font-size: 0.85rem; background: #f1f5f9; padding: 8px 16px; border-radius: 20px; color: var(--text-secondary); font-weight:600;"><i class="fa-solid fa-box-archive" style="margin-left:5px;"></i>أرشفة تلقائية</span>
+             </div>
+           </div>
         </div>
 
-        <!-- Card 2 -->
-        <div class="glass-card bento-card" style="background: linear-gradient(135deg, #0f172a, #1e293b); border:none;">
-          <div>
-            <div class="bento-icon" style="background: rgba(255,255,255,0.1); color: white;"><i class="fa-solid fa-wand-sparkles"></i></div>
-            <h3 style="color: white;">ملف إنجاز بنقرة زر</h3>
-            <p style="color: #94a3b8;">وداعاً لملفات الإنجاز الورقية. كل معلم لديه مساحته الخاصة لرفع الشواهد، وفي نهاية العام يطبع الملف كامل PDF.</p>
-          </div>
+        <!-- Feature 2: Tickets (Tall) -->
+        <div class="glass-card feature-card" style="grid-row: span 2; background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 40px; display:flex; flex-direction:column; justify-content:space-between;">
+           <div>
+            <div class="icon-box" style="width: 70px; height: 70px; background: rgba(255,255,255,0.1); color: white; border-radius: 20px; font-size: 2rem; display: grid; place-items: center; margin-bottom: 30px; box-shadow: var(--shadow-md);">
+                <i class="fa-solid fa-ticket"></i>
+            </div>
+            <h3 style="font-size: 1.6rem; margin-bottom: 20px; color: white;">نظام التذاكر والمهام</h3>
+            <p style="color: rgba(255,255,255,0.8); line-height: 1.8; margin-bottom: 30px; font-size: 1.05rem;">تخلص من فوضى الواتساب والطلبات الشفهية. استقبل طلبات الصيانة، التقنية، واحتياجات المعلمين عبر مسار إلكتروني منظم يضمن عدم ضياع أي طلب.</p>
+           </div>
+           
+           <ul style="list-style: none; padding: 0; font-size: 1rem; color: rgba(255,255,255,0.9); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+             <li style="margin-bottom: 12px; display: flex; align-items: center; gap: 12px;"><div style="width:24px; height:24px; background:var(--brand); border-radius:50%; display:grid; place-items:center; font-size:0.7rem;"><i class="fa-solid fa-check"></i></div> إسناد المهام للموظفين</li>
+             <li style="margin-bottom: 12px; display: flex; align-items: center; gap: 12px;"><div style="width:24px; height:24px; background:var(--brand); border-radius:50%; display:grid; place-items:center; font-size:0.7rem;"><i class="fa-solid fa-check"></i></div> تتبع حالة الطلب</li>
+             <li style="margin-bottom: 0px; display: flex; align-items: center; gap: 12px;"><div style="width:24px; height:24px; background:var(--brand); border-radius:50%; display:grid; place-items:center; font-size:0.7rem;"><i class="fa-solid fa-check"></i></div> تقارير إغلاق</li>
+           </ul>
         </div>
 
-        <!-- Card 3 -->
-        <div class="glass-card bento-card">
-          <div>
-            <div class="bento-icon" style="color: var(--accent);"><i class="fa-solid fa-clipboard-check"></i></div>
-            <h3>تذاكر وطلبات متكاملة</h3>
-            <p>حوّل الطلاب للمرشد، اطلب احتياجات تعليمية، وتابع حالة كل طلب ومساره حتى الإغلاق.</p>
-          </div>
+        <!-- Feature 3: Achievements -->
+        <div class="glass-card feature-card" style="background: white; padding: 35px; border-bottom: 4px solid var(--accent);">
+           <div class="icon-box" style="width: 60px; height: 60px; background: #fff7ed; color: var(--accent); border-radius: 16px; font-size: 1.6rem; display: grid; place-items: center; margin-bottom: 25px;">
+             <i class="fa-solid fa-wand-magic-sparkles"></i>
+           </div>
+           <h3 style="font-size: 1.3rem; margin-bottom: 15px;">ملفات الإنجاز الذكية</h3>
+           <p style="font-size: 1rem; color: var(--text-light); line-height: 1.7;">بناء تلقائي لملفات إنجاز المعلمين والإداريين من خلال نشاطهم وتقاريرهم في النظام. لا حاجة للجمع اليدوي، الملف يبني نفسه بنفسه طوال العام.</p>
         </div>
 
-        <!-- Card 4 -->
-        <div class="glass-card bento-card">
-          <div>
-            <div class="bento-icon"><i class="fa-solid fa-file-signature"></i></div>
-            <h3>التعاميم والتوقيعات</h3>
-            <p>أرسل التعاميم وتتبع من شاهد ومن وقع. لوحة متابعة دقيقة تغنيك عن المطاردة الورقية.</p>
-          </div>
+         <!-- Feature 4: Circulars -->
+         <div class="glass-card feature-card" style="background: white; padding: 35px; border-bottom: 4px solid #ef4444;">
+            <div class="icon-box" style="width: 60px; height: 60px; background: #fef2f2; color: #ef4444; border-radius: 16px; font-size: 1.6rem; display: grid; place-items: center; margin-bottom: 25px;">
+              <i class="fa-solid fa-file-signature"></i>
+            </div>
+            <h3 style="font-size: 1.3rem; margin-bottom: 15px;">التعاميم والتوقيع</h3>
+            <p style="font-size: 1rem; color: var(--text-light); line-height: 1.7;">أرسل التعاميم إلكترونياً لجميع المنسوبين واجمع التواقيع في ثوانٍ. لوحة متابعة تظهر من شاهد ومن وقّع ومن تأخر.</p>
+         </div>
+
+        <!-- Feature 5: Identity -->
+        <div class="glass-card feature-card" style="background: white; padding: 35px; border-bottom: 4px solid #0ea5e9;">
+           <div class="icon-box" style="width: 60px; height: 60px; background: #f0f9ff; color: #0ea5e9; border-radius: 16px; font-size: 1.6rem; display: grid; place-items: center; margin-bottom: 25px;">
+             <i class="fa-solid fa-fingerprint"></i>
+           </div>
+           <h3 style="font-size: 1.3rem; margin-bottom: 15px;">هوية بصرية موحّدة</h3>
+           <p style="font-size: 1rem; color: var(--text-light); line-height: 1.7;">جميع المخرجات من تقارير وتعاميم تلتزم آلياً بالهوية البصرية الرسمية لوزارة التعليم. لا تشغل بالك بالتنسيق والألوان.</p>
         </div>
 
-        <!-- Card 5 (Wide) -->
-        <div class="glass-card bento-card bento-card--wide" style="position: relative; overflow: hidden;">
-          <div style="position: relative; z-index: 2; max-width: 60%;">
-             <div class="bento-icon" style="color: #ef4444;"><i class="fa-solid fa-file-pdf"></i></div>
-             <h3>طباعة PDF بهوية المدرسة</h3>
-             <p>النظام يصمم التقارير، يضيف الشعار، الأسماء، التواريخ، وكود QR للتوثيق تلقائياً.</p>
-          </div>
-          <i class="fa-solid fa-file-pdf" style="position: absolute; bottom: -20px; left: -20px; font-size: 10rem; color: rgba(239, 68, 68, 0.05); transform: rotate(15deg);"></i>
-        </div>
+        <!-- Feature 6: Sharing -->
+        <div class="glass-card feature-card" style="background: white; padding: 35px; border-bottom: 4px solid #8b5cf6;">
+            <div class="icon-box" style="width: 60px; height: 60px; background: #f5f3ff; color: #8b5cf6; border-radius: 16px; font-size: 1.6rem; display: grid; place-items: center; margin-bottom: 25px;">
+              <i class="fa-solid fa-share-nodes"></i>
+            </div>
+            <h3 style="font-size: 1.3rem; margin-bottom: 15px;">مشاركة ذكية وآمنة</h3>
+            <p style="font-size: 1rem; color: var(--text-light); line-height: 1.7;">روابط مشاركة للملفات والتقارير بصلاحية محددة الزمن (Expire Links). بديل عصري وآمن لرموز الاستجابة (QR).</p>
+         </div>
+
+         <!-- Feature 7: Admin Control (Span 2) -->
+         <div class="glass-card feature-card" style="grid-column: span 2; background: white; padding: 40px; display: flex; align-items: center; gap: 40px; flex-wrap: wrap;">
+             <div style="flex: 1; min-width: 300px;">
+                <h3 style="font-size: 1.5rem; margin-bottom: 15px; color: var(--text-main);">لوحة قيادة المدير والمشرف</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px; font-size: 1.05rem; line-height: 1.8;">نظرة شمولية على أداء المدرسة في شاشة واحدة. تابع إحصائيات التقارير المنجزة، تفاعل المعلمين، وحالة التذاكر المفتوحة والمغلقة.</p>
+                
+                <div style="display: flex; gap: 20px;">
+                     <div class="stat-mini" style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:40px; height:40px; border-radius:10px; background:var(--brand-light); color:var(--brand); display:grid; place-items:center; font-weight:800;">%95</div>
+                        <div style="font-size: 0.9rem; color: var(--text-main); font-weight:700;">كفاءة الإنجاز</div>
+                     </div>
+                     <div class="stat-mini" style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:40px; height:40px; border-radius:10px; background:#f0fdf4; color:#16a34a; display:grid; place-items:center; font-weight:800;">100</div>
+                        <div style="font-size: 0.9rem; color: var(--text-main); font-weight:700;">أرشفة آمنة</div>
+                     </div>
+                </div>
+             </div>
+             <div style="width: 250px; height: 160px; background: #f8fafc; border-radius: 20px; border: 2px dashed #cbd5e1; display: flex; flex-direction:column; align-items:center; justify-content: center; color: #94a3b8; gap:10px;">
+                 <i class="fa-solid fa-chart-pie" style="font-size: 3rem;"></i>
+                 <span style="font-weight:600;">لوحة المعلومات</span>
+             </div>
+         </div>
+
       </div>
 
-      <!-- Full features (visible for visitors) -->
-      <div class="section-header" style="margin-top: 70px; margin-bottom: 40px;">
-        <span class="badge">مميزات النظام</span>
-        <h3 style="font-size: 2rem;">كل شيء واضح للزائر قبل الاشتراك</h3>
-        <p>هذه نظرة شاملة على الوحدات الرئيسية داخل <strong class="text-accent">منصة توثيق</strong>.</p>
-      </div>
-      <div class="feature-list" aria-label="قائمة مميزات النظام">
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>التقارير المصوّرة</strong><span>نماذج جاهزة، أرشفة تلقائية، وطباعة PDF.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>التذاكر والطلبات</strong><span>مسارات متابعة، إسناد، حالات، وتقارير إغلاق.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>ملفات الإنجاز</strong><span>رفع شواهد وإخراج ملف كامل بنقرة زر.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>التعاميم والتوقيع</strong><span>إرسال تعاميم وتتبع المشاهدة والتوقيع.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>لوحة تحكم الإدارة</strong><span>إحصائيات، متابعة الأداء، وتقارير جاهزة.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>صلاحيات وأدوار</strong><span>تحديد الصلاحيات حسب الدور والمهام.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>هوية المدرسة</strong><span>شعار، ألوان طباعة، وختم بصري للمدرسة.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>QR للتوثيق</strong><span>كود تحقق على الملفات والتقارير عند الطباعة.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>إشعارات وتنبيهات</strong><span>تنبيهات بالمهام والتذاكر والتعاميم.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>إدارة المدارس والمعلمين</strong><span>إضافة أعضاء المدرسة وإدارة بياناتهم وصلاحياتهم.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>مرفقات وسعة تخزين</strong><span>رفع صور/ملفات منظمة حسب النوع والتاريخ.</span></div></div>
-        <div class="feature-item"><i class="fa-solid fa-check-circle"></i><div><strong>جاهزية للطباعة</strong><span>مخرجات رسمية منسقة ومناسبة للأرشفة.</span></div></div>
-      </div>
     </div>
   </section>
 
@@ -593,7 +655,7 @@
         <div>
            <div style="width: 80px; height: 80px; background: var(--surface); color: var(--text-main); border-radius: 24px; font-size: 2rem; font-weight: 800; display: grid; place-items: center; margin: 0 auto 24px;">2</div>
           <h3>الجميع يوثّق</h3>
-          <p>المعلمون يرفعون تقاريرهم وتذاكرهم من هواتفهم مباشرة بون تعقيد.</p>
+          <p>المعلمون يرفعون تقاريرهم وتذاكرهم من هواتفهم مباشرة بدون تعقيد.</p>
         </div>
 
         <div>
@@ -612,7 +674,7 @@
         <h2 style="color: white; margin-bottom: 50px;">أرقام نفخر بها</h2>
         <div class="flex" style="flex-wrap: wrap; gap: 60px; justify-content: center;">
           <div>
-            <div style="font-size: 4rem; font-weight: 900; line-height: 1;">+500K</div>
+            <div style="font-size: 4rem; font-weight: 900; line-height: 1;">+20K</div>
             <div style="opacity: 0.8; font-weight: 700; font-size: 1.2rem;">تقرير مُصدر</div>
           </div>
           <div>
@@ -664,11 +726,11 @@
             <button class="btn btn-outline js-open-order" data-plan-title="المجانية" data-plan-price="0 ريال" data-plan-duration="14 يوم" style="width: 100%; margin-top: 30px;">
               تجربة الآن
             </button>
-          <div>
-           <div style="width: 80px; height: 80px; background: var(--surface); color: var(--text-main); border-radius: 24px; font-size: 2rem; font-weight: 800; display: grid; place-items: center; margin: 0 auto 24px;">2</div>
-          <h3>الجميع يوثّق</h3>
-          <p>المعلمون يرفعون تقاريرهم وتذاكرهم من هواتفهم مباشرة بدون تعقيد.</p>
-        </div>
+          </div>
+
+          <!-- 25 Teachers -->
+          <div class="glass-card pricing-card" data-plan="25">
+             <h3>باقة 25 معلم</h3>
              <div class="price-block p-6m">
                <div class="price-tag">699 <span>ريال</span></div>
                <p>لمدة 6 أشهر</p>
