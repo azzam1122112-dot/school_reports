@@ -355,22 +355,85 @@
       .feature-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       h1 { font-size: 2.8rem; }
     }
+
     @media (max-width: 768px) {
       .navbar .nav-links { display: none; }
       .mobile-toggle { display: block; }
-      .grid { grid-template-columns: 1fr !important; }
-      .bento-grid { grid-template-columns: 1fr; }
-      .bento-card--wide { grid-column: auto; }
-      .feature-list { grid-template-columns: 1fr; }
-      h1 { font-size: 2.2rem; }
-      .hero { padding-top: 130px; text-align: center; }
-      .hero .flex.justify-between { justify-content: center; }
+      
+      /* Global Layout */
+      .container { width: 92%; }
+      section { padding: 60px 0; }
+      
+      /* Typography */
+      h1 { font-size: 2.2rem; line-height: 1.3; }
+      h2 { font-size: 1.75rem; }
+      h3 { font-size: 1.3rem; }
+      p { font-size: 1rem; }
+      
+      /* Hero Section */
+      .hero { padding: 120px 0 60px; text-align: center; }
+      .hero .grid { grid-template-columns: 1fr !important; gap: 40px !important; }
       .hero .btn-group { justify-content: center; }
-    }
+      .hero .badge { margin: 0 auto 20px; }
+      
+      /* Hero Visual Mobile Fixes */
+      .hero .relative[style*="perspective"] {
+          perspective: none !important;
+          padding: 0 !important;
+          margin-top: 20px;
+      }
+      .hero .glass-card[style*="transform"] {
+          transform: none !important;
+          padding: 20px !important;
+      }
+      
+      /* Luxury Grid & Features Mobile Overrides */
+      .luxury-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+      }
+      
+      .feature-card {
+        grid-column: span 1 !important;
+        grid-row: auto !important; /* Reset any row spans */
+        padding: 24px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+      }
+      
+      .feature-card .icon-box {
+        margin-bottom: 16px;
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 1.5rem !important;
+      }
+      
+      .feature-card > div {
+        width: 100%;
+      }
+      
+      /* Reset specific card flex layouts */
+      .feature-card[style*="align-items: center"] {
+         align-items: flex-start !important;
+      }
 
+      /* Stats in admin card */
+      .feature-card .stat-mini {
+         flex: 1;
+         justify-content: flex-start;
+      }
+      
+      /* General Grid Reset */
+      .grid { grid-template-columns: 1fr !important; }
+      #pricing .grid { grid-template-columns: 1fr !important; }
+      #how .grid { grid-template-columns: 1fr !important; gap: 30px !important; }
+    }
+    
     @media (max-width: 480px) {
-      .pricing-toggle { width: 100%; }
-      .btn-toggle { flex: 1; }
+      h1 { font-size: 1.8rem; }
+      .btn { width: 100%; }
+      .pricing-toggle { width: 100%; justify-content: space-between; }
+      .btn-toggle { flex: 1; text-align: center; padding: 12px 10px; }
     }
   </style>
 </head>
@@ -740,9 +803,10 @@
                 <p>لمدة سنة كاملة (توفير 99 ريال)</p>
              </div>
              <ul class="features-list">
-               <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-               <li><i class="fa-solid fa-check"></i> تذاكر وطلبات</li>
-               <li><i class="fa-solid fa-check"></i> دعم فني</li>
+               <li><i class="fa-solid fa-check"></i> جميع مميزات المنصة شاملة</li>
+               <li><i class="fa-solid fa-check"></i> تقارير وتذاكر غير محدودة</li>
+               <li><i class="fa-solid fa-check"></i> ملفات إنجاز وتعاميم</li>
+               <li><i class="fa-solid fa-check"></i> دعم فني مستمر</li>
              </ul>
              <button class="btn btn-outline js-select-plan" style="width: 100%; margin-top: 30px;">اطلب الباقة</button>
           </div>
@@ -761,11 +825,12 @@
                <p>لمدة سنة كاملة (توفير 99 ريال)</p>
             </div>
 
-            <ul class="features-list">
-              <li><i class="fa-solid fa-check"></i> كل مميزات الباقة السابقة</li>
-              <li><i class="fa-solid fa-check"></i> تعاميم + توقيع إلكتروني</li>
-              <li><i class="fa-solid fa-check"></i> أولوية الدعم الفني</li>
-            </ul>
+             <ul class="features-list">
+               <li><i class="fa-solid fa-check"></i> جميع مميزات المنصة شاملة</li>
+               <li><i class="fa-solid fa-check"></i> تقارير وتذاكر غير محدودة</li>
+               <li><i class="fa-solid fa-check"></i> ملفات إنجاز وتعاميم</li>
+               <li><i class="fa-solid fa-check"></i> دعم فني مستمر</li>
+             </ul>
             <button class="btn btn-primary js-select-plan" style="width: 100%; margin-top: 30px;">اطلب الباقة</button>
           </div>
           
@@ -780,10 +845,12 @@
                <div class="price-tag">2,399 <span>ريال</span></div>
                <p>لمدة سنة كاملة</p>
             </div>
-            <ul class="features-list">
-              <li><i class="fa-solid fa-check"></i> تقارير غير محدودة</li>
-              <li><i class="fa-solid fa-check"></i> دعم فني</li>
-            </ul>
+             <ul class="features-list">
+               <li><i class="fa-solid fa-check"></i> جميع مميزات المنصة شاملة</li>
+               <li><i class="fa-solid fa-check"></i> تقارير وتذاكر غير محدودة</li>
+               <li><i class="fa-solid fa-check"></i> ملفات إنجاز وتعاميم</li>
+               <li><i class="fa-solid fa-check"></i> دعم فني مستمر</li>
+             </ul>
             <button class="btn btn-outline js-select-plan" style="width: 100%; margin-top: 30px;">اطلب الباقة</button>
          </div>
 
@@ -798,10 +865,12 @@
                <div class="price-tag">2,899 <span>ريال</span></div>
                <p>لمدة سنة كاملة</p>
             </div>
-            <ul class="features-list">
-              <li><i class="fa-solid fa-check"></i> مميزات VIP كاملة</li>
-              <li><i class="fa-solid fa-check"></i> سعة تخزين عالية</li>
-            </ul>
+             <ul class="features-list">
+               <li><i class="fa-solid fa-check"></i> جميع مميزات المنصة شاملة</li>
+               <li><i class="fa-solid fa-check"></i> تقارير وتذاكر غير محدودة</li>
+               <li><i class="fa-solid fa-check"></i> ملفات إنجاز وتعاميم</li>
+               <li><i class="fa-solid fa-check"></i> دعم فني مستمر</li>
+             </ul>
             <button class="btn btn-outline js-select-plan" style="width: 100%; margin-top: 30px;">اطلب الباقة</button>
          </div>
 
