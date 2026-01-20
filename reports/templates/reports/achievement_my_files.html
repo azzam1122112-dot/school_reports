@@ -354,10 +354,6 @@
                 <i class="fa-solid fa-share-nodes"></i>
               </a>
 
-              <a class="af-btn" href="{% url 'reports:achievement_file_pdf' f.pk %}" title="PDF">
-                <i class="fa-solid fa-file-pdf"></i>
-              </a>
-
               <button class="af-btn" type="button" 
                       data-url="{% url 'reports:achievement_file_update_year' f.pk %}"
                       onclick="openYearModal(this, '{{ f.academic_year }}')" 

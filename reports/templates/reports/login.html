@@ -389,7 +389,7 @@
 
     // Auto-hide messages
     setTimeout(() => {
-        const msgs = document.querySelectorAll('.msg.success, .msg.info');
+      const msgs = document.querySelectorAll('.msg');
         msgs.forEach(m => {
             m.style.transition = 'opacity 0.5s';
             m.style.opacity = '0';

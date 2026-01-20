@@ -314,9 +314,15 @@
       align-items: flex-start;
       gap: 12px;
       animation: msgSlideIn 0.5s var(--ease-out) forwards;
+      transition: opacity 0.25s ease, transform 0.25s ease;
       border-right: 4px solid var(--accent); /* RTL indicator */
       position: relative;
       overflow: hidden;
+    }
+
+    .msg.is-hiding {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.98);
     }
     
     @keyframes msgSlideIn {
@@ -826,7 +832,7 @@
   {% if messages %}
     <div class="messages" id="messages-container" aria-live="polite" aria-atomic="true">
       {% for message in messages %}
-        <div class="msg {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" role="alert">
+        <div class="msg {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" role="alert" data-autohide="true">
           <div class="msg-icon">
              {% if 'success' in message.tags %}
                <i class="fa-solid fa-check-circle"></i>
@@ -839,7 +845,7 @@
              {% endif %}
           </div>
           <div class="msg-content">{{ message }}</div>
-          <button class="msg-close" aria-label="إغلاق" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+          <button class="msg-close" aria-label="إغلاق" type="button"><i class="fa-solid fa-xmark"></i></button>
         </div>
       {% endfor %}
     </div>
@@ -1055,15 +1061,21 @@
       const container = document.getElementById('messages-container');
       if(!container) return;
 
+      const AUTOHIDE_MS = 5000;
+      const HIDE_ANIM_MS = 250;
+
       container.querySelectorAll('.msg').forEach((el)=>{
         const closeBtn = el.querySelector('.msg-close');
         let timer = null;
 
-        const remove = ()=>{ if (el && el.parentNode){ el.remove(); } };
+        const remove = ()=>{
+          if(!el || !el.parentNode) return;
+          el.classList.add('is-hiding');
+          setTimeout(()=>{ if(el && el.parentNode) el.remove(); }, HIDE_ANIM_MS);
+        };
         const start = ()=>{
-          if(el.dataset.autohide === 'true'){
-            timer = setTimeout(remove, 3400);
-          }
+          if(el.dataset.autohide === 'false') return;
+          timer = setTimeout(remove, AUTOHIDE_MS);
         };
         const stop = ()=>{ if(timer){ clearTimeout(timer); timer = null; } };
 
