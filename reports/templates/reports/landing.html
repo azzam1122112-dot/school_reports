@@ -347,6 +347,105 @@
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
     }
 
+    /* Luxury Form Styles */
+    .luxury-input-group {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .luxury-input-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 800;
+      color: var(--text-main);
+      font-size: 0.95rem;
+    }
+    .luxury-input-wrapper {
+      position: relative;
+    }
+    .luxury-input {
+      width: 100%;
+      padding: 16px 50px 16px 20px; /* Right padding for icon in RTL */
+      background: var(--surface);
+      border: 2px solid transparent;
+      border-radius: 16px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .luxury-input:focus {
+      background: white;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.15), inset 0 1px 2px rgba(0,0,0,0.02);
+      transform: translateY(-1px);
+    }
+    .luxury-icon {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-light);
+      font-size: 1.2rem;
+      transition: color 0.3s ease;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .luxury-input:focus + .luxury-icon,
+    .luxury-input:not(:placeholder-shown) + .luxury-icon {
+      color: var(--brand);
+    }
+    
+    .luxury-modal-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .luxury-modal-header h3 {
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, var(--text-main), var(--brand));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .luxury-modal-header p {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+    }
+
+    .luxury-submit-btn {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: white;
+      border-radius: 16px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+      border: 1px solid rgba(255,255,255,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .luxury-submit-btn::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .luxury-submit-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.5);
+    }
+    .luxury-submit-btn:hover::after { opacity: 1; }
+
     /* Footer */
     footer { background: #0f172a; color: white; padding: 80px 0 40px; margin-top: 50px; }
     footer a { color: #94a3b8; }
@@ -1137,53 +1236,76 @@
   <div id="orderModal" class="modal-overlay">
     <div class="modal-content glass-card">
       <button type="button" class="modal-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
-      <h3 style="margin-bottom:20px; font-weight:900; font-size:1.4rem;">بيانات المدرسة</h3>
+      
+      <div class="luxury-modal-header">
+        <h3>طلب الاشتراك</h3>
+        <p>ابدأ رحلة التوثيق الرقمي لمدرستك الآن</p>
+      </div>
 
-      <div id="selectedPlanInfo" style="background:rgba(59,130,246,0.08); padding:12px 16px; border-radius:14px; margin-bottom:24px; border:1px solid rgba(59,130,246,0.15);">
+      <div id="selectedPlanInfo" style="background:rgba(59,130,246,0.08); padding:16px 20px; border-radius:16px; margin-bottom:28px; border:1px solid rgba(59,130,246,0.2);">
       </div>
 
       <form id="orderForm">
-        <div class="form-group">
+        <div class="luxury-input-group">
           <label>اسم المدرسة</label>
-          <input type="text" id="ord_school" required placeholder="مثال: مدرسة المستقبل الأهلية">
+          <div class="luxury-input-wrapper">
+            <input type="text" id="ord_school" class="luxury-input" required placeholder="مثال: مدرسة المستقبل الأهلية">
+            <i class="fa-solid fa-school luxury-icon"></i>
+          </div>
         </div>
 
         <div class="flex gap-2">
-          <div class="form-group flex-1">
+          <div class="luxury-input-group flex-1">
             <label>المرحلة</label>
-            <select id="ord_stage" required>
-              <option value="primary">ابتدائي</option>
-              <option value="middle">متوسط</option>
-              <option value="high">ثانوي</option>
-              <option value="kg">رياض أطفال</option>
-            </select>
+            <div class="luxury-input-wrapper">
+              <select id="ord_stage" class="luxury-input" required>
+                <option value="primary">ابتدائي</option>
+                <option value="middle">متوسط</option>
+                <option value="high">ثانوي</option>
+                <option value="kg">رياض أطفال</option>
+              </select>
+              <i class="fa-solid fa-layer-group luxury-icon"></i>
+            </div>
           </div>
-          <div class="form-group flex-1">
+          <div class="luxury-input-group flex-1">
             <label>النوع</label>
-            <select id="ord_gender" required>
-              <option value="boys">بنين</option>
-              <option value="girls">بنات</option>
-            </select>
+            <div class="luxury-input-wrapper">
+              <select id="ord_gender" class="luxury-input" required>
+                <option value="boys">بنين</option>
+                <option value="girls">بنات</option>
+              </select>
+              <i class="fa-solid fa-venus-mars luxury-icon"></i>
+            </div>
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="luxury-input-group">
           <label>المدينة</label>
-          <input type="text" id="ord_city" required placeholder="الرياض، جدة...">
+          <div class="luxury-input-wrapper">
+            <input type="text" id="ord_city" class="luxury-input" required placeholder="الرياض، جدة...">
+            <i class="fa-solid fa-location-dot luxury-icon"></i>
+          </div>
         </div>
 
-        <div class="form-group">
+        <div class="luxury-input-group">
           <label>اسم المدير/ة</label>
-          <input type="text" id="ord_manager" required placeholder="الاسم الثلاثي">
+          <div class="luxury-input-wrapper">
+            <input type="text" id="ord_manager" class="luxury-input" required placeholder="الاسم الثلاثي">
+            <i class="fa-solid fa-user-tie luxury-icon"></i>
+          </div>
         </div>
 
-        <div class="form-group">
+        <div class="luxury-input-group">
           <label>رقم الجوال</label>
-          <input type="tel" id="ord_phone" required placeholder="05xxxxxxxx" pattern="05[0-9]{8}" title="رقم جوال سعودي يبدأ بـ 05">
+          <div class="luxury-input-wrapper">
+            <input type="tel" id="ord_phone" class="luxury-input" required placeholder="05xxxxxxxx" pattern="05[0-9]{8}" title="رقم جوال سعودي يبدأ بـ 05">
+            <i class="fa-brands fa-whatsapp luxury-icon"></i>
+          </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px; padding:16px; font-size:1.1rem;">
-          إرسال الطلب واتساب <i class="fa-brands fa-whatsapp" style="margin-right:6px"></i>
+        <button type="submit" class="luxury-submit-btn">
+          <span>إرسال الطلب عبر واتساب</span>
+          <i class="fa-brands fa-whatsapp fa-xl"></i>
         </button>
       </form>
     </div>
