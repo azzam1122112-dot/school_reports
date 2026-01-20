@@ -5,166 +5,262 @@
 {% block head %}
 <style>
   /* =========================================================
-     Achievement Files — scoped (بدون لمس .btn / .card العامة)
+     Achievement Files — Luxury 2026 Theme
      ========================================================= */
-  .af-wrap{ max-width:1050px; margin:0 auto; padding:clamp(12px,2.4vw,18px); }
-
-  .af-card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:18px;
-    box-shadow:var(--shadow);
-    overflow:hidden;
+  :root {
+    --brand: #2563eb;
+    --brand-dark: #1e40af;
+    --brand-light: #eff6ff;
+    --accent: #d97706; /* Gold/Bronze */
+    --surface: #f8fafc;
+    --surface-glass: rgba(255, 255, 255, 0.9);
+    --text-main: #0f172a;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
   }
 
-  .af-head{
-    padding:16px 18px;
-    background:
-      radial-gradient(800px 320px at 10% 0%, rgba(255,255,255,.18), transparent 60%),
-      linear-gradient(135deg, rgba(37,99,235,.94), rgba(59,130,246,.86));
-    color:#fff;
-    border-bottom:1px solid rgba(255,255,255,.12);
-  }
-  .af-head h1{ margin:0; font-weight:950; font-size:1.35rem; letter-spacing:-.2px; }
-  .af-head p{ margin:6px 0 0; opacity:.95; font-weight:800; }
-
-  .af-body{ padding:16px 18px; }
-
-  .af-row{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:flex-end;
-  }
-  .af-field{ flex:1 1 260px; }
-
-  .af-label{
-    display:block;
-    margin:0 0 6px;
-    font-weight:900;
-    color:var(--ink);
+  .af-wrap{ 
+    max-width:1100px; 
+    margin:40px auto; 
+    padding:clamp(20px, 4vw, 30px);
+    animation: fadeIn 0.6s ease-out;
   }
 
-  /* نطبّق الستايل على أي input/select/textarea داخل الحقل */
-  .af-field input,
-  .af-field select,
-  .af-field textarea{
-    width:100%;
-    min-height:var(--tap);
-    border-radius:14px;
-    border:1px solid var(--line);
-    padding:12px 14px;
-    background: rgba(248,250,252,.85);
-    font-weight:800;
-    color:var(--ink);
-    outline:none;
-    transition: var(--t-fast);
-  }
-  html[data-theme="dark"] .af-field input,
-  html[data-theme="dark"] .af-field select,
-  html[data-theme="dark"] .af-field textarea{
-    background: rgba(255,255,255,.04);
-    border-color: rgba(148,163,184,.18);
-  }
-  .af-field input:focus,
-  .af-field select:focus,
-  .af-field textarea:focus{
-    box-shadow: 0 0 0 4px rgba(37,99,235,.18);
-    border-color: rgba(37,99,235,.45);
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  .af-actions{ display:flex; gap:10px; flex-wrap:wrap; }
-
-  /* أزرار خاصة بالصفحة */
-  .af-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    min-height:44px;
-    padding:0 14px;
-    border-radius:14px;
-    border:1px solid var(--line);
-    background: var(--card);
-    color: var(--ink);
-    text-decoration:none;
-    font-weight:950;
-    transition: var(--t-fast);
-    cursor:pointer;
-    user-select:none;
-  }
-  .af-btn:hover{
-    transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(2,6,23,.08);
-  }
-  .af-btn-primary{
-    background: var(--brand);
-    border-color: rgba(37,99,235,.25);
-    color:#fff;
-  }
-  .af-btn-primary:hover{ box-shadow: 0 16px 30px rgba(37,99,235,.22); }
-
-  .af-divider{
-    margin:14px 0;
-    height:1px;
-    background: var(--line);
+  .af-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    position: relative;
   }
 
-  .af-list{ margin-top:14px; display:grid; gap:10px; }
-
-  .af-item{
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-    align-items:center;
-    padding:12px 14px;
-    border-radius:14px;
-    border:1px solid var(--line);
-    background: linear-gradient(180deg, var(--line-2), var(--card));
+  /* Luxury Header */
+  .af-head {
+    padding: 30px 40px;
+    background: white;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
   }
-  html[data-theme="dark"] .af-item{
-    background: rgba(255,255,255,.03);
-  }
-
-  .af-meta{ display:grid; gap:4px; }
-  .af-meta b{ font-weight:950; color:var(--ink); }
-  .af-meta small{ color:var(--muted); font-weight:800; }
-
-  .af-pill{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:6px 10px;
-    border-radius:999px;
-    font-weight:950;
-    font-size:.85rem;
-    color:#fff;
-    white-space:nowrap;
-  }
-  .af-pill-blue{ background:#2563eb; }
-  .af-pill-green{ background:#10b981; }
-  .af-pill-amber{ background:#f59e0b; }
-  .af-pill-red{ background:#ef4444; }
-  .af-pill-gray{ background:#64748b; }
-
-  .af-empty{
-    padding:14px;
-    border-radius:16px;
-    border:1px dashed var(--line);
-    background: linear-gradient(180deg, var(--card), var(--line-2));
-  }
-  .af-empty b{ font-weight:950; color:var(--ink); }
-  .af-empty p{ margin:6px 0 0; color:var(--muted); font-weight:800; }
-
-  .af-err{
-    margin-top:6px;
-    color:#b91c1c;
-    font-weight:900;
+  .af-head::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; width: 200px; height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(37,99,235,0.03));
+    pointer-events: none;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    .af-btn, .af-item{ transition:none !important; }
-    .af-btn:hover{ transform:none !important; }
+  .af-title-group h1 {
+    margin: 0;
+    font-weight: 800;
+    font-size: 1.8rem;
+    color: var(--text-main);
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text-main) 0%, var(--brand) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .af-title-group p {
+    margin: 6px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .af-body { padding: 40px; }
+
+  /* Create Form Area */
+  .af-create-area {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 30px;
+  }
+
+  .af-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+  }
+  
+  .af-field { flex: 1; }
+  .af-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: var(--text-main);
+    font-size: 0.95rem;
+  }
+
+  .af-input-wrapper {
+    position: relative;
+  }
+  .af-input-wrapper i {
+    position: absolute;
+    right: 16px; top: 50%; transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+  }
+  
+  .af-field select, .af-field input {
+    width: 100%;
+    padding: 14px 45px 14px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    background: white;
+    font-weight: 600;
+    color: var(--text-main);
+    outline: none;
+    transition: all 0.2s ease;
+    appearance: none;
+  }
+  .af-field select:focus, .af-field input:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
+  }
+
+  /* Buttons */
+  .af-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-secondary);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .af-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    color: var(--brand);
+    border-color: var(--brand);
+  }
+  
+  .af-btn-primary {
+    background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  }
+  .af-btn-primary:hover {
+    color: white;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    transform: translateY(-2px);
+  }
+  .af-btn-danger {
+    color: #ef4444;
+    border-color: #fee2e2;
+    background: #fef2f2;
+  }
+  .af-btn-danger:hover {
+    background: #fee2e2;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  }
+
+  /* List Items */
+  .af-list { display: grid; gap: 16px; margin-top: 20px; }
+  
+  .af-item {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+  }
+  .af-item:hover {
+    border-color: var(--brand);
+    box-shadow: 0 10px 30px -5px rgba(37,99,235,0.1);
+    transform: translateY(-2px);
+  }
+
+  .af-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .af-icon-box {
+    width: 60px; height: 60px;
+    border-radius: 16px;
+    background: var(--brand-light);
+    color: var(--brand);
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+  }
+  .af-info h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-main);
+  }
+  .af-info span {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .af-status {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+  }
+  .status-draft { background: #f3f4f6; color: #4b5563; }
+  .status-submitted { background: #e0f2fe; color: #0284c7; }
+  .status-approved { background: #dcfce7; color: #16a34a; }
+  .status-returned { background: #fef2f2; color: #dc2626; }
+
+  .af-actions-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .af-empty {
+    text-align: center;
+    padding: 60px 20px;
+    border: 2px dashed var(--border-color);
+    border-radius: 24px;
+    background: var(--surface);
+  }
+  .af-empty i { font-size: 3rem; color: var(--text-secondary); margin-bottom: 20px; opacity: 0.5; }
+  .af-empty b { display: block; font-size: 1.2rem; color: var(--text-main); margin-bottom: 8px; }
+
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    .af-head { flex-direction: column; text-align: center; gap: 20px; padding: 24px; }
+    .af-item { flex-direction: column; gap: 20px; padding: 20px; }
+    .af-meta { flex-direction: column; text-align: center; }
+    .af-actions-group { width: 100%; flex-wrap: wrap; justify-content: center; }
+    .af-btn { flex: 1; }
+    .af-row { flex-direction: column; gap: 15px; }
+    .af-field, .af-actions { width: 100%; }
+    .af-btn-primary { width: 100%; }
   }
 </style>
 {% endblock %}
@@ -173,55 +269,82 @@
 <div class="af-wrap">
   <div class="af-card">
     <div class="af-head">
-      <h1>ملف الإنجاز</h1>
-      <p>إنشاء وإدارة ملف الإنجاز السنوي</p>
+      <div class="af-title-group">
+        <h1>ملفات الإنجاز</h1>
+        <p>إدارة ملفات الإنجاز السنوية الخاصة بك</p>
+      </div>
+      <div>
+        <!-- Optional Header Action or Icon -->
+        <div style="width:50px; height:50px; background:var(--brand-light); color:var(--brand); border-radius:14px; display:grid; place-items:center; font-size:1.4rem;">
+            <i class="fa-solid fa-briefcase"></i>
+        </div>
+      </div>
     </div>
 
     <div class="af-body">
-      <form method="post" novalidate>
-        {% csrf_token %}
-        <input type="hidden" name="action" value="create" />
+      
+      <!-- New File Section -->
+      <div class="af-create-area">
+        <h3 style="margin:0 0 16px; font-size:1.1rem; color:var(--text-main); font-weight:800;">
+            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent); margin-left:8px;"></i>
+            إنشاء ملف جديد
+        </h3>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create" />
 
-        {% if create_form.non_field_errors %}
-          <div class="af-err">{{ create_form.non_field_errors }}</div>
-        {% endif %}
-
-        <div class="af-row">
-          <div class="af-field">
-            <label class="af-label" for="{{ create_form.academic_year.id_for_label }}">{{ create_form.academic_year.label }}</label>
-            {{ create_form.academic_year }}
-            {% if create_form.academic_year.errors %}
-              <div class="af-err">{{ create_form.academic_year.errors }}</div>
+            {% if create_form.non_field_errors %}
+            <div class="af-err">{{ create_form.non_field_errors }}</div>
             {% endif %}
-          </div>
 
-          <div class="af-actions" style="flex:0 0 auto">
-            <button class="af-btn af-btn-primary" type="submit">
-              <i class="fa-solid fa-plus"></i>
-              إنشاء ملف للسنة
-            </button>
-          </div>
-        </div>
-      </form>
+            <div class="af-row">
+            <div class="af-field">
+                <label class="af-label" for="{{ create_form.academic_year.id_for_label }}">اختر السنة الدراسية</label>
+                <div class="af-input-wrapper">
+                    {{ create_form.academic_year }}
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                {% if create_form.academic_year.errors %}
+                <div class="af-err">{{ create_form.academic_year.errors }}</div>
+                {% endif %}
+            </div>
 
-      <div class="af-divider" role="separator" aria-hidden="true"></div>
+            <div class="af-actions" style="flex:0 0 auto">
+                <button class="af-btn af-btn-primary" type="submit">
+                <i class="fa-solid fa-plus"></i>
+                <span>إنشاء الآن</span>
+                </button>
+            </div>
+            </div>
+        </form>
+      </div>
+
+      <div style="margin-bottom:24px;">
+        <h3 style="font-size:1.2rem; font-weight:800; color:var(--text-main);">سجل الملفات</h3>
+      </div>
 
       <div class="af-list" aria-label="ملفات الإنجاز">
         {% for f in files %}
           <div class="af-item">
             <div class="af-meta">
-              <b>
-                <i class="fa-solid fa-folder-open" style="opacity:.85"></i>
-                {{ f.academic_year }} هـ
-              </b>
-              <small>
-                الحالة:
-                {# لون الشارة بسيط، غيّره حسب statuses الفعلية عندك #}
-                <span class="af-pill af-pill-gray">{{ f.get_status_display }}</span>
-              </small>
+              <div class="af-icon-box">
+                <i class="fa-solid fa-folder-open"></i>
+              </div>
+              <div class="af-info">
+                <h3>ملف عام {{ f.academic_year }}</h3>
+                <span>
+                    <i class="fa-regular fa-clock"></i> آخر تحديث: {{ f.updated_at|date:"Y-m-d" }}
+                </span>
+                <div style="margin-top:8px;">
+                     {# Simple logic to pick class based on status #}
+                     <span class="af-status {% if f.status == 'draft' %}status-draft{% elif f.status == 'approved' %}status-approved{% else %}status-submitted{% endif %}">
+                        {{ f.get_status_display }}
+                     </span>
+                </div>
+              </div>
             </div>
 
-            <div class="af-actions">
+            <div class="af-actions-group">
               <a class="af-btn" href="{% url 'reports:achievement_file_detail' f.pk %}">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                 فتح
@@ -229,28 +352,22 @@
 
               <a class="af-btn" href="{% url 'reports:achievement_share_manage' f.pk %}" title="مشاركة">
                 <i class="fa-solid fa-share-nodes"></i>
-                مشاركة
               </a>
 
-              <a class="af-btn" href="{% url 'reports:achievement_file_pdf' f.pk %}">
+              <a class="af-btn" href="{% url 'reports:achievement_file_pdf' f.pk %}" title="PDF">
                 <i class="fa-solid fa-file-pdf"></i>
-                تحميل PDF
               </a>
 
-              <div style="flex:1"></div>
-
-              <!-- زر تعديل السنة (للمسودات/المعاد) -->
               <button class="af-btn" type="button" 
                       data-url="{% url 'reports:achievement_file_update_year' f.pk %}"
                       onclick="openYearModal(this, '{{ f.academic_year }}')" 
-                      title="تعديل السنة">
+                      title="تعديل">
                 <i class="fa-solid fa-pen"></i>
               </button>
 
-              <!-- زر الحذف -->
-              <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" onsubmit="return confirm('هل أنت متأكد من حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه.');">
+              <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" onsubmit="return confirm('هل أنت متأكد من حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه.');" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit" class="af-btn" style="color:var(--danger);border-color:var(--danger-200)" title="حذف الملف">
+                <button type="submit" class="af-btn af-btn-danger" title="حذف">
                    <i class="fa-solid fa-trash"></i>
                 </button>
               </form>
@@ -258,8 +375,9 @@
           </div>
         {% empty %}
           <div class="af-empty">
-            <b>لا يوجد ملفات بعد</b>
-            <p>أنشئ ملفًا لسنة دراسية جديدة من الأعلى.</p>
+            <i class="fa-regular fa-folder-open"></i>
+            <b>لا يوجد ملفات حتى الآن</b>
+            <p>ابدأ بإنشاء ملفك الأول للسنة الدراسية الحالية من النموذج أعلاه</p>
           </div>
         {% endfor %}
       </div>
