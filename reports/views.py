@@ -3415,15 +3415,61 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                 s = s.strip()
                 # إزالة المسافات والرموز الشائعة (نحتفظ بالأرقام فقط)
                 digits = re.sub(r"\D+", "", s)
+                if not digits:
+                    return s
+
+                # تطبيع أرقام الجوال الشائعة (السعودية)
+                # - 9665XXXXXXXX  -> 05XXXXXXXX
+                # - 5XXXXXXXX     -> 05XXXXXXXX
+                try:
+                    if digits.startswith("966"):
+                        digits = digits[3:]
+                    if digits.startswith("5") and len(digits) == 9:
+                        digits = "0" + digits
+                    if digits.startswith("5") and len(digits) == 10:
+                        digits = "0" + digits[-9:]
+                except Exception:
+                    pass
+                return digits
+
+            def _normalize_national_id(v) -> str:
+                s = _norm_str(v)
+                if not s:
+                    return ""
+                digits = re.sub(r"\D+", "", s)
                 return digits or s
 
             wb = openpyxl.load_workbook(excel_file, read_only=True, data_only=True)
             sheet = wb.active
 
-            # توقع الأعمدة: الاسم، رقم الجوال، رقم الهوية (اختياري)، عمود إضافي اختياري (يُتجاهل حالياً)
+            def _norm_header(v) -> str:
+                s = _norm_str(v).lower()
+                s = re.sub(r"\s+", "", s)
+                s = re.sub(r"[\-_/\\]+", "", s)
+                return s
+
+            header_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True), None) or ()
+            header_norm = [_norm_header(h) for h in (header_row or ())]
+
+            def _find_col_idx(candidates: tuple[str, ...]) -> int | None:
+                for i, h in enumerate(header_norm):
+                    if not h:
+                        continue
+                    for c in candidates:
+                        if c and c in h:
+                            return i
+                return None
+
+            # نحدد الأعمدة حسب العناوين لتفادي ملفات فيها أعمدة فارغة/غير متجاورة
+            name_idx = _find_col_idx(("الاسمالكامل", "اسم", "الاسم"))
+            phone_idx = _find_col_idx(("رقمالجوال", "الجوال", "رقمالهاتف", "الهاتف"))
+            nat_idx = _find_col_idx(("رقمالهوية", "الهوية", "السجلالمدني", "رقمالسجل"))
+
+            # توقع الأعمدة: الاسم، رقم الجوال، رقم الهوية (اختياري)
             # الصف الأول عناوين
-            parsed_rows: list[tuple[int, str, str, str | None, str | None]] = []
+            parsed_rows: list[tuple[int, str, str, str | None]] = []
             phones_in_file: set[str] = set()
+            nat_ids_in_file: set[str] = set()
 
             max_rows_guard = 2000
             for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
@@ -3432,23 +3478,32 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                     return render(request, "reports/bulk_import_teachers.html")
 
                 row = row or ()
-                name, phone, national_id, specialty = (row + (None, None, None, None))[:4]
+                # إن استطعنا تحديد الأعمدة من العناوين: نقرأ حسب الفهارس
+                if name_idx is not None or phone_idx is not None or nat_idx is not None:
+                    name = row[name_idx] if name_idx is not None and name_idx < len(row) else None
+                    phone = row[phone_idx] if phone_idx is not None and phone_idx < len(row) else None
+                    national_id = row[nat_idx] if nat_idx is not None and nat_idx < len(row) else None
+                else:
+                    # fallback للملفات التي بلا عناوين واضحة
+                    name, phone, national_id = (row + (None, None, None))[:3]
 
                 name_s = _norm_str(name)
                 phone_s = _normalize_phone(phone)
-                nat_s = _norm_str(national_id) or None
-                spec_s = _norm_str(specialty) or None
+                nat_s = _normalize_national_id(national_id) or None
+
+                if nat_s:
+                    nat_ids_in_file.add(nat_s)
 
                 if not name_s or not phone_s:
                     # نؤجل الأخطاء إلى مرحلة الرسائل حتى لا نقطع المعالجة مبكرًا
-                    parsed_rows.append((row_idx, name_s, phone_s, nat_s, spec_s))
+                    parsed_rows.append((row_idx, name_s, phone_s, nat_s))
                     continue
 
                 if phone_s in phones_in_file:
-                    parsed_rows.append((row_idx, name_s, phone_s, nat_s, spec_s))
+                    parsed_rows.append((row_idx, name_s, phone_s, nat_s))
                     continue
                 phones_in_file.add(phone_s)
-                parsed_rows.append((row_idx, name_s, phone_s, nat_s, spec_s))
+                parsed_rows.append((row_idx, name_s, phone_s, nat_s))
 
             if not parsed_rows:
                 messages.error(request, "الملف فارغ أو لا يحتوي على بيانات.")
@@ -3479,24 +3534,30 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                 return render(request, "reports/bulk_import_teachers.html")
 
             created_count = 0
+            updated_count = 0
             reactivated_count = 0
             errors: list[str] = []
             seen_phone_rows: set[str] = set()
 
-            with transaction.atomic():
-                for row_idx, name_s, phone_s, nat_s, _extra in parsed_rows:
+            # ملاحظة مهمة: أي IntegrityError داخل atomic قد يكسر المعاملة في Postgres.
+            # لذلك نستخدم savepoint لكل صف حتى نستمر في الصفوف التالية.
+            for row_idx, name_s, phone_s, nat_s in parsed_rows:
+                with transaction.atomic():
                     if not name_s or not phone_s:
                         errors.append(f"الصف {row_idx}: الاسم ورقم الجوال مطلوبان.")
                         continue
 
                     if phone_s in seen_phone_rows:
-                        errors.append(f"الصف {row_idx}: رقم الجوال مكرر داخل الملف.")
+                        # نعتبره تكرار داخل الملف ونتجاهله بدون تحذير (سلوك متوقع حسب الطلب)
                         continue
                     seen_phone_rows.add(phone_s)
 
-                    # التحقق من وجود المعلم مسبقاً
+                    # Upsert: تحديد المعلم الموجود ثم تحديث بياناته عند اللزوم
                     teacher = Teacher.objects.filter(phone=phone_s).first()
-                    if not teacher:
+                    if teacher is None and nat_s:
+                        teacher = Teacher.objects.filter(national_id=nat_s).first()
+
+                    if teacher is None:
                         try:
                             teacher = Teacher.objects.create(
                                 name=name_s,
@@ -3510,9 +3571,70 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                                 teacher.save(update_fields=["role"])
                             except Exception:
                                 pass
+                            created_count += 1
                         except (IntegrityError, ValidationError):
-                            errors.append(f"الصف {row_idx}: رقم الجوال أو الهوية مستخدم مسبقاً.")
+                            errors.append(f"الصف {row_idx}: تعذّر إنشاء المستخدم بسبب تعارض في رقم الجوال/الهوية.")
                             continue
+                    else:
+                        changed_fields: list[str] = []
+
+                        # ✅ تحديث الاسم إذا اختلف
+                        try:
+                            if name_s and (getattr(teacher, "name", "") or "").strip() != name_s:
+                                teacher.name = name_s
+                                changed_fields.append("name")
+                        except Exception:
+                            pass
+
+                        # ✅ تحديث رقم الهوية (إن وُجد)
+                        if nat_s:
+                            try:
+                                current_nat = (getattr(teacher, "national_id", None) or "").strip() or None
+                                if current_nat != nat_s:
+                                    # تأكد أن الهوية ليست مرتبطة بمستخدم آخر
+                                    nat_owner = Teacher.objects.filter(national_id=nat_s).exclude(pk=teacher.pk).first()
+                                    if nat_owner is None:
+                                        teacher.national_id = nat_s
+                                        changed_fields.append("national_id")
+                                    else:
+                                        errors.append(
+                                            f"الصف {row_idx}: رقم الهوية مرتبط بمستخدم آخر، لا يمكن تحديثه تلقائياً."
+                                        )
+                                        continue
+                            except Exception:
+                                pass
+
+                        # ✅ تحديث رقم الجوال إذا تم العثور على المعلم عبر الهوية (أو اختلاف الجوال)
+                        try:
+                            current_phone = (getattr(teacher, "phone", "") or "").strip()
+                            if phone_s and current_phone != phone_s:
+                                phone_owner = Teacher.objects.filter(phone=phone_s).exclude(pk=teacher.pk).first()
+                                if phone_owner is None:
+                                    teacher.phone = phone_s
+                                    changed_fields.append("phone")
+                                    # لو تغير الجوال نحدّث كلمة المرور الافتراضية لتبقى متوافقة (اختياري)
+                                    try:
+                                        teacher.password = make_password(phone_s)
+                                        changed_fields.append("password")
+                                    except Exception:
+                                        pass
+                                else:
+                                    errors.append(
+                                        f"الصف {row_idx}: رقم الجوال مرتبط بمستخدم آخر، لا يمكن تحديثه تلقائياً."
+                                    )
+                                    continue
+                        except Exception:
+                            pass
+
+                        if changed_fields:
+                            try:
+                                # حفظ الحقول التي تغيرت فقط
+                                teacher.save(update_fields=list(dict.fromkeys(changed_fields)))
+                                updated_count += 1
+                            except Exception:
+                                # إن فشل التحديث لسبب غير متوقع، نعتبره خطأ صف ونكمل
+                                errors.append(f"الصف {row_idx}: تعذّر تحديث بيانات المستخدم.")
+                                continue
 
                     # ربط المعلم بالمدرسة
                     try:
@@ -3529,22 +3651,20 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                         errors.append(f"الصف {row_idx}: {msg}")
                         continue
 
-                    if created:
-                        created_count += 1
-                    else:
+                    if not created:
                         # إن كانت العضوية موجودة لكنها غير نشطة، فعّلها
                         try:
                             if hasattr(membership, "is_active") and not bool(getattr(membership, "is_active", True)):
                                 membership.is_active = True
                                 membership.save(update_fields=["is_active"])
                                 reactivated_count += 1
-                            else:
-                                errors.append(f"الصف {row_idx}: المعلم مرتبط بالفعل بهذه المدرسة.")
                         except Exception:
-                            errors.append(f"الصف {row_idx}: المعلم مرتبط بالفعل بهذه المدرسة.")
+                            pass
 
             if created_count > 0:
-                messages.success(request, f"✅ تم استيراد {created_count} معلّم بنجاح.")
+                messages.success(request, f"✅ تم إنشاء {created_count} معلّم جديد.")
+            if updated_count > 0:
+                messages.info(request, f"تم تحديث بيانات {updated_count} معلّم موجود.")
             if reactivated_count > 0:
                 messages.info(request, f"تم تفعيل {reactivated_count} عضوية موجودة سابقاً.")
             if errors:
