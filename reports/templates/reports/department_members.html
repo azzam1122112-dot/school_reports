@@ -28,6 +28,12 @@
   .dept-scope .header{
     display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap
   }
+  .dept-scope .header-actions{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:10px;
+  }
   .dept-scope .breadcrumbs{font-size:.92rem;color:var(--muted);font-weight:850}
   .dept-scope .breadcrumbs a{color:inherit;text-decoration:none}
   .dept-scope .breadcrumbs a:hover{text-decoration:underline}
@@ -238,10 +244,16 @@
         </div>
       </div>
 
-      <div class="stats" aria-label="إحصاءات القسم">
-        <span class="badge">مسؤول القسم: {{ officers|length }}</span>
-        <span class="badge">الأعضاء الحاليون: {{ teachers|length }}</span>
-        <span class="badge">إجمالي المعلّمين: {{ all_teachers|length }}</span>
+      <div class="header-actions">
+        <a href="{% url 'reports:departments_list' %}" class="d-btn d-btn-secondary">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع للأقسام
+        </a>
+
+        <div class="stats" aria-label="إحصاءات القسم">
+          <span class="badge">مسؤول القسم: {{ officers|length }}</span>
+          <span class="badge">الأعضاء الحاليون: {{ teachers|length }}</span>
+          <span class="badge">إجمالي المعلّمين: {{ all_teachers|length }}</span>
+        </div>
       </div>
     </div>
 

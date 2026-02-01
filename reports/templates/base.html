@@ -303,6 +303,21 @@
       max-width: 420px;
       padding: 20px;
     }
+
+    /* Mobile: keep toasts at very top (avoid mid-screen on phones) */
+    @media (max-width: 768px) {
+      .messages {
+        inset-inline: 12px;
+        top: calc(12px + var(--safe-top));
+        left: auto;
+        transform: none;
+        display: grid;
+        width: auto;
+        max-width: 520px;
+        margin-inline: auto;
+        padding: 0;
+      }
+    }
     
     .msg {
       pointer-events: auto;
