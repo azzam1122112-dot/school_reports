@@ -3420,7 +3420,7 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
             wb = openpyxl.load_workbook(excel_file, read_only=True, data_only=True)
             sheet = wb.active
 
-            # توقع الأعمدة: الاسم، رقم الجوال، رقم الهوية (اختياري)، التخصص (اختياري)
+            # توقع الأعمدة: الاسم، رقم الجوال، رقم الهوية (اختياري)، عمود إضافي اختياري (يُتجاهل حالياً)
             # الصف الأول عناوين
             parsed_rows: list[tuple[int, str, str, str | None, str | None]] = []
             phones_in_file: set[str] = set()
@@ -3484,7 +3484,7 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
             seen_phone_rows: set[str] = set()
 
             with transaction.atomic():
-                for row_idx, name_s, phone_s, nat_s in parsed_rows:
+                for row_idx, name_s, phone_s, nat_s, _extra in parsed_rows:
                     if not name_s or not phone_s:
                         errors.append(f"الصف {row_idx}: الاسم ورقم الجوال مطلوبان.")
                         continue
