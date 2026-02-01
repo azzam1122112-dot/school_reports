@@ -211,9 +211,12 @@
                   <i class="fa-solid fa-eye"></i>
                 </a>
 
-                <a href="{% url 'reports:report_share_manage' report.pk %}" class="mr-iconbtn" title="مشاركة" aria-label="مشاركة">
-                  <i class="fa-solid fa-link"></i>
-                </a>
+                <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" style="display:inline">
+                  {% csrf_token %}
+                  <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </form>
               </div>
             </div>
           </div>

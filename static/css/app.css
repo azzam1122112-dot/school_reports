@@ -2262,6 +2262,10 @@ html[data-theme="dark"] .mr-thumb{
   border-color: rgba(37,99,235,.35);
   transform: translateY(-1px);
 }
+.mr-iconbtn.danger{
+  color: rgba(239,68,68,.92);
+  border-color: rgba(239,68,68,.25);
+}
 .mr-iconbtn.danger:hover{
   color: rgba(239,68,68,.95);
   border-color: rgba(239,68,68,.35);
@@ -2346,6 +2350,12 @@ html[data-theme="dark"] .mr-mcard{
 }
 html[data-theme="dark"] .mr-mfoot{
   border-top-color:#1b2744;
+}
+
+/* Mobile polish: bigger tap targets in cards */
+@media (max-width: 820px){
+  .mr-mobile .mr-actions-cell{ gap:10px; }
+  .mr-mobile .mr-iconbtn{ width:44px; height:44px; border-radius:14px; }
 }
 
 /* ===== Pagination ===== */
