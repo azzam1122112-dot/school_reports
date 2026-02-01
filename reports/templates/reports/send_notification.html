@@ -161,6 +161,29 @@
   .notify-scope .teacher-tools{
     display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0 12px
   }
+  .notify-scope .selected-preview{
+    width:100%;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+  }
+  .notify-scope .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--card);
+    font-weight:950;
+    color:var(--text);
+    box-shadow:0 6px 18px rgba(2,6,23,.06);
+  }
+  .notify-scope .chip small{
+    font-weight:900;
+    color:var(--text-light);
+  }
   .notify-scope .teacher-tools input[type="search"]{
     flex:1 1 260px;
     border:2px solid var(--border);
@@ -199,6 +222,10 @@
     border:1px solid transparent;
     border-radius:var(--radius-sm);
     padding:10px 12px
+  }
+  .notify-scope .teacher-list li.is-selected{
+    border-color:rgba(67, 97, 238, .45);
+    background:rgba(67, 97, 238, .10);
   }
   .notify-scope .teacher-list li:hover{
     border-color:rgba(67, 97, 238, .25);
@@ -361,6 +388,10 @@
                             <span>/</span>
                             <button type="button" id="clearAllTeachers">إلغاء التحديد</button>
                           </span>
+                        {% elif field.name == "target_department" %}
+                          <span class="teacher-actions">
+                            <button type="button" id="showAllTeachers">عرض جميع المعلمين</button>
+                          </span>
                         {% endif %}
                       </label>
 
@@ -368,6 +399,7 @@
                         <div class="teacher-tools">
                           <input id="teacherSearch" type="search" placeholder="ابحث باسم المعلّم…" aria-label="البحث عن معلّم">
                           <span class="mini">المحدّد: <span class="count" id="selCount">0</span></span>
+                          <div class="selected-preview" id="selectedTeachersPreview" aria-live="polite"></div>
                         </div>
 
                         <div class="teacher-list" id="teacherList">
@@ -538,6 +570,8 @@
       const selCount = $('#selCount');
       const btnSelectAll = $('#selectAllTeachers');
       const btnClearAll = $('#clearAllTeachers');
+      const btnShowAll = $('#showAllTeachers');
+      const selectedPreview = $('#selectedTeachersPreview');
 
       const teacherListBox = document.getElementById('teacherList') || teacherField;
 
@@ -583,6 +617,56 @@
         if(selCount) selCount.textContent = String(count);
       }
 
+      function syncSelectedUI(){
+        const checkboxInputs = getCheckboxInputs();
+        const multiSelect = getMultiSelect();
+
+        // Highlight selected rows (checkbox mode)
+        if(checkboxInputs.length){
+          checkboxInputs.forEach(cb => {
+            const li = cb.closest('li');
+            if(li) li.classList.toggle('is-selected', !!cb.checked);
+          });
+        }
+
+        // Preview selected names
+        if(!selectedPreview) return;
+        const names = [];
+        if(checkboxInputs.length){
+          checkboxInputs.forEach(cb => {
+            if(!cb.checked) return;
+            const li = cb.closest('li');
+            const label = li ? li.textContent : (cb.closest('label') ? cb.closest('label').textContent : '');
+            const name = (label || '').replace(/\s+/g,' ').trim();
+            if(name) names.push(name);
+          });
+        } else if(multiSelect){
+          Array.from(multiSelect.selectedOptions).forEach(op => {
+            const name = (op.textContent || '').replace(/\s+/g,' ').trim();
+            if(name) names.push(name);
+          });
+        }
+
+        const MAX = 12;
+        const show = names.slice(0, MAX);
+        const extra = names.length - show.length;
+        selectedPreview.innerHTML = '';
+        if(!names.length) return;
+
+        for(const nm of show){
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = nm;
+          selectedPreview.appendChild(chip);
+        }
+        if(extra > 0){
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.innerHTML = '<small>+' + String(extra) + ' آخرون</small>';
+          selectedPreview.appendChild(chip);
+        }
+      }
+
       function applyFilter(term){
         const q = (term || "").trim().toLowerCase();
 
@@ -625,6 +709,7 @@
         }
 
         updateCount();
+        syncSelectedUI();
       }
 
       if(searchInput){
@@ -638,6 +723,7 @@
       }
 
       teacherField.addEventListener('change', updateCount);
+      teacherField.addEventListener('change', syncSelectedUI);
 
       async function refreshTeachers(){
         if(isLoadingTeachers) return;
@@ -656,9 +742,8 @@
         if(schoolSel && schoolSel.value) params.set('target_school', schoolSel.value);
         if(deptSel && deptSel.value) params.set('target_department', deptSel.value);
 
-        if(params.toString() === '') return;
-
-        const url = '{% url "reports:api_notification_teachers" %}?' + params.toString();
+        const baseUrl = '{% url "reports:api_notification_teachers" %}';
+        const url = baseUrl + (params.toString() ? ('?' + params.toString()) : '');
         isLoadingTeachers = true;
 
         const prevHtml = teacherListBox.innerHTML;
@@ -668,6 +753,12 @@
 
         try{
           const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          if(res.status === 403){
+            teacherListBox.innerHTML = '<div class="help">لا يمكن عرض المستلمين الآن. تأكد من اختيار المدرسة/النطاق الصحيح.</div>';
+            updateCount();
+            syncSelectedUI();
+            return;
+          }
           const payload = await res.json();
           const results = Array.isArray(payload && payload.results) ? payload.results : [];
 
@@ -691,9 +782,11 @@
 
           if(searchInput) applyFilter(searchInput.value);
           updateCount();
+          syncSelectedUI();
         }catch(e){
           teacherListBox.innerHTML = prevHtml;
           updateCount();
+          syncSelectedUI();
         }finally{
           isLoadingTeachers = false;
           if(btnSelectAll) btnSelectAll.disabled = false;
@@ -771,8 +864,16 @@
         deptSel.addEventListener('change', refreshTeachers);
       }
 
+      if(btnShowAll && deptSel){
+        btnShowAll.addEventListener('click', async () => {
+          deptSel.value = '';
+          await refreshTeachers();
+        });
+      }
+
       applyFilter('');
       updateCount();
+      syncSelectedUI();
 
       try{
         if((scopeSel && scopeSel.value) || (schoolSel && schoolSel.value) || (deptSel && deptSel.value)){
