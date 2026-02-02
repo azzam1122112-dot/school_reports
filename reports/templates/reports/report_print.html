@@ -38,7 +38,7 @@
       min-height: 297mm;
       margin: 18px auto;
       background: #fff;
-      padding: 14mm 12mm 18mm;
+      padding: 10mm 12mm 12mm;
       position: relative;
       box-shadow: 0 0 14px rgba(0,0,0,0.10);
     }
@@ -104,14 +104,14 @@
     .hdr-right { text-align: right; }
     .hdr-left { text-align: left; direction: ltr; }
     .logo {
-      height: 78px;
+      height: 65px;
       width: auto;
       object-fit: contain;
       display: block;
       margin: 0 auto;
     }
     .logo-box {
-      height: 78px;
+      height: 65px;
       width: 120px;
       border: 1px solid var(--line);
       display: flex;
@@ -125,14 +125,14 @@
 
     .title {
       text-align: center;
-      margin: 14px 0 10px;
+      margin: 10px 0 6px;
       font-weight: 1000;
-      font-size: 20px;
+      font-size: 18px;
       letter-spacing: 0;
     }
     .subtitle {
       text-align: center;
-      margin: 0 0 14px;
+      margin: 0 0 10px;
       color: var(--muted);
       font-weight: 800;
       font-size: 13px;
@@ -141,12 +141,12 @@
     .meta-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 14px;
-      margin: 0 0 14px;
+      font-size: 13px;
+      margin: 0 0 10px;
     }
     .meta-table th, .meta-table td {
       border: 1px solid var(--line);
-      padding: 9px 10px;
+      padding: 6px 10px;
       vertical-align: middle;
     }
     .meta-table th {
@@ -160,52 +160,53 @@
 
     .section {
       border: 1px solid var(--line);
-      padding: 10px;
-      margin: 0 0 14px;
+      padding: 8px;
+      margin: 0 0 10px;
     }
     .section-h {
       font-weight: 1000;
-      font-size: 15px;
-      margin: 0 0 8px;
+      font-size: 14px;
+      margin: 0 0 6px;
     }
     .section-body {
-      font-size: 15px;
-      line-height: 2;
+      font-size: 14px;
+      line-height: 1.7;
       white-space: pre-wrap;
       text-align: justify;
-      min-height: 90px;
+      min-height: 50px;
     }
 
     .images-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
     }
     .img-box {
       border: 1px solid var(--line);
-      padding: 6px;
+      padding: 4px;
       text-align: center;
       page-break-inside: avoid;
     }
     .img-box img {
       width: 100%;
-      height: 180px;
-      object-fit: contain;
+      height: 120px;
+      object-fit: cover;
       display: block;
+      border-radius: 4px;
     }
     .img-cap {
-      margin-top: 6px;
-      font-size: 12px;
+      margin-top: 4px;
+      font-size: 11px;
       color: var(--muted);
       font-weight: 800;
     }
 
     .signatures {
       border: 1px solid var(--line);
-      padding: 8px;
+      padding: 6px;
       display: grid;
-      gap: 8px;
-      margin: 12px 0 0;
+      gap: 6px;
+      margin: 8px 0 0;
       page-break-inside: avoid;
     }
     .signatures.two-sigs {
@@ -218,8 +219,8 @@
     }
     .sig {
       border: 1px solid var(--line);
-      padding: 8px;
-      min-height: 70px;
+      padding: 6px;
+      min-height: 55px;
       display: flex;
       flex-direction: column;
     }
@@ -250,10 +251,10 @@
     }
 
     .footer {
-      margin-top: 12px;
+      margin-top: 8px;
       border-top: 1px solid var(--line);
-      padding-top: 8px;
-      font-size: 11px;
+      padding-top: 6px;
+      font-size: 10px;
       color: var(--muted);
       display: flex;
       justify-content: space-between;
