@@ -2181,6 +2181,15 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
     except Exception:
         ministry_logo_src = None
 
+    # تحديد URL الرجوع الذكي حسب دور المستخدم
+    back_url = "reports:achievement_my_files"  # الافتراضي للمعلم
+    is_manager = _is_manager_in_school(request.user, active_school)
+    is_staff_user = _is_staff(request.user)
+    is_superuser_val = bool(getattr(request.user, "is_superuser", False))
+    
+    if is_superuser_val or is_manager or is_staff_user:
+        back_url = "reports:achievement_school_files"
+    
     return render(
         request,
         "reports/pdf/achievement_file.html",
@@ -2192,6 +2201,7 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
             "now": timezone.localtime(timezone.now()),
             "school_logo_url": school_logo_url,
             "ministry_logo_src": ministry_logo_src,
+            "back_url": back_url,
         },
     )
 
@@ -2828,6 +2838,15 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
         if not moe_logo_url:
             moe_logo_url = static("img/UntiTtled-1.png")
 
+        # تحديد URL الرجوع الذكي حسب دور المستخدم
+        back_url = "reports:my_reports"  # الافتراضي للمعلم
+        is_manager = _is_manager_in_school(user, school_scope)
+        is_staff_user = _is_staff(user)
+        is_superuser_val = bool(getattr(user, "is_superuser", False))
+        
+        if is_superuser_val or is_manager or is_staff_user:
+            back_url = "reports:admin_reports"
+        
         return render(
             request,
             "reports/report_print.html",
@@ -2843,9 +2862,10 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "is_report_owner": is_report_owner,
                 "can_add_private_comment": can_add_private_comment,
                 "current_user_id": getattr(user, "id", None),
-                "is_superuser": bool(getattr(user, "is_superuser", False)),
+                "is_superuser": is_superuser_val,
                 "private_comments": private_comments,
                 "comment_form": comment_form,
+                "back_url": back_url,
             },
         )
     except Http404:

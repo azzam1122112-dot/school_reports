@@ -202,10 +202,10 @@
 
     .signatures {
       border: 1px solid var(--line);
-      padding: 12px;
+      padding: 8px;
       display: grid;
-      gap: 12px;
-      margin: 16px 0 0;
+      gap: 8px;
+      margin: 12px 0 0;
       page-break-inside: avoid;
     }
     .signatures.two-sigs {
@@ -213,40 +213,40 @@
     }
     .signatures.one-sig {
       grid-template-columns: 1fr;
-      max-width: 50%;
+      max-width: 45%;
       margin-right: auto;
     }
     .sig {
       border: 1px solid var(--line);
-      padding: 14px;
-      min-height: 100px;
+      padding: 8px;
+      min-height: 70px;
       display: flex;
       flex-direction: column;
     }
     .sig h4 {
-      margin: 0 0 12px;
-      font-size: 15px;
+      margin: 0 0 6px;
+      font-size: 13px;
       font-weight: 1000;
       text-align: center;
     }
     .sig .sig-space {
       flex: 1;
-      min-height: 50px;
+      min-height: 30px;
     }
     .sig .sig-line {
       margin-top: auto;
       border-top: 1px solid var(--line);
-      padding-top: 8px;
-      font-size: 13px;
+      padding-top: 5px;
+      font-size: 12px;
       color: var(--muted);
       font-weight: 800;
       text-align: center;
     }
     .sig-label {
-      display: block;
-      font-size: 12px;
+      display: inline;
+      font-size: 11px;
       color: var(--muted);
-      margin-bottom: 4px;
+      margin-left: 4px;
     }
 
     .footer {
@@ -494,26 +494,12 @@
         }
       } catch (e) {}
 
-      try {
-        if (window.history && window.history.length > 1) {
-          window.history.back();
-          return;
-        }
-      } catch (e) {}
-
-      try {
-        var ref = document.referrer;
-        if (ref) {
-          var sameOrigin = (new URL(ref, window.location.href)).origin === window.location.origin;
-          if (sameOrigin) {
-            window.location.href = ref;
-            return;
-          }
-        }
-      } catch (e) {}
-
-      // Safe fallback if opened directly
+      // Smart back URL based on user role
+      {% if back_url %}
+      window.location.href = "{% url back_url %}";
+      {% else %}
       window.location.href = "{% url 'reports:my_reports' %}";
+      {% endif %}
     }
 
     // Auto print if ?print=true (optional)

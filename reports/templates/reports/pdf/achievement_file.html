@@ -238,7 +238,7 @@
         <a href="{{ public_download_url }}" class="btn" target="_blank" rel="noopener">تنزيل PDF</a>
       {% endif %}
     {% else %}
-      <a href="{% url 'reports:achievement_file_detail' file.pk %}" class="btn">عودة</a>
+      <button type="button" onclick="goBackAchievement()" class="btn">عودة</button>
     {% endif %}
   </div>
 
@@ -247,6 +247,28 @@
       var btn = document.getElementById('achievementPrintBtn');
       if(btn) btn.addEventListener('click', function(){ window.print(); });
     })();
+
+    function goBackAchievement() {
+      // Prefer an explicit next= parameter
+      try {
+        var params = new URLSearchParams(window.location.search || '');
+        var next = (params.get('next') || '').trim();
+        if (next) {
+          var nextUrl = new URL(next, window.location.origin);
+          if (nextUrl.origin === window.location.origin) {
+            window.location.href = nextUrl.href;
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // Smart back URL based on user role
+      {% if back_url %}
+      window.location.href = "{% url back_url %}";
+      {% else %}
+      window.location.href = "{% url 'reports:achievement_my_files' %}";
+      {% endif %}
+    }
   </script>
 
   <div class="page">
