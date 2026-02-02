@@ -254,11 +254,147 @@
     .er-scope .actions{ grid-template-columns: 1fr 1fr; }
   }
 
-  /* Submit loading */
+  /* Submit loading - Enhanced */
   .er-scope .is-submitting{
     opacity: .75;
     pointer-events: none;
     filter: saturate(.9);
+  }
+  
+  /* Upload Overlay - Enhanced Design */
+  .er-upload-overlay {
+    position: fixed; 
+    inset: 0; 
+    background: rgba(15, 23, 42, 0.85); 
+    backdrop-filter: blur(8px);
+    z-index: 9999; 
+    display: none; 
+    align-items: center; 
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .er-upload-modal {
+    background: var(--er-card); 
+    padding: 40px 32px;
+    border-radius: 24px;
+    width: 90%; 
+    max-width: 420px; 
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes slideUp {
+    from { 
+      opacity: 0; 
+      transform: translateY(20px) scale(0.95); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0) scale(1); 
+    }
+  }
+  
+  .er-upload-modal-icon {
+    font-size: 3rem; 
+    color: var(--er-brand); 
+    margin-bottom: 16px;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+  }
+  
+  .er-upload-modal h3 {
+    margin: 0 0 8px;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--er-ink);
+  }
+  
+  .er-upload-modal p {
+    margin: 0 0 24px;
+    color: var(--er-muted);
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  
+  .er-progress-container {
+    position: relative;
+    height: 8px; 
+    background: var(--er-line); 
+    border-radius: 12px; 
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+  }
+  
+  .er-progress-fill {
+    height: 100%; 
+    width: 0; 
+    background: linear-gradient(90deg, var(--er-brand), #1e40af);
+    border-radius: 12px;
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .er-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+      90deg, 
+      transparent 0%, 
+      rgba(255,255,255,0.3) 50%, 
+      transparent 100%
+    );
+    animation: shimmer 2s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  
+  .er-progress-labels {
+    display: flex; 
+    justify-content: space-between; 
+    font-size: 0.85rem; 
+    font-weight: 800; 
+    margin-top: 12px;
+  }
+  
+  .er-progress-label {
+    color: var(--er-muted);
+  }
+  
+  .er-progress-pct {
+    color: var(--er-brand);
+    font-size: 0.95rem;
+  }
+  
+  @media (max-width: 480px) {
+    .er-upload-modal {
+      padding: 32px 24px;
+      max-width: 340px;
+    }
+    .er-upload-modal-icon {
+      font-size: 2.5rem;
+    }
+    .er-upload-modal h3 {
+      font-size: 1.25rem;
+    }
   }
 
   /* Preview modal */
@@ -576,6 +712,26 @@
     </div>
   </div>
 
+  {# Enhanced Upload Overlay #}
+  <div class="er-upload-overlay" id="uploadOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="uploadTitle">
+    <div class="er-upload-modal">
+      <div class="er-upload-modal-icon">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+      </div>
+      <h3 id="uploadTitle">جاري حفظ التعديلات</h3>
+      <p>يتم الآن رفع الصور والتغييرات، يرجى الانتظار...</p>
+      
+      <div class="er-progress-container">
+         <div id="upFill" class="er-progress-fill"></div>
+      </div>
+      
+      <div class="er-progress-labels">
+         <span id="upLabel" class="er-progress-label">جاري التحضير</span>
+         <span id="upPct" class="er-progress-pct">0%</span>
+      </div>
+    </div>
+  </div>
+
   {# Preview modal #}
   <div class="pm-overlay" id="pmOverlay" role="dialog" aria-modal="true" aria-label="معاينة الصورة">
     <div class="pm" role="document">
@@ -604,17 +760,112 @@
     });
   })();
 
-  // منع الدبل-سبميت + حالة تحميل بسيطة
+  // منع الدبل-سبميت + Enhanced Upload Progress
   (function(){
     const form = document.getElementById('editReportForm');
     const btn = document.getElementById('saveBtn');
+    const overlay = document.getElementById('uploadOverlay');
+    const fill = document.getElementById('upFill');
+    const pctEl = document.getElementById('upPct');
+    const labelEl = document.getElementById('upLabel');
+    
     if(!form || !btn) return;
 
-    form.addEventListener('submit', function(){
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      
+      // Haptic feedback for mobile
+      if (navigator.vibrate) {
+        navigator.vibrate([50, 30, 50]);
+      }
+      
       btn.disabled = true;
       btn.textContent = '⏳ جارٍ الحفظ...';
       form.classList.add('is-submitting');
-    }, { once: true });
+      
+      if(overlay) {
+        overlay.style.display = 'flex';
+        overlay.setAttribute('aria-hidden', 'false');
+      }
+      
+      // Prepare FormData
+      const fd = new FormData(form);
+      
+      if(labelEl) labelEl.textContent = "جاري التحضير";
+      
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', form.action || window.location.href, true);
+      
+      const tok = form.querySelector('[name="csrfmiddlewaretoken"]');
+      if(tok) xhr.setRequestHeader('X-CSRFToken', tok.value);
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      
+      xhr.upload.onprogress = function(ev){
+        if(ev.lengthComputable && fill && pctEl){
+          const p = Math.round((ev.loaded / ev.total) * 100);
+          fill.style.width = p + "%"; 
+          pctEl.textContent = p + "%";
+          
+          if(labelEl) {
+            if(p < 30) labelEl.textContent = "بدء الرفع";
+            else if(p < 70) labelEl.textContent = "جاري الرفع";
+            else if(p < 100) labelEl.textContent = "اقتراب الإكتمال";
+            else labelEl.textContent = "جاري الحفظ";
+          }
+        }
+      };
+      
+      xhr.onload = function(){
+        if(xhr.status >= 200 && xhr.status < 400){
+          if(labelEl) labelEl.textContent = "تم بنجاح!";
+          if(pctEl) pctEl.textContent = "100%";
+          if(fill) fill.style.width = "100%";
+          
+          // Success vibration
+          if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+          }
+          
+          setTimeout(function(){
+            // Check if response has redirect
+            if(xhr.responseURL && xhr.responseURL !== window.location.href){
+              window.location.href = xhr.responseURL;
+            } else {
+              window.location.reload();
+            }
+          }, 300);
+        } else {
+          const ct = xhr.getResponseHeader('Content-Type') || "";
+          if(ct.includes('text/html')){
+            document.open(); 
+            document.write(xhr.responseText); 
+            document.close();
+          } else {
+            alert("حدث خطأ في الحفظ");
+            if(overlay) {
+              overlay.style.display = "none"; 
+              overlay.setAttribute("aria-hidden", "true");
+            }
+            btn.disabled = false;
+            btn.textContent = '💾 حفظ التعديلات';
+            form.classList.remove('is-submitting');
+          }
+        }
+      };
+      
+      xhr.onerror = function(){ 
+        alert("خطأ في الاتصال بالشبكة");
+        if(overlay) {
+          overlay.style.display = "none"; 
+          overlay.setAttribute("aria-hidden", "true");
+        }
+        btn.disabled = false;
+        btn.textContent = '💾 حفظ التعديلات';
+        form.classList.remove('is-submitting');
+      };
+      
+      xhr.send(fd);
+    }, { once: false }); // Changed from { once: true } to allow retry on error
   })();
 
   // تعيين اليوم تلقائيًا

@@ -360,12 +360,226 @@
     }
     .msg-close:hover { background: var(--bg-sub); color: var(--text-main); }
     
-    /* --- FOOTER (Minimal) --- */
+    /* --- FOOTER (Professional) --- */
     .site-footer {
-      background: var(--surface);
+      background: linear-gradient(180deg, var(--surface) 0%, var(--bg-sub) 100%);
       border-top: 1px solid var(--border-light);
       margin-top: 64px;
-      padding: 32px 0;
+      padding: 48px 0 24px;
+      position: relative;
+    }
+    
+    .site-footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.6;
+    }
+    
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 32px;
+    }
+    
+    @media (max-width: 992px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+    
+    @media (max-width: 640px) {
+      .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+    }
+    
+    .footer-col h4 {
+      font-size: 1rem;
+      font-weight: 900;
+      margin: 0 0 16px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .footer-col h4 i {
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+    
+    .footer-about {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .footer-logo img {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      border: 2px solid var(--border-light);
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .footer-logo-text h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 950;
+      color: var(--text-main);
+    }
+    
+    .footer-logo-text p {
+      margin: 2px 0 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+    
+    .footer-desc {
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    
+    .footer-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .footer-links li {
+      display: flex;
+      align-items: center;
+    }
+    
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .footer-links a:hover {
+      color: var(--accent);
+      transform: translateX(-4px);
+    }
+    
+    .footer-links a i {
+      font-size: 0.75rem;
+      opacity: 0.6;
+    }
+    
+    .footer-social {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    
+    .footer-social a {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--r-md);
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      font-size: 1rem;
+    }
+    
+    .footer-social a:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .footer-contact {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .footer-contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    
+    .footer-contact-item i {
+      color: var(--accent);
+      margin-top: 2px;
+      font-size: 0.95rem;
+    }
+    
+    .footer-bottom {
+      padding-top: 24px;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    .footer-copyright {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+    
+    .footer-copyright i {
+      color: var(--danger);
+      font-size: 0.75rem;
+    }
+    
+    .footer-badges {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .footer-badge {
+      padding: 6px 12px;
+      border-radius: var(--r-sm);
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .footer-badge i {
+      color: var(--accent);
+      font-size: 0.85rem;
     }
 
     /* Container */
@@ -871,36 +1085,106 @@
   </main>
 
   <footer class="site-footer" aria-label="تذييل النظام">
-    <div class="container" style="padding:18px 0">
-      <div class="row-between" style="flex-wrap:wrap; gap:12px">
-        <div style="display:flex;align-items:center;gap:12px;min-width:0">
-          <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="الشعار" width="42" height="42" style="border-radius:14px;border:1px solid var(--line-2);background:rgba(255,255,255,.65)">
-          <div style="min-width:0">
-            <div style="font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}
+    <div class="container">
+      <div class="footer-grid">
+        
+        {# About Section #}
+        <div class="footer-col footer-about">
+          <div class="footer-logo">
+            <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="شعار النظام">
+            <div class="footer-logo-text">
+              <h3>{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}توثيق{% endif %}</h3>
+              <p>منصة التقارير المدرسية</p>
             </div>
-            <div class="muted" style="font-weight:800;font-size:.92rem">منصة توثيق</div>
+          </div>
+          <p class="footer-desc">
+            نظام متكامل لإدارة التقارير والطلبات والإشعارات وملفات الإنجاز، مصمم خصيصاً للمدارس السعودية.
+          </p>
+          <div class="footer-social">
+            <a href="#" aria-label="تويتر" title="تابعنا على تويتر">
+              <i class="fa-brands fa-twitter"></i>
+            </a>
+            <a href="#" aria-label="واتساب" title="تواصل عبر واتساب">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+            <a href="#" aria-label="البريد الإلكتروني" title="راسلنا">
+              <i class="fa-solid fa-envelope"></i>
+            </a>
           </div>
         </div>
 
-        <nav style="display:flex;gap:10px;flex-wrap:wrap" aria-label="روابط سريعة">
-          {% if request.user.is_authenticated %}
-            {% if IS_REPORT_VIEWER %}
-              <a class="btn btn-sm btn-outline" href="{% url 'reports:school_reports_readonly' %}">التقارير</a>
-              <a class="btn btn-sm btn-outline" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
+        {# Quick Links #}
+        <div class="footer-col">
+          <h4><i class="fa-solid fa-link"></i> روابط سريعة</h4>
+          <ul class="footer-links">
+            {% if request.user.is_authenticated %}
+              {% if IS_REPORT_VIEWER %}
+                <li><a href="{% url 'reports:school_reports_readonly' %}"><i class="fa-solid fa-chevron-left"></i> التقارير</a></li>
+                <li><a href="{% url 'reports:achievement_school_files' %}"><i class="fa-solid fa-chevron-left"></i> ملفات الإنجاز</a></li>
+              {% else %}
+                <li><a href="{% url 'reports:home' %}"><i class="fa-solid fa-chevron-left"></i> الرئيسية</a></li>
+                <li><a href="{% url 'reports:my_reports' %}"><i class="fa-solid fa-chevron-left"></i> تقاريري</a></li>
+                <li><a href="{% url 'reports:my_requests' %}"><i class="fa-solid fa-chevron-left"></i> طلباتي</a></li>
+                <li><a href="{% url 'reports:my_notifications' %}"><i class="fa-solid fa-chevron-left"></i> إشعاراتي</a></li>
+              {% endif %}
             {% else %}
-              <a class="btn btn-sm btn-outline" href="{% url 'reports:home' %}">الرئيسية</a>
-              <a class="btn btn-sm btn-outline" href="{% url 'reports:my_reports' %}">تقاريري</a>
-              <a class="btn btn-sm btn-outline" href="{% url 'reports:my_requests' %}">طلباتي</a>
+              <li><a href="{% url 'reports:landing' %}"><i class="fa-solid fa-chevron-left"></i> الصفحة الرئيسية</a></li>
+              <li><a href="{% url 'reports:login' %}"><i class="fa-solid fa-chevron-left"></i> تسجيل الدخول</a></li>
             {% endif %}
-          {% else %}
-            <a class="btn btn-sm btn-outline" href="{% url 'reports:login' %}">تسجيل الدخول</a>
-          {% endif %}
-        </nav>
+          </ul>
+        </div>
+
+        {# Resources #}
+        <div class="footer-col">
+          <h4><i class="fa-solid fa-book"></i> الموارد</h4>
+          <ul class="footer-links">
+            <li><a href="#"><i class="fa-solid fa-chevron-left"></i> دليل الاستخدام</a></li>
+            <li><a href="#"><i class="fa-solid fa-chevron-left"></i> الأسئلة الشائعة</a></li>
+            <li><a href="#"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
+            <li><a href="#"><i class="fa-solid fa-chevron-left"></i> سياسة الخصوصية</a></li>
+          </ul>
+        </div>
+
+        {# Contact #}
+        <div class="footer-col">
+          <h4><i class="fa-solid fa-phone"></i> تواصل معنا</h4>
+          <div class="footer-contact">
+            <div class="footer-contact-item">
+              <i class="fa-solid fa-envelope"></i>
+              <span>support@tawtheeq.sa</span>
+            </div>
+            <div class="footer-contact-item">
+              <i class="fa-brands fa-whatsapp"></i>
+              <span>+966 50 000 0000</span>
+            </div>
+            <div class="footer-contact-item">
+              <i class="fa-solid fa-location-dot"></i>
+              <span>الرياض، المملكة العربية السعودية</span>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <div class="muted" style="margin-top:12px;font-weight:800">
-        © {% now "Y" %} جميع الحقوق محفوظة.
+      {# Bottom Bar #}
+      <div class="footer-bottom">
+        <div class="footer-copyright">
+          © {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة. صُنع بـ <i class="fa-solid fa-heart"></i> في السعودية
+        </div>
+        <div class="footer-badges">
+          <span class="footer-badge">
+            <i class="fa-solid fa-shield-halved"></i>
+            آمن ومشفر
+          </span>
+          <span class="footer-badge">
+            <i class="fa-solid fa-mobile-screen-button"></i>
+            متوافق مع الجوال
+          </span>
+          <span class="footer-badge">
+            <i class="fa-solid fa-bolt"></i>
+            سريع وموثوق
+          </span>
+        </div>
       </div>
     </div>
   </footer>
