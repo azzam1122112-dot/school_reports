@@ -5144,7 +5144,7 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
                 teachers_by_dept_qs = Department.objects.filter(
                     school=active_school
                 ).annotate(
-                    teacher_count=Count('role__teacher', distinct=True)
+                    teacher_count=Count('memberships__teacher', distinct=True)
                 ).order_by('-teacher_count')[:6]
                 
                 teachers_labels = []
