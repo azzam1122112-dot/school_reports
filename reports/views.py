@@ -5018,7 +5018,10 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
 @require_http_methods(["GET"])
 
 def admin_dashboard(request: HttpRequest) -> HttpResponse:
+    """لوحة تحكم مدير المدرسة - تحديث Premium 2026"""
     from django.core.cache import cache
+    from django.db.models.functions import TruncWeek, TruncMonth
+    import json
     
     # إذا لم يكن هناك مدرسة مختارة نوجّه لاختيار مدرسة أولاً
     active_school = _get_active_school(request)
@@ -5031,7 +5034,7 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             return redirect("reports:select_school")
 
     # محاولة جلب البيانات من الكاش
-    cache_key = f"admin_stats_{active_school.id if active_school else 'global'}"
+    cache_key = f"admin_stats_v2_{active_school.id if active_school else 'global'}"
     try:
         stats = cache.get(cache_key)
     except Exception:
@@ -5093,6 +5096,146 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         "has_reporttype": has_reporttype,
         "reporttypes_count": reporttypes_count,
     })
+    
+    # إضافة بيانات الرسوم البيانية والتحليلات المتقدمة
+    if active_school:
+        charts_cache_key = f"admin_charts_v2_{active_school.id}"
+        charts = cache.get(charts_cache_key)
+        
+        if not charts:
+            now = timezone.now()
+            
+            # تقارير آخر 8 أسابيع
+            eight_weeks_ago = now - timedelta(weeks=8)
+            reports_by_week = _filter_by_school(
+                Report.objects.filter(created_at__gte=eight_weeks_ago), 
+                active_school
+            ).annotate(
+                week=TruncWeek('created_at')
+            ).values('week').annotate(
+                count=Count('id')
+            ).order_by('week')
+            
+            reports_labels = []
+            reports_data = []
+            for item in reports_by_week:
+                week_label = item['week'].strftime('%Y-%m-%d')
+                reports_labels.append(week_label)
+                reports_data.append(item['count'])
+            
+            # تقارير حسب القسم/الدائرة
+            reports_by_dept = _filter_by_school(
+                Report.objects.all(), 
+                active_school
+            ).values('department__name').annotate(
+                count=Count('id')
+            ).order_by('-count')[:6]
+            
+            dept_labels = []
+            dept_data = []
+            for item in reports_by_dept:
+                dept_name = item['department__name'] or 'غير محدد'
+                dept_labels.append(dept_name)
+                dept_data.append(item['count'])
+            
+            # معلمين حسب القسم
+            teachers_by_dept = []
+            if Department is not None:
+                teachers_by_dept_qs = Department.objects.filter(
+                    school=active_school
+                ).annotate(
+                    teacher_count=Count('role__teacher', distinct=True)
+                ).order_by('-teacher_count')[:6]
+                
+                teachers_labels = []
+                teachers_data = []
+                for dept in teachers_by_dept_qs:
+                    teachers_labels.append(dept.name)
+                    teachers_data.append(dept.teacher_count)
+            else:
+                teachers_labels = []
+                teachers_data = []
+            
+            charts = {
+                "reports_labels": json.dumps(reports_labels),
+                "reports_data": json.dumps(reports_data),
+                "dept_labels": json.dumps(dept_labels),
+                "dept_data": json.dumps(dept_data),
+                "teachers_labels": json.dumps(teachers_labels),
+                "teachers_data": json.dumps(teachers_data),
+            }
+            
+            try:
+                cache.set(charts_cache_key, charts, 600)  # 10 دقائق
+            except Exception:
+                pass
+        
+        ctx.update(charts)
+        
+        # بيانات الاشتراك والتنبيهات
+        subscription_warning = None
+        try:
+            from .models import SchoolSubscription
+            active_subscription = SchoolSubscription.objects.filter(
+                school=active_school,
+                is_active=True
+            ).first()
+            
+            if active_subscription:
+                days_remaining = (active_subscription.end_date - now.date()).days
+                ctx['subscription'] = active_subscription
+                ctx['days_remaining'] = days_remaining
+                
+                if days_remaining <= 7:
+                    subscription_warning = 'critical'
+                elif days_remaining <= 30:
+                    subscription_warning = 'warning'
+            else:
+                subscription_warning = 'expired'
+        except Exception:
+            pass
+        
+        ctx['subscription_warning'] = subscription_warning
+        
+        # آخر الأنشطة
+        recent_activities = []
+        try:
+            recent_reports = _filter_by_school(
+                Report.objects.all(),
+                active_school
+            ).select_related('teacher').order_by('-created_at')[:5]
+            
+            for report in recent_reports:
+                recent_activities.append({
+                    'type': 'report',
+                    'icon': 'fa-file-alt',
+                    'color': 'primary',
+                    'title': 'تقرير جديد',
+                    'description': f"{report.teacher.name if report.teacher else 'معلم'} - {report.department.name if report.department else 'قسم'}",
+                    'time': report.created_at,
+                })
+            
+            recent_tickets = _filter_by_school(
+                Ticket.objects.filter(is_platform=False),
+                active_school
+            ).order_by('-created_at')[:3]
+            
+            for ticket in recent_tickets:
+                recent_activities.append({
+                    'type': 'ticket',
+                    'icon': 'fa-ticket-alt',
+                    'color': 'warning',
+                    'title': 'طلب جديد',
+                    'description': ticket.subject[:50],
+                    'time': ticket.created_at,
+                })
+            
+            recent_activities.sort(key=lambda x: x['time'], reverse=True)
+            recent_activities = recent_activities[:8]
+        except Exception:
+            pass
+        
+        ctx['recent_activities'] = recent_activities
 
     return render(request, "reports/admin_dashboard.html", ctx)
 
@@ -5175,28 +5318,35 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
-    """لوحة تحكم خاصة بالمشرف العام لإدارة المنصة بالكامل."""
+    """لوحة تحكم خاصة بالمشرف العام لإدارة المنصة بالكامل - تحديث 2026."""
     from django.core.cache import cache
+    from django.db.models.functions import TruncMonth
+    import json
     
-    cache_key = "platform_admin_stats"
-    try:
-        ctx = cache.get(cache_key)
-    except Exception:
-        ctx = None
-
-    # لا توجد معالجة POST هنا بعد الآن
-
-    if not ctx:
+    now = timezone.now()
+    
+    # البيانات الحرجة (بدون كاش أو كاش قصير جداً)
+    pending_payments = Payment.objects.filter(status=Payment.Status.PENDING).count()
+    tickets_open = Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=True).count()
+    
+    # البيانات الإحصائية (كاش 5 دقائق)
+    stats_cache_key = "platform_stats_v2"
+    stats = cache.get(stats_cache_key)
+    
+    if not stats:
         reports_count = Report.objects.count()
         teachers_count = Teacher.objects.count()
         
         tickets_total = Ticket.objects.filter(is_platform=True).count()
-        tickets_open = Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=True).count()
         tickets_done = Ticket.objects.filter(status="done", is_platform=True).count()
         tickets_rejected = Ticket.objects.filter(status="rejected", is_platform=True).count()
 
-        platform_schools_total = School.objects.count()
-        platform_schools_active = School.objects.filter(is_active=True).count()
+        # تحسين الاستعلامات باستخدام aggregate
+        school_stats = School.objects.aggregate(
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True))
+        )
+        
         platform_managers_count = (
             Teacher.objects.filter(
                 school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
@@ -5218,36 +5368,177 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         except Exception:
             pass
 
-        now = timezone.now()
-        ctx = {
+        stats = {
             "reports_count": reports_count,
             "teachers_count": teachers_count,
             "tickets_total": tickets_total,
-            "tickets_open": tickets_open,
             "tickets_done": tickets_done,
             "tickets_rejected": tickets_rejected,
-            "platform_schools_total": platform_schools_total,
-            "platform_schools_active": platform_schools_active,
+            "platform_schools_total": school_stats['total'],
+            "platform_schools_active": school_stats['active'],
             "platform_managers_count": platform_managers_count,
             "has_reporttype": has_reporttype,
             "reporttypes_count": reporttypes_count,
-            
-            # إحصائيات الاشتراكات والمالية
-            "subscriptions_active": SchoolSubscription.objects.filter(is_active=True, end_date__gte=now.date()).count(),
-            "subscriptions_expired": SchoolSubscription.objects.filter(Q(is_active=False) | Q(end_date__lt=now.date())).count(),
-            "subscriptions_expiring_soon": SchoolSubscription.objects.filter(
-                is_active=True,
-                end_date__gte=now.date(),
-                end_date__lte=now.date() + timedelta(days=30)
-            ).count(),
-            "pending_payments": Payment.objects.filter(status=Payment.Status.PENDING).count(),
-            "total_revenue": Payment.objects.filter(status=Payment.Status.APPROVED).aggregate(total=Sum('amount'))['total'] or 0,
         }
-        # تخزين في الكاش لمدة 10 دقائق للمشرف العام
+        
         try:
-            cache.set(cache_key, ctx, 600)
+            cache.set(stats_cache_key, stats, 300)  # 5 دقائق
         except Exception:
             pass
+    
+    # بيانات الاشتراكات والمالية (كاش 3 دقائق)
+    financial_cache_key = "platform_financial_v2"
+    financial = cache.get(financial_cache_key)
+    
+    if not financial:
+        subscriptions_active = SchoolSubscription.objects.filter(is_active=True, end_date__gte=now.date()).count()
+        subscriptions_expired = SchoolSubscription.objects.filter(Q(is_active=False) | Q(end_date__lt=now.date())).count()
+        subscriptions_expiring_soon = SchoolSubscription.objects.filter(
+            is_active=True,
+            end_date__gte=now.date(),
+            end_date__lte=now.date() + timedelta(days=30)
+        ).count()
+        
+        total_revenue = Payment.objects.filter(status=Payment.Status.APPROVED).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # قائمة الاشتراكات المنتهية قريباً (للجدول)
+        subscriptions_expiring_list = SchoolSubscription.objects.filter(
+            is_active=True,
+            end_date__gte=now.date(),
+            end_date__lte=now.date() + timedelta(days=30)
+        ).select_related('school', 'plan').order_by('end_date')[:10]
+        
+        financial = {
+            "subscriptions_active": subscriptions_active,
+            "subscriptions_expired": subscriptions_expired,
+            "subscriptions_expiring_soon": subscriptions_expiring_soon,
+            "total_revenue": total_revenue,
+            "subscriptions_expiring_list": list(subscriptions_expiring_list),
+        }
+        
+        try:
+            cache.set(financial_cache_key, financial, 180)  # 3 دقائق
+        except Exception:
+            pass
+    
+    # بيانات الرسوم البيانية (كاش 10 دقائق)
+    charts_cache_key = "platform_charts_v2"
+    charts = cache.get(charts_cache_key)
+    
+    if not charts:
+        # بيانات الإيرادات الشهرية (آخر 6 أشهر)
+        six_months_ago = now - timedelta(days=180)
+        revenue_by_month = Payment.objects.filter(
+            status=Payment.Status.APPROVED,
+            created_at__gte=six_months_ago
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            total=Sum('amount')
+        ).order_by('month')
+        
+        revenue_labels = []
+        revenue_data = []
+        for item in revenue_by_month:
+            month_name = item['month'].strftime('%Y-%m')
+            revenue_labels.append(month_name)
+            revenue_data.append(float(item['total']))
+        
+        # بيانات التقارير الأسبوعية (آخر 8 أسابيع)
+        eight_weeks_ago = now - timedelta(weeks=8)
+        reports_by_week = Report.objects.filter(
+            created_at__gte=eight_weeks_ago
+        ).extra(
+            select={'week': 'EXTRACT(week FROM created_at)'}
+        ).values('week').annotate(
+            count=Count('id')
+        ).order_by('week')
+        
+        reports_labels = [f"أسبوع {item['week']}" for item in reports_by_week]
+        reports_data = [item['count'] for item in reports_by_week]
+        
+        # توزيع المدارس حسب المرحلة
+        schools_by_stage = School.objects.values('stage').annotate(
+            count=Count('id')
+        ).order_by('stage')
+        
+        stage_labels = []
+        stage_data = []
+        stage_colors = []
+        color_map = {
+            'primary': '#3b82f6',
+            'middle': '#10b981', 
+            'secondary': '#f59e0b',
+            'all': '#8b5cf6'
+        }
+        
+        for item in schools_by_stage:
+            stage_name = dict(School.STAGE_CHOICES).get(item['stage'], item['stage'])
+            stage_labels.append(stage_name)
+            stage_data.append(item['count'])
+            stage_colors.append(color_map.get(item['stage'], '#6b7280'))
+        
+        charts = {
+            "revenue_labels": json.dumps(revenue_labels),
+            "revenue_data": json.dumps(revenue_data),
+            "reports_labels": json.dumps(reports_labels),
+            "reports_data": json.dumps(reports_data),
+            "stage_labels": json.dumps(stage_labels),
+            "stage_data": json.dumps(stage_data),
+            "stage_colors": json.dumps(stage_colors),
+        }
+        
+        try:
+            cache.set(charts_cache_key, charts, 600)  # 10 دقائق
+        except Exception:
+            pass
+    
+    # آخر الأنشطة (بدون كاش)
+    recent_activities = []
+    try:
+        recent_payments = Payment.objects.filter(
+            status=Payment.Status.APPROVED
+        ).select_related('school').order_by('-updated_at')[:5]
+        
+        for payment in recent_payments:
+            recent_activities.append({
+                'type': 'payment',
+                'icon': 'fa-check-circle',
+                'color': 'emerald',
+                'title': 'تمت الموافقة على دفعة',
+                'description': f"{payment.school.name if payment.school else 'مدرسة'} - {payment.amount} ر.س",
+                'time': payment.updated_at,
+            })
+        
+        recent_subscriptions = SchoolSubscription.objects.filter(
+            is_active=True
+        ).select_related('school', 'plan').order_by('-created_at')[:3]
+        
+        for sub in recent_subscriptions:
+            recent_activities.append({
+                'type': 'subscription',
+                'icon': 'fa-star',
+                'color': 'indigo',
+                'title': 'اشتراك جديد',
+                'description': f"{sub.school.name} - {sub.plan.name}",
+                'time': sub.created_at,
+            })
+        
+        # ترتيب حسب الوقت
+        recent_activities.sort(key=lambda x: x['time'], reverse=True)
+        recent_activities = recent_activities[:8]
+    except Exception:
+        pass
+    
+    # دمج جميع البيانات
+    ctx = {
+        **stats,
+        **financial,
+        **charts,
+        "pending_payments": pending_payments,
+        "tickets_open": tickets_open,
+        "recent_activities": recent_activities,
+    }
 
     return render(request, "reports/platform_admin_dashboard.html", ctx)
 

@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}لوحة إدارة المدرسة | 2026{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --primary: #2563eb;
+        --secondary: #64748b;
+        --accent: #8b5cf6;
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text: #0f172a;
+        --radius: 12px;
+    }
+
+    [data-theme="dark"] {
+        --surface: #1e293b;
+        --background: #0f172a;
+        --text: #f1f5f9;
+        --secondary: #94a3b8;
+    }
+
+    .school-dash {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* Hero Section */
+    .hero-card {
+        background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
+        color: white;
+        border-radius: var(--radius);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-card::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: url('{% static "img/pattern.svg" %}') opacity(0.1);
+        pointer-events: none;
+    }
+
+    .hero-content h1 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+    
+    .school-meta {
+        display: flex;
+        gap: 1.5rem;
+        font-size: 0.95rem;
+        opacity: 0.9;
+    }
+    
+    .hero-stats {
+        display: flex;
+        gap: 2rem;
+        background: rgba(255,255,255,0.1);
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius);
+        backdrop-filter: blur(10px);
+    }
+    
+    .h-stat { text-align: center; }
+    .h-stat-val { font-size: 1.5rem; font-weight: 700; display: block; }
+    .h-stat-lbl { font-size: 0.8rem; opacity: 0.8; }
+
+    /* Action Grid */
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .action-card {
+        background: var(--surface);
+        padding: 1.5rem;
+        border-radius: var(--radius);
+        text-align: center;
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary);
+    }
+
+    .action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #eff6ff;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    
+    .action-title {
+        color: var(--text);
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    /* Main Info Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    @media(max-width:992px) {
+        .info-grid { grid-template-columns: 1fr; }
+        .hero-card { flex-direction: column; text-align: center; gap: 1.5rem; }
+        .hero-stats { width: 100%; justify-content: space-around; }
+    }
+
+    .panel {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding-bottom: 1rem;
+    }
+    
+    .panel-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0; }
+
+    /* List items */
+    .list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .list-item:last-child { border: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="school-dash">
+    
+    {% if active_school %}
+    <div class="hero-card">
+        <div class="hero-content">
+            <h1>{{ active_school.name }}</h1>
+            <div class="school-meta">
+                <span><i class="fas fa-calendar-alt"></i> السنة: {{ active_school.file.academic_year|default:"الحالية" }}</span>
+                <span><i class="fas fa-users"></i> إجمالي المعلمين: {{ teachers_count }}</span>
+            </div>
+            <div style="margin-top:1rem;">
+                <a href="{% url 'reports:school_settings' %}" class="btn tb-btn btn-sm" style="background:rgba(255,255,255,0.2); color:white; border:none;">
+                    <i class="fas fa-cog"></i> إعدادات المدرسة
+                </a>
+            </div>
+        </div>
+        <div class="hero-stats">
+            <div class="h-stat">
+                <span class="h-stat-val">{{ reports_count }}</span>
+                <span class="h-stat-lbl">تقرير</span>
+            </div>
+            <div class="h-stat">
+                <span class="h-stat-val">{{ tickets_total }}</span>
+                <span class="h-stat-lbl">طلب</span>
+            </div>
+            <div class="h-stat">
+                <span class="h-stat-val">{{ ticket_open|default:0 }}</span>
+                <span class="h-stat-lbl">قيد المعالجة</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="hero-card" style="background: var(--secondary);">
+        <div class="hero-content">
+            <h1>لم يتم اختيار مدرسة</h1>
+            <p>اختر مدرسة للبدء في إدارة العمليات.</p>
+            <a href="{% url 'reports:select_school' %}" class="btn btn-light" style="margin-top:0.5rem">اختيار مدرسة</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="action-grid">
+        <a href="{% url 'reports:add_teacher' %}" class="action-card">
+            <div class="action-icon"><i class="fas fa-user-plus"></i></div>
+            <span class="action-title">إضافة معلم</span>
+        </a>
+        <a href="{% url 'reports:manage_teachers' %}" class="action-card">
+            <div class="action-icon" style="color:#0ea5e9; background:#e0f2fe"><i class="fas fa-chalkboard-teacher"></i></div>
+            <span class="action-title">إدارة المعلمين</span>
+        </a>
+        <a href="{% url 'reports:departments_list' %}" class="action-card">
+            <div class="action-icon" style="color:#8b5cf6; background:#f3e8ff"><i class="fas fa-building"></i></div>
+            <span class="action-title">الأقسام</span>
+        </a>
+        <a href="{% url 'reports:admin_reports' %}" class="action-card">
+            <div class="action-icon" style="color:#10b981; background:#d1fae5"><i class="fas fa-file-contract"></i></div>
+            <span class="action-title">تقارير المدرسة</span>
+        </a>
+        <a href="{% url 'reports:request_create' %}" class="action-card">
+            <div class="action-icon" style="color:#f59e0b; background:#fef3c7"><i class="fas fa-plus-circle"></i></div>
+            <span class="action-title">طلب جديد</span>
+        </a>
+
+        <a href="{% url 'reports:manager_school_tickets' %}" class="action-card">
+            <div class="action-icon" style="color:#0ea5e9; background:#e0f2fe"><i class="fas fa-inbox"></i></div>
+            <span class="action-title">طلبات المدرسة</span>
+        </a>
+        
+        <!-- Additional Management Cards -->
+        <a href="{% url 'reports:my_subscription' %}" class="action-card">
+            <div class="action-icon" style="color:#ef4444; background:#fee2e2"><i class="fas fa-star"></i></div>
+            <span class="action-title">اشتراك المدرسة</span>
+        </a>
+        <a href="{% url 'reports:reporttypes_list' %}" class="action-card">
+            <div class="action-icon" style="color:#6366f1; background:#e0e7ff"><i class="fas fa-list-alt"></i></div>
+            <span class="action-title">أنواع التقارير</span>
+        </a>
+
+        <a href="{% url 'reports:notifications_sent' %}" class="action-card">
+            <div class="action-icon" style="color:#0ea5e9; background:#e0f2fe"><i class="fas fa-bell"></i></div>
+            <span class="action-title">الإشعارات</span>
+        </a>
+
+        <a href="{% url 'reports:circulars_sent' %}" class="action-card">
+            <div class="action-icon" style="color:#2563eb; background:#eef2ff"><i class="fas fa-clipboard-check"></i></div>
+            <span class="action-title">التعاميم</span>
+        </a>
+
+        <a href="{% url 'reports:notifications_create' %}" class="action-card">
+            <div class="action-icon" style="color:#f59e0b; background:#fff7ed"><i class="fas fa-bell"></i></div>
+            <span class="action-title">إرسال إشعار</span>
+        </a>
+
+        <a href="{% url 'reports:circulars_create' %}" class="action-card">
+            <div class="action-icon" style="color:#2563eb; background:#eff6ff"><i class="fas fa-bullhorn"></i></div>
+            <span class="action-title">إرسال تعميم</span>
+        </a>
+        <a href="{% url 'reports:my_support_tickets' %}" class="action-card">
+            <div class="action-icon" style="color:#e11d48; background:#ffe4e6"><i class="fas fa-headset"></i></div>
+            <span class="action-title">تذاكر الدعم الفني</span>
+        </a>
+        <a href="{% url 'reports:achievement_school_files' %}" class="action-card">
+            <div class="action-icon" style="color:#14b8a6; background:#ccfbf1"><i class="fas fa-award"></i></div>
+            <span class="action-title">ملفات الإنجاز</span>
+        </a>
+    </div>
+
+    <div class="info-grid">
+        <div class="side-stats">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">حالة النظام</h3>
+                </div>
+                <div class="list-item">
+                    <span>عدد المعلمين</span>
+                    <strong>{{ teachers_count }}</strong>
+                </div>
+                <div class="list-item">
+                    <span>أنواع التقارير</span>
+                    <strong>{{ reporttypes_count }}</strong>
+                </div>
+                <div class="list-item">
+                    <span>إحصائية الطلبات</span>
+                    <span class="badge" style="background:#d1fae5; color:#065f46">ممتازة</span>
+                </div>
+            </div>
+
+            <div class="panel" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
+                <div class="panel-header" style="border-color:rgba(0,0,0,0.1)">
+                    <h3 class="panel-title">الدعم الفني</h3>
+                </div>
+                <p style="font-size:0.9rem; color:var(--text); margin-bottom:1rem;">هل تواجه مشكلة؟ يمكنك فتح تذكرة دعم فني للمنصة.</p>
+                <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-sm btn-primary" style="width:100%">تواصل مع الدعم</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

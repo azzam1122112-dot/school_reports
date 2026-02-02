@@ -1,0 +1,317 @@
+/* 
+ * Platform Admin Dashboard Premium Styles
+ * Version: 2.0
+ * Date: February 2026
+ * 
+ * يمكن استيراد هذا الملف في base.html إذا أردت فصل CSS
+ * <link rel="stylesheet" href="{% static 'css/platform-admin-dashboard.css' %}">
+ */
+
+/* Base Variables - يمكن تخصيصها حسب الحاجة */
+:root {
+    /* Colors */
+    --pad-primary: #4f46e5;
+    --pad-secondary: #10b981;
+    --pad-danger: #ef4444;
+    --pad-warning: #f59e0b;
+    --pad-info: #0ea5e9;
+    --pad-purple: #8b5cf6;
+    
+    /* Backgrounds */
+    --pad-bg-light: #f8fafc;
+    --pad-bg-dark: #0f172a;
+    --pad-card-light: #ffffff;
+    --pad-card-dark: #1f2937;
+    
+    /* Text */
+    --pad-text-main: #1f2937;
+    --pad-text-muted: #6b7280;
+    
+    /* Borders */
+    --pad-border: #e5e7eb;
+    
+    /* Radius */
+    --pad-radius-sm: 8px;
+    --pad-radius-md: 12px;
+    --pad-radius-lg: 16px;
+    --pad-radius-xl: 20px;
+    
+    /* Shadows */
+    --pad-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --pad-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --pad-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --pad-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    /* Transitions */
+    --pad-transition-fast: 150ms ease;
+    --pad-transition-base: 200ms ease;
+    --pad-transition-slow: 300ms ease;
+    
+    /* Z-index layers */
+    --pad-z-dropdown: 1000;
+    --pad-z-modal: 2000;
+    --pad-z-notification: 3000;
+}
+
+/* Dark Theme Override */
+[data-theme="dark"] {
+    --pad-text-main: #f9fafb;
+    --pad-text-muted: #9ca3af;
+    --pad-border: #374151;
+}
+
+/* Utility Classes */
+.pad-text-center { text-align: center; }
+.pad-text-right { text-align: right; }
+.pad-text-left { text-align: left; }
+
+.pad-mt-1 { margin-top: 0.5rem; }
+.pad-mt-2 { margin-top: 1rem; }
+.pad-mt-3 { margin-top: 1.5rem; }
+.pad-mt-4 { margin-top: 2rem; }
+
+.pad-mb-1 { margin-bottom: 0.5rem; }
+.pad-mb-2 { margin-bottom: 1rem; }
+.pad-mb-3 { margin-bottom: 1.5rem; }
+.pad-mb-4 { margin-bottom: 2rem; }
+
+.pad-p-1 { padding: 0.5rem; }
+.pad-p-2 { padding: 1rem; }
+.pad-p-3 { padding: 1.5rem; }
+.pad-p-4 { padding: 2rem; }
+
+/* Flex Utilities */
+.pad-flex { display: flex; }
+.pad-flex-col { flex-direction: column; }
+.pad-items-center { align-items: center; }
+.pad-justify-between { justify-content: space-between; }
+.pad-justify-center { justify-content: center; }
+.pad-gap-1 { gap: 0.5rem; }
+.pad-gap-2 { gap: 1rem; }
+.pad-gap-3 { gap: 1.5rem; }
+
+/* Grid Utilities */
+.pad-grid { display: grid; }
+.pad-grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.pad-grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.pad-grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* Text Sizes */
+.pad-text-xs { font-size: 0.75rem; }
+.pad-text-sm { font-size: 0.875rem; }
+.pad-text-base { font-size: 1rem; }
+.pad-text-lg { font-size: 1.125rem; }
+.pad-text-xl { font-size: 1.25rem; }
+.pad-text-2xl { font-size: 1.5rem; }
+.pad-text-3xl { font-size: 1.875rem; }
+
+/* Font Weights */
+.pad-font-normal { font-weight: 400; }
+.pad-font-medium { font-weight: 500; }
+.pad-font-semibold { font-weight: 600; }
+.pad-font-bold { font-weight: 700; }
+.pad-font-extrabold { font-weight: 800; }
+
+/* Color Utilities */
+.pad-text-primary { color: var(--pad-primary); }
+.pad-text-secondary { color: var(--pad-secondary); }
+.pad-text-danger { color: var(--pad-danger); }
+.pad-text-warning { color: var(--pad-warning); }
+.pad-text-muted { color: var(--pad-text-muted); }
+
+.pad-bg-primary { background-color: var(--pad-primary); }
+.pad-bg-secondary { background-color: var(--pad-secondary); }
+.pad-bg-danger { background-color: var(--pad-danger); }
+.pad-bg-warning { background-color: var(--pad-warning); }
+
+/* Border Utilities */
+.pad-border { border: 1px solid var(--pad-border); }
+.pad-border-t { border-top: 1px solid var(--pad-border); }
+.pad-border-b { border-bottom: 1px solid var(--pad-border); }
+.pad-border-r { border-right: 1px solid var(--pad-border); }
+.pad-border-l { border-left: 1px solid var(--pad-border); }
+
+/* Rounded Utilities */
+.pad-rounded-sm { border-radius: var(--pad-radius-sm); }
+.pad-rounded-md { border-radius: var(--pad-radius-md); }
+.pad-rounded-lg { border-radius: var(--pad-radius-lg); }
+.pad-rounded-xl { border-radius: var(--pad-radius-xl); }
+.pad-rounded-full { border-radius: 9999px; }
+
+/* Shadow Utilities */
+.pad-shadow-sm { box-shadow: var(--pad-shadow-sm); }
+.pad-shadow-md { box-shadow: var(--pad-shadow-md); }
+.pad-shadow-lg { box-shadow: var(--pad-shadow-lg); }
+.pad-shadow-xl { box-shadow: var(--pad-shadow-xl); }
+
+/* Animation Utilities */
+.pad-animate-fade-in {
+    animation: pad-fade-in 0.5s ease;
+}
+
+.pad-animate-slide-in {
+    animation: pad-slide-in 0.5s ease;
+}
+
+.pad-animate-pulse {
+    animation: pad-pulse 2s infinite;
+}
+
+@keyframes pad-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pad-slide-in {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pad-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Hover Effects */
+.pad-hover-lift {
+    transition: transform var(--pad-transition-base);
+}
+
+.pad-hover-lift:hover {
+    transform: translateY(-4px);
+}
+
+.pad-hover-scale {
+    transition: transform var(--pad-transition-base);
+}
+
+.pad-hover-scale:hover {
+    transform: scale(1.05);
+}
+
+/* Loading Skeleton */
+.pad-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: pad-skeleton-loading 1.5s infinite;
+    border-radius: var(--pad-radius-md);
+}
+
+@keyframes pad-skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+[data-theme="dark"] .pad-skeleton {
+    background: linear-gradient(90deg, #2d3748 25%, #1a202c 50%, #2d3748 75%);
+    background-size: 200% 100%;
+}
+
+/* Responsive Visibility */
+@media (max-width: 768px) {
+    .pad-hide-mobile { display: none !important; }
+}
+
+@media (min-width: 769px) {
+    .pad-hide-desktop { display: none !important; }
+}
+
+/* Print Utilities */
+@media print {
+    .pad-no-print { display: none !important; }
+}
+
+/* Accessibility */
+.pad-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus Styles */
+.pad-focus:focus {
+    outline: 2px solid var(--pad-primary);
+    outline-offset: 2px;
+}
+
+/* Scrollbar Styling */
+.pad-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.pad-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pad-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.pad-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Gradient Backgrounds */
+.pad-gradient-primary {
+    background: linear-gradient(135deg, var(--pad-primary), var(--pad-purple));
+}
+
+.pad-gradient-success {
+    background: linear-gradient(135deg, var(--pad-secondary), #059669);
+}
+
+.pad-gradient-danger {
+    background: linear-gradient(135deg, var(--pad-danger), #dc2626);
+}
+
+.pad-gradient-warning {
+    background: linear-gradient(135deg, var(--pad-warning), #d97706);
+}
+
+/* Text Gradients */
+.pad-text-gradient {
+    background: linear-gradient(135deg, var(--pad-primary), var(--pad-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Glass Effect */
+.pad-glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .pad-glass {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}

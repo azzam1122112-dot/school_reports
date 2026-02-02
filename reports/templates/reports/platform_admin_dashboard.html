@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
 {% load static humanize %}
 
-{% block title %}لوحة مدير النظام | تحديث 2026{% endblock %}
+{% block title %}لوحة مدير النظام | تحديث 2026 Premium{% endblock %}
 
 {% block head %}
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
 <style>
-    /* 2026 Modern Dashboard Styling */
+    /* 2026 Premium Modern Dashboard Styling */
     :root {
         --primary-color: #4f46e5; /* Indigo */
         --secondary-color: #10b981; /* Emerald */
@@ -20,6 +23,7 @@
         --radius-md: 12px;
         --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
     
     [data-theme="dark"] {
@@ -28,11 +32,96 @@
         --text-muted: #9ca3af;
         --border-color: #374151;
     }
+    
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateX(20px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
 
     .dashboard-container {
         padding: 2rem;
         max-width: 1440px;
         margin: 0 auto;
+        animation: fadeIn 0.5s ease;
+    }
+
+    /* Quick Search Bar */
+    .quick-search-container {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .quick-search {
+        width: 100%;
+        padding: 1rem 1.5rem 1rem 3.5rem;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        font-size: 1rem;
+        background: var(--card-bg);
+        color: var(--text-main);
+        transition: all 0.3s;
+    }
+    
+    .quick-search:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .search-icon {
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 1.25rem;
+    }
+    
+    .search-results {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        margin-top: 0.5rem;
+        box-shadow: var(--shadow-lg);
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    
+    .search-results.active {
+        display: block;
+        animation: slideIn 0.3s ease;
+    }
+    
+    .search-result-item {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .search-result-item:hover {
+        background: rgba(79, 70, 229, 0.05);
+    }
+    
+    .search-result-item:last-child {
+        border-bottom: none;
     }
 
     .welcome-header {
@@ -42,6 +131,7 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 1rem;
+        animation: fadeIn 0.6s ease;
     }
     
     .welcome-title h1 {
@@ -49,11 +139,49 @@
         font-weight: 800;
         color: var(--text-main);
         margin: 0;
+        background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
     
     .welcome-date {
         color: var(--text-muted);
         font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    /* Time Filters */
+    .time-filters {
+        display: flex;
+        gap: 0.5rem;
+        background: rgba(79, 70, 229, 0.05);
+        padding: 0.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-btn {
+        padding: 0.625rem 1.25rem;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .filter-btn:hover {
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--primary-color);
+    }
+    
+    .filter-btn.active {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: var(--shadow-md);
     }
 
     /* Stats Grid */
@@ -70,21 +198,44 @@
         padding: 1.5rem;
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--border-color);
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        animation: fadeIn 0.5s ease backwards;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), transparent);
+        border-radius: 0 0 0 100%;
+        pointer-events: none;
     }
     
     .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary-color);
     }
+    
+    .stat-card:nth-child(1) { animation-delay: 0.1s; }
+    .stat-card:nth-child(2) { animation-delay: 0.2s; }
+    .stat-card:nth-child(3) { animation-delay: 0.3s; }
+    .stat-card:nth-child(4) { animation-delay: 0.4s; }
 
     .stat-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         margin-bottom: 1rem;
+        position: relative;
+        z-index: 1;
     }
 
     .stat-icon {
@@ -96,12 +247,17 @@
         justify-content: center;
         font-size: 1.25rem;
         flex-shrink: 0;
+        transition: transform 0.3s;
     }
     
-    .bg-indigo-light { background: #e0e7ff; color: #4338ca; }
-    .bg-emerald-light { background: #d1fae5; color: #065f46; }
-    .bg-amber-light { background: #fef3c7; color: #92400e; }
-    .bg-rose-light { background: #ffe4e6; color: #be123c; }
+    .stat-card:hover .stat-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+    
+    .bg-indigo-light { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #4338ca; }
+    .bg-emerald-light { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46; }
+    .bg-amber-light { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
+    .bg-rose-light { background: linear-gradient(135deg, #ffe4e6, #fecdd3); color: #be123c; }
 
     .stat-value {
         font-size: 2rem;
@@ -109,12 +265,127 @@
         color: var(--text-main);
         line-height: 1;
         margin-bottom: 0.25rem;
+        position: relative;
+        z-index: 1;
     }
 
     .stat-label {
         color: var(--text-muted);
         font-size: 0.9rem;
         font-weight: 500;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Chart Containers */
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 1.5rem 0;
+    }
+    
+    .chart-container-lg {
+        height: 400px;
+    }
+    
+    .chart-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--text-muted);
+    }
+
+    /* Activity Timeline */
+    .activity-timeline {
+        padding: 1rem 0;
+    }
+    
+    .timeline-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 0.75rem;
+        transition: background 0.2s;
+        animation: slideIn 0.4s ease backwards;
+    }
+    
+    .timeline-item:hover {
+        background: rgba(79, 70, 229, 0.03);
+    }
+    
+    .timeline-item:nth-child(1) { animation-delay: 0.1s; }
+    .timeline-item:nth-child(2) { animation-delay: 0.2s; }
+    .timeline-item:nth-child(3) { animation-delay: 0.3s; }
+    .timeline-item:nth-child(4) { animation-delay: 0.4s; }
+    
+    .timeline-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1rem;
+    }
+    
+    .timeline-icon.emerald { background: #d1fae5; color: #065f46; }
+    .timeline-icon.indigo { background: #e0e7ff; color: #4338ca; }
+    .timeline-icon.amber { background: #fef3c7; color: #92400e; }
+    .timeline-icon.rose { background: #ffe4e6; color: #be123c; }
+    
+    .timeline-content {
+        flex: 1;
+    }
+    
+    .timeline-content h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+    
+    .timeline-content p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+    
+    .timeline-time {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.25rem;
+        display: block;
+    }
+    
+    /* Export Buttons */
+    .export-buttons {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    
+    .export-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-main);
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .export-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        background: rgba(79, 70, 229, 0.05);
     }
 
     /* Sections */
@@ -235,16 +506,19 @@
         gap: 1rem;
         padding: 1rem;
         border-bottom: 1px solid var(--border-color);
+        transition: background 0.2s;
     }
     .notif-item:last-child { border-bottom: none; }
 
     .notif-item-link {
         text-decoration: none;
         color: inherit;
+        display: flex;
+        gap: 1rem;
     }
 
-    .notif-item-link:hover {
-        background: #f9fafb;
+    .notif-item-link:hover, .notif-item:hover {
+        background: rgba(79, 70, 229, 0.03);
     }
     
     .notif-icon {
@@ -256,31 +530,239 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-shrink: 0;
     }
     
-    .notif-content h4 { margin: 0 0 0.25rem 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main); }
-    .notif-content p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
-    .notif-time { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; display: block; }
+    .notif-content h4 { 
+        margin: 0 0 0.25rem 0; 
+        font-size: 0.95rem; 
+        font-weight: 600; 
+        color: var(--text-main); 
+    }
+    
+    .notif-content p { 
+        margin: 0; 
+        font-size: 0.85rem; 
+        color: var(--text-muted); 
+    }
+    
+    .notif-time { 
+        font-size: 0.75rem; 
+        color: #9ca3af; 
+        margin-top: 0.25rem; 
+        display: block; 
+    }
+    
+    /* Loading Skeleton */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        border-radius: var(--radius-md);
+    }
+    
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 1rem;
+        }
+        
+        .welcome-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+        }
+        
+        .time-filters {
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+        }
+        
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .chart-container {
+            height: 250px;
+        }
+        
+        .actions {
+            width: 100%;
+        }
+        
+        .actions .btn-modern {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .export-buttons {
+            flex-direction: column;
+        }
+        
+        .modern-table {
+            font-size: 0.85rem;
+        }
+        
+        .modern-table th,
+        .modern-table td {
+            padding: 0.75rem 0.5rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .welcome-title h1 {
+            font-size: 1.5rem;
+        }
+        
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+        
+        .quick-search {
+            padding: 0.875rem 1rem 0.875rem 3rem;
+            font-size: 0.9rem;
+        }
+    }
+    
+    /* Print Styles */
+    @media print {
+        .welcome-header .actions,
+        .time-filters,
+        .export-buttons,
+        .quick-search-container {
+            display: none !important;
+        }
+        
+        .dashboard-container {
+            padding: 0;
+        }
+        
+        .card-panel {
+            page-break-inside: avoid;
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+        
+        .chart-container {
+            height: auto;
+        }
+    }
+    
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Dark Mode Enhancements */
+    [data-theme="dark"] .skeleton {
+        background: linear-gradient(90deg, #2d3748 25%, #1a202c 50%, #2d3748 75%);
+        background-size: 200% 100%;
+    }
+    
+    [data-theme="dark"] .stat-card::before {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), transparent);
+    }
+    
+    [data-theme="dark"] .quick-search {
+        background: #1f2937;
+        border-color: #374151;
+    }
+    
+    [data-theme="dark"] .search-results {
+        background: #1f2937;
+        border-color: #374151;
+    }
+    
+    [data-theme="dark"] .time-filters {
+        background: rgba(139, 92, 246, 0.1);
+    }
+    
+    [data-theme="dark"] .notif-item:hover,
+    [data-theme="dark"] .notif-item-link:hover {
+        background: rgba(139, 92, 246, 0.1);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
     
+    <!-- Quick Search Bar -->
+    <div class="quick-search-container">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" 
+               class="quick-search" 
+               id="globalSearch" 
+               placeholder="🔍 بحث سريع عن مدرسة، معلم، أو تذكرة..."
+               autocomplete="off">
+        <div class="search-results" id="searchResults"></div>
+    </div>
+    
     <!-- Welcome Header -->
     <div class="welcome-header">
         <div class="welcome-title">
             <h1>أهلاً بك، مدير النظام 👋</h1>
-            <span class="welcome-date">نظرة عامة على أداء المنصة وتحليلات فورية.</span>
+            <span class="welcome-date">نظرة عامة شاملة على أداء المنصة وتحليلات فورية لحظية.</span>
         </div>
-        <div class="actions" style="display:flex; gap:0.75rem;">
+        <div class="actions" style="display:flex; gap:0.75rem; flex-wrap: wrap;">
             <a href="{% url 'reports:platform_schools_directory' %}" class="btn-modern outline">
                 <i class="fas fa-search"></i> دليل المدارس
             </a>
             <a href="{% url 'reports:platform_admin_create' %}" class="btn-modern">
                 <i class="fas fa-plus"></i> إضافة مشرف
             </a>
+            <button onclick="refreshDashboard()" class="btn-modern outline" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i> تحديث البيانات
+            </button>
         </div>
+    </div>
+    
+    <!-- Time Filters -->
+    <div class="time-filters">
+        <button class="filter-btn active" data-period="all" onclick="filterByPeriod('all', this)">
+            <i class="fas fa-infinity"></i> الكل
+        </button>
+        <button class="filter-btn" data-period="year" onclick="filterByPeriod('year', this)">
+            <i class="fas fa-calendar"></i> هذا العام
+        </button>
+        <button class="filter-btn" data-period="quarter" onclick="filterByPeriod('quarter', this)">
+            <i class="fas fa-calendar-week"></i> هذا الربع
+        </button>
+        <button class="filter-btn" data-period="month" onclick="filterByPeriod('month', this)">
+            <i class="fas fa-calendar-day"></i> هذا الشهر
+        </button>
     </div>
 
     <!-- Alerts -->
@@ -399,10 +881,39 @@
         <!-- Main Content Area -->
         <div class="main-column">
             
-            <!-- Financial Logic / Recent Activity Mockup -->
+            <!-- Revenue Chart -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">تنبيهات الاشتراكات (تنتهي قريباً)</h3>
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
+                        <i class="fas fa-chart-line" style="color: var(--secondary-color);"></i>
+                        نمو الإيرادات الشهرية
+                    </h3>
+                    <div class="export-buttons">
+                        <button class="export-btn" onclick="exportChartToPDF('revenueChart')">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button class="export-btn" onclick="exportChartToImage('revenueChart')">
+                            <i class="fas fa-image"></i> صورة
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Subscriptions Expiring Soon Table -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
+                        <i class="fas fa-clock" style="color: var(--warning-color);"></i>
+                        اشتراكات تنتهي قريباً (خلال 30 يوم)
+                    </h3>
+                    <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn-modern outline" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                        عرض الكل <i class="fas fa-arrow-left"></i>
+                    </a>
                 </div>
                 <div style="overflow-x:auto;">
                     <table class="modern-table">
@@ -412,39 +923,91 @@
                                 <th>الباقة</th>
                                 <th>الحالة</th>
                                 <th>تاريخ الانتهاء</th>
+                                <th>الأيام المتبقية</th>
                                 <th>إجراء</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- This data would ideally come from the view. Assuming user hasn't asked us to change the view logic significantly, we might not have the list. But if we do, we iterate. -->
-                            <!-- Fallback for now: showing static suggestion if empty or loop if available -->
-                            {% if subscriptions_expiring_soon > 0 %}
-                            <tr>
-                                <td colspan="5" style="text-align:center; padding: 2rem;">
-                                    يوجد {{ subscriptions_expiring_soon }} اشتراك ينتهي خلال 30 يوم.
-                                    <br><br>
-                                    <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn-modern outline">عرض التفاصيل</a>
-                                </td>
-                            </tr>
+                            {% if subscriptions_expiring_list %}
+                                {% for sub in subscriptions_expiring_list %}
+                                <tr>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <i class="fas fa-school" style="color: var(--primary-color);"></i>
+                                            <strong>{{ sub.school.name }}</strong>
+                                        </div>
+                                    </td>
+                                    <td>{{ sub.plan.name }}</td>
+                                    <td>
+                                        {% with days_left=sub.end_date|timeuntil %}
+                                            {% if "يوم" in days_left and days_left|slice:":2"|add:"0" < 7 %}
+                                                <span class="status-badge status-danger">
+                                                    <i class="fas fa-exclamation-circle"></i> حرج
+                                                </span>
+                                            {% elif "يوم" in days_left and days_left|slice:":2"|add:"0" < 15 %}
+                                                <span class="status-badge status-warning">
+                                                    <i class="fas fa-exclamation-triangle"></i> تحذير
+                                                </span>
+                                            {% else %}
+                                                <span class="status-badge status-active">
+                                                    <i class="fas fa-clock"></i> قريب
+                                                </span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>{{ sub.end_date|date:"Y-m-d" }}</td>
+                                    <td>
+                                        <strong style="color: var(--warning-color);">
+                                            {{ sub.end_date|timeuntil }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'reports:platform_subscription_detail' sub.id %}" class="btn-modern outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+                                            <i class="fas fa-eye"></i> عرض
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="5" style="text-align:center; color:var(--text-muted);">لا توجد اشتراكات تنتهي قريباً.</td>
+                                <td colspan="6" style="text-align:center; padding: 3rem; color:var(--text-muted);">
+                                    <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--secondary-color); margin-bottom: 1rem; display: block;"></i>
+                                    <strong style="font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">ممتاز! 🎉</strong>
+                                    لا توجد اشتراكات تنتهي خلال الـ 30 يوم القادمة.
+                                </td>
                             </tr>
                             {% endif %}
                         </tbody>
                     </table>
                 </div>
             </div>
+            
+            <!-- Reports Activity Chart -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
+                        <i class="fas fa-file-alt" style="color: var(--primary-color);"></i>
+                        نشاط التقارير الأسبوعي
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="reportsChart"></canvas>
+                    </div>
+                </div>
+            </div>
 
         </div>
 
-        <!-- Sidebar / Alerts -->
+        <!-- Sidebar / Alerts & Activity -->
         <div class="side-column">
 
             <!-- Alerts Card (Actionable) -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">🔔 تنبيهات</h3>
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
+                        🔔 تنبيهات مهمة
+                    </h3>
                 </div>
                 <div class="card-body" style="padding:0;">
                     {% if tickets_open > 0 %}
@@ -482,21 +1045,72 @@
 
                     {% if tickets_open == 0 and pending_payments == 0 and subscriptions_expiring_soon == 0 %}
                     <div class="notif-item">
-                        <div class="notif-icon"><i class="fas fa-check"></i></div>
+                        <div class="notif-icon" style="background:#d1fae5; color:#065f46"><i class="fas fa-check"></i></div>
                         <div class="notif-content">
                             <h4>لا توجد تنبيهات حالياً</h4>
-                            <p>كل شيء يبدو جيداً.</p>
+                            <p>كل شيء يبدو ممتازاً! 🎉</p>
                             <span class="notif-time">—</span>
                         </div>
                     </div>
                     {% endif %}
                 </div>
             </div>
+            
+            <!-- Schools Distribution Chart -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
+                        <i class="fas fa-chart-pie" style="color: var(--accent);"></i>
+                        توزيع المدارس حسب المرحلة
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="schoolsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity Timeline -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
+                        <i class="fas fa-history" style="color: var(--text-muted);"></i>
+                        آخر الأنشطة
+                    </h3>
+                </div>
+                <div class="card-body" style="padding: 1rem;">
+                    <div class="activity-timeline">
+                        {% if recent_activities %}
+                            {% for activity in recent_activities %}
+                            <div class="timeline-item">
+                                <div class="timeline-icon {{ activity.color }}">
+                                    <i class="fas {{ activity.icon }}"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <h4>{{ activity.title }}</h4>
+                                    <p>{{ activity.description }}</p>
+                                    <span class="timeline-time">{{ activity.time|timesince }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                            لا توجد أنشطة حديثة
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
 
             <!-- Quick Ticket Stats -->
             <div class="card-panel">
                 <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">الدعم الفني</h3>
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
+                        <i class="fas fa-headset" style="color: var(--danger-color);"></i>
+                        الدعم الفني
+                    </h3>
                 </div>
                 <div class="card-body">
                     <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
@@ -517,5 +1131,358 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript للرسوم البيانية والتفاعلية -->
+<script>
+// إعدادات Chart.js العامة
+Chart.defaults.font.family = 'Cairo, sans-serif';
+Chart.defaults.color = '#6b7280';
+
+// الألوان
+const colors = {
+    primary: '#4f46e5',
+    secondary: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    info: '#0ea5e9',
+    purple: '#8b5cf6',
+};
+
+// 1. رسم بياني للإيرادات الشهرية
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+const revenueChart = new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+        labels: {{ revenue_labels|safe }},
+        datasets: [{
+            label: 'الإيرادات (ر.س)',
+            data: {{ revenue_data|safe }},
+            borderColor: colors.secondary,
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointBackgroundColor: colors.secondary,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+                align: 'end',
+                labels: {
+                    usePointStyle: true,
+                    padding: 15,
+                    font: { size: 12, weight: '600' }
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                titleFont: { size: 14, weight: 'bold' },
+                bodyFont: { size: 13 },
+                callbacks: {
+                    label: function(context) {
+                        return 'الإيرادات: ' + context.parsed.y.toLocaleString('ar-SA') + ' ر.س';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
+                    drawBorder: false
+                },
+                ticks: {
+                    callback: function(value) {
+                        return value.toLocaleString('ar-SA') + ' ر.س';
+                    },
+                    font: { size: 11 }
+                }
+            },
+            x: {
+                grid: {
+                    display: false,
+                    drawBorder: false
+                },
+                ticks: {
+                    font: { size: 11 }
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        }
+    }
+});
+
+// 2. رسم بياني لنشاط التقارير
+const reportsCtx = document.getElementById('reportsChart').getContext('2d');
+const reportsChart = new Chart(reportsCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ reports_labels|safe }},
+        datasets: [{
+            label: 'عدد التقارير',
+            data: {{ reports_data|safe }},
+            backgroundColor: 'rgba(79, 70, 229, 0.8)',
+            borderColor: colors.primary,
+            borderWidth: 2,
+            borderRadius: 8,
+            barThickness: 'flex',
+            maxBarThickness: 40,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                titleFont: { size: 14, weight: 'bold' },
+                bodyFont: { size: 13 },
+                callbacks: {
+                    label: function(context) {
+                        return 'التقارير: ' + context.parsed.y + ' تقرير';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
+                    drawBorder: false
+                },
+                ticks: {
+                    stepSize: 5,
+                    font: { size: 11 }
+                }
+            },
+            x: {
+                grid: {
+                    display: false,
+                    drawBorder: false
+                },
+                ticks: {
+                    font: { size: 11 }
+                }
+            }
+        }
+    }
+});
+
+// 3. رسم دائري لتوزيع المدارس
+const schoolsCtx = document.getElementById('schoolsChart').getContext('2d');
+const schoolsChart = new Chart(schoolsCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ stage_labels|safe }},
+        datasets: [{
+            data: {{ stage_data|safe }},
+            backgroundColor: {{ stage_colors|safe }},
+            borderWidth: 3,
+            borderColor: '#fff',
+            hoverOffset: 10
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    padding: 15,
+                    font: { size: 12, weight: '600' }
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                titleFont: { size: 14, weight: 'bold' },
+                bodyFont: { size: 13 },
+                callbacks: {
+                    label: function(context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return context.label + ': ' + context.parsed + ' مدرسة (' + percentage + '%)';
+                    }
+                }
+            }
+        },
+        cutout: '60%'
+    }
+});
+
+// البحث السريع
+let searchTimeout;
+const searchInput = document.getElementById('globalSearch');
+const searchResults = document.getElementById('searchResults');
+
+searchInput.addEventListener('input', function(e) {
+    clearTimeout(searchTimeout);
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+        searchResults.classList.remove('active');
+        return;
+    }
+    
+    searchTimeout = setTimeout(() => {
+        // محاكاة البحث - في التطبيق الحقيقي، استخدم AJAX
+        searchResults.innerHTML = `
+            <div class="search-result-item" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                جاري البحث عن "${query}"...
+            </div>
+        `;
+        searchResults.classList.add('active');
+        
+        // يمكن إضافة AJAX هنا للبحث الفعلي
+        // fetch(`/api/search?q=${query}`)...
+    }, 300);
+});
+
+// إغلاق نتائج البحث عند النقر خارجها
+document.addEventListener('click', function(e) {
+    if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.classList.remove('active');
+    }
+});
+
+// الفلاتر الزمنية
+function filterByPeriod(period, button) {
+    // إزالة active من جميع الأزرار
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // إضافة active للزر المحدد
+    button.classList.add('active');
+    
+    // في التطبيق الحقيقي، استخدم AJAX لتحديث البيانات
+    console.log('تم اختيار الفترة:', period);
+    
+    // محاكاة التحديث
+    const refreshBtn = document.getElementById('refreshBtn');
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
+    
+    setTimeout(() => {
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث البيانات';
+        // هنا يمكن إعادة تحميل الرسوم البيانية بالبيانات الجديدة
+    }, 1000);
+}
+
+// تحديث اللوحة
+function refreshDashboard() {
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
+    
+    // في التطبيق الحقيقي، استخدم AJAX
+    setTimeout(() => {
+        location.reload();
+    }, 500);
+}
+
+// تصدير الرسوم البيانية إلى PDF
+function exportChartToPDF(chartId) {
+    alert('سيتم تطبيق هذه الميزة قريباً!\nستتمكن من تصدير الرسم البياني كملف PDF.');
+    // يمكن استخدام jsPDF و html2canvas
+}
+
+// تصدير الرسوم البيانية كصورة
+function exportChartToImage(chartId) {
+    const canvas = document.getElementById(chartId);
+    const url = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = chartId + '_' + new Date().getTime() + '.png';
+    link.href = url;
+    link.click();
+}
+
+// تحديث الوقت الفعلي (كل 30 ثانية)
+setInterval(() => {
+    // في التطبيق الحقيقي، استخدم AJAX لجلب البيانات الحرجة فقط
+    // fetch('/api/platform/live-stats/')
+    //     .then(r => r.json())
+    //     .then(data => {
+    //         // تحديث العناصر المهمة فقط
+    //     });
+}, 30000);
+
+// Animation on scroll
+const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+};
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+        }
+    });
+}, observerOptions);
+
+// مراقبة العناصر
+document.querySelectorAll('.card-panel').forEach(card => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(card);
+});
+
+// تحديث مباشر للأرقام بتأثير العد
+function animateNumber(element, target) {
+    const duration = 1000;
+    const steps = 60;
+    const increment = target / steps;
+    let current = 0;
+    
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            element.textContent = target.toLocaleString('ar-SA');
+            clearInterval(timer);
+        } else {
+            element.textContent = Math.floor(current).toLocaleString('ar-SA');
+        }
+    }, duration / steps);
+}
+
+// تطبيق الأنيميشن على الأرقام عند التحميل
+window.addEventListener('load', () => {
+    document.querySelectorAll('.stat-value').forEach(el => {
+        const value = parseInt(el.textContent.replace(/,/g, ''));
+        if (!isNaN(value)) {
+            el.textContent = '0';
+            setTimeout(() => animateNumber(el, value), 300);
+        }
+    });
+});
+
+console.log('%c 🎉 لوحة مدير النظام Premium 2026 ', 'background: linear-gradient(135deg, #4f46e5, #8b5cf6); color: white; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px;');
+console.log('%c تم التطوير بواسطة فريق التطوير ❤️ ', 'color: #10b981; font-size: 12px; font-weight: bold;');
+</script>
 
 {% endblock %}
