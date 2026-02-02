@@ -202,29 +202,51 @@
 
     .signatures {
       border: 1px solid var(--line);
-      padding: 10px;
+      padding: 12px;
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-top: 6px;
+      gap: 12px;
+      margin: 16px 0 0;
+      page-break-inside: avoid;
+    }
+    .signatures.two-sigs {
+      grid-template-columns: 1fr 1fr;
+    }
+    .signatures.one-sig {
+      grid-template-columns: 1fr;
+      max-width: 50%;
+      margin-right: auto;
     }
     .sig {
       border: 1px solid var(--line);
-      padding: 10px;
-      min-height: 90px;
+      padding: 14px;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
     }
     .sig h4 {
-      margin: 0 0 10px;
-      font-size: 14px;
+      margin: 0 0 12px;
+      font-size: 15px;
       font-weight: 1000;
+      text-align: center;
     }
-    .sig .line {
-      margin-top: 22px;
+    .sig .sig-space {
+      flex: 1;
+      min-height: 50px;
+    }
+    .sig .sig-line {
+      margin-top: auto;
       border-top: 1px solid var(--line);
-      padding-top: 6px;
+      padding-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 800;
+      text-align: center;
+    }
+    .sig-label {
+      display: block;
       font-size: 12px;
       color: var(--muted);
-      font-weight: 900;
+      margin-bottom: 4px;
     }
 
     .footer {
@@ -331,6 +353,54 @@
         {% endif %}
       </div>
     </section>
+    {% endif %}
+
+    {% comment %}
+    ============================================
+    قسم التوقيعات
+    - إذا كان التقرير مرتبط بقسم: عرض توقيعين (رئيس القسم + مدير المدرسة)
+    - إذا لم يكن مرتبط بقسم: عرض توقيع واحد (مدير المدرسة فقط)
+    ============================================
+    {% endcomment %}
+    {% if head_decision and not head_decision.no_render %}
+      {# التقرير مرتبط بقسم → توقيعان #}
+      <div class="signatures two-sigs">
+        <div class="sig">
+          <h4>رئيس القسم</h4>
+          <div class="sig-space"></div>
+          <div class="sig-line">
+            <span class="sig-label">الاسم:</span>
+            {% if head_decision.single %}
+              {{ head_decision.name }}
+            {% elif head_decision.multi_dept %}
+              {{ head_decision.dept_name }}
+            {% else %}
+              ........................
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="sig">
+          <h4>مدير المدرسة</h4>
+          <div class="sig-space"></div>
+          <div class="sig-line">
+            <span class="sig-label">الاسم:</span>
+            {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      {# التقرير غير مرتبط بقسم → توقيع واحد فقط (مدير المدرسة) #}
+      <div class="signatures one-sig">
+        <div class="sig">
+          <h4>مدير المدرسة</h4>
+          <div class="sig-space"></div>
+          <div class="sig-line">
+            <span class="sig-label">الاسم:</span>
+            {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+          </div>
+        </div>
+      </div>
     {% endif %}
 
     {% if show_comments %}

@@ -160,6 +160,11 @@ from .services_reports import (
     teacher_report_stats,
 )
 
+from .permissions import (
+    can_delete_report,
+    can_share_report,
+)
+
 # ===== إعدادات محلية =====
 HAS_RTYPE: bool = ReportType is not None
 DM_TEACHER = getattr(DepartmentMembership, "TEACHER", "teacher") if DepartmentMembership else "teacher"
@@ -1471,6 +1476,11 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
 
     allowed_choices = get_reporttype_choices(active_school=active_school) if (HAS_RTYPE and ReportType is not None) else []
     reports_page = svc_paginate(qs, per_page=20, page=request.GET.get("page", 1))
+    
+    # ✅ إضافة صلاحيات الحذف والمشاركة لكل تقرير
+    for report in reports_page:
+        report.user_can_delete = can_delete_report(request.user, report, active_school=active_school)
+        report.user_can_share = can_share_report(request.user, report, active_school=active_school)
 
     context = {
         "reports": reports_page,
@@ -1479,7 +1489,7 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
         "teacher_name": teacher_name,
         "category": category if (not cats or "all" in cats or category in cats) else "",
         "categories": allowed_choices,
-        "can_delete": True,
+        "can_delete": True,  # للتوافق الخلفي
     }
     return render(request, "reports/admin_reports.html", context)
 
@@ -2499,6 +2509,11 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
     paginator = Paginator(qs, 25)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
+    
+    # ✅ إضافة صلاحيات الحذف والمشاركة لكل تقرير
+    for report in page_obj:
+        report.user_can_delete = can_delete_report(user, report, active_school=active_school)
+        report.user_can_share = can_share_report(user, report, active_school=active_school)
 
     categories_choices = [(str(c.pk), c.name) for c in allowed_cats_qs.order_by("order", "name")]
 
@@ -2542,32 +2557,31 @@ def admin_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
 @user_passes_test(_is_staff_or_officer, login_url="reports:login")
 @require_http_methods(["POST"])
 def officer_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
-    # ✅ تأكيد أن المستخدم مسؤول داخل المدرسة النشطة قبل السماح بالحذف عبر هذا المسار
+    """
+    حذف تقرير من قبل:
+    - رئيس القسم (OFFICER) للتقارير المرتبطة بقسمه
+    - مدير المدرسة
+    - السوبر
+    
+    ✅ عضو القسم (TEACHER) لا يستطيع الحذف (عرض فقط)
+    """
     active_school = _get_active_school(request)
-    if not getattr(request.user, "is_staff", False):
-        if active_school is None:
-            messages.error(request, "فضلاً اختر مدرسة أولاً.")
-            return redirect("reports:select_school")
-        if DepartmentMembership is None:
-            messages.error(request, "صلاحيات المسؤول تتطلب تفعيل الأقسام وعضوياتها.")
-            return redirect("reports:home")
-        has_officer_membership = DepartmentMembership.objects.filter(
-            teacher=request.user,
-            role_type=DM_OFFICER,
-            department__is_active=True,
-            department__school=active_school,
-        ).exists()
-        if not has_officer_membership:
-            messages.error(request, "لا تملك صلاحية مسؤول قسم في هذه المدرسة.")
-            return redirect("reports:home")
-
+    user = request.user
+    
     try:
-        r = _get_report_for_user_or_404(request, pk)  # 404 تلقائيًا خارج النطاق ومع عزل المدرسة
+        r = _get_report_for_user_or_404(request, pk)
+        
+        # التحقق من الصلاحية
+        if not can_delete_report(user, r, active_school=active_school):
+            messages.error(request, "لا تملك صلاحية حذف هذا التقرير.")
+            return _safe_redirect(request, "reports:admin_reports")
+        
         r.delete()
         messages.success(request, "🗑️ تم حذف التقرير بنجاح.")
     except Exception:
         messages.error(request, "تعذّر حذف التقرير أو لا تملك صلاحية لذلك.")
-    return _safe_redirect(request, "reports:officer_reports")
+    
+    return _safe_redirect(request, "reports:admin_reports")
 
 # =========================
 # الوصول إلى تقرير معيّن (مع احترام المدرسة النشطة)
@@ -2855,8 +2869,26 @@ def _valid_sharelink_or_404(token: str, *, kind: str) -> ShareLink:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET", "POST"])
 def report_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
-    """تفعيل/إلغاء مشاركة تقرير عبر رابط عام صالح لمدة محددة (اختياري للمعلم)."""
-    report = get_object_or_404(Report.objects.select_related("school"), pk=pk, teacher=request.user)
+    """
+    تفعيل/إلغاء مشاركة تقرير عبر رابط عام صالح لمدة محددة.
+    
+    الصلاحيات:
+    - صاحب التقرير
+    - مدير المدرسة
+    - رئيس القسم (OFFICER) للتقارير المرتبطة بقسمه
+    - السوبر
+    
+    ✅ عضو القسم (TEACHER) لا يستطيع المشاركة (عرض فقط)
+    """
+    active_school = _get_active_school(request)
+    user = request.user
+    
+    report = get_object_or_404(Report.objects.select_related("school"), pk=pk)
+    
+    # التحقق من الصلاحية
+    if not can_share_report(user, report, active_school=active_school):
+        messages.error(request, "لا تملك صلاحية مشاركة هذا التقرير.")
+        return redirect("reports:admin_reports" if _is_staff(user) else "reports:my_reports")
 
     expiry_days = get_share_link_default_days(school=report.school)
 

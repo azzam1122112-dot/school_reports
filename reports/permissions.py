@@ -21,7 +21,11 @@ except Exception:  # pragma: no cover
 __all__ = [
     "get_officer_departments",
     "get_officer_department",
+    "get_member_departments",
     "is_officer",
+    "is_department_member",
+    "can_delete_report",
+    "can_share_report",
     "is_platform_admin",
     "platform_allowed_schools_qs",
     "platform_can_access_school",
@@ -146,9 +150,159 @@ def get_officer_department(user) -> Optional[Department]:
     return depts[0] if depts else None
 
 
+def get_member_departments(user, *, active_school: Optional[School] = None) -> List[Department]:
+    """
+        يعيد قائمة الأقسام التي المستخدم عضو فيها (TEACHER) عبر DepartmentMembership.
+        
+        هؤلاء الأعضاء يحصلون على صلاحيات قراءة فقط (عرض + طباعة) لتقارير قسمهم،
+        دون صلاحيات المشاركة أو الحذف (على عكس رؤساء الأقسام OFFICER).
+    """
+    if not getattr(user, "is_authenticated", False):
+        return []
+
+    seen = set()
+    results: List[Department] = []
+
+    if DepartmentMembership is not None:
+        try:
+            memb_qs = (
+                DepartmentMembership.objects.select_related("department")
+                .filter(teacher=user, role_type=getattr(DepartmentMembership, "TEACHER", "teacher"),
+                        department__is_active=True)
+            )
+            if active_school is not None:
+                memb_qs = memb_qs.filter(department__school=active_school)
+            for m in memb_qs:
+                d = m.department
+                if d and d.pk not in seen:
+                    seen.add(d.pk)
+                    results.append(d)
+        except Exception:
+            pass
+
+    return results
+
+
 def is_officer(user) -> bool:
     """هل المستخدم مسؤول قسم؟ (عضويات أو مطابقة الدور)"""
     return bool(get_officer_departments(user))
+
+
+def is_department_member(user, *, active_school: Optional[School] = None) -> bool:
+    """هل المستخدم عضو في أي قسم (TEACHER)؟"""
+    return bool(get_member_departments(user, active_school=active_school))
+
+
+def can_delete_report(user, report, *, active_school: Optional[School] = None) -> bool:
+    """
+    يحدد هل المستخدم يستطيع حذف التقرير.
+    
+    الصلاحيات:
+    - السوبر: نعم
+    - مشرف المنصة: لا (عرض فقط)
+    - مدير المدرسة: نعم
+    - رئيس القسم (OFFICER): نعم (للتقارير المرتبطة بقسمه)
+    - عضو القسم (TEACHER): لا (عرض فقط)
+    - صاحب التقرير: نعم
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    
+    # السوبر: نعم
+    if getattr(user, "is_superuser", False):
+        return True
+    
+    # مشرف المنصة: لا
+    if is_platform_admin(user):
+        return False
+    
+    # صاحب التقرير: نعم
+    if getattr(report, "teacher_id", None) == getattr(user, "id", None):
+        return True
+    
+    # مدير المدرسة: نعم
+    report_school = getattr(report, "school", None)
+    if report_school and SchoolMembership is not None:
+        try:
+            if SchoolMembership.objects.filter(
+                teacher=user,
+                school=report_school,
+                role_type=SchoolMembership.RoleType.MANAGER,
+                is_active=True,
+            ).exists():
+                return True
+        except Exception:
+            pass
+    
+    # رئيس القسم: نعم (إذا كان التقرير ضمن قسمه)
+    try:
+        report_category = getattr(report, "category", None)
+        if report_category:
+            officer_depts = get_officer_departments(user, active_school=active_school or report_school)
+            for dept in officer_depts:
+                if dept.reporttypes.filter(pk=report_category.pk).exists():
+                    return True
+    except Exception:
+        pass
+    
+    # الباقي: لا
+    return False
+
+
+def can_share_report(user, report, *, active_school: Optional[School] = None) -> bool:
+    """
+    يحدد هل المستخدم يستطيع مشاركة التقرير (إنشاء رابط عام).
+    
+    الصلاحيات:
+    - السوبر: نعم
+    - مشرف المنصة: لا (عرض فقط)
+    - مدير المدرسة: نعم
+    - رئيس القسم (OFFICER): نعم (للتقارير المرتبطة بقسمه)
+    - عضو القسم (TEACHER): لا (عرض فقط)
+    - صاحب التقرير: نعم
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    
+    # السوبر: نعم
+    if getattr(user, "is_superuser", False):
+        return True
+    
+    # مشرف المنصة: لا
+    if is_platform_admin(user):
+        return False
+    
+    # صاحب التقرير: نعم
+    if getattr(report, "teacher_id", None) == getattr(user, "id", None):
+        return True
+    
+    # مدير المدرسة: نعم
+    report_school = getattr(report, "school", None)
+    if report_school and SchoolMembership is not None:
+        try:
+            if SchoolMembership.objects.filter(
+                teacher=user,
+                school=report_school,
+                role_type=SchoolMembership.RoleType.MANAGER,
+                is_active=True,
+            ).exists():
+                return True
+        except Exception:
+            pass
+    
+    # رئيس القسم: نعم (إذا كان التقرير ضمن قسمه)
+    try:
+        report_category = getattr(report, "category", None)
+        if report_category:
+            officer_depts = get_officer_departments(user, active_school=active_school or report_school)
+            for dept in officer_depts:
+                if dept.reporttypes.filter(pk=report_category.pk).exists():
+                    return True
+    except Exception:
+        pass
+    
+    # الباقي: لا
+    return False
 
 
 # ==============================
@@ -242,7 +396,8 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
         يعيد مجموعة أكواد ReportType المسموحة للمستخدم داخل مدرسة محددة:
             - {"all"} للسوبر.
             - مدير المدرسة (SchoolMembership.role_type=manager) داخل active_school: {"all"}.
-            - غير ذلك: اتحاد أكواد reporttypes للأقسام التي هو مسؤول عنها داخل active_school.
+            - رئيس قسم (OFFICER): أكواد reporttypes للأقسام التي هو مسؤول عنها.
+            - عضو قسم (TEACHER): أكواد reporttypes للأقسام التي هو عضو فيها.
 
         ملاحظة: لا نستخدم Role.allowed_reporttypes هنا لأن Role عالمي وقد يخلط بين المدارس.
     """
@@ -271,9 +426,19 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
             return set()
 
         allowed_codes: Set[str] = set()
+        
+        # ✅ رؤساء الأقسام (OFFICER)
         try:
             officer_depts = get_officer_departments(user, active_school=active_school)
             for d in officer_depts:
+                allowed_codes |= set(c for c in d.reporttypes.values_list("code", flat=True) if c)
+        except Exception:
+            pass
+
+        # ✅ أعضاء الأقسام (TEACHER) - عرض فقط
+        try:
+            member_depts = get_member_departments(user, active_school=active_school)
+            for d in member_depts:
                 allowed_codes |= set(c for c in d.reporttypes.values_list("code", flat=True) if c)
         except Exception:
             pass

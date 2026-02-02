@@ -470,8 +470,16 @@
                         title="طباعة"
                       ><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة</a>
 
-                      {# حسب سياستك: المسؤول عرض/طباعة فقط — الحذف يظهر فقط إذا مررت can_delete=True #}
-                      {% if can_delete %}
+                      {% if r.user_can_share|default:can_delete %}
+                        <a
+                          href="{% url 'reports:report_share_manage' r.pk %}"
+                          class="btn btn-ghost"
+                          aria-label="مشاركة"
+                          title="مشاركة"
+                        ><i class="fa-solid fa-share-nodes" aria-hidden="true"></i> مشاركة</a>
+                      {% endif %}
+
+                      {% if r.user_can_delete|default:can_delete %}
                         <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
                           {% csrf_token %}
                           <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -541,7 +549,11 @@
 
                 <a href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="btn btn-print">🖨 طباعة</a>
 
-                {% if can_delete %}
+                {% if r.user_can_share|default:can_delete %}
+                  <a href="{% url 'reports:report_share_manage' r.pk %}" class="btn btn-ghost">🔗 مشاركة</a>
+                {% endif %}
+
+                {% if r.user_can_delete|default:can_delete %}
                   <form method="post" action="{% url 'reports:officer_delete_report' r.pk %}">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
