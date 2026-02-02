@@ -31,6 +31,7 @@ from django.db.models import (
     Subquery,
     Sum,
 )
+from django.db.models.functions import TruncWeek, TruncMonth
 from django.core.exceptions import ValidationError
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render

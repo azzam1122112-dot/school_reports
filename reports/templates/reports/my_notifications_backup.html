@@ -1,0 +1,243 @@
+{# templates/reports/notifications_list.html (أو اسم ملفك الحالي) #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}إشعاراتي{% endblock %}
+
+{% block head %}
+<style>
+  .notif-scope .chip.success{background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.22);color:#166534}
+  .notif-scope .chip.info{background:rgba(37,99,235,.10);border-color:rgba(37,99,235,.20);color:#1e40af}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notif-scope">
+  <div class="notif-container" dir="rtl">
+
+    <header class="page-head">
+      <h1 class="page-title">
+        <i class="fa-solid fa-bell" aria-hidden="true"></i>
+        إشعاراتي
+
+        {% with unread=NAV_NOTIFICATIONS_UNREAD|default_if_none:"0"|add:"0" %}
+          <span class="chip" id="unreadCount" aria-live="polite" {% if unread == 0 %}style="display:none"{% endif %} data-initial="{{ unread }}">
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+            <span id="unreadCountNum">{{ unread }}</span>
+            غير مقروءة
+          </span>
+        {% endwith %}
+      </h1>
+
+      <div class="head-actions">
+        <label class="toggle" for="onlyUnread">
+          <input type="checkbox" id="onlyUnread">
+          إظهار غير المقروء فقط
+        </label>
+
+        <form class="head-actions mark-all" method="post" action="{% url 'reports:notifications_mark_all_read' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'reports:my_notifications' %}">
+          <button class="btn-outline" type="submit" id="markAllBtn">
+            <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+            تحديد الكل كمقروء
+          </button>
+        </form>
+      </div>
+    </header>
+
+    {% if page_obj and page_obj.object_list %}
+      <section class="cards" id="cards">
+        {% for r in page_obj %}
+          {% with n=r.notification %}
+          <article class="n-card {% if r.is_read %}read{% endif %}" data-read="{% if r.is_read %}1{% else %}0{% endif %}">
+            <div class="n-head">
+              <h3 class="n-title">
+                {% if n.is_important %}
+                  <span class="chip danger"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> هام</span>
+                {% endif %}
+                {{ n.title|default:"رسالة من الإدارة" }}
+              </h3>
+
+              <time class="n-time" datetime="{{ r.created_at|date:'c' }}">
+                <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                {{ r.created_at|date:"Y-m-d H:i" }}
+              </time>
+            </div>
+
+            {% firstof n.message n.body n.content n.text n.details as body %}
+            {% if body %}
+              <div class="n-body">{{ body|linebreaksbr }}</div>
+            {% endif %}
+
+            <div class="sender" aria-label="المرسِل">
+              <span class="avatar-dot" aria-hidden="true"></span>
+
+              <span class="sender-name">
+                {% firstof r.sender_name "الإدارة" %}
+              </span>
+
+              <span class="sender-role">
+                {% if r.sender_role_label %}— {{ r.sender_role_label }}{% endif %}
+              </span>
+            </div>
+
+            <div class="n-actions">
+              <div class="left">
+                <span class="time-badge">
+                  <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                  {{ r.created_at|date:"Y-m-d H:i" }}
+                </span>
+
+                <a
+                  class="btn-sm ghost"
+                  aria-label="عرض الإشعار كاملًا"
+                  href="{% url 'reports:my_notification_detail' r.pk %}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                  عرض
+                </a>
+              </div>
+
+              <div class="right">
+                {% if r.is_read %}
+                  <span class="btn-sm success">
+                    <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                    مقروء
+                  </span>
+                  {% if r.read_at %}
+                    <span class="chip muted">
+                      <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                      {{ r.read_at|date:"Y-m-d H:i" }}
+                    </span>
+                  {% endif %}
+                {% else %}
+                  <form method="post" action="{% url 'reports:notification_mark_read' r.pk %}" class="mark-one-form">
+                    {% csrf_token %}
+                    <button class="btn-sm primary mark-one" type="submit">
+                      <i class="fa-solid fa-check" aria-hidden="true"></i>
+                      تمت القراءة
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+          {% endwith %}
+        {% endfor %}
+      </section>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pager" aria-label="التنقل بين الصفحات">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}">
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              السابق
+            </a>
+          {% endif %}
+
+          <span class="on">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">
+              التالي
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </a>
+          {% endif %}
+        </nav>
+      {% endif %}
+
+    {% else %}
+      <div class="empty">
+        <i class="fa-regular fa-bell" aria-hidden="true"></i>
+        لا توجد إشعارات حتى الآن.
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
+document.addEventListener('DOMContentLoaded', function(){
+  const $  = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+
+  const LS_ONLY_KEY = 'notif_only_unread_v1';
+
+  const unreadCountEl = $('#unreadCount');
+  const unreadNumEl   = $('#unreadCountNum');
+
+  function countUnread(){
+    return $$('.n-card').filter(c => !c.classList.contains('read')).length;
+  }
+
+  function renderUnread(){
+    if(!unreadCountEl || !unreadNumEl) return;
+    const n = countUnread();
+    unreadNumEl.textContent = String(n);
+    unreadCountEl.style.display = (n > 0) ? '' : 'none';
+  }
+
+  const onlyUnread = $('#onlyUnread');
+
+  function applyFilters(){
+    const only = !!(onlyUnread && onlyUnread.checked);
+    $$('.n-card').forEach(c=>{
+      const isRead = c.classList.contains('read');
+      const passUnread = !only || !isRead;
+      c.style.display = (passUnread) ? '' : 'none';
+    });
+  }
+
+  if(onlyUnread){
+    try{
+      const saved = localStorage.getItem(LS_ONLY_KEY);
+      if(saved === '1') onlyUnread.checked = true;
+    }catch(e){
+      // ignore
+    }
+
+    onlyUnread.addEventListener('change', function(){
+      try{ localStorage.setItem(LS_ONLY_KEY, onlyUnread.checked ? '1' : '0'); }catch(e){}
+      applyFilters();
+    });
+  }
+
+  // زر "تحديد الكل" — UI optimistic
+  const markAllForm = document.querySelector('form.mark-all');
+  const markAllBtn  = $('#markAllBtn');
+  if(markAllForm && markAllBtn){
+    markAllForm.addEventListener('submit', function(){
+      markAllBtn.disabled = true;
+      markAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جاري المعالجة...';
+      $$('.n-card').forEach(c => c.classList.add('read'));
+      renderUnread();
+      applyFilters();
+    });
+  }
+
+  // وسم إشعار واحد محليًا + منع النقر المزدوج
+  $$('.mark-one-form').forEach(function(f){
+    f.addEventListener('submit', function(){
+      const btn = f.querySelector('.mark-one');
+      if(btn){
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جاري المعالجة...';
+      }
+      const card = f.closest('.n-card');
+      if(card) card.classList.add('read');
+      renderUnread();
+      applyFilters();
+    });
+  });
+
+  renderUnread();
+  applyFilters();
+});
+</script>
+{% endblock %}

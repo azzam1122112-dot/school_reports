@@ -1,13 +1,506 @@
-{# templates/reports/notifications_list.html (أو اسم ملفك الحالي) #}
+{# templates/reports/my_notifications.html #}
 {% extends "base.html" %}
 {% load static %}
 
 {% block title %}إشعاراتي{% endblock %}
 
 {% block head %}
-<style>
-  .notif-scope .chip.success{background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.22);color:#166534}
-  .notif-scope .chip.info{background:rgba(37,99,235,.10);border-color:rgba(37,99,235,.20);color:#1e40af}
+<style nonce="{{ CSP_NONCE }}">
+  /* =========================================================
+     Premium Notifications Design System - 2026
+     Elegant, Modern, Fully Responsive
+     ========================================================= */
+  :root {
+    --notif-primary: #2563eb;
+    --notif-primary-dark: #1e40af;
+    --notif-gradient: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    --notif-success: #10b981;
+    --notif-success-dark: #059669;
+    --notif-warning: #f59e0b;
+    --notif-danger: #ef4444;
+    --notif-danger-dark: #dc2626;
+    --notif-surface: #ffffff;
+    --notif-background: #f8fafc;
+    --notif-border: #e2e8f0;
+    --notif-border-light: #f1f5f9;
+    --notif-text: #0f172a;
+    --notif-text-soft: #64748b;
+    --notif-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --notif-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --notif-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --notif-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    --notif-radius-sm: 8px;
+    --notif-radius-md: 12px;
+    --notif-radius-lg: 16px;
+    --notif-radius-xl: 24px;
+    --notif-radius-full: 9999px;
+  }
+
+  html[data-theme="dark"] {
+    --notif-surface: rgba(15, 23, 42, 0.55);
+    --notif-background: rgba(15, 23, 42, 0.35);
+    --notif-border: #1b2744;
+    --notif-border-light: #1e293b;
+    --notif-text: #e5e7eb;
+    --notif-text-soft: #94a3b8;
+    --notif-shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35);
+    --notif-shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Page Layout */
+  .notif-scope {
+    background: var(--notif-background);
+    min-height: calc(100vh - 120px);
+    padding: 32px 20px 60px;
+  }
+
+  .notif-scope .notif-container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  /* Header Section */
+  .notif-scope .page-head {
+    margin-bottom: 32px;
+    padding: 32px 28px;
+    background: var(--notif-surface);
+    border: 2px solid var(--notif-border);
+    border-radius: var(--notif-radius-xl);
+    box-shadow: var(--notif-shadow-md);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .notif-scope .page-head::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--notif-gradient);
+    opacity: 0.03;
+  }
+
+  .notif-scope .page-title {
+    margin: 0 0 20px;
+    font-weight: 900;
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+    background: var(--notif-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .notif-scope .head-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  /* Toggle Switch */
+  .notif-scope .toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--notif-text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .notif-scope .toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--notif-primary);
+  }
+
+  /* Buttons */
+  .notif-scope .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--notif-radius-md);
+    font-weight: 800;
+    font-size: 0.95rem;
+    border: 2px solid var(--notif-border);
+    background: transparent;
+    color: var(--notif-text-soft);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 44px;
+  }
+
+  .notif-scope .btn-outline:hover {
+    background: var(--notif-primary);
+    color: white;
+    border-color: var(--notif-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+  }
+
+  .notif-scope .btn-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--notif-radius-md);
+    font-weight: 700;
+    font-size: 0.85rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+
+  .notif-scope .btn-sm.primary {
+    background: var(--notif-gradient);
+    color: white;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  }
+
+  .notif-scope .btn-sm.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  }
+
+  .notif-scope .btn-sm.success {
+    background: linear-gradient(135deg, var(--notif-success), var(--notif-success-dark));
+    color: white;
+    pointer-events: none;
+  }
+
+  .notif-scope .btn-sm.ghost {
+    background: var(--notif-border-light);
+    color: var(--notif-text);
+    border: 2px solid var(--notif-border);
+  }
+
+  .notif-scope .btn-sm.ghost:hover {
+    background: var(--notif-primary);
+    color: white;
+    border-color: var(--notif-primary);
+  }
+
+  /* Chips/Badges */
+  .notif-scope .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--notif-radius-full);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+  }
+
+  .notif-scope .chip.success {
+    background: rgba(16, 185, 129, 0.1);
+    border: 2px solid rgba(16, 185, 129, 0.3);
+    color: #166534;
+  }
+
+  .notif-scope .chip.info {
+    background: rgba(37, 99, 235, 0.1);
+    border: 2px solid rgba(37, 99, 235, 0.3);
+    color: #1e40af;
+  }
+
+  .notif-scope .chip.danger {
+    background: rgba(239, 68, 68, 0.1);
+    border: 2px solid rgba(239, 68, 68, 0.3);
+    color: #991b1b;
+    font-weight: 900;
+  }
+
+  .notif-scope .chip.muted {
+    background: var(--notif-border-light);
+    border: 2px solid var(--notif-border);
+    color: var(--notif-text-soft);
+  }
+
+  /* Cards Container */
+  .notif-scope .cards {
+    display: grid;
+    gap: 20px;
+  }
+
+  /* Notification Card */
+  .notif-scope .n-card {
+    background: linear-gradient(135deg, var(--notif-surface) 0%, var(--notif-background) 100%);
+    border: 2px solid var(--notif-border);
+    border-radius: var(--notif-radius-xl);
+    padding: 24px;
+    box-shadow: var(--notif-shadow-md);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .notif-scope .n-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: var(--notif-gradient);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .notif-scope .n-card:not(.read)::before {
+    transform: translateX(0);
+  }
+
+  .notif-scope .n-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--notif-shadow-xl);
+    border-color: var(--notif-primary);
+  }
+
+  .notif-scope .n-card.read {
+    opacity: 0.7;
+  }
+
+  /* Card Header */
+  .notif-scope .n-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .notif-scope .n-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: var(--notif-text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .notif-scope .n-time {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--notif-text-soft);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  /* Card Body */
+  .notif-scope .n-body {
+    margin: 16px 0;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--notif-border-light), var(--notif-background));
+    border: 2px solid var(--notif-border);
+    border-radius: var(--notif-radius-lg);
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: var(--notif-text);
+    font-weight: 600;
+  }
+
+  /* Sender Info */
+  .notif-scope .sender {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0;
+    padding: 12px 16px;
+    background: var(--notif-background);
+    border-radius: var(--notif-radius-md);
+    font-size: 0.9rem;
+  }
+
+  .notif-scope .avatar-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--notif-primary);
+    flex-shrink: 0;
+  }
+
+  .notif-scope .sender-name {
+    font-weight: 800;
+    color: var(--notif-text);
+  }
+
+  .notif-scope .sender-role {
+    font-weight: 600;
+    color: var(--notif-text-soft);
+  }
+
+  /* Card Actions */
+  .notif-scope .n-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 2px solid var(--notif-border-light);
+    flex-wrap: wrap;
+  }
+
+  .notif-scope .n-actions .left,
+  .notif-scope .n-actions .right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .notif-scope .time-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--notif-border-light);
+    border-radius: var(--notif-radius-md);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--notif-text-soft);
+  }
+
+  .notif-scope .mark-one-form {
+    display: inline-block;
+    margin: 0;
+  }
+
+  /* Empty State */
+  .notif-scope .empty {
+    padding: 80px 20px;
+    text-align: center;
+    color: var(--notif-text-soft);
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .notif-scope .empty i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.3;
+    display: block;
+  }
+
+  /* Pagination */
+  .notif-scope .pager {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 2px solid var(--notif-border-light);
+    flex-wrap: wrap;
+  }
+
+  .notif-scope .pager a {
+    padding: 10px 20px;
+    border: 2px solid var(--notif-border);
+    border-radius: var(--notif-radius-md);
+    background: var(--notif-surface);
+    color: var(--notif-text);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .notif-scope .pager a:hover {
+    background: var(--notif-primary);
+    color: white;
+    border-color: var(--notif-primary);
+    transform: translateY(-2px);
+  }
+
+  .notif-scope .pager .on {
+    color: var(--notif-text-soft);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  /* Responsive Design */
+  @media(max-width: 768px) {
+    .notif-scope {
+      padding: 20px 12px 50px;
+    }
+
+    .notif-scope .page-head {
+      padding: 24px 20px;
+    }
+
+    .notif-scope .page-title {
+      font-size: 1.5rem;
+    }
+
+    .notif-scope .head-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .notif-scope .btn-outline {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .notif-scope .n-card {
+      padding: 20px 16px;
+    }
+
+    .notif-scope .n-head {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .notif-scope .n-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .notif-scope .n-actions .left,
+    .notif-scope .n-actions .right {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    .notif-scope .n-card,
+    .notif-scope .btn-outline,
+    .notif-scope .btn-sm,
+    .notif-scope .pager a {
+      transition: none !important;
+    }
+
+    .notif-scope .n-card:hover,
+    .notif-scope .btn-outline:hover,
+    .notif-scope .btn-sm:hover,
+    .notif-scope .pager a:hover {
+      transform: none !important;
+    }
+  }
 </style>
 {% endblock %}
 

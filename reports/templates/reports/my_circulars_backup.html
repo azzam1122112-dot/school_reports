@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}تعاميمي{% endblock %}
+
+{% block head %}
+<style>
+  .circ-scope .chip.success{background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.22);color:#166534}
+  .circ-scope .chip.info{background:rgba(37,99,235,.10);border-color:rgba(37,99,235,.20);color:#1e40af}
+  .circ-scope .chip.danger{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.22);color:#b91c1c}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notif-scope circ-scope">
+  <div class="notif-container" dir="rtl">
+
+    <header class="page-head">
+      <h1 class="page-title">
+        <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+        تعاميمي
+
+        {% if NAV_SIGNATURES_PENDING %}
+          <span class="chip info" style="margin-inline-start:10px">
+            <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
+            {{ NAV_SIGNATURES_PENDING }} بانتظار التوقيع
+          </span>
+        {% endif %}
+      </h1>
+
+      <div class="head-actions">
+        <label class="toggle" for="onlyUnsigned" title="إظهار التعاميم التي لم يتم توقيعها بعد">
+          <input type="checkbox" id="onlyUnsigned">
+          إظهار غير الموقّعة فقط
+        </label>
+
+        <form class="head-actions mark-all" method="post" action="{% url 'reports:circulars_mark_all_read' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'reports:my_circulars' %}">
+          <button class="btn-outline" type="submit" id="markAllBtn">
+            <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+            تحديد الكل كمقروء
+          </button>
+        </form>
+      </div>
+    </header>
+
+    {% if page_obj and page_obj.object_list %}
+      <section class="cards" id="cards">
+        {% for r in page_obj %}
+          {% with n=r.notification %}
+          <article class="n-card {% if r.is_read %}read{% endif %}"
+                   data-signed="{% if r.is_signed %}1{% else %}0{% endif %}">
+            <div class="n-head">
+              <h3 class="n-title">
+                {% if r.is_signed %}
+                  <span class="chip success"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> تم التوقيع</span>
+                {% else %}
+                  <span class="chip danger"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> يتطلب توقيع</span>
+                {% endif %}
+                {{ n.title|default:"تعميم" }}
+              </h3>
+
+              <time class="n-time" datetime="{{ r.created_at|date:'c' }}">
+                <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                {{ r.created_at|date:"Y-m-d H:i" }}
+              </time>
+            </div>
+
+            <div class="n-body">
+              {{ n.message|default:n.body|default:n.content|default:n.text|default:n.details|default:""|truncatechars:180 }}
+            </div>
+
+            <div class="n-actions">
+              <a class="btn" href="{% url 'reports:my_circular_detail' r.pk %}">
+                فتح التعميم
+              </a>
+            </div>
+          </article>
+          {% endwith %}
+        {% endfor %}
+      </section>
+
+      <div class="pager">
+        {% if page_obj.has_previous %}
+          <a class="btn-outline" href="?page={{ page_obj.previous_page_number }}">السابق</a>
+        {% endif %}
+        <span class="chip info">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a class="btn-outline" href="?page={{ page_obj.next_page_number }}">التالي</a>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="empty-state" style="text-align:center;padding:40px 20px">
+        <i class="fa-regular fa-folder-open" aria-hidden="true" style="font-size:2.6rem;opacity:.6"></i>
+        <h3 style="margin:10px 0 6px">لا توجد تعاميم</h3>
+        <div class="muted">ستظهر التعاميم التي تتطلب توقيعاً هنا.</div>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script nonce="{{ CSP_NONCE }}">
+(function(){
+  const onlyUnsigned = document.getElementById('onlyUnsigned');
+  const cards = document.getElementById('cards');
+  if(!onlyUnsigned || !cards) return;
+
+  function apply(){
+    const onlyU = !!onlyUnsigned.checked;
+    const items = cards.querySelectorAll('.n-card');
+    items.forEach(el => {
+      const signed = (el.getAttribute('data-signed') || '0') === '1';
+      if(onlyU && signed){ el.style.display = 'none'; }
+      else { el.style.display = ''; }
+    });
+  }
+
+  onlyUnsigned.addEventListener('change', apply);
+  apply();
+})();
+</script>
+{% endblock %}

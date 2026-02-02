@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}حسابي{% endblock %}
+
+{% block head %}
+{% endblock %}
+
+{% block content %}
+<div class="myp-wrap" dir="rtl">
+  <div class="myp-shell">
+    <div class="myp-head">
+      <h1 class="myp-title">
+        <i class="fa-solid fa-user" aria-hidden="true"></i>
+        حسابي
+      </h1>
+      <p class="myp-sub">تحديث رقم الجوال وكلمة المرور، وعرض المدارس المسندة لك.</p>
+    </div>
+
+    <div class="myp-body">
+      <div class="myp-grid">
+        <div class="myp-card">
+          <h2><i class="fa-solid fa-id-badge" aria-hidden="true"></i> بياناتي</h2>
+          <div class="myp-rows">
+            <div class="myp-row"><span>الاسم</span><b>{{ request.user.name|default:"-" }}</b></div>
+            <div class="myp-row"><span>رقم الجوال</span><b>{{ request.user.phone|default:"-" }}</b></div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <h2><i class="fa-solid fa-school" aria-hidden="true"></i> المدارس المسندة</h2>
+          {% if memberships %}
+            <ul class="myp-list">
+              {% for m in memberships %}
+                <li>
+                  {{ m.school.name }}
+                  {% if active_school and m.school_id == active_school.id %}
+                    <span class="myp-muted">(المدرسة النشطة)</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="myp-muted">لا توجد مدارس مسندة لهذا الحساب.</div>
+          {% endif %}
+        </div>
+
+        <div class="myp-card">
+          <h2><i class="fa-solid fa-pen" aria-hidden="true"></i> تحديث البيانات</h2>
+
+          <form method="post" class="myp-form" novalidate>
+            {% csrf_token %}
+            <div>
+              <label for="{{ phone_form.phone.id_for_label }}">{{ phone_form.phone.label }}</label>
+              {{ phone_form.phone }}
+              {% if phone_form.phone.errors %}
+                <div class="myp-err">{{ phone_form.phone.errors|striptags }}</div>
+              {% endif %}
+            </div>
+            <button type="submit" name="update_phone" class="btn btn-primary">
+              تحديث رقم الجوال
+            </button>
+          </form>
+
+          <div style="height:14px"></div>
+
+          <form method="post" class="myp-form" novalidate>
+            {% csrf_token %}
+
+            {% if pwd_form.non_field_errors %}
+              <div class="myp-errors">{{ pwd_form.non_field_errors|striptags }}</div>
+            {% endif %}
+
+            <div>
+              <label for="{{ pwd_form.old_password.id_for_label }}">{{ pwd_form.old_password.label }}</label>
+              {{ pwd_form.old_password }}
+              {% if pwd_form.old_password.errors %}
+                <div class="myp-err">{{ pwd_form.old_password.errors|striptags }}</div>
+              {% endif %}
+            </div>
+
+            <div>
+              <label for="{{ pwd_form.new_password1.id_for_label }}">{{ pwd_form.new_password1.label }}</label>
+              {{ pwd_form.new_password1 }}
+              {% if pwd_form.new_password1.errors %}
+                <div class="myp-err">{{ pwd_form.new_password1.errors|striptags }}</div>
+              {% endif %}
+            </div>
+
+            <div>
+              <label for="{{ pwd_form.new_password2.id_for_label }}">{{ pwd_form.new_password2.label }}</label>
+              {{ pwd_form.new_password2 }}
+              {% if pwd_form.new_password2.errors %}
+                <div class="myp-err">{{ pwd_form.new_password2.errors|striptags }}</div>
+              {% endif %}
+            </div>
+
+            <button type="submit" name="update_password" class="btn btn-primary">
+              تحديث كلمة المرور
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
