@@ -41,6 +41,8 @@
       padding: 10mm 12mm 12mm;
       position: relative;
       box-shadow: 0 0 14px rgba(0,0,0,0.10);
+      display: flex;
+      flex-direction: column;
     }
 
     @page { size: A4; margin: 14mm 12mm; }
@@ -178,7 +180,7 @@
 
     .images-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
     .img-box {
@@ -189,10 +191,12 @@
     }
     .img-box img {
       width: 100%;
-      height: 120px;
-      object-fit: cover;
+      height: 115px;
+      object-fit: contain;
       display: block;
       border-radius: 4px;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
     .img-cap {
       margin-top: 4px;
@@ -206,7 +210,8 @@
       padding: 6px;
       display: grid;
       gap: 6px;
-      margin: 8px 0 0;
+      margin-top: auto;
+      margin-bottom: 0;
       page-break-inside: avoid;
     }
     .signatures.two-sigs {
@@ -251,7 +256,7 @@
     }
 
     .footer {
-      margin-top: 8px;
+      margin-top: 4px;
       border-top: 1px solid var(--line);
       padding-top: 6px;
       font-size: 10px;
