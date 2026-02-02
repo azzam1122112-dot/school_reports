@@ -798,7 +798,7 @@
             <div class="stat-header">
                 <div class="stat-icon bg-emerald-light"><i class="fas fa-coins"></i></div>
             </div>
-            <div class="stat-value">{{ total_revenue|intcomma }} ر.س</div>
+            <div class="stat-value">{{ total_revenue|floatformat:0|intcomma|stringformat:"s"|add:" ر.س" }}</div>
             <div class="stat-label">المبيعات الإجمالية</div>
         </div>
 
@@ -1459,13 +1459,16 @@ function animateNumber(element, target) {
     const increment = target / steps;
     let current = 0;
     
+    // التحقق من وجود العملة
+    const hasCurrency = element.textContent.includes('ر.س');
+    
     const timer = setInterval(() => {
         current += increment;
         if (current >= target) {
-            element.textContent = target.toLocaleString('ar-SA');
+            element.textContent = target.toLocaleString('ar-SA') + (hasCurrency ? ' ر.س' : '');
             clearInterval(timer);
         } else {
-            element.textContent = Math.floor(current).toLocaleString('ar-SA');
+            element.textContent = Math.floor(current).toLocaleString('ar-SA') + (hasCurrency ? ' ر.س' : '');
         }
     }, duration / steps);
 }
@@ -1473,9 +1476,12 @@ function animateNumber(element, target) {
 // تطبيق الأنيميشن على الأرقام عند التحميل
 window.addEventListener('load', () => {
     document.querySelectorAll('.stat-value').forEach(el => {
-        const value = parseInt(el.textContent.replace(/,/g, ''));
-        if (!isNaN(value)) {
-            el.textContent = '0';
+        // استخراج الرقم فقط
+        const text = el.textContent.replace(/[^\d]/g, '');
+        const value = parseInt(text);
+        if (!isNaN(value) && value > 0) {
+            const hasCurrency = el.textContent.includes('ر.س');
+            el.textContent = hasCurrency ? '0 ر.س' : '0';
             setTimeout(() => animateNumber(el, value), 300);
         }
     });
