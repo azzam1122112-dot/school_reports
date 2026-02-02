@@ -5119,9 +5119,11 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             reports_labels = []
             reports_data = []
             for item in reports_by_week:
-                week_label = item['week'].strftime('%Y-%m-%d')
-                reports_labels.append(week_label)
-                reports_data.append(item['count'])
+                if item['week']:
+                    # عرض تاريخ بداية الأسبوع (أوضح من التاريخ الكامل)
+                    week_label = item['week'].strftime('%d/%m')
+                    reports_labels.append(week_label)
+                    reports_data.append(item['count'])
             
             # تقارير حسب التصنيف/النوع
             reports_by_category = _filter_by_school(
@@ -5448,14 +5450,21 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         eight_weeks_ago = now - timedelta(weeks=8)
         reports_by_week = Report.objects.filter(
             created_at__gte=eight_weeks_ago
-        ).extra(
-            select={'week': 'EXTRACT(week FROM created_at)'}
+        ).annotate(
+            week=TruncWeek('created_at')
         ).values('week').annotate(
             count=Count('id')
         ).order_by('week')
         
-        reports_labels = [f"أسبوع {item['week']}" for item in reports_by_week]
-        reports_data = [item['count'] for item in reports_by_week]
+        # تسمية الأسابيع بالتاريخ بدلاً من رقم الأسبوع (أوضح للمستخدم)
+        reports_labels = []
+        reports_data = []
+        for item in reports_by_week:
+            if item['week']:
+                # عرض تاريخ بداية الأسبوع (الأحد)
+                week_start = item['week'].strftime('%d/%m')
+                reports_labels.append(week_start)
+                reports_data.append(item['count'])
         
         # توزيع المدارس حسب المرحلة
         schools_by_stage = School.objects.values('stage').annotate(

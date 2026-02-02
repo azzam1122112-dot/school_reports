@@ -1,0 +1,400 @@
+{# reports/templates/reports/my_reports.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}📋 تقاريري{% endblock %}
+
+{% block head %}
+{% endblock %}
+
+{% block content %}
+<div class="mr-wrap">
+  <div class="mr-container">
+
+    <!-- Stats -->
+    <div class="mr-stats">
+      <div class="mr-stat">
+        <div class="mr-stat-ico"><i class="fa-solid fa-file-lines"></i></div>
+        <div>
+          <div class="num">{{ stats.total|default:"0" }}</div>
+          <div class="lbl">إجمالي التقارير</div>
+        </div>
+      </div>
+
+      <div class="mr-stat">
+        <div class="mr-stat-ico green"><i class="fa-solid fa-calendar-check"></i></div>
+        <div>
+          <div class="num">{{ stats.this_month|default:"0" }}</div>
+          <div class="lbl">تقارير هذا الشهر</div>
+        </div>
+      </div>
+
+      <div class="mr-stat">
+        <div class="mr-stat-ico amber"><i class="fa-solid fa-magnifying-glass"></i></div>
+        <div>
+          <div class="num">{{ reports.paginator.count|default:"0" }}</div>
+          <div class="lbl">نتائج البحث</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mr-card">
+      <div class="mr-hd">
+        <h2 class="mr-title">
+          <i class="fa-solid fa-list-ul" style="opacity:.85"></i>
+          سجل تقاريري
+        </h2>
+
+        <a href="{% url 'reports:add_report' %}" class="btn btn-primary">
+          <i class="fa-solid fa-plus"></i> إضافة تقرير جديد
+        </a>
+      </div>
+
+      <!-- Filters -->
+      <form method="get" class="mr-filters" aria-label="تصفية التقارير">
+        <div class="mr-field grow">
+          <label for="mrQ">بحث بالعنوان أو المحتوى</label>
+          <input id="mrQ" type="text" name="q" value="{{ q|default:'' }}" class="mr-input" placeholder="اكتب كلمات للبحث...">
+        </div>
+
+        <div class="mr-field">
+          <label for="mrStart">من تاريخ</label>
+          <input id="mrStart" type="date" name="start_date" value="{{ start_date|default:'' }}" class="mr-input">
+        </div>
+
+        <div class="mr-field">
+          <label for="mrEnd">إلى تاريخ</label>
+          <input id="mrEnd" type="date" name="end_date" value="{{ end_date|default:'' }}" class="mr-input">
+        </div>
+
+        <div class="mr-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-filter"></i> تصفية
+          </button>
+
+          {% if q or start_date or end_date %}
+            <a href="{% url 'reports:my_reports' %}" class="btn btn-ghost">
+              <i class="fa-solid fa-rotate-left"></i> مسح
+            </a>
+          {% endif %}
+        </div>
+      </form>
+
+      <!-- Desktop Table -->
+      <div class="mr-table-wrap">
+        <table class="mr-table">
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>التقرير</th>
+              <th style="text-align:center">المستفيدون</th>
+              <th>الوصف</th>
+              <th>الصور</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for report in reports %}
+              <tr>
+                <td>
+                  <div class="mr-date">{{ report.report_date|date:"Y-m-d" }}</div>
+                  <div class="mr-day">{{ report.day_name }}</div>
+                </td>
+
+                <td>
+                  <div class="mr-rpt">
+                    <div class="t">{{ report.title }}</div>
+                    <div class="mr-chip">
+                      {% if report.category and report.category.name %}{{ report.category.name }}{% else %}عام{% endif %}
+                    </div>
+                  </div>
+                </td>
+
+                <td style="text-align:center; font-weight:950">{{ report.beneficiaries_count|default:"0" }}</td>
+
+                <td>
+                  <div class="mr-idea" title="{{ report.idea|default:'' }}">{{ report.idea }}</div>
+                </td>
+
+                <td>
+                  <div class="mr-imgs js-gallery" data-report="{{ report.pk }}">
+                    {% if report.image1 %}
+                      <img class="mr-thumb" src="{{ report.image1.url }}" data-full="{{ report.image1.url }}" alt="صورة 1" loading="lazy" decoding="async">
+                    {% endif %}
+                    {% if report.image2 %}
+                      <img class="mr-thumb" src="{{ report.image2.url }}" data-full="{{ report.image2.url }}" alt="صورة 2" loading="lazy" decoding="async">
+                    {% endif %}
+                    {% if report.image3 %}
+                      <img class="mr-thumb" src="{{ report.image3.url }}" data-full="{{ report.image3.url }}" alt="صورة 3" loading="lazy" decoding="async">
+                    {% endif %}
+                    {% if report.image4 %}
+                      <img class="mr-thumb" src="{{ report.image4.url }}" data-full="{{ report.image4.url }}" alt="صورة 4" loading="lazy" decoding="async">
+                    {% endif %}
+                  </div>
+                </td>
+
+                <td>
+                  <div class="mr-actions-cell">
+                    <a href="{% url 'reports:edit_my_report' report.pk %}" class="mr-iconbtn" title="تعديل" aria-label="تعديل">
+                      <i class="fa-solid fa-pen"></i>
+                    </a>
+
+                    <a href="{% url 'reports:report_share_manage' report.pk %}" class="mr-iconbtn" title="مشاركة" aria-label="مشاركة">
+                      <i class="fa-solid fa-share-nodes"></i>
+                    </a>
+
+                    <a href="{% url 'reports:report_print' report.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="mr-iconbtn" title="عرض التقرير" aria-label="عرض التقرير">
+                      <i class="fa-solid fa-eye"></i>
+                    </a>
+
+                    <a href="{% url 'reports:report_share_manage' report.pk %}" class="mr-iconbtn" title="مشاركة" aria-label="مشاركة">
+                      <i class="fa-solid fa-link"></i>
+                    </a>
+
+                    <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form">
+                      {% csrf_token %}
+                      <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6">
+                  <div class="mr-empty">
+                    <div class="ico"><i class="fa-solid fa-folder-open"></i></div>
+                    <h3>لا توجد تقارير تطابق بحثك</h3>
+                    <p>جرّب تغيير معايير التصفية أو أضف تقريراً جديداً.</p>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Cards -->
+      <div class="mr-mobile">
+        {% for report in reports %}
+          <div class="mr-mcard">
+            <div class="mr-mtop">
+              <div class="mr-mdate">{{ report.report_date|date:"Y-m-d" }} • {{ report.day_name }}</div>
+              <div class="mr-chip">
+                {% if report.category and report.category.name %}{{ report.category.name }}{% else %}عام{% endif %}
+              </div>
+            </div>
+
+            <div class="mr-mtitle">{{ report.title }}</div>
+
+            <div class="mr-mbody">{{ report.idea|default:""|truncatechars:110 }}</div>
+
+            <div class="mr-mfoot">
+              <div class="mr-imgs js-gallery" data-report="{{ report.pk }}">
+                {% if report.image1 %}
+                  <img class="mr-thumb" src="{{ report.image1.url }}" data-full="{{ report.image1.url }}" alt="صورة 1" loading="lazy" decoding="async">
+                {% endif %}
+                {% if report.image2 %}
+                  <img class="mr-thumb" src="{{ report.image2.url }}" data-full="{{ report.image2.url }}" alt="صورة 2" loading="lazy" decoding="async">
+                {% endif %}
+              </div>
+
+              <div class="mr-actions-cell">
+                <a href="{% url 'reports:edit_my_report' report.pk %}" class="mr-iconbtn" title="تعديل" aria-label="تعديل">
+                  <i class="fa-solid fa-pen"></i>
+                </a>
+                <a href="{% url 'reports:report_share_manage' report.pk %}" class="mr-iconbtn" title="مشاركة" aria-label="مشاركة">
+                  <i class="fa-solid fa-share-nodes"></i>
+                </a>
+                <a href="{% url 'reports:report_print' report.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="mr-iconbtn" title="عرض التقرير" aria-label="عرض التقرير">
+                  <i class="fa-solid fa-eye"></i>
+                </a>
+
+                <form action="{% url 'reports:delete_my_report' report.pk %}" method="post" class="mr-del-form" style="display:inline">
+                  {% csrf_token %}
+                  <button type="submit" class="mr-iconbtn danger" title="حذف" aria-label="حذف">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="mr-empty" style="padding: 22px 10px;">
+            <div class="ico"><i class="fa-solid fa-folder-open"></i></div>
+            <h3>لا توجد تقارير</h3>
+            <p>ابدأ الآن بإضافة أول تقرير.</p>
+            <div style="margin-top:12px">
+              <a href="{% url 'reports:add_report' %}" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i> إضافة تقرير
+              </a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if reports.paginator.num_pages > 1 %}
+        <div class="mr-pager" aria-label="التنقل بين الصفحات">
+          {% if reports.has_previous %}
+            <a class="mr-page" href="?page={{ reports.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">السابق</a>
+          {% endif %}
+
+          <span class="mr-page active">{{ reports.number }} / {{ reports.paginator.num_pages }}</span>
+
+          {% if reports.has_next %}
+            <a class="mr-page" href="?page={{ reports.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">التالي</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Modal Gallery -->
+    <div class="mr-modal" id="mrImageModal" role="dialog" aria-modal="true" aria-label="عرض الصورة">
+      <div class="mr-modal-inner">
+        <div class="mr-modal-top">
+          <div style="color:#fff; font-weight:900; opacity:.9" id="mrModalCounter"></div>
+          <button type="button" class="mr-modal-close" id="mrModalClose" aria-label="إغلاق">✕</button>
+        </div>
+
+        <img id="mrModalImg" class="mr-modal-img" alt="صورة التقرير">
+
+        <div class="mr-modal-nav">
+          <button type="button" class="mr-navbtn" id="mrPrevBtn" aria-label="السابق">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button type="button" class="mr-navbtn" id="mrNextBtn" aria-label="التالي">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
+  (function(){
+    // ===== Delete confirm (بدون inline confirm في الفورم) =====
+    document.querySelectorAll('.mr-del-form').forEach(function(f){
+      f.addEventListener('submit', function(ev){
+        var ok = window.confirm('حذف التقرير؟');
+        if(!ok) ev.preventDefault();
+      });
+    });
+
+    // ===== Gallery Modal =====
+    var modal = document.getElementById('mrImageModal');
+    var imgEl = document.getElementById('mrModalImg');
+    var closeBtn = document.getElementById('mrModalClose');
+    var prevBtn = document.getElementById('mrPrevBtn');
+    var nextBtn = document.getElementById('mrNextBtn');
+    var counter = document.getElementById('mrModalCounter');
+
+    if(!modal || !imgEl || !closeBtn || !prevBtn || !nextBtn) return;
+
+    var current = [];
+    var index = 0;
+    var lastFocus = null;
+
+    function lockScroll(on){
+      try{
+        if(window.__lockScroll) return window.__lockScroll(on);
+      }catch(e){}
+      document.body.style.overflow = on ? 'hidden' : '';
+    }
+
+    function setCounter(){
+      if(!counter) return;
+      if(!current.length){ counter.textContent = ''; return; }
+      counter.textContent = (index + 1) + ' / ' + current.length;
+    }
+
+    function show(i){
+      if(!current.length) return;
+      index = (i + current.length) % current.length;
+      imgEl.src = current[index];
+      setCounter();
+    }
+
+    function openModal(list, i, focusEl){
+      current = list || [];
+      index = i || 0;
+      lastFocus = focusEl || null;
+
+      show(index);
+      modal.classList.add('is-open');
+      lockScroll(true);
+
+      try{
+        if(window.__trapFocus) window.__trapFocus(modal, true);
+      }catch(e){}
+
+      closeBtn.focus({ preventScroll: true });
+    }
+
+    function closeModal(){
+      modal.classList.remove('is-open');
+      imgEl.removeAttribute('src');
+      lockScroll(false);
+
+      try{
+        if(window.__trapFocus) window.__trapFocus(modal, false);
+      }catch(e){}
+
+      if(lastFocus && lastFocus.focus){
+        lastFocus.focus({ preventScroll: true });
+      }
+    }
+
+    // Bind galleries
+    document.querySelectorAll('.js-gallery').forEach(function(gal){
+      var thumbs = Array.prototype.slice.call(gal.querySelectorAll('img[data-full]'));
+      if(!thumbs.length) return;
+
+      var list = thumbs.map(function(t){ return t.getAttribute('data-full'); });
+
+      thumbs.forEach(function(t, i){
+        t.addEventListener('click', function(ev){
+          ev.preventDefault();
+          openModal(list, i, t);
+        });
+      });
+    });
+
+    // Controls
+    prevBtn.addEventListener('click', function(ev){ ev.stopPropagation(); show(index - 1); });
+    nextBtn.addEventListener('click', function(ev){ ev.stopPropagation(); show(index + 1); });
+    closeBtn.addEventListener('click', function(){ closeModal(); });
+
+    // Click outside image closes
+    modal.addEventListener('click', function(ev){
+      if(ev.target === modal) closeModal();
+    });
+
+    // Keyboard
+    document.addEventListener('keydown', function(ev){
+      if(!modal.classList.contains('is-open')) return;
+
+      if(ev.key === 'Escape'){
+        ev.preventDefault();
+        closeModal();
+        return;
+      }
+      if(ev.key === 'ArrowLeft'){
+        ev.preventDefault();
+        show(index + 1);
+        return;
+      }
+      if(ev.key === 'ArrowRight'){
+        ev.preventDefault();
+        show(index - 1);
+        return;
+      }
+    });
+  })();
+</script>
+{% endblock %}

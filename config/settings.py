@@ -546,5 +546,7 @@ DEPARTMENT_HEAD_ROLE_SLUG = "department_head"  # غيّرها لو اسم الس
 
 SITE_URL = (os.getenv("SITE_URL") or "").strip()
 if not SITE_URL:
-    _render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip()
-    SITE_URL = _render_url or "https://school-reports.onrender.com"
+    if ENV == "production":
+        SITE_URL = "https://app.tawtheeq-ksa.com"
+    else:
+        SITE_URL = "http://127.0.0.1:8000"
