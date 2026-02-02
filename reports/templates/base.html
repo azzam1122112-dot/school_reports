@@ -1094,23 +1094,12 @@
             <img src="{% if SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="شعار النظام">
             <div class="footer-logo-text">
               <h3>{% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}توثيق{% endif %}</h3>
-              <p>منصة التقارير المدرسية</p>
+              <p>منصة تــوثيق </p>
             </div>
           </div>
           <p class="footer-desc">
             نظام متكامل لإدارة التقارير والطلبات والإشعارات وملفات الإنجاز، مصمم خصيصاً للمدارس السعودية.
           </p>
-          <div class="footer-social">
-            <a href="#" aria-label="تويتر" title="تابعنا على تويتر">
-              <i class="fa-brands fa-twitter"></i>
-            </a>
-            <a href="#" aria-label="واتساب" title="تواصل عبر واتساب">
-              <i class="fa-brands fa-whatsapp"></i>
-            </a>
-            <a href="#" aria-label="البريد الإلكتروني" title="راسلنا">
-              <i class="fa-solid fa-envelope"></i>
-            </a>
-          </div>
         </div>
 
         {# Quick Links #}
@@ -1138,10 +1127,10 @@
         <div class="footer-col">
           <h4><i class="fa-solid fa-book"></i> الموارد</h4>
           <ul class="footer-links">
-            <li><a href="#"><i class="fa-solid fa-chevron-left"></i> دليل الاستخدام</a></li>
-            <li><a href="#"><i class="fa-solid fa-chevron-left"></i> الأسئلة الشائعة</a></li>
-            <li><a href="#"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
-            <li><a href="#"><i class="fa-solid fa-chevron-left"></i> سياسة الخصوصية</a></li>
+            <li><a href="{% url 'reports:user_guide' %}"><i class="fa-solid fa-chevron-left"></i> دليل الاستخدام</a></li>
+            <li><a href="{% url 'reports:faq' %}"><i class="fa-solid fa-chevron-left"></i> الأسئلة الشائعة</a></li>
+            <li><a href="{% url 'reports:support_ticket_create' %}"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
+            <li><a href="{% url 'reports:privacy_policy' %}"><i class="fa-solid fa-chevron-left"></i> سياسة الخصوصية</a></li>
           </ul>
         </div>
 
@@ -1151,11 +1140,11 @@
           <div class="footer-contact">
             <div class="footer-contact-item">
               <i class="fa-solid fa-envelope"></i>
-              <span>support@tawtheeq.sa</span>
+              <span>xmansx1122@gmail.com</span>
             </div>
             <div class="footer-contact-item">
               <i class="fa-brands fa-whatsapp"></i>
-              <span>+966 50 000 0000</span>
+              <span>+966 537720207</span>
             </div>
             <div class="footer-contact-item">
               <i class="fa-solid fa-location-dot"></i>

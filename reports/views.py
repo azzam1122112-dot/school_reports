@@ -8685,3 +8685,20 @@ def platform_subscription_record_payment(request: HttpRequest, pk: int) -> HttpR
 
     next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
     return redirect(next_url or "reports:platform_subscriptions_list")
+
+
+# ===== صفحات المحتوى (Footer Links) =====
+
+def user_guide(request: HttpRequest) -> HttpResponse:
+    """صفحة دليل الاستخدام"""
+    return render(request, "reports/user_guide.html")
+
+
+def faq(request: HttpRequest) -> HttpResponse:
+    """صفحة الأسئلة الشائعة"""
+    return render(request, "reports/faq.html")
+
+
+def privacy_policy(request: HttpRequest) -> HttpResponse:
+    """صفحة سياسة الخصوصية"""
+    return render(request, "reports/privacy_policy.html")

@@ -259,4 +259,11 @@ urlpatterns = [
     path("platform/payments/", views.platform_payments_list, name="platform_payments_list"),
     path("platform/payments/<int:pk>/", views.platform_payment_detail, name="platform_payment_detail"),
     path("platform/tickets/", views.platform_tickets_list, name="platform_tickets_list"),
+
+    # =========================
+    # صفحات المحتوى (Footer)
+    # =========================
+    path("guide/", views.user_guide, name="user_guide"),
+    path("faq/", views.faq, name="faq"),
+    path("privacy/", views.privacy_policy, name="privacy_policy"),
 ]

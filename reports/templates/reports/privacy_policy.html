@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}سياسة الخصوصية{% endblock %}
+
+{% block head %}
+<style>
+  .privacy-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  .privacy-hero {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    padding: 60px 40px;
+    border-radius: 24px;
+    margin-bottom: 48px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(139, 92, 246, 0.3);
+  }
+
+  .privacy-hero h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin: 0 0 16px;
+  }
+
+  .privacy-hero p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    font-weight: 600;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .privacy-section {
+    background: var(--surface, white);
+    border-radius: 16px;
+    padding: 40px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .privacy-section h2 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin: 0 0 20px;
+    color: var(--text-main, #0f172a);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .privacy-section h2 i {
+    color: #8b5cf6;
+  }
+
+  .privacy-section h3 {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin: 24px 0 12px;
+    color: var(--text-main, #0f172a);
+  }
+
+  .privacy-section p {
+    line-height: 1.8;
+    color: var(--text-muted, #64748b);
+    margin: 0 0 16px;
+    font-weight: 600;
+  }
+
+  .privacy-section ul {
+    margin: 0 0 16px;
+    padding-right: 24px;
+  }
+
+  .privacy-section li {
+    line-height: 1.8;
+    color: var(--text-muted, #64748b);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .privacy-highlight {
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    border-right: 4px solid #8b5cf6;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 24px 0;
+  }
+
+  .privacy-highlight strong {
+    color: #8b5cf6;
+    font-weight: 900;
+  }
+
+  .privacy-contact {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+    margin-top: 48px;
+  }
+
+  .privacy-contact h3 {
+    font-size: 1.3rem;
+    font-weight: 900;
+    margin: 0 0 12px;
+    color: var(--text-main, #0f172a);
+  }
+
+  .privacy-contact p {
+    color: var(--text-muted, #64748b);
+    margin: 0 0 16px;
+    font-weight: 600;
+  }
+
+  .privacy-contact a {
+    color: var(--accent, #2563eb);
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 1.1rem;
+  }
+
+  .privacy-contact a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .privacy-hero {
+      padding: 40px 24px;
+    }
+
+    .privacy-hero h1 {
+      font-size: 1.8rem;
+    }
+
+    .privacy-section {
+      padding: 24px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="privacy-page">
+  
+  <div class="privacy-hero">
+    <h1><i class="fa-solid fa-shield-halved"></i> سياسة الخصوصية</h1>
+    <p>نحن ملتزمون بحماية خصوصيتك وبياناتك الشخصية</p>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-info-circle"></i> مقدمة</h2>
+    <p>نحن في منصة توثيق نقدّر ثقتك بنا، ونلتزم بحماية خصوصيتك وأمان بياناتك. توضح سياسة الخصوصية هذه كيفية جمع واستخدام وحماية المعلومات التي تقدمها عند استخدام منصتنا.</p>
+    
+    <div class="privacy-highlight">
+      <strong>ملاحظة مهمة:</strong> تم تصميم المنصة خصيصاً للمدارس السعودية، وجميع البيانات محفوظة بأعلى معايير الأمان وفقاً للأنظمة والقوانين المعمول بها.
+    </div>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-database"></i> البيانات التي نجمعها</h2>
+    
+    <h3>البيانات الشخصية</h3>
+    <p>عند استخدام المنصة، نقوم بجمع البيانات التالية:</p>
+    <ul>
+      <li><strong>معلومات الحساب:</strong> الاسم، رقم الجوال، البريد الإلكتروني، كلمة المرور المشفرة</li>
+      <li><strong>معلومات المدرسة:</strong> اسم المدرسة، الشعار، البيانات الإدارية</li>
+      <li><strong>معلومات العمل:</strong> الصفة الوظيفية، القسم، الصلاحيات</li>
+    </ul>
+
+    <h3>بيانات الاستخدام</h3>
+    <ul>
+      <li><strong>التقارير:</strong> التقارير المدرسية التي تقوم بإنشائها مع الصور والمرفقات</li>
+      <li><strong>الطلبات:</strong> طلباتك والتذاكر الفنية مع المحادثات والمرفقات</li>
+      <li><strong>ملفات الإنجاز:</strong> بيانات ملف الإنجاز والشواهد المرفقة</li>
+      <li><strong>سجلات النظام:</strong> سجل الدخول والعمليات الأساسية لأغراض الأمان والتدقيق</li>
+    </ul>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-bullseye"></i> كيف نستخدم بياناتك</h2>
+    <p>نستخدم البيانات المجمعة للأغراض التالية فقط:</p>
+    <ul>
+      <li><strong>تقديم الخدمة:</strong> تمكينك من استخدام جميع ميزات المنصة (التقارير، الطلبات، ملفات الإنجاز، الإشعارات)</li>
+      <li><strong>الأمان والمصادقة:</strong> التحقق من هويتك وحماية حسابك من الوصول غير المصرح به</li>
+      <li><strong>التحسين والصيانة:</strong> تطوير وتحسين المنصة وحل المشاكل التقنية</li>
+      <li><strong>التواصل:</strong> إرسال إشعارات مهمة، تعاميم، وتحديثات النظام</li>
+      <li><strong>الامتثال القانوني:</strong> الالتزام بالقوانين والأنظمة المعمول بها</li>
+    </ul>
+
+    <div class="privacy-highlight">
+      <strong>لن نستخدم بياناتك أبداً:</strong> لأغراض إعلانية أو تسويقية خارجية، أو لبيعها أو مشاركتها مع أطراف ثالثة بدون موافقتك.
+    </div>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-shield"></i> كيف نحمي بياناتك</h2>
+    <p>نطبق أعلى معايير الأمان لحماية بياناتك:</p>
+    
+    <h3>الأمان التقني</h3>
+    <ul>
+      <li><strong>التشفير:</strong> جميع البيانات الحساسة (كلمات المرور) مشفرة باستخدام خوارزميات آمنة</li>
+      <li><strong>HTTPS:</strong> الاتصال بالمنصة محمي بشهادة SSL/TLS لتشفير البيانات أثناء النقل</li>
+      <li><strong>جلسات آمنة:</strong> جلسة واحدة فقط لكل مستخدم، مع تسجيل خروج تلقائي بعد الخمول</li>
+      <li><strong>حماية الملفات:</strong> الصور والمرفقات محفوظة بشكل آمن مع ضوابط وصول صارمة</li>
+    </ul>
+
+    <h3>عزل البيانات</h3>
+    <ul>
+      <li>بيانات كل مدرسة معزولة تماماً عن المدارس الأخرى</li>
+      <li>لا يمكن لمعلم أو مدير الوصول لبيانات مدرسة أخرى</li>
+      <li>الصلاحيات محددة بدقة حسب الدور الوظيفي</li>
+    </ul>
+
+    <h3>سجل التدقيق</h3>
+    <ul>
+      <li>جميع العمليات الحساسة مسجلة (إضافة، تعديل، حذف)</li>
+      <li>يمكن تتبع أي تغيير يحدث على البيانات</li>
+      <li>السجلات محمية ولا يمكن التلاعب بها</li>
+    </ul>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-share-nodes"></i> مشاركة البيانات</h2>
+    <p>نحن لا نشارك بياناتك الشخصية مع أطراف ثالثة إلا في الحالات التالية:</p>
+    <ul>
+      <li><strong>داخل مدرستك:</strong> بياناتك مرئية فقط للأشخاص المصرح لهم داخل مدرستك حسب الصلاحيات (مثل: مدير المدرسة يمكنه رؤية تقارير المعلمين)</li>
+      <li><strong>الامتثال القانوني:</strong> إذا كان مطلوباً بموجب القانون أو أمر قضائي</li>
+      <li><strong>الروابط المؤقتة:</strong> عند إنشاء رابط مشاركة مؤقت لملف إنجاز (بإذنك الصريح)</li>
+    </ul>
+
+    <div class="privacy-highlight">
+      <strong>تعهد:</strong> لن نبيع أو نؤجر أو نشارك بياناتك مع شركات إعلانية أو تسويقية أو أي طرف ثالث لأغراض تجارية.
+    </div>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-user-check"></i> حقوقك</h2>
+    <p>لديك الحقوق التالية فيما يتعلق ببياناتك الشخصية:</p>
+    <ul>
+      <li><strong>الوصول:</strong> يمكنك عرض وتحميل بياناتك في أي وقت</li>
+      <li><strong>التعديل:</strong> يمكنك تعديل معلوماتك الشخصية من إعدادات الحساب</li>
+      <li><strong>الحذف:</strong> يمكنك طلب حذف حسابك وبياناتك بالكامل</li>
+      <li><strong>الاعتراض:</strong> يمكنك الاعتراض على معالجة معينة لبياناتك</li>
+      <li><strong>النقل:</strong> يمكنك طلب تصدير بياناتك بصيغة قابلة للقراءة</li>
+    </ul>
+
+    <p>لممارسة أي من هذه الحقوق، يرجى التواصل مع مدير مدرستك أو فريق الدعم الفني.</p>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-cookie-bite"></i> ملفات تعريف الارتباط (Cookies)</h2>
+    <p>نستخدم ملفات تعريف الارتباط الضرورية فقط لتشغيل المنصة:</p>
+    <ul>
+      <li><strong>جلسة المستخدم:</strong> للحفاظ على تسجيل دخولك أثناء التصفح</li>
+      <li><strong>الأمان:</strong> لحماية حسابك من الهجمات الإلكترونية (CSRF)</li>
+      <li><strong>التفضيلات:</strong> لحفظ إعداداتك (مثل: المدرسة النشطة)</li>
+    </ul>
+    <p>لا نستخدم ملفات تعريف ارتباط تتبع أو إعلانية.</p>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-clock"></i> الاحتفاظ بالبيانات</h2>
+    <p>نحتفظ ببياناتك طالما حسابك نشط أو حسب الحاجة لتقديم الخدمة:</p>
+    <ul>
+      <li><strong>البيانات النشطة:</strong> تبقى متاحة طوال فترة اشتراك المدرسة</li>
+      <li><strong>البيانات المحذوفة:</strong> عند حذف حسابك، يتم حذف بياناتك الشخصية بشكل نهائي خلال 30 يوماً</li>
+      <li><strong>السجلات الأمنية:</strong> قد نحتفظ بسجلات التدقيق لفترة أطول لأغراض الأمان والامتثال القانوني</li>
+      <li><strong>النسخ الاحتياطية:</strong> قد تبقى نسخ احتياطية لفترة محدودة كإجراء أمان</li>
+    </ul>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-child"></i> المستخدمون دون السن القانونية</h2>
+    <p>المنصة مصممة للاستخدام من قبل المعلمين والإداريين في المدارس. نحن لا نجمع بيانات الطلاب أو القُصّر عمداً. إذا علمنا بجمع بيانات من شخص دون السن القانونية، سنقوم بحذفها فوراً.</p>
+  </div>
+
+  <div class="privacy-section">
+    <h2><i class="fa-solid fa-pen"></i> التعديلات على سياسة الخصوصية</h2>
+    <p>قد نقوم بتحديث سياسة الخصوصية من وقت لآخر. سنقوم بإشعارك بأي تغييرات جوهرية عن طريق:</p>
+    <ul>
+      <li>نشر السياسة المحدثة على هذه الصفحة</li>
+      <li>إرسال إشعار داخل المنصة</li>
+      <li>البريد الإلكتروني (في حالة التغييرات الجوهرية)</li>
+    </ul>
+    <p>يُنصح بمراجعة هذه الصفحة بشكل دوري للاطلاع على أي تحديثات.</p>
+  </div>
+
+  <div class="privacy-contact">
+    <h3><i class="fa-solid fa-envelope"></i> تواصل معنا</h3>
+    <p>إذا كان لديك أي استفسار أو قلق بخصوص سياسة الخصوصية أو كيفية معالجة بياناتك:</p>
+    <p>
+      <i class="fa-solid fa-envelope"></i>
+      <a href="mailto:xmansx1122@gmail.com">xmansx1122@gmail.com</a>
+    </p>
+    <p style="margin-top: 16px;">
+      <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-primary" style="display: inline-block; padding: 12px 24px; background: var(--accent); color: white; text-decoration: none; border-radius: 8px; font-weight: 700;">
+        <i class="fa-solid fa-life-ring"></i> فتح تذكرة دعم فني
+      </a>
+    </p>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}الأسئلة الشائعة{% endblock %}
+
+{% block head %}
+<style>
+  .faq-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  .faq-hero {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 60px 40px;
+    border-radius: 24px;
+    margin-bottom: 48px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(16, 185, 129, 0.3);
+  }
+
+  .faq-hero h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin: 0 0 16px;
+  }
+
+  .faq-hero p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    font-weight: 600;
+  }
+
+  .faq-search {
+    background: var(--surface, white);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .faq-search input {
+    width: 100%;
+    padding: 16px 20px;
+    border: 2px solid var(--border, #e2e8f0);
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+
+  .faq-search input:focus {
+    outline: none;
+    border-color: var(--accent, #2563eb);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  }
+
+  .faq-category {
+    background: var(--surface, white);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .faq-category h2 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin: 0 0 24px;
+    color: var(--text-main, #0f172a);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .faq-category h2 i {
+    color: var(--accent, #2563eb);
+  }
+
+  .faq-item {
+    border-bottom: 1px solid var(--border, #e2e8f0);
+    padding: 20px 0;
+  }
+
+  .faq-item:last-child {
+    border-bottom: none;
+  }
+
+  .faq-question {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    gap: 16px;
+    padding: 8px 0;
+    transition: all 0.2s;
+  }
+
+  .faq-question:hover {
+    color: var(--accent, #2563eb);
+  }
+
+  .faq-question h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--text-main, #0f172a);
+    transition: color 0.2s;
+  }
+
+  .faq-question:hover h3 {
+    color: var(--accent, #2563eb);
+  }
+
+  .faq-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-sub, #f1f5f9);
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .faq-icon i {
+    transition: transform 0.3s;
+    font-weight: 900;
+    font-size: 0.9rem;
+  }
+
+  .faq-item.active .faq-icon {
+    background: var(--accent, #2563eb);
+    color: white;
+  }
+
+  .faq-item.active .faq-icon i {
+    transform: rotate(180deg);
+  }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out, padding 0.3s ease-out;
+    padding: 0 8px;
+  }
+
+  .faq-item.active .faq-answer {
+    max-height: 500px;
+    padding: 16px 8px 8px;
+  }
+
+  .faq-answer p {
+    line-height: 1.8;
+    color: var(--text-muted, #64748b);
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .faq-cta {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    margin-top: 48px;
+  }
+
+  .faq-cta h3 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin: 0 0 16px;
+    color: var(--text-main, #0f172a);
+  }
+
+  .faq-cta p {
+    color: var(--text-muted, #64748b);
+    margin: 0 0 24px;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .faq-hero {
+      padding: 40px 24px;
+    }
+
+    .faq-hero h1 {
+      font-size: 1.8rem;
+    }
+
+    .faq-category {
+      padding: 24px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="faq-page">
+  
+  <div class="faq-hero">
+    <h1><i class="fa-solid fa-circle-question"></i> الأسئلة الشائعة</h1>
+    <p>إجابات لأكثر الأسئلة شيوعاً حول منصة توثيق</p>
+  </div>
+
+  <div class="faq-search">
+    <input type="text" id="faqSearch" placeholder="ابحث عن سؤالك هنا..." onkeyup="searchFAQ()">
+  </div>
+
+  <div class="faq-category">
+    <h2><i class="fa-solid fa-circle-info"></i> عام</h2>
+    
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>ما هي منصة توثيق؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>منصة توثيق هي نظام ويب عربي متكامل لإدارة احتياجات المدرسة اليومية في مكان واحد. تشمل: توثيق التقارير المدرسية مع صور وطباعة احترافية، إدارة الطلبات الداخلية بين المعلمين والأقسام، ملفات الإنجاز السنوية للمعلمين مع توليد PDF، والإشعارات الموجهة مع تتبع القراءة والتوقيع.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل المنصة مناسبة لمدرسة واحدة فقط؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>لا، تدعم المنصة مدرسة واحدة أو عدة مدارس في نفس الوقت، مع عزل واضح للبيانات بين كل مدرسة. كل مدرسة لها بياناتها وصلاحياتها ومعلميها المستقلين.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل يوجد حد لعدد المعلمين؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>يتم تحديد عدد المعلمين حسب باقة الاشتراك التي تختارها المدرسة. يمكنك التواصل معنا لمعرفة الباقة المناسبة لعدد المعلمين في مدرستك.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل المنصة آمنة وتحمي بيانات المدرسة؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، المنصة مبنية على أحدث معايير الأمان. تتضمن: تشفير البيانات، جلسة واحدة لكل مستخدم، تسجيل خروج تلقائي بعد الخمول، وسجل تدقيق كامل لجميع العمليات الحساسة.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-category">
+    <h2><i class="fa-solid fa-file-lines"></i> التقارير</h2>
+    
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>كم صورة يمكنني إرفاقها في التقرير؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>يمكنك إرفاق حتى 4 صور في كل تقرير. ستظهر الصور في التقرير المطبوع بتنسيق احترافي.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل يمكنني تعديل التقرير بعد حفظه؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، يمكنك تعديل تقاريرك في أي وقت من صفحة "تقاريري" بالضغط على أيقونة التعديل (القلم) بجانب التقرير.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>كيف يمكنني طباعة التقرير؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>من صفحة "تقاريري"، اضغط على أيقونة الطباعة بجانب التقرير المراد طباعته. سيتم فتح صفحة طباعة احترافية تحتوي على شعار المدرسة والصور المرفقة، يمكنك الطباعة مباشرة أو حفظها كملف PDF.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل يمكن تخصيص أنواع التقارير حسب احتياجات المدرسة؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، مدير المدرسة يمكنه إضافة وتخصيص أنواع التقارير من لوحة الإدارة، وربطها بالأقسام المناسبة.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-category">
+    <h2><i class="fa-solid fa-ticket"></i> الطلبات والتذاكر</h2>
+    
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>ما الفرق بين التقرير والطلب؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>التقرير هو توثيق لحدث أو نشاط قمت به. أما الطلب فهو طلب تحتاج فيه لإجراء من قسم معين (مثل طلب صيانة، طلب احتياج، أو استفسار).</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>كيف أتابع حالة طلبي؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>يمكنك متابعة جميع طلباتك من صفحة "طلباتي". ستظهر لك حالة كل طلب (جديد، قيد المعالجة، مكتمل، مرفوض) مع أي ملاحظات أو ردود من الجهة المختصة.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل يمكنني إرفاق ملفات أو صور مع الطلب؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، يمكنك إرفاق صور أو ملفات داعمة مع طلبك لتوضيح المشكلة أو الاحتياج بشكل أفضل.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>من يتلقى الطلبات؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>يتم توجيه الطلب إلى القسم المختص الذي اخترته عند إنشاء الطلب. مسؤول القسم سيستقبل الطلب في صندوق "الوارد" الخاص به ويقوم بمعالجته.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-category">
+    <h2><i class="fa-solid fa-award"></i> ملفات الإنجاز</h2>
+    
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل يمكن استخراج ملف إنجاز PDF؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، المنصة تولد ملف PDF احترافي لملف الإنجاز يحتوي على جميع بياناتك والشواهد (الصور) المرفقة، مع شعار المدرسة وتنسيق احترافي جاهز للطباعة.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>كم عدد الشواهد (الصور) التي يمكن إضافتها لكل محور؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>يمكنك إضافة حتى 8 صور لكل محور من محاور ملف الإنجاز (التخطيط، التنفيذ، التقويم، التنمية المهنية، المسؤوليات الإضافية).</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل توجد مشاركة خارجية لملف الإنجاز؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، يمكنك إنشاء رابط مؤقت لمشاركة ملف الإنجاز مع المشرفين أو المهتمين خارج المنصة. الرابط قابل للتفعيل والتعطيل ويمكن تحديد مدة صلاحيته.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل يمكن لمدير المدرسة مراجعة ملف الإنجاز؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، مدير المدرسة لديه صلاحية مراجعة ملفات الإنجاز لجميع المعلمين واعتمادها بعد التأكد من اكتمالها.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-category">
+    <h2><i class="fa-solid fa-bell"></i> الإشعارات والتعاميم</h2>
+    
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>كيف أعرف أن لدي إشعار جديد؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>ستظهر علامة حمراء على أيقونة الإشعارات في أعلى الصفحة عند وصول إشعار جديد لم تقرأه بعد.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>ماذا يحدث إذا لم أوقع على التعميم في الوقت المحدد؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>بعض التعاميم لها موعد نهائي للتوقيع. عدم التوقيع قبل الموعد قد يظهر في تقارير الإدارة. احرص على مراجعة التعاميم والتوقيع عليها في الوقت المناسب.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل يمكن للمدير معرفة من قرأ ووقع على التعميم؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، النظام يتتبع من قرأ التعميم ومن وقّع عليه، مع توقيت القراءة والتوقيع. مدير المدرسة يمكنه مشاهدة تقرير شامل بذلك.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-category">
+    <h2><i class="fa-solid fa-user-tie"></i> الإدارة والصلاحيات</h2>
+    
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>كيف يمكن إضافة معلمين جدد؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>مدير المدرسة يمكنه إضافة معلمين من لوحة الإدارة إما فردياً أو عن طريق استيراد قائمة من ملف Excel.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>لا أرى لوحة المدير، لماذا؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>لوحة المدير متاحة فقط للمستخدمين ذوي صلاحية "مدير مدرسة". تواصل مع مشرف المنصة لضبط الصلاحيات إذا كنت تعتقد أنك يجب أن تمتلك هذه الصلاحية.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">
+        <h3>هل يمكن تعيين صلاحيات مخصصة للمعلمين؟</h3>
+        <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="faq-answer">
+        <p>نعم، يمكن إنشاء أدوار مخصصة (مثل: وكيل، رائد نشاط، مرشد) وتعيين صلاحيات محددة لكل دور، مثل القدرة على رؤية تقارير القسم أو إدارة الطلبات الواردة.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-cta">
+    <h3>لم تجد إجابة لسؤالك؟</h3>
+    <p>فريق الدعم الفني جاهز لمساعدتك</p>
+    <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-primary" style="padding: 16px 32px; font-size: 1rem;">
+      <i class="fa-solid fa-life-ring"></i> تواصل معنا
+    </a>
+  </div>
+
+</div>
+
+<script>
+  function toggleFAQ(element) {
+    const item = element.closest('.faq-item');
+    const isActive = item.classList.contains('active');
+    
+    // Close all other items
+    document.querySelectorAll('.faq-item').forEach(i => {
+      if (i !== item) {
+        i.classList.remove('active');
+      }
+    });
+    
+    // Toggle current item
+    if (isActive) {
+      item.classList.remove('active');
+    } else {
+      item.classList.add('active');
+    }
+  }
+
+  function searchFAQ() {
+    const searchTerm = document.getElementById('faqSearch').value.toLowerCase();
+    const items = document.querySelectorAll('.faq-item');
+    
+    items.forEach(item => {
+      const question = item.querySelector('h3').textContent.toLowerCase();
+      const answer = item.querySelector('.faq-answer p').textContent.toLowerCase();
+      
+      if (question.includes(searchTerm) || answer.includes(searchTerm)) {
+        item.style.display = '';
+        if (searchTerm.length > 2) {
+          item.classList.add('active');
+        }
+      } else {
+        item.style.display = 'none';
+        item.classList.remove('active');
+      }
+    });
+    
+    // Hide categories with no visible items
+    document.querySelectorAll('.faq-category').forEach(category => {
+      const visibleItems = Array.from(category.querySelectorAll('.faq-item')).filter(
+        item => item.style.display !== 'none'
+      );
+      category.style.display = visibleItems.length > 0 ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

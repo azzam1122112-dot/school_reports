@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}دليل الاستخدام{% endblock %}
+
+{% block head %}
+<style>
+  .guide-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  .guide-hero {
+    background: linear-gradient(135deg, var(--brand, #2563eb) 0%, #1e40af 100%);
+    color: white;
+    padding: 60px 40px;
+    border-radius: 24px;
+    margin-bottom: 48px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(37, 99, 235, 0.3);
+  }
+
+  .guide-hero h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin: 0 0 16px;
+  }
+
+  .guide-hero p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    max-width: 700px;
+    margin: 0 auto;
+    font-weight: 600;
+  }
+
+  .guide-nav {
+    background: var(--surface, white);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 80px;
+    z-index: 10;
+  }
+
+  .guide-nav h3 {
+    margin: 0 0 16px;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--text-main, #0f172a);
+  }
+
+  .guide-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .guide-nav a {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: var(--bg-sub, #f1f5f9);
+    color: var(--text-muted, #64748b);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .guide-nav a:hover {
+    background: var(--accent, #2563eb);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .guide-section {
+    background: var(--surface, white);
+    border-radius: 16px;
+    padding: 40px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    scroll-margin-top: 100px;
+  }
+
+  .guide-section h2 {
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin: 0 0 24px;
+    color: var(--text-main, #0f172a);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .guide-section h2 i {
+    color: var(--accent, #2563eb);
+  }
+
+  .guide-section h3 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin: 32px 0 16px;
+    color: var(--text-main, #0f172a);
+  }
+
+  .guide-section h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 24px 0 12px;
+    color: var(--text-main, #0f172a);
+  }
+
+  .guide-section p {
+    line-height: 1.8;
+    color: var(--text-muted, #64748b);
+    margin: 0 0 16px;
+    font-weight: 600;
+  }
+
+  .guide-section ul, .guide-section ol {
+    margin: 0 0 16px;
+    padding-right: 24px;
+  }
+
+  .guide-section li {
+    line-height: 1.8;
+    color: var(--text-muted, #64748b);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .guide-note {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-right: 4px solid var(--accent, #2563eb);
+    padding: 20px;
+    border-radius: 12px;
+    margin: 24px 0;
+  }
+
+  .guide-note strong {
+    color: var(--accent, #2563eb);
+    font-weight: 900;
+  }
+
+  .guide-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-right: 4px solid #f59e0b;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 24px 0;
+  }
+
+  .guide-warning strong {
+    color: #f59e0b;
+    font-weight: 900;
+  }
+
+  .guide-steps {
+    background: var(--bg-sub, #f8fafc);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 24px 0;
+  }
+
+  .guide-steps ol {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+  }
+
+  .guide-steps li {
+    counter-increment: step;
+    position: relative;
+    padding-right: 48px;
+    margin-bottom: 16px;
+  }
+
+  .guide-steps li::before {
+    content: counter(step);
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 32px;
+    height: 32px;
+    background: var(--accent, #2563eb);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 768px) {
+    .guide-hero {
+      padding: 40px 24px;
+    }
+
+    .guide-hero h1 {
+      font-size: 1.8rem;
+    }
+
+    .guide-section {
+      padding: 24px;
+    }
+
+    .guide-nav {
+      position: static;
+    }
+
+    .guide-nav ul {
+      flex-direction: column;
+    }
+
+    .guide-nav a {
+      display: block;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="guide-page">
+  
+  <div class="guide-hero">
+    <h1><i class="fa-solid fa-book-open"></i> دليل الاستخدام</h1>
+    <p>دليل شامل يشرح كيفية استخدام منصة توثيق خطوة بخطوة - من إضافة التقارير إلى إدارة الطلبات وملفات الإنجاز</p>
+  </div>
+
+  <div class="guide-nav">
+    <h3><i class="fa-solid fa-list"></i> محتويات الدليل</h3>
+    <ul>
+      <li><a href="#intro">مقدمة</a></li>
+      <li><a href="#login">تسجيل الدخول</a></li>
+      <li><a href="#reports">التقارير</a></li>
+      <li><a href="#requests">الطلبات</a></li>
+      <li><a href="#achievement">ملفات الإنجاز</a></li>
+      <li><a href="#notifications">الإشعارات</a></li>
+      <li><a href="#manager">لوحة المدير</a></li>
+      <li><a href="#troubleshooting">حل المشاكل</a></li>
+    </ul>
+  </div>
+
+  <div class="guide-section" id="intro">
+    <h2><i class="fa-solid fa-circle-info"></i> ما هي المنصة؟</h2>
+    <p>منصة توثيق هي نظام متكامل لإدارة احتياجات المدرسة اليومية في مكان واحد:</p>
+    <ul>
+      <li><strong>التقارير المدرسية:</strong> توثيق التقارير اليومية والأنشطة مع إمكانية إرفاق صور والطباعة</li>
+      <li><strong>الطلبات والتذاكر:</strong> إدارة الطلبات الداخلية (صيانة، احتياج، متابعة) بين المعلمين والأقسام</li>
+      <li><strong>ملفات الإنجاز:</strong> ملف إنجاز سنوي للمعلم مع شواهد وإمكانية توليد PDF احترافي</li>
+      <li><strong>الإشعارات:</strong> إشعارات داخلية موجّهة مع تتبع القراءة والتوقيع للتعاميم</li>
+    </ul>
+
+    <div class="guide-note">
+      <strong>ملاحظة مهمة:</strong> المنصة مصممة خصيصاً للمدارس السعودية مع واجهة عربية كاملة ودعم للعمل على الجوال والكمبيوتر.
+    </div>
+  </div>
+
+  <div class="guide-section" id="login">
+    <h2><i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول</h2>
+    
+    <h3>تسجيل الدخول لأول مرة</h3>
+    <div class="guide-steps">
+      <ol>
+        <li>افتح رابط المنصة الذي تم تزويدك به</li>
+        <li>أدخل <strong>رقم الجوال</strong> بالصيغة: 05XXXXXXXX</li>
+        <li>أدخل <strong>كلمة المرور</strong> التي تم إعطاؤها لك</li>
+        <li>اضغط على زر <strong>تسجيل الدخول</strong></li>
+      </ol>
+    </div>
+
+    <div class="guide-warning">
+      <strong>تنبيه:</strong> إذا واجهت مشكلة في الدخول، تأكد من إدخال رقم الجوال بالشكل الصحيح وتواصل مع مدير المدرسة لإعادة ضبط كلمة المرور.
+    </div>
+
+    <h3>تغيير كلمة المرور</h3>
+    <p>لتغيير كلمة المرور:</p>
+    <ul>
+      <li>اضغط على أيقونة <strong>حسابي</strong> من القائمة العلوية</li>
+      <li>اختر <strong>تعديل البيانات</strong></li>
+      <li>أدخل كلمة المرور الجديدة وأكدها</li>
+      <li>احفظ التعديلات</li>
+    </ul>
+  </div>
+
+  <div class="guide-section" id="reports">
+    <h2><i class="fa-solid fa-file-lines"></i> التقارير المدرسية</h2>
+    
+    <h3>إضافة تقرير جديد</h3>
+    <div class="guide-steps">
+      <ol>
+        <li>من الصفحة الرئيسية، اضغط على زر <strong>إضافة تقرير</strong></li>
+        <li>اختر <strong>نوع التقرير</strong> من القائمة المنسدلة</li>
+        <li>أدخل <strong>عنوان التقرير</strong></li>
+        <li>حدد <strong>تاريخ التقرير</strong> (سيتم اختيار اليوم تلقائياً)</li>
+        <li>اكتب <strong>تفاصيل التقرير</strong> في حقل الوصف</li>
+        <li>أرفق حتى <strong>4 صور</strong> إن وُجدت</li>
+        <li>اضغط <strong>حفظ التقرير</strong></li>
+      </ol>
+    </div>
+
+    <div class="guide-note">
+      <strong>نصيحة:</strong> احرص على كتابة عنوان واضح ووصف مفصل للتقرير. سيساعد ذلك عند البحث والطباعة لاحقاً.
+    </div>
+
+    <h3>عرض وتعديل تقاريري</h3>
+    <p>من قائمة <strong>تقاريري</strong> يمكنك:</p>
+    <ul>
+      <li>عرض جميع تقاريرك</li>
+      <li>البحث عن تقرير محدد</li>
+      <li>تعديل تقرير موجود (اضغط على أيقونة القلم)</li>
+      <li>طباعة تقرير (اضغط على أيقونة الطباعة)</li>
+      <li>حذف تقرير (اضغط على أيقونة سلة المهملات)</li>
+    </ul>
+
+    <h3>طباعة التقرير</h3>
+    <p>عند طباعة التقرير:</p>
+    <ul>
+      <li>سيظهر التقرير بتنسيق احترافي جاهز للطباعة</li>
+      <li>سيتم عرض شعار المدرسة (إن كان مضافاً)</li>
+      <li>ستظهر جميع الصور المرفقة</li>
+      <li>يمكنك الطباعة مباشرة أو حفظه كملف PDF</li>
+    </ul>
+  </div>
+
+  <div class="guide-section" id="requests">
+    <h2><i class="fa-solid fa-ticket"></i> الطلبات والتذاكر</h2>
+    
+    <h3>إنشاء طلب جديد</h3>
+    <div class="guide-steps">
+      <ol>
+        <li>من القائمة، اختر <strong>طلب جديد</strong></li>
+        <li>اختر <strong>نوع الطلب</strong> أو <strong>القسم المعني</strong></li>
+        <li>اكتب <strong>عنوان الطلب</strong> بشكل واضح</li>
+        <li>اشرح التفاصيل في حقل <strong>الوصف</strong></li>
+        <li>أرفق ملفات أو صور داعمة إن لزم</li>
+        <li>احفظ الطلب</li>
+      </ol>
+    </div>
+
+    <h3>متابعة طلباتي</h3>
+    <p>من صفحة <strong>طلباتي</strong> يمكنك:</p>
+    <ul>
+      <li>عرض جميع طلباتك وحالتها (جديد، قيد المعالجة، مكتمل، مرفوض)</li>
+      <li>إضافة ملاحظات على الطلب</li>
+      <li>متابعة الردود من الجهة المختصة</li>
+      <li>إغلاق الطلب عند الانتهاء</li>
+    </ul>
+
+    <div class="guide-note">
+      <strong>للمسؤولين:</strong> ستجد الطلبات الواردة إليك في صفحة <strong>الوارد</strong>، حيث يمكنك معالجتها والرد عليها.
+    </div>
+  </div>
+
+  <div class="guide-section" id="achievement">
+    <h2><i class="fa-solid fa-award"></i> ملفات الإنجاز</h2>
+    
+    <h3>إنشاء ملف إنجاز</h3>
+    <p>ملف الإنجاز السنوي يساعدك في توثيق إنجازاتك خلال العام الدراسي:</p>
+    <div class="guide-steps">
+      <ol>
+        <li>من قائمة <strong>ملفات الإنجاز</strong>، اضغط <strong>ملف جديد</strong></li>
+        <li>سيتم إنشاء ملف للسنة الدراسية الحالية</li>
+        <li>املأ البيانات الأساسية (المؤهلات، الخبرات، المواد)</li>
+        <li>أضف شواهد (صور) لكل محور</li>
+        <li>احفظ التعديلات</li>
+      </ol>
+    </div>
+
+    <h3>إضافة شواهد للملف</h3>
+    <p>يمكنك إضافة حتى 8 صور لكل محور من محاور ملف الإنجاز، مثل:</p>
+    <ul>
+      <li>التخطيط والإعداد</li>
+      <li>تنفيذ التدريس</li>
+      <li>التقويم</li>
+      <li>التنمية المهنية</li>
+      <li>المسؤوليات الإضافية</li>
+    </ul>
+
+    <h3>طباعة ملف الإنجاز</h3>
+    <p>عند إكمال الملف، يمكنك:</p>
+    <ul>
+      <li>معاينة الملف قبل الطباعة</li>
+      <li>توليد ملف PDF احترافي بشعار المدرسة</li>
+      <li>مشاركة رابط مؤقت للملف مع المشرفين</li>
+    </ul>
+
+    <div class="guide-note">
+      <strong>ملاحظة:</strong> يمكن لمدير المدرسة اعتماد ملف الإنجاز بعد مراجعته.
+    </div>
+  </div>
+
+  <div class="guide-section" id="notifications">
+    <h2><i class="fa-solid fa-bell"></i> الإشعارات والتعاميم</h2>
+    
+    <h3>عرض الإشعارات</h3>
+    <p>ستصلك إشعارات داخل المنصة عند:</p>
+    <ul>
+      <li>ورود رد على طلبك</li>
+      <li>إرسال تعميم من الإدارة</li>
+      <li>تغيير حالة طلبك</li>
+      <li>رسائل مهمة من إدارة المدرسة</li>
+    </ul>
+
+    <h3>التعاميم التي تتطلب توقيع</h3>
+    <p>بعض التعاميم تتطلب قراءتها والتوقيع عليها:</p>
+    <div class="guide-steps">
+      <ol>
+        <li>افتح التعميم من صفحة <strong>التعاميم</strong></li>
+        <li>اقرأ محتوى التعميم بعناية</li>
+        <li>ضع علامة على خانة <strong>أقر بأنني قرأت وفهمت...</strong></li>
+        <li>اضغط <strong>توقيع</strong></li>
+      </ol>
+    </div>
+
+    <div class="guide-warning">
+      <strong>مهم:</strong> بعض التعاميم لها موعد نهائي للتوقيع. احرص على التوقيع قبل انتهاء المهلة.
+    </div>
+  </div>
+
+  <div class="guide-section" id="manager">
+    <h2><i class="fa-solid fa-user-tie"></i> لوحة المدير</h2>
+    <p><em>هذا القسم خاص بمديري المدارس فقط</em></p>
+    
+    <h3>إدارة المعلمين</h3>
+    <p>من لوحة المدير يمكنك:</p>
+    <ul>
+      <li>إضافة معلمين جدد</li>
+      <li>استيراد قائمة المعلمين من ملف Excel</li>
+      <li>تعديل بيانات المعلمين</li>
+      <li>إدارة صلاحيات المعلمين</li>
+    </ul>
+
+    <h3>إدارة الأقسام</h3>
+    <p>يمكنك إنشاء أقسام (وكيل، رائد نشاط، مرشد...) وتعيين مسؤولين لها.</p>
+
+    <h3>إدارة أنواع التقارير</h3>
+    <p>تخصيص أنواع التقارير المتاحة وربطها بالأقسام المناسبة.</p>
+
+    <h3>إرسال إشعارات</h3>
+    <p>إرسال إشعارات أو تعاميم لجميع المعلمين أو مجموعة محددة.</p>
+  </div>
+
+  <div class="guide-section" id="troubleshooting">
+    <h2><i class="fa-solid fa-wrench"></i> حل المشاكل الشائعة</h2>
+    
+    <h3>لا أستطيع تسجيل الدخول</h3>
+    <ul>
+      <li>تأكد من إدخال رقم الجوال بالشكل الصحيح (05XXXXXXXX)</li>
+      <li>تحقق من كلمة المرور</li>
+      <li>تواصل مع مدير المدرسة لإعادة تعيين كلمة المرور</li>
+    </ul>
+
+    <h3>لا أرى لوحة المدير</h3>
+    <p>لوحة المدير متاحة فقط للمستخدمين ذوي صلاحية "مدير مدرسة". تواصل مع مشرف المنصة لضبط الصلاحيات.</p>
+
+    <h3>الصور لا تُرفع</h3>
+    <ul>
+      <li>تأكد من أن حجم الصورة أقل من 5 ميجابايت</li>
+      <li>استخدم صيغ الصور المدعومة (JPG, PNG)</li>
+      <li>تحقق من اتصالك بالإنترنت</li>
+    </ul>
+
+    <h3>هل تحتاج مساعدة إضافية؟</h3>
+    <p>يمكنك فتح <strong>تذكرة دعم فني</strong> من داخل المنصة، وسيتم الرد عليك في أقرب وقت.</p>
+    <div style="text-align: center; margin-top: 32px;">
+      <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-primary" style="padding: 16px 32px; font-size: 1rem;">
+        <i class="fa-solid fa-life-ring"></i> تواصل مع الدعم الفني
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
