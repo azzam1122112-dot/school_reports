@@ -441,7 +441,14 @@
     }
     
     @media (max-width: 640px) {
-      .footer-grid { grid-template-columns: 1fr; gap: 16px; }
+      .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+      .footer-col { text-align: center; }
+      .footer-col h4 { justify-content: center; }
+      .footer-logo { justify-content: center; }
+      .footer-links li { justify-content: center; }
+      .footer-contact-item { justify-content: center; }
+      .footer-social { justify-content: center; }
+      .footer-auth-brands { justify-content: center; }
     }
     
     .footer-col h4 {
@@ -593,9 +600,19 @@
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 16px;
     }
     
+    @media (max-width: 640px) {
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+      .footer-badges {
+        justify-content: center;
+      }
+    }
+
     .footer-copyright {
       font-size: 0.8rem;
       color: var(--text-muted);
