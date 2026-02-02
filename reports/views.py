@@ -5123,19 +5123,19 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
                 reports_labels.append(week_label)
                 reports_data.append(item['count'])
             
-            # تقارير حسب القسم/الدائرة
-            reports_by_dept = _filter_by_school(
+            # تقارير حسب التصنيف/النوع
+            reports_by_category = _filter_by_school(
                 Report.objects.all(), 
                 active_school
-            ).values('department__name').annotate(
+            ).values('category__name').annotate(
                 count=Count('id')
             ).order_by('-count')[:6]
             
             dept_labels = []
             dept_data = []
-            for item in reports_by_dept:
-                dept_name = item['department__name'] or 'غير محدد'
-                dept_labels.append(dept_name)
+            for item in reports_by_category:
+                category_name = item['category__name'] or 'غير محدد'
+                dept_labels.append(category_name)
                 dept_data.append(item['count'])
             
             # معلمين حسب القسم
@@ -5473,7 +5473,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         }
         
         for item in schools_by_stage:
-            stage_name = dict(School.STAGE_CHOICES).get(item['stage'], item['stage'])
+            stage_name = dict(School.Stage.choices).get(item['stage'], item['stage'])
             stage_labels.append(stage_name)
             stage_data.append(item['count'])
             stage_colors.append(color_map.get(item['stage'], '#6b7280'))
