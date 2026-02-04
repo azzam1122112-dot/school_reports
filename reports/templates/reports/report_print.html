@@ -50,7 +50,7 @@
       body { background: #fff; }
       .page {
         width: auto;
-        min-height: auto;
+        min-height: 250mm; /* الحفاظ على ارتفاع كافي لدفع التوقيعات للأسفل */
         margin: 0;
         padding: 0;
         box-shadow: none;
@@ -205,14 +205,33 @@
       font-weight: 800;
     }
 
+    /* Spacer لدفع التوقيعات للأسفل */
+    .signature-spacer {
+      flex: 1;
+      min-height: 20px;
+    }
+
     .signatures {
       border: 1px solid var(--line);
       padding: 6px;
       display: grid;
       gap: 6px;
-      margin-top: auto;
+      margin-top: 8px;
       margin-bottom: 0;
       page-break-inside: avoid;
+      /* تأكيد تثبيت التوقيعات في الأسفل */
+      page-break-before: auto;
+    }
+    
+    /* منع تقطع التوقيعات وتثبيتها في الأسفل */
+    @media print {
+      .signature-spacer {
+        min-height: 40px;
+      }
+      .signatures {
+        position: relative;
+        break-inside: avoid;
+      }
     }
     .signatures.two-sigs {
       grid-template-columns: 1fr 1fr;
@@ -303,8 +322,8 @@
       </div>
     </header>
 
-    <div class="title">تقرير تنفيذ برنامج / نشاط</div>
-    <div class="subtitle">عنوان البرنامج: {% firstof r.title "—" %}</div>
+    <div class="title">تقرير تنفيذ برنامج أو نشاط</div>
+    <div class="subtitle">عنوان التقـرير: {% firstof r.title "—" %}</div>
 
     <table class="meta-table">
       <tr>
@@ -322,7 +341,7 @@
     </table>
 
     <section class="section">
-      <div class="section-h">أولاً: وصف النشاط / البرنامج</div>
+      <div class="section-h">أولاً:الـوصـف </div>
       <div class="section-body">{{ r.idea|default:"—" }}</div>
     </section>
     
@@ -360,6 +379,13 @@
       </div>
     </section>
     {% endif %}
+
+    {% comment %}
+    ============================================
+    Spacer لدفع التوقيعات للأسفل
+    ============================================
+    {% endcomment %}
+    <div class="signature-spacer"></div>
 
     {% comment %}
     ============================================
