@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#2563eb">
   <meta name="color-scheme" content="light dark">
 
-  <title>منصة التقارير والتذاكر | مستقبل التوثيق المدرسي 2026</title>
+  <title>منصة توثــيق | مستقبل التوثيق المدرسي 2026</title>
   <meta name="description" content="الحل الرقمي المتكامل لإدارة المدارس الذكية. تقارير مصوّرة، تذاكر صيانة، وملفات إنجاز إلكترونية في منصة واحدة تغنيك عن الورق تماماً.">
   <meta name="keywords" content="منصة مدارس, تقارير مدرسية, تذاكر صيانة, ملف إنجاز, تعليم إلكتروني, السعودية, 2026">
 
@@ -467,7 +467,105 @@
       h1 { font-size: 2.8rem; }
     }
 
+    /* Floating Login Button for Mobile - Luxury Style */
+    .floating-login-btn {
+      display: none; /* Hidden by default on desktop */
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 999;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: white;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4), 0 0 0 0 rgba(37, 99, 235, 0.3);
+      display: grid;
+      place-items: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: floatPulse 3s ease-in-out infinite;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      overflow: hidden;
+    }
+    
+    .floating-login-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%);
+      transform: translateX(-100%);
+      transition: transform 0.6s;
+    }
+    
+    .floating-login-btn:hover::before {
+      transform: translateX(100%);
+    }
+    
+    .floating-login-btn:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 12px 32px rgba(37, 99, 235, 0.5), 0 0 0 8px rgba(37, 99, 235, 0.15);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .floating-login-btn:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+    
+    .floating-login-btn i {
+      position: relative;
+      z-index: 1;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+    
+    /* Premium Badge on floating button */
+    .floating-login-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: var(--accent);
+      color: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 0.7rem;
+      font-weight: 900;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      animation: bounce 2s ease-in-out infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    
+    @keyframes floatPulse {
+      0%, 100% { 
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4), 0 0 0 0 rgba(37, 99, 235, 0.3);
+      }
+      50% { 
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4), 0 0 0 12px rgba(37, 99, 235, 0);
+      }
+    }
+    
+    /* Show only on mobile */
     @media (max-width: 768px) {
+      .floating-login-btn {
+        display: grid;
+      }
+      
+      /* Adjust button position for notch devices */
+      @supports (padding-top: env(safe-area-inset-top)) {
+        .floating-login-btn {
+          top: calc(20px + env(safe-area-inset-top));
+        }
+      }
+      
       .navbar .nav-links { display: none; }
       .mobile-toggle { display: block; }
       
@@ -548,11 +646,37 @@
       .btn { width: 100%; }
       .pricing-toggle { width: 100%; justify-content: space-between; }
       .btn-toggle { flex: 1; text-align: center; padding: 12px 10px; }
+      
+      /* Smaller floating button on very small screens */
+      .floating-login-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.1rem;
+        top: 15px;
+        left: 15px;
+      }
+      
+      .floating-login-badge {
+        width: 18px;
+        height: 18px;
+        font-size: 0.6rem;
+        top: -5px;
+        right: -5px;
+        border-width: 2px;
+      }
     }
   </style>
 </head>
 
 <body>
+
+  <!-- ================= Floating Login Button (Mobile Only) ================= -->
+  <a href="{% url 'reports:login' %}" class="floating-login-btn" aria-label="تسجيل الدخول" title="تسجيل الدخول">
+    <i class="fa-solid fa-right-to-bracket"></i>
+    <span class="floating-login-badge">
+      <i class="fa-solid fa-crown"></i>
+    </span>
+  </a>
 
   <!-- ================= NAV ================= -->
   <nav class="navbar" id="navbar" aria-label="القائمة الرئيسية">
