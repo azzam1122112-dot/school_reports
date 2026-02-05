@@ -322,7 +322,6 @@
       </div>
     </header>
 
-    <div class="title">تقرير تنفيذ برنامج أو نشاط</div>
     <div class="subtitle">عنوان التقـرير: {% firstof r.title "—" %}</div>
 
     <table class="meta-table">
@@ -337,8 +336,6 @@
         <td>{% firstof r.teacher_display_name r.teacher_name r.teacher.name "—" %}</td>
         <th>عدد المستفيدين</th>
         <td>{% if r.beneficiaries_count %}{{ r.beneficiaries_count }}{% else %}—{% endif %}</td>
-        <th>رقم التقرير</th>
-        <td>{{ r.id }}</td>
       </tr>
     </table>
 
