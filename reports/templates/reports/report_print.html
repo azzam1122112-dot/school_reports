@@ -333,6 +333,8 @@
         <td>{{ r.report_date|date:"Y/m/d" }}</td>
       </tr>
       <tr>
+        <th>المنفذ</th>
+        <td>{% firstof r.teacher_display_name r.teacher_name r.teacher.name "—" %}</td>
         <th>عدد المستفيدين</th>
         <td>{% if r.beneficiaries_count %}{{ r.beneficiaries_count }}{% else %}—{% endif %}</td>
         <th>رقم التقرير</th>
