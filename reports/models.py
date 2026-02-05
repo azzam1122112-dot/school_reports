@@ -73,7 +73,16 @@ def _payment_receipt_upload_to(instance: "Payment", filename: str) -> str:
 
 def _report_image_upload_to(instance: "Report", filename: str) -> str:
     """مسار رفع صور التقرير"""
-    return f"reports/{filename}"
+    import os
+    import uuid
+
+    base = os.path.basename(filename or "image")
+    uid = uuid.uuid4().hex
+    try:
+        teacher_id = getattr(instance, "teacher_id", None) or "unknown"
+    except Exception:
+        teacher_id = "unknown"
+    return f"reports/teacher_{teacher_id}/{uid}_{base}"
 
 
 def _ticket_attachment_upload_to(instance: "Ticket", filename: str) -> str:

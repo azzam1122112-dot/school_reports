@@ -491,7 +491,9 @@ if _use_r2:
     # NOTE: When using signed URLs, we should NOT use AWS_S3_CUSTOM_DOMAIN; signatures are bound to host.
     AWS_QUERYSTRING_AUTH = _env_bool("AWS_QUERYSTRING_AUTH", not bool(R2_PUBLIC_DOMAIN))
     AWS_QUERYSTRING_EXPIRE = int(os.getenv("AWS_QUERYSTRING_EXPIRE", "86400"))
-    AWS_S3_FILE_OVERWRITE = _env_bool("AWS_S3_FILE_OVERWRITE", False)
+    # IMPORTANT: default to overwrite to avoid orphaned duplicates when images are re-saved/optimized.
+    # You can override via env: AWS_S3_FILE_OVERWRITE=0
+    AWS_S3_FILE_OVERWRITE = _env_bool("AWS_S3_FILE_OVERWRITE", True)
     AWS_S3_OBJECT_PARAMETERS = {
         "CacheControl": os.getenv("AWS_S3_CACHE_CONTROL", "max-age=31536000"),
     }
