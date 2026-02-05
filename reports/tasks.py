@@ -175,12 +175,27 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
     batch_size = 500
     teacher_list = list(teachers)
 
+    try:
+        from .realtime_notifications import push_new_notification_to_teachers
+    except Exception:
+        push_new_notification_to_teachers = None
+
     for i in range(0, len(teacher_list), batch_size):
         batch = teacher_list[i : i + batch_size]
         NotificationRecipient.objects.bulk_create(
             [NotificationRecipient(notification=n, teacher=t) for t in batch],
             ignore_conflicts=True,
         )
+
+        # WS push (bulk_create bypasses signals)
+        if push_new_notification_to_teachers is not None:
+            try:
+                push_new_notification_to_teachers(
+                    notification=n,
+                    teacher_ids=[getattr(t, "id", None) for t in batch if getattr(t, "id", None)],
+                )
+            except Exception:
+                pass
 
     logger.info("Successfully sent notification %s to %s recipients.", notification_id, len(teacher_list))
     return True

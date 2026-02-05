@@ -3,6 +3,10 @@ from __future__ import annotations
 
 from typing import Dict, Any, List, Iterable, Optional, Tuple, Set
 from datetime import timedelta
+import hashlib
+
+from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpRequest
 from django.utils import timezone
 from django.apps import apps
@@ -600,6 +604,40 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "USER_ROLE_LABEL": None,
         }
 
+    # -----------------------------
+    # Short-TTL caching (per user + active_school + dismissal cookies)
+    # - Cuts repeated COUNT/exists queries across page navigations.
+    # - Cookie signature ensures dismissing a hero/notification invalidates cache quickly.
+    # -----------------------------
+    try:
+        ttl = int(getattr(settings, "NAV_CONTEXT_CACHE_TTL_SECONDS", 20) or 0)
+    except Exception:
+        ttl = 20
+
+    cache_key = None
+    if ttl > 0:
+        try:
+            sid_raw = request.session.get("active_school_id")
+            sid_for_key = str(int(sid_raw)) if sid_raw else "none"
+        except Exception:
+            sid_for_key = "none"
+
+        try:
+            dismissed_keys = [k for k in (request.COOKIES or {}).keys() if k.startswith("notif_dismissed_")]
+            dismissed_keys.sort()
+            dismissed_sig = hashlib.sha1("|".join(dismissed_keys).encode("utf-8")).hexdigest()[:12]
+        except Exception:
+            dismissed_sig = "nocookies"
+
+        try:
+            uid = int(getattr(u, "id", 0) or 0)
+            cache_key = f"navctx:v2:u{uid}:s{sid_for_key}:c{dismissed_sig}"
+            cached = cache.get(cache_key)
+            if isinstance(cached, dict):
+                return cached
+        except Exception:
+            cache_key = None
+
     # نحدد المدرسة النشطة (إن وُجدت) لاستخدامها في العدادات
     active_school = None
     try:
@@ -821,7 +859,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         pass
 
-    return {
+    out = {
         "NAV_MY_OPEN_TICKETS": my_open,
         "NAV_ASSIGNED_TO_ME": assigned_open,
         "IS_OFFICER": is_officer,
@@ -844,6 +882,14 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SUBSCRIPTION_DAYS_LEFT": subscription_days_left,
         "USER_ROLE_LABEL": user_role_label,
     }
+
+    if cache_key and ttl > 0:
+        try:
+            cache.set(cache_key, out, ttl)
+        except Exception:
+            pass
+
+    return out
 
 
 def nav_counters(request: HttpRequest) -> Dict[str, int]:

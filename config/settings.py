@@ -52,6 +52,19 @@ DEBUG = (ENV != "production") if os.getenv("DEBUG") is None else _env_bool("DEBU
 
 logger.info("DEBUG: %s", DEBUG)
 
+# ----------------- Short-TTL DB Load Shedding -----------------
+# Per-user cache for navigation counters / notification polling.
+# Keep short (10-30s) to preserve accuracy while cutting repeated COUNTs.
+try:
+    NAV_CONTEXT_CACHE_TTL_SECONDS = int(os.getenv("NAV_CONTEXT_CACHE_TTL_SECONDS", "20").strip() or "20")
+except Exception:
+    NAV_CONTEXT_CACHE_TTL_SECONDS = 20
+
+try:
+    UNREAD_COUNT_CACHE_TTL_SECONDS = int(os.getenv("UNREAD_COUNT_CACHE_TTL_SECONDS", "15").strip() or "15")
+except Exception:
+    UNREAD_COUNT_CACHE_TTL_SECONDS = 15
+
 if ENV == "production":
     # في الإنتاج لا نسمح بفال باك غير آمن أبدًا
     if not SECRET_KEY or SECRET_KEY == "unsafe-secret":
@@ -151,6 +164,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     # طرف ثالث
+    "channels",
     "django_celery_results",
 
     # تطبيقاتنا
@@ -233,8 +247,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "reports.context_processors.nav_context",
-                # متوافق مع الأيقونة/الهيدر
-                "reports.context_processors.nav_badges",
+                # NOTE: nav_badges() was an alias to nav_context() and caused duplicate DB work per request.
                 "reports.context_processors.csp",
             ],
         },
@@ -242,6 +255,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+
+# Channels / WebSocket
+ASGI_APPLICATION = "config.asgi.application"
 
 # ----------------- Redis URLs (Broker/Cache) -----------------
 # افصل الكاش عن الـ broker إن أمكن لتقليل التداخل.
@@ -278,6 +294,8 @@ if not REDIS_CACHE_URL:
 # ----------------- الكاش (Caching) -----------------
 # - في الإنتاج: نفضل Redis إن توفر، وإلا نستخدم LocMem (أفضل من كسر الإقلاع).
 # - في التطوير: نستخدم LocMem إذا لم يوجد Redis.
+REDIS_CHANNEL_LAYER_URL = os.getenv("REDIS_CHANNEL_LAYER_URL", os.getenv("REDIS_URL", "")).strip()
+
 if REDIS_CACHE_URL:
     CACHES = {
         "default": {
@@ -299,6 +317,21 @@ else:
 
 # ----------------- قاعدة البيانات -----------------
 # الأولوية لـ DATABASE_URL إن وُجد وكان dj_database_url متاحًا
+if REDIS_CHANNEL_LAYER_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_CHANNEL_LAYER_URL],
+            },
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
+    }
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_SSL = _env_bool("DB_SSL", False)
 

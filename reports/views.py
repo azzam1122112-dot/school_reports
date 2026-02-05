@@ -17,6 +17,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import (
@@ -1044,6 +1045,14 @@ def platform_school_notify(request: HttpRequest) -> HttpResponse:
                 )
                 recipients = [NotificationRecipient(notification=n, teacher_id=tid) for tid in teacher_ids]
                 NotificationRecipient.objects.bulk_create(recipients, ignore_conflicts=True)
+
+                # Push WS delta (bulk_create doesn't trigger signals)
+                try:
+                    from .realtime_notifications import push_new_notification_to_teachers
+
+                    push_new_notification_to_teachers(notification=n, teacher_ids=teacher_ids)
+                except Exception:
+                    pass
             messages.success(request, "تم إرسال الإشعار إلى جميع مستخدمي المدرسة.")
             return redirect("reports:platform_school_dashboard")
         except Exception:
@@ -1486,10 +1495,36 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
     allowed_choices = get_reporttype_choices(active_school=active_school) if (HAS_RTYPE and ReportType is not None) else []
     reports_page = svc_paginate(qs, per_page=20, page=request.GET.get("page", 1))
     
-    # ✅ إضافة صلاحيات الحذف والمشاركة لكل تقرير
+    # ✅ إضافة صلاحيات الحذف والمشاركة لكل تقرير (بدون N+1 على قاعدة البيانات)
+    user = request.user
+    is_superuser = bool(getattr(user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(user))
+
+    manager_school_ids = set()
+    if (not is_superuser) and (not is_platform):
+        try:
+            manager_school_ids = set(
+                SchoolMembership.objects.filter(
+                    teacher=user,
+                    role_type=SchoolMembership.RoleType.MANAGER,
+                    is_active=True,
+                ).values_list("school_id", flat=True)
+            )
+        except Exception:
+            manager_school_ids = set()
+
     for report in reports_page:
-        report.user_can_delete = can_delete_report(request.user, report, active_school=active_school)
-        report.user_can_share = can_share_report(request.user, report, active_school=active_school)
+        if is_superuser:
+            allowed = True
+        elif is_platform:
+            allowed = False
+        else:
+            allowed = bool(
+                getattr(report, "teacher_id", None) == getattr(user, "id", None)
+                or (getattr(report, "school_id", None) in manager_school_ids)
+            )
+        report.user_can_delete = allowed
+        report.user_can_share = allowed
 
     context = {
         "reports": reports_page,
@@ -2648,7 +2683,7 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
     teacher_name = request.GET.get("teacher_name", "").strip()
     category = request.GET.get("category") or ""
 
-    qs = Report.objects.select_related("teacher", "category").filter(category__in=allowed_cats_qs)
+    qs = Report.objects.select_related("teacher", "category", "school").filter(category__in=allowed_cats_qs)
     qs = _filter_by_school(qs, active_school)
 
     if start_date:
@@ -2666,10 +2701,42 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
     
-    # ✅ إضافة صلاحيات الحذف والمشاركة لكل تقرير
+    # ✅ إضافة صلاحيات الحذف والمشاركة لكل تقرير (بدون N+1 على قاعدة البيانات)
+    is_superuser = bool(getattr(user, "is_superuser", False))
+    is_platform = bool(is_platform_admin(user))
+
+    allowed_category_ids = set()
+    try:
+        allowed_category_ids = set(allowed_cats_qs.values_list("id", flat=True))
+    except Exception:
+        allowed_category_ids = set()
+
+    manager_school_ids = set()
+    if (not is_superuser) and (not is_platform):
+        try:
+            manager_school_ids = set(
+                SchoolMembership.objects.filter(
+                    teacher=user,
+                    role_type=SchoolMembership.RoleType.MANAGER,
+                    is_active=True,
+                ).values_list("school_id", flat=True)
+            )
+        except Exception:
+            manager_school_ids = set()
+
     for report in page_obj:
-        report.user_can_delete = can_delete_report(user, report, active_school=active_school)
-        report.user_can_share = can_share_report(user, report, active_school=active_school)
+        if is_superuser:
+            allowed = True
+        elif is_platform:
+            allowed = False
+        else:
+            allowed = bool(
+                getattr(report, "teacher_id", None) == getattr(user, "id", None)
+                or (getattr(report, "school_id", None) in manager_school_ids)
+                or (getattr(report, "category_id", None) in allowed_category_ids)
+            )
+        report.user_can_delete = allowed
+        report.user_can_share = allowed
 
     categories_choices = [(str(c.pk), c.name) for c in allowed_cats_qs.order_by("order", "name")]
 
@@ -8041,6 +8108,28 @@ def unread_notifications_count(request: HttpRequest) -> HttpResponse:
     if NotificationRecipient is None:
         return JsonResponse({"count": 0, "unread": 0, "signatures_pending": 0, "authenticated": True})
 
+    # Short-TTL cache per user + school to cut repeated aggregate queries.
+    try:
+        ttl = int(getattr(settings, "UNREAD_COUNT_CACHE_TTL_SECONDS", 15) or 0)
+    except Exception:
+        ttl = 15
+
+    cache_key = None
+    if ttl > 0:
+        try:
+            sid_raw = request.session.get("active_school_id")
+            sid_for_key = str(int(sid_raw)) if sid_raw else "none"
+        except Exception:
+            sid_for_key = "none"
+        try:
+            uid = int(getattr(request.user, "id", 0) or 0)
+            cache_key = f"unreadcnt:v1:u{uid}:s{sid_for_key}"
+            cached = cache.get(cache_key)
+            if isinstance(cached, dict):
+                return JsonResponse(cached)
+        except Exception:
+            cache_key = None
+
     active_school = _get_active_school(request)
     now = timezone.now()
 
@@ -8085,14 +8174,20 @@ def unread_notifications_count(request: HttpRequest) -> HttpResponse:
         signatures_pending=Count("id", filter=pending_sig_q),
     )
 
-    return JsonResponse(
-        {
-            "count": int(agg.get("count") or 0),
-            "unread": int(agg.get("unread") or 0),
-            "signatures_pending": int(agg.get("signatures_pending") or 0),
-            "authenticated": True,
-        }
-    )
+    payload = {
+        "count": int(agg.get("count") or 0),
+        "unread": int(agg.get("unread") or 0),
+        "signatures_pending": int(agg.get("signatures_pending") or 0),
+        "authenticated": True,
+    }
+
+    if cache_key and ttl > 0:
+        try:
+            cache.set(cache_key, payload, ttl)
+        except Exception:
+            pass
+
+    return JsonResponse(payload)
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
@@ -8150,6 +8245,15 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
                 upd["read_at"] = now
             if upd:
                 NotificationRecipient.objects.filter(pk__in=unread_ids, teacher=request.user).update(**upd)
+
+                # Bulk update won't trigger post_save; request a one-off WS resync.
+                try:
+                    from .realtime_notifications import push_force_resync
+
+                    push_force_resync(teacher_id=int(getattr(request.user, "id", 0) or 0))
+                except Exception:
+                    pass
+
                 for x in items:
                     if x.pk in unread_ids:
                         if "is_read" in upd:
@@ -8602,6 +8706,15 @@ def notifications_mark_all_read(request: HttpRequest) -> HttpResponse:
             except Exception:
                 continue
     messages.success(request, "تم تحديد جميع الإشعارات كمقروءة.")
+
+    # Bulk update won't trigger signals; ask clients to resync once.
+    try:
+        from .realtime_notifications import push_force_resync
+
+        push_force_resync(teacher_id=int(getattr(request.user, "id", 0) or 0))
+    except Exception:
+        pass
+
     return redirect(request.POST.get("next") or "reports:my_notifications")
 
 

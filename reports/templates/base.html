@@ -1649,7 +1649,7 @@
       }
     })();
 
-    // Notifications/Circulars polling
+    // Notifications/Circulars: WebSocket push (fallback to polling only if WS fails)
     (function() {
       const notifDot = document.getElementById('notifDot');
       const notifDotMobile = document.getElementById('notifDotMobile');
@@ -1657,25 +1657,224 @@
       const circDotMobile = document.getElementById('circDotMobile');
       if (!notifDot && !notifDotMobile && !circDot && !circDotMobile) return;
 
-      function checkNotifications() {
-        fetch('{% url "reports:unread_notifications_count" %}')
-          .then(r => r.json())
-          .then(data => {
-            const update = (dot, n) => {
-              if (!dot) return;
-              const v = Number(n || 0);
-              if (v > 0) { dot.textContent = String(v); dot.style.display = 'flex'; }
-              else { dot.style.display = 'none'; }
-            };
-            update(notifDot, data.unread);
-            update(notifDotMobile, data.unread);
-            update(circDot, data.signatures_pending);
-            update(circDotMobile, data.signatures_pending);
-          })
-          .catch(() => {});
+      const update = (dot, n) => {
+        if (!dot) return;
+        const v = Number(n || 0);
+        if (v > 0) { dot.textContent = String(v); dot.style.display = 'flex'; }
+        else { dot.style.display = 'none'; }
+      };
+
+      let current = { unread: 0, signatures_pending: 0, count: 0 };
+      function applyCounts(data) {
+        current.unread = Math.max(0, Number(data.unread || 0));
+        current.signatures_pending = Math.max(0, Number(data.signatures_pending || 0));
+        current.count = Math.max(0, Number(data.count || 0));
+        update(notifDot, current.unread);
+        update(notifDotMobile, current.unread);
+        update(circDot, current.signatures_pending);
+        update(circDotMobile, current.signatures_pending);
       }
 
-      setInterval(checkNotifications, 60000);
+      // ------------------ Fallback polling (disabled by default) ------------------
+      // Only starts when WebSocket cannot connect / drops.
+      const POLL_URL = '{% url "reports:unread_notifications_count" %}';
+      const BASE_MS = 60000;
+      const MAX_MS = 5 * BASE_MS;
+      let pollTimerId = null;
+      let pollInFlight = false;
+      let pollBackoffMs = BASE_MS;
+
+      function pollClearTimer() {
+        if (pollTimerId) {
+          clearTimeout(pollTimerId);
+          pollTimerId = null;
+        }
+      }
+
+      function pollScheduleNext(delayMs) {
+        pollClearTimer();
+        pollTimerId = setTimeout(pollTick, Math.max(1000, delayMs || BASE_MS));
+      }
+
+      function pollShouldRun() {
+        return !document.hidden;
+      }
+
+      function pollTick() {
+        if (!pollShouldRun()) return;
+        if (pollInFlight) return;
+        pollInFlight = true;
+
+        fetch(POLL_URL, { credentials: 'same-origin' })
+          .then(r => r.ok ? r.json() : Promise.reject(new Error('http_' + r.status)))
+          .then(data => {
+            applyCounts(data || {});
+            pollBackoffMs = BASE_MS;
+            pollScheduleNext(BASE_MS);
+          })
+          .catch(() => {
+            pollBackoffMs = Math.min(Math.round(pollBackoffMs * 1.8), MAX_MS);
+            pollScheduleNext(pollBackoffMs);
+          })
+          .finally(() => {
+            pollInFlight = false;
+          });
+      }
+
+      function pollStart() {
+        if (!pollShouldRun()) return;
+        pollBackoffMs = BASE_MS;
+        pollScheduleNext(2000);
+      }
+
+      function pollStop() {
+        pollClearTimer();
+      }
+
+      function enablePollingFallback() {
+        try {
+          if (window.__srNotifPoll && typeof window.__srNotifPoll.stop === 'function') {
+            window.__srNotifPoll.stop();
+          }
+        } catch (e) {}
+        window.__srNotifPoll = { stop: pollStop };
+        pollStart();
+      }
+
+      // ------------------ WebSocket (primary) ------------------
+      // Ensure we never run more than one WS instance.
+      try {
+        if (window.__srNotifWs && typeof window.__srNotifWs.stop === 'function') {
+          window.__srNotifWs.stop();
+        }
+      } catch (e) {}
+
+      const activeSchoolId = (function(){
+        const raw = '{{ SCHOOL_ID|default:"" }}';
+        try { return raw ? parseInt(raw, 10) : null; } catch(e){ return null; }
+      })();
+
+      let ws = null;
+      let wsTimer = null;
+      let wsBackoffMs = 1000;
+      let wsStartedPollingFallback = false;
+
+      function wsClearReconnect() {
+        if (wsTimer) { clearTimeout(wsTimer); wsTimer = null; }
+      }
+
+      function wsUrl() {
+        const proto = (window.location.protocol === 'https:') ? 'wss' : 'ws';
+        return proto + '://' + window.location.host + '/ws/notifications/';
+      }
+
+      function isRelevant(notificationSchoolId) {
+        if (!activeSchoolId) return true;
+        if (notificationSchoolId === null || notificationSchoolId === undefined || notificationSchoolId === '') return true;
+        const sid = Number(notificationSchoolId);
+        return sid === Number(activeSchoolId);
+      }
+
+      function handleDelta(msg) {
+        if (msg.force_resync) {
+          try { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'resync' })); }
+          catch(e) {}
+          return;
+        }
+
+        if (!isRelevant(msg.notification_school_id)) return;
+
+        const du = Number(msg.delta_unread || 0);
+        const ds = Number(msg.delta_signatures_pending || 0);
+        const dc = Number(msg.delta_count || 0);
+
+        current.unread = Math.max(0, current.unread + du);
+        current.signatures_pending = Math.max(0, current.signatures_pending + ds);
+        current.count = Math.max(0, current.count + dc);
+        update(notifDot, current.unread);
+        update(notifDotMobile, current.unread);
+        update(circDot, current.signatures_pending);
+        update(circDotMobile, current.signatures_pending);
+      }
+
+      function wsConnect() {
+        if (!('WebSocket' in window)) {
+          enablePollingFallback();
+          return;
+        }
+
+        wsClearReconnect();
+
+        try {
+          ws = new WebSocket(wsUrl());
+        } catch (e) {
+          enablePollingFallback();
+          return;
+        }
+
+        ws.onopen = function(){
+          wsBackoffMs = 1000;
+          wsStartedPollingFallback = false;
+          try { pollStop(); } catch(e) {}
+        };
+
+        ws.onmessage = function(ev){
+          let msg = null;
+          try { msg = JSON.parse(ev.data); } catch(e) { return; }
+          if (!msg || !msg.type) return;
+
+          if (msg.type === 'counts') {
+            applyCounts(msg);
+            return;
+          }
+
+          if (msg.type === 'delta') {
+            handleDelta(msg);
+            return;
+          }
+        };
+
+        ws.onerror = function(){
+          // allow onclose to handle fallback
+        };
+
+        ws.onclose = function(){
+          ws = null;
+
+          // Activate polling fallback after first WS failure.
+          if (!wsStartedPollingFallback) {
+            wsStartedPollingFallback = true;
+            enablePollingFallback();
+          }
+
+          wsBackoffMs = Math.min(Math.round(wsBackoffMs * 1.8), 30000);
+          // Add jitter to avoid reconnect stampedes (deploys / Redis restart).
+          const jitter = Math.floor(Math.random() * 500);
+          wsTimer = setTimeout(wsConnect, wsBackoffMs + jitter);
+        };
+      }
+
+      function wsStop() {
+        wsClearReconnect();
+        try { if (ws) ws.close(); } catch(e) {}
+        ws = null;
+      }
+
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+          // Do not force close WS; just avoid extra work.
+          try { pollStop(); } catch(e) {}
+        } else {
+          // One-off resync when user returns.
+          try { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'resync' })); }
+          catch(e) {}
+          // If WS is down, fallback polling may be active; restart it.
+          try { if (window.__srNotifPoll && typeof window.__srNotifPoll.stop === 'function') pollStart(); } catch(e) {}
+        }
+      }, { passive: true });
+
+      window.__srNotifWs = { stop: wsStop };
+      wsConnect();
     })();
 
     // Smart back: always return to the page the user came from (if possible).

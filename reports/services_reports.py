@@ -6,7 +6,7 @@ from datetime import date
 from typing import Optional
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Q, QuerySet
+from django.db.models import Q, QuerySet, Count
 from django.shortcuts import get_object_or_404
 
 from .models import Report, School
@@ -51,7 +51,7 @@ def paginate(qs: QuerySet, *, per_page: int, page: str | int | None):
 
 def get_teacher_reports_queryset(*, user, active_school: Optional[School]) -> QuerySet:
     qs = (
-        Report.objects.select_related("teacher", "category")
+        Report.objects.select_related("teacher", "category", "school")
         .filter(teacher=user)
         .order_by("-report_date", "-id")
     )
@@ -76,14 +76,21 @@ def apply_teacher_report_filters(
 
 def teacher_report_stats(qs: QuerySet) -> dict:
     today = date.today()
+    agg = qs.aggregate(
+        total=Count("id"),
+        this_month=Count(
+            "id",
+            filter=Q(report_date__month=today.month, report_date__year=today.year),
+        ),
+    )
     return {
-        "total": qs.count(),
-        "this_month": qs.filter(report_date__month=today.month, report_date__year=today.year).count(),
+        "total": int(agg.get("total") or 0),
+        "this_month": int(agg.get("this_month") or 0),
     }
 
 
 def get_admin_reports_queryset(*, user, active_school: Optional[School]) -> QuerySet:
-    qs = Report.objects.select_related("teacher", "category").order_by("-report_date", "-id")
+    qs = Report.objects.select_related("teacher", "category", "school").order_by("-report_date", "-id")
     qs = restrict_queryset_for_user(qs, user, active_school)
     return filter_by_school(qs, active_school)
 
@@ -133,7 +140,7 @@ def get_reporttype_choices(*, active_school: Optional[School]) -> list[tuple[str
 
 def get_report_for_user_or_404(*, user, pk: int, active_school: Optional[School]):
     """جلب تقرير واحد مع احترام عزل المدارس وصلاحيات الرؤية."""
-    qs = Report.objects.select_related("teacher", "category")
+    qs = Report.objects.select_related("teacher", "category", "school")
 
     if active_school is not None and _model_has_field(Report, "school"):
         qs = qs.filter(school=active_school)

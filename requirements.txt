@@ -19,6 +19,9 @@ zopfli==0.2.3.post1
 
 # Django and related
 Django>=4.2,<5.0
+channels==4.1.0
+channels-redis==4.2.0
+uvicorn==0.30.6
 gunicorn
 whitenoise
 dj-database-url==3.0.1

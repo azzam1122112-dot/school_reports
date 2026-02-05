@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.contrib.auth.signals import user_logged_in, user_logged_out
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from reports.models import (
@@ -15,6 +15,17 @@ from reports.models import (
 )
 
 User = get_user_model()
+
+try:
+    from .realtime_notifications import (
+        push_delta_to_user,
+        push_force_resync,
+        push_new_notification_to_teachers,
+    )
+except Exception:  # pragma: no cover
+    push_delta_to_user = None  # type: ignore
+    push_force_resync = None  # type: ignore
+    push_new_notification_to_teachers = None  # type: ignore
 
 
 def _infer_school_for_audit(request, user) -> School | None:
@@ -130,6 +141,153 @@ def _single_session_on_logout(sender, request, user, **kwargs):
     except Exception:
         pass
 
+
+# =========================
+# Realtime Notifications (Channels / WebSocket)
+# =========================
+
+
+@receiver(pre_save, sender=NotificationRecipient)
+def _notif_recipient_pre_save(sender, instance: NotificationRecipient, **kwargs):
+    """Capture previous values for delta calculation.
+
+    Important: queryset.update()/bulk_update won't trigger this.
+    """
+    try:
+        if not getattr(instance, "pk", None):
+            return
+    except Exception:
+        return
+
+    try:
+        old = (
+            NotificationRecipient.objects.select_related("notification")
+            .only(
+                "id",
+                "is_read",
+                "is_signed",
+                "notification__requires_signature",
+                "notification__school_id",
+            )
+            .filter(pk=instance.pk)
+            .first()
+        )
+        if old is None:
+            return
+        instance._sr_old_is_read = bool(getattr(old, "is_read", False))
+        instance._sr_old_is_signed = bool(getattr(old, "is_signed", False))
+        n = getattr(old, "notification", None)
+        instance._sr_old_requires_signature = bool(getattr(n, "requires_signature", False)) if n else False
+        instance._sr_old_notification_school_id = getattr(n, "school_id", None) if n else None
+    except Exception:
+        return
+
+
+@receiver(post_save, sender=NotificationRecipient)
+def _notif_recipient_post_save(sender, instance: NotificationRecipient, created: bool, **kwargs):
+    """Push counter updates to the recipient over WebSocket."""
+    if push_delta_to_user is None:
+        return
+
+    try:
+        teacher_id = int(getattr(instance, "teacher_id", 0) or 0)
+        if teacher_id <= 0:
+            return
+    except Exception:
+        return
+
+    try:
+        n = getattr(instance, "notification", None)
+        requires_signature = bool(getattr(n, "requires_signature", False)) if n else False
+        notif_school_id = getattr(n, "school_id", None) if n else None
+    except Exception:
+        requires_signature = False
+        notif_school_id = None
+
+    if created:
+        # New recipient row == new attention item.
+        try:
+            if requires_signature:
+                push_delta_to_user(
+                    teacher_id=teacher_id,
+                    notification_school_id=notif_school_id,
+                    delta_signatures_pending=1,
+                    delta_count=1,
+                )
+            else:
+                push_delta_to_user(
+                    teacher_id=teacher_id,
+                    notification_school_id=notif_school_id,
+                    delta_unread=1,
+                    delta_count=1,
+                )
+        except Exception:
+            pass
+        return
+
+    # Updates: read/signature state change
+    try:
+        old_is_read = getattr(instance, "_sr_old_is_read", None)
+        old_is_signed = getattr(instance, "_sr_old_is_signed", None)
+        old_requires_signature = getattr(instance, "_sr_old_requires_signature", requires_signature)
+        old_school_id = getattr(instance, "_sr_old_notification_school_id", notif_school_id)
+    except Exception:
+        old_is_read = None
+        old_is_signed = None
+        old_requires_signature = requires_signature
+        old_school_id = notif_school_id
+
+    # If schema/instance didn't have old values, do a safe resync.
+    if old_is_read is None and old_is_signed is None:
+        if push_force_resync is not None:
+            try:
+                push_force_resync(teacher_id=teacher_id)
+            except Exception:
+                pass
+        return
+
+    # Circulars: count depends on is_signed only.
+    if bool(old_requires_signature):
+        try:
+            new_is_signed = bool(getattr(instance, "is_signed", False))
+            if old_is_signed is False and new_is_signed is True:
+                push_delta_to_user(
+                    teacher_id=teacher_id,
+                    notification_school_id=old_school_id,
+                    delta_signatures_pending=-1,
+                    delta_count=-1,
+                )
+            elif old_is_signed is True and new_is_signed is False:
+                push_delta_to_user(
+                    teacher_id=teacher_id,
+                    notification_school_id=old_school_id,
+                    delta_signatures_pending=1,
+                    delta_count=1,
+                )
+        except Exception:
+            pass
+        return
+
+    # Normal notifications: count depends on is_read.
+    try:
+        new_is_read = bool(getattr(instance, "is_read", False))
+        if old_is_read is False and new_is_read is True:
+            push_delta_to_user(
+                teacher_id=teacher_id,
+                notification_school_id=old_school_id,
+                delta_unread=-1,
+                delta_count=-1,
+            )
+        elif old_is_read is True and new_is_read is False:
+            push_delta_to_user(
+                teacher_id=teacher_id,
+                notification_school_id=old_school_id,
+                delta_unread=1,
+                delta_count=1,
+            )
+    except Exception:
+        pass
+
     # Audit: logout
     try:
         AuditLog.objects.create(
@@ -180,6 +338,7 @@ def notify_admin_on_subscription(sender, instance, created, **kwargs):
         # نفترض أن مدير النظام هو Superuser
         admins = User.objects.filter(is_superuser=True)
         recipients = []
+        admin_ids = []
         for admin in admins:
             # تأكد من عدم تكرار الإشعار
             if not NotificationRecipient.objects.filter(notification=notification, teacher=admin).exists():
@@ -187,9 +346,15 @@ def notify_admin_on_subscription(sender, instance, created, **kwargs):
                     notification=notification,
                     teacher=admin
                 ))
+                admin_ids.append(getattr(admin, "id", None))
         
         if recipients:
             NotificationRecipient.objects.bulk_create(recipients, ignore_conflicts=True)
+            if push_new_notification_to_teachers is not None:
+                push_new_notification_to_teachers(
+                    notification=notification,
+                    teacher_ids=[i for i in admin_ids if i],
+                )
     except Exception:
         # تجنب كسر العملية الأساسية في حال خطأ في الإشعارات
         pass
@@ -214,14 +379,21 @@ def notify_admin_on_platform_ticket(sender, instance, created, **kwargs):
             
             admins = User.objects.filter(is_superuser=True)
             recipients = []
+            admin_ids = []
             for admin in admins:
                  if not NotificationRecipient.objects.filter(notification=notification, teacher=admin).exists():
                     recipients.append(NotificationRecipient(
                         notification=notification,
                         teacher=admin
                     ))
+                    admin_ids.append(getattr(admin, "id", None))
             
             if recipients:
                 NotificationRecipient.objects.bulk_create(recipients, ignore_conflicts=True)
+                if push_new_notification_to_teachers is not None:
+                    push_new_notification_to_teachers(
+                        notification=notification,
+                        teacher_ids=[i for i in admin_ids if i],
+                    )
     except Exception:
         pass

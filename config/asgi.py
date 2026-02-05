@@ -1,16 +1,26 @@
-"""
-ASGI config for config project.
+"""ASGI config.
 
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
+HTTP continues to be served by Django; WebSocket routes are handled by Django Channels.
 """
 
 import os
 
+from channels.auth import AuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-application = get_asgi_application()
+django_asgi_app = get_asgi_application()
+
+try:
+	from reports.routing import websocket_urlpatterns
+except Exception:
+	websocket_urlpatterns = []
+
+application = ProtocolTypeRouter(
+	{
+		"http": django_asgi_app,
+		"websocket": AuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
+	}
+)
