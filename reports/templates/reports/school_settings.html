@@ -178,7 +178,7 @@
             <i class="fa-solid fa-gear" aria-hidden="true"></i>
             إعدادات المدرسة
           </h1>
-          <p class="ss-sub">تحديث بيانات المدرسة والشعار.</p>
+          <p class="ss-sub">تحديث بيانات المدرسة.</p>
         </div>
         <div class="ss-chip">
           <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
@@ -243,51 +243,6 @@
             {{ form.phone }}
             {% for e in form.phone.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
             <div class="ss-hint">يفضّل صيغة 05XXXXXXXX.</div>
-          </div>
-
-          <!-- رفع شعار -->
-          <div class="ss-group span-2">
-            <label class="ss-label" for="{{ form.logo_file.id_for_label }}">
-              <i class="fa-solid fa-image" aria-hidden="true"></i> رفع الشعار (ملف)
-            </label>
-
-            <div class="file-wrap">
-              {{ form.logo_file }}
-              {% for e in form.logo_file.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-              <div class="ss-hint">PNG / JPG / SVG / WEBP</div>
-            </div>
-
-            {% if school.logo_file %}
-              <div class="preview" aria-label="معاينة الشعار الحالي">
-                <img src="{{ school.logo_file.url }}" alt="الشعار الحالي">
-                <div>
-                  <b>معاينة الشعار الحالي</b>
-                  <small>المصدر: شعار مرفوع</small>
-                </div>
-              </div>
-            {% endif %}
-          </div>
-
-          <!-- رابط شعار -->
-          <div class="ss-group span-2">
-            <label class="ss-label" for="{{ form.logo_url.id_for_label }}">
-              <i class="fa-solid fa-link" aria-hidden="true"></i> رابط الشعار (اختياري)
-            </label>
-            {{ form.logo_url }}
-            {% for e in form.logo_url.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="ss-hint">يُستخدم إذا لم يتوفر شعار مرفوع.</div>
-
-            {% if not school.logo_file %}
-              {% if school.logo_url %}
-                <div class="preview" aria-label="معاينة الشعار الحالي">
-                  <img src="{{ school.logo_url }}" alt="شعار المدرسة الحالي">
-                  <div>
-                    <b>معاينة الشعار الحالي</b>
-                    <small>المصدر: رابط</small>
-                  </div>
-                </div>
-              {% endif %}
-            {% endif %}
           </div>
 
           <!-- السنوات الدراسية -->

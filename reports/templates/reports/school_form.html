@@ -193,26 +193,8 @@
             </div>
           </div>
 
-          <!-- شعار/رابط/حالة -->
-          <div class="row-4">
-            <div class="field">
-              <label for="id_logo_file" class="lbl">رفع الشعار (اختياري)</label>
-              {{ form.logo_file }}
-              <div class="hint">PNG / JPG / SVG / WEBP.</div>
-              {% if form.logo_file.errors %}
-                <div style="color:var(--danger);font-weight:950;font-size:.9rem;margin-top:6px">{{ form.logo_file.errors.0 }}</div>
-              {% endif %}
-            </div>
-
-            <div class="field">
-              <label for="id_logo_url" class="lbl">رابط الشعار (اختياري)</label>
-              {{ form.logo_url }}
-              <div class="hint">يُستخدم إذا لم يتوفر شعار مرفوع.</div>
-              {% if form.logo_url.errors %}
-                <div style="color:var(--danger);font-weight:950;font-size:.9rem;margin-top:6px">{{ form.logo_url.errors.0 }}</div>
-              {% endif %}
-            </div>
-
+          <!-- الحالة -->
+          <div class="row-2">
             <div class="field">
               <label for="id_is_active" class="lbl">الحالة</label>
               {{ form.is_active }}
@@ -221,27 +203,6 @@
               {% endif %}
             </div>
           </div>
-
-          <!-- معاينة الشعار (عند التعديل فقط إذا توفّر instance) -->
-          {% if mode == 'edit' %}
-            {% if form.instance.logo_file %}
-              <div class="preview" aria-label="معاينة الشعار الحالي">
-                <img src="{{ form.instance.logo_file.url }}" alt="الشعار الحالي">
-                <div class="meta">
-                  <b>الشعار الحالي (مرفوع)</b>
-                  <span class="mono">{{ form.instance.logo_file.name }}</span>
-                </div>
-              </div>
-            {% elif form.instance.logo_url %}
-              <div class="preview" aria-label="معاينة الشعار الحالي">
-                <img src="{{ form.instance.logo_url }}" alt="الشعار الحالي">
-                <div class="meta">
-                  <b>الشعار الحالي (رابط)</b>
-                  <span class="mono">{{ form.instance.logo_url|truncatechars:42 }}</span>
-                </div>
-              </div>
-            {% endif %}
-          {% endif %}
 
           <!-- أزرار -->
           <div class="actions">

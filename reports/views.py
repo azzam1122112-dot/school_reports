@@ -2316,12 +2316,8 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
     school = ach_file.school
     primary = (getattr(school, "print_primary_color", None) or "").strip() or "#2563eb"
 
+    # تم حذف شعارات المدارس (logo_file/logo_url) نهائيًا من النظام
     school_logo_url = ""
-    try:
-        if getattr(school, "logo_file", None):
-            school_logo_url = school.logo_file.url
-    except Exception:
-        school_logo_url = ""
 
     try:
         from .pdf_achievement import _static_png_as_data_uri
@@ -2968,11 +2964,8 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 school_stage = getattr(school_scope, "get_stage_display", lambda: "")() or ""
             except Exception:
                 school_stage = getattr(school_scope, "stage", "") or ""
-            try:
-                if school_scope.logo_file:
-                    school_logo_url = school_scope.logo_file.url
-            except Exception:
-                pass
+            # تم حذف شعارات المدارس (logo_file/logo_url) نهائيًا من النظام
+            school_logo_url = ""
 
         moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
         # Optional fallback: allow providing a static path via env/settings
@@ -3269,11 +3262,8 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
                 school_stage = getattr(school_scope, "get_stage_display", lambda: "")() or ""
             except Exception:
                 school_stage = getattr(school_scope, "stage", "") or ""
-            try:
-                if school_scope.logo_file:
-                    school_logo_url = school_scope.logo_file.url
-            except Exception:
-                pass
+            # تم حذف شعارات المدارس (logo_file/logo_url) نهائيًا من النظام
+            school_logo_url = ""
 
         moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
         if not moe_logo_url:
@@ -3340,12 +3330,8 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
         school = ach_file.school
         primary = (getattr(school, "print_primary_color", None) or "").strip() or "#2563eb"
 
+        # تم حذف شعارات المدارس (logo_file/logo_url) نهائيًا من النظام
         school_logo_url = ""
-        try:
-            if getattr(school, "logo_file", None):
-                school_logo_url = school.logo_file.url
-        except Exception:
-            school_logo_url = ""
 
         try:
             from .pdf_achievement import _static_png_as_data_uri
@@ -4583,7 +4569,6 @@ def ticket_print(request: HttpRequest, pk: int) -> HttpResponse:
         "attachment",
         "school__name",
         "school__stage",
-        "school__logo_file",
     )
 
     t = get_object_or_404(base_qs, pk=pk)
@@ -4635,11 +4620,8 @@ def ticket_print(request: HttpRequest, pk: int) -> HttpResponse:
             school_stage = getattr(school_scope, "get_stage_display", lambda: "")() or ""
         except Exception:
             school_stage = getattr(school_scope, "stage", "") or ""
-        try:
-            if getattr(school_scope, "logo_file", None):
-                school_logo_url = school_scope.logo_file.url
-        except Exception:
-            pass
+        # تم حذف شعارات المدارس (logo_file/logo_url) نهائيًا من النظام
+        school_logo_url = ""
 
     moe_logo_url = (getattr(settings, "MOE_LOGO_URL", "") or "").strip()
     if not moe_logo_url:
@@ -4856,8 +4838,6 @@ class _SchoolSettingsForm(forms.ModelForm):
             "gender",
             "city",
             "phone",
-            "logo_url",
-            "logo_file",
             "share_link_default_days",
         ]
 
@@ -4940,8 +4920,6 @@ class _SchoolAdminForm(forms.ModelForm):
             "city",
             "phone",
             "is_active",
-            "logo_url",
-            "logo_file",
         ]
 
 

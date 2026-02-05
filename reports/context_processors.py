@@ -780,12 +780,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             if s is not None:
                 school_id = s.pk
                 school_name = s.name
-                # نفضّل الشعار المرفوع إن وُجد، ثم نرجع للرابط الخارجي
-                logo_file = getattr(s, "logo_file", None)
-                if logo_file:
-                    school_logo = getattr(logo_file, "url", None) or None
-                else:
-                    school_logo = getattr(s, "logo_url", None) or None
+                # تم حذف شعارات المدارس (logo_file/logo_url) نهائيًا من النظام
+                school_logo = None
     except Exception:
         school_name = None
         school_logo = None

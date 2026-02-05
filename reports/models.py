@@ -86,10 +86,10 @@ def _notification_attachment_upload_to(instance: "Notification", filename: str) 
     return f"notifications/attachments/{filename}"
 
 
+# NOTE: kept for historical migrations that referenced it.
 def _school_logo_upload_to(instance: "School", filename: str) -> str:
-    """مسار رفع شعار المدرسة"""
+    """مسار رفع شعار المدرسة (legacy)."""
     return f"schools/logos/{filename}"
-
 
 def _ticket_image_upload_to(instance: "TicketImage", filename: str) -> str:
     """مسار رفع صور التذاكر"""
@@ -132,14 +132,6 @@ class School(models.Model):
     phone = models.CharField("رقم الجوال", max_length=20, blank=True, null=True)
     city = models.CharField("المدينة", max_length=120, blank=True, null=True)
     is_active = models.BooleanField("نشطة؟", default=True)
-    logo_url = models.URLField("رابط الشعار", blank=True, null=True)
-    logo_file = models.ImageField(
-        "شعار مرفوع",
-        upload_to=_school_logo_upload_to,
-        blank=True,
-        null=True,
-        validators=[validate_image_file],
-    )
     print_primary_color = models.CharField(
         "لون قالب الطباعة",
         max_length=9,
