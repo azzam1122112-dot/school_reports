@@ -1120,6 +1120,102 @@ class AchievementEvidenceImage(models.Model):
     def __str__(self) -> str:
         return f"EvidenceImage #{self.pk} (section {self.section_id})"
 
+def _achievement_report_evidence_upload_to(instance: "AchievementEvidenceReport", filename: str) -> str:
+    """Archive storage for frozen report images inside achievement file.
+
+    Keeps evidence independent from original report media, so deleting a report
+    won't break the achievement file PDF.
+    """
+
+    try:
+        file_id = instance.section.file_id
+    except Exception:
+        file_id = "file"
+    try:
+        section_code = instance.section.code
+    except Exception:
+        section_code = "sec"
+
+    ev_id = instance.pk or "new"
+    return f"achievements/report_evidence/{file_id}/section_{section_code}/evidence_{ev_id}/{filename}"
+
+
+class AchievementEvidenceReport(models.Model):
+    """Link a teacher report as an evidence inside an achievement section.
+
+    - In DRAFT/RETURNED: it behaves like a live link to the report.
+    - On SUBMITTED: it is frozen (snapshot + archived images) to keep the
+      achievement file stable even if the source report is deleted.
+    """
+
+    section = models.ForeignKey(
+        AchievementSection,
+        on_delete=models.CASCADE,
+        related_name="evidence_reports",
+        verbose_name="المحور",
+        db_index=True,
+    )
+
+    report = models.ForeignKey(
+        "Report",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="achievement_evidences",
+        verbose_name="التقرير",
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    frozen_at = models.DateTimeField("تاريخ التجميد", null=True, blank=True)
+    frozen_data = models.JSONField("بيانات التقرير (Snapshot)", blank=True, default=dict)
+
+    archived_image1 = models.ImageField(
+        "صورة 1 (مؤرشفة)",
+        upload_to=_achievement_report_evidence_upload_to,
+        blank=True,
+        null=True,
+        validators=[validate_image_file],
+    )
+    archived_image2 = models.ImageField(
+        "صورة 2 (مؤرشفة)",
+        upload_to=_achievement_report_evidence_upload_to,
+        blank=True,
+        null=True,
+        validators=[validate_image_file],
+    )
+    archived_image3 = models.ImageField(
+        "صورة 3 (مؤرشفة)",
+        upload_to=_achievement_report_evidence_upload_to,
+        blank=True,
+        null=True,
+        validators=[validate_image_file],
+    )
+    archived_image4 = models.ImageField(
+        "صورة 4 (مؤرشفة)",
+        upload_to=_achievement_report_evidence_upload_to,
+        blank=True,
+        null=True,
+        validators=[validate_image_file],
+    )
+
+    class Meta:
+        verbose_name = "تقرير شاهد"
+        verbose_name_plural = "تقارير الشواهد"
+        ordering = ["id"]
+        constraints = [
+            models.UniqueConstraint(fields=["section", "report"], name="uniq_achievement_section_report_evidence")
+        ]
+
+    def __str__(self) -> str:
+        rid = getattr(self, "report_id", None)
+        return f"{self.section_id} - report:{rid}"
+
+    @property
+    def is_frozen(self) -> bool:
+        return bool(self.frozen_at)
+
 
 # =========================
 # إعدادات المنصة (Singleton)

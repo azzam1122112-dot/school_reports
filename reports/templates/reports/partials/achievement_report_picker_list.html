@@ -1,0 +1,46 @@
+{# reports/templates/reports/partials/achievement_report_picker_list.html #}
+
+{% if reports %}
+  <div class="af-report-list" style="display:grid; gap:12px;">
+    {% for r in reports %}
+      <div class="af-report-item" style="background:white; border:1px solid var(--border-color); border-radius:16px; padding:14px; display:flex; align-items:flex-start; justify-content:space-between; gap:14px;">
+        <div style="min-width:0; text-align:right;">
+          <div style="font-weight:900; color:var(--text-main); line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:620px;">
+            {{ r.title|default:"(بدون عنوان)" }}
+          </div>
+          <div style="margin-top:6px; color:var(--text-secondary); font-weight:700; font-size:0.9rem; display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+            {% if r.category %}
+              <span style="background:var(--surface); border:1px solid var(--border-color); border-radius:999px; padding:3px 10px;">{{ r.category.name }}</span>
+            {% endif %}
+            {% if r.created_at %}
+              <span style="opacity:0.9;">{{ r.created_at|date:"Y-m-d" }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-start;">
+          {% if r.id in already_ids %}
+            <button class="af-btn" type="button" disabled style="opacity:0.6; cursor:not-allowed;">مضاف مسبقاً</button>
+          {% else %}
+            <form method="post" action="{% url 'reports:achievement_file_detail' file.pk %}" style="margin:0">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="add_report_evidence" />
+              <input type="hidden" name="section_id" value="{{ section.id }}" />
+              <input type="hidden" name="report_id" value="{{ r.id }}" />
+              <button class="af-btn af-btn-primary" type="submit" style="height:38px;">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> إضافة كشاهد
+              </button>
+            </form>
+          {% endif %}
+          <a class="af-btn" href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener" style="height:38px;">
+            <i class="fa-solid fa-print" aria-hidden="true"></i> معاينة
+          </a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="af-muted" style="padding:16px; background:white; border-radius:16px; border:1px dashed var(--border-color); text-align:center;">
+    لا توجد تقارير مطابقة.
+  </div>
+{% endif %}

@@ -98,7 +98,15 @@ from .models import (
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
+    AchievementEvidenceReport,
     TeacherPrivateComment,
+)
+
+from .services_achievement import (
+    achievement_picker_reports_qs,
+    add_report_evidence,
+    freeze_achievement_report_evidences,
+    remove_report_evidence,
 )
 
 # موديلات الإشعارات (اختياري)
@@ -1824,11 +1832,24 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
         return HttpResponse(status=403)
 
     _ensure_achievement_sections(ach_file)
-    sections = (
-        AchievementSection.objects.filter(file=ach_file)
-        .prefetch_related("evidence_images")
-        .order_by("code", "id")
-    )
+    try:
+        from django.db.models import Prefetch
+
+        ev_reports_qs = AchievementEvidenceReport.objects.select_related(
+            "report",
+            "report__category",
+        ).order_by("id")
+        sections = (
+            AchievementSection.objects.filter(file=ach_file)
+            .prefetch_related("evidence_images", Prefetch("evidence_reports", queryset=ev_reports_qs))
+            .order_by("code", "id")
+        )
+    except Exception:
+        sections = (
+            AchievementSection.objects.filter(file=ach_file)
+            .prefetch_related("evidence_images", "evidence_reports")
+            .order_by("code", "id")
+        )
 
     can_edit_teacher = bool(is_owner and ach_file.status in {TeacherAchievementFile.Status.DRAFT, TeacherAchievementFile.Status.RETURNED})
     can_post = bool((can_edit_teacher or is_manager) and not is_viewer)
@@ -1993,6 +2014,53 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 messages.success(request, "تم حذف الصورة ✅")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
+        elif action == "add_report_evidence" and can_edit_teacher and section_id:
+            sec = get_object_or_404(AchievementSection, pk=int(section_id), file=ach_file)
+            report_id = request.POST.get("report_id")
+            try:
+                report_id_int = int(report_id) if report_id else None
+            except (TypeError, ValueError):
+                report_id_int = None
+            if not report_id_int:
+                messages.error(request, "تعذر تحديد التقرير.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+            rep_qs = Report.objects.select_related("category").filter(teacher=request.user)
+            try:
+                if active_school is not None and _model_has_field(Report, "school"):
+                    rep_qs = rep_qs.filter(school=active_school)
+            except Exception:
+                pass
+            r = get_object_or_404(rep_qs, pk=report_id_int)
+
+            try:
+                add_report_evidence(section=sec, report=r)
+                messages.success(request, "تم إضافة التقرير كشاهِد ✅")
+            except Exception:
+                messages.error(request, "تعذر إضافة التقرير. ربما تمت إضافته مسبقاً.")
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+        elif action == "delete_report_evidence" and can_edit_teacher and section_id:
+            sec = get_object_or_404(AchievementSection, pk=int(section_id), file=ach_file)
+            evidence_id = request.POST.get("evidence_id")
+            try:
+                evidence_id_int = int(evidence_id) if evidence_id else None
+            except (TypeError, ValueError):
+                evidence_id_int = None
+            if not evidence_id_int:
+                messages.error(request, "تعذر تحديد الشاهد.")
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
+            try:
+                ok = remove_report_evidence(section=sec, evidence_id=evidence_id_int)
+                if ok:
+                    messages.success(request, "تم إزالة التقرير من الشواهد ✅")
+                else:
+                    messages.error(request, "الشاهد غير موجود.")
+            except Exception:
+                messages.error(request, "تعذر إزالة الشاهد.")
+            return redirect("reports:achievement_file_detail", pk=ach_file.pk)
+
         elif action == "import_prev" and can_edit_teacher:
             prev_year = (request.POST.get("prev_year") or "").strip()
             if prev_year:
@@ -2034,10 +2102,21 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         elif action == "submit" and can_edit_teacher:
-            ach_file.status = TeacherAchievementFile.Status.SUBMITTED
-            ach_file.submitted_at = timezone.now()
-            ach_file.save(update_fields=["status", "submitted_at", "updated_at"])
-            messages.success(request, "تم إرسال الملف للاعتماد ✅")
+            now = timezone.now()
+            try:
+                with transaction.atomic():
+                    ach_file.status = TeacherAchievementFile.Status.SUBMITTED
+                    ach_file.submitted_at = now
+                    ach_file.save(update_fields=["status", "submitted_at", "updated_at"])
+
+                    frozen = freeze_achievement_report_evidences(ach_file=ach_file)
+                if frozen:
+                    messages.success(request, f"تم إرسال الملف للاعتماد ✅ (تم تجميد {frozen} تقرير/تقارير كشواهد)")
+                else:
+                    messages.success(request, "تم إرسال الملف للاعتماد ✅")
+            except Exception:
+                # حتى لو فشل التجميد لأي سبب، لا نكسر تجربة المستخدم
+                messages.success(request, "تم إرسال الملف للاعتماد ✅")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         elif action == "approve" and is_manager:
@@ -2092,6 +2171,60 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "year_form": year_form,
             "current_school": active_school,
             "back_url": back_url,
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def achievement_report_picker(request: HttpRequest, pk: int) -> HttpResponse:
+    """Return a partial HTML list to pick teacher reports as evidence for a section."""
+
+    active_school = _get_active_school(request)
+    ach_file = get_object_or_404(TeacherAchievementFile, pk=pk)
+    user = request.user
+
+    is_owner = (ach_file.teacher_id == getattr(user, "id", None))
+    if not is_owner:
+        return HttpResponse(status=403)
+    if not getattr(user, "is_superuser", False):
+        if active_school is None or ach_file.school_id != getattr(active_school, "id", None):
+            raise Http404
+
+    if ach_file.status not in {
+        TeacherAchievementFile.Status.DRAFT,
+        TeacherAchievementFile.Status.RETURNED,
+    }:
+        return HttpResponse(status=403)
+
+    section_id = request.GET.get("section_id")
+    try:
+        section_id_int = int(section_id) if section_id else None
+    except (TypeError, ValueError):
+        section_id_int = None
+    if not section_id_int:
+        return HttpResponse(status=400)
+
+    section = get_object_or_404(AchievementSection, pk=section_id_int, file=ach_file)
+    q = (request.GET.get("q") or "").strip()
+
+    qs = achievement_picker_reports_qs(teacher=user, active_school=active_school, q=q).select_related("category")
+    reports = list(qs[:50])
+    already_ids = set(
+        AchievementEvidenceReport.objects.filter(section=section, report__isnull=False).values_list(
+            "report_id", flat=True
+        )
+    )
+
+    return render(
+        request,
+        "reports/partials/achievement_report_picker_list.html",
+        {
+            "file": ach_file,
+            "section": section,
+            "reports": reports,
+            "q": q,
+            "already_ids": already_ids,
         },
     )
 
@@ -2159,11 +2292,26 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
         return HttpResponse(status=403)
 
     _ensure_achievement_sections(ach_file)
-    sections = (
-        AchievementSection.objects.filter(file=ach_file)
-        .prefetch_related("evidence_images")
-        .order_by("code", "id")
-    )
+    try:
+        from django.db.models import Prefetch
+
+        ev_reports_qs = AchievementEvidenceReport.objects.select_related(
+            "report",
+            "report__category",
+        ).order_by("id")
+        sections = (
+            AchievementSection.objects.filter(file=ach_file)
+            .prefetch_related("evidence_images", Prefetch("evidence_reports", queryset=ev_reports_qs))
+            .order_by("code", "id")
+        )
+        has_evidence_reports = AchievementEvidenceReport.objects.filter(section__file=ach_file).exists()
+    except Exception:
+        sections = (
+            AchievementSection.objects.filter(file=ach_file)
+            .prefetch_related("evidence_images", "evidence_reports")
+            .order_by("code", "id")
+        )
+        has_evidence_reports = False
 
     school = ach_file.school
     primary = (getattr(school, "print_primary_color", None) or "").strip() or "#2563eb"
@@ -2198,6 +2346,7 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
             "file": ach_file,
             "school": school,
             "sections": sections,
+            "has_evidence_reports": has_evidence_reports,
             "theme": {"brand": primary},
             "now": timezone.localtime(timezone.now()),
             "school_logo_url": school_logo_url,
@@ -3167,11 +3316,26 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
 
         # نفس تجربة مشاركة التقارير: فتح الرابط يعرض "الملف" مباشرة (صفحة طباعة/معاينة)، مع خيار تنزيل PDF.
         _ensure_achievement_sections(ach_file)
-        sections = (
-            AchievementSection.objects.filter(file=ach_file)
-            .prefetch_related("evidence_images")
-            .order_by("code", "id")
-        )
+        try:
+            from django.db.models import Prefetch
+
+            ev_reports_qs = AchievementEvidenceReport.objects.select_related(
+                "report",
+                "report__category",
+            ).order_by("id")
+            sections = (
+                AchievementSection.objects.filter(file=ach_file)
+                .prefetch_related("evidence_images", Prefetch("evidence_reports", queryset=ev_reports_qs))
+                .order_by("code", "id")
+            )
+            has_evidence_reports = AchievementEvidenceReport.objects.filter(section__file=ach_file).exists()
+        except Exception:
+            sections = (
+                AchievementSection.objects.filter(file=ach_file)
+                .prefetch_related("evidence_images", "evidence_reports")
+                .order_by("code", "id")
+            )
+            has_evidence_reports = False
 
         school = ach_file.school
         primary = (getattr(school, "print_primary_color", None) or "").strip() or "#2563eb"
@@ -3198,6 +3362,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
                 "file": ach_file,
                 "school": school,
                 "sections": sections,
+                "has_evidence_reports": has_evidence_reports,
                 "theme": {"brand": primary},
                 "now": timezone.localtime(timezone.now()),
                 "public_mode": True,

@@ -54,6 +54,7 @@ urlpatterns = [
     path("achievement/<int:pk>/update-year/", views.achievement_file_update_year, name="achievement_file_update_year"),
     path("achievement/<int:pk>/print/", views.achievement_file_print, name="achievement_file_print"),
     path("achievement/<int:pk>/pdf/", views.achievement_file_pdf, name="achievement_file_pdf"),
+    path("achievement/<int:pk>/report-picker/", views.achievement_report_picker, name="achievement_report_picker"),
 
     # مشاركة ملف الإنجاز (اختياري للمعلم)
     path("achievement/<int:pk>/share/", views.achievement_share_manage, name="achievement_share_manage"),

@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.contrib.staticfiles import finders
 
-from .models import TeacherAchievementFile, AchievementSection
+from .models import TeacherAchievementFile, AchievementEvidenceReport, AchievementSection
 
 
 def _static_png_as_data_uri(path: str) -> str | None:
@@ -35,9 +35,15 @@ def generate_achievement_pdf(*, request, ach_file: TeacherAchievementFile) -> Tu
     - PDF is generated on-demand; caller decides whether to persist it.
     """
 
+    from django.db.models import Prefetch
+
+    ev_reports_qs = AchievementEvidenceReport.objects.select_related(
+        "report",
+        "report__category",
+    ).order_by("id")
     sections = (
         AchievementSection.objects.filter(file=ach_file)
-        .prefetch_related("evidence_images")
+        .prefetch_related("evidence_images", Prefetch("evidence_reports", queryset=ev_reports_qs))
         .order_by("code", "id")
     )
 
@@ -50,6 +56,7 @@ def generate_achievement_pdf(*, request, ach_file: TeacherAchievementFile) -> Tu
         "file": ach_file,
         "school": school,
         "sections": sections,
+        "has_evidence_reports": AchievementEvidenceReport.objects.filter(section__file=ach_file).exists(),
         "theme": {"brand": primary},
         "now": timezone.localtime(timezone.now()),
         "ministry_logo_src": _static_png_as_data_uri("img/UntiTtled-1.png"),

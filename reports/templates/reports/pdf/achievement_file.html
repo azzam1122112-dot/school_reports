@@ -226,6 +226,33 @@
       justify-content: space-between;
       gap: 10px;
     }
+
+    .page-break { page-break-before: always; break-before: page; }
+    .appendix-title {
+      font-weight: 1000;
+      font-size: 16px;
+      margin: 0 0 10px;
+    }
+    .report-box {
+      border: 1px solid var(--line);
+      padding: 10px;
+      margin: 0 0 14px;
+    }
+    .report-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 0 8px;
+      font-weight: 1000;
+      font-size: 14px;
+    }
+    .report-body {
+      font-size: 14px;
+      line-height: 2;
+      white-space: pre-wrap;
+      text-align: justify;
+    }
   </style>
 </head>
 
@@ -367,6 +394,113 @@
         {% endwith %}
       </section>
     {% endfor %}
+
+    {% if has_evidence_reports %}
+      <div class="page-break"></div>
+      <div class="appendix-title">ملاحق: التقارير المرفقة (كشواهد)</div>
+
+      {% for s in sections %}
+        {% for ev in s.evidence_reports.all %}
+          <div class="report-box" style="{% if not forloop.first or not forloop.parentloop.first %}page-break-before: always;{% endif %}">
+            <div class="report-head">
+              <span>تقرير — {{ s.get_code_display }}</span>
+              {% if ev.is_frozen %}<span class="badge">مثبت</span>{% endif %}
+            </div>
+
+            <table class="meta-table" style="margin:0 0 10px;">
+              <tr>
+                <th>العنوان</th>
+                <td colspan="3">
+                  {% if ev.is_frozen %}
+                    {{ ev.frozen_data.title|default:"—" }}
+                  {% elif ev.report %}
+                    {{ ev.report.title|default:"—" }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th>التصنيف</th>
+                <td>
+                  {% if ev.is_frozen %}
+                    {{ ev.frozen_data.category|default:"—" }}
+                  {% elif ev.report and ev.report.category %}
+                    {{ ev.report.category.name }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <th>التاريخ</th>
+                <td>
+                  {% if ev.is_frozen %}
+                    {{ ev.frozen_data.report_date|default:"—" }}
+                  {% elif ev.report and ev.report.report_date %}
+                    {{ ev.report.report_date|date:"Y-m-d" }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th>اليوم</th>
+                <td>
+                  {% if ev.is_frozen %}
+                    {{ ev.frozen_data.day_name|default:"—" }}
+                  {% elif ev.report %}
+                    {{ ev.report.day_name|default:"—" }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <th>عدد المستفيدين</th>
+                <td>
+                  {% if ev.is_frozen %}
+                    {{ ev.frozen_data.beneficiaries_count|default:"—" }}
+                  {% elif ev.report %}
+                    {{ ev.report.beneficiaries_count|default:"—" }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+            </table>
+
+            <div style="font-weight:1000; margin:0 0 6px;">الوصف / فكرة التقرير</div>
+            <div class="report-body">
+              {% if ev.is_frozen %}
+                {{ ev.frozen_data.idea|default:"—" }}
+              {% elif ev.report %}
+                {{ ev.report.idea|default:"—" }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
+
+            <div style="margin-top:10px;font-weight:1000;">الصور (حتى 4)</div>
+            <div class="images-grid" style="margin-top:8px;">
+              {% if ev.is_frozen %}
+                {% if ev.archived_image1 %}<div class="img-box"><img src="{{ ev.archived_image1.url }}" alt="صورة 1" /><div class="img-cap">صورة (1)</div></div>{% endif %}
+                {% if ev.archived_image2 %}<div class="img-box"><img src="{{ ev.archived_image2.url }}" alt="صورة 2" /><div class="img-cap">صورة (2)</div></div>{% endif %}
+                {% if ev.archived_image3 %}<div class="img-box"><img src="{{ ev.archived_image3.url }}" alt="صورة 3" /><div class="img-cap">صورة (3)</div></div>{% endif %}
+                {% if ev.archived_image4 %}<div class="img-box"><img src="{{ ev.archived_image4.url }}" alt="صورة 4" /><div class="img-cap">صورة (4)</div></div>{% endif %}
+              {% else %}
+                {% if ev.report and ev.report.image1 %}<div class="img-box"><img src="{{ ev.report.image1.url }}" alt="صورة 1" /><div class="img-cap">صورة (1)</div></div>{% endif %}
+                {% if ev.report and ev.report.image2 %}<div class="img-box"><img src="{{ ev.report.image2.url }}" alt="صورة 2" /><div class="img-cap">صورة (2)</div></div>{% endif %}
+                {% if ev.report and ev.report.image3 %}<div class="img-box"><img src="{{ ev.report.image3.url }}" alt="صورة 3" /><div class="img-cap">صورة (3)</div></div>{% endif %}
+                {% if ev.report and ev.report.image4 %}<div class="img-box"><img src="{{ ev.report.image4.url }}" alt="صورة 4" /><div class="img-cap">صورة (4)</div></div>{% endif %}
+              {% endif %}
+            </div>
+
+            {% if not ev.report and ev.is_frozen and ev.frozen_data.missing %}
+              <div style="margin-top:10px; font-size:12px; color:var(--muted);">
+                ملاحظة: تم حذف التقرير الأصلي من النظام بعد تثبيته.
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
 
     <div class="footer">
       <div>تم توليد هذا الملف آليًا من النظام</div>
