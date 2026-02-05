@@ -70,9 +70,55 @@ def _officer_role_values(membership_model) -> Iterable:
     return values
 
 
+def _teacher_role_values(membership_model) -> Iterable:
+    values = set()
+    if membership_model is None:
+        return {"teacher", 0, "0"}
+    v = getattr(membership_model, "TEACHER", None)
+    if v is not None:
+        values.add(v)
+    RoleType = getattr(membership_model, "RoleType", None)
+    if RoleType is not None:
+        v = getattr(RoleType, "TEACHER", None)
+        if v is not None:
+            values.add(v)
+    # fallback
+    values.update({"teacher", 0, "0"})
+    return values
+
+
 def _detect_officer_departments(user, active_school: Optional[School] = None) -> List[Department]:
     Membership = _get_membership_model()
     if Membership is None:
+        return []
+
+
+def _detect_member_departments(user, active_school: Optional[School] = None) -> List[Department]:
+    """أقسام العضو (TEACHER) لعرض/طباعة تقارير القسم فقط."""
+    Membership = _get_membership_model()
+    if Membership is None:
+        return []
+    try:
+        teacher_values = list(_teacher_role_values(Membership))
+        membs = (
+            Membership.objects.select_related("department")
+            .filter(teacher=user, role_type__in=teacher_values, department__is_active=True)
+        )
+        # عزل حسب المدرسة النشطة إن وُجدت
+        try:
+            if active_school is not None and "school" in _model_fields(Department):
+                membs = membs.filter(department__school=active_school)
+        except Exception:
+            pass
+
+        seen, unique = set(), []
+        for m in membs:
+            d = m.department
+            if d and d.pk not in seen:
+                seen.add(d.pk)
+                unique.append(d)
+        return unique
+    except Exception:
         return []
     try:
         officer_values = list(_officer_role_values(Membership))
@@ -592,6 +638,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "OFFICER_DEPARTMENT": None,
             "OFFICER_DEPARTMENTS": [],
             "SHOW_OFFICER_REPORTS_LINK": False,
+            "SHOW_DEPARTMENT_REPORTS_LINK": False,
+            "DEPARTMENT_REPORTS_URLNAME": None,
             "NAV_OFFICER_REPORTS": 0,
             "SHOW_ADMIN_DASHBOARD_LINK": False,
             "NAV_NOTIFICATIONS_UNREAD": 0,
@@ -665,6 +713,11 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     officer_depts = _detect_officer_departments(u, active_school=active_school)
     is_officer = bool(officer_depts)
     show_officer_link = bool(getattr(u, "is_superuser", False) or is_officer)
+
+    member_depts = _detect_member_departments(u, active_school=active_school)
+    is_member = bool(member_depts)
+    show_dept_reports_link = bool(show_officer_link or is_member)
+    dept_reports_urlname = "reports:officer_reports" if show_officer_link else "reports:department_reports"
 
     # تقارير officer
     nav_officer_reports = 0
@@ -866,6 +919,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "OFFICER_DEPARTMENT": officer_depts[0] if officer_depts else None,
         "OFFICER_DEPARTMENTS": officer_depts,
         "SHOW_OFFICER_REPORTS_LINK": show_officer_link,
+        "SHOW_DEPARTMENT_REPORTS_LINK": show_dept_reports_link,
+        "DEPARTMENT_REPORTS_URLNAME": dept_reports_urlname,
         "NAV_OFFICER_REPORTS": nav_officer_reports,
         "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,
         "IS_REPORT_VIEWER": is_report_viewer,

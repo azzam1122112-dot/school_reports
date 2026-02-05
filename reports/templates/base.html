@@ -815,8 +815,8 @@
               </a>
             {% endif %}
 
-            {% if SHOW_OFFICER_REPORTS_LINK %}
-              <a class="tab {% if active == 'officer_reports' %}is-active{% endif %}" href="{% url 'reports:officer_reports' %}">تقارير قسمي</a>
+            {% if SHOW_DEPARTMENT_REPORTS_LINK and DEPARTMENT_REPORTS_URLNAME %}
+              <a class="tab {% if active == 'officer_reports' or active == 'department_reports' %}is-active{% endif %}" href="{% url DEPARTMENT_REPORTS_URLNAME %}">تقارير قسمي</a>
             {% endif %}
 
             {% if request.user.is_superuser %}
@@ -1065,8 +1065,8 @@
           </a>
         {% endif %}
 
-        {% if SHOW_OFFICER_REPORTS_LINK %}
-          <a class="{% if active == 'officer_reports' %}is-active{% endif %}" href="{% url 'reports:officer_reports' %}">
+        {% if SHOW_DEPARTMENT_REPORTS_LINK and DEPARTMENT_REPORTS_URLNAME %}
+          <a class="{% if active == 'officer_reports' or active == 'department_reports' %}is-active{% endif %}" href="{% url DEPARTMENT_REPORTS_URLNAME %}">
             <span>تقارير قسمي</span>
             <i class="fa-solid fa-layer-group"></i>
           </a>

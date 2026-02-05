@@ -2754,6 +2754,125 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
         },
     )
 
+
+# =========================
+# تقارير القسم للأعضاء (عرض + طباعة فقط)
+# =========================
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def department_reports(request: HttpRequest) -> HttpResponse:
+    """تقارير القسم لأعضاء القسم (TEACHER) - بدون حذف/مشاركة."""
+    active_school = _get_active_school(request)
+    user = request.user
+
+    if getattr(user, "is_superuser", False):
+        return redirect("reports:admin_reports")
+
+    if not (Department is not None and DepartmentMembership is not None):
+        messages.error(request, "عرض تقارير الأقسام يتطلب تفعيل الأقسام وعضوياتها.")
+        return redirect("reports:home")
+
+    if active_school is None:
+        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+        return redirect("reports:select_school")
+
+    # لو كان مسؤول قسم، نوجهه للوحة المسؤول الحالية (تدعم الحذف/المشاركة حسب الصلاحية)
+    officer_memberships_qs = DepartmentMembership.objects.select_related("department").filter(
+        teacher=user,
+        role_type=DM_OFFICER,
+        department__is_active=True,
+        department__school=active_school,
+    )
+    if officer_memberships_qs.exists():
+        return redirect("reports:officer_reports")
+
+    member_memberships_qs = DepartmentMembership.objects.select_related("department").filter(
+        teacher=user,
+        role_type=DM_TEACHER,
+        department__is_active=True,
+        department__school=active_school,
+    )
+    membership = member_memberships_qs.first()
+
+    if membership is None:
+        messages.error(request, "لا تملك صلاحية عضو قسم ضمن المدرسة الحالية.")
+        return redirect("reports:home")
+
+    dept = membership.department
+
+    allowed_cats_qs = None
+    if HAS_RTYPE and ReportType is not None:
+        allowed_cats_qs = (
+            ReportType.objects.filter(
+                is_active=True,
+                departments__memberships__teacher=user,
+                departments__memberships__role_type=DM_TEACHER,
+                departments__school=active_school,
+            )
+            .distinct()
+            .order_by("order", "name")
+        )
+
+    if allowed_cats_qs is None or not allowed_cats_qs.exists():
+        messages.info(request, "لم يتم ربط قسمك بأي أنواع تقارير بعد.")
+        empty_page = Paginator(Report.objects.none(), 25).get_page(1)
+        return render(
+            request,
+            "reports/officer_reports.html",
+            {
+                "page_title": "📄 تقارير قسمي (عرض فقط)",
+                "reports": empty_page,
+                "categories": [],
+                "category": "",
+                "teacher_name": "",
+                "start_date": "",
+                "end_date": "",
+                "department": dept,
+                "can_delete": False,
+            },
+        )
+
+    start_date = request.GET.get("start_date") or ""
+    end_date = request.GET.get("end_date") or ""
+    teacher_name = request.GET.get("teacher_name", "").strip()
+    category = request.GET.get("category") or ""
+
+    qs = Report.objects.select_related("teacher", "category", "school").filter(category__in=allowed_cats_qs)
+    qs = _filter_by_school(qs, active_school)
+
+    if start_date:
+        qs = qs.filter(report_date__gte=start_date)
+    if end_date:
+        qs = qs.filter(report_date__lte=end_date)
+    if teacher_name:
+        qs = qs.filter(Q(teacher__name__icontains=teacher_name) | Q(teacher_name__icontains=teacher_name))
+    if category:
+        qs = qs.filter(category_id=category)
+
+    qs = qs.order_by("-report_date", "-created_at")
+
+    paginator = Paginator(qs, 25)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    categories_choices = [(str(c.pk), c.name) for c in allowed_cats_qs.order_by("order", "name")]
+
+    return render(
+        request,
+        "reports/officer_reports.html",
+        {
+            "page_title": "📄 تقارير قسمي (عرض فقط)",
+            "reports": page_obj,
+            "categories": categories_choices,
+            "category": category,
+            "teacher_name": teacher_name,
+            "start_date": start_date,
+            "end_date": end_date,
+            "department": dept,
+            "can_delete": False,
+        },
+    )
+
 # =========================
 # حذف تقرير (لوحة المدير)
 # =========================

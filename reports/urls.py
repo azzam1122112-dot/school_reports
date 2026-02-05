@@ -164,6 +164,9 @@ urlpatterns = [
     path("officer/reports/", views.officer_reports, name="officer_reports"),
     path("officer/reports/<int:pk>/delete/", views.officer_delete_report, name="officer_delete_report"),
 
+    # Department member (read-only)
+    path("department/reports/", views.department_reports, name="department_reports"),
+
     # =========================
     # API
     # =========================

@@ -691,7 +691,7 @@
 
     <!-- Header -->
     <header class="page-head">
-      <h1 class="title">📊 لوحة المسؤول – تقارير قسمي</h1>
+      <h1 class="title">{{ page_title|default:"📊 لوحة المسؤول – تقارير قسمي" }}</h1>
       <p class="subtitle">
         عرض تقارير القسم:
         <b>{% if department %}{{ department.name }}{% else %}—{% endif %}</b>
