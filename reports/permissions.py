@@ -25,6 +25,7 @@ __all__ = [
     "is_officer",
     "is_department_member",
     "can_delete_report",
+    "can_edit_report",
     "can_share_report",
     "is_platform_admin",
     "platform_allowed_schools_qs",
@@ -252,6 +253,62 @@ def can_delete_report(user, report, *, active_school: Optional[School] = None) -
 def can_share_report(user, report, *, active_school: Optional[School] = None) -> bool:
     """
     يحدد هل المستخدم يستطيع مشاركة التقرير (إنشاء رابط عام).
+    
+    الصلاحيات:
+    - السوبر: نعم
+    - مشرف المنصة: لا (عرض فقط)
+    - مدير المدرسة: نعم
+    - رئيس القسم (OFFICER): نعم (للتقارير المرتبطة بقسمه)
+    - عضو القسم (TEACHER): لا (عرض فقط)
+    - صاحب التقرير: نعم
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    
+    # السوبر: نعم
+    if getattr(user, "is_superuser", False):
+        return True
+    
+    # مشرف المنصة: لا
+    if is_platform_admin(user):
+        return False
+    
+    # صاحب التقرير: نعم
+    if getattr(report, "teacher_id", None) == getattr(user, "id", None):
+        return True
+    
+    # مدير المدرسة: نعم
+    report_school = getattr(report, "school", None)
+    if report_school and SchoolMembership is not None:
+        try:
+            if SchoolMembership.objects.filter(
+                teacher=user,
+                school=report_school,
+                role_type=SchoolMembership.RoleType.MANAGER,
+                is_active=True,
+            ).exists():
+                return True
+        except Exception:
+            pass
+    
+    # رئيس القسم: نعم (إذا كان التقرير ضمن قسمه)
+    try:
+        report_category = getattr(report, "category", None)
+        if report_category:
+            officer_depts = get_officer_departments(user, active_school=active_school or report_school)
+            for dept in officer_depts:
+                if dept.reporttypes.filter(pk=report_category.pk).exists():
+                    return True
+    except Exception:
+        pass
+    
+    # الباقي: لا
+    return False
+
+
+def can_edit_report(user, report, *, active_school: Optional[School] = None) -> bool:
+    """
+    يحدد هل المستخدم يستطيع تعديل التقرير.
     
     الصلاحيات:
     - السوبر: نعم

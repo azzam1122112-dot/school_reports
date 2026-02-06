@@ -172,6 +172,7 @@ from .services_reports import (
 
 from .permissions import (
     can_delete_report,
+    can_edit_report,
     can_share_report,
 )
 
@@ -1495,36 +1496,13 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
     allowed_choices = get_reporttype_choices(active_school=active_school) if (HAS_RTYPE and ReportType is not None) else []
     reports_page = svc_paginate(qs, per_page=20, page=request.GET.get("page", 1))
     
-    # ✅ إضافة صلاحيات الحذف والمشاركة لكل تقرير (بدون N+1 على قاعدة البيانات)
+    # ✅ إضافة صلاحيات الحذف والتعديل والمشاركة لكل تقرير باستخدام الدوال الصحيحة
+    # التي تراعي رؤساء الأقسام (OFFICER) وأعضاء الأقسام (TEACHER)
     user = request.user
-    is_superuser = bool(getattr(user, "is_superuser", False))
-    is_platform = bool(is_platform_admin(user))
-
-    manager_school_ids = set()
-    if (not is_superuser) and (not is_platform):
-        try:
-            manager_school_ids = set(
-                SchoolMembership.objects.filter(
-                    teacher=user,
-                    role_type=SchoolMembership.RoleType.MANAGER,
-                    is_active=True,
-                ).values_list("school_id", flat=True)
-            )
-        except Exception:
-            manager_school_ids = set()
-
     for report in reports_page:
-        if is_superuser:
-            allowed = True
-        elif is_platform:
-            allowed = False
-        else:
-            allowed = bool(
-                getattr(report, "teacher_id", None) == getattr(user, "id", None)
-                or (getattr(report, "school_id", None) in manager_school_ids)
-            )
-        report.user_can_delete = allowed
-        report.user_can_share = allowed
+        report.user_can_delete = can_delete_report(user, report, active_school=active_school)
+        report.user_can_edit = can_edit_report(user, report, active_school=active_school)
+        report.user_can_share = can_share_report(user, report, active_school=active_school)
 
     context = {
         "reports": reports_page,
@@ -2876,20 +2854,39 @@ def department_reports(request: HttpRequest) -> HttpResponse:
 # =========================
 # حذف تقرير (لوحة المدير)
 # =========================
-@user_passes_test(_is_staff, login_url="reports:login")
+@login_required(login_url="reports:login")
 @require_http_methods(["POST"])
 def admin_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
+    """
+    حذف تقرير مع التحقق من الصلاحيات.
+    يسمح للأشخاص التالية بالحذف:
+    - السوبر
+    - مدير المدرسة
+    - رئيس القسم (OFFICER) للتقارير المرتبطة بقسمه
+    - صاحب التقرير نفسه
+    
+    ✅ عضو القسم (TEACHER) لا يستطيع الحذف (عرض فقط)
+    ✅ مشرف المنصة لا يستطيع الحذف (عرض فقط)
+    """
     active_school = _get_active_school(request)
-    # في حال وجود مدارس مفعّلة يجب أن تكون هناك مدرسة مختارة للمدير
-    if School.objects.filter(is_active=True).exists() and active_school is None:
-        messages.error(request, "فضلاً اختر مدرسة أولاً قبل حذف التقارير.")
-        return redirect("reports:select_school")
-
-    qs = Report.objects.all()
-    qs = _filter_by_school(qs, active_school)
-    report = get_object_or_404(qs, pk=pk)
-    report.delete()
-    messages.success(request, "تم حذف التقرير بنجاح.")
+    user = request.user
+    
+    try:
+        # جلب التقرير مع احترام المدرسة النشطة
+        qs = Report.objects.all()
+        qs = _filter_by_school(qs, active_school)
+        report = get_object_or_404(qs, pk=pk)
+        
+        # التحقق من صلاحية الحذف
+        if not can_delete_report(user, report, active_school=active_school):
+            messages.error(request, "لا تملك صلاحية حذف هذا التقرير.")
+            return _safe_redirect(request, "reports:admin_reports")
+        
+        report.delete()
+        messages.success(request, "🗑️ تم حذف التقرير بنجاح.")
+    except Exception:
+        messages.error(request, "تعذّر حذف التقرير.")
+    
     return _safe_redirect(request, "reports:admin_reports")
 
 # =========================
@@ -7574,23 +7571,29 @@ def assigned_to_me(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET", "POST"])
 def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
+    """
+    تعديل تقرير مع التحقق من الصلاحيات.
+    يسمح للأشخاص التالية بالتعديل:
+    - السوبر
+    - مدير المدرسة
+    - رئيس القسم (OFFICER) للتقارير المرتبطة بقسمه
+    - صاحب التقرير نفسه
+    
+    ✅ عضو القسم (TEACHER) لا يستطيع التعديل (عرض فقط)
+    ✅ مشرف المنصة لا يستطيع التعديل (عرض فقط)
+    """
     user = request.user
     active_school = _get_active_school(request)
 
-    # المدير داخل المدرسة النشطة (والسوبر) يمكنه تعديل التقارير ضمن نطاق صلاحياته.
-    # غير ذلك: يقتصر التعديل على تقارير المستخدم نفسه.
-    can_edit_others = bool(getattr(user, "is_superuser", False) or _is_manager_in_school(user, active_school))
-    if can_edit_others:
-        # غير السوبر: نُجبر اختيار مدرسة لتفادي خلط الصلاحيات عبر المدارس.
-        if (not getattr(user, "is_superuser", False)) and School.objects.filter(is_active=True).exists() and active_school is None:
-            messages.error(request, "فضلاً اختر مدرسة أولاً.")
-            return redirect("reports:select_school")
-        qs = restrict_queryset_for_user(Report.objects.all(), user, active_school)
-    else:
-        qs = Report.objects.filter(teacher=user)
-
+    # جلب التقرير باستخدام restrict_queryset (للتأكد من أن المستخدم يستطيع رؤيته)
+    qs = restrict_queryset_for_user(Report.objects.all(), user, active_school)
     qs = _filter_by_school(qs, active_school)
     r = get_object_or_404(qs, pk=pk)
+    
+    # التحقق من صلاحية التعديل
+    if not can_edit_report(user, r, active_school=active_school):
+        messages.error(request, "لا تملك صلاحية تعديل هذا التقرير.")
+        return redirect("reports:admin_reports")
 
     # لا نجبر تغيير المدرسة النشطة بالجَلسة، لكن نستخدم مدرسة التقرير لتصفية الأنواع عند الحاجة.
     form_school = active_school
@@ -7608,7 +7611,8 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
             nxt = request.POST.get("next") or request.GET.get("next")
             if nxt:
                 return redirect(nxt)
-            if can_edit_others and getattr(r, "teacher_id", None) != getattr(user, "id", None):
+            # إذا كان المستخدم ليس صاحب التقرير، يعود لـ admin_reports
+            if getattr(r, "teacher_id", None) != getattr(user, "id", None):
                 return redirect("reports:admin_reports")
             return redirect("reports:my_reports")
         messages.error(request, "تحقّق من الحقول.")
