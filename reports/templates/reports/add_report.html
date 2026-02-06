@@ -725,7 +725,7 @@
                <div class="ar-field" data-group="teacher_name" style="margin:0">
                  <label><i class="fa-solid fa-user"></i> المنفذ</label>
                  <input type="text" id="id_teacher_name" name="teacher_name" 
-                        value="{% if form.data.teacher_name %}{{ form.data.teacher_name }}{% else %}{{ request.user.name|default:'' }}{% endif %}">
+                        value="{{ request.user.name|default:'' }}" readonly aria-readonly="true">
                </div>
             </div>
 

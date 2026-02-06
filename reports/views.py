@@ -1425,8 +1425,10 @@ def add_report(request: HttpRequest) -> HttpResponse:
             if hasattr(report, "school") and active_school is not None:
                 report.school = active_school
 
-            teacher_name_input = (request.POST.get("teacher_name") or "").strip()
-            teacher_name_final = teacher_name_input or (getattr(request.user, "name", "") or "").strip()
+            # حماية حقل "المنفذ": يُحفظ دائمًا باسم المستخدم الحالي ولا نقبل أي قيمة مرسلة من الفورم.
+            teacher_name_final = (getattr(request.user, "name", "") or "").strip()
+            if not teacher_name_final:
+                teacher_name_final = (getattr(request.user, "username", "") or str(request.user) or "").strip()
             teacher_name_final = teacher_name_final[:120]
             if hasattr(report, "teacher_name"):
                 report.teacher_name = teacher_name_final
