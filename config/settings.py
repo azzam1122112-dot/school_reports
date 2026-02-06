@@ -41,6 +41,42 @@ SECRET_KEY = (os.getenv("SECRET_KEY") or "").strip()
 # في Render، إذا لم يكن لديك Redis، سيتم استخدام Threading تلقائياً بفضل التعديلات الأخيرة
 CELERY_BROKER_URL = os.getenv("REDIS_URL", os.getenv("CELERY_BROKER_URL", "")).strip()
 
+# ----------------- Notifications: Local fallback (no broker) -----------------
+# When broker isn't configured/unavailable, some actions fall back to in-process execution.
+# This is handy for small workloads, but may be too heavy for future channels (SMS/Email/WhatsApp).
+NOTIFICATIONS_LOCAL_FALLBACK_ENABLED = _env_bool("NOTIFICATIONS_LOCAL_FALLBACK_ENABLED", True)
+NOTIFICATIONS_LOCAL_FALLBACK_THREAD = _env_bool("NOTIFICATIONS_LOCAL_FALLBACK_THREAD", True)
+try:
+    NOTIFICATIONS_LOCAL_FALLBACK_MAX_RECIPIENTS = int(
+        (os.getenv("NOTIFICATIONS_LOCAL_FALLBACK_MAX_RECIPIENTS", "30") or "30").strip()
+    )
+except Exception:
+    NOTIFICATIONS_LOCAL_FALLBACK_MAX_RECIPIENTS = 30
+
+# Hard-stop: never run local fallback if recipients exceed this number (or are unknown).
+try:
+    NOTIFICATIONS_LOCAL_FALLBACK_HARD_STOP_RECIPIENTS = int(
+        (os.getenv("NOTIFICATIONS_LOCAL_FALLBACK_HARD_STOP_RECIPIENTS", "200") or "200").strip()
+    )
+except Exception:
+    NOTIFICATIONS_LOCAL_FALLBACK_HARD_STOP_RECIPIENTS = 200
+
+# Soft timeout: log warning if local fallback takes longer than this (seconds).
+try:
+    NOTIFICATIONS_LOCAL_FALLBACK_WARN_SECONDS = float(
+        (os.getenv("NOTIFICATIONS_LOCAL_FALLBACK_WARN_SECONDS", "2") or "2").strip()
+    )
+except Exception:
+    NOTIFICATIONS_LOCAL_FALLBACK_WARN_SECONDS = 2.0
+
+# Best-effort idempotency guard across broker/local paths.
+try:
+    NOTIFICATIONS_DISPATCH_LOCK_TTL_SECONDS = int(
+        (os.getenv("NOTIFICATIONS_DISPATCH_LOCK_TTL_SECONDS", "3600") or "3600").strip()
+    )
+except Exception:
+    NOTIFICATIONS_DISPATCH_LOCK_TTL_SECONDS = 3600
+
 # كشف تلقائي لـ Render
 if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):
     ENV = "production"

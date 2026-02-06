@@ -44,6 +44,9 @@ from .models import (
 
 logger = logging.getLogger(__name__)
 
+# Avoid repeating the same warning on every request when broker is not configured.
+_NOTIF_CELERY_FALLBACK_WARNED = False
+
 # (تراثي – اختياري)
 try:
     from .models import RequestTicket, REQUEST_DEPARTMENTS  # type: ignore
@@ -1761,12 +1764,205 @@ class NotificationCreateForm(forms.Form):
         # - Prefer async (Celery)
         # - Fallback to local execution if broker/worker is unavailable
         def _dispatch():
+            import time
+
+            try:
+                from django.conf import settings
+            except Exception:
+                settings = None  # type: ignore
+
+            broker_url = ""
+            try:
+                broker_url = (getattr(settings, "CELERY_BROKER_URL", "") or "").strip()
+            except Exception:
+                broker_url = ""
+
+            # Best-effort anti-double-send across async/local paths.
+            try:
+                from django.core.cache import cache
+                lock_ttl = int(getattr(settings, "NOTIFICATIONS_DISPATCH_LOCK_TTL_SECONDS", 900))
+            except Exception:
+                cache = None  # type: ignore
+                lock_ttl = 900
+
+            # Versioned lock key to keep uniqueness stable across future changes.
+            lock_key = f"notif_dispatch_lock:v1:notification:{n.pk}"
+
+            def _acquire_lock() -> bool:
+                if cache is None:
+                    return True
+                try:
+                    return bool(cache.add(lock_key, "1", timeout=max(60, int(lock_ttl))))
+                except Exception:
+                    return True
+
+            def _release_lock() -> None:
+                if cache is None:
+                    return
+                try:
+                    cache.delete(lock_key)
+                except Exception:
+                    pass
+
+            def _run_local(*, warn_seconds: float, is_debug: bool) -> bool:
+                started = time.monotonic()
+
+                try:
+                    from django.db import close_old_connections
+                    close_old_connections()
+                except Exception:
+                    pass
+
+                ok = False
+                try:
+                    send_notification_task.apply(args=(n.pk, teacher_ids), throw=True)
+                    ok = True
+                except Exception as exc:
+                    if is_debug:
+                        logger.exception("Local notification dispatch failed")
+                    else:
+                        logger.error("Local notification dispatch failed: %s", exc)
+                finally:
+                    dur = time.monotonic() - started
+                    if dur > float(warn_seconds or 0):
+                        logger.warning("Local notification dispatch took %.2fs (notification=%s)", dur, n.pk)
+
+                return ok
+
+            recipient_count = None if teacher_ids is None else len(teacher_ids)
+
+            # ------------------ No broker configured: local fallback path ------------------
+            if not broker_url:
+                try:
+                    if not bool(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_ENABLED", True)):
+                        logger.error(
+                            "Celery broker not configured and local fallback disabled; notification %s will not be dispatched",
+                            n.pk,
+                        )
+                        return
+
+                    use_thread = bool(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_THREAD", True))
+                    max_sync = int(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_MAX_RECIPIENTS", 500))
+                    hard_stop = int(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_HARD_STOP_RECIPIENTS", 500))
+                    warn_seconds = float(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_WARN_SECONDS", 2.5))
+                    is_debug = bool(getattr(settings, "DEBUG", False))
+                except Exception:
+                    use_thread = True
+                    max_sync = 500
+                    hard_stop = 500
+                    warn_seconds = 2.5
+                    is_debug = False
+
+                # Hard-stop: do not run heavy/unknown workloads inside web.
+                if recipient_count is None or int(recipient_count) > int(hard_stop):
+                    logger.error(
+                        "Local notification fallback refused (recipients=%s, hard_stop=%s). Configure broker to dispatch notification %s.",
+                        recipient_count,
+                        hard_stop,
+                        n.pk,
+                    )
+                    return
+
+                if not _acquire_lock():
+                    logger.info("Notification %s dispatch already in progress; skipping", n.pk)
+                    return
+
+                global _NOTIF_CELERY_FALLBACK_WARNED
+                if not _NOTIF_CELERY_FALLBACK_WARNED:
+                    logger.warning("Celery broker not configured; using local fallback for notifications")
+                    _NOTIF_CELERY_FALLBACK_WARNED = True
+
+                should_thread = bool(use_thread) and int(recipient_count) > int(max_sync)
+                if should_thread:
+                    try:
+                        import threading
+
+                        threading.Thread(
+                            target=lambda: (_run_local(warn_seconds=warn_seconds, is_debug=is_debug) or _release_lock()),
+                            name="notif_local_dispatch",
+                            daemon=True,
+                        ).start()
+                        return
+                    except Exception:
+                        pass
+
+                ok = False
+                try:
+                    ok = _run_local(warn_seconds=warn_seconds, is_debug=is_debug)
+                finally:
+                    if not ok:
+                        _release_lock()
+                return
+
+            # ------------------ Broker configured: async path ------------------
+            if not _acquire_lock():
+                logger.info("Notification %s dispatch already in progress; skipping", n.pk)
+                return
+
+            enqueued = False
             try:
                 send_notification_task.delay(n.pk, teacher_ids)
+                enqueued = True
+                return
             except Exception:
-                logger.exception("Celery enqueue failed; running send_notification_task locally")
-                # Run in-process (does not require broker)
-                send_notification_task.apply(args=(n.pk, teacher_ids), throw=True)
+                logger.exception("Celery enqueue failed; attempting local fallback")
+            finally:
+                # If enqueue failed, release the lock so fallback (or later retry) can proceed.
+                if not enqueued:
+                    _release_lock()
+
+            # If enqueue failed (broker down), local fallback may be allowed for small/known workloads.
+            try:
+                if not bool(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_ENABLED", True)):
+                    logger.error("Celery enqueue failed and local fallback disabled; notification %s not dispatched", n.pk)
+                    return
+
+                use_thread = bool(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_THREAD", True))
+                max_sync = int(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_MAX_RECIPIENTS", 500))
+                hard_stop = int(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_HARD_STOP_RECIPIENTS", 500))
+                warn_seconds = float(getattr(settings, "NOTIFICATIONS_LOCAL_FALLBACK_WARN_SECONDS", 2.5))
+                is_debug = bool(getattr(settings, "DEBUG", False))
+            except Exception:
+                use_thread = True
+                max_sync = 500
+                hard_stop = 500
+                warn_seconds = 2.5
+                is_debug = False
+
+            if recipient_count is None or int(recipient_count) > int(hard_stop):
+                logger.error(
+                    "Celery enqueue failed; local fallback refused (recipients=%s, hard_stop=%s) for notification %s",
+                    recipient_count,
+                    hard_stop,
+                    n.pk,
+                )
+                return
+
+            # Acquire lock for local attempt (avoid duplicates if concurrent retries).
+            if not _acquire_lock():
+                logger.info("Notification %s dispatch already in progress; skipping", n.pk)
+                return
+
+            should_thread = bool(use_thread) and int(recipient_count) > int(max_sync)
+            if should_thread:
+                try:
+                    import threading
+
+                    threading.Thread(
+                        target=lambda: (_run_local(warn_seconds=warn_seconds, is_debug=is_debug) or _release_lock()),
+                        name="notif_local_dispatch",
+                        daemon=True,
+                    ).start()
+                    return
+                except Exception:
+                    pass
+
+            ok = False
+            try:
+                ok = _run_local(warn_seconds=warn_seconds, is_debug=is_debug)
+            finally:
+                if not ok:
+                    _release_lock()
 
         transaction.on_commit(_dispatch)
         
@@ -1774,9 +1970,7 @@ class NotificationCreateForm(forms.Form):
 
 
 class SupportTicketForm(forms.ModelForm):
-    """
-    نموذج إنشاء تذكرة دعم فني للمنصة.
-    """
+    """نموذج إنشاء تذكرة دعم فني للمنصة."""
 
     # نستخدم ImageField هنا لضمان التحقق من أنه صورة قبل الحفظ،
     # وللسماح بضغط الصورة قبل التحقق من حد الحجم النهائي.

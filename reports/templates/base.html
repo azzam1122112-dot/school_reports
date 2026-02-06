@@ -1760,6 +1760,9 @@
       let wsTimer = null;
       let wsBackoffMs = 1000;
       let wsStartedPollingFallback = false;
+      let wsEverOpened = false;
+      let wsFailedConnects = 0;
+      let wsLastVisibilityProbeAt = 0;
 
       function wsClearReconnect() {
         if (wsTimer) { clearTimeout(wsTimer); wsTimer = null; }
@@ -1817,6 +1820,8 @@
         ws.onopen = function(){
           wsBackoffMs = 1000;
           wsStartedPollingFallback = false;
+          wsEverOpened = true;
+          wsFailedConnects = 0;
           try { pollStop(); } catch(e) {}
         };
 
@@ -1843,13 +1848,29 @@
         ws.onclose = function(){
           ws = null;
 
+          // If we never managed to open, treat this as a failed handshake.
+          if (!wsEverOpened) {
+            wsFailedConnects = (wsFailedConnects || 0) + 1;
+          }
+
           // Activate polling fallback after first WS failure.
           if (!wsStartedPollingFallback) {
             wsStartedPollingFallback = true;
             enablePollingFallback();
           }
 
-          wsBackoffMs = Math.min(Math.round(wsBackoffMs * 1.8), 30000);
+          // If WS endpoint is consistently unavailable (e.g. served as plain HTTP and returns 404),
+          // avoid tight reconnect loops that spam server logs. Keep polling fallback.
+          const HARD_BACKOFF_MS = 10 * 60 * 1000; // 10 minutes
+          const MAX_NORMAL_BACKOFF_MS = 30000;
+
+          if (!wsEverOpened && wsFailedConnects >= 3) {
+            const jitter = Math.floor(Math.random() * 1500);
+            wsTimer = setTimeout(wsConnect, HARD_BACKOFF_MS + jitter);
+            return;
+          }
+
+          wsBackoffMs = Math.min(Math.round(wsBackoffMs * 1.8), MAX_NORMAL_BACKOFF_MS);
           // Add jitter to avoid reconnect stampedes (deploys / Redis restart).
           const jitter = Math.floor(Math.random() * 500);
           wsTimer = setTimeout(wsConnect, wsBackoffMs + jitter);
@@ -1872,6 +1893,17 @@
           catch(e) {}
           // If WS is down, fallback polling may be active; restart it.
           try { if (window.__srNotifPoll && typeof window.__srNotifPoll.stop === 'function') pollStart(); } catch(e) {}
+
+          // If we previously entered hard backoff without ever opening, probe WS again on return.
+          try {
+            if (!ws && (!wsEverOpened) && (wsFailedConnects >= 3)) {
+              const now = Date.now();
+              if (wsLastVisibilityProbeAt && (now - wsLastVisibilityProbeAt) < 60000) return;
+              wsLastVisibilityProbeAt = now;
+              wsClearReconnect();
+              wsTimer = setTimeout(wsConnect, 2500);
+            }
+          } catch(e) {}
         }
       }, { passive: true });
 
