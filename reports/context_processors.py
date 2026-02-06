@@ -88,8 +88,30 @@ def _teacher_role_values(membership_model) -> Iterable:
 
 
 def _detect_officer_departments(user, active_school: Optional[School] = None) -> List[Department]:
+    """أقسام المسؤول/رئيس القسم (OFFICER) لعرض تقارير القسم."""
     Membership = _get_membership_model()
     if Membership is None:
+        return []
+    try:
+        officer_values = list(_officer_role_values(Membership))
+        membs = (
+            Membership.objects.select_related("department")
+            .filter(teacher=user, role_type__in=officer_values, department__is_active=True)
+        )
+        # عزل حسب المدرسة النشطة إن وُجدت
+        try:
+            if active_school is not None and "school" in _model_fields(Department):
+                membs = membs.filter(department__school=active_school)
+        except Exception:
+            pass
+        seen, unique = set(), []
+        for m in membs:
+            d = m.department
+            if d and d.pk not in seen:
+                seen.add(d.pk)
+                unique.append(d)
+        return unique
+    except Exception:
         return []
 
 
@@ -111,27 +133,6 @@ def _detect_member_departments(user, active_school: Optional[School] = None) -> 
         except Exception:
             pass
 
-        seen, unique = set(), []
-        for m in membs:
-            d = m.department
-            if d and d.pk not in seen:
-                seen.add(d.pk)
-                unique.append(d)
-        return unique
-    except Exception:
-        return []
-    try:
-        officer_values = list(_officer_role_values(Membership))
-        membs = (
-            Membership.objects.select_related("department")
-            .filter(teacher=user, role_type__in=officer_values, department__is_active=True)
-        )
-        # عزل حسب المدرسة النشطة إن وُجدت
-        try:
-            if active_school is not None and "school" in _model_fields(Department):
-                membs = membs.filter(department__school=active_school)
-        except Exception:
-            pass
         seen, unique = set(), []
         for m in membs:
             d = m.department
