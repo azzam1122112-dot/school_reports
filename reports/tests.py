@@ -8,6 +8,7 @@ from .models import (
 	Department,
 	DepartmentMembership,
 	Notification,
+	NotificationRecipient,
 	Report,
 	School,
 	SchoolMembership,
@@ -106,6 +107,64 @@ class PlatformAdminCircularAndTicketPrintTests(TestCase):
 		self.assertFalse(bool(getattr(n, "requires_signature", False)))
 		self.assertEqual(getattr(n, "created_by_id", None), self.platform.id)
 		self.assertEqual(getattr(n, "school_id", None), self.school.id)
+
+
+class ManagerNotificationDepartmentTargetingTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="School A", code="mgr-dept")
+		plan = SubscriptionPlan.objects.create(name="Test", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+		self.manager = Teacher.objects.create_user(phone="0500000400", name="Manager", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.dept = Department.objects.create(school=self.school, name="Science", slug="science", is_active=True)
+
+		self.t1 = Teacher.objects.create_user(phone="0500000401", name="T1", password="pass")
+		self.t2 = Teacher.objects.create_user(phone="0500000402", name="T2", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.t1,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.t2,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+		DepartmentMembership.objects.create(department=self.dept, teacher=self.t1)
+		DepartmentMembership.objects.create(department=self.dept, teacher=self.t2)
+
+		self.client.force_login(self.manager)
+
+	def test_department_selected_but_manual_teacher_limits_recipients(self):
+		url = reverse("reports:notifications_create")
+		with self.captureOnCommitCallbacks(execute=True):
+			res = self.client.post(
+				url,
+				{
+					"title": "Notify",
+					"message": "Hello",
+					"target_department": str(self.dept.id),
+					"teachers": [str(self.t1.id)],
+				},
+			)
+		self.assertEqual(res.status_code, 302)
+		n = Notification.objects.order_by("-id").first()
+		self.assertIsNotNone(n)
+
+		recipient_ids = list(
+			NotificationRecipient.objects.filter(notification=n).values_list("teacher_id", flat=True).order_by("teacher_id")
+		)
+		self.assertEqual(recipient_ids, [self.t1.id])
 
 
 class SubscriptionCancellationFinanceLogTests(TestCase):

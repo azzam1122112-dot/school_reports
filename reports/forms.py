@@ -1452,12 +1452,13 @@ class NotificationCreateForm(forms.Form):
         queryset=Department.objects.none(),
         required=False,
         label="إرسال إلى قسم كامل",
-        help_text="اختر قسماً لإرسال الإشعار لجميع منسوبيه (رئيس القسم والمكلفين).",
+        help_text="اختر قسماً لإرسال الإشعار لجميع منسوبيه. إذا اخترت مستلمين من القائمة أدناه فسيتم الإرسال لهم فقط (حتى لو كان القسم محدداً).",
     )
     teachers = forms.ModelMultipleChoiceField(
         queryset=Teacher.objects.none(),
         required=False,
         label="المستلمون (يمكن اختيار أكثر من معلم)",
+        help_text="اختيار المستلمين يدويًا يجعل الإرسال يقتصر عليهم فقط.",
         widget=forms.CheckboxSelectMultiple()
     )
 
@@ -1736,7 +1737,9 @@ class NotificationCreateForm(forms.Form):
             
         # 2. توجيه حسب القسم (للإشعارات فقط)
         target_dept = cleaned.get("target_department")
-        if target_dept and not bool(requires_signature):
+        # ملاحظة: اختيار القسم في الواجهة غالباً يُستخدم لتصفية القائمة.
+        # لذلك لا نرسل للقسم بالكامل إذا اختار المستخدم معلمين بشكل يدوي.
+        if target_dept and not bool(requires_signature) and not selected_teachers:
             from .models import DepartmentMembership
             dept_teachers = DepartmentMembership.objects.filter(department=target_dept).values_list("teacher_id", flat=True)
             teacher_ids_set.update(dept_teachers)
