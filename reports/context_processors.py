@@ -640,6 +640,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "OFFICER_DEPARTMENTS": [],
             "SHOW_OFFICER_REPORTS_LINK": False,
             "SHOW_DEPARTMENT_REPORTS_LINK": False,
+            "SHOW_SCHOOL_REPORTS_LINK": False,
+            "IS_SCHOOL_MANAGER": False,
             "DEPARTMENT_REPORTS_URLNAME": None,
             "NAV_OFFICER_REPORTS": 0,
             "SHOW_ADMIN_DASHBOARD_LINK": False,
@@ -711,14 +713,41 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         assigned_open = 0
 
+    # تحديد دور مدير المدرسة مبكرًا
+    any_school_manager = False
+    is_school_manager = False
+    try:
+        if getattr(u, "is_authenticated", False):
+            any_school_manager = SchoolMembership.objects.filter(
+                teacher=u,
+                role_type=SchoolMembership.RoleType.MANAGER,
+                is_active=True,
+            ).exists()
+            if active_school is not None:
+                is_school_manager = SchoolMembership.objects.filter(
+                    teacher=u,
+                    school=active_school,
+                    role_type=SchoolMembership.RoleType.MANAGER,
+                    is_active=True,
+                ).exists()
+            else:
+                is_school_manager = any_school_manager
+    except Exception:
+        pass
+
     officer_depts = _detect_officer_departments(u, active_school=active_school)
     is_officer = bool(officer_depts)
     show_officer_link = bool(getattr(u, "is_superuser", False) or is_officer)
 
     member_depts = _detect_member_departments(u, active_school=active_school)
     is_member = bool(member_depts)
-    show_dept_reports_link = bool(show_officer_link or is_member)
+    
+    # مدير المدرسة لا يظهر له "تقارير قسمي" بل "تقارير المدرسة"
+    show_dept_reports_link = bool((show_officer_link or is_member) and not is_school_manager)
     dept_reports_urlname = "reports:officer_reports" if show_officer_link else "reports:department_reports"
+    
+    # رابط تقارير المدرسة لمدير المدرسة فقط
+    show_school_reports_link = bool(is_school_manager and active_school is not None)
 
     # تقارير officer
     nav_officer_reports = 0
@@ -775,27 +804,6 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         role_slug = getattr(getattr(u, "role", None), "slug", None)
     except Exception:
         role_slug = None
-    
-    any_school_manager = False
-    is_school_manager = False
-    try:
-        if getattr(u, "is_authenticated", False):
-            any_school_manager = SchoolMembership.objects.filter(
-                teacher=u,
-                role_type=SchoolMembership.RoleType.MANAGER,
-                is_active=True,
-            ).exists()
-            if active_school is not None:
-                is_school_manager = SchoolMembership.objects.filter(
-                    teacher=u,
-                    school=active_school,
-                    role_type=SchoolMembership.RoleType.MANAGER,
-                    is_active=True,
-                ).exists()
-            else:
-                is_school_manager = any_school_manager
-    except Exception:
-        pass
 
     show_admin_link = bool(getattr(u, "is_staff", False)) or any_school_manager
 
@@ -921,10 +929,12 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "OFFICER_DEPARTMENTS": officer_depts,
         "SHOW_OFFICER_REPORTS_LINK": show_officer_link,
         "SHOW_DEPARTMENT_REPORTS_LINK": show_dept_reports_link,
+        "SHOW_SCHOOL_REPORTS_LINK": show_school_reports_link,
         "DEPARTMENT_REPORTS_URLNAME": dept_reports_urlname,
         "NAV_OFFICER_REPORTS": nav_officer_reports,
         "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,
         "IS_REPORT_VIEWER": is_report_viewer,
+        "IS_SCHOOL_MANAGER": is_school_manager,
         "NAV_NOTIFICATIONS_UNREAD": unread_count,
         "NAV_SIGNATURES_PENDING": signatures_pending,
         "NAV_NOTIFICATION_HERO": hero,
