@@ -816,7 +816,7 @@
             {% endif %}
 
             {% if SHOW_SCHOOL_REPORTS_LINK %}
-              <a class="tab {% if active == 'platform_school_reports' %}is-active{% endif %}" href="{% url 'reports:platform_school_reports' %}">تقارير المدرسة</a>
+              <a class="tab {% if active == 'admin_reports' %}is-active{% endif %}" href="{% url 'reports:admin_reports' %}">تقارير المدرسة</a>
             {% elif SHOW_DEPARTMENT_REPORTS_LINK and DEPARTMENT_REPORTS_URLNAME %}
               <a class="tab {% if active == 'officer_reports' or active == 'department_reports' %}is-active{% endif %}" href="{% url DEPARTMENT_REPORTS_URLNAME %}">تقارير قسمي</a>
             {% endif %}
