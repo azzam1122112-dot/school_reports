@@ -193,11 +193,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     # Third-party
-    "channels",                 # ✅ Channels
+    "channels",
     "django_celery_results",
-
     # Our apps
     "core",
     "reports",
@@ -246,9 +244,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-
     "reports.middleware_single_session.EnforceSingleSessionMiddleware",
-
     "django.contrib.messages.middleware.MessageMiddleware",
     "reports.middleware.AuditLogMiddleware",
     "reports.middleware.IdleLogoutMiddleware",
@@ -256,7 +252,6 @@ MIDDLEWARE = [
     "reports.middleware.PlatformAdminAccessMiddleware",
     "reports.middleware.ReportViewerAccessMiddleware",
     "reports.middleware.ContentSecurityPolicyMiddleware",
-
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -264,11 +259,11 @@ MIDDLEWARE = [
 # ----------------- URLs / Templates -----------------
 ROOT_URLCONF = "config.urls"
 
+# ✅ تم إصلاح سبب الخطأ: حذف المفتاح الغلط (" reed")
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
-        " reed": False,
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -286,8 +281,6 @@ TEMPLATES = [
 
 # ----------------- WSGI/ASGI -----------------
 WSGI_APPLICATION = "config.wsgi.application"
-
-# ✅ هذا اللي يستخدمه Daphne/ASGI لتفعيل WebSocket
 ASGI_APPLICATION = "config.asgi.application"
 
 
@@ -300,7 +293,7 @@ CELERY_BROKER_URL = (os.getenv("CELERY_BROKER_URL") or REDIS_URL).strip()
 
 # Cache Redis URL: لو ما انكتب، نشتقه من broker بتغيير DB index
 REDIS_CACHE_URL = os.getenv("REDIS_CACHE_URL", "").strip()
-REDIS_CHANNEL_LAYER_URL = os.getenv("REDIS_CHANNEL_LAYER_URL", "").strip() or REDIS_URL
+REDIS_CHANNEL_LAYER_URL = (os.getenv("REDIS_CHANNEL_LAYER_URL") or "").strip() or REDIS_URL
 
 
 def _derive_cache_redis_url(broker_url: str) -> str:
@@ -324,8 +317,6 @@ if not REDIS_CACHE_URL:
 
 
 # ----------------- Caching -----------------
-# - في الإنتاج: Redis إن توفر، وإلا LocMem
-# - في التطوير: LocMem لو ما فيه Redis
 if REDIS_CACHE_URL:
     CACHES = {
         "default": {
@@ -347,7 +338,6 @@ else:
 
 
 # ----------------- Channels Layer -----------------
-# ✅ هذا هو اللي يمنع 404 ويخلي WebSocket فعلي (مع Daphne + routing)
 if REDIS_CHANNEL_LAYER_URL:
     CHANNEL_LAYERS = {
         "default": {
@@ -356,9 +346,8 @@ if REDIS_CHANNEL_LAYER_URL:
         }
     }
 else:
-    CHANNEL_LAYERS = {
-        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
-    }
+    # NOTE: InMemory مناسب للتجربة فقط (لا يصلح لعدة نسخ/سيرفرات)
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 
 # ----------------- Database -----------------
