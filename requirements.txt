@@ -17,6 +17,8 @@ Unidecode==1.3.8
 webencodings==0.5.1
 zopfli==0.2.3.post1
 
+daphne>=4.0
+
 # Django and related
 Django>=4.2,<5.0
 channels==4.1.0
