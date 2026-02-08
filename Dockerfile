@@ -32,8 +32,8 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy project
 COPY . /app/
 
-# Expose port
-EXPOSE 8000
+# Expose port (Render sets PORT=10000 by default)
+EXPOSE 10000
 
 # Run the application (ASGI: HTTP + WebSocket)
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.asgi:application --bind 0.0.0.0:8000 -k uvicorn.workers.UvicornWorker"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.asgi:application --bind 0.0.0.0:${PORT:-10000} -k uvicorn.workers.UvicornWorker"]

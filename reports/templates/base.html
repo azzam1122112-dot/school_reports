@@ -1758,11 +1758,29 @@
 
       let ws = null;
       let wsTimer = null;
+      let wsKeepaliveTimer = null;
       let wsBackoffMs = 1000;
       let wsStartedPollingFallback = false;
       let wsEverOpened = false;
       let wsFailedConnects = 0;
       let wsLastVisibilityProbeAt = 0;
+
+      function wsStopKeepalive() {
+        try { if (wsKeepaliveTimer) clearInterval(wsKeepaliveTimer); } catch(e) {}
+        wsKeepaliveTimer = null;
+      }
+
+      function wsStartKeepalive() {
+        wsStopKeepalive();
+        // Keep the connection alive through proxies/LBs that close idle sockets.
+        // Use a lightweight message that the server will ignore.
+        wsKeepaliveTimer = setInterval(function(){
+          try {
+            if (document.hidden) return;
+            if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'keepalive' }));
+          } catch(e) {}
+        }, 45000);
+      }
 
       function wsClearReconnect() {
         if (wsTimer) { clearTimeout(wsTimer); wsTimer = null; }
@@ -1823,6 +1841,7 @@
           wsEverOpened = true;
           wsFailedConnects = 0;
           try { pollStop(); } catch(e) {}
+          wsStartKeepalive();
         };
 
         ws.onmessage = function(ev){
@@ -1847,6 +1866,7 @@
 
         ws.onclose = function(){
           ws = null;
+          wsStopKeepalive();
 
           // If we never managed to open, treat this as a failed handshake.
           if (!wsEverOpened) {
@@ -1879,6 +1899,7 @@
 
       function wsStop() {
         wsClearReconnect();
+        wsStopKeepalive();
         try { if (ws) ws.close(); } catch(e) {}
         ws = null;
       }
@@ -1887,10 +1908,12 @@
         if (document.hidden) {
           // Do not force close WS; just avoid extra work.
           try { pollStop(); } catch(e) {}
+          wsStopKeepalive();
         } else {
           // One-off resync when user returns.
           try { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'resync' })); }
           catch(e) {}
+          try { if (ws && ws.readyState === 1) wsStartKeepalive(); } catch(e) {}
           // If WS is down, fallback polling may be active; restart it.
           try { if (window.__srNotifPoll && typeof window.__srNotifPoll.stop === 'function') pollStart(); } catch(e) {}
 

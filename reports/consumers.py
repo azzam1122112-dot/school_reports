@@ -108,6 +108,8 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive_json(self, content: Dict[str, Any], **kwargs):
         msg_type = (content or {}).get("type")
+        if msg_type == "keepalive":
+            return
         if msg_type == "resync":
             payload = await self._compute_counts()
             await self.send_json({"type": "counts", **payload})
