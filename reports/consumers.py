@@ -7,7 +7,12 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.db.models import Count, Q
 from django.utils import timezone
 
+import logging
+
 from .models import NotificationRecipient
+
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
@@ -25,6 +30,10 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         user = self.scope.get("user")
         if not user or not getattr(user, "is_authenticated", False):
+            logger.info(
+                "WS notifications reject: unauthenticated (path=%s)",
+                self.scope.get("path"),
+            )
             await self.close(code=4401)
             return
 
@@ -46,9 +55,37 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
 
         # Channels group names must be ASCII alphanumerics/hyphen/underscore/period only.
         self.group_name = f"notif.u{self.user_id}"
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
 
-        await self.accept()
+        try:
+            await self.channel_layer.group_add(self.group_name, self.channel_name)
+        except Exception as exc:
+            logger.exception(
+                "WS notifications group_add failed (user_id=%s group=%s path=%s): %s",
+                self.user_id,
+                self.group_name,
+                self.scope.get("path"),
+                exc,
+            )
+            await self.close(code=1011)
+            return
+
+        try:
+            await self.accept()
+        except Exception as exc:
+            logger.exception(
+                "WS notifications accept failed (user_id=%s path=%s): %s",
+                self.user_id,
+                self.scope.get("path"),
+                exc,
+            )
+            return
+
+        logger.info(
+            "WS notifications accepted (user_id=%s group=%s active_school_id=%s)",
+            self.user_id,
+            self.group_name,
+            self.active_school_id,
+        )
 
         payload = await self._compute_counts()
         await self.send_json({"type": "counts", **payload})
@@ -56,6 +93,16 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, code):
         try:
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        except Exception:
+            pass
+
+        try:
+            logger.info(
+                "WS notifications disconnected (code=%s user_id=%s path=%s)",
+                code,
+                getattr(self, "user_id", None),
+                self.scope.get("path"),
+            )
         except Exception:
             pass
 
