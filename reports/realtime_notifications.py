@@ -31,7 +31,7 @@ def push_delta_to_user(
         from asgiref.sync import async_to_sync
 
         async_to_sync(channel_layer.group_send)(
-            f"notif:u{int(teacher_id)}",
+            f"notif.u{int(teacher_id)}",
             {
                 "type": "notif_delta",
                 "delta_unread": int(delta_unread),

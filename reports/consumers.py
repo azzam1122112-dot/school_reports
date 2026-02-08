@@ -44,7 +44,8 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
         except Exception:
             self.active_school_id = None
 
-        self.group_name = f"notif:u{self.user_id}"
+        # Channels group names must be ASCII alphanumerics/hyphen/underscore/period only.
+        self.group_name = f"notif.u{self.user_id}"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
 
         await self.accept()
