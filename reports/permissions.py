@@ -421,8 +421,13 @@ def role_required(allowed_roles: Iterable[str]):
             if _has_active_schools() and not active_school_id:
                 # نُجبر ذلك خصوصًا للصفحات المدرسية (manager)
                 if "manager" in allowed:
-                    messages.error(request, "فضلاً اختر مدرسة أولاً.")
-                    return redirect("reports:select_school")
+                    # إن لم يكن المستخدم مدير مدرسة فعلي (عضوية)، لا نرسله لاختيار مدرسة.
+                    # هذا يمنع تسريب صلاحية عبر Role.slug='manager' فقط.
+                    if _is_school_manager(user, school_id=None):
+                        messages.error(request, "فضلاً اختر مدرسة أولاً.")
+                        return redirect("reports:select_school")
+                    messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
+                    return redirect("reports:home")
 
             role_slug = _user_role_slug(user)
 

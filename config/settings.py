@@ -248,6 +248,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "reports.middleware.AuditLogMiddleware",
     "reports.middleware.IdleLogoutMiddleware",
+    "reports.middleware.ActiveSchoolGuardMiddleware",
     "reports.middleware.SubscriptionMiddleware",
     "reports.middleware.PlatformAdminAccessMiddleware",
     "reports.middleware.ReportViewerAccessMiddleware",

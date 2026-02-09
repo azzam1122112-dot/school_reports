@@ -134,6 +134,139 @@ class IdleLogoutMiddleware:
             request.session.set_expiry(self.timeout_seconds)
         return self.get_response(request)
 
+
+class ActiveSchoolGuardMiddleware:
+    """Defense-in-depth: ensure session.active_school_id is actually accessible.
+
+    Why:
+    - Prevent stale/tampered session values from selecting a school the user cannot access.
+    - Make downstream code safer even if a view forgets to validate membership.
+
+    Policy (simple + safe):
+    - If active_school_id is invalid/inaccessible, we remove it from the session.
+    - We do NOT auto-pick a school here (leave UX to existing select/switch flows).
+    """
+
+    SESSION_KEY = "active_school_id"
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def _wants_json(self, request) -> bool:
+        try:
+            accept = (request.headers.get("Accept") or "").lower()
+            xrw = (request.headers.get("X-Requested-With") or "").lower()
+            return ("application/json" in accept) or (xrw == "xmlhttprequest")
+        except Exception:
+            return False
+
+    def __call__(self, request):
+        # Allow static/media without touching session
+        if request.path.startswith("/static/") or request.path.startswith("/media/"):
+            return self.get_response(request)
+
+        user = getattr(request, "user", None)
+        if not getattr(user, "is_authenticated", False):
+            return self.get_response(request)
+
+        # Superusers can access all schools; keep whatever is set.
+        if getattr(user, "is_superuser", False):
+            return self.get_response(request)
+
+        try:
+            sid_raw = request.session.get(self.SESSION_KEY)
+        except Exception:
+            sid_raw = None
+
+        if not sid_raw:
+            return self.get_response(request)
+
+        try:
+            sid = int(sid_raw)
+        except Exception:
+            try:
+                request.session.pop(self.SESSION_KEY, None)
+            except Exception:
+                pass
+            return self.get_response(request)
+
+        # Import lazily to avoid circular imports at startup.
+        try:
+            from .models import School, SchoolMembership
+        except Exception:
+            School = None  # type: ignore
+            SchoolMembership = None  # type: ignore
+
+        # If the school itself is not active/doesn't exist, clear.
+        try:
+            if School is not None:
+                if not School.objects.filter(id=sid, is_active=True).exists():
+                    if self._wants_json(request):
+                        return JsonResponse({"detail": "invalid_active_school"}, status=403)
+                    request.session.pop(self.SESSION_KEY, None)
+                    return self.get_response(request)
+        except Exception:
+            # If we cannot verify, do not broaden access.
+            try:
+                request.session.pop(self.SESSION_KEY, None)
+            except Exception:
+                pass
+            return self.get_response(request)
+
+        # Platform admin: must be within scope.
+        try:
+            from .permissions import is_platform_admin, platform_can_access_school
+        except Exception:
+            is_platform_admin = None  # type: ignore
+            platform_can_access_school = None  # type: ignore
+
+        if is_platform_admin and is_platform_admin(user):
+            try:
+                if platform_can_access_school is None or School is None:
+                    if self._wants_json(request):
+                        return JsonResponse({"detail": "invalid_active_school"}, status=403)
+                    request.session.pop(self.SESSION_KEY, None)
+                    return self.get_response(request)
+                school_obj = School.objects.filter(id=sid, is_active=True).first()
+                if school_obj is None or not platform_can_access_school(user, school_obj):
+                    if self._wants_json(request):
+                        return JsonResponse({"detail": "forbidden"}, status=403)
+                    request.session.pop(self.SESSION_KEY, None)
+            except Exception:
+                try:
+                    if self._wants_json(request):
+                        return JsonResponse({"detail": "forbidden"}, status=403)
+                    request.session.pop(self.SESSION_KEY, None)
+                except Exception:
+                    pass
+            return self.get_response(request)
+
+        # Normal user: must have an active membership in that school.
+        try:
+            if SchoolMembership is None:
+                if self._wants_json(request):
+                    return JsonResponse({"detail": "invalid_active_school"}, status=403)
+                request.session.pop(self.SESSION_KEY, None)
+                return self.get_response(request)
+            ok = SchoolMembership.objects.filter(
+                teacher=user,
+                school_id=sid,
+                is_active=True,
+            ).exists()
+            if not ok:
+                if self._wants_json(request):
+                    return JsonResponse({"detail": "forbidden"}, status=403)
+                request.session.pop(self.SESSION_KEY, None)
+        except Exception:
+            try:
+                if self._wants_json(request):
+                    return JsonResponse({"detail": "forbidden"}, status=403)
+                request.session.pop(self.SESSION_KEY, None)
+            except Exception:
+                pass
+
+        return self.get_response(request)
+
 class SubscriptionMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response

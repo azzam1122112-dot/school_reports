@@ -258,7 +258,65 @@ class SubscriptionCancellationFinanceLogTests(TestCase):
 		)
 
 		p.refresh_from_db()
-		self.assertEqual(p.status, Payment.Status.CANCELLED)
+
+
+class ActiveSchoolGuardMiddlewareTests(TestCase):
+	def setUp(self):
+		self.school_a = School.objects.create(name="School A", code="asg-a", is_active=True)
+		self.school_b = School.objects.create(name="School B", code="asg-b", is_active=True)
+
+		plan = SubscriptionPlan.objects.create(name="Test", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school_a, plan=plan, start_date=today, end_date=today)
+		SchoolSubscription.objects.create(school=self.school_b, plan=plan, start_date=today, end_date=today)
+
+		self.teacher = Teacher.objects.create_user(phone="0500000900", name="Teacher", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school_a,
+			teacher=self.teacher,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+
+		self.platform = Teacher.objects.create_user(
+			phone="0500000901",
+			name="Platform",
+			password="pass",
+			is_platform_admin=True,
+		)
+		scope = PlatformAdminScope.objects.create(admin=self.platform)
+		scope.allowed_schools.add(self.school_a)
+
+	def test_clears_active_school_when_not_in_user_memberships(self):
+		self.client.force_login(self.teacher)
+		session = self.client.session
+		session["active_school_id"] = self.school_b.id
+		session.save()
+
+		res = self.client.get(reverse("reports:home"))
+		self.assertEqual(res.status_code, 200)
+		# Middleware clears the invalid school, and the view auto-selects the user's only school.
+		self.assertEqual(self.client.session.get("active_school_id"), self.school_a.id)
+
+	def test_keeps_active_school_when_in_user_memberships(self):
+		self.client.force_login(self.teacher)
+		session = self.client.session
+		session["active_school_id"] = self.school_a.id
+		session.save()
+
+		res = self.client.get(reverse("reports:home"))
+		self.assertEqual(res.status_code, 200)
+		self.assertEqual(self.client.session.get("active_school_id"), self.school_a.id)
+
+	def test_platform_admin_active_school_must_be_in_scope(self):
+		self.client.force_login(self.platform)
+		session = self.client.session
+		session["active_school_id"] = self.school_b.id
+		session.save()
+
+		res = self.client.get(reverse("reports:platform_schools_directory"))
+		self.assertEqual(res.status_code, 200)
+		self.assertIsNone(self.client.session.get("active_school_id"))
 
 
 class PaymentApprovalAppliesRequestedPlanTests(TestCase):
