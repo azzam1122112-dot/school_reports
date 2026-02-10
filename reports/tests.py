@@ -260,6 +260,20 @@ class SubscriptionCancellationFinanceLogTests(TestCase):
 		p.refresh_from_db()
 
 
+class PublicUserGuideTests(TestCase):
+	def test_user_guide_page_is_public(self):
+		url = reverse("reports:user_guide")
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
+		self.assertContains(res, "دليل المستخدم")
+
+	def test_user_guide_download_is_public(self):
+		url = reverse("reports:user_guide_download")
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
+		self.assertIn("attachment", (res.get("Content-Disposition") or "").lower())
+
+
 class ActiveSchoolGuardMiddlewareTests(TestCase):
 	def setUp(self):
 		self.school_a = School.objects.create(name="School A", code="asg-a", is_active=True)

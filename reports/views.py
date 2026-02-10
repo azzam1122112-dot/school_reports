@@ -48,6 +48,68 @@ from django.templatetags.static import static
 
 from django_ratelimit.decorators import ratelimit
 
+
+def _user_guide_md_path() -> str:
+    return os.path.join(settings.BASE_DIR, "docs", "user_guide_complete_ar.md")
+
+
+@require_http_methods(["GET"])
+def user_guide(request: HttpRequest) -> HttpResponse:
+    """Public HTML page rendering the Arabic user guide Markdown."""
+
+    md_path = _user_guide_md_path()
+    if not os.path.exists(md_path):
+        raise Http404("User guide not found")
+
+    with open(md_path, "r", encoding="utf-8") as fp:
+        md_text = fp.read()
+
+    # Remove the first top-level title to avoid duplication with the page header.
+    try:
+        lines = md_text.splitlines()
+        while lines and not lines[0].strip():
+            lines.pop(0)
+        if lines and lines[0].startswith("# "):
+            lines.pop(0)
+            while lines and not lines[0].strip():
+                lines.pop(0)
+        md_text = "\n".join(lines)
+    except Exception:
+        pass
+
+    try:
+        import markdown as md
+    except Exception:
+        return HttpResponse("Markdown renderer is not installed.", status=500, content_type="text/plain")
+
+    guide_html = md.markdown(
+        md_text,
+        extensions=["extra", "fenced_code", "tables"],
+        output_format="html5",
+    )
+
+    ctx = {
+        "guide_html": mark_safe(guide_html),
+        "download_url": reverse("reports:user_guide_download"),
+    }
+    return render(request, "reports/user_guide.html", ctx)
+
+
+@require_http_methods(["GET"])
+def user_guide_download(request: HttpRequest) -> HttpResponse:
+    """Download the raw Markdown file for the user guide."""
+
+    md_path = _user_guide_md_path()
+    if not os.path.exists(md_path):
+        raise Http404("User guide not found")
+
+    return FileResponse(
+        open(md_path, "rb"),
+        as_attachment=True,
+        filename="user_guide_complete_ar.md",
+        content_type="text/markdown; charset=utf-8",
+    )
+
 # ===== فورمات =====
 from .forms import (
     ReportForm,
