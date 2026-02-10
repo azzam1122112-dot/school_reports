@@ -58,6 +58,55 @@ urlpatterns = [
         "favicon.ico",
         RedirectView.as_view(url=staticfiles_storage.url("favicon.ico"), permanent=True),
     ),
+    path(
+        "favicon.png",
+        RedirectView.as_view(url=staticfiles_storage.url("favicon.ico"), permanent=False),
+    ),
+    path(
+        "touch-icon-iphone.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    # iOS Safari may request these from site root regardless of <link rel="apple-touch-icon">.
+    path(
+        "apple-touch-icon.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    path(
+        "apple-touch-icon-precomposed.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    path(
+        "apple-touch-icon-120x120.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    path(
+        "apple-touch-icon-120x120-precomposed.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    path(
+        "apple-touch-icon-152x152.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    path(
+        "apple-touch-icon-152x152-precomposed.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    path(
+        "apple-touch-icon-167x167.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    path(
+        "apple-touch-icon-167x167-precomposed.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    path(
+        "apple-touch-icon-180x180.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
+    path(
+        "apple-touch-icon-180x180-precomposed.png",
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo1.png"), permanent=False),
+    ),
     path("robots.txt", robots_txt),
     path("sw.js", service_worker, name="service_worker"),
     path("", include("reports.urls")),  # واجهة المشروع الأساسية

@@ -1685,6 +1685,7 @@
       let pollTimerId = null;
       let pollInFlight = false;
       let pollBackoffMs = BASE_MS;
+      let wsDisabled = false;
 
       function pollClearTimer() {
         if (pollTimerId) {
@@ -1710,6 +1711,19 @@
         fetch(POLL_URL, { credentials: 'same-origin' })
           .then(r => r.ok ? r.json() : Promise.reject(new Error('http_' + r.status)))
           .then(data => {
+            // If session expired/logged out, stop all background reconnect/poll loops.
+            // Avoids spamming server logs with unauthenticated WS attempts.
+            try {
+              if (data && data.authenticated === false) {
+                wsDisabled = true;
+                try { pollStop(); } catch(e) {}
+                try { wsClearReconnect(); } catch(e) {}
+                try { wsStopKeepalive(); } catch(e) {}
+                try { if (ws) ws.close(); } catch(e) {}
+                try { ws = null; } catch(e) {}
+                return;
+              }
+            } catch (e) {}
             applyCounts(data || {});
             pollBackoffMs = BASE_MS;
             pollScheduleNext(BASE_MS);
@@ -1821,6 +1835,7 @@
       }
 
       function wsConnect() {
+        if (wsDisabled) return;
         if (!('WebSocket' in window)) {
           enablePollingFallback();
           return;
@@ -1864,9 +1879,22 @@
           // allow onclose to handle fallback
         };
 
-        ws.onclose = function(){
+        ws.onclose = function(ev){
           ws = null;
           wsStopKeepalive();
+
+          if (wsDisabled) return;
+
+          // If the server explicitly closes due to auth, stop reconnecting.
+          try {
+            const code = ev && typeof ev.code === 'number' ? ev.code : null;
+            if (code === 4401 || code === 4403) {
+              wsDisabled = true;
+              try { pollStop(); } catch(e) {}
+              wsClearReconnect();
+              return;
+            }
+          } catch (e) {}
 
           // If we never managed to open, treat this as a failed handshake.
           if (!wsEverOpened) {
