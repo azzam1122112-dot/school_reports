@@ -11,6 +11,7 @@ urlpatterns = [
     path("", views.platform_landing, name="landing"),
     path("guide/", views.user_guide, name="user_guide"),
     path("guide/download/", views.user_guide_download, name="user_guide_download"),
+    path("guide/download/pdf/", views.user_guide_download_pdf, name="user_guide_download_pdf"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("profile/", views.my_profile, name="my_profile"),
@@ -269,7 +270,6 @@ urlpatterns = [
     # =========================
     # صفحات المحتوى (Footer)
     # =========================
-    path("guide/", views.user_guide, name="user_guide"),
     path("faq/", views.faq, name="faq"),
     path("privacy/", views.privacy_policy, name="privacy_policy"),
 ]

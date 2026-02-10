@@ -271,6 +271,15 @@ class PublicUserGuideTests(TestCase):
 		url = reverse("reports:user_guide_download")
 		res = self.client.get(url)
 		self.assertEqual(res.status_code, 200)
+
+	def test_user_guide_download_pdf_is_public(self):
+		url = reverse("reports:user_guide_download_pdf")
+		res = self.client.get(url)
+		self.assertIn(res.status_code, (200, 503))
+		if res.status_code == 200:
+			self.assertTrue(res.get("Content-Type", "").startswith("application/pdf"))
+		else:
+			self.assertContains(res, "PDF", status_code=503)
 		self.assertIn("attachment", (res.get("Content-Disposition") or "").lower())
 
 

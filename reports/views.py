@@ -36,6 +36,7 @@ from django.db.models.functions import TruncWeek, TruncMonth
 from django.core.exceptions import ValidationError
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -91,6 +92,7 @@ def user_guide(request: HttpRequest) -> HttpResponse:
     ctx = {
         "guide_html": mark_safe(guide_html),
         "download_url": reverse("reports:user_guide_download"),
+        "download_pdf_url": reverse("reports:user_guide_download_pdf"),
     }
     return render(request, "reports/user_guide.html", ctx)
 
@@ -109,6 +111,71 @@ def user_guide_download(request: HttpRequest) -> HttpResponse:
         filename="user_guide_complete_ar.md",
         content_type="text/markdown; charset=utf-8",
     )
+
+
+@require_http_methods(["GET"])
+def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
+    """Download the user guide as a PDF (includes platform logo)."""
+
+    md_path = _user_guide_md_path()
+    if not os.path.exists(md_path):
+        raise Http404("User guide not found")
+
+    with open(md_path, "r", encoding="utf-8") as fp:
+        md_text = fp.read()
+
+    # Remove the first top-level title to avoid duplication with the PDF header.
+    try:
+        lines = md_text.splitlines()
+        while lines and not lines[0].strip():
+            lines.pop(0)
+        if lines and lines[0].startswith("# "):
+            lines.pop(0)
+            while lines and not lines[0].strip():
+                lines.pop(0)
+        md_text = "\n".join(lines)
+    except Exception:
+        pass
+
+    try:
+        import markdown as md
+    except Exception:
+        return HttpResponse("Markdown renderer is not installed.", status=500, content_type="text/plain")
+
+    guide_html = md.markdown(
+        md_text,
+        extensions=["extra", "fenced_code", "tables"],
+        output_format="html5",
+    )
+
+    logo_url = request.build_absolute_uri(static("img/logo1.png"))
+    html = render_to_string(
+        "reports/user_guide_pdf.html",
+        {
+            "title": "دليل المستخدم الشامل — منصة توثيق",
+            "logo_url": logo_url,
+            "guide_html": mark_safe(guide_html),
+        },
+        request=request,
+    )
+
+    try:
+        from weasyprint import HTML
+    except Exception:
+        return HttpResponse("PDF renderer is not installed.", status=500, content_type="text/plain")
+
+    try:
+        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
+    except Exception:
+        logging.getLogger(__name__).exception("Failed to render user guide PDF")
+        return HttpResponse(
+            "PDF rendering is not configured on this server.",
+            status=503,
+            content_type="text/plain",
+        )
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="user_guide.pdf"'
+    return response
 
 # ===== فورمات =====
 from .forms import (
@@ -9432,10 +9499,6 @@ def platform_subscription_record_payment(request: HttpRequest, pk: int) -> HttpR
 
 
 # ===== صفحات المحتوى (Footer Links) =====
-
-def user_guide(request: HttpRequest) -> HttpResponse:
-    """صفحة دليل الاستخدام"""
-    return render(request, "reports/user_guide.html")
 
 
 def faq(request: HttpRequest) -> HttpResponse:
