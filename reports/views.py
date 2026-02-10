@@ -162,7 +162,12 @@ def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
     try:
         from weasyprint import HTML
     except Exception:
-        return HttpResponse("PDF renderer is not installed.", status=500, content_type="text/plain")
+        logging.getLogger(__name__).exception("WeasyPrint is not available for PDF rendering")
+        return HttpResponse(
+            "PDF rendering is not configured on this server.",
+            status=503,
+            content_type="text/plain",
+        )
 
     try:
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
