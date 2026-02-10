@@ -278,9 +278,9 @@ class PublicUserGuideTests(TestCase):
 		self.assertIn(res.status_code, (200, 503))
 		if res.status_code == 200:
 			self.assertTrue(res.get("Content-Type", "").startswith("application/pdf"))
+			self.assertIn("attachment", (res.get("Content-Disposition") or "").lower())
 		else:
 			self.assertContains(res, "PDF", status_code=503)
-		self.assertIn("attachment", (res.get("Content-Disposition") or "").lower())
 
 
 class ActiveSchoolGuardMiddlewareTests(TestCase):

@@ -46,6 +46,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models.deletion import ProtectedError
 
 from django.templatetags.static import static
+from django.contrib.staticfiles import finders
 
 from django_ratelimit.decorators import ratelimit
 
@@ -148,12 +149,26 @@ def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
         output_format="html5",
     )
 
-    logo_url = request.build_absolute_uri(static("img/logo1.png"))
+    logo_src = None
+    try:
+        import base64
+
+        fpath = finders.find("img/logo1.png")
+        if fpath:
+            with open(fpath, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("ascii")
+            logo_src = f"data:image/png;base64,{b64}"
+    except Exception:
+        logo_src = None
+
+    if not logo_src:
+        # Fallback to absolute URL (works on Linux/production when static is served).
+        logo_src = request.build_absolute_uri(static("img/logo1.png"))
     html = render_to_string(
         "reports/user_guide_pdf.html",
         {
             "title": "دليل المستخدم الشامل — منصة توثيق",
-            "logo_url": logo_url,
+            "logo_url": logo_src,
             "guide_html": mark_safe(guide_html),
         },
         request=request,
@@ -164,9 +179,9 @@ def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
     except Exception:
         logging.getLogger(__name__).exception("WeasyPrint is not available for PDF rendering")
         return HttpResponse(
-            "PDF rendering is not configured on this server.",
+            "تعذر توليد ملف PDF على هذا الخادم حاليًا. شغّل المشروع على Docker/Render (Linux) أو ثبّت مكتبات WeasyPrint على Windows.",
             status=503,
-            content_type="text/plain",
+            content_type="text/plain; charset=utf-8",
         )
 
     try:
@@ -174,9 +189,9 @@ def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
     except Exception:
         logging.getLogger(__name__).exception("Failed to render user guide PDF")
         return HttpResponse(
-            "PDF rendering is not configured on this server.",
+            "تعذر توليد ملف PDF حاليًا.",
             status=503,
-            content_type="text/plain",
+            content_type="text/plain; charset=utf-8",
         )
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = 'attachment; filename="user_guide.pdf"'
