@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils import timezone
 
@@ -103,12 +104,32 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 getattr(self, "user_id", None),
                 self.scope.get("path"),
             )
+            if int(code or 0) == 1006:
+                ua = self._scope_header("user-agent")
+                bucket = timezone.now().strftime("%Y%m%d%H%M")
+                key = f"ws_disconnect_1006:{bucket}"
+                try:
+                    cache.add(key, 0, timeout=180)
+                    count = cache.incr(key)
+                except Exception:
+                    count = None
+                logger.warning(
+                    "WS notifications abnormal_close code=1006 user_id=%s path=%s ua=%s minute_count=%s",
+                    getattr(self, "user_id", None),
+                    self.scope.get("path"),
+                    ua,
+                    count,
+                )
         except Exception:
             pass
 
     async def receive_json(self, content: Dict[str, Any], **kwargs):
         msg_type = (content or {}).get("type")
         if msg_type == "keepalive":
+            try:
+                await self.send_json({"type": "pong"})
+            except Exception:
+                pass
             return
         if msg_type == "resync":
             payload = await self._compute_counts()
@@ -165,3 +186,14 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             "unread": int(agg.get("unread") or 0),
             "signatures_pending": int(agg.get("signatures_pending") or 0),
         }
+
+    def _scope_header(self, name: str) -> str:
+        needle = (name or "").strip().lower().encode()
+        for item in (self.scope.get("headers") or []):
+            try:
+                k, v = item
+                if k == needle:
+                    return v.decode("utf-8", errors="ignore")
+            except Exception:
+                continue
+        return "-"

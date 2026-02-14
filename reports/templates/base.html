@@ -1658,6 +1658,8 @@
       const circDot = document.getElementById('circDot');
       const circDotMobile = document.getElementById('circDotMobile');
       if (!notifDot && !notifDotMobile && !circDot && !circDotMobile) return;
+      if (window.__srNotifWsBootstrapped) return;
+      window.__srNotifWsBootstrapped = true;
 
       const update = (dot, n) => {
         if (!dot) return;
@@ -1758,12 +1760,6 @@
       }
 
       // ------------------ WebSocket (primary) ------------------
-      // Ensure we never run more than one WS instance.
-      try {
-        if (window.__srNotifWs && typeof window.__srNotifWs.stop === 'function') {
-          window.__srNotifWs.stop();
-        }
-      } catch (e) {}
 
       const activeSchoolId = (function(){
         const raw = '{{ SCHOOL_ID|default:"" }}';
@@ -1793,7 +1789,7 @@
             if (document.hidden) return;
             if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'keepalive' }));
           } catch(e) {}
-        }, 45000);
+        }, 25000);
       }
 
       function wsClearReconnect() {
@@ -1873,6 +1869,10 @@
             handleDelta(msg);
             return;
           }
+
+          if (msg.type === 'pong') {
+            return;
+          }
         };
 
         ws.onerror = function(){
@@ -1910,7 +1910,7 @@
           // If WS endpoint is consistently unavailable (e.g. served as plain HTTP and returns 404),
           // avoid tight reconnect loops that spam server logs. Keep polling fallback.
           const HARD_BACKOFF_MS = 10 * 60 * 1000; // 10 minutes
-          const MAX_NORMAL_BACKOFF_MS = 30000;
+          const MAX_NORMAL_BACKOFF_MS = 60000;
 
           if (!wsEverOpened && wsFailedConnects >= 3) {
             const jitter = Math.floor(Math.random() * 1500);
@@ -1918,7 +1918,7 @@
             return;
           }
 
-          wsBackoffMs = Math.min(Math.round(wsBackoffMs * 1.8), MAX_NORMAL_BACKOFF_MS);
+          wsBackoffMs = Math.min(Math.round(wsBackoffMs * 2), MAX_NORMAL_BACKOFF_MS);
           // Add jitter to avoid reconnect stampedes (deploys / Redis restart).
           const jitter = Math.floor(Math.random() * 500);
           wsTimer = setTimeout(wsConnect, wsBackoffMs + jitter);
@@ -1956,6 +1956,11 @@
             }
           } catch(e) {}
         }
+      }, { passive: true });
+
+      window.addEventListener('pagehide', function() {
+        wsDisabled = true;
+        wsStop();
       }, { passive: true });
 
       window.__srNotifWs = { stop: wsStop };
