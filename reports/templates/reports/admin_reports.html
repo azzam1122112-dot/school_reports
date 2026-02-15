@@ -152,20 +152,23 @@
   .repdash-field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .repdash-field label {
     display: block;
-    font-size: 0.95rem;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 800;
     color: var(--rd-text);
     margin-bottom: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: 0.85rem;
   }
 
   .repdash-control {
     width: 100%;
-    padding: 12px 16px;
+    padding: 14px 18px;
     border: 2px solid var(--rd-border);
     border-radius: var(--rd-radius-md);
     font-size: 1rem;
@@ -173,13 +176,18 @@
     background: var(--rd-card);
     color: var(--rd-text);
     transition: var(--rd-transition);
+    box-shadow: var(--rd-shadow-sm);
   }
 
   .repdash-control:focus {
     outline: none;
     border-color: var(--rd-primary);
     box-shadow: var(--rd-ring);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+  }
+
+  .repdash-control:hover {
+    border-color: rgba(102, 126, 234, 0.5);
   }
 
   .repdash-actions {
@@ -188,12 +196,13 @@
     align-items: center;
   }
 
-  /* ===== Table ===== */
+  /* ===== Table - تصميم محسّن ===== */
   .repdash-table-wrap {
     margin-top: 28px;
     box-shadow: var(--rd-shadow-md);
     border-radius: var(--rd-radius-xl);
     overflow: hidden;
+    border: 2px solid var(--rd-border);
   }
 
   .repdash-table-scroll {
@@ -208,73 +217,85 @@
   }
 
   .repdash-table thead th {
-    background: linear-gradient(to bottom, rgba(102, 126, 234, 0.08), transparent);
-    padding: 18px 16px;
-    font-weight: 700;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.08));
+    padding: 20px 18px;
+    font-weight: 800;
     color: var(--rd-text);
-    border-bottom: 2px solid var(--rd-border);
+    border-bottom: 3px solid var(--rd-primary);
     white-space: nowrap;
-    font-size: 0.95rem;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
 
   .repdash-table td {
-    padding: 16px;
+    padding: 18px;
     border-bottom: 1px solid var(--rd-border);
     vertical-align: middle;
     color: var(--rd-text);
+    font-size: 0.95rem;
   }
 
   .repdash-table tbody tr {
     transition: var(--rd-transition);
+    background: var(--rd-card);
   }
 
   .repdash-table tbody tr:hover {
-    background: rgba(102, 126, 234, 0.05);
+    background: rgba(102, 126, 234, 0.08);
+    transform: scale(1.001);
   }
 
   html[data-theme="dark"] .repdash-table tbody tr:hover {
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(102, 126, 234, 0.15);
   }
 
-  /* ===== Badges ===== */
+  .repdash-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* ===== Badges - تصميم محسّن ===== */
   .rd-badge {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 14px;
+    padding: 10px 16px;
     border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.85rem;
+    font-weight: 800;
+    font-size: 0.9rem;
     white-space: nowrap;
     transition: var(--rd-transition);
+    box-shadow: var(--rd-shadow-sm);
   }
 
   .rd-badge:hover {
     transform: scale(1.05);
+    box-shadow: var(--rd-shadow-md);
   }
 
   .rd-badge-school {
     background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    border: 2px solid rgba(59, 130, 246, 0.3);
+    border: 2px solid rgba(59, 130, 246, 0.4);
     color: #1e40af;
   }
 
   html[data-theme="dark"] .rd-badge-school {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.15));
-    color: #bfdbfe;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.15) 100%);
+    color: #93c5fd;
   }
 
   .rd-badge-cat {
-    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-    border: 2px solid rgba(107, 114, 128, 0.2);
-    color: var(--rd-text);
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid rgba(245, 158, 11, 0.4);
+    color: #92400e;
   }
 
   html[data-theme="dark"] .rd-badge-cat {
-    background: linear-gradient(135deg, rgba(107, 114, 128, 0.2), rgba(107, 114, 128, 0.15));
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.15) 100%);
+    color: #fcd34d;
   }
 
-  /* ===== User Cell ===== */
+  /* ===== User Cell - تصميم محسّن ===== */
   .rd-user {
     display: flex;
     align-items: center;
@@ -283,90 +304,181 @@
   }
 
   .rd-avatar {
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     display: grid;
     place-items: center;
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 800;
+    font-size: 1.2rem;
     color: #fff;
     background: var(--primary-gradient);
-    border: 2px solid var(--rd-border);
+    border: 3px solid var(--rd-border);
     flex: 0 0 auto;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+    transition: var(--rd-transition);
+  }
+
+  .rd-avatar:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
   }
 
   .rd-user .nm {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--rd-text);
-    line-height: 1.3;
-    font-size: 0.95rem;
+    line-height: 1.4;
+    font-size: 1rem;
   }
 
-  /* ===== Icon Buttons ===== */
+  /* ===== Icon Buttons - تصميم محسّن للوضوح ===== */
   .rd-iconbtn {
-    width: 40px;
-    height: 40px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 12px;
     border-radius: var(--rd-radius-md);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
     border: 2px solid var(--rd-border);
     background: var(--rd-card);
-    color: var(--rd-text-light);
+    color: var(--rd-text);
     cursor: pointer;
     transition: var(--rd-transition);
     text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: var(--rd-shadow-sm);
+    white-space: nowrap;
+  }
+
+  .rd-iconbtn i {
+    font-size: 1.1rem;
   }
 
   .rd-iconbtn:hover {
     transform: translateY(-2px);
     color: var(--rd-primary);
     box-shadow: var(--rd-shadow-md);
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(102, 126, 234, 0.12);
     border-color: var(--rd-primary);
   }
 
   html[data-theme="dark"] .rd-iconbtn:hover {
-    background: rgba(102, 126, 234, 0.15);
+    background: rgba(102, 126, 234, 0.2);
   }
 
   .rd-iconbtn.rd-del:hover {
     color: #ff6b6b;
-    background: rgba(255, 107, 107, 0.1);
+    background: rgba(255, 107, 107, 0.12);
     border-color: #ff6b6b;
+  }
+
+  /* أزرار ملونة للتمييز */
+  .rd-iconbtn.rd-view {
+    color: #667eea;
+    border-color: rgba(102, 126, 234, 0.3);
+    background: rgba(102, 126, 234, 0.05);
+  }
+
+  .rd-iconbtn.rd-view:hover {
+    background: rgba(102, 126, 234, 0.15);
+    border-color: #667eea;
+  }
+
+  .rd-iconbtn.rd-print {
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.05);
+  }
+
+  .rd-iconbtn.rd-print:hover {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+  }
+
+  .rd-iconbtn.rd-edit {
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.05);
+  }
+
+  .rd-iconbtn.rd-edit:hover {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+  }
+
+  .rd-iconbtn.rd-share {
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.05);
+  }
+
+  .rd-iconbtn.rd-share:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
+  }
+
+  .rd-iconbtn.rd-del {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.05);
+  }
+
+  .rd-iconbtn.rd-del:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
   }
 
   .rd-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     justify-content: flex-start;
     flex-wrap: wrap;
   }
 
-  /* ===== Empty State ===== */
+  /* للموبايل - أزرار أكبر */
+  @media (max-width: 768px) {
+    .rd-iconbtn {
+      min-width: 48px;
+      min-height: 48px;
+      padding: 12px 14px;
+    }
+
+    .rd-iconbtn i {
+      font-size: 1.2rem;
+    }
+
+    .rd-actions {
+      gap: 10px;
+    }
+  }
+
+  /* ===== Empty State - تصميم محسّن ===== */
   .rd-empty {
-    padding: 60px 20px;
+    padding: 80px 20px;
     text-align: center;
     color: var(--rd-text-light);
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1.1rem;
   }
 
   .rd-empty i {
-    opacity: 0.4;
-    margin-bottom: 16px;
+    opacity: 0.5;
+    margin-bottom: 20px;
     background: var(--primary-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    display: block;
   }
 
-  /* ===== Mobile Cards ===== */
+  /* ===== Mobile Cards - تصميم محسّن ===== */
   .repdash-mobile {
     display: none;
-    gap: 20px;
+    gap: 24px;
     margin-top: 28px;
   }
 
@@ -374,62 +486,112 @@
     background: var(--rd-card);
     border: 2px solid var(--rd-border);
     border-radius: var(--rd-radius-lg);
-    padding: 20px;
-    box-shadow: var(--rd-shadow-sm);
+    padding: 24px;
+    box-shadow: var(--rd-shadow-md);
     transition: var(--rd-transition);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .rd-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--primary-gradient);
+    opacity: 0.7;
   }
 
   .rd-card:hover {
-    box-shadow: var(--rd-shadow-md);
-    transform: translateY(-2px);
+    box-shadow: var(--rd-shadow-lg);
+    transform: translateY(-3px);
+    border-color: var(--rd-primary);
   }
 
   .rd-card-hd {
     display: flex;
     justify-content: space-between;
-    gap: 14px;
-    padding-bottom: 14px;
-    margin-bottom: 14px;
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 18px;
+    margin-bottom: 18px;
     border-bottom: 2px solid var(--rd-border);
   }
 
   .rd-card-title {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--rd-text);
-    font-size: 1.05rem;
+    font-size: 1.15rem;
+    line-height: 1.4;
   }
 
   .rd-card-date {
     color: var(--rd-text-light);
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 0.95rem;
     white-space: nowrap;
+    padding: 6px 12px;
+    background: var(--rd-hover);
+    border-radius: var(--rd-radius-md);
   }
 
   .rd-row {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 16px;
-    margin-top: 12px;
-    font-size: 0.95rem;
+    margin-top: 14px;
+    padding: 12px 0;
+    font-size: 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+
+  html[data-theme="dark"] .rd-row {
+    border-bottom-color: rgba(255,255,255,0.05);
+  }
+
+  .rd-row:last-of-type {
+    border-bottom: none;
   }
 
   .rd-row .k {
     color: var(--rd-text-light);
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
 
   .rd-row .v {
     color: var(--rd-text);
-    font-weight: 700;
+    font-weight: 800;
+    text-align: left;
   }
 
   .rd-card-actions {
-    margin-top: 16px;
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    flex-wrap: wrap;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid var(--rd-border);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+  }
+
+  .rd-card-actions .rd-iconbtn,
+  .rd-card-actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 50px;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  @media (max-width: 480px) {
+    .rd-card-actions {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 1024px) {
@@ -441,80 +603,83 @@
     }
   }
 
-  /* ===== Dialogs ===== */
+  /* ===== Dialogs - تصميم محسّن ===== */
   .repdash-wrap dialog {
     border: none;
     border-radius: var(--rd-radius-xl);
     padding: 0;
-    max-width: 700px;
-    width: min(700px, 94vw);
+    max-width: 750px;
+    width: min(750px, 95vw);
     background: var(--rd-card);
     color: var(--rd-text);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.4);
+    border: 2px solid var(--rd-border);
   }
 
   .repdash-wrap dialog::backdrop {
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
   }
 
   .rd-dlg-hd {
-    padding: 20px 24px;
-    border-bottom: 2px solid var(--rd-border);
+    padding: 24px 28px;
+    border-bottom: 3px solid var(--rd-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    background: linear-gradient(to bottom, rgba(102, 126, 234, 0.05), transparent);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.05));
   }
 
   .rd-dlg-hd h3 {
     margin: 0;
-    font-weight: 700;
-    font-size: 1.25rem;
+    font-weight: 800;
+    font-size: 1.35rem;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     color: var(--rd-text);
   }
 
   .rd-dlg-bd {
-    padding: 24px;
+    padding: 28px;
   }
 
   .rd-detail-grid {
     display: grid;
-    gap: 18px;
+    gap: 20px;
   }
 
   .rd-detail {
     border: 2px solid var(--rd-border);
     border-radius: var(--rd-radius-md);
-    padding: 16px;
-    background: linear-gradient(to bottom, rgba(102, 126, 234, 0.02), transparent);
+    padding: 20px;
+    background: linear-gradient(to bottom, rgba(102, 126, 234, 0.03), transparent);
+    box-shadow: var(--rd-shadow-sm);
   }
 
   .rd-detail .lbl {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--rd-text-light);
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    margin-bottom: 8px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    margin-bottom: 10px;
     text-transform: uppercase;
   }
 
   .rd-detail .val {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--rd-text);
-    font-size: 1.05rem;
+    font-size: 1.1rem;
   }
 
   .rd-detail .val-lite {
     font-weight: 600;
     color: var(--rd-text);
-    line-height: 1.8;
+    line-height: 1.9;
     white-space: normal;
     word-break: break-word;
+    font-size: 1rem;
   }
 
   .rd-two {
@@ -604,10 +769,14 @@
     animation-delay: 0.2s;
   }
 
-  /* ===== Responsive ===== */
+  /* ===== Responsive - تحسينات للموبايل ===== */
   @media (max-width: 768px) {
+    .repdash-wrap {
+      padding: 1rem 0;
+    }
+
     .repdash-header {
-      padding: 24px;
+      padding: 20px;
       flex-direction: column;
       align-items: flex-start;
     }
@@ -616,12 +785,68 @@
       font-size: 1.5rem;
     }
 
+    .repdash-sub {
+      font-size: 0.95rem;
+    }
+
     .repdash-filters {
       padding: 20px;
     }
 
     .repdash-filters-grid {
       grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .repdash-control {
+      padding: 16px 18px;
+      font-size: 1.05rem;
+    }
+
+    .rd-card {
+      padding: 20px;
+    }
+
+    .rd-card-title {
+      font-size: 1.1rem;
+    }
+
+    .rd-row {
+      font-size: 1rem;
+    }
+
+    .rd-badge {
+      padding: 8px 14px;
+      font-size: 0.9rem;
+    }
+
+    /* تكبير الأزرار في الموبايل */
+    .btn {
+      min-height: 50px !important;
+      font-size: 1rem !important;
+      padding: 14px 20px !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .repdash-container {
+      padding: 0 16px;
+    }
+
+    .repdash-header {
+      padding: 16px;
+    }
+
+    .repdash-title {
+      font-size: 1.3rem;
+    }
+
+    .repdash-filters {
+      padding: 16px;
+    }
+
+    .rd-card {
+      padding: 16px;
     }
   }
 
@@ -692,13 +917,14 @@
         <div class="repdash-field">
           <label style="visibility:hidden">إجراءات</label>
           <div class="repdash-actions">
-            <button type="submit" class="btn btn-primary" style="min-height:44px;">
+            <button type="submit" class="btn btn-primary" style="min-height:48px; font-weight: 700;">
               <i class="fa-solid fa-filter"></i> تصفية
             </button>
 
             {% if start_date or end_date or teacher_name or category %}
-              <a href="{% url 'reports:admin_reports' %}" class="btn btn-ghost" title="مسح الفلاتر" style="min-height:44px;">
-                <i class="fa-solid fa-rotate-left"></i>
+              <a href="{% url 'reports:admin_reports' %}" class="btn btn-ghost" title="مسح الفلاتر" style="min-height:48px; font-weight: 700;">
+                <i class="fa-solid fa-rotate-left"></i> إعادة تعيين
+              </a>
               </a>
             {% endif %}
           </div>
@@ -731,8 +957,8 @@
                 <td>{{ r.id }}</td>
 
                 <td>
-                  <div style="font-weight:950;">{{ r.report_date|date:"Y-m-d" }}</div>
-                  <div style="font-size:.86rem; color:var(--muted); font-weight:850;">{{ r.day_name }}</div>
+                  <div style="font-weight:900; font-size:1rem;">{{ r.report_date|date:"Y-m-d" }}</div>
+                  <div style="font-size:.9rem; color:var(--rd-text-light); font-weight:700; margin-top:4px;">{{ r.day_name }}</div>
                 </td>
 
                 {% if request.user.is_superuser %}
@@ -758,7 +984,7 @@
                   </div>
                 </td>
 
-                <td style="font-weight:900;">{{ r.title }}</td>
+                <td style="font-weight:900; font-size:1rem; color:var(--rd-text);">{{ r.title }}</td>
 
                 <td>
                   <span class="rd-badge rd-badge-cat">
@@ -767,26 +993,30 @@
                   </span>
                 </td>
 
-                <td style="font-weight:950;">{{ r.beneficiaries_count|default:"0" }}</td>
+                <td>
+                  <span style="font-weight:900; font-size:1.05rem; color:var(--rd-primary); background:rgba(102, 126, 234, 0.1); padding:6px 14px; border-radius:999px; display:inline-block;">
+                    {{ r.beneficiaries_count|default:"0" }}
+                  </span>
+                </td>
 
                 <td>
                   <div class="rd-actions">
-                    <button type="button" class="rd-iconbtn" title="عرض التفاصيل" data-rd-action="details" data-pk="{{ r.pk }}">
+                    <button type="button" class="rd-iconbtn rd-view" title="عرض التفاصيل" data-rd-action="details" data-pk="{{ r.pk }}">
                       <i class="fa-solid fa-eye"></i>
                     </button>
 
-                    <a href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="rd-iconbtn" title="طباعة">
+                    <a href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="rd-iconbtn rd-print" title="طباعة">
                       <i class="fa-solid fa-print"></i>
                     </a>
 
                     {% if r.user_can_edit|default:can_delete %}
-                      <a href="{% url 'reports:edit_my_report' r.pk %}?next={{ request.get_full_path|urlencode }}" class="rd-iconbtn" title="تعديل">
+                      <a href="{% url 'reports:edit_my_report' r.pk %}?next={{ request.get_full_path|urlencode }}" class="rd-iconbtn rd-edit" title="تعديل">
                         <i class="fa-solid fa-pen-to-square"></i>
                       </a>
                     {% endif %}
 
                     {% if r.user_can_share|default:can_delete %}
-                      <a href="{% url 'reports:report_share_manage' r.pk %}" class="rd-iconbtn" title="مشاركة">
+                      <a href="{% url 'reports:report_share_manage' r.pk %}" class="rd-iconbtn rd-share" title="مشاركة">
                         <i class="fa-solid fa-share-nodes"></i>
                       </a>
                     {% endif %}
@@ -867,32 +1097,32 @@
           </div>
 
           <div class="rd-card-actions">
-            <button type="button" class="btn btn-ghost" data-rd-action="details" data-pk="{{ r.pk }}" style="min-height:40px;">
-              <i class="fa-solid fa-eye"></i>
+            <button type="button" class="rd-iconbtn rd-view" data-rd-action="details" data-pk="{{ r.pk }}">
+              <i class="fa-solid fa-eye"></i> عرض
             </button>
 
-            <a href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="btn btn-ghost" style="min-height:40px;">
-              <i class="fa-solid fa-print"></i>
+            <a href="{% url 'reports:report_print' r.pk %}?next={{ request.get_full_path|urlencode }}" target="_blank" rel="noopener" class="rd-iconbtn rd-print">
+              <i class="fa-solid fa-print"></i> طباعة
             </a>
 
             {% if r.user_can_edit|default:can_delete %}
-              <a href="{% url 'reports:edit_my_report' r.pk %}?next={{ request.get_full_path|urlencode }}" class="btn btn-ghost" style="min-height:40px;">
-                <i class="fa-solid fa-pen-to-square"></i>
+              <a href="{% url 'reports:edit_my_report' r.pk %}?next={{ request.get_full_path|urlencode }}" class="rd-iconbtn rd-edit">
+                <i class="fa-solid fa-pen-to-square"></i> تعديل
               </a>
             {% endif %}
 
             {% if r.user_can_share|default:can_delete %}
-              <a href="{% url 'reports:report_share_manage' r.pk %}" class="btn btn-ghost" style="min-height:40px;">
-                <i class="fa-solid fa-share-nodes"></i>
+              <a href="{% url 'reports:report_share_manage' r.pk %}" class="rd-iconbtn rd-share">
+                <i class="fa-solid fa-share-nodes"></i> مشاركة
               </a>
             {% endif %}
 
             {% if r.user_can_delete|default:can_delete %}
-              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline;" class="rd-delete-form">
+              <form method="post" action="{% url 'reports:admin_delete_report' r.pk %}" style="display:inline; width: 100%;" class="rd-delete-form">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button type="submit" class="btn btn-danger" style="min-height:40px;">
-                  <i class="fa-solid fa-trash"></i>
+                <button type="submit" class="rd-iconbtn rd-del" style="width: 100%;">
+                  <i class="fa-solid fa-trash"></i> حذف
                 </button>
               </form>
             {% endif %}
@@ -923,24 +1153,26 @@
       {% endfor %}
     </div>
 
-    <!-- Pagination -->
+    <!-- Pagination - محسّن -->
     {% if reports.paginator.num_pages > 1 %}
-      <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-top: 16px;">
+      <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top: 32px;">
         {% if reports.has_previous %}
-          <a class="btn btn-ghost"
+          <a class="btn btn-primary"
+             style="min-height:48px; font-weight:700; padding:14px 24px;"
              href="?page={{ reports.previous_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&teacher_name={{ teacher_name }}&category={{ category }}">
-            السابق
+            <i class="fa-solid fa-chevron-right"></i> السابق
           </a>
         {% endif %}
 
-        <span class="btn btn-ghost" style="cursor:default; opacity:.9;">
-          {{ reports.number }} / {{ reports.paginator.num_pages }}
+        <span class="btn btn-ghost" style="cursor:default; opacity:.9; min-height:48px; font-weight:800; font-size:1.05rem; padding:14px 28px;">
+          صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}
         </span>
 
         {% if reports.has_next %}
-          <a class="btn btn-ghost"
+          <a class="btn btn-primary"
+             style="min-height:48px; font-weight:700; padding:14px 24px;"
              href="?page={{ reports.next_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&teacher_name={{ teacher_name }}&category={{ category }}">
-            التالي
+            التالي <i class="fa-solid fa-chevron-left"></i>
           </a>
         {% endif %}
       </div>
