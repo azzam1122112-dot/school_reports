@@ -502,7 +502,7 @@
 
             {% if form.fields.teacher_name %}
               <div class="row">
-                <label for="id_teacher_name">اسم المعلم</label>
+                <label for="id_teacher_name">اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
                 <input
                   class="control"
                   type="text"

@@ -969,7 +969,7 @@
 
       <!-- Manager Actions -->
       {% if is_manager %}
-        <h2 class="af-section-title">اعتماد مدير المدرسة</h2>
+        <h2 class="af-section-title">اعتماد {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h2>
         <form class="af-form" method="post" autocomplete="off" class="af-card" style="padding:24px; box-shadow:none; border:2px dashed var(--brand); background:var(--brand-light);">
           {% csrf_token %}
           <div>
@@ -1011,7 +1011,7 @@
                   {% csrf_token %}
                   <input type="hidden" name="action" value="save_section" />
                   <input type="hidden" name="section_id" value="{{ s.id }}" />
-                  <label class="af-label">ملاحظات المعلّم</label>
+                  <label class="af-label">ملاحظات {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</label>
                   <textarea name="teacher_notes">{{ s.teacher_notes }}</textarea>
                   <div class="af-actions" style="margin-top:10px; justify-content:flex-end;">
                     <button class="af-btn af-btn-primary" type="submit">
@@ -1033,7 +1033,7 @@
                   </div>
                 </form>
               {% else %}
-                <label class="af-label">ملاحظات المعلّم</label>
+                <label class="af-label">ملاحظات {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</label>
                 <div class="af-muted" style="min-height:auto;">{{ s.teacher_notes|default:"-"|linebreaksbr }}</div>
               {% endif %}
 

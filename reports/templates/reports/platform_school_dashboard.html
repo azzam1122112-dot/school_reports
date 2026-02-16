@@ -110,7 +110,7 @@
             <p style="color:#64748b; font-size:0.9rem">إجمالي التقارير المرفوعة</p>
         </div>
         <div class="card-sup">
-            <h3>المعلمين</h3>
+            <h3>{{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</h3>
             <div class="big-num">{{ school.memberships.count }}</div>
             <p style="color:#64748b; font-size:0.9rem">أعضاء الهيئة التعليمية</p>
         </div>

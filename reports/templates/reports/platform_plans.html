@@ -234,7 +234,7 @@
               <div class="p-meta">
                 <div>⏱️ المدة: <b>{{ plan.days_duration }}</b> يوم</div>
                 <div>
-                  👥 حد المعلمين:
+                  👥 حد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}:
                   {% if plan.max_teachers and plan.max_teachers > 0 %}
                     <b>{{ plan.max_teachers }}</b>
                   {% else %}

@@ -328,7 +328,7 @@
     </header>
 
     <div class="title">ملف الإنجاز</div>
-    <div class="subtitle">اسم المعلّم/ة: {{ file.teacher_name }} — المرحلة: {{ school.get_stage_display }}</div>
+    <div class="subtitle">اسم {% if school.gender == 'girls' %}المعلمة{% else %}المعلم{% endif %}: {{ file.teacher_name }} — المرحلة: {{ school.get_stage_display }}</div>
 
     <table class="meta-table">
       <tr>

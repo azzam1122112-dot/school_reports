@@ -563,6 +563,19 @@ def _reverse_any(names: Iterable[str]) -> Optional[str]:
     return None
 
 
+def _school_role_labels(active_school: Optional[School]) -> Dict[str, str]:
+    """مسميات الدور حسب نوع المدرسة (بنين/بنات)."""
+    gender = (getattr(active_school, "gender", "") or "").strip().lower()
+    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
+    is_girls = gender == girls_value
+    return {
+        "manager": "مديرة المدرسة" if is_girls else "مدير المدرسة",
+        "teacher": "المعلمة" if is_girls else "المعلم",
+        "teachers": "المعلمات" if is_girls else "المعلمون",
+        "teachers_obj": "المعلمات" if is_girls else "المعلمين",
+    }
+
+
 def _pending_signatures_count(user, request: Optional[HttpRequest] = None) -> int:
     """عدد التعاميم التي تتطلب توقيع ولم يتم توقيعها بعد للمستخدم."""
     N, R = _notification_models()
@@ -653,6 +666,10 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "SCHOOL_NAME": None,
             "SCHOOL_LOGO_URL": None,
             "USER_ROLE_LABEL": None,
+            "SCHOOL_MANAGER_LABEL": "مدير المدرسة",
+            "SCHOOL_TEACHER_LABEL": "المعلم",
+            "SCHOOL_TEACHERS_LABEL": "المعلمون",
+            "SCHOOL_TEACHERS_OBJ_LABEL": "المعلمين",
         }
 
     # -----------------------------
@@ -697,6 +714,12 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             active_school = School.objects.filter(pk=sid, is_active=True).first()
     except Exception:
         active_school = None
+
+    role_labels = _school_role_labels(active_school)
+    school_manager_label = role_labels["manager"]
+    school_teacher_label = role_labels["teacher"]
+    school_teachers_label = role_labels["teachers"]
+    school_teachers_obj_label = role_labels["teachers_obj"]
 
     try:
         qs = Ticket.objects.filter(creator=u, status__in=UNRESOLVED_STATES)
@@ -815,7 +838,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         elif bool(getattr(u, "is_platform_admin", False)):
             user_role_label = "المشرف العام"
         elif bool(any_school_manager) or (role_slug or "").strip().lower() == "manager":
-            user_role_label = "مدير المدرسة"
+            user_role_label = school_manager_label
         else:
             role_obj = getattr(u, "role", None)
             # Prefer explicit role name if available, else string representation.
@@ -947,6 +970,10 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SUBSCRIPTION_WARNING": subscription_warning,
         "SUBSCRIPTION_DAYS_LEFT": subscription_days_left,
         "USER_ROLE_LABEL": user_role_label,
+        "SCHOOL_MANAGER_LABEL": school_manager_label,
+        "SCHOOL_TEACHER_LABEL": school_teacher_label,
+        "SCHOOL_TEACHERS_LABEL": school_teachers_label,
+        "SCHOOL_TEACHERS_OBJ_LABEL": school_teachers_obj_label,
     }
 
     if cache_key and ttl > 0:

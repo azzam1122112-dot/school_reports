@@ -295,6 +295,24 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
         - المشرف العام (is_platform_admin) يجب أن يظهر بدوره الحقيقي المسجل في نطاق المشرف (PlatformAdminScope).
         - مدير المدرسة يجب أن يظهر كـ "مدير المدرسة" حتى لو كان is_staff=True.
         """
+        active_school = None
+        sid = None
+        try:
+            from .middleware import get_current_request
+            request = get_current_request()
+            if request is not None:
+                sid = request.session.get("active_school_id")
+                if sid:
+                    active_school = School.objects.filter(pk=sid, is_active=True).only("gender").first()
+        except Exception:
+            active_school = None
+            sid = None
+
+        gender = (getattr(active_school, "gender", "") or "").strip().lower()
+        girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
+        manager_label = "مديرة المدرسة" if gender == girls_value else "مدير المدرسة"
+        teacher_label = "المعلمة" if gender == girls_value else "المعلم"
+
         if getattr(self, "is_superuser", False):
             return "مدير النظام"
         if getattr(self, "is_platform_admin", False):
@@ -311,18 +329,12 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
         try:
             role = getattr(self, "role", None)
             if role is not None and (getattr(role, "slug", "") or "").strip().lower() == "manager":
-                return "مدير المدرسة"
+                return manager_label
         except Exception:
             pass
 
         # ✅ لو هناك مدرسة نشطة في الطلب الحالي: اعرض المسمى الوظيفي حسب العضوية (يدعم تعدد المدارس)
         try:
-            from .middleware import get_current_request
-
-            request = get_current_request()
-            sid = None
-            if request is not None:
-                sid = request.session.get("active_school_id")
             if sid and getattr(self, "pk", None):
                 m = (
                     SchoolMembership.objects.filter(
@@ -336,17 +348,17 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
                 )
                 if m is not None and getattr(m, "job_title", None):
                     try:
-                        return m.get_job_title_display() or "المعلم"
+                        return m.get_job_title_display() or teacher_label
                     except Exception:
-                        return "المعلم"
+                        return teacher_label
         except Exception:
             pass
         try:
             if self.role is not None:
-                return (getattr(self.role, "name", None) or getattr(self.role, "slug", None) or "").strip() or "المعلم"
+                return (getattr(self.role, "name", None) or getattr(self.role, "slug", None) or "").strip() or teacher_label
         except Exception:
             pass
-        return "المعلم"
+        return teacher_label
 
     def save(self, *args, **kwargs):
         try:

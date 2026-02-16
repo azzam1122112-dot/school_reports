@@ -250,9 +250,9 @@
               </div>
 
               <div class="wide">
-                <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">اختر المعلّم</label>
+                <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">اختر {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</label>
                 <select name="teacher_id" id="managerSelect" class="input" required>
-                  <option value="" disabled selected>اختر المعلّم ليصبح مديراً...</option>
+                  <option value="" disabled selected>اختر {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }} للتعيين كـ {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}...</option>
                   {% for t in teachers %}
                     <option value="{{ t.id }}">{{ t.name }}</option>
                   {% endfor %}
@@ -306,7 +306,7 @@
       ph.value = '';
       ph.disabled = true;
       ph.selected = true;
-      ph.textContent = 'اختر المعلّم ليصبح مديراً...';
+      ph.textContent = 'اختر {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }} للتعيين كـ {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}...';
       select.appendChild(ph);
 
       originalOptions.forEach(opt => {

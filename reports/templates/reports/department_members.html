@@ -252,7 +252,7 @@
         <div class="stats" aria-label="إحصاءات القسم">
           <span class="badge">مسؤول القسم: {{ officers|length }}</span>
           <span class="badge">الأعضاء الحاليون: {{ teachers|length }}</span>
-          <span class="badge">إجمالي المعلّمين: {{ all_teachers|length }}</span>
+          <span class="badge">إجمالي {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }}: {{ all_teachers|length }}</span>
         </div>
       </div>
     </div>
@@ -264,7 +264,7 @@
 
         <label for="teacher_id" class="sr-only">إسناد لمعلّم</label>
         <select id="teacher_id" name="teacher_id" required>
-          <option value="" disabled selected>اختر المعلّم</option>
+          <option value="" disabled selected>اختر {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</option>
           {% for t in available_teachers %}
             <option value="{{ t.id }}">{{ t.name }}</option>
           {% endfor %}

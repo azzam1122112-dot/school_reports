@@ -898,8 +898,8 @@
         </div>
 
         <div class="repdash-field">
-          <label>المعلم</label>
-          <input type="text" name="teacher_name" value="{{ teacher_name }}" placeholder="بحث باسم المعلم..." class="repdash-control">
+          <label>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
+          <input type="text" name="teacher_name" value="{{ teacher_name }}" placeholder="بحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}..." class="repdash-control">
         </div>
 
         {% if categories %}
@@ -943,7 +943,7 @@
               {% if request.user.is_superuser %}
                 <th>المدرسة</th>
               {% endif %}
-              <th>المعلم</th>
+              <th>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</th>
               <th>العنوان</th>
               <th>التصنيف</th>
               <th>المستفيدون</th>
@@ -1080,7 +1080,7 @@
           {% endif %}
 
           <div class="rd-row">
-            <span class="k">المعلم</span>
+            <span class="k">{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</span>
             <span class="v">{{ r.teacher_display_name }}</span>
           </div>
 
@@ -1201,7 +1201,7 @@
 
         <div class="rd-two">
           <div class="rd-detail">
-            <div class="lbl">المعلم</div>
+            <div class="lbl">{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</div>
             <div class="val" id="rd-dlg-teacher"></div>
           </div>
           <div class="rd-detail">

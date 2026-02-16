@@ -154,8 +154,8 @@
 <div class="aa-page">
   <div class="card aa-card">
     <div class="aa-head">
-      <h1>ملفات الإنجاز — اعتماد مدير المدرسة</h1>
-      <p>اختر السنة الدراسية، ثم اعتمد/ارفض ملف كل معلّم مع إدراج ملاحظات.</p>
+      <h1>ملفات الإنجاز — اعتماد {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h1>
+      <p>اختر السنة الدراسية، ثم اعتمد/ارفض ملف كل {{ SCHOOL_TEACHER_LABEL|default:"معلّم" }} مع إدراج ملاحظات.</p>
     </div>
 
     <div class="aa-body">
@@ -193,11 +193,11 @@
         </div>
       </div>
 
-      <div class="aa-table-wrap" aria-label="قائمة المعلمين">
+      <div class="aa-table-wrap" aria-label="قائمة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:'المعلمين' }}">
         <table class="aa-table">
           <thead>
             <tr>
-              <th>المعلّم</th>
+              <th>{{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}</th>
               <th>الهاتف</th>
               <th>الحالة</th>
               <th style="text-align:left">إجراء</th>
@@ -207,7 +207,7 @@
           <tbody>
             {% for row in rows %}
               <tr class="aa-row">
-                <td data-label="المعلّم">
+                <td data-label="{{ SCHOOL_TEACHER_LABEL|default:'المعلّم' }}">
                   <div class="aa-name">{{ row.teacher.name }}</div>
                   <div class="aa-muted">{{ year }} هـ</div>
                 </td>

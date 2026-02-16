@@ -264,7 +264,7 @@
     </h2>
 
     <div class="dept-sub">
-      سيظهر هذا القسم كـ <em>دور</em> في نماذج المعلّمين باستخدام <strong>الكود (slug)</strong> كقيمة،
+      سيظهر هذا القسم كـ <em>دور</em> في نماذج {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }} باستخدام <strong>الكود (slug)</strong> كقيمة،
       ويمكنك الحفظ سريعًا باستخدام <span class="dept-kbd">Ctrl/⌘ + S</span>.
     </div>
 
@@ -283,7 +283,7 @@
         </div>
       {% elif current_slug == "teachers" %}
         <div class="dept-note warn">
-          <strong>قسم المعلّمين</strong> — هذا القسم مخصص لحسابات "معلم". يفضّل عدم تغيير كوده حتى لا تتأثر الصلاحيات.
+          <strong>قسم الكادر التعليمي</strong> — هذا القسم مخصص لحسابات "{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}". يفضّل عدم تغيير كوده حتى لا تتأثر الصلاحيات.
         </div>
       {% endif %}
     {% endwith %}

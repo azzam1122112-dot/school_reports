@@ -457,6 +457,27 @@ def _private_comment_role_label(author, school: Optional[School]) -> str:
     return _canonical_role_label(author, school)
 
 
+def _school_manager_label(school: Optional[School]) -> str:
+    """مسمى مدير/مديرة المدرسة حسب نوع المدرسة."""
+    gender = (getattr(school, "gender", "") or "").strip().lower()
+    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
+    return "مديرة المدرسة" if gender == girls_value else "مدير المدرسة"
+
+
+def _school_teacher_label(school: Optional[School]) -> str:
+    """مسمى معلم/معلمة حسب نوع المدرسة."""
+    gender = (getattr(school, "gender", "") or "").strip().lower()
+    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
+    return "المعلمة" if gender == girls_value else "المعلم"
+
+
+def _school_teachers_obj_label(school: Optional[School]) -> str:
+    """صيغة جمع منصوبة/مجرورة (المعلمين/المعلمات) حسب نوع المدرسة."""
+    gender = (getattr(school, "gender", "") or "").strip().lower()
+    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
+    return "المعلمات" if gender == girls_value else "المعلمين"
+
+
 def _canonical_role_label(user, school: Optional[School]) -> str:
     """إرجاع تسمية دور موحّدة (بدون تداخلات).
 
@@ -489,13 +510,13 @@ def _canonical_role_label(user, school: Optional[School]) -> str:
     # مدير المدرسة
     try:
         if school is not None and _is_manager_in_school(user, school):
-            return "مدير المدرسة"
+            return _school_manager_label(school)
     except Exception:
         pass
     try:
         role = getattr(user, "role", None)
         if role is not None and (getattr(role, "slug", "") or "").strip().lower() == "manager":
-            return "مدير المدرسة"
+            return _school_manager_label(school)
     except Exception:
         pass
 
@@ -506,7 +527,7 @@ def _canonical_role_label(user, school: Optional[School]) -> str:
     except Exception:
         pass
 
-    return "معلم"
+    return _school_teacher_label(school)
 
 
 def _canonical_sender_name(user) -> str:
@@ -2588,7 +2609,7 @@ def report_viewer_create(request: HttpRequest) -> HttpResponse:
             "page_subtitle": "هذا الحساب يستطيع الاطلاع على تقارير المدرسة و ملفات الإنجاز فقط",
             "save_label": "حفظ المشرف",
             "back_url": "reports:manage_teachers",
-            "back_label": "رجوع لإدارة المعلمين",
+            "back_label": f"رجوع لإدارة {_school_teachers_obj_label(active_school)}",
         },
     )
 
@@ -2648,7 +2669,7 @@ def report_viewer_update(request: HttpRequest, pk: int) -> HttpResponse:
             "page_subtitle": "تعديل بيانات الحساب دون تغيير صلاحياته",
             "save_label": "حفظ التعديلات",
             "back_url": "reports:manage_teachers",
-            "back_label": "رجوع لإدارة المعلمين",
+            "back_label": f"رجوع لإدارة {_school_teachers_obj_label(active_school)}",
         },
     )
 
@@ -6725,13 +6746,13 @@ def school_manager_create(request: HttpRequest) -> HttpResponse:
                             role_type=SchoolMembership.RoleType.MANAGER,
                             defaults={"is_active": True},
                         )
-                messages.success(request, "تم إنشاء مدير المدرسة وربطه بالمدارس المحددة.")
+                messages.success(request, "تم إنشاء حساب مدير/مديرة المدرسة وربطه بالمدارس المحددة.")
                 return redirect("reports:schools_admin_list")
             except ValidationError as e:
                 messages.error(request, " ".join(e.messages))
             except Exception:
                 logger.exception("school_manager_create failed")
-                messages.error(request, "تعذّر إنشاء مدير المدرسة. تحقّق من البيانات وحاول مرة أخرى.")
+                messages.error(request, "تعذّر إنشاء حساب مدير/مديرة المدرسة. تحقّق من البيانات وحاول مرة أخرى.")
 
     context = {
         "form": form,
@@ -6869,13 +6890,13 @@ def school_manager_update(request: HttpRequest, pk: int) -> HttpResponse:
                             role_type=SchoolMembership.RoleType.MANAGER,
                             defaults={"is_active": True},
                         )
-                messages.success(request, "تم تحديث بيانات مدير المدرسة بنجاح.")
+                messages.success(request, "تم تحديث بيانات مدير/مديرة المدرسة بنجاح.")
                 return redirect("reports:school_managers_list")
             except ValidationError as e:
                 messages.error(request, " ".join(e.messages))
             except Exception:
                 logger.exception("school_manager_update failed")
-                messages.error(request, "تعذّر تحديث بيانات مدير المدرسة. تحقّق من البيانات وحاول مرة أخرى.")
+                messages.error(request, "تعذّر تحديث بيانات مدير/مديرة المدرسة. تحقّق من البيانات وحاول مرة أخرى.")
         # في حال وجود أخطاء نمرّر selected_ids كما هي
     else:
         existing_ids = SchoolMembership.objects.filter(
@@ -7819,7 +7840,7 @@ def notifications_create(request: HttpRequest, mode: str = "notification") -> Ht
     if is_circular:
         if not is_superuser and not is_platform:
             if active_school is None or not _is_manager_in_school(request.user, active_school):
-                messages.error(request, "التعاميم متاحة لمدير المدرسة فقط.")
+                messages.error(request, f"التعاميم متاحة لـ{_school_manager_label(active_school)} فقط.")
                 return redirect("reports:home")
 
     initial = {}
@@ -8745,7 +8766,8 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
 
     if is_circular:
         if not request.user.is_superuser and not is_platform and not _is_manager_in_school(request.user, _get_active_school(request)):
-            messages.error(request, "التعاميم متاحة لمدير المدرسة فقط.")
+            active_school = _get_active_school(request)
+            messages.error(request, f"التعاميم متاحة لـ{_school_manager_label(active_school)} فقط.")
             return redirect("reports:home")
 
     if Notification is None:
@@ -9136,7 +9158,7 @@ def my_subscription(request):
         membership = memberships.first()
     
     if not membership:
-        messages.error(request, "عفواً، هذه الصفحة مخصصة لمدير المدرسة فقط.")
+        messages.error(request, f"عفواً، هذه الصفحة مخصصة لـ{_school_manager_label(active_school)} فقط.")
         return redirect('reports:home')
 
     # ملاحظة: reverse OneToOne (school.subscription) يرفع DoesNotExist إن لم يوجد سجل
@@ -9180,7 +9202,7 @@ def subscription_history(request):
         membership = memberships.first()
     
     if not membership:
-        messages.error(request, "عفواً، هذه الصفحة مخصصة لمدير المدرسة فقط.")
+        messages.error(request, f"عفواً، هذه الصفحة مخصصة لـ{_school_manager_label(active_school)} فقط.")
         return redirect('reports:home')
 
     # جلب كامل العمليات
@@ -9211,7 +9233,7 @@ def payment_create(request):
         membership = memberships.first()
     
     if not membership:
-        messages.error(request, "عفواً، هذه الصفحة مخصصة لمدير المدرسة فقط.")
+        messages.error(request, f"عفواً، هذه الصفحة مخصصة لـ{_school_manager_label(active_school)} فقط.")
         return redirect('reports:home')
 
     subscription = (

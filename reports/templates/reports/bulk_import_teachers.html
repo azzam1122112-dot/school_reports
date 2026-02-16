@@ -189,12 +189,12 @@
 <div class="imp-wrap">
   <div class="imp-header">
     <div>
-      <h1 class="imp-title">استيراد معلمين من ملف Excel</h1>
-      <p class="imp-sub">ارفع ملف <b>.xlsx</b> لاستيراد المعلمين وربطهم بمدرستك بشكل سريع.</p>
+      <h1 class="imp-title">استيراد {{ SCHOOL_TEACHERS_LABEL|default:"معلمين" }} من ملف Excel</h1>
+      <p class="imp-sub">ارفع ملف <b>.xlsx</b> لاستيراد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} وربطهم بمدرستك بشكل سريع.</p>
     </div>
 
     <a href="{% url 'reports:manage_teachers' %}" class="btn btn-ghost">
-      <i class="fa-solid fa-arrow-right"></i> عودة لإدارة المعلمين
+      <i class="fa-solid fa-arrow-right"></i> عودة لإدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}
     </a>
   </div>
 
@@ -216,11 +216,11 @@
             </ol>
           </li>
           <li>كلمة المرور الافتراضية = رقم الجوال</li>
-          <li>إذا كان المعلم مسجلاً مسبقاً برقم الجوال، سيتم ربطه بمدرستك فقط دون تغيير بياناته.</li>
+          <li>إذا كان {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} مسجلاً مسبقاً برقم الجوال، سيتم ربطه بمدرستك فقط دون تغيير بياناته.</li>
         </ul>
 
         <div class="imp-note">
-          <b>ملاحظة أمنية:</b> يُفضّل تنبيه المعلمين لتغيير كلمة المرور بعد أول تسجيل دخول.
+          <b>ملاحظة أمنية:</b> يُفضّل تنبيه {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} لتغيير كلمة المرور بعد أول تسجيل دخول.
         </div>
       </div>
 
@@ -268,7 +268,7 @@
             </button>
 
             <a href="{% url 'reports:manage_teachers' %}" class="btn">
-              <i class="fa-solid fa-users-gear"></i> إدارة المعلمين
+              <i class="fa-solid fa-users-gear"></i> إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}
             </a>
           </div>
         </form>

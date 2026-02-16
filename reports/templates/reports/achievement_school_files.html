@@ -299,7 +299,7 @@
 
   <!-- Header -->
   <div class="header-section">
-      <div class="page-title">ملفات إنجاز المعلمين</div>
+      <div class="page-title">ملفات إنجاز {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</div>
       <div class="page-subtitle">استعراض ومتابعة ملفات الإنجاز للكادر التعليمي حسب السنة الدراسية</div>
   </div>
 
@@ -321,9 +321,9 @@
           </div>
 
           <div class="control-group">
-              <label class="control-label">بحث عن معلم</label>
+              <label class="control-label">بحث عن {{ SCHOOL_TEACHER_LABEL|default:"معلم" }}</label>
               <div style="position: relative;">
-                  <input type="search" id="searchInput" name="q" value="{{ q }}" class="glass-input" placeholder="اكتب اسم المعلم للبحث السريع..." style="padding-inline-start: 44px;">
+                  <input type="search" id="searchInput" name="q" value="{{ q }}" class="glass-input" placeholder="اكتب اسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }} للبحث السريع..." style="padding-inline-start: 44px;">
                   <i class="fa-solid fa-search" style="position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: var(--text-muted);"></i>
               </div>
           </div>
@@ -347,7 +347,7 @@
       </div>
       <div class="stat-chip">
           <i class="fa-solid fa-users-viewfinder"></i>
-          <span id="resultCount">{{ rows|length }}</span> معلم
+          <span id="resultCount">{{ rows|length }}</span> {{ SCHOOL_TEACHER_LABEL|default:"معلم" }}
       </div>
       {% if q %}
       <a href="{% url 'reports:achievement_school_files' %}?year={{ year }}" class="stat-chip" style="background: #fee2e2; color: #ef4444; text-decoration: none; cursor: pointer;">

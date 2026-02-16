@@ -173,9 +173,9 @@
         <div>
           <h2 class="teacher-title">
             <i class="fas fa-user-plus" aria-hidden="true"></i>
-            {{ page_title|default:"إضافة معلم جديد" }}
+            {{ page_title|default:"إضافة"|add:" "|add:SCHOOL_TEACHER_LABEL|add:" جديد" }}
           </h2>
-          <p class="teacher-sub">{{ page_subtitle|default:"أضف بيانات المعلم بدقة — يمكن تعديلها لاحقًا" }}</p>
+          <p class="teacher-sub">{{ page_subtitle|default:"أضف بيانات "|add:SCHOOL_TEACHER_LABEL|add:" بدقة — يمكن تعديلها لاحقًا" }}</p>
         </div>
         <div class="teacher-chip">
           <i class="fas fa-shield-halved" aria-hidden="true"></i>
@@ -198,11 +198,11 @@
           <!-- الاسم -->
           <div class="group">
             <label class="label" for="{{ form.name.id_for_label }}">
-              <i class="fas fa-user" aria-hidden="true"></i> اسم المعلّم
+              <i class="fas fa-user" aria-hidden="true"></i> اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلّم" }}
             </label>
             {{ form.name }}
             {% for e in form.name.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">الاسم الكامل للمعلم كما سيظهر في النظام</div>
+            <div class="hint">الاسم الكامل لـ{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} كما سيظهر في النظام</div>
           </div>
 
           <!-- الهوية -->
@@ -254,7 +254,7 @@
               </label>
               {{ form.job_title }}
               {% for e in form.job_title.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-              <div class="hint">اختر (معلم / موظف إداري / محضر مختبر) — بنفس الصلاحيات</div>
+              <div class="hint">اختر ({{ SCHOOL_TEACHER_LABEL|default:"معلم" }} / موظف إداري / محضر مختبر) — بنفس الصلاحيات</div>
             </div>
           {% endif %}
 
@@ -262,13 +262,13 @@
           <div class="group">
             <div class="label"><i class="fas fa-toggle-on" aria-hidden="true"></i> حالة الحساب</div>
             <div class="switch-row">
-              <label class="switch" aria-label="تفعيل حساب المعلم">
+              <label class="switch" aria-label="تفعيل حساب {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}">
                 {{ form.is_active }}
                 <span class="slider"></span>
               </label>
               <span class="switch-meta">
                 <b>نشط</b>
-                <span class="hint">تفعيل حساب المعلم للنظام</span>
+                <span class="hint">تفعيل حساب {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} للنظام</span>
               </span>
             </div>
             {% for e in form.is_active.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
@@ -278,7 +278,7 @@
         <div class="actions">
           <button type="submit" class="btn btn-primary" id="submitBtn">
             <i class="fas fa-save" aria-hidden="true"></i>
-            {{ save_label|default:"حفظ المعلم" }}
+            {{ save_label|default:"حفظ"|add:" "|add:SCHOOL_TEACHER_LABEL }}
           </button>
 
           {% if back_href %}

@@ -579,7 +579,7 @@
                         
                         <div class="teacher-selector">
                            <div class="teacher-tools">
-                              <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث باسم المعلم...">
+                              <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}...">
                               <button type="button" id="selectAllTeachers" class="btn-link" style="color:var(--c-primary); font-size:0.85rem">الكل</button>
                               <button type="button" id="clearAllTeachers" class="btn-link" style="color:#ef4444; font-size:0.85rem">إلغاء</button>
                            </div>
@@ -681,7 +681,7 @@
 
              <!-- Body -->
              <div class="doc-body" id="pv_body">
-                نص التعميم سيظهر هنا كما يراه المعلم... يرجى الكتابة في الحقل المخصص للمعاينة الفورية.
+                نص التعميم سيظهر هنا كما يراه {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}... يرجى الكتابة في الحقل المخصص للمعاينة الفورية.
              </div>
 
              <!-- Footer -->

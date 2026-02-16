@@ -165,7 +165,7 @@
 
         {% if user.is_authenticated and not is_manager %}
           <div class="se-hint">
-            تواصل مع <b>مدير المدرسة</b> لتجديد الاشتراك.
+            تواصل مع <b>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</b> لتجديد الاشتراك.
           </div>
         {% endif %}
       </div>

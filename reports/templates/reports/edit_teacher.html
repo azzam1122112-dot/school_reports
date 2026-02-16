@@ -1,6 +1,6 @@
 {# templates/reports/teacher_edit.html (أو اسم ملفك الحالي) #}
 {% extends "base.html" %}
-{% block title %}تعديل بيانات المعلم{% endblock %}
+{% block title %}تعديل بيانات {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}{% endblock %}
 
 {% block head %}
 <style>
@@ -287,10 +287,10 @@
       <div class="te-header">
         <h2 class="te-title">
           <i class="fa-solid fa-user-pen" aria-hidden="true"></i>
-          تعديل بيانات المعلم
+          تعديل بيانات {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
         </h2>
         <p class="te-subtitle">
-          قم بتعديل البيانات الخاصة بالمعلم
+          قم بتعديل البيانات الخاصة بـ{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
           {% firstof teacher.name form.initial.name "" %}
         </p>
       </div>
@@ -316,11 +316,11 @@
           <div class="te-group">
             <label class="te-label" for="{{ form.name.id_for_label }}">
               <i class="fa-solid fa-user te-icon" aria-hidden="true"></i>
-              اسم المعلم
+              اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
             </label>
             {{ form.name }}
             {% for e in form.name.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
-            <div class="te-hint">الاسم الكامل للمعلم</div>
+            <div class="te-hint">الاسم الكامل لـ{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</div>
           </div>
 
           <div class="te-group">
@@ -351,7 +351,7 @@
             </label>
             {{ form.job_title }}
             {% for e in form.job_title.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
-            <div class="te-hint">اختر (معلم / موظف إداري / محضر مختبر) — بنفس الصلاحيات</div>
+            <div class="te-hint">اختر ({{ SCHOOL_TEACHER_LABEL|default:"معلم" }} / موظف إداري / محضر مختبر) — بنفس الصلاحيات</div>
           </div>
           {% endif %}
 
@@ -382,7 +382,7 @@
                   <i class="fa-solid fa-toggle-on te-icon" aria-hidden="true"></i>
                   نشط
                 </div>
-                <div class="te-hint">تفعيل أو إلغاء تفعيل حساب المعلم</div>
+                <div class="te-hint">تفعيل أو إلغاء تفعيل حساب {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</div>
                 {% for e in form.is_active.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
               </div>
             </div>

@@ -715,13 +715,13 @@
           </div>
 
           <div class="filter-group">
-            <label for="orTeacherName">👨‍🏫 اسم المعلم</label>
+            <label for="orTeacherName">👨‍🏫 اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
             <input
               id="orTeacherName"
               type="text"
               name="teacher_name"
               value="{{ teacher_name }}"
-              placeholder="اكتب اسم المعلم أو جزء منه"
+              placeholder="اكتب اسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }} أو جزء منه"
               class="filter-input"
               autocomplete="off"
             >
@@ -761,7 +761,7 @@
             <thead>
               <tr>
                 <th>📅 التاريخ</th>
-                <th>👨‍🏫 المعلم</th>
+                <th>👨‍🏫 {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</th>
                 <th>📖 العنوان</th>
                 <th>🏷️ التصنيف</th>
                 <th class="text-center">👥 المستفيدون</th>
@@ -962,7 +962,7 @@
       <div id="modalIdea" class="modal-idea"></div>
 
       <div class="modal-meta">
-        <div>👨‍🏫 <b>المعلم:</b> <span id="modalTeacher"></span></div>
+        <div>👨‍🏫 <b>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}:</b> <span id="modalTeacher"></span></div>
         <div>📖 <b>العنوان:</b> <span id="modalTitle"></span></div>
         <div>📅 <b>التاريخ:</b> <span id="modalDate"></span></div>
       </div>

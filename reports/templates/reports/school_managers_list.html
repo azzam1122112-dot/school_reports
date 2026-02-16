@@ -155,7 +155,7 @@
         + إنشاء مدير مدرسة جديد
       </a>
       <a class="btn btn-outline" href="{% url 'reports:schools_admin_list' %}">إدارة المدارس</a>
-      <a class="btn btn-outline" href="{% url 'reports:manage_teachers' %}">قائمة المعلّمين</a>
+      <a class="btn btn-outline" href="{% url 'reports:manage_teachers' %}">قائمة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }}</a>
     </div>
   </div>
 

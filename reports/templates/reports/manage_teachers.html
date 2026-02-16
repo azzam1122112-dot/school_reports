@@ -1,6 +1,6 @@
 {# templates/reports/manage_teachers.html #}
 {% extends "base.html" %}
-{% block title %}إدارة المعلمين{% endblock %}
+{% block title %}إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}{% endblock %}
 
 {% block content %}
 <div class="admin-scope" dir="rtl">
@@ -9,9 +9,9 @@
       <div class="header-content">
         <h1 class="admin-title">
           <i class="fas fa-chalkboard-teacher"></i>
-          إدارة المعلمين
+          إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}
         </h1>
-        <p class="admin-subtitle">عرض وإدارة جميع المعلمين في النظام</p>
+        <p class="admin-subtitle">عرض وإدارة جميع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} في النظام</p>
       </div>
 
       <div class="header-actions">
@@ -36,7 +36,7 @@
 
         <a class="btn btn-primary btn-add" href="{% url 'reports:add_teacher' %}">
           <i class="fas fa-plus-circle"></i>
-          إضافة معلم جديد
+          إضافة {{ SCHOOL_TEACHER_LABEL|default:"معلم" }} جديد
         </a>
       </div>
     </div>
@@ -52,11 +52,11 @@
           </div>
         </div>
 
-        <div class="table-responsive" role="region" aria-label="جدول المعلمين">
+        <div class="table-responsive" role="region" aria-label="جدول {{ SCHOOL_TEACHERS_OBJ_LABEL|default:'المعلمين' }}">
           <table class="teachers-table">
             <thead>
               <tr>
-                <th class="text-right">المعلم</th>
+                <th class="text-right">{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</th>
                 <th class="text-right">رقم الهوية</th>
                 <th class="text-right">رقم الجوال</th>
                 <th class="text-center">القسم / الدور</th>
@@ -67,7 +67,7 @@
             <tbody>
               {% for t in teachers_page.object_list %}
               <tr>
-                <td data-label="المعلم">
+                <td data-label="{{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}">
                   <div class="teacher-info">
                     <div class="teacher-avatar" aria-hidden="true"><i class="fas fa-user"></i></div>
                     <div class="teacher-details">
@@ -161,7 +161,7 @@
                           class="btn btn-icon btn-delete"
                           title="حذف"
                           aria-label="حذف"
-                          onclick="return confirm('هل أنت متأكد من حذف هذا المعلم؟')"
+                          onclick="return confirm('هل أنت متأكد من حذف هذا {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}؟')"
                         >
                           <i class="fas fa-trash-alt"></i>
                         </button>
@@ -188,10 +188,10 @@
       {% else %}
         <div class="empty-state">
           <div class="empty-icon"><i class="fas fa-users-slash"></i></div>
-          <h3>لا يوجد معلمين</h3>
+          <h3>لا يوجد {{ SCHOOL_TEACHERS_LABEL|default:"معلمون" }}</h3>
           <p>لم يتم العثور على نتائج{% if term %} لبحثك عن "<strong>{{ term }}</strong>"{% endif %}</p>
           <a href="{% url 'reports:add_teacher' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> إضافة معلم جديد
+            <i class="fas fa-plus"></i> إضافة {{ SCHOOL_TEACHER_LABEL|default:"معلم" }} جديد
           </a>
         </div>
       {% endif %}

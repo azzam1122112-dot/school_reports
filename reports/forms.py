@@ -1480,6 +1480,12 @@ class NotificationCreateForm(forms.Form):
 
         is_superuser = bool(getattr(user, "is_superuser", False))
         is_platform = bool(is_platform_admin(user)) and not is_superuser
+        school_gender = (getattr(active_school, "gender", "") or "").strip().lower()
+        girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
+        is_girls_school = school_gender == girls_value
+        teacher_singular = "معلمة" if is_girls_school else "معلم"
+        teachers_plural = "المعلمات" if is_girls_school else "المعلمون"
+        teachers_obj = "المعلمات" if is_girls_school else "المعلمين"
         
         # التحقق مما إذا كان المستخدم مديراً ضمن المدرسة النشطة (عزل مدارس)
         try:
@@ -1600,8 +1606,8 @@ class NotificationCreateForm(forms.Form):
                     qs = qs.none()
 
                 if "teachers" in self.fields:
-                    self.fields["teachers"].label = "المعلمون (يمكن اختيار معلم أو أكثر)"
-                    self.fields["teachers"].help_text = "يمكنك ترك الاختيار فارغًا لإرسال التعميم لجميع المعلمين في المدرسة."
+                    self.fields["teachers"].label = f"{teachers_plural} (يمكن اختيار {teacher_singular} أو أكثر)"
+                    self.fields["teachers"].help_text = f"يمكنك ترك الاختيار فارغًا لإرسال التعميم لجميع {teachers_obj} في المدرسة."
 
             self.fields["teachers"].queryset = qs
             return
