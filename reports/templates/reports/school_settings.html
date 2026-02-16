@@ -425,6 +425,12 @@
     </div>
 
     <div class="ss-body">
+      {% if settings_read_only %}
+        <div class="nferr" role="status">
+          إعدادات المدرسة مقفلة حاليًا (عرض فقط).
+        </div>
+      {% endif %}
+
       {% if form.non_field_errors %}
         <div class="nferr" role="alert">
           {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
@@ -505,14 +511,16 @@
         </div>
 
         <div class="ss-actions">
-          <button type="submit" class="btn btn-primary" id="submitBtn">
-            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-            حفظ التغييرات
-          </button>
+          {% if not settings_read_only %}
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+              <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+              حفظ التغييرات
+            </button>
+          {% endif %}
 
           <a href="{% url 'reports:admin_dashboard' %}" class="btn btn-outline">
             <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            رجوع
+            {% if settings_read_only %}عودة للوحة التحكم{% else %}رجوع{% endif %}
           </a>
         </div>
       </form>

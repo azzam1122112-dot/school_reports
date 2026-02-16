@@ -5243,7 +5243,28 @@ def school_settings(request: HttpRequest) -> HttpResponse:
         messages.error(request, "لا تملك صلاحية تعديل إعدادات هذه المدرسة.")
         return redirect("reports:admin_dashboard")
 
-    form = _SchoolSettingsForm(request.POST or None, request.FILES or None, instance=active_school)
+    # قفل التعديلات على إعدادات المدرسة (قراءة فقط).
+    settings_read_only = bool(getattr(settings, "SCHOOL_SETTINGS_READ_ONLY", True))
+
+    if settings_read_only and request.method == "POST":
+        messages.error(request, "تم إيقاف تعديل إعدادات المدرسة حاليًا.")
+        return redirect("reports:school_settings")
+
+    form = _SchoolSettingsForm(
+        (request.POST if not settings_read_only else None) or None,
+        request.FILES or None,
+        instance=active_school,
+    )
+
+    if settings_read_only:
+        for name, field in form.fields.items():
+            attrs = dict(getattr(field.widget, "attrs", {}) or {})
+            # select/checkbox/file لا تدعم readonly بشكل موحّد، لذلك نستخدم disabled.
+            attrs["disabled"] = True
+            # text-like widgets: readonly يضمن شكلًا بصريًا مناسبًا في بعض المتصفحات.
+            attrs["readonly"] = True
+            field.widget.attrs = attrs
+
     if request.method == "POST":
         if form.is_valid():
             form.save()
@@ -5260,7 +5281,11 @@ def school_settings(request: HttpRequest) -> HttpResponse:
             # لا نكسر الصفحة إن حدث خطأ أثناء بناء الرسالة
             pass
 
-    return render(request, "reports/school_settings.html", {"form": form, "school": active_school})
+    return render(
+        request,
+        "reports/school_settings.html",
+        {"form": form, "school": active_school, "settings_read_only": settings_read_only},
+    )
 
 
 # ---- إدارة المدارس (إنشاء/تعديل/حذف) للمشرف العام ----
