@@ -1446,15 +1446,29 @@ def switch_school(request: HttpRequest) -> HttpResponse:
     if request.user.is_superuser:
         schools_qs = School.objects.filter(is_active=True)
     else:
-        # ✅ أي مستخدم يملك عضوية نشطة في المدرسة يمكنه التبديل إليها
-        schools_qs = (
-            School.objects.filter(
+        # إذا كان المستخدم مدير مدرسة، نقيّد التبديل بمدارسه كمدير فقط.
+        is_manager = SchoolMembership.objects.filter(
+            teacher=request.user,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True,
+        ).exists()
+        if is_manager:
+            schools_qs = School.objects.filter(
                 is_active=True,
                 memberships__teacher=request.user,
+                memberships__role_type=SchoolMembership.RoleType.MANAGER,
                 memberships__is_active=True,
+            ).distinct()
+        else:
+            # غير المدير: يبقى التبديل بين جميع المدارس ذات العضوية النشطة.
+            schools_qs = (
+                School.objects.filter(
+                    is_active=True,
+                    memberships__teacher=request.user,
+                    memberships__is_active=True,
+                )
+                .distinct()
             )
-            .distinct()
-        )
 
     try:
         school = schools_qs.get(pk=sid)

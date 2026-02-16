@@ -895,14 +895,29 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     user_schools: list[School] = []
     try:
         if getattr(request.user, "is_authenticated", False):
-            user_schools = list(
-                School.objects.filter(
-                    memberships__teacher=request.user,
-                    memberships__is_active=True,
+            if any_school_manager:
+                # للمدير: أظهر فقط المدارس التي يملك فيها دور مدير مدرسة.
+                user_schools = list(
+                    School.objects.filter(
+                        memberships__teacher=request.user,
+                        memberships__role_type=SchoolMembership.RoleType.MANAGER,
+                        memberships__is_active=True,
+                        is_active=True,
+                    )
+                    .distinct()
+                    .order_by("name")
                 )
-                .distinct()
-                .order_by("name")
-            )
+            else:
+                # لباقي المستخدمين: المدارس المرتبطة بعضوياتهم النشطة.
+                user_schools = list(
+                    School.objects.filter(
+                        memberships__teacher=request.user,
+                        memberships__is_active=True,
+                        is_active=True,
+                    )
+                    .distinct()
+                    .order_by("name")
+                )
         sid = request.session.get("active_school_id")
         if sid:
             s = School.objects.filter(pk=sid, is_active=True).first()
