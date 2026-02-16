@@ -113,7 +113,8 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                     count = cache.incr(key)
                 except Exception:
                     count = None
-                logger.warning(
+                log_fn = logger.warning if (count in {1, 3, 5} or count is None) else logger.info
+                log_fn(
                     "WS notifications abnormal_close code=1006 user_id=%s path=%s ua=%s minute_count=%s",
                     getattr(self, "user_id", None),
                     self.scope.get("path"),

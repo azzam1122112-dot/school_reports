@@ -331,7 +331,7 @@
         {% endif %}
 
         <!-- Form -->
-        <form method="post" action="{% url 'reports:login' %}">
+        <form method="post" action="{% url 'reports:login' %}" id="loginForm">
           {% csrf_token %}
           <!-- Redirect Next -->
           <input type="hidden" name="next" value="{{ next|default:'' }}">
@@ -357,7 +357,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn-login">
+          <button type="submit" class="btn-login" id="loginSubmitBtn">
             تسجيل الدخول <i class="fa-solid fa-arrow-left"></i>
           </button>
 
@@ -397,6 +397,22 @@
             setTimeout(()=>m.remove(), 500);
         });
     }, 5000);
+
+    // Prevent double-submit that can cause duplicate POST and stale CSRF failures.
+    (function(){
+      const form = document.getElementById('loginForm');
+      const btn = document.getElementById('loginSubmitBtn');
+      if (!form || !btn) return;
+
+      let submitted = false;
+      form.addEventListener('submit', function(){
+        if (submitted) return false;
+        submitted = true;
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        btn.innerHTML = 'جارٍ تسجيل الدخول... <i class="fa-solid fa-spinner fa-spin"></i>';
+      });
+    })();
   </script>
 
 </body>

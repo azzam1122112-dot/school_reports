@@ -43,6 +43,7 @@ from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import cache_control, never_cache
 from django.db.models.deletion import ProtectedError
 
 from django.templatetags.static import static
@@ -655,6 +656,8 @@ def _is_report_viewer(user, active_school: Optional[School] = None) -> bool:
 # الدخول / الخروج
 # =========================
 @ratelimit(key="ip", rate="10/m", method="POST", block=True)
+@never_cache
+@cache_control(no_cache=True, must_revalidate=True, no_store=True, max_age=0)
 @require_http_methods(["GET", "POST"])
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:

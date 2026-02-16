@@ -102,12 +102,29 @@ ALLOWED_HOSTS = _split_env_list(_allowed_hosts_env) if _allowed_hosts_env else _
 
 
 def _default_csrf_trusted_origins() -> list[str]:
-    origins: list[str] = [
+    origins: list[str] = []
+
+    # Static known origins (backwards compatible)
+    origins += [
         "https://school-7lgm.onrender.com",
         "https://school-reports.onrender.com",
         "https://app.tawtheeq-ksa.com",
         "https://tawtheeq-ksa.com",
     ]
+
+    # Derive trusted origins from allowed hosts to reduce host-mismatch CSRF issues.
+    for host in ALLOWED_HOSTS:
+        h = (host or "").strip()
+        if not h or h in {"*", "."}:
+            continue
+        if h.startswith("."):
+            # Django CSRF trusted origins requires explicit origins, skip wildcard-like host.
+            continue
+        # Production-like domains: https
+        origins.append(f"https://{h}")
+        # Local/dev convenience
+        if h in {"localhost", "127.0.0.1", "[::1]"}:
+            origins.append(f"http://{h}")
 
     render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip()
     if render_url:

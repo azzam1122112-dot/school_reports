@@ -1,5 +1,5 @@
 // Bump cache version to force refresh after deployments
-const CACHE_NAME = 'tawtheeq-v5';
+const CACHE_NAME = 'tawtheeq-v6';
 
 // Avoid pre-caching '/' because it can be a redirect (login/dashboard) and can
 // cause stale HTML that references removed hashed assets after deployments.
@@ -37,6 +37,14 @@ function isStaticRequest(req) {
   const u = new URL(req.url);
   return isSameOrigin(req.url) && u.pathname.startsWith('/static/');
 }
+function isAuthPath(url) {
+  try {
+    const p = new URL(url).pathname;
+    return p === '/login/' || p === '/logout/' || p.startsWith('/login') || p.startsWith('/logout');
+  } catch {
+    return false;
+  }
+}
 
 // Fetch
 self.addEventListener('fetch', (event) => {
@@ -49,6 +57,16 @@ self.addEventListener('fetch', (event) => {
 
   // HTML navigations: network-first, fallback to cached '/'
   if (event.request.mode === 'navigate') {
+    // Never cache auth pages; stale login HTML can carry stale CSRF context.
+    if (isAuthPath(event.request.url)) {
+      event.respondWith(
+        fetch(event.request).catch(
+          () => new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+        )
+      );
+      return;
+    }
+
     event.respondWith(
       fetch(event.request)
         .then((res) => {
@@ -56,17 +74,15 @@ self.addEventListener('fetch', (event) => {
           try {
             const copy = res.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              if (copy && copy.ok) cache.put(event.request, copy);
+              if (copy && copy.ok && !copy.redirected) cache.put(event.request, copy);
             });
           } catch (e) {}
           return res;
         })
         .catch(async () => {
-          // Prefer cached version of the same page; last resort: cached root
+          // Prefer cached version of the same page only.
           const cached = await caches.match(event.request);
           if (cached) return cached;
-          const root = await caches.match('/');
-          if (root) return root;
           return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
         })
     );
