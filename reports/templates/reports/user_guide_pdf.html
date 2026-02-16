@@ -4,323 +4,289 @@
   <meta charset="utf-8" />
   <title>{{ title }}</title>
   <style>
-    @page { 
-      size: A4; 
-      margin: 0;
+    @page {
+      size: A4;
+      margin: 26mm 16mm 18mm 16mm;
       @top-center {
-        content: element(header);
+        content: element(page-header);
       }
       @bottom-center {
-        content: element(footer);
+        content: element(page-footer);
       }
     }
-    
-    html, body { 
-      padding: 0; 
-      margin: 0; 
+
+    html, body {
+      padding: 0;
+      margin: 0;
     }
-    
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: "Noto Naskh Arabic", "Amiri", "Segoe UI", Tahoma, Arial, sans-serif;
       direction: rtl;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      color: #1e293b;
-      line-height: 1.75;
-      font-size: 11pt;
+      color: #1f2937;
+      line-height: 1.8;
+      font-size: 11.3pt;
+      background: #fff;
     }
-    
-    /* === Header الفخم === */
+
     .header {
-      position: running(header);
-      background: linear-gradient(135deg, #1e40af 0%, #7c3aed 50%, #db2777 100%);
-      padding: 20mm 18mm 8mm 18mm;
-      color: white;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+      position: running(page-header);
+      display: table;
+      width: 100%;
+      border-bottom: 1px solid #d1d5db;
+      padding-bottom: 6mm;
     }
-    
+
     .header-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.3);
-      padding-bottom: 12px;
+      display: table-row;
     }
-    
+
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 14px;
+      display: table-cell;
+      vertical-align: middle;
+      text-align: right;
     }
-    
+
     .brand img {
-      height: 42px;
+      height: 12mm;
       width: auto;
+      vertical-align: middle;
+      margin-left: 4mm;
     }
-    
+
     .brand-text {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+      display: inline-block;
+      vertical-align: middle;
     }
-    
+
     .brand-name {
-      font-size: 20pt;
+      font-size: 13.5pt;
       font-weight: 800;
       margin: 0;
-      color: #fef3c7;
-      letter-spacing: 0.5px;
+      color: #111827;
     }
-    
+
     .brand-subtitle {
       font-size: 9pt;
-      margin: 0;
-      color: rgba(255, 255, 255, 0.85);
-      font-weight: 300;
+      margin: 1.2mm 0 0;
+      color: #4b5563;
+      font-weight: 500;
     }
-    
+
     .header-title {
+      display: table-cell;
+      vertical-align: middle;
       text-align: left;
-      background: rgba(255, 255, 255, 0.15);
-      padding: 10px 18px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
     }
-    
+
     .header-title-text {
       margin: 0;
       font-weight: 700;
-      font-size: 15pt;
-      color: white;
+      font-size: 11.5pt;
+      color: #1d4ed8;
     }
-    
+
     .header-date {
-      margin: 4px 0 0 0;
-      font-size: 9pt;
-      color: rgba(255, 255, 255, 0.9);
-      font-weight: 300;
+      margin: 1.5mm 0 0;
+      font-size: 8.7pt;
+      color: #6b7280;
     }
-    
-    /* === المحتوى === */
+
     main {
-      padding: 24mm 18mm 18mm 18mm;
-      background: white;
-      min-height: 240mm;
+      padding: 0;
     }
-    
-    /* === العناوين الفخمة === */
+
+    .guide-body {
+      margin-top: 2mm;
+    }
+
     h1 {
-      font-size: 20pt;
+      font-size: 18pt;
       font-weight: 800;
-      color: #1e40af;
-      margin: 24px 0 14px 0;
-      padding-bottom: 8px;
-      border-bottom: 3px solid transparent;
-      border-image: linear-gradient(90deg, #1e40af, #7c3aed, transparent) 1;
-      letter-spacing: 0.3px;
-    }
-    
-    h2 {
-      font-size: 16pt;
-      font-weight: 700;
       color: #1e3a8a;
-      margin: 20px 0 12px 0;
-      padding-right: 14px;
-      border-right: 4px solid #7c3aed;
-      background: linear-gradient(90deg, rgba(124, 58, 237, 0.08) 0%, transparent 100%);
-      padding: 10px 14px;
-      border-radius: 0 8px 8px 0;
+      margin: 0 0 5mm;
+      line-height: 1.45;
+      border-bottom: 1.2px solid #d1d5db;
+      padding-bottom: 2.5mm;
+      page-break-after: avoid;
     }
-    
+
+    h2 {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #1d4ed8;
+      margin: 8mm 0 3mm;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 2mm;
+      page-break-after: avoid;
+    }
+
     h3 {
-      font-size: 13pt;
+      font-size: 12.5pt;
       font-weight: 600;
-      color: #475569;
-      margin: 16px 0 10px 0;
-      padding-right: 10px;
-      border-right: 3px solid #a855f7;
-    }
-    
-    h4 {
-      font-size: 12pt;
-      font-weight: 600;
-      color: #64748b;
-      margin: 14px 0 8px 0;
-    }
-    
-    /* === الفقرات === */
-    p {
-      margin: 10px 0;
       color: #334155;
-      line-height: 1.8;
-      text-align: justify;
+      margin: 5mm 0 2mm;
+      page-break-after: avoid;
     }
-    
-    /* === القوائم === */
-    ul, ol {
-      margin: 10px 0;
-      padding-right: 24px;
+
+    h4 {
+      font-size: 11.6pt;
+      font-weight: 600;
       color: #475569;
+      margin: 4mm 0 1.6mm;
+      page-break-after: avoid;
     }
-    
+
+    p {
+      margin: 1.5mm 0 2.6mm;
+      color: #1f2937;
+      text-align: justify;
+      orphans: 3;
+      widows: 3;
+    }
+
+    ul, ol {
+      margin: 1.5mm 0 2.5mm;
+      padding-right: 6mm;
+      color: #374151;
+    }
+
     li {
-      margin: 6px 0;
-      line-height: 1.7;
+      margin: 1.2mm 0;
+      line-height: 1.8;
     }
-    
+
     ul li::marker {
       color: #7c3aed;
-      font-weight: bold;
     }
-    
-    /* === الجداول الفخمة === */
+
     table {
       width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      margin: 16px 0;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      overflow: hidden;
+      border-collapse: collapse;
+      margin: 4mm 0;
+      page-break-inside: avoid;
     }
-    
+
     th {
-      background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
-      color: white;
-      padding: 12px 14px;
-      font-weight: 600;
+      background: #eef2ff;
+      color: #1e3a8a;
+      border: 1px solid #dbeafe;
+      padding: 2.2mm 2.8mm;
+      font-weight: 700;
       text-align: right;
-      font-size: 11pt;
-      border: none;
+      font-size: 10.6pt;
     }
-    
+
     td {
-      padding: 10px 14px;
-      border-bottom: 1px solid #e2e8f0;
+      border: 1px solid #e5e7eb;
+      padding: 2.2mm 2.8mm;
       vertical-align: top;
-      color: #475569;
+      color: #374151;
     }
-    
-    tr:nth-child(even) td {
-      background: #f8fafc;
-    }
-    
-    tr:last-child td {
-      border-bottom: none;
-    }
-    
-    tr:hover td {
-      background: rgba(124, 58, 237, 0.05);
-    }
-    
-    /* === الكود === */
+
     code {
-      font-family: 'Courier New', Consolas, monospace;
-      font-size: 10pt;
-      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-      padding: 2px 8px;
-      border-radius: 4px;
-      color: #db2777;
-      border: 1px solid #cbd5e1;
+      font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+      font-size: 9.4pt;
+      background: #f3f4f6;
+      padding: 0.4mm 1.4mm;
+      border-radius: 2px;
+      color: #111827;
+      direction: ltr;
+      unicode-bidi: isolate;
     }
-    
+
     pre {
-      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-      color: #e2e8f0;
-      padding: 14px 16px;
-      border-radius: 8px;
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 3mm;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
       overflow-wrap: anywhere;
       line-height: 1.6;
-      border: 1px solid #475569;
+      page-break-inside: avoid;
     }
-    
+
     pre code {
       background: none;
       border: none;
-      color: #22d3ee;
+      color: inherit;
       padding: 0;
     }
-    
-    /* === الروابط === */
+
     a {
-      color: #7c3aed;
+      color: #1d4ed8;
       text-decoration: none;
-      font-weight: 500;
-      border-bottom: 1px solid transparent;
-      transition: all 0.2s;
+      font-weight: 600;
     }
-    
-    a:hover {
-      color: #1e40af;
-      border-bottom-color: #1e40af;
-    }
-    
-    /* === عناصر مميزة === */
+
     blockquote {
-      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-      border-right: 4px solid #f59e0b;
-      padding: 12px 16px;
-      margin: 16px 0;
-      border-radius: 0 8px 8px 0;
+      background: #fffbeb;
+      border-right: 3px solid #f59e0b;
+      padding: 2.5mm 3mm;
+      margin: 3mm 0;
       color: #78350f;
-      font-style: italic;
+      page-break-inside: avoid;
     }
-    
+
     strong, b {
-      color: #1e3a8a;
+      color: #0f172a;
       font-weight: 700;
     }
-    
+
     em, i {
-      color: #7c3aed;
+      color: #334155;
     }
-    
-    /* === Footer الفخم === */
+
     .footer {
-      position: running(footer);
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      padding: 8mm 18mm;
-      color: rgba(255, 255, 255, 0.85);
-      font-size: 9pt;
-      border-top: 2px solid rgba(124, 58, 237, 0.4);
+      position: running(page-footer);
+      border-top: 1px solid #d1d5db;
+      padding-top: 3mm;
+      font-size: 8.8pt;
+      color: #6b7280;
     }
-    
+
     .footer-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .footer-left {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    
-    .footer-right {
-      text-align: left;
-      font-weight: 600;
-      color: #a78bfa;
-    }
-    
-    .footer-copyright {
-      font-size: 8pt;
-      color: rgba(255, 255, 255, 0.6);
-    }
-    
-    /* === Decorative elements === */
-    .page-decoration {
-      position: absolute;
+      display: table;
       width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, #1e40af, #7c3aed, #db2777, transparent);
-      top: 0;
-      right: 0;
+    }
+
+    .footer-left {
+      display: table-cell;
+      text-align: right;
+      vertical-align: middle;
+    }
+
+    .footer-right {
+      display: table-cell;
+      text-align: left;
+      vertical-align: middle;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .page-number::before {
+      content: counter(page);
+    }
+
+    .page-count::before {
+      content: counter(pages);
+    }
+
+    img, table, pre, blockquote {
+      page-break-inside: avoid;
+    }
+
+    h1, h2, h3, h4 {
+      page-break-after: avoid;
+    }
+
+    p + ul, p + ol, h2 + ul, h2 + ol, h3 + ul, h3 + ol {
+      page-break-before: avoid;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="page-decoration"></div>
     <div class="header-content">
       <div class="brand">
         <img src="{{ logo_url }}" alt="Logo" />
@@ -330,24 +296,24 @@
         </div>
       </div>
       <div class="header-title">
-        <p class="header-title-text">📘 دليل المستخدم الشامل</p>
+        <p class="header-title-text">دليل المستخدم الشامل</p>
         <p class="header-date">الإصدار 2026</p>
       </div>
     </div>
   </div>
 
   <main>
-    {{ guide_html|safe }}
+    <div class="guide-body">{{ guide_html|safe }}</div>
   </main>
-  
+
   <div class="footer">
     <div class="footer-content">
       <div class="footer-left">
         <div>منصة توثيق © 2026 — جميع الحقوق محفوظة</div>
-        <div class="footer-copyright">تم التوليد تلقائياً من النظام</div>
+        <div>تم التوليد تلقائيًا من النظام</div>
       </div>
       <div class="footer-right">
-        صفحة <span id="page-number"></span>
+        صفحة <span class="page-number"></span> من <span class="page-count"></span>
       </div>
     </div>
   </div>

@@ -53,6 +53,10 @@ from django_ratelimit.decorators import ratelimit
 
 
 def _user_guide_md_path() -> str:
+    # Prefer the curated precise guide if present, fallback to legacy guide.
+    preferred = os.path.join(settings.BASE_DIR, "docs", "system_user_guide_precise_ar.md")
+    if os.path.exists(preferred):
+        return preferred
     return os.path.join(settings.BASE_DIR, "docs", "user_guide_complete_ar.md")
 
 
