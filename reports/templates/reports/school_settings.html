@@ -425,11 +425,9 @@
     </div>
 
     <div class="ss-body">
-      {% if settings_read_only %}
-        <div class="nferr" role="status">
-          إعدادات المدرسة مقفلة حاليًا (عرض فقط).
-        </div>
-      {% endif %}
+      <div class="nferr" role="status">
+        الحقول التالية محمية ولا يمكن تعديلها: اسم المدرسة، المرحلة، بنين / بنات، المدينة.
+      </div>
 
       {% if form.non_field_errors %}
         <div class="nferr" role="alert">
@@ -511,16 +509,14 @@
         </div>
 
         <div class="ss-actions">
-          {% if not settings_read_only %}
-            <button type="submit" class="btn btn-primary" id="submitBtn">
-              <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-              حفظ التغييرات
-            </button>
-          {% endif %}
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+            حفظ التغييرات
+          </button>
 
           <a href="{% url 'reports:admin_dashboard' %}" class="btn btn-outline">
             <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            {% if settings_read_only %}عودة للوحة التحكم{% else %}رجوع{% endif %}
+            رجوع
           </a>
         </div>
       </form>

@@ -5243,25 +5243,15 @@ def school_settings(request: HttpRequest) -> HttpResponse:
         messages.error(request, "لا تملك صلاحية تعديل إعدادات هذه المدرسة.")
         return redirect("reports:admin_dashboard")
 
-    # قفل التعديلات على إعدادات المدرسة (قراءة فقط).
-    settings_read_only = bool(getattr(settings, "SCHOOL_SETTINGS_READ_ONLY", True))
+    # حماية جزئية: منع التعديل على الحقول المطلوبة فقط.
+    protected_fields = {"name", "stage", "gender", "city"}
+    form = _SchoolSettingsForm(request.POST or None, request.FILES or None, instance=active_school)
 
-    if settings_read_only and request.method == "POST":
-        messages.error(request, "تم إيقاف تعديل إعدادات المدرسة حاليًا.")
-        return redirect("reports:school_settings")
-
-    form = _SchoolSettingsForm(
-        (request.POST if not settings_read_only else None) or None,
-        request.FILES or None,
-        instance=active_school,
-    )
-
-    if settings_read_only:
-        for name, field in form.fields.items():
+    for field_name, field in form.fields.items():
+        if field_name in protected_fields:
+            field.disabled = True
             attrs = dict(getattr(field.widget, "attrs", {}) or {})
-            # select/checkbox/file لا تدعم readonly بشكل موحّد، لذلك نستخدم disabled.
             attrs["disabled"] = True
-            # text-like widgets: readonly يضمن شكلًا بصريًا مناسبًا في بعض المتصفحات.
             attrs["readonly"] = True
             field.widget.attrs = attrs
 
@@ -5284,7 +5274,7 @@ def school_settings(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "reports/school_settings.html",
-        {"form": form, "school": active_school, "settings_read_only": settings_read_only},
+        {"form": form, "school": active_school},
     )
 
 
