@@ -390,7 +390,7 @@
     {% comment %}
     ============================================
     قسم التوقيعات
-    - إذا كان التقرير مرتبط بقسم: عرض توقيعين (رئيس القسم + {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }})
+    - إذا كان التقرير مرتبط بقسم: عرض توقيعين ({{ SCHOOL_HEAD_OF_DEPARTMENT_LABEL|default:"رئيس القسم" }} + {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }})
     - إذا لم يكن مرتبط بقسم: عرض توقيع واحد ({{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }} فقط)
     ============================================
     {% endcomment %}
@@ -398,7 +398,7 @@
       {# التقرير مرتبط بقسم → توقيعان #}
       <div class="signatures two-sigs">
         <div class="sig">
-          <h4>رئيس القسم</h4>
+          <h4>{{ SCHOOL_HEAD_OF_DEPARTMENT_LABEL|default:"رئيس القسم" }}</h4>
           <div class="sig-space"></div>
           <div class="sig-line">
             <span class="sig-label">الاسم:</span>

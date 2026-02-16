@@ -573,6 +573,8 @@ def _school_role_labels(active_school: Optional[School]) -> Dict[str, str]:
         "teacher": "المعلمة" if is_girls else "المعلم",
         "teachers": "المعلمات" if is_girls else "المعلمون",
         "teachers_obj": "المعلمات" if is_girls else "المعلمين",
+        "head": "رئيسة" if is_girls else "رئيس",
+        "head_of_department": "رئيسة القسم" if is_girls else "رئيس القسم",
     }
 
 
@@ -670,6 +672,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "SCHOOL_TEACHER_LABEL": "المعلم",
             "SCHOOL_TEACHERS_LABEL": "المعلمون",
             "SCHOOL_TEACHERS_OBJ_LABEL": "المعلمين",
+            "SCHOOL_HEAD_LABEL": "رئيس",
+            "SCHOOL_HEAD_OF_DEPARTMENT_LABEL": "رئيس القسم",
         }
 
     # -----------------------------
@@ -720,6 +724,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     school_teacher_label = role_labels["teacher"]
     school_teachers_label = role_labels["teachers"]
     school_teachers_obj_label = role_labels["teachers_obj"]
+    school_head_label = role_labels["head"]
+    school_head_of_department_label = role_labels["head_of_department"]
 
     try:
         qs = Ticket.objects.filter(creator=u, status__in=UNRESOLVED_STATES)
@@ -974,6 +980,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SCHOOL_TEACHER_LABEL": school_teacher_label,
         "SCHOOL_TEACHERS_LABEL": school_teachers_label,
         "SCHOOL_TEACHERS_OBJ_LABEL": school_teachers_obj_label,
+        "SCHOOL_HEAD_LABEL": school_head_label,
+        "SCHOOL_HEAD_OF_DEPARTMENT_LABEL": school_head_of_department_label,
     }
 
     if cache_key and ttl > 0:
