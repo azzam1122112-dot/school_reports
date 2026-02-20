@@ -1774,6 +1774,7 @@
       let wsEverOpened = false;
       let wsFailedConnects = 0;
       let wsLastVisibilityProbeAt = 0;
+      let wsClosingForPageHide = false;
 
       function wsStopKeepalive() {
         try { if (wsKeepaliveTimer) clearInterval(wsKeepaliveTimer); } catch(e) {}
@@ -1832,6 +1833,7 @@
 
       function wsConnect() {
         if (wsDisabled) return;
+        wsClosingForPageHide = false;
         if (!('WebSocket' in window)) {
           enablePollingFallback();
           return;
@@ -1883,6 +1885,8 @@
           ws = null;
           wsStopKeepalive();
 
+          // Expected close while the page is being hidden/unloaded.
+          if (wsClosingForPageHide) return;
           if (wsDisabled) return;
 
           // If the server explicitly closes due to auth, stop reconnecting.
@@ -1944,6 +1948,13 @@
           try { if (ws && ws.readyState === 1) wsStartKeepalive(); } catch(e) {}
           // If WS is down, fallback polling may be active; restart it.
           try { if (window.__srNotifPoll && typeof window.__srNotifPoll.stop === 'function') pollStart(); } catch(e) {}
+          // Safari/iOS often drops WS while tab is hidden; reconnect immediately on return.
+          try {
+            if (!ws && !wsDisabled) {
+              wsClearReconnect();
+              wsTimer = setTimeout(wsConnect, 700);
+            }
+          } catch(e) {}
 
           // If we previously entered hard backoff without ever opening, probe WS again on return.
           try {
@@ -1959,8 +1970,29 @@
       }, { passive: true });
 
       window.addEventListener('pagehide', function() {
-        wsDisabled = true;
-        wsStop();
+        wsClosingForPageHide = true;
+        wsClearReconnect();
+        wsStopKeepalive();
+        try { if (ws) ws.close(1000, 'pagehide'); } catch(e) {}
+        ws = null;
+      }, { passive: true });
+
+      window.addEventListener('pageshow', function() {
+        wsClosingForPageHide = false;
+        if (document.hidden || wsDisabled) return;
+        if (ws && ws.readyState === 1) return;
+        wsClearReconnect();
+        wsTimer = setTimeout(wsConnect, 500);
+      }, { passive: true });
+
+      window.addEventListener('online', function() {
+        if (document.hidden || wsDisabled) return;
+        if (ws && ws.readyState === 1) {
+          try { ws.send(JSON.stringify({ type: 'resync' })); } catch(e) {}
+          return;
+        }
+        wsClearReconnect();
+        wsTimer = setTimeout(wsConnect, 300);
       }, { passive: true });
 
       window.__srNotifWs = { stop: wsStop };

@@ -106,6 +106,8 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             )
             if int(code or 0) == 1006:
                 ua = self._scope_header("user-agent")
+                ua_l = ua.lower()
+                is_ios_safari = ("iphone" in ua_l or "ipad" in ua_l or "ipod" in ua_l) and ("safari" in ua_l)
                 bucket = timezone.now().strftime("%Y%m%d%H%M")
                 key = f"ws_disconnect_1006:{bucket}"
                 try:
@@ -113,7 +115,12 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                     count = cache.incr(key)
                 except Exception:
                     count = None
-                log_fn = logger.warning if (count in {1, 3, 5} or count is None) else logger.info
+                # iOS Safari frequently closes WS in background with 1006; keep this informational
+                # unless the rate becomes unusually high.
+                if is_ios_safari and count is not None and count < 10:
+                    log_fn = logger.info
+                else:
+                    log_fn = logger.warning if (count in {1, 3, 5} or count is None) else logger.info
                 log_fn(
                     "WS notifications abnormal_close code=1006 user_id=%s path=%s ua=%s minute_count=%s",
                     getattr(self, "user_id", None),
@@ -126,7 +133,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive_json(self, content: Dict[str, Any], **kwargs):
         msg_type = (content or {}).get("type")
-        if msg_type == "keepalive":
+        if msg_type in {"keepalive", "ping"}:
             try:
                 await self.send_json({"type": "pong"})
             except Exception:
