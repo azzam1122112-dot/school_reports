@@ -556,6 +556,15 @@
     @media (max-width: 768px) {
       .floating-login-btn {
         display: grid;
+        width: 62px;
+        height: 62px;
+        border-radius: 18px;
+        box-shadow: 0 12px 32px rgba(37, 99, 235, 0.55), 0 0 0 8px rgba(37, 99, 235, 0.18);
+        border-color: rgba(255, 255, 255, 0.55);
+      }
+
+      .floating-login-btn i {
+        font-size: 1.45rem;
       }
       
       /* Adjust button position for notch devices */
@@ -648,9 +657,9 @@
       
       /* Smaller floating button on very small screens */
       .floating-login-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.1rem;
+        width: 56px;
+        height: 56px;
+        font-size: 1.2rem;
         top: 15px;
         left: 15px;
       }
@@ -740,8 +749,9 @@
         </p>
 
         <div class="flex btn-group" style="gap: 16px; flex-wrap: wrap;">
-          <a href="#pricing" class="btn btn-primary">
-            ابدأ التجربة المجانية <i class="fa-solid fa-arrow-left"></i>
+          <a href="{% url 'reports:login' %}" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 10px; border-color: var(--brand); color: var(--brand);">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            تسجيل الدخول للمستخدمين الحاليين
           </a>
           <a href="#features" class="btn btn-outline">
             تصفح المميزات
@@ -749,13 +759,8 @@
           <a href="{% url 'reports:user_guide' %}" class="btn btn-outline">
             دليل المستخدم <i class="fa-solid fa-book-open"></i>
           </a>
-        </div>
-        
-        <!-- زر تسجيل الدخول للمستخدمين الحاليين -->
-        <div style="margin-top: 20px;">
-          <a href="{% url 'reports:login' %}" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 10px; border-color: var(--brand); color: var(--brand);">
-            <i class="fa-solid fa-right-to-bracket"></i>
-            تسجيل الدخول للمستخدمين الحاليين
+          <a href="#pricing" class="btn btn-primary">
+            ابدأ التجربة المجانية <i class="fa-solid fa-arrow-left"></i>
           </a>
         </div>
         
