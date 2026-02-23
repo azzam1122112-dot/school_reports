@@ -205,6 +205,10 @@
 
     /* Hero */
     .hero { padding: 160px 0 100px; position: relative; overflow: hidden; }
+    .hero .btn-group {
+      flex-direction: column;
+      align-items: flex-start;
+    }
     .hero-bg-anim {
       position: absolute; width: 600px; height: 600px; background: var(--brand); opacity: 0.05;
       filter: blur(80px); border-radius: 50%; top: -200px; right: -200px; z-index: -1;
@@ -590,7 +594,7 @@
       /* Hero Section */
       .hero { padding: 120px 0 60px; text-align: center; }
       .hero .grid { grid-template-columns: 1fr !important; gap: 40px !important; }
-      .hero .btn-group { justify-content: center; }
+      .hero .btn-group { justify-content: center; align-items: center; }
       .hero .badge { margin: 0 auto 20px; }
       
       /* Hero Visual Mobile Fixes */
@@ -748,7 +752,7 @@
            من التذاكر والصيانة إلى ملفات الإنجاز والتقارير و الاشعارات و التعاميم. <strong style="color:var(--brand)">منصة توثيق</strong> تجمع لك كل ما تحتاجه في مكان واحد، بتصميم فخم وسهل الاستخدام.
         </p>
 
-        <div class="flex btn-group" style="gap: 16px; flex-wrap: wrap;">
+        <div class="flex btn-group" style="gap: 16px;">
           <a href="{% url 'reports:login' %}" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 10px; border-color: var(--brand); color: var(--brand);">
             <i class="fa-solid fa-right-to-bracket"></i>
             تسجيل الدخول للمستخدمين الحاليين
