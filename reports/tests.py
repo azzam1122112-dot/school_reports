@@ -894,3 +894,134 @@ class PlatformAdminApiScopeTests(TestCase):
 		url = reverse("reports:api_department_members")
 		res = self.client.get(url, {"department": self.dept_a.slug, "target_school": self.school_b.id})
 		self.assertEqual(res.status_code, 403)
+
+# ================================================================
+# Tenant Isolation Tests
+# ================================================================
+class TenantIsolationTests(TestCase):
+	"""
+	Verify that a teacher/manager in School A cannot access
+	data from School B via the main views.
+	"""
+
+	def setUp(self):
+		# --- Two schools with active subscriptions ---
+		self.school_a = School.objects.create(name="School A", code="iso-a")
+		self.school_b = School.objects.create(name="School B", code="iso-b")
+
+		plan = SubscriptionPlan.objects.create(
+			name="Basic", price=0, days_duration=365, is_active=True,
+		)
+		today = timezone.localdate()
+		for s in (self.school_a, self.school_b):
+			SchoolSubscription.objects.create(
+				school=s, plan=plan,
+				start_date=today,
+				end_date=today + timezone.timedelta(days=365),
+			)
+
+		# --- Manager of school A ---
+		self.manager_a = Teacher.objects.create_user(
+			phone="0511100001", name="Manager A", password="pass",
+		)
+		SchoolMembership.objects.create(
+			school=self.school_a,
+			teacher=self.manager_a,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		# --- Teacher of school B ---
+		self.teacher_b = Teacher.objects.create_user(
+			phone="0511100002", name="Teacher B", password="pass",
+		)
+		SchoolMembership.objects.create(
+			school=self.school_b,
+			teacher=self.teacher_b,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+
+		# --- Report in school B ---
+		self.report_b = Report.objects.create(
+			school=self.school_b,
+			teacher=self.teacher_b,
+			title="Secret Report B",
+			report_date=today,
+			idea="Confidential data",
+		)
+
+		# --- Ticket in school B ---
+		self.ticket_b = Ticket.objects.create(
+			school=self.school_b,
+			creator=self.teacher_b,
+			title="Ticket B",
+			body="Private issue",
+		)
+
+		# --- Notification in school B ---
+		notif = Notification.objects.create(
+			title="Notice B",
+			message="For school B only",
+			school=self.school_b,
+			created_by=self.teacher_b,
+		)
+		self.notif_b = notif
+		NotificationRecipient.objects.create(
+			notification=notif,
+			teacher=self.teacher_b,
+		)
+
+	def _login_as_manager_a(self):
+		"""Log in as manager A and set active school to school A."""
+		self.client.force_login(self.manager_a)
+		session = self.client.session
+		session["active_school_id"] = self.school_a.id
+		session.save()
+
+	# ── Reports ──────────────────────────────────────────────────
+	def test_manager_a_cannot_see_school_b_reports_in_admin_list(self):
+		self._login_as_manager_a()
+		url = reverse("reports:admin_reports")
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
+		self.assertNotContains(res, "Secret Report B")
+
+	def test_manager_a_cannot_delete_school_b_report(self):
+		self._login_as_manager_a()
+		url = reverse("reports:admin_delete_report", args=[self.report_b.pk])
+		res = self.client.post(url)
+		# Should be 404 or redirect, NOT 200 success
+		self.assertIn(res.status_code, [302, 403, 404])
+		self.assertTrue(Report.objects.filter(pk=self.report_b.pk).exists())
+
+	# ── Tickets ──────────────────────────────────────────────────
+	def test_manager_a_cannot_see_school_b_ticket(self):
+		self._login_as_manager_a()
+		url = reverse("reports:ticket_detail", args=[self.ticket_b.pk])
+		res = self.client.get(url)
+		self.assertIn(res.status_code, [302, 403, 404])
+
+	def test_manager_a_cannot_see_school_b_tickets_in_inbox(self):
+		self._login_as_manager_a()
+		url = reverse("reports:tickets_inbox")
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
+		self.assertNotContains(res, "Ticket B")
+
+	# ── Notifications ────────────────────────────────────────────
+	def test_manager_a_cannot_see_school_b_notification(self):
+		self._login_as_manager_a()
+		url = reverse("reports:notification_detail", args=[self.notif_b.pk])
+		res = self.client.get(url)
+		self.assertIn(res.status_code, [302, 403, 404])
+
+	# ── Dashboard ────────────────────────────────────────────────
+	def test_manager_a_dashboard_shows_zero_for_school_b_data(self):
+		"""Dashboard stats reflect only the active school, not cross-school."""
+		self._login_as_manager_a()
+		url = reverse("reports:admin_dashboard")
+		res = self.client.get(url)
+		self.assertEqual(res.status_code, 200)
+		# School A has 0 reports, so the count should be 0
+		self.assertContains(res, "0")

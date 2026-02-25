@@ -213,6 +213,7 @@ INSTALLED_APPS = [
     # Third-party
     "channels",
     "django_celery_results",
+    "rest_framework",
     # Our apps
     "core",
     "reports",
@@ -372,11 +373,15 @@ else:
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_SSL = _env_bool("DB_SSL", False)
 
+# الحد الأقصى لعمر الاتصال (ثوانٍ). 0 يعني إغلاق الاتصال بعد كل طلب.
+# 600 (10 دقائق) يُحسّن الأداء بشكل ملحوظ مع عدد كبير من المدارس.
+_CONN_MAX_AGE = int(os.getenv("CONN_MAX_AGE", "600"))
+
 if DATABASE_URL and dj_database_url:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
-            conn_max_age=0,  # يقلل مشاكل SSL SYSCALL على Render
+            conn_max_age=_CONN_MAX_AGE,
             ssl_require=DB_SSL,
         )
     }
@@ -582,6 +587,24 @@ IDLE_LOGOUT_SECONDS = int(os.getenv("IDLE_LOGOUT_SECONDS", str(30 * 60)))
 SESSION_COOKIE_AGE = IDLE_LOGOUT_SECONDS
 SESSION_SAVE_EVERY_REQUEST = False
 
+
+# ----------------- Django REST Framework -----------------
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": "120/min",
+    },
+}
 
 # ----------------- Misc -----------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

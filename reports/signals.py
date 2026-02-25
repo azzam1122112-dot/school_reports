@@ -8,11 +8,13 @@ from reports.models import (
     AuditLog,
     Notification,
     NotificationRecipient,
+    Report,
     School,
     SchoolMembership,
     SchoolSubscription,
     Ticket,
 )
+from reports.cache_utils import invalidate_school, invalidate_user_notifications
 
 User = get_user_model()
 
@@ -395,5 +397,38 @@ def notify_admin_on_platform_ticket(sender, instance, created, **kwargs):
                         notification=notification,
                         teacher_ids=[i for i in admin_ids if i],
                     )
+    except Exception:
+        pass
+
+# ── Cache invalidation signals ──────────────────────────────────────
+@receiver(post_save, sender=Report)
+def _invalidate_school_on_report(sender, instance, **kwargs):
+    """Bust school stats cache when a report is created/updated."""
+    try:
+        sid = getattr(instance, "school_id", None)
+        if sid:
+            invalidate_school(sid)
+    except Exception:
+        pass
+
+
+@receiver(post_save, sender=Ticket)
+def _invalidate_school_on_ticket(sender, instance, **kwargs):
+    """Bust school stats cache when a ticket is created/updated."""
+    try:
+        sid = getattr(instance, "school_id", None)
+        if sid:
+            invalidate_school(sid)
+    except Exception:
+        pass
+
+
+@receiver(post_save, sender=NotificationRecipient)
+def _invalidate_user_notif_cache(sender, instance, **kwargs):
+    """Bust unread notification count for the recipient."""
+    try:
+        tid = getattr(instance.teacher, "id", None)
+        if tid:
+            invalidate_user_notifications(tid)
     except Exception:
         pass

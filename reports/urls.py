@@ -13,6 +13,7 @@ urlpatterns = [
     path("guide/download/", views.user_guide_download, name="user_guide_download"),
     path("guide/download/pdf/", views.user_guide_download_pdf, name="user_guide_download_pdf"),
     path("login/", views.login_view, name="login"),
+    path("register/", views.register_school, name="register_school"),
     path("logout/", views.logout_view, name="logout"),
     path("profile/", views.my_profile, name="my_profile"),
 

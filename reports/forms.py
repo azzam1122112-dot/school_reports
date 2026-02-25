@@ -1489,7 +1489,7 @@ class NotificationCreateForm(forms.Form):
         
         # التحقق مما إذا كان المستخدم مديراً ضمن المدرسة النشطة (عزل مدارس)
         try:
-            from .views import _is_manager_in_school
+            from .views._helpers import _is_manager_in_school
             is_manager = bool(_is_manager_in_school(user, active_school))
         except Exception:
             is_manager = False

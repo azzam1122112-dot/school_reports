@@ -31,6 +31,9 @@ dj-database-url==3.0.1
 # Rate limiting
 django-ratelimit==4.1.0
 
+# REST API
+djangorestframework>=3.16,<4.0
+
 # Cloudflare R2 (S3-compatible)
 django-storages
 boto3
