@@ -1841,6 +1841,12 @@
 
         wsClearReconnect();
 
+        // Close any existing connection (CONNECTING or OPEN) to avoid duplicates.
+        if (ws) {
+          try { ws.onclose = null; ws.close(); } catch(e) {}
+          ws = null;
+        }
+
         try {
           ws = new WebSocket(wsUrl());
         } catch (e) {
@@ -1980,7 +1986,8 @@
       window.addEventListener('pageshow', function() {
         wsClosingForPageHide = false;
         if (document.hidden || wsDisabled) return;
-        if (ws && ws.readyState === 1) return;
+        // Guard: if ws already exists (CONNECTING or OPEN), skip.
+        if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
         wsClearReconnect();
         wsTimer = setTimeout(wsConnect, 500);
       }, { passive: true });
