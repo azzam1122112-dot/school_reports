@@ -405,9 +405,22 @@
 </style>
 {% endblock %}
 
+
 {% block content %}
 <div class="deptlist-scope">
   <div class="wrap" dir="rtl">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <a href="{% url 'reports:admin_dashboard' %}" class="d-btn d-btn-primary" style="font-weight:900;min-width:160px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;" title="عودة إلى لوحة المدير">
+        <i class="fa-solid fa-arrow-right-to-bracket"></i> عودة إلى لوحة المدير
+      </a>
+    </div>
+    <div class="dept-crumbs" style="margin-bottom:18px">
+      <a href="{% url 'reports:admin_dashboard' %}" title="العودة للوحة المدير">
+        <i class="fa-solid fa-gauge-high"></i> لوحة المدير
+      </a>
+      <span>›</span>
+      <span><i class="fa-solid fa-layer-group"></i> إدارة الأقسام</span>
+    </div>
     <div class="d-panel" role="region" aria-labelledby="dept-title">
       <div class="d-hero">
         <div>
@@ -416,15 +429,14 @@
             لوحة إدارة
           </span>
           <h1 class="title" id="dept-title">إدارة الأقسام</h1>
-          <p class="hint">إضافة وتعديل وحذف الأقسام وإدارة أعضاء كل قسم بشكل حديث ومتناسق مع المنصة.</p>
+          <p class="hint"><b>وصف مختصر:</b> يمكنك من هنا إضافة أو تعديل أو حذف الأقسام وإدارة أعضاء كل قسم بشكل حديث ومتناسق مع المنصة.</p>
         </div>
-
         <div class="hero-actions">
           <span class="count-badge" aria-live="polite">
             <i class="fa-solid fa-hashtag" aria-hidden="true"></i>
             عدد الأقسام: <b>{{ departments|length|default:"0" }}</b>
           </span>
-          <a class="d-btn d-btn-primary" href="{% url 'reports:department_create' %}">
+          <a class="d-btn d-btn-primary" href="{% url 'reports:department_create' %}" style="font-weight:900;min-width:120px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;">
             <i class="fa-solid fa-plus" aria-hidden="true"></i>
             قسم جديد
           </a>

@@ -358,45 +358,54 @@
 
 {% block content %}
 <div class="dept-wrap" dir="rtl">
+
   <div class="dept-crumbs">
-    <a href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
-    <span>·</span>
-    <a href="{% url 'reports:departments_list' %}">الأقسام</a>
-    <span>·</span>
-    <span>{% if form.instance.pk %}تعديل قسم{% else %}إضافة قسم{% endif %}</span>
+    <a href="{% url 'reports:admin_dashboard' %}" title="العودة للوحة المدير">
+      <i class="fa-solid fa-gauge-high"></i> لوحة المدير
+    </a>
+    <span>›</span>
+    <a href="{% url 'reports:departments_list' %}" title="قائمة الأقسام">
+      <i class="fa-solid fa-layer-group"></i> الأقسام
+    </a>
+    <span>›</span>
+    <span>{% if form.instance.pk %}<i class="fa-solid fa-pen-to-square"></i> تعديل قسم{% else %}<i class="fa-solid fa-plus"></i> إضافة قسم{% endif %}</span>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <a href="{% url 'reports:admin_dashboard' %}" class="btn btn-primary" style="font-weight:900;min-width:160px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;" title="عودة إلى لوحة المدير">
+      <i class="fa-solid fa-arrow-right-to-bracket"></i> عودة إلى لوحة المدير
+    </a>
   </div>
 
   <div class="dept-panel">
     <div class="dept-hero">
       <div>
         <span class="dept-kicker">
-          <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+          <i class="fa-solid fa-sitemap" aria-hidden="true" title="إدارة الأقسام"></i>
           إدارة الأقسام
         </span>
         <h2 class="dept-title">
           {% if form.instance.pk %}
-            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+            <i class="fa-solid fa-pen-to-square" aria-hidden="true" title="تعديل قسم"></i>
             تعديل قسم
           {% else %}
-            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            <i class="fa-solid fa-plus" aria-hidden="true" title="إضافة قسم"></i>
             إضافة قسم
           {% endif %}
         </h2>
-
-        <div class="dept-sub">
-          سيظهر هذا القسم كـ <em>دور</em> في نماذج {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }} باستخدام <strong>الكود (slug)</strong> كقيمة،
-          ويمكنك الحفظ سريعًا باستخدام <span class="dept-kbd">Ctrl/⌘ + S</span>.
+        <div class="dept-sub" style="margin-bottom:8px">
+          <b>وصف مختصر:</b> يمكنك من هنا إضافة أو تعديل قسم جديد ليظهر كخيار "دور" في نماذج {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }}. استخدم كود فريد (slug) لتمييز القسم.<br>
+          <span style="color:#2563eb;font-weight:900">تلميح:</span> يمكنك الحفظ السريع باستخدام <span class="dept-kbd">Ctrl/⌘ + S</span>.
         </div>
       </div>
-
       <div class="dept-hero-actions">
-        <a class="dept-chip-link" href="{% url 'reports:departments_list' %}">
+        <a class="dept-chip-link" href="{% url 'reports:departments_list' %}" title="قائمة الأقسام">
           <i class="fa-solid fa-list" aria-hidden="true"></i>
           قائمة الأقسام
         </a>
         {% if form.instance.pk %}
           {% with current_code=form.instance.slug|default:form.instance.pk %}
-            <a class="dept-chip-link" href="{% url 'reports:department_members' code=current_code %}">
+            <a class="dept-chip-link" href="{% url 'reports:department_members' code=current_code %}" title="أعضاء القسم">
               <i class="fa-solid fa-users" aria-hidden="true"></i>
               أعضاء القسم
             </a>
@@ -495,7 +504,7 @@
       {% endif %}
 
       <div class="dept-section">
-        <div class="dept-help">معاينة كيف سيظهر هذا القسم كخيار “دور”:</div>
+        <div class="dept-help"><i class="fa-solid fa-eye"></i> معاينة كيف سيظهر هذا القسم كخيار “دور”:</div>
         <div class="dept-preview" id="rolePreview">
           <span class="dept-pill role" title="قيمة الدور (slug)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -503,7 +512,6 @@
             </svg>
             <span id="pvCode">—</span>
           </span>
-
           <span class="dept-pill" title="الاسم المعروض">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
@@ -516,11 +524,11 @@
       {% for h in form.hidden_fields %}{{ h }}{% endfor %}
 
       <div class="dept-actions">
-        <button class="btn btn-primary" type="submit">
+        <button class="btn btn-primary" type="submit" style="font-weight:900;min-width:120px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;">
           <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
           حفظ
         </button>
-        <a class="btn btn-ghost" href="{% url 'reports:departments_list' %}">
+        <a class="btn btn-ghost" href="{% url 'reports:departments_list' %}" style="font-weight:900;min-width:100px;transition:all .18s;">
           <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
           رجوع
         </a>

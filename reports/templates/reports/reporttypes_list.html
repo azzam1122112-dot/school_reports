@@ -424,9 +424,22 @@
 </style>
 {% endblock %}
 
+
 {% block content %}
 <div class="rt-scope" dir="rtl">
   <div class="wrap">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <a href="{% url 'reports:admin_dashboard' %}" class="rt-btn rt-btn-primary" style="font-weight:900;min-width:160px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;" title="عودة إلى لوحة المدير">
+        <i class="fa-solid fa-arrow-right-to-bracket"></i> عودة إلى لوحة المدير
+      </a>
+    </div>
+    <div class="dept-crumbs" style="margin-bottom:18px">
+      <a href="{% url 'reports:admin_dashboard' %}" title="العودة للوحة المدير">
+        <i class="fa-solid fa-gauge-high"></i> لوحة المدير
+      </a>
+      <span>›</span>
+      <span><i class="fa-solid fa-tags"></i> أنواع التقارير</span>
+    </div>
     <div class="panel">
       <div class="hero">
         <div>
@@ -438,17 +451,15 @@
             <i class="fa-solid fa-tags" aria-hidden="true"></i>
             أنواع التقارير
           </h1>
-
           {% if not db_backed %}
             <div class="notice" role="alert">
               تعذّر استخدام الإدارة الكاملة لأن موديل <code>ReportType</code> غير مفعّل.
               تُعرض القائمة أدناه <b>للمراجعة فقط</b> من الحقل الحالي.
             </div>
           {% else %}
-            <p class="sub">تحكّم في أنواع التقارير، ترتيبها، وتفعيلها أو إيقافها مع حماية الحذف عند وجود استخدام فعلي.</p>
+            <p class="sub"><b>وصف مختصر:</b> يمكنك من هنا التحكم في أنواع التقارير، ترتيبها، وتفعيلها أو إيقافها مع حماية الحذف عند وجود استخدام فعلي.</p>
           {% endif %}
         </div>
-
         <div class="hero-actions">
           {% if items %}
             <span class="count" aria-live="polite">
@@ -457,7 +468,7 @@
             </span>
           {% endif %}
           {% if db_backed %}
-            <a class="rt-btn rt-btn-primary" href="{% url 'reports:reporttype_create' %}">
+            <a class="rt-btn rt-btn-primary" href="{% url 'reports:reporttype_create' %}" style="font-weight:900;min-width:120px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;">
               <i class="fa-solid fa-plus" aria-hidden="true"></i>
               إضافة نوع
             </a>

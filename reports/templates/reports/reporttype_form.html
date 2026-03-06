@@ -249,8 +249,25 @@
 </style>
 {% endblock %}
 
+
 {% block content %}
 <div class="container rt-wrap" dir="rtl">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <a href="{% url 'reports:admin_dashboard' %}" class="rt-btn rt-btn-primary" style="font-weight:900;min-width:160px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;" title="عودة إلى لوحة المدير">
+      <i class="fa-solid fa-arrow-right-to-bracket"></i> عودة إلى لوحة المدير
+    </a>
+  </div>
+  <div class="dept-crumbs" style="margin-bottom:18px">
+    <a href="{% url 'reports:admin_dashboard' %}" title="العودة للوحة المدير">
+      <i class="fa-solid fa-gauge-high"></i> لوحة المدير
+    </a>
+    <span>›</span>
+    <a href="{% url 'reports:reporttypes_list' %}" title="أنواع التقارير">
+      <i class="fa-solid fa-tags"></i> أنواع التقارير
+    </a>
+    <span>›</span>
+    <span>{% if mode == "edit" %}<i class="fa-solid fa-pen-to-square"></i> تعديل نوع تقرير{% else %}<i class="fa-solid fa-plus"></i> إضافة نوع تقرير{% endif %}</span>
+  </div>
   <div class="rt-panel">
     <div class="rt-head">
       <div>
@@ -267,9 +284,8 @@
             إضافة نوع تقرير
           {% endif %}
         </h1>
-        <p class="rt-sub">أنواع التقارير تظهر في نموذج إضافة التقرير وتُستخدم للفلاتر والتقارير الإدارية.</p>
+        <p class="rt-sub"><b>وصف مختصر:</b> يمكنك من هنا إضافة أو تعديل نوع تقرير جديد ليظهر في نموذج إضافة التقرير ويُستخدم للفلاتر والتقارير الإدارية.</p>
       </div>
-
       <div class="rt-actions-top">
         <span class="rt-badge" aria-label="وضع الصفحة">
           {% if mode == "edit" %}وضع التعديل{% else %}وضع الإضافة{% endif %}
