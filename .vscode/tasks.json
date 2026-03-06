@@ -1,0 +1,132 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Django: check",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"check"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Django: test",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"test"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Django: test (tail)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"test",
+				"-v",
+				"1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Django: test (finish)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"test",
+				"-v",
+				"1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Django: test (safe)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"test",
+				"-v",
+				"1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Django: check (after print tweaks)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"check"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Django: test (merged achievements)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"test",
+				"-v",
+				"1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Django: set default school logo (dry-run)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"set_default_school_logo",
+				"--dry-run"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Django: set default school logo (apply)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"set_default_school_logo"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Django: set default school logo (verify)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"set_default_school_logo",
+				"--dry-run"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Django: migrate",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"args": [
+				"manage.py",
+				"migrate"
+			],
+			"isBackground": false,
+			"group": "build"
+		}
+	]
+}
