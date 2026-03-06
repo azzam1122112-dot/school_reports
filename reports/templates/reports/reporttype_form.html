@@ -25,416 +25,253 @@
     --rt-radius-md: 14px;
     --rt-shadow: 0 24px 54px rgba(37, 99, 235, .09);
     --rt-shadow-sm: 0 8px 22px rgba(2, 6, 23, .07);
-    --rt-t: var(--t-fast, all .22s ease);
+    {% extends "base.html" %}
+    {% block title %}{% if mode == "edit" %}تعديل نوع تقرير{% else %}إضافة نوع تقرير{% endif %}{% endblock %}
+    {% block head %}
+    <style>
+      body { background: linear-gradient(120deg, #e0e7ff 0%, #f0fdfa 100%); min-height: 100vh; }
+      .smart-card {
+        max-width: 700px;
+        margin: 40px auto 24px auto;
+        background: #fff;
+        border-radius: 32px;
+        box-shadow: 0 8px 48px #2563eb22, 0 1.5px 0 #2563eb11;
+        padding: 0 0 32px 0;
+        overflow: hidden;
+        border: 1.5px solid #e0e7ff;
+        position: relative;
+        direction: rtl;
+      }
+      .smart-header {
+        background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+        color: #fff;
+        padding: 32px 36px 18px 36px;
+        border-bottom-left-radius: 48px 32px;
+        border-bottom-right-radius: 48px 32px;
+        box-shadow: 0 2px 16px #2563eb22;
+        position: relative;
+      }
+      .smart-header .icon {
+        font-size: 2.2rem;
+        margin-left: 12px;
+        vertical-align: middle;
+      }
+      .smart-header .breadcrumbs {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+        opacity: 0.93;
+      }
+      .smart-header .breadcrumbs a {
+        color: #fff;
+        text-decoration: underline dotted;
+        margin: 0 4px;
+        transition: color .18s;
+      }
+      .smart-header .breadcrumbs a:hover {
+        color: #fbbf24;
+      }
+      .smart-header .title {
+        font-size: 2.1rem;
+        font-weight: 900;
+        margin-bottom: 6px;
+        letter-spacing: -1px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .smart-header .desc {
+        font-size: 1.08rem;
+        font-weight: 500;
+        opacity: 0.96;
+        margin-bottom: 0;
+      }
+      .smart-header .dashboard-btn {
+        position: absolute;
+        left: 36px;
+        top: 32px;
+        background: #fff;
+        color: #2563eb;
+        border-radius: 999px;
+        font-weight: 900;
+        padding: 8px 22px;
+        box-shadow: 0 2px 12px #2563eb22;
+        border: none;
+        font-size: 1.08rem;
+        text-decoration: none;
+        transition: background .18s, color .18s;
+        z-index: 2;
+      }
+      .smart-header .dashboard-btn:hover {
+        background: #2563eb;
+        color: #fff;
+      }
+      .smart-form {
+        padding: 32px 36px 0 36px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .smart-section {
+        background: #f8fafc;
+        border-radius: 18px;
+        padding: 18px 22px 12px 22px;
+        box-shadow: 0 1.5px 0 #2563eb11;
+        margin-bottom: 0;
+        border: 1px solid #e0e7ff;
+      }
+      .smart-label {
+        font-weight: 900;
+        color: #2563eb;
+        margin-bottom: 6px;
+        display: block;
+        font-size: 1.08rem;
+      }
+      .smart-input, .smart-form select, .smart-form textarea {
+        width: 100%;
+        border-radius: 10px;
+        border: 1.5px solid #cbd5e1;
+        padding: 10px 12px;
+        font-size: 1.08rem;
+        font-weight: 700;
+        background: #fff;
+        color: #222;
+        margin-bottom: 4px;
+        transition: border-color .18s;
+      }
+      .smart-input:focus, .smart-form select:focus, .smart-form textarea:focus {
+        border-color: #2563eb;
+        outline: none;
+      }
+      .smart-help {
+        color: #64748b;
+        font-size: .97rem;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+      .smart-error {
+        color: #b91c1c;
+        background: #fee2e2;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-weight: 800;
+        margin-bottom: 4px;
+        font-size: .98rem;
+      }
+      .smart-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .smart-btn {
+        border-radius: 999px;
+        min-width: 120px;
+        font-weight: 900;
+        font-size: 1.08rem;
+        padding: 10px 28px;
+        border: none;
+        background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+        color: #fff;
+        box-shadow: 0 2px 12px #2563eb22;
+        transition: background .18s, color .18s, transform .18s;
+        cursor: pointer;
+      }
+      .smart-btn:hover {
+        background: #fff;
+        color: #2563eb;
+        border: 1.5px solid #2563eb;
+        transform: translateY(-2px);
+      }
+      .smart-btn.ghost {
+        background: #fff;
+        color: #2563eb;
+        border: 1.5px solid #2563eb;
+        box-shadow: none;
+      }
+      .smart-btn.ghost:hover {
+        background: #2563eb;
+        color: #fff;
+      }
+      @media (max-width: 600px) {
+        .smart-card, .smart-header, .smart-form {
+          padding-left: 10px !important;
+          padding-right: 10px !important;
+        }
+        .smart-header .dashboard-btn {
+          left: 10px;
+          top: 10px;
+          padding: 6px 12px;
+          font-size: .98rem;
+        }
+      }
+    </style>
+    {% endblock head %}
 
-    max-width: 1120px;
-    margin: 0 auto;
-    padding: clamp(10px,2vw,18px);
-  }
-
-  html[data-theme="dark"] .rt-wrap{
-    --rt-ink: #e4ecff;
-    --rt-muted: #9fb0d8;
-    --rt-line: #1f2d4f;
-    --rt-line2: #13203f;
-    --rt-card: #0f172a;
-    --rt-bg: #0b1429;
-    --rt-brand-soft: #162c55;
-    --rt-danger-bg: #38161d;
-    --rt-danger-line: #5b222d;
-    --rt-shadow: 0 22px 44px rgba(0, 0, 0, .38);
-    --rt-shadow-sm: 0 8px 22px rgba(0, 0, 0, .28);
-  }
-
-  .rt-panel{
-    position:relative;
-    isolation:isolate;
-    overflow:hidden;
-    border:1px solid var(--rt-line);
-    border-radius:var(--rt-radius-lg);
-    background:
-      radial-gradient(1100px 420px at 100% -20%, rgba(37,99,235,.12), transparent 60%),
-      radial-gradient(900px 360px at 0% -10%, rgba(16,185,129,.1), transparent 58%),
-      linear-gradient(180deg, var(--rt-card), color-mix(in srgb, var(--rt-card) 88%, var(--rt-bg)));
-    box-shadow:var(--rt-shadow);
-    padding:clamp(14px,2.2vw,22px);
-  }
-
-  .rt-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:12px;
-    flex-wrap:wrap;
-    margin-bottom:12px;
-  }
-
-  .rt-kicker{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:6px 12px;
-    border-radius:999px;
-    border:1px solid color-mix(in srgb, var(--rt-brand) 24%, var(--rt-line));
-    background:var(--rt-brand-soft);
-    color:#1d4ed8;
-    font-weight:900;
-    font-size:.88rem;
-  }
-  html[data-theme="dark"] .rt-kicker{color:#c7d9ff}
-
-  .rt-title{
-    margin:8px 0 0;
-    font-weight:950;
-    font-size:clamp(1.16rem,1.9vw,1.42rem);
-    color:var(--rt-ink);
-    letter-spacing:-.2px;
-    display:flex;
-    align-items:center;
-    gap:9px;
-  }
-  .rt-sub{
-    margin:8px 0 0;
-    color:var(--rt-muted);
-    font-weight:820;
-    line-height:1.7;
-    max-width:760px;
-  }
-
-  .rt-actions-top{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
-  .rt-chip{
-    display:inline-flex;
-    align-items:center;
-    gap:7px;
-    border-radius:999px;
-    padding:8px 12px;
-    border:1px solid var(--rt-line);
-    background:linear-gradient(180deg, var(--rt-line2), var(--rt-card));
-    color:var(--rt-ink);
-    text-decoration:none;
-    font-weight:900;
-    white-space:nowrap;
-    transition:var(--rt-t);
-  }
-  .rt-chip:hover{
-    transform:translateY(-1px);
-    box-shadow:var(--rt-shadow-sm);
-  }
-
-  .rt-badge{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:7px 12px;
-    border-radius:999px;
-    background:linear-gradient(180deg, #eef4ff, #dbeafe);
-    border:1px solid #c7d8ff;
-    color:#1e3a8a;
-    font-weight:950;
-    white-space:nowrap;
-  }
-  html[data-theme="dark"] .rt-badge{
-    background:linear-gradient(180deg, #132a54, #132448);
-    border-color:#27406f;
-    color:#d4e0ff;
-  }
-
-  .rt-alert{
-    border-radius:14px;
-    padding:12px 14px;
-    font-weight:900;
-    border:1px solid var(--rt-danger-line);
-    background:var(--rt-danger-bg);
-    color:#b42318;
-    margin-bottom:12px;
-  }
-  .rt-alert ul{margin:0;padding-right:18px}
-  .rt-alert li{margin:4px 0}
-
-  .rt-tip{
-    display:flex;
-    align-items:flex-start;
-    gap:10px;
-    padding:10px 12px;
-    border-radius:14px;
-    border:1px solid var(--rt-line);
-    background:linear-gradient(180deg, var(--rt-line2), var(--rt-card));
-    color:var(--rt-ink);
-    font-weight:850;
-  }
-  .rt-tip i{margin-top:2px;opacity:.85}
-
-  .rt-form{display:grid;gap:12px}
-  .rt-section{
-    border:1px solid var(--rt-line);
-    border-radius:16px;
-    background:linear-gradient(180deg, color-mix(in srgb, var(--rt-card) 96%, #fff), var(--rt-card));
-    padding:14px;
-  }
-  .rt-grid{display:grid;gap:12px}
-  @media(min-width:860px){.rt-grid{grid-template-columns:1fr 1fr}}
-
-  .rt-field label{
-    display:block;
-    font-weight:950;
-    color:var(--rt-ink);
-    margin-bottom:6px;
-  }
-  .rt-help{
-    margin-top:6px;
-    color:var(--rt-muted);
-    font-weight:820;
-    font-size:.88rem;
-    line-height:1.6;
-  }
-  .rt-err{
-    margin-top:6px;
-    color:#b42318;
-    font-weight:900;
-    font-size:.9rem;
-  }
-
-  .rt-wrap .input,
-  .rt-wrap .select,
-  .rt-wrap .textarea{
-    width:100%;
-    border:1px solid var(--rt-line);
-    border-radius:12px;
-    background:var(--rt-card);
-    color:var(--rt-ink);
-    transition:var(--rt-t);
-  }
-  .rt-wrap .input:focus,
-  .rt-wrap .select:focus,
-  .rt-wrap .textarea:focus{
-    border-color: rgba(59,130,246,.55);
-    box-shadow: 0 0 0 3px rgba(59,130,246,.14);
-    outline:none;
-  }
-
-  .rt-inline{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-top:10px;
-  }
-  .rt-inline .check-label{font-weight:900;color:var(--rt-ink)}
-
-  .rt-actions{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-top:2px;
-  }
-  .rt-actions .btn{min-height:44px}
-  .rt-actions .btn-primary{flex:1}
-
-  @media(max-width:560px){
-    .rt-actions .btn-primary{flex:unset}
-    .rt-actions .btn{width:100%;justify-content:center}
-    .rt-actions-top{width:100%}
-    .rt-chip,.rt-badge{width:100%;justify-content:center}
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    .rt-wrap *{transition:none !important}
-    .rt-chip:hover{transform:none !important}
-  }
-</style>
-{% endblock %}
-
-
-{% block content %}
-<div class="container rt-wrap" dir="rtl">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-    <a href="{% url 'reports:admin_dashboard' %}" class="rt-btn rt-btn-primary" style="font-weight:900;min-width:160px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;" title="عودة إلى لوحة المدير">
-      <i class="fa-solid fa-arrow-right-to-bracket"></i> عودة إلى لوحة المدير
-    </a>
-  </div>
-  <div class="dept-crumbs" style="margin-bottom:18px">
-    <a href="{% url 'reports:admin_dashboard' %}" title="العودة للوحة المدير">
-      <i class="fa-solid fa-gauge-high"></i> لوحة المدير
-    </a>
-    <span>›</span>
-    <a href="{% url 'reports:reporttypes_list' %}" title="أنواع التقارير">
-      <i class="fa-solid fa-tags"></i> أنواع التقارير
-    </a>
-    <span>›</span>
-    <span>{% if mode == "edit" %}<i class="fa-solid fa-pen-to-square"></i> تعديل نوع تقرير{% else %}<i class="fa-solid fa-plus"></i> إضافة نوع تقرير{% endif %}</span>
-  </div>
-  <div class="rt-panel">
-    <div class="rt-head">
-      <div>
-        <span class="rt-kicker">
-          <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i>
-          إدارة أنواع التقارير
-        </span>
-        <h1 class="rt-title">
-          {% if mode == "edit" %}
-            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-            تعديل نوع تقرير
-          {% else %}
-            <i class="fa-solid fa-plus" aria-hidden="true"></i>
-            إضافة نوع تقرير
-          {% endif %}
-        </h1>
-        <p class="rt-sub"><b>وصف مختصر:</b> يمكنك من هنا إضافة أو تعديل نوع تقرير جديد ليظهر في نموذج إضافة التقرير ويُستخدم للفلاتر والتقارير الإدارية.</p>
-      </div>
-      <div class="rt-actions-top">
-        <span class="rt-badge" aria-label="وضع الصفحة">
-          {% if mode == "edit" %}وضع التعديل{% else %}وضع الإضافة{% endif %}
-        </span>
-        <a class="rt-chip" href="{% url 'reports:reporttypes_list' %}">
-          <i class="fa-solid fa-list" aria-hidden="true"></i>
-          قائمة الأنواع
+    {% block content %}
+    <div class="smart-card" dir="rtl">
+      <div class="smart-header">
+        <a href="{% url 'reports:admin_dashboard' %}" class="dashboard-btn" title="عودة إلى لوحة المدير">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> لوحة المدير
         </a>
-      </div>
-    </div>
-
-    <div class="rt-tip" style="margin-bottom:12px">
-      <i class="fa-solid fa-circle-info"></i>
-      <div>
-        <div style="font-weight:950;margin-bottom:2px">تنبيه</div>
-        <div style="color:var(--muted);font-weight:850;line-height:1.6">
-          الرمز <b>(code)</b> يُحفظ داخل <code>Report.category</code>. اختَر قيمة ثابتة ولا تغيّرها كثيرًا بعد استخدام النوع في التقارير.
+        <div class="breadcrumbs">
+          <a href="{% url 'reports:admin_dashboard' %}"><i class="fa-solid fa-gauge-high"></i> لوحة المدير</a>
+          <span>›</span>
+          <a href="{% url 'reports:reporttypes_list' %}"><i class="fa-solid fa-tags"></i> أنواع التقارير</a>
+          <span>›</span>
+          <span>{% if mode == "edit" %}<i class="fa-solid fa-pen-to-square"></i> تعديل نوع تقرير{% else %}<i class="fa-solid fa-plus"></i> إضافة نوع تقرير{% endif %}</span>
+        </div>
+        <div class="title">
+          <span class="icon"><i class="fa-solid fa-file-circle-plus"></i></span>
+          {% if mode == "edit" %}تعديل نوع تقرير{% else %}إضافة نوع تقرير{% endif %}
+        </div>
+        <div class="desc">
+          يمكنك من هنا إضافة أو تعديل نوع تقرير جديد ليظهر في نموذج إضافة التقرير ويُستخدم للفلاتر والتقارير الإدارية.
         </div>
       </div>
-    </div>
-
-    {% if form.non_field_errors %}
-      <div class="rt-alert" data-autohide="false">
-        <ul>
-          {% for e in form.non_field_errors %}
-            <li>{{ e }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-
-    <form method="post" class="rt-form" novalidate>
-      {% csrf_token %}
-
-      <div class="rt-grid rt-section">
-        <div class="rt-field">
-          <label for="{{ form.name.id_for_label }}">الاسم</label>
+      <form method="post" class="smart-form" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="smart-error" role="alert" aria-live="polite">
+            {% for e in form.non_field_errors %}• {{ e }}<br>{% endfor %}
+          </div>
+        {% endif %}
+        <div class="smart-section">
+          <label class="smart-label" for="{{ form.name.id_for_label }}">الاسم</label>
           {{ form.name }}
-          {% if form.name.errors %}
-            <div class="rt-err">{{ form.name.errors.0 }}</div>
-          {% endif %}
+          {% if form.name.errors %}<div class="smart-error">{{ form.name.errors.0 }}</div>{% endif %}
         </div>
-
-        <div class="rt-field">
-          <label for="{{ form.code.id_for_label }}">الرمز (code)</label>
+        <div class="smart-section">
+          <label class="smart-label" for="{{ form.code.id_for_label }}">الرمز (code)</label>
           {{ form.code }}
-          <div class="rt-help">
-            يُفضّل أحرف إنجليزية صغيرة وشرطة سفلية. مثال: <code>activity</code> أو <code>school_affairs</code>.
+          <div class="smart-help">يُفضل أحرف إنجليزية صغيرة وشرطة سفلية. مثال: <code>activity</code> أو <code>school_affairs</code>.</div>
+          {% if form.code.errors %}<div class="smart-error">{{ form.code.errors.0 }}</div>{% endif %}
+        </div>
+        {% if form.description %}
+          <div class="smart-section">
+            <label class="smart-label" for="{{ form.description.id_for_label }}">الوصف</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="smart-error">{{ form.description.errors.0 }}</div>{% endif %}
           </div>
-          {% if form.code.errors %}
-            <div class="rt-err">{{ form.code.errors.0 }}</div>
-          {% endif %}
-        </div>
-      </div>
-
-      {% if form.description %}
-        <div class="rt-field rt-section">
-          <label for="{{ form.description.id_for_label }}">الوصف</label>
-          {{ form.description }}
-          {% if form.description.errors %}
-            <div class="rt-err">{{ form.description.errors.0 }}</div>
-          {% endif %}
-        </div>
-      {% endif %}
-
-      <div class="rt-grid rt-section">
-        <div class="rt-field">
-          <label for="{{ form.order.id_for_label }}">الترتيب</label>
+        {% endif %}
+        <div class="smart-section">
+          <label class="smart-label" for="{{ form.order.id_for_label }}">الترتيب</label>
           {{ form.order }}
-          <div class="rt-help">كلما كان الرقم أقل ظهر النوع أولاً.</div>
-          {% if form.order.errors %}
-            <div class="rt-err">{{ form.order.errors.0 }}</div>
-          {% endif %}
+          <div class="smart-help">كلما كان الرقم أقل ظهر النوع أولاً.</div>
+          {% if form.order.errors %}<div class="smart-error">{{ form.order.errors.0 }}</div>{% endif %}
         </div>
-
-        <div class="rt-field">
-          <label style="visibility:hidden">نشط</label>
-          <div class="rt-inline">
-            {{ form.is_active }}
-            <label class="check-label" for="{{ form.is_active.id_for_label }}">نشط (يظهر في النماذج)</label>
-          </div>
-          {% if form.is_active.errors %}
-            <div class="rt-err">{{ form.is_active.errors.0 }}</div>
-          {% endif %}
+        <div class="smart-section">
+          <label style="font-weight:700;">
+            {{ form.is_active }} نشط (يظهر في النماذج)
+          </label>
+          {% if form.is_active.errors %}<div class="smart-error">{{ form.is_active.errors.0 }}</div>{% endif %}
         </div>
-      </div>
-
-      {% for h in form.hidden_fields %}{{ h }}{% endfor %}
-
-      <div class="rt-actions">
-        <button type="submit" class="btn btn-primary">
-          <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-          حفظ
-        </button>
-        <a class="btn btn-outline" href="{% url 'reports:reporttypes_list' %}">
-          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-          رجوع
-        </a>
-      </div>
-    </form>
-
-  </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
-  (function(){
-    // إضافة classات موحّدة لعناصر النموذج بدون فلاتر Django
-    const map = [
-      ['input[type="text"]', 'input'],
-      ['input[type="number"]', 'input'],
-      ['input[type="email"]', 'input'],
-      ['input[type="url"]', 'input'],
-      ['input[type="search"]', 'input'],
-      ['select', 'select'],
-      ['textarea', 'textarea']
-    ];
-
-    map.forEach(([sel, cls]) => {
-      document.querySelectorAll('.rt-wrap ' + sel).forEach(el => {
-        if (!el.classList.contains(cls)) el.classList.add(cls);
-      });
-    });
-
-    // تحسين تجربة code: تحويل تلقائي إلى lower_snake_case أثناء الكتابة (بدون إجبار عند اللصق)
-    var codeEl = document.querySelector('.rt-wrap #{{ form.code.id_for_label }}');
-    if(codeEl){
-      codeEl.setAttribute('inputmode','latin');
-      codeEl.setAttribute('autocomplete','off');
-
-      codeEl.addEventListener('input', function(){
-        var v = (codeEl.value || '');
-        // نترك الأرقام والشرطة السفلية، ونحوّل المسافات والشرطات إلى _
-        v = v.toLowerCase().replace(/\s+/g,'_').replace(/-+/g,'_').replace(/[^a-z0-9_]/g,'');
-        // منع تكرار __
-        v = v.replace(/_+/g,'_');
-        // قص لطول معقول (حتى لا يطول الرمز)
-        if(v.length > 50) v = v.slice(0,50);
-        codeEl.value = v;
-      });
-    }
-
-    // إغلاق رسائل الخطأ بالـEsc إن كانت موجودة (اختياري)
-    document.addEventListener('keydown', function(ev){
-      if(ev.key !== 'Escape') return;
-      var alertEl = document.querySelector('.rt-alert');
-      if(alertEl) alertEl.style.display = 'none';
-    });
-  })();
-</script>
-{% endblock %}
+        {% for h in form.hidden_fields %}{{ h }}{% endfor %}
+        <div class="smart-actions">
+          <button class="smart-btn" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+          <a class="smart-btn ghost" href="{% url 'reports:reporttypes_list' %}"><i class="fa-solid fa-arrow-right"></i> رجوع</a>
+        </div>
+      </form>
+    </div>
+    {% endblock content %}
+        </span>

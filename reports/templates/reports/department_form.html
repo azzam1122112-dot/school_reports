@@ -1,617 +1,365 @@
 {# templates/reports/department_form.html #}
 {% extends "base.html" %}
 
+
+{% extends "base.html" %}
+
 {% block title %}{% if form.instance.pk %}تعديل قسم{% else %}إضافة قسم{% endif %}{% endblock %}
 
 {% block head %}
 <style>
-  .dept-wrap{
-    --d-ink: var(--ink, #111827);
-    --d-muted: var(--muted, #64748b);
-    --d-line: var(--line, #dbe3ef);
-    --d-line2: var(--line-2, #edf2fb);
-    --d-card: var(--card, #ffffff);
-    --d-bg: var(--bg, #f5f9ff);
-
-    --d-brand: #2563eb;
-    --d-brand-2: #3b82f6;
-    --d-brand-soft: #dbeafe;
-    --d-danger-bg: #fff1f2;
-    --d-danger-line: #fecdd3;
-
-    --d-radius-lg: 22px;
-    --d-radius-md: 14px;
-    --d-shadow: 0 24px 54px rgba(37, 99, 235, .09);
-    --d-shadow-sm: 0 8px 22px rgba(2, 6, 23, .07);
-    --d-tap: 46px;
-    --t: var(--t-fast, all .22s ease);
-
-    max-width: 1120px;
-    margin: clamp(10px, 2vw, 22px) auto;
-    padding: 0 clamp(10px, 2vw, 16px);
+  body {
+    background: linear-gradient(120deg, #e0e7ff 0%, #f0fdfa 100%);
+    min-height: 100vh;
   }
-
-  html[data-theme="dark"] .dept-wrap{
-    --d-ink: #e4ecff;
-    --d-muted: #9fb0d8;
-    --d-line: #1f2d4f;
-    --d-line2: #13203f;
-    --d-card: #0f172a;
-    --d-bg: #0b1429;
-    --d-brand-soft: #162c55;
-    --d-danger-bg: #38161d;
-    --d-danger-line: #5b222d;
-    --d-shadow: 0 22px 44px rgba(0, 0, 0, .38);
-    --d-shadow-sm: 0 8px 22px rgba(0, 0, 0, .28);
-  }
-
-  .dept-crumbs{
-    color: var(--d-muted);
-    font-weight: 850;
-    font-size: .9rem;
-    margin-bottom: 10px;
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
-  .dept-crumbs a{
-    color: inherit;
-    text-decoration:none;
-  }
-  .dept-crumbs a:hover{ text-decoration: underline; }
-
-  .dept-panel{
-    position: relative;
-    isolation: isolate;
+  .smart-card {
+    max-width: 700px;
+    margin: 40px auto 24px auto;
+    background: #fff;
+    border-radius: 32px;
+    box-shadow: 0 8px 48px #2563eb22, 0 1.5px 0 #2563eb11;
+    padding: 0 0 32px 0;
     overflow: hidden;
-    border: 1px solid var(--d-line);
-    border-radius: var(--d-radius-lg);
-    background:
-      radial-gradient(1100px 420px at 100% -20%, rgba(37,99,235,.12), transparent 60%),
-      radial-gradient(900px 360px at 0% -10%, rgba(16,185,129,.1), transparent 58%),
-      linear-gradient(180deg, var(--d-card), color-mix(in srgb, var(--d-card) 88%, var(--d-bg)));
-    box-shadow: var(--d-shadow);
-    padding: clamp(14px, 2.2vw, 22px);
+    border: 1.5px solid #e0e7ff;
+    position: relative;
+    direction: rtl;
   }
-
-  .dept-hero{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:14px;
-    flex-wrap:wrap;
-    margin-bottom: 12px;
+  .smart-header {
+    background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+    color: #fff;
+    padding: 32px 36px 18px 36px;
+    border-bottom-left-radius: 48px 32px;
+    border-bottom-right-radius: 48px 32px;
+    box-shadow: 0 2px 16px #2563eb22;
+    position: relative;
   }
-
-  .dept-kicker{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:6px 12px;
-    border-radius:999px;
-    border:1px solid color-mix(in srgb, var(--d-brand) 24%, var(--d-line));
-    background: var(--d-brand-soft);
-    color:#1d4ed8;
-    font-weight:900;
-    font-size:.88rem;
+  .smart-header .icon {
+    font-size: 2.2rem;
+    margin-left: 12px;
+    vertical-align: middle;
   }
-  html[data-theme="dark"] .dept-kicker{ color:#c7d9ff; }
-
-  .dept-title{
-    display:flex;
-    align-items:center;
-    gap:9px;
-    font-weight:950;
-    font-size: clamp(1.14rem, 1.9vw, 1.42rem);
-    margin:8px 0 0;
-    color: var(--d-ink);
-    letter-spacing:-.2px;
+  .smart-header .breadcrumbs {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    opacity: 0.93;
   }
-
-  .dept-sub{
-    color: var(--d-muted);
-    font-weight: 820;
-    font-size: .93rem;
-    margin: 8px 0 0;
-    line-height: 1.8;
-    max-width: 760px;
+  .smart-header .breadcrumbs a {
+    color: #fff;
+    text-decoration: underline dotted;
+    margin: 0 4px;
+    transition: color .18s;
   }
-
-  .dept-hero-actions{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    flex-wrap:wrap;
+  .smart-header .breadcrumbs a:hover {
+    color: #fbbf24;
   }
-
-  .dept-chip-link{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    border-radius:999px;
-    padding:9px 12px;
-    border:1px solid var(--d-line);
-    background: linear-gradient(180deg, var(--d-line2), var(--d-card));
-    color: var(--d-ink);
-    text-decoration:none;
-    font-weight:900;
-    transition: var(--t);
-  }
-  .dept-chip-link:hover{
-    transform:translateY(-1px);
-    box-shadow:var(--d-shadow-sm);
-  }
-
-  .dept-grid{ display:grid; gap:14px; }
-  .dept-section{
-    border: 1px solid var(--d-line);
-    border-radius: 16px;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--d-card) 96%, #fff), var(--d-card));
-    padding: 14px;
-  }
-  .dept-row{ display:grid; gap:14px; }
-  @media(min-width:860px){
-    .dept-row{ grid-template-columns: 1fr 1fr; }
-  }
-
-  .dept-label{
+  .smart-header .title {
+    font-size: 2.1rem;
     font-weight: 900;
     margin-bottom: 6px;
-    display:block;
-    color: var(--d-ink);
+    letter-spacing: -1px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
-
-  .dept-help{
-    color: var(--d-muted);
-    font-size: .88rem;
-    font-weight: 820;
-    margin-top: 6px;
-    line-height: 1.7;
+  .smart-header .desc {
+    font-size: 1.08rem;
+    font-weight: 500;
+    opacity: 0.96;
+    margin-bottom: 0;
   }
-
-  .dept-wrap .control{
-    width:100%;
-    min-height: var(--d-tap);
-    border:1px solid var(--d-line);
-    border-radius:13px;
-    padding:10px 12px;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--d-card) 90%, #fff), var(--d-card));
-    color: var(--d-ink);
-    transition: border-color .2s ease, box-shadow .2s ease;
-    outline:none;
+  .smart-header .dashboard-btn {
+    position: absolute;
+    left: 36px;
+    top: 32px;
+    background: #fff;
+    color: #2563eb;
+    border-radius: 999px;
+    font-weight: 900;
+    padding: 8px 22px;
+    box-shadow: 0 2px 12px #2563eb22;
+    border: none;
+    font-size: 1.08rem;
+    text-decoration: none;
+    transition: background .18s, color .18s;
+    z-index: 2;
   }
-  .dept-wrap .control:focus{
-    border-color: color-mix(in srgb, var(--d-brand) 44%, var(--d-line));
-    box-shadow: 0 0 0 4px rgba(37,99,235,.14);
+  .smart-header .dashboard-btn:hover {
+    background: #2563eb;
+    color: #fff;
   }
-  .dept-wrap .control[readonly]{
-    opacity:.9;
-    background: color-mix(in srgb, var(--d-line2) 74%, var(--d-card));
+  .smart-form {
+    padding: 32px 36px 0 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
   }
-  textarea.control{
-    min-height: 116px;
-    resize: vertical;
+  .smart-section {
+    background: #f8fafc;
+    border-radius: 18px;
+    padding: 18px 22px 12px 22px;
+    box-shadow: 0 1.5px 0 #2563eb11;
+    margin-bottom: 0;
+    border: 1px solid #e0e7ff;
   }
-
-  .dept-switch{
-    display:flex;
-    gap:10px;
-    align-items:center;
-    user-select:none;
-    font-weight: 850;
-    color: var(--d-ink);
+  .smart-label {
+    font-weight: 900;
+    color: #2563eb;
+    margin-bottom: 6px;
+    display: block;
+    font-size: 1.08rem;
   }
-  .dept-switch input{ transform: translateY(1px); }
-
-  .dept-errors{
-    border: 1px solid rgba(239,68,68,.25);
-    background: rgba(239,68,68,.10);
-    color: var(--d-ink);
-    border-radius: 14px;
-    padding: 12px;
-    margin-bottom: 12px;
-    font-weight: 850;
-    line-height: 1.8;
-  }
-  .dept-err{
-    color: rgba(239,68,68,.95);
-    background: rgba(239,68,68,.08);
-    border: 1px solid rgba(239,68,68,.22);
-    border-radius: 12px;
-    padding: 8px 10px;
-    margin-top: 6px;
-    font-weight: 850;
-    font-size: .92rem;
-  }
-
-  .dept-note{
-    border: 1px solid rgba(37,99,235,.22);
-    background: rgba(37,99,235,.10);
-    border-radius: 14px;
-    padding: 12px;
-    margin-bottom: 12px;
-    font-weight: 850;
-    line-height: 1.8;
-    color: var(--d-ink);
-  }
-  .dept-note.warn{
-    border-color: rgba(217,119,6,.26);
-    background: rgba(217,119,6,.10);
-  }
-  .dept-note.ok{
-    border-color: rgba(22,163,74,.22);
-    background: rgba(22,163,74,.10);
-  }
-
-  .dept-kbd{
-    font: 800 .84rem ui-monospace,SFMono-Regular,Menlo,monospace;
-    background: rgba(148,163,184,.12);
-    border: 1px solid var(--d-line);
+  .smart-input, .smart-form select, .smart-form textarea {
+    width: 100%;
     border-radius: 10px;
-    padding: 2px 8px;
+    border: 1.5px solid #cbd5e1;
+    padding: 10px 12px;
+    font-size: 1.08rem;
+    font-weight: 700;
+    background: #fff;
+    color: #222;
+    margin-bottom: 4px;
+    transition: border-color .18s;
   }
-
-  .dept-preview{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    margin-top:8px;
+  .smart-input:focus, .smart-form select:focus, .smart-form textarea:focus {
+    border-color: #2563eb;
+    outline: none;
   }
-  .dept-pill{
-    display:inline-flex;
-    align-items:center;
-    gap:10px;
-    border:1px solid var(--d-line);
-    border-radius:999px;
-    padding:8px 12px;
-    background: var(--d-card);
-    font-weight:900;
-    color: var(--d-ink);
+  .smart-help {
+    color: #64748b;
+    font-size: .97rem;
+    margin-bottom: 4px;
+    font-weight: 600;
   }
-  .dept-pill.role{
-    background: rgba(37,99,235,.10);
-    border-color: rgba(37,99,235,.22);
+  .smart-error {
+    color: #b91c1c;
+    background: #fee2e2;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    font-size: .98rem;
   }
-
-  .rt-box{ display:grid; gap:10px; }
-  .rt-actions{
-    display:grid;
-    gap:10px;
+  .smart-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    flex-wrap: wrap;
   }
-  @media(min-width: 760px){
-    .rt-actions{
-      grid-template-columns: minmax(230px,1fr) auto auto auto;
-      align-items:center;
+  .smart-btn {
+    border-radius: 999px;
+    min-width: 120px;
+    font-weight: 900;
+    font-size: 1.08rem;
+    padding: 10px 28px;
+    border: none;
+    background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+    color: #fff;
+    box-shadow: 0 2px 12px #2563eb22;
+    transition: background .18s, color .18s, transform .18s;
+    cursor: pointer;
+  }
+  .smart-btn:hover {
+    background: #fff;
+    color: #2563eb;
+    border: 1.5px solid #2563eb;
+    transform: translateY(-2px);
+  }
+  .smart-btn.ghost {
+    background: #fff;
+    color: #2563eb;
+    border: 1.5px solid #2563eb;
+    box-shadow: none;
+  }
+  .smart-btn.ghost:hover {
+    background: #2563eb;
+    color: #fff;
+  }
+  .smart-danger-zone {
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1.5px dashed #fecaca;
+    text-align: left;
+  }
+  .smart-btn.danger {
+    background: #b91c1c;
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 12px #b91c1c22;
+  }
+  .smart-btn.danger:hover {
+    background: #fff;
+    color: #b91c1c;
+    border: 1.5px solid #b91c1c;
+  }
+  .smart-preview {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .smart-pill {
+    background: #e0e7ff;
+    color: #2563eb;
+    border-radius: 999px;
+    padding: 7px 18px;
+    font-weight: 900;
+    font-size: 1.01rem;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: 1.5px solid #2563eb33;
+  }
+  .smart-note {
+    background: #f0fdfa;
+    border: 1.5px solid #38bdf8;
+    color: #2563eb;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    font-size: 1.01rem;
+  }
+  .smart-note.ok {
+    background: #f0fdf4;
+    border-color: #22c55e;
+    color: #15803d;
+  }
+  .smart-note.warn {
+    background: #fef9c3;
+    border-color: #fbbf24;
+    color: #b45309;
+  }
+  @media (max-width: 600px) {
+    .smart-card, .smart-header, .smart-form {
+      padding-left: 10px !important;
+      padding-right: 10px !important;
     }
-  }
-  .rt-actions .btn{
-    min-height:44px;
-    border-radius:12px;
-  }
-
-  .dept-badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding:8px 12px;
-    border-radius:999px;
-    background: rgba(37,99,235,.10);
-    border: 1px solid rgba(37,99,235,.22);
-    font-weight:950;
-    color: var(--d-ink);
-    white-space: nowrap;
-  }
-  .dept-muted{
-    color: var(--d-muted);
-    font-weight: 820;
-    font-size: .9rem;
-    line-height: 1.7;
-  }
-
-  .dept-actions{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-top:2px;
-    align-items:center;
-  }
-  .dept-wrap .btn{
-    border-radius:12px;
-    min-height:44px;
-    transition: var(--t);
-  }
-  .dept-wrap .btn:hover{ transform: translateY(-1px); }
-  .dept-wrap .btn.btn-danger{
-    background:#b91c1c;
-    border-color:transparent;
-    color:#fff;
-  }
-  .dept-wrap .btn.btn-danger:hover{ background:#991b1b; }
-
-  .dept-danger-zone{
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px dashed var(--d-line);
-  }
-
-  @media (max-width: 760px){
-    .dept-hero-actions{
-      width:100%;
+    .smart-header .dashboard-btn {
+      left: 10px;
+      top: 10px;
+      padding: 6px 12px;
+      font-size: .98rem;
     }
-    .dept-chip-link{
-      flex:1 1 auto;
-      justify-content:center;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    .dept-wrap .btn,
-    .dept-chip-link{ transition:none !important; }
-    .dept-wrap .btn:hover,
-    .dept-chip-link:hover{ transform:none !important; }
   }
 </style>
 {% endblock head %}
 
 {% block content %}
-<div class="dept-wrap" dir="rtl">
-
-  <div class="dept-crumbs">
-    <a href="{% url 'reports:admin_dashboard' %}" title="العودة للوحة المدير">
-      <i class="fa-solid fa-gauge-high"></i> لوحة المدير
+<div class="smart-card" dir="rtl">
+  <div class="smart-header">
+    <a href="{% url 'reports:admin_dashboard' %}" class="dashboard-btn" title="عودة إلى لوحة المدير">
+      <i class="fa-solid fa-arrow-right-to-bracket"></i> لوحة المدير
     </a>
-    <span>›</span>
-    <a href="{% url 'reports:departments_list' %}" title="قائمة الأقسام">
-      <i class="fa-solid fa-layer-group"></i> الأقسام
-    </a>
-    <span>›</span>
-    <span>{% if form.instance.pk %}<i class="fa-solid fa-pen-to-square"></i> تعديل قسم{% else %}<i class="fa-solid fa-plus"></i> إضافة قسم{% endif %}</span>
-  </div>
-
-  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-    <a href="{% url 'reports:admin_dashboard' %}" class="btn btn-primary" style="font-weight:900;min-width:160px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;" title="عودة إلى لوحة المدير">
-      <i class="fa-solid fa-arrow-right-to-bracket"></i> عودة إلى لوحة المدير
-    </a>
-  </div>
-
-  <div class="dept-panel">
-    <div class="dept-hero">
-      <div>
-        <span class="dept-kicker">
-          <i class="fa-solid fa-sitemap" aria-hidden="true" title="إدارة الأقسام"></i>
-          إدارة الأقسام
-        </span>
-        <h2 class="dept-title">
-          {% if form.instance.pk %}
-            <i class="fa-solid fa-pen-to-square" aria-hidden="true" title="تعديل قسم"></i>
-            تعديل قسم
-          {% else %}
-            <i class="fa-solid fa-plus" aria-hidden="true" title="إضافة قسم"></i>
-            إضافة قسم
-          {% endif %}
-        </h2>
-        <div class="dept-sub" style="margin-bottom:8px">
-          <b>وصف مختصر:</b> يمكنك من هنا إضافة أو تعديل قسم جديد ليظهر كخيار "دور" في نماذج {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }}. استخدم كود فريد (slug) لتمييز القسم.<br>
-          <span style="color:#2563eb;font-weight:900">تلميح:</span> يمكنك الحفظ السريع باستخدام <span class="dept-kbd">Ctrl/⌘ + S</span>.
-        </div>
-      </div>
-      <div class="dept-hero-actions">
-        <a class="dept-chip-link" href="{% url 'reports:departments_list' %}" title="قائمة الأقسام">
-          <i class="fa-solid fa-list" aria-hidden="true"></i>
-          قائمة الأقسام
-        </a>
-        {% if form.instance.pk %}
-          {% with current_code=form.instance.slug|default:form.instance.pk %}
-            <a class="dept-chip-link" href="{% url 'reports:department_members' code=current_code %}" title="أعضاء القسم">
-              <i class="fa-solid fa-users" aria-hidden="true"></i>
-              أعضاء القسم
-            </a>
-          {% endwith %}
-        {% endif %}
-      </div>
+    <div class="breadcrumbs">
+      <a href="{% url 'reports:admin_dashboard' %}"><i class="fa-solid fa-gauge-high"></i> لوحة المدير</a>
+      <span>›</span>
+      <a href="{% url 'reports:departments_list' %}"><i class="fa-solid fa-layer-group"></i> الأقسام</a>
+      <span>›</span>
+      <span>{% if form.instance.pk %}<i class="fa-solid fa-pen-to-square"></i> تعديل قسم{% else %}<i class="fa-solid fa-plus"></i> إضافة قسم{% endif %}</span>
     </div>
-
+    <div class="title">
+      <span class="icon"><i class="fa-solid fa-sitemap"></i></span>
+      {% if form.instance.pk %}تعديل قسم{% else %}إضافة قسم{% endif %}
+    </div>
+    <div class="desc">
+      يمكنك من هنا إضافة أو تعديل قسم جديد ليظهر كخيار "دور" في نماذج {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }}.<br>
+      <span style="color:#fbbf24;font-weight:900">تلميح:</span> استخدم كود فريد (slug) لتمييز القسم. الحفظ السريع: <span style="background:#fff;color:#2563eb;padding:2px 8px;border-radius:8px;font-weight:900;">Ctrl/⌘ + S</span>
+    </div>
+  </div>
+  <form method="post" class="smart-form" novalidate id="deptForm">
+    {% csrf_token %}
     {% if form.non_field_errors %}
-      <div class="dept-errors" role="alert" aria-live="polite">
+      <div class="smart-error" role="alert" aria-live="polite">
         {% for e in form.non_field_errors %}• {{ e }}<br>{% endfor %}
       </div>
     {% endif %}
-
-    {# شارة حالة خاصة للأقسام المحجوزة #}
     {% with current_slug=form.slug.value|default:form.instance.slug %}
       {% if current_slug == "manager" %}
-        <div class="dept-note ok">
+        <div class="smart-note ok">
           <strong>قسم المدير الدائم</strong> — هذا القسم محجوز بـ <code>slug=manager</code> ويتمتع بصلاحيات المدير.
           لا يمكن تغيير كوده، ويمكنك فقط إضافة موظفين لهذا القسم من شاشة الأعضاء.
         </div>
       {% elif current_slug == "teachers" %}
-        <div class="dept-note warn">
+        <div class="smart-note warn">
           <strong>قسم الكادر التعليمي</strong> — هذا القسم مخصص لحسابات "{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}". يفضّل عدم تغيير كوده حتى لا تتأثر الصلاحيات.
         </div>
       {% endif %}
     {% endwith %}
-
-    <form method="post" class="dept-grid" novalidate id="deptForm">
-      {% csrf_token %}
-
-      <div class="dept-row dept-section">
-        <div>
-          <label class="dept-label" for="{{ form.name.id_for_label }}">اسم القسم</label>
-          {{ form.name }}
-          {% if form.name.help_text %}<div class="dept-help">{{ form.name.help_text }}</div>{% endif %}
-          {% for e in form.name.errors %}<div class="dept-err">• {{ e }}</div>{% endfor %}
-        </div>
-
-        <div>
-          <label class="dept-label" for="{{ form.slug.id_for_label }}">الكود (slug)</label>
-          {{ form.slug }}
-          {% for e in form.slug.errors %}<div class="dept-err">• {{ e }}</div>{% endfor %}
-          <div class="dept-help">قصير وفريد (مثال: <b>activity</b>). يُستخدم أيضًا كقيمة “الدور”.</div>
-
-          <label class="dept-switch" style="margin-top:10px">
-            <input type="checkbox" id="autoSlug" checked>
-            توليد الكود تلقائيًا من الاسم (مع خرائط خاصة للمنصة)
-          </label>
-        </div>
+    <div class="smart-section">
+      <label class="smart-label" for="{{ form.name.id_for_label }}">اسم القسم</label>
+      {{ form.name }}
+      {% if form.name.help_text %}<div class="smart-help">{{ form.name.help_text }}</div>{% endif %}
+      {% for e in form.name.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
+    </div>
+    <div class="smart-section">
+      <label class="smart-label" for="{{ form.slug.id_for_label }}">الكود (slug)</label>
+      {{ form.slug }}
+      {% for e in form.slug.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
+      <div class="smart-help">قصير وفريد (مثال: <b>activity</b>). يُستخدم أيضًا كقيمة “الدور”.</div>
+      <label style="margin-top:10px;font-weight:700;display:block;">
+        <input type="checkbox" id="autoSlug" checked style="margin-left:6px;"> توليد الكود تلقائيًا من الاسم (مع خرائط خاصة للمنصة)
+      </label>
+    </div>
+    {% if form.description %}
+      <div class="smart-section">
+        <label class="smart-label" for="{{ form.description.id_for_label }}">الوصف</label>
+        {{ form.description }}
+        {% for e in form.description.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
       </div>
-
-      {% if form.description %}
-        <div class="dept-section">
-          <label class="dept-label" for="{{ form.description.id_for_label }}">الوصف</label>
-          {{ form.description }}
-          {% for e in form.description.errors %}<div class="dept-err">• {{ e }}</div>{% endfor %}
-        </div>
-      {% endif %}
-
-      <div class="dept-section">
-        <label class="dept-switch">
-          {{ form.is_active }} نشط
-        </label>
-        {% for e in form.is_active.errors %}<div class="dept-err">• {{ e }}</div>{% endfor %}
-      </div>
-
-      {% if form.reporttypes %}
-        <div class="dept-section">
-          <label class="dept-label" for="{{ form.reporttypes.id_for_label }}">أنواع التقارير المرتبطة</label>
-
-          <div class="rt-box">
-            <div class="rt-actions">
-              <input
-                id="rtSearch"
-                type="search"
-                class="control"
-                placeholder="ابحث في الأنواع..."
-                aria-label="بحث في أنواع التقارير"
-              >
-              <button type="button" class="btn" id="rtSelectAll">تحديد الظاهرة</button>
-              <button type="button" class="btn" id="rtClearAll">إلغاء الكل</button>
-              <span class="dept-badge"><span id="rtCount">0</span> مختارة</span>
-            </div>
-
-            <div class="dept-muted">
-              اختيارات هذا القسم تُزامَن تلقائيًا مع صلاحيات الدور الموازي.
-            </div>
-
-            {{ form.reporttypes }}
-
-            {% if form.reporttypes.help_text %}<div class="dept-help">{{ form.reporttypes.help_text }}</div>{% endif %}
-            {% for e in form.reporttypes.errors %}<div class="dept-err">• {{ e }}</div>{% endfor %}
-          </div>
-        </div>
-      {% endif %}
-
-      <div class="dept-section">
-        <div class="dept-help"><i class="fa-solid fa-eye"></i> معاينة كيف سيظهر هذا القسم كخيار “دور”:</div>
-        <div class="dept-preview" id="rolePreview">
-          <span class="dept-pill role" title="قيمة الدور (slug)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M3 6h18M3 12h12M3 18h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-            </svg>
-            <span id="pvCode">—</span>
-          </span>
-          <span class="dept-pill" title="الاسم المعروض">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-            </svg>
-            <span id="pvLabel">—</span>
-          </span>
-        </div>
-      </div>
-
-      {% for h in form.hidden_fields %}{{ h }}{% endfor %}
-
-      <div class="dept-actions">
-        <button class="btn btn-primary" type="submit" style="font-weight:900;min-width:120px;box-shadow:0 2px 12px #2563eb22;transition:all .18s;">
-          <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-          حفظ
-        </button>
-        <a class="btn btn-ghost" href="{% url 'reports:departments_list' %}" style="font-weight:900;min-width:100px;transition:all .18s;">
-          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-          رجوع
-        </a>
-      </div>
-    </form>
-
-    {# مهم: لا تضع form داخل form #}
-    {% if form.instance.pk %}
-      <form method="post"
-            action="{% url 'reports:department_delete' code=form.instance.slug %}"
-            class="dept-danger-zone"
-            onsubmit="return confirm('هل تريد حذف هذا القسم نهائيًا؟');">
-        {% csrf_token %}
-        <button class="btn btn-danger" type="submit">
-          <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-          حذف القسم
-        </button>
-      </form>
     {% endif %}
-  </div>
+    <div class="smart-section">
+      <label style="font-weight:700;">
+        {{ form.is_active }} نشط
+      </label>
+      {% for e in form.is_active.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
+    </div>
+    {% if form.reporttypes %}
+      <div class="smart-section">
+        <label class="smart-label" for="{{ form.reporttypes.id_for_label }}">أنواع التقارير المرتبطة</label>
+        {{ form.reporttypes }}
+        {% if form.reporttypes.help_text %}<div class="smart-help">{{ form.reporttypes.help_text }}</div>{% endif %}
+        {% for e in form.reporttypes.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
+      </div>
+    {% endif %}
+    <div class="smart-section">
+      <div class="smart-help"><i class="fa-solid fa-eye"></i> معاينة كيف سيظهر هذا القسم كخيار “دور”:</div>
+      <div class="smart-preview" id="rolePreview">
+        <span class="smart-pill" title="قيمة الدور (slug)"><i class="fa-solid fa-key"></i> <span id="pvCode">—</span></span>
+        <span class="smart-pill" title="الاسم المعروض"><i class="fa-solid fa-tag"></i> <span id="pvLabel">—</span></span>
+      </div>
+    </div>
+    {% for h in form.hidden_fields %}{{ h }}{% endfor %}
+    <div class="smart-actions">
+      <button class="smart-btn" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+      <a class="smart-btn ghost" href="{% url 'reports:departments_list' %}"><i class="fa-solid fa-arrow-right"></i> رجوع</a>
+    </div>
+  </form>
+  {% if form.instance.pk %}
+    <form method="post" action="{% url 'reports:department_delete' code=form.instance.slug %}" class="smart-danger-zone" onsubmit="return confirm('هل تريد حذف هذا القسم نهائيًا؟');">
+      {% csrf_token %}
+      <button class="smart-btn danger" type="submit"><i class="fa-solid fa-trash-can"></i> حذف القسم</button>
+    </form>
+  {% endif %}
 </div>
 {% endblock content %}
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
-  // إضافة صنف .control لكل مدخلات النموذج (مدخلات نص/تحديد فقط)
+  // إضافة صنف .smart-input لكل مدخلات النموذج (مدخلات نص/تحديد فقط)
   (function(){
     var form = document.getElementById('deptForm');
     if(!form) return;
     var sel = 'input[type=text], input[type=url], input[type=email], input[type=search], textarea, select';
     form.querySelectorAll(sel).forEach(function(el){
-      if(!el.classList.contains('control')) el.classList.add('control');
+      if(!el.classList.contains('smart-input')) el.classList.add('smart-input');
     });
   })();
-
   // خرائط المنصة للأسماء → slug
-  var ALIASES = {
-    "الإدارة":"manager","الادارة":"manager","مدير":"manager",
-    "المعلمين":"teachers","معلمين":"teachers",
-    "النشاط":"activity",
-    "التطوع":"volunteer",
-    "الشؤون المدرسية":"affairs",
-    "الشؤون الإدارية":"admin","الشؤون الادارية":"admin"
-  };
-
-  function normArabicDigits(s){
-    return (s || '').replace(/[٠-٩]/g, function(d){
-      return String("٠١٢٣٤٥٦٧٨٩".indexOf(d));
-    });
-  }
-
-  function translitArabic(s){
-    var map = {
-      'ا':'a','أ':'a','إ':'i','آ':'a','ء':'','ؤ':'w','ئ':'y','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh',
-      'د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh',
-      'ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'h','و':'w','ي':'y','ى':'a','ﻻ':'la','لا':'la'
-    };
-    return (s || '')
-      .replace(/[\u064B-\u065F]/g,'')
-      .split('')
-      .map(function(ch){
-        return (map[ch] !== undefined) ? map[ch] : ch;
-      })
-      .join('');
-  }
-
-  function slugifyAscii(s){
-    s = (s || '').trim();
-    if(ALIASES[s]) return ALIASES[s];
-
-    s = normArabicDigits(s);
-    s = translitArabic(s);
-
-    try{ s = s.normalize('NFKD'); }catch(e){}
-
-    s = s.replace(/[\u064B-\u065F]/g,'');
-    s = s.replace(/[\s_]+/g,'-');
-    s = s.replace(/[^a-zA-Z0-9-]/g,'');
-    s = s.toLowerCase().replace(/-+/g,'-').replace(/^-+|-+$/g,'');
-
-    return s;
-  }
-
+  var ALIASES = {"الإدارة":"manager","الادارة":"manager","مدير":"manager","المعلمين":"teachers","معلمين":"teachers","النشاط":"activity","التطوع":"volunteer","الشؤون المدرسية":"affairs","الشؤون الإدارية":"admin","الشؤون الادارية":"admin"};
+  function normArabicDigits(s){return (s || '').replace(/[٠-٩]/g, function(d){return String("٠١٢٣٤٥٦٧٨٩".indexOf(d));});}
+  function translitArabic(s){var map = {'ا':'a','أ':'a','إ':'i','آ':'a','ء':'','ؤ':'w','ئ':'y','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'h','و':'w','ي':'y','ى':'a','ﻻ':'la','لا':'la'};return (s || '').replace(/[\u064B-\u065F]/g,'').split('').map(function(ch){return (map[ch] !== undefined) ? map[ch] : ch;}).join('');}
+  function slugifyAscii(s){s = (s || '').trim();if(ALIASES[s]) return ALIASES[s];s = normArabicDigits(s);s = translitArabic(s);try{ s = s.normalize('NFKD'); }catch(e){}s = s.replace(/[\u064B-\u065F]/g,'');s = s.replace(/[\s_]+/g,'-');s = s.replace(/[^a-zA-Z0-9-]/g,'');s = s.toLowerCase().replace(/-+/g,'-').replace(/^-+|-+$/g,'');return s;}
   (function(){
     var name = document.getElementById("{{ form.name.id_for_label }}");
     var slug = document.getElementById("{{ form.slug.id_for_label }}");
@@ -619,208 +367,15 @@
     var pvCode = document.getElementById("pvCode");
     var pvLabel = document.getElementById("pvLabel");
     var formEl = document.getElementById("deptForm");
-
     var isEdit = "{{ form.instance.pk|yesno:'1,0' }}" === "1";
     var initialSlug = (slug && slug.value) ? slug.value.trim() : "";
-
-    if(isEdit && initialSlug){
-      slug.dataset.touched = "1";
-    }
-
-    function updatePreview(){
-      pvCode.textContent = (slug && slug.value) ? slug.value : "—";
-      pvLabel.textContent = (name && name.value) ? name.value : "—";
-    }
-
-    function lockReserved(){
-      if(!slug || !name) return;
-      var v = (slug.value || "").toLowerCase();
-
-      if(v === "manager"){
-        name.readOnly = true;
-        slug.readOnly = true;
-        if(auto){
-          auto.checked = false;
-          auto.disabled = true;
-        }
-        return;
-      }
-
-      if(v === "teachers"){
-        slug.readOnly = true;
-        if(auto){
-          auto.checked = false;
-          auto.disabled = true;
-        }
-        name.readOnly = false;
-        return;
-      }
-
-      name.readOnly = false;
-      slug.readOnly = false;
-      if(auto) auto.disabled = false;
-    }
-
-    function syncSlug(){
-      if(!name || !slug) return;
-      if(auto && !auto.checked) return;
-
-      var generated = slugifyAscii(name.value);
-      if(!generated) {
-        updatePreview();
-        lockReserved();
-        return;
-      }
-
-      if(isEdit){
-        if(!slug.value.trim()){
-          slug.value = generated;
-        }
-      } else {
-        if(!slug.dataset.touched || !slug.value.trim()){
-          slug.value = generated;
-        }
-      }
-
-      updatePreview();
-      lockReserved();
-    }
-
-    if(name && slug){
-      name.addEventListener("input", syncSlug);
-      name.addEventListener("blur", syncSlug);
-
-      if(auto){
-        auto.addEventListener("change", function(){
-          syncSlug();
-        });
-      }
-
-      slug.addEventListener("input", function(){
-        slug.dataset.touched = "1";
-        updatePreview();
-        lockReserved();
-      });
-
-      updatePreview();
-      lockReserved();
-      syncSlug();
-    }
-
-    // حفظ سريع: Ctrl/Cmd + S
-    document.addEventListener("keydown", function(e){
-      if((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === "s"){
-        e.preventDefault();
-        if(formEl){
-          if(formEl.requestSubmit){
-            formEl.requestSubmit();
-          } else {
-            formEl.submit();
-          }
-        }
-      }
-    });
-  })();
-
-  // أدوات reporttypes: يدعم SelectMultiple أو CheckboxSelectMultiple
-  (function(){
-    var box = document.getElementById('rtSearch') ? document.getElementById('rtSearch').closest('.rt-box') : null;
-    if(!box) return;
-
-    var search  = document.getElementById('rtSearch');
-    var btnAll  = document.getElementById('rtSelectAll');
-    var btnClr  = document.getElementById('rtClearAll');
-    var counter = document.getElementById('rtCount');
-
-    var selectEl = box.querySelector('select[multiple][name="{{ form.reporttypes.html_name }}"]');
-    var checkboxEls = Array.prototype.slice.call(
-      box.querySelectorAll('input[type="checkbox"][name="{{ form.reporttypes.html_name }}"]')
-    );
-
-    function getLabelNode(cb){
-      return cb.closest('label') || cb.closest('li') || cb.parentElement;
-    }
-
-    function updateCount(){
-      var c = 0;
-      if(selectEl){
-        Array.prototype.slice.call(selectEl.options).forEach(function(o){
-          if(o.selected) c += 1;
-        });
-      } else {
-        checkboxEls.forEach(function(cb){
-          if(cb.checked) c += 1;
-        });
-      }
-      if(counter) counter.textContent = String(c);
-    }
-
-    function applyFilter(){
-      var q = (search && search.value) ? search.value.trim().toLowerCase() : "";
-
-      if(selectEl){
-        Array.prototype.slice.call(selectEl.options).forEach(function(o){
-          var txt = (o.text || '').toLowerCase();
-          o.hidden = !!q && !txt.includes(q);
-        });
-      } else {
-        checkboxEls.forEach(function(cb){
-          var node = getLabelNode(cb);
-          var txt = (node && node.textContent) ? node.textContent.toLowerCase() : "";
-          if(node) node.style.display = (!q || txt.includes(q)) ? '' : 'none';
-        });
-      }
-    }
-
-    if(btnAll){
-      btnAll.addEventListener('click', function(){
-        var q = (search && search.value) ? search.value.trim().toLowerCase() : "";
-
-        if(selectEl){
-          Array.prototype.slice.call(selectEl.options).forEach(function(o){
-            var txt = (o.text || '').toLowerCase();
-            if(!q || txt.includes(q)) o.selected = true;
-          });
-        } else {
-          checkboxEls.forEach(function(cb){
-            var node = getLabelNode(cb);
-            var visible = !node || node.style.display !== 'none';
-            var txt = (node && node.textContent) ? node.textContent.toLowerCase() : "";
-            if(visible && (!q || txt.includes(q))) cb.checked = true;
-          });
-        }
-        updateCount();
-      });
-    }
-
-    if(btnClr){
-      btnClr.addEventListener('click', function(){
-        if(selectEl){
-          Array.prototype.slice.call(selectEl.options).forEach(function(o){ o.selected = false; });
-        } else {
-          checkboxEls.forEach(function(cb){ cb.checked = false; });
-        }
-        updateCount();
-      });
-    }
-
-    if(search){
-      search.addEventListener('input', applyFilter);
-      search.addEventListener('keydown', function(e){
-        if(e.key === 'Enter') e.preventDefault();
-      });
-    }
-
-    if(selectEl){
-      selectEl.addEventListener('change', updateCount);
-    } else {
-      checkboxEls.forEach(function(cb){
-        cb.addEventListener('change', updateCount);
-      });
-    }
-
-    applyFilter();
-    updateCount();
+    if(isEdit && initialSlug){slug.dataset.touched = "1";}
+    function updatePreview(){pvCode.textContent = (slug && slug.value) ? slug.value : "—";pvLabel.textContent = (name && name.value) ? name.value : "—";}
+    function lockReserved(){if(!slug || !name) return;var v = (slug.value || "").toLowerCase();if(v === "manager"){name.readOnly = true;slug.readOnly = true;if(auto){auto.checked = false;auto.disabled = true;}return;}if(v === "teachers"){slug.readOnly = true;if(auto){auto.checked = false;auto.disabled = true;}name.readOnly = false;return;}name.readOnly = false;slug.readOnly = false;if(auto) auto.disabled = false;}
+    function syncSlug(){if(!name || !slug) return;if(auto && !auto.checked) return;var generated = slugifyAscii(name.value);if(!generated) {updatePreview();lockReserved();return;}if(isEdit){if(!slug.value.trim()){slug.value = generated;}} else {if(!slug.dataset.touched || !slug.value.trim()){slug.value = generated;}}updatePreview();lockReserved();}
+    if(name && slug){name.addEventListener("input", syncSlug);name.addEventListener("blur", syncSlug);if(auto){auto.addEventListener("change", function(){syncSlug();});}slug.addEventListener("input", function(){slug.dataset.touched = "1";updatePreview();lockReserved();});updatePreview();lockReserved();syncSlug();}
+    document.addEventListener("keydown", function(e){if((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === "s"){e.preventDefault();if(formEl){if(formEl.requestSubmit){formEl.requestSubmit();} else {formEl.submit();}}}});
   })();
 </script>
 {% endblock scripts %}
+    <div class="dept-hero">
