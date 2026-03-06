@@ -1,16 +1,3 @@
-{# reports/templates/reports/reporttype_list.html #}
-{% extends "base.html" %}
-{% load static %}
-
-{% block title %}أنواع التقارير{% endblock %}
-
-{% block head %}
-<style>
-  .rt-scope{
-    --rt-ink: var(--ink, #111827);
-    --rt-muted: var(--muted, #64748b);
-    --rt-line: var(--line, #dbe3ef);
-    --rt-line2: var(--line-2, #edf2fb);
     {% extends "base.html" %}
     {% block title %}أنواع التقارير{% endblock %}
     {% block head %}
@@ -243,8 +230,8 @@
                 </td>
                 <td>{{ t.order|default:"—" }}</td>
                 <td class="smart-table-actions">
-                  <a class="smart-btn ghost" href="{% url 'reports:reporttype_edit' code=t.code %}"><i class="fa-solid fa-pen-to-square"></i> تعديل</a>
-                  <form method="post" action="{% url 'reports:reporttype_delete' code=t.code %}" style="display:inline" onsubmit="return confirm('هل تريد حذف هذا النوع نهائيًا؟');">{% csrf_token %}<button class="smart-btn danger" type="submit"><i class="fa-solid fa-trash-can"></i> حذف</button></form>
+                  <a class="smart-btn ghost" href="{% url 'reports:reporttype_update' pk=t.obj.pk %}"><i class="fa-solid fa-pen-to-square"></i> تعديل</a>
+                  <form method="post" action="{% url 'reports:reporttype_delete' pk=t.obj.pk %}" style="display:inline" onsubmit="return confirm('هل تريد حذف هذا النوع نهائيًا؟');">{% csrf_token %}<button class="smart-btn danger" type="submit"><i class="fa-solid fa-trash-can"></i> حذف</button></form>
                 </td>
               </tr>
             {% empty %}
@@ -255,78 +242,3 @@
       </div>
     </div>
     {% endblock content %}
-                {% endif %}
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="{% if db_backed %}6{% else %}5{% endif %}" class="empty">
-                  لا توجد أنواع بعد.
-                  {% if db_backed %}
-                    <div style="margin-top:10px">
-                      <a class="rt-btn rt-btn-primary" href="{% url 'reports:reporttype_create' %}">
-                        <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                        إضافة أول نوع
-                      </a>
-                    </div>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% if items %}
-        <div id="rtNoResults" class="no-results">لا توجد نتائج مطابقة.</div>
-      {% endif %}
-    </div>
-  </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
-  (function(){
-    var input = document.getElementById('rtSearch');
-    var meta = document.getElementById('rtSearchMeta');
-    var tbody = document.getElementById('rtTbody');
-    var noRes = document.getElementById('rtNoResults');
-    if(!input || !tbody) return;
-
-    var rows = Array.prototype.slice.call(tbody.querySelectorAll('.rt-row'));
-
-    function norm(s){
-      return (s || '')
-        .toString()
-        .toLowerCase()
-        .replace(/[إأآا]/g,'ا')
-        .replace(/ى/g,'ي')
-        .replace(/ة/g,'ه')
-        .replace(/\s+/g,' ')
-        .trim();
-    }
-
-    function apply(){
-      var q = norm(input.value);
-      var shown = 0;
-
-      rows.forEach(function(row){
-        var name = norm(row.getAttribute('data-name'));
-        var code = norm(row.getAttribute('data-code'));
-        var ok = !q || name.indexOf(q) !== -1 || code.indexOf(q) !== -1;
-        row.style.display = ok ? '' : 'none';
-        if(ok) shown += 1;
-      });
-
-      if(meta){
-        meta.textContent = q ? ('نتائج البحث: ' + shown + ' / ' + rows.length) : '';
-      }
-      if(noRes){
-        noRes.style.display = (shown === 0 && rows.length > 0) ? 'block' : 'none';
-      }
-    }
-
-    input.addEventListener('input', apply);
-    apply();
-  })();
-</script>
-{% endblock %}

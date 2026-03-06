@@ -1,30 +1,3 @@
-{# reports/templates/reports/reporttype_form.html (مثال اسم) #}
-{% extends "base.html" %}
-
-{% block title %}
-  {% if mode == "edit" %}تعديل نوع تقرير{% else %}إضافة نوع تقرير{% endif %}
-{% endblock %}
-
-{% block head %}
-<style>
-  .rt-wrap{
-    --rt-ink: var(--ink, #111827);
-    --rt-muted: var(--muted, #64748b);
-    --rt-line: var(--line, #dbe3ef);
-    --rt-line2: var(--line-2, #edf2fb);
-    --rt-card: var(--card, #ffffff);
-    --rt-bg: var(--bg, #f5f9ff);
-
-    --rt-brand: #2563eb;
-    --rt-brand-2: #3b82f6;
-    --rt-brand-soft: #dbeafe;
-    --rt-danger-bg: #fff1f2;
-    --rt-danger-line: #fecdd3;
-
-    --rt-radius-lg: 22px;
-    --rt-radius-md: 14px;
-    --rt-shadow: 0 24px 54px rgba(37, 99, 235, .09);
-    --rt-shadow-sm: 0 8px 22px rgba(2, 6, 23, .07);
     {% extends "base.html" %}
     {% block title %}{% if mode == "edit" %}تعديل نوع تقرير{% else %}إضافة نوع تقرير{% endif %}{% endblock %}
     {% block head %}
@@ -274,4 +247,3 @@
       </form>
     </div>
     {% endblock content %}
-        </span>
