@@ -457,19 +457,71 @@ CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 AUDIT_LOG_RETENTION_DAYS = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "30"))
 AUDIT_LOG_CLEANUP_ENABLED = _env_bool("AUDIT_LOG_CLEANUP_ENABLED", True)
 
+
+# ----------------- Daily Manager Report -----------------
+DAILY_MANAGER_REPORT_ENABLED = _env_bool("DAILY_MANAGER_REPORT_ENABLED", True)
+DAILY_MANAGER_REPORT_INAPP_ENABLED = _env_bool("DAILY_MANAGER_REPORT_INAPP_ENABLED", True)
+DAILY_MANAGER_REPORT_EMAIL_ENABLED = _env_bool("DAILY_MANAGER_REPORT_EMAIL_ENABLED", False)
+DAILY_MANAGER_REPORT_WHATSAPP_ENABLED = _env_bool("DAILY_MANAGER_REPORT_WHATSAPP_ENABLED", False)
+
+try:
+    DAILY_MANAGER_REPORT_HOUR = int((os.getenv("DAILY_MANAGER_REPORT_HOUR", "14") or "14").strip())
+except Exception:
+    DAILY_MANAGER_REPORT_HOUR = 14
+DAILY_MANAGER_REPORT_HOUR = max(0, min(23, DAILY_MANAGER_REPORT_HOUR))
+
+try:
+    DAILY_MANAGER_REPORT_MINUTE = int((os.getenv("DAILY_MANAGER_REPORT_MINUTE", "0") or "0").strip())
+except Exception:
+    DAILY_MANAGER_REPORT_MINUTE = 0
+DAILY_MANAGER_REPORT_MINUTE = max(0, min(59, DAILY_MANAGER_REPORT_MINUTE))
+
+DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL = (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL") or "").strip()
+DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_TOKEN = (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_TOKEN") or "").strip()
+
+try:
+    DAILY_MANAGER_REPORT_WHATSAPP_TIMEOUT_SECONDS = float(
+        (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_TIMEOUT_SECONDS", "10") or "10").strip()
+    )
+except Exception:
+    DAILY_MANAGER_REPORT_WHATSAPP_TIMEOUT_SECONDS = 10.0
+
+
+# ----------------- Email -----------------
+EMAIL_BACKEND = (
+    os.getenv("EMAIL_BACKEND")
+    or ("django.core.mail.backends.console.EmailBackend" if ENV != "production" else "django.core.mail.backends.smtp.EmailBackend")
+).strip()
+EMAIL_HOST = (os.getenv("EMAIL_HOST") or "localhost").strip()
+try:
+    EMAIL_PORT = int((os.getenv("EMAIL_PORT", "25") or "25").strip())
+except Exception:
+    EMAIL_PORT = 25
+EMAIL_HOST_USER = (os.getenv("EMAIL_HOST_USER") or "").strip()
+EMAIL_HOST_PASSWORD = (os.getenv("EMAIL_HOST_PASSWORD") or "").strip()
+EMAIL_USE_TLS = _env_bool("EMAIL_USE_TLS", False)
+EMAIL_USE_SSL = _env_bool("EMAIL_USE_SSL", False)
+DEFAULT_FROM_EMAIL = (os.getenv("DEFAULT_FROM_EMAIL") or "no-reply@tawtheeq-ksa.com").strip()
+
 try:
     from celery.schedules import crontab
 except Exception:  # pragma: no cover
     crontab = None  # type: ignore
 
-if AUDIT_LOG_CLEANUP_ENABLED and crontab is not None:
-    CELERY_BEAT_SCHEDULE = {
-        "cleanup-audit-logs-daily": {
+CELERY_BEAT_SCHEDULE: dict[str, dict] = {}
+if crontab is not None:
+    if AUDIT_LOG_CLEANUP_ENABLED:
+        CELERY_BEAT_SCHEDULE["cleanup-audit-logs-daily"] = {
             "task": "reports.tasks.cleanup_audit_logs_task",
             "schedule": crontab(minute=15, hour=3),
             "args": (AUDIT_LOG_RETENTION_DAYS,),
         }
-    }
+
+    if DAILY_MANAGER_REPORT_ENABLED:
+        CELERY_BEAT_SCHEDULE["send-daily-manager-summary"] = {
+            "task": "reports.tasks.send_daily_manager_summary_task",
+            "schedule": crontab(minute=DAILY_MANAGER_REPORT_MINUTE, hour=DAILY_MANAGER_REPORT_HOUR),
+        }
 
 
 # ----------------- Static files -----------------

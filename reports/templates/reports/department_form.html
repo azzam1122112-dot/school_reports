@@ -5,26 +5,50 @@
 
 {% block head %}
 <style>
-  /* =========================================================
-     Department Form (page-only polish)
-     - Scoped بالكامل داخل .dept-wrap لتجنّب تعارضات base/app.css
-     - بدون إعادة تعريف .card / .btn العامة (فقط تخصيص داخل الصفحة)
-     - دعم الوضع الداكن عبر html[data-theme="dark"]
-     ========================================================= */
-
   .dept-wrap{
-    --d-radius: 18px;
-    --d-shadow: 0 12px 34px rgba(2,6,23,.08);
-    --t: var(--t-fast);
-    max-width: 980px;
-    margin: 24px auto;
-    padding: 0 16px;
+    --d-ink: var(--ink, #111827);
+    --d-muted: var(--muted, #64748b);
+    --d-line: var(--line, #dbe3ef);
+    --d-line2: var(--line-2, #edf2fb);
+    --d-card: var(--card, #ffffff);
+    --d-bg: var(--bg, #f5f9ff);
+
+    --d-brand: #2563eb;
+    --d-brand-2: #3b82f6;
+    --d-brand-soft: #dbeafe;
+    --d-danger-bg: #fff1f2;
+    --d-danger-line: #fecdd3;
+
+    --d-radius-lg: 22px;
+    --d-radius-md: 14px;
+    --d-shadow: 0 24px 54px rgba(37, 99, 235, .09);
+    --d-shadow-sm: 0 8px 22px rgba(2, 6, 23, .07);
+    --d-tap: 46px;
+    --t: var(--t-fast, all .22s ease);
+
+    max-width: 1120px;
+    margin: clamp(10px, 2vw, 22px) auto;
+    padding: 0 clamp(10px, 2vw, 16px);
+  }
+
+  html[data-theme="dark"] .dept-wrap{
+    --d-ink: #e4ecff;
+    --d-muted: #9fb0d8;
+    --d-line: #1f2d4f;
+    --d-line2: #13203f;
+    --d-card: #0f172a;
+    --d-bg: #0b1429;
+    --d-brand-soft: #162c55;
+    --d-danger-bg: #38161d;
+    --d-danger-line: #5b222d;
+    --d-shadow: 0 22px 44px rgba(0, 0, 0, .38);
+    --d-shadow-sm: 0 8px 22px rgba(0, 0, 0, .28);
   }
 
   .dept-crumbs{
-    color: var(--muted);
-    font-weight: 800;
-    font-size: .92rem;
+    color: var(--d-muted);
+    font-weight: 850;
+    font-size: .9rem;
     margin-bottom: 10px;
     display:flex;
     gap:8px;
@@ -37,36 +61,98 @@
   }
   .dept-crumbs a:hover{ text-decoration: underline; }
 
-  .dept-card{
-    border-radius: var(--d-radius);
+  .dept-panel{
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid var(--d-line);
+    border-radius: var(--d-radius-lg);
+    background:
+      radial-gradient(1100px 420px at 100% -20%, rgba(37,99,235,.12), transparent 60%),
+      radial-gradient(900px 360px at 0% -10%, rgba(16,185,129,.1), transparent 58%),
+      linear-gradient(180deg, var(--d-card), color-mix(in srgb, var(--d-card) 88%, var(--d-bg)));
     box-shadow: var(--d-shadow);
-    padding: 18px;
+    padding: clamp(14px, 2.2vw, 22px);
   }
-  @media(min-width: 720px){
-    .dept-card{ padding: 22px; }
+
+  .dept-hero{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom: 12px;
   }
+
+  .dept-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 12px;
+    border-radius:999px;
+    border:1px solid color-mix(in srgb, var(--d-brand) 24%, var(--d-line));
+    background: var(--d-brand-soft);
+    color:#1d4ed8;
+    font-weight:900;
+    font-size:.88rem;
+  }
+  html[data-theme="dark"] .dept-kicker{ color:#c7d9ff; }
 
   .dept-title{
     display:flex;
     align-items:center;
-    gap:10px;
-    font-weight: 950;
-    font-size: 1.18rem;
-    margin: 0 0 6px;
-    color: var(--ink);
+    gap:9px;
+    font-weight:950;
+    font-size: clamp(1.14rem, 1.9vw, 1.42rem);
+    margin:8px 0 0;
+    color: var(--d-ink);
+    letter-spacing:-.2px;
   }
 
   .dept-sub{
-    color: var(--muted);
-    font-weight: 800;
+    color: var(--d-muted);
+    font-weight: 820;
     font-size: .93rem;
-    margin-bottom: 12px;
+    margin: 8px 0 0;
     line-height: 1.8;
+    max-width: 760px;
   }
 
-  .dept-grid{ display:grid; gap:16px; }
+  .dept-hero-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .dept-chip-link{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    border-radius:999px;
+    padding:9px 12px;
+    border:1px solid var(--d-line);
+    background: linear-gradient(180deg, var(--d-line2), var(--d-card));
+    color: var(--d-ink);
+    text-decoration:none;
+    font-weight:900;
+    transition: var(--t);
+  }
+  .dept-chip-link:hover{
+    transform:translateY(-1px);
+    box-shadow:var(--d-shadow-sm);
+  }
+
+  .dept-grid{ display:grid; gap:14px; }
+  .dept-section{
+    border: 1px solid var(--d-line);
+    border-radius: 16px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--d-card) 96%, #fff), var(--d-card));
+    padding: 14px;
+  }
   .dept-row{ display:grid; gap:14px; }
-  @media(min-width:780px){
+  @media(min-width:860px){
     .dept-row{ grid-template-columns: 1fr 1fr; }
   }
 
@@ -74,32 +160,40 @@
     font-weight: 900;
     margin-bottom: 6px;
     display:block;
-    color: var(--ink);
+    color: var(--d-ink);
   }
 
   .dept-help{
-    color: var(--muted);
+    color: var(--d-muted);
     font-size: .88rem;
-    font-weight: 800;
+    font-weight: 820;
     margin-top: 6px;
     line-height: 1.7;
   }
 
-  /* مدخلات: نعتمد class=control من base (ونضيفها JS) */
   .dept-wrap .control{
     width:100%;
-    border-radius: 12px;
-    transition: var(--t);
+    min-height: var(--d-tap);
+    border:1px solid var(--d-line);
+    border-radius:13px;
+    padding:10px 12px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--d-card) 90%, #fff), var(--d-card));
+    color: var(--d-ink);
+    transition: border-color .2s ease, box-shadow .2s ease;
+    outline:none;
+  }
+  .dept-wrap .control:focus{
+    border-color: color-mix(in srgb, var(--d-brand) 44%, var(--d-line));
+    box-shadow: 0 0 0 4px rgba(37,99,235,.14);
   }
   .dept-wrap .control[readonly]{
     opacity:.9;
-    background: rgba(148,163,184,.10);
+    background: color-mix(in srgb, var(--d-line2) 74%, var(--d-card));
   }
-  html[data-theme="dark"] .dept-wrap .control[readonly]{
-    background: rgba(148,163,184,.08);
+  textarea.control{
+    min-height: 116px;
+    resize: vertical;
   }
-
-  textarea.control{ min-height: 110px; resize: vertical; }
 
   .dept-switch{
     display:flex;
@@ -107,15 +201,14 @@
     align-items:center;
     user-select:none;
     font-weight: 850;
-    color: var(--ink);
+    color: var(--d-ink);
   }
   .dept-switch input{ transform: translateY(1px); }
 
-  /* رسائل أخطاء */
   .dept-errors{
     border: 1px solid rgba(239,68,68,.25);
     background: rgba(239,68,68,.10);
-    color: var(--ink);
+    color: var(--d-ink);
     border-radius: 14px;
     padding: 12px;
     margin-bottom: 12px;
@@ -133,7 +226,6 @@
     font-size: .92rem;
   }
 
-  /* ملاحظات */
   .dept-note{
     border: 1px solid rgba(37,99,235,.22);
     background: rgba(37,99,235,.10);
@@ -142,7 +234,7 @@
     margin-bottom: 12px;
     font-weight: 850;
     line-height: 1.8;
-    color: var(--ink);
+    color: var(--d-ink);
   }
   .dept-note.warn{
     border-color: rgba(217,119,6,.26);
@@ -153,11 +245,10 @@
     background: rgba(22,163,74,.10);
   }
 
-  /* شارات/معاينة */
   .dept-kbd{
     font: 800 .84rem ui-monospace,SFMono-Regular,Menlo,monospace;
     background: rgba(148,163,184,.12);
-    border: 1px solid var(--line);
+    border: 1px solid var(--d-line);
     border-radius: 10px;
     padding: 2px 8px;
   }
@@ -166,39 +257,38 @@
     display:flex;
     flex-wrap:wrap;
     gap:10px;
-    margin-top: 8px;
+    margin-top:8px;
   }
   .dept-pill{
     display:inline-flex;
     align-items:center;
     gap:10px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 8px 12px;
-    background: var(--card);
-    font-weight: 900;
-    color: var(--ink);
+    border:1px solid var(--d-line);
+    border-radius:999px;
+    padding:8px 12px;
+    background: var(--d-card);
+    font-weight:900;
+    color: var(--d-ink);
   }
   .dept-pill.role{
     background: rgba(37,99,235,.10);
     border-color: rgba(37,99,235,.22);
   }
 
-  /* reporttypes widget */
   .rt-box{ display:grid; gap:10px; }
   .rt-actions{
     display:grid;
     gap:10px;
   }
-  @media(min-width: 720px){
+  @media(min-width: 760px){
     .rt-actions{
-      grid-template-columns: 1fr auto auto auto;
+      grid-template-columns: minmax(230px,1fr) auto auto auto;
       align-items:center;
     }
   }
   .rt-actions .btn{
-    min-height: 44px;
-    border-radius: 12px;
+    min-height:44px;
+    border-radius:12px;
   }
 
   .dept-badge{
@@ -206,44 +296,62 @@
     align-items:center;
     justify-content:center;
     gap:8px;
-    padding: 8px 12px;
-    border-radius: 999px;
+    padding:8px 12px;
+    border-radius:999px;
     background: rgba(37,99,235,.10);
     border: 1px solid rgba(37,99,235,.22);
-    font-weight: 950;
-    color: var(--ink);
+    font-weight:950;
+    color: var(--d-ink);
     white-space: nowrap;
   }
-  .dept-muted{ color: var(--muted); font-weight: 850; font-size: .9rem; line-height: 1.7; }
+  .dept-muted{
+    color: var(--d-muted);
+    font-weight: 820;
+    font-size: .9rem;
+    line-height: 1.7;
+  }
 
-  /* أزرار الصفحة (ضمنية داخل wrap فقط) */
   .dept-actions{
     display:flex;
     gap:10px;
     flex-wrap:wrap;
-    margin-top: 18px;
+    margin-top:2px;
     align-items:center;
   }
   .dept-wrap .btn{
-    border-radius: 12px;
-    min-height: 44px;
+    border-radius:12px;
+    min-height:44px;
     transition: var(--t);
   }
   .dept-wrap .btn:hover{ transform: translateY(-1px); }
-
-  /* زر الحذف: اعتمِد btn-danger إن كان موجوداً، وإلا حسّنه داخل الصفحة */
   .dept-wrap .btn.btn-danger{
-    background: #b91c1c;
-    border-color: transparent;
-    color: #fff;
+    background:#b91c1c;
+    border-color:transparent;
+    color:#fff;
   }
-  .dept-wrap .btn.btn-danger:hover{
-    background: #991b1b;
+  .dept-wrap .btn.btn-danger:hover{ background:#991b1b; }
+
+  .dept-danger-zone{
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--d-line);
+  }
+
+  @media (max-width: 760px){
+    .dept-hero-actions{
+      width:100%;
+    }
+    .dept-chip-link{
+      flex:1 1 auto;
+      justify-content:center;
+    }
   }
 
   @media (prefers-reduced-motion: reduce){
-    .dept-wrap .btn{ transition:none !important; }
-    .dept-wrap .btn:hover{ transform:none !important; }
+    .dept-wrap .btn,
+    .dept-chip-link{ transition:none !important; }
+    .dept-wrap .btn:hover,
+    .dept-chip-link:hover{ transform:none !important; }
   }
 </style>
 {% endblock head %}
@@ -258,14 +366,43 @@
     <span>{% if form.instance.pk %}تعديل قسم{% else %}إضافة قسم{% endif %}</span>
   </div>
 
-  <div class="card dept-card">
-    <h2 class="dept-title">
-      {% if form.instance.pk %}✏️ تعديل قسم{% else %}➕ إضافة قسم{% endif %}
-    </h2>
+  <div class="dept-panel">
+    <div class="dept-hero">
+      <div>
+        <span class="dept-kicker">
+          <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+          إدارة الأقسام
+        </span>
+        <h2 class="dept-title">
+          {% if form.instance.pk %}
+            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+            تعديل قسم
+          {% else %}
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            إضافة قسم
+          {% endif %}
+        </h2>
 
-    <div class="dept-sub">
-      سيظهر هذا القسم كـ <em>دور</em> في نماذج {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }} باستخدام <strong>الكود (slug)</strong> كقيمة،
-      ويمكنك الحفظ سريعًا باستخدام <span class="dept-kbd">Ctrl/⌘ + S</span>.
+        <div class="dept-sub">
+          سيظهر هذا القسم كـ <em>دور</em> في نماذج {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }} باستخدام <strong>الكود (slug)</strong> كقيمة،
+          ويمكنك الحفظ سريعًا باستخدام <span class="dept-kbd">Ctrl/⌘ + S</span>.
+        </div>
+      </div>
+
+      <div class="dept-hero-actions">
+        <a class="dept-chip-link" href="{% url 'reports:departments_list' %}">
+          <i class="fa-solid fa-list" aria-hidden="true"></i>
+          قائمة الأقسام
+        </a>
+        {% if form.instance.pk %}
+          {% with current_code=form.instance.slug|default:form.instance.pk %}
+            <a class="dept-chip-link" href="{% url 'reports:department_members' code=current_code %}">
+              <i class="fa-solid fa-users" aria-hidden="true"></i>
+              أعضاء القسم
+            </a>
+          {% endwith %}
+        {% endif %}
+      </div>
     </div>
 
     {% if form.non_field_errors %}
@@ -291,7 +428,7 @@
     <form method="post" class="dept-grid" novalidate id="deptForm">
       {% csrf_token %}
 
-      <div class="dept-row">
+      <div class="dept-row dept-section">
         <div>
           <label class="dept-label" for="{{ form.name.id_for_label }}">اسم القسم</label>
           {{ form.name }}
@@ -313,14 +450,14 @@
       </div>
 
       {% if form.description %}
-        <div>
+        <div class="dept-section">
           <label class="dept-label" for="{{ form.description.id_for_label }}">الوصف</label>
           {{ form.description }}
           {% for e in form.description.errors %}<div class="dept-err">• {{ e }}</div>{% endfor %}
         </div>
       {% endif %}
 
-      <div>
+      <div class="dept-section">
         <label class="dept-switch">
           {{ form.is_active }} نشط
         </label>
@@ -328,7 +465,7 @@
       </div>
 
       {% if form.reporttypes %}
-        <div>
+        <div class="dept-section">
           <label class="dept-label" for="{{ form.reporttypes.id_for_label }}">أنواع التقارير المرتبطة</label>
 
           <div class="rt-box">
@@ -357,7 +494,7 @@
         </div>
       {% endif %}
 
-      <div>
+      <div class="dept-section">
         <div class="dept-help">معاينة كيف سيظهر هذا القسم كخيار “دور”:</div>
         <div class="dept-preview" id="rolePreview">
           <span class="dept-pill role" title="قيمة الدور (slug)">
@@ -379,8 +516,14 @@
       {% for h in form.hidden_fields %}{{ h }}{% endfor %}
 
       <div class="dept-actions">
-        <button class="btn btn-primary" type="submit">💾 حفظ</button>
-        <a class="btn btn-ghost" href="{% url 'reports:departments_list' %}">↩️ رجوع</a>
+        <button class="btn btn-primary" type="submit">
+          <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+          حفظ
+        </button>
+        <a class="btn btn-ghost" href="{% url 'reports:departments_list' %}">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          رجوع
+        </a>
       </div>
     </form>
 
@@ -388,10 +531,13 @@
     {% if form.instance.pk %}
       <form method="post"
             action="{% url 'reports:department_delete' code=form.instance.slug %}"
-            style="margin-top:12px"
+            class="dept-danger-zone"
             onsubmit="return confirm('هل تريد حذف هذا القسم نهائيًا؟');">
         {% csrf_token %}
-        <button class="btn btn-danger" type="submit">🗑 حذف</button>
+        <button class="btn btn-danger" type="submit">
+          <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+          حذف القسم
+        </button>
       </form>
     {% endif %}
   </div>

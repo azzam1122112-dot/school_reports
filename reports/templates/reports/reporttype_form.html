@@ -7,86 +7,278 @@
 
 {% block head %}
 <style>
-  /* =========================================================
-     ReportType Form — RTL / Tailwind-like polish (بدون كسر base/app.css)
-     ========================================================= */
-  .rt-wrap{max-width:860px;margin:0 auto;padding:18px}
-  .rt-card{padding:18px}
+  .rt-wrap{
+    --rt-ink: var(--ink, #111827);
+    --rt-muted: var(--muted, #64748b);
+    --rt-line: var(--line, #dbe3ef);
+    --rt-line2: var(--line-2, #edf2fb);
+    --rt-card: var(--card, #ffffff);
+    --rt-bg: var(--bg, #f5f9ff);
+
+    --rt-brand: #2563eb;
+    --rt-brand-2: #3b82f6;
+    --rt-brand-soft: #dbeafe;
+    --rt-danger-bg: #fff1f2;
+    --rt-danger-line: #fecdd3;
+
+    --rt-radius-lg: 22px;
+    --rt-radius-md: 14px;
+    --rt-shadow: 0 24px 54px rgba(37, 99, 235, .09);
+    --rt-shadow-sm: 0 8px 22px rgba(2, 6, 23, .07);
+    --rt-t: var(--t-fast, all .22s ease);
+
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: clamp(10px,2vw,18px);
+  }
+
+  html[data-theme="dark"] .rt-wrap{
+    --rt-ink: #e4ecff;
+    --rt-muted: #9fb0d8;
+    --rt-line: #1f2d4f;
+    --rt-line2: #13203f;
+    --rt-card: #0f172a;
+    --rt-bg: #0b1429;
+    --rt-brand-soft: #162c55;
+    --rt-danger-bg: #38161d;
+    --rt-danger-line: #5b222d;
+    --rt-shadow: 0 22px 44px rgba(0, 0, 0, .38);
+    --rt-shadow-sm: 0 8px 22px rgba(0, 0, 0, .28);
+  }
+
+  .rt-panel{
+    position:relative;
+    isolation:isolate;
+    overflow:hidden;
+    border:1px solid var(--rt-line);
+    border-radius:var(--rt-radius-lg);
+    background:
+      radial-gradient(1100px 420px at 100% -20%, rgba(37,99,235,.12), transparent 60%),
+      radial-gradient(900px 360px at 0% -10%, rgba(16,185,129,.1), transparent 58%),
+      linear-gradient(180deg, var(--rt-card), color-mix(in srgb, var(--rt-card) 88%, var(--rt-bg)));
+    box-shadow:var(--rt-shadow);
+    padding:clamp(14px,2.2vw,22px);
+  }
 
   .rt-head{
-    display:flex;justify-content:space-between;align-items:flex-start;
-    gap:12px;flex-wrap:wrap;margin-bottom:12px
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
   }
-  .rt-title{margin:0;font-weight:950;font-size:1.3rem;color:var(--ink)}
-  .rt-sub{margin:6px 0 0;color:var(--muted);font-weight:850;line-height:1.6;max-width:680px}
+
+  .rt-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 12px;
+    border-radius:999px;
+    border:1px solid color-mix(in srgb, var(--rt-brand) 24%, var(--rt-line));
+    background:var(--rt-brand-soft);
+    color:#1d4ed8;
+    font-weight:900;
+    font-size:.88rem;
+  }
+  html[data-theme="dark"] .rt-kicker{color:#c7d9ff}
+
+  .rt-title{
+    margin:8px 0 0;
+    font-weight:950;
+    font-size:clamp(1.16rem,1.9vw,1.42rem);
+    color:var(--rt-ink);
+    letter-spacing:-.2px;
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+  .rt-sub{
+    margin:8px 0 0;
+    color:var(--rt-muted);
+    font-weight:820;
+    line-height:1.7;
+    max-width:760px;
+  }
+
+  .rt-actions-top{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .rt-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    border-radius:999px;
+    padding:8px 12px;
+    border:1px solid var(--rt-line);
+    background:linear-gradient(180deg, var(--rt-line2), var(--rt-card));
+    color:var(--rt-ink);
+    text-decoration:none;
+    font-weight:900;
+    white-space:nowrap;
+    transition:var(--rt-t);
+  }
+  .rt-chip:hover{
+    transform:translateY(-1px);
+    box-shadow:var(--rt-shadow-sm);
+  }
 
   .rt-badge{
-    display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;
-    background:rgba(37,99,235,.10);color:var(--brand);
-    border:1px solid rgba(37,99,235,.18);font-weight:950;white-space:nowrap
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:7px 12px;
+    border-radius:999px;
+    background:linear-gradient(180deg, #eef4ff, #dbeafe);
+    border:1px solid #c7d8ff;
+    color:#1e3a8a;
+    font-weight:950;
+    white-space:nowrap;
+  }
+  html[data-theme="dark"] .rt-badge{
+    background:linear-gradient(180deg, #132a54, #132448);
+    border-color:#27406f;
+    color:#d4e0ff;
   }
 
   .rt-alert{
-    border-radius:14px;padding:12px 14px;font-weight:900;
-    border:1px solid var(--line-2);background:rgba(239,68,68,.08);color:var(--danger)
+    border-radius:14px;
+    padding:12px 14px;
+    font-weight:900;
+    border:1px solid var(--rt-danger-line);
+    background:var(--rt-danger-bg);
+    color:#b42318;
+    margin-bottom:12px;
   }
   .rt-alert ul{margin:0;padding-right:18px}
   .rt-alert li{margin:4px 0}
 
+  .rt-tip{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid var(--rt-line);
+    background:linear-gradient(180deg, var(--rt-line2), var(--rt-card));
+    color:var(--rt-ink);
+    font-weight:850;
+  }
+  .rt-tip i{margin-top:2px;opacity:.85}
+
   .rt-form{display:grid;gap:12px}
+  .rt-section{
+    border:1px solid var(--rt-line);
+    border-radius:16px;
+    background:linear-gradient(180deg, color-mix(in srgb, var(--rt-card) 96%, #fff), var(--rt-card));
+    padding:14px;
+  }
   .rt-grid{display:grid;gap:12px}
   @media(min-width:860px){.rt-grid{grid-template-columns:1fr 1fr}}
 
-  .rt-field{position:relative}
-  .rt-field label{display:block;font-weight:950;color:var(--ink);margin-bottom:6px}
-  .rt-help{margin-top:6px;color:var(--muted);font-weight:850;font-size:.88rem;line-height:1.5}
-  .rt-err{margin-top:6px;color:var(--danger);font-weight:950;font-size:.9rem}
+  .rt-field label{
+    display:block;
+    font-weight:950;
+    color:var(--rt-ink);
+    margin-bottom:6px;
+  }
+  .rt-help{
+    margin-top:6px;
+    color:var(--rt-muted);
+    font-weight:820;
+    font-size:.88rem;
+    line-height:1.6;
+  }
+  .rt-err{
+    margin-top:6px;
+    color:#b42318;
+    font-weight:900;
+    font-size:.9rem;
+  }
 
-  /* نعتمد على app.css، فقط نضمن full width + تحسينات صغيرة */
   .rt-wrap .input,
   .rt-wrap .select,
   .rt-wrap .textarea{
     width:100%;
+    border:1px solid var(--rt-line);
+    border-radius:12px;
+    background:var(--rt-card);
+    color:var(--rt-ink);
+    transition:var(--rt-t);
+  }
+  .rt-wrap .input:focus,
+  .rt-wrap .select:focus,
+  .rt-wrap .textarea:focus{
+    border-color: rgba(59,130,246,.55);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.14);
+    outline:none;
   }
 
-  .rt-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
-  .rt-inline .check-label{font-weight:950;color:var(--ink)}
+  .rt-inline{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .rt-inline .check-label{font-weight:900;color:var(--rt-ink)}
 
-  .rt-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-  .rt-actions .btn{min-height:42px}
+  .rt-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:2px;
+  }
+  .rt-actions .btn{min-height:44px}
   .rt-actions .btn-primary{flex:1}
 
-  /* شريط صغير أعلى الفورم للتلميح */
-  .rt-tip{
-    display:flex;align-items:flex-start;gap:10px;
-    padding:10px 12px;border-radius:14px;border:1px solid var(--line);
-    background:linear-gradient(180deg, var(--line-2), var(--card));
-    color:var(--ink);font-weight:850
+  @media(max-width:560px){
+    .rt-actions .btn-primary{flex:unset}
+    .rt-actions .btn{width:100%;justify-content:center}
+    .rt-actions-top{width:100%}
+    .rt-chip,.rt-badge{width:100%;justify-content:center}
   }
-  html[data-theme="dark"] .rt-tip{border-color:#1b2744;background:rgba(20,35,73,.35)}
-  .rt-tip i{margin-top:2px;opacity:.85}
+
+  @media (prefers-reduced-motion: reduce){
+    .rt-wrap *{transition:none !important}
+    .rt-chip:hover{transform:none !important}
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container rt-wrap" dir="rtl">
-  <div class="card rt-card">
-
+  <div class="rt-panel">
     <div class="rt-head">
       <div>
+        <span class="rt-kicker">
+          <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i>
+          إدارة أنواع التقارير
+        </span>
         <h1 class="rt-title">
           {% if mode == "edit" %}
-            ✏️ تعديل نوع تقرير
+            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+            تعديل نوع تقرير
           {% else %}
-            ➕ إضافة نوع تقرير
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            إضافة نوع تقرير
           {% endif %}
         </h1>
         <p class="rt-sub">أنواع التقارير تظهر في نموذج إضافة التقرير وتُستخدم للفلاتر والتقارير الإدارية.</p>
       </div>
 
-      <span class="rt-badge" aria-label="وضع الصفحة">
-        {% if mode == "edit" %}وضع التعديل{% else %}وضع الإضافة{% endif %}
-      </span>
+      <div class="rt-actions-top">
+        <span class="rt-badge" aria-label="وضع الصفحة">
+          {% if mode == "edit" %}وضع التعديل{% else %}وضع الإضافة{% endif %}
+        </span>
+        <a class="rt-chip" href="{% url 'reports:reporttypes_list' %}">
+          <i class="fa-solid fa-list" aria-hidden="true"></i>
+          قائمة الأنواع
+        </a>
+      </div>
     </div>
 
     <div class="rt-tip" style="margin-bottom:12px">
@@ -100,7 +292,7 @@
     </div>
 
     {% if form.non_field_errors %}
-      <div class="rt-alert" data-autohide="false" style="margin-bottom:12px">
+      <div class="rt-alert" data-autohide="false">
         <ul>
           {% for e in form.non_field_errors %}
             <li>{{ e }}</li>
@@ -112,7 +304,7 @@
     <form method="post" class="rt-form" novalidate>
       {% csrf_token %}
 
-      <div class="rt-grid">
+      <div class="rt-grid rt-section">
         <div class="rt-field">
           <label for="{{ form.name.id_for_label }}">الاسم</label>
           {{ form.name }}
@@ -134,7 +326,7 @@
       </div>
 
       {% if form.description %}
-        <div class="rt-field">
+        <div class="rt-field rt-section">
           <label for="{{ form.description.id_for_label }}">الوصف</label>
           {{ form.description }}
           {% if form.description.errors %}
@@ -143,7 +335,7 @@
         </div>
       {% endif %}
 
-      <div class="rt-grid">
+      <div class="rt-grid rt-section">
         <div class="rt-field">
           <label for="{{ form.order.id_for_label }}">الترتيب</label>
           {{ form.order }}
@@ -168,8 +360,14 @@
       {% for h in form.hidden_fields %}{{ h }}{% endfor %}
 
       <div class="rt-actions">
-        <button type="submit" class="btn btn-primary">💾 حفظ</button>
-        <a class="btn btn-outline" href="{% url 'reports:reporttypes_list' %}">↩️ رجوع</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+          حفظ
+        </button>
+        <a class="btn btn-outline" href="{% url 'reports:reporttypes_list' %}">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          رجوع
+        </a>
       </div>
     </form>
 

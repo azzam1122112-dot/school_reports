@@ -237,6 +237,13 @@
               </div>
 
               <div>
+                <label for="{{ form.email.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">البريد الإلكتروني (اختياري)</label>
+                {{ form.email }}
+                <div class="hint">يُستخدم لاستقبال التقرير اليومي تلقائيًا.</div>
+                {% for e in form.email.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
+              </div>
+
+              <div>
                 <label for="{{ form.national_id.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">الهوية الوطنية (اختياري)</label>
                 {{ form.national_id }}
                 {% for e in form.national_id.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}

@@ -1,6 +1,7 @@
+from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.admin.sites import AdminSite
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -19,6 +20,7 @@ from .models import (
 	Teacher,
 	Ticket,
 )
+from .tasks import send_daily_manager_summary_task
 
 
 class PlatformAdminCircularAndTicketPrintTests(TestCase):
@@ -1071,3 +1073,132 @@ class TenantIsolationTests(TestCase):
 		self.assertEqual(res.status_code, 200)
 		# School A has 0 reports, so the count should be 0
 		self.assertContains(res, "0")
+
+
+class DailyManagerReportTaskTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="مدرسة النور", code="daily-nour")
+		plan = SubscriptionPlan.objects.create(name="Daily Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(
+			school=self.school,
+			plan=plan,
+			start_date=today,
+			end_date=today,
+			is_active=True,
+		)
+
+		self.manager = Teacher.objects.create_user(
+			phone="0500008800",
+			name="مدير النور",
+			password="pass",
+			email="manager@nour.edu.sa",
+		)
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.teacher = Teacher.objects.create_user(phone="0500008801", name="معلم", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.teacher,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+
+		Report.objects.create(
+			school=self.school,
+			teacher=self.teacher,
+			title="تقرير يومي",
+			report_date=timezone.localdate(),
+			idea="تفاصيل",
+		)
+		Ticket.objects.create(
+			school=self.school,
+			creator=self.teacher,
+			title="بلاغ مفتوح",
+			body="open",
+			status=Ticket.Status.OPEN,
+		)
+		Ticket.objects.create(
+			school=self.school,
+			creator=self.teacher,
+			title="بلاغ مغلق",
+			body="done",
+			status=Ticket.Status.DONE,
+		)
+
+	@override_settings(
+		DAILY_MANAGER_REPORT_ENABLED=True,
+		DAILY_MANAGER_REPORT_EMAIL_ENABLED=True,
+		DAILY_MANAGER_REPORT_WHATSAPP_ENABLED=False,
+		SITE_URL="https://app.tawtheeq-ksa.com",
+	)
+	def test_daily_report_sends_email_to_manager(self):
+		with patch("reports.tasks.send_mail", return_value=1) as mocked_send_mail:
+			result = send_daily_manager_summary_task()
+
+		self.assertEqual(result["schools_processed"], 1)
+		self.assertEqual(result["emails_sent"], 1)
+		self.assertEqual(result["email_failures"], 0)
+		self.assertEqual(result["whatsapp_sent"], 0)
+		self.assertEqual(result["whatsapp_failures"], 0)
+
+		mocked_send_mail.assert_called_once()
+		_, kwargs = mocked_send_mail.call_args
+		self.assertIn("تقرير اليوم - مدرسة النور", kwargs["subject"])
+		self.assertIn("عدد التقارير: 1", kwargs["message"])
+		self.assertIn("البلاغات المفتوحة: 1", kwargs["message"])
+		self.assertIn("البلاغات المغلقة: 1", kwargs["message"])
+		self.assertIn(f"/staff/schools/{self.school.id}/profile/", kwargs["message"])
+		self.assertEqual(kwargs["recipient_list"], ["manager@nour.edu.sa"])
+
+	@override_settings(
+		DAILY_MANAGER_REPORT_ENABLED=True,
+		DAILY_MANAGER_REPORT_EMAIL_ENABLED=False,
+		DAILY_MANAGER_REPORT_WHATSAPP_ENABLED=True,
+		DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL="https://example.com/whatsapp-webhook",
+	)
+	def test_daily_report_sends_whatsapp_when_enabled(self):
+		self.manager.email = ""
+		self.manager.save(update_fields=["email"])
+
+		with patch("reports.tasks._send_whatsapp_via_webhook", return_value=True) as mocked_whatsapp:
+			result = send_daily_manager_summary_task()
+
+		self.assertEqual(result["schools_processed"], 1)
+		self.assertEqual(result["emails_sent"], 0)
+		self.assertEqual(result["whatsapp_sent"], 1)
+		self.assertEqual(result["whatsapp_failures"], 0)
+		mocked_whatsapp.assert_called_once()
+
+	@override_settings(
+		DAILY_MANAGER_REPORT_ENABLED=True,
+		DAILY_MANAGER_REPORT_INAPP_ENABLED=True,
+		DAILY_MANAGER_REPORT_EMAIL_ENABLED=False,
+		DAILY_MANAGER_REPORT_WHATSAPP_ENABLED=False,
+	)
+	def test_daily_report_creates_internal_notification_without_external_channels(self):
+		result = send_daily_manager_summary_task()
+
+		self.assertEqual(result["schools_processed"], 1)
+		self.assertEqual(result["inapp_sent"], 1)
+		self.assertEqual(result["inapp_failures"], 0)
+		self.assertEqual(result["emails_sent"], 0)
+		self.assertEqual(result["whatsapp_sent"], 0)
+		self.assertEqual(result["managers_missing_channels"], 0)
+
+		notification = Notification.objects.filter(school=self.school).order_by("-id").first()
+		self.assertIsNotNone(notification)
+		self.assertIn("تقرير اليوم", notification.title)
+		self.assertIn("عدد التقارير: 1", notification.message)
+
+		self.assertTrue(
+			NotificationRecipient.objects.filter(
+				notification=notification,
+				teacher=self.manager,
+			).exists()
+		)

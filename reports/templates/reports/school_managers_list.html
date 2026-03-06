@@ -199,6 +199,7 @@
               <tr>
                 <th>المدير</th>
                 <th>رقم الجوال</th>
+                <th>البريد الإلكتروني</th>
                 <th>الحالة</th>
                 <th>المدارس المرتبطة</th>
                 <th>إجراءات</th>
@@ -207,10 +208,12 @@
             <tbody>
               {% for item in managers %}
                 {% with m=item.manager schools=item.schools %}
-                  <tr data-search="{{ m.name|lower }} {{ m.phone|lower }}{% for s in schools %} {{ s.name|lower }}{% if s.code %} {{ s.code|lower }}{% endif %}{% endfor %}">
+                  <tr data-search="{{ m.name|lower }} {{ m.phone|lower }} {{ m.email|default:''|lower }}{% for s in schools %} {{ s.name|lower }}{% if s.code %} {{ s.code|lower }}{% endif %}{% endfor %}">
                     <td data-label="المدير"><b>{{ m.name }}</b></td>
 
                     <td data-label="رقم الجوال" dir="ltr">{{ m.phone }}</td>
+
+                    <td data-label="البريد الإلكتروني" dir="ltr">{{ m.email|default:"-" }}</td>
 
                     <td data-label="الحالة">
                       {% if m.is_active %}

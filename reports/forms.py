@@ -785,6 +785,18 @@ class ManagerCreateForm(forms.ModelForm):
         ),
     )
 
+    email = forms.EmailField(
+        label="البريد الإلكتروني",
+        required=False,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "manager@school.edu.sa",
+                "autocomplete": "email",
+            }
+        ),
+    )
+
     national_id = forms.CharField(
         label="رقم الهوية الوطنية",
         min_length=10,
@@ -805,7 +817,7 @@ class ManagerCreateForm(forms.ModelForm):
 
     class Meta:
         model = Teacher
-        fields = ["name", "phone", "national_id", "is_active"]
+        fields = ["name", "phone", "email", "national_id", "is_active"]
         widgets = {
             "name": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "الاسم الكامل", "maxlength": "150"}

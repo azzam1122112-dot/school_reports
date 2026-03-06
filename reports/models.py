@@ -246,6 +246,7 @@ class TeacherManager(BaseUserManager):
 
 class Teacher(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField("رقم الجوال", max_length=20, unique=True)
+    email = models.EmailField("البريد الإلكتروني", blank=True, default="")
     national_id = models.CharField("الهوية الوطنية", max_length=20, blank=True, null=True, unique=True)
     name = models.CharField("الاسم", max_length=150, db_index=True)
 
