@@ -395,6 +395,41 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/platform_subscriptions.html", ctx)
 
 
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_subscription_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """تفاصيل اشتراك مدرسة مع سجل العمليات المالية المرتبط به."""
+    subscription = get_object_or_404(
+        SchoolSubscription.objects.select_related("school", "plan"),
+        pk=pk,
+    )
+
+    payments_qs = (
+        Payment.objects.filter(subscription=subscription)
+        .select_related("requested_plan", "created_by")
+        .order_by("-created_at")
+    )
+
+    period_start = getattr(subscription, "start_date", None)
+    has_payment_for_period = False
+    if period_start is not None:
+        has_payment_for_period = payments_qs.filter(
+            status__in=[Payment.Status.PENDING, Payment.Status.APPROVED],
+            payment_date__gte=period_start,
+        ).exists()
+
+    next_url = _safe_next_url(request.GET.get("next"))
+
+    ctx = {
+        "subscription": subscription,
+        "payments": list(payments_qs[:40]),
+        "payments_count": payments_qs.count(),
+        "has_payment_for_period": has_payment_for_period,
+        "next_url": next_url,
+    }
+    return render(request, "reports/platform_subscription_detail.html", ctx)
+
+
 def _record_subscription_payment_if_missing(
     *,
     subscription: SchoolSubscription,

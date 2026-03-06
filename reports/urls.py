@@ -253,6 +253,7 @@ urlpatterns = [
     # =========================
     path("platform/subscriptions/", views.platform_subscriptions_list, name="platform_subscriptions_list"),
     path("platform/subscriptions/add/", views.platform_subscription_form, name="platform_subscription_add"),
+    path("platform/subscriptions/<int:pk>/", views.platform_subscription_detail, name="platform_subscription_detail"),
     path("platform/subscriptions/<int:pk>/renew/", views.platform_subscription_renew, name="platform_subscription_renew"),
     path(
         "platform/subscriptions/<int:pk>/record-payment/",

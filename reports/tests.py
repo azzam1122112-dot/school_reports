@@ -469,6 +469,52 @@ class PlatformSubscriptionAddRenewsCancelledTests(TestCase):
 		)
 
 
+class PlatformSubscriptionDetailViewTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="School Detail", code="school-detail")
+		self.plan = SubscriptionPlan.objects.create(name="Plan Detail", price=120, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		self.sub = SchoolSubscription.objects.create(
+			school=self.school,
+			plan=self.plan,
+			start_date=today,
+			end_date=today,
+			is_active=True,
+		)
+
+		self.admin = Teacher.objects.create_superuser(phone="0581234567", name="Admin Detail", password="pass")
+		self.other_user = Teacher.objects.create_user(phone="0581234568", name="User Detail", password="pass")
+
+		Payment.objects.create(
+			school=self.school,
+			subscription=self.sub,
+			requested_plan=self.plan,
+			amount=self.plan.price,
+			receipt_image=None,
+			payment_date=today,
+			status=Payment.Status.APPROVED,
+			created_by=self.admin,
+		)
+
+	def test_platform_subscription_detail_renders_for_superuser(self):
+		self.client.force_login(self.admin)
+		url = reverse("reports:platform_subscription_detail", args=[self.sub.pk])
+		res = self.client.get(url)
+
+		self.assertEqual(res.status_code, 200)
+		self.assertContains(res, self.school.name)
+		self.assertContains(res, self.plan.name)
+		self.assertContains(res, "سجل العمليات المالية")
+
+	def test_platform_subscription_detail_requires_superuser(self):
+		self.client.force_login(self.other_user)
+		url = reverse("reports:platform_subscription_detail", args=[self.sub.pk])
+		res = self.client.get(url)
+
+		self.assertEqual(res.status_code, 302)
+		self.assertIn(reverse("reports:login"), res["Location"])
+
+
 class ResolveDepartmentForCategoryTests(TestCase):
 	def test_resolve_department_scoped_by_school(self):
 		from .models import ReportType

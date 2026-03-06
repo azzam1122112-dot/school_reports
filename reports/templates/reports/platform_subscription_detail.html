@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل الاشتراك{% endblock %}
+
+{% block head %}
+<style>
+  .subdetail-scope {
+    --sd-brand: var(--brand, #2563eb);
+    --sd-ink: var(--ink, #0f172a);
+    --sd-muted: var(--muted, #64748b);
+    --sd-line: var(--line-2, var(--line, #e5e7eb));
+    --sd-card: var(--card, #fff);
+    --sd-shadow: var(--shadow, 0 14px 36px rgba(2, 6, 23, .10));
+    --sd-danger: var(--danger, #ef4444);
+    --sd-ok: var(--accent, #10b981);
+    --sd-warn: #f59e0b;
+    --sd-t: var(--t-fast, 180ms ease);
+  }
+
+  .subdetail-scope .wrap {
+    max-width: 1080px;
+    margin-inline: auto;
+  }
+
+  .subdetail-scope .hero {
+    padding: 16px 18px;
+    border-radius: 16px;
+    color: #fff;
+    background:
+      radial-gradient(900px 240px at 15% 0%, rgba(16, 185, 129, .16), transparent 55%),
+      radial-gradient(700px 220px at 90% 70%, rgba(255, 255, 255, .14), transparent 60%),
+      linear-gradient(135deg, rgba(37, 99, 235, .95), rgba(59, 130, 246, .88));
+    border: 1px solid rgba(255, 255, 255, .14);
+    box-shadow: var(--sd-shadow);
+    margin-bottom: 14px;
+  }
+
+  .subdetail-scope .hero-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .subdetail-scope .hero h1 {
+    margin: 0;
+    font-weight: 950;
+    font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  }
+
+  .subdetail-scope .hero p {
+    margin: 6px 0 0;
+    opacity: .95;
+    font-weight: 850;
+    line-height: 1.6;
+  }
+
+  .subdetail-scope .hero .btn {
+    min-height: 42px;
+    border-radius: 12px;
+    transition: var(--sd-t);
+    background: rgba(255, 255, 255, .12);
+    border-color: rgba(255, 255, 255, .22);
+    color: #fff;
+  }
+
+  .subdetail-scope .hero .btn:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, .16);
+  }
+
+  .subdetail-scope .grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: 1.15fr .85fr;
+    margin-bottom: 14px;
+  }
+
+  @media (max-width: 920px) {
+    .subdetail-scope .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .subdetail-scope .card {
+    border: 1px solid var(--sd-line);
+    border-radius: 16px;
+    box-shadow: var(--sd-shadow);
+    background: var(--sd-card);
+  }
+
+  .subdetail-scope .panel {
+    padding: 14px;
+  }
+
+  .subdetail-scope .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .subdetail-scope .panel-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 950;
+    color: var(--sd-ink);
+  }
+
+  .subdetail-scope .rows {
+    display: grid;
+    gap: 0;
+  }
+
+  .subdetail-scope .row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--sd-line);
+  }
+
+  .subdetail-scope .row:last-child {
+    border-bottom: 0;
+  }
+
+  .subdetail-scope .label {
+    color: var(--sd-muted);
+    font-weight: 900;
+  }
+
+  .subdetail-scope .value {
+    color: var(--sd-ink);
+    font-weight: 950;
+    text-align: start;
+  }
+
+  .subdetail-scope .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: .86rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    white-space: nowrap;
+  }
+
+  .subdetail-scope .badge.success {
+    color: #047857;
+    background: rgba(16, 185, 129, .12);
+    border-color: rgba(16, 185, 129, .2);
+  }
+
+  .subdetail-scope .badge.warning {
+    color: #92400e;
+    background: rgba(245, 158, 11, .14);
+    border-color: rgba(245, 158, 11, .22);
+  }
+
+  .subdetail-scope .badge.danger {
+    color: #b91c1c;
+    background: rgba(239, 68, 68, .12);
+    border-color: rgba(239, 68, 68, .22);
+  }
+
+  .subdetail-scope .muted {
+    color: var(--sd-muted);
+    font-weight: 800;
+  }
+
+  .subdetail-scope .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .subdetail-scope .actions .btn {
+    min-height: 42px;
+    border-radius: 12px;
+  }
+
+  .subdetail-scope .actions form {
+    margin: 0;
+  }
+
+  .subdetail-scope .btn-danger {
+    color: var(--sd-danger);
+    border-color: rgba(239, 68, 68, .25);
+    background: rgba(239, 68, 68, .08);
+  }
+
+  .subdetail-scope .btn-danger:hover {
+    background: rgba(239, 68, 68, .12);
+  }
+
+  @media (max-width: 560px) {
+    .subdetail-scope .row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .subdetail-scope .actions {
+      flex-direction: column;
+    }
+
+    .subdetail-scope .actions .btn,
+    .subdetail-scope .actions form {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container subdetail-scope" dir="rtl">
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-head">
+        <div>
+          <h1>تفاصيل الاشتراك: {{ subscription.school.name }}</h1>
+          <p>استعراض حالة الاشتراك وسجل عملياته المالية من صفحة واحدة.</p>
+        </div>
+
+        {% if next_url %}
+          <a href="{{ next_url }}" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            رجوع
+          </a>
+        {% else %}
+          <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            قائمة الاشتراكات
+          </a>
+        {% endif %}
+      </div>
+    </section>
+
+    <div class="grid">
+      <div class="card panel">
+        <div class="panel-head">
+          <h2 class="panel-title">
+            <i class="fa-solid fa-building" aria-hidden="true"></i>
+            معلومات الاشتراك
+          </h2>
+        </div>
+
+        <div class="rows">
+          <div class="row">
+            <span class="label">المدرسة</span>
+            <span class="value">{{ subscription.school.name }}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">كود المدرسة</span>
+            <span class="value">{{ subscription.school.code|default:"-" }}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">الخطة الحالية</span>
+            <span class="value">{{ subscription.plan.name }}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">سعر الخطة</span>
+            <span class="value">{{ subscription.plan.price }} ريال</span>
+          </div>
+
+          <div class="row">
+            <span class="label">تاريخ البدء</span>
+            <span class="value">{{ subscription.start_date|date:"Y-m-d" }}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">تاريخ الانتهاء</span>
+            <span class="value">{{ subscription.end_date|date:"Y-m-d" }}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">الحالة</span>
+            <span class="value">
+              {% if subscription.is_cancelled %}
+                <span class="badge danger"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
+              {% elif subscription.is_expired %}
+                <span class="badge warning"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> منتهي</span>
+              {% else %}
+                <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ساري</span>
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="row">
+            <span class="label">الدفع للفترة الحالية</span>
+            <span class="value">
+              {% if has_payment_for_period %}
+                <span class="badge success"><i class="fa-solid fa-receipt" aria-hidden="true"></i> مسجل</span>
+              {% else %}
+                <span class="badge warning"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> غير مسجل</span>
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="row">
+            <span class="label">الأيام المتبقية</span>
+            <span class="value">
+              {% if subscription.is_cancelled %}
+                <span class="muted">تم الإلغاء</span>
+              {% elif subscription.is_expired %}
+                <span class="muted">منتهي</span>
+              {% else %}
+                {{ subscription.days_remaining }} يوم
+              {% endif %}
+            </span>
+          </div>
+
+          {% if subscription.cancel_reason %}
+            <div class="row">
+              <span class="label">سبب الإلغاء</span>
+              <span class="value">{{ subscription.cancel_reason }}</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head">
+          <h2 class="panel-title">
+            <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+            إجراءات سريعة
+          </h2>
+        </div>
+
+        <div class="actions">
+          {% if not subscription.is_cancelled %}
+            <form method="post" action="{% url 'reports:platform_subscription_renew' subscription.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-primary" data-confirm="تأكيد تجديد الاشتراك؟">
+                <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                تجديد الاشتراك
+              </button>
+            </form>
+          {% endif %}
+
+          {% if subscription.is_active and not has_payment_for_period and subscription.plan.price %}
+            <form method="post" action="{% url 'reports:platform_subscription_record_payment' subscription.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-outline" data-confirm="تسجيل دفعة لهذا الاشتراك؟">
+                <i class="fa-solid fa-receipt" aria-hidden="true"></i>
+                تسجيل دفعة
+              </button>
+            </form>
+          {% endif %}
+
+          {% if not subscription.is_cancelled and not subscription.is_expired %}
+            <form method="post" action="{% url 'reports:platform_subscription_delete' subscription.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <input type="hidden" name="reason" value="{{ subscription.cancel_reason|default:'' }}">
+              <input type="hidden" name="refund_amount" value="">
+
+              <button
+                type="submit"
+                class="btn btn-outline btn-danger"
+                data-reason-prompt="سبب الإلغاء (سيظهر للمدرسة):"
+                data-refund-prompt="استرجاع مبلغ؟ اتركه فارغًا بدون استرجاع. اكتب (كامل) للاسترجاع الكامل أو اكتب رقمًا مثل 150.00 للاسترجاع الجزئي."
+                data-confirm="سيتم إلغاء اشتراك مدرسة: {{ subscription.school.name }}. هل أنت متأكد؟"
+              >
+                <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                إلغاء الاشتراك
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card panel">
+      <div class="panel-head">
+        <h2 class="panel-title">
+          <i class="fa-solid fa-money-check-dollar" aria-hidden="true"></i>
+          سجل العمليات المالية
+        </h2>
+        <span class="muted">{{ payments_count }} عملية</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="rtable">
+          <thead>
+            <tr>
+              <th style="text-align:right">رقم العملية</th>
+              <th style="text-align:right">التاريخ</th>
+              <th style="text-align:right">المبلغ</th>
+              <th style="text-align:right">الحالة</th>
+              <th style="text-align:right">الخطة</th>
+              <th style="text-align:right">الإجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in payments %}
+              <tr>
+                <td data-label="رقم العملية" style="text-align:right">#{{ payment.id }}</td>
+                <td data-label="التاريخ" style="text-align:right">{{ payment.payment_date|date:"Y-m-d" }}</td>
+                <td data-label="المبلغ" style="text-align:right">{{ payment.amount }} ريال</td>
+                <td data-label="الحالة" style="text-align:right">
+                  {% if payment.status == 'approved' %}
+                    <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> مقبول</span>
+                  {% elif payment.status == 'rejected' %}
+                    <span class="badge danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> مرفوض</span>
+                  {% elif payment.status == 'cancelled' %}
+                    <span class="badge warning"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
+                  {% else %}
+                    <span class="badge warning"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> قيد المراجعة</span>
+                  {% endif %}
+                </td>
+                <td data-label="الخطة" style="text-align:right">{{ payment.requested_plan.name|default:subscription.plan.name }}</td>
+                <td data-label="الإجراء" style="text-align:right">
+                  <a href="{% url 'reports:platform_payment_detail' payment.id %}" class="btn btn-outline" style="min-height:34px;padding:6px 10px;border-radius:10px;">
+                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    عرض العملية
+                  </a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" style="text-align:center; padding: 2rem;" class="muted">
+                  لا توجد عمليات مالية مرتبطة بهذا الاشتراك حتى الآن.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

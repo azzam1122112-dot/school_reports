@@ -403,6 +403,11 @@
 
               <td data-label="إجراء">
                 <div class="row-actions">
+                  <a href="{% url 'reports:platform_subscription_detail' sub.id %}" class="btn btn-outline">
+                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    عرض
+                  </a>
+
                   {% if not sub.is_cancelled %}
                     <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}" style="display:inline">
                       {% csrf_token %}
