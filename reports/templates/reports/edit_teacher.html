@@ -351,7 +351,7 @@
             </label>
             {{ form.job_title }}
             {% for e in form.job_title.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
-            <div class="te-hint">اختر ({{ SCHOOL_TEACHER_LABEL|default:"معلم" }} / موظف إداري / محضر مختبر) — بنفس الصلاحيات</div>
+            <div class="te-hint">اختر ({{ SCHOOL_TEACHER_LABEL|default:"معلم" }} / {{ SCHOOL_ADMIN_STAFF_LABEL|default:"موظف إداري" }} / {{ SCHOOL_LAB_TECH_LABEL|default:"محضر مختبر" }}) — بنفس الصلاحيات</div>
           </div>
           {% endif %}
 

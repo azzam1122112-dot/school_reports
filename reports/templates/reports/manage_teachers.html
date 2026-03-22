@@ -108,13 +108,13 @@
                         {% if t.is_report_viewer %}
                           <span class="chip chip-role role-officer"><i class="fas fa-user-shield"></i> مشرف تقارير</span>
                         {% elif t.school_job_title == 'admin_staff' %}
-                          <span class="chip chip-role role-employee"><i class="fas fa-id-badge"></i> موظف إداري</span>
+                          <span class="chip chip-role role-employee"><i class="fas fa-id-badge"></i> {{ SCHOOL_ADMIN_STAFF_LABEL|default:"موظف إداري" }}</span>
                         {% elif t.school_job_title == 'lab_tech' %}
-                          <span class="chip chip-role role-employee"><i class="fas fa-flask"></i> محضر مختبر</span>
+                          <span class="chip chip-role role-employee"><i class="fas fa-flask"></i> {{ SCHOOL_LAB_TECH_LABEL|default:"محضر مختبر" }}</span>
                         {% elif slug == 'manager' %}
-                          <span class="chip chip-role role-manager"><i class="fas fa-crown"></i> مدير</span>
+                          <span class="chip chip-role role-manager"><i class="fas fa-crown"></i> {{ SCHOOL_HEAD_LABEL|default:"مدير" }}</span>
                         {% elif slug == 'teacher' %}
-                          <span class="chip chip-role role-teacher"><i class="fas fa-user-graduate"></i> معلم</span>
+                          <span class="chip chip-role role-teacher"><i class="fas fa-user-graduate"></i> {{ SCHOOL_TEACHER_LABEL|default:"معلم" }}</span>
                         {% elif slug %}
                           <span class="chip chip-dept" data-slug="{{ slug }}">
                             <i class="fas fa-building"></i>
