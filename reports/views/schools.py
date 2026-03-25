@@ -634,20 +634,13 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         from ..models import ReportType  # type: ignore
         has_reporttype = True
 
-        # في لوحة المدير نعرض عدد أنواع التقارير المستخدمة داخل المدرسة الحالية فقط
-        if active_school is not None:
-            reporttypes_count = (
-                Report.objects.filter(school=active_school, category__isnull=False)
-                .values("category_id")
-                .distinct()
-                .count()
-            )
-        else:
-            # في حال عدم وجود مدرسة نشطة نرجع للعدّاد الكلي
-            if hasattr(ReportType, "is_active"):
-                reporttypes_count = ReportType.objects.filter(is_active=True).count()
-            else:
-                reporttypes_count = ReportType.objects.count()
+        # نعرض عدد الأنواع المعرّفة (وليس فقط المستخدمة) داخل المدرسة النشطة.
+        rt_qs = ReportType.objects.all()
+        if hasattr(ReportType, "is_active"):
+            rt_qs = rt_qs.filter(is_active=True)
+        if active_school is not None and _model_has_field(ReportType, "school"):
+            rt_qs = rt_qs.filter(school=active_school)
+        reporttypes_count = rt_qs.count()
     except Exception:
         pass
 
@@ -659,11 +652,14 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     # إضافة بيانات الرسوم البيانية والتحليلات المتقدمة
     if active_school:
         charts_cache_key = f"admin_charts_v2_{active_school.id}"
-        charts = cache.get(charts_cache_key)
+        try:
+            charts = cache.get(charts_cache_key)
+        except Exception:
+            charts = None
+
+        now = timezone.now()
         
         if not charts:
-            now = timezone.now()
-            
             # تقارير آخر 8 أسابيع
             eight_weeks_ago = now - timedelta(weeks=8)
             reports_by_week = _filter_by_school(
@@ -700,7 +696,6 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
                 dept_data.append(item['count'])
             
             # معلمين حسب القسم
-            teachers_by_dept = []
             if Department is not None:
                 teachers_by_dept_qs = Department.objects.filter(
                     school=active_school
@@ -764,15 +759,17 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             recent_reports = _filter_by_school(
                 Report.objects.all(),
                 active_school
-            ).select_related('teacher').order_by('-created_at')[:5]
+            ).select_related('teacher', 'department').order_by('-created_at')[:5]
             
             for report in recent_reports:
+                teacher_name = getattr(getattr(report, 'teacher', None), 'name', None) or 'معلم'
+                department_name = getattr(getattr(report, 'department', None), 'name', None) or 'قسم'
                 recent_activities.append({
                     'type': 'report',
                     'icon': 'fa-file-alt',
                     'color': 'primary',
                     'title': 'تقرير جديد',
-                    'description': f"{report.teacher.name if report.teacher else 'معلم'} - {report.department.name if report.department else 'قسم'}",
+                    'description': f"{teacher_name} - {department_name}",
                     'time': report.created_at,
                 })
             
@@ -782,12 +779,13 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             ).order_by('-created_at')[:3]
             
             for ticket in recent_tickets:
+                ticket_title = (getattr(ticket, 'title', None) or '').strip()
                 recent_activities.append({
                     'type': 'ticket',
                     'icon': 'fa-ticket-alt',
                     'color': 'warning',
                     'title': 'طلب جديد',
-                    'description': ticket.subject[:50],
+                    'description': (ticket_title[:50] if ticket_title else 'طلب بدون عنوان'),
                     'time': ticket.created_at,
                 })
             
