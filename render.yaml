@@ -8,9 +8,11 @@ services:
       - key: DEBUG
         value: "False"
       - key: SITE_URL
-        value: "https://school-reports.onrender.com"
+        value: "https://app.tawtheeq-ksa.com"
       - key: ALLOWED_HOSTS
-        value: "school-7lgm.onrender.com,school-reports.onrender.com"
+        value: "app.tawtheeq-ksa.com,tawtheeq-ksa.com,school-7lgm.onrender.com,school-reports.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://app.tawtheeq-ksa.com,https://tawtheeq-ksa.com,https://school-7lgm.onrender.com,https://school-reports.onrender.com"
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL

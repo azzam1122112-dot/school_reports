@@ -317,6 +317,9 @@ CELERY_BROKER_URL = (os.getenv("CELERY_BROKER_URL") or REDIS_URL).strip()
 REDIS_CACHE_URL = os.getenv("REDIS_CACHE_URL", "").strip()
 REDIS_CHANNEL_LAYER_URL = (os.getenv("REDIS_CHANNEL_LAYER_URL") or "").strip() or REDIS_URL
 
+# Database URL is needed by strict production checks below.
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
 
 def _derive_cache_redis_url(broker_url: str) -> str:
     if not broker_url:
@@ -383,7 +386,6 @@ else:
 
 
 # ----------------- Database -----------------
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_SSL = _env_bool("DB_SSL", False)
 
 # الحد الأقصى لعمر الاتصال (ثوانٍ). 0 يعني إغلاق الاتصال بعد كل طلب.
