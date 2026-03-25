@@ -2,6 +2,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import hashlib
+
+from django.contrib.auth.decorators import user_passes_test
+from django.conf import settings
+from django.core.cache import cache
+
 from ._helpers import *
 from ._helpers import (
     _is_staff, _is_staff_or_officer, _is_manager_in_school,
@@ -57,7 +63,26 @@ def my_reports(request: HttpRequest) -> HttpResponse:
     q = request.GET.get("q", "").strip()
 
     qs = apply_teacher_report_filters(qs, start_date=start_date, end_date=end_date, q=q)
-    stats = teacher_report_stats(qs)
+    try:
+        ttl = int(getattr(settings, "MY_REPORTS_STATS_CACHE_TTL", 20 if not settings.DEBUG else 5) or 0)
+    except Exception:
+        ttl = 10
+
+    stats = None
+    if ttl > 0:
+        try:
+            sid = int(getattr(active_school, "id", 0) or 0)
+            key_basis = f"u={int(request.user.id)}|s={sid}|sd={start_date}|ed={end_date}|q={q}"
+            key_hash = hashlib.sha1(key_basis.encode("utf-8")).hexdigest()
+            cache_key = f"reports:my-stats:v1:{key_hash}"
+            stats = cache.get(cache_key)
+            if stats is None:
+                stats = teacher_report_stats(qs)
+                cache.set(cache_key, stats, ttl)
+        except Exception:
+            stats = teacher_report_stats(qs)
+    else:
+        stats = teacher_report_stats(qs)
     reports_page = svc_paginate(qs, per_page=10, page=request.GET.get("page", 1))
 
     params = request.GET.copy()
@@ -102,14 +127,14 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
 
     allowed_choices = get_reporttype_choices(active_school=active_school) if (HAS_RTYPE and ReportType is not None) else []
     reports_page = svc_paginate(qs, per_page=20, page=request.GET.get("page", 1))
-    
-    # ✅ إضافة صلاحيات الحذف والتعديل والمشاركة لكل تقرير باستخدام الدوال الصحيحة
-    # التي تراعي رؤساء الأقسام (OFFICER) وأعضاء الأقسام (TEACHER)
-    user = request.user
+
+    # هذه الصفحة لا يصلها إلا مدير المدرسة داخل المدرسة النشطة أو السوبر أدمن.
+    # بعد تقييد الـ queryset حسب المدرسة/الصلاحيات، تكون الإجراءات مسموحة لكل صف بدون
+    # إعادة فحص قاعدة البيانات لكل تقرير على حدة.
     for report in reports_page:
-        report.user_can_delete = can_delete_report(user, report, active_school=active_school)
-        report.user_can_edit = can_edit_report(user, report, active_school=active_school)
-        report.user_can_share = can_share_report(user, report, active_school=active_school)
+        report.user_can_delete = True
+        report.user_can_edit = True
+        report.user_can_share = True
 
     context = {
         "reports": reports_page,

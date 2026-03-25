@@ -194,6 +194,107 @@ def is_department_member(user, *, active_school: Optional[School] = None) -> boo
     return bool(get_member_departments(user, active_school=active_school))
 
 
+def _scope_school_id(*, active_school: Optional[School] = None, report_school: Optional[School] = None) -> Optional[int]:
+    try:
+        if active_school is not None:
+            return int(getattr(active_school, "id", None) or 0) or None
+    except Exception:
+        pass
+    try:
+        if report_school is not None:
+            return int(getattr(report_school, "id", None) or 0) or None
+    except Exception:
+        pass
+    return None
+
+
+def _build_report_permission_scope(user, *, school_id: Optional[int]) -> dict:
+    """Build a lightweight permission scope once per user/school context.
+
+    This avoids repeating manager/officer DB lookups for every report row.
+    """
+    scope = {
+        "is_authenticated": bool(getattr(user, "is_authenticated", False)),
+        "is_superuser": bool(getattr(user, "is_superuser", False)),
+        "is_platform_admin": bool(is_platform_admin(user)),
+        "manager_school_ids": set(),
+        "officer_reporttype_ids": set(),
+    }
+
+    if not scope["is_authenticated"] or scope["is_superuser"] or scope["is_platform_admin"]:
+        return scope
+
+    try:
+        manager_qs = SchoolMembership.objects.filter(
+            teacher=user,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True,
+        )
+        if school_id is not None:
+            manager_qs = manager_qs.filter(school_id=school_id)
+        scope["manager_school_ids"] = set(manager_qs.values_list("school_id", flat=True))
+    except Exception:
+        scope["manager_school_ids"] = set()
+
+    try:
+        if DepartmentMembership is None:
+            return scope
+        officer_value = getattr(DepartmentMembership, "OFFICER", "officer")
+        depts_qs = Department.objects.filter(
+            is_active=True,
+            memberships__teacher=user,
+            memberships__role_type=officer_value,
+        )
+        if school_id is not None:
+            depts_qs = depts_qs.filter(school_id=school_id)
+        rt_ids = set(depts_qs.values_list("reporttypes__id", flat=True))
+        scope["officer_reporttype_ids"] = {int(x) for x in rt_ids if x}
+    except Exception:
+        scope["officer_reporttype_ids"] = set()
+
+    return scope
+
+
+def _get_report_permission_scope(user, *, active_school: Optional[School] = None, report_school: Optional[School] = None) -> dict:
+    sid = _scope_school_id(active_school=active_school, report_school=report_school)
+    cache_obj = getattr(user, "_report_perm_scope_cache", None)
+    if not isinstance(cache_obj, dict):
+        cache_obj = {}
+        setattr(user, "_report_perm_scope_cache", cache_obj)
+
+    key = sid if sid is not None else "all"
+    if key not in cache_obj:
+        cache_obj[key] = _build_report_permission_scope(user, school_id=sid)
+    return cache_obj[key]
+
+
+def _can_manage_report(user, report, *, active_school: Optional[School] = None) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+
+    report_teacher_id = getattr(report, "teacher_id", None)
+    report_school = getattr(report, "school", None)
+    report_school_id = getattr(report, "school_id", None)
+    report_category_id = getattr(report, "category_id", None)
+
+    scope = _get_report_permission_scope(user, active_school=active_school, report_school=report_school)
+    if scope.get("is_superuser"):
+        return True
+    if scope.get("is_platform_admin"):
+        return False
+
+    if report_teacher_id == getattr(user, "id", None):
+        return True
+
+    if report_school_id in scope.get("manager_school_ids", set()):
+        return True
+
+    if report_category_id in scope.get("officer_reporttype_ids", set()):
+        return True
+
+    return False
+
+
 def can_delete_report(user, report, *, active_school: Optional[School] = None) -> bool:
     """
     يحدد هل المستخدم يستطيع حذف التقرير.
@@ -206,48 +307,7 @@ def can_delete_report(user, report, *, active_school: Optional[School] = None) -
     - عضو القسم (TEACHER): لا (عرض فقط)
     - صاحب التقرير: نعم
     """
-    if not getattr(user, "is_authenticated", False):
-        return False
-    
-    # السوبر: نعم
-    if getattr(user, "is_superuser", False):
-        return True
-    
-    # مشرف المنصة: لا
-    if is_platform_admin(user):
-        return False
-    
-    # صاحب التقرير: نعم
-    if getattr(report, "teacher_id", None) == getattr(user, "id", None):
-        return True
-    
-    # مدير المدرسة: نعم
-    report_school = getattr(report, "school", None)
-    if report_school and SchoolMembership is not None:
-        try:
-            if SchoolMembership.objects.filter(
-                teacher=user,
-                school=report_school,
-                role_type=SchoolMembership.RoleType.MANAGER,
-                is_active=True,
-            ).exists():
-                return True
-        except Exception:
-            pass
-    
-    # رئيس القسم: نعم (إذا كان التقرير ضمن قسمه)
-    try:
-        report_category = getattr(report, "category", None)
-        if report_category:
-            officer_depts = get_officer_departments(user, active_school=active_school or report_school)
-            for dept in officer_depts:
-                if dept.reporttypes.filter(pk=report_category.pk).exists():
-                    return True
-    except Exception:
-        pass
-    
-    # الباقي: لا
-    return False
+    return _can_manage_report(user, report, active_school=active_school)
 
 
 def can_share_report(user, report, *, active_school: Optional[School] = None) -> bool:
@@ -262,48 +322,7 @@ def can_share_report(user, report, *, active_school: Optional[School] = None) ->
     - عضو القسم (TEACHER): لا (عرض فقط)
     - صاحب التقرير: نعم
     """
-    if not getattr(user, "is_authenticated", False):
-        return False
-    
-    # السوبر: نعم
-    if getattr(user, "is_superuser", False):
-        return True
-    
-    # مشرف المنصة: لا
-    if is_platform_admin(user):
-        return False
-    
-    # صاحب التقرير: نعم
-    if getattr(report, "teacher_id", None) == getattr(user, "id", None):
-        return True
-    
-    # مدير المدرسة: نعم
-    report_school = getattr(report, "school", None)
-    if report_school and SchoolMembership is not None:
-        try:
-            if SchoolMembership.objects.filter(
-                teacher=user,
-                school=report_school,
-                role_type=SchoolMembership.RoleType.MANAGER,
-                is_active=True,
-            ).exists():
-                return True
-        except Exception:
-            pass
-    
-    # رئيس القسم: نعم (إذا كان التقرير ضمن قسمه)
-    try:
-        report_category = getattr(report, "category", None)
-        if report_category:
-            officer_depts = get_officer_departments(user, active_school=active_school or report_school)
-            for dept in officer_depts:
-                if dept.reporttypes.filter(pk=report_category.pk).exists():
-                    return True
-    except Exception:
-        pass
-    
-    # الباقي: لا
-    return False
+    return _can_manage_report(user, report, active_school=active_school)
 
 
 def can_edit_report(user, report, *, active_school: Optional[School] = None) -> bool:
@@ -318,48 +337,7 @@ def can_edit_report(user, report, *, active_school: Optional[School] = None) -> 
     - عضو القسم (TEACHER): لا (عرض فقط)
     - صاحب التقرير: نعم
     """
-    if not getattr(user, "is_authenticated", False):
-        return False
-    
-    # السوبر: نعم
-    if getattr(user, "is_superuser", False):
-        return True
-    
-    # مشرف المنصة: لا
-    if is_platform_admin(user):
-        return False
-    
-    # صاحب التقرير: نعم
-    if getattr(report, "teacher_id", None) == getattr(user, "id", None):
-        return True
-    
-    # مدير المدرسة: نعم
-    report_school = getattr(report, "school", None)
-    if report_school and SchoolMembership is not None:
-        try:
-            if SchoolMembership.objects.filter(
-                teacher=user,
-                school=report_school,
-                role_type=SchoolMembership.RoleType.MANAGER,
-                is_active=True,
-            ).exists():
-                return True
-        except Exception:
-            pass
-    
-    # رئيس القسم: نعم (إذا كان التقرير ضمن قسمه)
-    try:
-        report_category = getattr(report, "category", None)
-        if report_category:
-            officer_depts = get_officer_departments(user, active_school=active_school or report_school)
-            for dept in officer_depts:
-                if dept.reporttypes.filter(pk=report_category.pk).exists():
-                    return True
-    except Exception:
-        pass
-    
-    # الباقي: لا
-    return False
+    return _can_manage_report(user, report, active_school=active_school)
 
 
 # ==============================

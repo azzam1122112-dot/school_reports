@@ -50,6 +50,23 @@ def _model_fields(model) -> Set[str]:
         return set()
 
 
+def _nav_cache_ttl_seconds() -> int:
+    """Short TTL to smooth load spikes without keeping stale nav data for long."""
+    try:
+        default_ttl = 20 if not bool(getattr(settings, "DEBUG", False)) else 5
+        return max(0, int(getattr(settings, "NAV_CONTEXT_CACHE_TTL", default_ttl) or 0))
+    except Exception:
+        return 10
+
+
+def _active_school_id_from_request(request: Optional[HttpRequest]) -> int:
+    try:
+        sid = request.session.get("active_school_id") if request is not None else None
+        return int(sid) if sid else 0
+    except Exception:
+        return 0
+
+
 # -----------------------------
 # كشف أقسام المسؤول Officer
 # -----------------------------
@@ -344,6 +361,18 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
     if not N:
         return None
 
+    uid = int(getattr(user, "id", 0) or 0)
+    sid = _active_school_id_from_request(request)
+    ttl = _nav_cache_ttl_seconds()
+    cache_key = f"nav:hero:v1:u{uid}:s{sid}"
+    if uid and ttl > 0:
+        try:
+            cached_val = cache.get(cache_key)
+            if cached_val is not None:
+                return cached_val
+        except Exception:
+            pass
+
     # المسار المفضل: عبر سجلات الاستلام (Recipient)
     if R:
         fR = _model_fields(R)
@@ -423,7 +452,13 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
                     except Exception:
                         n = None
                     if n:
-                        return _build_hero_payload_from_notification(n)
+                        payload = _build_hero_payload_from_notification(n)
+                        if uid and ttl > 0:
+                            try:
+                                cache.set(cache_key, payload, ttl)
+                            except Exception:
+                                pass
+                        return payload
             except Exception:
                 pass
 
@@ -445,7 +480,13 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
 
         obj = base_qs.only("id")[:1].first()
         if obj:
-            return _build_hero_payload_from_notification(obj)
+            payload = _build_hero_payload_from_notification(obj)
+            if uid and ttl > 0:
+                try:
+                    cache.set(cache_key, payload, ttl)
+                except Exception:
+                    pass
+            return payload
 
         # فرصة ثانية: نطاق آخر 3 أيام
         try:
@@ -462,11 +503,23 @@ def _pick_hero_notification(user, request: Optional[HttpRequest] = None) -> Opti
             recent_qs = _order_newest(recent_qs, N)
             obj = recent_qs.only("id")[:1].first()
             if obj:
-                return _build_hero_payload_from_notification(obj)
+                payload = _build_hero_payload_from_notification(obj)
+                if uid and ttl > 0:
+                    try:
+                        cache.set(cache_key, payload, ttl)
+                    except Exception:
+                        pass
+                return payload
         except Exception:
             pass
     except Exception:
         pass
+
+    if uid and ttl > 0:
+        try:
+            cache.set(cache_key, None, ttl)
+        except Exception:
+            pass
 
     return None
 
@@ -476,6 +529,18 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
     N, R = _notification_models()
     if not N:
         return 0
+
+    uid = int(getattr(user, "id", 0) or 0)
+    sid = _active_school_id_from_request(request)
+    ttl = _nav_cache_ttl_seconds()
+    cache_key = f"nav:unread:v2:u{uid}:s{sid}"
+    if uid and ttl > 0:
+        try:
+            cached_val = cache.get(cache_key)
+            if cached_val is not None:
+                return int(cached_val)
+        except Exception:
+            pass
 
     # المسار المفضل: NotificationRecipient
     if R:
@@ -533,7 +598,13 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
                 if "is_active" in fN:
                     qs = qs.filter(**{f"{notif_fk}__is_active": True})
 
-            return _safe_count(qs)
+            val = _safe_count(qs)
+            if uid and ttl > 0:
+                try:
+                    cache.set(cache_key, int(val), ttl)
+                except Exception:
+                    pass
+            return val
         except Exception:
             return 0
 
@@ -549,7 +620,13 @@ def _unread_count(user, request: Optional[HttpRequest] = None) -> int:
                 qs = qs.filter(Q(school_id=sid) | Q(school__isnull=True))
         except Exception:
             pass
-        return _safe_count(qs)
+        val = _safe_count(qs)
+        if uid and ttl > 0:
+            try:
+                cache.set(cache_key, int(val), ttl)
+            except Exception:
+                pass
+        return val
     except Exception:
         return 0
 
@@ -608,6 +685,18 @@ def _pending_signatures_count(user, request: Optional[HttpRequest] = None) -> in
     if not user_fk:
         return 0
 
+    uid = int(getattr(user, "id", 0) or 0)
+    sid = _active_school_id_from_request(request)
+    ttl = _nav_cache_ttl_seconds()
+    cache_key = f"nav:pending-sign:v1:u{uid}:s{sid}"
+    if uid and ttl > 0:
+        try:
+            cached_val = cache.get(cache_key)
+            if cached_val is not None:
+                return int(cached_val)
+        except Exception:
+            pass
+
     now = timezone.now()
     try:
         qs = R.objects.filter(**{user_fk: user, "is_signed": False, f"{notif_fk}__requires_signature": True})
@@ -636,7 +725,13 @@ def _pending_signatures_count(user, request: Optional[HttpRequest] = None) -> in
             pass
 
         qs = _exclude_notif_dismissed_cookies_recipient_qs(qs, request, notif_fk=notif_fk)
-        return _safe_count(qs)
+        val = _safe_count(qs)
+        if uid and ttl > 0:
+            try:
+                cache.set(cache_key, int(val), ttl)
+            except Exception:
+                pass
+        return val
     except Exception:
         return 0
 
@@ -746,33 +841,64 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         assigned_open = 0
 
-    # تحديد دور مدير المدرسة مبكرًا
+    # تحديد عضويات المدرسة/القسم في استعلامات مجمعة لتقليل كلفة كل طلب.
+    manager_school_ids: set[int] = set()
+    officer_depts: list[Department] = []
+    member_depts: list[Department] = []
+
     any_school_manager = False
     is_school_manager = False
     try:
         if getattr(u, "is_authenticated", False):
-            any_school_manager = SchoolMembership.objects.filter(
-                teacher=u,
-                role_type=SchoolMembership.RoleType.MANAGER,
-                is_active=True,
-            ).exists()
-            if active_school is not None:
-                is_school_manager = SchoolMembership.objects.filter(
+            manager_school_ids = {
+                int(x)
+                for x in SchoolMembership.objects.filter(
                     teacher=u,
-                    school=active_school,
                     role_type=SchoolMembership.RoleType.MANAGER,
                     is_active=True,
-                ).exists()
+                ).values_list("school_id", flat=True)
+                if x
+            }
+            any_school_manager = bool(manager_school_ids)
+            if active_school is not None:
+                is_school_manager = int(getattr(active_school, "id", 0) or 0) in manager_school_ids
             else:
                 is_school_manager = any_school_manager
     except Exception:
-        pass
+        manager_school_ids = set()
 
-    officer_depts = _detect_officer_departments(u, active_school=active_school)
+    try:
+        Membership = _get_membership_model()
+        if Membership is not None:
+            membs = Membership.objects.select_related("department").filter(
+                teacher=u,
+                department__is_active=True,
+            )
+            if active_school is not None and "school" in _model_fields(Department):
+                membs = membs.filter(department__school=active_school)
+
+            officer_values = set(_officer_role_values(Membership))
+            teacher_values = set(_teacher_role_values(Membership))
+            seen_officer: set[int] = set()
+            seen_member: set[int] = set()
+            for m in membs:
+                d = getattr(m, "department", None)
+                if d is None or getattr(d, "pk", None) is None:
+                    continue
+                role_type = getattr(m, "role_type", None)
+                did = int(d.pk)
+                if role_type in officer_values and did not in seen_officer:
+                    seen_officer.add(did)
+                    officer_depts.append(d)
+                if role_type in teacher_values and did not in seen_member:
+                    seen_member.add(did)
+                    member_depts.append(d)
+    except Exception:
+        officer_depts = []
+        member_depts = []
+
     is_officer = bool(officer_depts)
     show_officer_link = bool(getattr(u, "is_superuser", False) or is_officer)
-
-    member_depts = _detect_member_departments(u, active_school=active_school)
     is_member = bool(member_depts)
     
     # مدير المدرسة لا يظهر له "تقارير قسمي" بل "تقارير المدرسة"
@@ -793,29 +919,19 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         if getattr(u, "is_superuser", False):
             nav_officer_reports = base_qs.count()
         elif is_officer:
-            rt_ids: set = set()
-            rt_slugs: set = set()
-            for d in officer_depts:
+            dept_ids = [int(getattr(d, "pk", 0) or 0) for d in officer_depts if getattr(d, "pk", None)]
+            if dept_ids:
                 try:
-                    rt_ids.update(d.reporttypes.values_list("id", flat=True))
+                    rt_ids = {
+                        int(x)
+                        for x in Department.objects.filter(pk__in=dept_ids).values_list("reporttypes__id", flat=True)
+                        if x
+                    }
                 except Exception:
-                    pass
-                try:
-                    rt_slugs.update(d.reporttypes.values_list("slug", flat=True))
-                except Exception:
-                    pass
-            if rt_ids or rt_slugs:
-                q = base_qs
+                    rt_ids = set()
+
                 if rt_ids:
-                    try:
-                        nav_officer_reports = q.filter(category_id__in=list(rt_ids)).count()
-                    except Exception:
-                        pass
-                if not nav_officer_reports and rt_slugs:
-                    try:
-                        nav_officer_reports = q.filter(category__in=list(rt_slugs)).count()
-                    except Exception:
-                        nav_officer_reports = 0
+                    nav_officer_reports = base_qs.filter(category_id__in=list(rt_ids)).count()
     except Exception:
         nav_officer_reports = 0
 
@@ -903,12 +1019,9 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
                 # للمدير: أظهر فقط المدارس التي يملك فيها دور مدير مدرسة.
                 user_schools = list(
                     School.objects.filter(
-                        memberships__teacher=request.user,
-                        memberships__role_type=SchoolMembership.RoleType.MANAGER,
-                        memberships__is_active=True,
+                        id__in=list(manager_school_ids),
                         is_active=True,
                     )
-                    .distinct()
                     .order_by("name")
                 )
             else:

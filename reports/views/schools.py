@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from collections import defaultdict
+from django.db.models import Count, Q
+
 from ._helpers import *
 from ._helpers import (
     _is_staff, _role_display_map, _filter_by_school,
@@ -106,43 +109,95 @@ def _tickets_stats_for_department(dept_code: str, school: Optional[School] = Non
     }
 
 def _all_departments(active_school: Optional[School] = None):
-    items = []
-    if Department is not None:
-        qs = Department.objects.all().order_by("id")
-        if active_school is not None and hasattr(Department, "school"):
-            qs = qs.filter(school=active_school)
-        for d in qs:
-            code = _dept_code_for(d)
-            stats = _tickets_stats_for_department(code, active_school)
-            # ملاحظة للتوسع: الاعتماد على role.slug وحده يخلط المدارس عند تكرار slugs.
-            # نُقيّد العد داخل المدرسة النشطة عبر SchoolMembership.
-            if active_school is not None:
-                role_ids = set(
-                    SchoolMembership.objects.filter(
-                        school=active_school,
-                        is_active=True,
-                        teacher__is_active=True,
-                        teacher__role__slug=code,
-                    ).values_list("teacher_id", flat=True)
-                )
-            else:
-                role_ids = set(Teacher.objects.filter(role__slug=code, is_active=True).values_list("id", flat=True))
-            member_ids = set()
-            if DepartmentMembership is not None:
-                member_ids = set(DepartmentMembership.objects.filter(department=d).values_list("teacher_id", flat=True))
-            members_count = len(role_ids | member_ids)
-            items.append(
-                {
-                    "pk": d.pk,
-                    "code": code,
-                    "name": _arabic_label_for_in_school(d, active_school),
-                    "is_active": getattr(d, "is_active", True),
-                    "members_count": members_count,
-                    "stats": stats,
-                }
+    if Department is None:
+        return []
+
+    qs = Department.objects.all().order_by("id")
+    if active_school is not None and hasattr(Department, "school"):
+        qs = qs.filter(school=active_school)
+
+    departments = list(qs)
+    if not departments:
+        return []
+
+    department_ids = [d.pk for d in departments if getattr(d, "pk", None) is not None]
+    department_codes = [_dept_code_for(d) for d in departments]
+
+    ticket_stats_map = defaultdict(lambda: {"open": 0, "in_progress": 0, "done": 0})
+    if Ticket is not None and department_ids:
+        try:
+            ticket_qs = Ticket.objects.filter(department_id__in=department_ids)
+            if active_school is not None and _model_has_field(Ticket, "school"):
+                ticket_qs = ticket_qs.filter(school=active_school)
+            ticket_rows = ticket_qs.values("department_id").annotate(
+                open_count=Count("id", filter=Q(status=Ticket.Status.OPEN)),
+                in_progress_count=Count("id", filter=Q(status=Ticket.Status.IN_PROGRESS)),
+                done_count=Count("id", filter=Q(status=Ticket.Status.DONE)),
             )
-    else:
-        items = []
+            for row in ticket_rows:
+                ticket_stats_map[row["department_id"]] = {
+                    "open": int(row.get("open_count") or 0),
+                    "in_progress": int(row.get("in_progress_count") or 0),
+                    "done": int(row.get("done_count") or 0),
+                }
+        except Exception:
+            logger.exception("Failed to batch ticket stats for departments list")
+
+    membership_teacher_ids_by_department = defaultdict(set)
+    if DepartmentMembership is not None and department_ids:
+        try:
+            membership_rows = DepartmentMembership.objects.filter(
+                department_id__in=department_ids
+            ).values_list("department_id", "teacher_id")
+            for department_id, teacher_id in membership_rows:
+                if department_id and teacher_id:
+                    membership_teacher_ids_by_department[int(department_id)].add(int(teacher_id))
+        except Exception:
+            logger.exception("Failed to batch department memberships for departments list")
+
+    role_teacher_ids_by_slug = defaultdict(set)
+    if department_codes:
+        try:
+            if active_school is not None:
+                role_rows = SchoolMembership.objects.filter(
+                    school=active_school,
+                    is_active=True,
+                    teacher__is_active=True,
+                    teacher__role__slug__in=department_codes,
+                ).values_list("teacher__role__slug", "teacher_id")
+            else:
+                role_rows = Teacher.objects.filter(
+                    role__slug__in=department_codes,
+                    is_active=True,
+                ).values_list("role__slug", "id")
+
+            for slug, teacher_id in role_rows:
+                if slug and teacher_id:
+                    role_teacher_ids_by_slug[str(slug)].add(int(teacher_id))
+        except Exception:
+            logger.exception("Failed to batch role members for departments list")
+
+    items = []
+    for department in departments:
+        code = _dept_code_for(department)
+        stats = ticket_stats_map.get(department.pk) or {"open": 0, "in_progress": 0, "done": 0}
+        role_ids = role_teacher_ids_by_slug.get(code, set())
+        member_ids = membership_teacher_ids_by_department.get(int(department.pk), set())
+        members_count = len(role_ids | member_ids)
+
+        items.append(
+            {
+                "pk": department.pk,
+                "slug": code,
+                "code": code,
+                "name": _arabic_label_for_in_school(department, active_school),
+                "is_active": getattr(department, "is_active", True),
+                "members_count": members_count,
+                "stats": stats,
+                "tickets_summary": f"{stats['open']} / {stats['in_progress']} / {stats['done']}",
+            }
+        )
+
     return items
 
 class _DepartmentForm(forms.ModelForm):

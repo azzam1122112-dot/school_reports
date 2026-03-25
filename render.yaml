@@ -20,6 +20,23 @@ services:
           type: redis
           name: school-redis
           property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: school-redis
+          property: connectionString
+      - key: PRODUCTION_STRICT_MODE
+        value: "True"
+      - key: WEB_CONCURRENCY
+        value: "3"
+      - key: GUNICORN_THREADS
+        value: "2"
+      - key: GUNICORN_TIMEOUT
+        value: "120"
+      - key: GUNICORN_MAX_REQUESTS
+        value: "2000"
+      - key: GUNICORN_MAX_REQUESTS_JITTER
+        value: "200"
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY
@@ -47,6 +64,19 @@ services:
           type: redis
           name: school-redis
           property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: school-redis
+          property: connectionString
+      - key: PRODUCTION_STRICT_MODE
+        value: "True"
+      - key: CELERY_WORKER_CONCURRENCY
+        value: "4"
+      - key: CELERY_PREFETCH_MULTIPLIER
+        value: "1"
+      - key: CELERY_MAX_TASKS_PER_CHILD
+        value: "200"
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY
@@ -74,6 +104,13 @@ services:
           type: redis
           name: school-redis
           property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: school-redis
+          property: connectionString
+      - key: PRODUCTION_STRICT_MODE
+        value: "True"
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY
@@ -90,4 +127,4 @@ services:
   - type: redis
     name: school-redis
     ipAllowList: [] # Only allow internal connections
-    plan: free # Or starter
+    plan: starter

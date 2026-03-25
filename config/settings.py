@@ -42,6 +42,9 @@ if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):
 # يمكنك أيضًا فرض DEBUG عبر DEBUG=1
 DEBUG = (ENV != "production") if os.getenv("DEBUG") is None else _env_bool("DEBUG", False)
 
+# في الإنتاج نمنع السقوط على backends غير موزعة (SQLite/LocMem/InMemory) بشكل افتراضي.
+PRODUCTION_STRICT_MODE = _env_bool("PRODUCTION_STRICT_MODE", ENV == "production")
+
 # ----------------- Logging (early) -----------------
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
@@ -334,6 +337,12 @@ def _derive_cache_redis_url(broker_url: str) -> str:
 if not REDIS_CACHE_URL:
     REDIS_CACHE_URL = _derive_cache_redis_url(CELERY_BROKER_URL)
 
+if ENV == "production" and PRODUCTION_STRICT_MODE:
+    if not DATABASE_URL:
+        raise ImproperlyConfigured("DATABASE_URL is required in production when PRODUCTION_STRICT_MODE is enabled.")
+    if not REDIS_URL:
+        raise ImproperlyConfigured("REDIS_URL is required in production when PRODUCTION_STRICT_MODE is enabled.")
+
 
 # ----------------- Caching -----------------
 if REDIS_CACHE_URL:
@@ -348,6 +357,8 @@ if REDIS_CACHE_URL:
         }
     }
 else:
+    if ENV == "production" and PRODUCTION_STRICT_MODE:
+        raise ImproperlyConfigured("REDIS_CACHE_URL is required in production when PRODUCTION_STRICT_MODE is enabled.")
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -365,6 +376,8 @@ if REDIS_CHANNEL_LAYER_URL:
         }
     }
 else:
+    if ENV == "production" and PRODUCTION_STRICT_MODE:
+        raise ImproperlyConfigured("REDIS_CHANNEL_LAYER_URL is required in production when PRODUCTION_STRICT_MODE is enabled.")
     # NOTE: InMemory مناسب للتجربة فقط (لا يصلح لعدة نسخ/سيرفرات)
     CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
@@ -386,6 +399,8 @@ if DATABASE_URL and dj_database_url:
         )
     }
 else:
+    if ENV == "production" and PRODUCTION_STRICT_MODE:
+        raise ImproperlyConfigured("DATABASE_URL must be configured in production; SQLite fallback is disabled.")
     DB_ENGINE = os.getenv("DB_ENGINE", "django.db.backends.sqlite3").strip()
     DB_NAME = os.getenv("DB_NAME", "").strip()
     DB_USER = os.getenv("DB_USER", "").strip()
@@ -444,13 +459,16 @@ USE_TZ = True
 
 
 # ----------------- Celery -----------------
-CELERY_RESULT_BACKEND = "django-db"
+CELERY_RESULT_BACKEND = (os.getenv("CELERY_RESULT_BACKEND") or REDIS_CACHE_URL or CELERY_BROKER_URL or "django-db").strip()
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+CELERY_WORKER_PREFETCH_MULTIPLIER = int(os.getenv("CELERY_PREFETCH_MULTIPLIER", "1"))
+CELERY_TASK_ACKS_LATE = _env_bool("CELERY_TASK_ACKS_LATE", True)
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 
 # ----------------- Audit Logs Retention -----------------
