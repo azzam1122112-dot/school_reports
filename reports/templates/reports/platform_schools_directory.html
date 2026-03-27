@@ -100,6 +100,24 @@
             </tbody>
           </table>
         </div>
+
+        {% if page_obj.has_other_pages %}
+        <nav style="display:flex;justify-content:center;gap:6px;margin-top:16px;flex-wrap:wrap">
+          {% if page_obj.has_previous %}
+            <a class="btn btn-outline" style="border-radius:12px;min-width:40px" href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&gender={{ gender|urlencode }}&city={{ city|urlencode }}">&laquo;</a>
+          {% endif %}
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="btn btn-primary" style="border-radius:12px;min-width:40px">{{ num }}</span>
+            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"4" %}
+              <a class="btn btn-outline" style="border-radius:12px;min-width:40px" href="?page={{ num }}&q={{ q|urlencode }}&gender={{ gender|urlencode }}&city={{ city|urlencode }}">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+            <a class="btn btn-outline" style="border-radius:12px;min-width:40px" href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&gender={{ gender|urlencode }}&city={{ city|urlencode }}">&raquo;</a>
+          {% endif %}
+        </nav>
+        {% endif %}
       </div>
     </div>
 

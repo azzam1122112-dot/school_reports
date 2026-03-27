@@ -130,16 +130,13 @@ def notification_delete(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect(sent_list_url)
 
     # عزل حسب المدرسة النشطة (غير السوبر)
-    try:
-        if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
-            if getattr(n, "school_id", None) is None:
-                messages.error(request, "لا تملك صلاحية حذف إشعار عام.")
-                return redirect(sent_list_url)
-            if getattr(n, "school_id", None) != getattr(active_school, "id", None):
-                messages.error(request, "لا تملك صلاحية حذف إشعار من مدرسة أخرى.")
-                return redirect(sent_list_url)
-    except Exception:
-        pass
+    if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
+        if getattr(n, "school_id", None) is None:
+            messages.error(request, "لا تملك صلاحية حذف إشعار عام.")
+            return redirect(sent_list_url)
+        if getattr(n, "school_id", None) != getattr(active_school, "id", None):
+            messages.error(request, "لا تملك صلاحية حذف إشعار من مدرسة أخرى.")
+            return redirect(sent_list_url)
     try:
         n.delete()
         messages.success(request, "🗑️ تم حذف الإشعار.")
@@ -236,16 +233,13 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect(sent_list_url)
 
     # عزل حسب المدرسة النشطة (غير السوبر)
-    try:
-        if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
-            if getattr(n, "school_id", None) is None:
-                messages.error(request, "لا تملك صلاحية عرض إشعار عام.")
-                return redirect(sent_list_url)
-            if getattr(n, "school_id", None) != getattr(active_school, "id", None):
-                messages.error(request, "لا تملك صلاحية عرض إشعار من مدرسة أخرى.")
-                return redirect(sent_list_url)
-    except Exception:
-        pass
+    if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
+        if getattr(n, "school_id", None) is None:
+            messages.error(request, "لا تملك صلاحية عرض إشعار عام.")
+            return redirect(sent_list_url)
+        if getattr(n, "school_id", None) != getattr(active_school, "id", None):
+            messages.error(request, "لا تملك صلاحية عرض إشعار من مدرسة أخرى.")
+            return redirect(sent_list_url)
 
     if not _is_manager_in_school(request.user, active_school):
         if getattr(n, "created_by_id", None) != request.user.id:
@@ -282,7 +276,15 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 qs = qs.select_related(f"{user_fk}", f"{user_fk}__role")
             qs = qs.order_by("id")
 
-            for r in qs:
+            # Batch-prefetch SchoolMembership to avoid N+1 in effective_user_role_label
+            recipients_list = list(qs)
+            if user_fk and active_school:
+                _teachers = [getattr(r, user_fk) for r in recipients_list if getattr(r, user_fk, None)]
+                if _teachers:
+                    from ..permissions import prefetch_memberships_for_school
+                    prefetch_memberships_for_school(_teachers, active_school)
+
+            for r in recipients_list:
                 t = getattr(r, user_fk) if user_fk else None
                 if not t:
                     continue
@@ -469,13 +471,10 @@ def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse
             return redirect(sent_list_url)
 
     # School isolation
-    try:
-        if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
-            if getattr(n, "school_id", None) != getattr(active_school, "id", None):
-                messages.error(request, "لا تملك صلاحية عرض تعميم من مدرسة أخرى.")
-                return redirect(sent_list_url)
-    except Exception:
-        pass
+    if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
+        if getattr(n, "school_id", None) != getattr(active_school, "id", None):
+            messages.error(request, "لا تملك صلاحية عرض تعميم من مدرسة أخرى.")
+            return redirect(sent_list_url)
 
     qs = (
         NotificationRecipient.objects
@@ -484,10 +483,18 @@ def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse
         .order_by("teacher__name", "id")
     )
 
+    # Batch-prefetch memberships to avoid N+1 in effective_user_role_label
+    recipients_list = list(qs)
+    if active_school:
+        _teachers = [getattr(r, "teacher") for r in recipients_list if getattr(r, "teacher", None)]
+        if _teachers:
+            from ..permissions import prefetch_memberships_for_school
+            prefetch_memberships_for_school(_teachers, active_school)
+
     rows = []
     signed = 0
     total = 0
-    for r in qs:
+    for r in recipients_list:
         t = getattr(r, "teacher", None)
         if not t:
             continue
@@ -544,12 +551,9 @@ def notification_signatures_csv(request: HttpRequest, pk: int) -> HttpResponse:
         if getattr(n, "created_by_id", None) != request.user.id:
             return HttpResponse("forbidden", status=403)
 
-    try:
-        if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
-            if getattr(n, "school_id", None) != getattr(active_school, "id", None):
-                return HttpResponse("forbidden", status=403)
-    except Exception:
-        pass
+    if (not is_superuser) and (not is_platform) and hasattr(n, "school_id"):
+        if getattr(n, "school_id", None) != getattr(active_school, "id", None):
+            return HttpResponse("forbidden", status=403)
 
     import csv
     from io import StringIO
@@ -573,7 +577,15 @@ def notification_signatures_csv(request: HttpRequest, pk: int) -> HttpResponse:
         .order_by("teacher__name", "id")
     )
 
-    for r in qs:
+    # Batch-prefetch memberships to avoid N+1
+    recipients_list = list(qs)
+    if active_school:
+        _teachers = [getattr(r, "teacher") for r in recipients_list if getattr(r, "teacher", None)]
+        if _teachers:
+            from ..permissions import prefetch_memberships_for_school
+            prefetch_memberships_for_school(_teachers, active_school)
+
+    for r in recipients_list:
         t = getattr(r, "teacher", None)
         if not t:
             continue

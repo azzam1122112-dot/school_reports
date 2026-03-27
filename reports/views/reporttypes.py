@@ -2,6 +2,8 @@
 from ._helpers import *
 from ._helpers import _get_active_school, _user_manager_schools
 
+from django.db.models import Count, Q as _Q
+
 
 @login_required(login_url="reports:login")
 @role_required({"manager"})
@@ -23,20 +25,15 @@ def reporttypes_list(request: HttpRequest) -> HttpResponse:
     qs = ReportType.objects.all().order_by("order", "name")
     if active_school is not None and hasattr(ReportType, "school"):
         qs = qs.filter(school=active_school)
-    items = []
-    for rt in qs:
-        cnt_qs = Report.objects.filter(category__code=rt.code)
-        try:
-            if hasattr(Report, "school"):
-                rt_school_id = getattr(rt, "school_id", None)
-                if rt_school_id is not None:
-                    cnt_qs = cnt_qs.filter(school_id=rt_school_id)
-                elif active_school is not None:
-                    cnt_qs = cnt_qs.filter(school=active_school)
-        except Exception:
-            pass
-        cnt = cnt_qs.count()
-        items.append({"obj": rt, "code": rt.code, "name": rt.name, "is_active": rt.is_active, "order": rt.order, "count": cnt})
+
+    # Single annotated query instead of N+1 count queries per ReportType
+    count_filter = _Q(reports__school=active_school) if (active_school and hasattr(Report, "school")) else _Q()
+    qs = qs.annotate(report_count=Count("reports", filter=count_filter))
+
+    items = [
+        {"obj": rt, "code": rt.code, "name": rt.name, "is_active": rt.is_active, "order": rt.order, "count": rt.report_count}
+        for rt in qs
+    ]
     return render(request, "reports/reporttypes_list.html", {"items": items, "db_backed": True})
 
 @login_required(login_url="reports:login")

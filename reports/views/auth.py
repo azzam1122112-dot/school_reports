@@ -252,6 +252,15 @@ def my_profile(request: HttpRequest) -> HttpResponse:
             if pwd_form.is_valid():
                 user = pwd_form.save()
                 update_session_auth_hash(request, user)
+
+                # إرسال إيميل تأكيد تغيير كلمة المرور (في الخلفية)
+                try:
+                    from ..utils import run_task_safe
+                    from ..tasks import send_password_change_email_task
+                    run_task_safe(send_password_change_email_task, user.pk)
+                except Exception:
+                    pass
+
                 messages.success(request, "تم تحديث كلمة المرور بنجاح.")
                 return redirect("reports:my_profile")
 

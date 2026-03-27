@@ -500,7 +500,14 @@ def _get_active_school(request: HttpRequest) -> Optional[School]:
     sid = request.session.get("active_school_id")
     try:
         if sid:
-            return School.objects.filter(pk=sid, is_active=True).first()
+            # ── إعادة استخدام ما حمّله الـ middleware إن توفر ──
+            cached = getattr(request, "active_school", None)
+            if cached is not None and getattr(cached, "pk", None) == int(sid):
+                return cached
+            school = School.objects.filter(pk=sid, is_active=True).first()
+            if school is not None:
+                request.active_school = school
+            return school
 
         user = getattr(request, "user", None)
         # مستخدم عادي: مدرسة واحدة فقط ضمن عضوياته

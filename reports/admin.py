@@ -202,6 +202,15 @@ class ReportAdmin(admin.ModelAdmin):
     list_select_related = ("teacher", "category")
     readonly_fields = ("created_at",)
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not request.user.is_superuser:
+            school_ids = SchoolMembership.objects.filter(
+                teacher=request.user, is_active=True
+            ).values_list("school_id", flat=True)
+            qs = qs.filter(school_id__in=school_ids)
+        return qs
+
     def preview_image1(self, obj):
         if getattr(obj, "image1", None):
             url = getattr(getattr(obj, "image1", None), "url", "")
@@ -263,6 +272,15 @@ class TicketAdmin(admin.ModelAdmin):
         ("الحالة", {"fields": ("status",)}),
         ("أخرى", {"fields": ("created_at", "updated_at")}),
     )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not request.user.is_superuser:
+            school_ids = SchoolMembership.objects.filter(
+                teacher=request.user, is_active=True
+            ).values_list("school_id", flat=True)
+            qs = qs.filter(school_id__in=school_ids)
+        return qs
 
 
 @admin.register(TicketNote)
@@ -346,6 +364,7 @@ class SchoolMembershipAdmin(admin.ModelAdmin):
     list_filter = ("role_type", "is_active", "school")
     search_fields = ("teacher__name", "teacher__phone", "school__name", "school__code")
     autocomplete_fields = ("teacher", "school")
+    list_select_related = ("teacher", "school")
 
 
 @admin.register(PlatformAdminScope)
@@ -374,12 +393,23 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "is_important", "created_by", "created_at", "expires_at")
     search_fields = ("title", "message")
     list_filter = ("is_important", "created_at")
+    list_select_related = ("created_by",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not request.user.is_superuser:
+            school_ids = SchoolMembership.objects.filter(
+                teacher=request.user, is_active=True
+            ).values_list("school_id", flat=True)
+            qs = qs.filter(school_id__in=school_ids)
+        return qs
 
 @admin.register(NotificationRecipient)
 class NotificationRecipientAdmin(admin.ModelAdmin):
     list_display = ("id", "notification", "teacher", "is_read", "created_at", "read_at")
     list_filter = ("is_read", "created_at")
     search_fields = ("notification__title", "teacher__name")
+    list_select_related = ("notification", "teacher")
 
 
 # =========================

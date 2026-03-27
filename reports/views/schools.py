@@ -78,7 +78,7 @@ def _user_department_codes(user, active_school: Optional[School] = None) -> list
 
     # في وضع تعدد المدارس، يجب تحديد المدرسة النشطة لتجنب تداخل slugs بين المدارس
     try:
-        if active_school is None and School.objects.filter(is_active=True).count() > 1:
+        if active_school is None and School.objects.filter(is_active=True)[:2].count() > 1:
             return []
     except Exception:
         # fail-closed إذا تعذر تحديد عدد المدارس
@@ -100,13 +100,15 @@ def _user_department_codes(user, active_school: Optional[School] = None) -> list
     return list(codes)
 
 def _tickets_stats_for_department(dept_code: str, school: Optional[School] = None) -> dict:
+    from django.db.models import Count, Q as _Q
     qs = Ticket.objects.filter(department__slug=dept_code)
     qs = _filter_by_school(qs, school)
-    return {
-        "open": qs.filter(status="open").count(),
-        "in_progress": qs.filter(status="in_progress").count(),
-        "done": qs.filter(status="done").count(),
-    }
+    stats = qs.aggregate(
+        open=Count("id", filter=_Q(status="open")),
+        in_progress=Count("id", filter=_Q(status="in_progress")),
+        done=Count("id", filter=_Q(status="done")),
+    )
+    return stats
 
 def _all_departments(active_school: Optional[School] = None):
     if Department is None:
@@ -417,11 +419,18 @@ def school_profile(request: HttpRequest, pk: int) -> HttpResponse:
     # إحصائيات بسيطة للمدرسة
     reports_count = Report.objects.filter(school=school).count()
 
-    tickets_qs = Ticket.objects.filter(school=school)
-    tickets_total = tickets_qs.count()
-    tickets_open = tickets_qs.filter(status__in=["open", "in_progress"]).count()
-    tickets_done = tickets_qs.filter(status="done").count()
-    tickets_rejected = tickets_qs.filter(status="rejected").count()
+    # Single aggregate query for all ticket counts instead of 4 separate queries
+    from django.db.models import Count, Q as _Q
+    ticket_stats = Ticket.objects.filter(school=school).aggregate(
+        total=Count("id"),
+        open=Count("id", filter=_Q(status__in=["open", "in_progress"])),
+        done=Count("id", filter=_Q(status="done")),
+        rejected=Count("id", filter=_Q(status="rejected")),
+    )
+    tickets_total = ticket_stats["total"]
+    tickets_open = ticket_stats["open"]
+    tickets_done = ticket_stats["done"]
+    tickets_rejected = ticket_stats["rejected"]
 
     teachers_qs = (
         Teacher.objects.filter(

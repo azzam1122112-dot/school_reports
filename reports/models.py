@@ -302,8 +302,10 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
             from .middleware import get_current_request
             request = get_current_request()
             if request is not None:
+                # ── إعادة استخدام ما حمّله الـ middleware ──
+                active_school = getattr(request, "active_school", None)
                 sid = request.session.get("active_school_id")
-                if sid:
+                if active_school is None and sid:
                     active_school = School.objects.filter(pk=sid, is_active=True).only("gender").first()
         except Exception:
             active_school = None
@@ -1456,6 +1458,9 @@ class Ticket(models.Model):
             # ✅ فهارس شائعة لصفحات المدرسة/الاستعلامات
             models.Index(fields=["school", "status", "created_at"]),
             models.Index(fields=["school", "assignee", "status"]),
+            # ✅ فهارس للـ context processor (creator+status / school+creator+status)
+            models.Index(fields=["creator", "status"]),
+            models.Index(fields=["school", "creator", "status"]),
         ]
 
     def __str__(self):
@@ -1799,6 +1804,8 @@ class NotificationRecipient(models.Model):
         indexes = [
             models.Index(fields=["teacher", "is_read", "-created_at"]),
             models.Index(fields=["teacher", "is_signed", "-created_at"]),
+            # ✅ فهرس لتسريع استعلامات notification__school_id عبر FK
+            models.Index(fields=["notification", "teacher"]),
         ]
         unique_together = (("notification", "teacher"),)
 

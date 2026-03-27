@@ -33,12 +33,18 @@ except Exception:  # pragma: no cover
 def _infer_school_for_audit(request, user) -> School | None:
     """Best-effort school inference for audit events.
 
-    - Prefer the active school in session.
+    - Prefer the active school cached on the request by middleware.
+    - Otherwise, prefer the active school in session.
     - Otherwise, if the user has exactly one active membership, use it.
     - Otherwise, return None.
     """
     if request is None or user is None:
         return None
+
+    # ── Fast path: reuse middleware-cached school ──
+    cached = getattr(request, "active_school", None)
+    if cached is not None:
+        return cached
 
     try:
         sid = request.session.get("active_school_id")
@@ -57,7 +63,7 @@ def _infer_school_for_audit(request, user) -> School | None:
         schools = (
             School.objects.filter(memberships__teacher=user, memberships__is_active=True, is_active=True)
             .distinct()
-            .order_by("id")
+            .only("id", "name")
         )
         if schools.count() == 1:
             return schools.first()
@@ -94,11 +100,15 @@ def _single_session_on_login(sender, request, user, **kwargs):
 
     if old_key and new_key and old_key != new_key:
         try:
-            from django.contrib.sessions.models import Session
+            # Support both DB-backed and cache-backed session engines.
+            from django.contrib.sessions.backends.base import SessionBase
+            from importlib import import_module
+            from django.conf import settings as _settings
 
-            Session.objects.filter(session_key=old_key).delete()
+            engine = import_module(_settings.SESSION_ENGINE)
+            store = engine.SessionStore(old_key)
+            store.delete()
         except Exception:
-            # If sessions aren't DB-backed, we can't force-delete the old one.
             pass
 
     try:
@@ -339,23 +349,29 @@ def notify_admin_on_subscription(sender, instance, created, **kwargs):
         # إرسال لكل من لديه is_superuser=True
         # نفترض أن مدير النظام هو Superuser
         admins = User.objects.filter(is_superuser=True)
+        admin_ids = [a.pk for a in admins]
+        # ✅ استعلام واحد بدل N استعلامات exists() في حلقة
+        existing = set(
+            NotificationRecipient.objects.filter(
+                notification=notification, teacher_id__in=admin_ids
+            ).values_list("teacher_id", flat=True)
+        )
         recipients = []
-        admin_ids = []
+        new_ids = []
         for admin in admins:
-            # تأكد من عدم تكرار الإشعار
-            if not NotificationRecipient.objects.filter(notification=notification, teacher=admin).exists():
+            if admin.pk not in existing:
                 recipients.append(NotificationRecipient(
                     notification=notification,
                     teacher=admin
                 ))
-                admin_ids.append(getattr(admin, "id", None))
+                new_ids.append(admin.pk)
         
         if recipients:
             NotificationRecipient.objects.bulk_create(recipients, ignore_conflicts=True)
             if push_new_notification_to_teachers is not None:
                 push_new_notification_to_teachers(
                     notification=notification,
-                    teacher_ids=[i for i in admin_ids if i],
+                    teacher_ids=[i for i in new_ids if i],
                 )
     except Exception:
         # تجنب كسر العملية الأساسية في حال خطأ في الإشعارات
@@ -366,39 +382,11 @@ def notify_admin_on_subscription(sender, instance, created, **kwargs):
 def notify_admin_on_platform_ticket(sender, instance, created, **kwargs):
     """
     إشعار مدير النظام عند فتح تذكرة دعم فني (is_platform=True).
+
+    ملاحظة: تم إلغاء التنفيذ لتجنب التكرار مع trigger_ticket_notifications
+    الموجود في models.py الذي يتعامل مع نفس الحدث.
     """
-    try:
-        if created and instance.is_platform:
-            title = "🎫 تذكرة دعم فني جديدة"
-            creator_name = getattr(instance.creator, "name", str(instance.creator))
-            msg = f"قام {creator_name} بفتح تذكرة دعم فني جديدة.\nالعنوان: {instance.title}"
-            
-            notification = Notification.objects.create(
-                title=title,
-                message=msg,
-                is_important=True
-            )
-            
-            admins = User.objects.filter(is_superuser=True)
-            recipients = []
-            admin_ids = []
-            for admin in admins:
-                 if not NotificationRecipient.objects.filter(notification=notification, teacher=admin).exists():
-                    recipients.append(NotificationRecipient(
-                        notification=notification,
-                        teacher=admin
-                    ))
-                    admin_ids.append(getattr(admin, "id", None))
-            
-            if recipients:
-                NotificationRecipient.objects.bulk_create(recipients, ignore_conflicts=True)
-                if push_new_notification_to_teachers is not None:
-                    push_new_notification_to_teachers(
-                        notification=notification,
-                        teacher_ids=[i for i in admin_ids if i],
-                    )
-    except Exception:
-        pass
+    pass
 
 # ── Cache invalidation signals ──────────────────────────────────────
 @receiver(post_save, sender=Report)

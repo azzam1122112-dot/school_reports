@@ -200,6 +200,35 @@ def _school_membership_cache(user) -> dict:
     return cache
 
 
+def prefetch_memberships_for_school(teachers, school) -> None:
+    """Batch-load SchoolMembership for *teachers* in one query and pre-populate
+    each teacher's ``_school_membership_cache`` so that subsequent calls to
+    ``effective_user_role_label`` / ``_get_school_membership`` hit the cache
+    instead of issuing N individual queries.
+    """
+    if not teachers or not school:
+        return
+    school_id = int(school.id)
+    teacher_ids = [t.id for t in teachers]
+    all_mems = list(
+        SchoolMembership.objects
+        .select_related("school")
+        .filter(teacher_id__in=teacher_ids, school_id=school_id, is_active=True)
+        .order_by("teacher_id", "id")
+    )
+    by_teacher: dict = {}
+    for m in all_mems:
+        by_teacher.setdefault(m.teacher_id, []).append(m)
+
+    for teacher in teachers:
+        cache = _school_membership_cache(teacher)
+        mems = by_teacher.get(teacher.id, [])
+        cache.setdefault((school_id, ()), mems[0] if mems else None)
+        teacher_role_val = str(SchoolMembership.RoleType.TEACHER).strip().lower()
+        teacher_mem = next((m for m in mems if str(m.role_type).strip().lower() == teacher_role_val), None)
+        cache.setdefault((school_id, (teacher_role_val,)), teacher_mem)
+
+
 def _get_school_membership(
     user,
     *,

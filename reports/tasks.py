@@ -539,3 +539,316 @@ def send_daily_manager_summary_task() -> dict:
 
     logger.info("Daily manager summary result: %s", summary)
     return summary
+
+
+# ═══════════════════════════════════════════════════════════════
+# مهمة 1: تذكير بقرب انتهاء الاشتراك
+# ═══════════════════════════════════════════════════════════════
+@shared_task
+def check_subscription_expiry_task() -> dict:
+    """
+    تفحص الاشتراكات النشطة وترسل إشعارات عند اقتراب انتهائها.
+
+    - تعمل يومياً عبر Celery Beat.
+    - ترسل إشعار داخلي + إيميل (اختياري) لمدراء المدارس.
+    - تتجنب التكرار بفحص عدم وجود إشعار مماثل خلال آخر 24 ساعة.
+    """
+    enabled = bool(getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_ENABLED", True))
+    email_enabled = bool(getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED", False))
+    reminder_days = getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_DAYS", [14, 7, 3, 1])
+    from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
+
+    summary = {
+        "enabled": enabled,
+        "subscriptions_checked": 0,
+        "reminders_sent": 0,
+        "emails_sent": 0,
+        "skipped_duplicate": 0,
+    }
+
+    if not enabled:
+        logger.info("Subscription expiry reminder task skipped: feature disabled.")
+        return summary
+
+    SchoolSubscription = apps.get_model("reports", "SchoolSubscription")
+    SchoolMembership = apps.get_model("reports", "SchoolMembership")
+    Notification = apps.get_model("reports", "Notification")
+    NotificationRecipient = apps.get_model("reports", "NotificationRecipient")
+
+    today = timezone.localdate()
+    now = timezone.now()
+    dedup_cutoff = now - timedelta(hours=24)
+
+    subs = (
+        SchoolSubscription.objects
+        .filter(is_active=True)
+        .select_related("school", "plan")
+        .only("id", "school__id", "school__name", "plan__name", "end_date", "is_active", "canceled_at")
+    )
+
+    for sub in subs:
+        if sub.canceled_at:
+            continue
+        summary["subscriptions_checked"] += 1
+
+        days_left = (sub.end_date - today).days
+        if days_left < 0 or days_left not in reminder_days:
+            continue
+
+        school = sub.school
+        school_name = getattr(school, "name", "")
+
+        # تجنب التكرار: لا نرسل نفس التنبيه مرتين خلال 24 ساعة
+        dedup_title = f"⏰ اشتراك {school_name} ينتهي خلال {days_left}"
+        already_sent = Notification.objects.filter(
+            title=dedup_title,
+            school=school,
+            created_at__gte=dedup_cutoff,
+        ).exists()
+        if already_sent:
+            summary["skipped_duplicate"] += 1
+            continue
+
+        # جلب مدراء المدرسة
+        manager_ids = list(
+            SchoolMembership.objects.filter(
+                school=school,
+                role_type="manager",
+                is_active=True,
+                teacher__is_active=True,
+            ).values_list("teacher_id", flat=True)
+        )
+        if not manager_ids:
+            continue
+
+        if days_left == 1:
+            message = f"⚠️ اشتراك مدرسة {school_name} (باقة {sub.plan.name}) ينتهي غداً!\nيرجى تجديد الاشتراك لتجنب توقف الخدمة."
+        elif days_left <= 3:
+            message = f"⚠️ اشتراك مدرسة {school_name} (باقة {sub.plan.name}) ينتهي خلال {days_left} أيام.\nيرجى تجديد الاشتراك قريباً."
+        else:
+            message = f"تنبيه: اشتراك مدرسة {school_name} (باقة {sub.plan.name}) ينتهي خلال {days_left} يوماً.\nيرجى التجديد في الوقت المناسب."
+
+        # إشعار داخلي
+        notification = Notification.objects.create(
+            title=dedup_title,
+            message=message,
+            school=school,
+            is_important=(days_left <= 3),
+        )
+        NotificationRecipient.objects.bulk_create(
+            [NotificationRecipient(notification=notification, teacher_id=mid) for mid in manager_ids],
+            ignore_conflicts=True,
+        )
+
+        try:
+            from .realtime_notifications import push_new_notification_to_teachers
+            push_new_notification_to_teachers(notification=notification, teacher_ids=manager_ids)
+        except Exception:
+            pass
+
+        summary["reminders_sent"] += 1
+
+        # إيميل (اختياري)
+        if email_enabled:
+            Teacher = apps.get_model("reports", "Teacher")
+            managers_with_email = Teacher.objects.filter(
+                id__in=manager_ids, is_active=True
+            ).exclude(email="").only("id", "email")
+            for mgr in managers_with_email:
+                if _is_valid_email(mgr.email):
+                    try:
+                        send_mail(
+                            subject=dedup_title,
+                            message=message,
+                            from_email=from_email,
+                            recipient_list=[mgr.email],
+                            fail_silently=False,
+                        )
+                        summary["emails_sent"] += 1
+                    except Exception:
+                        logger.exception("Subscription expiry email failed for teacher=%s", mgr.id)
+
+    logger.info("Subscription expiry reminder result: %s", summary)
+    return summary
+
+
+# ═══════════════════════════════════════════════════════════════
+# مهمة 2: تذكير بالتعاميم غير الموقّعة قبل الموعد النهائي
+# ═══════════════════════════════════════════════════════════════
+@shared_task
+def remind_unsigned_circulars_task() -> dict:
+    """
+    ترسل تذكيرات للمعلمين الذين لم يوقّعوا على تعاميم لها موعد نهائي قريب.
+
+    - تعمل مرتين يومياً عبر Celery Beat.
+    - تفحص التعاميم ذات `requires_signature=True` و `signature_deadline_at` قريب.
+    - ترسل إشعار داخلي فقط للمعلمين الذين لم يوقّعوا بعد.
+    - تتجنب التكرار بعدم التذكير أكثر من مرة واحدة لنفس المستلم لنفس التعميم خلال 12 ساعة.
+    """
+    enabled = bool(getattr(settings, "CIRCULAR_SIGNATURE_REMINDER_ENABLED", True))
+    reminder_hours = getattr(settings, "CIRCULAR_SIGNATURE_REMINDER_HOURS", [48, 24])
+
+    summary = {
+        "enabled": enabled,
+        "circulars_checked": 0,
+        "reminders_sent": 0,
+        "skipped_duplicate": 0,
+    }
+
+    if not enabled:
+        logger.info("Circular signature reminder task skipped: feature disabled.")
+        return summary
+
+    Notification = apps.get_model("reports", "Notification")
+    NotificationRecipient = apps.get_model("reports", "NotificationRecipient")
+
+    now = timezone.now()
+    dedup_cutoff = now - timedelta(hours=12)
+
+    # أكبر عدد ساعات في القائمة يحدد نافذة البحث
+    max_hours = max(reminder_hours) if reminder_hours else 48
+    window_end = now + timedelta(hours=max_hours)
+
+    # التعاميم التي تتطلب توقيع ولها موعد نهائي بين الآن ونهاية النافذة
+    circulars = Notification.objects.filter(
+        requires_signature=True,
+        signature_deadline_at__gt=now,
+        signature_deadline_at__lte=window_end,
+    ).select_related("school").only(
+        "id", "title", "signature_deadline_at", "school__id", "school__name"
+    )
+
+    for circular in circulars:
+        hours_until_deadline = (circular.signature_deadline_at - now).total_seconds() / 3600
+        summary["circulars_checked"] += 1
+
+        # تحديد هل يقع الموعد ضمن إحدى نوافذ التذكير
+        should_remind = False
+        for h in sorted(reminder_hours):
+            if hours_until_deadline <= h:
+                should_remind = True
+                break
+
+        if not should_remind:
+            continue
+
+        # المعلمون الذين لم يوقّعوا بعد
+        unsigned_recipients = NotificationRecipient.objects.filter(
+            notification=circular,
+            is_signed=False,
+        ).values_list("teacher_id", flat=True)
+
+        unsigned_ids = list(unsigned_recipients)
+        if not unsigned_ids:
+            continue
+
+        # تجنب التكرار: لا نذكّر نفس المعلمين عن نفس التعميم خلال 12 ساعة
+        dedup_title = f"🔔 تذكير بالتوقيع: {circular.title[:60]}"
+        existing_reminder = Notification.objects.filter(
+            title=dedup_title,
+            school=circular.school,
+            created_at__gte=dedup_cutoff,
+        ).first()
+
+        if existing_reminder:
+            # تحقق هل المستلمون أنفسهم موجودون بالفعل
+            already_reminded = set(
+                NotificationRecipient.objects.filter(
+                    notification=existing_reminder,
+                    teacher_id__in=unsigned_ids,
+                ).values_list("teacher_id", flat=True)
+            )
+            unsigned_ids = [uid for uid in unsigned_ids if uid not in already_reminded]
+            if not unsigned_ids:
+                summary["skipped_duplicate"] += 1
+                continue
+
+        hours_display = int(hours_until_deadline)
+        if hours_display >= 24:
+            time_text = f"{hours_display // 24} يوم"
+        else:
+            time_text = f"{hours_display} ساعة"
+
+        message = (
+            f"لم يتم توقيعك على التعميم \"{circular.title}\" بعد.\n"
+            f"الموعد النهائي للتوقيع: خلال {time_text}.\n"
+            "يرجى التوقيع في أقرب وقت."
+        )
+
+        reminder_notif = Notification.objects.create(
+            title=dedup_title,
+            message=message,
+            school=circular.school,
+            is_important=True,
+        )
+        NotificationRecipient.objects.bulk_create(
+            [NotificationRecipient(notification=reminder_notif, teacher_id=uid) for uid in unsigned_ids],
+            ignore_conflicts=True,
+        )
+
+        try:
+            from .realtime_notifications import push_new_notification_to_teachers
+            push_new_notification_to_teachers(notification=reminder_notif, teacher_ids=unsigned_ids)
+        except Exception:
+            pass
+
+        summary["reminders_sent"] += len(unsigned_ids)
+
+    logger.info("Unsigned circular reminder result: %s", summary)
+    return summary
+
+
+# ═══════════════════════════════════════════════════════════════
+# مهمة 3: إرسال إيميل تأكيد تغيير كلمة المرور
+# ═══════════════════════════════════════════════════════════════
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+def send_password_change_email_task(self, teacher_id: int) -> bool:
+    """
+    ترسل إيميل تأكيد للمعلم بعد تغيير كلمة المرور بنجاح.
+
+    - تُستدعى من view الملف الشخصي بعد تغيير كلمة المرور.
+    - ترسل فقط إذا كان لدى المعلم بريد إلكتروني صالح.
+    - أفضل ممارسة أمنية لتنبيه المستخدم بأي تغيير في حسابه.
+    """
+    enabled = bool(getattr(settings, "PASSWORD_CHANGE_EMAIL_ENABLED", True))
+    if not enabled:
+        return False
+
+    Teacher = apps.get_model("reports", "Teacher")
+    try:
+        teacher = Teacher.objects.get(pk=teacher_id, is_active=True)
+    except Teacher.DoesNotExist:
+        logger.warning("Password change email: teacher %s not found.", teacher_id)
+        return False
+
+    email = (getattr(teacher, "email", "") or "").strip()
+    if not _is_valid_email(email):
+        logger.info("Password change email: teacher %s has no valid email.", teacher_id)
+        return False
+
+    teacher_name = (getattr(teacher, "name", "") or "").strip() or "المستخدم"
+    from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
+    now_text = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M")
+
+    subject = "🔐 تم تغيير كلمة المرور - تَوثيق"
+    message = (
+        f"مرحباً {teacher_name}،\n\n"
+        f"تم تغيير كلمة المرور لحسابك في منصة تَوثيق بنجاح.\n"
+        f"الوقت: {now_text}\n\n"
+        "إذا لم تقم بهذا التغيير، يرجى التواصل مع إدارة المدرسة أو الدعم الفني فوراً.\n\n"
+        "مع تحيات فريق تَوثيق"
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        logger.info("Password change confirmation email sent to teacher %s.", teacher_id)
+        return True
+    except Exception:
+        logger.exception("Failed to send password change email to teacher %s.", teacher_id)
+        raise  # auto-retry

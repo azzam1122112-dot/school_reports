@@ -72,6 +72,61 @@ def _can_act(user, ticket: Ticket) -> bool:
 
     return False
 
+
+def _notify_ticket_status_change(ticket, actor, old_status, new_status, status_label):
+    """إشعار صاحب التذكرة عند تغيير حالتها."""
+    try:
+        from ..utils import create_system_notification
+
+        if ticket.creator_id == actor.id:
+            return  # لا نشعر الشخص بتغييراته الخاصة
+        create_system_notification(
+            title=f"📋 تحديث حالة الطلب: {ticket.title}",
+            message="تم تغيير حالة طلبك من {} إلى {}.".format(
+                status_label(old_status, old_status),
+                status_label(new_status, new_status),
+            ),
+            school=getattr(ticket, "school", None),
+            teacher_ids=[ticket.creator_id],
+        )
+    except Exception:
+        logger.exception("Failed to send ticket status notification")
+
+
+def _notify_ticket_note(ticket, actor, note_text):
+    """إشعار الطرف الآخر عند إضافة ملاحظة على التذكرة."""
+    try:
+        from ..utils import create_system_notification
+
+        recipients = set()
+        # إذا المعلق هو صاحب التذكرة → أشعر المستلمين/المعين
+        if actor.id == ticket.creator_id:
+            if ticket.assignee_id:
+                recipients.add(ticket.assignee_id)
+            try:
+                rel = getattr(ticket, "recipients", None)
+                if rel is not None:
+                    recipients.update(rel.values_list("id", flat=True))
+            except Exception:
+                pass
+        else:
+            # المعلق من الإدارة → أشعر صاحب التذكرة
+            recipients.add(ticket.creator_id)
+
+        recipients.discard(actor.id)
+        if not recipients:
+            return
+
+        create_system_notification(
+            title=f"💬 ملاحظة جديدة على الطلب: {ticket.title}",
+            message=f"{actor.name}: {note_text[:200]}",
+            school=getattr(ticket, "school", None),
+            teacher_ids=list(recipients),
+        )
+    except Exception:
+        logger.exception("Failed to send ticket note notification")
+
+
 @login_required(login_url="reports:login")
 @ratelimit(key="user", rate="10/m", method="POST", block=True)
 @require_http_methods(["GET", "POST"])
@@ -149,7 +204,7 @@ def my_support_tickets(request: HttpRequest) -> HttpResponse:
         creator=request.user, 
         is_platform=True,
         school=active_school,
-    ).order_by("-created_at")
+    ).select_related("department", "assignee").order_by("-created_at")
     
     return render(request, "reports/my_support_tickets.html", {"tickets": tickets})
 
@@ -297,6 +352,9 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
                         ticket=t, author=request.user, body=note_txt, is_public=True
                     )
 
+                    # إشعار الطرف الآخر بالملاحظة الجديدة
+                    _notify_ticket_note(t, request.user, note_txt)
+
                     # خيار: إعادة الفتح تلقائيًا عند ملاحظة المرسل (إن كانت مفعّلة)
                     if AUTO_REOPEN_ON_SENDER_NOTE and is_owner and t.status in {
                         Ticket.Status.DONE, Ticket.Status.REJECTED, Ticket.Status.IN_PROGRESS
@@ -332,6 +390,10 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     except Exception:
                         t.save()
                     changed = True
+
+                    # إشعار صاحب التذكرة بتغيير الحالة
+                    _notify_ticket_status_change(t, request.user, old, status_val, status_label)
+
                     try:
                         TicketNote.objects.create(
                             ticket=t,

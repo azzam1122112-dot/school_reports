@@ -507,6 +507,33 @@ except Exception:
     DAILY_MANAGER_REPORT_WHATSAPP_TIMEOUT_SECONDS = 10.0
 
 
+# ----------------- Subscription Expiry Reminders -----------------
+SUBSCRIPTION_EXPIRY_REMINDER_ENABLED = _env_bool("SUBSCRIPTION_EXPIRY_REMINDER_ENABLED", True)
+# أيام التنبيه قبل انتهاء الاشتراك (قائمة مفصولة بفواصل)
+try:
+    SUBSCRIPTION_EXPIRY_REMINDER_DAYS = [
+        int(d.strip()) for d in (os.getenv("SUBSCRIPTION_EXPIRY_REMINDER_DAYS", "14,7,3,1") or "14,7,3,1").split(",") if d.strip()
+    ]
+except Exception:
+    SUBSCRIPTION_EXPIRY_REMINDER_DAYS = [14, 7, 3, 1]
+SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED = _env_bool("SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED", False)
+
+
+# ----------------- Unsigned Circular Reminders -----------------
+CIRCULAR_SIGNATURE_REMINDER_ENABLED = _env_bool("CIRCULAR_SIGNATURE_REMINDER_ENABLED", True)
+# تذكير قبل N ساعة من الموعد النهائي (افتراضي: 48 و 24)
+try:
+    CIRCULAR_SIGNATURE_REMINDER_HOURS = [
+        int(h.strip()) for h in (os.getenv("CIRCULAR_SIGNATURE_REMINDER_HOURS", "48,24") or "48,24").split(",") if h.strip()
+    ]
+except Exception:
+    CIRCULAR_SIGNATURE_REMINDER_HOURS = [48, 24]
+
+
+# ----------------- Password Change Email Confirmation -----------------
+PASSWORD_CHANGE_EMAIL_ENABLED = _env_bool("PASSWORD_CHANGE_EMAIL_ENABLED", True)
+
+
 # ----------------- Email -----------------
 EMAIL_BACKEND = (
     os.getenv("EMAIL_BACKEND")
@@ -541,6 +568,18 @@ if crontab is not None:
         CELERY_BEAT_SCHEDULE["send-daily-manager-summary"] = {
             "task": "reports.tasks.send_daily_manager_summary_task",
             "schedule": crontab(minute=DAILY_MANAGER_REPORT_MINUTE, hour=DAILY_MANAGER_REPORT_HOUR),
+        }
+
+    if SUBSCRIPTION_EXPIRY_REMINDER_ENABLED:
+        CELERY_BEAT_SCHEDULE["check-subscription-expiry-daily"] = {
+            "task": "reports.tasks.check_subscription_expiry_task",
+            "schedule": crontab(minute=30, hour=8),  # يومياً الساعة 8:30 صباحاً
+        }
+
+    if CIRCULAR_SIGNATURE_REMINDER_ENABLED:
+        CELERY_BEAT_SCHEDULE["remind-unsigned-circulars"] = {
+            "task": "reports.tasks.remind_unsigned_circulars_task",
+            "schedule": crontab(minute=0, hour="8,14"),  # مرتين يومياً: 8 صباحاً و 2 ظهراً
         }
 
 
@@ -658,6 +697,15 @@ IDLE_LOGOUT_SECONDS = int(os.getenv("IDLE_LOGOUT_SECONDS", str(30 * 60)))
 
 SESSION_COOKIE_AGE = IDLE_LOGOUT_SECONDS
 SESSION_SAVE_EVERY_REQUEST = False
+
+# ── Session backend ─────────────────────────────────────────────────
+# Use the cache backend (Redis in production) to avoid a DB hit per request.
+# Falls back to DB sessions when no cache backend is available (dev/SQLite).
+if REDIS_CACHE_URL:
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+else:
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 
 # ----------------- Django REST Framework -----------------

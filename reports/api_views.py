@@ -11,6 +11,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from django.db import models as db_models
+
 from .models import (
     Department,
     Notification,
@@ -32,11 +34,20 @@ from .serializers import (
 
 # ── Helpers ──────────────────────────────────────────────────────────
 def _active_school(request) -> School | None:
-    """Return the school selected in the user's session."""
+    """Return the school selected in the user's session.
+
+    Reuses ``request.active_school`` set by middleware when available,
+    avoiding a redundant DB query per API call.
+    """
+    cached = getattr(request, "active_school", None)
+    if cached is not None:
+        return cached
     try:
         sid = request.session.get("active_school_id")
         if sid:
-            return School.objects.filter(pk=sid, is_active=True).first()
+            school = School.objects.filter(pk=sid, is_active=True).first()
+            request.active_school = school
+            return school
     except Exception:
         pass
     return None
@@ -70,7 +81,7 @@ class ReportViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         school = _active_school(self.request)
-        return Report.objects.filter(school=school).select_related("category").order_by("-created_at")
+        return Report.objects.filter(school=school).select_related("category", "teacher").order_by("-created_at")
 
 
 class ReportTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -80,9 +91,9 @@ class ReportTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         school = _active_school(self.request)
-        qs = ReportType.objects.all()
-        if hasattr(ReportType, "school"):
-            qs = qs.filter(school=school)
+        qs = ReportType.objects.filter(
+            db_models.Q(school=school) | db_models.Q(school__isnull=True)
+        )
         if hasattr(ReportType, "is_active"):
             qs = qs.filter(is_active=True)
         return qs
@@ -110,7 +121,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         return Notification.objects.filter(
             recipients__teacher=self.request.user,
             school=school,
-        ).order_by("-created_at").distinct()
+        ).select_related("school", "created_by").order_by("-created_at").distinct()
 
     @action(detail=False, methods=["get"])
     def unread_count(self, request):

@@ -169,10 +169,21 @@ class ActiveSchoolGuardMiddleware:
 
         user = getattr(request, "user", None)
         if not getattr(user, "is_authenticated", False):
+            request.active_school = None
             return self.get_response(request)
 
         # Superusers can access all schools; keep whatever is set.
         if getattr(user, "is_superuser", False):
+            # Still resolve the school for downstream reuse.
+            try:
+                from .models import School as _School
+                sid_raw = request.session.get(self.SESSION_KEY)
+                if sid_raw:
+                    request.active_school = _School.objects.filter(pk=int(sid_raw), is_active=True).first()
+                else:
+                    request.active_school = None
+            except Exception:
+                request.active_school = None
             return self.get_response(request)
 
         try:
@@ -181,6 +192,7 @@ class ActiveSchoolGuardMiddleware:
             sid_raw = None
 
         if not sid_raw:
+            request.active_school = None
             return self.get_response(request)
 
         try:
@@ -190,6 +202,7 @@ class ActiveSchoolGuardMiddleware:
                 request.session.pop(self.SESSION_KEY, None)
             except Exception:
                 pass
+            request.active_school = None
             return self.get_response(request)
 
         # Import lazily to avoid circular imports at startup.
@@ -199,17 +212,19 @@ class ActiveSchoolGuardMiddleware:
             School = None  # type: ignore
             SchoolMembership = None  # type: ignore
 
-        # If the school itself is not active/doesn't exist, clear.
+        # ── Fetch the school once and cache on request ──
+        school_obj = None
         try:
             if School is not None:
-                if not School.objects.filter(id=sid, is_active=True).exists():
-                    if self._wants_json(request):
-                        return JsonResponse({"detail": "invalid_active_school"}, status=403)
-                    request.session.pop(self.SESSION_KEY, None)
-                    return self.get_response(request)
+                school_obj = School.objects.filter(id=sid, is_active=True).first()
         except Exception:
-            # If we cannot verify, do not broaden access.
+            school_obj = None
+
+        # If the school itself is not active/doesn't exist, clear.
+        if school_obj is None:
             try:
+                if self._wants_json(request):
+                    return JsonResponse({"detail": "invalid_active_school"}, status=403)
                 request.session.pop(self.SESSION_KEY, None)
             except Exception:
                 pass
@@ -229,7 +244,7 @@ class ActiveSchoolGuardMiddleware:
                         return JsonResponse({"detail": "invalid_active_school"}, status=403)
                     request.session.pop(self.SESSION_KEY, None)
                     return self.get_response(request)
-                school_obj = School.objects.filter(id=sid, is_active=True).first()
+                # Reuse school_obj already fetched above
                 if school_obj is None or not platform_can_access_school(user, school_obj):
                     if self._wants_json(request):
                         return JsonResponse({"detail": "forbidden"}, status=403)
@@ -267,6 +282,9 @@ class ActiveSchoolGuardMiddleware:
             except Exception:
                 pass
 
+        # ── Cache the resolved school on the request for downstream reuse ──
+        request.active_school = school_obj
+
         return self.get_response(request)
 
 class SubscriptionMiddleware:
@@ -297,13 +315,15 @@ class SubscriptionMiddleware:
         #    عدم وجود اشتراك يُعامل كمنتهي.
         from .models import SchoolMembership, School
 
-        active_school = None
-        try:
-            sid = request.session.get("active_school_id")
-            if sid:
-                active_school = School.objects.filter(pk=sid, is_active=True).first()
-        except Exception:
-            active_school = None
+        # ── Reuse school from ActiveSchoolGuardMiddleware if available ──
+        active_school = getattr(request, "active_school", None)
+        if active_school is None:
+            try:
+                sid = request.session.get("active_school_id")
+                if sid:
+                    active_school = School.objects.filter(pk=sid, is_active=True).first()
+            except Exception:
+                active_school = None
 
         memberships_qs = (
             SchoolMembership.objects.filter(teacher=request.user, is_active=True)

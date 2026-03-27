@@ -20,6 +20,50 @@ from ._helpers import (
 from ..utils import _resolve_department_for_category, _build_head_decision
 
 
+def _notify_report_created(report, active_school):
+    """إشعار مدير المدرسة ورئيس القسم عند إنشاء تقرير جديد."""
+    try:
+        from ..utils import create_system_notification
+
+        school = getattr(report, "school", active_school)
+        if school is None:
+            return
+
+        recipients = set()
+        # مدراء المدرسة
+        manager_ids = SchoolMembership.objects.filter(
+            school=school,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True,
+        ).values_list("teacher_id", flat=True)
+        recipients.update(manager_ids)
+
+        # رئيس القسم المرتبط بنوع التقرير
+        if DepartmentMembership is not None and getattr(report, "category_id", None):
+            officer_ids = DepartmentMembership.objects.filter(
+                department__reporttypes=report.category_id,
+                role_type=DepartmentMembership.OFFICER,
+            ).values_list("teacher_id", flat=True)
+            recipients.update(officer_ids)
+
+        # لا نشعر صاحب التقرير نفسه
+        recipients.discard(getattr(report, "teacher_id", None))
+
+        if not recipients:
+            return
+
+        teacher_name = getattr(report.teacher, "name", "") if report.teacher else ""
+        category_name = getattr(report.category, "name", "") if getattr(report, "category", None) else ""
+        create_system_notification(
+            title=f"📝 تقرير جديد: {report.title[:80]}",
+            message=f"أضاف {teacher_name} تقريراً جديداً ({category_name}).",
+            school=school,
+            teacher_ids=list(recipients),
+        )
+    except Exception:
+        logger.exception("Failed to send report creation notification")
+
+
 # =========================
 # التقارير: إضافة/عرض/إدارة
 # =========================
@@ -45,6 +89,10 @@ def add_report(request: HttpRequest) -> HttpResponse:
                 report.teacher_name = teacher_name_final
 
             report.save()
+
+            # إشعار مدير المدرسة ورئيس القسم بتقرير جديد
+            _notify_report_created(report, active_school)
+
             messages.success(request, "تم إضافة التقرير بنجاح ✅")
             return redirect("reports:my_reports")
         messages.error(request, "فضلاً تحقق من الحقول وأعد المحاولة.")
@@ -831,7 +879,10 @@ def report_share_manage(request: HttpRequest, pk: int) -> HttpResponse:
     active_school = _get_active_school(request)
     user = request.user
     
-    report = get_object_or_404(Report.objects.select_related("school"), pk=pk)
+    qs = Report.objects.select_related("school")
+    if not getattr(user, "is_superuser", False) and active_school is not None:
+        qs = qs.filter(school=active_school)
+    report = get_object_or_404(qs, pk=pk)
     
     # التحقق من الصلاحية
     if not can_share_report(user, report, active_school=active_school):

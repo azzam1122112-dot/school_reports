@@ -60,8 +60,11 @@ def platform_schools_directory(request: HttpRequest) -> HttpResponse:
     if city:
         qs = qs.filter(city=city)
 
+    page_obj = Paginator(qs.order_by("name"), 25).get_page(request.GET.get("page") or 1)
+
     ctx = {
-        "schools": list(qs.order_by("name")),
+        "schools": page_obj,
+        "page_obj": page_obj,
         "cities": cities,
         "q": q,
         "gender": gender,
@@ -202,7 +205,7 @@ def platform_school_tickets(request: HttpRequest) -> HttpResponse:
             qs = qs.filter(Q(title__icontains=kw) | Q(body__icontains=kw))
 
     ctx = {
-        "tickets": list(qs[:200]),
+        "tickets": Paginator(qs, 25).get_page(request.GET.get("page") or 1),
         "status": status,
         "q": q,
         "mine": mine,
@@ -247,7 +250,7 @@ def manager_school_tickets(request: HttpRequest) -> HttpResponse:
             qs = qs.filter(Q(title__icontains=kw) | Q(body__icontains=kw))
 
     ctx = {
-        "tickets": list(qs[:200]),
+        "tickets": Paginator(qs, 25).get_page(request.GET.get("page") or 1),
         "status": status,
         "q": q,
         "mine": mine,

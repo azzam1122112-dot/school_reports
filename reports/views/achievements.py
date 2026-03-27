@@ -15,6 +15,62 @@ from ..services_legacy_roles import (
 )
 
 
+def _notify_achievement_submitted(ach_file, active_school):
+    """إشعار مدراء المدرسة عند إرسال ملف إنجاز للاعتماد."""
+    try:
+        from ..utils import create_system_notification
+
+        school = getattr(ach_file, "school", active_school)
+        if school is None:
+            return
+        manager_ids = list(
+            SchoolMembership.objects.filter(
+                school=school,
+                role_type=SchoolMembership.RoleType.MANAGER,
+                is_active=True,
+            ).values_list("teacher_id", flat=True)
+        )
+        if not manager_ids:
+            return
+        teacher_name = getattr(ach_file.teacher, "name", "") if ach_file.teacher else ""
+        create_system_notification(
+            title="📂 ملف إنجاز جديد للاعتماد",
+            message=f"أرسل {teacher_name} ملف إنجاز للسنة {ach_file.academic_year} للاعتماد.",
+            school=school,
+            teacher_ids=manager_ids,
+        )
+    except Exception:
+        logger.exception("Failed to send achievement submitted notification")
+
+
+def _notify_achievement_decided(ach_file, decision, active_school):
+    """إشعار المعلم عند اعتماد أو إرجاع ملف الإنجاز."""
+    try:
+        from ..utils import create_system_notification
+
+        if not ach_file.teacher_id:
+            return
+        school = getattr(ach_file, "school", active_school)
+        if decision == "approved":
+            title = "✅ تم اعتماد ملف الإنجاز"
+            message = f"تم اعتماد ملف الإنجاز الخاص بك للسنة {ach_file.academic_year}."
+        else:
+            title = "🔄 تم إرجاع ملف الإنجاز"
+            notes = (getattr(ach_file, "manager_notes", "") or "").strip()
+            message = f"تم إرجاع ملف الإنجاز الخاص بك للسنة {ach_file.academic_year} للمراجعة."
+            if notes:
+                message += f"\nملاحظات: {notes[:200]}"
+
+        create_system_notification(
+            title=title,
+            message=message,
+            school=school,
+            teacher_ids=[ach_file.teacher_id],
+        )
+    except Exception:
+        logger.exception("Failed to send achievement decision notification")
+
+
 def _ensure_achievement_sections(ach_file: TeacherAchievementFile) -> None:
     """يضمن وجود 11 محورًا ثابتًا داخل الملف."""
     existing = set(
@@ -110,7 +166,13 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["POST"])
 def achievement_file_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """حذف ملف إنجاز (للمالك فقط)."""
+    active_school = _get_active_school(request)
     file = get_object_or_404(TeacherAchievementFile, pk=pk, teacher=request.user)
+
+    # عزل حسب المدرسة النشطة
+    if active_school is not None and getattr(file, "school_id", None) != active_school.id:
+        messages.error(request, "لا تملك صلاحية حذف ملف إنجاز من مدرسة أخرى.")
+        return redirect("reports:achievement_my_files")
     
     # يمكن إضافة شرط الحالة لو أردنا منع حذف المعتمد، لكن السؤال يوحي بالحرية للتصحيح
     file.delete()
@@ -124,6 +186,11 @@ def achievement_file_update_year(request: HttpRequest, pk: int) -> HttpResponse:
     """تصحيح السنة الدراسية لملف الإنجاز (للمالك فقط)."""
     file = get_object_or_404(TeacherAchievementFile, pk=pk, teacher=request.user)
     active_school = _get_active_school(request)
+
+    # عزل حسب المدرسة النشطة
+    if active_school is not None and getattr(file, "school_id", None) != active_school.id:
+        messages.error(request, "لا تملك صلاحية تعديل ملف إنجاز من مدرسة أخرى.")
+        return redirect("reports:achievement_my_files")
 
     # نموذج بسيط للتحقق من السنة (نستخدم نفس فورم الإنشاء للتحقق مع تمرير القيمة المرسلة كخيار مقبول)
     # هذا يسمح بقبول أي سنة صحيحة (هيئة + تتابع) حتى لو لم تكن في القائمة الافتراضية
@@ -570,6 +637,10 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     ach_file.save(update_fields=["status", "submitted_at", "updated_at"])
 
                     frozen = freeze_achievement_report_evidences(ach_file=ach_file)
+
+                # إشعار مدير المدرسة بملف إنجاز جديد
+                _notify_achievement_submitted(ach_file, active_school)
+
                 if frozen:
                     messages.success(request, f"تم إرسال الملف للاعتماد ✅ (تم تجميد {frozen} تقرير/تقارير كشواهد)")
                 else:
@@ -584,6 +655,10 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             ach_file.decided_at = timezone.now()
             ach_file.decided_by = request.user
             ach_file.save(update_fields=["status", "decided_at", "decided_by", "updated_at"])
+
+            # إشعار المعلم باعتماد ملف الإنجاز
+            _notify_achievement_decided(ach_file, "approved", active_school)
+
             messages.success(request, "تم اعتماد ملف الإنجاز ✅")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
@@ -594,6 +669,10 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             ach_file.decided_at = timezone.now()
             ach_file.decided_by = request.user
             ach_file.save(update_fields=["status", "decided_at", "decided_by", "updated_at", "manager_notes"])
+
+            # إشعار المعلم بإرجاع ملف الإنجاز
+            _notify_achievement_decided(ach_file, "returned", active_school)
+
             messages.success(request, "تم إرجاع الملف للمعلّم مع الملاحظات ✅")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 

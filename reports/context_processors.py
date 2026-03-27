@@ -809,13 +809,15 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             cache_key = None
 
     # نحدد المدرسة النشطة (إن وُجدت) لاستخدامها في العدادات
-    active_school = None
-    try:
-        sid = request.session.get("active_school_id")
-        if sid:
-            active_school = School.objects.filter(pk=sid, is_active=True).first()
-    except Exception:
-        active_school = None
+    # ── أولاً نحاول إعادة استخدام ما حمّله الـ middleware ──
+    active_school = getattr(request, "active_school", None)
+    if active_school is None:
+        try:
+            sid = request.session.get("active_school_id")
+            if sid:
+                active_school = School.objects.filter(pk=sid, is_active=True).first()
+        except Exception:
+            active_school = None
 
     role_labels = _school_role_labels(active_school)
     school_manager_label = role_labels["manager"]
@@ -996,14 +998,12 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
                     .distinct()
                     .order_by("name")
                 )
-        sid = request.session.get("active_school_id")
-        if sid:
-            s = School.objects.filter(pk=sid, is_active=True).first()
-            if s is not None:
-                school_id = s.pk
-                school_name = s.name
-                # تم حذف شعارات المدارس (logo_file/logo_url) نهائيًا من النظام
-                school_logo = None
+        # ── إعادة استخدام active_school المحمّل أعلاه بدل query جديد ──
+        if active_school is not None:
+            school_id = active_school.pk
+            school_name = active_school.name
+            # تم حذف شعارات المدارس (logo_file/logo_url) نهائيًا من النظام
+            school_logo = None
     except Exception:
         school_name = None
         school_logo = None
