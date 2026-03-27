@@ -293,7 +293,11 @@ from ..permissions import (
     allowed_categories_for,
     role_required,
     restrict_queryset_for_user,
+    effective_user_role_label,
+    get_school_manager_school_ids,
     is_platform_admin,
+    is_school_manager,
+    is_report_viewer_for_school,
     platform_allowed_schools_qs,
     platform_can_access_school,
 )
@@ -350,14 +354,7 @@ def _is_staff(user) -> bool:
         return False
     if getattr(user, "is_staff", False):
         return True
-    try:
-        return SchoolMembership.objects.filter(
-            teacher=user, 
-            role_type=SchoolMembership.RoleType.MANAGER,
-            is_active=True
-        ).exists()
-    except Exception:
-        return False
+    return is_school_manager(user)
 
 
 def _is_staff_or_officer(user) -> bool:
@@ -416,23 +413,7 @@ def _is_manager_in_school(user, active_school: Optional[School]) -> bool:
     """
     if getattr(user, "is_superuser", False):
         return True
-    try:
-        if getattr(getattr(user, "role", None), "slug", None) == "manager":
-            return True
-    except Exception:
-        pass
-
-    if active_school is None:
-        return False
-    try:
-        return SchoolMembership.objects.filter(
-            teacher=user,
-            school=active_school,
-            role_type=SchoolMembership.RoleType.MANAGER,
-            is_active=True,
-        ).exists()
-    except Exception:
-        return False
+    return is_school_manager(user, active_school=active_school, allow_legacy_role=True)
 
 
 def _safe_redirect(request: HttpRequest, fallback_name: str) -> HttpResponse:
@@ -485,55 +466,7 @@ def _school_teachers_obj_label(school: Optional[School]) -> str:
 
 
 def _canonical_role_label(user, school: Optional[School]) -> str:
-    """إرجاع تسمية دور موحّدة (بدون تداخلات).
-
-    الأدوار المعتمدة فقط:
-    - معلم
-    - مدير المدرسة
-    - المشرف العام
-    - مدير النظام
-    """
-    if user is None:
-        return ""
-
-    # مدير النظام (الأعلى أولوية): سوبر يوزر دائمًا
-    try:
-        if getattr(user, "is_superuser", False):
-            return "مدير النظام"
-    except Exception:
-        pass
-
-    # المشرف العام
-    try:
-        if is_platform_admin(user) or getattr(user, "is_platform_admin", False):
-            scope = getattr(user, "platform_scope", None)
-            role_obj = getattr(scope, "role", None) if scope is not None else None
-            role_name = (getattr(role_obj, "name", "") or "").strip()
-            return role_name or "المشرف العام"
-    except Exception:
-        pass
-
-    # مدير المدرسة
-    try:
-        if school is not None and _is_manager_in_school(user, school):
-            return _school_manager_label(school)
-    except Exception:
-        pass
-    try:
-        role = getattr(user, "role", None)
-        if role is not None and (getattr(role, "slug", "") or "").strip().lower() == "manager":
-            return _school_manager_label(school)
-    except Exception:
-        pass
-
-    # مدير النظام (is_staff فقط) — لا نستخدم _is_staff هنا لأنه يُعيد True لمدير المدرسة
-    try:
-        if getattr(user, "is_staff", False):
-            return "مدير النظام"
-    except Exception:
-        pass
-
-    return _school_teacher_label(school)
+    return "" if user is None else effective_user_role_label(user, active_school=school)
 
 
 def _canonical_sender_name(user) -> str:
@@ -619,35 +552,11 @@ def _user_manager_schools(user) -> list[School]:
     if not getattr(user, "is_authenticated", False):
         return []
 
-    # توافق خلفي: بعض الحسابات القديمة تعتمد على Role(slug='manager')
-    role_slug = None
     try:
-        role_slug = getattr(getattr(user, "role", None), "slug", None)
-    except Exception:
-        role_slug = None
-
-    try:
-        if role_slug == "manager":
-            qs = (
-                School.objects.filter(
-                    memberships__teacher=user,
-                    memberships__is_active=True,
-                    is_active=True,
-                )
-                .distinct()
-                .order_by("name")
-            )
-        else:
-            qs = (
-                School.objects.filter(
-                    memberships__teacher=user,
-                    memberships__role_type=SchoolMembership.RoleType.MANAGER,
-                    memberships__is_active=True,
-                    is_active=True,
-                )
-                .distinct()
-                .order_by("name")
-            )
+        school_ids = get_school_manager_school_ids(user, allow_legacy_role=True)
+        if not school_ids:
+            return []
+        qs = School.objects.filter(id__in=list(school_ids), is_active=True).order_by("name")
         return list(qs)
     except Exception:
         return []
@@ -681,8 +590,8 @@ def _user_department_codes(user, active_school: Optional[School] = None) -> list
 
 
 def _is_report_viewer(user, active_school: Optional[School] = None) -> bool:
-    """(تم إلغاء دور مشرف التقارير)"""
-    return False
+    """Compatibility wrapper around the canonical permission helper."""
+    return is_report_viewer_for_school(user, active_school)
 
 
 def _ensure_achievement_sections(ach_file: TeacherAchievementFile) -> None:

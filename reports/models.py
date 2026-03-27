@@ -308,58 +308,17 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
         except Exception:
             active_school = None
             sid = None
-
-        gender = (getattr(active_school, "gender", "") or "").strip().lower()
-        girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-        manager_label = "مديرة المدرسة" if gender == girls_value else "مدير المدرسة"
-        teacher_label = "المعلمة" if gender == girls_value else "المعلم"
-
-        if getattr(self, "is_superuser", False):
-            return "مدير النظام"
-        if getattr(self, "is_platform_admin", False):
-            try:
-                scope = getattr(self, "platform_scope", None)
-                if scope is not None:
-                    role_obj = getattr(scope, "role", None)
-                    role_name = (getattr(role_obj, "name", "") or "").strip()
-                    if role_name:
-                        return role_name
-            except Exception:
-                pass
-            return "المشرف العام"
         try:
-            role = getattr(self, "role", None)
-            if role is not None and (getattr(role, "slug", "") or "").strip().lower() == "manager":
-                return manager_label
-        except Exception:
-            pass
+            from .permissions import effective_user_role_label
 
-        # ✅ لو هناك مدرسة نشطة في الطلب الحالي: اعرض المسمى الوظيفي حسب العضوية (يدعم تعدد المدارس)
-        try:
-            if sid and getattr(self, "pk", None):
-                m = (
-                    SchoolMembership.objects.filter(
-                        school_id=sid,
-                        teacher_id=self.pk,
-                        role_type=SchoolMembership.RoleType.TEACHER,
-                        is_active=True,
-                    )
-                    .only("job_title")
-                    .first()
-                )
-                if m is not None and getattr(m, "job_title", None):
-                    try:
-                        return m.get_job_title_display() or teacher_label
-                    except Exception:
-                        return teacher_label
+            return effective_user_role_label(self, active_school=active_school, active_school_id=sid)
         except Exception:
-            pass
-        try:
-            if self.role is not None:
-                return (getattr(self.role, "name", None) or getattr(self.role, "slug", None) or "").strip() or teacher_label
-        except Exception:
-            pass
-        return teacher_label
+            role_obj = getattr(self, "role", None)
+            return (
+                (getattr(role_obj, "name", None) or "").strip()
+                or (getattr(role_obj, "slug", None) or "").strip()
+                or "مستخدم"
+            )
 
     def save(self, *args, **kwargs):
         try:
@@ -370,24 +329,7 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        role_name = getattr(self.role, "name", None)
-        if getattr(self, "is_superuser", False):
-            role_name = "مدير النظام"
-        elif getattr(self, "is_platform_admin", False):
-            try:
-                scope = getattr(self, "platform_scope", None)
-                if scope is not None:
-                    role_obj = getattr(scope, "role", None)
-                    role_name = (getattr(role_obj, "name", "") or "").strip() or "المشرف العام"
-            except Exception:
-                role_name = "المشرف العام"
-        else:
-            try:
-                role = getattr(self, "role", None)
-                if role is not None and (getattr(role, "slug", "") or "").strip().lower() == "manager":
-                    role_name = "مدير المدرسة"
-            except Exception:
-                pass
+        role_name = self.display_role_label
         return f"{self.name} ({role_name or 'بدون دور'})"
 
 
@@ -1551,6 +1493,11 @@ class TicketRecipient(models.Model):
         return f"Ticket #{self.ticket_id} → {getattr(self.teacher, 'name', self.teacher_id)}"
 
     # ======== خصائص مساعدة للقوالب ========
+    @property
+    def attachment(self):
+        """Backwards-compatible proxy to the parent ticket attachment."""
+        return getattr(getattr(self, "ticket", None), "attachment", None)
+
     @property
     def attachment_name_lower(self) -> str:
         return (getattr(self.attachment, "name", "") or "").lower()

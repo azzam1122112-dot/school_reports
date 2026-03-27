@@ -19,6 +19,7 @@ from .models import (
 	PlatformAdminScope,
 	Teacher,
 	Ticket,
+	TicketRecipient,
 )
 from .tasks import send_daily_manager_summary_task
 
@@ -538,7 +539,7 @@ class ResolveDepartmentForCategoryTests(TestCase):
 		self.assertEqual(_resolve_department_for_category(rt_b, school_b).pk, dept_b.pk)
 
 
-class TenantIsolationTests(TestCase):
+class DepartmentApiIsolationTests(TestCase):
 	def setUp(self):
 		self.school_a = School.objects.create(name="School A", code="school-a")
 		self.school_b = School.objects.create(name="School B", code="school-b")
@@ -767,6 +768,422 @@ class ReportViewerLimitTests(TestCase):
 		m1.is_active = True
 		with self.assertRaises(Exception):
 			m1.save(update_fields=["is_active"])
+
+
+class ReportViewerRouteRegressionTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="Viewer School", code="viewer-school")
+		plan = SubscriptionPlan.objects.create(name="Viewer Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+		self.teacher = Teacher.objects.create_user(phone="0500000301", name="Teacher", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.teacher,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+		self.report = Report.objects.create(
+			school=self.school,
+			teacher=self.teacher,
+			title="Viewer Visible Report",
+			report_date=today,
+			idea="Visible to report viewer",
+		)
+
+		self.viewer = Teacher.objects.create_user(phone="0500000302", name="Viewer", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.viewer,
+			role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+			is_active=True,
+		)
+
+	def _login_viewer(self):
+		self.client.force_login(self.viewer)
+		session = self.client.session
+		session["active_school_id"] = self.school.id
+		session.save()
+
+	def test_report_viewer_home_redirects_to_readonly_reports(self):
+		self._login_viewer()
+		res = self.client.get(reverse("reports:home"))
+		self.assertEqual(res.status_code, 302)
+		self.assertEqual(res["Location"], reverse("reports:school_reports_readonly"))
+
+	def test_report_viewer_readonly_page_lists_school_reports(self):
+		self._login_viewer()
+		res = self.client.get(reverse("reports:school_reports_readonly"))
+		self.assertEqual(res.status_code, 200)
+		self.assertContains(res, self.report.title)
+
+	def test_report_viewer_can_print_school_report(self):
+		self._login_viewer()
+		res = self.client.get(reverse("reports:report_print", args=[self.report.pk]))
+		self.assertEqual(res.status_code, 200)
+
+
+class ReportViewerSourceOfTruthTests(TestCase):
+	def setUp(self):
+		self.school_a = School.objects.create(name="Viewer A", code="viewer-a")
+		self.school_b = School.objects.create(name="Viewer B", code="viewer-b")
+		plan = SubscriptionPlan.objects.create(name="Viewer Scope Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school_a, plan=plan, start_date=today, end_date=today)
+		SchoolSubscription.objects.create(school=self.school_b, plan=plan, start_date=today, end_date=today)
+
+		self.viewer = Teacher.objects.create_user(phone="0500000303", name="Scoped Viewer", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school_a,
+			teacher=self.viewer,
+			role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+			is_active=True,
+		)
+
+	def test_permissions_helper_scopes_report_viewer_membership(self):
+		from .permissions import is_report_viewer_for_school
+
+		self.assertTrue(is_report_viewer_for_school(self.viewer))
+		self.assertTrue(is_report_viewer_for_school(self.viewer, self.school_a))
+		self.assertFalse(is_report_viewer_for_school(self.viewer, self.school_b))
+		self.assertFalse(is_report_viewer_for_school(self.viewer, active_school_id=self.school_b.id))
+
+	@override_settings(NAV_CONTEXT_CACHE_TTL_SECONDS=0)
+	def test_nav_context_uses_same_report_viewer_source(self):
+		from .context_processors import nav_context
+
+		request = RequestFactory().get("/")
+		request.user = self.viewer
+		request.session = {"active_school_id": self.school_a.id}
+
+		ctx = nav_context(request)
+		self.assertTrue(ctx["IS_REPORT_VIEWER"])
+
+
+class RoleResolutionSourceOfTruthTests(TestCase):
+	def setUp(self):
+		from .models import Role
+
+		self.school = School.objects.create(
+			name="Girls School",
+			code="girls-school",
+			gender=School.Gender.GIRLS,
+		)
+		plan = SubscriptionPlan.objects.create(name="Role Resolution Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+		self.teacher_role = Role.objects.create(slug="legacy-teacher", name="دور قديم")
+		self.teacher = Teacher.objects.create_user(phone="0500000304", name="Teacher Label", password="pass")
+		self.teacher.role = self.teacher_role
+		self.teacher.save()
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.teacher,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			job_title=SchoolMembership.JobTitle.ADMIN_STAFF,
+			is_active=True,
+		)
+
+		self.manager_role, _ = Role.objects.get_or_create(
+			slug="manager",
+			defaults={"name": "مدير قديم", "is_staff_by_default": True},
+		)
+		self.legacy_manager = Teacher.objects.create_user(phone="0500000305", name="Legacy Manager", password="pass")
+		self.legacy_manager.role = self.manager_role
+		self.legacy_manager.save()
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.legacy_manager,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+
+	def _request_for(self, user):
+		request = RequestFactory().get("/")
+		request.user = user
+		request.session = {"active_school_id": self.school.id}
+		request.COOKIES = {}
+		return request
+
+	@override_settings(NAV_CONTEXT_CACHE_TTL_SECONDS=0)
+	def test_nav_context_and_teacher_property_use_same_membership_label(self):
+		from .context_processors import nav_context
+
+		request = self._request_for(self.teacher)
+		ctx = nav_context(request)
+		self.assertEqual(ctx["USER_ROLE_LABEL"], "موظفة إدارية")
+
+		with patch("reports.middleware.get_current_request", return_value=request):
+			self.assertEqual(self.teacher.display_role_label, "موظفة إدارية")
+
+	def test_manager_helper_separates_strict_and_legacy_modes(self):
+		from .permissions import effective_user_role_label, is_school_manager
+
+		self.assertFalse(is_school_manager(self.legacy_manager, self.school))
+		self.assertTrue(is_school_manager(self.legacy_manager, self.school, allow_legacy_role=True))
+		self.assertEqual(
+			effective_user_role_label(self.legacy_manager, active_school=self.school),
+			"مديرة المدرسة",
+		)
+
+
+class MembershipBasedSchoolViewsRegressionTests(TestCase):
+	def setUp(self):
+		from .models import Role
+
+		self.school = School.objects.create(name="Membership School", code="membership-school")
+		plan = SubscriptionPlan.objects.create(name="Membership Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+		self.manager = Teacher.objects.create_user(phone="0500000306", name="Manager Membership", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.legacy_department_role = Role.objects.create(slug="science-legacy", name="علوم")
+		self.teacher = Teacher.objects.create_user(phone="0500000307", name="Legacy Science Teacher", password="pass")
+		self.teacher.role = self.legacy_department_role
+		self.teacher.save()
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.teacher,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			job_title=SchoolMembership.JobTitle.ADMIN_STAFF,
+			is_active=True,
+		)
+
+		self.department = Department.objects.create(
+			school=self.school,
+			name="Science Department",
+			slug="science-legacy",
+			is_active=True,
+		)
+		self.member = Teacher.objects.create_user(phone="0500000308", name="Actual Science Member", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.member,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+		DepartmentMembership.objects.create(department=self.department, teacher=self.member)
+
+		self.client.force_login(self.manager)
+		session = self.client.session
+		session["active_school_id"] = self.school.id
+		session.save()
+
+	def test_departments_count_comes_from_department_memberships_only(self):
+		from .views.schools import _all_departments
+
+		items = _all_departments(self.school)
+		dept = next(item for item in items if item["slug"] == "science-legacy")
+		self.assertEqual(dept["members_count"], 1)
+
+	def test_manage_teachers_uses_membership_role_label_not_legacy_role_name(self):
+		res = self.client.get(reverse("reports:manage_teachers"))
+		self.assertEqual(res.status_code, 200)
+		self.assertContains(res, self.teacher.name)
+		self.assertContains(res, "موظف إداري")
+		self.assertNotContains(res, "علوم")
+
+
+class SchoolManagerMembershipViewsRegressionTests(TestCase):
+	def setUp(self):
+		from .models import Role
+
+		self.admin = Teacher.objects.create_superuser(phone="0500000309", name="Admin Root", password="pass")
+		self.school_a = School.objects.create(name="Manager School A", code="manager-school-a")
+		self.school_b = School.objects.create(name="Manager School B", code="manager-school-b")
+		plan = SubscriptionPlan.objects.create(name="Manager Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school_a, plan=plan, start_date=today, end_date=today)
+		SchoolSubscription.objects.create(school=self.school_b, plan=plan, start_date=today, end_date=today)
+
+		manager_role, _ = Role.objects.get_or_create(
+			slug="manager",
+			defaults={"name": "مدير قديم", "is_staff_by_default": True},
+		)
+		self.role_only_manager = Teacher.objects.create_user(phone="0500000310", name="Legacy Role Only", password="pass")
+		self.role_only_manager.role = manager_role
+		self.role_only_manager.save()
+
+		self.real_manager = Teacher.objects.create_user(phone="0500000312", name="Real Manager", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school_a,
+			teacher=self.real_manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.other_manager = Teacher.objects.create_user(phone="0500000313", name="Other Manager", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school_b,
+			teacher=self.other_manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.client.force_login(self.admin)
+
+	def test_school_managers_list_ignores_role_only_manager_accounts(self):
+		res = self.client.get(reverse("reports:school_managers_list"))
+		self.assertEqual(res.status_code, 200)
+		self.assertContains(res, self.real_manager.name)
+		self.assertContains(res, self.other_manager.name)
+		self.assertNotContains(res, self.role_only_manager.name)
+
+	def test_school_managers_manage_candidates_come_from_manager_memberships(self):
+		res = self.client.get(reverse("reports:school_managers_manage", args=[self.school_a.pk]))
+		self.assertEqual(res.status_code, 200)
+		self.assertContains(res, self.other_manager.name)
+		self.assertNotContains(res, self.role_only_manager.name)
+
+
+class TicketListSerializerRegressionTests(TestCase):
+	def test_ticket_list_serializer_uses_only_model_fields(self):
+		from .serializers import TicketListSerializer
+
+		fields = TicketListSerializer().get_fields()
+		self.assertIn("status", fields)
+		self.assertNotIn("priority", fields)
+
+
+class TeacherEditFormRegressionTests(TestCase):
+	def test_save_updates_school_job_title_membership(self):
+		from .forms import TeacherEditForm
+
+		school = School.objects.create(name="Teacher Form School", code="teacher-form-school")
+		plan = SubscriptionPlan.objects.create(name="Form Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=school, plan=plan, start_date=today, end_date=today)
+
+		teacher = Teacher.objects.create_user(phone="0500000311", name="Teacher Form", password="pass")
+		membership = SchoolMembership.objects.create(
+			school=school,
+			teacher=teacher,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+			job_title=SchoolMembership.JobTitle.TEACHER,
+		)
+
+		form = TeacherEditForm(
+			data={
+				"name": "Teacher Form",
+				"phone": "0500000311",
+				"national_id": "",
+				"is_active": "on",
+				"job_title": SchoolMembership.JobTitle.ADMIN_STAFF,
+				"password": "",
+			},
+			instance=teacher,
+			active_school=school,
+		)
+		self.assertTrue(form.is_valid(), form.errors)
+		form.save()
+
+		membership.refresh_from_db()
+		self.assertEqual(membership.job_title, SchoolMembership.JobTitle.ADMIN_STAFF)
+
+
+class LegacyRoleCompatibilityServiceTests(TestCase):
+	def test_legacy_role_write_surfaces_inventory_is_centralized(self):
+		from .services_legacy_roles import LEGACY_ROLE_WRITE_SURFACES
+
+		self.assertEqual(
+			set(LEGACY_ROLE_WRITE_SURFACES),
+			{
+				"forms.TeacherForm",
+				"forms.TeacherCreateForm",
+				"forms.TeacherEditForm",
+				"forms.PlatformAdminCreateForm",
+				"views.achievements.report_viewer_create",
+				"views.achievements.report_viewer_update",
+			},
+		)
+
+	def test_teacher_create_form_creates_legacy_teacher_role_when_missing(self):
+		from .forms import TeacherCreateForm
+		from .models import Role
+
+		Role.objects.filter(slug="teacher").delete()
+
+		form = TeacherCreateForm(
+			data={
+				"name": "Legacy Create",
+				"phone": "0500000314",
+				"national_id": "",
+				"is_active": "on",
+				"job_title": SchoolMembership.JobTitle.TEACHER,
+				"password": "pass12345",
+			}
+		)
+		self.assertTrue(form.is_valid(), form.errors)
+
+		teacher = form.save()
+		teacher.refresh_from_db()
+
+		self.assertEqual(getattr(teacher.role, "slug", None), "teacher")
+		self.assertTrue(Role.objects.filter(slug="teacher").exists())
+
+	def test_teacher_form_maps_department_to_existing_legacy_role_via_service(self):
+		from .forms import TeacherForm
+		from .models import Role
+
+		school = School.objects.create(name="Legacy Role School", code="legacy-role-school")
+		department = Department.objects.create(
+			school=school,
+			name="Science Office",
+			slug="science-office",
+			is_active=True,
+		)
+		legacy_role = Role.objects.create(slug="science-office", name="علوم قديم")
+
+		form = TeacherForm(
+			data={
+				"name": "Department Legacy User",
+				"phone": "0500000315",
+				"national_id": "",
+				"is_active": "on",
+				"department": department.slug,
+				"membership_role": DepartmentMembership.OFFICER,
+				"password": "pass12345",
+			},
+			active_school=school,
+		)
+		self.assertTrue(form.is_valid(), form.errors)
+
+		teacher = form.save()
+		teacher.refresh_from_db()
+		membership = DepartmentMembership.objects.get(department=department, teacher=teacher)
+
+		self.assertEqual(teacher.role_id, legacy_role.id)
+		self.assertEqual(membership.role_type, DepartmentMembership.OFFICER)
+
+
+class TicketRecipientRegressionTests(TestCase):
+	def test_attachment_helpers_proxy_parent_ticket_attachment(self):
+		school = School.objects.create(name="Ticket School", code="ticket-school")
+		teacher = Teacher.objects.create_user(phone="0500000321", name="Ticket User", password="pass")
+		attachment = SimpleUploadedFile("evidence.PDF", b"dummy", content_type="application/pdf")
+		ticket = Ticket.objects.create(
+			school=school,
+			creator=teacher,
+			title="Attachment Ticket",
+			body="Attachment body",
+			attachment=attachment,
+		)
+		recipient = TicketRecipient.objects.create(ticket=ticket, teacher=teacher)
+
+		self.assertTrue(recipient.attachment_is_pdf)
+		self.assertTrue(recipient.attachment_name_lower.endswith(".pdf"))
+		self.assertIn("evidence", recipient.attachment_name_lower)
+		self.assertIn("response-content-disposition", recipient.attachment_download_url)
 
 
 class ReportEditPermissionsTests(TestCase):

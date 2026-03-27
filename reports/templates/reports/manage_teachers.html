@@ -104,23 +104,19 @@
                         {% endfor %}
                       </div>
                     {% else %}
-                      {% with slug=t.role_slug|default_if_none:''|lower %}
-                        {% if t.is_report_viewer %}
-                          <span class="chip chip-role role-officer"><i class="fas fa-user-shield"></i> مشرف تقارير</span>
-                        {% elif t.school_job_title == 'admin_staff' %}
-                          <span class="chip chip-role role-employee"><i class="fas fa-id-badge"></i> {{ SCHOOL_ADMIN_STAFF_LABEL|default:"موظف إداري" }}</span>
-                        {% elif t.school_job_title == 'lab_tech' %}
-                          <span class="chip chip-role role-employee"><i class="fas fa-flask"></i> {{ SCHOOL_LAB_TECH_LABEL|default:"محضر مختبر" }}</span>
-                        {% elif slug == 'manager' %}
-                          <span class="chip chip-role role-manager"><i class="fas fa-crown"></i> {{ SCHOOL_HEAD_LABEL|default:"مدير" }}</span>
-                        {% elif slug == 'teacher' %}
-                          <span class="chip chip-role role-teacher"><i class="fas fa-user-graduate"></i> {{ SCHOOL_TEACHER_LABEL|default:"معلم" }}</span>
-                        {% elif slug %}
-                          <span class="chip chip-dept" data-slug="{{ slug }}">
-                            <i class="fas fa-building"></i>
-                            {{ t.role_label|default:t.role_dept_name|default:slug }}
-                            <span class="chip-role role-employee"><i class="fas fa-id-badge"></i> موظف</span>
-                          </span>
+                      {% with kind=t.manage_role_kind|default:'' label=t.manage_role_label|default:'' %}
+                        {% if kind == 'report_viewer' %}
+                          <span class="chip chip-role role-officer"><i class="fas fa-user-shield"></i> {{ label|default:"مشرف تقارير" }}</span>
+                        {% elif kind == 'admin_staff' %}
+                          <span class="chip chip-role role-employee"><i class="fas fa-id-badge"></i> {{ label|default:SCHOOL_ADMIN_STAFF_LABEL|default:"موظف إداري" }}</span>
+                        {% elif kind == 'lab_tech' %}
+                          <span class="chip chip-role role-employee"><i class="fas fa-flask"></i> {{ label|default:SCHOOL_LAB_TECH_LABEL|default:"محضر مختبر" }}</span>
+                        {% elif kind == 'manager' %}
+                          <span class="chip chip-role role-manager"><i class="fas fa-crown"></i> {{ label|default:SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</span>
+                        {% elif kind == 'teacher' %}
+                          <span class="chip chip-role role-teacher"><i class="fas fa-user-graduate"></i> {{ label|default:SCHOOL_TEACHER_LABEL|default:"معلم" }}</span>
+                        {% elif label %}
+                          <span class="chip chip-role role-employee"><i class="fas fa-id-badge"></i> {{ label }}</span>
                         {% else %}
                           <span class="badge-muted">—</span>
                         {% endif %}

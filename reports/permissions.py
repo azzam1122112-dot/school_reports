@@ -24,6 +24,11 @@ __all__ = [
     "get_member_departments",
     "is_officer",
     "is_department_member",
+    "has_legacy_manager_role",
+    "get_school_manager_school_ids",
+    "is_school_manager",
+    "is_report_viewer_for_school",
+    "effective_user_role_label",
     "can_delete_report",
     "can_edit_report",
     "can_share_report",
@@ -38,6 +43,79 @@ __all__ = [
 
 def is_platform_admin(user) -> bool:
     return bool(getattr(user, "is_authenticated", False) and getattr(user, "is_platform_admin", False))
+
+
+def _resolved_school_id(
+    *,
+    active_school: Optional[School] = None,
+    active_school_id: Optional[int] = None,
+) -> Optional[int]:
+    try:
+        if active_school_id:
+            return int(active_school_id)
+    except Exception:
+        pass
+    try:
+        if active_school is not None:
+            return int(getattr(active_school, "id", None) or 0) or None
+    except Exception:
+        pass
+    return None
+
+
+def _school_role_labels(active_school: Optional[School]) -> dict[str, str]:
+    gender = (getattr(active_school, "gender", "") or "").strip().lower()
+    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
+    is_girls = gender == girls_value
+    return {
+        "manager": "مديرة المدرسة" if is_girls else "مدير المدرسة",
+        "teacher": "المعلمة" if is_girls else "المعلم",
+        "admin_staff": "موظفة إدارية" if is_girls else "موظف إداري",
+        "lab_tech": "محضرة مختبر" if is_girls else "محضر مختبر",
+    }
+
+
+def is_report_viewer_for_school(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> bool:
+    """Single source of truth for the read-only report viewer role.
+
+    - When ``active_school``/``active_school_id`` is provided, the check is scoped to that school.
+    - When omitted, any active report-viewer membership counts.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return False
+
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+
+    try:
+        cache = getattr(user, "_report_viewer_membership_cache", None)
+        if not isinstance(cache, dict):
+            cache = {}
+            setattr(user, "_report_viewer_membership_cache", cache)
+
+        cache_key = int(school_id or 0)
+        if cache_key in cache:
+            return bool(cache[cache_key])
+
+        qs = SchoolMembership.objects.filter(
+            teacher=user,
+            role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+            is_active=True,
+        )
+        if school_id:
+            qs = qs.filter(school_id=school_id)
+
+        result = qs.exists()
+        cache[cache_key] = bool(result)
+        return bool(result)
+    except Exception:
+        return False
 
 
 def platform_allowed_schools_qs(user) -> QuerySet[School]:
@@ -106,6 +184,205 @@ def _user_role_slug(user) -> Optional[str]:
     """يعيد slug للدور الحالي للمستخدم أو None إن لم يوجد."""
     role = _user_role(user)
     return getattr(role, "slug", None) if role else None
+
+
+def has_legacy_manager_role(user) -> bool:
+    """توافق خلفي: هل ما زال الحساب يعتمد على Role.slug='manager'؟"""
+    slug = (_user_role_slug(user) or "").strip().lower()
+    return slug == str(SchoolMembership.RoleType.MANAGER).strip().lower()
+
+
+def _school_membership_cache(user) -> dict:
+    cache = getattr(user, "_school_membership_cache", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        setattr(user, "_school_membership_cache", cache)
+    return cache
+
+
+def _get_school_membership(
+    user,
+    *,
+    active_school: Optional[School] = None,
+    active_school_id: Optional[int] = None,
+    role_types: Optional[Iterable[str]] = None,
+) -> Optional[SchoolMembership]:
+    """Fetch one active school membership and memoize it on the user object."""
+    if not getattr(user, "is_authenticated", False):
+        return None
+
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    if not school_id:
+        return None
+
+    normalized_role_types = tuple(sorted({str(v).strip().lower() for v in (role_types or []) if str(v).strip()}))
+    cache_key = (int(school_id), normalized_role_types)
+    cache = _school_membership_cache(user)
+    if cache_key in cache:
+        return cache[cache_key]
+
+    try:
+        qs = (
+            SchoolMembership.objects.select_related("school")
+            .filter(teacher=user, school_id=school_id, is_active=True)
+            .order_by("id")
+        )
+        if normalized_role_types:
+            qs = qs.filter(role_type__in=list(normalized_role_types))
+        membership = qs.first()
+    except Exception:
+        membership = None
+
+    cache[cache_key] = membership
+    return membership
+
+
+def get_school_manager_school_ids(user, *, allow_legacy_role: bool = False) -> Set[int]:
+    """Returns school ids where the user should be treated as a school manager.
+
+    - `allow_legacy_role=False`: strict modern source of truth via `SchoolMembership`.
+    - `allow_legacy_role=True`: compatibility mode for old `Role.slug='manager'` users,
+      scoped only to schools where they still have an active membership.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return set()
+
+    cache = getattr(user, "_school_manager_ids_cache", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        setattr(user, "_school_manager_ids_cache", cache)
+
+    cache_key = bool(allow_legacy_role)
+    if cache_key in cache:
+        return set(cache[cache_key])
+
+    try:
+        qs = SchoolMembership.objects.filter(teacher=user, is_active=True)
+        if allow_legacy_role and has_legacy_manager_role(user):
+            ids = {int(x) for x in qs.values_list("school_id", flat=True) if x}
+        else:
+            ids = {
+                int(x)
+                for x in qs.filter(role_type=SchoolMembership.RoleType.MANAGER).values_list("school_id", flat=True)
+                if x
+            }
+    except Exception:
+        ids = set()
+
+    cache[cache_key] = tuple(sorted(ids))
+    return ids
+
+
+def is_school_manager(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+    allow_legacy_role: bool = False,
+) -> bool:
+    """Canonical manager detection.
+
+    Use strict mode (`allow_legacy_role=False`) for authorization.
+    Use compatibility mode (`allow_legacy_role=True`) only for display/login bridges
+    while the legacy `Role` model is still present.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    if school_id:
+        if _get_school_membership(
+            user,
+            active_school=active_school,
+            active_school_id=school_id,
+            role_types=[SchoolMembership.RoleType.MANAGER],
+        ) is not None:
+            return True
+        if allow_legacy_role and has_legacy_manager_role(user):
+            return _get_school_membership(
+                user,
+                active_school=active_school,
+                active_school_id=school_id,
+            ) is not None
+        return False
+
+    return bool(get_school_manager_school_ids(user, allow_legacy_role=allow_legacy_role))
+
+
+def effective_user_role_label(
+    user,
+    active_school: Optional[School] = None,
+    *,
+    active_school_id: Optional[int] = None,
+) -> str:
+    """Single source of truth for the role label shown in the UI."""
+    if user is None:
+        return "مستخدم"
+
+    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
+    school = active_school
+    if school is None and school_id:
+        try:
+            school = School.objects.filter(pk=school_id, is_active=True).only("id", "gender").first()
+        except Exception:
+            school = None
+
+    cache = getattr(user, "_effective_role_label_cache", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        setattr(user, "_effective_role_label_cache", cache)
+
+    cache_key = int(school_id or 0)
+    if cache_key in cache:
+        return str(cache[cache_key] or "مستخدم")
+
+    labels = _school_role_labels(school)
+    label = "مستخدم"
+    try:
+        if getattr(user, "is_superuser", False):
+            label = "مدير النظام"
+        elif is_platform_admin(user):
+            scope = getattr(user, "platform_scope", None)
+            role_obj = getattr(scope, "role", None) if scope is not None else None
+            label = (getattr(role_obj, "name", "") or "").strip() or "المشرف العام"
+        elif is_school_manager(
+            user,
+            active_school=school,
+            active_school_id=school_id,
+            allow_legacy_role=True,
+        ):
+            label = labels["manager"]
+        elif getattr(user, "is_staff", False):
+            label = "مدير النظام"
+        else:
+            teacher_membership = _get_school_membership(
+                user,
+                active_school=school,
+                active_school_id=school_id,
+                role_types=[SchoolMembership.RoleType.TEACHER],
+            )
+            if teacher_membership is not None:
+                job_title = (getattr(teacher_membership, "job_title", "") or "").strip()
+                if job_title == SchoolMembership.JobTitle.ADMIN_STAFF:
+                    label = labels["admin_staff"]
+                elif job_title == SchoolMembership.JobTitle.LAB_TECH:
+                    label = labels["lab_tech"]
+                else:
+                    label = labels["teacher"]
+            elif is_report_viewer_for_school(user, active_school=school, active_school_id=school_id):
+                label = str(SchoolMembership.RoleType.REPORT_VIEWER.label)
+            else:
+                role_obj = _user_role(user)
+                label = (
+                    (getattr(role_obj, "name", None) or "").strip()
+                    or (getattr(role_obj, "slug", None) or "").strip()
+                    or "مستخدم"
+                )
+    except Exception:
+        label = "مستخدم"
+
+    cache[cache_key] = label
+    return label
 
 
 # ==============================
@@ -224,17 +501,10 @@ def _build_report_permission_scope(user, *, school_id: Optional[int]) -> dict:
     if not scope["is_authenticated"] or scope["is_superuser"] or scope["is_platform_admin"]:
         return scope
 
-    try:
-        manager_qs = SchoolMembership.objects.filter(
-            teacher=user,
-            role_type=SchoolMembership.RoleType.MANAGER,
-            is_active=True,
-        )
-        if school_id is not None:
-            manager_qs = manager_qs.filter(school_id=school_id)
-        scope["manager_school_ids"] = set(manager_qs.values_list("school_id", flat=True))
-    except Exception:
-        scope["manager_school_ids"] = set()
+    manager_ids = get_school_manager_school_ids(user)
+    if school_id is not None:
+        manager_ids = {sid for sid in manager_ids if sid == school_id}
+    scope["manager_school_ids"] = set(manager_ids)
 
     try:
         if DepartmentMembership is None:
@@ -367,21 +637,6 @@ def role_required(allowed_roles: Iterable[str]):
         except Exception:
             return None
 
-    def _is_school_manager(user, *, school_id: int | None) -> bool:
-        if SchoolMembership is None:
-            return False
-        try:
-            filters = {
-                "teacher": user,
-                "role_type": SchoolMembership.RoleType.MANAGER,
-                "is_active": True,
-            }
-            if school_id:
-                filters["school_id"] = school_id
-            return SchoolMembership.objects.filter(**filters).exists()
-        except Exception:
-            return False
-
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped(request: HttpRequest, *args, **kwargs) -> HttpResponse:
@@ -401,7 +656,7 @@ def role_required(allowed_roles: Iterable[str]):
                 if "manager" in allowed:
                     # إن لم يكن المستخدم مدير مدرسة فعلي (عضوية)، لا نرسله لاختيار مدرسة.
                     # هذا يمنع تسريب صلاحية عبر Role.slug='manager' فقط.
-                    if _is_school_manager(user, school_id=None):
+                    if is_school_manager(user):
                         messages.error(request, "فضلاً اختر مدرسة أولاً.")
                         return redirect("reports:select_school")
                     messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
@@ -411,7 +666,7 @@ def role_required(allowed_roles: Iterable[str]):
 
             # ⚠️ المدير (manager) صلاحية مدرسية، لا نعتمد فقط على Role.slug
             if "manager" in allowed:
-                if _is_school_manager(user, school_id=active_school_id):
+                if is_school_manager(user, active_school_id=active_school_id):
                     return view_func(request, *args, **kwargs)
             else:
                 # أدوار عالمية أخرى يمكن السماح بها عبر Role.slug
@@ -448,15 +703,10 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
         if is_platform_admin(user):
             return {"all"}
         if active_school is not None and SchoolMembership is not None:
+            if is_school_manager(user, active_school=active_school):
+                return {"all"}
             try:
-                if SchoolMembership.objects.filter(
-                    teacher=user,
-                    school=active_school,
-                    role_type__in=[
-                        SchoolMembership.RoleType.MANAGER,
-                    ],
-                    is_active=True,
-                ).exists():
+                if is_report_viewer_for_school(user, active_school):
                     return {"all"}
             except Exception:
                 pass

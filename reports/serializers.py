@@ -59,7 +59,7 @@ class TicketListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = [
-            "id", "title", "status", "priority",
+            "id", "title", "status",
             "creator_name", "created_at",
         ]
         read_only_fields = fields

@@ -45,7 +45,7 @@ urlpatterns = [
     # =========================
     # تقارير المدرسة (مشرف عرض فقط)
     # =========================
-    # (تم إلغاء دور مشرف التقارير)
+    path("reports/school/", views.school_reports_readonly, name="school_reports_readonly"),
 
     # =========================
     # ملف إنجاز المعلّم

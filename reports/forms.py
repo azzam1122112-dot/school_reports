@@ -24,7 +24,6 @@ from .validators import validate_circular_attachment_file
 # ==============================
 from .models import (
     Teacher,
-    Role,
     Department,
     DepartmentMembership,
     ReportType,
@@ -40,6 +39,10 @@ from .models import (
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
+)
+from .services_legacy_roles import (
+    sync_legacy_role_for_department,
+    sync_legacy_teacher_role,
 )
 
 logger = logging.getLogger(__name__)
@@ -471,13 +474,12 @@ class TeacherForm(forms.ModelForm):
         elif self.instance and self.instance.pk:
             instance.password = self.instance.password  # إبقاء كلمة المرور
 
-        target_role = None
-        if dep:
-            if dep.slug in TEACHERS_DEPT_SLUGS:
-                target_role = Role.objects.filter(slug="teacher").first()
-            else:
-                target_role = Role.objects.filter(slug=dep.slug).first()
-        instance.role = target_role  # قد تكون None
+        sync_legacy_role_for_department(
+            instance,
+            dep,
+            teacher_department_slugs=TEACHERS_DEPT_SLUGS,
+            create_missing=False,
+        )
 
         if dep and dep.slug in TEACHERS_DEPT_SLUGS:
             role_in_dept = DepartmentMembership.TEACHER
@@ -582,21 +584,9 @@ class TeacherCreateForm(forms.ModelForm):
         pwd = (self.cleaned_data.get("password") or "").strip()
         instance.set_password(pwd)
 
-        # توافق تراثي: Teacher.role ليس مصدر الصلاحيات (SchoolMembership/DepartmentMembership)
-        # لكن نضبطه على teacher (وننشئ Role إن لم يكن موجوداً) لتفادي ظهور "—" في واجهات الإدارة.
-        try:
-            role_obj, _ = Role.objects.get_or_create(
-                slug="teacher",
-                defaults={
-                    "name": "المعلم",
-                    "is_staff_by_default": False,
-                    "can_view_all_reports": False,
-                    "is_active": True,
-                },
-            )
-            instance.role = role_obj
-        except Exception:
-            instance.role = None
+        # توافق تراثي: Teacher.role ليس مصدر الصلاحيات، لكن بعض الشاشات القديمة
+        # ما زالت تقرؤه للعرض. الكتابة الموحّدة موجودة في services_legacy_roles.
+        sync_legacy_teacher_role(instance, create_missing=True)
 
         if commit:
             instance.save()
@@ -693,24 +683,6 @@ class TeacherEditForm(forms.ModelForm):
         except Exception:
             pass
 
-    def save(self, commit: bool = True):
-        instance: Teacher = super().save(commit=commit)
-
-        # persist job title to membership (per-school)
-        try:
-            if self._active_school is not None and instance and instance.pk:
-                jt = (self.cleaned_data.get("job_title") or "").strip() or None
-                if jt:
-                    SchoolMembership.objects.filter(
-                        school=self._active_school,
-                        teacher=instance,
-                        role_type=SchoolMembership.RoleType.TEACHER,
-                    ).update(job_title=jt)
-        except Exception:
-            pass
-
-        return instance
-
     def clean_national_id(self):
         nid = (self.cleaned_data.get("national_id") or "").strip()
         if nid:
@@ -727,23 +699,23 @@ class TeacherEditForm(forms.ModelForm):
         elif self.instance and getattr(self.instance, "pk", None):
             instance.password = self.instance.password
 
-        # توافق تراثي: نجعل role=teacher (وننشئ Role إن لم يكن موجوداً).
-        try:
-            role_obj, _ = Role.objects.get_or_create(
-                slug="teacher",
-                defaults={
-                    "name": "المعلم",
-                    "is_staff_by_default": False,
-                    "can_view_all_reports": False,
-                    "is_active": True,
-                },
-            )
-            instance.role = role_obj
-        except Exception:
-            instance.role = None
+        # توافق تراثي مركزي: شاشة التعديل القديمة ما زالت تتوقع role=teacher للعرض.
+        sync_legacy_teacher_role(instance, create_missing=True)
 
         if commit:
             instance.save()
+
+            try:
+                if self._active_school is not None and instance.pk:
+                    jt = (self.cleaned_data.get("job_title") or "").strip() or None
+                    if jt:
+                        SchoolMembership.objects.filter(
+                            school=self._active_school,
+                            teacher=instance,
+                            role_type=SchoolMembership.RoleType.TEACHER,
+                        ).update(job_title=jt)
+            except Exception:
+                pass
         return instance
 
 
@@ -952,10 +924,7 @@ class PlatformAdminCreateForm(forms.ModelForm):
         if pwd:
             instance.set_password(pwd)
         instance.is_platform_admin = True
-        try:
-            instance.role = Role.objects.filter(slug="teacher").first()
-        except Exception:
-            instance.role = None
+        sync_legacy_teacher_role(instance, create_missing=False)
         if commit:
             instance.save()
         return instance

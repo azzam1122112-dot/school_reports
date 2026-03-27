@@ -8,6 +8,8 @@ from django.contrib import messages
 
 import secrets
 
+from .permissions import is_report_viewer_for_school
+
 
 import threading
 
@@ -526,23 +528,7 @@ class ReportViewerAccessMiddleware:
 
     def _is_report_viewer(self, request, active_school_id: int | None) -> bool:
         user = getattr(request, "user", None)
-        if not getattr(user, "is_authenticated", False):
-            return False
-        if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
-            return False
-        try:
-            from .models import SchoolMembership
-
-            qs = SchoolMembership.objects.filter(
-                teacher=user,
-                role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-                is_active=True,
-            )
-            if active_school_id:
-                qs = qs.filter(school_id=active_school_id)
-            return qs.exists()
-        except Exception:
-            return False
+        return is_report_viewer_for_school(user, active_school_id=active_school_id)
 
     def __call__(self, request):
         # السماح بالملفات الثابتة والوسائط

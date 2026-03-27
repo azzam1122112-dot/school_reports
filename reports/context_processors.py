@@ -13,7 +13,8 @@ from django.apps import apps
 from django.db.models import Q
 from django.urls import reverse
 
-from .models import Ticket, Department, Report, School, SchoolMembership
+from .models import Ticket, Department, Report, School
+from .permissions import effective_user_role_label, get_school_manager_school_ids, is_report_viewer_for_school
 
 # حالات التذاكر
 OPEN_STATES = {"open", "new"}
@@ -850,15 +851,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     is_school_manager = False
     try:
         if getattr(u, "is_authenticated", False):
-            manager_school_ids = {
-                int(x)
-                for x in SchoolMembership.objects.filter(
-                    teacher=u,
-                    role_type=SchoolMembership.RoleType.MANAGER,
-                    is_active=True,
-                ).values_list("school_id", flat=True)
-                if x
-            }
+            manager_school_ids = get_school_manager_school_ids(u)
             any_school_manager = bool(manager_school_ids)
             if active_school is not None:
                 is_school_manager = int(getattr(active_school, "id", 0) or 0) in manager_school_ids
@@ -936,45 +929,13 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         nav_officer_reports = 0
 
     # هل المستخدم مشرف تقارير (عرض فقط) ضمن المدرسة النشطة؟
-    is_report_viewer = False
-    try:
-        if getattr(u, "is_authenticated", False) and active_school is not None:
-            is_report_viewer = SchoolMembership.objects.filter(
-                teacher=u,
-                school=active_school,
-                role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-                is_active=True,
-            ).exists()
-    except Exception:
-        is_report_viewer = False
+    is_report_viewer = is_report_viewer_for_school(u, active_school) if active_school is not None else False
 
     # روابط لوحة المدير: تظهر لكل من لديه is_staff (مدير/سوبر أدمن) أو مدير مدرسة
-    try:
-        role_slug = getattr(getattr(u, "role", None), "slug", None)
-    except Exception:
-        role_slug = None
-
     show_admin_link = bool(getattr(u, "is_staff", False)) or any_school_manager
 
     # تسمية دور المستخدم الحالي (لعرضها في الواجهة)
-    user_role_label: Optional[str] = None
-    try:
-        if getattr(u, "is_superuser", False) or getattr(u, "is_staff", False):
-            user_role_label = "مدير النظام"
-        elif bool(getattr(u, "is_platform_admin", False)):
-            user_role_label = "المشرف العام"
-        elif bool(any_school_manager) or (role_slug or "").strip().lower() == "manager":
-            user_role_label = school_manager_label
-        else:
-            role_obj = getattr(u, "role", None)
-            # Prefer explicit role name if available, else string representation.
-            user_role_label = (
-                (getattr(role_obj, "name", None) or "").strip()
-                or (str(role_obj).strip() if role_obj is not None else "")
-                or "مستخدم"
-            )
-    except Exception:
-        user_role_label = "مستخدم"
+    user_role_label: Optional[str] = effective_user_role_label(u, active_school=active_school)
 
     # من يحق له إرسال إشعارات؟
     # الإرسال يجب أن يكون ضمن مدرسة محددة لغير السوبر

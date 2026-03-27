@@ -8,6 +8,11 @@ from ._helpers import (
     _model_has_field, _get_active_school, _school_teachers_obj_label,
     _is_report_viewer, _user_manager_schools,
 )
+from ..services_legacy_roles import (
+    LEGACY_MANAGER_ROLE_SLUG,
+    current_legacy_role_slug,
+    sync_legacy_teacher_role,
+)
 
 
 def _ensure_achievement_sections(ach_file: TeacherAchievementFile) -> None:
@@ -841,8 +846,7 @@ def report_viewer_create(request: HttpRequest) -> HttpResponse:
 
                     # تأكيد: لا نعطي صلاحيات موظف لوحة ولا دور manager
                     try:
-                        viewer_role = Role.objects.filter(slug="teacher").first()
-                        viewer.role = viewer_role
+                        sync_legacy_teacher_role(viewer, create_missing=False)
                         viewer.is_staff = False
                         viewer.save(update_fields=["role", "is_staff"])
                     except Exception:
@@ -917,10 +921,12 @@ def report_viewer_update(request: HttpRequest, pk: int) -> HttpResponse:
                     updated = form.save(commit=True)
                     # ضمان عدم منحه صلاحيات موظف لوحة
                     try:
+                        update_fields = ["is_staff"]
                         updated.is_staff = False
-                        if getattr(getattr(updated, "role", None), "slug", None) == MANAGER_SLUG:
-                            updated.role = Role.objects.filter(slug="teacher").first()
-                        updated.save(update_fields=["is_staff", "role"])
+                        if current_legacy_role_slug(updated) == LEGACY_MANAGER_ROLE_SLUG:
+                            sync_legacy_teacher_role(updated, create_missing=False)
+                            update_fields.append("role")
+                        updated.save(update_fields=update_fields)
                     except Exception:
                         pass
                 messages.success(request, "✏️ تم تحديث بيانات مشرف التقارير.")

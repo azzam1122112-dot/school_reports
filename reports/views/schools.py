@@ -155,35 +155,12 @@ def _all_departments(active_school: Optional[School] = None):
         except Exception:
             logger.exception("Failed to batch department memberships for departments list")
 
-    role_teacher_ids_by_slug = defaultdict(set)
-    if department_codes:
-        try:
-            if active_school is not None:
-                role_rows = SchoolMembership.objects.filter(
-                    school=active_school,
-                    is_active=True,
-                    teacher__is_active=True,
-                    teacher__role__slug__in=department_codes,
-                ).values_list("teacher__role__slug", "teacher_id")
-            else:
-                role_rows = Teacher.objects.filter(
-                    role__slug__in=department_codes,
-                    is_active=True,
-                ).values_list("role__slug", "id")
-
-            for slug, teacher_id in role_rows:
-                if slug and teacher_id:
-                    role_teacher_ids_by_slug[str(slug)].add(int(teacher_id))
-        except Exception:
-            logger.exception("Failed to batch role members for departments list")
-
     items = []
     for department in departments:
         code = _dept_code_for(department)
         stats = ticket_stats_map.get(department.pk) or {"open": 0, "in_progress": 0, "done": 0}
-        role_ids = role_teacher_ids_by_slug.get(code, set())
         member_ids = membership_teacher_ids_by_department.get(int(department.pk), set())
-        members_count = len(role_ids | member_ids)
+        members_count = len(member_ids)
 
         items.append(
             {
@@ -548,16 +525,17 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
         .order_by("name")
     )
 
-    # في قائمة الإضافة نظهر فقط المستخدمين الذين هم "مديرون" على مستوى النظام
-    # (إما أن يكون لهم الدور manager أو لديهم أي عضوية SchoolMembership كمدير).
+    # في قائمة الإضافة نظهر فقط الحسابات التي لديها عضوية إدارة فعلية في مدرسة ما.
     teachers = (
         Teacher.objects.filter(is_active=True)
         .filter(
-            Q(role__slug__iexact=MANAGER_SLUG)
-            | Q(
-                school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
-                school_memberships__is_active=True,
-            )
+            school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
+            school_memberships__is_active=True,
+        )
+        .exclude(
+            school_memberships__school=school,
+            school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
+            school_memberships__is_active=True,
         )
         .distinct()
         .order_by("name")
@@ -1000,18 +978,6 @@ def department_edit(request: HttpRequest, code: str) -> HttpResponse:
         messages.error(request, "تعذّر الحفظ. تحقّق من الحقول.")
     return render(request, "reports/department_form.html", {"form": form, "mode": "edit", "department": obj})
 
-def _assign_role_by_slug(teacher: Teacher, slug: str) -> bool:
-    role_obj = Role.objects.filter(slug=slug).first()
-    if not role_obj:
-        return False
-    teacher.role = role_obj
-    try:
-        teacher.save(update_fields=["role"])
-    except Exception:
-        teacher.save()
-    return True
-
-
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 @require_http_methods(["GET", "POST"])
@@ -1035,8 +1001,6 @@ def school_manager_create(request: HttpRequest) -> HttpResponse:
             try:
                 with transaction.atomic():
                     teacher = form.save(commit=True)
-                    # ضمان أن يكون الدور "manager" إن وُجد
-                    _assign_role_by_slug(teacher, MANAGER_SLUG)
 
                     valid_schools = School.objects.filter(id__in=selected_ids, is_active=True)
                     if not valid_schools:
@@ -1081,31 +1045,35 @@ def school_manager_create(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def school_managers_list(request: HttpRequest) -> HttpResponse:
     """قائمة مدراء المدارس على مستوى المنصة."""
-    # نعتبر أي مستخدم مدير منصة إذا:
-    # - كان دوره role.slug يطابق MANAGER_SLUG
-    #   أو
-    # - لديه عضوية SchoolMembership كمدير في أي مدرسة.
+    manager_memberships = SchoolMembership.objects.select_related("school").filter(
+        role_type=SchoolMembership.RoleType.MANAGER,
+    )
     managers_qs = (
         Teacher.objects.filter(
-            Q(role__slug__iexact=MANAGER_SLUG)
-            | Q(
-                school_memberships__role_type=SchoolMembership.RoleType.MANAGER
-            )
+            school_memberships__role_type=SchoolMembership.RoleType.MANAGER
         )
         .distinct()
         .order_by("name")
-        .prefetch_related("school_memberships__school")
+        .prefetch_related(
+            Prefetch(
+                "school_memberships",
+                queryset=manager_memberships,
+                to_attr="manager_school_memberships",
+            )
+        )
     )
 
     items: list[dict] = []
     for t in managers_qs:
-        # نعرض المدارس التي ارتبط بها كمدير (سواء كانت العضوية نشطة أم لا في هذا السياق، 
-        # لكننا نفضل عرض المدارس التي كان مديراً لها)
-        schools = [
-            m.school
-            for m in t.school_memberships.all()
-            if m.school and m.role_type == SchoolMembership.RoleType.MANAGER
-        ]
+        schools = []
+        seen_school_ids: set[int] = set()
+        for membership in getattr(t, "manager_school_memberships", []):
+            school = getattr(membership, "school", None)
+            school_id = getattr(school, "id", None)
+            if school is None or school_id in seen_school_ids:
+                continue
+            seen_school_ids.add(int(school_id))
+            schools.append(school)
         items.append({"manager": t, "schools": schools})
 
     return render(request, "reports/school_managers_list.html", {"managers": items})
@@ -1174,8 +1142,6 @@ def school_manager_update(request: HttpRequest, pk: int) -> HttpResponse:
             try:
                 with transaction.atomic():
                     teacher = form.save(commit=True)
-                    _assign_role_by_slug(teacher, MANAGER_SLUG)
-
                     valid_schools = School.objects.filter(id__in=selected_ids, is_active=True)
 
                     # منع أكثر من مدير نشط واحد لكل مدرسة: نسمح فقط إن كانت المدرسة

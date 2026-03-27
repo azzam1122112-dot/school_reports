@@ -7,6 +7,7 @@ from ._helpers import (
     _is_staff, _is_staff_or_officer, _is_manager_in_school,
     _role_display_map, _school_manager_label,
     _get_active_school, _canonical_sender_name, _canonical_role_label,
+    effective_user_role_label,
 )
 
 
@@ -286,8 +287,7 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 if not t:
                     continue
                 name = getattr(t, "name", None) or getattr(t, "phone", None) or getattr(t, "username", None) or f"مستخدم #{getattr(t, 'pk', '')}"
-                rslug = getattr(getattr(t, "role", None), "slug", "") or ""
-                role_label = _arabic_role_label(rslug, active_school)
+                role_label = effective_user_role_label(t, active_school=active_school)
                 is_read, read_at_str = _recipient_is_read(r)
 
                 signed = bool(getattr(r, "is_signed", False))
@@ -497,7 +497,7 @@ def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse
             signed += 1
         rows.append({
             "name": getattr(t, "name", "") or str(t),
-            "role": _arabic_role_label(getattr(getattr(t, "role", None), "slug", "") or "", active_school),
+            "role": effective_user_role_label(t, active_school=active_school),
             "phone": _mask_phone(getattr(t, "phone", "")),
             "read": bool(getattr(r, "is_read", False)),
             "read_at": getattr(r, "read_at", None),
@@ -577,7 +577,7 @@ def notification_signatures_csv(request: HttpRequest, pk: int) -> HttpResponse:
         t = getattr(r, "teacher", None)
         if not t:
             continue
-        role_label = _arabic_role_label(getattr(getattr(t, "role", None), "slug", "") or "", active_school)
+        role_label = effective_user_role_label(t, active_school=active_school)
         writer.writerow([
             getattr(t, "name", "") or str(t),
             role_label,

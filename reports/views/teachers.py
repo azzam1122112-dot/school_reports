@@ -7,6 +7,39 @@ from ._helpers import (
     _safe_next_url, _model_has_field,
     _get_active_school, _user_manager_schools,
 )
+from ..permissions import effective_user_role_label, is_school_manager
+
+
+def _decorate_manage_teacher_rows(teachers, *, active_school: Optional[School]) -> None:
+    """Attach display-only labels that come from memberships, not legacy Role."""
+    for teacher in teachers:
+        role_label = effective_user_role_label(teacher, active_school=active_school)
+        role_kind = ""
+
+        try:
+            is_manager_here = bool(getattr(teacher, "is_school_manager_in_active_school", False))
+            if active_school is None:
+                is_manager_here = is_school_manager(teacher, allow_legacy_role=True)
+        except Exception:
+            is_manager_here = False
+
+        job_title = (getattr(teacher, "school_job_title", "") or "").strip()
+        if is_manager_here:
+            role_kind = "manager"
+        elif bool(getattr(teacher, "is_report_viewer", False)):
+            role_kind = "report_viewer"
+            role_label = "مشرف تقارير"
+        elif job_title == SchoolMembership.JobTitle.ADMIN_STAFF:
+            role_kind = "admin_staff"
+        elif job_title == SchoolMembership.JobTitle.LAB_TECH:
+            role_kind = "lab_tech"
+        elif bool(getattr(teacher, "has_teacher_membership", False)):
+            role_kind = "teacher"
+        elif role_label and role_label != "مستخدم":
+            role_kind = "other"
+
+        teacher.manage_role_kind = role_kind
+        teacher.manage_role_label = "" if role_label == "مستخدم" else role_label
 
 # =========================
 # إدارة المعلّمين (مدير فقط)
@@ -49,42 +82,39 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
             Q(national_id__icontains=term)
         )
 
-    # ✅ annotate: role_slug/label
-    qs = qs.annotate(
-        role_slug=F("role__slug"),
-        role_label=F("role__name"),
-    )
-
-    # ✅ تمييز مشرف التقارير داخل المدرسة النشطة
+    # ✅ تمييز العضوية الحالية داخل المدرسة النشطة
     if active_school is not None:
         try:
+            teacher_m = SchoolMembership.objects.filter(
+                school=active_school,
+                teacher=OuterRef("pk"),
+                role_type=SchoolMembership.RoleType.TEACHER,
+                is_active=True,
+            )
             title_sq = (
-                SchoolMembership.objects.filter(
-                    school=active_school,
-                    teacher=OuterRef("pk"),
-                    role_type=SchoolMembership.RoleType.TEACHER,
-                )
+                teacher_m
                 .values("job_title")[:1]
             )
             viewer_m = SchoolMembership.objects.filter(
                 school=active_school,
                 teacher=OuterRef("pk"),
                 role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+                is_active=True,
+            )
+            manager_m = SchoolMembership.objects.filter(
+                school=active_school,
+                teacher=OuterRef("pk"),
+                role_type=SchoolMembership.RoleType.MANAGER,
+                is_active=True,
             )
             qs = qs.annotate(
+                has_teacher_membership=Exists(teacher_m),
                 is_report_viewer=Exists(viewer_m),
+                is_school_manager_in_active_school=Exists(manager_m),
                 school_job_title=Subquery(title_sq),
             )
         except Exception:
             pass
-
-    # ✅ اسم القسم من Department حسب slug مع تقييد المدرسة (إن كان Department فيه FK school)
-    if Department is not None:
-        dept_qs = Department.objects.filter(slug=OuterRef("role__slug"))
-        if active_school is not None and _model_has_field(Department, "school"):
-            dept_qs = dept_qs.filter(Q(school=active_school) | Q(school__isnull=True))
-        dept_name_sq = dept_qs.values("name")[:1]
-        qs = qs.annotate(role_dept_name=Subquery(dept_name_sq))
 
     # ✅ منع N+1: Prefetch عضويات الأقسام مرة واحدة وبحقول أقل
     if DepartmentMembership is not None:
@@ -100,6 +130,7 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
         qs = qs.prefetch_related(Prefetch("dept_memberships", queryset=dm_qs))
 
     page = Paginator(qs, 20).get_page(request.GET.get("page"))
+    _decorate_manage_teacher_rows(page.object_list, active_school=active_school)
     return render(request, "reports/manage_teachers.html", {"teachers_page": page, "term": term})
 
 @login_required(login_url="reports:login")
@@ -320,12 +351,6 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                                 national_id=nat_s,
                                 password=make_password(phone_s),  # كلمة المرور الافتراضية هي رقم الجوال
                             )
-                            # ضبط الدور الافتراضي للتوافق
-                            try:
-                                teacher.role = Role.objects.filter(slug="teacher").first()
-                                teacher.save(update_fields=["role"])
-                            except Exception:
-                                pass
                             created_count += 1
                         except (IntegrityError, ValidationError):
                             errors.append(f"الصف {row_idx}: تعذّر إنشاء المستخدم بسبب تعارض في رقم الجوال/الهوية.")
@@ -467,24 +492,6 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
             if phone_raw:
                 existing_teacher = Teacher.objects.filter(phone=phone_raw).first()
             if existing_teacher is not None and active_school is not None:
-                # تأكيد: صفحة "إضافة معلم" يجب أن تجعل الدور Teacher
-                # (لتوافق عرض "القسم/الدور" في شاشة إدارة المعلمين)
-                try:
-                    if getattr(existing_teacher, "role_id", None) is None:
-                        role_obj, _ = Role.objects.get_or_create(
-                            slug="teacher",
-                            defaults={
-                                "name": "المعلم",
-                                "is_staff_by_default": False,
-                                "can_view_all_reports": False,
-                                "is_active": True,
-                            },
-                        )
-                        existing_teacher.role = role_obj
-                        existing_teacher.save(update_fields=["role"])
-                except Exception:
-                    pass
-
                 # هل هو مرتبط فعلاً بهذه المدرسة كـ TEACHER؟
                 already = SchoolMembership.objects.filter(
                     school=active_school,

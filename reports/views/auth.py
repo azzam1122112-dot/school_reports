@@ -9,6 +9,7 @@ from ._helpers import (
     _is_staff, _safe_next_url, _set_active_school,
     _get_active_school, _user_schools, _is_report_viewer,
 )
+from ..permissions import has_legacy_manager_role
 
 
 @ratelimit(key="ip", rate="10/m", method="POST", block=True)
@@ -105,7 +106,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     manager_school = None
                     first_school_name = None
 
-                    role_slug = getattr(getattr(user, "role", None), "slug", None)
+                    legacy_manager_role = has_legacy_manager_role(user)
 
                     for m in memberships:
                         if first_school_name is None:
@@ -116,7 +117,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                                 manager_school = m.school
 
                         # دعم حسابات مدير قديمة تعتمد على Role(slug='manager') حتى لو role_type مختلف.
-                        if not is_any_manager and role_slug == "manager":
+                        if not is_any_manager and legacy_manager_role:
                             is_any_manager = True
                             if manager_school is None:
                                 manager_school = m.school
