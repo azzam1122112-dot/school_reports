@@ -6,6 +6,7 @@ from ._helpers import *
 from ._helpers import (
     _is_staff, _parse_date_safe, _set_active_school,
     _get_active_school, _user_manager_schools,
+    _clean_query_value, _clean_query_params,
 )
 
 
@@ -35,9 +36,9 @@ def platform_schools_directory(request: HttpRequest) -> HttpResponse:
     # السوبر يوزر يرى كل المدارس، المشرف العام يرى المدارس ضمن نطاقه.
     base_qs = School.objects.all().order_by("name") if getattr(user, "is_superuser", False) else platform_allowed_schools_qs(user)
 
-    q = (request.GET.get("q") or "").strip()
-    gender = (request.GET.get("gender") or "").strip().lower()
-    city = (request.GET.get("city") or "").strip()
+    q = _clean_query_value(request.GET.get("q"))
+    gender = _clean_query_value(request.GET.get("gender")).lower()
+    city = _clean_query_value(request.GET.get("city"))
 
     # قائمة المدن من كامل النطاق (قبل فلترة city) حتى تبقى القائمة مفيدة.
     try:
@@ -69,6 +70,7 @@ def platform_schools_directory(request: HttpRequest) -> HttpResponse:
         "q": q,
         "gender": gender,
         "city": city,
+        "qs": _clean_query_params(request.GET),
     }
     return render(request, "reports/platform_schools_directory.html", ctx)
 

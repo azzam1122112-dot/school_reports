@@ -11,6 +11,7 @@ from .models import (
 	DepartmentMembership,
 	Notification,
 	NotificationRecipient,
+	AuditLog,
 	Report,
 	ReportType,
 	School,
@@ -112,6 +113,128 @@ class PlatformAdminCircularAndTicketPrintTests(TestCase):
 		self.assertFalse(bool(getattr(n, "requires_signature", False)))
 		self.assertEqual(getattr(n, "created_by_id", None), self.platform.id)
 		self.assertEqual(getattr(n, "school_id", None), self.school.id)
+
+
+class PlatformAuditLogsRegressionTests(TestCase):
+	def setUp(self):
+		self.platform = Teacher.objects.create_superuser(
+			phone="0500000350",
+			name="Platform Audit",
+			password="pass",
+		)
+		self.actor = Teacher.objects.create_user(
+			phone="0500000351",
+			name="Audit Actor",
+			password="pass",
+		)
+		self.school = School.objects.create(name="Audit School", code="audit-platform")
+		self.client.force_login(self.platform)
+
+		for idx in range(55):
+			AuditLog.objects.create(
+				school=self.school,
+				teacher=self.actor,
+				action=AuditLog.Action.UPDATE,
+				model_name="Report",
+				object_id=idx + 1,
+				object_repr=f"Audit log #{idx + 1}",
+				ip_address="127.0.0.1",
+			)
+
+	def test_platform_audit_logs_pagination_links_skip_none_values(self):
+		res = self.client.get(reverse("reports:platform_audit_logs"))
+		self.assertEqual(res.status_code, 200)
+		self.assertContains(res, "?page=2")
+		self.assertNotContains(res, "teacher=None")
+		self.assertNotContains(res, "action=None")
+		self.assertNotContains(res, "start_date=None")
+		self.assertNotContains(res, "end_date=None")
+		self.assertTrue(res.context["teachers"].filter(pk=self.actor.pk).exists())
+
+	def test_platform_audit_logs_ignores_string_none_filters(self):
+		res = self.client.get(
+			reverse("reports:platform_audit_logs"),
+			{
+				"page": 2,
+				"teacher": "None",
+				"action": "None",
+				"start_date": "None",
+				"end_date": "None",
+			},
+		)
+		self.assertEqual(res.status_code, 200)
+		self.assertEqual(res.context["logs"].number, 2)
+		self.assertEqual(res.context["q_teacher"], "")
+		self.assertEqual(res.context["q_action"], "")
+		self.assertEqual(res.context["q_start"], "")
+		self.assertEqual(res.context["q_end"], "")
+		self.assertGreater(len(res.context["logs"].object_list), 0)
+
+
+class AdminReportsPaginationRegressionTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="Admin Reports School", code="admin-reports-school")
+		plan = SubscriptionPlan.objects.create(name="Admin Reports Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+		self.manager = Teacher.objects.create_user(phone="0500000352", name="Manager Reports", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.author = Teacher.objects.create_user(phone="0500000353", name="Report Author", password="pass")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.author,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+
+		self.client.force_login(self.manager)
+		session = self.client.session
+		session["active_school_id"] = self.school.id
+		session.save()
+
+		for idx in range(25):
+			Report.objects.create(
+				school=self.school,
+				teacher=self.author,
+				title=f"Report #{idx + 1}",
+				report_date=today,
+				idea="Regression coverage",
+			)
+
+	def test_admin_reports_pagination_links_skip_none_values(self):
+		res = self.client.get(reverse("reports:admin_reports"))
+		self.assertEqual(res.status_code, 200)
+		self.assertContains(res, "?page=2")
+		self.assertNotContains(res, "start_date=None")
+		self.assertNotContains(res, "end_date=None")
+		self.assertNotContains(res, "teacher_name=None")
+		self.assertNotContains(res, "category=None")
+
+	def test_admin_reports_ignores_string_none_filters(self):
+		res = self.client.get(
+			reverse("reports:admin_reports"),
+			{
+				"page": 2,
+				"start_date": "None",
+				"end_date": "None",
+				"teacher_name": "None",
+				"category": "None",
+			},
+		)
+		self.assertEqual(res.status_code, 200)
+		self.assertEqual(res.context["reports"].number, 2)
+		self.assertEqual(res.context["start_date"], "")
+		self.assertEqual(res.context["end_date"], "")
+		self.assertEqual(res.context["teacher_name"], "")
+		self.assertEqual(res.context["category"], "")
+		self.assertGreater(len(res.context["reports"].object_list), 0)
 
 
 class ManagerNotificationDepartmentTargetingTests(TestCase):

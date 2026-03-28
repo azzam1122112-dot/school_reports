@@ -15,6 +15,7 @@ from ._helpers import (
     _private_comment_role_label, _model_has_field,
     _get_active_school, _is_report_viewer,
     _ensure_achievement_sections,
+    _clean_query_value, _clean_query_params,
 )
 
 from ..utils import _resolve_department_for_category, _build_head_decision
@@ -108,7 +109,7 @@ def my_reports(request: HttpRequest) -> HttpResponse:
     qs = get_teacher_reports_queryset(user=request.user, active_school=active_school)
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
-    q = request.GET.get("q", "").strip()
+    q = _clean_query_value(request.GET.get("q"))
 
     qs = apply_teacher_report_filters(qs, start_date=start_date, end_date=end_date, q=q)
     try:
@@ -133,10 +134,7 @@ def my_reports(request: HttpRequest) -> HttpResponse:
         stats = teacher_report_stats(qs)
     reports_page = svc_paginate(qs, per_page=10, page=request.GET.get("page", 1))
 
-    params = request.GET.copy()
-    if "page" in params:
-        params.pop("page")
-    qs_params = params.urlencode()
+    qs_params = _clean_query_params(request.GET)
 
     return render(
         request,
@@ -144,8 +142,8 @@ def my_reports(request: HttpRequest) -> HttpResponse:
         {
             "reports": reports_page,
             "qs": qs_params,
-            "start_date": request.GET.get("start_date", ""),
-            "end_date": request.GET.get("end_date", ""),
+            "start_date": start_date.isoformat() if start_date else "",
+            "end_date": end_date.isoformat() if end_date else "",
             "q": q,
             "stats": stats,
         },
@@ -161,8 +159,8 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
 
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
-    teacher_name = (request.GET.get("teacher_name") or "").strip()
-    category = (request.GET.get("category") or "").strip().lower()
+    teacher_name = _clean_query_value(request.GET.get("teacher_name"))
+    category = _clean_query_value(request.GET.get("category")).lower()
 
     qs = apply_admin_report_filters(
         qs,
@@ -186,12 +184,13 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
 
     context = {
         "reports": reports_page,
-        "start_date": request.GET.get("start_date", ""),
-        "end_date": request.GET.get("end_date", ""),
+        "start_date": start_date.isoformat() if start_date else "",
+        "end_date": end_date.isoformat() if end_date else "",
         "teacher_name": teacher_name,
         "category": category if (not cats or "all" in cats or category in cats) else "",
         "categories": allowed_choices,
         "can_delete": True,  # للتوافق الخلفي
+        "qs": _clean_query_params(request.GET),
     }
     return render(request, "reports/admin_reports.html", context)
 
@@ -218,8 +217,8 @@ def school_reports_readonly(request: HttpRequest) -> HttpResponse:
 
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
-    teacher_name = (request.GET.get("teacher_name") or "").strip()
-    category = (request.GET.get("category") or "").strip().lower()
+    teacher_name = _clean_query_value(request.GET.get("teacher_name"))
+    category = _clean_query_value(request.GET.get("category")).lower()
 
     qs = apply_admin_report_filters(
         qs,
@@ -235,12 +234,13 @@ def school_reports_readonly(request: HttpRequest) -> HttpResponse:
 
     context = {
         "reports": reports_page,
-        "start_date": request.GET.get("start_date", ""),
-        "end_date": request.GET.get("end_date", ""),
+        "start_date": start_date.isoformat() if start_date else "",
+        "end_date": end_date.isoformat() if end_date else "",
         "teacher_name": teacher_name,
         "category": category,
         "categories": allowed_choices,
         "can_delete": False,
+        "qs": _clean_query_params(request.GET),
     }
     return render(request, "reports/admin_reports.html", context)
 
@@ -307,17 +307,17 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
             },
         )
 
-    start_date = request.GET.get("start_date") or ""
-    end_date = request.GET.get("end_date") or ""
-    teacher_name = request.GET.get("teacher_name", "").strip()
-    category = request.GET.get("category") or ""
+    start_date = _parse_date_safe(request.GET.get("start_date"))
+    end_date = _parse_date_safe(request.GET.get("end_date"))
+    teacher_name = _clean_query_value(request.GET.get("teacher_name"))
+    category = _clean_query_value(request.GET.get("category"))
 
     qs = Report.objects.select_related("teacher", "category", "school").filter(category__in=allowed_cats_qs)
     qs = _filter_by_school(qs, active_school)
 
-    if start_date:
+    if start_date is not None:
         qs = qs.filter(report_date__gte=start_date)
-    if end_date:
+    if end_date is not None:
         qs = qs.filter(report_date__lte=end_date)
     if teacher_name:
         qs = qs.filter(Q(teacher__name__icontains=teacher_name) | Q(teacher_name__icontains=teacher_name))
@@ -377,8 +377,8 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
             "categories": categories_choices,
             "category": category,
             "teacher_name": teacher_name,
-            "start_date": start_date,
-            "end_date": end_date,
+            "start_date": start_date.isoformat() if start_date else "",
+            "end_date": end_date.isoformat() if end_date else "",
             "department": dept,
         },
     )
@@ -461,17 +461,17 @@ def department_reports(request: HttpRequest) -> HttpResponse:
             },
         )
 
-    start_date = request.GET.get("start_date") or ""
-    end_date = request.GET.get("end_date") or ""
-    teacher_name = request.GET.get("teacher_name", "").strip()
-    category = request.GET.get("category") or ""
+    start_date = _parse_date_safe(request.GET.get("start_date"))
+    end_date = _parse_date_safe(request.GET.get("end_date"))
+    teacher_name = _clean_query_value(request.GET.get("teacher_name"))
+    category = _clean_query_value(request.GET.get("category"))
 
     qs = Report.objects.select_related("teacher", "category", "school").filter(category__in=allowed_cats_qs)
     qs = _filter_by_school(qs, active_school)
 
-    if start_date:
+    if start_date is not None:
         qs = qs.filter(report_date__gte=start_date)
-    if end_date:
+    if end_date is not None:
         qs = qs.filter(report_date__lte=end_date)
     if teacher_name:
         qs = qs.filter(Q(teacher__name__icontains=teacher_name) | Q(teacher_name__icontains=teacher_name))
@@ -495,8 +495,8 @@ def department_reports(request: HttpRequest) -> HttpResponse:
             "categories": categories_choices,
             "category": category,
             "teacher_name": teacher_name,
-            "start_date": start_date,
-            "end_date": end_date,
+            "start_date": start_date.isoformat() if start_date else "",
+            "end_date": end_date.isoformat() if end_date else "",
             "department": dept,
             "can_delete": False,
         },

@@ -108,6 +108,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 ua = self._scope_header("user-agent")
                 ua_l = ua.lower()
                 is_ios_safari = ("iphone" in ua_l or "ipad" in ua_l or "ipod" in ua_l) and ("safari" in ua_l)
+                is_mobile_browser = "android" in ua_l or "mobile" in ua_l or is_ios_safari
                 bucket = timezone.now().strftime("%Y%m%d%H%M")
                 key = f"ws_disconnect_1006:{bucket}"
                 try:
@@ -115,9 +116,9 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                     count = cache.incr(key)
                 except Exception:
                     count = None
-                # iOS Safari frequently closes WS in background with 1006; keep this informational
-                # unless the rate becomes unusually high.
-                if is_ios_safari and count is not None and count < 10:
+                # Mobile browsers frequently close WS in background with 1006; keep this
+                # informational unless the rate becomes unusually high.
+                if is_mobile_browser and count is not None and count < 10:
                     log_fn = logger.info
                 else:
                     log_fn = logger.warning if (count in {1, 3, 5} or count is None) else logger.info

@@ -423,9 +423,33 @@ def _safe_redirect(request: HttpRequest, fallback_name: str) -> HttpResponse:
     return redirect(fallback_name)
 
 def _parse_date_safe(value: str | None) -> date | None:
+    value = _clean_query_value(value)
     if not value:
         return None
     return parse_date(value)
+
+
+def _clean_query_value(value: str | None) -> str:
+    value = (value or "").strip()
+    if value.lower() in {"none", "null", "undefined"}:
+        return ""
+    return value
+
+
+def _clean_query_params(query_dict, *, drop_keys: tuple[str, ...] = ("page",)) -> str:
+    params = query_dict.copy()
+    for key in drop_keys:
+        params.pop(key, None)
+
+    for key in list(params.keys()):
+        cleaned_values = [_clean_query_value(v) for v in params.getlist(key)]
+        cleaned_values = [v for v in cleaned_values if v]
+        if cleaned_values:
+            params.setlist(key, cleaned_values)
+        else:
+            params.pop(key, None)
+
+    return params.urlencode()
 
 
 def _filter_by_school(qs, school: Optional[School]):

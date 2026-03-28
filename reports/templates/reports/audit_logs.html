@@ -467,7 +467,7 @@
       <div class="audit-pg" aria-label="ترقيم الصفحات">
         {% if logs.has_previous %}
           <a class="pg-link"
-             href="?page={{ logs.previous_page_number }}&teacher={{ q_teacher }}&action={{ q_action }}&start_date={{ q_start }}&end_date={{ q_end }}">
+             href="?page={{ logs.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">
             السابق
           </a>
         {% endif %}
@@ -476,7 +476,7 @@
 
         {% if logs.has_next %}
           <a class="pg-link"
-             href="?page={{ logs.next_page_number }}&teacher={{ q_teacher }}&action={{ q_action }}&start_date={{ q_start }}&end_date={{ q_end }}">
+             href="?page={{ logs.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">
             التالي
           </a>
         {% endif %}

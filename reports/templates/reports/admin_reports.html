@@ -1159,7 +1159,7 @@
         {% if reports.has_previous %}
           <a class="btn btn-primary"
              style="min-height:48px; font-weight:700; padding:14px 24px;"
-             href="?page={{ reports.previous_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&teacher_name={{ teacher_name }}&category={{ category }}">
+             href="?page={{ reports.previous_page_number }}{% if qs %}&{{ qs }}{% endif %}">
             <i class="fa-solid fa-chevron-right"></i> السابق
           </a>
         {% endif %}
@@ -1171,7 +1171,7 @@
         {% if reports.has_next %}
           <a class="btn btn-primary"
              style="min-height:48px; font-weight:700; padding:14px 24px;"
-             href="?page={{ reports.next_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&teacher_name={{ teacher_name }}&category={{ category }}">
+             href="?page={{ reports.next_page_number }}{% if qs %}&{{ qs }}{% endif %}">
             التالي <i class="fa-solid fa-chevron-left"></i>
           </a>
         {% endif %}

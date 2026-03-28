@@ -9,6 +9,7 @@ from ._helpers import *
 from ._helpers import (
     _is_staff, _role_display_map, _filter_by_school,
     _model_has_field, _get_active_school, _user_manager_schools,
+    _clean_query_value, _parse_date_safe,
 )
 
 
@@ -817,19 +818,24 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
         )
 
     # تصفية/عرض السجلات (لو كانت متاحة)
-    teacher_id = request.GET.get("teacher")
-    action = request.GET.get("action")
-    start_date = request.GET.get("start_date")
-    end_date = request.GET.get("end_date")
+    teacher_id = _clean_query_value(request.GET.get("teacher"))
+    action = _clean_query_value(request.GET.get("action"))
+    start_date = _parse_date_safe(request.GET.get("start_date"))
+    end_date = _parse_date_safe(request.GET.get("end_date"))
+    allowed_actions = {value for value, _label in AuditLog.Action.choices}
 
     if logs_qs is not None:
-        if teacher_id:
+        if teacher_id.isdigit():
             logs_qs = logs_qs.filter(teacher_id=teacher_id)
-        if action:
+        else:
+            teacher_id = ""
+        if action in allowed_actions:
             logs_qs = logs_qs.filter(action=action)
-        if start_date:
+        else:
+            action = ""
+        if start_date is not None:
             logs_qs = logs_qs.filter(timestamp__date__gte=start_date)
-        if end_date:
+        if end_date is not None:
             logs_qs = logs_qs.filter(timestamp__date__lte=end_date)
 
         paginator = Paginator(logs_qs, 50)
@@ -848,6 +854,16 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
     except Exception:
         teachers = Teacher.objects.none()
 
+    params = request.GET.copy()
+    if "page" in params:
+        params.pop("page")
+    for key in list(params.keys()):
+        cleaned = _clean_query_value(params.get(key))
+        if cleaned:
+            params[key] = cleaned
+        else:
+            params.pop(key)
+
     ctx = {
         "logs": logs,
         "teachers": teachers,
@@ -855,8 +871,9 @@ def school_audit_logs(request: HttpRequest) -> HttpResponse:
         "active_school": active_school,
         "q_teacher": teacher_id,
         "q_action": action,
-        "q_start": start_date,
-        "q_end": end_date,
+        "q_start": start_date.isoformat() if start_date else "",
+        "q_end": end_date.isoformat() if end_date else "",
+        "qs": params.urlencode(),
     }
     return render(request, "reports/audit_logs.html", ctx)
 
