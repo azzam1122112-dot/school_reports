@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import re
+from typing import Any
+
+from django.conf import settings
 from django.db.models import Q
 
 from ._helpers import *
@@ -10,6 +14,131 @@ from ._helpers import (
     _get_active_school, _user_schools, _is_report_viewer,
 )
 from ..permissions import has_legacy_manager_role
+
+
+def _landing_duration_label(days: int) -> str:
+    days = int(days or 0)
+    if days <= 0:
+        return "مدة مرنة"
+    if days % 365 == 0:
+        years = days // 365
+        if years == 1:
+            return "لمدة سنة"
+        if years == 2:
+            return "لمدة سنتين"
+        if years <= 10:
+            return f"لمدة {years} سنوات"
+        return f"لمدة {years} سنة"
+    if days % 30 == 0:
+        months = days // 30
+        if months == 1:
+            return "لمدة شهر"
+        if months == 2:
+            return "لمدة شهرين"
+        if months <= 10:
+            return f"لمدة {months} أشهر"
+        return f"لمدة {months} شهر"
+    if days == 1:
+        return "لمدة يوم"
+    if days == 2:
+        return "لمدة يومين"
+    if days <= 10:
+        return f"لمدة {days} أيام"
+    return f"لمدة {days} يوم"
+
+
+def _landing_default_features(is_trial: bool) -> list[str]:
+    if is_trial:
+        return [
+            "تفعيل مباشر من صفحة التسجيل",
+            "تجربة حقيقية لكل المسارات الأساسية",
+            "بدء سريع قبل اتخاذ قرار التفعيل",
+        ]
+    return [
+        "إدارة التقارير والتذاكر والتعاميم من مكان واحد",
+        "صلاحيات واضحة للأدوار داخل المدرسة",
+        "مخرجات PDF رسمية وجاهزة للطباعة",
+    ]
+
+
+def _landing_parse_features(description: str, is_trial: bool) -> list[str]:
+    text = (description or "").replace("\r", "").strip()
+    if not text:
+        return _landing_default_features(is_trial)
+
+    raw_parts = []
+    for line in text.split("\n"):
+        cleaned = re.sub(r"^[\s\-\*\u2022\u25aa\u25cf\u2023]+", "", line or "").strip()
+        if cleaned:
+            raw_parts.append(cleaned)
+
+    if len(raw_parts) <= 1:
+        split_parts = [p.strip() for p in re.split(r"[؛\n]+", text) if p.strip()]
+        if split_parts:
+            raw_parts = split_parts
+
+    unique_parts: list[str] = []
+    seen = set()
+    for item in raw_parts:
+        key = item.strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            unique_parts.append(item.strip())
+
+    if not unique_parts:
+        unique_parts = _landing_default_features(is_trial)
+
+    defaults = _landing_default_features(is_trial)
+    for fallback in defaults:
+        if len(unique_parts) >= 3:
+            break
+        if fallback not in unique_parts:
+            unique_parts.append(fallback)
+
+    return unique_parts[:3]
+
+
+def _landing_fit_text(capacity: int, is_trial: bool, is_unlimited: bool) -> str:
+    if is_trial:
+        return "مناسبة لاختبار المنتج داخل المدرسة قبل التوسع"
+    if is_unlimited:
+        return "مناسبة للتشغيل الموسع مع سعة مستخدمين مرنة"
+    if capacity <= 25:
+        return "مناسبة للمدارس الصغيرة أو فرق الإدارة المحدودة"
+    if capacity <= 50:
+        return "الأنسب لغالبية المدارس عند التشغيل الكامل"
+    if capacity <= 75:
+        return "مناسبة للمدارس الأكبر أو الفرق متعددة الأدوار"
+    return "مناسبة للتشغيل الواسع داخل المدرسة"
+
+
+def _landing_segment_label(users: int) -> str:
+    if users <= 25:
+        return "فريق صغير"
+    if users <= 50:
+        return "مدرسة متوسطة"
+    if users <= 75:
+        return "مدرسة كبيرة"
+    return "تشغيل موسع"
+
+
+def _landing_period_key(days: int, is_trial: bool) -> str | None:
+    if is_trial:
+        return "trial"
+    days = int(days or 0)
+    if days >= 300:
+        return "1y"
+    if days >= 45:
+        return "6m"
+    return None
+
+
+def _landing_card_title(capacity: int, is_unlimited: bool) -> str:
+    if is_unlimited:
+        return "باقة تشغيل موسعة"
+    if capacity <= 0:
+        return "باقة مخصصة"
+    return f"باقة {capacity} مستخدم"
 
 
 @ratelimit(key="ip", rate="10/m", method="POST", block=True)
@@ -290,4 +419,232 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             return redirect("reports:admin_dashboard")
         return redirect("reports:home")
 
-    return render(request, "reports/landing.html")
+    plans_qs = SubscriptionPlan.objects.filter(is_active=True).order_by("price", "max_teachers", "days_duration", "id")
+    source_plans = list(plans_qs)
+    trial_days_target = int(getattr(settings, "TRIAL_DAYS", 14) or 14)
+
+    def serialize_plan(plan: SubscriptionPlan, *, is_trial: bool) -> dict[str, Any]:
+        raw_price = float(getattr(plan, "price", 0) or 0)
+        raw_capacity = int(getattr(plan, "max_teachers", 0) or 0)
+        capacity = raw_capacity
+        if is_trial and capacity <= 0:
+            capacity = 5
+        is_unlimited = (raw_capacity <= 0) and (not is_trial)
+
+        description = (getattr(plan, "description", "") or "").strip()
+        summary = description.split("\n", 1)[0].strip() if description else ""
+        if not summary:
+            summary = _landing_fit_text(capacity, is_trial, is_unlimited)
+
+        if abs(raw_price - round(raw_price)) < 0.001:
+            price_display = f"{int(round(raw_price)):,}"
+            price_int = int(round(raw_price))
+        else:
+            price_display = f"{raw_price:,.2f}".rstrip("0").rstrip(".")
+            price_int = int(round(raw_price))
+
+        if is_unlimited:
+            capacity_label = "مستخدمون غير محدودين"
+            capacity_hint = 999999
+        elif capacity <= 2:
+            capacity_label = f"حتى {capacity} مستخدم"
+            capacity_hint = capacity
+        elif capacity <= 10:
+            capacity_label = f"حتى {capacity} مستخدمين"
+            capacity_hint = capacity
+        else:
+            capacity_label = f"حتى {capacity} مستخدم"
+            capacity_hint = capacity
+
+        return {
+            "id": int(getattr(plan, "id", 0) or 0),
+            "source_name": (getattr(plan, "name", "") or "").strip() or "باقة",
+            "summary": summary,
+            "features": _landing_parse_features(description, is_trial),
+            "fit_text": _landing_fit_text(capacity, is_trial, is_unlimited),
+            "price_value": raw_price,
+            "price_int": price_int,
+            "price_display": price_display,
+            "duration_days": int(getattr(plan, "days_duration", 0) or 0),
+            "duration_label": _landing_duration_label(int(getattr(plan, "days_duration", 0) or 0)),
+            "capacity": capacity,
+            "capacity_hint": capacity_hint,
+            "capacity_label": capacity_label,
+            "is_trial": is_trial,
+            "is_unlimited": is_unlimited,
+            "period_key": _landing_period_key(int(getattr(plan, "days_duration", 0) or 0), is_trial),
+            "cta_label": "سجّل المدرسة الآن" if is_trial else "ابدأ بالتجربة ثم فعّل",
+        }
+
+    trial_candidates = [plan for plan in source_plans if float(getattr(plan, "price", 0) or 0) <= 0]
+    trial_source = None
+    if trial_candidates:
+        trial_source = min(
+            trial_candidates,
+            key=lambda p: (
+                abs(int(getattr(p, "days_duration", 0) or 0) - trial_days_target),
+                0 if int(getattr(p, "max_teachers", 0) or 0) <= 5 else 1,
+                int(getattr(p, "days_duration", 0) or 0),
+                int(getattr(p, "id", 0) or 0),
+            ),
+        )
+
+    pricing_trial_plan = serialize_plan(trial_source, is_trial=True) if trial_source is not None else None
+    if pricing_trial_plan is not None:
+        pricing_trial_plan["name"] = "التجربة المجانية"
+        pricing_trial_plan["badge"] = f'{pricing_trial_plan["duration_label"]} تجريبية'
+        pricing_trial_plan["cta_secondary_label"] = "لديك حساب بالفعل؟"
+
+    paid_source = [plan for plan in source_plans if float(getattr(plan, "price", 0) or 0) > 0]
+    paid_groups: dict[str, dict[str, Any]] = {}
+    available_periods = {"6m": False, "1y": False}
+
+    for source_plan in paid_source:
+        plan = serialize_plan(source_plan, is_trial=False)
+        period_key = plan["period_key"]
+        if period_key not in {"6m", "1y"}:
+            continue
+
+        available_periods[period_key] = True
+        group_key = str(plan["capacity_hint"])
+        group = paid_groups.setdefault(
+            group_key,
+            {
+                "capacity_hint": plan["capacity_hint"],
+                "capacity_label": plan["capacity_label"],
+                "fit_text": plan["fit_text"],
+                "is_unlimited": plan["is_unlimited"],
+                "plans": {},
+            },
+        )
+        existing = group["plans"].get(period_key)
+        target_days = 365 if period_key == "1y" else 180
+        if existing is None or (
+            abs(plan["duration_days"] - target_days),
+            plan["price_value"],
+            plan["id"],
+        ) < (
+            abs(existing["duration_days"] - target_days),
+            existing["price_value"],
+            existing["id"],
+        ):
+            group["plans"][period_key] = plan
+
+    pricing_cards: list[dict[str, Any]] = []
+    for group in sorted(
+        paid_groups.values(),
+        key=lambda item: (
+            1 if int(item["capacity_hint"]) >= 999999 else 0,
+            int(item["capacity_hint"]),
+        ),
+    ):
+        plans_by_period = group["plans"]
+        default_plan = plans_by_period.get("6m") or plans_by_period.get("1y")
+        if default_plan is None:
+            continue
+
+        card = {
+            "capacity_hint": group["capacity_hint"],
+            "capacity_label": group["capacity_label"],
+            "fit_text": group["fit_text"],
+            "name": _landing_card_title(int(default_plan["capacity"]), bool(default_plan["is_unlimited"])),
+            "cta_label": "ابدأ بالتجربة ثم فعّل",
+            "period_6m": plans_by_period.get("6m"),
+            "period_1y": plans_by_period.get("1y"),
+            "periods": {
+                "6m": plans_by_period.get("6m"),
+                "1y": plans_by_period.get("1y"),
+            },
+            "is_featured": False,
+            "is_recommended": False,
+            "badge": "",
+        }
+        pricing_cards.append(card)
+
+    initial_period = "6m" if available_periods["6m"] else "1y"
+    paid_view = [card for card in pricing_cards if card["periods"].get(initial_period) is not None]
+    if not paid_view:
+        paid_view = pricing_cards[:]
+
+    recommended_plan = None
+    if paid_view:
+        recommended_plan = min(
+            paid_view,
+            key=lambda card: (
+                abs((card["capacity_hint"] if card["capacity_hint"] < 999999 else 75) - 50),
+                float((card["periods"].get(initial_period) or card["periods"].get("1y") or card["periods"].get("6m"))["price_value"]),
+                int(card["capacity_hint"]),
+            ),
+        )
+
+    if recommended_plan is not None:
+        recommended_plan["is_featured"] = True
+        recommended_plan["is_recommended"] = True
+
+    cheapest_paid = None
+    if paid_view:
+        cheapest_paid = min(
+            paid_view,
+            key=lambda card: (
+                float((card["periods"].get(initial_period) or card["periods"].get("1y") or card["periods"].get("6m"))["price_value"]),
+                int(card["capacity_hint"]),
+            ),
+        )
+
+    for card in pricing_cards:
+        if recommended_plan is not None and card is recommended_plan:
+            card["badge"] = "الأكثر طلباً"
+        elif cheapest_paid is not None and card is cheapest_paid:
+            card["badge"] = "اقتصادية"
+
+    known_caps = [int(card["capacity_hint"]) for card in pricing_cards if int(card["capacity_hint"]) < 999999]
+    known_max = max(known_caps) if known_caps else 75
+    for card in pricing_cards:
+        if int(card["capacity_hint"]) >= 999999:
+            card["capacity_hint"] = known_max + 25
+
+    slider_min = 5
+    slider_max = max([int(card["capacity_hint"]) for card in pricing_cards], default=100)
+    slider_max = max(slider_max, 25)
+    slider_step = 5
+    initial_users = int(recommended_plan["capacity_hint"]) if recommended_plan is not None else 50
+    initial_users = max(slider_min, min(initial_users, slider_max))
+
+    mark_values = sorted({int(card["capacity_hint"]) for card in pricing_cards})
+    if not mark_values:
+        mark_values = [25, 50, 75, 100]
+
+    if len(mark_values) > 4:
+        index_set = {0, len(mark_values) // 3, (2 * len(mark_values)) // 3, len(mark_values) - 1}
+        mark_values = [mark_values[i] for i in sorted(index_set)]
+
+    active_mark = min(mark_values, key=lambda v: abs(v - initial_users))
+    advisor_marks = [
+        {
+            "value": v,
+            "label": _landing_segment_label(v),
+            "active": v == active_mark,
+        }
+        for v in mark_values
+    ]
+
+    ctx = {
+        "pricing_trial_plan": pricing_trial_plan,
+        "pricing_cards": pricing_cards,
+        "pricing_plans": pricing_cards,
+        "pricing_recommended": recommended_plan,
+        "pricing_initial_period": initial_period,
+        "pricing_periods": [
+            {"key": "6m", "label": "6 أشهر", "available": available_periods["6m"], "active": initial_period == "6m"},
+            {"key": "1y", "label": "سنة", "available": available_periods["1y"], "active": initial_period == "1y"},
+        ],
+        "pricing_slider": {
+            "min": slider_min,
+            "max": slider_max,
+            "step": slider_step,
+            "initial": active_mark,
+        },
+        "advisor_marks": advisor_marks,
+    }
+
+    return render(request, "reports/landing.html", ctx)

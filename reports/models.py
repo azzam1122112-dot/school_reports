@@ -324,7 +324,9 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
 
     def save(self, *args, **kwargs):
         try:
-            if self.role is not None:
+            if bool(self.is_superuser):
+                self.is_staff = True
+            elif self.role is not None:
                 self.is_staff = bool(self.role.is_staff_by_default)
         except Exception:
             pass

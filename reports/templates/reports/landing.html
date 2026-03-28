@@ -34,7 +34,7 @@
       --accent: #d97706;
       --accent-soft: #fff1dd;
       --success: #15803d;
-      --nav-height: 84px;
+      --nav-height: 72px;
       --radius-xl: 32px;
       --radius-lg: 24px;
       --radius-md: 18px;
@@ -42,10 +42,13 @@
       --shadow-md: 0 20px 50px rgba(15, 23, 42, 0.10);
       --shadow-lg: 0 28px 80px rgba(15, 23, 42, 0.14);
       --container: 1240px;
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-reveal: 0.7s;
     }
 
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; overflow-x: clip; }
     body {
       margin: 0;
       font-family: 'Tajawal', sans-serif;
@@ -54,11 +57,76 @@
         radial-gradient(circle at top right, rgba(15, 118, 110, 0.14), transparent 26%),
         radial-gradient(circle at 15% 18%, rgba(217, 119, 6, 0.10), transparent 18%),
         linear-gradient(180deg, #f8fbfa 0%, var(--bg) 48%, #eef4f1 100%);
-      overflow-x: hidden;
+      overflow-x: clip;
     }
 
     body.drawer-open {
       overflow: hidden;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(32px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.94); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 50%; }
+      100% { background-position: -200% 50%; }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-10px); }
+    }
+
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes countUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(36px);
+      transition: opacity var(--duration-reveal) var(--ease-out-expo),
+                  transform var(--duration-reveal) var(--ease-out-expo);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-scale {
+      opacity: 0;
+      transform: scale(0.93);
+      transition: opacity var(--duration-reveal) var(--ease-out-expo),
+                  transform var(--duration-reveal) var(--ease-spring);
+    }
+
+    .reveal-scale.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .stagger-1 { transition-delay: 0.06s; }
+    .stagger-2 { transition-delay: 0.12s; }
+    .stagger-3 { transition-delay: 0.18s; }
+    .stagger-4 { transition-delay: 0.24s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .reveal-scale { opacity: 1; transform: none; transition: none; }
+      .floating-tag { animation: none; }
     }
 
     a {
@@ -85,6 +153,7 @@
     .section {
       padding: 96px 0;
       position: relative;
+      overflow: hidden;
     }
 
     .eyebrow {
@@ -135,11 +204,23 @@
       border: 1px solid transparent;
       transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease, background-color 0.24s ease;
       cursor: pointer;
-      white-space: nowrap;
+      white-space: normal;
+      text-align: center;
+      line-height: 1.35;
     }
 
     .btn:hover {
-      transform: translateY(-2px);
+      transform: translateY(-3px);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.13);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      transition-duration: 0.1s;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 20px 48px rgba(15, 118, 110, 0.32);
     }
 
     .btn-primary {
@@ -300,6 +381,7 @@
     .hero {
       padding: 34px 0 72px;
       position: relative;
+      overflow: hidden;
     }
 
     .hero::before {
@@ -315,7 +397,7 @@
 
     .hero-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.95fr);
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.95fr);
       gap: 40px;
       align-items: center;
       padding-top: 28px;
@@ -330,7 +412,12 @@
     }
 
     .hero-copy h1 .accent {
-      color: var(--brand-strong);
+      background: linear-gradient(135deg, var(--brand), #0d9488, var(--brand-strong));
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 4s ease-in-out infinite;
       display: inline-block;
     }
 
@@ -397,6 +484,7 @@
     .hero-stage {
       position: relative;
       min-height: 620px;
+      padding: 18px 0;
     }
 
     .hero-card {
@@ -562,18 +650,24 @@
       font-weight: 900;
       font-size: 0.92rem;
       backdrop-filter: blur(12px);
+      animation: float 4s ease-in-out infinite;
+      z-index: 2;
+    }
+
+    .tag-bottom {
+      animation-delay: -2s;
     }
 
     .tag-top {
-      top: -18px;
-      left: -10px;
+      top: -8px;
+      left: 8px;
       background: rgba(255,255,255,0.88);
       border: 1px solid rgba(15, 118, 110, 0.16);
     }
 
     .tag-bottom {
-      bottom: 30px;
-      right: -18px;
+      bottom: -8px;
+      right: 8px;
       background: linear-gradient(135deg, #0f172a, #1f2937);
       color: #fff;
     }
@@ -595,6 +689,12 @@
     .trust-card {
       padding: 24px;
       background: rgba(255, 255, 255, 0.75);
+      transition: transform 0.32s var(--ease-out-expo), box-shadow 0.32s var(--ease-out-expo);
+    }
+
+    .trust-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 56px rgba(15, 23, 42, 0.12);
     }
 
     .trust-card i,
@@ -678,6 +778,12 @@
       padding: 26px;
       position: relative;
       overflow: hidden;
+      transition: transform 0.32s var(--ease-out-expo), box-shadow 0.32s var(--ease-out-expo);
+    }
+
+    .process-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.12);
     }
 
     .process-card::after {
@@ -710,6 +816,12 @@
       padding: 22px;
       display: grid;
       gap: 16px;
+      transition: transform 0.32s var(--ease-out-expo), box-shadow 0.32s var(--ease-out-expo);
+    }
+
+    .show-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.13);
     }
 
     .show-frame {
@@ -728,9 +840,23 @@
       justify-content: space-between;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .frame-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      color: var(--muted);
+      font-weight: 900;
+      font-size: 0.82rem;
+      box-shadow: var(--shadow-sm);
+    }
+
     .show-shot {
       position: relative;
       border-radius: 18px;
@@ -738,8 +864,8 @@
       background: #fff;
       border: 1px solid rgba(15, 23, 42, 0.08);
       box-shadow: 0 18px 38px rgba(15, 23, 42, 0.10);
-      border-radius: 999px;
-      background: #fff;
+    }
+
     .show-shot::after {
       content: "";
       position: absolute;
@@ -747,14 +873,23 @@
       height: 34%;
       background: linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.08));
       pointer-events: none;
+    }
 
-    .frame-stack,
     .show-shot img {
       display: block;
       width: 100%;
       height: auto;
-      background: rgba(15, 118, 110, 0.10);
     }
+
+    .frame-stack {
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      background: rgba(15, 118, 110, 0.10);
+      padding: 12px;
+      border-radius: 14px;
+    }
+
     .shot-caption {
       position: absolute;
       right: 14px;
@@ -773,11 +908,11 @@
       font-weight: 900;
       color: var(--ink);
       font-size: 0.86rem;
+      flex-wrap: wrap;
     }
 
     .shot-caption span:last-child {
       color: var(--brand-strong);
-      white-space: nowrap;
     }
 
     .show-card.featured-shot {
@@ -786,10 +921,23 @@
 
     .show-card.featured-shot .show-frame {
       min-height: 320px;
+    }
+
     .stack-grid {
       display: grid;
       align-content: start;
       gap: 8px;
+    }
+
+    .stack-box {
+      display: grid;
+      gap: 8px;
+    }
+
+    .stack-box span {
+      display: block;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.10);
     }
 
     .stack-box span:first-child {
@@ -879,9 +1027,209 @@
     }
 
     .pricing-toolbar {
-      display: flex;
-      justify-content: center;
+      display: grid;
+      gap: 24px;
       margin-bottom: 30px;
+    }
+
+    .pricing-advisor {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .advisor-panel,
+    .advisor-summary {
+      padding: 22px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .advisor-panel h3,
+    .advisor-summary h3 {
+      margin: 0 0 10px;
+      font-size: 1.12rem;
+    }
+
+    .advisor-panel p,
+    .advisor-summary p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.85;
+    }
+
+    .advisor-inputs {
+      margin-top: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .users-meter {
+      display: grid;
+      gap: 10px;
+    }
+
+    .users-meter label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    .users-meter output {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 72px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--brand-soft);
+      color: var(--brand-strong);
+      font-weight: 900;
+    }
+
+    .users-meter input[type="range"] {
+      width: 100%;
+      accent-color: var(--brand);
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 8px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--brand-soft) 0%, rgba(15,118,110,0.18) 100%);
+      outline: none;
+    }
+
+    .users-meter input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+      box-shadow: 0 4px 14px rgba(15, 118, 110, 0.32);
+      cursor: pointer;
+      transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+    }
+
+    .users-meter input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+      box-shadow: 0 6px 20px rgba(15, 118, 110, 0.4);
+    }
+
+    .users-meter input[type="range"]::-moz-range-thumb {
+      width: 26px;
+      height: 26px;
+      border: none;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+      box-shadow: 0 4px 14px rgba(15, 118, 110, 0.32);
+      cursor: pointer;
+    }
+
+    .meter-scale {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted-soft);
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .advisor-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .advisor-tag {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-size: 0.86rem;
+      font-weight: 900;
+      color: var(--muted);
+    }
+
+    .advisor-tag.active {
+      background: var(--brand-soft);
+      border-color: rgba(15, 118, 110, 0.18);
+      color: var(--brand-strong);
+    }
+
+    .advisor-summary {
+      background: linear-gradient(180deg, rgba(15,118,110,0.94), rgba(17,94,89,0.96));
+      color: #fff;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      box-shadow: 0 22px 58px rgba(15, 118, 110, 0.24);
+      border-color: transparent;
+    }
+
+    .advisor-summary h3,
+    .advisor-summary p,
+    .advisor-summary .summary-meta,
+    .advisor-summary .summary-points li,
+    .advisor-summary .summary-price small {
+      color: #fff;
+    }
+
+    .summary-badge {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      font-size: 0.84rem;
+      font-weight: 900;
+    }
+
+    .summary-price {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      line-height: 1;
+    }
+
+    .summary-price strong {
+      font-size: 2.8rem;
+    }
+
+    .summary-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: rgba(255,255,255,0.88);
+      font-weight: 800;
+    }
+
+    .summary-points {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .summary-points li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-weight: 800;
+      color: rgba(255,255,255,0.94);
+    }
+
+    .summary-points li i {
+      margin-top: 2px;
     }
 
     .period-toggle {
@@ -894,6 +1242,26 @@
       box-shadow: var(--shadow-sm);
     }
 
+    .pricing-periods {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .pricing-periods h3 {
+      margin: 0 0 6px;
+      font-size: 1.06rem;
+    }
+
+    .pricing-periods p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.8;
+    }
+
     .period-btn {
       border: 0;
       background: transparent;
@@ -902,6 +1270,11 @@
       font-weight: 900;
       color: var(--muted-soft);
       cursor: pointer;
+    }
+
+    .period-btn[disabled] {
+      opacity: 0.46;
+      cursor: not-allowed;
     }
 
     .period-btn.active {
@@ -923,6 +1296,28 @@
       align-content: start;
       gap: 16px;
       position: relative;
+      transition: transform 0.36s var(--ease-out-expo), box-shadow 0.36s var(--ease-out-expo);
+    }
+
+    .price-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 28px 60px rgba(15, 23, 42, 0.14);
+    }
+
+    .price-card[hidden] {
+      display: none !important;
+    }
+
+    .price-card.trial {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,253,250,0.96));
+      border-color: rgba(15, 118, 110, 0.16);
+      box-shadow: 0 20px 48px rgba(15, 118, 110, 0.12);
+    }
+
+    .price-card.trial .price-value strong,
+    .price-card.trial .price-fit,
+    .price-card.trial .price-fit i {
+      color: var(--brand-strong);
     }
 
     .price-card.featured {
@@ -931,6 +1326,11 @@
       color: #fff;
       box-shadow: 0 24px 60px rgba(15, 118, 110, 0.30);
       transform: translateY(-8px);
+    }
+
+    .price-card.recommended {
+      outline: 3px solid rgba(217, 119, 6, 0.22);
+      transform: translateY(-6px);
     }
 
     .price-card.featured p,
@@ -952,6 +1352,24 @@
       color: #9a5b05;
       font-size: 0.8rem;
       font-weight: 900;
+    }
+
+    .recommended-badge {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      display: none;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: #b45309;
+      font-size: 0.78rem;
+      font-weight: 900;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .price-card.recommended .recommended-badge {
+      display: inline-flex;
     }
 
     .price-value {
@@ -1019,6 +1437,11 @@
       color: var(--brand);
     }
 
+    .price-period-panels {
+      display: grid;
+      gap: 16px;
+    }
+
     .card-actions {
       display: grid;
       gap: 10px;
@@ -1036,6 +1459,12 @@
     .faq-item {
       padding: 24px;
       background: rgba(255, 255, 255, 0.80);
+      transition: transform 0.3s var(--ease-out-expo), box-shadow 0.3s var(--ease-out-expo);
+    }
+
+    .faq-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 44px rgba(15, 23, 42, 0.10);
     }
 
     .faq-item h3 {
@@ -1088,29 +1517,88 @@
     }
 
     .footer {
-      padding: 26px 0 120px;
+      padding: 34px 0 120px;
       color: var(--muted-soft);
+    }
+
+    .footer-shell {
+      border-radius: 32px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.24);
+    }
+
+    .footer-hero {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 24px;
+      padding: 32px;
+      background:
+        radial-gradient(circle at top right, rgba(20, 184, 166, 0.22), transparent 30%),
+        linear-gradient(135deg, rgba(15,118,110,0.28), rgba(17,24,39,0));
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .footer-kicker {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      color: #d1fae5;
+      font-size: 0.84rem;
+      font-weight: 900;
+    }
+
+    .footer-hero h2 {
+      margin: 16px 0 12px;
+      color: #fff;
+      font-size: clamp(1.8rem, 3vw, 2.7rem);
+      line-height: 1.15;
+    }
+
+    .footer-hero p {
+      margin: 0;
+      color: rgba(255,255,255,0.82);
+      font-weight: 700;
+      line-height: 1.95;
+    }
+
+    .footer-cta-stack {
+      display: grid;
+      gap: 12px;
+      align-content: center;
+    }
+
+    .footer-cta-stack .btn-outline {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border-color: rgba(255,255,255,0.14);
+      box-shadow: none;
     }
 
     .footer-grid {
       display: grid;
-      grid-template-columns: 1.1fr .9fr .9fr;
+      grid-template-columns: 1.1fr .8fr .8fr .9fr;
       gap: 24px;
       align-items: start;
-      padding-top: 26px;
+      padding: 28px 32px 12px;
     }
 
     .footer-card {
       padding: 22px;
       border-radius: 24px;
-      background: rgba(255,255,255,0.72);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-sm);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: none;
     }
 
     .footer-card h3 {
       margin: 0 0 12px;
       font-size: 1.06rem;
+      color: #fff;
     }
 
     .footer-list {
@@ -1124,16 +1612,98 @@
 
     .footer-list li {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 10px;
+      color: rgba(255,255,255,0.78);
+    }
+
+    .footer-list a:hover {
+      color: #fff;
+    }
+
+    .footer-brand p,
+    .footer-note,
+    .footer-meta {
+      color: rgba(255,255,255,0.74);
+      font-weight: 700;
+      line-height: 1.9;
+    }
+
+    .footer-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .footer-metric {
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
+      text-align: center;
+    }
+
+    .footer-metric strong {
+      display: block;
+      color: #fff;
+      font-size: 1.04rem;
+      margin-bottom: 4px;
+    }
+
+    .footer-metric span {
+      color: rgba(255,255,255,0.68);
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .footer-contact {
+      display: grid;
+      gap: 12px;
+    }
+
+    .contact-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .contact-item i {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      color: #d1fae5;
+      background: rgba(20, 184, 166, 0.14);
+    }
+
+    .contact-item strong {
+      display: block;
+      color: #fff;
+      margin-bottom: 2px;
+      font-size: 0.95rem;
+    }
+
+    .contact-item span,
+    .contact-item a {
+      color: rgba(255,255,255,0.74);
+      font-weight: 700;
+      line-height: 1.7;
     }
 
     .footer-bottom {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(15, 23, 42, 0.08);
+      margin: 0 32px;
+      padding: 18px 0 24px;
+      border-top: 1px solid rgba(255,255,255,0.08);
       text-align: center;
       font-weight: 800;
+      color: rgba(255,255,255,0.54);
     }
 
     .mobile-sticky-cta {
@@ -1163,7 +1733,8 @@
     }
 
     [data-period-content].active {
-      display: block;
+      display: grid;
+      gap: 16px;
     }
 
     @media (max-width: 1120px) {
@@ -1184,11 +1755,63 @@
 
       .hero-stage {
         min-height: 0;
+        max-width: 620px;
+        margin: 0 auto;
+        padding: 14px 0;
       }
 
-      .show-card:first-child,
+      .show-card.featured-shot,
       .price-card:first-child {
         grid-column: span 2;
+      }
+
+      .final-actions {
+        min-width: 0;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .nav-links,
+      .nav-actions .btn-outline {
+        display: none;
+      }
+
+      .menu-btn {
+        display: inline-flex;
+      }
+
+      .comparison-grid,
+      .faq-grid,
+      .footer-grid,
+      .pricing-grid,
+      .show-grid,
+      .trust-grid,
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .show-card.featured-shot,
+      .price-card:first-child {
+        grid-column: span 1;
+      }
+
+      .final-cta {
+        grid-template-columns: 1fr;
+      }
+
+      .final-actions {
+        min-width: 0;
+      }
+
+      .floating-tag {
+        position: static;
+        animation: none;
+        margin-bottom: 12px;
+      }
+
+      .floating-tag.tag-bottom {
+        margin-bottom: 0;
+        margin-top: 12px;
       }
     }
 
@@ -1200,6 +1823,16 @@
 
       .menu-btn {
         display: inline-flex;
+      }
+
+      .nav {
+        min-height: 56px;
+        padding: 8px 14px;
+        border-radius: 18px;
+      }
+
+      .brand-copy span {
+        display: none;
       }
 
       .hero {
@@ -1225,10 +1858,25 @@
       .footer-grid,
       .metric-row,
       .mini-panels,
-      .show-card:first-child,
-      .price-card:first-child,
       .final-cta {
         grid-template-columns: 1fr;
+      }
+
+      .pricing-advisor,
+      .footer-hero,
+      .footer-grid,
+      .footer-metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .pricing-periods {
+        align-items: stretch;
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .period-toggle {
+        align-self: center;
       }
 
       .hero-actions,
@@ -1237,17 +1885,32 @@
         gap: 12px;
       }
 
+      .final-actions {
+        min-width: 0;
+        width: 100%;
+      }
+
       .pricing-shell,
-      .final-cta {
-        padding: 24px;
+      .final-cta,
+      .footer-hero,
+      .footer-grid {
+        padding: 20px;
       }
 
       .price-card.featured {
         transform: none;
       }
 
+      .price-card:hover {
+        transform: translateY(-3px);
+      }
+
       .section {
-        padding: 72px 0;
+        padding: 64px 0;
+      }
+
+      .section-head {
+        margin-bottom: 36px;
       }
 
       .mobile-sticky-cta {
@@ -1257,22 +1920,44 @@
       .footer {
         padding-bottom: 132px;
       }
+
+      .footer-bottom {
+        margin: 0 24px;
+      }
+
+      .advisor-panel,
+      .advisor-summary {
+        padding: 18px;
+      }
+
+      .hero-stage {
+        min-height: 0;
+      }
+
+      .hero-card {
+        padding: 16px;
+        border-radius: 22px;
+      }
+
+      .hero::before {
+        display: none;
+      }
     }
 
     @media (max-width: 560px) {
       .container {
-        width: min(calc(100% - 20px), var(--container));
+        width: min(calc(100% - 16px), var(--container));
       }
 
       .nav {
-        min-height: 72px;
-        padding: 10px 12px;
-        border-radius: 18px;
+        min-height: 64px;
+        padding: 8px 12px;
+        border-radius: 16px;
       }
 
       .brand img {
-        width: 42px;
-        height: 42px;
+        width: 38px;
+        height: 38px;
       }
 
       .brand-copy span {
@@ -1280,17 +1965,31 @@
       }
 
       .hero-copy h1 {
-        font-size: 2.18rem;
-        line-height: 1.04;
+        font-size: 1.95rem;
+        line-height: 1.08;
       }
 
       .hero-copy p,
       .section-head p {
-        font-size: 0.98rem;
+        font-size: 0.94rem;
+        line-height: 1.75;
+      }
+
+      .section-head h2 {
+        font-size: 1.55rem;
+        line-height: 1.2;
       }
 
       .btn {
         width: 100%;
+        min-height: 50px;
+        padding: 13px 18px;
+        font-size: 0.94rem;
+      }
+
+      .eyebrow {
+        font-size: 0.82rem;
+        padding: 8px 12px;
       }
 
       .hero-actions,
@@ -1303,6 +2002,12 @@
         display: grid;
       }
 
+      .hero-note {
+        flex-direction: column;
+        gap: 8px;
+        font-size: 0.88rem;
+      }
+
       .proof-tile,
       .trust-card,
       .show-card,
@@ -1312,17 +2017,30 @@
       .price-card,
       .faq-item,
       .footer-card {
-        border-radius: 20px;
+        border-radius: 18px;
+        padding: 18px;
+      }
+
+      .trust-card h3,
+      .result-card h3,
+      .show-card h3,
+      .comparison-card h3,
+      .price-card h3,
+      .faq-item h3,
+      .process-card h3 {
+        font-size: 1.08rem;
+        margin: 12px 0 8px;
       }
 
       .hero-card {
-        padding: 18px;
-        border-radius: 24px;
+        padding: 16px;
+        border-radius: 22px;
       }
 
       .floating-tag {
         position: static;
         margin-top: 12px;
+        animation: none;
       }
 
       .period-toggle {
@@ -1331,13 +2049,158 @@
 
       .period-btn {
         flex: 1;
+        padding: 10px 14px;
+        font-size: 0.88rem;
+      }
+
+      .pricing-periods,
+      .summary-meta,
+      .flow-card,
+      .contact-item {
+        grid-template-columns: 1fr;
       }
 
       .mobile-sticky-cta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         left: 8px;
         right: 8px;
         bottom: 8px;
         padding: 8px;
+      }
+
+      .users-meter label {
+        flex-wrap: wrap;
+        font-size: 0.9rem;
+      }
+
+      .advisor-tag {
+        flex: 1 1 calc(50% - 10px);
+        text-align: center;
+        padding: 8px 10px;
+        font-size: 0.82rem;
+      }
+
+      .summary-price strong {
+        font-size: 2rem;
+      }
+
+      .price-value strong {
+        font-size: 2.15rem;
+      }
+
+      .shot-caption {
+        position: static;
+        margin-top: 10px;
+      }
+
+      .summary-meta {
+        display: grid;
+        gap: 6px;
+      }
+
+      .flow-card,
+      .contact-item {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-shell {
+        border-radius: 22px;
+      }
+
+      .footer-bottom {
+        margin: 0 16px;
+        font-size: 0.82rem;
+      }
+
+      .final-cta {
+        padding: 20px;
+        border-radius: 24px;
+      }
+
+      .final-cta h2 {
+        font-size: 1.45rem !important;
+      }
+
+      .comparison-list li,
+      .result-list li,
+      .feature-list li {
+        font-size: 0.9rem;
+      }
+
+      .pricing-shell {
+        padding: 16px;
+        border-radius: 24px;
+      }
+
+      .pricing-advisor {
+        gap: 14px;
+      }
+
+      .advisor-panel,
+      .advisor-summary {
+        padding: 16px;
+        border-radius: 20px;
+      }
+
+      .price-badge {
+        position: static;
+        display: inline-flex;
+        margin-bottom: -8px;
+      }
+
+      .recommended-badge {
+        top: 12px;
+        right: 12px;
+        font-size: 0.72rem;
+        padding: 5px 10px;
+      }
+
+      .cta-points {
+        flex-direction: column;
+        gap: 8px;
+        font-size: 0.9rem;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .container {
+        width: calc(100% - 12px);
+      }
+
+      .hero-copy h1 {
+        font-size: 1.72rem;
+      }
+
+      .nav {
+        padding: 6px 10px;
+        gap: 8px;
+      }
+
+      .brand-copy strong {
+        font-size: 0.9rem;
+      }
+
+      .section {
+        padding: 48px 0;
+      }
+
+      .section-head h2 {
+        font-size: 1.35rem;
+      }
+
+      .mobile-sticky-cta {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
+      .pricing-shell {
+        padding: 12px;
+      }
+
+      .advisor-panel,
+      .advisor-summary {
+        padding: 14px;
       }
     }
   </style>
@@ -1533,29 +2396,29 @@
 
     <section class="section" id="why">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <span class="eyebrow"><i class="fa-solid fa-medal"></i> لماذا يقتنع مدير المدرسة بالمنصة</span>
           <h2>لأن القيمة ليست في “إضافة تقارير” فقط، بل في جعل المدرسة تعمل بوضوح أكبر</h2>
           <p>الصفحة الجديدة تبيع النتيجة التشغيلية أولاً: تقليل التشتت، توحيد الاعتمادات، وضمان بقاء المخرجات جاهزة عند الحاجة.</p>
         </div>
 
         <div class="trust-grid">
-          <article class="trust-card">
+          <article class="trust-card reveal stagger-1">
             <i class="fa-solid fa-building-shield fa-xl"></i>
             <h3>خصوصية المدرسة داخل نطاقها</h3>
             <p>كل مدرسة تعمل داخل حسابها وصلاحياتها، مع فصل واضح للبيانات والمستخدمين والمخرجات.</p>
           </article>
-          <article class="trust-card">
+          <article class="trust-card reveal stagger-2">
             <i class="fa-solid fa-users-gear fa-xl"></i>
             <h3>صلاحيات عملية وليست شكلية</h3>
             <p>المعلم، المدير، المسؤول، والمشرف يرون ما يلزمهم فقط ويؤدون دورهم ضمن مسار محدد.</p>
           </article>
-          <article class="trust-card">
+          <article class="trust-card reveal stagger-3">
             <i class="fa-solid fa-file-circle-check fa-xl"></i>
             <h3>مخرجات رسمية جاهزة</h3>
             <p>عندما تحتاج تقريراً أو تعميماً أو ملف إنجاز، يكون محفوظاً وقابلاً للطباعة بدلاً من إعادة التجميع اليدوي.</p>
           </article>
-          <article class="trust-card">
+          <article class="trust-card reveal stagger-4">
             <i class="fa-solid fa-mobile-screen-button fa-xl"></i>
             <h3>تجربة جوال لا تبدو نسخة منكمشة</h3>
             <p>الواجهة مصممة لتعمل بشكل مريح على الهاتف حتى أثناء التوثيق الميداني أو المتابعة السريعة.</p>
@@ -1566,14 +2429,14 @@
 
     <section class="section" id="results" style="background:linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0));">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <span class="eyebrow"><i class="fa-solid fa-chart-line"></i> النتائج التي تهم الإدارة</span>
           <h2>ما الذي يتغير فعلياً بعد اعتماد توثيق داخل المدرسة؟</h2>
-          <p>بدلاً من الاكتفاء بذكر المزايا، هذه الصفحة تشرح لماذا تؤثر المنصة فعلياً على المتابعة اليومية والانضباط التشغيلي.</p>
+          <p>المنصة لا تكتفي بإضافة أدوات جديدة، بل تجعل المدير يرى صورة واضحة كل يوم وتُبقي المخرجات جاهزة عند الحاجة.</p>
         </div>
 
         <div class="results-grid">
-          <article class="result-card featured">
+          <article class="result-card featured reveal stagger-1">
             <i class="fa-solid fa-gauge-high fa-2xl"></i>
             <h3>صورة تشغيلية يومية أوضح للإدارة</h3>
             <p>المدير لا ينتقل بين ملفات متعددة ورسائل منفصلة. تظهر له التقارير والطلبات والتعاميم ومؤشرات الإنجاز في مكان واحد.</p>
@@ -1584,13 +2447,13 @@
             </ul>
           </article>
 
-          <article class="result-card">
+          <article class="result-card reveal stagger-2">
             <i class="fa-solid fa-folder-tree fa-2xl"></i>
             <h3>أرشفة لا تضيع مع نهاية الفصل</h3>
             <p>التقارير والشواهد وملفات الإنجاز تظل داخل النظام بدلاً من أن تتناثر بين أجهزة المستخدمين والمحادثات.</p>
           </article>
 
-          <article class="result-card">
+          <article class="result-card reveal stagger-3">
             <i class="fa-solid fa-clipboard-check fa-2xl"></i>
             <h3>اعتمادات وتوقيعات أكثر انضباطاً</h3>
             <p>التعاميم والتذاكر لا تبقى شفوية أو غير قابلة للتتبع، بل تمر بمسار واضح يعرف الجميع مرحلته الحالية.</p>
@@ -1601,24 +2464,24 @@
 
     <section class="section" id="process">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <span class="eyebrow"><i class="fa-solid fa-route"></i> كيف تعمل الرحلة</span>
           <h2>ثلاث خطوات بسيطة من التجربة إلى التشغيل اليومي</h2>
-          <p>تم استبدال مسار الواتساب كإجراء أساسي بمسار تجربة مباشر، مع إبقاء التواصل البشري خياراً ثانوياً عند الحاجة.</p>
+          <p>ابدأ التجربة مباشرة بدون تعقيد، ثم فعّل الباقة المناسبة بعد ما تشوف القيمة الحقيقية بنفسك.</p>
         </div>
 
         <div class="process-grid">
-          <article class="process-card">
+          <article class="process-card reveal stagger-1">
             <div class="process-index">1</div>
             <h3>سجّل المدرسة وافتح التجربة</h3>
             <p>ابدأ من صفحة التسجيل مباشرة. النظام يهيئ فترة تجربة مجانية 14 يوم حتى 5 مستخدمين دون انتظار تفعيل يدوي كبداية.</p>
           </article>
-          <article class="process-card">
+          <article class="process-card reveal stagger-2">
             <div class="process-index">2</div>
             <h3>ابدأ التوثيق والمتابعة من أول يوم</h3>
             <p>يرفع الفريق التقارير، يفتح الطلبات، ينشر التعاميم، ويجمع ملفات الإنجاز ضمن نفس البيئة.</p>
           </article>
-          <article class="process-card">
+          <article class="process-card reveal stagger-3">
             <div class="process-index">3</div>
             <h3>فعّل الباقة المناسبة عندما ترى القيمة</h3>
             <p>بعد التجربة، اختر الباقة حسب عدد المستخدمين، مع بقاء الواتساب متاحاً للتنسيق أو التفعيل التجاري عند الحاجة.</p>
@@ -1629,21 +2492,21 @@
 
     <section class="section" id="showcase" style="background:linear-gradient(180deg, rgba(255,255,255,0.84), rgba(238,246,243,0.60));">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <span class="eyebrow"><i class="fa-solid fa-desktop"></i> واجهة المنتج</span>
           <h2>هذه لقطات حقيقية من النظام نفسه داخل بيئة العمل</h2>
-          <p>استبدلت المشاهد التوضيحية بصور فعلية من المنتج، لأن الثقة ترتفع عندما يرى الزائر ما سيستخدمه فعلاً بعد التسجيل.</p>
+          <p>ما تراه هنا هو نفسه ما ستستخدمه بعد التسجيل مباشرة — لقطات فعلية من المنتج وليست تصاميم نظرية.</p>
         </div>
 
         <div class="show-grid">
-          <article class="show-card featured-shot">
+          <article class="show-card featured-shot reveal stagger-1">
             <div class="show-frame">
               <div class="frame-bar">
                 <span class="frame-pill"><i class="fa-solid fa-chart-line"></i> لوحة المؤشرات</span>
                 <span class="frame-pill">نظرة إدارية سريعة</span>
               </div>
               <div class="show-shot">
-                <img src="{% static 'img/SC1.png' %}" alt="لقطة من لوحة النظام تعرض مؤشرات التقارير والأقسام والدعم الفني">
+                <img src="{% static 'img/SC1.png' %}" alt="لقطة من لوحة النظام تعرض مؤشرات التقارير والأقسام والدعم الفني" loading="lazy" width="800" height="450">
                 <div class="shot-caption">
                   <span>مؤشرات التقارير وحالة النظام في شاشة واحدة</span>
                   <span>Dashboard</span>
@@ -1656,14 +2519,14 @@
             </div>
           </article>
 
-          <article class="show-card">
+          <article class="show-card reveal stagger-2">
             <div class="show-frame">
               <div class="frame-bar">
                 <span class="frame-pill"><i class="fa-solid fa-ticket"></i> التذاكر والطلبات</span>
                 <span class="frame-pill">مسار متابعة</span>
               </div>
               <div class="show-shot">
-                <img src="{% static 'img/SUPPORT.png' %}" alt="لقطة من صفحة تذكرة دعم تعرض تفاصيل الطلب والملاحظات واتخاذ الإجراء">
+                <img src="{% static 'img/SUPPORT.png' %}" alt="لقطة من صفحة تذكرة دعم تعرض تفاصيل الطلب والملاحظات واتخاذ الإجراء" loading="lazy" width="800" height="450">
                 <div class="shot-caption">
                   <span>تفاصيل الطلب والملاحظات وتحديث الحالة من نفس الصفحة</span>
                   <span>Support</span>
@@ -1676,14 +2539,14 @@
             </div>
           </article>
 
-          <article class="show-card">
+          <article class="show-card reveal stagger-3">
             <div class="show-frame">
               <div class="frame-bar">
                 <span class="frame-pill"><i class="fa-solid fa-file-pdf"></i> التقرير الرسمي</span>
                 <span class="frame-pill">مخرج جاهز</span>
               </div>
               <div class="show-shot">
-                <img src="{% static 'img/REPORT.png' %}" alt="لقطة من تقرير PDF رسمي يتضمن بيانات التقرير والمرفقات والشواهد">
+                <img src="{% static 'img/REPORT.png' %}" alt="لقطة من تقرير PDF رسمي يتضمن بيانات التقرير والمرفقات والشواهد" loading="lazy" width="800" height="450">
                 <div class="shot-caption">
                   <span>تقرير رسمي جاهز للطباعة مع الشواهد والمرفقات</span>
                   <span>PDF</span>
@@ -1701,14 +2564,14 @@
 
     <section class="section" id="comparison">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <span class="eyebrow"><i class="fa-solid fa-scale-balanced"></i> قبل وبعد</span>
           <h2>الفرق بين إدارة مشتتة وإدارة منظمة داخل منصة واحدة</h2>
-          <p>هذه المقارنة تساعد الزائر على اتخاذ القرار لأنّها تربط المنتج بالمشكلة اليومية التي يعيشها فعلاً.</p>
+          <p>المقارنة تربط المنتج بالمشكلة اليومية التي تعيشها المدرسة فعلاً — اختر الطريقة التي تناسبك.</p>
         </div>
 
         <div class="comparison-grid">
-          <article class="comparison-card bad">
+          <article class="comparison-card bad reveal stagger-1">
             <small>قبل المنصة</small>
             <h3>معلومة موزعة، متابعة مرهقة، ومخرجات غير مستقرة</h3>
             <ul class="comparison-list bad">
@@ -1718,7 +2581,7 @@
             </ul>
           </article>
 
-          <article class="comparison-card good">
+          <article class="comparison-card good reveal stagger-2">
             <small>بعد توثيق</small>
             <h3>رحلة واحدة واضحة من الإدخال حتى الاعتماد والطباعة</h3>
             <ul class="comparison-list good">
@@ -1733,118 +2596,181 @@
 
     <section class="section" id="pricing" style="background:linear-gradient(180deg, rgba(255,255,255,0.60), rgba(238,246,243,0.90));">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <span class="eyebrow"><i class="fa-solid fa-tags"></i> الباقات</span>
-          <h2>تسعير أوضح يساعدك على اتخاذ القرار لا مجرد قراءة الأرقام</h2>
-          <p>أضفت توصيفاً لكل باقة حسب حجم الفريق، مع إبقاء التجربة المجانية هي المدخل الطبيعي لبدء الاستخدام مباشرة.</p>
-        </div>
+          <h2>أسـعار الباقـــات</h2>
+         </div>
 
-        <div class="pricing-shell">
-          <div class="pricing-toolbar">
-            <div class="period-toggle" role="tablist" aria-label="اختيار مدة الاشتراك">
-              <button class="period-btn active" type="button" data-period="6m" aria-selected="true">6 أشهر</button>
-              <button class="period-btn" type="button" data-period="1y" aria-selected="false">سنوي</button>
+        <div class="pricing-shell" data-active-period="{{ pricing_initial_period|default:'6m' }}">
+          {% if pricing_cards or pricing_trial_plan %}
+            <div class="pricing-toolbar">
+              {% if pricing_cards %}
+                <div class="pricing-advisor">
+                  <div class="advisor-panel">
+                    <h3>اختر عدد المستخدمين لتحصل على التوصية الأقرب</h3>
+                    <p>المستشار يعتمد مباشرة على سعة الباقات الموجودة في قاعدة البيانات، بينما تبقى الباقة التجريبية منفصلة عن المقارنة بين 6 أشهر وسنة.</p>
+                    <div class="advisor-inputs">
+                      <div class="users-meter">
+                        <label for="usersRange">
+                          <span>عدد المستخدمين المتوقع</span>
+                          <output id="usersOutput" for="usersRange">{{ pricing_slider.initial }}</output>
+                        </label>
+                        <input id="usersRange" type="range" min="{{ pricing_slider.min }}" max="{{ pricing_slider.max }}" step="{{ pricing_slider.step }}" value="{{ pricing_slider.initial }}" aria-label="عدد المستخدمين المتوقع">
+                        <div class="meter-scale">
+                          <span>{{ pricing_slider.min }}</span>
+                          <span>{{ pricing_slider.initial }}</span>
+                          <span>{{ pricing_slider.max }}</span>
+                        </div>
+                      </div>
+                      <div class="advisor-tags" id="advisorTags">
+                        {% for mark in advisor_marks %}
+                          <button type="button" class="advisor-tag{% if mark.active %} active{% endif %}" data-users="{{ mark.value }}">{{ mark.label }}</button>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="advisor-summary" id="advisorSummary">
+                    <span class="summary-badge"><i class="fa-solid fa-sparkles"></i> التوصية الحالية</span>
+                    <div>
+                      <h3 id="summaryPlanTitle">{% if pricing_recommended %}{{ pricing_recommended.name }}{% else %}اختر الباقة المناسبة{% endif %}</h3>
+                      <p id="summaryPlanDesc">{% if pricing_recommended %}{% if pricing_initial_period == '6m' and pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.summary }}{% elif pricing_recommended.period_1y %}{{ pricing_recommended.period_1y.summary }}{% elif pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.summary }}{% endif %}{% endif %}</p>
+                    </div>
+                    <div class="summary-price"><strong id="summaryPlanPrice">{% if pricing_recommended %}{% if pricing_initial_period == '6m' and pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.price_display }}{% elif pricing_recommended.period_1y %}{{ pricing_recommended.period_1y.price_display }}{% elif pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.price_display }}{% endif %}{% endif %}</strong><small>ريال</small></div>
+                    <div class="summary-meta">
+                      <span id="summaryPlanDuration">{% if pricing_recommended %}{% if pricing_initial_period == '6m' and pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.duration_label }}{% elif pricing_recommended.period_1y %}{{ pricing_recommended.period_1y.duration_label }}{% elif pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.duration_label }}{% endif %}{% endif %}</span>
+                      <span id="summaryPlanCapacity">{% if pricing_recommended %}{{ pricing_recommended.capacity_label }}{% endif %}</span>
+                    </div>
+                    <ul class="summary-points" id="summaryPoints">
+                      {% if pricing_recommended %}
+                        {% if pricing_initial_period == '6m' and pricing_recommended.period_6m %}
+                          {% for feature in pricing_recommended.period_6m.features %}
+                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
+                          {% endfor %}
+                        {% elif pricing_recommended.period_1y %}
+                          {% for feature in pricing_recommended.period_1y.features %}
+                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
+                          {% endfor %}
+                        {% elif pricing_recommended.period_6m %}
+                          {% for feature in pricing_recommended.period_6m.features %}
+                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
+                          {% endfor %}
+                        {% endif %}
+                      {% endif %}
+                    </ul>
+                    <a class="btn btn-soft" id="summaryCta" href="{% url 'reports:register_school' %}">{% if pricing_recommended %}{{ pricing_recommended.cta_label }}{% else %}ابدأ الآن{% endif %}</a>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% if pricing_cards %}
+                <div class="pricing-periods">
+                  <div>
+                    <h3>بدّل بين الباقات السنوية ونصف السنوية</h3>
+                    <p>الباقة التجريبية تظهر مستقلة دائماً، ثم تتم المقارنة بين نفس السعات حسب مدة الاشتراك التي تختارها.</p>
+                  </div>
+                  <div class="period-toggle" role="tablist" aria-label="مدة الاشتراك">
+                    {% for period in pricing_periods %}
+                      <button type="button" class="period-btn{% if period.active %} active{% endif %}" data-period="{{ period.key }}"{% if not period.available %} disabled aria-disabled="true"{% endif %}>{{ period.label }}</button>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
             </div>
-          </div>
 
-          <div class="pricing-grid">
-            <article class="price-card">
-              <span class="price-badge">أفضل بداية</span>
-              <h3>التجربة المجانية</h3>
-              <div class="price-value"><strong>0</strong><small>ريال</small></div>
-              <p class="price-meta">14 يوم • حتى 5 مستخدمين</p>
-              <div class="price-fit"><i class="fa-solid fa-rocket"></i> مناسبة لاختبار المنتج داخل المدرسة قبل التوسع</div>
-              <ul class="feature-list">
-                <li><i class="fa-solid fa-check"></i> تفعيل مباشر من صفحة التسجيل</li>
-                <li><i class="fa-solid fa-check"></i> تجربة حقيقية لمزايا النظام الأساسية</li>
-                <li><i class="fa-solid fa-check"></i> بدون انتظار تنسيق مسبق للبدء</li>
-              </ul>
-              <div class="card-actions">
-                <a class="btn btn-primary" href="{% url 'reports:register_school' %}">سجّل المدرسة الآن</a>
-                <a class="btn btn-outline" href="{% url 'reports:login' %}">لديك حساب بالفعل؟</a>
-              </div>
-            </article>
+            <div class="pricing-grid">
+              {% if pricing_trial_plan %}
+                <article
+                  class="price-card trial"
+                  data-plan-kind="trial"
+                >
+                  {% if pricing_trial_plan.badge %}
+                    <span class="price-badge">{{ pricing_trial_plan.badge }}</span>
+                  {% endif %}
+                  <h3>{{ pricing_trial_plan.name }}</h3>
+                  <div class="price-value"><strong>{{ pricing_trial_plan.price_display }}</strong><small>ريال</small></div>
+                  <p class="price-meta">{{ pricing_trial_plan.duration_label }} • {{ pricing_trial_plan.capacity_label }}</p>
+                  <div class="price-fit"><i class="fa-solid fa-rocket"></i> {{ pricing_trial_plan.fit_text }}</div>
+                  <ul class="feature-list">
+                    {% for feature in pricing_trial_plan.features %}
+                      <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
+                    {% endfor %}
+                  </ul>
+                  <div class="card-actions">
+                    <a class="btn btn-primary" href="{% url 'reports:register_school' %}">{{ pricing_trial_plan.cta_label }}</a>
+                    <a class="btn btn-outline" href="{% url 'reports:login' %}">لديك حساب بالفعل؟</a>
+                  </div>
+                </article>
+              {% endif %}
 
-            <article class="price-card" data-price-6m="699" data-price-1y="1299">
-              <h3>باقة 25 مستخدم</h3>
-              <div data-period-content="6m" class="active">
-                <div class="price-value"><strong>699</strong><small>ريال</small></div>
-                <p class="price-meta">لمدة 6 أشهر</p>
-              </div>
-              <div data-period-content="1y">
-                <div class="price-value"><strong>1,299</strong><small>ريال</small></div>
-                <p class="price-meta">لمدة سنة كاملة</p>
-                <span class="save-chip">توفير سنوي</span>
-              </div>
-              <div class="price-fit"><i class="fa-solid fa-users"></i> مناسبة للمدارس الصغيرة أو فرق الإدارة المحدودة</div>
-              <ul class="feature-list">
-                <li><i class="fa-solid fa-check"></i> جميع وحدات النظام الأساسية</li>
-                <li><i class="fa-solid fa-check"></i> تقارير وتذاكر وتعاميم غير محدودة</li>
-                <li><i class="fa-solid fa-check"></i> ملفات إنجاز ودعم تشغيل</li>
-              </ul>
+              {% for card in pricing_cards %}
+                <article
+                  class="price-card{% if card.is_featured %} featured{% endif %}{% if card.is_recommended %} recommended{% endif %}"
+                  data-plan-kind="paid"
+                  data-capacity="{{ card.capacity_hint }}"
+                  data-capacity-label="{{ card.capacity_label }}"
+                  data-plan-title="{{ card.name }}"
+                  data-cta-label="{{ card.cta_label }}"
+                >
+                  {% if card.badge %}
+                    <span class="price-badge"{% if card.is_featured %} style="background:rgba(255,255,255,0.16);color:#fff;"{% endif %}>{{ card.badge }}</span>
+                  {% endif %}
+                  <span class="recommended-badge">موصى بها</span>
+                  <h3>{{ card.name }}</h3>
+                  <p class="price-meta">{{ card.capacity_label }}</p>
+                  <div class="price-period-panels">
+                    {% if card.period_6m %}
+                      <div class="{% if pricing_initial_period == '6m' or not card.period_1y %}active{% endif %}" data-period-content="6m" data-price="{{ card.period_6m.price_int }}" data-duration="{{ card.period_6m.duration_label }}" data-summary="{{ card.period_6m.summary }}">
+                        <div class="price-value"><strong>{{ card.period_6m.price_display }}</strong><small>ريال</small></div>
+                        <p class="price-meta">{{ card.period_6m.duration_label }} • {{ card.capacity_label }}</p>
+                        <div class="price-fit"><i class="fa-solid fa-users"></i> {{ card.period_6m.fit_text }}</div>
+                        <ul class="feature-list">
+                          {% for feature in card.period_6m.features %}
+                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    {% endif %}
+                    {% if card.period_1y %}
+                      <div class="{% if pricing_initial_period == '1y' or not card.period_6m %}active{% endif %}" data-period-content="1y" data-price="{{ card.period_1y.price_int }}" data-duration="{{ card.period_1y.duration_label }}" data-summary="{{ card.period_1y.summary }}">
+                        <div class="price-value"><strong>{{ card.period_1y.price_display }}</strong><small>ريال</small></div>
+                        <p class="price-meta">{{ card.period_1y.duration_label }} • {{ card.capacity_label }}</p>
+                        <div class="price-fit"><i class="fa-solid fa-users"></i> {{ card.period_1y.fit_text }}</div>
+                        <ul class="feature-list">
+                          {% for feature in card.period_1y.features %}
+                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    {% endif %}
+                  </div>
+                  <div class="card-actions">
+                    <a class="btn {% if card.is_featured %}btn-soft{% else %}btn-primary{% endif %}" href="{% url 'reports:register_school' %}">{{ card.cta_label }}</a>
+                    <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer"{% if card.is_featured %} style="background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.22);color:#fff;"{% endif %}>استفسر عن الباقة</a>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="price-card" style="padding:30px;">
+              <h3>لا توجد باقات فعّالة حالياً</h3>
+              <p>لم يتم تفعيل أي باقة في الإدارة بعد. يمكنك تفعيل الباقات من لوحة الإدارة لتظهر هنا تلقائياً.</p>
               <div class="card-actions">
-                <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ بالتجربة ثم فعّل</a>
-                <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">استفسر عن الباقة</a>
+                <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
+                <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">تواصل مع فريقنا</a>
               </div>
-            </article>
-
-            <article class="price-card featured" data-price-6m="999" data-price-1y="1899">
-              <span class="price-badge" style="background:rgba(255,255,255,0.16);color:#fff;">الأكثر طلباً</span>
-              <h3>باقة 50 مستخدم</h3>
-              <div data-period-content="6m" class="active">
-                <div class="price-value"><strong>999</strong><small>ريال</small></div>
-                <p class="price-meta">لمدة 6 أشهر</p>
-              </div>
-              <div data-period-content="1y">
-                <div class="price-value"><strong>1,899</strong><small>ريال</small></div>
-                <p class="price-meta">لمدة سنة كاملة</p>
-                <span class="save-chip" style="background:rgba(255,255,255,0.16);color:#fff;">قيمة سنوية أفضل</span>
-              </div>
-              <div class="price-fit"><i class="fa-solid fa-school"></i> الأنسب لغالبية المدارس التي تريد تشغيل المنصة بشكل كامل</div>
-              <ul class="feature-list">
-                <li><i class="fa-solid fa-check"></i> المسار التشغيلي الكامل للتقارير والطلبات</li>
-                <li><i class="fa-solid fa-check"></i> صلاحيات وأدوار متعددة داخل المدرسة</li>
-                <li><i class="fa-solid fa-check"></i> تجربة أكثر مرونة لتوسعة الاستخدام</li>
-              </ul>
-              <div class="card-actions">
-                <a class="btn btn-soft" href="{% url 'reports:register_school' %}">ابدأ بالتجربة المجانية</a>
-                <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer" style="background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.22);color:#fff;">نسق التفعيل التجاري</a>
-              </div>
-            </article>
-
-            <article class="price-card" data-price-6m="1299" data-price-1y="2399">
-              <h3>باقة 75 مستخدم</h3>
-              <div data-period-content="6m" class="active">
-                <div class="price-value"><strong>1,299</strong><small>ريال</small></div>
-                <p class="price-meta">لمدة 6 أشهر</p>
-              </div>
-              <div data-period-content="1y">
-                <div class="price-value"><strong>2,399</strong><small>ريال</small></div>
-                <p class="price-meta">لمدة سنة كاملة</p>
-                <span class="save-chip">خيار سنوي اقتصادي</span>
-              </div>
-              <div class="price-fit"><i class="fa-solid fa-user-group"></i> مناسبة للمدارس الأكبر أو الفرق التي تريد إشراك عدد أوسع</div>
-              <ul class="feature-list">
-                <li><i class="fa-solid fa-check"></i> نفس المزايا مع سعة مستخدمين أكبر</li>
-                <li><i class="fa-solid fa-check"></i> مناسبة للعمل التشغيلي المكثف</li>
-                <li><i class="fa-solid fa-check"></i> انطلاقة مناسبة للمدارس كثيرة الأدوار</li>
-              </ul>
-              <div class="card-actions">
-                <a class="btn btn-primary" href="{% url 'reports:register_school' %}">جرّب قبل التفعيل</a>
-                <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">تحدث مع فريقنا</a>
-              </div>
-            </article>
-          </div>
+            </div>
+          {% endif %}
         </div>
       </div>
     </section>
 
     <section class="section" id="faq">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <span class="eyebrow"><i class="fa-solid fa-circle-question"></i> أسئلة شائعة</span>
           <h2>إجابات مختصرة على الأسئلة التي تؤثر فعلاً على قرار الاشتراك</h2>
-          <p>أعدت كتابة هذه المنطقة لتزيد الثقة وتوضح الرحلة، بدلاً من الإجابات العامة التي لا تدفع الزائر إلى اتخاذ قرار.</p>
+          <p>الأسئلة الأكثر تكراراً من مديري المدارس — أجبنا عليها بوضوح حتى تبدأ بثقة.</p>
         </div>
 
         <div class="faq-grid">
@@ -1870,13 +2796,13 @@
 
     <section class="section" style="padding-top:0;">
       <div class="container">
-        <div class="final-cta">
+        <div class="final-cta reveal-scale">
           <div>
             <span class="eyebrow" style="background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.18);color:#fff;box-shadow:none;">
               <i class="fa-solid fa-star"></i> جاهز لتجربة المنتج فعلياً؟
             </span>
             <h2 style="margin:18px 0 12px;font-size:clamp(2rem,4vw,3rem);line-height:1.12;">ابدأ التجربة الآن ثم قرر الباقة المناسبة على أساس استخدام حقيقي</h2>
-            <p style="margin:0;color:rgba(255,255,255,0.92);font-size:1.05rem;line-height:1.9;font-weight:800;">تم تحويل الصفحة من عرض جمالي فقط إلى صفحة تقود الزائر فعلياً نحو التسجيل، مع إبقاء التواصل المباشر خياراً مساعداً لا المسار الأساسي.</p>
+            <p style="margin:0;color:rgba(255,255,255,0.92);font-size:1.05rem;line-height:1.9;font-weight:800;">سجّل مدرستك مجاناً واستخدم النظام 14 يوم بدون أي التزام. قرارك يكون بعد ما تجرّب فعلياً، مش قبل.</p>
             <div class="cta-points">
               <span><i class="fa-solid fa-check-circle"></i> تجربة مجانية 14 يوم</span>
               <span><i class="fa-solid fa-check-circle"></i> تسجيل مباشر للمدرسة</span>
@@ -1895,39 +2821,84 @@
 
   <footer class="footer">
     <div class="container">
-      <div class="footer-grid">
-        <div class="footer-card">
-          <div class="brand" style="margin-bottom:14px;">
-            <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق">
-            <span class="brand-copy">
-              <strong>منصة توثيق</strong>
-              <span>نظام واحد لترتيب العمل المدرسي اليومي</span>
-            </span>
+      <div class="footer-shell">
+        <div class="footer-hero">
+          <div>
+            <span class="footer-kicker"><i class="fa-solid fa-shield-heart"></i> تشغيل أكثر هدوءاً ووضوحاً داخل المدرسة</span>
+            <h2>جاهز لتجربة نظام يُبقي كل شيء مرتب ومتاح للرجوع إليه؟</h2>
+            <p>سجّل مدرستك الآن وابدأ التجربة المجانية، أو تواصل مع فريق التفعيل لأي استفسار تجاري.</p>
           </div>
-          <p style="margin:0;color:var(--muted);font-weight:700;line-height:1.9;">حل رقمي يجمع التوثيق والطلبات والتعاميم وملفات الإنجاز ضمن تجربة أوضح للإدارة وأريح للفريق.</p>
+          <div class="footer-cta-stack">
+            <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
+            <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">تواصل مع فريق التفعيل</a>
+          </div>
         </div>
 
-        <div class="footer-card">
-          <h3>روابط سريعة</h3>
-          <ul class="footer-list">
-            <li><i class="fa-solid fa-angle-left"></i><a href="#why">لماذا توثيق</a></li>
-            <li><i class="fa-solid fa-angle-left"></i><a href="#showcase">واجهة المنتج</a></li>
-            <li><i class="fa-solid fa-angle-left"></i><a href="#pricing">الباقات</a></li>
-            <li><i class="fa-solid fa-angle-left"></i><a href="{% url 'reports:user_guide' %}">دليل المستخدم</a></li>
-          </ul>
+        <div class="footer-grid">
+          <div class="footer-card footer-brand">
+            <div class="brand" style="margin-bottom:14px;">
+              <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق">
+              <span class="brand-copy">
+                <strong style="color:#fff;">منصة توثيق</strong>
+                <span style="color:rgba(255,255,255,0.60);">نظام واحد لترتيب العمل المدرسي اليومي</span>
+              </span>
+            </div>
+            <p>حل رقمي يجمع التوثيق والطلبات والتعاميم وملفات الإنجاز ضمن تجربة أوضح للإدارة وأريح للفريق طوال العام الدراسي.</p>
+            <div class="footer-metrics">
+              <div class="footer-metric"><strong>14 يوم</strong><span>تجربة مجانية</span></div>
+              <div class="footer-metric"><strong>PDF</strong><span>مخرجات رسمية</span></div>
+              <div class="footer-metric"><strong>RBAC</strong><span>صلاحيات واضحة</span></div>
+            </div>
+          </div>
+
+          <div class="footer-card">
+            <h3>اكتشف المنصة</h3>
+            <ul class="footer-list">
+              <li><i class="fa-solid fa-angle-left"></i><a href="#why">لماذا توثيق</a></li>
+              <li><i class="fa-solid fa-angle-left"></i><a href="#results">النتائج التشغيلية</a></li>
+              <li><i class="fa-solid fa-angle-left"></i><a href="#showcase">لقطات من النظام</a></li>
+              <li><i class="fa-solid fa-angle-left"></i><a href="#pricing">الباقات والتوصية</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-card">
+            <h3>ابدأ بسرعة</h3>
+            <ul class="footer-list">
+              <li><i class="fa-solid fa-angle-left"></i><a href="{% url 'reports:register_school' %}">تسجيل مدرسة جديدة</a></li>
+              <li><i class="fa-solid fa-angle-left"></i><a href="{% url 'reports:login' %}">دخول المستخدمين الحاليين</a></li>
+              <li><i class="fa-solid fa-angle-left"></i><a href="{% url 'reports:user_guide' %}">دليل المستخدم</a></li>
+              <li><i class="fa-solid fa-angle-left"></i><a href="#faq">الأسئلة الشائعة</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-card footer-contact">
+            <h3>تواصل مباشر</h3>
+            <div class="contact-item">
+              <i class="fa-brands fa-whatsapp"></i>
+              <div>
+                <strong>واتساب التفعيل</strong>
+                <a href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">0537720207</a>
+              </div>
+            </div>
+            <div class="contact-item">
+              <i class="fa-solid fa-school"></i>
+              <div>
+                <strong>رحلة البدء</strong>
+                <span>سجّل المدرسة، جرّب المنتج، ثم فعّل الباقة الأنسب بعد استخدام حقيقي.</span>
+              </div>
+            </div>
+            <div class="contact-item">
+              <i class="fa-solid fa-clock"></i>
+              <div>
+                <strong>أفضل استخدام للتواصل</strong>
+                <span>استخدم الواتساب للاستفسارات التجارية، لكن ابدأ التجربة مباشرة من الموقع.</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="footer-card">
-          <h3>تواصل</h3>
-          <ul class="footer-list">
-            <li><i class="fa-brands fa-whatsapp"></i><a href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">0537720207</a></li>
-            <li><i class="fa-solid fa-right-to-bracket"></i><a href="{% url 'reports:login' %}">دخول المستخدمين الحاليين</a></li>
-            <li><i class="fa-solid fa-school"></i><a href="{% url 'reports:register_school' %}">تسجيل مدرسة جديدة</a></li>
-          </ul>
-        </div>
+        <div class="footer-bottom">&copy; {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.</div>
       </div>
-
-      <div class="footer-bottom">&copy; {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.</div>
     </div>
   </footer>
 
@@ -1943,8 +2914,20 @@
       const closeDrawer = document.getElementById('closeDrawer');
       const mobileDrawer = document.getElementById('mobileDrawer');
       const drawerLinks = mobileDrawer ? mobileDrawer.querySelectorAll('a[href^="#"]') : [];
-      const periodButtons = document.querySelectorAll('.period-btn');
-      const priceCards = document.querySelectorAll('.price-card[data-price-6m]');
+      const pricingShell = document.querySelector('.pricing-shell[data-active-period]');
+      const allPriceCards = Array.from(document.querySelectorAll('.price-card[data-plan-kind="paid"][data-capacity]'));
+      const periodButtons = Array.from(document.querySelectorAll('.period-btn[data-period]'));
+      const usersRange = document.getElementById('usersRange');
+      const usersOutput = document.getElementById('usersOutput');
+      const advisorTags = document.querySelectorAll('.advisor-tag');
+      const summaryPlanTitle = document.getElementById('summaryPlanTitle');
+      const summaryPlanDesc = document.getElementById('summaryPlanDesc');
+      const summaryPlanPrice = document.getElementById('summaryPlanPrice');
+      const summaryPlanDuration = document.getElementById('summaryPlanDuration');
+      const summaryPlanCapacity = document.getElementById('summaryPlanCapacity');
+      const summaryPoints = document.getElementById('summaryPoints');
+      const summaryCta = document.getElementById('summaryCta');
+      let activePeriod = pricingShell ? (pricingShell.getAttribute('data-active-period') || '6m') : '6m';
 
       function openDrawer() {
         if (!mobileDrawer) return;
@@ -1983,36 +2966,187 @@
         }
       }
 
-      function togglePeriod(period) {
-        periodButtons.forEach(function (button) {
-          const active = button.dataset.period === period;
-          button.classList.toggle('active', active);
-          button.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
+      function getPeriodSection(card, period) {
+        if (!card) return null;
+        return card.querySelector('[data-period-content="' + period + '"]') || card.querySelector('[data-period-content]');
+      }
 
-        priceCards.forEach(function (card) {
+      function syncPeriodCards(period) {
+        allPriceCards.forEach(function (card) {
+          const activeSection = getPeriodSection(card, period);
           const sections = card.querySelectorAll('[data-period-content]');
           sections.forEach(function (section) {
-            section.classList.toggle('active', section.getAttribute('data-period-content') === period);
+            section.classList.toggle('active', section === activeSection);
           });
+          card.hidden = !activeSection;
+        });
+      }
 
-          const sixMonth = parseInt(card.getAttribute('data-price-6m') || '0', 10);
-          const yearly = parseInt(card.getAttribute('data-price-1y') || '0', 10);
-          const chip = card.querySelector('.save-chip');
-          if (chip && sixMonth && yearly) {
-            const saving = (sixMonth * 2) - yearly;
-            chip.textContent = saving > 0 ? 'توفير ' + formatSAR(saving) + ' ريال سنوياً' : 'قيمة سنوية أفضل';
+      function getRecommendedCard(users, period) {
+        if (!allPriceCards.length) return null;
+        let selected = null;
+        allPriceCards.forEach(function (card) {
+          if (card.hidden) return;
+          const capacity = parseInt(card.getAttribute('data-capacity') || '0', 10);
+          if (!capacity) return;
+          if (capacity >= users && !selected) selected = card;
+        });
+        if (selected) return selected;
+        const visibleCards = allPriceCards.filter(function (card) {
+          return !card.hidden && !!getPeriodSection(card, period);
+        });
+        return visibleCards[visibleCards.length - 1] || null;
+      }
+
+      function activateClosestTag(users) {
+        if (!advisorTags.length) return;
+        let closest = null;
+        let diff = Number.POSITIVE_INFINITY;
+        advisorTags.forEach(function (tag) {
+          const value = parseInt(tag.getAttribute('data-users') || '0', 10);
+          const currentDiff = Math.abs(value - users);
+          if (currentDiff < diff) {
+            diff = currentDiff;
+            closest = value;
           }
         });
+        advisorTags.forEach(function (tag) {
+          const value = parseInt(tag.getAttribute('data-users') || '0', 10);
+          tag.classList.toggle('active', value === closest);
+        });
+      }
+
+      function renderSummary(card, users, period) {
+        if (!card) return;
+        const activeSection = getPeriodSection(card, period);
+        if (!activeSection) return;
+        const planName = card.getAttribute('data-plan-title') || 'الباقة';
+        const planDesc = activeSection.getAttribute('data-summary') || '';
+        const ctaLabel = card.getAttribute('data-cta-label') || 'ابدأ الآن';
+        const price = activeSection.getAttribute('data-price') || '0';
+        const duration = activeSection.getAttribute('data-duration') || '';
+        const capacityLabel = card.getAttribute('data-capacity-label') || '';
+        let features = Array.from(activeSection.querySelectorAll('.feature-list span')).map(function (item) {
+          return (item.textContent || '').trim();
+        }).filter(Boolean);
+        if (!features.length) {
+          features = Array.from(activeSection.querySelectorAll('.feature-list li')).map(function (item) {
+            return (item.textContent || '').trim();
+          }).filter(Boolean);
+        }
+
+        allPriceCards.forEach(function (item) {
+          item.classList.toggle('recommended', item === card);
+        });
+
+        if (summaryPlanTitle) summaryPlanTitle.textContent = planName;
+        if (summaryPlanDesc) summaryPlanDesc.textContent = planDesc;
+        if (summaryPlanPrice) summaryPlanPrice.textContent = formatSAR(price);
+        if (summaryPlanDuration) summaryPlanDuration.textContent = duration;
+        if (summaryPlanCapacity) summaryPlanCapacity.textContent = capacityLabel;
+        if (summaryCta) summaryCta.textContent = ctaLabel;
+
+        if (summaryPoints) {
+          summaryPoints.innerHTML = features.map(function (feature) {
+            return '<li><i class="fa-solid fa-check"></i><span>' + feature + '</span></li>';
+          }).join('');
+        }
+      }
+
+      function updateAdvisor(users) {
+        if (usersOutput) usersOutput.textContent = String(users);
+        const card = getRecommendedCard(users, activePeriod);
+        renderSummary(card, users, activePeriod);
+        activateClosestTag(users);
       }
 
       periodButtons.forEach(function (button) {
         button.addEventListener('click', function () {
-          togglePeriod(button.dataset.period || '6m');
+          if (button.disabled) return;
+          activePeriod = button.getAttribute('data-period') || '6m';
+          if (pricingShell) pricingShell.setAttribute('data-active-period', activePeriod);
+          periodButtons.forEach(function (item) {
+            item.classList.toggle('active', item === button);
+          });
+          syncPeriodCards(activePeriod);
+          const currentUsers = usersRange
+            ? parseInt(usersRange.value || '50', 10)
+            : parseInt((allPriceCards[0] && allPriceCards[0].getAttribute('data-capacity')) || '50', 10);
+          updateAdvisor(currentUsers);
         });
       });
 
-      togglePeriod('6m');
+      if (usersRange) {
+        usersRange.addEventListener('input', function () {
+          updateAdvisor(parseInt(usersRange.value || '50', 10));
+        });
+      }
+
+      advisorTags.forEach(function (tag) {
+        tag.addEventListener('click', function () {
+          const value = parseInt(tag.getAttribute('data-users') || '50', 10);
+          if (usersRange) usersRange.value = String(value);
+          updateAdvisor(value);
+        });
+      });
+
+      if (allPriceCards.length) {
+        syncPeriodCards(activePeriod);
+        const initialUsers = usersRange
+          ? parseInt(usersRange.value || '50', 10)
+          : parseInt(allPriceCards[0].getAttribute('data-capacity') || '50', 10);
+        updateAdvisor(initialUsers);
+      }
+
+      /* ── Scroll-reveal with IntersectionObserver ── */
+      (function initReveal() {
+        var els = document.querySelectorAll('.reveal, .reveal-scale');
+        if (!els.length) return;
+        if (!('IntersectionObserver' in window)) {
+          /* Fallback: show everything immediately */
+          els.forEach(function (el) { el.classList.add('visible'); });
+          return;
+        }
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+        els.forEach(function (el) { observer.observe(el); });
+      }());
+
+      /* ── Animated counter for proof numbers ── */
+      (function initCounters() {
+        var counters = document.querySelectorAll('[data-count-to]');
+        if (!counters.length) return;
+        if (!('IntersectionObserver' in window)) {
+          counters.forEach(function (el) { el.textContent = el.getAttribute('data-count-to'); });
+          return;
+        }
+        var cObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            var el = entry.target;
+            var target = parseInt(el.getAttribute('data-count-to'), 10);
+            var suffix = el.getAttribute('data-count-suffix') || '';
+            var duration = 1600;
+            var start = performance.now();
+            function tick(now) {
+              var t = Math.min((now - start) / duration, 1);
+              /* ease-out cubic */
+              var eased = 1 - Math.pow(1 - t, 3);
+              el.textContent = Math.round(eased * target) + suffix;
+              if (t < 1) requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+            cObserver.unobserve(el);
+          });
+        }, { threshold: 0.5 });
+        counters.forEach(function (el) { cObserver.observe(el); });
+      }());
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {

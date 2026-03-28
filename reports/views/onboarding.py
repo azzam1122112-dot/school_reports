@@ -72,11 +72,11 @@ class SchoolRegistrationForm(forms.Form):
     )
     password = forms.CharField(
         label="كلمة المرور", min_length=6,
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password"}),
     )
     password_confirm = forms.CharField(
         label="تأكيد كلمة المرور",
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password"}),
     )
 
     def clean_school_code(self):

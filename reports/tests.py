@@ -1619,3 +1619,102 @@ class DailyManagerReportTaskTests(TestCase):
 				teacher=self.manager,
 			).exists()
 		)
+
+
+class LandingPricingDynamicTests(TestCase):
+	def setUp(self):
+		SubscriptionPlan.objects.create(
+			name="تجربة مجانية",
+			price=0,
+			days_duration=14,
+			max_teachers=5,
+			description="تفعيل مباشر\nتجربة عملية للنظام",
+			is_active=True,
+		)
+		SubscriptionPlan.objects.create(
+			name="باقة 25 مستخدم",
+			price=699,
+			days_duration=180,
+			max_teachers=25,
+			description="مناسبة للمدارس الصغيرة\nتقارير وتذاكر وتعاميم\nدعم تشغيل",
+			is_active=True,
+		)
+		SubscriptionPlan.objects.create(
+			name="باقة 50 مستخدم - نصف سنوي",
+			price=999,
+			days_duration=180,
+			max_teachers=50,
+			description="الأكثر طلباً للتشغيل الكامل\nصلاحيات وأدوار متعددة\nمخرجات PDF رسمية",
+			is_active=True,
+		)
+		SubscriptionPlan.objects.create(
+			name="باقة 50 مستخدم - سنوي",
+			price=999,
+			days_duration=365,
+			max_teachers=50,
+			description="الأكثر طلباً للتشغيل الكامل\nصلاحيات وأدوار متعددة\nمخرجات PDF رسمية",
+			is_active=True,
+		)
+		SubscriptionPlan.objects.create(
+			name="باقة مخفية",
+			price=1500,
+			days_duration=365,
+			max_teachers=80,
+			description="يجب ألا تظهر",
+			is_active=False,
+		)
+
+	def test_landing_pricing_uses_active_plans_only(self):
+		res = self.client.get(reverse("reports:landing"))
+		self.assertEqual(res.status_code, 200)
+
+		trial_plan = res.context["pricing_trial_plan"]
+		cards = res.context["pricing_cards"]
+		names = [card["name"] for card in cards]
+
+		self.assertEqual(trial_plan["name"], "التجربة المجانية")
+		self.assertIn("باقة 25 مستخدم", names)
+		self.assertIn("باقة 50 مستخدم", names)
+		self.assertNotIn("باقة مخفية", names)
+
+		self.assertContains(res, "14 يوم تجريبية")
+		self.assertContains(res, 'data-period="6m"')
+		self.assertContains(res, 'data-period="1y"')
+		self.assertContains(res, "باقة 25 مستخدم")
+		self.assertContains(res, "باقة 50 مستخدم")
+		self.assertNotContains(res, "باقة مخفية")
+
+	def test_landing_pricing_builds_advisor_context(self):
+		res = self.client.get(reverse("reports:landing"))
+		self.assertEqual(res.status_code, 200)
+
+		recommended = res.context["pricing_recommended"]
+		slider = res.context["pricing_slider"]
+		marks = res.context["advisor_marks"]
+		periods = res.context["pricing_periods"]
+
+		self.assertIsNotNone(recommended)
+		self.assertEqual(recommended["name"], "باقة 50 مستخدم")
+		self.assertEqual(res.context["pricing_initial_period"], "6m")
+		self.assertEqual(slider["min"], 5)
+		self.assertGreaterEqual(slider["max"], 50)
+		self.assertTrue(len(marks) >= 1)
+		self.assertTrue(any(m["active"] for m in marks))
+		self.assertTrue(any(period["key"] == "6m" and period["available"] for period in periods))
+		self.assertTrue(any(period["key"] == "1y" and period["available"] for period in periods))
+
+
+class SuperuserStaffRegressionTests(TestCase):
+	def test_superuser_save_preserves_staff_flag(self):
+		user = Teacher.objects.create_superuser(
+			phone="0555000011",
+			name="Root Admin",
+			password="pass12345",
+		)
+
+		user.is_staff = False
+		user.save()
+		user.refresh_from_db()
+
+		self.assertTrue(user.is_superuser)
+		self.assertTrue(user.is_staff)

@@ -139,6 +139,29 @@
     }
     .login-link a { color: var(--brand); text-decoration: none; font-weight: 600; }
     .login-link a:hover { text-decoration: underline; }
+    .close-btn {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 50%;
+      background: var(--brand-light);
+      color: var(--brand);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s, transform .15s;
+      text-decoration: none;
+    }
+    .close-btn:hover {
+      background: var(--brand);
+      color: #fff;
+      transform: scale(1.1);
+    }
     @media (max-width: 500px) {
       .card { padding: 1.5rem; }
       .row { flex-direction: column; gap: 0; }
@@ -146,7 +169,10 @@
   </style>
 </head>
 <body>
-  <div class="card">
+  <div class="card" style="position:relative;">
+    <a href="{% url 'reports:landing' %}" class="close-btn" aria-label="العودة للصفحة الرئيسية" title="العودة للصفحة الرئيسية">
+      <i class="fas fa-times"></i>
+    </a>
     <h1><i class="fas fa-school"></i> تسجيل مدرسة جديدة</h1>
     <p class="subtitle">ابدأ فترة التجربة المجانية الآن</p>
 
