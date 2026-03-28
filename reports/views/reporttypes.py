@@ -63,7 +63,7 @@ def reporttype_create(request: HttpRequest) -> HttpResponse:
                 fields = ("name", "code", "description", "order", "is_active")
         FormCls = _RTForm
 
-    form = FormCls(request.POST or None)
+    form = FormCls(request.POST or None, active_school=active_school)
     if request.method == "POST":
         if form.is_valid():
             obj = form.save(commit=False)
@@ -106,7 +106,7 @@ def reporttype_update(request: HttpRequest, pk: int) -> HttpResponse:
                 fields = ("name", "code", "description", "order", "is_active")
         FormCls = _RTForm
 
-    form = FormCls(request.POST or None, instance=obj)
+    form = FormCls(request.POST or None, instance=obj, active_school=active_school)
     if request.method == "POST":
         if form.is_valid():
             form.save()

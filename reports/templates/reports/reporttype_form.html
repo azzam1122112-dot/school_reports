@@ -213,12 +213,7 @@
           <label class="smart-label" for="{{ form.name.id_for_label }}">الاسم</label>
           {{ form.name }}
           {% if form.name.errors %}<div class="smart-error">{{ form.name.errors.0 }}</div>{% endif %}
-        </div>
-        <div class="smart-section">
-          <label class="smart-label" for="{{ form.code.id_for_label }}">الرمز (code)</label>
-          {{ form.code }}
-          <div class="smart-help">يُفضل أحرف إنجليزية صغيرة وشرطة سفلية. مثال: <code>activity</code> أو <code>school_affairs</code>.</div>
-          {% if form.code.errors %}<div class="smart-error">{{ form.code.errors.0 }}</div>{% endif %}
+          <div class="smart-help">سيتم إنشاء الرمز الداخلي تلقائيًا من الاسم ولا يلزم إدخاله يدويًا.</div>
         </div>
         {% if form.description %}
           <div class="smart-section">

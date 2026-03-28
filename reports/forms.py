@@ -1388,6 +1388,70 @@ class DepartmentForm(forms.ModelForm):
                 rt_qs = rt_qs.filter(school=active_school)
             self.fields["reporttypes"].queryset = rt_qs
 
+
+class ReportTypeForm(forms.ModelForm):
+    """Report type form with an internal auto-generated code."""
+
+    class Meta:
+        model = ReportType
+        fields = ["name", "description", "order", "is_active"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "smart-input", "maxlength": "120"}),
+            "description": forms.Textarea(attrs={"class": "smart-input", "rows": 6}),
+            "order": forms.NumberInput(attrs={"class": "smart-input", "min": "0", "inputmode": "numeric"}),
+            "is_active": forms.CheckboxInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.active_school = kwargs.pop("active_school", None)
+        super().__init__(*args, **kwargs)
+
+    def _slugify_english(self, text: str) -> str:
+        try:
+            from unidecode import unidecode  # type: ignore
+
+            text = unidecode(text or "")
+        except Exception:
+            pass
+        return slugify(text or "", allow_unicode=False)
+
+    def _generate_unique_code(self, name: str) -> str:
+        max_length = ReportType._meta.get_field("code").max_length
+        base_code = self._slugify_english((name or "").strip()) or "report-type"
+        base_code = base_code[:max_length]
+
+        school = self.active_school
+        if school is None and getattr(self.instance, "school_id", None):
+            school = getattr(self.instance, "school", None)
+
+        qs = ReportType.objects.all()
+        if school is not None and hasattr(ReportType, "school"):
+            qs = qs.filter(school=school)
+        elif hasattr(ReportType, "school"):
+            qs = qs.filter(school__isnull=True)
+
+        if getattr(self.instance, "pk", None):
+            qs = qs.exclude(pk=self.instance.pk)
+
+        candidate = base_code
+        suffix_index = 2
+        while qs.filter(code=candidate).exists():
+            suffix = f"-{suffix_index}"
+            prefix_max = max_length - len(suffix)
+            candidate = f"{base_code[:prefix_max]}{suffix}"
+            suffix_index += 1
+
+        return candidate
+
+    def save(self, commit: bool = True):
+        instance = super().save(commit=False)
+        if hasattr(instance, "school") and self.active_school is not None:
+            instance.school = self.active_school
+        instance.code = self._generate_unique_code(self.cleaned_data.get("name") or instance.name or "")
+        if commit:
+            instance.save()
+        return instance
+
 # ==============================
 # 📌 إنشاء إشعار
 # ==============================

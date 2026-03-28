@@ -12,6 +12,7 @@ from .models import (
 	Notification,
 	NotificationRecipient,
 	Report,
+	ReportType,
 	School,
 	SchoolMembership,
 	SchoolSubscription,
@@ -1804,6 +1805,53 @@ class SchoolRegistrationAutoCodeTests(TestCase):
 		self.assertNotEqual(school.code, "manual-override")
 		self.assertLessEqual(len(school.code), 64)
 		self.assertNotIn(" ", school.code)
+
+
+class ReportTypeAutoCodeTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="Report Type School", code="report-type-school")
+		plan = SubscriptionPlan.objects.create(name="Report Type Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+		self.manager = Teacher.objects.create_user(phone="0500000410", name="Report Type Manager", password="pass12345")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.client.force_login(self.manager)
+		session = self.client.session
+		session["active_school_id"] = self.school.id
+		session.save()
+
+	def test_reporttype_page_hides_code_input(self):
+		res = self.client.get(reverse("reports:reporttype_create"))
+		self.assertEqual(res.status_code, 200)
+		self.assertNotContains(res, 'name="code"')
+		self.assertNotContains(res, 'id="id_code"')
+		self.assertContains(res, "سيتم إنشاء الرمز الداخلي تلقائيًا")
+
+	def test_reporttype_create_ignores_posted_code_and_generates_it(self):
+		res = self.client.post(
+			reverse("reports:reporttype_create"),
+			{
+				"name": "Activity Report",
+				"code": "manual-override",
+				"description": "Auto code test",
+				"order": "1",
+				"is_active": "on",
+			},
+		)
+		self.assertEqual(res.status_code, 302)
+
+		report_type = ReportType.objects.get(school=self.school, name="Activity Report")
+		self.assertTrue(report_type.code)
+		self.assertEqual(report_type.code, "activity-report")
+		self.assertNotEqual(report_type.code, "manual-override")
+		self.assertNotIn(" ", report_type.code)
 
 
 class SuperuserStaffRegressionTests(TestCase):
