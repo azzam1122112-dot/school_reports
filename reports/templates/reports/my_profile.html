@@ -117,6 +117,68 @@
     margin: 0;
     line-height: 1.6;
   }
+
+  .profile-security-alert {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(251, 191, 36, 0.22) 100%);
+    border: 2px solid rgba(245, 158, 11, 0.32);
+    border-radius: var(--prof-radius-lg);
+    box-shadow: var(--prof-shadow-md);
+  }
+
+  .profile-security-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+    padding: 0.45rem 0.9rem;
+    margin-bottom: 0.9rem;
+    background: rgba(146, 64, 14, 0.12);
+    color: #92400e;
+    border: 1px solid rgba(146, 64, 14, 0.16);
+    border-radius: var(--prof-radius-full);
+    font-size: 0.875rem;
+    font-weight: 800;
+  }
+
+  .profile-security-title {
+    margin: 0 0 0.6rem 0;
+    color: #7c2d12;
+    font-size: 1.35rem;
+    font-weight: 800;
+  }
+
+  .profile-security-text {
+    margin: 0;
+    color: #78350f;
+    line-height: 1.9;
+    font-weight: 600;
+  }
+
+  .profile-security-points {
+    margin: 1rem 0 0 0;
+    padding: 0 1.1rem 0 0;
+    color: #78350f;
+    line-height: 1.9;
+    font-weight: 600;
+  }
+
+  .profile-security-icon {
+    width: 74px;
+    height: 74px;
+    display: grid;
+    place-items: center;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.65);
+    color: #b45309;
+    font-size: 1.75rem;
+    box-shadow: var(--prof-shadow-sm);
+  }
   
   /* ========== Grid Layout ========== */
   
@@ -327,6 +389,13 @@
     content: '⚠️';
     font-size: 1rem;
   }
+
+  .profile-form-hint {
+    color: var(--prof-text-light);
+    font-size: 0.875rem;
+    line-height: 1.8;
+    font-weight: 600;
+  }
   
   .profile-form-errors-global {
     padding: 1rem 1.25rem;
@@ -374,6 +443,16 @@
   .profile-divider {
     height: 2rem;
   }
+
+  .profile-locked-box {
+    padding: 1rem 1.15rem;
+    background: rgba(6, 182, 212, 0.08);
+    border: 1px dashed rgba(6, 182, 212, 0.35);
+    border-radius: var(--prof-radius-md);
+    color: var(--prof-text);
+    line-height: 1.8;
+    font-weight: 600;
+  }
   
   /* ========== Responsive Design ========== */
   
@@ -411,6 +490,14 @@
     
     .profile-card-title {
       font-size: 1.25rem;
+    }
+
+    .profile-security-alert {
+      grid-template-columns: 1fr;
+    }
+
+    .profile-security-icon {
+      order: -1;
     }
     
     .profile-info-row {
@@ -472,6 +559,30 @@
       </div>
     </header>
 
+    {% if force_password_change %}
+      <section class="profile-security-alert" aria-label="تنبيه أمني">
+        <div>
+          <span class="profile-security-badge">
+            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+            <span>مطلوب الآن</span>
+          </span>
+          <h2 class="profile-security-title">خطوة سريعة لحماية حسابك</h2>
+          <p class="profile-security-text">
+            كلمة المرور الحالية ما زالت مطابقة لرقم الجوال، وهذا يجعل الوصول إلى الحساب أسهل من اللازم.
+            غيّرها الآن إلى كلمة خاصة بك حتى تبقى بياناتك وبيانات المدرسة أكثر أمانًا.
+          </p>
+          <ul class="profile-security-points">
+            <li>اكتب رقم الجوال الحالي في خانة كلمة المرور الحالية.</li>
+            <li>اختر كلمة مرور جديدة لا يعرفها غيرك.</li>
+            <li>بعد الحفظ سيعود الحساب للعمل بشكل طبيعي.</li>
+          </ul>
+        </div>
+        <div class="profile-security-icon" aria-hidden="true">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+      </section>
+    {% endif %}
+
     <!-- Profile Grid -->
     <div class="profile-grid">
       
@@ -529,33 +640,40 @@
           <span>تحديث البيانات</span>
         </h2>
 
-        <!-- Phone Update Form -->
-        <form method="post" class="profile-form" novalidate>
-          {% csrf_token %}
-          <div class="profile-form-group">
-            <label class="profile-form-label" for="{{ phone_form.phone.id_for_label }}">
-              <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
-              <span>{{ phone_form.phone.label }}</span>
-            </label>
-            <input 
-              type="text" 
-              name="{{ phone_form.phone.html_name }}" 
-              id="{{ phone_form.phone.id_for_label }}"
-              value="{{ phone_form.phone.value|default:'' }}"
-              class="profile-form-input"
-              {% if phone_form.phone.field.required %}required{% endif %}
-            >
-            {% if phone_form.phone.errors %}
-              <div class="profile-form-error">{{ phone_form.phone.errors|striptags }}</div>
-            {% endif %}
+        {% if force_password_change %}
+          <div class="profile-locked-box">
+            تحديث رقم الجوال متاح بعد إتمام تغيير كلمة المرور أولاً حتى نركّز على تأمين الحساب في هذه الخطوة.
           </div>
-          <button type="submit" name="update_phone" class="profile-btn profile-btn-primary">
-            <i class="fa-solid fa-check" aria-hidden="true"></i>
-            <span>تحديث رقم الجوال</span>
-          </button>
-        </form>
+          <div class="profile-divider"></div>
+        {% else %}
+          <!-- Phone Update Form -->
+          <form method="post" class="profile-form" novalidate>
+            {% csrf_token %}
+            <div class="profile-form-group">
+              <label class="profile-form-label" for="{{ phone_form.phone.id_for_label }}">
+                <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+                <span>{{ phone_form.phone.label }}</span>
+              </label>
+              <input 
+                type="text" 
+                name="{{ phone_form.phone.html_name }}" 
+                id="{{ phone_form.phone.id_for_label }}"
+                value="{{ phone_form.phone.value|default:'' }}"
+                class="profile-form-input"
+                {% if phone_form.phone.field.required %}required{% endif %}
+              >
+              {% if phone_form.phone.errors %}
+                <div class="profile-form-error">{{ phone_form.phone.errors|striptags }}</div>
+              {% endif %}
+            </div>
+            <button type="submit" name="update_phone" class="profile-btn profile-btn-primary">
+              <i class="fa-solid fa-check" aria-hidden="true"></i>
+              <span>تحديث رقم الجوال</span>
+            </button>
+          </form>
 
-        <div class="profile-divider"></div>
+          <div class="profile-divider"></div>
+        {% endif %}
 
         <!-- Password Update Form -->
         <form method="post" class="profile-form" novalidate>
@@ -577,8 +695,12 @@
               name="{{ pwd_form.old_password.html_name }}" 
               id="{{ pwd_form.old_password.id_for_label }}"
               class="profile-form-input"
+              {% if force_password_change %}autofocus{% endif %}
               {% if pwd_form.old_password.field.required %}required{% endif %}
             >
+            {% if force_password_change %}
+              <div class="profile-form-hint">كلمة المرور الحالية هي رقم الجوال الحالي المسجّل على الحساب.</div>
+            {% endif %}
             {% if pwd_form.old_password.errors %}
               <div class="profile-form-error">{{ pwd_form.old_password.errors|striptags }}</div>
             {% endif %}
@@ -620,7 +742,7 @@
 
           <button type="submit" name="update_password" class="profile-btn profile-btn-primary">
             <i class="fa-solid fa-lock-open" aria-hidden="true"></i>
-            <span>تحديث كلمة المرور</span>
+            <span>{% if force_password_change %}تغيير كلمة المرور الآن{% else %}تحديث كلمة المرور{% endif %}</span>
           </button>
         </form>
       </div>

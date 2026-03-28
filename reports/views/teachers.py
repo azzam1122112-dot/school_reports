@@ -477,7 +477,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
         # إنشاء معلّم فقط: بدون قسم/بدون دور داخل قسم. التكاليف تتم من صفحة أعضاء القسم.
-        form = TeacherCreateForm(request.POST)
+        form = TeacherCreateForm(request.POST, active_school=active_school)
         job_title = None
         try:
             # يحدد المسمى الوظيفي داخل المدرسة (بنفس الصلاحيات)
@@ -596,7 +596,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
         else:
             messages.error(request, "الرجاء تصحيح الأخطاء الظاهرة.")
     else:
-        form = TeacherCreateForm()
+        form = TeacherCreateForm(active_school=active_school)
     return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
 
 @login_required(login_url="reports:login")

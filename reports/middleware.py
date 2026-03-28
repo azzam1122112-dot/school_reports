@@ -15,6 +15,8 @@ import threading
 
 _thread_locals = threading.local()
 
+FORCE_PASSWORD_CHANGE_SESSION_KEY = "force_password_change_required"
+
 def get_current_request():
     return getattr(_thread_locals, "request", None)
 
@@ -26,6 +28,52 @@ def set_audit_logging_suppressed(value: bool) -> None:
 
 def is_audit_logging_suppressed() -> bool:
     return bool(getattr(_thread_locals, "suppress_audit_logging", False))
+
+
+def has_default_phone_password(user) -> bool:
+    """Return True when the current password still matches the user's phone."""
+    try:
+        if not getattr(user, "is_authenticated", False):
+            return False
+        phone = (getattr(user, "phone", "") or "").strip()
+        if not phone:
+            return False
+        return bool(user.check_password(phone))
+    except Exception:
+        return False
+
+
+def is_force_password_change_required(request) -> bool:
+    """Persist and expose the forced-password-change state on the request."""
+    user = getattr(request, "user", None)
+    if not getattr(user, "is_authenticated", False):
+        setattr(request, "force_password_change_required", False)
+        return False
+
+    try:
+        session_required = bool(request.session.get(FORCE_PASSWORD_CHANGE_SESSION_KEY))
+    except Exception:
+        session_required = False
+
+    required = bool(session_required or has_default_phone_password(user))
+    try:
+        if required:
+            request.session[FORCE_PASSWORD_CHANGE_SESSION_KEY] = True
+        else:
+            request.session.pop(FORCE_PASSWORD_CHANGE_SESSION_KEY, None)
+    except Exception:
+        pass
+
+    setattr(request, "force_password_change_required", required)
+    return required
+
+
+def clear_force_password_change_flag(request) -> None:
+    try:
+        request.session.pop(FORCE_PASSWORD_CHANGE_SESSION_KEY, None)
+    except Exception:
+        pass
+    setattr(request, "force_password_change_required", False)
 
 class AuditLogMiddleware:
     def __init__(self, get_response):
@@ -386,6 +434,81 @@ class SubscriptionMiddleware:
         return self.get_response(request)
 
 
+class ForcePasswordChangeMiddleware:
+    """Redirect users with the default phone-based password to the profile page."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def _wants_json(self, request) -> bool:
+        try:
+            accept = (request.headers.get("Accept") or "").lower()
+            xrw = (request.headers.get("X-Requested-With") or "").lower()
+            return ("application/json" in accept) or (xrw == "xmlhttprequest")
+        except Exception:
+            return False
+
+    def _wants_html(self, request) -> bool:
+        try:
+            headers = request.headers
+            accept = (headers.get("Accept") or "").lower()
+            sec_fetch_mode = (headers.get("Sec-Fetch-Mode") or "").lower()
+            sec_fetch_dest = (headers.get("Sec-Fetch-Dest") or "").lower()
+            if "text/html" in accept:
+                return True
+            if sec_fetch_mode == "navigate" or sec_fetch_dest == "document":
+                return True
+        except Exception:
+            pass
+        return False
+
+    def __call__(self, request):
+        if request.path.startswith("/static/") or request.path.startswith("/media/"):
+            return self.get_response(request)
+
+        user = getattr(request, "user", None)
+        if not getattr(user, "is_authenticated", False):
+            setattr(request, "force_password_change_required", False)
+            return self.get_response(request)
+
+        if not is_force_password_change_required(request):
+            return self.get_response(request)
+
+        allowed_names = {
+            "reports:my_profile",
+            "reports:logout",
+            "reports:unread_notifications_count",
+            "reports:subscription_expired",
+            "reports:my_subscription",
+            "reports:payment_create",
+            "reports:switch_school",
+            "service_worker",
+        }
+
+        try:
+            match = resolve(request.path_info)
+            url_name = match.url_name
+            namespace = match.namespace
+            full_name = f"{namespace}:{url_name}" if namespace else (url_name or "")
+        except Exception:
+            full_name = ""
+
+        if full_name in allowed_names:
+            return self.get_response(request)
+
+        if self._wants_json(request):
+            return JsonResponse({"detail": "password_change_required"}, status=403)
+
+        if not self._wants_html(request):
+            return HttpResponse("password_change_required", status=403, content_type="text/plain")
+
+        messages.warning(
+            request,
+            "لأمان حسابك، يلزم تغيير كلمة المرور الحالية أولاً لأنها مطابقة لرقم الجوال.",
+        )
+        return redirect("reports:my_profile")
+
+
 class PlatformAdminAccessMiddleware:
     """Restrict platform-admin accounts to a small allowlist of read/communicate pages.
 
@@ -568,6 +691,17 @@ class ReportViewerAccessMiddleware:
 
         # إن لم يكن مشرف تقارير، لا نتدخل
         if not self._is_report_viewer(request, active_school_id):
+            return self.get_response(request)
+
+        try:
+            match = resolve(request.path_info)
+            url_name = match.url_name
+            namespace = match.namespace
+            full_name = f"{namespace}:{url_name}" if namespace else (url_name or "")
+        except Exception:
+            full_name = ""
+
+        if bool(getattr(request, "force_password_change_required", False)) and full_name == "reports:my_profile":
             return self.get_response(request)
 
         # منع أي عمليات كتابة تمامًا

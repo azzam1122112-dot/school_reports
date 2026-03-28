@@ -271,6 +271,7 @@ MIDDLEWARE = [
     "reports.middleware.IdleLogoutMiddleware",
     "reports.middleware.ActiveSchoolGuardMiddleware",
     "reports.middleware.SubscriptionMiddleware",
+    "reports.middleware.ForcePasswordChangeMiddleware",
     "reports.middleware.PlatformAdminAccessMiddleware",
     "reports.middleware.ReportViewerAccessMiddleware",
     "reports.middleware.ContentSecurityPolicyMiddleware",

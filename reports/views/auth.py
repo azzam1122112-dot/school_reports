@@ -13,7 +13,18 @@ from ._helpers import (
     _is_staff, _safe_next_url, _set_active_school,
     _get_active_school, _user_schools, _is_report_viewer,
 )
+from ..middleware import (
+    clear_force_password_change_flag,
+    is_force_password_change_required,
+)
 from ..permissions import has_legacy_manager_role
+
+
+def _force_password_change_notice() -> str:
+    return (
+        "لحماية حسابك وبيانات المدرسة، يلزم تغيير كلمة المرور الحالية الآن "
+        "لأنها ما زالت مطابقة لرقم الجوال."
+    )
 
 
 def _landing_duration_label(days: int) -> str:
@@ -147,6 +158,8 @@ def _landing_card_title(capacity: int, is_unlimited: bool) -> str:
 @require_http_methods(["GET", "POST"])
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
+        if is_force_password_change_required(request):
+            return redirect("reports:my_profile")
         # إن كان المستخدم موظّف لوحة (مدير/سوبر أدمن) نوجّهه للوحة المناسبة
         if getattr(request.user, "is_superuser", False):
             return redirect("reports:platform_admin_dashboard")
@@ -217,7 +230,11 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     # هذا يحدث أحياناً لحسابات قديمة أو حسابات لم تُربط بعد.
                     if not memberships.exists():
                         login(request, user)
+                        force_password_change = is_force_password_change_required(request)
                         messages.warning(request, "تنبيه: حسابك غير مرتبط بمدرسة فعّالة. تواصل مع إدارة النظام لربط الحساب بالمدرسة.")
+                        if force_password_change:
+                            messages.warning(request, _force_password_change_notice())
+                            return redirect("reports:my_profile")
                         next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
                         if getattr(user, "is_superuser", False):
                             default_name = "reports:platform_admin_dashboard"
@@ -253,7 +270,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
                         sub = None
                         try:
-                            sub = getattr(m.school, 'subscription', None)
+                            sub = getattr(m.school, "subscription", None)
                         except Exception:
                             sub = None
 
@@ -267,6 +284,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                         if is_any_manager and manager_school is not None:
                             # المدير يُسمح له بالدخول للتجديد فقط
                             login(request, user)
+                            is_force_password_change_required(request)
                             _set_active_school(request, manager_school)
                             return redirect("reports:subscription_expired")
 
@@ -299,6 +317,11 @@ def login_view(request: HttpRequest) -> HttpResponse:
                             _set_active_school(request, s)
             except Exception:
                 pass
+
+            force_password_change = is_force_password_change_required(request)
+            if force_password_change:
+                messages.warning(request, _force_password_change_notice())
+                return redirect("reports:my_profile")
 
             next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
             # الوجهة الافتراضية حسب الدور
@@ -347,13 +370,15 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 def my_profile(request: HttpRequest) -> HttpResponse:
     """بروفايل المستخدم الحالي.
 
-    - متاح لكل المستخدمين ما عدا (مشرف تقارير - عرض فقط).
+    - متاح لكل المستخدمين.
+    - حساب (مشرف تقارير - عرض فقط) لا يدخلها عادةً، ويُسمح له بها فقط عند إجباره على تغيير كلمة المرور.
     - يعرض الاسم + المدارس المسندة.
     - يسمح بتغيير رقم الجوال + تغيير كلمة المرور.
     """
 
     active_school = _get_active_school(request)
-    if _is_report_viewer(request.user, active_school) or _is_report_viewer(request.user):
+    force_password_change = is_force_password_change_required(request)
+    if (not force_password_change) and (_is_report_viewer(request.user, active_school) or _is_report_viewer(request.user)):
         messages.error(request, "هذا الحساب للعرض فقط ولا يملك صفحة بروفايل.")
         return redirect("reports:school_reports_readonly")
 
@@ -368,6 +393,9 @@ def my_profile(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
         if "update_phone" in request.POST:
+            if force_password_change:
+                messages.info(request, "لتأمين الحساب أولاً، غيّر كلمة المرور ثم سيصبح تحديث رقم الجوال متاحًا مباشرة.")
+                return redirect("reports:my_profile")
             phone_form = MyProfilePhoneForm(request.POST, instance=request.user, prefix="phone")
             if phone_form.is_valid():
                 try:
@@ -381,6 +409,14 @@ def my_profile(request: HttpRequest) -> HttpResponse:
             if pwd_form.is_valid():
                 user = pwd_form.save()
                 update_session_auth_hash(request, user)
+                try:
+                    new_session_key = request.session.session_key or ""
+                    if new_session_key and getattr(user, "current_session_key", "") != new_session_key:
+                        user.current_session_key = new_session_key
+                        user.save(update_fields=["current_session_key"])
+                except Exception:
+                    pass
+                clear_force_password_change_flag(request)
 
                 # إرسال إيميل تأكيد تغيير كلمة المرور (في الخلفية)
                 try:
@@ -398,6 +434,7 @@ def my_profile(request: HttpRequest) -> HttpResponse:
         "memberships": memberships,
         "phone_form": phone_form,
         "pwd_form": pwd_form,
+        "force_password_change": force_password_change,
     }
     return render(request, "reports/my_profile.html", ctx)
 

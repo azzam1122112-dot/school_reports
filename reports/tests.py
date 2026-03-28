@@ -5,6 +5,7 @@ from django.test import TestCase, RequestFactory, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from .middleware import FORCE_PASSWORD_CHANGE_SESSION_KEY
 from .models import (
 	Department,
 	DepartmentMembership,
@@ -1090,6 +1091,72 @@ class TeacherEditFormRegressionTests(TestCase):
 		membership.refresh_from_db()
 		self.assertEqual(membership.job_title, SchoolMembership.JobTitle.ADMIN_STAFF)
 
+	def test_job_title_choices_follow_school_gender(self):
+		from .forms import TeacherCreateForm, TeacherEditForm
+
+		girls_school = School.objects.create(
+			name="Girls Teacher Form School",
+			code="girls-teacher-form-school",
+			gender=School.Gender.GIRLS,
+		)
+		boys_school = School.objects.create(
+			name="Boys Teacher Form School",
+			code="boys-teacher-form-school",
+			gender=School.Gender.BOYS,
+		)
+		teacher = Teacher.objects.create_user(phone="0500000312", name="Edit Form Teacher", password="pass")
+
+		girls_form = TeacherCreateForm(active_school=girls_school)
+		self.assertEqual(
+			list(girls_form.fields["job_title"].choices),
+			[
+				(SchoolMembership.JobTitle.TEACHER, "معلمة"),
+				(SchoolMembership.JobTitle.ADMIN_STAFF, "موظفة إدارية"),
+				(SchoolMembership.JobTitle.LAB_TECH, "محضرة مختبر"),
+			],
+		)
+
+		boys_form = TeacherEditForm(instance=teacher, active_school=boys_school)
+		self.assertEqual(
+			list(boys_form.fields["job_title"].choices),
+			[
+				(SchoolMembership.JobTitle.TEACHER, "معلم"),
+				(SchoolMembership.JobTitle.ADMIN_STAFF, "موظف إداري"),
+				(SchoolMembership.JobTitle.LAB_TECH, "محضر مختبر"),
+			],
+		)
+
+
+class AddTeacherGenderedLabelsViewTests(TestCase):
+	def test_add_teacher_page_uses_feminine_job_titles_for_girls_school(self):
+		girls_school = School.objects.create(
+			name="Girls Add Teacher School",
+			code="girls-add-teacher-school",
+			gender=School.Gender.GIRLS,
+		)
+		plan = SubscriptionPlan.objects.create(name="Girls View Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=girls_school, plan=plan, start_date=today, end_date=today)
+
+		manager = Teacher.objects.create_user(phone="0500000313", name="Girls Manager", password="pass")
+		SchoolMembership.objects.create(
+			school=girls_school,
+			teacher=manager,
+			role_type=SchoolMembership.RoleType.MANAGER,
+			is_active=True,
+		)
+
+		self.client.force_login(manager)
+		session = self.client.session
+		session["active_school_id"] = girls_school.id
+		session.save()
+
+		res = self.client.get(reverse("reports:add_teacher"))
+		self.assertEqual(res.status_code, 200)
+		self.assertContains(res, '<option value="teacher">معلمة</option>', html=True)
+		self.assertContains(res, '<option value="admin_staff">موظفة إدارية</option>', html=True)
+		self.assertContains(res, '<option value="lab_tech">محضرة مختبر</option>', html=True)
+
 
 class LegacyRoleCompatibilityServiceTests(TestCase):
 	def test_legacy_role_write_surfaces_inventory_is_centralized(self):
@@ -1753,3 +1820,104 @@ class SuperuserStaffRegressionTests(TestCase):
 
 		self.assertTrue(user.is_superuser)
 		self.assertTrue(user.is_staff)
+
+
+class ForcedPasswordChangeFlowTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="Secure School", code="secure-school")
+		plan = SubscriptionPlan.objects.create(name="Security Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+		self.teacher_phone = "0501234567"
+		self.teacher = Teacher.objects.create_user(
+			phone=self.teacher_phone,
+			name="Teacher Secure",
+			password=self.teacher_phone,
+		)
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.teacher,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+
+	def _login_with_default_password(self, phone):
+		return self.client.post(
+			reverse("reports:login"),
+			{
+				"phone": phone,
+				"password": phone,
+			},
+		)
+
+	def test_login_with_default_phone_password_redirects_to_profile(self):
+		res = self._login_with_default_password(self.teacher_phone)
+
+		self.assertEqual(res.status_code, 302)
+		self.assertEqual(res["Location"], reverse("reports:my_profile"))
+		self.assertTrue(bool(self.client.session.get(FORCE_PASSWORD_CHANGE_SESSION_KEY)))
+
+		profile = self.client.get(reverse("reports:my_profile"))
+		self.assertEqual(profile.status_code, 200)
+		self.assertContains(profile, "خطوة سريعة لحماية حسابك")
+
+	def test_forced_password_change_blocks_navigation_until_password_changes(self):
+		self._login_with_default_password(self.teacher_phone)
+
+		home = self.client.get(reverse("reports:home"), HTTP_ACCEPT="text/html")
+		self.assertEqual(home.status_code, 302)
+		self.assertEqual(home["Location"], reverse("reports:my_profile"))
+
+		phone_update = self.client.post(
+			reverse("reports:my_profile"),
+			{
+				"phone-phone": "0509999999",
+				"update_phone": "1",
+			},
+		)
+		self.assertEqual(phone_update.status_code, 302)
+		self.assertEqual(phone_update["Location"], reverse("reports:my_profile"))
+
+		new_password = "SafePass987!"
+		password_update = self.client.post(
+			reverse("reports:my_profile"),
+			{
+				"pwd-old_password": self.teacher_phone,
+				"pwd-new_password1": new_password,
+				"pwd-new_password2": new_password,
+				"update_password": "1",
+			},
+		)
+		self.assertEqual(password_update.status_code, 302)
+		self.assertEqual(password_update["Location"], reverse("reports:my_profile"))
+
+		self.teacher.refresh_from_db()
+		self.assertTrue(self.teacher.check_password(new_password))
+		self.assertFalse(bool(self.client.session.get(FORCE_PASSWORD_CHANGE_SESSION_KEY)))
+
+		profile = self.client.get(reverse("reports:my_profile"))
+		self.assertEqual(profile.status_code, 200)
+		self.assertNotContains(profile, "خطوة سريعة لحماية حسابك")
+
+	def test_report_viewer_can_open_profile_when_password_change_is_forced(self):
+		viewer_phone = "0501234568"
+		viewer = Teacher.objects.create_user(
+			phone=viewer_phone,
+			name="Viewer Secure",
+			password=viewer_phone,
+		)
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=viewer,
+			role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+			is_active=True,
+		)
+
+		res = self._login_with_default_password(viewer_phone)
+		self.assertEqual(res.status_code, 302)
+		self.assertEqual(res["Location"], reverse("reports:my_profile"))
+
+		profile = self.client.get(reverse("reports:my_profile"))
+		self.assertEqual(profile.status_code, 200)
+		self.assertContains(profile, "تغيير كلمة المرور الآن")
