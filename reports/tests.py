@@ -1704,6 +1704,41 @@ class LandingPricingDynamicTests(TestCase):
 		self.assertTrue(any(period["key"] == "1y" and period["available"] for period in periods))
 
 
+class SchoolRegistrationAutoCodeTests(TestCase):
+	def _registration_payload(self, **overrides):
+		payload = {
+			"school_name": "Bind Test School",
+			"stage": School.Stage.PRIMARY,
+			"gender": School.Gender.BOYS,
+			"city": "الرياض",
+			"manager_name": "مدير تجريبي",
+			"manager_phone": "0501234500",
+			"password": "pass12345",
+			"password_confirm": "pass12345",
+		}
+		payload.update(overrides)
+		return payload
+
+	def test_registration_page_hides_school_code_input(self):
+		res = self.client.get(reverse("reports:register_school"))
+		self.assertEqual(res.status_code, 200)
+		self.assertNotContains(res, 'name="school_code"')
+		self.assertNotContains(res, 'id="id_school_code"')
+
+	def test_registration_ignores_posted_school_code_and_generates_code(self):
+		res = self.client.post(
+			reverse("reports:register_school"),
+			self._registration_payload(school_code="manual-override"),
+		)
+		self.assertEqual(res.status_code, 302)
+
+		school = School.objects.get(name="Bind Test School")
+		self.assertTrue(school.code)
+		self.assertNotEqual(school.code, "manual-override")
+		self.assertLessEqual(len(school.code), 64)
+		self.assertNotIn(" ", school.code)
+
+
 class SuperuserStaffRegressionTests(TestCase):
 	def test_superuser_save_preserves_staff_flag(self):
 		user = Teacher.objects.create_superuser(

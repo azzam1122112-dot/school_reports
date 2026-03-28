@@ -4,7 +4,7 @@
 Self-service school registration & trial provisioning.
 
 Flow:
-1. Principal fills in school name, code, phone, stage, gender, and personal info.
+1. Principal fills in school details and personal info.
 2. A School + Manager account + Trial subscription are created atomically.
 3. The user is immediately logged in and redirected to the dashboard.
 """
@@ -16,9 +16,10 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
 
@@ -36,17 +37,29 @@ TRIAL_DAYS = int(getattr(settings, "TRIAL_DAYS", 14))
 TRIAL_PLAN_NAME = getattr(settings, "TRIAL_PLAN_NAME", "تجربة مجانية")
 
 
+def _generate_unique_school_code(school_name: str) -> str:
+    """Generate a unique slug-like school code from school name."""
+    max_length = School._meta.get_field("code").max_length
+    base_code = slugify((school_name or "").strip(), allow_unicode=False) or "school"
+    base_code = base_code[:max_length]
+
+    candidate = base_code
+    suffix_index = 2
+    while School.objects.filter(code=candidate).exists():
+        suffix = f"-{suffix_index}"
+        prefix_max = max_length - len(suffix)
+        candidate = f"{base_code[:prefix_max]}{suffix}"
+        suffix_index += 1
+
+    return candidate
+
+
 # ── Registration form ───────────────────────────────────────────────
 class SchoolRegistrationForm(forms.Form):
     # School info
     school_name = forms.CharField(
         label="اسم المدرسة", max_length=200,
         widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "مثال: مدرسة الأمل الابتدائية"}),
-    )
-    school_code = forms.SlugField(
-        label="كود المدرسة (باللاتيني)", max_length=64,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "مثال: alamal-primary", "dir": "ltr"}),
-        help_text="كود فريد بدون مسافات – سيُستخدم داخلياً.",
     )
     stage = forms.ChoiceField(
         label="المرحلة", choices=School.Stage.choices,
@@ -79,12 +92,6 @@ class SchoolRegistrationForm(forms.Form):
         widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password"}),
     )
 
-    def clean_school_code(self):
-        code = self.cleaned_data["school_code"].strip().lower()
-        if School.objects.filter(code=code).exists():
-            raise forms.ValidationError("هذا الكود مستخدم بالفعل. اختر كوداً آخر.")
-        return code
-
     def clean_manager_phone(self):
         phone = self.cleaned_data["manager_phone"].strip()
         if Teacher.objects.filter(phone=phone).exists():
@@ -113,14 +120,25 @@ def register_school(request):
             try:
                 with transaction.atomic():
                     # 1. Create school
-                    school = School.objects.create(
-                        name=form.cleaned_data["school_name"],
-                        code=form.cleaned_data["school_code"],
-                        stage=form.cleaned_data["stage"],
-                        gender=form.cleaned_data["gender"],
-                        city=form.cleaned_data.get("city") or "",
-                        is_active=True,
-                    )
+                    school = None
+                    for _ in range(3):
+                        generated_school_code = _generate_unique_school_code(form.cleaned_data["school_name"])
+                        try:
+                            # Savepoint protects the outer transaction if a rare unique race happens.
+                            with transaction.atomic():
+                                school = School.objects.create(
+                                    name=form.cleaned_data["school_name"],
+                                    code=generated_school_code,
+                                    stage=form.cleaned_data["stage"],
+                                    gender=form.cleaned_data["gender"],
+                                    city=form.cleaned_data.get("city") or "",
+                                    is_active=True,
+                                )
+                            break
+                        except IntegrityError:
+                            school = None
+                    if school is None:
+                        raise IntegrityError("تعذر توليد كود مدرسة فريد.")
 
                     # 2. Create manager account
                     manager = Teacher.objects.create_user(
