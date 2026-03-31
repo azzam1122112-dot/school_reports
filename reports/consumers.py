@@ -31,16 +31,16 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         user = self.scope.get("user")
         if not user or not getattr(user, "is_authenticated", False):
-            logger.info(
-                "WS notifications reject: unauthenticated (path=%s)",
+            logger.warning(
+                "WS notifications reject: unauthenticated | IP=%s | session=%s | path=%s",
+                self.scope.get("client")[0] if self.scope.get("client") else "unknown",
+                self.scope.get("session").session_key if self.scope.get("session") else "none",
                 self.scope.get("path"),
             )
             await self.close(code=4401)
             return
 
         self.user_id = int(getattr(user, "id", 0) or 0)
-
-        # Session is available when using AuthMiddlewareStack.
         sid = None
         try:
             sess = self.scope.get("session")
@@ -48,15 +48,11 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 sid = sess.get("active_school_id")
         except Exception:
             sid = None
-
         try:
             self.active_school_id = int(sid) if sid else None
         except Exception:
             self.active_school_id = None
-
-        # Channels group names must be ASCII alphanumerics/hyphen/underscore/period only.
         self.group_name = f"notif.u{self.user_id}"
-
         try:
             await self.channel_layer.group_add(self.group_name, self.channel_name)
         except Exception as exc:
@@ -69,7 +65,6 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             )
             await self.close(code=1011)
             return
-
         try:
             await self.accept()
         except Exception as exc:
@@ -80,14 +75,15 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 exc,
             )
             return
-
         logger.info(
-            "WS notifications accepted (user_id=%s group=%s active_school_id=%s)",
+            "WS notifications accepted | user_id=%s | group=%s | active_school_id=%s | IP=%s | session=%s | path=%s",
             self.user_id,
             self.group_name,
             self.active_school_id,
+            self.scope.get("client")[0] if self.scope.get("client") else "unknown",
+            self.scope.get("session").session_key if self.scope.get("session") else "none",
+            self.scope.get("path"),
         )
-
         payload = await self._compute_counts()
         await self.send_json({"type": "counts", **payload})
 
@@ -96,15 +92,12 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
         except Exception:
             pass
-
         try:
-            logger.info(
-                "WS notifications disconnected (code=%s user_id=%s path=%s)",
-                code,
-                getattr(self, "user_id", None),
-                self.scope.get("path"),
-            )
-            if int(code or 0) == 1006:
+            user = getattr(self, "user_id", None)
+            path = self.scope.get("path")
+            if int(code or 0) == 1000:
+                logger.info("WS notifications normal close 1000 | user_id=%s | path=%s", user, path)
+            elif int(code or 0) == 1006:
                 ua = self._scope_header("user-agent")
                 ua_l = ua.lower()
                 is_ios_safari = ("iphone" in ua_l or "ipad" in ua_l or "ipod" in ua_l) and ("safari" in ua_l)
@@ -116,19 +109,17 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                     count = cache.incr(key)
                 except Exception:
                     count = None
-                # Mobile browsers frequently close WS in background with 1006; keep this
-                # informational unless the rate becomes unusually high.
                 if is_mobile_browser and count is not None and count < 10:
                     log_fn = logger.info
                 else:
                     log_fn = logger.warning if (count in {1, 3, 5} or count is None) else logger.info
                 log_fn(
-                    "WS notifications abnormal_close code=1006 user_id=%s path=%s ua=%s minute_count=%s",
-                    getattr(self, "user_id", None),
-                    self.scope.get("path"),
-                    ua,
-                    count,
-                )
+                    "WS notifications abnormal_close code=1006 | user_id=%s | path=%s | ua=%s | minute_count=%s",
+                    user, path, ua, count)
+            elif int(code or 0) == 4401:
+                logger.warning("WS notifications close 4401 (unauthenticated) | user_id=%s | path=%s", user, path)
+            else:
+                logger.info("WS notifications close code=%s | user_id=%s | path=%s", code, user, path)
         except Exception:
             pass
 
