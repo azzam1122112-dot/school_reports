@@ -258,6 +258,7 @@ if _use_r2 and "storages" not in INSTALLED_APPS:
 
 # ----------------- Middleware -----------------
 MIDDLEWARE = [
+    "core.middleware.RequestTraceMiddleware",
     "core.middleware.BlockBadPathsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",

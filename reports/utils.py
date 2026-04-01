@@ -1,8 +1,11 @@
 import threading
+import secrets
 from django.db import transaction
 from django.conf import settings
 from django.apps import apps
 import logging
+
+from core.trace_context import get_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -28,20 +31,46 @@ def run_task_safe(task_func, *args, force_thread: bool = False, **kwargs):
     def _execute():
         debug_mode = bool(getattr(settings, 'DEBUG', False))
         allow_thread = bool(force_thread) or debug_mode
+        trace_id = get_trace_id() or secrets.token_hex(8)
 
         # 1) Prefer Celery
         try:
-            task_func.delay(*args, **kwargs)
-            logger.info("Task %s queued via Celery.", getattr(task_func, "__name__", str(task_func)))
+            if hasattr(task_func, "apply_async"):
+                async_result = task_func.apply_async(
+                    args=args,
+                    kwargs=kwargs,
+                    headers={"trace_id": trace_id},
+                )
+            else:
+                async_result = task_func.delay(*args, **kwargs)
+            logger.info(
+                "Task queued via Celery task=%s task_id=%s trace_id=%s args_count=%s",
+                getattr(task_func, "__name__", str(task_func)),
+                getattr(async_result, "id", None),
+                trace_id,
+                len(args),
+            )
             return
         except Exception as e:
-            logger.warning("Celery enqueue failed for %s: %s", getattr(task_func, "__name__", str(task_func)), e)
+            logger.warning(
+                "Celery enqueue failed task=%s trace_id=%s error=%s",
+                getattr(task_func, "__name__", str(task_func)),
+                trace_id,
+                e,
+            )
 
         # 2) Development fallback: background thread
         if allow_thread:
             thread = threading.Thread(target=_thread_wrapper, args=(task_func, *args), kwargs=kwargs)
             thread.daemon = True
             thread.start()
+            logger.info(
+                "Task fallback thread-started task=%s trace_id=%s debug=%s force_thread=%s",
+                getattr(task_func, "__name__", str(task_func)),
+                trace_id,
+                debug_mode,
+                force_thread,
+            )
             return
 
         # 3) Production-safe fallback: inline execution
@@ -50,7 +79,12 @@ def run_task_safe(task_func, *args, force_thread: bool = False, **kwargs):
                 task_func.apply(args=args, kwargs=kwargs, throw=True)
             else:
                 task_func(*args, **kwargs)
-            logger.info("Task %s executed inline (fallback).", getattr(task_func, "__name__", str(task_func)))
+            logger.info(
+                "Task executed inline fallback task=%s trace_id=%s args_count=%s",
+                getattr(task_func, "__name__", str(task_func)),
+                trace_id,
+                len(args),
+            )
         except Exception:
             logger.exception("Task %s failed even with inline fallback.", getattr(task_func, "__name__", str(task_func)))
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import logging
 from typing import Any
 
 from django.conf import settings
@@ -18,6 +19,10 @@ from ..middleware import (
     is_force_password_change_required,
 )
 from ..permissions import has_legacy_manager_role
+from core import opmetrics
+
+
+logger = logging.getLogger(__name__)
 
 
 def _force_password_change_notice() -> str:
@@ -286,9 +291,21 @@ def login_view(request: HttpRequest) -> HttpResponse:
                             login(request, user)
                             is_force_password_change_required(request)
                             _set_active_school(request, manager_school)
+                            logger.info(
+                                "Login allowed for renewal-only manager user_id=%s school_id=%s trace_id=%s",
+                                getattr(user, "id", None),
+                                getattr(manager_school, "id", None),
+                                getattr(request, "trace_id", None),
+                            )
                             return redirect("reports:subscription_expired")
 
                         school_label = f" ({first_school_name})" if first_school_name else ""
+                        logger.warning(
+                            "Login blocked due to expired subscriptions user_id=%s identifier=%s trace_id=%s",
+                            getattr(user, "id", None),
+                            identifier,
+                            getattr(request, "trace_id", None),
+                        )
                         messages.error(request, f"عذرًا، اشتراك المدرسة{school_label} منتهي. لا يمكن الدخول حتى يتم تجديد الاشتراك.")
                         return redirect("reports:login")
 
@@ -333,6 +350,16 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 default_name = "reports:admin_dashboard"
             else:
                 default_name = "reports:home"
+            logger.info(
+                "Login success user_id=%s is_superuser=%s is_platform_admin=%s active_school_id=%s redirect=%s trace_id=%s",
+                getattr(user, "id", None),
+                bool(getattr(user, "is_superuser", False)),
+                bool(is_platform_admin(user)),
+                request.session.get("active_school_id"),
+                (next_url or default_name),
+                getattr(request, "trace_id", None),
+            )
+            opmetrics.increment("auth.login.success")
             return redirect(next_url or default_name)
 
         # فشل المصادقة: نتحقق هل السبب هو أن الحساب موقوف (is_active=False)
@@ -347,10 +374,16 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
             potential_user = Teacher.objects.filter(q).first() if q else None
             if potential_user is not None and (not potential_user.is_active) and potential_user.check_password(password):
+                logger.warning("Login failed inactive-user user_id=%s identifier=%s trace_id=%s", getattr(potential_user, "id", None), identifier, getattr(request, "trace_id", None))
+                opmetrics.increment("auth.login.failure")
                 messages.error(request, "عذرًا، حسابك موقوف. يرجى التواصل مع الإدارة.")
             else:
+                logger.warning("Login failed invalid-credentials identifier=%s trace_id=%s", identifier, getattr(request, "trace_id", None))
+                opmetrics.increment("auth.login.failure")
                 messages.error(request, "رقم الجوال/الهوية أو كلمة المرور غير صحيحة")
         except Exception:
+            logger.warning("Login failed (exception path) identifier=%s trace_id=%s", identifier, getattr(request, "trace_id", None))
+            opmetrics.increment("auth.login.failure")
             messages.error(request, "رقم الجوال/الهوية أو كلمة المرور غير صحيحة")
 
     context = {"next": _safe_next_url(request.GET.get("next"))}

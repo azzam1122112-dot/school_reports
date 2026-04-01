@@ -1973,7 +1973,18 @@ class NotificationCreateForm(forms.Form):
 
             enqueued = False
             try:
-                send_notification_task.delay(n.pk, teacher_ids)
+                try:
+                    from core.trace_context import get_trace_id as _get_trace_id
+                    _tid = _get_trace_id()
+                except Exception:
+                    _tid = None
+                if not _tid:
+                    import secrets
+                    _tid = secrets.token_hex(8)
+                send_notification_task.apply_async(
+                    args=[n.pk, teacher_ids],
+                    headers={"trace_id": _tid},
+                )
                 enqueued = True
                 return
             except Exception:

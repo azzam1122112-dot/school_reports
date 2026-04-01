@@ -2132,7 +2132,18 @@ def trigger_ticket_image_processing(sender, instance, created, **kwargs):
     from .tasks import process_ticket_image
     if instance.image:
         try:
-            transaction.on_commit(lambda: process_ticket_image.delay(instance.pk))
+            _pk = instance.pk
+            def _enqueue_ticket_image():
+                try:
+                    from core.trace_context import get_trace_id as _get_trace_id
+                    _tid = _get_trace_id()
+                except Exception:
+                    _tid = None
+                if not _tid:
+                    import secrets
+                    _tid = secrets.token_hex(8)
+                process_ticket_image.apply_async(args=[_pk], headers={"trace_id": _tid})
+            transaction.on_commit(_enqueue_ticket_image)
         except Exception:
             pass
 

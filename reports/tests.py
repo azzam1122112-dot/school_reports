@@ -1,5 +1,7 @@
 from unittest.mock import patch
+from io import StringIO
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase, RequestFactory, override_settings
 from django.urls import reverse
@@ -2092,3 +2094,189 @@ class ForcedPasswordChangeFlowTests(TestCase):
 		profile = self.client.get(reverse("reports:my_profile"))
 		self.assertEqual(profile.status_code, 200)
 		self.assertContains(profile, "تغيير كلمة المرور الآن")
+
+
+class LogoutAuditSignalRegressionTests(TestCase):
+	def setUp(self):
+		self.school = School.objects.create(name="Audit Logout School", code="audit-logout-school")
+		plan = SubscriptionPlan.objects.create(name="Audit Logout Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school, plan=plan, start_date=today, end_date=today)
+
+		self.user = Teacher.objects.create_user(phone="0501234999", name="Audit Logout User", password="pass12345")
+		SchoolMembership.objects.create(
+			school=self.school,
+			teacher=self.user,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+
+	def test_logout_creates_audit_log_entry(self):
+		self.client.force_login(self.user)
+		session = self.client.session
+		session["active_school_id"] = self.school.id
+		session.save()
+
+		res = self.client.get(reverse("reports:logout"))
+		self.assertEqual(res.status_code, 302)
+		self.assertTrue(
+			AuditLog.objects.filter(
+				teacher=self.user,
+				action=AuditLog.Action.LOGOUT,
+			).exists()
+		)
+
+
+class BlockBadPathsMiddlewareTests(TestCase):
+	def test_wp_admin_probe_is_blocked_early(self):
+		res = self.client.get("/wp-admin/setup-config.php")
+		self.assertEqual(res.status_code, 404)
+
+	def test_jmx_probe_is_blocked_early(self):
+		res = self.client.get("/invoker/JMXInvokerServlet")
+		self.assertEqual(res.status_code, 404)
+
+
+class RequestTraceMiddlewareTests(TestCase):
+	def test_request_id_header_is_added(self):
+		res = self.client.get(reverse("reports:landing"))
+		self.assertEqual(res.status_code, 200)
+		self.assertTrue(bool(res.headers.get("X-Request-ID")))
+
+
+class NotificationCountsConsumerTests(TestCase):
+	def setUp(self):
+		self.school_a = School.objects.create(name="WS School A", code="ws-school-a")
+		self.school_b = School.objects.create(name="WS School B", code="ws-school-b")
+		plan = SubscriptionPlan.objects.create(name="WS Plan", price=0, days_duration=30, is_active=True)
+		today = timezone.localdate()
+		SchoolSubscription.objects.create(school=self.school_a, plan=plan, start_date=today, end_date=today)
+		SchoolSubscription.objects.create(school=self.school_b, plan=plan, start_date=today, end_date=today)
+
+		self.user = Teacher.objects.create_user(phone="0507777001", name="WS User", password="pass12345")
+		SchoolMembership.objects.create(
+			school=self.school_a,
+			teacher=self.user,
+			role_type=SchoolMembership.RoleType.TEACHER,
+			is_active=True,
+		)
+
+	class _DummySession(dict):
+		session_key = "test-session"
+
+	def test_unauthenticated_ws_connect_is_rejected(self):
+		from asgiref.sync import async_to_sync
+		from asgiref.testing import ApplicationCommunicator
+		from django.contrib.auth.models import AnonymousUser
+		from reports.consumers import NotificationCountsConsumer
+
+		async def _run():
+			app = NotificationCountsConsumer.as_asgi()
+			scope = {
+				"type": "websocket",
+				"path": "/ws/notifications/",
+				"headers": [],
+				"user": AnonymousUser(),
+				"session": self._DummySession(),
+			}
+			communicator = ApplicationCommunicator(app, scope)
+			await communicator.send_input({"type": "websocket.connect"})
+			close_event = await communicator.receive_output(timeout=2)
+			self.assertEqual(close_event.get("type"), "websocket.close")
+			self.assertEqual(close_event.get("code"), 4401)
+			await communicator.wait()
+
+		async_to_sync(_run)()
+
+	def test_authenticated_ws_connect_returns_scoped_counts(self):
+		from asgiref.sync import async_to_sync
+		from asgiref.testing import ApplicationCommunicator
+		from reports.consumers import NotificationCountsConsumer
+
+		n_school = Notification.objects.create(title="School A", message="A", school=self.school_a)
+		n_other = Notification.objects.create(title="School B", message="B", school=self.school_b)
+		n_global = Notification.objects.create(title="Global", message="G", school=None)
+		NotificationRecipient.objects.create(notification=n_school, teacher=self.user, is_read=False, is_signed=False)
+		NotificationRecipient.objects.create(notification=n_other, teacher=self.user, is_read=False, is_signed=False)
+		NotificationRecipient.objects.create(notification=n_global, teacher=self.user, is_read=False, is_signed=False)
+
+		async def _run():
+			app = NotificationCountsConsumer.as_asgi()
+			session = self._DummySession()
+			session["active_school_id"] = self.school_a.id
+			scope = {
+				"type": "websocket",
+				"path": "/ws/notifications/",
+				"headers": [(b"x-request-id", b"test-trace-id")],
+				"user": self.user,
+				"session": session,
+			}
+			communicator = ApplicationCommunicator(app, scope)
+			await communicator.send_input({"type": "websocket.connect"})
+			accept_event = await communicator.receive_output(timeout=2)
+			self.assertEqual(accept_event.get("type"), "websocket.accept")
+			send_event = await communicator.receive_output(timeout=2)
+			self.assertEqual(send_event.get("type"), "websocket.send")
+			import json
+			payload = json.loads(send_event.get("text", "{}"))
+			self.assertEqual(payload.get("type"), "counts")
+			self.assertEqual(payload.get("unread"), 2)
+			self.assertEqual(payload.get("count"), 2)
+			await communicator.send_input({"type": "websocket.disconnect", "code": 1000})
+			await communicator.wait()
+
+		async_to_sync(_run)()
+
+
+class Stage3TracePropagationTests(TestCase):
+	def test_ticket_image_enqueue_uses_trace_header_when_available(self):
+		from unittest.mock import patch
+		from .models import TicketImage
+
+		school = School.objects.create(name="Trace School", code="trace-school")
+		creator = Teacher.objects.create_user(phone="0507111001", name="Trace User", password="pass12345")
+		ticket = Ticket.objects.create(school=school, creator=creator, title="T", body="B")
+		img = SimpleUploadedFile("x.jpg", b"img", content_type="image/jpeg")
+
+		with patch("reports.tasks.process_ticket_image.apply_async") as mocked_apply_async, patch(
+			"reports.tasks.process_ticket_image.delay"
+		) as mocked_delay, patch("core.trace_context.get_trace_id", return_value="trace-123"):
+			with self.captureOnCommitCallbacks(execute=True):
+				TicketImage.objects.create(ticket=ticket, image=img)
+
+		mocked_apply_async.assert_called_once()
+		_, kwargs = mocked_apply_async.call_args
+		self.assertEqual(kwargs.get("headers", {}).get("trace_id"), "trace-123")
+		mocked_delay.assert_not_called()
+
+
+class Stage3OpMetricsTests(TestCase):
+	def test_opmetrics_increment_and_read_current(self):
+		from core import opmetrics
+		from uuid import uuid4
+
+		metric = f"test.metric.{uuid4().hex}"
+		self.assertEqual(opmetrics.read_current(metric), 0)
+		opmetrics.increment(metric)
+		opmetrics.increment(metric, amount=2)
+		self.assertEqual(opmetrics.read_current(metric), 3)
+
+	def test_opmetrics_snapshot_contains_incremented_metric(self):
+		from core import opmetrics
+		from uuid import uuid4
+
+		metric = f"test.snapshot.{uuid4().hex}"
+		opmetrics.increment(metric, amount=2)
+		snap = opmetrics.snapshot()
+		self.assertIn(metric, snap)
+		self.assertGreaterEqual(int(snap.get(metric) or 0), 2)
+
+
+class Stage3DiagnosticsCommandTests(TestCase):
+	def test_op_diagnostics_command_runs_and_prints_sections(self):
+		out = StringIO()
+		call_command("op_diagnostics", stdout=out)
+		text = out.getvalue()
+		self.assertIn("Operational Diagnostics", text)
+		self.assertIn("Counter metrics", text)
+		self.assertIn("School facts", text)

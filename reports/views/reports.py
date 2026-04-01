@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 
 from django.contrib.auth.decorators import user_passes_test
 from django.conf import settings
@@ -19,6 +20,10 @@ from ._helpers import (
 )
 
 from ..utils import _resolve_department_for_category, _build_head_decision
+from core import opmetrics
+
+
+logger = logging.getLogger(__name__)
 
 
 def _notify_report_created(report, active_school):
@@ -94,8 +99,25 @@ def add_report(request: HttpRequest) -> HttpResponse:
             # إشعار مدير المدرسة ورئيس القسم بتقرير جديد
             _notify_report_created(report, active_school)
 
+            logger.info(
+                "Report created report_id=%s user_id=%s school_id=%s trace_id=%s",
+                getattr(report, "id", None),
+                getattr(request.user, "id", None),
+                getattr(getattr(report, "school", None), "id", None),
+                getattr(request, "trace_id", None),
+            )
+            opmetrics.increment("report.create.success")
+
             messages.success(request, "تم إضافة التقرير بنجاح ✅")
             return redirect("reports:my_reports")
+        logger.warning(
+            "Report creation failed validation user_id=%s school_id=%s trace_id=%s errors=%s",
+            getattr(request.user, "id", None),
+            getattr(active_school, "id", None),
+            getattr(request, "trace_id", None),
+            str(getattr(form, "errors", ""))[:500],
+        )
+        opmetrics.increment("report.create.failure")
         messages.error(request, "فضلاً تحقق من الحقول وأعد المحاولة.")
     else:
         form = ReportForm(active_school=active_school)

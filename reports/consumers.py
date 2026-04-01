@@ -11,6 +11,7 @@ from django.utils import timezone
 import logging
 
 from .models import NotificationRecipient
+from core import opmetrics
 
 
 logger = logging.getLogger(__name__)
@@ -27,15 +28,21 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
 
     user_id: int
     active_school_id: Optional[int]
+    trace_id: str
 
     async def connect(self):
         user = self.scope.get("user")
+        self.trace_id = self._scope_header("x-request-id") or "-"
+        session_key = self._scope_session_key()
+        path = self.scope.get("path")
         if not user or not getattr(user, "is_authenticated", False):
+            opmetrics.increment("ws.notifications.denied.unauthenticated")
             logger.warning(
-                "WS notifications reject: unauthenticated | IP=%s | session=%s | path=%s",
+                "WS notifications reject unauthenticated trace_id=%s ip=%s session=%s path=%s",
+                self.trace_id,
                 self.scope.get("client")[0] if self.scope.get("client") else "unknown",
-                self.scope.get("session").session_key if self.scope.get("session") else "none",
-                self.scope.get("path"),
+                session_key,
+                path,
             )
             await self.close(code=4401)
             return
@@ -76,14 +83,16 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             )
             return
         logger.info(
-            "WS notifications accepted | user_id=%s | group=%s | active_school_id=%s | IP=%s | session=%s | path=%s",
+            "WS notifications accepted trace_id=%s user_id=%s group=%s active_school_id=%s ip=%s session=%s path=%s",
+            self.trace_id,
             self.user_id,
             self.group_name,
             self.active_school_id,
             self.scope.get("client")[0] if self.scope.get("client") else "unknown",
-            self.scope.get("session").session_key if self.scope.get("session") else "none",
-            self.scope.get("path"),
+            session_key,
+            path,
         )
+        opmetrics.increment("ws.notifications.connect.accepted")
         payload = await self._compute_counts()
         await self.send_json({"type": "counts", **payload})
 
@@ -95,9 +104,13 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
         try:
             user = getattr(self, "user_id", None)
             path = self.scope.get("path")
+            session_key = self._scope_session_key()
+            trace_id = getattr(self, "trace_id", "-")
+            norm_code = int(code or 0) if isinstance(code, int) or (isinstance(code, str) and str(code).isdigit()) else 1006
             if int(code or 0) == 1000:
-                logger.info("WS notifications normal close 1000 | user_id=%s | path=%s", user, path)
+                logger.info("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=1000", trace_id, user, session_key, path)
             elif int(code or 0) == 1006:
+                opmetrics.increment("ws.notifications.close.abnormal_1006")
                 ua = self._scope_header("user-agent")
                 ua_l = ua.lower()
                 is_ios_safari = ("iphone" in ua_l or "ipad" in ua_l or "ipod" in ua_l) and ("safari" in ua_l)
@@ -114,12 +127,14 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 else:
                     log_fn = logger.warning if (count in {1, 3, 5} or count is None) else logger.info
                 log_fn(
-                    "WS notifications abnormal_close code=1006 | user_id=%s | path=%s | ua=%s | minute_count=%s",
-                    user, path, ua, count)
+                    "WS notifications abnormal_close trace_id=%s user_id=%s session=%s path=%s code=1006 ua=%s minute_count=%s",
+                    trace_id, user, session_key, path, ua, count)
             elif int(code or 0) == 4401:
-                logger.warning("WS notifications close 4401 (unauthenticated) | user_id=%s | path=%s", user, path)
+                opmetrics.increment("ws.notifications.close.unauthorized_4401")
+                logger.warning("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=4401", trace_id, user, session_key, path)
             else:
-                logger.info("WS notifications close code=%s | user_id=%s | path=%s", code, user, path)
+                opmetrics.increment("ws.notifications.close.other")
+                logger.info("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=%s normalized_code=%s", trace_id, user, session_key, path, code, norm_code)
         except Exception:
             pass
 
@@ -132,6 +147,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 pass
             return
         if msg_type == "resync":
+            logger.debug("WS notifications resync request trace_id=%s user_id=%s", getattr(self, "trace_id", "-"), getattr(self, "user_id", None))
             payload = await self._compute_counts()
             await self.send_json({"type": "counts", **payload})
             return
@@ -142,12 +158,25 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 self.active_school_id = int(sid) if sid else None
             except Exception:
                 self.active_school_id = None
+            logger.info(
+                "WS notifications active school updated trace_id=%s user_id=%s active_school_id=%s",
+                getattr(self, "trace_id", "-"),
+                getattr(self, "user_id", None),
+                self.active_school_id,
+            )
             payload = await self._compute_counts()
             await self.send_json({"type": "counts", **payload})
             return
 
     async def notif_delta(self, event: Dict[str, Any]):
         """Group event handler."""
+        logger.debug(
+            "WS notifications delta event trace_id=%s user_id=%s event_trace_id=%s school_id=%s",
+            getattr(self, "trace_id", "-"),
+            getattr(self, "user_id", None),
+            event.get("trace_id"),
+            event.get("notification_school_id"),
+        )
         out = {
             "type": "delta",
             "delta_unread": int(event.get("delta_unread") or 0),
@@ -197,3 +226,12 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             except Exception:
                 continue
         return "-"
+
+    def _scope_session_key(self) -> str:
+        try:
+            sess = self.scope.get("session")
+            if sess is None:
+                return "none"
+            return getattr(sess, "session_key", None) or "none"
+        except Exception:
+            return "none"

@@ -17,6 +17,22 @@ from .storage import _compress_image_file
 
 logger = logging.getLogger(__name__)
 
+from core import opmetrics
+
+
+def _task_ctx(task_obj) -> tuple[str | None, int, str | None]:
+    try:
+        req = getattr(task_obj, "request", None)
+        task_id = getattr(req, "id", None)
+        retries = int(getattr(req, "retries", 0) or 0)
+        headers = getattr(req, "headers", None) or {}
+        trace_id = headers.get("trace_id") if hasattr(headers, "get") else None
+        if not trace_id and task_id:
+            trace_id = f"task-{task_id}"
+        return task_id, retries, trace_id
+    except Exception:
+        return None, 0, None
+
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 2000) -> int:
@@ -26,6 +42,13 @@ def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 200
     many production setups use ephemeral disks for workers.
     """
     AuditLog = apps.get_model("reports", "AuditLog")
+    task_id, retries, trace_id = _task_ctx(self)
+    logger.info(
+        "Task start name=cleanup_audit_logs_task task_id=%s trace_id=%s retries=%s",
+        task_id,
+        trace_id,
+        retries,
+    )
 
     retention_days = int(days) if days is not None else int(getattr(settings, "AUDIT_LOG_RETENTION_DAYS", 30))
     retention_days = max(retention_days, 0)
@@ -43,7 +66,14 @@ def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 200
         deleted, _ = AuditLog.objects.filter(pk__in=batch_pks).delete()
         deleted_total += int(deleted)
 
-    logger.info("AuditLog cleanup deleted %s rows older than %s days.", deleted_total, retention_days)
+    logger.info(
+        "Task success name=cleanup_audit_logs_task task_id=%s trace_id=%s deleted=%s retention_days=%s",
+        task_id,
+        trace_id,
+        deleted_total,
+        retention_days,
+    )
+    opmetrics.increment("celery.task.success.cleanup_audit_logs_task")
     return deleted_total
 
 
@@ -52,11 +82,21 @@ def process_report_images(self, report_id: int) -> bool:
     """
     Task to process images for a report (compression/optimization).
     """
+    task_id, retries, trace_id = _task_ctx(self)
+    logger.info(
+        "Task start name=process_report_images task_id=%s trace_id=%s retries=%s report_id=%s",
+        task_id,
+        trace_id,
+        retries,
+        report_id,
+    )
+
     Report = apps.get_model("reports", "Report")
     try:
         report = Report.objects.get(pk=report_id)
     except Report.DoesNotExist:
         logger.error("Report %s not found for image processing.", report_id)
+        opmetrics.increment("celery.task.failure.process_report_images")
         return False
 
     updated = False
@@ -85,10 +125,18 @@ def process_report_images(self, report_id: int) -> bool:
 
         except Exception as e:
             logger.exception("Error processing %s for report %s: %s", field_name, report_id, e)
+            opmetrics.increment("celery.task.failure.process_report_images")
 
     if updated:
         report.save(update_fields=fields)
-        logger.info("Successfully processed images for report %s.", report_id)
+        logger.info(
+            "Task success name=process_report_images task_id=%s trace_id=%s report_id=%s updated=%s",
+            task_id,
+            trace_id,
+            report_id,
+            updated,
+        )
+    opmetrics.increment("celery.task.success.process_report_images")
 
     return True
 
@@ -98,15 +146,26 @@ def process_ticket_image(self, ticket_image_id: int) -> bool:
     """
     Task to process a single ticket image (compression/optimization).
     """
+    task_id, retries, trace_id = _task_ctx(self)
+    logger.info(
+        "Task start name=process_ticket_image task_id=%s trace_id=%s retries=%s ticket_image_id=%s",
+        task_id,
+        trace_id,
+        retries,
+        ticket_image_id,
+    )
+
     TicketImage = apps.get_model("reports", "TicketImage")
     try:
         ticket_image = TicketImage.objects.get(pk=ticket_image_id)
     except TicketImage.DoesNotExist:
         logger.error("TicketImage %s not found for image processing.", ticket_image_id)
+        opmetrics.increment("celery.task.failure.process_ticket_image")
         return False
 
     image_field = getattr(ticket_image, "image", None)
     if not image_field or not hasattr(image_field, "file"):
+        opmetrics.increment("celery.task.failure.process_ticket_image")
         return False
 
     try:
@@ -123,12 +182,27 @@ def process_ticket_image(self, ticket_image_id: int) -> bool:
         if (new_size is not None and old_size is not None and new_size != old_size) or processed_file != image_field.file:
             image_field.save(image_field.name, processed_file, save=False)
             ticket_image.save(update_fields=["image"])
-            logger.info("Successfully processed TicketImage %s.", ticket_image_id)
+            logger.info(
+                "Task success name=process_ticket_image task_id=%s trace_id=%s ticket_image_id=%s updated=%s",
+                task_id,
+                trace_id,
+                ticket_image_id,
+                True,
+            )
+
+        opmetrics.increment("celery.task.success.process_ticket_image")
 
         return True
 
     except Exception as e:
-        logger.exception("Error processing TicketImage %s: %s", ticket_image_id, e)
+        logger.exception(
+            "Task failure name=process_ticket_image task_id=%s trace_id=%s ticket_image_id=%s error=%s",
+            task_id,
+            trace_id,
+            ticket_image_id,
+            e,
+        )
+        opmetrics.increment("celery.task.failure.process_ticket_image")
         return False
 
 
@@ -137,6 +211,16 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
     """
     Task to create NotificationRecipient objects in the background.
     """
+    task_id, retries, trace_id = _task_ctx(self)
+    logger.info(
+        "Task start name=send_notification_task task_id=%s trace_id=%s retries=%s notification_id=%s explicit_recipients=%s",
+        task_id,
+        trace_id,
+        retries,
+        notification_id,
+        0 if not teacher_ids else len(teacher_ids),
+    )
+
     Notification = apps.get_model("reports", "Notification")
     NotificationRecipient = apps.get_model("reports", "NotificationRecipient")
     Teacher = apps.get_model("reports", "Teacher")
@@ -145,6 +229,7 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
         n = Notification.objects.get(pk=notification_id)
     except Notification.DoesNotExist:
         logger.error("Notification %s not found.", notification_id)
+        opmetrics.increment("celery.task.failure.send_notification_task")
         return False
 
     if teacher_ids:
@@ -199,11 +284,19 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
                 push_new_notification_to_teachers(
                     notification=n,
                     teacher_ids=[getattr(t, "id", None) for t in batch if getattr(t, "id", None)],
+                    trace_id=trace_id,
                 )
             except Exception:
                 pass
 
-    logger.info("Successfully sent notification %s to %s recipients.", notification_id, len(teacher_list))
+    logger.info(
+        "Task success name=send_notification_task task_id=%s trace_id=%s notification_id=%s recipients=%s",
+        task_id,
+        trace_id,
+        notification_id,
+        len(teacher_list),
+    )
+    opmetrics.increment("celery.task.success.send_notification_task")
     return True
 
 
@@ -810,8 +903,18 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
     - ترسل فقط إذا كان لدى المعلم بريد إلكتروني صالح.
     - أفضل ممارسة أمنية لتنبيه المستخدم بأي تغيير في حسابه.
     """
+    task_id, retries, trace_id = _task_ctx(self)
+    logger.info(
+        "Task start name=send_password_change_email_task task_id=%s trace_id=%s retries=%s teacher_id=%s",
+        task_id,
+        trace_id,
+        retries,
+        teacher_id,
+    )
+
     enabled = bool(getattr(settings, "PASSWORD_CHANGE_EMAIL_ENABLED", True))
     if not enabled:
+        opmetrics.increment("celery.task.failure.send_password_change_email_task")
         return False
 
     Teacher = apps.get_model("reports", "Teacher")
@@ -819,11 +922,13 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
         teacher = Teacher.objects.get(pk=teacher_id, is_active=True)
     except Teacher.DoesNotExist:
         logger.warning("Password change email: teacher %s not found.", teacher_id)
+        opmetrics.increment("celery.task.failure.send_password_change_email_task")
         return False
 
     email = (getattr(teacher, "email", "") or "").strip()
     if not _is_valid_email(email):
         logger.info("Password change email: teacher %s has no valid email.", teacher_id)
+        opmetrics.increment("celery.task.failure.send_password_change_email_task")
         return False
 
     teacher_name = (getattr(teacher, "name", "") or "").strip() or "المستخدم"
@@ -847,8 +952,21 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
             recipient_list=[email],
             fail_silently=False,
         )
-        logger.info("Password change confirmation email sent to teacher %s.", teacher_id)
+        logger.info(
+            "Task success name=send_password_change_email_task task_id=%s trace_id=%s teacher_id=%s",
+            task_id,
+            trace_id,
+            teacher_id,
+        )
+        opmetrics.increment("celery.task.success.send_password_change_email_task")
         return True
     except Exception:
-        logger.exception("Failed to send password change email to teacher %s.", teacher_id)
+        logger.exception(
+            "Task failure name=send_password_change_email_task task_id=%s trace_id=%s teacher_id=%s retries=%s",
+            task_id,
+            trace_id,
+            teacher_id,
+            retries,
+        )
+        opmetrics.increment("celery.task.failure.send_password_change_email_task")
         raise  # auto-retry

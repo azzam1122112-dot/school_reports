@@ -15,6 +15,7 @@ from reports.models import (
     Ticket,
 )
 from reports.cache_utils import invalidate_school, invalidate_user_notifications
+from .middleware import get_current_request
 
 User = get_user_model()
 
@@ -153,6 +154,21 @@ def _single_session_on_logout(sender, request, user, **kwargs):
     except Exception:
         pass
 
+    # Audit: logout
+    try:
+        AuditLog.objects.create(
+            school=_infer_school_for_audit(request, user),
+            teacher=user,
+            action=AuditLog.Action.LOGOUT,
+            model_name="Auth",
+            object_id=getattr(user, "pk", None),
+            object_repr=f"Logout: {str(user)[:200]}",
+            ip_address=(request.META.get("REMOTE_ADDR") if request else None),
+            user_agent=(request.META.get("HTTP_USER_AGENT", "")[:500] if request else ""),
+        )
+    except Exception:
+        pass
+
 
 # =========================
 # Realtime Notifications (Channels / WebSocket)
@@ -209,6 +225,12 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
         return
 
     try:
+        req = get_current_request()
+        trace_id = getattr(req, "trace_id", None) if req is not None else None
+    except Exception:
+        trace_id = None
+
+    try:
         n = getattr(instance, "notification", None)
         requires_signature = bool(getattr(n, "requires_signature", False)) if n else False
         notif_school_id = getattr(n, "school_id", None) if n else None
@@ -225,6 +247,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
                     notification_school_id=notif_school_id,
                     delta_signatures_pending=1,
                     delta_count=1,
+                    trace_id=trace_id,
                 )
             else:
                 push_delta_to_user(
@@ -232,6 +255,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
                     notification_school_id=notif_school_id,
                     delta_unread=1,
                     delta_count=1,
+                    trace_id=trace_id,
                 )
         except Exception:
             pass
@@ -253,7 +277,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
     if old_is_read is None and old_is_signed is None:
         if push_force_resync is not None:
             try:
-                push_force_resync(teacher_id=teacher_id)
+                push_force_resync(teacher_id=teacher_id, trace_id=trace_id)
             except Exception:
                 pass
         return
@@ -268,6 +292,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
                     notification_school_id=old_school_id,
                     delta_signatures_pending=-1,
                     delta_count=-1,
+                    trace_id=trace_id,
                 )
             elif old_is_signed is True and new_is_signed is False:
                 push_delta_to_user(
@@ -275,6 +300,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
                     notification_school_id=old_school_id,
                     delta_signatures_pending=1,
                     delta_count=1,
+                    trace_id=trace_id,
                 )
         except Exception:
             pass
@@ -289,6 +315,7 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
                 notification_school_id=old_school_id,
                 delta_unread=-1,
                 delta_count=-1,
+                trace_id=trace_id,
             )
         elif old_is_read is True and new_is_read is False:
             push_delta_to_user(
@@ -296,25 +323,10 @@ def _notif_recipient_post_save(sender, instance: NotificationRecipient, created:
                 notification_school_id=old_school_id,
                 delta_unread=1,
                 delta_count=1,
+                trace_id=trace_id,
             )
     except Exception:
         pass
-
-    # Audit: logout
-    try:
-        AuditLog.objects.create(
-            school=_infer_school_for_audit(request, user),
-            teacher=user,
-            action=AuditLog.Action.LOGOUT,
-            model_name="Auth",
-            object_id=getattr(user, "pk", None),
-            object_repr=f"Logout: {str(user)[:200]}",
-            ip_address=(request.META.get("REMOTE_ADDR") if request else None),
-            user_agent=(request.META.get("HTTP_USER_AGENT", "")[:500] if request else ""),
-        )
-    except Exception:
-        pass
-
 
 # =========================
 # System Notifications Logic (Added for System Manager)

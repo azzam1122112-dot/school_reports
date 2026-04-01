@@ -1,4 +1,5 @@
 from django.conf import settings
+import logging
 from django.contrib.auth import logout
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect
@@ -14,6 +15,8 @@ from .permissions import is_report_viewer_for_school
 import threading
 
 _thread_locals = threading.local()
+
+logger = logging.getLogger(__name__)
 
 FORCE_PASSWORD_CHANGE_SESSION_KEY = "force_password_change_required"
 
@@ -74,6 +77,20 @@ def clear_force_password_change_flag(request) -> None:
     except Exception:
         pass
     setattr(request, "force_password_change_required", False)
+
+
+def _log_denial(request, *, reason: str) -> None:
+    try:
+        logger.warning(
+            "Permission denial reason=%s trace_id=%s user_id=%s path=%s active_school_id=%s",
+            reason,
+            getattr(request, "trace_id", None),
+            getattr(getattr(request, "user", None), "id", None),
+            getattr(request, "path", "-"),
+            request.session.get("active_school_id") if hasattr(request, "session") else None,
+        )
+    except Exception:
+        pass
 
 class AuditLogMiddleware:
     def __init__(self, get_response):
@@ -272,6 +289,7 @@ class ActiveSchoolGuardMiddleware:
         if school_obj is None:
             try:
                 if self._wants_json(request):
+                    _log_denial(request, reason="active_school_invalid")
                     return JsonResponse({"detail": "invalid_active_school"}, status=403)
                 request.session.pop(self.SESSION_KEY, None)
             except Exception:
@@ -289,17 +307,20 @@ class ActiveSchoolGuardMiddleware:
             try:
                 if platform_can_access_school is None or School is None:
                     if self._wants_json(request):
+                        _log_denial(request, reason="platform_scope_invalid_active_school")
                         return JsonResponse({"detail": "invalid_active_school"}, status=403)
                     request.session.pop(self.SESSION_KEY, None)
                     return self.get_response(request)
                 # Reuse school_obj already fetched above
                 if school_obj is None or not platform_can_access_school(user, school_obj):
                     if self._wants_json(request):
+                        _log_denial(request, reason="platform_scope_forbidden")
                         return JsonResponse({"detail": "forbidden"}, status=403)
                     request.session.pop(self.SESSION_KEY, None)
             except Exception:
                 try:
                     if self._wants_json(request):
+                        _log_denial(request, reason="platform_scope_forbidden_exception")
                         return JsonResponse({"detail": "forbidden"}, status=403)
                     request.session.pop(self.SESSION_KEY, None)
                 except Exception:
@@ -310,6 +331,7 @@ class ActiveSchoolGuardMiddleware:
         try:
             if SchoolMembership is None:
                 if self._wants_json(request):
+                    _log_denial(request, reason="active_school_membership_backend_missing")
                     return JsonResponse({"detail": "invalid_active_school"}, status=403)
                 request.session.pop(self.SESSION_KEY, None)
                 return self.get_response(request)
@@ -320,11 +342,13 @@ class ActiveSchoolGuardMiddleware:
             ).exists()
             if not ok:
                 if self._wants_json(request):
+                    _log_denial(request, reason="active_school_membership_forbidden")
                     return JsonResponse({"detail": "forbidden"}, status=403)
                 request.session.pop(self.SESSION_KEY, None)
         except Exception:
             try:
                 if self._wants_json(request):
+                    _log_denial(request, reason="active_school_membership_exception")
                     return JsonResponse({"detail": "forbidden"}, status=403)
                 request.session.pop(self.SESSION_KEY, None)
             except Exception:
@@ -428,6 +452,7 @@ class SubscriptionMiddleware:
             except Exception:
                 wants_json = False
             if wants_json:
+                _log_denial(request, reason="subscription_expired")
                 return JsonResponse({"detail": "subscription_expired"}, status=403)
             return redirect('reports:subscription_expired')
 
@@ -497,6 +522,7 @@ class ForcePasswordChangeMiddleware:
             return self.get_response(request)
 
         if self._wants_json(request):
+            _log_denial(request, reason="password_change_required")
             return JsonResponse({"detail": "password_change_required"}, status=403)
 
         if not self._wants_html(request):
@@ -637,6 +663,7 @@ class PlatformAdminAccessMiddleware:
             return self.get_response(request)
 
         if self._wants_json(request):
+            _log_denial(request, reason="platform_admin_forbidden")
             return JsonResponse({"detail": "forbidden"}, status=403)
 
         # لا نعرض رسائل/redirect على طلبات الخلفية (service worker / images / scripts)
@@ -707,6 +734,7 @@ class ReportViewerAccessMiddleware:
         # منع أي عمليات كتابة تمامًا
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
             if self._wants_json(request):
+                _log_denial(request, reason="report_viewer_read_only")
                 return JsonResponse({"detail": "read_only_account"}, status=403)
             messages.error(request, "هذا الحساب للعرض فقط ولا يملك صلاحية تنفيذ عمليات.")
             return redirect("reports:school_reports_readonly")
@@ -757,6 +785,7 @@ class ReportViewerAccessMiddleware:
 
         # أي شيء آخر: نعيد توجيه للصفحة المسموحة
         if self._wants_json(request):
+            _log_denial(request, reason="report_viewer_forbidden")
             return JsonResponse({"detail": "forbidden"}, status=403)
         messages.info(request, "تم تقييد هذا الحساب للعرض على تقارير المدرسة فقط.")
         return redirect("reports:school_reports_readonly")
