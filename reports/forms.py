@@ -9,6 +9,13 @@ import logging
 
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.password_validation import (
+    CommonPasswordValidator,
+    MinimumLengthValidator,
+    NumericPasswordValidator,
+    UserAttributeSimilarityValidator,
+    get_default_password_validators,
+)
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -124,6 +131,8 @@ class MyPasswordChangeForm(PasswordChangeForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.password_min_length = 8
+        self.password_requirements = self._build_password_requirements()
         for name, f in self.fields.items():
             try:
                 f.widget.attrs.setdefault("class", "form-control")
@@ -133,6 +142,64 @@ class MyPasswordChangeForm(PasswordChangeForm):
                     f.widget.attrs.setdefault("autocomplete", "new-password")
             except Exception:
                 pass
+
+        self.fields["old_password"].widget.attrs.setdefault("placeholder", "أدخل كلمة المرور الحالية")
+        self.fields["new_password1"].widget.attrs.setdefault("placeholder", "أدخل كلمة مرور جديدة قوية")
+        self.fields["new_password2"].widget.attrs.setdefault("placeholder", "أعد إدخال كلمة المرور الجديدة")
+
+    def _build_password_requirements(self) -> list[dict[str, str]]:
+        requirements: list[dict[str, str]] = []
+
+        for validator in get_default_password_validators():
+            if isinstance(validator, MinimumLengthValidator):
+                min_length = int(getattr(validator, "min_length", 8) or 8)
+                self.password_min_length = min_length
+                requirements.append(
+                    {
+                        "key": "min_length",
+                        "label": f"أن تتكون من {min_length} أحرف على الأقل.",
+                        "hint": "كلما زاد الطول كانت الحماية أفضل.",
+                        "mode": "live",
+                    }
+                )
+            elif isinstance(validator, UserAttributeSimilarityValidator):
+                requirements.append(
+                    {
+                        "key": "not_similar",
+                        "label": "ألا تكون قريبة من اسمك أو رقم الجوال.",
+                        "hint": "تجنب أي كلمة يسهل توقعها من معلومات الحساب.",
+                        "mode": "server",
+                    }
+                )
+            elif isinstance(validator, CommonPasswordValidator):
+                requirements.append(
+                    {
+                        "key": "not_common",
+                        "label": "ألا تكون كلمة مرور شائعة أو سهلة التخمين.",
+                        "hint": "مثل الكلمات الشائعة أو التسلسلات المعروفة.",
+                        "mode": "server",
+                    }
+                )
+            elif isinstance(validator, NumericPasswordValidator):
+                requirements.append(
+                    {
+                        "key": "not_numeric",
+                        "label": "ألا تتكون من أرقام فقط.",
+                        "hint": "يفضل مزج الحروف مع الأرقام أو الرموز.",
+                        "mode": "live",
+                    }
+                )
+
+        requirements.append(
+            {
+                "key": "match",
+                "label": "أن يتطابق تأكيد كلمة المرور مع الكلمة الجديدة.",
+                "hint": "التطابق يساعد على تجنب أخطاء الكتابة قبل الحفظ.",
+                "mode": "live",
+            }
+        )
+
+        return requirements
 
 
 def _validate_academic_year_hijri(value: str) -> str:

@@ -2034,6 +2034,10 @@ class ForcedPasswordChangeFlowTests(TestCase):
 		profile = self.client.get(reverse("reports:my_profile"))
 		self.assertEqual(profile.status_code, 200)
 		self.assertContains(profile, "خطوة سريعة لحماية حسابك")
+		self.assertContains(profile, "شروط كلمة المرور")
+		self.assertContains(profile, "أن تتكون من 8 أحرف على الأقل.")
+		self.assertContains(profile, "ألا تتكون من أرقام فقط.")
+		self.assertContains(profile, "أن يتطابق تأكيد كلمة المرور مع الكلمة الجديدة.")
 
 	def test_forced_password_change_blocks_navigation_until_password_changes(self):
 		self._login_with_default_password(self.teacher_phone)

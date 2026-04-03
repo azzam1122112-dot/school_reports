@@ -9,12 +9,22 @@ from django.db.models import Count, Q
 from django.utils import timezone
 
 import logging
+import time
 
 from .models import NotificationRecipient
 from core import opmetrics
 
 
 logger = logging.getLogger(__name__)
+
+# ── Per-user connection limits ──────────────────────────────────────
+# At 50K+ schools × 25 teachers, uncontrolled reconnect storms will
+# overwhelm Redis pub/sub and the DB.  These limits keep a single user
+# from consuming unbounded resources.
+MAX_WS_CONNECTIONS_PER_USER = 3       # max concurrent sockets per user
+WS_CONNECT_RATE_WINDOW_SECONDS = 60   # sliding window for rate-limit
+WS_CONNECT_RATE_MAX = 10              # max new connections per window
+COUNTS_CACHE_TTL_SECONDS = 10         # cache _compute_counts per user
 
 
 class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
@@ -29,10 +39,12 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
     user_id: int
     active_school_id: Optional[int]
     trace_id: str
+    _last_resync_ts: float
 
     async def connect(self):
         user = self.scope.get("user")
         self.trace_id = self._scope_header("x-request-id") or "-"
+        self._last_resync_ts = 0.0
         session_key = self._scope_session_key()
         path = self.scope.get("path")
         if not user or not getattr(user, "is_authenticated", False):
@@ -48,6 +60,42 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             return
 
         self.user_id = int(getattr(user, "id", 0) or 0)
+
+        # ── Rate-limit new connections per user ─────────────────────
+        rate_key = f"ws:conn_rate:{self.user_id}"
+        try:
+            if not cache.add(rate_key, 0, timeout=WS_CONNECT_RATE_WINDOW_SECONDS):
+                conn_count = cache.incr(rate_key)
+            else:
+                conn_count = 1
+            if conn_count > WS_CONNECT_RATE_MAX:
+                opmetrics.increment("ws.notifications.denied.rate_limited")
+                logger.warning(
+                    "WS notifications rate-limited trace_id=%s user_id=%s connects_in_window=%s",
+                    self.trace_id, self.user_id, conn_count,
+                )
+                await self.close(code=4429)
+                return
+        except Exception:
+            pass  # cache down — allow the connection
+
+        # ── Cap concurrent connections per user ─────────────────────
+        cap_key = f"ws:conn_cap:{self.user_id}"
+        try:
+            cache.add(cap_key, 0, timeout=3600)
+            active = cache.incr(cap_key)
+            if active > MAX_WS_CONNECTIONS_PER_USER:
+                cache.decr(cap_key)
+                opmetrics.increment("ws.notifications.denied.max_connections")
+                logger.info(
+                    "WS notifications max-connections trace_id=%s user_id=%s active=%s",
+                    self.trace_id, self.user_id, active,
+                )
+                await self.close(code=4429)
+                return
+        except Exception:
+            pass  # cache down — allow the connection
+
         sid = None
         try:
             sess = self.scope.get("session")
@@ -93,12 +141,20 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             path,
         )
         opmetrics.increment("ws.notifications.connect.accepted")
-        payload = await self._compute_counts()
+        payload = await self._compute_counts_cached()
         await self.send_json({"type": "counts", **payload})
 
     async def disconnect(self, code):
         try:
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        except Exception:
+            pass
+        # Release connection-cap slot
+        try:
+            uid = getattr(self, "user_id", None)
+            if uid is not None:
+                cap_key = f"ws:conn_cap:{uid}"
+                cache.decr(cap_key)
         except Exception:
             pass
         try:
@@ -147,8 +203,13 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 pass
             return
         if msg_type == "resync":
+            # Throttle resyncs: max once per 5 seconds to avoid DB hammering
+            now = time.monotonic()
+            if now - self._last_resync_ts < 5.0:
+                return
+            self._last_resync_ts = now
             logger.debug("WS notifications resync request trace_id=%s user_id=%s", getattr(self, "trace_id", "-"), getattr(self, "user_id", None))
-            payload = await self._compute_counts()
+            payload = await self._compute_counts_cached()
             await self.send_json({"type": "counts", **payload})
             return
 
@@ -164,7 +225,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 getattr(self, "user_id", None),
                 self.active_school_id,
             )
-            payload = await self._compute_counts()
+            payload = await self._compute_counts_cached()
             await self.send_json({"type": "counts", **payload})
             return
 
@@ -186,6 +247,26 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             "force_resync": bool(event.get("force_resync") or False),
         }
         await self.send_json(out)
+
+    async def _compute_counts_cached(self) -> Dict[str, int]:
+        """Return cached notification counts to avoid hammering the DB on
+        reconnect storms.  At 50K+ schools the same user may reconnect
+        dozens of times per minute (mobile browser 1006)."""
+        uid = getattr(self, "user_id", 0)
+        sid = getattr(self, "active_school_id", None) or 0
+        ck = f"ws:counts:{uid}:{sid}"
+        try:
+            cached = cache.get(ck)
+            if cached is not None:
+                return cached
+        except Exception:
+            pass
+        result = await self._compute_counts()
+        try:
+            cache.set(ck, result, COUNTS_CACHE_TTL_SECONDS)
+        except Exception:
+            pass
+        return result
 
     @database_sync_to_async
     def _compute_counts(self) -> Dict[str, int]:

@@ -264,37 +264,61 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
         teachers = qs
 
     batch_size = 500
-    teacher_list = list(teachers)
 
     try:
         from .realtime_notifications import push_new_notification_to_teachers
     except Exception:
         push_new_notification_to_teachers = None
 
-    for i in range(0, len(teacher_list), batch_size):
-        batch = teacher_list[i : i + batch_size]
+    # Stream teachers in chunks via values_list to avoid loading all objects
+    # into memory.  At 50K schools × 25 teachers = 1.25M users, the old
+    # `list(teachers)` would consume gigabytes of RAM.
+    teacher_id_qs = teachers.values_list("id", flat=True)
+    total_recipients = 0
+
+    batch_ids: list[int] = []
+    for tid in teacher_id_qs.iterator(chunk_size=batch_size):
+        batch_ids.append(tid)
+        if len(batch_ids) >= batch_size:
+            NotificationRecipient.objects.bulk_create(
+                [NotificationRecipient(notification=n, teacher_id=t) for t in batch_ids],
+                ignore_conflicts=True,
+            )
+            if push_new_notification_to_teachers is not None:
+                try:
+                    push_new_notification_to_teachers(
+                        notification=n,
+                        teacher_ids=batch_ids,
+                        trace_id=trace_id,
+                    )
+                except Exception:
+                    pass
+            total_recipients += len(batch_ids)
+            batch_ids = []
+
+    # Flush remaining
+    if batch_ids:
         NotificationRecipient.objects.bulk_create(
-            [NotificationRecipient(notification=n, teacher=t) for t in batch],
+            [NotificationRecipient(notification=n, teacher_id=t) for t in batch_ids],
             ignore_conflicts=True,
         )
-
-        # WS push (bulk_create bypasses signals)
         if push_new_notification_to_teachers is not None:
             try:
                 push_new_notification_to_teachers(
                     notification=n,
-                    teacher_ids=[getattr(t, "id", None) for t in batch if getattr(t, "id", None)],
+                    teacher_ids=batch_ids,
                     trace_id=trace_id,
                 )
             except Exception:
                 pass
+        total_recipients += len(batch_ids)
 
     logger.info(
         "Task success name=send_notification_task task_id=%s trace_id=%s notification_id=%s recipients=%s",
         task_id,
         trace_id,
         notification_id,
-        len(teacher_list),
+        total_recipients,
     )
     opmetrics.increment("celery.task.success.send_notification_task")
     return True

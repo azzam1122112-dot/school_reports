@@ -855,6 +855,10 @@ class Report(models.Model):
             models.Index(fields=["school", "report_date"]),
             models.Index(fields=["school", "created_at"]),
             models.Index(fields=["school", "category"]),
+            # ✅ my_reports: filter(teacher, school) + order_by(-report_date, -id)
+            models.Index(fields=["teacher", "school", "-report_date", "-id"]),
+            # ✅ admin_reports: filter(school) + order_by(-report_date, -id)
+            models.Index(fields=["school", "-report_date", "-id"]),
         ]
         verbose_name = "تقرير"
         verbose_name_plural = "التقارير"

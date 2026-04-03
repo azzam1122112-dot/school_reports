@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from typing import Iterable, Optional
+from typing import Iterable, List, Optional
 import logging
 
 from django.utils import timezone
 
 
 logger = logging.getLogger(__name__)
+
+# ── Batch size for group_send calls ─────────────────────────────────
+# At 50K schools × 25 teachers, pushing individually causes 1.25M
+# async_to_sync(group_send) calls per broadcast notification.
+# Batching reduces the async_to_sync overhead dramatically.
+_WS_PUSH_BATCH_SIZE = 200
 
 
 def _get_channel_layer():
@@ -72,6 +78,57 @@ def push_delta_to_user(
         return
 
 
+def _push_delta_to_users_batch(
+    *,
+    teacher_ids: List[int],
+    notification_school_id: Optional[int],
+    delta_unread: int = 0,
+    delta_signatures_pending: int = 0,
+    delta_count: int = 0,
+    trace_id: str | None = None,
+) -> int:
+    """Push the same delta message to many users efficiently using a
+    single async event loop instead of one async_to_sync per user."""
+    channel_layer = _get_channel_layer()
+    if channel_layer is None:
+        return 0
+
+    import asyncio
+
+    msg = {
+        "type": "notif_delta",
+        "delta_unread": int(delta_unread),
+        "delta_signatures_pending": int(delta_signatures_pending),
+        "delta_count": int(delta_count),
+        "notification_school_id": notification_school_id,
+        "force_resync": False,
+        "trace_id": trace_id,
+    }
+
+    async def _send_batch(ids: List[int]):
+        tasks = [
+            channel_layer.group_send(f"notif.u{tid}", msg)
+            for tid in ids
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        return sum(1 for r in results if not isinstance(r, Exception))
+
+    sent = 0
+    try:
+        from asgiref.sync import async_to_sync
+
+        for i in range(0, len(teacher_ids), _WS_PUSH_BATCH_SIZE):
+            batch = teacher_ids[i:i + _WS_PUSH_BATCH_SIZE]
+            sent += async_to_sync(_send_batch)(batch)
+    except Exception:
+        logger.warning(
+            "WS batch push failed trace_id=%s total=%s sent=%s",
+            trace_id, len(teacher_ids), sent, exc_info=True,
+        )
+
+    return sent
+
+
 def push_force_resync(*, teacher_id: int, trace_id: str | None = None) -> None:
     push_delta_to_user(
         teacher_id=teacher_id,
@@ -111,15 +168,23 @@ def push_new_notification_to_teachers(*, notification, teacher_ids: Iterable[int
     else:
         du, ds, dc = 1, 0, 1
 
+    # Collect valid teacher IDs
+    valid_ids = []
     for tid in teacher_ids:
         try:
-            push_delta_to_user(
-                teacher_id=int(tid),
-                notification_school_id=notification_school_id,
-                delta_unread=du,
-                delta_signatures_pending=ds,
-                delta_count=dc,
-                trace_id=trace_id,
-            )
+            valid_ids.append(int(tid))
         except Exception:
             continue
+
+    if not valid_ids:
+        return
+
+    # Use batched push instead of per-user loop
+    _push_delta_to_users_batch(
+        teacher_ids=valid_ids,
+        notification_school_id=notification_school_id,
+        delta_unread=du,
+        delta_signatures_pending=ds,
+        delta_count=dc,
+        trace_id=trace_id,
+    )
