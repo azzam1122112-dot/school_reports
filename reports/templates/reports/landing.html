@@ -4,10 +4,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f766e">
-  <title>منصة توثيق | تشغيل المدرسة بوضوح وتقارير جاهزة واعتمادات منظمة</title>
-  <meta name="description" content="منصة توثيق تجمع التقارير المصورة والتذاكر والتعاميم وملفات الإنجاز في نظام واحد للمدارس. ابدأ تجربة مجانية 14 يوم وسجّل مدرستك مباشرة.">
-  <meta name="keywords" content="منصة مدارس, تقارير مدرسية, تذاكر صيانة, تعاميم, ملف إنجاز, نظام مدارس, توثيق">
+  <meta name="theme-color" content="#0f4c5c">
+  <title>منصة توثيق | تشغيل مدرسي فاخر وواضح من لوحة واحدة</title>
+  <meta name="description" content="منصة توثيق تمنح المدرسة لوحة تشغيل واحدة لإدارة التقارير والطلبات والتعاميم وملفات الإنجاز مع مخرجات PDF وروابط مشاركة مضبوطة. ابدأ تجربة مجانية 14 يوم.">
+  <meta name="keywords" content="منصة مدارس, إدارة مدرسية, تقارير مدرسية, ملف إنجاز, نظام مدارس, منصة توثيق, تعاميم, تذاكر صيانة">
   <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
   <link rel="manifest" href="{% static 'manifest.json' %}">
   <link rel="icon" href="{% static 'img/logo1.png' %}">
@@ -15,91 +15,102 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <style>
     :root {
-      --bg: #f4f7f4;
-      --surface: #ffffff;
-      --surface-alt: #eef6f3;
-      --line: rgba(15, 23, 42, 0.10);
-      --line-strong: rgba(15, 118, 110, 0.22);
-      --ink: #0f172a;
-      --muted: #4b5563;
-      --muted-soft: #6b7280;
-      --brand: #0f766e;
-      --brand-strong: #115e59;
-      --brand-soft: #dff5f0;
-      --accent: #d97706;
-      --accent-soft: #fff1dd;
-      --success: #15803d;
-      --nav-height: 72px;
-      --radius-xl: 32px;
+      --font-display: 'IBM Plex Sans Arabic', sans-serif;
+      --font-body: 'Cairo', sans-serif;
+      --bg: #f6f3ee;
+      --surface: rgba(255, 255, 255, 0.82);
+      --surface-strong: #ffffff;
+      --surface-dark: #10212a;
+      --surface-dark-2: #0b1720;
+      --ink: #14212b;
+      --ink-soft: #4e5d67;
+      --ink-faint: #73838d;
+      --line: rgba(20, 33, 43, 0.10);
+      --line-strong: rgba(15, 76, 92, 0.18);
+      --emerald: #0f4c5c;
+      --emerald-strong: #0a3945;
+      --teal: #157a6e;
+      --gold: #b8843f;
+      --gold-soft: #f7eddc;
+      --success: #1d7d56;
+      --danger: #b44b4b;
+      --shadow-sm: 0 14px 34px rgba(11, 23, 32, 0.06);
+      --shadow-md: 0 28px 70px rgba(11, 23, 32, 0.10);
+      --shadow-lg: 0 42px 110px rgba(11, 23, 32, 0.16);
+      --radius-xl: 34px;
       --radius-lg: 24px;
       --radius-md: 18px;
-      --shadow-sm: 0 10px 30px rgba(15, 23, 42, 0.06);
-      --shadow-md: 0 20px 50px rgba(15, 23, 42, 0.10);
-      --shadow-lg: 0 28px 80px rgba(15, 23, 42, 0.14);
       --container: 1240px;
-      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --nav-height: 74px;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
       --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
       --duration-reveal: 0.7s;
     }
 
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; overflow-x: clip; }
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      overflow-x: clip;
+    }
+
     body {
       margin: 0;
-      font-family: 'Tajawal', sans-serif;
+      font-family: var(--font-body);
+      font-size: 15.5px;
       color: var(--ink);
       background:
-        radial-gradient(circle at top right, rgba(15, 118, 110, 0.14), transparent 26%),
-        radial-gradient(circle at 15% 18%, rgba(217, 119, 6, 0.10), transparent 18%),
-        linear-gradient(180deg, #f8fbfa 0%, var(--bg) 48%, #eef4f1 100%);
+        radial-gradient(circle at top right, rgba(184, 132, 63, 0.18), transparent 22%),
+        radial-gradient(circle at 12% 18%, rgba(15, 76, 92, 0.14), transparent 20%),
+        linear-gradient(180deg, #fbf8f4 0%, #f5f1eb 42%, #f8f6f2 100%);
       overflow-x: clip;
+      text-rendering: optimizeLegibility;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(115deg, rgba(255, 255, 255, 0.34), transparent 34%),
+        radial-gradient(circle at 85% 10%, rgba(184, 132, 63, 0.10), transparent 18%),
+        radial-gradient(circle at 10% 85%, rgba(15, 76, 92, 0.06), transparent 24%);
+      pointer-events: none;
+      z-index: -1;
     }
 
     body.drawer-open {
       overflow: hidden;
     }
 
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(32px); }
-      to   { opacity: 1; transform: translateY(0); }
+    a {
+      color: inherit;
+      text-decoration: none;
     }
 
-    @keyframes fadeInScale {
-      from { opacity: 0; transform: scale(0.94); }
-      to   { opacity: 1; transform: scale(1); }
+    img {
+      display: block;
+      max-width: 100%;
     }
 
-    @keyframes shimmer {
-      0%   { background-position: 200% 50%; }
-      100% { background-position: -200% 50%; }
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-10px); }
-    }
-
-    @keyframes gradientShift {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    @keyframes countUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+    button,
+    input,
+    select {
+      font: inherit;
     }
 
     .reveal {
       opacity: 0;
       transform: translateY(36px);
-      transition: opacity var(--duration-reveal) var(--ease-out-expo),
-                  transform var(--duration-reveal) var(--ease-out-expo);
+      transition: opacity var(--duration-reveal) var(--ease-out),
+        transform var(--duration-reveal) var(--ease-out);
     }
 
     .reveal.visible {
@@ -109,9 +120,9 @@
 
     .reveal-scale {
       opacity: 0;
-      transform: scale(0.93);
-      transition: opacity var(--duration-reveal) var(--ease-out-expo),
-                  transform var(--duration-reveal) var(--ease-spring);
+      transform: scale(0.94);
+      transition: opacity var(--duration-reveal) var(--ease-out),
+        transform var(--duration-reveal) var(--ease-spring);
     }
 
     .reveal-scale.visible {
@@ -125,24 +136,19 @@
     .stagger-4 { transition-delay: 0.24s; }
 
     @media (prefers-reduced-motion: reduce) {
-      .reveal, .reveal-scale { opacity: 1; transform: none; transition: none; }
-      .floating-tag { animation: none; }
-    }
+      html {
+        scroll-behavior: auto;
+      }
 
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    img {
-      max-width: 100%;
-      display: block;
-    }
-
-    button,
-    input,
-    select {
-      font: inherit;
+      .reveal,
+      .reveal-scale,
+      .pulse-chip,
+      .hero-glow {
+        opacity: 1;
+        transform: none;
+        transition: none;
+        animation: none;
+      }
     }
 
     .container {
@@ -151,45 +157,52 @@
     }
 
     .section {
-      padding: 96px 0;
       position: relative;
-      overflow: hidden;
+      padding: 116px 0;
+    }
+
+    .section.compact {
+      padding-top: 94px;
+      padding-bottom: 94px;
     }
 
     .eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 16px;
+      padding: 9px 15px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.82);
-      border: 1px solid rgba(15, 118, 110, 0.16);
+      border: 1px solid rgba(184, 132, 63, 0.18);
+      background: linear-gradient(180deg, rgba(255, 253, 249, 0.94), rgba(251, 245, 235, 0.82));
+      color: var(--emerald-strong);
       box-shadow: var(--shadow-sm);
-      color: var(--brand-strong);
-      font-weight: 900;
-      font-size: 0.92rem;
-      backdrop-filter: blur(10px);
+      font-size: 0.82rem;
+      font-weight: 800;
+      backdrop-filter: blur(12px);
     }
 
     .section-head {
       max-width: 780px;
-      margin: 0 auto 48px;
+      margin: 0 auto 52px;
       text-align: center;
     }
 
     .section-head h2 {
       margin: 18px 0 14px;
-      font-size: clamp(2rem, 4vw, 3rem);
-      line-height: 1.15;
-      letter-spacing: -0.03em;
+      font-family: var(--font-display);
+      font-size: clamp(1.7rem, 3vw, 2.5rem);
+      line-height: 1.28;
+      letter-spacing: 0;
+      text-wrap: balance;
     }
 
     .section-head p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 1.06rem;
-      line-height: 1.9;
-      font-weight: 700;
+      margin: 0 auto;
+      max-width: 660px;
+      color: var(--ink-soft);
+      font-size: 0.98rem;
+      line-height: 1.95;
+      font-weight: 600;
     }
 
     .btn {
@@ -197,56 +210,55 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
+      min-height: 54px;
+      padding: 14px 24px;
       border-radius: 16px;
-      padding: 15px 24px;
-      font-weight: 900;
-      font-size: 0.98rem;
       border: 1px solid transparent;
-      transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease, background-color 0.24s ease;
-      cursor: pointer;
-      white-space: normal;
-      text-align: center;
+      font-weight: 800;
+      font-size: 0.94rem;
       line-height: 1.35;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease, background-color 0.24s ease;
     }
 
     .btn:hover {
       transform: translateY(-3px);
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.13);
     }
 
     .btn:active {
       transform: translateY(0);
-      transition-duration: 0.1s;
-    }
-
-    .btn-primary:hover {
-      box-shadow: 0 20px 48px rgba(15, 118, 110, 0.32);
     }
 
     .btn-primary {
+      background: linear-gradient(135deg, var(--emerald), var(--emerald-strong));
       color: #fff;
-      background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-      box-shadow: 0 16px 36px rgba(15, 118, 110, 0.26);
+      box-shadow: 0 18px 42px rgba(15, 76, 92, 0.24);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 24px 54px rgba(15, 76, 92, 0.30);
     }
 
     .btn-outline {
-      background: rgba(255, 255, 255, 0.86);
-      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      border-color: rgba(20, 33, 43, 0.12);
       color: var(--ink);
       box-shadow: var(--shadow-sm);
     }
 
     .btn-soft {
-      background: var(--brand-soft);
-      color: var(--brand-strong);
-      border-color: rgba(15, 118, 110, 0.12);
+      background: linear-gradient(135deg, var(--gold-soft), #fff9ef);
+      color: #8a6227;
+      border-color: rgba(184, 132, 63, 0.18);
+      box-shadow: var(--shadow-sm);
     }
 
     .nav-shell {
       position: sticky;
       top: 0;
-      z-index: 50;
-      padding-top: 12px;
+      z-index: 70;
+      padding-top: 14px;
     }
 
     .nav {
@@ -254,12 +266,12 @@
       align-items: center;
       justify-content: space-between;
       min-height: var(--nav-height);
-      padding: 14px 18px;
+      padding: 12px 18px;
       border-radius: 24px;
-      border: 1px solid rgba(255, 255, 255, 0.55);
-      background: rgba(255, 255, 255, 0.78);
-      backdrop-filter: blur(16px);
-      box-shadow: var(--shadow-sm);
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      box-shadow: 0 16px 40px rgba(11, 23, 32, 0.08);
+      backdrop-filter: blur(18px);
     }
 
     .brand {
@@ -270,38 +282,40 @@
     }
 
     .brand img {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
+      width: 50px;
+      height: 50px;
+      border-radius: 16px;
       object-fit: cover;
-      box-shadow: 0 8px 24px rgba(15, 118, 110, 0.16);
+      box-shadow: 0 12px 28px rgba(15, 76, 92, 0.16);
     }
 
     .brand-copy {
       display: grid;
-      gap: 2px;
+      gap: 4px;
+      min-width: 0;
     }
 
     .brand-copy strong {
-      font-size: 1.02rem;
+      font-family: var(--font-display);
+      font-size: 0.98rem;
     }
 
     .brand-copy span {
-      color: var(--muted-soft);
-      font-size: 0.88rem;
-      font-weight: 800;
+      color: var(--ink-faint);
+      font-size: 0.8rem;
+      font-weight: 700;
     }
 
     .nav-links {
       display: flex;
       align-items: center;
       gap: 24px;
-      color: var(--muted);
+      color: var(--ink-soft);
       font-weight: 800;
     }
 
     .nav-links a:hover {
-      color: var(--brand-strong);
+      color: var(--emerald-strong);
     }
 
     .nav-actions {
@@ -310,26 +324,46 @@
       gap: 12px;
     }
 
+    .mobile-login-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 48px;
+      padding: 0 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(20, 33, 43, 0.10);
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--emerald-strong);
+      font-size: 0.88rem;
+      font-weight: 800;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .mobile-login-btn i {
+      font-size: 0.92rem;
+    }
+
     .menu-btn {
       display: none;
       width: 48px;
       height: 48px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: #fff;
-      color: var(--ink);
       align-items: center;
       justify-content: center;
+      border-radius: 14px;
+      border: 1px solid rgba(20, 33, 43, 0.12);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
       box-shadow: var(--shadow-sm);
     }
 
     .mobile-drawer {
       position: fixed;
       inset: 0;
-      z-index: 80;
+      z-index: 90;
       display: none;
-      background: rgba(15, 23, 42, 0.28);
-      backdrop-filter: blur(10px);
+      background: rgba(11, 23, 32, 0.36);
+      backdrop-filter: blur(12px);
     }
 
     .mobile-drawer.open {
@@ -340,16 +374,16 @@
       position: absolute;
       top: 0;
       right: 0;
-      width: min(88vw, 360px);
+      width: min(88vw, 380px);
       height: 100%;
-      padding: 24px;
-      background: #fdfefd;
+      padding: 22px;
+      background: linear-gradient(180deg, #fffdf9 0%, #f7f1e8 100%);
       box-shadow: var(--shadow-lg);
       display: grid;
       align-content: start;
       gap: 18px;
       transform: translateX(100%);
-      transition: transform 0.26s ease;
+      transition: transform 0.28s ease;
     }
 
     .mobile-drawer.open .drawer-panel {
@@ -373,61 +407,54 @@
     .drawer-links a {
       padding: 14px 16px;
       border-radius: 16px;
-      background: #fff;
-      border: 1px solid var(--line);
-      font-weight: 900;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      font-weight: 800;
+      box-shadow: var(--shadow-sm);
     }
 
     .hero {
-      padding: 34px 0 72px;
-      position: relative;
+      padding: 48px 0 108px;
       overflow: hidden;
-    }
-
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: auto auto 40px -120px;
-      width: 380px;
-      height: 380px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(217, 119, 6, 0.14), transparent 65%);
-      pointer-events: none;
     }
 
     .hero-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.95fr);
-      gap: 40px;
+      grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+      gap: 52px;
       align-items: center;
-      padding-top: 28px;
+      padding-top: 42px;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      align-content: start;
     }
 
     .hero-copy h1 {
-      margin: 20px 0 18px;
-      font-size: clamp(2.7rem, 5vw, 4.85rem);
-      line-height: 0.98;
-      letter-spacing: -0.05em;
-      max-width: 760px;
+      margin: 16px 0 16px;
+      font-family: var(--font-display);
+      font-size: clamp(2.2rem, 4vw, 3.7rem);
+      line-height: 1.22;
+      letter-spacing: 0;
+      max-width: 640px;
+      text-wrap: balance;
     }
 
     .hero-copy h1 .accent {
-      background: linear-gradient(135deg, var(--brand), #0d9488, var(--brand-strong));
-      background-size: 200% 200%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      animation: gradientShift 4s ease-in-out infinite;
+      color: var(--emerald);
       display: inline-block;
     }
 
     .hero-copy p {
       margin: 0;
-      max-width: 680px;
-      color: var(--muted);
-      font-size: 1.15rem;
-      line-height: 1.95;
-      font-weight: 700;
+      max-width: 620px;
+      color: var(--ink-soft);
+      font-size: 0.98rem;
+      line-height: 2.02;
+      font-weight: 600;
     }
 
     .hero-actions {
@@ -437,82 +464,232 @@
       margin: 28px 0 18px;
     }
 
-    .hero-note {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 18px;
-      color: var(--muted-soft);
-      font-weight: 900;
-      margin-bottom: 26px;
+    .hero-ribbon {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 2px 0 22px;
     }
 
-    .hero-note span {
-      display: inline-flex;
+    .ribbon-card {
+      position: relative;
+      padding: 16px 18px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(249, 242, 233, 0.74));
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      box-shadow: 0 18px 40px rgba(11, 23, 32, 0.07);
+      overflow: hidden;
+    }
+
+    .ribbon-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -18px -26px auto;
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(184, 132, 63, 0.14), transparent 72%);
+      pointer-events: none;
+    }
+
+    .ribbon-card strong {
+      display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .ribbon-card i {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: rgba(15, 76, 92, 0.10);
+      color: var(--emerald-strong);
+      flex: none;
+    }
+
+    .ribbon-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.82rem;
+      line-height: 1.8;
+      font-weight: 700;
     }
 
     .hero-proof {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
+      gap: 16px;
+      margin-top: 22px;
     }
 
     .proof-tile {
-      padding: 18px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.74);
-      border: 1px solid rgba(15, 118, 110, 0.10);
-      box-shadow: var(--shadow-sm);
-      min-height: 112px;
+      padding: 20px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(249, 243, 235, 0.72));
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      box-shadow: 0 18px 38px rgba(11, 23, 32, 0.07);
+      backdrop-filter: blur(14px);
     }
 
     .proof-tile strong {
       display: block;
       margin-bottom: 6px;
-      font-size: 1rem;
+      font-size: 0.96rem;
     }
 
     .proof-tile p {
       margin: 0;
-      font-size: 0.92rem;
+      color: var(--ink-soft);
+      line-height: 1.8;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 26px;
+    }
+
+    .impact-card {
+      padding: 18px 18px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 249, 241, 0.98));
+      border: 1px solid rgba(184, 132, 63, 0.16);
+      box-shadow: 0 18px 40px rgba(11, 23, 32, 0.06);
+    }
+
+    .impact-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-family: var(--font-display);
+      font-size: 1.28rem;
+      color: var(--emerald-strong);
+    }
+
+    .impact-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.84rem;
       line-height: 1.75;
-      color: var(--muted);
       font-weight: 700;
     }
 
     .hero-stage {
       position: relative;
-      min-height: 620px;
-      padding: 18px 0;
+      padding: 22px 0;
     }
 
-    .hero-card {
-      position: relative;
-      border-radius: 32px;
-      padding: 24px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.80));
-      border: 1px solid rgba(255,255,255,0.8);
-      box-shadow: var(--shadow-lg);
+    .hero-glow {
+      position: absolute;
+      inset: 6% -12% auto auto;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(184, 132, 63, 0.22), transparent 70%);
+      filter: blur(6px);
+      pointer-events: none;
+      animation: pulseGlow 6s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+
+    .pulse-chip {
+      position: absolute;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow-md);
       backdrop-filter: blur(14px);
+      font-size: 0.9rem;
+      font-weight: 900;
+      animation: floatCard 4.6s ease-in-out infinite;
+    }
+
+    .pulse-chip i {
+      color: var(--gold);
+    }
+
+    .pulse-chip.chip-top {
+      top: 0;
+      left: 4%;
+    }
+
+    .pulse-chip.chip-bottom {
+      right: 6%;
+      bottom: 6px;
+      animation-delay: -2s;
+    }
+
+    @keyframes floatCard {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-9px); }
+    }
+
+    .hero-window {
+      position: relative;
+      border-radius: 36px;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(16, 33, 42, 0.94), rgba(11, 23, 32, 0.98));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #fff;
+      box-shadow: 0 42px 110px rgba(11, 23, 32, 0.20);
       overflow: hidden;
     }
 
-    .hero-card::before {
+    .hero-window::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(15,118,110,0.08), transparent 45%, rgba(217,119,6,0.08));
+      background:
+        radial-gradient(circle at top left, rgba(184, 132, 63, 0.18), transparent 28%),
+        linear-gradient(135deg, rgba(21, 122, 110, 0.14), transparent 48%);
       pointer-events: none;
     }
 
-    .hero-card-head {
+    .window-head,
+    .window-body {
+      position: relative;
+      z-index: 1;
+    }
+
+    .window-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 20px;
-      position: relative;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .window-title {
+      display: grid;
+      gap: 4px;
+    }
+
+    .window-title strong {
+      font-family: var(--font-display);
+      font-size: 0.98rem;
+    }
+
+    .window-title span {
+      color: rgba(255, 255, 255, 0.66);
+      font-size: 0.82rem;
+      font-weight: 700;
     }
 
     .window-dots {
@@ -524,288 +701,333 @@
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: rgba(15, 23, 42, 0.18);
+      background: rgba(255, 255, 255, 0.24);
     }
 
-    .hero-dashboard {
+    .dashboard-preview {
       position: relative;
+      border-radius: 26px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .dashboard-preview img {
+      width: 100%;
+      height: auto;
+      opacity: 0.96;
+    }
+
+    .overlay-stat {
+      position: absolute;
       display: grid;
+      gap: 4px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.90);
+      color: var(--ink);
+      box-shadow: 0 20px 40px rgba(11, 23, 32, 0.16);
+      backdrop-filter: blur(14px);
+    }
+
+    .overlay-stat strong {
+      font-family: var(--font-display);
+      font-size: 0.94rem;
+      color: var(--emerald-strong);
+    }
+
+    .overlay-stat span {
+      color: var(--ink-soft);
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .overlay-stat.top {
+      top: 16px;
+      left: 16px;
+    }
+
+    .overlay-stat.bottom {
+      right: 16px;
+      bottom: 16px;
+    }
+
+    .window-body {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
       gap: 14px;
+      margin-top: 16px;
     }
 
-    .metric-row {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .metric-box,
-    .stream-card,
-    .mini-panel,
-    .flow-card,
-    .result-card,
-    .decision-card,
-    .faq-item,
-    .price-card,
-    .comparison-card,
-    .trust-card,
-    .show-card,
-    .final-cta,
-    .process-card {
-      background: rgba(255, 255, 255, 0.84);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .metric-box {
+    .ops-stream,
+    .command-note {
       padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    .metric-box strong {
-      display: block;
-      font-size: 1.35rem;
-      margin-bottom: 4px;
-    }
-
-    .metric-box span,
-    .metric-box p {
-      margin: 0;
-      color: var(--muted-soft);
-      font-weight: 800;
-      font-size: 0.88rem;
-    }
-
-    .stream-card {
-      padding: 18px;
+    .ops-stream {
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
-    .stream-item {
+    .ops-item {
       display: grid;
       grid-template-columns: auto 1fr auto;
       gap: 12px;
       align-items: center;
-      padding: 14px 16px;
+      padding: 12px;
       border-radius: 18px;
-      background: #fff;
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: rgba(255, 255, 255, 0.08);
     }
 
-    .stream-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
+    .ops-item i {
+      width: 40px;
+      height: 40px;
       display: grid;
       place-items: center;
-      color: var(--brand-strong);
-      background: var(--brand-soft);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #f0d9ae;
     }
 
-    .stream-item small,
-    .mini-panel small,
-    .show-card small,
-    .comparison-card small {
-      color: var(--muted-soft);
-      font-weight: 800;
+    .ops-item strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 0.9rem;
     }
 
-    .mini-panels {
+    .ops-item span {
+      color: rgba(255, 255, 255, 0.66);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .ops-state {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+
+    .command-note {
       display: grid;
-      grid-template-columns: 1.2fr .8fr;
+      align-content: start;
       gap: 14px;
+      background: linear-gradient(180deg, rgba(184, 132, 63, 0.16), rgba(255, 255, 255, 0.04));
     }
 
-    .mini-panel {
-      padding: 18px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(238,246,243,0.86));
+    .command-note strong {
+      font-family: var(--font-display);
+      font-size: 0.96rem;
     }
 
-    .mini-panel ul {
+    .command-note p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.8;
+      font-weight: 600;
+      font-size: 0.86rem;
+    }
+
+    .command-note ul {
       list-style: none;
       padding: 0;
-      margin: 14px 0 0;
+      margin: 0;
       display: grid;
-      gap: 12px;
-    }
-
-    .mini-panel li {
-      display: flex;
-      align-items: center;
       gap: 10px;
-      font-weight: 800;
-      color: var(--muted);
     }
 
-    .mini-panel li i {
-      color: var(--brand);
-    }
-
-    .floating-tag {
-      position: absolute;
-      padding: 14px 16px;
-      border-radius: 18px;
-      box-shadow: var(--shadow-md);
-      font-weight: 900;
-      font-size: 0.92rem;
-      backdrop-filter: blur(12px);
-      animation: float 4s ease-in-out infinite;
-      z-index: 2;
-    }
-
-    .tag-bottom {
-      animation-delay: -2s;
-    }
-
-    .tag-top {
-      top: -8px;
-      left: 8px;
-      background: rgba(255,255,255,0.88);
-      border: 1px solid rgba(15, 118, 110, 0.16);
-    }
-
-    .tag-bottom {
-      bottom: -8px;
-      right: 8px;
-      background: linear-gradient(135deg, #0f172a, #1f2937);
+    .command-note li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
       color: #fff;
+      font-weight: 800;
+      font-size: 0.9rem;
     }
 
-    .trust-grid,
+    .command-note li i {
+      margin-top: 2px;
+      color: #f0d9ae;
+    }
+
     .results-grid,
+    .pillars-grid,
     .show-grid,
     .process-grid,
-    .comparison-grid,
     .faq-grid {
       display: grid;
       gap: 18px;
     }
 
-    .trust-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+    .results-grid {
+      grid-template-columns: 1.15fr 0.85fr 0.85fr;
+      align-items: stretch;
     }
 
-    .trust-card {
-      padding: 24px;
-      background: rgba(255, 255, 255, 0.75);
-      transition: transform 0.32s var(--ease-out-expo), box-shadow 0.32s var(--ease-out-expo);
+    .result-card,
+    .trust-card,
+    .show-card,
+    .process-card,
+    .faq-item,
+    .comparison-card,
+    .price-card,
+    .final-cta,
+    .flow-card,
+    .advisor-panel,
+    .advisor-summary {
+      border-radius: 26px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(250, 246, 240, 0.76));
+      box-shadow: 0 18px 42px rgba(11, 23, 32, 0.07);
+      backdrop-filter: blur(14px);
     }
 
-    .trust-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 24px 56px rgba(15, 23, 42, 0.12);
+    .result-card {
+      padding: 30px;
     }
 
-    .trust-card i,
+    .result-card.featured {
+      background: linear-gradient(180deg, rgba(16, 33, 42, 0.98), rgba(15, 76, 92, 0.94));
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 28px 72px rgba(15, 76, 92, 0.22);
+    }
+
     .result-card i,
+    .trust-card i,
     .show-card i,
     .process-index,
-    .price-fit i,
-    .faq-item i {
-      color: var(--brand);
+    .faq-item h3 i,
+    .feature-list i,
+    .price-fit i {
+      color: var(--emerald);
     }
 
-    .trust-card h3,
+    .result-card.featured i,
+    .result-card.featured h3,
+    .result-card.featured p,
+    .result-card.featured li {
+      color: #fff;
+    }
+
     .result-card h3,
+    .trust-card h3,
     .show-card h3,
+    .process-card h3,
     .comparison-card h3,
     .price-card h3,
-    .faq-item h3,
-    .process-card h3 {
+    .faq-item h3 {
       margin: 16px 0 10px;
+      font-family: var(--font-display);
       font-size: 1.22rem;
       line-height: 1.35;
     }
 
-    .trust-card p,
     .result-card p,
+    .trust-card p,
     .show-card p,
+    .process-card p,
     .comparison-card p,
     .price-card p,
-    .faq-item p,
-    .process-card p {
+    .faq-item p {
       margin: 0;
-      color: var(--muted);
-      line-height: 1.85;
+      color: var(--ink-soft);
+      line-height: 1.9;
       font-weight: 700;
     }
 
-    .results-grid {
-      grid-template-columns: 1.1fr .9fr .9fr;
-      align-items: stretch;
-    }
-
-    .result-card {
-      padding: 26px;
-    }
-
-    .result-card.featured {
-      background: linear-gradient(180deg, rgba(15,118,110,0.95), rgba(17,94,89,0.96));
-      border-color: transparent;
-      color: #fff;
-      box-shadow: 0 24px 56px rgba(15, 118, 110, 0.28);
-    }
-
-    .result-card.featured h3,
-    .result-card.featured p,
-    .result-card.featured li,
-    .result-card.featured i {
-      color: #fff;
-    }
-
-    .result-list {
-      display: grid;
-      gap: 12px;
+    .result-list,
+    .comparison-list,
+    .feature-list,
+    .summary-points {
       list-style: none;
       padding: 0;
-      margin: 20px 0 0;
+      margin: 18px 0 0;
+      display: grid;
+      gap: 12px;
     }
 
-    .result-list li {
+    .result-list li,
+    .comparison-list li,
+    .feature-list li,
+    .summary-points li {
       display: flex;
       align-items: flex-start;
       gap: 10px;
+      color: var(--ink-soft);
       font-weight: 800;
-      color: var(--muted);
     }
 
-    .process-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .process-card {
-      padding: 26px;
-      position: relative;
-      overflow: hidden;
-      transition: transform 0.32s var(--ease-out-expo), box-shadow 0.32s var(--ease-out-expo);
-    }
-
-    .process-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.12);
-    }
-
-    .process-card::after {
-      content: "";
-      position: absolute;
-      inset: auto -40px -40px auto;
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(15,118,110,0.10), transparent 70%);
-    }
-
-    .process-index {
-      width: 56px;
-      height: 56px;
-      border-radius: 18px;
-      display: grid;
-      place-items: center;
-      background: var(--brand-soft);
+    .results-note {
+      margin-top: 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 0.84rem;
       font-weight: 900;
-      font-size: 1.4rem;
-      margin-bottom: 18px;
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .comparison-card {
+      padding: 30px;
+    }
+
+    .comparison-card.bad {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 244, 241, 0.92));
+    }
+
+    .comparison-card.good {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(235, 247, 243, 0.96));
+      border-color: rgba(15, 76, 92, 0.18);
+    }
+
+    .comparison-card small {
+      color: var(--ink-faint);
+      font-weight: 900;
+    }
+
+    .comparison-list.bad li i {
+      color: var(--danger);
+    }
+
+    .comparison-list.good li i {
+      color: var(--success);
+    }
+
+    .pillars-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .trust-card {
+      padding: 26px;
+      transition: transform 0.28s var(--ease-out), box-shadow 0.28s var(--ease-out);
+    }
+
+    .trust-card:hover,
+    .show-card:hover,
+    .process-card:hover,
+    .faq-item:hover,
+    .price-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 24px 58px rgba(11, 23, 32, 0.12);
     }
 
     .show-grid {
@@ -813,32 +1035,46 @@
     }
 
     .show-card {
-      padding: 22px;
+      padding: 24px;
       display: grid;
-      gap: 16px;
-      transition: transform 0.32s var(--ease-out-expo), box-shadow 0.32s var(--ease-out-expo);
+      gap: 18px;
+      transition: transform 0.28s var(--ease-out), box-shadow 0.28s var(--ease-out);
     }
 
-    .show-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.13);
+    .show-card.featured-shot {
+      grid-column: span 2;
     }
 
     .show-frame {
-      min-height: 250px;
-      border-radius: 22px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(238,246,243,0.88));
-      border: 1px solid rgba(15, 118, 110, 0.10);
-      padding: 14px;
+      position: relative;
       display: grid;
       gap: 12px;
+      min-height: 250px;
+      padding: 14px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(245, 240, 232, 0.90));
+      border: 1px solid rgba(20, 33, 43, 0.08);
       overflow: hidden;
+    }
+
+    .show-frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 30%),
+        radial-gradient(circle at 90% 14%, rgba(184, 132, 63, 0.12), transparent 18%);
+      pointer-events: none;
+    }
+
+    .show-card.featured-shot .show-frame {
+      min-height: 320px;
     }
 
     .frame-bar {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       gap: 8px;
       flex-wrap: wrap;
     }
@@ -849,11 +1085,11 @@
       gap: 8px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: #fff;
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      color: var(--muted);
-      font-weight: 900;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      color: var(--ink-soft);
       font-size: 0.82rem;
+      font-weight: 900;
       box-shadow: var(--shadow-sm);
     }
 
@@ -861,33 +1097,42 @@
       position: relative;
       border-radius: 18px;
       overflow: hidden;
-      background: #fff;
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      box-shadow: 0 18px 38px rgba(15, 23, 42, 0.10);
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      box-shadow: 0 20px 44px rgba(11, 23, 32, 0.10);
     }
 
-    .show-shot::after {
+    .show-shot::before {
       content: "";
       position: absolute;
-      inset: auto 0 0 0;
-      height: 34%;
-      background: linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.08));
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.22), transparent 30%, transparent 68%, rgba(255, 255, 255, 0.10));
       pointer-events: none;
+      z-index: 1;
     }
 
-    .show-shot img {
-      display: block;
+    .show-shot-stack {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      z-index: 2;
+      display: grid;
+      gap: 10px;
+      width: min(24%, 138px);
+    }
+
+    .mini-shot {
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 14px 24px rgba(11, 23, 32, 0.14);
+      backdrop-filter: blur(12px);
+    }
+
+    .mini-shot img {
       width: 100%;
       height: auto;
-    }
-
-    .frame-stack {
-      display: grid;
-      align-content: start;
-      gap: 8px;
-      background: rgba(15, 118, 110, 0.10);
-      padding: 12px;
-      border-radius: 14px;
+      opacity: 0.96;
     }
 
     .shot-caption {
@@ -898,72 +1143,113 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 12px;
       padding: 10px 12px;
       border-radius: 14px;
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.82);
+      background: rgba(255, 255, 255, 0.92);
       box-shadow: var(--shadow-sm);
-      font-weight: 900;
+      font-size: 0.8rem;
+      font-weight: 800;
       color: var(--ink);
-      font-size: 0.86rem;
       flex-wrap: wrap;
+      z-index: 2;
     }
 
     .shot-caption span:last-child {
-      color: var(--brand-strong);
+      color: var(--emerald-strong);
     }
 
-    .show-card.featured-shot {
-      grid-column: span 2;
-    }
-
-    .show-card.featured-shot .show-frame {
-      min-height: 320px;
-    }
-
-    .stack-grid {
+    .portfolio-shell {
       display: grid;
-      align-content: start;
-      gap: 8px;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+      align-items: stretch;
     }
 
-    .stack-box {
+    .portfolio-main,
+    .portfolio-side {
+      padding: 28px;
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.80);
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(14px);
+    }
+
+    .portfolio-main {
+      background: linear-gradient(180deg, rgba(16, 33, 42, 0.98), rgba(15, 76, 92, 0.94));
+      color: #fff;
+    }
+
+    .portfolio-main h3,
+    .portfolio-side h3 {
+      margin: 0 0 14px;
+      font-family: var(--font-display);
+      font-size: 1.38rem;
+      line-height: 1.45;
+    }
+
+    .portfolio-main p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.82);
+      line-height: 1.95;
+      font-weight: 600;
+    }
+
+    .portfolio-points {
       display: grid;
-      gap: 8px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 22px;
     }
 
-    .stack-box span {
+    .portfolio-metric {
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    .portfolio-metric strong {
       display: block;
-      border-radius: 999px;
-      background: rgba(15, 118, 110, 0.10);
+      margin-bottom: 4px;
+      font-family: var(--font-display);
+      font-size: 1.08rem;
+      color: #f1dbb4;
     }
 
-    .stack-box span:first-child {
-      width: 56%;
-      height: 10px;
+    .portfolio-metric span {
+      color: rgba(255, 255, 255, 0.72);
+      font-weight: 700;
+      font-size: 0.8rem;
+      line-height: 1.75;
     }
 
-    .stack-box span:last-child {
-      width: 84%;
-      height: 10px;
-      background: rgba(15, 23, 42, 0.08);
+    .portfolio-side {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(246, 238, 226, 0.90));
+    }
+
+    .portfolio-side p {
+      margin: 0;
+      color: var(--ink-soft);
+      line-height: 1.85;
+      font-weight: 600;
     }
 
     .flow-grid {
       display: grid;
-      gap: 10px;
+      gap: 12px;
     }
 
     .flow-card {
-      padding: 14px;
+      padding: 16px;
       display: grid;
       grid-template-columns: auto 1fr auto;
       gap: 12px;
       align-items: center;
-      border-radius: 18px;
-      background: #fff;
     }
 
     .flow-icon {
@@ -972,94 +1258,175 @@
       display: grid;
       place-items: center;
       border-radius: 14px;
-      background: rgba(15, 118, 110, 0.10);
-      color: var(--brand-strong);
+      background: rgba(15, 76, 92, 0.10);
+      color: var(--emerald-strong);
     }
 
-    .comparison-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 22px;
+    .flow-copy strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 0.9rem;
     }
 
-    .comparison-card {
+    .flow-copy small {
+      color: var(--ink-faint);
+      font-size: 0.78rem;
+      font-weight: 700;
+      line-height: 1.75;
+    }
+
+    .flow-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: var(--gold-soft);
+      color: #906728;
+      font-size: 0.76rem;
+      font-weight: 900;
+    }
+
+    .stack-note {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px dashed rgba(184, 132, 63, 0.34);
+      color: var(--ink-soft);
+      line-height: 1.85;
+      font-weight: 700;
+    }
+
+    .process-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .process-card {
+      position: relative;
       padding: 28px;
+      overflow: hidden;
+      transition: transform 0.28s var(--ease-out), box-shadow 0.28s var(--ease-out);
     }
 
-    .comparison-card.bad {
-      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,244,240,0.86));
+    .process-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -30px -36px auto;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(184, 132, 63, 0.14), transparent 70%);
+      pointer-events: none;
     }
 
-    .comparison-card.good {
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(223,245,240,0.92));
-      border-color: rgba(15, 118, 110, 0.18);
-    }
-
-    .comparison-list {
-      list-style: none;
-      padding: 0;
-      margin: 20px 0 0;
+    .process-index {
+      width: 58px;
+      height: 58px;
       display: grid;
-      gap: 12px;
-    }
-
-    .comparison-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      font-weight: 800;
-      color: var(--muted);
-    }
-
-    .comparison-list.bad li i {
-      color: #b91c1c;
-    }
-
-    .comparison-list.good li i {
-      color: var(--success);
+      place-items: center;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--gold-soft), #fff7ea);
+      font-family: var(--font-display);
+      font-size: 1.22rem;
+      margin-bottom: 16px;
+      color: #8b642d;
     }
 
     .pricing-shell {
-      padding: 36px;
-      border-radius: 32px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(238,246,243,0.80));
-      border: 1px solid rgba(255,255,255,0.8);
-      box-shadow: var(--shadow-md);
+      position: relative;
+      padding: 42px;
+      border-radius: 38px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.90), rgba(245, 239, 229, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 30px 76px rgba(11, 23, 32, 0.10);
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+    }
+
+    .pricing-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(15, 76, 92, 0.08), transparent 18%),
+        radial-gradient(circle at 88% 14%, rgba(184, 132, 63, 0.14), transparent 20%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 24%);
+      pointer-events: none;
+    }
+
+    .pricing-shell > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .pricing-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+
+    .pricing-admin-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      box-shadow: var(--shadow-sm);
+      color: var(--ink-soft);
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .pricing-admin-note i {
+      color: var(--emerald-strong);
+    }
+
+    .pricing-admin-note.alt i {
+      color: var(--gold);
     }
 
     .pricing-toolbar {
       display: grid;
-      gap: 24px;
-      margin-bottom: 30px;
+      gap: 26px;
+      margin-bottom: 34px;
     }
 
     .pricing-advisor {
       display: grid;
-      grid-template-columns: 1.2fr .8fr;
+      grid-template-columns: 1.15fr 0.85fr;
       gap: 18px;
       align-items: stretch;
     }
 
     .advisor-panel,
     .advisor-summary {
-      padding: 22px;
-      border-radius: 24px;
-      background: rgba(255,255,255,0.88);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-sm);
+      padding: 26px;
+    }
+
+    .advisor-panel {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 243, 234, 0.88));
+      border-color: rgba(20, 33, 43, 0.08);
     }
 
     .advisor-panel h3,
-    .advisor-summary h3 {
+    .advisor-summary h3,
+    .pricing-periods h3 {
       margin: 0 0 10px;
-      font-size: 1.12rem;
+      font-family: var(--font-display);
+      font-size: 1.02rem;
     }
 
     .advisor-panel p,
-    .advisor-summary p {
+    .advisor-summary p,
+    .pricing-periods p {
       margin: 0;
-      color: var(--muted);
-      font-weight: 700;
+      color: var(--ink-soft);
       line-height: 1.85;
+      font-weight: 600;
     }
 
     .advisor-inputs {
@@ -1078,31 +1445,30 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      font-weight: 900;
-      color: var(--ink);
+      font-weight: 800;
     }
 
     .users-meter output {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 72px;
+      min-width: 74px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: var(--brand-soft);
-      color: var(--brand-strong);
-      font-weight: 900;
+      background: rgba(15, 76, 92, 0.10);
+      color: var(--emerald-strong);
+      font-weight: 800;
     }
 
     .users-meter input[type="range"] {
       width: 100%;
-      accent-color: var(--brand);
+      accent-color: var(--emerald);
       cursor: pointer;
       -webkit-appearance: none;
       appearance: none;
       height: 8px;
       border-radius: 99px;
-      background: linear-gradient(90deg, var(--brand-soft) 0%, rgba(15,118,110,0.18) 100%);
+      background: linear-gradient(90deg, rgba(15, 76, 92, 0.16) 0%, rgba(184, 132, 63, 0.24) 100%);
       outline: none;
     }
 
@@ -1111,15 +1477,14 @@
       width: 26px;
       height: 26px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-      box-shadow: 0 4px 14px rgba(15, 118, 110, 0.32);
-      cursor: pointer;
+      background: linear-gradient(135deg, var(--emerald), var(--emerald-strong));
+      box-shadow: 0 4px 14px rgba(15, 76, 92, 0.30);
       transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
     }
 
     .users-meter input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.18);
-      box-shadow: 0 6px 20px rgba(15, 118, 110, 0.4);
+      transform: scale(1.16);
+      box-shadow: 0 8px 20px rgba(15, 76, 92, 0.38);
     }
 
     .users-meter input[type="range"]::-moz-range-thumb {
@@ -1127,16 +1492,15 @@
       height: 26px;
       border: none;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-      box-shadow: 0 4px 14px rgba(15, 118, 110, 0.32);
-      cursor: pointer;
+      background: linear-gradient(135deg, var(--emerald), var(--emerald-strong));
+      box-shadow: 0 4px 14px rgba(15, 76, 92, 0.30);
     }
 
     .meter-scale {
       display: flex;
       justify-content: space-between;
       gap: 8px;
-      color: var(--muted-soft);
+      color: var(--ink-faint);
       font-size: 0.82rem;
       font-weight: 900;
     }
@@ -1150,27 +1514,45 @@
     .advisor-tag {
       padding: 9px 12px;
       border-radius: 999px;
-      border: 1px solid var(--line);
-      background: #fff;
-      font-size: 0.86rem;
-      font-weight: 900;
-      color: var(--muted);
+      border: 1px solid rgba(20, 33, 43, 0.10);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink-soft);
+      font-size: 0.82rem;
+      font-weight: 800;
     }
 
     .advisor-tag.active {
-      background: var(--brand-soft);
-      border-color: rgba(15, 118, 110, 0.18);
-      color: var(--brand-strong);
+      background: linear-gradient(135deg, rgba(15, 76, 92, 0.12), rgba(184, 132, 63, 0.12));
+      border-color: rgba(15, 76, 92, 0.18);
+      color: var(--emerald-strong);
     }
 
     .advisor-summary {
-      background: linear-gradient(180deg, rgba(15,118,110,0.94), rgba(17,94,89,0.96));
-      color: #fff;
       display: grid;
       gap: 14px;
       align-content: start;
-      box-shadow: 0 22px 58px rgba(15, 118, 110, 0.24);
+      background: linear-gradient(180deg, rgba(16, 33, 42, 0.98), rgba(15, 76, 92, 0.94));
       border-color: transparent;
+      color: #fff;
+      box-shadow: 0 26px 64px rgba(15, 76, 92, 0.24);
+    }
+
+    .summary-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .summary-strip span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.10);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.76rem;
+      font-weight: 800;
     }
 
     .advisor-summary h3,
@@ -1188,9 +1570,9 @@
       gap: 8px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.16);
-      font-size: 0.84rem;
-      font-weight: 900;
+      background: rgba(255, 255, 255, 0.14);
+      font-size: 0.78rem;
+      font-weight: 800;
     }
 
     .summary-price {
@@ -1201,45 +1583,16 @@
     }
 
     .summary-price strong {
-      font-size: 2.8rem;
+      font-family: var(--font-display);
+      font-size: 2.25rem;
     }
 
     .summary-meta {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      color: rgba(255,255,255,0.88);
-      font-weight: 800;
-    }
-
-    .summary-points {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      gap: 10px;
-    }
-
-    .summary-points li {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      font-weight: 800;
-      color: rgba(255,255,255,0.94);
-    }
-
-    .summary-points li i {
-      margin-top: 2px;
-    }
-
-    .period-toggle {
-      display: inline-flex;
-      gap: 8px;
-      padding: 8px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.92);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-sm);
+      color: rgba(255, 255, 255, 0.84);
+      font-weight: 700;
     }
 
     .pricing-periods {
@@ -1248,18 +1601,20 @@
       justify-content: space-between;
       gap: 18px;
       flex-wrap: wrap;
+      padding: 18px 20px;
+      border-radius: 26px;
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(20, 33, 43, 0.06);
     }
 
-    .pricing-periods h3 {
-      margin: 0 0 6px;
-      font-size: 1.06rem;
-    }
-
-    .pricing-periods p {
-      margin: 0;
-      color: var(--muted);
-      font-weight: 700;
-      line-height: 1.8;
+    .period-toggle {
+      display: inline-flex;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      box-shadow: var(--shadow-sm);
     }
 
     .period-btn {
@@ -1267,20 +1622,20 @@
       background: transparent;
       padding: 12px 18px;
       border-radius: 999px;
-      font-weight: 900;
-      color: var(--muted-soft);
+      color: var(--ink-faint);
+      font-weight: 800;
       cursor: pointer;
     }
 
     .period-btn[disabled] {
-      opacity: 0.46;
+      opacity: 0.44;
       cursor: not-allowed;
     }
 
     .period-btn.active {
+      background: linear-gradient(135deg, var(--emerald), var(--emerald-strong));
       color: #fff;
-      background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-      box-shadow: 0 12px 28px rgba(15, 118, 110, 0.24);
+      box-shadow: 0 14px 28px rgba(15, 76, 92, 0.22);
     }
 
     .pricing-grid {
@@ -1288,20 +1643,44 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 20px;
       align-items: stretch;
+      position: relative;
+    }
+
+    .pricing-grid::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 30px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent 16%, transparent 84%, rgba(255, 255, 255, 0.16));
+      pointer-events: none;
     }
 
     .price-card {
-      padding: 26px;
+      position: relative;
+      padding: 28px;
       display: grid;
       align-content: start;
       gap: 16px;
-      position: relative;
-      transition: transform 0.36s var(--ease-out-expo), box-shadow 0.36s var(--ease-out-expo);
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 243, 234, 0.84));
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      box-shadow: 0 22px 56px rgba(11, 23, 32, 0.08);
+      transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
     }
 
-    .price-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 28px 60px rgba(15, 23, 42, 0.14);
+    .price-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.46), transparent 28%),
+        radial-gradient(circle at 88% 10%, rgba(184, 132, 63, 0.14), transparent 18%);
+      pointer-events: none;
+    }
+
+    .price-card > * {
+      position: relative;
+      z-index: 1;
     }
 
     .price-card[hidden] {
@@ -1309,28 +1688,29 @@
     }
 
     .price-card.trial {
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,253,250,0.96));
-      border-color: rgba(15, 118, 110, 0.16);
-      box-shadow: 0 20px 48px rgba(15, 118, 110, 0.12);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 248, 246, 0.96));
+      border-color: rgba(15, 76, 92, 0.16);
+      box-shadow: 0 20px 46px rgba(15, 76, 92, 0.10);
     }
 
     .price-card.trial .price-value strong,
     .price-card.trial .price-fit,
     .price-card.trial .price-fit i {
-      color: var(--brand-strong);
+      color: var(--emerald-strong);
     }
 
     .price-card.featured {
-      background: linear-gradient(180deg, rgba(15,118,110,0.94), rgba(17,94,89,0.96));
+      background: linear-gradient(180deg, rgba(16, 33, 42, 0.98), rgba(15, 76, 92, 0.94));
       border-color: transparent;
       color: #fff;
-      box-shadow: 0 24px 60px rgba(15, 118, 110, 0.30);
-      transform: translateY(-8px);
+      box-shadow: 0 34px 86px rgba(15, 76, 92, 0.28);
+      transform: translateY(-10px);
     }
 
     .price-card.recommended {
-      outline: 3px solid rgba(217, 119, 6, 0.22);
-      transform: translateY(-6px);
+      outline: 3px solid rgba(184, 132, 63, 0.26);
+      transform: translateY(-8px);
+      box-shadow: 0 28px 72px rgba(184, 132, 63, 0.16);
     }
 
     .price-card.featured p,
@@ -1339,7 +1719,7 @@
     .price-card.featured .price-value small,
     .price-card.featured .feature-list li,
     .price-card.featured .price-fit i {
-      color: rgba(255,255,255,0.94);
+      color: rgba(255, 255, 255, 0.94);
     }
 
     .price-badge {
@@ -1348,10 +1728,44 @@
       left: 18px;
       padding: 6px 12px;
       border-radius: 999px;
-      background: var(--accent-soft);
-      color: #9a5b05;
-      font-size: 0.8rem;
-      font-weight: 900;
+      background: var(--gold-soft);
+      color: #8b642d;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .price-card.featured .price-badge {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
+
+    .price-card-head {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .price-specs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .price-spec {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(15, 76, 92, 0.08);
+      color: var(--emerald-strong);
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .price-card.featured .price-spec {
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.95);
     }
 
     .recommended-badge {
@@ -1361,10 +1775,10 @@
       display: none;
       padding: 6px 12px;
       border-radius: 999px;
-      background: #fff7ed;
-      color: #b45309;
-      font-size: 0.78rem;
-      font-weight: 900;
+      background: #fffaf0;
+      color: #9c6b21;
+      font-size: 0.74rem;
+      font-weight: 800;
       box-shadow: var(--shadow-sm);
     }
 
@@ -1376,68 +1790,71 @@
       display: flex;
       align-items: flex-end;
       gap: 6px;
-      font-weight: 900;
       line-height: 1;
+      font-weight: 900;
+      margin-top: 4px;
     }
 
     .price-value strong {
-      font-size: 2.65rem;
+      font-family: var(--font-display);
+      font-size: 2.15rem;
     }
 
     .price-value small {
-      color: var(--muted-soft);
-      font-size: 0.95rem;
+      color: var(--ink-faint);
+      font-size: 0.92rem;
       margin-bottom: 4px;
     }
 
     .price-meta {
-      color: var(--muted-soft);
-      font-weight: 800;
       margin: -6px 0 0;
-    }
-
-    .save-chip {
-      display: inline-flex;
-      width: fit-content;
-      padding: 7px 12px;
-      border-radius: 999px;
-      background: #dcfce7;
-      color: #166534;
-      font-size: 0.84rem;
-      font-weight: 900;
+      color: var(--ink-faint);
+      font-weight: 800;
     }
 
     .price-fit {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      color: var(--muted);
-      font-weight: 900;
-      font-size: 0.92rem;
-    }
-
-    .feature-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      gap: 12px;
-    }
-
-    .feature-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      color: var(--muted);
+      color: var(--ink-soft);
+      font-size: 0.88rem;
       font-weight: 800;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(20, 33, 43, 0.06);
+      width: fit-content;
     }
 
-    .feature-list i {
-      margin-top: 2px;
-      color: var(--brand);
+    .price-card.featured .price-fit {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.10);
     }
 
     .price-period-panels {
+      display: grid;
+      gap: 16px;
+    }
+
+    .period-panel {
+      display: grid;
+      gap: 16px;
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.52);
+      border: 1px solid rgba(20, 33, 43, 0.06);
+    }
+
+    .price-card.featured .period-panel {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.10);
+    }
+
+    [data-period-content] {
+      display: none;
+    }
+
+    [data-period-content].active {
       display: grid;
       gap: 16px;
     }
@@ -1446,6 +1863,18 @@
       display: grid;
       gap: 10px;
       margin-top: auto;
+    }
+
+    .price-note {
+      margin-top: 4px;
+      color: var(--ink-faint);
+      font-size: 0.76rem;
+      line-height: 1.8;
+      font-weight: 700;
+    }
+
+    .price-card.featured .price-note {
+      color: rgba(255, 255, 255, 0.72);
     }
 
     .card-actions .btn {
@@ -1457,14 +1886,8 @@
     }
 
     .faq-item {
-      padding: 24px;
-      background: rgba(255, 255, 255, 0.80);
-      transition: transform 0.3s var(--ease-out-expo), box-shadow 0.3s var(--ease-out-expo);
-    }
-
-    .faq-item:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 44px rgba(15, 23, 42, 0.10);
+      padding: 26px;
+      transition: transform 0.28s var(--ease-out), box-shadow 0.28s var(--ease-out);
     }
 
     .faq-item h3 {
@@ -1475,18 +1898,18 @@
     }
 
     .final-cta {
-      padding: 40px;
-      border-radius: 36px;
-      background:
-        linear-gradient(135deg, rgba(15,118,110,0.96), rgba(17,94,89,0.96)),
-        url('{% static 'img/pattern.svg' %}') center/cover no-repeat;
-      border: 0;
-      color: #fff;
-      box-shadow: 0 30px 80px rgba(15, 118, 110, 0.28);
+      padding: 48px;
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 24px;
+      gap: 26px;
       align-items: center;
+      border: 0;
+      border-radius: 36px;
+      background:
+        radial-gradient(circle at top left, rgba(184, 132, 63, 0.26), transparent 26%),
+        linear-gradient(135deg, rgba(16, 33, 42, 0.98), rgba(15, 76, 92, 0.96));
+      box-shadow: 0 42px 110px rgba(15, 76, 92, 0.22);
+      color: #fff;
     }
 
     .final-cta h2,
@@ -1495,48 +1918,69 @@
       color: #fff;
     }
 
+    .final-cta h2 {
+      margin: 18px 0 12px;
+      font-family: var(--font-display);
+      font-size: clamp(1.65rem, 3vw, 2.35rem);
+      line-height: 1.35;
+      text-wrap: balance;
+    }
+
+    .final-cta p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.88);
+      line-height: 1.95;
+      font-size: 0.96rem;
+      font-weight: 700;
+    }
+
     .cta-points {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 14px;
       margin-top: 16px;
-      font-weight: 900;
+      font-weight: 800;
     }
 
     .cta-points span {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      color: rgba(255,255,255,0.94);
+      color: rgba(255, 255, 255, 0.92);
     }
 
     .final-actions {
+      min-width: 280px;
       display: grid;
       gap: 12px;
-      min-width: 280px;
+    }
+
+    .final-actions .btn-outline {
+      background: rgba(255, 255, 255, 0.10);
+      border-color: rgba(255, 255, 255, 0.20);
+      color: #fff;
+      box-shadow: none;
     }
 
     .footer {
       padding: 34px 0 120px;
-      color: var(--muted-soft);
+      color: var(--ink-soft);
     }
 
     .footer-shell {
-      border-radius: 32px;
       overflow: hidden;
-      background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.24);
+      border-radius: 32px;
+      background: linear-gradient(180deg, #0d1b24 0%, #122733 100%);
+      box-shadow: 0 34px 84px rgba(11, 23, 32, 0.26);
     }
 
-    .footer-hero {
+    .footer-top {
       display: grid;
-      grid-template-columns: 1.1fr .9fr;
+      grid-template-columns: 1.1fr 0.9fr;
       gap: 24px;
-      padding: 32px;
-      background:
-        radial-gradient(circle at top right, rgba(20, 184, 166, 0.22), transparent 30%),
-        linear-gradient(135deg, rgba(15,118,110,0.28), rgba(17,24,39,0));
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 36px 36px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: radial-gradient(circle at top right, rgba(184, 132, 63, 0.18), transparent 26%);
     }
 
     .footer-kicker {
@@ -1546,24 +1990,26 @@
       gap: 8px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.10);
-      color: #d1fae5;
-      font-size: 0.84rem;
-      font-weight: 900;
+      background: rgba(255, 255, 255, 0.10);
+      color: #ead9b7;
+      font-size: 0.8rem;
+      font-weight: 800;
     }
 
-    .footer-hero h2 {
+    .footer-top h2 {
       margin: 16px 0 12px;
       color: #fff;
-      font-size: clamp(1.8rem, 3vw, 2.7rem);
-      line-height: 1.15;
+      font-family: var(--font-display);
+      font-size: clamp(1.55rem, 2.5vw, 2.2rem);
+      line-height: 1.36;
+      text-wrap: balance;
     }
 
-    .footer-hero p {
+    .footer-top p {
       margin: 0;
-      color: rgba(255,255,255,0.82);
-      font-weight: 700;
+      color: rgba(255, 255, 255, 0.78);
       line-height: 1.95;
+      font-weight: 600;
     }
 
     .footer-cta-stack {
@@ -1573,32 +2019,70 @@
     }
 
     .footer-cta-stack .btn-outline {
-      background: rgba(255,255,255,0.08);
+      background: rgba(255, 255, 255, 0.08);
       color: #fff;
-      border-color: rgba(255,255,255,0.14);
+      border-color: rgba(255, 255, 255, 0.16);
       box-shadow: none;
     }
 
     .footer-grid {
       display: grid;
-      grid-template-columns: 1.1fr .8fr .8fr .9fr;
-      gap: 24px;
+      grid-template-columns: 1.1fr 0.8fr 0.8fr 0.9fr;
+      gap: 22px;
+      padding: 30px 36px 18px;
       align-items: start;
-      padding: 28px 32px 12px;
     }
 
     .footer-card {
       padding: 22px;
       border-radius: 24px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: none;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .footer-card h3 {
       margin: 0 0 12px;
-      font-size: 1.06rem;
       color: #fff;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+    }
+
+    .footer-brand p,
+    .footer-card p,
+    .contact-item span,
+    .contact-item a {
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.9;
+      font-weight: 700;
+    }
+
+    .footer-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .footer-metric {
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: center;
+    }
+
+    .footer-metric strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 1rem;
+    }
+
+    .footer-metric span {
+      color: rgba(255, 255, 255, 0.64);
+      font-size: 0.8rem;
+      font-weight: 800;
     }
 
     .footer-list {
@@ -1614,47 +2098,11 @@
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      color: rgba(255,255,255,0.78);
+      color: rgba(255, 255, 255, 0.78);
     }
 
     .footer-list a:hover {
       color: #fff;
-    }
-
-    .footer-brand p,
-    .footer-note,
-    .footer-meta {
-      color: rgba(255,255,255,0.74);
-      font-weight: 700;
-      line-height: 1.9;
-    }
-
-    .footer-metrics {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 16px;
-    }
-
-    .footer-metric {
-      padding: 12px;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.06);
-      text-align: center;
-    }
-
-    .footer-metric strong {
-      display: block;
-      color: #fff;
-      font-size: 1.04rem;
-      margin-bottom: 4px;
-    }
-
-    .footer-metric span {
-      color: rgba(255,255,255,0.68);
-      font-size: 0.8rem;
-      font-weight: 800;
     }
 
     .footer-contact {
@@ -1669,8 +2117,8 @@
       align-items: start;
       padding: 12px;
       border-radius: 18px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .contact-item i {
@@ -1679,31 +2127,24 @@
       display: grid;
       place-items: center;
       border-radius: 12px;
-      color: #d1fae5;
-      background: rgba(20, 184, 166, 0.14);
+      color: #ecd9b6;
+      background: rgba(184, 132, 63, 0.14);
     }
 
     .contact-item strong {
       display: block;
-      color: #fff;
       margin-bottom: 2px;
+      color: #fff;
       font-size: 0.95rem;
-    }
-
-    .contact-item span,
-    .contact-item a {
-      color: rgba(255,255,255,0.74);
-      font-weight: 700;
-      line-height: 1.7;
     }
 
     .footer-bottom {
       margin: 0 32px;
       padding: 18px 0 24px;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
       text-align: center;
+      color: rgba(255, 255, 255, 0.52);
       font-weight: 800;
-      color: rgba(255,255,255,0.54);
     }
 
     .mobile-sticky-cta {
@@ -1712,14 +2153,14 @@
       left: 12px;
       right: 12px;
       bottom: calc(12px + env(safe-area-inset-bottom));
-      z-index: 60;
+      z-index: 75;
+      gap: 10px;
       padding: 10px;
       border-radius: 22px;
-      background: rgba(255,255,255,0.92);
-      border: 1px solid rgba(255,255,255,0.85);
-      backdrop-filter: blur(18px);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.88);
       box-shadow: var(--shadow-lg);
-      gap: 10px;
+      backdrop-filter: blur(18px);
     }
 
     .mobile-sticky-cta .btn {
@@ -1728,36 +2169,25 @@
       padding-inline: 14px;
     }
 
-    [data-period-content] {
-      display: none;
-    }
-
-    [data-period-content].active {
-      display: grid;
-      gap: 16px;
-    }
-
-    @media (max-width: 1120px) {
+    @media (max-width: 1180px) {
       .hero-grid,
-      .results-grid,
-      .trust-grid,
-      .show-grid,
-      .pricing-grid,
-      .footer-grid,
-      .faq-grid,
-      .comparison-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .hero-grid {
+      .window-body,
+      .portfolio-shell,
+      .footer-top,
+      .pricing-advisor {
         grid-template-columns: 1fr;
       }
 
       .hero-stage {
-        min-height: 0;
-        max-width: 620px;
+        max-width: 760px;
         margin: 0 auto;
-        padding: 14px 0;
+      }
+
+      .show-grid,
+      .pillars-grid,
+      .pricing-grid,
+      .footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .show-card.featured-shot,
@@ -1765,8 +2195,10 @@
         grid-column: span 2;
       }
 
-      .final-actions {
-        min-width: 0;
+      .portfolio-points,
+      .hero-ribbon,
+      .hero-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
@@ -1776,17 +2208,19 @@
         display: none;
       }
 
+      .mobile-login-btn,
       .menu-btn {
         display: inline-flex;
       }
 
-      .comparison-grid,
+      .results-grid,
+      .show-grid,
+      .process-grid,
       .faq-grid,
       .footer-grid,
+      .pillars-grid,
       .pricing-grid,
-      .show-grid,
-      .trust-grid,
-      .results-grid {
+      .decision-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1803,30 +2237,32 @@
         min-width: 0;
       }
 
-      .floating-tag {
+      .pulse-chip {
         position: static;
-        animation: none;
         margin-bottom: 12px;
+        animation: none;
       }
 
-      .floating-tag.tag-bottom {
+      .pulse-chip.chip-bottom {
         margin-bottom: 0;
         margin-top: 12px;
+      }
+
+      .portfolio-points,
+      .hero-ribbon,
+      .hero-proof,
+      .hero-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .show-shot-stack {
+        width: min(34%, 138px);
       }
     }
 
     @media (max-width: 820px) {
-      .nav-links,
-      .nav-actions .btn-outline {
-        display: none;
-      }
-
-      .menu-btn {
-        display: inline-flex;
-      }
-
       .nav {
-        min-height: 56px;
+        min-height: 58px;
         padding: 8px 14px;
         border-radius: 18px;
       }
@@ -1836,37 +2272,28 @@
       }
 
       .hero {
-        padding-bottom: 44px;
+        padding-bottom: 66px;
       }
 
       .hero-copy h1 {
-        font-size: clamp(2.4rem, 10vw, 3.7rem);
+        font-size: clamp(1.95rem, 8vw, 3rem);
       }
 
       .hero-copy p {
-        font-size: 1.04rem;
+        font-size: 0.96rem;
       }
 
-      .hero-proof,
-      .trust-grid,
-      .results-grid,
-      .show-grid,
-      .process-grid,
-      .comparison-grid,
-      .pricing-grid,
-      .faq-grid,
-      .footer-grid,
-      .metric-row,
-      .mini-panels,
-      .final-cta {
-        grid-template-columns: 1fr;
+      .section {
+        padding: 82px 0;
       }
 
-      .pricing-advisor,
-      .footer-hero,
-      .footer-grid,
-      .footer-metrics {
-        grid-template-columns: 1fr;
+      .pricing-shell,
+      .final-cta,
+      .portfolio-main,
+      .portfolio-side,
+      .footer-top,
+      .footer-grid {
+        padding: 24px;
       }
 
       .pricing-periods {
@@ -1879,68 +2306,16 @@
         align-self: center;
       }
 
-      .hero-actions,
-      .hero-note,
-      .cta-points {
-        gap: 12px;
-      }
-
-      .final-actions {
-        min-width: 0;
-        width: 100%;
-      }
-
-      .pricing-shell,
-      .final-cta,
-      .footer-hero,
-      .footer-grid {
-        padding: 20px;
-      }
-
-      .price-card.featured {
-        transform: none;
-      }
-
-      .price-card:hover {
-        transform: translateY(-3px);
-      }
-
-      .section {
-        padding: 64px 0;
-      }
-
-      .section-head {
-        margin-bottom: 36px;
+      .footer {
+        padding-bottom: 132px;
       }
 
       .mobile-sticky-cta {
         display: flex;
       }
 
-      .footer {
-        padding-bottom: 132px;
-      }
-
       .footer-bottom {
         margin: 0 24px;
-      }
-
-      .advisor-panel,
-      .advisor-summary {
-        padding: 18px;
-      }
-
-      .hero-stage {
-        min-height: 0;
-      }
-
-      .hero-card {
-        padding: 16px;
-        border-radius: 22px;
-      }
-
-      .hero::before {
-        display: none;
       }
     }
 
@@ -1955,29 +2330,35 @@
         border-radius: 16px;
       }
 
-      .brand img {
-        width: 38px;
-        height: 38px;
+      .mobile-login-btn {
+        min-height: 44px;
+        padding: 0 12px;
+        font-size: 0.84rem;
       }
 
-      .brand-copy span {
-        display: none;
+      .brand img {
+        width: 40px;
+        height: 40px;
       }
 
       .hero-copy h1 {
-        font-size: 1.95rem;
-        line-height: 1.08;
+        font-size: 1.72rem;
+        line-height: 1.22;
       }
 
       .hero-copy p,
-      .section-head p {
-        font-size: 0.94rem;
-        line-height: 1.75;
+      .section-head p,
+      .portfolio-main p,
+      .portfolio-side p,
+      .footer-top p {
+        font-size: 0.92rem;
+        line-height: 1.9;
       }
 
-      .section-head h2 {
-        font-size: 1.55rem;
-        line-height: 1.2;
+      .section-head h2,
+      .final-cta h2 {
+        font-size: 1.38rem;
+        line-height: 1.32;
       }
 
       .btn {
@@ -1988,59 +2369,58 @@
       }
 
       .eyebrow {
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         padding: 8px 12px;
       }
 
       .hero-actions,
       .card-actions,
       .final-actions {
+        display: grid;
         grid-template-columns: 1fr;
       }
 
-      .hero-actions {
-        display: grid;
-      }
-
-      .hero-note {
-        flex-direction: column;
-        gap: 8px;
-        font-size: 0.88rem;
-      }
-
+      .hero-window,
       .proof-tile,
+      .result-card,
       .trust-card,
       .show-card,
-      .result-card,
       .process-card,
       .comparison-card,
       .price-card,
       .faq-item,
-      .footer-card {
+      .footer-card,
+      .impact-card,
+      .advisor-panel,
+      .advisor-summary,
+      .portfolio-main,
+      .portfolio-side {
+        border-radius: 20px;
+        padding: 20px;
+      }
+
+      .dashboard-preview,
+      .show-frame,
+      .contact-item,
+      .flow-card {
         border-radius: 18px;
-        padding: 18px;
       }
 
-      .trust-card h3,
-      .result-card h3,
-      .show-card h3,
-      .comparison-card h3,
-      .price-card h3,
-      .faq-item h3,
-      .process-card h3 {
-        font-size: 1.08rem;
-        margin: 12px 0 8px;
+      .window-body,
+      .flow-card,
+      .contact-item {
+        grid-template-columns: 1fr;
       }
 
-      .hero-card {
-        padding: 16px;
-        border-radius: 22px;
-      }
-
-      .floating-tag {
+      .shot-caption {
         position: static;
-        margin-top: 12px;
-        animation: none;
+        margin-top: 10px;
+      }
+
+      .show-shot-stack {
+        position: static;
+        width: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .period-toggle {
@@ -2050,48 +2430,11 @@
       .period-btn {
         flex: 1;
         padding: 10px 14px;
-        font-size: 0.88rem;
-      }
-
-      .pricing-periods,
-      .summary-meta,
-      .flow-card,
-      .contact-item {
-        grid-template-columns: 1fr;
-      }
-
-      .mobile-sticky-cta {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        left: 8px;
-        right: 8px;
-        bottom: 8px;
-        padding: 8px;
+        font-size: 0.86rem;
       }
 
       .users-meter label {
         flex-wrap: wrap;
-        font-size: 0.9rem;
-      }
-
-      .advisor-tag {
-        flex: 1 1 calc(50% - 10px);
-        text-align: center;
-        padding: 8px 10px;
-        font-size: 0.82rem;
-      }
-
-      .summary-price strong {
-        font-size: 2rem;
-      }
-
-      .price-value strong {
-        font-size: 2.15rem;
-      }
-
-      .shot-caption {
-        position: static;
-        margin-top: 10px;
       }
 
       .summary-meta {
@@ -2099,54 +2442,15 @@
         gap: 6px;
       }
 
-      .flow-card,
-      .contact-item {
-        grid-template-columns: 1fr;
-      }
-
-      .footer-shell {
-        border-radius: 22px;
-      }
-
-      .footer-bottom {
-        margin: 0 16px;
-        font-size: 0.82rem;
-      }
-
-      .final-cta {
-        padding: 20px;
-        border-radius: 24px;
-      }
-
-      .final-cta h2 {
-        font-size: 1.45rem !important;
-      }
-
-      .comparison-list li,
-      .result-list li,
-      .feature-list li {
-        font-size: 0.9rem;
-      }
-
-      .pricing-shell {
-        padding: 16px;
-        border-radius: 24px;
-      }
-
-      .pricing-advisor {
-        gap: 14px;
-      }
-
-      .advisor-panel,
-      .advisor-summary {
-        padding: 16px;
-        border-radius: 20px;
+      .summary-price strong,
+      .price-value strong {
+        font-size: 1.84rem;
       }
 
       .price-badge {
         position: static;
         display: inline-flex;
-        margin-bottom: -8px;
+        margin-bottom: -6px;
       }
 
       .recommended-badge {
@@ -2161,6 +2465,15 @@
         gap: 8px;
         font-size: 0.9rem;
       }
+
+      .mobile-sticky-cta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        padding: 8px;
+      }
     }
 
     @media (max-width: 380px) {
@@ -2169,7 +2482,7 @@
       }
 
       .hero-copy h1 {
-        font-size: 1.72rem;
+        font-size: 1.52rem;
       }
 
       .nav {
@@ -2182,11 +2495,16 @@
       }
 
       .section {
-        padding: 48px 0;
+        padding: 54px 0;
       }
 
-      .section-head h2 {
-        font-size: 1.35rem;
+      .section-head h2,
+      .final-cta h2 {
+        font-size: 1.22rem;
+      }
+
+      .footer-top h2 {
+        font-size: 1.18rem;
       }
 
       .mobile-sticky-cta {
@@ -2194,8 +2512,12 @@
         gap: 6px;
       }
 
+      .mobile-login-btn span {
+        display: none;
+      }
+
       .pricing-shell {
-        padding: 12px;
+        padding: 14px;
       }
 
       .advisor-panel,
@@ -2213,21 +2535,26 @@
           <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق">
           <span class="brand-copy">
             <strong>منصة توثيق</strong>
-            <span>تشغيل مدرسي مرتب وواضح وقابل للمتابعة</span>
+            <span>تشغيل مدرسي واضح واحترافي من لوحة واحدة</span>
           </span>
         </a>
 
         <div class="nav-links">
+          <a href="#results">النتائج</a>
           <a href="#why">لماذا توثيق</a>
+          <a href="#showcase">الواجهات</a>
           <a href="#portfolio-share">الإنجاز والمشاركة</a>
-          <a href="#showcase">واجهة المنتج</a>
           <a href="#pricing">الباقات</a>
-          <a href="#faq">الأسئلة الشائعة</a>
+          <a href="#faq">الأسئلة</a>
         </div>
 
         <div class="nav-actions">
           <a class="btn btn-outline" href="{% url 'reports:login' %}">دخول المستخدمين</a>
           <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
+          <a class="mobile-login-btn" href="{% url 'reports:login' %}" aria-label="تسجيل الدخول">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>دخول</span>
+          </a>
           <button class="menu-btn" id="menuBtn" aria-label="فتح القائمة" type="button">
             <i class="fa-solid fa-bars-staggered"></i>
           </button>
@@ -2243,7 +2570,7 @@
           <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق">
           <span class="brand-copy">
             <strong>منصة توثيق</strong>
-            <span>رحلة تشغيل مدرسي أوضح</span>
+            <span>منصة تشغيل مدرسي أدق وأهدأ</span>
           </span>
         </div>
         <button class="menu-btn" id="closeDrawer" type="button" aria-label="إغلاق القائمة" style="display:inline-flex;">
@@ -2252,33 +2579,33 @@
       </div>
 
       <div class="drawer-links">
-        <a href="#why">لماذا توثيق</a>
         <a href="#results">النتائج</a>
+        <a href="#why">لماذا توثيق</a>
+        <a href="#showcase">الواجهات</a>
         <a href="#portfolio-share">الإنجاز والمشاركة</a>
-        <a href="#showcase">واجهة المنتج</a>
         <a href="#pricing">الباقات</a>
         <a href="#faq">الأسئلة الشائعة</a>
       </div>
 
-      <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
-      <a class="btn btn-outline" href="{% url 'reports:login' %}">دخول المستخدمين</a>
-      <a class="btn btn-soft" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">تواصل واتساب</a>
+      <a class="btn btn-primary" href="{% url 'reports:login' %}">دخول المستخدمين</a>
+      <a class="btn btn-outline" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
+      <a class="btn btn-soft" href="{% url 'reports:user_guide' %}">دليل المستخدم</a>
     </div>
   </div>
 
   <main id="top">
     <section class="hero">
       <div class="container hero-grid">
-        <div class="hero-copy">
-          <span class="eyebrow"><i class="fa-solid fa-shield-halved"></i> تشغيل مدرسي موحد بدل التشتت بين الورق والواتساب</span>
+        <div class="hero-copy reveal">
+          <span class="eyebrow"><i class="fa-solid fa-crown"></i> منصة تشغيل مدرسي بمظهر يليق بالإدارة الحديثة</span>
           <h1>
-            منصة واحدة تجعل<br>
-            <span class="accent">تقارير المدرسة واعتمادها وطلباتها</span><br>
-            واضحة في كل يوم دراسي
+            كل ما تحتاجه المدرسة
+            <span class="accent">لتوثيق العمل وإبراز الإنجاز</span>
+            في لوحة واحدة أنيقة وواضحة
           </h1>
           <p>
-            توثيق يجمع التقارير المصورة، تذاكر الصيانة، التعاميم، وملفات الإنجاز للمعلمين داخل نظام واحد منظم.
-            النتيجة ليست مجرد واجهة جميلة، بل متابعة أوضح للمدير، ومخرجات PDF جاهزة، وروابط مشاركة للتقارير وملفات الإنجاز بصلاحية محددة عند الحاجة للمراجعة أو الإرسال الخارجي.
+            توثيق يجمع التقارير المصورة، الطلبات، التعاميم، وملفات الإنجاز داخل تجربة تشغيل مرتبة وسريعة الفهم.
+            النتيجة هي متابعة يومية أهدأ، مخرجات جاهزة للطباعة والعرض، وصورة مهنية أقوى أمام الإدارة والزوار والجهات الخارجية.
           </p>
 
           <div class="hero-actions">
@@ -2286,123 +2613,164 @@
               ابدأ تجربة مجانية 14 يوم
               <i class="fa-solid fa-arrow-left"></i>
             </a>
-            <a class="btn btn-outline" href="#pricing">
-              شاهد الباقات المناسبة
-              <i class="fa-solid fa-layer-group"></i>
+            <a class="btn btn-outline" href="#showcase">
+              شاهد الواجهات الحقيقية
+              <i class="fa-solid fa-desktop"></i>
             </a>
           </div>
 
-          <div class="hero-note">
-            <span><i class="fa-solid fa-check-circle"></i> تسجيل المدرسة مباشرة من الصفحة</span>
-            <span><i class="fa-solid fa-mobile-screen-button"></i> تجربة مهيأة للجوال وسطح المكتب</span>
-            <span><i class="fa-solid fa-file-pdf"></i> تقارير PDF رسمية جاهزة للطباعة</span>
-            <span><i class="fa-solid fa-link"></i> روابط مشاركة مؤقتة بصلاحية محددة</span>
+          <div class="hero-ribbon reveal stagger-1">
+            <article class="ribbon-card">
+              <strong><i class="fa-solid fa-sparkles"></i> صورة مؤسسية أرقى</strong>
+              <p>واجهة تعرض المدرسة كجهة منظمة وواثقة في مخرجاتها اليومية.</p>
+            </article>
+            <article class="ribbon-card">
+              <strong><i class="fa-solid fa-layer-group"></i> تجربة عمل متماسكة</strong>
+              <p>التقارير والطلبات والإنجاز داخل نظام واحد بدل التشتت بين أدوات متعددة.</p>
+            </article>
+            <article class="ribbon-card">
+              <strong><i class="fa-solid fa-medal"></i> مخرجات تليق بالعرض</strong>
+              <p>ملفات وتقارير تظهر بمستوى أكثر أناقة أمام الإدارة والجهات الخارجية.</p>
+            </article>
           </div>
 
-          <div class="hero-proof">
+          <div class="hero-proof reveal stagger-1">
             <article class="proof-tile">
-              <strong>عزل كامل لكل مدرسة</strong>
-              <p>بيانات كل مدرسة وصلاحياتها تعمل ضمن نطاقها التشغيلي بدون خلط.</p>
+              <strong>خصوصية تشغيلية منضبطة</strong>
+              <p>كل مدرسة تعمل داخل نطاقها وصلاحياتها دون خلط في المستخدمين أو التقارير أو المخرجات.</p>
             </article>
             <article class="proof-tile">
-              <strong>رحلة متابعة واضحة</strong>
-              <p>من إنشاء الطلب أو التقرير حتى الإغلاق أو الاعتماد، كل شيء موثق ومتاح للرجوع.</p>
+              <strong>قرار إداري أسرع</strong>
+              <p>يرى المدير ما تم وما ينتظر الاعتماد أو الإجراء من شاشة واحدة واضحة وسهلة الرجوع.</p>
             </article>
             <article class="proof-tile">
-              <strong>بداية مباشرة</strong>
-              <p>يمكنك فتح فترة تجربة حقيقية الآن، ثم تفعيل الباقة المناسبة لاحقاً دون تعقيد.</p>
+              <strong>بداية مباشرة بلا تعقيد</strong>
+              <p>تسجيل المدرسة وبدء التجربة يتمان فوراً، ثم اختيار الباقة بعد تجربة حقيقية داخل المدرسة.</p>
+            </article>
+          </div>
+
+          <div class="hero-stats reveal stagger-2">
+            <article class="impact-card">
+              <strong data-count-to="14" data-count-suffix=" يوم">0</strong>
+              <p>تجربة مجانية تساعدك على اختبار النظام قبل قرار الاشتراك.</p>
+            </article>
+            <article class="impact-card">
+              <strong data-count-to="1" data-count-suffix=" لوحة">0</strong>
+              <p>واجهة واحدة تجمع التوثيق والطلبات والتعاميم وملفات الإنجاز.</p>
+            </article>
+            <article class="impact-card">
+              <strong data-count-to="3" data-count-suffix=" مسارات">0</strong>
+              <p>إدارة اليوم التشغيلي، المخرجات الرسمية، والمشاركة الخارجية في نظام واحد.</p>
+            </article>
+            <article class="impact-card">
+              <strong data-count-to="5" data-count-suffix=" مستخدمين كبداية">0</strong>
+              <p>انطلاقة عملية للفريق خلال التجربة قبل التوسع للباقات الأعلى.</p>
             </article>
           </div>
         </div>
 
-        <div class="hero-stage">
-          <div class="floating-tag tag-top"><i class="fa-solid fa-bolt"></i> مدير المدرسة يرى الصورة كاملة من شاشة واحدة</div>
-          <div class="hero-card">
-            <div class="hero-card-head">
-              <div>
-                <strong style="font-size:1.1rem;">لوحة متابعة يومية</strong>
-                <div style="color:var(--muted-soft);font-weight:800;font-size:0.92rem;">تقارير، تذاكر، تعاميم، وملفات إنجاز في مسار واحد</div>
+        <div class="hero-stage reveal-scale">
+          <div class="hero-glow" aria-hidden="true"></div>
+          <div class="pulse-chip chip-top"><i class="fa-solid fa-bolt"></i> المدير يرى ما تم وما تأخر وما ينتظر الاعتماد في شاشة واحدة</div>
+
+          <div class="hero-window">
+            <div class="window-head">
+              <div class="window-title">
+                <strong>لوحة تشغيل يومية</strong>
+                <span>تقارير، تعاميم، طلبات، وملفات إنجاز في تدفق واحد واضح</span>
               </div>
               <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
             </div>
 
-            <div class="hero-dashboard">
-              <div class="metric-row">
-                <div class="metric-box">
-                  <strong>PDF</strong>
-                  <span>مخرجات جاهزة</span>
+            <div class="dashboard-preview">
+              <img src="{% static 'img/SC1.png' %}" alt="لقطة من لوحة متابعة منصة توثيق" loading="eager" width="1200" height="675">
+              <div class="overlay-stat top">
+                <strong>صورة تشغيلية فورية</strong>
+                <span>مؤشرات يومية واضحة بدل التشتت بين قنوات متعددة</span>
+              </div>
+              <div class="overlay-stat bottom">
+                <strong>مخرجات رسمية جاهزة</strong>
+                <span>تقارير PDF وروابط مشاركة منضبطة للعرض والمراجعة</span>
+              </div>
+            </div>
+
+            <div class="window-body">
+              <div class="ops-stream">
+                <div class="ops-item">
+                  <i class="fa-solid fa-camera"></i>
+                  <div>
+                    <strong>التقرير المصور وصل وتمت مراجعته</strong>
+                    <span>رفع من الجوال مع وصف وتصنيف وأرشفة داخل المدرسة</span>
+                  </div>
+                  <span class="ops-state">جاهز</span>
                 </div>
-                <div class="metric-box">
-                  <strong>RBAC</strong>
-                  <span>صلاحيات حسب الدور</span>
+                <div class="ops-item">
+                  <i class="fa-solid fa-ticket"></i>
+                  <div>
+                    <strong>تذكرة صيانة تتحرك ضمن مسار واضح</strong>
+                    <span>إسناد، حالة، ملاحظات، وسجل كامل للعودة عند الحاجة</span>
+                  </div>
+                  <span class="ops-state">متابعة</span>
                 </div>
-                <div class="metric-box">
-                  <strong>14 يوم</strong>
-                  <span>تجربة مجانية</span>
+                <div class="ops-item">
+                  <i class="fa-solid fa-folder-open"></i>
+                  <div>
+                    <strong>ملف الإنجاز جاهز للطباعة أو المشاركة</strong>
+                    <span>محاور، شواهد، اعتماد، ورابط مؤقت مضبوط الصلاحية</span>
+                  </div>
+                  <span class="ops-state">مؤرشف</span>
                 </div>
               </div>
 
-              <div class="stream-card">
-                <div class="stream-item">
-                  <div class="stream-icon"><i class="fa-solid fa-camera"></i></div>
-                  <div>
-                    <strong>التقارير المصورة</strong>
-                    <small>صور + وصف + تصنيف + أرشفة</small>
-                  </div>
-                  <span class="eyebrow" style="padding:6px 10px;font-size:0.76rem;box-shadow:none;">جاهز</span>
-                </div>
-
-                <div class="stream-item">
-                  <div class="stream-icon"><i class="fa-solid fa-ticket"></i></div>
-                  <div>
-                    <strong>تذاكر الصيانة والطلبات</strong>
-                    <small>إسناد، حالات، ملاحظات، وإغلاق موثق</small>
-                  </div>
-                  <span style="font-weight:900;color:var(--brand-strong);">متابعة حية</span>
-                </div>
-
-                <div class="stream-item">
-                  <div class="stream-icon"><i class="fa-solid fa-file-signature"></i></div>
-                  <div>
-                    <strong>التعاميم والتوقيع</strong>
-                    <small>نشر واضح مع متابعة الاطلاع والتوقيع</small>
-                  </div>
-                  <span style="font-weight:900;color:var(--success);">مؤرشف</span>
-                </div>
-
-                <div class="stream-item">
-                  <div class="stream-icon"><i class="fa-solid fa-folder-open"></i></div>
-                  <div>
-                    <strong>ملفات الإنجاز وروابط المشاركة</strong>
-                    <small>ملف معلم منظم مع شواهد وPDF ورابط مؤقت ينتهي تلقائياً</small>
-                  </div>
-                  <span style="font-weight:900;color:var(--accent);">آمن</span>
-                </div>
-              </div>
-
-              <div class="mini-panels">
-                <div class="mini-panel">
-                  <small>ما الذي يحصل يومياً؟</small>
-                  <ul>
-                    <li><i class="fa-solid fa-circle-check"></i> المعلم يرفع التقرير من الجوال</li>
-                    <li><i class="fa-solid fa-circle-check"></i> يحدّث ملف الإنجاز ويجمع شواهده بنفس المسار</li>
-                    <li><i class="fa-solid fa-circle-check"></i> الإدارة تراجع وتعتمد وتطبع</li>
-                    <li><i class="fa-solid fa-circle-check"></i> الطلبات والروابط المشتركة تسير بصلاحيات يمكن تتبعها</li>
-                  </ul>
-                </div>
-
-                <div class="mini-panel">
-                  <small>ماذا يكسب المدير؟</small>
-                  <ul>
-                    <li><i class="fa-solid fa-arrow-trend-up"></i> وضوح تشغيلي أعلى</li>
-                    <li><i class="fa-solid fa-lock"></i> وصول مضبوط</li>
-                    <li><i class="fa-solid fa-print"></i> مخرجات رسمية</li>
-                  </ul>
-                </div>
+              <div class="command-note">
+                <strong>ما الذي يكسبه المدير فعلياً؟</strong>
+                <p>المنصة لا تضيف شاشة جديدة فقط، بل تقلل ضوضاء المتابعة اليومية وتمنح الإدارة مخرجات تبدو أكثر مهنية في كل مراجعة أو زيارة أو طلب اعتماد.</p>
+                <ul>
+                  <li><i class="fa-solid fa-check"></i> وضوح في المسؤولية والحالة الحالية لكل طلب أو تقرير</li>
+                  <li><i class="fa-solid fa-check"></i> جاهزية أسرع للطباعة والمراجعة وإبراز الإنجاز</li>
+                  <li><i class="fa-solid fa-check"></i> مشاركة خارجية أكثر هيبة وأماناً من إرسال ملفات عشوائية</li>
+                </ul>
               </div>
             </div>
           </div>
-          <div class="floating-tag tag-bottom"><i class="fa-solid fa-mobile-screen"></i> مناسب للعمل الميداني من الجوال أيضاً</div>
+
+          <div class="pulse-chip chip-bottom"><i class="fa-solid fa-mobile-screen-button"></i> تصميم مهيأ للميدان على الجوال بقدر ما هو مهيأ للمكتب</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" id="results">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow"><i class="fa-solid fa-chart-line"></i> نتائج يشعر بها القرار الإداري سريعاً</span>
+          <h2>ما الذي يتغير داخل المدرسة من أول أسبوع استخدام؟</h2>
+          <p>بدلاً من إدارة متعبة تعتمد على الرسائل والتذكير اليدوي، تصبح المتابعة أوضح والمخرجات أكثر جاهزية والخصوصية أكثر انضباطاً.</p>
+        </div>
+
+        <div class="results-grid">
+          <article class="result-card featured reveal stagger-1">
+            <i class="fa-solid fa-gauge-high fa-2xl"></i>
+            <h3>صورة يومية واحدة بدلاً من مطاردة التفاصيل بين ملفات وقنوات متعددة</h3>
+            <p>يرى المدير ما تم، وما تأخر، وما يحتاج تدخلاً فورياً، دون أن يطلب تحديثات متناثرة من أكثر من جهة داخل المدرسة.</p>
+            <ul class="result-list">
+              <li><i class="fa-solid fa-check"></i> تقليل وقت المتابعة اليومية وتحويله إلى قرارات أسرع</li>
+              <li><i class="fa-solid fa-check"></i> وضوح المسار الحالي لكل طلب أو تقرير أو ملف إنجاز</li>
+              <li><i class="fa-solid fa-check"></i> سجل قابل للرجوع عند أي مراجعة أو استفسار</li>
+            </ul>
+            <span class="results-note"><i class="fa-solid fa-star"></i> هذه هي الرسالة التي يلتقطها مدير المدرسة فوراً</span>
+          </article>
+
+          <article class="result-card reveal stagger-2">
+            <i class="fa-solid fa-file-circle-check fa-2xl"></i>
+            <h3>مخرجات تبدو بمستوى مهني أعلى</h3>
+            <p>التقرير أو ملف الإنجاز أو التعميم لا يحتاج تجميعاً يدوياً في آخر لحظة، بل يكون محفوظاً وقابلاً للطباعة والإظهار بثقة.</p>
+          </article>
+
+          <article class="result-card reveal stagger-3">
+            <i class="fa-solid fa-link fa-2xl"></i>
+            <h3>مشاركة خارجية منضبطة لا تترك الملفات مبعثرة</h3>
+            <p>بدلاً من إرسال نسخ ثابتة بلا تحكم، تنشئ المدرسة روابط مشاركة مؤقتة تحفظ الخصوصية وتبدو أكثر احترافية أمام الجهات الخارجية.</p>
+          </article>
         </div>
       </div>
     </section>
@@ -2410,225 +2778,64 @@
     <section class="section" id="why">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-medal"></i> لماذا يقتنع مدير المدرسة بالمنصة</span>
-          <h2>لأن القيمة ليست في “إضافة تقارير” فقط، بل في جعل المدرسة تعمل بوضوح أكبر</h2>
-          <p>الصفحة الجديدة تبيع النتيجة التشغيلية أولاً: تقليل التشتت، توحيد الاعتمادات، وضمان بقاء المخرجات جاهزة عند الحاجة.</p>
+          <span class="eyebrow"><i class="fa-solid fa-scale-balanced"></i> الفرق بين إدارة مرهقة وإدارة مرتبة</span>
+          <h2>القيمة هنا ليست إضافة تقارير فقط، بل تحويل العمل المدرسي إلى مسار يمكن رؤيته والثقة به</h2>
+          <p>حين تكون المدرسة قادرة على التوثيق والمتابعة والطباعة والمشاركة من منصة واحدة، يصبح القرار الإداري أكثر هدوءاً وثباتاً.</p>
         </div>
 
-        <div class="trust-grid">
+        <div class="decision-grid">
+          <article class="comparison-card bad reveal stagger-1">
+            <small>قبل المنصة</small>
+            <h3>معلومة موزعة، طلبات تتأخر، ومخرجات تحتاج إعادة تجميع كل مرة</h3>
+            <ul class="comparison-list bad">
+              <li><i class="fa-solid fa-xmark"></i> التوثيق موزع بين واتساب وصور ومجلدات منفصلة</li>
+              <li><i class="fa-solid fa-xmark"></i> مسؤولية الطلب أو التقرير تضيع بين المتابعة الشفوية والانتظار</li>
+              <li><i class="fa-solid fa-xmark"></i> ملف الإنجاز أو التقرير الرسمي يحتاج جهد تجميع متكرر</li>
+            </ul>
+          </article>
+
+          <article class="comparison-card good reveal stagger-2">
+            <small>بعد توثيق</small>
+            <h3>رحلة واحدة واضحة من الإدخال حتى الاعتماد والطباعة والمشاركة</h3>
+            <ul class="comparison-list good">
+              <li><i class="fa-solid fa-check"></i> كل عنصر محفوظ ضمن سياقه ويمكن الرجوع له بسرعة</li>
+              <li><i class="fa-solid fa-check"></i> الحالة والمسؤولية والصلاحية ظاهرة بوضوح حسب الدور</li>
+              <li><i class="fa-solid fa-check"></i> المخرجات أكثر أناقة وجاهزية عند العرض أو الأرشفة</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="pillars-grid">
           <article class="trust-card reveal stagger-1">
             <i class="fa-solid fa-building-shield fa-xl"></i>
-            <h3>خصوصية المدرسة داخل نطاقها</h3>
-            <p>كل مدرسة تعمل داخل حسابها وصلاحياتها، مع فصل واضح للبيانات والمستخدمين والمخرجات.</p>
+            <h3>عزل واضح لكل مدرسة</h3>
+            <p>البيانات والمستخدمون والمخرجات تعمل ضمن نطاق المدرسة النشطة دون تشويش أو خلط بين الجهات.</p>
           </article>
           <article class="trust-card reveal stagger-2">
             <i class="fa-solid fa-users-gear fa-xl"></i>
             <h3>صلاحيات عملية وليست شكلية</h3>
-            <p>المعلم، المدير، المسؤول، والمشرف يرون ما يلزمهم فقط ويؤدون دورهم ضمن مسار محدد.</p>
+            <p>المعلم، المدير، المشرف، والمسؤول يرون فقط ما يلزمهم ليؤدوا دورهم داخل مسار واضح.</p>
           </article>
           <article class="trust-card reveal stagger-3">
-            <i class="fa-solid fa-file-circle-check fa-xl"></i>
-            <h3>مخرجات رسمية جاهزة</h3>
-            <p>عندما تحتاج تقريراً أو تعميماً أو ملف إنجاز، يكون محفوظاً وقابلاً للطباعة بدلاً من إعادة التجميع اليدوي.</p>
+            <i class="fa-solid fa-file-pdf fa-xl"></i>
+            <h3>جاهزية فورية للمخرجات</h3>
+            <p>التقارير وملفات الإنجاز لا تُصنع عند الحاجة، بل تبقى جاهزة للطباعة والرجوع طوال العام الدراسي.</p>
           </article>
           <article class="trust-card reveal stagger-4">
-            <i class="fa-solid fa-link fa-xl"></i>
-            <h3>مشاركة خارجية منضبطة</h3>
-            <p>يمكن مشاركة التقرير أو ملف الإنجاز برابط مؤقت بصلاحية محددة بدلاً من إرسال ملفات مفتوحة بلا تحكم.</p>
+            <i class="fa-solid fa-lock fa-xl"></i>
+            <h3>مشاركة خارجية أكثر أماناً</h3>
+            <p>روابط مؤقتة بمدة صلاحية محددة بدلاً من ملفات مفتوحة لا يمكن التحكم بها بعد إرسالها.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="results" style="background:linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0));">
+    <section class="section" id="showcase" style="padding-top:88px;">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-chart-line"></i> النتائج التي تهم الإدارة</span>
-          <h2>ما الذي يتغير فعلياً بعد اعتماد توثيق داخل المدرسة؟</h2>
-          <p>المنصة لا تكتفي بإضافة أدوات جديدة، بل تجعل المدير يرى صورة واضحة كل يوم وتُبقي المخرجات جاهزة عند الحاجة.</p>
-        </div>
-
-        <div class="results-grid">
-          <article class="result-card featured reveal stagger-1">
-            <i class="fa-solid fa-gauge-high fa-2xl"></i>
-            <h3>صورة تشغيلية يومية أوضح للإدارة</h3>
-            <p>المدير لا ينتقل بين ملفات متعددة ورسائل منفصلة. تظهر له التقارير والطلبات والتعاميم ومؤشرات الإنجاز في مكان واحد.</p>
-            <ul class="result-list">
-              <li><i class="fa-solid fa-check"></i> متابعة أسرع لما تم وما لم يتم</li>
-              <li><i class="fa-solid fa-check"></i> وضوح في المسؤولية والمسار الحالي لكل طلب</li>
-              <li><i class="fa-solid fa-check"></i> سهولة العودة للسجل السابق عند أي مراجعة</li>
-            </ul>
-          </article>
-
-          <article class="result-card reveal stagger-2">
-            <i class="fa-solid fa-folder-tree fa-2xl"></i>
-            <h3>أرشفة لا تضيع مع نهاية الفصل</h3>
-            <p>التقارير والشواهد وملفات الإنجاز للمعلمين تظل داخل النظام بدلاً من أن تتناثر بين أجهزة المستخدمين والمحادثات.</p>
-          </article>
-
-          <article class="result-card reveal stagger-3">
-            <i class="fa-solid fa-share-nodes fa-2xl"></i>
-            <h3>مشاركة أكثر أماناً واحترافية</h3>
-            <p>بدلاً من إرسال ملفات ثابتة بلا سيطرة، يمكن إنشاء روابط مشاركة للتقارير وملفات الإنجاز بمدة صلاحية محددة وتعطيلها عند الحاجة.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="process">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-route"></i> كيف تعمل الرحلة</span>
-          <h2>ثلاث خطوات بسيطة من التجربة إلى التشغيل اليومي</h2>
-          <p>ابدأ التجربة مباشرة بدون تعقيد، ثم فعّل الباقة المناسبة بعد ما تشوف القيمة الحقيقية بنفسك.</p>
-        </div>
-
-        <div class="process-grid">
-          <article class="process-card reveal stagger-1">
-            <div class="process-index">1</div>
-            <h3>سجّل المدرسة وافتح التجربة</h3>
-            <p>ابدأ من صفحة التسجيل مباشرة. النظام يهيئ فترة تجربة مجانية 14 يوم حتى 5 مستخدمين دون انتظار تفعيل يدوي كبداية.</p>
-          </article>
-          <article class="process-card reveal stagger-2">
-            <div class="process-index">2</div>
-            <h3>ابدأ التوثيق والمتابعة من أول يوم</h3>
-            <p>يرفع الفريق التقارير، يفتح الطلبات، ينشر التعاميم، ويجمع ملفات الإنجاز للمعلمين ضمن نفس البيئة مع مشاركة مؤقتة عند الحاجة.</p>
-          </article>
-          <article class="process-card reveal stagger-3">
-            <div class="process-index">3</div>
-            <h3>فعّل الباقة المناسبة عندما ترى القيمة</h3>
-            <p>بعد التجربة، اختر الباقة حسب عدد المستخدمين، مع بقاء الواتساب متاحاً للتنسيق أو التفعيل التجاري عند الحاجة.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="portfolio-share" style="background:linear-gradient(180deg, rgba(223,245,240,0.42), rgba(255,255,255,0.88));">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-folder-open"></i> ملفات الإنجاز والمشاركة</span>
-          <h2>قيمة واضحة للمعلم والإدارة: ملف إنجاز منظم ومشاركة خارجية تبقى تحت السيطرة</h2>
-          <p>هذا القسم يوضح ميزتين غالباً يبحث عنهما القرار الإداري مباشرة: جمع إنجازات المعلم بمحاور وشواهد قابلة للطباعة، ومشاركة التقرير أو ملف الإنجاز عبر رابط مؤقت بمدة صلاحية محددة.</p>
-        </div>
-
-        <div class="show-grid">
-          <article class="show-card featured-shot reveal stagger-1">
-            <div class="show-frame">
-              <div class="frame-bar">
-                <span class="frame-pill"><i class="fa-solid fa-graduation-cap"></i> ملف إنجاز المعلم</span>
-                <span class="frame-pill">محاور + شواهد + اعتماد</span>
-              </div>
-              <div class="flow-grid">
-                <div class="flow-card">
-                  <div class="flow-icon"><i class="fa-solid fa-images"></i></div>
-                  <div>
-                    <strong>إضافة الشواهد</strong>
-                    <small>رفع صور وأدلة لكل محور بدل حفظها في ملفات متفرقة</small>
-                  </div>
-                  <span style="font-weight:900;color:var(--brand-strong);">منظم</span>
-                </div>
-                <div class="flow-card">
-                  <div class="flow-icon"><i class="fa-solid fa-list-check"></i></div>
-                  <div>
-                    <strong>مسار حالة واضح</strong>
-                    <small>مسودة، إرسال، مراجعة، اعتماد ضمن دورة عمل مفهومة</small>
-                  </div>
-                  <span style="font-weight:900;color:var(--success);">متابع</span>
-                </div>
-                <div class="flow-card">
-                  <div class="flow-icon"><i class="fa-solid fa-file-pdf"></i></div>
-                  <div>
-                    <strong>إخراج PDF رسمي</strong>
-                    <small>نسخة جاهزة للطباعة أو الأرشفة بدون إعادة تنسيق يدوي</small>
-                  </div>
-                  <span style="font-weight:900;color:var(--accent);">جاهز</span>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3>ملفات الإنجاز للمعلمين تتحول من عبء موسمي إلى مسار دائم داخل النظام</h3>
-              <p>بدلاً من تجميع الشواهد في نهاية الفصل أو ضياعها بين الجوالات والمجلدات، يصبح لكل معلم ملف إنجاز سنوي منظم بمحاور وشواهد وحالة اعتماد ومخرج PDF احترافي عند الحاجة.</p>
-            </div>
-          </article>
-
-          <article class="show-card reveal stagger-2">
-            <div class="show-frame">
-              <div class="frame-bar">
-                <span class="frame-pill"><i class="fa-solid fa-link"></i> مشاركة آمنة</span>
-                <span class="frame-pill">صلاحية محددة</span>
-              </div>
-              <div class="frame-stack">
-                <div class="flow-card">
-                  <div class="flow-icon"><i class="fa-solid fa-share-nodes"></i></div>
-                  <div>
-                    <strong>رابط بدلاً من ملف ثابت</strong>
-                    <small>أرسل تقريراً أو ملف إنجازاً عبر رابط منظم أسهل للمراجعة</small>
-                  </div>
-                  <span style="font-weight:900;color:var(--brand-strong);">مرن</span>
-                </div>
-                <div class="flow-card">
-                  <div class="flow-icon"><i class="fa-solid fa-clock"></i></div>
-                  <div>
-                    <strong>ينتهي تلقائياً</strong>
-                    <small>مدة الصلاحية محددة مسبقاً حتى لا تبقى المشاركة مفتوحة بلا ضابط</small>
-                  </div>
-                  <span style="font-weight:900;color:var(--accent);">مؤقت</span>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3>روابط مشاركة مؤقتة بدلاً من الإرسال العشوائي</h3>
-              <p>عندما تحتاج المدرسة إلى عرض تقرير أو ملف إنجاز لجهة خارجية، يتم ذلك عبر رابط مؤقت محدد الصلاحية بدلاً من تداول نسخ لا يمكن التحكم بها لاحقاً.</p>
-            </div>
-          </article>
-
-          <article class="show-card reveal stagger-3">
-            <div class="show-frame">
-              <div class="frame-bar">
-                <span class="frame-pill"><i class="fa-solid fa-building-shield"></i> قيمة إدارية</span>
-                <span class="frame-pill">وضوح + حوكمة</span>
-              </div>
-              <div class="stack-grid">
-                <div class="stack-box">
-                  <small>للإدارة</small>
-                  <span></span>
-                  <span></span>
-                </div>
-                <div class="flow-grid">
-                  <div class="flow-card">
-                    <div class="flow-icon"><i class="fa-solid fa-eye"></i></div>
-                    <div>
-                      <strong>مراجعة أسهل</strong>
-                      <small>ملفات الإنجاز تظهر بشكل يمكن مراجعته واعتماده بسرعة</small>
-                    </div>
-                    <span style="font-weight:900;color:var(--success);">أوضح</span>
-                  </div>
-                  <div class="flow-card">
-                    <div class="flow-icon"><i class="fa-solid fa-lock"></i></div>
-                    <div>
-                      <strong>تحكم بالمشاركة</strong>
-                      <small>مشاركة مؤقتة تحفظ الخصوصية ولا تترك الروابط مفتوحة دائماً</small>
-                    </div>
-                    <span style="font-weight:900;color:var(--brand-strong);">أكثر أماناً</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3>ميزة تسويقية واضحة للقرار الإداري</h3>
-              <p>المدرسة لا تحصل فقط على شاشة إضافية، بل على قيمة عملية: مخرجات جاهزة للعرض، ضبط أفضل للخصوصية، وملف إنجاز يمكن الرجوع إليه ومشاركته وقت الحاجة فقط.</p>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="showcase" style="background:linear-gradient(180deg, rgba(255,255,255,0.84), rgba(238,246,243,0.60));">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-desktop"></i> واجهة المنتج</span>
-          <h2>هذه لقطات حقيقية من النظام نفسه داخل بيئة العمل</h2>
-          <p>ما تراه هنا هو نفسه ما ستستخدمه بعد التسجيل مباشرة — لقطات فعلية من المنتج وليست تصاميم نظرية.</p>
+          <span class="eyebrow"><i class="fa-solid fa-desktop"></i> لقطات حقيقية من النظام</span>
+          <h2>هذا ليس عرضاً نظرياً. هذه هي الواجهات التي سيراها فريق المدرسة بعد التسجيل مباشرة</h2>
+          <p>اللقطات هنا تخدم التسويق لأنها تبرهن على وجود منتج جاد، منظم، وقادر على تقديم تجربة عمل حقيقية لا مجرد تصميم جميل.</p>
         </div>
 
         <div class="show-grid">
@@ -2639,16 +2846,24 @@
                 <span class="frame-pill">نظرة إدارية سريعة</span>
               </div>
               <div class="show-shot">
-                <img src="{% static 'img/SC1.png' %}" alt="لقطة من لوحة النظام تعرض مؤشرات التقارير والأقسام والدعم الفني" loading="lazy" width="800" height="450">
+                <img src="{% static 'img/SC1.png' %}" alt="لقطة من لوحة النظام تعرض المؤشرات الرئيسية" loading="lazy" width="1200" height="675">
+                <div class="show-shot-stack" aria-hidden="true">
+                  <div class="mini-shot">
+                    <img src="{% static 'img/SUPPORT.png' %}" alt="" loading="lazy" width="1200" height="675">
+                  </div>
+                  <div class="mini-shot">
+                    <img src="{% static 'img/REPORT.png' %}" alt="" loading="lazy" width="1200" height="675">
+                  </div>
+                </div>
                 <div class="shot-caption">
-                  <span>مؤشرات التقارير وحالة النظام في شاشة واحدة</span>
+                  <span>مؤشرات النشاط والملفات والدعم في شاشة واحدة</span>
                   <span>Dashboard</span>
                 </div>
               </div>
             </div>
             <div>
-              <h3>لوحة قيادة تعطي المدير صورة يومية واضحة</h3>
-              <p>بدلاً من مطاردة التفاصيل بين أكثر من شاشة أو قناة، تظهر مؤشرات النشاط والتوزيع والدعم الفني في مكان واحد يساعد على اتخاذ القرار بسرعة.</p>
+              <h3>لوحة قيادة تعطي الإدارة صورة صباحية واضحة قبل أن تبدأ الفوضى</h3>
+              <p>الفائدة التسويقية هنا مباشرة: المدير لا يبحث عن الحقيقة التشغيلية من أكثر من جهة، بل يجدها أمامه بشكل مرتب وسريع القراءة.</p>
             </div>
           </article>
 
@@ -2656,92 +2871,165 @@
             <div class="show-frame">
               <div class="frame-bar">
                 <span class="frame-pill"><i class="fa-solid fa-ticket"></i> التذاكر والطلبات</span>
-                <span class="frame-pill">مسار متابعة</span>
+                <span class="frame-pill">مسار تنفيذ</span>
               </div>
               <div class="show-shot">
-                <img src="{% static 'img/SUPPORT.png' %}" alt="لقطة من صفحة تذكرة دعم تعرض تفاصيل الطلب والملاحظات واتخاذ الإجراء" loading="lazy" width="800" height="450">
+                <img src="{% static 'img/SUPPORT.png' %}" alt="لقطة من صفحة التذاكر والطلبات في منصة توثيق" loading="lazy" width="1200" height="675">
                 <div class="shot-caption">
-                  <span>تفاصيل الطلب والملاحظات وتحديث الحالة من نفس الصفحة</span>
+                  <span>تفاصيل الطلب وتاريخ الحالة واتخاذ الإجراء من نفس الصفحة</span>
                   <span>Support</span>
                 </div>
               </div>
             </div>
             <div>
               <h3>كل طلب يعرف أين وصل ومن تعامل معه</h3>
-              <p>هذه الشاشة تشرح بوضوح كيف يتحول الطلب من ملاحظة مشتتة إلى مسار موثق: تفاصيل، ملاحظات، تاريخ حالة، وإجراء إداري مباشر.</p>
+              <p>هذا النوع من الوضوح يرفع الثقة في الإدارة نفسها، لا في الأداة فقط، لأنه يقلل مساحة النسيان والارتجال.</p>
             </div>
           </article>
 
           <article class="show-card reveal stagger-3">
             <div class="show-frame">
               <div class="frame-bar">
-                <span class="frame-pill"><i class="fa-solid fa-file-pdf"></i> التقرير الرسمي</span>
-                <span class="frame-pill">مخرج جاهز</span>
+                <span class="frame-pill"><i class="fa-solid fa-file-pdf"></i> المخرج الرسمي</span>
+                <span class="frame-pill">جاهز للطباعة</span>
               </div>
               <div class="show-shot">
-                <img src="{% static 'img/REPORT.png' %}" alt="لقطة من تقرير PDF رسمي يتضمن بيانات التقرير والمرفقات والشواهد" loading="lazy" width="800" height="450">
+                <img src="{% static 'img/REPORT.png' %}" alt="لقطة من تقرير PDF رسمي داخل منصة توثيق" loading="lazy" width="1200" height="675">
                 <div class="shot-caption">
-                  <span>تقرير رسمي جاهز للطباعة مع الشواهد والمرفقات</span>
+                  <span>تقرير احترافي بالشواهد والمرفقات، لا ملفاً مجمعاً على عجل</span>
                   <span>PDF</span>
                 </div>
               </div>
             </div>
             <div>
-              <h3>المخرج النهائي يظهر بمستوى مهني واضح</h3>
-              <p>الزائر هنا لا يرى مجرد نموذج، بل يرى أن النظام ينتج تقريراً أو ملف إنجازاً يمكن طباعته أو أرشفته أو مشاركته عبر رابط مؤقت مضبوط الصلاحية.</p>
+              <h3>المخرج النهائي يبدو بمستوى يليق بالمدرسة عند العرض أو الأرشفة</h3>
+              <p>هذه نقطة بيع مهمة: المنصة لا تنظم العمل فقط، بل تحسن شكل النتيجة النهائية أمام أي جهة تطلبها.</p>
             </div>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="comparison">
+    <section class="section" id="portfolio-share" style="padding-top:88px;">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-scale-balanced"></i> قبل وبعد</span>
-          <h2>الفرق بين إدارة مشتتة وإدارة منظمة داخل منصة واحدة</h2>
-          <p>المقارنة تربط المنتج بالمشكلة اليومية التي تعيشها المدرسة فعلاً — اختر الطريقة التي تناسبك.</p>
+          <span class="eyebrow"><i class="fa-solid fa-folder-open"></i> ملف الإنجاز والمشاركة المؤقتة</span>
+          <h2>ميزة تهم الإدارة والمعلم معاً: إنجاز منظم، مراجعة أسهل، ومشاركة خارجية تبقى تحت السيطرة</h2>
+          <p>حين تكون المدرسة مطالبة بإظهار الشواهد أو رفع الإنجاز أو مشاركة تقرير لجهة خارجية، تظهر قيمة توثيق بشكل واضح ومباشر.</p>
         </div>
 
-        <div class="comparison-grid">
-          <article class="comparison-card bad reveal stagger-1">
-            <small>قبل المنصة</small>
-            <h3>معلومة موزعة، متابعة مرهقة، ومخرجات غير مستقرة</h3>
-            <ul class="comparison-list bad">
-              <li><i class="fa-solid fa-xmark"></i> التوثيق موزع بين واتساب وملفات وصور متفرقة</li>
-              <li><i class="fa-solid fa-xmark"></i> الطلبات تعتمد على التذكير اليدوي والمتابعة الشفوية</li>
-              <li><i class="fa-solid fa-xmark"></i> استخراج ملف إنجاز أو مشاركة تقرير يحتاج إعادة تجميع وإرسال يدوي</li>
-            </ul>
+        <div class="portfolio-shell">
+          <article class="portfolio-main reveal stagger-1">
+            <span class="eyebrow" style="background:rgba(255,255,255,0.10);border-color:rgba(255,255,255,0.14);color:#fff;box-shadow:none;">
+              <i class="fa-solid fa-graduation-cap"></i> مسار إنجاز سنوي لا عبء موسمي
+            </span>
+            <h3>ملفات الإنجاز تتحول من تجميع مرهق في نهاية الفصل إلى أرشيف حي يمكن مراجعته واعتماده طوال العام</h3>
+            <p>بدلاً من فقدان الشواهد بين الجوالات والمجلدات، يصبح لكل معلم ملف منظم بمحاور وشواهد وحالة اعتماد ومخرج PDF احترافي. وعندما تحتاج الإدارة أو جهة خارجية إلى الاطلاع، يكون كل شيء جاهزاً للعرض بثقة.</p>
+
+            <div class="portfolio-points">
+              <div class="portfolio-metric">
+                <strong>محاور واضحة</strong>
+                <span>كل شاهد محفوظ داخل سياقه بدلاً من حشره في ملف عام غير منظم.</span>
+              </div>
+              <div class="portfolio-metric">
+                <strong>اعتماد يمكن تتبعه</strong>
+                <span>مسودة، إرسال، مراجعة، اعتماد ضمن دورة عمل مفهومة وقابلة للرجوع.</span>
+              </div>
+              <div class="portfolio-metric">
+                <strong>مشاركة مؤقتة</strong>
+                <span>رابط ينتهي تلقائياً بدلاً من إرسال نسخ بلا سيطرة بعد خروجها من المدرسة.</span>
+              </div>
+            </div>
           </article>
 
-          <article class="comparison-card good reveal stagger-2">
-            <small>بعد توثيق</small>
-            <h3>رحلة واحدة واضحة من الإدخال حتى الاعتماد والطباعة</h3>
-            <ul class="comparison-list good">
-              <li><i class="fa-solid fa-check"></i> كل عنصر محفوظ داخل النظام وفي مكان يمكن الرجوع له</li>
-              <li><i class="fa-solid fa-check"></i> الحالات والصلاحيات والمسؤوليات مرئية للجميع حسب الدور</li>
-              <li><i class="fa-solid fa-check"></i> التقارير وملفات الإنجاز تخرج بصورة أكثر مهنية ويمكن مشاركتها بروابط منتهية الصلاحية</li>
-            </ul>
+          <div class="portfolio-side reveal stagger-2">
+            <h3>كيف تظهر القيمة عملياً؟</h3>
+            <p>هذه ليست ميزة تقنية فقط، بل نقطة تسويقية وإدارية مهمة: ما تطلبه المدرسة عند الزيارة أو المراجعة أو العرض الخارجي يصبح جاهزاً من داخل النظام نفسه.</p>
+
+            <div class="flow-grid">
+              <article class="flow-card">
+                <div class="flow-icon"><i class="fa-solid fa-images"></i></div>
+                <div class="flow-copy">
+                  <strong>رفع الشواهد داخل الملف نفسه</strong>
+                  <small>الصور والأدلة لا تضيع بين قنوات مختلفة ولا تنتظر نهاية الفصل.</small>
+                </div>
+                <span class="flow-chip">منظم</span>
+              </article>
+              <article class="flow-card">
+                <div class="flow-icon"><i class="fa-solid fa-file-pdf"></i></div>
+                <div class="flow-copy">
+                  <strong>إخراج PDF جاهز للطباعة</strong>
+                  <small>نسخة أنيقة للعرض أو الأرشفة دون إعادة تنسيق يدوي كل مرة.</small>
+                </div>
+                <span class="flow-chip">احترافي</span>
+              </article>
+              <article class="flow-card">
+                <div class="flow-icon"><i class="fa-solid fa-link"></i></div>
+                <div class="flow-copy">
+                  <strong>رابط مشاركة بمدة صلاحية محددة</strong>
+                  <small>أداة أكثر أماناً وهيبة من إرسال ملفات مبعثرة عبر التطبيقات.</small>
+                </div>
+                <span class="flow-chip">آمن</span>
+              </article>
+            </div>
+
+            <div class="stack-note">
+              الرسالة التسويقية الأقوى هنا: المدرسة لا تحصل على شاشة إضافية، بل على طريقة أهدأ لإثبات الإنجاز وإبرازه عند الحاجة دون ارتباك أو تضحية بالخصوصية.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" id="process">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow"><i class="fa-solid fa-route"></i> رحلة البدء</span>
+          <h2>ثلاث خطوات قصيرة من التسجيل إلى تشغيل المدرسة فعلياً</h2>
+          <p>الصفحة الآن لا تكتفي بالشرح، بل تقرّب للمدير شكل الرحلة العملية حتى يشعر أن البدء واضح وغير مرهق.</p>
+        </div>
+
+        <div class="process-grid">
+          <article class="process-card reveal stagger-1">
+            <div class="process-index">1</div>
+            <h3>سجّل المدرسة وافتح التجربة</h3>
+            <p>ابدأ مباشرة من صفحة التسجيل. النظام يهيئ تجربة مجانية لمدة 14 يوم حتى 5 مستخدمين كبداية حقيقية وليست شكلية.</p>
+          </article>
+          <article class="process-card reveal stagger-2">
+            <div class="process-index">2</div>
+            <h3>ابدأ التوثيق والمتابعة من أول يوم</h3>
+            <p>يرفع الفريق التقارير، يفتح الطلبات، ينشر التعاميم، ويجمع ملفات الإنجاز داخل البيئة نفسها دون ازدواجية في المسار.</p>
+          </article>
+          <article class="process-card reveal stagger-3">
+            <div class="process-index">3</div>
+            <h3>فعّل الباقة المناسبة بعد رؤية القيمة</h3>
+            <p>بعد استخدام فعلي، تختار المدرسة الباقة حسب عدد المستخدمين واحتياجها التشغيلي بثقة أكبر وقرار أوضح.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="pricing" style="background:linear-gradient(180deg, rgba(255,255,255,0.60), rgba(238,246,243,0.90));">
+    <section class="section" id="pricing" style="padding-top:88px;">
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow"><i class="fa-solid fa-tags"></i> الباقات</span>
-          <h2>أسـعار الباقـــات</h2>
-         </div>
+          <h2>باقات مبنية على عدد المستخدمين مع تجربة مجانية كبداية آمنة</h2>
+          <p>أبقينا التسعير واضحاً ومقروءاً: جرّب أولاً، ثم قارن بين السعات والمدة واختر ما يناسب تشغيل المدرسة فعلياً.</p>
+        </div>
 
         <div class="pricing-shell" data-active-period="{{ pricing_initial_period|default:'6m' }}">
           {% if pricing_cards or pricing_trial_plan %}
+            <div class="pricing-topline">
+              <span class="pricing-admin-note"><i class="fa-solid fa-sliders"></i> الباقات والأسعار والسعات تُدار من لوحة التحكم مباشرة</span>
+              <span class="pricing-admin-note alt"><i class="fa-solid fa-wand-magic-sparkles"></i> ما يظهر هنا هو نفس ما تم نشره واعتماده في الإدارة</span>
+            </div>
+
             <div class="pricing-toolbar">
               {% if pricing_cards %}
                 <div class="pricing-advisor">
                   <div class="advisor-panel">
                     <h3>اختر عدد المستخدمين لتحصل على التوصية الأقرب</h3>
-                    <p>المستشار يعتمد مباشرة على سعة الباقات الموجودة في قاعدة البيانات، بينما تبقى الباقة التجريبية منفصلة عن المقارنة بين 6 أشهر وسنة.</p>
+                    <p>المستشار يعتمد على السعات الفعلية المخزنة في قاعدة البيانات، بينما تبقى الباقة التجريبية منفصلة كي ترى الفرق بين التجربة والباقات المدفوعة بوضوح.</p>
                     <div class="advisor-inputs">
                       <div class="users-meter">
                         <label for="usersRange">
@@ -2765,6 +3053,10 @@
 
                   <div class="advisor-summary" id="advisorSummary">
                     <span class="summary-badge"><i class="fa-solid fa-sparkles"></i> التوصية الحالية</span>
+                    <div class="summary-strip">
+                      <span><i class="fa-solid fa-shield"></i> مبنية على السعات المنشورة</span>
+                      <span><i class="fa-solid fa-bolt"></i> تتبدل حسب عدد المستخدمين</span>
+                    </div>
                     <div>
                       <h3 id="summaryPlanTitle">{% if pricing_recommended %}{{ pricing_recommended.name }}{% else %}اختر الباقة المناسبة{% endif %}</h3>
                       <p id="summaryPlanDesc">{% if pricing_recommended %}{% if pricing_initial_period == '6m' and pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.summary }}{% elif pricing_recommended.period_1y %}{{ pricing_recommended.period_1y.summary }}{% elif pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.summary }}{% endif %}{% endif %}</p>
@@ -2799,8 +3091,8 @@
               {% if pricing_cards %}
                 <div class="pricing-periods">
                   <div>
-                    <h3>بدّل بين الباقات السنوية ونصف السنوية</h3>
-                    <p>الباقة التجريبية تظهر مستقلة دائماً، ثم تتم المقارنة بين نفس السعات حسب مدة الاشتراك التي تختارها.</p>
+                    <h3>قارن بين النصف سنوي والسنوي بدون تعقيد</h3>
+                    <p>نُظهر الباقة التجريبية مستقلة دائماً، ثم نقارن بين نفس السعات بحسب المدة التي تفضلها المدرسة.</p>
                   </div>
                   <div class="period-toggle" role="tablist" aria-label="مدة الاشتراك">
                     {% for period in pricing_periods %}
@@ -2813,14 +3105,17 @@
 
             <div class="pricing-grid">
               {% if pricing_trial_plan %}
-                <article
-                  class="price-card trial"
-                  data-plan-kind="trial"
-                >
+                <article class="price-card trial" data-plan-kind="trial">
                   {% if pricing_trial_plan.badge %}
                     <span class="price-badge">{{ pricing_trial_plan.badge }}</span>
                   {% endif %}
-                  <h3>{{ pricing_trial_plan.name }}</h3>
+                  <div class="price-card-head">
+                    <h3>{{ pricing_trial_plan.name }}</h3>
+                    <div class="price-specs">
+                      <span class="price-spec"><i class="fa-solid fa-flask"></i> {{ pricing_trial_plan.duration_label }}</span>
+                      <span class="price-spec"><i class="fa-solid fa-users"></i> {{ pricing_trial_plan.capacity_label }}</span>
+                    </div>
+                  </div>
                   <div class="price-value"><strong>{{ pricing_trial_plan.price_display }}</strong><small>ريال</small></div>
                   <p class="price-meta">{{ pricing_trial_plan.duration_label }} • {{ pricing_trial_plan.capacity_label }}</p>
                   <div class="price-fit"><i class="fa-solid fa-rocket"></i> {{ pricing_trial_plan.fit_text }}</div>
@@ -2829,31 +3124,37 @@
                       <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
                     {% endfor %}
                   </ul>
+                  <p class="price-note">تُعرض هذه البطاقة كما تم إعدادها ونشرها من لوحة الإدارة دون تعديل يدوي داخل القالب.</p>
                   <div class="card-actions">
                     <a class="btn btn-primary" href="{% url 'reports:register_school' %}">{{ pricing_trial_plan.cta_label }}</a>
-                    <a class="btn btn-outline" href="{% url 'reports:login' %}">لديك حساب بالفعل؟</a>
+                    <a class="btn btn-outline" href="{% url 'reports:login' %}">تسجيل الدخول</a>
                   </div>
                 </article>
               {% endif %}
 
               {% for card in pricing_cards %}
-                <article
-                  class="price-card{% if card.is_featured %} featured{% endif %}{% if card.is_recommended %} recommended{% endif %}"
-                  data-plan-kind="paid"
-                  data-capacity="{{ card.capacity_hint }}"
-                  data-capacity-label="{{ card.capacity_label }}"
-                  data-plan-title="{{ card.name }}"
-                  data-cta-label="{{ card.cta_label }}"
-                >
+                <article class="price-card{% if card.is_featured %} featured{% endif %}{% if card.is_recommended %} recommended{% endif %}" data-plan-kind="paid" data-capacity="{{ card.capacity_hint }}" data-capacity-label="{{ card.capacity_label }}" data-plan-title="{{ card.name }}" data-cta-label="{{ card.cta_label }}">
                   {% if card.badge %}
-                    <span class="price-badge"{% if card.is_featured %} style="background:rgba(255,255,255,0.16);color:#fff;"{% endif %}>{{ card.badge }}</span>
+                    <span class="price-badge">{{ card.badge }}</span>
                   {% endif %}
                   <span class="recommended-badge">موصى بها</span>
-                  <h3>{{ card.name }}</h3>
+                  <div class="price-card-head">
+                    <h3>{{ card.name }}</h3>
+                    <div class="price-specs">
+                      <span class="price-spec"><i class="fa-solid fa-users"></i> {{ card.capacity_label }}</span>
+                      {% if card.period_6m and card.period_1y %}
+                        <span class="price-spec"><i class="fa-solid fa-calendar-days"></i> نصف سنوي وسنوي</span>
+                      {% elif card.period_1y %}
+                        <span class="price-spec"><i class="fa-solid fa-calendar-days"></i> سنوي</span>
+                      {% elif card.period_6m %}
+                        <span class="price-spec"><i class="fa-solid fa-calendar-days"></i> نصف سنوي</span>
+                      {% endif %}
+                    </div>
+                  </div>
                   <p class="price-meta">{{ card.capacity_label }}</p>
                   <div class="price-period-panels">
                     {% if card.period_6m %}
-                      <div class="{% if pricing_initial_period == '6m' or not card.period_1y %}active{% endif %}" data-period-content="6m" data-price="{{ card.period_6m.price_int }}" data-duration="{{ card.period_6m.duration_label }}" data-summary="{{ card.period_6m.summary }}">
+                      <div class="period-panel {% if pricing_initial_period == '6m' or not card.period_1y %}active{% endif %}" data-period-content="6m" data-price="{{ card.period_6m.price_int }}" data-duration="{{ card.period_6m.duration_label }}" data-summary="{{ card.period_6m.summary }}">
                         <div class="price-value"><strong>{{ card.period_6m.price_display }}</strong><small>ريال</small></div>
                         <p class="price-meta">{{ card.period_6m.duration_label }} • {{ card.capacity_label }}</p>
                         <div class="price-fit"><i class="fa-solid fa-users"></i> {{ card.period_6m.fit_text }}</div>
@@ -2865,7 +3166,7 @@
                       </div>
                     {% endif %}
                     {% if card.period_1y %}
-                      <div class="{% if pricing_initial_period == '1y' or not card.period_6m %}active{% endif %}" data-period-content="1y" data-price="{{ card.period_1y.price_int }}" data-duration="{{ card.period_1y.duration_label }}" data-summary="{{ card.period_1y.summary }}">
+                      <div class="period-panel {% if pricing_initial_period == '1y' or not card.period_6m %}active{% endif %}" data-period-content="1y" data-price="{{ card.period_1y.price_int }}" data-duration="{{ card.period_1y.duration_label }}" data-summary="{{ card.period_1y.summary }}">
                         <div class="price-value"><strong>{{ card.period_1y.price_display }}</strong><small>ريال</small></div>
                         <p class="price-meta">{{ card.period_1y.duration_label }} • {{ card.capacity_label }}</p>
                         <div class="price-fit"><i class="fa-solid fa-users"></i> {{ card.period_1y.fit_text }}</div>
@@ -2877,9 +3178,10 @@
                       </div>
                     {% endif %}
                   </div>
+                  <p class="price-note">اسم الباقة، شارتها، السعة، الأسعار، والوصف تُسحب مباشرة من الباقة المنشورة في Django admin.</p>
                   <div class="card-actions">
                     <a class="btn {% if card.is_featured %}btn-soft{% else %}btn-primary{% endif %}" href="{% url 'reports:register_school' %}">{{ card.cta_label }}</a>
-                    <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer"{% if card.is_featured %} style="background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.22);color:#fff;"{% endif %}>استفسر عن الباقة</a>
+                    <a class="btn btn-outline" href="{% url 'reports:user_guide' %}">دليل المستخدم</a>
                   </div>
                 </article>
               {% endfor %}
@@ -2887,10 +3189,10 @@
           {% else %}
             <div class="price-card" style="padding:30px;">
               <h3>لا توجد باقات فعّالة حالياً</h3>
-              <p>لم يتم تفعيل أي باقة في الإدارة بعد. يمكنك تفعيل الباقات من لوحة الإدارة لتظهر هنا تلقائياً.</p>
+              <p>لم يتم تفعيل أي باقة في الإدارة بعد. بمجرد تفعيلها ستظهر هنا تلقائياً بنفس الترتيب.</p>
               <div class="card-actions">
                 <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
-                <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">تواصل مع فريقنا</a>
+                <a class="btn btn-outline" href="{% url 'reports:user_guide' %}">دليل المستخدم</a>
               </div>
             </div>
           {% endif %}
@@ -2898,34 +3200,30 @@
       </div>
     </section>
 
-    <section class="section" id="faq">
+    <section class="section compact" id="faq">
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-circle-question"></i> أسئلة شائعة</span>
-          <h2>إجابات مختصرة على الأسئلة التي تؤثر فعلاً على قرار الاشتراك</h2>
-          <p>الأسئلة الأكثر تكراراً من مديري المدارس — أجبنا عليها بوضوح حتى تبدأ بثقة.</p>
+          <span class="eyebrow"><i class="fa-solid fa-circle-question"></i> أسئلة تؤثر فعلاً على قرار الاشتراك</span>
+          <h2>إجابات قصيرة وواضحة حتى يفهم مدير المدرسة ما سيكسبه قبل البدء</h2>
+          <p>حرصنا أن تكون الأسئلة هنا مرتبطة بقرار الشراء نفسه: الخصوصية، سهولة البداية، المخرجات، والمشاركة الخارجية.</p>
         </div>
 
         <div class="faq-grid">
-          <article class="faq-item">
-            <h3><i class="fa-solid fa-shield"></i> هل بيانات كل مدرسة مستقلة؟</h3>
-            <p>نعم. المنصة مبنية على عزل واضح للمدرسة النشطة وصلاحيات المستخدمين داخلها، بحيث تعمل كل مدرسة ضمن نطاقها التشغيلي.</p>
+          <article class="faq-item reveal stagger-1">
+            <h3><i class="fa-solid fa-shield"></i> هل بيانات كل مدرسة مستقلة فعلاً؟</h3>
+            <p>نعم. المنصة مبنية على عزل واضح للمدرسة النشطة وصلاحيات المستخدمين داخلها، بحيث تعمل كل مدرسة ضمن نطاقها التشغيلي دون اختلاط في البيانات أو المخرجات.</p>
           </article>
-          <article class="faq-item">
-            <h3><i class="fa-solid fa-rocket"></i> هل أحتاج للتواصل قبل التجربة؟</h3>
-            <p>لا. يمكنك تسجيل المدرسة مباشرة وبدء فترة التجربة المجانية. التواصل عبر واتساب يبقى خياراً إضافياً عند الحاجة إلى تنسيق أو تفعيل باقة.</p>
+          <article class="faq-item reveal stagger-2">
+            <h3><i class="fa-solid fa-rocket"></i> هل أحتاج إلى تنسيق مسبق قبل التجربة؟</h3>
+            <p>لا. تستطيع تسجيل المدرسة وبدء التجربة مباشرة، ثم الدخول بحساب المدرسة ومتابعة الإعداد والاستخدام من داخل المنصة نفسها.</p>
           </article>
-          <article class="faq-item">
-            <h3><i class="fa-solid fa-graduation-cap"></i> هل يلزم تدريب طويل؟</h3>
-            <p>المنصة مصممة لتكون مباشرة في الاستخدام، مع وجود مسارات واضحة للتقارير والتذاكر والتعاميم ودليل استخدام عند الحاجة.</p>
+          <article class="faq-item reveal stagger-3">
+            <h3><i class="fa-solid fa-graduation-cap"></i> هل يلزم تدريب طويل حتى يبدأ الفريق؟</h3>
+            <p>الواجهة مصممة لتكون مباشرة، والمسارات الأساسية واضحة من اليوم الأول: رفع تقرير، متابعة طلب، نشر تعميم، وتجهيز ملف إنجاز.</p>
           </article>
-          <article class="faq-item">
-            <h3><i class="fa-solid fa-image"></i> هل يمكن إظهار هوية المدرسة؟</h3>
-            <p>تظهر المخرجات الرسمية ضمن نظام واحد منظم، ويمكن تكييفها مع هوية المدرسة وإجراءاتها الداخلية حسب الاستخدام المتاح داخل النظام.</p>
-          </article>
-          <article class="faq-item">
-            <h3><i class="fa-solid fa-link"></i> هل يمكن مشاركة التقارير وملفات الإنجاز خارج النظام؟</h3>
-            <p>نعم. يمكن إنشاء رابط مشاركة للتقرير أو ملف الإنجاز مع مدة صلاحية محددة، بحيث تبقى المشاركة مؤقتة وتحت السيطرة.</p>
+          <article class="faq-item reveal stagger-4">
+            <h3><i class="fa-solid fa-file-pdf"></i> هل المخرجات مناسبة للطباعة والعرض الرسمي؟</h3>
+            <p>نعم. أحد أهم أوجه القوة في توثيق هو أن التقارير وملفات الإنجاز تبقى جاهزة للإخراج بصيغة مهنية يمكن تقديمها بثقة عند الحاجة.</p>
           </article>
         </div>
       </div>
@@ -2935,21 +3233,21 @@
       <div class="container">
         <div class="final-cta reveal-scale">
           <div>
-            <span class="eyebrow" style="background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.18);color:#fff;box-shadow:none;">
-              <i class="fa-solid fa-star"></i> جاهز لتجربة المنتج فعلياً؟
+            <span class="eyebrow" style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.18);color:#fff;box-shadow:none;">
+              <i class="fa-solid fa-star"></i> جاهز لتجربة منتج حقيقي لا مجرد صفحة تعريفية؟
             </span>
-            <h2 style="margin:18px 0 12px;font-size:clamp(2rem,4vw,3rem);line-height:1.12;">ابدأ التجربة الآن ثم قرر الباقة المناسبة على أساس استخدام حقيقي</h2>
-            <p style="margin:0;color:rgba(255,255,255,0.92);font-size:1.05rem;line-height:1.9;font-weight:800;">سجّل مدرستك مجاناً واستخدم النظام 14 يوم بدون أي التزام. جرّب التقارير وملفات الإنجاز وروابط المشاركة المؤقتة فعلياً، ثم قرر على أساس استخدام حقيقي.</p>
+            <h2>ابدأ بتجربة راقية وواضحة، ثم اتخذ قرار الاشتراك على أساس قيمة تراها بنفسك</h2>
+            <p>سجّل مدرستك مجاناً، ابدأ تشغيل الفريق من اليوم الأول، واختبر التقارير وملفات الإنجاز والمخرجات الرسمية داخل بيئة عمل حقيقية. بعدها يصبح قرار الاشتراك مبنياً على أثر واضح لا على وعود عامة.</p>
             <div class="cta-points">
               <span><i class="fa-solid fa-check-circle"></i> تجربة مجانية 14 يوم</span>
               <span><i class="fa-solid fa-check-circle"></i> تسجيل مباشر للمدرسة</span>
-              <span><i class="fa-solid fa-check-circle"></i> مشاركة آمنة بروابط محددة الصلاحية</span>
+              <span><i class="fa-solid fa-check-circle"></i> مخرجات جاهزة للطباعة والمراجعة</span>
             </div>
           </div>
 
           <div class="final-actions">
             <a class="btn btn-soft" href="{% url 'reports:register_school' %}">سجّل مدرستك الآن</a>
-            <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer" style="background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.20);color:#fff;">تحدث مع فريق التفعيل</a>
+            <a class="btn btn-outline" href="{% url 'reports:login' %}">تسجيل الدخول</a>
           </div>
         </div>
       </div>
@@ -2959,15 +3257,15 @@
   <footer class="footer">
     <div class="container">
       <div class="footer-shell">
-        <div class="footer-hero">
+        <div class="footer-top">
           <div>
-            <span class="footer-kicker"><i class="fa-solid fa-shield-heart"></i> تشغيل أكثر هدوءاً ووضوحاً داخل المدرسة</span>
-            <h2>جاهز لتجربة نظام يُبقي كل شيء مرتب ومتاح للرجوع إليه؟</h2>
-            <p>سجّل مدرستك الآن وابدأ التجربة المجانية، أو تواصل مع فريق التفعيل لأي استفسار تجاري.</p>
+            <span class="footer-kicker"><i class="fa-solid fa-shield-heart"></i> تجربة تشغيل أكثر هدوءاً وأناقة للإدارة المدرسية</span>
+            <h2>توثيق يمنح المدرسة نظاماً يبدو مرتباً في الداخل ويظهر باحتراف في كل مخرج</h2>
+            <p>حل رقمي يجمع التوثيق والطلبات والتعاميم وملفات الإنجاز داخل تجربة واحدة متماسكة، مع مخرجات جاهزة للرجوع والطباعة وإبراز الإنجاز بصورة تليق بالمدرسة.</p>
           </div>
           <div class="footer-cta-stack">
             <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
-            <a class="btn btn-outline" href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">تواصل مع فريق التفعيل</a>
+            <a class="btn btn-outline" href="{% url 'reports:login' %}">تسجيل الدخول</a>
           </div>
         </div>
 
@@ -2977,24 +3275,24 @@
               <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق">
               <span class="brand-copy">
                 <strong style="color:#fff;">منصة توثيق</strong>
-                <span style="color:rgba(255,255,255,0.60);">نظام واحد لترتيب العمل المدرسي اليومي</span>
+                <span style="color:rgba(255,255,255,0.58);">لوحة تشغيل واحدة للعمل المدرسي اليومي</span>
               </span>
             </div>
-            <p>حل رقمي يجمع التوثيق والطلبات والتعاميم وملفات الإنجاز للمعلمين، مع مشاركة التقارير والإنجاز بروابط مؤقتة ضمن تجربة أوضح للإدارة وأريح للفريق طوال العام الدراسي.</p>
+            <p>مصممة للمدارس التي تريد أن يبدو عملها أكثر ترتيباً، وقراراتها أوضح، ومخرجاتها أكثر مهنية عند المراجعة أو العرض أو الأرشفة.</p>
             <div class="footer-metrics">
               <div class="footer-metric"><strong>14 يوم</strong><span>تجربة مجانية</span></div>
-              <div class="footer-metric"><strong>PDF</strong><span>مخرجات رسمية</span></div>
-              <div class="footer-metric"><strong>RBAC</strong><span>صلاحيات واضحة</span></div>
+              <div class="footer-metric"><strong>PDF</strong><span>مخرجات جاهزة</span></div>
+              <div class="footer-metric"><strong>RBAC</strong><span>صلاحيات مضبوطة</span></div>
             </div>
           </div>
 
           <div class="footer-card">
             <h3>اكتشف المنصة</h3>
             <ul class="footer-list">
-              <li><i class="fa-solid fa-angle-left"></i><a href="#why">لماذا توثيق</a></li>
               <li><i class="fa-solid fa-angle-left"></i><a href="#results">النتائج التشغيلية</a></li>
-              <li><i class="fa-solid fa-angle-left"></i><a href="#portfolio-share">ملفات الإنجاز والمشاركة</a></li>
+              <li><i class="fa-solid fa-angle-left"></i><a href="#why">لماذا توثيق</a></li>
               <li><i class="fa-solid fa-angle-left"></i><a href="#showcase">لقطات من النظام</a></li>
+              <li><i class="fa-solid fa-angle-left"></i><a href="#portfolio-share">الإنجاز والمشاركة</a></li>
               <li><i class="fa-solid fa-angle-left"></i><a href="#pricing">الباقات والتوصية</a></li>
             </ul>
           </div>
@@ -3012,24 +3310,24 @@
           <div class="footer-card footer-contact">
             <h3>تواصل مباشر</h3>
             <div class="contact-item">
-              <i class="fa-brands fa-whatsapp"></i>
+              <i class="fa-solid fa-right-to-bracket"></i>
               <div>
-                <strong>واتساب التفعيل</strong>
-                <a href="https://wa.me/966537720207" target="_blank" rel="noopener noreferrer">0537720207</a>
+                <strong>دخول المستخدمين</strong>
+                <a href="{% url 'reports:login' %}">الانتقال إلى صفحة تسجيل الدخول</a>
               </div>
             </div>
             <div class="contact-item">
               <i class="fa-solid fa-school"></i>
               <div>
                 <strong>رحلة البدء</strong>
-                <span>سجّل المدرسة، جرّب المنتج، ثم فعّل الباقة الأنسب بعد استخدام حقيقي.</span>
+                <span>سجّل المدرسة، جرّب المنتج فعلياً، ثم فعّل الباقة الأنسب على أساس استخدام حقيقي.</span>
               </div>
             </div>
             <div class="contact-item">
-              <i class="fa-solid fa-clock"></i>
+              <i class="fa-solid fa-book-open"></i>
               <div>
-                <strong>أفضل استخدام للتواصل</strong>
-                <span>استخدم الواتساب للاستفسارات التجارية، لكن ابدأ التجربة مباشرة من الموقع.</span>
+                <strong>دليل المستخدم</strong>
+                <span>إذا أردت فهم المسارات الأساسية قبل البدء، ستجد الدليل داخل المنصة بشكل مباشر وواضح.</span>
               </div>
             </div>
           </div>
@@ -3041,8 +3339,8 @@
   </footer>
 
   <div class="mobile-sticky-cta">
-    <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة</a>
-    <a class="btn btn-outline" href="{% url 'reports:login' %}">دخول</a>
+    <a class="btn btn-primary" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+    <a class="btn btn-outline" href="#pricing">عرض الباقات</a>
   </div>
 
   <script nonce="{{ CSP_NONCE }}">
@@ -3083,11 +3381,13 @@
 
       if (menuBtn) menuBtn.addEventListener('click', openDrawer);
       if (closeDrawer) closeDrawer.addEventListener('click', closeDrawerFn);
+
       if (mobileDrawer) {
         mobileDrawer.addEventListener('click', function (event) {
           if (event.target === mobileDrawer) closeDrawerFn();
         });
       }
+
       drawerLinks.forEach(function (link) {
         link.addEventListener('click', closeDrawerFn);
       });
@@ -3236,12 +3536,10 @@
         updateAdvisor(initialUsers);
       }
 
-      /* ── Scroll-reveal with IntersectionObserver ── */
       (function initReveal() {
         var els = document.querySelectorAll('.reveal, .reveal-scale');
         if (!els.length) return;
         if (!('IntersectionObserver' in window)) {
-          /* Fallback: show everything immediately */
           els.forEach(function (el) { el.classList.add('visible'); });
           return;
         }
@@ -3256,12 +3554,13 @@
         els.forEach(function (el) { observer.observe(el); });
       }());
 
-      /* ── Animated counter for proof numbers ── */
       (function initCounters() {
         var counters = document.querySelectorAll('[data-count-to]');
         if (!counters.length) return;
         if (!('IntersectionObserver' in window)) {
-          counters.forEach(function (el) { el.textContent = el.getAttribute('data-count-to'); });
+          counters.forEach(function (el) {
+            el.textContent = el.getAttribute('data-count-to') + (el.getAttribute('data-count-suffix') || '');
+          });
           return;
         }
         var cObserver = new IntersectionObserver(function (entries) {
@@ -3274,7 +3573,6 @@
             var start = performance.now();
             function tick(now) {
               var t = Math.min((now - start) / duration, 1);
-              /* ease-out cubic */
               var eased = 1 - Math.pow(1 - t, 3);
               el.textContent = Math.round(eased * target) + suffix;
               if (t < 1) requestAnimationFrame(tick);
@@ -3282,7 +3580,7 @@
             requestAnimationFrame(tick);
             cObserver.unobserve(el);
           });
-        }, { threshold: 0.5 });
+        }, { threshold: 0.45 });
         counters.forEach(function (el) { cObserver.observe(el); });
       }());
 
