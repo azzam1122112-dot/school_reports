@@ -3,7 +3,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static as serve_static
-from django.templatetags.static import static
 from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.http import HttpResponse
@@ -63,7 +62,7 @@ urlpatterns = [
     path("admin-panel/", admin.site.urls),
     path(
         "favicon.ico",
-        RedirectView.as_view(url=static("favicon.ico"), permanent=True),
+        RedirectView.as_view(url="/static/favicon.ico", permanent=True),
     ),
     path(
         "favicon.png",
