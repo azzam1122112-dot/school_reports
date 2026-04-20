@@ -31,10 +31,16 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     if not stats:
         reports_count = Report.objects.count()
         teachers_count = Teacher.objects.count()
-        
-        tickets_total = Ticket.objects.filter(is_platform=True).count()
-        tickets_done = Ticket.objects.filter(status="done", is_platform=True).count()
-        tickets_rejected = Ticket.objects.filter(status="rejected", is_platform=True).count()
+
+        # تجميع عدادات التذاكر في استعلام واحد بدل 3
+        ticket_agg = Ticket.objects.filter(is_platform=True).aggregate(
+            total=Count("id"),
+            done=Count("id", filter=Q(status="done")),
+            rejected=Count("id", filter=Q(status="rejected")),
+        )
+        tickets_total = ticket_agg["total"]
+        tickets_done = ticket_agg["done"]
+        tickets_rejected = ticket_agg["rejected"]
 
         # تحسين الاستعلامات باستخدام aggregate
         school_stats = School.objects.aggregate(
@@ -290,9 +296,10 @@ def platform_audit_logs(request: HttpRequest) -> HttpResponse:
             params.pop(key)
 
     teachers = (
-        Teacher.objects.filter(audit_logs__isnull=False)
+        Teacher.objects.filter(
+            id__in=AuditLog.objects.values("teacher_id").distinct()
+        )
         .only("id", "name", "phone")
-        .distinct()
         .order_by("name", "id")
     )
 
@@ -379,7 +386,13 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
     # نستخدم payment_date >= start_date لتحديد أنه يخص نفس الفترة.
     from decimal import Decimal
 
-    for sub in subscriptions:
+    plans = SubscriptionPlan.objects.all().order_by("price", "name")
+
+    paginator = Paginator(subscriptions, 30)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    # تزيين كائنات الصفحة الحالية فقط (بدل كل النتائج)
+    for sub in page_obj:
         try:
             pref = getattr(sub, "_prefetched_active_payments", []) or []
             sub.has_payment_for_period = any(
@@ -402,10 +415,9 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
         except Exception:
             sub.refund_amount_for_period = Decimal("0")
 
-    plans = SubscriptionPlan.objects.all().order_by("price", "name")
-
     ctx = {
-        "subscriptions": subscriptions,
+        "subscriptions": page_obj,
+        "page_obj": page_obj,
         "status": status,
         "plans": plans,
         "plan_id": plan_id,
@@ -414,7 +426,7 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
         "stats_active": stats.get("active") or 0,
         "stats_cancelled": stats.get("cancelled") or 0,
         "stats_expired": stats.get("expired") or 0,
-        "results_count": subscriptions.count(),
+        "results_count": paginator.count,
     }
 
     return render(request, "reports/platform_subscriptions.html", ctx)
@@ -445,10 +457,16 @@ def platform_subscription_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
     next_url = _safe_next_url(request.GET.get("next"))
 
+    payments_list = list(payments_qs[:41])
+    has_more = len(payments_list) > 40
+    if has_more:
+        payments_list = payments_list[:40]
+    payments_count = payments_qs.count() if has_more else len(payments_list)
+
     ctx = {
         "subscription": subscription,
-        "payments": list(payments_qs[:40]),
-        "payments_count": payments_qs.count(),
+        "payments": payments_list,
+        "payments_count": payments_count,
         "has_payment_for_period": has_payment_for_period,
         "next_url": next_url,
     }
@@ -710,8 +728,12 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
         refunds=Count('id', filter=Q(status=Payment.Status.APPROVED, amount__lt=0)),
     )
 
+    paginator = Paginator(payments, 50)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
     ctx = {
-        "payments": payments,
+        "payments": page_obj,
+        "page_obj": page_obj,
         "status": status,
         "payments_total": stats['total'] or 0,
         "payments_pending": stats['pending'] or 0,
@@ -809,8 +831,12 @@ def platform_tickets_list(request: HttpRequest) -> HttpResponse:
             Q(id__icontains=query)
         )
 
+    paginator = Paginator(tickets, 30)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
     return render(request, "reports/platform_tickets.html", {
-        "tickets": tickets,
+        "tickets": page_obj,
+        "page_obj": page_obj,
         "search_query": query,
         "current_status": status_filter,
     })
@@ -942,10 +968,14 @@ def subscription_history(request):
 
     # جلب كامل العمليات
     payments = Payment.objects.filter(school=membership.school).order_by('-created_at')
+
+    paginator = Paginator(payments, 30)
+    page_obj = paginator.get_page(request.GET.get("page"))
     
     context = {
         "school": membership.school,
-        "payments": payments,
+        "payments": page_obj,
+        "page_obj": page_obj,
     }
     return render(request, 'reports/subscription_history.html', context)
 

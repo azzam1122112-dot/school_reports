@@ -77,6 +77,30 @@ def read_current(metric: str) -> int:
         return 0
 
 
+def timing(metric: str, duration_ms: float) -> None:
+    """Record a duration sample (milliseconds) for *metric*.
+
+    Stores the latest value and a running count so we can compute
+    average from  metric.sum / metric.count  if needed.
+    Lightweight: 3 cache operations, silently swallowed on failure.
+    """
+    try:
+        bucket = _now_bucket()
+        # Count of samples
+        count_key = _make_key(f"{metric}.count", bucket)
+        _register_metric(f"{metric}.count", bucket)
+        cache.add(count_key, 0, timeout=_BUCKET_SECONDS * 2)
+        cache.incr(count_key)
+
+        # Sum of durations
+        sum_key = _make_key(f"{metric}.sum_ms", bucket)
+        _register_metric(f"{metric}.sum_ms", bucket)
+        cache.add(sum_key, 0, timeout=_BUCKET_SECONDS * 2)
+        cache.incr(sum_key, int(duration_ms))
+    except Exception:
+        pass
+
+
 def snapshot() -> dict[str, int]:
     """Return {metric_name: count} for the current UTC hour.
 

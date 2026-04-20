@@ -350,11 +350,29 @@ if ENV == "production" and PRODUCTION_STRICT_MODE:
 
 
 # ----------------- Caching -----------------
+# ── Redis scaling notes ─────────────────────────────────────────
+# Current: single Redis instance — DB 0 (broker + channels), DB 1 (cache).
+# Adequate up to ~500 schools.  Split thresholds:
+#   - Cache memory > 200 MB  → separate REDIS_CACHE_URL instance
+#   - Celery queue depth > 1000 for >5 min → separate broker instance
+#   - WS connections > 5K concurrent → separate channels Redis
+# Monitor: redis INFO memory, connected_clients, used_memory_rss.
+#
+# ── Key prefix map (Phase 6E) ──────────────────────────────────
+# Prefix       DB   Purpose
+# sr:*         1    Django cache (views, opmetrics, sessions, locks)
+# celery*      0    Celery broker (task queues + results)
+# asgi:*       0    Channels layer (WebSocket groups)
+# opmetrics:*  1    Operational counters (via cache backend)
+# To split: set separate REDIS_CACHE_URL / CELERY_BROKER_URL / channel hosts.
+# ────────────────────────────────────────────────────────────────
 if REDIS_CACHE_URL:
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": REDIS_CACHE_URL,
+            "KEY_PREFIX": "sr",
+            "TIMEOUT": 300,
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
                 "IGNORE_EXCEPTIONS": True,
@@ -388,6 +406,27 @@ else:
 
 
 # ----------------- Database -----------------
+# ── Scaling notes ───────────────────────────────────────────────
+# Current: single PostgreSQL, CONN_MAX_AGE=600, 3 web workers × 2 threads
+# = up to 6 persistent connections per web dyno.
+# At 500+ schools: consider PgBouncer or Render's managed connection pooling.
+# At 1000+ schools: evaluate read replica for nav_context / dashboard queries.
+# Hot tables: NotificationRecipient, AuditLog, Report (see docs/PHASE5 report).
+#
+# ── PgBouncer readiness (Phase 6D) ─────────────────────────────
+# Recommended PgBouncer settings when adding a connection pooler:
+#   pool_mode = transaction          (required: Django uses SET/RESET per query)
+#   default_pool_size = 20           (per-user pool, tune to DB max_connections)
+#   max_client_conn = 200            (allow all workers + web + beat to connect)
+#   server_idle_timeout = 300        (match CONN_MAX_AGE / 2)
+#   server_lifetime = 3600
+# Django side:
+#   - Set CONN_MAX_AGE=0 (let PgBouncer manage pooling, not Django)
+#   - Or keep CONN_MAX_AGE=600 if using session mode (not recommended)
+#   - Point DATABASE_URL to PgBouncer host:port instead of Postgres directly
+#   - Render managed pooling: enable from dashboard, uses internal proxy
+# Rollback: revert DATABASE_URL to direct Postgres endpoint, restore CONN_MAX_AGE
+# ────────────────────────────────────────────────────────────────
 DB_SSL = _env_bool("DB_SSL", False)
 
 # الحد الأقصى لعمر الاتصال (ثوانٍ). 0 يعني إغلاق الاتصال بعد كل طلب.
@@ -463,16 +502,52 @@ USE_TZ = True
 
 
 # ----------------- Celery -----------------
+# ── Worker scaling notes ────────────────────────────────────────
+# Current: 1 worker, concurrency=4, all queues on one process.
+# Scaling path:
+#   100 schools  → current config is fine
+#   500 schools  → separate worker for 'images' queue (CPU-bound)
+#   1000 schools → separate workers per queue; fan-out daily summary
+# Monitor: celery inspect active, flower, or ops/metrics endpoint.
+# ────────────────────────────────────────────────────────────────
 CELERY_RESULT_BACKEND = (os.getenv("CELERY_RESULT_BACKEND") or REDIS_CACHE_URL or CELERY_BROKER_URL or "django-db").strip()
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TRACK_STARTED = False
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 CELERY_WORKER_PREFETCH_MULTIPLIER = int(os.getenv("CELERY_PREFETCH_MULTIPLIER", "1"))
 CELERY_TASK_ACKS_LATE = _env_bool("CELERY_TASK_ACKS_LATE", True)
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_RESULT_EXPIRES = int(os.getenv("CELERY_RESULT_EXPIRES", "3600"))  # 1 hour
+
+# ── Queue routing ───────────────────────────────────────────────────
+# Logical queue separation so image processing cannot starve notifications.
+# All queues resolve to the same broker; to run dedicated workers per queue,
+# start additional workers with  -Q notifications  or  -Q images  etc.
+# The default worker (no -Q flag) consumes ALL queues, so this is backward-
+# compatible and requires zero deployment changes.
+from kombu import Queue  # noqa: E402
+
+CELERY_TASK_QUEUES = [
+    Queue("default"),
+    Queue("notifications"),
+    Queue("images"),
+    Queue("periodic"),
+]
+CELERY_TASK_DEFAULT_QUEUE = "default"
+CELERY_TASK_ROUTES = {
+    "reports.tasks.send_notification_task": {"queue": "notifications"},
+    "reports.tasks.send_password_change_email_task": {"queue": "notifications"},
+    "reports.tasks.process_report_images": {"queue": "images"},
+    "reports.tasks.process_ticket_image": {"queue": "images"},
+    "reports.tasks.send_daily_manager_summary_task": {"queue": "periodic"},
+    "reports.tasks._daily_summary_for_school": {"queue": "periodic"},
+    "reports.tasks.check_subscription_expiry_task": {"queue": "periodic"},
+    "reports.tasks.remind_unsigned_circulars_task": {"queue": "periodic"},
+    "reports.tasks.cleanup_audit_logs_task": {"queue": "periodic"},
+}
 
 
 # ----------------- Audit Logs Retention -----------------
@@ -680,6 +755,10 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
     "loggers": {
         "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+        "django.server": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "django.db.backends": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "channels": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "daphne": {"handlers": ["console"], "level": "WARNING", "propagate": False},
     },
 }
 
@@ -701,10 +780,12 @@ SESSION_COOKIE_AGE = IDLE_LOGOUT_SECONDS
 SESSION_SAVE_EVERY_REQUEST = False
 
 # ── Session backend ─────────────────────────────────────────────────
-# Use the cache backend (Redis in production) to avoid a DB hit per request.
-# Falls back to DB sessions when no cache backend is available (dev/SQLite).
+# cached_db: reads from cache (fast), writes to both cache + DB.
+# If a cache key expires (TIMEOUT=300), Django transparently falls back
+# to the DB row — so users are never logged out by cache eviction.
+# Pure "cache" backend would lose sessions when Redis keys expire.
 if REDIS_CACHE_URL:
-    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
     SESSION_CACHE_ALIAS = "default"
 else:
     SESSION_ENGINE = "django.contrib.sessions.backends.db"
@@ -722,9 +803,11 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 25,
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "user": "120/min",
+        "anon": "30/min",
     },
 }
 

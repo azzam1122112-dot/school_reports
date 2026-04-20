@@ -19,6 +19,7 @@ _thread_locals = threading.local()
 logger = logging.getLogger(__name__)
 
 FORCE_PASSWORD_CHANGE_SESSION_KEY = "force_password_change_required"
+_PASSWORD_VERIFIED_OK_SESSION_KEY = "_pw_verified_not_default"
 
 def get_current_request():
     return getattr(_thread_locals, "request", None)
@@ -47,7 +48,11 @@ def has_default_phone_password(user) -> bool:
 
 
 def is_force_password_change_required(request) -> bool:
-    """Persist and expose the forced-password-change state on the request."""
+    """Persist and expose the forced-password-change state on the request.
+
+    Caches the bcrypt check_password result in session to avoid ~100ms CPU
+    cost on every request for users who already changed their password.
+    """
     user = getattr(request, "user", None)
     if not getattr(user, "is_authenticated", False):
         setattr(request, "force_password_change_required", False)
@@ -58,12 +63,28 @@ def is_force_password_change_required(request) -> bool:
     except Exception:
         session_required = False
 
-    required = bool(session_required or has_default_phone_password(user))
+    if session_required:
+        # Already flagged — skip the expensive bcrypt check.
+        setattr(request, "force_password_change_required", True)
+        return True
+
+    # Fast path: if we already verified password is NOT default in this session,
+    # skip the bcrypt call.
+    try:
+        if request.session.get(_PASSWORD_VERIFIED_OK_SESSION_KEY):
+            setattr(request, "force_password_change_required", False)
+            return False
+    except Exception:
+        pass
+
+    required = has_default_phone_password(user)
     try:
         if required:
             request.session[FORCE_PASSWORD_CHANGE_SESSION_KEY] = True
+            request.session.pop(_PASSWORD_VERIFIED_OK_SESSION_KEY, None)
         else:
             request.session.pop(FORCE_PASSWORD_CHANGE_SESSION_KEY, None)
+            request.session[_PASSWORD_VERIFIED_OK_SESSION_KEY] = True
     except Exception:
         pass
 
@@ -74,6 +95,8 @@ def is_force_password_change_required(request) -> bool:
 def clear_force_password_change_flag(request) -> None:
     try:
         request.session.pop(FORCE_PASSWORD_CHANGE_SESSION_KEY, None)
+        # Clear cached verification so next request re-checks with bcrypt.
+        request.session.pop(_PASSWORD_VERIFIED_OK_SESSION_KEY, None)
     except Exception:
         pass
     setattr(request, "force_password_change_required", False)
@@ -335,16 +358,19 @@ class ActiveSchoolGuardMiddleware:
                     return JsonResponse({"detail": "invalid_active_school"}, status=403)
                 request.session.pop(self.SESSION_KEY, None)
                 return self.get_response(request)
-            ok = SchoolMembership.objects.filter(
+            membership = SchoolMembership.objects.filter(
                 teacher=user,
                 school_id=sid,
                 is_active=True,
-            ).exists()
-            if not ok:
+            ).select_related("school").first()
+            if membership is None:
                 if self._wants_json(request):
                     _log_denial(request, reason="active_school_membership_forbidden")
                     return JsonResponse({"detail": "forbidden"}, status=403)
                 request.session.pop(self.SESSION_KEY, None)
+            else:
+                # Cache membership for SubscriptionMiddleware downstream
+                request._active_membership = membership
         except Exception:
             try:
                 if self._wants_json(request):
@@ -397,16 +423,22 @@ class SubscriptionMiddleware:
             except Exception:
                 active_school = None
 
-        memberships_qs = (
-            SchoolMembership.objects.filter(teacher=request.user, is_active=True)
-            .select_related('school')
-        )
+        # ── Reuse membership cached by ActiveSchoolGuardMiddleware ──
+        membership = getattr(request, "_active_membership", None)
+        if membership is not None and active_school is not None:
+            # Verify it matches the active school
+            if membership.school_id != active_school.pk:
+                membership = None
 
-        membership = None
-        if active_school is not None:
-            membership = memberships_qs.filter(school=active_school).first()
         if membership is None:
-            membership = memberships_qs.first()
+            memberships_qs = (
+                SchoolMembership.objects.filter(teacher=request.user, is_active=True)
+                .select_related('school')
+            )
+            if active_school is not None:
+                membership = memberships_qs.filter(school=active_school).first()
+            if membership is None:
+                membership = memberships_qs.first()
 
         # إن لم تكن لديه عضوية مدرسة، لا نطبق هذا المنع (نترك الصلاحيات الأخرى تتعامل)
         if membership is None:

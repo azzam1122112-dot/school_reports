@@ -8,9 +8,11 @@ from urllib import request as urlrequest
 from celery import shared_task
 from django.apps import apps
 from django.conf import settings
+from django.core.cache import cache as django_cache
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from .storage import _compress_image_file
@@ -18,6 +20,15 @@ from .storage import _compress_image_file
 logger = logging.getLogger(__name__)
 
 from core import opmetrics
+
+
+def _periodic_lock(lock_name: str, ttl: int = 600) -> bool:
+    """Acquire a cache-based lock to prevent overlapping periodic tasks.
+
+    Returns True if the lock was acquired (caller should proceed).
+    Returns False if another instance already holds it (caller should skip).
+    """
+    return bool(django_cache.add(f"periodic_lock:{lock_name}", 1, timeout=ttl))
 
 
 def _task_ctx(task_obj) -> tuple[str | None, int, str | None]:
@@ -34,7 +45,7 @@ def _task_ctx(task_obj) -> tuple[str | None, int, str | None]:
         return None, 0, None
 
 
-@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 2000) -> int:
     """Delete AuditLog rows older than N days.
 
@@ -77,7 +88,7 @@ def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 200
     return deleted_total
 
 
-@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3}, rate_limit="30/m")
 def process_report_images(self, report_id: int) -> bool:
     """
     Task to process images for a report (compression/optimization).
@@ -141,7 +152,7 @@ def process_report_images(self, report_id: int) -> bool:
     return True
 
 
-@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3}, rate_limit="30/m")
 def process_ticket_image(self, ticket_image_id: int) -> bool:
     """
     Task to process a single ticket image (compression/optimization).
@@ -206,7 +217,7 @@ def process_ticket_image(self, ticket_image_id: int) -> bool:
         return False
 
 
-@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3}, soft_time_limit=600, time_limit=900)
 def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool:
     """
     Task to create NotificationRecipient objects in the background.
@@ -489,21 +500,142 @@ def _send_inapp_notification(
     return True
 
 
-@shared_task
+@shared_task(ignore_result=True, soft_time_limit=60, time_limit=120)
+def _daily_summary_for_school(school_id: int) -> dict:
+    """Process daily manager summary for a single school (fan-out subtask)."""
+    School = apps.get_model("reports", "School")
+    SchoolMembership = apps.get_model("reports", "SchoolMembership")
+    Report = apps.get_model("reports", "Report")
+    Ticket = apps.get_model("reports", "Ticket")
+
+    inapp_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_INAPP_ENABLED", True))
+    email_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_EMAIL_ENABLED", False))
+    whatsapp_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_WHATSAPP_ENABLED", False))
+    from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
+
+    today = timezone.localdate()
+    tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(today, dt_time.min), tz)
+    day_end = day_start + timedelta(days=1)
+    report_date_text = today.strftime("%Y-%m-%d")
+    open_ticket_statuses = ("open", "in_progress")
+    closed_ticket_statuses = ("done", "rejected")
+
+    result = {
+        "school_id": school_id,
+        "processed": False,
+        "inapp_sent": 0,
+        "emails_sent": 0,
+        "whatsapp_sent": 0,
+    }
+
+    try:
+        school = School.objects.filter(pk=school_id, is_active=True).only("id", "name").first()
+    except Exception:
+        school = None
+    if school is None:
+        return result
+
+    manager_memberships = (
+        SchoolMembership.objects.select_related("teacher")
+        .filter(school=school, role_type="manager", is_active=True, teacher__is_active=True)
+        .only("teacher__id", "teacher__name", "teacher__phone", "teacher__email")
+    )
+    manager_by_id: dict[int, object] = {}
+    for membership in manager_memberships:
+        manager = getattr(membership, "teacher", None)
+        mid = int(getattr(manager, "id", 0) or 0)
+        if manager is not None and mid and mid not in manager_by_id:
+            manager_by_id[mid] = manager
+
+    managers = list(manager_by_id.values())
+    if not managers:
+        return result
+
+    reports_count = Report.objects.filter(
+        school=school, created_at__gte=day_start, created_at__lt=day_end,
+    ).count()
+
+    ticket_agg = Ticket.objects.filter(school=school).aggregate(
+        open=Count("id", filter=Q(status__in=open_ticket_statuses)),
+        closed=Count("id", filter=Q(status__in=closed_ticket_statuses)),
+    )
+
+    details_url = _build_school_details_url(school.id)
+    message_text = _build_daily_message(
+        school_name=getattr(school, "name", "") or "المدرسة",
+        report_date_text=report_date_text,
+        reports_count=reports_count,
+        open_tickets_count=ticket_agg["open"],
+        closed_tickets_count=ticket_agg["closed"],
+        details_url=details_url,
+    )
+    subject = f"تقرير اليوم - {getattr(school, 'name', '') or 'المدرسة'}"
+
+    manager_ids = list(manager_by_id.keys())
+    inapp_recipient_ids: set[int] = set()
+    if inapp_enabled and manager_ids:
+        inapp_ok = _send_inapp_notification(
+            school=school, manager_ids=manager_ids,
+            subject=subject, message_text=message_text,
+        )
+        if inapp_ok:
+            inapp_recipient_ids.update(manager_ids)
+            result["inapp_sent"] += len(manager_ids)
+
+    for manager in managers:
+        mid = int(getattr(manager, "id", 0) or 0)
+        if not mid:
+            continue
+        manager_email = (getattr(manager, "email", "") or "").strip()
+        manager_phone = (getattr(manager, "phone", "") or "").strip()
+
+        if email_enabled and _is_valid_email(manager_email):
+            try:
+                send_mail(
+                    subject=subject, message=message_text,
+                    from_email=from_email, recipient_list=[manager_email],
+                    fail_silently=False,
+                )
+                result["emails_sent"] += 1
+            except Exception:
+                logger.exception("Daily summary email failed school=%s manager=%s", school_id, mid)
+
+        normalized_phone = _normalize_sa_whatsapp_phone(manager_phone)
+        if whatsapp_enabled and normalized_phone:
+            ok = _send_whatsapp_via_webhook(
+                to_phone=normalized_phone, message_text=message_text,
+                school_id=school.id, school_name=getattr(school, "name", "") or "",
+                reports_count=reports_count,
+                open_tickets_count=ticket_agg["open"],
+                closed_tickets_count=ticket_agg["closed"],
+                report_date_text=report_date_text,
+            )
+            if ok:
+                result["whatsapp_sent"] += 1
+
+    result["processed"] = True
+    return result
+
+
+@shared_task(ignore_result=True, soft_time_limit=300, time_limit=600)
 def send_daily_manager_summary_task() -> dict:
     """
-    Daily summary for each active school manager.
+    Daily summary dispatcher — fans out to one subtask per active school.
 
     Channels:
     - In-app notification (internal)
     - Email (manager email)
     - WhatsApp via configurable webhook (manager phone)
     """
+    import time as _time
+    _t0 = _time.monotonic()
+
     enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_ENABLED", True))
-    inapp_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_INAPP_ENABLED", True))
-    email_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_EMAIL_ENABLED", False))
-    whatsapp_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_WHATSAPP_ENABLED", False))
-    from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
+
+    if not _periodic_lock("daily_manager_summary", ttl=600):
+        logger.info("Daily manager summary task skipped: another instance is running.")
+        return {"enabled": enabled, "skipped": "lock"}
 
     summary = {
         "enabled": enabled,
@@ -524,144 +656,32 @@ def send_daily_manager_summary_task() -> dict:
         return summary
 
     School = apps.get_model("reports", "School")
-    SchoolMembership = apps.get_model("reports", "SchoolMembership")
-    Report = apps.get_model("reports", "Report")
-    Ticket = apps.get_model("reports", "Ticket")
 
-    today = timezone.localdate()
-    tz = timezone.get_current_timezone()
-    day_start = timezone.make_aware(datetime.combine(today, dt_time.min), tz)
-    day_end = day_start + timedelta(days=1)
-    report_date_text = today.strftime("%Y-%m-%d")
+    school_ids = list(
+        School.objects.filter(is_active=True).values_list("id", flat=True)
+    )
+    summary["schools_seen"] = len(school_ids)
 
-    open_ticket_statuses = ("open", "in_progress")
-    closed_ticket_statuses = ("done", "rejected")
+    # Fan-out: dispatch one subtask per school to the periodic queue.
+    # Each subtask runs independently with its own time limits.
+    dispatched = 0
+    for sid in school_ids:
+        try:
+            _daily_summary_for_school.delay(sid)
+            dispatched += 1
+        except Exception:
+            logger.exception("Failed to dispatch daily summary for school=%s", sid)
 
-    schools = School.objects.filter(is_active=True).only("id", "name")
-    summary["schools_seen"] = schools.count()
-
-    for school in schools:
-        manager_memberships = (
-            SchoolMembership.objects.select_related("teacher")
-            .filter(
-                school=school,
-                role_type="manager",
-                is_active=True,
-                teacher__is_active=True,
-            )
-            .only("teacher__id", "teacher__name", "teacher__phone", "teacher__email")
-        )
-        manager_by_id: dict[int, object] = {}
-        for membership in manager_memberships:
-            manager = getattr(membership, "teacher", None)
-            manager_id = int(getattr(manager, "id", 0) or 0)
-            if manager is not None and manager_id and manager_id not in manager_by_id:
-                manager_by_id[manager_id] = manager
-
-        managers = list(manager_by_id.values())
-        if not managers:
-            summary["schools_without_manager"] += 1
-            continue
-
-        reports_count = Report.objects.filter(
-            school=school,
-            created_at__gte=day_start,
-            created_at__lt=day_end,
-        ).count()
-
-        school_tickets = Ticket.objects.filter(school=school)
-        open_tickets_count = school_tickets.filter(status__in=open_ticket_statuses).count()
-        closed_tickets_count = school_tickets.filter(status__in=closed_ticket_statuses).count()
-
-        details_url = _build_school_details_url(getattr(school, "id"))
-        message_text = _build_daily_message(
-            school_name=getattr(school, "name", "") or "المدرسة",
-            report_date_text=report_date_text,
-            reports_count=reports_count,
-            open_tickets_count=open_tickets_count,
-            closed_tickets_count=closed_tickets_count,
-            details_url=details_url,
-        )
-        subject = f"تقرير اليوم - {getattr(school, 'name', '') or 'المدرسة'}"
-
-        manager_ids = list(manager_by_id.keys())
-        inapp_recipient_ids: set[int] = set()
-        if inapp_enabled and manager_ids:
-            inapp_ok = _send_inapp_notification(
-                school=school,
-                manager_ids=manager_ids,
-                subject=subject,
-                message_text=message_text,
-            )
-            if inapp_ok:
-                inapp_recipient_ids.update(manager_ids)
-                summary["inapp_sent"] += len(manager_ids)
-            else:
-                summary["inapp_failures"] += len(manager_ids)
-                logger.error(
-                    "Daily manager in-app notification failed for school=%s",
-                    getattr(school, "id", None),
-                )
-
-        for manager in managers:
-            manager_id = int(getattr(manager, "id", 0) or 0)
-            if not manager_id:
-                continue
-
-            sent_any_channel = manager_id in inapp_recipient_ids
-            manager_email = (getattr(manager, "email", "") or "").strip()
-            manager_phone = (getattr(manager, "phone", "") or "").strip()
-
-            if email_enabled and _is_valid_email(manager_email):
-                try:
-                    send_mail(
-                        subject=subject,
-                        message=message_text,
-                        from_email=from_email,
-                        recipient_list=[manager_email],
-                        fail_silently=False,
-                    )
-                    summary["emails_sent"] += 1
-                    sent_any_channel = True
-                except Exception:
-                    summary["email_failures"] += 1
-                    logger.exception(
-                        "Daily manager report email failed for manager=%s school=%s",
-                        manager_id,
-                        getattr(school, "id", None),
-                    )
-
-            normalized_phone = _normalize_sa_whatsapp_phone(manager_phone)
-            if whatsapp_enabled and normalized_phone:
-                ok = _send_whatsapp_via_webhook(
-                    to_phone=normalized_phone,
-                    message_text=message_text,
-                    school_id=getattr(school, "id"),
-                    school_name=getattr(school, "name", "") or "",
-                    reports_count=reports_count,
-                    open_tickets_count=open_tickets_count,
-                    closed_tickets_count=closed_tickets_count,
-                    report_date_text=report_date_text,
-                )
-                if ok:
-                    summary["whatsapp_sent"] += 1
-                    sent_any_channel = True
-                else:
-                    summary["whatsapp_failures"] += 1
-
-            if not sent_any_channel:
-                summary["managers_missing_channels"] += 1
-
-        summary["schools_processed"] += 1
-
-    logger.info("Daily manager summary result: %s", summary)
+    summary["schools_processed"] = dispatched
+    logger.info("Daily manager summary dispatched %d/%d school subtasks", dispatched, len(school_ids))
+    opmetrics.timing("celery.periodic.daily_manager_summary", (_time.monotonic() - _t0) * 1000)
     return summary
 
 
 # ═══════════════════════════════════════════════════════════════
 # مهمة 1: تذكير بقرب انتهاء الاشتراك
 # ═══════════════════════════════════════════════════════════════
-@shared_task
+@shared_task(ignore_result=True, soft_time_limit=120, time_limit=300)
 def check_subscription_expiry_task() -> dict:
     """
     تفحص الاشتراكات النشطة وترسل إشعارات عند اقتراب انتهائها.
@@ -670,7 +690,15 @@ def check_subscription_expiry_task() -> dict:
     - ترسل إشعار داخلي + إيميل (اختياري) لمدراء المدارس.
     - تتجنب التكرار بفحص عدم وجود إشعار مماثل خلال آخر 24 ساعة.
     """
+    import time as _time
+    _t0 = _time.monotonic()
+
     enabled = bool(getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_ENABLED", True))
+
+    if not _periodic_lock("check_subscription_expiry", ttl=300):
+        logger.info("Subscription expiry task skipped: another instance is running.")
+        return {"enabled": enabled, "skipped": "lock"}
+
     email_enabled = bool(getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED", False))
     reminder_days = getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_DAYS", [14, 7, 3, 1])
     from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
@@ -703,7 +731,7 @@ def check_subscription_expiry_task() -> dict:
         .only("id", "school__id", "school__name", "plan__name", "end_date", "is_active", "canceled_at")
     )
 
-    for sub in subs:
+    for sub in subs.iterator():
         if sub.canceled_at:
             continue
         summary["subscriptions_checked"] += 1
@@ -786,13 +814,14 @@ def check_subscription_expiry_task() -> dict:
                         logger.exception("Subscription expiry email failed for teacher=%s", mgr.id)
 
     logger.info("Subscription expiry reminder result: %s", summary)
+    opmetrics.timing("celery.periodic.check_subscription_expiry", (_time.monotonic() - _t0) * 1000)
     return summary
 
 
 # ═══════════════════════════════════════════════════════════════
 # مهمة 2: تذكير بالتعاميم غير الموقّعة قبل الموعد النهائي
 # ═══════════════════════════════════════════════════════════════
-@shared_task
+@shared_task(ignore_result=True, soft_time_limit=120, time_limit=300)
 def remind_unsigned_circulars_task() -> dict:
     """
     ترسل تذكيرات للمعلمين الذين لم يوقّعوا على تعاميم لها موعد نهائي قريب.
@@ -802,7 +831,15 @@ def remind_unsigned_circulars_task() -> dict:
     - ترسل إشعار داخلي فقط للمعلمين الذين لم يوقّعوا بعد.
     - تتجنب التكرار بعدم التذكير أكثر من مرة واحدة لنفس المستلم لنفس التعميم خلال 12 ساعة.
     """
+    import time as _time
+    _t0 = _time.monotonic()
+
     enabled = bool(getattr(settings, "CIRCULAR_SIGNATURE_REMINDER_ENABLED", True))
+
+    if not _periodic_lock("remind_unsigned_circulars", ttl=300):
+        logger.info("Unsigned circular reminder task skipped: another instance is running.")
+        return {"enabled": enabled, "skipped": "lock"}
+
     reminder_hours = getattr(settings, "CIRCULAR_SIGNATURE_REMINDER_HOURS", [48, 24])
 
     summary = {
@@ -835,7 +872,7 @@ def remind_unsigned_circulars_task() -> dict:
         "id", "title", "signature_deadline_at", "school__id", "school__name"
     )
 
-    for circular in circulars:
+    for circular in circulars.iterator():
         hours_until_deadline = (circular.signature_deadline_at - now).total_seconds() / 3600
         summary["circulars_checked"] += 1
 
@@ -912,13 +949,14 @@ def remind_unsigned_circulars_task() -> dict:
         summary["reminders_sent"] += len(unsigned_ids)
 
     logger.info("Unsigned circular reminder result: %s", summary)
+    opmetrics.timing("celery.periodic.remind_unsigned_circulars", (_time.monotonic() - _t0) * 1000)
     return summary
 
 
 # ═══════════════════════════════════════════════════════════════
 # مهمة 3: إرسال إيميل تأكيد تغيير كلمة المرور
 # ═══════════════════════════════════════════════════════════════
-@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def send_password_change_email_task(self, teacher_id: int) -> bool:
     """
     ترسل إيميل تأكيد للمعلم بعد تغيير كلمة المرور بنجاح.

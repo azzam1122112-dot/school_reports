@@ -205,8 +205,14 @@ def my_support_tickets(request: HttpRequest) -> HttpResponse:
         is_platform=True,
         school=active_school,
     ).select_related("department", "assignee").order_by("-created_at")
+
+    paginator = Paginator(tickets, 20)
+    page_obj = paginator.get_page(request.GET.get("page"))
     
-    return render(request, "reports/my_support_tickets.html", {"tickets": tickets})
+    return render(request, "reports/my_support_tickets.html", {
+        "tickets": page_obj,
+        "page_obj": page_obj,
+    })
 
 
 @login_required(login_url="reports:login")

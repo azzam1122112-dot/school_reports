@@ -596,13 +596,22 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
                 school_memberships__is_active=True,
             ).distinct()
 
+        # تجميع عدادات التذاكر في استعلام واحد بدل 4 استعلامات منفصلة
+        ticket_base = _filter_by_school(Ticket.objects.filter(is_platform=False), active_school)
+        ticket_agg = ticket_base.aggregate(
+            total=Count("id"),
+            open=Count("id", filter=Q(status__in=["open", "in_progress"])),
+            done=Count("id", filter=Q(status="done")),
+            rejected=Count("id", filter=Q(status="rejected")),
+        )
+
         stats = {
             "reports_count": _filter_by_school(Report.objects.all(), active_school).count(),
             "teachers_count": teachers_qs.count(),
-            "tickets_total": _filter_by_school(Ticket.objects.filter(is_platform=False), active_school).count(),
-            "tickets_open": _filter_by_school(Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=False), active_school).count(),
-            "tickets_done": _filter_by_school(Ticket.objects.filter(status="done", is_platform=False), active_school).count(),
-            "tickets_rejected": _filter_by_school(Ticket.objects.filter(status="rejected", is_platform=False), active_school).count(),
+            "tickets_total": ticket_agg["total"],
+            "tickets_open": ticket_agg["open"],
+            "tickets_done": ticket_agg["done"],
+            "tickets_rejected": ticket_agg["rejected"],
         }
         # تخزين في الكاش لمدة 5 دقائق
         try:
@@ -747,17 +756,17 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             recent_reports = _filter_by_school(
                 Report.objects.all(),
                 active_school
-            ).select_related('teacher', 'department').order_by('-created_at')[:5]
+            ).select_related('teacher', 'category').order_by('-created_at')[:5]
             
             for report in recent_reports:
                 teacher_name = getattr(getattr(report, 'teacher', None), 'name', None) or 'معلم'
-                department_name = getattr(getattr(report, 'department', None), 'name', None) or 'قسم'
+                category_name = getattr(getattr(report, 'category', None), 'name', None) or 'قسم'
                 recent_activities.append({
                     'type': 'report',
                     'icon': 'fa-file-alt',
                     'color': 'primary',
                     'title': 'تقرير جديد',
-                    'description': f"{teacher_name} - {department_name}",
+                    'description': f"{teacher_name} - {category_name}",
                     'time': report.created_at,
                 })
             

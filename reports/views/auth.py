@@ -227,7 +227,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 try:
                     memberships = (
                         SchoolMembership.objects.filter(teacher=user, is_active=True)
-                        .select_related("school")
+                        .select_related("school", "school__subscription")
                         .order_by("id")
                     )
 

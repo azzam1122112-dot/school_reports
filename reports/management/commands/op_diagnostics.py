@@ -70,5 +70,35 @@ class Command(BaseCommand):
         except Exception as exc:
             self.stdout.write(f"  [audit facts error: {exc}]")
 
+        # ── Capacity indicators ───────────────────────────────────────────────
+        self.stdout.write(self.style.SUCCESS("\n-- Capacity indicators --"))
+        try:
+            Teacher = apps.get_model("reports", "Teacher")
+            Report = apps.get_model("reports", "Report")
+            Notification = apps.get_model("reports", "Notification")
+            NotificationRecipient = apps.get_model("reports", "NotificationRecipient")
+
+            teachers_active = Teacher.objects.filter(is_active=True).count()
+            self.stdout.write(f"  Active teachers     : {teachers_active}")
+
+            reports_total = Report.objects.count()
+            self.stdout.write(f"  Reports total       : {reports_total}")
+
+            notif_total = Notification.objects.count()
+            self.stdout.write(f"  Notifications total : {notif_total}")
+
+            nr_total = NotificationRecipient.objects.count()
+            self.stdout.write(f"  NotifRecipients total: {nr_total}")
+
+            # Reports created in last 24h
+            reports_24h = Report.objects.filter(created_at__gte=cutoff).count()
+            self.stdout.write(f"  Reports (last 24h)  : {reports_24h}")
+
+            # AuditLog total (indicates archiving need)
+            audit_total = AuditLog.objects.count()
+            self.stdout.write(f"  AuditLog total rows : {audit_total}")
+        except Exception as exc:
+            self.stdout.write(f"  [capacity indicators error: {exc}]")
+
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS("=== End of diagnostics ==="))

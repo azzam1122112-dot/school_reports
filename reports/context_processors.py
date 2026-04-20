@@ -28,7 +28,7 @@ CLOSED_STATES = {"done", "rejected", "cancelled"}
 # -----------------------------
 def _safe_count(qs) -> int:
     try:
-        return qs.only("id").count()
+        return qs.count()
     except Exception:
         return 0
 
@@ -830,18 +830,17 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     school_lab_tech_label = role_labels["lab_tech"]
 
     try:
-        qs = Ticket.objects.filter(creator=u, status__in=UNRESOLVED_STATES)
+        ticket_base = Ticket.objects.filter(status__in=UNRESOLVED_STATES)
         if active_school is not None:
-            qs = qs.filter(school=active_school)
-        my_open = _safe_count(qs)
+            ticket_base = ticket_base.filter(school=active_school)
+        ticket_agg = ticket_base.aggregate(
+            my_open=Count("id", filter=Q(creator=u)),
+            assigned_open=Count("id", filter=Q(assignee=u)),
+        )
+        my_open = ticket_agg["my_open"]
+        assigned_open = ticket_agg["assigned_open"]
     except Exception:
         my_open = 0
-    try:
-        qs2 = Ticket.objects.filter(assignee=u, status__in=UNRESOLVED_STATES)
-        if active_school is not None:
-            qs2 = qs2.filter(school=active_school)
-        assigned_open = _safe_count(qs2)
-    except Exception:
         assigned_open = 0
 
     # تحديد عضويات المدرسة/القسم في استعلامات مجمعة لتقليل كلفة كل طلب.

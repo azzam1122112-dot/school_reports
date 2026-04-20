@@ -1,3 +1,8 @@
 web: python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.asgi:application --bind 0.0.0.0:${PORT:-8000} -k uvicorn.workers.UvicornWorker --workers ${WEB_CONCURRENCY:-3} --threads ${GUNICORN_THREADS:-2} --timeout ${GUNICORN_TIMEOUT:-120} --keep-alive ${GUNICORN_KEEPALIVE:-5} --max-requests ${GUNICORN_MAX_REQUESTS:-2000} --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-200} --log-file -
-worker: celery -A config worker --loglevel=info --concurrency=${CELERY_WORKER_CONCURRENCY:-4} --prefetch-multiplier=${CELERY_PREFETCH_MULTIPLIER:-1} --max-tasks-per-child=${CELERY_MAX_TASKS_PER_CHILD:-200}
+worker_default: celery -A config worker --loglevel=info --concurrency=${CELERY_DEFAULT_CONCURRENCY:-2} --prefetch-multiplier=${CELERY_PREFETCH_MULTIPLIER:-1} --max-tasks-per-child=${CELERY_MAX_TASKS_PER_CHILD:-200} -Q default
+worker_notifications: celery -A config worker --loglevel=info --concurrency=${CELERY_NOTIFICATIONS_CONCURRENCY:-2} --prefetch-multiplier=${CELERY_PREFETCH_MULTIPLIER:-1} --max-tasks-per-child=${CELERY_MAX_TASKS_PER_CHILD:-200} -Q notifications
+worker_images: celery -A config worker --loglevel=info --concurrency=${CELERY_IMAGES_CONCURRENCY:-1} --prefetch-multiplier=${CELERY_PREFETCH_MULTIPLIER:-1} --max-tasks-per-child=${CELERY_MAX_TASKS_PER_CHILD:-200} -Q images
+worker_periodic: celery -A config worker --loglevel=info --concurrency=${CELERY_PERIODIC_CONCURRENCY:-1} --prefetch-multiplier=${CELERY_PREFETCH_MULTIPLIER:-1} --max-tasks-per-child=${CELERY_MAX_TASKS_PER_CHILD:-200} -Q periodic
+# Legacy single-worker (fallback — consumes all queues on one process):
+# worker: celery -A config worker --loglevel=info --concurrency=${CELERY_WORKER_CONCURRENCY:-4} --prefetch-multiplier=${CELERY_PREFETCH_MULTIPLIER:-1} --max-tasks-per-child=${CELERY_MAX_TASKS_PER_CHILD:-200} -Q default,notifications,images,periodic
 beat: celery -A config beat --loglevel=info

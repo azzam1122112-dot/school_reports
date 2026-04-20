@@ -1,7 +1,18 @@
 services:
+  # ── Scaling notes ─────────────────────────────────────────────
+  # Current: 1 web + 1 worker + 1 beat + 1 Redis (starter plan).
+  # All services are horizontally scalable EXCEPT beat (singleton).
+  # Scaling path:
+  #   100 schools  → current config
+  #   500 schools  → 2 web instances, 2 workers (split queues)
+  #   1000 schools → 3+ web, dedicated image/notification workers, upgrade Redis
+  # To scale web: increase numInstances below.  Sessions & cache are Redis-backed.
+  # To split workers: duplicate worker service with different -Q flags.
+  # ──────────────────────────────────────────────────────────────
   - type: web
     name: school-app
     runtime: docker
+    healthCheckPath: /healthz/
     envVars:
       - key: ENV
         value: "production"
@@ -20,12 +31,12 @@ services:
       - key: REDIS_URL
         fromService:
           type: redis
-          name: school-redis
+          name: tawtheeq-redis
           property: connectionString
       - key: CELERY_RESULT_BACKEND
         fromService:
           type: redis
-          name: school-redis
+          name: tawtheeq-redis
           property: connectionString
       - key: PRODUCTION_STRICT_MODE
         value: "True"
@@ -52,33 +63,143 @@ services:
       - key: AWS_QUERYSTRING_AUTH
         sync: false
 
+  # ── Worker separation ──────────────────────────────────────────
+  # Each queue gets its own worker for isolation.  To rollback to a
+  # single worker, replace all four services below with one service
+  # using: -Q default,notifications,images,periodic
+  # ──────────────────────────────────────────────────────────────
+
   - type: worker
-    name: school-worker
+    name: school-worker-default
     runtime: docker
-    startCommand: "celery -A config worker --loglevel=info"
+    startCommand: "celery -A config worker --loglevel=info --concurrency=2 --prefetch-multiplier=1 --max-tasks-per-child=200 -Q default"
     envVars:
       - key: ENV
         value: "production"
+      - key: SECRET_KEY
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
         fromService:
           type: redis
-          name: school-redis
+          name: tawtheeq-redis
           property: connectionString
       - key: CELERY_RESULT_BACKEND
         fromService:
           type: redis
-          name: school-redis
+          name: tawtheeq-redis
           property: connectionString
       - key: PRODUCTION_STRICT_MODE
         value: "True"
-      - key: CELERY_WORKER_CONCURRENCY
-        value: "4"
-      - key: CELERY_PREFETCH_MULTIPLIER
-        value: "1"
-      - key: CELERY_MAX_TASKS_PER_CHILD
-        value: "200"
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_ENDPOINT_URL
+        sync: false
+      - key: R2_PUBLIC_DOMAIN
+        sync: false
+      - key: AWS_QUERYSTRING_AUTH
+        sync: false
+
+  - type: worker
+    name: school-worker-notifications
+    runtime: docker
+    startCommand: "celery -A config worker --loglevel=info --concurrency=2 --prefetch-multiplier=1 --max-tasks-per-child=200 -Q notifications"
+    envVars:
+      - key: ENV
+        value: "production"
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: tawtheeq-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: tawtheeq-redis
+          property: connectionString
+      - key: PRODUCTION_STRICT_MODE
+        value: "True"
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_ENDPOINT_URL
+        sync: false
+      - key: R2_PUBLIC_DOMAIN
+        sync: false
+      - key: AWS_QUERYSTRING_AUTH
+        sync: false
+
+  - type: worker
+    name: school-worker-images
+    runtime: docker
+    startCommand: "celery -A config worker --loglevel=info --concurrency=1 --prefetch-multiplier=1 --max-tasks-per-child=200 -Q images"
+    envVars:
+      - key: ENV
+        value: "production"
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: tawtheeq-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: tawtheeq-redis
+          property: connectionString
+      - key: PRODUCTION_STRICT_MODE
+        value: "True"
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_ENDPOINT_URL
+        sync: false
+      - key: R2_PUBLIC_DOMAIN
+        sync: false
+      - key: AWS_QUERYSTRING_AUTH
+        sync: false
+
+  - type: worker
+    name: school-worker-periodic
+    runtime: docker
+    startCommand: "celery -A config worker --loglevel=info --concurrency=1 --prefetch-multiplier=1 --max-tasks-per-child=200 -Q periodic"
+    envVars:
+      - key: ENV
+        value: "production"
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: tawtheeq-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: tawtheeq-redis
+          property: connectionString
+      - key: PRODUCTION_STRICT_MODE
+        value: "True"
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY
@@ -99,17 +220,19 @@ services:
     envVars:
       - key: ENV
         value: "production"
+      - key: SECRET_KEY
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
         fromService:
           type: redis
-          name: school-redis
+          name: tawtheeq-redis
           property: connectionString
       - key: CELERY_RESULT_BACKEND
         fromService:
           type: redis
-          name: school-redis
+          name: tawtheeq-redis
           property: connectionString
       - key: PRODUCTION_STRICT_MODE
         value: "True"
@@ -127,6 +250,6 @@ services:
         sync: false
 
   - type: redis
-    name: school-redis
+    name: tawtheeq-redis
     ipAllowList: [] # Only allow internal connections
     plan: starter

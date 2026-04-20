@@ -40,11 +40,13 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
     active_school_id: Optional[int]
     trace_id: str
     _last_resync_ts: float
+    group_name: str
 
     async def connect(self):
         user = self.scope.get("user")
         self.trace_id = self._scope_header("x-request-id") or "-"
         self._last_resync_ts = 0.0
+        self.group_name = ""  # ensure always set before disconnect
         session_key = self._scope_session_key()
         path = self.scope.get("path")
         if not user or not getattr(user, "is_authenticated", False):
@@ -130,7 +132,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 exc,
             )
             return
-        logger.info(
+        logger.debug(
             "WS notifications accepted trace_id=%s user_id=%s group=%s active_school_id=%s ip=%s session=%s path=%s",
             self.trace_id,
             self.user_id,
@@ -145,10 +147,12 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({"type": "counts", **payload})
 
     async def disconnect(self, code):
-        try:
-            await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        except Exception:
-            pass
+        group = getattr(self, "group_name", "")
+        if group:
+            try:
+                await self.channel_layer.group_discard(group, self.channel_name)
+            except Exception:
+                pass
         # Release connection-cap slot
         try:
             uid = getattr(self, "user_id", None)
@@ -164,27 +168,25 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             trace_id = getattr(self, "trace_id", "-")
             norm_code = int(code or 0) if isinstance(code, int) or (isinstance(code, str) and str(code).isdigit()) else 1006
             if int(code or 0) == 1000:
-                logger.info("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=1000", trace_id, user, session_key, path)
+                logger.debug("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=1000", trace_id, user, session_key, path)
             elif int(code or 0) == 1006:
                 opmetrics.increment("ws.notifications.close.abnormal_1006")
                 ua = self._scope_header("user-agent")
                 ua_l = ua.lower()
-                is_ios_safari = ("iphone" in ua_l or "ipad" in ua_l or "ipod" in ua_l) and ("safari" in ua_l)
-                is_mobile_browser = "android" in ua_l or "mobile" in ua_l or is_ios_safari
-                bucket = timezone.now().strftime("%Y%m%d%H%M")
+                is_mobile_browser = "android" in ua_l or "mobile" in ua_l or "iphone" in ua_l or "ipad" in ua_l
+                bucket = timezone.now().strftime("%Y%m%d%H")
                 key = f"ws_disconnect_1006:{bucket}"
                 try:
-                    cache.add(key, 0, timeout=180)
+                    cache.add(key, 0, timeout=7200)
                     count = cache.incr(key)
                 except Exception:
                     count = None
-                if is_mobile_browser and count is not None and count < 10:
-                    log_fn = logger.info
-                else:
-                    log_fn = logger.warning if (count in {1, 3, 5} or count is None) else logger.info
-                log_fn(
-                    "WS notifications abnormal_close trace_id=%s user_id=%s session=%s path=%s code=1006 ua=%s minute_count=%s",
-                    trace_id, user, session_key, path, ua, count)
+                # Log only 1st, 10th, 100th per hour to reduce noise
+                if count in {1, 10, 100} or count is None:
+                    log_fn = logger.debug if is_mobile_browser else logger.warning
+                    log_fn(
+                        "WS notifications abnormal_close trace_id=%s user_id=%s session=%s path=%s code=1006 ua=%s hour_count=%s",
+                        trace_id, user, session_key, path, ua, count)
             elif int(code or 0) == 4401:
                 opmetrics.increment("ws.notifications.close.unauthorized_4401")
                 logger.warning("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=4401", trace_id, user, session_key, path)

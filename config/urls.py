@@ -52,7 +52,13 @@ def robots_txt(_request):
     except Exception:
         return HttpResponse("User-agent: *\nDisallow:\n", content_type="text/plain")
 
+from core.views import healthz, ops_metrics
+
 urlpatterns = [
+    # Health check — lightweight, no auth/session required
+    path("healthz/", healthz, name="healthz"),
+    # Operational metrics — superuser only
+    path("ops/metrics/", ops_metrics, name="ops_metrics"),
     path("admin-panel/", admin.site.urls),
     path(
         "favicon.ico",
