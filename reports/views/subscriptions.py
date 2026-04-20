@@ -15,10 +15,32 @@ from ._helpers import (
 def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     """لوحة تحكم خاصة بالمشرف العام لإدارة المنصة بالكامل - تحديث 2026."""
     from django.core.cache import cache
+    from django.http import JsonResponse
     from django.db.models.functions import TruncMonth
     import json
     
     now = timezone.now()
+
+    period_labels = {
+        "all": "الكل",
+        "year": "هذا العام",
+        "quarter": "هذا الربع",
+        "month": "هذا الشهر",
+    }
+
+    def _normalize_period(raw: str | None) -> str:
+        value = (raw or "all").strip().lower()
+        return value if value in period_labels else "all"
+
+    def _period_start(period: str):
+        if period == "year":
+            return now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        if period == "quarter":
+            quarter_month = ((now.month - 1) // 3) * 3 + 1
+            return now.replace(month=quarter_month, day=1, hour=0, minute=0, second=0, microsecond=0)
+        if period == "month":
+            return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        return None
     
     # البيانات الحرجة (بدون كاش أو كاش قصير جداً)
     pending_payments = Payment.objects.filter(status=Payment.Status.PENDING).count()
@@ -122,49 +144,11 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         except Exception:
             pass
     
-    # بيانات الرسوم البيانية (كاش 10 دقائق)
+    # بيانات الرسوم الثابتة (غير مرتبطة بفترة الفلتر) - كاش 10 دقائق
     charts_cache_key = "platform_charts_v2"
     charts = cache.get(charts_cache_key)
     
     if not charts:
-        # بيانات الإيرادات الشهرية (آخر 6 أشهر)
-        six_months_ago = now - timedelta(days=180)
-        revenue_by_month = Payment.objects.filter(
-            status=Payment.Status.APPROVED,
-            created_at__gte=six_months_ago
-        ).annotate(
-            month=TruncMonth('created_at')
-        ).values('month').annotate(
-            total=Sum('amount')
-        ).order_by('month')
-        
-        revenue_labels = []
-        revenue_data = []
-        for item in revenue_by_month:
-            month_name = item['month'].strftime('%Y-%m')
-            revenue_labels.append(month_name)
-            revenue_data.append(float(item['total']))
-        
-        # بيانات التقارير الأسبوعية (آخر 8 أسابيع)
-        eight_weeks_ago = now - timedelta(weeks=8)
-        reports_by_week = Report.objects.filter(
-            created_at__gte=eight_weeks_ago
-        ).annotate(
-            week=TruncWeek('created_at')
-        ).values('week').annotate(
-            count=Count('id')
-        ).order_by('week')
-        
-        # تسمية الأسابيع بالتاريخ بدلاً من رقم الأسبوع (أوضح للمستخدم)
-        reports_labels = []
-        reports_data = []
-        for item in reports_by_week:
-            if item['week']:
-                # عرض تاريخ بداية الأسبوع (الأحد)
-                week_start = item['week'].strftime('%d/%m')
-                reports_labels.append(week_start)
-                reports_data.append(item['count'])
-        
         # توزيع المدارس حسب المرحلة
         schools_by_stage = School.objects.values('stage').annotate(
             count=Count('id')
@@ -187,10 +171,6 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             stage_colors.append(color_map.get(item['stage'], '#6b7280'))
         
         charts = {
-            "revenue_labels": json.dumps(revenue_labels),
-            "revenue_data": json.dumps(revenue_data),
-            "reports_labels": json.dumps(reports_labels),
-            "reports_data": json.dumps(reports_data),
             "stage_labels": json.dumps(stage_labels),
             "stage_data": json.dumps(stage_data),
             "stage_colors": json.dumps(stage_colors),
@@ -200,6 +180,103 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             cache.set(charts_cache_key, charts, 600)  # 10 دقائق
         except Exception:
             pass
+
+    def _build_period_payload(period: str) -> dict:
+        cache_key = f"platform_dashboard_period_payload_v1:{period}"
+        cached_payload = cache.get(cache_key)
+        if cached_payload:
+            return cached_payload
+
+        start_at = _period_start(period)
+
+        payments_qs = Payment.objects.filter(status=Payment.Status.APPROVED)
+        reports_qs = Report.objects.all()
+        tickets_qs = Ticket.objects.filter(is_platform=True)
+        schools_qs = School.objects.all()
+
+        if start_at is not None:
+            payments_qs = payments_qs.filter(created_at__gte=start_at)
+            reports_qs = reports_qs.filter(created_at__gte=start_at)
+            tickets_qs = tickets_qs.filter(created_at__gte=start_at)
+            schools_qs = schools_qs.filter(created_at__gte=start_at)
+
+        total_revenue_period = payments_qs.aggregate(total=Sum("amount"))["total"] or 0
+        reports_count_period = reports_qs.count()
+        schools_count_period = schools_qs.count()
+
+        tickets_agg = tickets_qs.aggregate(
+            total=Count("id"),
+            open=Count("id", filter=Q(status__in=["open", "in_progress"])),
+            done=Count("id", filter=Q(status="done")),
+            rejected=Count("id", filter=Q(status="rejected")),
+        )
+
+        revenue_rows = (
+            payments_qs
+            .annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(total=Sum("amount"))
+            .order_by("month")
+        )
+        reports_rows = (
+            reports_qs
+            .annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(count=Count("id"))
+            .order_by("month")
+        )
+
+        revenue_labels: list[str] = []
+        revenue_data: list[float] = []
+        for row in revenue_rows:
+            month_value = row.get("month")
+            if month_value is None:
+                continue
+            revenue_labels.append(month_value.strftime("%Y-%m"))
+            revenue_data.append(float(row.get("total") or 0))
+
+        reports_labels: list[str] = []
+        reports_data: list[int] = []
+        for row in reports_rows:
+            month_value = row.get("month")
+            if month_value is None:
+                continue
+            reports_labels.append(month_value.strftime("%Y-%m"))
+            reports_data.append(int(row.get("count") or 0))
+
+        payload = {
+            "period": period,
+            "period_label": period_labels.get(period, "الكل"),
+            "generated_at": timezone.localtime(now).strftime("%Y-%m-%d %H:%M"),
+            "kpis": {
+                "schools_total": int(stats.get("platform_schools_total", 0)),
+                "schools_active": int(stats.get("platform_schools_active", 0)),
+                "schools_created_in_period": int(schools_count_period),
+                "total_revenue": float(total_revenue_period),
+                "reports_count": int(reports_count_period),
+                "tickets_total": int(tickets_agg.get("total") or 0),
+                "tickets_open": int(tickets_agg.get("open") or 0),
+                "tickets_done": int(tickets_agg.get("done") or 0),
+                "tickets_rejected": int(tickets_agg.get("rejected") or 0),
+            },
+            "charts": {
+                "revenue": {
+                    "labels": revenue_labels,
+                    "data": revenue_data,
+                },
+                "reports": {
+                    "labels": reports_labels,
+                    "data": reports_data,
+                },
+            },
+        }
+
+        try:
+            cache.set(cache_key, payload, 120)
+        except Exception:
+            pass
+
+        return payload
     
     # آخر الأنشطة (بدون كاش)
     recent_activities = []
@@ -238,14 +315,36 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     except Exception:
         pass
     
+    selected_period = _normalize_period(request.GET.get("period"))
+    period_payload = _build_period_payload(selected_period)
+
+    wants_json = (
+        request.GET.get("format") == "json"
+        or request.headers.get("x-requested-with") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("accept") or "")
+    )
+    if wants_json:
+        return JsonResponse(period_payload, json_dumps_params={"ensure_ascii": False})
+
     # دمج جميع البيانات
     ctx = {
         **stats,
         **financial,
         **charts,
         "pending_payments": pending_payments,
-        "tickets_open": tickets_open,
+        "tickets_open": int(period_payload["kpis"]["tickets_open"]),
         "recent_activities": recent_activities,
+        "initial_period": selected_period,
+        "dashboard_period_payload": json.dumps(period_payload, ensure_ascii=False),
+        "total_revenue": period_payload["kpis"]["total_revenue"],
+        "reports_count": period_payload["kpis"]["reports_count"],
+        "tickets_total": period_payload["kpis"]["tickets_total"],
+        "tickets_done": period_payload["kpis"]["tickets_done"],
+        "tickets_rejected": period_payload["kpis"]["tickets_rejected"],
+        "revenue_labels": json.dumps(period_payload["charts"]["revenue"]["labels"], ensure_ascii=False),
+        "revenue_data": json.dumps(period_payload["charts"]["revenue"]["data"]),
+        "reports_labels": json.dumps(period_payload["charts"]["reports"]["labels"], ensure_ascii=False),
+        "reports_data": json.dumps(period_payload["charts"]["reports"]["data"]),
     }
 
     return render(request, "reports/platform_admin_dashboard.html", ctx)

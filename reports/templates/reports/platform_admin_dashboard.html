@@ -184,6 +184,28 @@
         box-shadow: var(--shadow-md);
     }
 
+    .period-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin: -0.75rem 0 1.5rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 600;
+        flex-wrap: wrap;
+    }
+
+    .period-meta strong {
+        color: var(--text-main);
+        font-weight: 700;
+    }
+
+    .dashboard-container.is-loading {
+        opacity: 0.72;
+        transition: opacity 0.2s ease;
+    }
+
     /* Stats Grid */
     .stats-grid {
         display: grid;
@@ -436,6 +458,15 @@
         width: 100%;
         border-collapse: collapse;
     }
+
+    .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-scroll .modern-table {
+        min-width: 720px;
+    }
     
     .modern-table th {
         text-align: right;
@@ -586,12 +617,35 @@
         }
         
         .time-filters {
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
         }
         
         .filter-btn {
             font-size: 0.85rem;
             padding: 0.5rem 1rem;
+            width: 100%;
+            text-align: center;
+        }
+
+        .period-meta {
+            margin-top: -0.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .welcome-header .actions {
+            width: 100%;
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.6rem !important;
+        }
+
+        .welcome-header .actions .btn-modern {
+            width: 100%;
+            justify-content: center;
+            padding-inline: 0.75rem;
+            font-size: 0.85rem;
         }
         
         .content-grid {
@@ -599,7 +653,8 @@
         }
         
         .chart-container {
-            height: 250px;
+            height: 220px;
+            margin: 1rem 0;
         }
         
         .actions {
@@ -627,7 +682,7 @@
     
     @media (max-width: 480px) {
         .welcome-title h1 {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
         }
         
         .stat-icon {
@@ -639,6 +694,35 @@
         .quick-search {
             padding: 0.875rem 1rem 0.875rem 3rem;
             font-size: 0.9rem;
+        }
+
+        .time-filters {
+            grid-template-columns: 1fr;
+        }
+
+        .welcome-header .actions {
+            grid-template-columns: 1fr !important;
+        }
+
+        .stat-value {
+            font-size: 1.35rem;
+        }
+
+        .card-header {
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .export-buttons {
+            width: 100%;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            flex: 1 1 calc(50% - 0.375rem);
+            justify-content: center;
         }
     }
     
@@ -750,19 +834,23 @@
     </div>
     
     <!-- Time Filters -->
-    <div class="time-filters">
-        <button class="filter-btn active" data-period="all" onclick="filterByPeriod('all', this)">
+    <div class="time-filters" id="timeFilters">
+        <button class="filter-btn {% if initial_period == 'all' %}active{% endif %}" data-period="all" type="button" aria-pressed="{% if initial_period == 'all' %}true{% else %}false{% endif %}">
             <i class="fas fa-infinity"></i> الكل
         </button>
-        <button class="filter-btn" data-period="year" onclick="filterByPeriod('year', this)">
+        <button class="filter-btn {% if initial_period == 'year' %}active{% endif %}" data-period="year" type="button" aria-pressed="{% if initial_period == 'year' %}true{% else %}false{% endif %}">
             <i class="fas fa-calendar"></i> هذا العام
         </button>
-        <button class="filter-btn" data-period="quarter" onclick="filterByPeriod('quarter', this)">
+        <button class="filter-btn {% if initial_period == 'quarter' %}active{% endif %}" data-period="quarter" type="button" aria-pressed="{% if initial_period == 'quarter' %}true{% else %}false{% endif %}">
             <i class="fas fa-calendar-week"></i> هذا الربع
         </button>
-        <button class="filter-btn" data-period="month" onclick="filterByPeriod('month', this)">
+        <button class="filter-btn {% if initial_period == 'month' %}active{% endif %}" data-period="month" type="button" aria-pressed="{% if initial_period == 'month' %}true{% else %}false{% endif %}">
             <i class="fas fa-calendar-day"></i> هذا الشهر
         </button>
+    </div>
+    <div class="period-meta">
+        <span>الفترة الحالية: <strong id="activePeriodLabel">—</strong></span>
+        <span id="dashboardLastUpdated">آخر تحديث: —</span>
     </div>
 
     <!-- Alerts -->
@@ -787,9 +875,9 @@
         <div class="stat-card">
             <div class="stat-header">
                 <div class="stat-icon bg-indigo-light"><i class="fas fa-school"></i></div>
-                <span class="status-badge status-active">+{{ platform_schools_active }} نشطة</span>
+                <span class="status-badge status-active" id="schoolsActiveBadge">+{{ platform_schools_active }} نشطة</span>
             </div>
-            <div class="stat-value">{{ platform_schools_total }}</div>
+            <div class="stat-value" id="schoolsTotalStat">{{ platform_schools_total }}</div>
             <div class="stat-label">إجمالي المدارس المسجلة</div>
         </div>
 
@@ -798,8 +886,8 @@
             <div class="stat-header">
                 <div class="stat-icon bg-emerald-light"><i class="fas fa-coins"></i></div>
             </div>
-            <div class="stat-value">{{ total_revenue|floatformat:0|intcomma|stringformat:"s"|add:" ر.س" }}</div>
-            <div class="stat-label">المبيعات الإجمالية</div>
+            <div class="stat-value" id="revenueStat">{{ total_revenue|floatformat:0|intcomma|stringformat:"s"|add:" ر.س" }}</div>
+            <div class="stat-label" id="revenueStatLabel">المبيعات خلال الفترة</div>
         </div>
 
         <!-- Reports -->
@@ -807,18 +895,18 @@
             <div class="stat-header">
                 <div class="stat-icon bg-amber-light"><i class="fas fa-file-alt"></i></div>
             </div>
-            <div class="stat-value">{{ reports_count }}</div>
-            <div class="stat-label">إجمالي التقارير المصدرة</div>
+            <div class="stat-value" id="reportsStat">{{ reports_count }}</div>
+            <div class="stat-label" id="reportsStatLabel">التقارير خلال الفترة</div>
         </div>
 
         <!-- Tickets -->
         <div class="stat-card">
             <div class="stat-header">
                 <div class="stat-icon bg-rose-light"><i class="fas fa-headset"></i></div>
-                <span class="status-badge status-danger">{{ tickets_open }} مفتوحة</span>
+                <span class="status-badge status-danger" id="ticketsOpenBadge">{{ tickets_open }} مفتوحة</span>
             </div>
-            <div class="stat-value">{{ tickets_total }}</div>
-            <div class="stat-label">تذاكر الدعم الفني</div>
+            <div class="stat-value" id="ticketsTotalStat">{{ tickets_total }}</div>
+            <div class="stat-label" id="ticketsStatLabel">تذاكر الدعم خلال الفترة</div>
         </div>
     </div>
 
@@ -915,7 +1003,7 @@
                         عرض الكل <i class="fas fa-arrow-left"></i>
                     </a>
                 </div>
-                <div style="overflow-x:auto;">
+                <div class="table-scroll">
                     <table class="modern-table">
                         <thead>
                             <tr>
@@ -1115,15 +1203,15 @@
                 <div class="card-body">
                     <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
                         <span>مكتملة</span>
-                        <span class="status-badge status-active">{{ tickets_done }}</span>
+                        <span class="status-badge status-active" id="ticketsDoneSideStat">{{ tickets_done }}</span>
                     </div>
                     <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
                         <span>قيد المعالجة (مفتوحة)</span>
-                        <span class="status-badge status-warning">{{ tickets_open }}</span>
+                        <span class="status-badge status-warning" id="ticketsOpenSideStat">{{ tickets_open }}</span>
                     </div>
                     <div style="display:flex; justify-content:space-between;">
                         <span>مرفوضة</span>
-                        <span class="status-badge status-danger">{{ tickets_rejected }}</span>
+                        <span class="status-badge status-danger" id="ticketsRejectedSideStat">{{ tickets_rejected }}</span>
                     </div>
                 </div>
             </div>
@@ -1131,6 +1219,8 @@
         </div>
     </div>
 </div>
+
+{{ dashboard_period_payload|json_script:"dashboardPeriodPayload" }}
 
 <!-- JavaScript للرسوم البيانية والتفاعلية -->
 <script>
@@ -1147,6 +1237,98 @@ const colors = {
     info: '#0ea5e9',
     purple: '#8b5cf6',
 };
+
+const PERIOD_LABELS = {
+    all: 'الكل',
+    year: 'هذا العام',
+    quarter: 'هذا الربع',
+    month: 'هذا الشهر',
+};
+
+let currentPeriod = '{{ initial_period|default:"all" }}';
+let dashboardRequestController = null;
+let dashboardPayload = {};
+try {
+    const payloadEl = document.getElementById('dashboardPeriodPayload');
+    dashboardPayload = payloadEl ? JSON.parse(payloadEl.textContent || '{}') : {};
+} catch (e) {
+    dashboardPayload = {};
+}
+
+function formatNumberAr(value) {
+    const num = Number(value || 0);
+    return num.toLocaleString('ar-SA');
+}
+
+function formatCurrencyAr(value) {
+    const num = Number(value || 0);
+    return num.toLocaleString('ar-SA', { maximumFractionDigits: 0 }) + ' ر.س';
+}
+
+function setDashboardLoading(isLoading) {
+    const root = document.querySelector('.dashboard-container');
+    if (!root) return;
+    root.classList.toggle('is-loading', !!isLoading);
+}
+
+function applyKpiData(payload) {
+    const kpis = (payload && payload.kpis) ? payload.kpis : {};
+    const schoolsTotalEl = document.getElementById('schoolsTotalStat');
+    const schoolsActiveBadgeEl = document.getElementById('schoolsActiveBadge');
+    const revenueEl = document.getElementById('revenueStat');
+    const reportsEl = document.getElementById('reportsStat');
+    const ticketsTotalEl = document.getElementById('ticketsTotalStat');
+    const ticketsOpenBadgeEl = document.getElementById('ticketsOpenBadge');
+
+    if (schoolsTotalEl) schoolsTotalEl.textContent = formatNumberAr(kpis.schools_total);
+    if (schoolsActiveBadgeEl) schoolsActiveBadgeEl.textContent = '+' + formatNumberAr(kpis.schools_active) + ' نشطة';
+    if (revenueEl) revenueEl.textContent = formatCurrencyAr(kpis.total_revenue);
+    if (reportsEl) reportsEl.textContent = formatNumberAr(kpis.reports_count);
+    if (ticketsTotalEl) ticketsTotalEl.textContent = formatNumberAr(kpis.tickets_total);
+    if (ticketsOpenBadgeEl) ticketsOpenBadgeEl.textContent = formatNumberAr(kpis.tickets_open) + ' مفتوحة';
+
+    const sideDone = document.getElementById('ticketsDoneSideStat');
+    const sideOpen = document.getElementById('ticketsOpenSideStat');
+    const sideRejected = document.getElementById('ticketsRejectedSideStat');
+    if (sideDone && typeof kpis.tickets_done !== 'undefined') sideDone.textContent = formatNumberAr(kpis.tickets_done);
+    if (sideOpen && typeof kpis.tickets_open !== 'undefined') sideOpen.textContent = formatNumberAr(kpis.tickets_open);
+    if (sideRejected && typeof kpis.tickets_rejected !== 'undefined') sideRejected.textContent = formatNumberAr(kpis.tickets_rejected);
+}
+
+function applyChartsData(payload) {
+    const charts = (payload && payload.charts) ? payload.charts : {};
+    const revenue = charts.revenue || { labels: [], data: [] };
+    const reports = charts.reports || { labels: [], data: [] };
+
+    revenueChart.data.labels = revenue.labels || [];
+    revenueChart.data.datasets[0].data = revenue.data || [];
+    revenueChart.update();
+
+    reportsChart.data.labels = reports.labels || [];
+    reportsChart.data.datasets[0].data = reports.data || [];
+    reportsChart.update();
+}
+
+function syncPeriodMeta(payload) {
+    const labelEl = document.getElementById('activePeriodLabel');
+    const updatedEl = document.getElementById('dashboardLastUpdated');
+    const period = (payload && payload.period) ? payload.period : currentPeriod;
+    const periodLabel = (payload && payload.period_label) ? payload.period_label : (PERIOD_LABELS[period] || 'الكل');
+
+    if (labelEl) labelEl.textContent = periodLabel;
+    if (updatedEl) {
+        const generatedAt = payload && payload.generated_at ? payload.generated_at : null;
+        updatedEl.textContent = generatedAt ? ('آخر تحديث: ' + generatedAt) : 'آخر تحديث: الآن';
+    }
+}
+
+function markActivePeriod(period) {
+    document.querySelectorAll('.filter-btn[data-period]').forEach((btn) => {
+        const isActive = (btn.getAttribute('data-period') === period);
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+}
 
 // 1. رسم بياني للإيرادات الشهرية
 const revenueCtx = document.getElementById('revenueChart').getContext('2d');
@@ -1332,75 +1514,146 @@ const schoolsChart = new Chart(schoolsCtx, {
     }
 });
 
-// البحث السريع
+function applyDashboardPayload(payload, options = {}) {
+    if (!payload || typeof payload !== 'object') return;
+    dashboardPayload = payload;
+    currentPeriod = payload.period || currentPeriod || 'all';
+    applyKpiData(payload);
+    applyChartsData(payload);
+    syncPeriodMeta(payload);
+    markActivePeriod(currentPeriod);
+
+    if (options.updateUrl) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('period', currentPeriod);
+        history.replaceState({}, '', url.toString());
+    }
+}
+
+async function fetchDashboardPeriod(period, { force = false } = {}) {
+    const normalized = PERIOD_LABELS[period] ? period : 'all';
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
+    }
+    setDashboardLoading(true);
+
+    try {
+        if (dashboardRequestController) dashboardRequestController.abort();
+        dashboardRequestController = new AbortController();
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('period', normalized);
+        url.searchParams.set('format', 'json');
+        if (force) {
+            url.searchParams.set('_ts', String(Date.now()));
+        }
+
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            },
+            signal: dashboardRequestController.signal,
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+
+        const payload = await response.json();
+        applyDashboardPayload(payload, { updateUrl: true });
+    } catch (error) {
+        if (error && error.name === 'AbortError') return;
+        console.error('Dashboard refresh failed:', error);
+    } finally {
+        setDashboardLoading(false);
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث البيانات';
+        }
+    }
+}
+
+function refreshDashboard() {
+    fetchDashboardPeriod(currentPeriod || 'all', { force: true });
+}
+
+// البحث السريع (عملي على عناصر الصفحة)
 let searchTimeout;
 const searchInput = document.getElementById('globalSearch');
 const searchResults = document.getElementById('searchResults');
 
-searchInput.addEventListener('input', function(e) {
-    clearTimeout(searchTimeout);
-    const query = e.target.value.trim();
-    
-    if (query.length < 2) {
-        searchResults.classList.remove('active');
+function buildSearchIndex() {
+    const indexed = [];
+    document.querySelectorAll('a.stat-card').forEach((item) => {
+        indexed.push({
+            title: (item.textContent || '').trim(),
+            href: item.getAttribute('href') || '#',
+            icon: 'fa-link',
+        });
+    });
+    document.querySelectorAll('.timeline-item').forEach((item) => {
+        indexed.push({
+            title: (item.textContent || '').trim(),
+            href: '#',
+            icon: 'fa-history',
+        });
+    });
+    return indexed;
+}
+
+function renderSearchResults(items) {
+    if (!items.length) {
+        searchResults.innerHTML = '<div class="search-result-item" style="padding:1rem; color: var(--text-muted);">لا توجد نتائج مطابقة.</div>';
+        searchResults.classList.add('active');
         return;
     }
-    
-    searchTimeout = setTimeout(() => {
-        // محاكاة البحث - في التطبيق الحقيقي، استخدم AJAX
-        searchResults.innerHTML = `
-            <div class="search-result-item" style="padding: 2rem; text-align: center; color: var(--text-muted);">
-                <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
-                جاري البحث عن "${query}"...
-            </div>
-        `;
-        searchResults.classList.add('active');
-        
-        // يمكن إضافة AJAX هنا للبحث الفعلي
-        // fetch(`/api/search?q=${query}`)...
-    }, 300);
-});
+    searchResults.innerHTML = items.slice(0, 8).map((item) => {
+        const safeHref = item.href || '#';
+        return '<a class="search-result-item" href="' + safeHref + '" style="display:flex;gap:.75rem;align-items:center;text-decoration:none;color:inherit;">'
+            + '<i class="fas ' + item.icon + '" style="color:var(--primary-color);"></i>'
+            + '<span>' + item.title + '</span>'
+            + '</a>';
+    }).join('');
+    searchResults.classList.add('active');
+}
 
-// إغلاق نتائج البحث عند النقر خارجها
-document.addEventListener('click', function(e) {
+if (searchInput && searchResults) {
+    searchInput.addEventListener('input', function (e) {
+        clearTimeout(searchTimeout);
+        const query = (e.target.value || '').trim().toLowerCase();
+        if (query.length < 2) {
+            searchResults.classList.remove('active');
+            searchResults.innerHTML = '';
+            return;
+        }
+        searchTimeout = setTimeout(() => {
+            const results = buildSearchIndex().filter((item) => item.title.toLowerCase().includes(query));
+            renderSearchResults(results);
+        }, 180);
+    });
+}
+
+document.addEventListener('click', function (e) {
+    if (!searchInput || !searchResults) return;
     if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
         searchResults.classList.remove('active');
     }
 });
 
-// الفلاتر الزمنية
-function filterByPeriod(period, button) {
-    // إزالة active من جميع الأزرار
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.classList.remove('active');
+document.querySelectorAll('.filter-btn[data-period]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const period = button.getAttribute('data-period') || 'all';
+        if (period === currentPeriod) return;
+        fetchDashboardPeriod(period);
     });
-    
-    // إضافة active للزر المحدد
-    button.classList.add('active');
-    
-    // في التطبيق الحقيقي، استخدم AJAX لتحديث البيانات
-    console.log('تم اختيار الفترة:', period);
-    
-    // محاكاة التحديث
-    const refreshBtn = document.getElementById('refreshBtn');
-    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
-    
-    setTimeout(() => {
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث البيانات';
-        // هنا يمكن إعادة تحميل الرسوم البيانية بالبيانات الجديدة
-    }, 1000);
-}
+});
 
-// تحديث اللوحة
-function refreshDashboard() {
-    const btn = document.getElementById('refreshBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
-    
-    // في التطبيق الحقيقي، استخدم AJAX
-    setTimeout(() => {
-        location.reload();
-    }, 500);
+if (dashboardPayload && Object.keys(dashboardPayload).length) {
+    applyDashboardPayload(dashboardPayload, { updateUrl: false });
+} else {
+    syncPeriodMeta({ period: currentPeriod, period_label: PERIOD_LABELS[currentPeriod] || 'الكل' });
+    markActivePeriod(currentPeriod);
 }
 
 // تصدير الرسوم البيانية إلى PDF
