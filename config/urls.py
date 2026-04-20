@@ -2,7 +2,8 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-from django.conf.urls.static import static
+from django.conf.urls.static import static as serve_static
+from django.templatetags.static import static
 from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.http import HttpResponse
@@ -62,7 +63,7 @@ urlpatterns = [
     path("admin-panel/", admin.site.urls),
     path(
         "favicon.ico",
-        RedirectView.as_view(url=staticfiles_storage.url("favicon.ico"), permanent=True),
+        RedirectView.as_view(url=static("favicon.ico"), permanent=True),
     ),
     path(
         "favicon.png",
@@ -122,5 +123,5 @@ urlpatterns = [
 
 # ✅ أثناء التطوير فقط: نخدم الملفات الثابتة والوسائط من Django مباشرة
 if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.BASE_DIR / "static")
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += serve_static(settings.STATIC_URL, document_root=settings.BASE_DIR / "static")
+    urlpatterns += serve_static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
