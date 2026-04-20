@@ -1812,6 +1812,14 @@ class NotificationCreateForm(forms.Form):
             teachers = cleaned.get("teachers", [])
             if not send_to_all and not teachers:
                 raise ValidationError("يرجى اختيار مدراء معينين أو تفعيل خيار 'إرسال لجميع مدراء المدارس ضمن نطاقي'.")
+
+        # للإشعارات العادية (داخل المدرسة): لا نسمح بالإرسال بدون تحديد مستلمين.
+        # يمكن التحديد إما عبر اختيار معلمين بشكل مباشر أو اختيار قسم كامل.
+        if not is_circular and not (is_superuser or is_platform):
+            selected_teachers = cleaned.get("teachers")
+            target_department = cleaned.get("target_department")
+            if not selected_teachers and not target_department:
+                raise ValidationError("يرجى تحديد المستلمين (اختيار معلم/معلمة أو قسم) قبل إرسال الإشعار.")
         return cleaned
 
     def save(self, creator, default_school=None, force_requires_signature: Optional[bool] = None):

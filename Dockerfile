@@ -36,4 +36,4 @@ COPY . /app/
 EXPOSE 10000
 
 # Run the application (ASGI: HTTP + WebSocket)
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.asgi:application --bind 0.0.0.0:${PORT:-10000} -k uvicorn.workers.UvicornWorker --workers ${WEB_CONCURRENCY:-3} --threads ${GUNICORN_THREADS:-2} --timeout ${GUNICORN_TIMEOUT:-120} --keep-alive ${GUNICORN_KEEPALIVE:-5} --max-requests ${GUNICORN_MAX_REQUESTS:-2000} --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-200}"]
+CMD ["sh", "-c", "${START_CMD:-python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.asgi:application --bind 0.0.0.0:${PORT:-10000} -k uvicorn.workers.UvicornWorker --workers ${WEB_CONCURRENCY:-3} --threads ${GUNICORN_THREADS:-2} --timeout ${GUNICORN_TIMEOUT:-120} --keep-alive ${GUNICORN_KEEPALIVE:-5} --max-requests ${GUNICORN_MAX_REQUESTS:-2000} --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-200}}"]
