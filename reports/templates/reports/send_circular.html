@@ -190,6 +190,27 @@
     list-style: none;
     padding: 0;
   }
+  .recipient-alert {
+    display: none;
+    margin-top: 0.85rem;
+    border: 1px solid #fecaca;
+    background: linear-gradient(135deg, #fff7f7 0%, #fff1f2 100%);
+    color: #991b1b;
+    border-radius: 0.85rem;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .recipient-alert.show {
+    display: flex;
+    animation: recipientAlertPop .24s ease-out;
+  }
+  @keyframes recipientAlertPop {
+    from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
 
   /* Teacher Selector Modernization */
   .teacher-selector {
@@ -463,6 +484,38 @@
     .teacher-list-container ul { grid-template-columns: 1fr; }
     .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
     .btn-submit { width: 100%; justify-content: center; }
+
+    /* ── Mobile: remove the height cap so all teachers are visible without inner-scroll ── */
+    .teacher-list-container {
+      max-height: none !important;
+      overflow-y: visible !important;
+    }
+
+    /* ── Mobile: larger tap targets for teacher checkboxes ── */
+    .teacher-list-container label,
+    #id_teachers label {
+      padding: 0.85rem 0.9rem;
+      font-size: 1rem;
+      min-height: 48px;
+    }
+    .teacher-list-container input[type="checkbox"] {
+      width: 1.35rem;
+      height: 1.35rem;
+    }
+
+    /* ── Mobile: make select-all / clear buttons more prominent ── */
+    .teacher-tools {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    #selectAllTeachers,
+    #clearAllTeachers {
+      min-height: 40px;
+      padding: 0.4rem 1rem;
+      border: 1px solid currentColor;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
   }
 </style>
 {% endblock %}
@@ -580,15 +633,27 @@
                         <div class="teacher-selector">
                            <div class="teacher-tools">
                               <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}...">
-                              <button type="button" id="selectAllTeachers" class="btn-link" style="color:var(--c-primary); font-size:0.85rem">الكل</button>
-                              <button type="button" id="clearAllTeachers" class="btn-link" style="color:#ef4444; font-size:0.85rem">إلغاء</button>
+                              <button type="button" id="selectAllTeachers" class="btn-link" style="color:var(--c-primary); font-size:0.85rem" title="اختيار جميع المعلمين">
+                                <i class="fa-solid fa-check-double" style="margin-inline-end:4px"></i>الكل
+                              </button>
+                              <button type="button" id="clearAllTeachers" class="btn-link" style="color:#ef4444; font-size:0.85rem" title="إلغاء تحديد الكل">
+                                <i class="fa-solid fa-xmark" style="margin-inline-end:4px"></i>إلغاء
+                              </button>
                            </div>
+                           <p style="font-size:0.8rem;color:#64748b;margin:0 0 0.6rem;padding:0 0.25rem">
+                             <i class="fa-solid fa-circle-info" style="color:var(--c-primary);margin-inline-end:4px"></i>
+                             اضغط على اسم المعلم لتحديده، أو اضغط "<strong>الكل</strong>" لتحديد الجميع دفعةً واحدة.
+                           </p>
                            
                            <div class="teacher-list-container" id="teacherList">
                               {{ form.teachers }}
                            </div>
-                        </div>
-                        {% if form.teachers.errors %}<div class="error-list">{{ form.teachers.errors }}</div>{% endif %}
+                         </div>
+                         <div id="recipientGuardMsg" class="recipient-alert" role="alert" aria-live="polite">
+                           <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                           <span>قبل الإرسال، فضلاً حدّد المستلمين لهذا التعميم.</span>
+                         </div>
+                         {% if form.teachers.errors %}<div class="error-list">{{ form.teachers.errors }}</div>{% endif %}
                      </div>
                   </div>
                   {% endif %}
@@ -879,13 +944,54 @@
 
   // --- SUBMIT LOADING STATE ---
   const form = document.getElementById('notifyForm');
+  const recipientGuardMsg = document.getElementById('recipientGuardMsg');
+  const isSuperuser = {{ request.user.is_superuser|yesno:"true,false" }};
+  const isPlatformAdmin = {{ request.user.is_platform_admin|yesno:"true,false" }};
+  const enforceRecipientsSelection = !isSuperuser && !isPlatformAdmin;
+
+  function showRecipientGuard(){
+    if(recipientGuardMsg){
+      recipientGuardMsg.classList.add('show');
+    }
+    if(teacherList){
+      try {
+        teacherList.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (e) {
+        teacherList.scrollIntoView();
+      }
+      if (typeof teacherList.animate === 'function') {
+        teacherList.animate(
+          [{ boxShadow: '0 0 0 0 rgba(239,68,68,0)' }, { boxShadow: '0 0 0 4px rgba(239,68,68,.18)' }, { boxShadow: '0 0 0 0 rgba(239,68,68,0)' }],
+          { duration: 480, iterations: 1 }
+        );
+      }
+    }
+  }
+
+  if(teacherList){
+    teacherList.addEventListener('change', () => {
+      if(recipientGuardMsg && getCheckboxes().some(cb => cb.checked)){
+        recipientGuardMsg.classList.remove('show');
+      }
+    });
+  }
+
   if(form){
-    form.addEventListener('submit', function(){
+    form.addEventListener('submit', function(e){
+       if(enforceRecipientsSelection){
+         const selectedCount = getCheckboxes().filter(cb => cb.checked).length;
+         if(selectedCount === 0){
+           e.preventDefault();
+           showRecipientGuard();
+           return;
+         }
+       }
+
        const btn = form.querySelector('button[type="submit"]');
        if(btn && !btn.disabled){
-           // Simple validation check before disabling? Browser does it via 'required'
-           setTimeout(() => {
-               if(form.checkValidity()){ 
+            // Simple validation check before disabling? Browser does it via 'required'
+            setTimeout(() => {
+                if(form.checkValidity()){ 
                    btn.disabled = true;
                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
                    btn.style.opacity = '0.8';

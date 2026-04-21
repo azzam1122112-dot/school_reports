@@ -1599,6 +1599,7 @@ class NotificationCreateForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.user = user
+        self.active_school = active_school
         self.mode = mode if mode in {"notification", "circular"} else "notification"
         is_circular = self.mode == "circular"
 
@@ -1737,7 +1738,7 @@ class NotificationCreateForm(forms.Form):
 
                 if "teachers" in self.fields:
                     self.fields["teachers"].label = f"{teachers_plural} (يمكن اختيار {teacher_singular} أو أكثر)"
-                    self.fields["teachers"].help_text = f"يمكنك ترك الاختيار فارغًا لإرسال التعميم لجميع {teachers_obj} في المدرسة."
+                    self.fields["teachers"].help_text = f"يجب تحديد مستلم واحد على الأقل قبل إرسال التعميم إلى {teachers_obj}."
 
             self.fields["teachers"].queryset = qs
             return
@@ -1813,6 +1814,12 @@ class NotificationCreateForm(forms.Form):
             if not send_to_all and not teachers:
                 raise ValidationError("يرجى اختيار مدراء معينين أو تفعيل خيار 'إرسال لجميع مدراء المدارس ضمن نطاقي'.")
 
+        # التعميمات داخل المدرسة: مدير المدرسة يجب أن يحدد مستلمين صراحةً.
+        if is_circular and not is_superuser and not is_platform:
+            selected_teachers = cleaned.get("teachers")
+            if not selected_teachers:
+                self.add_error("teachers", "لا يمكن إرسال التعميم والمستلمون = 0. يرجى تحديد المستلمين أولاً.")
+
         # للإشعارات العادية (داخل المدرسة): لا نسمح بالإرسال بدون تحديد مستلمين.
         # يمكن التحديد إما عبر اختيار معلمين بشكل مباشر أو اختيار قسم كامل.
         if not is_circular and not (is_superuser or is_platform):
@@ -1820,6 +1827,22 @@ class NotificationCreateForm(forms.Form):
             target_department = cleaned.get("target_department")
             if not selected_teachers and not target_department:
                 raise ValidationError("يرجى تحديد المستلمين (اختيار معلم/معلمة أو قسم) قبل إرسال الإشعار.")
+            if target_department and not selected_teachers:
+                dept_recipients_qs = Teacher.objects.filter(
+                    is_active=True,
+                    dept_memberships__department=target_department,
+                )
+                active_school = getattr(self, "active_school", None)
+                if active_school is not None:
+                    dept_recipients_qs = dept_recipients_qs.filter(
+                        school_memberships__school=active_school,
+                        school_memberships__is_active=True,
+                    )
+                if not dept_recipients_qs.distinct().exists():
+                    self.add_error(
+                        "target_department",
+                        "القسم المحدد لا يحتوي على مستلمين نشطين حاليًا. يرجى اختيار مستلمين يدويًا.",
+                    )
         return cleaned
 
     def save(self, creator, default_school=None, force_requires_signature: Optional[bool] = None):
@@ -1885,7 +1908,16 @@ class NotificationCreateForm(forms.Form):
         # لذلك لا نرسل للقسم بالكامل إذا اختار المستخدم معلمين بشكل يدوي.
         if target_dept and not bool(requires_signature) and not selected_teachers:
             from .models import DepartmentMembership
-            dept_teachers = DepartmentMembership.objects.filter(department=target_dept).values_list("teacher_id", flat=True)
+            dept_teachers = DepartmentMembership.objects.filter(
+                department=target_dept,
+                teacher__is_active=True,
+            )
+            if school_for_notification is not None:
+                dept_teachers = dept_teachers.filter(
+                    teacher__school_memberships__school=school_for_notification,
+                    teacher__school_memberships__is_active=True,
+                )
+            dept_teachers = dept_teachers.values_list("teacher_id", flat=True).distinct()
             teacher_ids_set.update(dept_teachers)
         
         teacher_ids = list(teacher_ids_set) if teacher_ids_set else None
@@ -1907,16 +1939,8 @@ class NotificationCreateForm(forms.Form):
                 except Exception:
                     teacher_ids = None
 
-        # School-manager circulars use an empty manual selection to mean
-        # "all teachers in the active school".  Resolve that to explicit IDs so
-        # the local fallback can dispatch without requiring a Celery worker.
-        if bool(requires_signature) and not bool(getattr(creator, "is_superuser", False)) and not is_platform_creator:
-            if not teacher_ids:
-                try:
-                    qs = self.fields["teachers"].queryset
-                    teacher_ids = list(qs.values_list("pk", flat=True))
-                except Exception:
-                    teacher_ids = []
+        # Circulars inside a school require explicit recipients selection.
+        # Keep teacher_ids as-is; do not expand an empty selection to all teachers.
 
         # Reliability guard: when recipients are explicitly known, create the
         # DB recipient rows immediately.  Celery may still run later for

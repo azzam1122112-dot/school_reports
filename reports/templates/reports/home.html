@@ -86,12 +86,27 @@
      ════════════════════════════ */
   .hn-overlay {
     position: fixed; inset: 0; z-index: 9000;
+    /* Use dynamic viewport height so iOS Safari doesn't push modal below fold */
+    height: 100vh;
+    height: 100dvh;
     background: rgba(15,23,42,.8);
     backdrop-filter: blur(10px);
-    display: none; place-items: center; padding: 1rem;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 1rem;
+    overflow-y: auto;
     animation: dh-fadeIn .3s ease;
   }
-  .hn-overlay.is-open { display: grid; }
+  .hn-overlay.is-open { display: flex; }
+
+  /* On mobile, anchor the modal near the top so it's always visible */
+  @media (max-width: 768px) {
+    .hn-overlay {
+      align-items: flex-start;
+      padding-top: max(16px, env(safe-area-inset-top, 16px));
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+    }
+  }
   .hn-modal {
     width: 100%; max-width: 540px;
     background: var(--dh-card);

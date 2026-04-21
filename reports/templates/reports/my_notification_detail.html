@@ -1,302 +1,709 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}تفاصيل الإشعار{% endblock %}
+{% block title %}{% if n.requires_signature %}تفاصيل التعميم{% else %}تفاصيل الإشعار{% endif %}{% endblock %}
 
 {% block head %}
 <style>
-  .nd-scope{
-    --nd-ink: var(--ink, #0f172a);
-    --nd-muted: var(--muted, #64748b);
-    --nd-line: var(--line, #e5e7eb);
-    --nd-card: var(--card, #ffffff);
-    --nd-soft: var(--line-2, #f1f5f9);
-    --nd-shadow: 0 12px 30px rgba(2,6,23,.08);
-    --nd-brand: var(--brand, #2563eb);
-    --nd-brand-ghost: rgba(37,99,235,.10);
-    --nd-t: var(--t-fast, .18s ease);
+  /* =========================================================
+     My Notification Detail — Premium 2026 Design
+     ========================================================= */
+  .mnd-scope {
+    --mnd-ink:         #0f172a;
+    --mnd-ink-soft:    #334155;
+    --mnd-muted:       #64748b;
+    --mnd-line:        #e2e8f0;
+    --mnd-line-soft:   #f1f5f9;
+    --mnd-card:        #ffffff;
+    --mnd-bg:          #f8fafc;
+    --mnd-brand:       #2563eb;
+    --mnd-brand-2:     #1e40af;
+    --mnd-brand-mid:   #3b82f6;
+    --mnd-brand-soft:  rgba(37,99,235,.09);
+    --mnd-success:     #059669;
+    --mnd-danger:      #dc2626;
+    --mnd-warn:        #d97706;
+    --mnd-radius-sm:   10px;
+    --mnd-radius:      16px;
+    --mnd-radius-lg:   22px;
+    --mnd-shadow-xs:   0 1px 3px rgba(2,6,23,.06);
+    --mnd-shadow:      0 4px 20px rgba(2,6,23,.08);
+    --mnd-shadow-md:   0 8px 32px rgba(2,6,23,.11);
+    --mnd-shadow-lg:   0 20px 60px rgba(2,6,23,.14);
+    --mnd-t:           .2s cubic-bezier(.4,0,.2,1);
   }
 
-  .nd-scope .nd-wrap{max-width:1100px;margin:0 auto;padding:18px}
-
-  .nd-scope .nd-head{
-    display:flex;align-items:flex-start;justify-content:space-between;
-    gap:12px;margin-bottom:14px;flex-wrap:wrap
-  }
-  .nd-scope .nd-title{margin:0;font-weight:950;color:var(--nd-ink)}
-  .nd-scope .nd-hint{color:var(--nd-muted);font-weight:850}
-
-  .nd-scope .nd-card{
-    background:var(--nd-card);
-    border:1px solid var(--nd-line);
-    border-radius:16px;
-    box-shadow:var(--nd-shadow);
-    overflow:hidden;
-  }
-  .nd-scope .nd-card-hd{
-    padding:14px 16px;border-bottom:1px solid var(--nd-line);
-    display:flex;align-items:center;justify-content:space-between;
-    gap:10px;flex-wrap:wrap;
-    background: linear-gradient(180deg, var(--nd-soft), var(--nd-card));
-  }
-  .nd-scope .nd-card-bd{padding:16px}
-
-  .nd-scope .nd-meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .nd-scope .nd-when{color:var(--nd-muted);font-weight:900}
-
-  .nd-scope .nd-pill{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:6px 10px;border:1px solid var(--nd-line);
-    background: var(--nd-soft);
-    color: var(--nd-ink);
-    border-radius:999px;font-weight:950;font-size:.86rem;
-    white-space:nowrap;
-  }
-  .nd-scope .nd-pill.important{background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.20); color: #b91c1c;}
-
-  .nd-scope .nd-body{
-    line-height:1.95;
-    color: var(--nd-ink);
-    font-weight:850;
-    background: linear-gradient(180deg, var(--nd-card), rgba(248,250,252,.55));
-    border:1px solid var(--nd-line);
-    border-radius:14px;
-    padding:14px;
+  html[data-theme="dark"] .mnd-scope {
+    --mnd-ink:         #f1f5f9;
+    --mnd-ink-soft:    #cbd5e1;
+    --mnd-muted:       #94a3b8;
+    --mnd-line:        #1e293b;
+    --mnd-line-soft:   #0f172a;
+    --mnd-card:        #1e293b;
+    --mnd-bg:          #0f172a;
+    --mnd-brand-soft:  rgba(59,130,246,.12);
+    --mnd-shadow-xs:   0 1px 3px rgba(0,0,0,.3);
+    --mnd-shadow:      0 4px 20px rgba(0,0,0,.3);
+    --mnd-shadow-md:   0 8px 32px rgba(0,0,0,.4);
+    --mnd-shadow-lg:   0 20px 60px rgba(0,0,0,.5);
   }
 
-  .nd-scope .nd-form{
-    display:grid;
-    gap:10px;
-    margin-top:12px;
-  }
-  .nd-scope .nd-input{
-    width:100%;
-    min-height:44px;
-    border:1px solid var(--nd-line);
-    border-radius:12px;
-    padding:10px 12px;
-    font:inherit;
-    background:var(--nd-card);
-    color:var(--nd-ink);
-    font-weight:850;
-    outline:none;
-  }
-  .nd-scope .nd-input:focus{
-    border-color: rgba(37,99,235,.35);
-    box-shadow: 0 0 0 4px rgba(37,99,235,.12);
-  }
-  .nd-scope .nd-check{
-    display:flex;align-items:flex-start;gap:10px;
-    padding:10px 12px;
-    border:1px solid var(--nd-line);
-    border-radius:12px;
-    background: var(--nd-soft);
-  }
-  .nd-scope .nd-check input{margin-top:3px}
-  .nd-scope .nd-note{color:var(--nd-muted);font-weight:850;line-height:1.9}
-  .nd-scope .nd-error{margin-top:6px;color:#b91c1c;font-weight:900;display:none}
+  /* ── Layout ── */
+  .mnd-scope { background: var(--mnd-bg); min-height: 100vh; }
+  .mnd-page  { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
 
-  .nd-scope .nd-btn{
-    padding:10px 12px;border-radius:12px;border:1px solid var(--nd-line);
-    background: var(--nd-card);
-    font-weight:950;text-decoration:none;color:var(--nd-ink);
-    display:inline-flex;align-items:center;gap:8px;cursor:pointer;
-    transition: transform var(--nd-t), box-shadow var(--nd-t), border-color var(--nd-t), background var(--nd-t);
-    min-height:44px;
+  /* ── Hero Header ── */
+  .mnd-hero {
+    position: relative;
+    background: linear-gradient(135deg, var(--mnd-brand) 0%, var(--mnd-brand-2) 60%, #1e3a8a 100%);
+    border-radius: var(--mnd-radius-lg);
+    padding: 36px 36px 96px;
+    margin-bottom: -68px;
+    overflow: hidden;
   }
-  .nd-scope .nd-btn[disabled]{opacity:.55;cursor:not-allowed;filter:saturate(.8)}
-  .nd-scope .nd-btn:hover{
-    transform:translateY(-1px);
-    box-shadow: 0 14px 26px rgba(2,6,23,.10);
-    border-color: rgba(37,99,235,.25);
-    background: rgba(248,250,252,.80);
+  .mnd-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 80% at 90% 20%, rgba(255,255,255,.10) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 10% 80%, rgba(255,255,255,.06) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .mnd-hero-inner {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .mnd-hero-icon {
+    width: 54px; height: 54px;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: #fff;
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+  }
+  .mnd-hero-text { flex: 1; min-width: 0; }
+  .mnd-hero-title {
+    margin: 0 0 6px;
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -.02em;
+  }
+  .mnd-hero-sub {
+    font-size: .92rem;
+    color: rgba(255,255,255,.78);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mnd-back-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 20px;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: var(--mnd-radius-sm);
+    color: #fff;
+    font-weight: 600;
+    font-size: .9rem;
+    text-decoration: none;
+    backdrop-filter: blur(8px);
+    transition: background var(--mnd-t), transform var(--mnd-t);
+    white-space: nowrap;
+    align-self: flex-start;
+    min-height: 44px;
+  }
+  .mnd-back-btn:hover { background: rgba(255,255,255,.26); transform: translateY(-1px); }
+
+  /* ── Content ── */
+  .mnd-content { position: relative; z-index: 1; }
+
+  /* ── Card ── */
+  .mnd-card {
+    background: var(--mnd-card);
+    border: 1px solid var(--mnd-line);
+    border-radius: var(--mnd-radius);
+    box-shadow: var(--mnd-shadow-md);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .mnd-card:last-child { margin-bottom: 0; }
+  .mnd-card-hd {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--mnd-line);
+    background: linear-gradient(180deg, var(--mnd-line-soft) 0%, var(--mnd-card) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .mnd-card-hd-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--mnd-ink);
+  }
+  .mnd-card-hd-icon {
+    width: 36px; height: 36px;
+    background: var(--mnd-brand-soft);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--mnd-brand);
+    font-size: .95rem;
+    flex-shrink: 0;
+  }
+  .mnd-card-bd { padding: 22px; }
+
+  /* ── Notification Title ── */
+  .mnd-notif-title {
+    font-size: 1.2rem;
+    font-weight: 750;
+    color: var(--mnd-ink);
+    margin: 0 0 14px;
+    line-height: 1.45;
   }
 
-  html[data-theme="dark"] .nd-scope{
-    --nd-shadow: 0 18px 46px rgba(0,0,0,.45);
+  /* ── Pills row ── */
+  .mnd-pills-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    align-items: center;
   }
-  html[data-theme="dark"] .nd-scope .nd-body{
-    background: linear-gradient(180deg, var(--nd-card), rgba(2,6,23,.25));
+  .mnd-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: .82rem;
+    font-weight: 650;
+    border: 1px solid var(--mnd-line);
+    background: var(--mnd-line-soft);
+    color: var(--mnd-ink-soft);
+    white-space: nowrap;
+  }
+  .mnd-pill.imp      { background: rgba(220,38,38,.08);  border-color: rgba(220,38,38,.20);  color: #b91c1c; }
+  .mnd-pill.blue     { background: var(--mnd-brand-soft); border-color: rgba(37,99,235,.20); color: var(--mnd-brand-2); }
+  .mnd-pill.signed   { background: rgba(5,150,105,.08);  border-color: rgba(5,150,105,.20);  color: #065f46; }
+  .mnd-pill.unsigned { background: rgba(220,38,38,.06);  border-color: rgba(220,38,38,.18);  color: #991b1b; }
+  .mnd-pill.read     { background: rgba(5,150,105,.07);  border-color: rgba(5,150,105,.18);  color: #065f46; }
+
+  /* ── Message Body — multi-line aware ── */
+  .mnd-msg-body {
+    background: linear-gradient(160deg, var(--mnd-line-soft) 0%, var(--mnd-card) 100%);
+    border: 1px solid var(--mnd-line);
+    border-radius: 14px;
+    padding: 22px 24px;
+    line-height: 2.05;
+    color: var(--mnd-ink-soft);
+    font-size: .97rem;
+    font-weight: 500;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .mnd-msg-body::before {
+    content: '\275D';
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-size: 2.4rem;
+    color: var(--mnd-brand);
+    opacity: .12;
+    line-height: 1;
+    pointer-events: none;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    .nd-scope .nd-btn{transition:none !important;}
-    .nd-scope .nd-btn:hover{transform:none !important;}
+  /* ── Meta grid ── */
+  .mnd-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    gap: 10px;
   }
+  .mnd-meta-item {
+    background: var(--mnd-line-soft);
+    border: 1px solid var(--mnd-line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .mnd-meta-label {
+    font-size: .74rem;
+    font-weight: 600;
+    color: var(--mnd-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .mnd-meta-value {
+    font-size: .92rem;
+    font-weight: 650;
+    color: var(--mnd-ink);
+  }
+
+  /* ── Deadline badge ── */
+  .mnd-deadline {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    background: rgba(217,119,6,.08);
+    border: 1px solid rgba(217,119,6,.22);
+    border-radius: 999px;
+    color: var(--mnd-warn);
+    font-size: .86rem;
+    font-weight: 650;
+    margin-bottom: 18px;
+  }
+
+  /* ── Signature acknowledgment ── */
+  .mnd-sig-ack {
+    background: linear-gradient(160deg, var(--mnd-line-soft) 0%, var(--mnd-card) 100%);
+    border: 1px solid var(--mnd-line);
+    border-radius: 14px;
+    padding: 18px 22px;
+    line-height: 1.95;
+    color: var(--mnd-ink-soft);
+    font-size: .95rem;
+    font-weight: 500;
+    margin-bottom: 18px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── Form ── */
+  .mnd-form-grid { display: grid; gap: 14px; }
+  .mnd-field-label {
+    display: block;
+    font-weight: 700;
+    font-size: .9rem;
+    color: var(--mnd-ink);
+    margin-bottom: 7px;
+  }
+  .mnd-input {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--mnd-line);
+    border-radius: var(--mnd-radius-sm);
+    padding: 11px 14px;
+    font: inherit;
+    font-size: .95rem;
+    background: var(--mnd-card);
+    color: var(--mnd-ink);
+    font-weight: 600;
+    outline: none;
+    transition: border-color var(--mnd-t), box-shadow var(--mnd-t);
+  }
+  .mnd-input:focus {
+    border-color: rgba(37,99,235,.4);
+    box-shadow: 0 0 0 4px rgba(37,99,235,.10);
+  }
+  .mnd-input-note {
+    margin-top: 6px;
+    font-size: .82rem;
+    color: var(--mnd-muted);
+    font-weight: 500;
+  }
+  .mnd-input-error {
+    margin-top: 5px;
+    font-size: .83rem;
+    font-weight: 700;
+    color: var(--mnd-danger);
+    display: none;
+  }
+  .mnd-check-wrap {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 16px;
+    background: var(--mnd-line-soft);
+    border: 1px solid var(--mnd-line);
+    border-radius: var(--mnd-radius-sm);
+    cursor: pointer;
+    transition: border-color var(--mnd-t), background var(--mnd-t);
+  }
+  .mnd-check-wrap:has(input:checked) {
+    border-color: rgba(37,99,235,.3);
+    background: var(--mnd-brand-soft);
+  }
+  .mnd-check-wrap input[type="checkbox"] {
+    width: 18px; height: 18px;
+    margin-top: 2px;
+    cursor: pointer;
+    accent-color: var(--mnd-brand);
+    flex-shrink: 0;
+  }
+  .mnd-check-label {
+    font-weight: 700;
+    font-size: .95rem;
+    color: var(--mnd-ink);
+    line-height: 1.6;
+    cursor: pointer;
+  }
+
+  /* ── Buttons ── */
+  .mnd-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mnd-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 20px;
+    border-radius: var(--mnd-radius-sm);
+    border: 1px solid var(--mnd-line);
+    background: var(--mnd-card);
+    color: var(--mnd-ink);
+    font: inherit;
+    font-size: .9rem;
+    font-weight: 650;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--mnd-t);
+    min-height: 44px;
+    white-space: nowrap;
+  }
+  .mnd-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--mnd-shadow);
+    border-color: rgba(37,99,235,.3);
+  }
+  .mnd-btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+    pointer-events: none;
+  }
+  .mnd-btn.primary {
+    background: linear-gradient(135deg, var(--mnd-brand) 0%, var(--mnd-brand-2) 100%);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(37,99,235,.35);
+  }
+  .mnd-btn.primary:hover:not(:disabled) { box-shadow: 0 8px 24px rgba(37,99,235,.45); }
+
+  /* ── Submit note ── */
+  .mnd-submit-note {
+    font-size: .82rem;
+    color: var(--mnd-muted);
+    font-weight: 500;
+  }
+
+  /* ── Signed success banner ── */
+  .mnd-signed-banner {
+    display: flex; align-items: center; gap: 16px;
+    padding: 18px 22px;
+    background: rgba(5,150,105,.07);
+    border: 1px solid rgba(5,150,105,.2);
+    border-radius: 14px;
+    color: #065f46;
+  }
+  html[data-theme="dark"] .mnd-signed-banner { color: #6ee7b7; }
+  .mnd-signed-icon {
+    width: 46px; height: 46px;
+    background: rgba(5,150,105,.12);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .mnd-signed-title { font-weight: 800; font-size: .97rem; margin-bottom: 3px; }
+  .mnd-signed-sub   { font-size: .84rem; opacity: .82; }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .mnd-page { padding: 14px 10px 44px; }
+    .mnd-hero { padding: 20px 16px 74px; margin-bottom: -56px; border-radius: 16px; }
+    .mnd-hero-icon { width: 42px; height: 42px; border-radius: 11px; font-size: 1.1rem; }
+    .mnd-hero-title { font-size: 1.15rem; margin-bottom: 4px; }
+    .mnd-hero-sub { font-size: .78rem; }
+    .mnd-back-btn { min-height: 38px; padding: 8px 12px; font-size: .8rem; border-radius: 8px; }
+    .mnd-card { border-radius: 12px; margin-bottom: 12px; }
+    .mnd-card-hd { padding: 12px 14px; }
+    .mnd-card-bd { padding: 14px; }
+    .mnd-card-hd-title { font-size: .9rem; gap: 8px; }
+    .mnd-card-hd-icon { width: 30px; height: 30px; border-radius: 8px; font-size: .82rem; }
+    .mnd-notif-title { font-size: 1rem; margin-bottom: 10px; }
+    .mnd-pill { font-size: .74rem; padding: 4px 9px; }
+    .mnd-msg-body { padding: 14px 16px; font-size: .87rem; line-height: 1.9; border-radius: 10px; margin-bottom: 14px; }
+    .mnd-msg-body::before { font-size: 1.8rem; }
+    .mnd-meta-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .mnd-meta-item { padding: 9px 10px; border-radius: 9px; }
+    .mnd-meta-label { font-size: .65rem; }
+    .mnd-meta-value { font-size: .8rem; }
+    .mnd-sig-ack { padding: 14px; font-size: .88rem; border-radius: 10px; }
+    .mnd-input { min-height: 42px; font-size: .88rem; }
+    .mnd-btn { min-height: 40px; padding: 9px 14px; font-size: .84rem; }
+    .mnd-signed-banner { padding: 12px 14px; gap: 12px; border-radius: 10px; }
+    .mnd-signed-icon { width: 38px; height: 38px; border-radius: 10px; font-size: 1rem; }
+  }
+  @media (max-width: 400px) {
+    .mnd-meta-grid { grid-template-columns: 1fr; }
+    .mnd-hero { padding: 16px 12px 64px; }
+    .mnd-hero-title { font-size: 1.05rem; }
+    .mnd-actions { flex-direction: column; }
+    .mnd-btn { width: 100%; justify-content: center; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mnd-btn, .mnd-back-btn, .mnd-input,
+    .mnd-check-wrap { transition: none !important; }
+    .mnd-btn:hover, .mnd-back-btn:hover { transform: none !important; }
+  }
+
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="nd-scope">
-  <div class="nd-wrap" dir="rtl">
-    <header class="nd-head">
-      <div>
-        <h1 class="nd-title">تفاصيل الإشعار</h1>
-        <div class="nd-hint">عرض الرسالة كاملة</div>
-      </div>
-      <a class="nd-btn" href="{% url 'reports:my_notifications' %}">
-        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع إلى إشعاراتي
-      </a>
-    </header>
+<div class="mnd-scope" dir="rtl">
+  <div class="mnd-page">
 
-    <section class="nd-card" aria-label="الإشعار">
-      <div class="nd-card-hd">
-        <div class="nd-meta-row">
-          <strong style="font-weight:950">{{ n.title|default:"رسالة" }}</strong>
-          {% if n.is_important %}<span class="nd-pill important">هام</span>{% endif %}
-        </div>
-        <div class="nd-when">{% if r.created_at %}{{ r.created_at|date:"Y-m-d H:i" }}{% endif %}</div>
-      </div>
-
-      <div class="nd-card-bd">
-        {% if body %}
-          <div class="nd-body">{{ body|linebreaksbr }}</div>
-        {% else %}
-          <div class="nd-hint">لا يوجد محتوى نصي.</div>
-        {% endif %}
-
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-          <span class="nd-pill">
-            المرسِل:
-            {% firstof sender_name "الإدارة" %}
-            {% if sender_role_label %} — {{ sender_role_label }}{% endif %}
-          </span>
-          {% if r.is_read %}<span class="nd-pill">الحالة: مقروء</span>{% else %}<span class="nd-pill">الحالة: غير مقروء</span>{% endif %}
-          {% if r.read_at %}<span class="nd-pill">وقت القراءة: {{ r.read_at|date:"Y-m-d H:i" }}</span>{% endif %}
-
-          {% if n.requires_signature %}
-            {% if r.is_signed %}
-              <span class="nd-pill" style="background: rgba(16,185,129,.10);border-color: rgba(16,185,129,.22);color:#166534;">تم التوقيع</span>
-              {% if r.signed_at %}<span class="nd-pill">وقت التوقيع: {{ r.signed_at|date:"Y-m-d H:i" }}</span>{% endif %}
+    <!-- ═══ Hero Banner ═══ -->
+    <div class="mnd-hero">
+      <div class="mnd-hero-inner">
+        <div style="display:flex;gap:16px;align-items:flex-start;flex:1;min-width:0">
+          <div class="mnd-hero-icon">
+            {% if n.requires_signature %}
+              <i class="fa-solid fa-file-signature"></i>
             {% else %}
-              <span class="nd-pill" style="background: rgba(239,68,68,.08);border-color: rgba(239,68,68,.22);color:#b91c1c;">بانتظار التوقيع</span>
-              {% if n.signature_deadline_at %}<span class="nd-pill">آخر موعد للتوقيع: {{ n.signature_deadline_at|date:"Y-m-d H:i" }}</span>{% endif %}
+              <i class="fa-solid fa-envelope-open-text"></i>
             {% endif %}
-          {% endif %}
-        </div>
-      </div>
-    </section>
-
-    {% if n.requires_signature %}
-      <div style="height:12px"></div>
-      <section class="nd-card" aria-label="التوقيع على التعميم">
-        <div class="nd-card-hd">
-          <div class="nd-meta-row">
-            <strong style="font-weight:950">التوقيع على التعميم</strong>
-            <span class="nd-pill">توثيق رسمي</span>
           </div>
-          <div class="nd-when">لأمان أعلى: إدخال الجوال + إقرار</div>
+          <div class="mnd-hero-text">
+            <h1 class="mnd-hero-title">
+              {% if n.requires_signature %}تفاصيل التعميم{% else %}تفاصيل الإشعار{% endif %}
+            </h1>
+            <p class="mnd-hero-sub">{{ n.title|default:"رسالة" }}{% if n.is_important %}&nbsp;·&nbsp;هام وعاجل{% endif %}</p>
+          </div>
         </div>
-        <div class="nd-card-bd">
-          {% if r.is_signed %}
-            <div class="nd-note">تم اعتماد توقيعك على هذا التعميم بنجاح.</div>
-          {% else %}
-            <div class="nd-body" style="margin-bottom:10px">
-              {% if n.signature_ack_text %}
-                {{ n.signature_ack_text|linebreaksbr }}
-              {% else %}
-                أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه وأتعهد بالالتزام به.
-              {% endif %}
+        <a class="mnd-back-btn" href="{% url 'reports:my_notifications' %}">
+          <i class="fa-solid fa-arrow-right"></i> رجوع
+        </a>
+      </div>
+    </div>
+    <!-- ═════════════════════════════ -->
+
+    <div class="mnd-content">
+
+      <!-- ══ بطاقة محتوى الرسالة ══ -->
+      <section class="mnd-card" aria-label="محتوى الإشعار">
+        <div class="mnd-card-hd">
+          <div class="mnd-card-hd-title">
+            <div class="mnd-card-hd-icon">
+              <i class="fa-solid fa-envelope-open-text"></i>
             </div>
-
-            <form class="nd-form" method="post" action="{% url 'reports:notification_sign' r.pk %}">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="{% url 'reports:my_notification_detail' r.pk %}">
-
-              <div>
-                <label style="font-weight:950;display:block;margin-bottom:6px" for="sig_phone">رقم الجوال المسجل</label>
-                <input class="nd-input" id="sig_phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="مثال: 05xxxxxxxx" required>
-                <div class="nd-note" style="margin-top:6px">يُستخدم هذا الإجراء للتأكد من هوية الحساب قبل اعتماد التوقيع.</div>
-                <div class="nd-error" id="sig_phone_error" aria-live="polite"></div>
-              </div>
-
-              <label class="nd-check" for="sig_ack">
-                <input id="sig_ack" name="ack" type="checkbox" required>
-                <span style="font-weight:900">أقرّ بصحة البيانات وأوافق على الإقرار أعلاه.</span>
-              </label>
-
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button id="sigSubmit" class="nd-btn" type="submit" disabled style="background: var(--nd-brand);border-color: var(--nd-brand);color:#fff;">
-                  <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                  اعتماد التوقيع
-                </button>
-                <a class="nd-btn" href="{% url 'reports:my_notifications' %}">
-                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                  رجوع
-                </a>
-              </div>
-              <div class="nd-note" id="sigSubmitHint">بالضغط على "اعتماد التوقيع" سيتم تسجيل إقرارك ووقت التوقيع.</div>
-            </form>
+            محتوى الرسالة
+          </div>
+          {% if r.is_read %}
+            <span class="mnd-pill read"><i class="fa-solid fa-check-double" style="font-size:.75em"></i> مقروء</span>
+          {% else %}
+            <span class="mnd-pill"><i class="fa-regular fa-circle" style="font-size:.75em"></i> غير مقروء</span>
           {% endif %}
+        </div>
+        <div class="mnd-card-bd">
+
+          <!-- عنوان + شارات -->
+          <h2 class="mnd-notif-title">{{ n.title|default:"رسالة" }}</h2>
+          <div class="mnd-pills-row">
+            {% if n.is_important %}
+              <span class="mnd-pill imp"><i class="fa-solid fa-circle-exclamation"></i> هام وعاجل</span>
+            {% endif %}
+            {% if n.requires_signature %}
+              <span class="mnd-pill blue"><i class="fa-solid fa-pen-to-square"></i> يتطلب توقيع</span>
+            {% endif %}
+          </div>
+
+          <!-- نص الرسالة — متعدد الأسطر -->
+          {% if body %}
+            <div class="mnd-msg-body">{{ body|linebreaksbr }}</div>
+          {% else %}
+            <div style="padding:28px 0;text-align:center;color:var(--mnd-muted)">
+              <i class="fa-regular fa-comment-dots" style="font-size:2rem;opacity:.35;display:block;margin-bottom:10px"></i>
+              <span style="font-size:.9rem">لا يوجد محتوى نصي.</span>
+            </div>
+          {% endif %}
+
+          <!-- بيانات وصفية -->
+          <div class="mnd-meta-grid">
+            {% if r.created_at %}
+              <div class="mnd-meta-item">
+                <span class="mnd-meta-label"><i class="fa-regular fa-calendar"></i> تاريخ الإرسال</span>
+                <span class="mnd-meta-value">{{ r.created_at|date:"Y-m-d H:i" }}</span>
+              </div>
+            {% endif %}
+            <div class="mnd-meta-item">
+              <span class="mnd-meta-label"><i class="fa-regular fa-user"></i> المرسِل</span>
+              <span class="mnd-meta-value">{% firstof sender_name "الإدارة" %}{% if sender_role_label %} — {{ sender_role_label }}{% endif %}</span>
+            </div>
+            {% if r.read_at %}
+              <div class="mnd-meta-item">
+                <span class="mnd-meta-label"><i class="fa-regular fa-eye"></i> وقت القراءة</span>
+                <span class="mnd-meta-value">{{ r.read_at|date:"Y-m-d H:i" }}</span>
+              </div>
+            {% endif %}
+            {% if n.requires_signature %}
+              {% if r.signed_at %}
+                <div class="mnd-meta-item">
+                  <span class="mnd-meta-label"><i class="fa-solid fa-pen-nib"></i> وقت التوقيع</span>
+                  <span class="mnd-meta-value">{{ r.signed_at|date:"Y-m-d H:i" }}</span>
+                </div>
+              {% endif %}
+              {% if n.signature_deadline_at and not r.is_signed %}
+                <div class="mnd-meta-item">
+                  <span class="mnd-meta-label"><i class="fa-solid fa-hourglass-half"></i> آخر موعد للتوقيع</span>
+                  <span class="mnd-meta-value" style="color:var(--mnd-warn)">{{ n.signature_deadline_at|date:"Y-m-d H:i" }}</span>
+                </div>
+              {% endif %}
+            {% endif %}
+          </div>
+
         </div>
       </section>
-    {% endif %}
-  </div>
-</div>
 
-<script>
+      <!-- ══ بطاقة التوقيع ══ -->
+      {% if n.requires_signature %}
+        <section class="mnd-card" aria-label="التوقيع على التعميم">
+          <div class="mnd-card-hd">
+            <div class="mnd-card-hd-title">
+              <div class="mnd-card-hd-icon" {% if r.is_signed %}style="background:rgba(5,150,105,.1);color:#059669"{% endif %}>
+                <i class="fa-solid fa-pen-nib"></i>
+              </div>
+              التوقيع على التعميم
+            </div>
+            {% if r.is_signed %}
+              <span class="mnd-pill signed"><i class="fa-solid fa-check-circle"></i> تم التوقيع</span>
+            {% else %}
+              <span class="mnd-pill unsigned"><i class="fa-solid fa-clock"></i> بانتظار التوقيع</span>
+            {% endif %}
+          </div>
+          <div class="mnd-card-bd">
+
+            {% if r.is_signed %}
+              <div class="mnd-signed-banner">
+                <div class="mnd-signed-icon"><i class="fa-solid fa-check-double"></i></div>
+                <div>
+                  <div class="mnd-signed-title">تم اعتماد توقيعك بنجاح</div>
+                  <div class="mnd-signed-sub">
+                    {% if r.signed_at %}وُقِّع بتاريخ {{ r.signed_at|date:"Y-m-d H:i" }}{% else %}تم تسجيل توقيعك على هذا التعميم.{% endif %}
+                  </div>
+                </div>
+              </div>
+
+            {% else %}
+
+              {% if n.signature_deadline_at %}
+                <div class="mnd-deadline">
+                  <i class="fa-solid fa-hourglass-half"></i>
+                  آخر موعد للتوقيع: {{ n.signature_deadline_at|date:"Y-m-d H:i" }}
+                </div>
+              {% endif %}
+
+              <!-- نص الإقرار — متعدد الأسطر -->
+              <div class="mnd-sig-ack">
+                {% if n.signature_ack_text %}
+                  {{ n.signature_ack_text|linebreaksbr }}
+                {% else %}
+                  أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه وأتعهد بالالتزام به.
+                {% endif %}
+              </div>
+
+              <form class="mnd-form-grid" method="post" action="{% url 'reports:notification_sign' r.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'reports:my_notification_detail' r.pk %}">
+
+                <div>
+                  <label class="mnd-field-label" for="sig_phone">
+                    <i class="fa-solid fa-mobile-screen-button" style="color:var(--mnd-brand)"></i>
+                    رقم الجوال المسجل
+                  </label>
+                  <input class="mnd-input" id="sig_phone" name="phone"
+                         type="tel" inputmode="numeric" autocomplete="tel"
+                         placeholder="مثال: 05xxxxxxxx" required>
+                  <div class="mnd-input-note">يُستخدم للتأكد من هوية الحساب قبل اعتماد التوقيع.</div>
+                  <div class="mnd-input-error" id="sig_phone_error" aria-live="polite"></div>
+                </div>
+
+                <label class="mnd-check-wrap" for="sig_ack">
+                  <input id="sig_ack" name="ack" type="checkbox" required>
+                  <span class="mnd-check-label">أقرّ بصحة البيانات وأوافق على الإقرار أعلاه.</span>
+                </label>
+
+                <div class="mnd-actions">
+                  <button id="sigSubmit" class="mnd-btn primary" type="submit" disabled>
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    اعتماد التوقيع
+                  </button>
+                  <a class="mnd-btn" href="{% url 'reports:my_notifications' %}">
+                    <i class="fa-solid fa-arrow-right"></i>
+                    رجوع
+                  </a>
+                </div>
+                <div class="mnd-submit-note" id="sigSubmitHint">
+                  بالضغط على "اعتماد التوقيع" سيتم تسجيل إقرارك ووقت التوقيع بشكل رسمي.
+                </div>
+              </form>
+
+            {% endif %}
+          </div>
+        </section>
+      {% endif %}
+
+    </div><!-- /.mnd-content -->
+  </div><!-- /.mnd-page -->
+</div><!-- /.mnd-scope -->
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
   (function(){
-    const form = document.querySelector('form.nd-form');
-    const phoneInput = document.getElementById('sig_phone');
-    const ackInput = document.getElementById('sig_ack');
-    const submitBtn = document.getElementById('sigSubmit');
-    const phoneError = document.getElementById('sig_phone_error');
-
+    'use strict';
+    var form       = document.querySelector('form.mnd-form-grid');
+    var phoneInput = document.getElementById('sig_phone');
+    var ackInput   = document.getElementById('sig_ack');
+    var submitBtn  = document.getElementById('sigSubmit');
+    var phoneError = document.getElementById('sig_phone_error');
     if (!form || !phoneInput || !ackInput || !submitBtn) return;
 
-    function digitsOnly(value){
-      return String(value || '').replace(/\D+/g, '');
-    }
+    function digitsOnly(v){ return String(v||'').replace(/\D+/g,''); }
     function normalizePhone(raw){
-      const d = digitsOnly(raw);
-      if (d.startsWith('9665') && d.length === 12) return '0' + d.slice(3);
+      var d = digitsOnly(raw);
+      if (d.startsWith('9665') && d.length===12) return '0'+d.slice(3);
       return d;
     }
-    function isValidPhone(value){
-      return /^05\d{8}$/.test(value);
-    }
-    function setPhoneError(message){
+    function isValidPhone(v){ return /^05\d{8}$/.test(v); }
+    function setPhoneError(msg){
       if (!phoneError) return;
-      if (!message) {
-        phoneError.style.display = 'none';
-        phoneError.textContent = '';
-        return;
-      }
-      phoneError.style.display = 'block';
-      phoneError.textContent = message;
+      if (!msg){ phoneError.style.display='none'; phoneError.textContent=''; return; }
+      phoneError.style.display='block'; phoneError.textContent=msg;
     }
     function updateState(){
-      const normalized = normalizePhone(phoneInput.value);
-      const okPhone = isValidPhone(normalized);
-      const okAck = !!ackInput.checked;
-      submitBtn.disabled = !(okPhone && okAck) || submitBtn.dataset.busy === '1';
+      var normalized = normalizePhone(phoneInput.value);
+      var okPhone = isValidPhone(normalized);
+      var okAck   = !!ackInput.checked;
+      submitBtn.disabled = !(okPhone && okAck) || submitBtn.dataset.busy==='1';
       if (phoneInput.value && !okPhone) setPhoneError('رقم الجوال غير صحيح. أدخل 10 أرقام تبدأ بـ 05.');
       else setPhoneError('');
     }
-
     phoneInput.addEventListener('input', function(){
-      const normalized = normalizePhone(phoneInput.value);
-      if (normalized && normalized !== phoneInput.value.replace(/\s+/g, '')) phoneInput.value = normalized;
+      var normalized = normalizePhone(phoneInput.value);
+      if (normalized && normalized !== phoneInput.value.replace(/\s+/g,'')) phoneInput.value = normalized;
       updateState();
     });
     ackInput.addEventListener('change', updateState);
-
     form.addEventListener('submit', function(e){
       updateState();
-      if (submitBtn.disabled) {
-        e.preventDefault();
-        return;
-      }
-      const ok = window.confirm('تأكيد: سيتم تسجيل إقرارك واعتماد توقيعك الآن.');
-      if (!ok) {
-        e.preventDefault();
-        return;
-      }
-      submitBtn.dataset.busy = '1';
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = 'جارٍ اعتماد التوقيع...';
+      if (submitBtn.disabled){ e.preventDefault(); return; }
+      try {
+        if (!window.confirm('تأكيد: سيتم تسجيل إقرارك واعتماد توقيعك الآن.')){ e.preventDefault(); return; }
+      } catch(err) {}
+      submitBtn.dataset.busy='1';
+      submitBtn.disabled=true;
+      submitBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جارٍ اعتماد التوقيع…';
     });
-
     updateState();
   })();
 </script>

@@ -906,12 +906,14 @@
       let isLoadingDepts = false;
 
       function getCheckboxInputs(){
-        return Array.from(teacherField.querySelectorAll('input[type="checkbox"][name="' + CSS.escape(teachersFieldName) + '"]'));
+        return Array.from(teacherField.querySelectorAll('input[type="checkbox"][name]'))
+          .filter(cb => String(cb.name || "") === String(teachersFieldName || ""));
       }
 
       function getMultiSelect(){
-        const ms = teacherField.querySelector('select[multiple][name="' + CSS.escape(teachersFieldName) + '"]');
-        return ms || teacherField.querySelector('select[multiple]');
+        const selects = Array.from(teacherField.querySelectorAll('select[multiple]'));
+        const exact = selects.find(ms => String(ms.name || "") === String(teachersFieldName || ""));
+        return exact || selects[0] || null;
       }
 
       function updateCount(){

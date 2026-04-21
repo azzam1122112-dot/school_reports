@@ -137,6 +137,28 @@ class NotificationDispatchTests(TransactionTestCase):
             {self.teachers[0].id, self.teachers[1].id},
         )
 
+    def test_school_manager_notification_department_without_active_members_is_invalid(self):
+        empty_department = Department.objects.create(
+            school=self.school,
+            name="Empty Department",
+            slug="empty-department",
+            is_active=True,
+        )
+        form = NotificationCreateForm(
+            data={
+                "title": "Department Notification",
+                "message": "No recipients in this department.",
+                "target_department": str(empty_department.id),
+            },
+            user=self.manager,
+            active_school=self.school,
+            mode="notification",
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("target_department", form.errors)
+        self.assertIn("لا يحتوي على مستلمين نشطين", " ".join(form.errors.get("target_department", [])))
+
     def test_school_manager_circular_selected_teachers_dispatches_without_broker(self):
         form = NotificationCreateForm(
             data={
@@ -158,7 +180,7 @@ class NotificationDispatchTests(TransactionTestCase):
 
         self.assertEqual(self._recipient_ids_for(notification), {self.teachers[1].id})
 
-    def test_school_manager_circular_all_teachers_dispatches_without_broker(self):
+    def test_school_manager_circular_requires_explicit_recipients(self):
         form = NotificationCreateForm(
             data={
                 "title": "Circular",
@@ -169,17 +191,9 @@ class NotificationDispatchTests(TransactionTestCase):
             mode="circular",
         )
 
-        self.assertTrue(form.is_valid(), form.errors.as_data())
-        notification = form.save(
-            creator=self.manager,
-            default_school=self.school,
-            force_requires_signature=True,
-        )
-
-        self.assertEqual(
-            self._recipient_ids_for(notification),
-            {teacher.id for teacher in self.teachers},
-        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("teachers", form.errors)
+        self.assertIn("المستلمون = 0", " ".join(form.errors.get("teachers", [])))
 
     def test_circular_create_view_selected_teacher_reaches_teacher_circulars_page(self):
         self.client.force_login(self.manager)
