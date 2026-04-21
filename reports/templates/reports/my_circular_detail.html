@@ -344,12 +344,24 @@
   
   /* Mobile Responsive */
   @media (max-width: 768px) {
-    .cv-scope { padding: 1rem; }
+    .cv-scope { padding: 1rem; overflow-x: hidden; }
     .cv-title { font-size: 1.4rem; }
+    .cv-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+    .cv-card-header { flex-direction: column; align-items: flex-start; }
     .cv-card-header, .cv-body { padding: 1.25rem; }
     .cv-meta-group { flex-direction: column; gap: 0.5rem; }
-    
+    .cv-body { font-size: 0.97rem; line-height: 1.85; }
     .cv-sig-header { flex-direction: column; text-align: center; }
+    .cv-sig-body { padding: 1.25rem; }
+    .cv-ack-text { padding: 0.875rem; font-size: 0.9rem; }
+    .cv-attach-link { width: 100%; justify-content: center; }
+  }
+
+  @media (max-width: 480px) {
+    .cv-scope { padding: 0.75rem; }
+    .cv-title { font-size: 1.25rem; }
+    .cv-alert { padding: 0.875rem 1rem; font-size: 0.92rem; }
+    .cv-btn-submit { font-size: 1rem; padding: 0.9rem; }
   }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
