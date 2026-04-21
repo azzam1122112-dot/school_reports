@@ -1907,6 +1907,17 @@ class NotificationCreateForm(forms.Form):
                 except Exception:
                     teacher_ids = None
 
+        # School-manager circulars use an empty manual selection to mean
+        # "all teachers in the active school".  Resolve that to explicit IDs so
+        # the local fallback can dispatch without requiring a Celery worker.
+        if bool(requires_signature) and not bool(getattr(creator, "is_superuser", False)) and not is_platform_creator:
+            if not teacher_ids:
+                try:
+                    qs = self.fields["teachers"].queryset
+                    teacher_ids = list(qs.values_list("pk", flat=True))
+                except Exception:
+                    teacher_ids = []
+
         # Trigger background task to create recipients
         # - Prefer async (Celery)
         # - Fallback to local execution if broker/worker is unavailable
@@ -2001,7 +2012,29 @@ class NotificationCreateForm(forms.Form):
                     is_debug = False
 
                 # Hard-stop: do not run heavy/unknown workloads inside web.
-                if recipient_count is None or int(recipient_count) > int(hard_stop):
+                # When teacher_ids is None it means "all school teachers" – resolve the count
+                # from DB so we can apply the hard_stop guard without silently dropping the send.
+                if recipient_count is None:
+                    try:
+                        from .models import SchoolMembership
+                        _school = getattr(n, "school", None)
+                        if _school is not None:
+                            recipient_count = (
+                                SchoolMembership.objects.filter(
+                                    school=_school,
+                                    is_active=True,
+                                    role_type=SchoolMembership.RoleType.TEACHER,
+                                )
+                                .values("teacher_id")
+                                .distinct()
+                                .count()
+                            )
+                        else:
+                            recipient_count = 0
+                    except Exception:
+                        recipient_count = 0
+
+                if int(recipient_count) > int(hard_stop):
                     logger.error(
                         "Local notification fallback refused (recipients=%s, hard_stop=%s). Configure broker to dispatch notification %s.",
                         recipient_count,
@@ -2087,7 +2120,28 @@ class NotificationCreateForm(forms.Form):
                 warn_seconds = 2.5
                 is_debug = False
 
-            if recipient_count is None or int(recipient_count) > int(hard_stop):
+            # Resolve recipient_count if still unknown (teacher_ids was None).
+            if recipient_count is None:
+                try:
+                    from .models import SchoolMembership
+                    _school = getattr(n, "school", None)
+                    if _school is not None:
+                        recipient_count = (
+                            SchoolMembership.objects.filter(
+                                school=_school,
+                                is_active=True,
+                                role_type=SchoolMembership.RoleType.TEACHER,
+                            )
+                            .values("teacher_id")
+                            .distinct()
+                            .count()
+                        )
+                    else:
+                        recipient_count = 0
+                except Exception:
+                    recipient_count = 0
+
+            if int(recipient_count) > int(hard_stop):
                 logger.error(
                     "Celery enqueue failed; local fallback refused (recipients=%s, hard_stop=%s) for notification %s",
                     recipient_count,

@@ -254,22 +254,25 @@ def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool
             .distinct()
             .only("id")
         )
+        _role_types = (
+            ["teacher"]
+            if bool(getattr(n, "requires_signature", False))
+            else ["teacher", "report_viewer"]
+        )
         if getattr(n, "school", None):
             qs = qs.filter(
                 school_memberships__school=n.school,
-                school_memberships__role_type__in=(
-                    ["teacher"]
-                    if bool(getattr(n, "requires_signature", False))
-                    else ["teacher", "report_viewer"]
-                ),
+                school_memberships__is_active=True,
+                school_memberships__role_type__in=_role_types,
+            ).exclude(
+                is_platform_admin=True,
             ).distinct()
         else:
             qs = qs.filter(
-                school_memberships__role_type__in=(
-                    ["teacher"]
-                    if bool(getattr(n, "requires_signature", False))
-                    else ["teacher", "report_viewer"]
-                )
+                school_memberships__is_active=True,
+                school_memberships__role_type__in=_role_types,
+            ).exclude(
+                is_platform_admin=True,
             ).distinct()
 
         teachers = qs

@@ -1740,6 +1740,11 @@ class Notification(models.Model):
         default=False,
         help_text="عند التفعيل يصبح الإشعار تعميمًا ويتطلب إقرار + إدخال الجوال للتوقيع.",
     )
+    is_broadcast = models.BooleanField(
+        "للجميع (بث عام)؟",
+        default=False,
+        help_text="عند التفعيل يُعرض الإشعار/التعميم لجميع مستلميه دون تخصيص.",
+    )
     signature_deadline_at = models.DateTimeField(
         "آخر موعد للتوقيع",
         null=True,
