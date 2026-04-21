@@ -1918,6 +1918,25 @@ class NotificationCreateForm(forms.Form):
                 except Exception:
                     teacher_ids = []
 
+        # Reliability guard: when recipients are explicitly known, create the
+        # DB recipient rows immediately.  Celery may still run later for
+        # realtime pushes, but page delivery no longer depends on a live worker.
+        if teacher_ids:
+            try:
+                NotificationRecipient.objects.bulk_create(
+                    [NotificationRecipient(notification=n, teacher_id=tid) for tid in teacher_ids],
+                    ignore_conflicts=True,
+                )
+                try:
+                    from .cache_utils import invalidate_user_notifications
+
+                    for tid in teacher_ids:
+                        invalidate_user_notifications(int(tid))
+                except Exception:
+                    pass
+            except Exception:
+                logger.exception("Immediate notification recipient creation failed for notification %s", n.pk)
+
         # Trigger background task to create recipients
         # - Prefer async (Celery)
         # - Fallback to local execution if broker/worker is unavailable

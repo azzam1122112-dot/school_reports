@@ -1,5 +1,6 @@
-from django.test import TransactionTestCase, override_settings
 from django.core.cache import cache
+from django.test import TransactionTestCase, override_settings
+from django.urls import reverse
 
 from reports.forms import NotificationCreateForm
 from reports.models import (
@@ -9,11 +10,14 @@ from reports.models import (
     Role,
     School,
     SchoolMembership,
+    SchoolSubscription,
+    SubscriptionPlan,
     Teacher,
 )
 
 
 @override_settings(
+    ALLOWED_HOSTS=["testserver"],
     CELERY_BROKER_URL="",
     NOTIFICATIONS_LOCAL_FALLBACK_ENABLED=True,
     NOTIFICATIONS_LOCAL_FALLBACK_THREAD=False,
@@ -36,6 +40,13 @@ class NotificationDispatchTests(TransactionTestCase):
             defaults={"name": "Teacher"},
         )
         self.school = School.objects.create(name="Test School", code="test-school")
+        plan = SubscriptionPlan.objects.create(
+            name="Test Plan",
+            price=0,
+            days_duration=30,
+            max_teachers=0,
+        )
+        SchoolSubscription.objects.create(school=self.school, plan=plan)
         self.department = Department.objects.create(
             school=self.school,
             name="Science",
@@ -169,3 +180,59 @@ class NotificationDispatchTests(TransactionTestCase):
             self._recipient_ids_for(notification),
             {teacher.id for teacher in self.teachers},
         )
+
+    def test_circular_create_view_selected_teacher_reaches_teacher_circulars_page(self):
+        self.client.force_login(self.manager)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+        response = self.client.post(
+            reverse("reports:circulars_create"),
+            data={
+                "title": "View Circular",
+                "message": "Sent through the real create view.",
+                "teachers": [str(self.teachers[0].id)],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            NotificationRecipient.objects.filter(
+                teacher=self.teachers[0],
+                notification__requires_signature=True,
+                notification__title="View Circular",
+            ).count(),
+            1,
+        )
+
+        self.client.force_login(self.teachers[0])
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+        response = self.client.get(reverse("reports:my_circulars"))
+
+        self.assertContains(response, "View Circular")
+
+    @override_settings(CELERY_BROKER_URL="memory://")
+    def test_circular_selected_teacher_creates_recipient_even_when_queued_without_worker(self):
+        form = NotificationCreateForm(
+            data={
+                "title": "Queued Circular",
+                "message": "Worker may be unavailable.",
+                "teachers": [str(self.teachers[0].id)],
+            },
+            user=self.manager,
+            active_school=self.school,
+            mode="circular",
+        )
+
+        self.assertTrue(form.is_valid(), form.errors.as_data())
+        notification = form.save(
+            creator=self.manager,
+            default_school=self.school,
+            force_requires_signature=True,
+        )
+
+        self.assertEqual(self._recipient_ids_for(notification), {self.teachers[0].id})

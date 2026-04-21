@@ -120,6 +120,12 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 self.scope.get("path"),
                 exc,
             )
+            # Accept first so we can send a proper close frame, otherwise the
+            # browser receives a raw TCP drop and logs 1006 instead of 1011.
+            try:
+                await self.accept()
+            except Exception:
+                pass
             await self.close(code=1011)
             return
         try:
@@ -166,10 +172,16 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             path = self.scope.get("path")
             session_key = self._scope_session_key()
             trace_id = getattr(self, "trace_id", "-")
-            norm_code = int(code or 0) if isinstance(code, int) or (isinstance(code, str) and str(code).isdigit()) else 1006
-            if int(code or 0) == 1000:
+            # code=None means the TCP connection dropped with no WebSocket close
+            # frame (e.g. page navigation, OS killing idle tab) — treat it as 1006.
+            norm_code = (
+                int(code)
+                if isinstance(code, int)
+                else (int(code) if isinstance(code, str) and code.isdigit() else 1006)
+            )
+            if norm_code == 1000:
                 logger.debug("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=1000", trace_id, user, session_key, path)
-            elif int(code or 0) == 1006:
+            elif norm_code == 1006:
                 opmetrics.increment("ws.notifications.close.abnormal_1006")
                 ua = self._scope_header("user-agent")
                 ua_l = ua.lower()
@@ -185,9 +197,9 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 if count in {1, 10, 100} or count is None:
                     log_fn = logger.debug if is_mobile_browser else logger.warning
                     log_fn(
-                        "WS notifications abnormal_close trace_id=%s user_id=%s session=%s path=%s code=1006 ua=%s hour_count=%s",
-                        trace_id, user, session_key, path, ua, count)
-            elif int(code or 0) == 4401:
+                        "WS notifications abnormal_close trace_id=%s user_id=%s session=%s path=%s code=%s ua=%s hour_count=%s",
+                        trace_id, user, session_key, path, code, ua, count)
+            elif norm_code == 4401:
                 opmetrics.increment("ws.notifications.close.unauthorized_4401")
                 logger.warning("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=4401", trace_id, user, session_key, path)
             else:
