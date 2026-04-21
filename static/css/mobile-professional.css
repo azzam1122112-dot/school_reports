@@ -1,0 +1,278 @@
+/* Mobile-only polish layer.
+   Scope: all pages except the main home page.
+   Desktop is intentionally untouched. */
+@media (max-width: 768px) {
+  body.not-home {
+    --m-font-base: 14px;
+    --m-font-sm: 12px;
+    --m-font-lg: 15px;
+    --m-radius: 12px;
+    --m-radius-sm: 9px;
+    --m-gap: 10px;
+    --m-gap-sm: 8px;
+    --m-pad: 12px;
+    --m-pad-sm: 9px;
+  }
+
+  body.not-home {
+    font-size: var(--m-font-base);
+    line-height: 1.5;
+  }
+
+  body.not-home .page-main,
+  body.not-home .container {
+    padding-inline: 12px !important;
+  }
+
+  body.not-home .page-main {
+    padding-bottom: 88px;
+  }
+
+  body.not-home img,
+  body.not-home svg,
+  body.not-home video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  body.not-home h1,
+  body.not-home .page-title,
+  body.not-home .title-xl {
+    font-size: clamp(1rem, 3.8vw, 1.15rem) !important;
+    line-height: 1.35;
+    margin-bottom: var(--m-gap-sm);
+  }
+
+  body.not-home h2,
+  body.not-home .title-lg {
+    font-size: clamp(0.95rem, 3.4vw, 1.05rem) !important;
+    line-height: 1.4;
+  }
+
+  body.not-home h3,
+  body.not-home h4,
+  body.not-home .title-md {
+    font-size: clamp(0.9rem, 3.1vw, 1rem) !important;
+    line-height: 1.45;
+  }
+
+  body.not-home p,
+  body.not-home li,
+  body.not-home label,
+  body.not-home .text,
+  body.not-home .muted {
+    font-size: var(--m-font-base);
+  }
+
+  body.not-home small,
+  body.not-home .help,
+  body.not-home .hint,
+  body.not-home .meta {
+    font-size: var(--m-font-sm) !important;
+  }
+
+  body.not-home .card,
+  body.not-home .app-card,
+  body.not-home .panel,
+  body.not-home .box,
+  body.not-home .tile,
+  body.not-home .kpi-card,
+  body.not-home .stat-card,
+  body.not-home article,
+  body.not-home section[class*="card"],
+  body.not-home div[class*="card"] {
+    border-radius: var(--m-radius) !important;
+    padding: var(--m-pad) !important;
+    margin-bottom: var(--m-gap) !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07) !important;
+  }
+
+  body.not-home .modal,
+  body.not-home .modal-content,
+  body.not-home .sheet,
+  body.not-home .dialog,
+  body.not-home .school-panel,
+  body.not-home .drawer {
+    border-radius: var(--m-radius) !important;
+  }
+
+  body.not-home .header-actions,
+  body.not-home .form-actions,
+  body.not-home .card-actions,
+  body.not-home .action-row,
+  body.not-home .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--m-gap-sm) !important;
+  }
+
+  body.not-home .card-header,
+  body.not-home .app-card-header,
+  body.not-home .panel-head,
+  body.not-home .tile-head {
+    margin-bottom: var(--m-gap-sm) !important;
+    padding-bottom: var(--m-gap-sm) !important;
+  }
+
+  body.not-home .btn,
+  body.not-home button,
+  body.not-home input[type="submit"],
+  body.not-home input[type="button"],
+  body.not-home .button {
+    min-height: 38px;
+    padding: 8px 12px;
+    border-radius: var(--m-radius-sm) !important;
+    font-size: var(--m-font-base) !important;
+    line-height: 1.25;
+  }
+
+  body.not-home .btn-sm,
+  body.not-home .button-sm {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: var(--m-font-sm) !important;
+  }
+
+  body.not-home input:not([type="checkbox"]):not([type="radio"]),
+  body.not-home select,
+  body.not-home textarea {
+    min-height: 38px;
+    padding: 8px 10px;
+    border-radius: var(--m-radius-sm);
+    font-size: var(--m-font-base) !important;
+  }
+
+  body.not-home textarea {
+    min-height: 88px;
+  }
+
+  body.not-home .form-group,
+  body.not-home .field,
+  body.not-home .input-group {
+    margin-bottom: var(--m-gap-sm) !important;
+  }
+
+  body.not-home .form-grid,
+  body.not-home .filters-grid,
+  body.not-home .cards-grid,
+  body.not-home .stats-grid,
+  body.not-home .kpi-grid,
+  body.not-home [class*="form-grid"],
+  body.not-home [class*="cards-grid"],
+  body.not-home [class*="stats-grid"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.not-home .badge,
+  body.not-home .pill,
+  body.not-home .chip,
+  body.not-home [class*="badge"],
+  body.not-home [class*="pill"] {
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+    border-radius: 999px !important;
+  }
+
+  body.not-home table {
+    font-size: 12px !important;
+    min-width: 520px;
+  }
+
+  body.not-home th,
+  body.not-home td {
+    padding: 8px 6px !important;
+    vertical-align: middle;
+  }
+
+  body.not-home .table-wrap,
+  body.not-home .table-responsive,
+  body.not-home .table-container,
+  body.not-home [class*="table-wrap"],
+  body.not-home [class*="table-container"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--m-radius-sm);
+  }
+
+  body.not-home .grid,
+  body.not-home .cards-grid,
+  body.not-home [class*="grid"] {
+    gap: var(--m-gap) !important;
+  }
+
+  body.not-home .actions,
+  body.not-home .toolbar,
+  body.not-home .filters,
+  body.not-home [class*="actions"] {
+    gap: var(--m-gap-sm) !important;
+  }
+
+  body.not-home .toolbar,
+  body.not-home .filters,
+  body.not-home [class*="filters"] {
+    flex-wrap: wrap;
+  }
+
+  body.not-home .pagination,
+  body.not-home [class*="pagination"] {
+    gap: 6px !important;
+    flex-wrap: wrap;
+  }
+
+  body.not-home .pagination a,
+  body.not-home .pagination button,
+  body.not-home [class*="pagination"] a,
+  body.not-home [class*="pagination"] button {
+    min-height: 32px;
+    min-width: 32px;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+  }
+
+  body.not-home .empty-state,
+  body.not-home .empty-box,
+  body.not-home [class*="empty"] {
+    padding: 14px 12px !important;
+    border-radius: var(--m-radius) !important;
+    font-size: var(--m-font-sm) !important;
+  }
+
+  body.not-home .messages {
+    padding-inline: 10px !important;
+  }
+
+  body.not-home .msg {
+    padding: 10px 12px !important;
+    border-radius: var(--m-radius) !important;
+    font-size: var(--m-font-sm) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  body.not-home {
+    --m-font-base: 13px;
+    --m-font-sm: 11px;
+    --m-pad: 10px;
+    --m-gap: 8px;
+  }
+
+  body.not-home .page-main,
+  body.not-home .container {
+    padding-inline: 10px !important;
+  }
+
+  body.not-home .btn,
+  body.not-home button,
+  body.not-home input[type="submit"],
+  body.not-home input[type="button"],
+  body.not-home .button {
+    min-height: 36px;
+    padding: 7px 10px;
+  }
+
+  body.not-home .icon-btn {
+    width: 34px;
+    height: 34px;
+  }
+}

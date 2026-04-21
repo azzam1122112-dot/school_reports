@@ -758,10 +758,12 @@
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/v4-shims.min.css' %}">
 
+  <link rel="stylesheet" href="{% static 'css/mobile-professional.css' %}" />
+
   {% block head %}{% endblock %}
 </head>
 
-<body class="page">
+<body class="page {% if request.resolver_match and request.resolver_match.url_name == 'home' %}is-home{% else %}not-home{% endif %}">
   <a class="skip-link" href="#mainContent">تخطي إلى المحتوى</a>
   <div class="progress-bar" id="scrollProgress"></div>
 
