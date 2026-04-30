@@ -90,9 +90,9 @@ def healthz(request):
 
 
 def ops_metrics(request):
-    """Return current opmetrics counters plus infrastructure stats. Superuser-only."""
+    """Return current opmetrics counters plus infrastructure stats. Staff/admin only."""
     user = getattr(request, "user", None)
-    if not (user and getattr(user, "is_authenticated", False) and getattr(user, "is_superuser", False)):
+    if not (user and getattr(user, "is_authenticated", False) and (getattr(user, "is_superuser", False) or getattr(user, "is_staff", False))):
         return JsonResponse({"detail": "forbidden"}, status=403)
 
     from core import opmetrics as _opm
@@ -105,6 +105,26 @@ def ops_metrics(request):
         from django.db import connection
         infra["db_vendor"] = connection.vendor
         infra["db_conn_max_age"] = getattr(connection.settings_dict, "CONN_MAX_AGE", None) or connection.settings_dict.get("CONN_MAX_AGE")
+        infra["db_connection_usable"] = bool(connection.is_usable())
+    except Exception:
+        pass
+
+    try:
+        import os as _os
+        import resource as _resource
+
+        infra["process_cpu_seconds"] = round(float(_resource.getrusage(_resource.RUSAGE_SELF).ru_utime), 3)
+        infra["process_ram_mb"] = round(float(_resource.getrusage(_resource.RUSAGE_SELF).ru_maxrss) / 1024, 1)
+        infra["pid"] = _os.getpid()
+    except Exception:
+        pass
+
+    try:
+        import psutil  # type: ignore
+
+        proc = psutil.Process()
+        infra["process_cpu_percent"] = proc.cpu_percent(interval=0.0)
+        infra["process_rss_mb"] = round(proc.memory_info().rss / (1024 * 1024), 1)
     except Exception:
         pass
 
@@ -118,8 +138,17 @@ def ops_metrics(request):
         infra["redis_cache_keys"] = total_keys
         mem_info = redis_conn.info(section="memory")
         infra["redis_used_memory_mb"] = round(mem_info.get("used_memory", 0) / (1024 * 1024), 1)
+        client_info = redis_conn.info(section="clients")
+        infra["redis_connected_clients"] = client_info.get("connected_clients")
     except Exception:
         infra["redis_cache_keys"] = "unavailable"
+
+    try:
+        from django.core.cache import cache
+
+        infra["ws_active_connections"] = int(cache.get("ws:gauge:active") or 0)
+    except Exception:
+        pass
 
     # ── Celery queue lengths (best-effort via Redis LLEN) ──
     try:

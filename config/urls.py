@@ -31,7 +31,9 @@ def service_worker(request):
     if content is None:
         return HttpResponse("Service worker not found.", status=404, content_type="text/plain")
 
-    return HttpResponse(content, content_type="application/javascript")
+    response = HttpResponse(content, content_type="application/javascript")
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 
 def robots_txt(_request):
@@ -48,9 +50,45 @@ def robots_txt(_request):
 
         if isinstance(content, bytes):
             content = content.decode("utf-8", errors="ignore")
-        return HttpResponse(content, content_type="text/plain")
+        response = HttpResponse(content, content_type="text/plain")
+        response["Cache-Control"] = "public, max-age=3600"
+        return response
     except Exception:
-        return HttpResponse("User-agent: *\nDisallow:\n", content_type="text/plain")
+        response = HttpResponse("User-agent: *\nDisallow:\n", content_type="text/plain")
+        response["Cache-Control"] = "public, max-age=3600"
+        return response
+
+
+def security_txt(request):
+    base = request.build_absolute_uri("/").rstrip("/")
+    content = "\n".join([
+        "Contact: mailto:support@example.com",
+        f"Canonical: {base}/.well-known/security.txt",
+        f"Policy: {base}/privacy-policy/",
+        "Preferred-Languages: ar, en",
+        "",
+    ])
+    response = HttpResponse(content, content_type="text/plain")
+    response["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+def sitemap_xml(request):
+    base = request.build_absolute_uri("/").rstrip("/")
+    urls = [
+        f"{base}/",
+        f"{base}/login/",
+        f"{base}/user-guide/",
+        f"{base}/privacy-policy/",
+        f"{base}/faq/",
+    ]
+    body = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for url in urls:
+        body.append(f"  <url><loc>{url}</loc></url>")
+    body.append("</urlset>")
+    response = HttpResponse("\n".join(body), content_type="application/xml")
+    response["Cache-Control"] = "public, max-age=3600"
+    return response
 
 from core.views import healthz, ops_metrics
 
@@ -114,6 +152,8 @@ urlpatterns = [
         RedirectView.as_view(url="/static/img/logo1.png", permanent=False),
     ),
     path("robots.txt", robots_txt),
+    path("sitemap.xml", sitemap_xml, name="sitemap_xml"),
+    path(".well-known/security.txt", security_txt, name="security_txt"),
     path("sw.js", service_worker, name="service_worker"),
     # REST API v1
     path("api/v1/", include("reports.api_urls")),

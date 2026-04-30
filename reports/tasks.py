@@ -45,7 +45,7 @@ def _task_ctx(task_obj) -> tuple[str | None, int, str | None]:
         return None, 0, None
 
 
-@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={"max_retries": 3})
 def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 2000) -> int:
     """Delete AuditLog rows older than N days.
 
@@ -88,7 +88,7 @@ def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 200
     return deleted_total
 
 
-@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3}, rate_limit="30/m")
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={"max_retries": 3}, rate_limit="30/m")
 def process_report_images(self, report_id: int) -> bool:
     """
     Task to process images for a report (compression/optimization).
@@ -152,7 +152,7 @@ def process_report_images(self, report_id: int) -> bool:
     return True
 
 
-@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3}, rate_limit="30/m")
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={"max_retries": 3}, rate_limit="30/m")
 def process_ticket_image(self, ticket_image_id: int) -> bool:
     """
     Task to process a single ticket image (compression/optimization).
@@ -217,7 +217,7 @@ def process_ticket_image(self, ticket_image_id: int) -> bool:
         return False
 
 
-@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3}, soft_time_limit=600, time_limit=900)
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={"max_retries": 3}, soft_time_limit=600, time_limit=900)
 def send_notification_task(self, notification_id: int, teacher_ids=None) -> bool:
     """
     Task to create NotificationRecipient objects in the background.

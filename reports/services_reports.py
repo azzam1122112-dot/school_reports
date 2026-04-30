@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
+from django.core.cache import cache
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q, QuerySet, Count
 from django.shortcuts import get_object_or_404
@@ -52,6 +53,27 @@ def paginate(qs: QuerySet, *, per_page: int, page: str | int | None):
 def get_teacher_reports_queryset(*, user, active_school: Optional[School]) -> QuerySet:
     qs = (
         Report.objects.select_related("teacher", "category", "school")
+        .only(
+            "id",
+            "title",
+            "report_date",
+            "day_name",
+            "beneficiaries_count",
+            "idea",
+            "image1",
+            "image2",
+            "image3",
+            "image4",
+            "teacher_id",
+            "teacher__id",
+            "teacher__name",
+            "category_id",
+            "category__id",
+            "category__name",
+            "school_id",
+            "school__id",
+            "school__name",
+        )
         .filter(teacher=user)
         .order_by("-report_date", "-id")
     )
@@ -90,7 +112,33 @@ def teacher_report_stats(qs: QuerySet) -> dict:
 
 
 def get_admin_reports_queryset(*, user, active_school: Optional[School]) -> QuerySet:
-    qs = Report.objects.select_related("teacher", "category", "school").order_by("-report_date", "-id")
+    qs = (
+        Report.objects.select_related("teacher", "category", "school")
+        .only(
+            "id",
+            "title",
+            "report_date",
+            "teacher_name",
+            "day_name",
+            "beneficiaries_count",
+            "idea",
+            "image1",
+            "image2",
+            "image3",
+            "image4",
+            "teacher_id",
+            "teacher__id",
+            "teacher__name",
+            "category_id",
+            "category__id",
+            "category__name",
+            "category__code",
+            "school_id",
+            "school__id",
+            "school__name",
+        )
+        .order_by("-report_date", "-id")
+    )
     qs = restrict_queryset_for_user(qs, user, active_school)
     return filter_by_school(qs, active_school)
 
@@ -125,6 +173,15 @@ def apply_admin_report_filters(
 
 
 def get_reporttype_choices(*, active_school: Optional[School]) -> list[tuple[str, str]]:
+    school_id = int(getattr(active_school, "id", 0) or 0)
+    cache_key = f"reporttype-choices:v1:s{school_id}"
+    try:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return list(cached)
+    except Exception:
+        pass
+
     if ReportType is None:
         return []
 
@@ -135,7 +192,12 @@ def get_reporttype_choices(*, active_school: Optional[School]) -> list[tuple[str
     except Exception:
         pass
 
-    return [(rt.code, rt.name) for rt in qs]
+    result = [(rt.code, rt.name) for rt in qs]
+    try:
+        cache.set(cache_key, result, 120)
+    except Exception:
+        pass
+    return result
 
 
 def get_report_for_user_or_404(*, user, pk: int, active_school: Optional[School]):

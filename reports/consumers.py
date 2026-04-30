@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
+import asyncio
+import contextlib
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -25,6 +27,25 @@ MAX_WS_CONNECTIONS_PER_USER = 3       # max concurrent sockets per user
 WS_CONNECT_RATE_WINDOW_SECONDS = 60   # sliding window for rate-limit
 WS_CONNECT_RATE_MAX = 10              # max new connections per window
 COUNTS_CACHE_TTL_SECONDS = 10         # cache _compute_counts per user
+WS_HEARTBEAT_TIMEOUT_SECONDS = 75
+WS_IDLE_SWEEP_SECONDS = 15
+
+
+def _gauge_key(name: str) -> str:
+    return f"ws:gauge:{name}"
+
+
+def _safe_cache_delta(key: str, delta: int, *, floor: int = 0) -> int:
+    try:
+        cache.add(key, 0, timeout=3600)
+        if delta >= 0:
+            return int(cache.incr(key, delta))
+        current = int(cache.get(key) or 0)
+        updated = max(floor, current + delta)
+        cache.set(key, updated, timeout=3600)
+        return updated
+    except Exception:
+        return 0
 
 
 class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
@@ -41,12 +62,16 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
     trace_id: str
     _last_resync_ts: float
     group_name: str
+    _idle_watchdog_task: Optional[asyncio.Task]
 
     async def connect(self):
         user = self.scope.get("user")
         self.trace_id = self._scope_header("x-request-id") or "-"
         self._last_resync_ts = 0.0
         self.group_name = ""  # ensure always set before disconnect
+        self._idle_watchdog_task = None
+        self.connected_at = time.monotonic()
+        self.last_client_activity_ts = self.connected_at
         session_key = self._scope_session_key()
         path = self.scope.get("path")
         if not user or not getattr(user, "is_authenticated", False):
@@ -149,10 +174,19 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             path,
         )
         opmetrics.increment("ws.notifications.connect.accepted")
+        _safe_cache_delta(_gauge_key("active"), 1)
+        _safe_cache_delta(_gauge_key(f"user:{self.user_id}"), 1)
+        self._idle_watchdog_task = asyncio.create_task(self._idle_watchdog())
         payload = await self._compute_counts_cached()
         await self.send_json({"type": "counts", **payload})
+        opmetrics.increment("ws.notifications.messages.sent")
 
     async def disconnect(self, code):
+        watchdog = getattr(self, "_idle_watchdog_task", None)
+        if watchdog is not None:
+            watchdog.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await watchdog
         group = getattr(self, "group_name", "")
         if group:
             try:
@@ -167,11 +201,16 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 cache.decr(cap_key)
         except Exception:
             pass
+        uid = getattr(self, "user_id", None)
+        if uid is not None:
+            _safe_cache_delta(_gauge_key("active"), -1)
+            _safe_cache_delta(_gauge_key(f"user:{uid}"), -1)
         try:
             user = getattr(self, "user_id", None)
             path = self.scope.get("path")
             session_key = self._scope_session_key()
             trace_id = getattr(self, "trace_id", "-")
+            duration_ms = round((time.monotonic() - float(getattr(self, "connected_at", time.monotonic()))) * 1000, 1)
             # code=None means the TCP connection dropped with no WebSocket close
             # frame (e.g. page navigation, OS killing idle tab) — treat it as 1006.
             norm_code = (
@@ -201,18 +240,22 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                         trace_id, user, session_key, path, code, ua, count)
             elif norm_code == 4401:
                 opmetrics.increment("ws.notifications.close.unauthorized_4401")
-                logger.warning("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=4401", trace_id, user, session_key, path)
+                logger.warning("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=4401 duration_ms=%s", trace_id, user, session_key, path, duration_ms)
             else:
                 opmetrics.increment("ws.notifications.close.other")
-                logger.info("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=%s normalized_code=%s", trace_id, user, session_key, path, code, norm_code)
+                logger.info("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=%s normalized_code=%s duration_ms=%s", trace_id, user, session_key, path, code, norm_code, duration_ms)
+            opmetrics.timing("ws.notifications.connection.duration", duration_ms)
         except Exception:
             pass
 
     async def receive_json(self, content: Dict[str, Any], **kwargs):
+        self.last_client_activity_ts = time.monotonic()
+        opmetrics.increment("ws.notifications.messages.received")
         msg_type = (content or {}).get("type")
         if msg_type in {"keepalive", "ping"}:
             try:
                 await self.send_json({"type": "pong"})
+                opmetrics.increment("ws.notifications.messages.sent")
             except Exception:
                 pass
             return
@@ -225,6 +268,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             logger.debug("WS notifications resync request trace_id=%s user_id=%s", getattr(self, "trace_id", "-"), getattr(self, "user_id", None))
             payload = await self._compute_counts_cached()
             await self.send_json({"type": "counts", **payload})
+            opmetrics.increment("ws.notifications.messages.sent")
             return
 
         if msg_type == "set_active_school":
@@ -241,6 +285,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             )
             payload = await self._compute_counts_cached()
             await self.send_json({"type": "counts", **payload})
+            opmetrics.increment("ws.notifications.messages.sent")
             return
 
     async def notif_delta(self, event: Dict[str, Any]):
@@ -261,6 +306,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             "force_resync": bool(event.get("force_resync") or False),
         }
         await self.send_json(out)
+        opmetrics.increment("ws.notifications.messages.sent")
 
     async def _compute_counts_cached(self) -> Dict[str, int]:
         """Return cached notification counts to avoid hammering the DB on
@@ -310,6 +356,25 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             "unread": int(agg.get("unread") or 0),
             "signatures_pending": int(agg.get("signatures_pending") or 0),
         }
+
+    async def _idle_watchdog(self) -> None:
+        while True:
+            await asyncio.sleep(WS_IDLE_SWEEP_SECONDS)
+            last_seen = float(getattr(self, "last_client_activity_ts", 0.0) or 0.0)
+            if not last_seen:
+                last_seen = time.monotonic()
+            if time.monotonic() - last_seen <= WS_HEARTBEAT_TIMEOUT_SECONDS:
+                continue
+            opmetrics.increment("ws.notifications.close.idle_timeout")
+            logger.info(
+                "WS notifications idle timeout trace_id=%s user_id=%s timeout_seconds=%s",
+                getattr(self, "trace_id", "-"),
+                getattr(self, "user_id", None),
+                WS_HEARTBEAT_TIMEOUT_SECONDS,
+            )
+            with contextlib.suppress(Exception):
+                await self.close(code=4408)
+            return
 
     def _scope_header(self, name: str) -> str:
         needle = (name or "").strip().lower().encode()

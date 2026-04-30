@@ -1033,18 +1033,12 @@
                   </div>
 
                   {# بيانات مخفية للـ JS (الـ idea آمنة لأن linebreaksbr يعمل escape) #}
-                  <div id="rd-data-{{ r.pk }}" style="display:none;">
+                  <div id="rd-data-{{ r.pk }}" style="display:none;" data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}">
                     <div class="d-teacher">{{ r.teacher_display_name }}</div>
                     <div class="d-title">{{ r.title }}</div>
                     <div class="d-date">{{ r.report_date|date:"Y-m-d" }}</div>
                     <div class="d-category">{% if r.category %}{{ r.category.name }}{% endif %}</div>
                     <div class="d-idea">{{ r.idea|default:""|linebreaksbr }}</div>
-                    <div class="d-images">
-                      {% if r.image1 %}{{ r.image1.url }}{% endif %}|
-                      {% if r.image2 %}{{ r.image2.url }}{% endif %}|
-                      {% if r.image3 %}{{ r.image3.url }}{% endif %}|
-                      {% if r.image4 %}{{ r.image4.url }}{% endif %}
-                    </div>
                   </div>
                 </td>
               </tr>
@@ -1126,21 +1120,6 @@
                 </button>
               </form>
             {% endif %}
-
-            {# نفس بيانات الـ JS للموبايل #}
-            <div id="rd-data-{{ r.pk }}" style="display:none;">
-              <div class="d-teacher">{{ r.teacher_display_name }}</div>
-              <div class="d-title">{{ r.title }}</div>
-              <div class="d-date">{{ r.report_date|date:"Y-m-d" }}</div>
-              <div class="d-category">{% if r.category %}{{ r.category.name }}{% endif %}</div>
-              <div class="d-idea">{{ r.idea|default:""|linebreaksbr }}</div>
-              <div class="d-images">
-                {% if r.image1 %}{{ r.image1.url }}{% endif %}|
-                {% if r.image2 %}{{ r.image2.url }}{% endif %}|
-                {% if r.image3 %}{{ r.image3.url }}{% endif %}|
-                {% if r.image4 %}{{ r.image4.url }}{% endif %}
-              </div>
-            </div>
           </div>
         </div>
       {% empty %}
@@ -1274,7 +1253,7 @@
       var te = box.querySelector('.d-teacher');
       var d = box.querySelector('.d-date');
       var idea = box.querySelector('.d-idea');
-      var imgs = box.querySelector('.d-images');
+      var imagesData = box.getAttribute('data-images') || '';
 
       byId('rd-dlg-title').textContent = t ? t.textContent : '';
       byId('rd-dlg-teacher').textContent = te ? te.textContent : '';
@@ -1286,7 +1265,7 @@
       var imagesWrap = byId('rd-dlg-images');
       if(imagesWrap){
         imagesWrap.innerHTML = '';
-        var arr = splitImages(imgs ? imgs.textContent : '');
+        var arr = splitImages(imagesData);
 
         if(arr.length === 0){
           var sp = document.createElement('div');
