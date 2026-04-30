@@ -67,3 +67,72 @@ class NotificationConsumerTests(TransactionTestCase):
         async_to_sync(consumer.receive_json)({"type": "ping"})
 
         consumer.send_json.assert_awaited_once_with({"type": "pong"})
+
+    def test_set_active_school_does_not_log_when_value_unchanged(self):
+        consumer = NotificationCountsConsumer()
+        consumer.trace_id = "trace-1"
+        consumer.user_id = self.teacher.id
+        consumer.active_school_id = self.school.id
+        consumer.send_json = AsyncMock()
+        consumer._compute_counts_cached = AsyncMock(
+            return_value={"count": 0, "unread": 0, "signatures_pending": 0}
+        )
+
+        with patch("reports.consumers.logger.info") as log_info:
+            async_to_sync(consumer.receive_json)(
+                {"type": "set_active_school", "active_school_id": self.school.id}
+            )
+
+        log_info.assert_not_called()
+        consumer.send_json.assert_awaited_once_with(
+            {"type": "counts", "count": 0, "unread": 0, "signatures_pending": 0}
+        )
+
+    def test_disconnect_1006_logs_warning_only_when_repeated(self):
+        consumer = NotificationCountsConsumer()
+        consumer.user_id = self.teacher.id
+        consumer.trace_id = "trace-2"
+        consumer.scope = {
+            "path": "/ws/notifications/",
+            "headers": [(b"user-agent", b"Mozilla/5.0")],
+        }
+        consumer.connected_at = 0.0
+        consumer.group_name = ""
+        consumer.channel_layer = AsyncMock()
+        consumer.channel_name = "test-channel"
+        consumer._idle_watchdog_task = None
+
+        with patch("reports.consumers.timezone.now") as mocked_now:
+            mocked_now.return_value.strftime.return_value = "2026043011"
+            with patch("reports.consumers.cache.add", return_value=True):
+                with patch("reports.consumers.cache.incr", return_value=1):
+                    with patch("reports.consumers.time.monotonic", return_value=1.0):
+                        with patch("reports.consumers.logger.debug") as log_debug:
+                            with patch("reports.consumers.logger.warning") as log_warning:
+                                async_to_sync(consumer.disconnect)(1006)
+        self.assertTrue(log_debug.called)
+        self.assertFalse(log_warning.called)
+
+        consumer = NotificationCountsConsumer()
+        consumer.user_id = self.teacher.id
+        consumer.trace_id = "trace-3"
+        consumer.scope = {
+            "path": "/ws/notifications/",
+            "headers": [(b"user-agent", b"Mozilla/5.0")],
+        }
+        consumer.connected_at = 0.0
+        consumer.group_name = ""
+        consumer.channel_layer = AsyncMock()
+        consumer.channel_name = "test-channel"
+        consumer._idle_watchdog_task = None
+
+        with patch("reports.consumers.timezone.now") as mocked_now:
+            mocked_now.return_value.strftime.return_value = "2026043012"
+            with patch("reports.consumers.cache.add", return_value=False):
+                with patch("reports.consumers.cache.incr", return_value=10):
+                    with patch("reports.consumers.time.monotonic", return_value=1.0):
+                        with patch("reports.consumers.logger.debug") as log_debug:
+                            with patch("reports.consumers.logger.warning") as log_warning:
+                                async_to_sync(consumer.disconnect)(1006)
+        self.assertFalse(log_debug.called)
+        self.assertTrue(log_warning.called)

@@ -63,6 +63,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
     _last_resync_ts: float
     group_name: str
     _idle_watchdog_task: Optional[asyncio.Task]
+    _disconnect_log_reason: Optional[str]
 
     async def connect(self):
         user = self.scope.get("user")
@@ -70,6 +71,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
         self._last_resync_ts = 0.0
         self.group_name = ""  # ensure always set before disconnect
         self._idle_watchdog_task = None
+        self._disconnect_log_reason = None
         self.connected_at = time.monotonic()
         self.last_client_activity_ts = self.connected_at
         session_key = self._scope_session_key()
@@ -83,6 +85,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 session_key,
                 path,
             )
+            self._remember_close_reason("unauthenticated")
             await self.close(code=4401)
             return
 
@@ -101,6 +104,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                     "WS notifications rate-limited trace_id=%s user_id=%s connects_in_window=%s",
                     self.trace_id, self.user_id, conn_count,
                 )
+                self._remember_close_reason("rate_limited")
                 await self.close(code=4429)
                 return
         except Exception:
@@ -118,6 +122,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                     "WS notifications max-connections trace_id=%s user_id=%s active=%s",
                     self.trace_id, self.user_id, active,
                 )
+                self._remember_close_reason("max_connections")
                 await self.close(code=4429)
                 return
         except Exception:
@@ -151,6 +156,7 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 await self.accept()
             except Exception:
                 pass
+            self._remember_close_reason("group_add_failed")
             await self.close(code=1011)
             return
         try:
@@ -218,13 +224,22 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 if isinstance(code, int)
                 else (int(code) if isinstance(code, str) and code.isdigit() else 1006)
             )
+            reason = self._disconnect_reason(norm_code)
             if norm_code == 1000:
-                logger.debug("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=1000", trace_id, user, session_key, path)
+                logger.debug(
+                    "WS notifications close trace_id=%s user_id=%s session=%s path=%s code=%s reason=%s duration_ms=%s",
+                    trace_id,
+                    user,
+                    session_key,
+                    path,
+                    norm_code,
+                    reason,
+                    duration_ms,
+                )
             elif norm_code == 1006:
                 opmetrics.increment("ws.notifications.close.abnormal_1006")
                 ua = self._scope_header("user-agent")
                 ua_l = ua.lower()
-                is_mobile_browser = "android" in ua_l or "mobile" in ua_l or "iphone" in ua_l or "ipad" in ua_l
                 bucket = timezone.now().strftime("%Y%m%d%H")
                 key = f"ws_disconnect_1006:{bucket}"
                 try:
@@ -234,16 +249,47 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                     count = None
                 # Log only 1st, 10th, 100th per hour to reduce noise
                 if count in {1, 10, 100} or count is None:
-                    log_fn = logger.debug if is_mobile_browser else logger.warning
+                    is_repeated = count not in {None, 1}
+                    log_fn = logger.warning if is_repeated else logger.debug
                     log_fn(
-                        "WS notifications abnormal_close trace_id=%s user_id=%s session=%s path=%s code=%s ua=%s hour_count=%s",
-                        trace_id, user, session_key, path, code, ua, count)
+                        "WS notifications abnormal_close trace_id=%s user_id=%s session=%s path=%s code=%s normalized_code=%s reason=%s ua=%s hour_count=%s duration_ms=%s",
+                        trace_id,
+                        user,
+                        session_key,
+                        path,
+                        code,
+                        norm_code,
+                        reason,
+                        ua,
+                        count,
+                        duration_ms,
+                    )
             elif norm_code == 4401:
                 opmetrics.increment("ws.notifications.close.unauthorized_4401")
-                logger.warning("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=4401 duration_ms=%s", trace_id, user, session_key, path, duration_ms)
+                logger.warning(
+                    "WS notifications close trace_id=%s user_id=%s session=%s path=%s code=%s reason=%s duration_ms=%s",
+                    trace_id,
+                    user,
+                    session_key,
+                    path,
+                    norm_code,
+                    reason,
+                    duration_ms,
+                )
             else:
                 opmetrics.increment("ws.notifications.close.other")
-                logger.info("WS notifications close trace_id=%s user_id=%s session=%s path=%s code=%s normalized_code=%s duration_ms=%s", trace_id, user, session_key, path, code, norm_code, duration_ms)
+                log_fn = logger.warning if self._is_clearly_abnormal_close(norm_code) else logger.info
+                log_fn(
+                    "WS notifications close trace_id=%s user_id=%s session=%s path=%s code=%s normalized_code=%s reason=%s duration_ms=%s",
+                    trace_id,
+                    user,
+                    session_key,
+                    path,
+                    code,
+                    norm_code,
+                    reason,
+                    duration_ms,
+                )
             opmetrics.timing("ws.notifications.connection.duration", duration_ms)
         except Exception:
             pass
@@ -272,17 +318,21 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             return
 
         if msg_type == "set_active_school":
+            previous_school_id = getattr(self, "active_school_id", None)
             sid = content.get("active_school_id")
             try:
-                self.active_school_id = int(sid) if sid else None
+                next_school_id = int(sid) if sid else None
             except Exception:
-                self.active_school_id = None
-            logger.info(
-                "WS notifications active school updated trace_id=%s user_id=%s active_school_id=%s",
-                getattr(self, "trace_id", "-"),
-                getattr(self, "user_id", None),
-                self.active_school_id,
-            )
+                next_school_id = None
+            self.active_school_id = next_school_id
+            if previous_school_id != next_school_id:
+                logger.info(
+                    "WS notifications active school updated trace_id=%s user_id=%s previous_active_school_id=%s active_school_id=%s",
+                    getattr(self, "trace_id", "-"),
+                    getattr(self, "user_id", None),
+                    previous_school_id,
+                    next_school_id,
+                )
             payload = await self._compute_counts_cached()
             await self.send_json({"type": "counts", **payload})
             opmetrics.increment("ws.notifications.messages.sent")
@@ -373,8 +423,42 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 WS_HEARTBEAT_TIMEOUT_SECONDS,
             )
             with contextlib.suppress(Exception):
+                self._remember_close_reason("idle_timeout")
                 await self.close(code=4408)
             return
+
+    def _remember_close_reason(self, reason: Optional[str]) -> None:
+        self._disconnect_log_reason = reason or None
+
+    def _disconnect_reason(self, norm_code: int) -> str:
+        explicit_reason = getattr(self, "_disconnect_log_reason", None)
+        if explicit_reason:
+            return explicit_reason
+        return {
+            1000: "normal_closure",
+            1006: "connection_dropped",
+            1011: "server_error",
+            4401: "unauthenticated",
+            4408: "idle_timeout",
+            4429: "policy_limit",
+        }.get(norm_code, "unknown")
+
+    def _is_clearly_abnormal_close(self, norm_code: int) -> bool:
+        return norm_code in {
+            1002,
+            1003,
+            1005,
+            1006,
+            1007,
+            1008,
+            1009,
+            1010,
+            1011,
+            1012,
+            1013,
+            1014,
+            1015,
+        }
 
     def _scope_header(self, name: str) -> str:
         needle = (name or "").strip().lower().encode()
