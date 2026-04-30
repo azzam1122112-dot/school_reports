@@ -182,6 +182,21 @@
   .ar-field:last-child {
     margin-bottom: 0;
   }
+
+  .ar-required-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: var(--ar-radius-full);
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--ar-danger);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+  }
   
   .ar-field label {
     display: block;
@@ -227,6 +242,22 @@
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
     transform: translateY(-1px);
   }
+
+  .ar-field.is-invalid input,
+  .ar-field.is-invalid select,
+  .ar-field.is-invalid textarea {
+    border-color: rgba(239, 68, 68, 0.9);
+    background: linear-gradient(180deg, rgba(254, 242, 242, 0.9), rgba(255, 255, 255, 1));
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+  }
+
+  .ar-field.is-invalid label {
+    color: #991b1b;
+  }
+
+  .ar-field.is-invalid .ar-required-mark {
+    background: rgba(239, 68, 68, 0.18);
+  }
   
   .add-report-page input:disabled,
   .add-report-page select:disabled,
@@ -260,6 +291,117 @@
     font-weight: 700;
     margin-top: 8px;
     animation: shake 0.4s ease;
+  }
+
+  .ar-inline-error[hidden] {
+    display: none !important;
+  }
+
+  .ar-validation-alert {
+    position: fixed;
+    top: calc(18px + env(safe-area-inset-top, 0px));
+    left: 50%;
+    transform: translateX(-50%) translateY(-12px);
+    width: min(92vw, 680px);
+    z-index: 9500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease, transform 0.28s ease;
+  }
+
+  .ar-validation-alert.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .ar-validation-card {
+    background:
+      linear-gradient(135deg, rgba(127, 29, 29, 0.97), rgba(239, 68, 68, 0.96)),
+      var(--ar-surface);
+    color: #fff;
+    border-radius: 22px;
+    padding: 18px 20px;
+    box-shadow: 0 24px 50px rgba(127, 29, 29, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    display: grid;
+    gap: 12px;
+  }
+
+  .ar-validation-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .ar-validation-main {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .ar-validation-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.14);
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    font-size: 1.15rem;
+  }
+
+  .ar-validation-title {
+    margin: 0 0 4px;
+    font-size: 1rem;
+    font-weight: 900;
+  }
+
+  .ar-validation-text {
+    margin: 0;
+    font-size: 0.94rem;
+    line-height: 1.75;
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 600;
+  }
+
+  .ar-validation-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ar-validation-list li {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--ar-radius-full);
+    padding: 8px 12px;
+    font-size: 0.84rem;
+    font-weight: 800;
+  }
+
+  .ar-validation-close {
+    appearance: none;
+    border: 0;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: var(--ar-transition);
+    flex: 0 0 auto;
+  }
+
+  .ar-validation-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
   }
   
   @keyframes shake {
@@ -616,6 +758,40 @@
     .ar-modal h3 {
       font-size: 1.5rem;
     }
+
+    .ar-validation-alert {
+      width: calc(100vw - 20px);
+      top: calc(10px + env(safe-area-inset-top, 0px));
+    }
+
+    .ar-validation-card {
+      padding: 16px;
+      border-radius: 18px;
+      box-shadow: 0 20px 44px rgba(127, 29, 29, 0.34);
+    }
+
+    .ar-validation-head,
+    .ar-validation-main {
+      align-items: flex-start;
+    }
+
+    .ar-validation-title {
+      font-size: 0.96rem;
+    }
+
+    .ar-validation-text {
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+
+    .ar-validation-list {
+      gap: 6px;
+    }
+
+    .ar-validation-list li {
+      font-size: 0.79rem;
+      padding: 7px 10px;
+    }
   }
   
   @media (max-width: 480px) {
@@ -627,6 +803,17 @@
     .ar-submit-btn {
       font-size: 1rem;
       padding: 16px 20px;
+    }
+
+    .ar-validation-main {
+      gap: 10px;
+    }
+
+    .ar-validation-icon,
+    .ar-validation-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
     }
   }
   
@@ -669,6 +856,24 @@
     <form id="report-form" method="POST" enctype="multipart/form-data" autocomplete="off" novalidate>
       {% csrf_token %}
 
+      <div id="validationAlert" class="ar-validation-alert" hidden aria-live="assertive" aria-atomic="true">
+        <div class="ar-validation-card" role="alert">
+          <div class="ar-validation-head">
+            <div class="ar-validation-main">
+              <div class="ar-validation-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <div>
+                <h3 class="ar-validation-title">أكمل البيانات المطلوبة قبل حفظ التقرير</h3>
+                <p id="validationAlertText" class="ar-validation-text">يرجى تعبئة الحقول الإلزامية واختيار التصنيف والتاريخ، بينما تبقى المرفقات اختيارية.</p>
+              </div>
+            </div>
+            <button type="button" id="validationAlertClose" class="ar-validation-close" aria-label="إغلاق التنبيه">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <ul id="validationAlertList" class="ar-validation-list"></ul>
+        </div>
+      </div>
+
       <div class="ar-grid">
         
         <!-- MAIN COLUMN (Inputs + Idea) -->
@@ -681,8 +886,8 @@
               
               <!-- Category -->
               <div class="ar-field" data-group="category" style="margin:0">
-                <label for="{{ form.category.id_for_label }}"><i class="fa-solid fa-tag"></i> تصنيف التقرير</label>
-                <select name="{{ form.category.html_name }}" id="{{ form.category.id_for_label }}">
+                <label for="{{ form.category.id_for_label }}"><i class="fa-solid fa-tag"></i> تصنيف التقرير <span class="ar-required-mark">مطلوب</span></label>
+                 <select name="{{ form.category.html_name }}" id="{{ form.category.id_for_label }}">
                   <option value="" selected disabled>-- اختر التصنيف --</option>
                   {% for value,label in form.fields.category.choices %}
                     {% if value %}
@@ -695,7 +900,7 @@
 
               <!-- Title -->
               <div class="ar-field" data-group="title" style="margin:0">
-                 <label for="{{ form.title.id_for_label }}"><i class="fa-solid fa-heading"></i> العنوان</label>
+                 <label for="{{ form.title.id_for_label }}"><i class="fa-solid fa-heading"></i> العنوان <span class="ar-required-mark">مطلوب</span></label>
                  {{ form.title }}
                  {% if form.title.errors %}<div class="ar-error-msg">{{ form.title.errors.0 }}</div>{% endif %}
               </div>
@@ -706,7 +911,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; margin-bottom: 30px;">
                
                <div class="ar-field" data-group="report_date" style="margin:0">
-                 <label for="{{ form.report_date.id_for_label }}"><i class="fa-regular fa-calendar"></i> التاريخ</label>
+                 <label for="{{ form.report_date.id_for_label }}"><i class="fa-regular fa-calendar"></i> التاريخ <span class="ar-required-mark">مطلوب</span></label>
                  {{ form.report_date }}
                  {% if form.report_date.errors %}<div class="ar-error-msg">{{ form.report_date.errors.0 }}</div>{% endif %}
                  <div class="ar-error-msg" id="futureDateErr" style="display:none">تاريخ مستقبلي غير مسموح</div>
@@ -718,8 +923,8 @@
                </div>
 
                <div class="ar-field" style="margin:0">
-                 <label><i class="fa-solid fa-users"></i> المستفيدين</label>
-                 {{ form.beneficiaries_count }}
+                 <label for="{{ form.beneficiaries_count.id_for_label }}"><i class="fa-solid fa-users"></i> المستفيدين <span class="ar-required-mark">مطلوب</span></label>
+                  {{ form.beneficiaries_count }}
                </div>
                
                <div class="ar-field" data-group="teacher_name" style="margin:0">
@@ -734,9 +939,9 @@
 
             <!-- BIG IDEA FIELD -->
             <div class="ar-field ar-editor-wrap" data-group="idea">
-               <label for="{{ form.idea.id_for_label }}" style="font-size:1.1rem; margin-bottom:12px;">
-                 <i class="fa-solid fa-pen-nib"></i> تفاصيل التقرير والإنجاز
-               </label>
+                <label for="{{ form.idea.id_for_label }}" style="font-size:1.1rem; margin-bottom:12px;">
+                 <i class="fa-solid fa-pen-nib"></i> تفاصيل التقرير والإنجاز <span class="ar-required-mark">مطلوب</span>
+                </label>
                {{ form.idea }}
                {% if form.idea.errors %}<div class="ar-error-msg">{{ form.idea.errors.0 }}</div>{% endif %}
             </div>
@@ -893,26 +1098,136 @@
     var fill=document.getElementById('upFill');
     var pctEl=document.getElementById('upPct');
     var btn=document.getElementById('submitBtn');
-    
-    // Simple Validation
+    var alertBox=document.getElementById('validationAlert');
+    var alertText=document.getElementById('validationAlertText');
+    var alertList=document.getElementById('validationAlertList');
+    var alertClose=document.getElementById('validationAlertClose');
+
+    var validationFields = [
+      { id: 'id_category', group: 'category', label: 'تصنيف التقرير', emptyMessage: 'اختر تصنيف التقرير' },
+      { id: 'id_title', group: 'title', label: 'العنوان', emptyMessage: 'أدخل عنوان التقرير' },
+      { id: 'id_report_date', group: 'report_date', label: 'التاريخ', emptyMessage: 'حدد تاريخ التقرير' },
+      { id: 'id_beneficiaries_count', label: 'المستفيدين', emptyMessage: 'أدخل عدد المستفيدين' },
+      { id: 'id_idea', group: 'idea', label: 'تفاصيل التقرير والإنجاز', emptyMessage: 'أدخل تفاصيل التقرير والإنجاز' }
+    ];
+
+    function getFieldContainer(cfg){
+      if(!form) return null;
+      if(cfg.group){
+        return form.querySelector('.ar-field[data-group="' + cfg.group + '"]');
+      }
+      var el = document.getElementById(cfg.id);
+      return el ? el.closest('.ar-field') : null;
+    }
+
+    function getFieldElement(cfg){
+      return document.getElementById(cfg.id);
+    }
+
+    function ensureInlineError(container){
+      if(!container) return null;
+      var msg = container.querySelector('.ar-inline-error');
+      if(msg) return msg;
+      msg = document.createElement('div');
+      msg.className = 'ar-error-msg ar-inline-error';
+      msg.hidden = true;
+      container.appendChild(msg);
+      return msg;
+    }
+
+    function setFieldValidity(cfg, isValid, message){
+      var container = getFieldContainer(cfg);
+      var input = getFieldElement(cfg);
+      var inlineError = ensureInlineError(container);
+      if(container){
+        container.classList.toggle('is-invalid', !isValid);
+      }
+      if(input){
+        input.setAttribute('aria-invalid', isValid ? 'false' : 'true');
+      }
+      if(inlineError){
+        inlineError.hidden = isValid;
+        inlineError.innerHTML = isValid ? '' : '<i class="fa-solid fa-circle-exclamation"></i><span>' + message + '</span>';
+      }
+    }
+
+    function showValidationAlert(messages, customText){
+      if(!alertBox || !alertList || !alertText) return;
+      alertList.innerHTML = messages.map(function(message){
+        return '<li>' + message + '</li>';
+      }).join('');
+      alertText.textContent = customText || (
+        messages.length === 1
+          ? 'يوجد حقل مطلوب واحد بحاجة إلى استكمال قبل الحفظ.'
+          : 'يرجى استكمال الحقول التالية قبل الحفظ. المرفقات والصور تبقى اختيارية بالكامل.'
+      );
+      alertBox.hidden = false;
+      requestAnimationFrame(function(){
+        alertBox.classList.add('is-visible');
+      });
+    }
+
+    function hideValidationAlert(){
+      if(!alertBox) return;
+      alertBox.classList.remove('is-visible');
+      window.setTimeout(function(){
+        if(!alertBox.classList.contains('is-visible')){
+          alertBox.hidden = true;
+        }
+      }, 280);
+    }
+
+    function validateField(cfg){
+      var el = getFieldElement(cfg);
+      if(!el) return true;
+      var value = (el.value || '').trim();
+      var valid = true;
+      var message = cfg.emptyMessage;
+
+      if(!value){
+        valid = false;
+      } else if(cfg.id === 'id_report_date'){
+        var dt = parseDateInput(value);
+        var now = parseDateInput(todayYYYYMMDD());
+        if(!dt){
+          valid = false;
+          message = 'أدخل تاريخًا صحيحًا';
+        } else if(dt && now && dt.getTime() > now.getTime()){
+          valid = false;
+          message = 'لا يمكن اختيار تاريخ مستقبلي';
+        }
+      } else if(cfg.id === 'id_beneficiaries_count'){
+        var num = Number(value);
+        if(!isFinite(num) || value === ''){
+          valid = false;
+          message = 'أدخل عدد المستفيدين';
+        } else if(num < 0){
+          valid = false;
+          message = 'عدد المستفيدين لا يمكن أن يكون سالبًا';
+        }
+      }
+
+      setFieldValidity(cfg, valid, message);
+      return valid;
+    }
+     
     function isValid(){
-       // Add basic check logic or rely on HTML5 + Server. 
-       // For better UX, check required fields:
-       var req = form.querySelectorAll('[required]');
-       var ok=true;
-       req.forEach(function(r){ 
-         if(!r.value) { r.style.borderColor="red"; ok=false; }
-         else { r.style.borderColor=""; }
+       var invalidLabels = [];
+       var ok = true;
+       validationFields.forEach(function(cfg){
+         var fieldOk = validateField(cfg);
+         if(!fieldOk){
+           invalidLabels.push(cfg.label);
+           ok = false;
+         }
        });
-       // Check date future
-       var d=document.getElementById("id_report_date");
-       if(d){
-          var dt=parseDateInput(d.value);
-          var now=parseDateInput(todayYYYYMMDD());
-          if(dt && dt.getTime()>now.getTime()) ok=false;
+       if(!ok){
+         showValidationAlert(invalidLabels);
+       } else {
+         hideValidationAlert();
        }
        return ok;
-    }
+     }
 
     var MAX_DIM = 1600;
     var Q = 0.82;
@@ -937,13 +1252,44 @@
        });
     }
 
-    if(form){
-      form.onsubmit = async function(e){
-         e.preventDefault();
-         if(!isValid()) { 
-           alert("يرجى التأكد من البيانات وتصحيح الحقول الحمراء"); 
-           return; 
+     if(form){
+       validationFields.forEach(function(cfg){
+         var el = getFieldElement(cfg);
+         if(!el) return;
+         el.required = true;
+         el.setAttribute('aria-required', 'true');
+         var evtName = (el.tagName === 'SELECT' || el.type === 'date') ? 'change' : 'input';
+         el.addEventListener(evtName, function(){
+           validateField(cfg);
+           var anyInvalid = validationFields.some(function(item){
+             var container = getFieldContainer(item);
+             return !!(container && container.classList.contains('is-invalid'));
+           });
+           if(!anyInvalid){
+             hideValidationAlert();
+           }
+         });
+         if(evtName !== 'blur'){
+           el.addEventListener('blur', function(){
+             validateField(cfg);
+           });
          }
+       });
+
+       if(alertClose){
+         alertClose.addEventListener('click', hideValidationAlert);
+       }
+
+       form.onsubmit = async function(e){
+          e.preventDefault();
+          if(!isValid()) { 
+            var firstInvalid = form.querySelector('.ar-field.is-invalid input, .ar-field.is-invalid select, .ar-field.is-invalid textarea');
+            if(firstInvalid){
+              firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              window.setTimeout(function(){ firstInvalid.focus({ preventScroll: true }); }, 220);
+            }
+            return; 
+          }
          
          // Haptic feedback for mobile
          if (navigator.vibrate) {
@@ -1032,16 +1378,22 @@
                   if(ct.includes('text/html')){
                      document.open(); document.write(xhr.responseText); document.close();
                   } else {
-                     alert("حدث خطأ في الحفظ");
+                     showValidationAlert(
+                       ['تعذر حفظ التقرير حاليًا، حاول مرة أخرى بعد التحقق من الاتصال والبيانات.'],
+                       'حدثت مشكلة أثناء الحفظ، ولم يتم إرسال التقرير بعد.'
+                     );
                      overlay.style.display="none"; 
                      overlay.setAttribute("aria-hidden","true");
                      btn.disabled=false;
                   }
                }
             };
-            
-            xhr.onerror=function(){ 
-              alert("خطأ في الاتصال بالشبكة");
+             
+             xhr.onerror=function(){ 
+              showValidationAlert(
+                ['تعذر الاتصال بالشبكة أثناء الحفظ، يرجى المحاولة مرة أخرى.'],
+                'انقطع الاتصال أثناء الحفظ، لذلك لم يكتمل إرسال التقرير.'
+              );
               overlay.style.display="none"; 
               overlay.setAttribute("aria-hidden","true");
               btn.disabled=false; 
@@ -1049,12 +1401,15 @@
             
             xhr.send(fd);
             
-         }catch(err){
-            console.error(err);
-            alert("خطأ غير متوقع");
-            overlay.style.display="none"; 
-            overlay.setAttribute("aria-hidden","true");
-            btn.disabled=false;
+          }catch(err){
+             console.error(err);
+             showValidationAlert(
+               ['حدث خطأ غير متوقع أثناء تجهيز التقرير.'],
+               'تعذر إكمال العملية الآن، ويمكنك المحاولة مرة أخرى بعد لحظات.'
+             );
+             overlay.style.display="none"; 
+             overlay.setAttribute("aria-hidden","true");
+             btn.disabled=false;
          }
       };
     }

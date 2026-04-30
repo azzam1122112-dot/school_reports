@@ -1,4 +1,4 @@
-{# reports/templates/reports/support_tickets.html #}
+{# reports/templates/reports/my_support_tickets.html #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -275,12 +275,18 @@
           value="{% firstof request.GET.q "" %}"
           autocomplete="off"
         >
+        <select class="input" name="status" aria-label="فلترة حسب الحالة">
+          <option value="">كل الحالات</option>
+          {% for value, label in status_choices %}
+            <option value="{{ value }}"{% if current_status == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
         <button class="btnx" type="submit">
           <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> بحث
         </button>
 
-        {% if request.GET.q %}
-          <a class="btnx" href="{% url 'reports:support_tickets' %}">
+        {% if request.GET.q or current_status %}
+          <a class="btnx" href="{% url 'reports:my_support_tickets' %}">
             <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> مسح
           </a>
         {% endif %}

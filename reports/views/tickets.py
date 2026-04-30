@@ -206,12 +206,28 @@ def my_support_tickets(request: HttpRequest) -> HttpResponse:
         school=active_school,
     ).select_related("department", "assignee").order_by("-created_at")
 
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        search_filter = Q(title__icontains=q) | Q(body__icontains=q)
+        if q.isdigit():
+            search_filter |= Q(pk=int(q))
+        tickets = tickets.filter(search_filter)
+
+    valid_statuses = {value for value, _label in Ticket.Status.choices}
+    status = (request.GET.get("status") or "").strip()
+    if status in valid_statuses:
+        tickets = tickets.filter(status=status)
+    else:
+        status = ""
+
     paginator = Paginator(tickets, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
     
     return render(request, "reports/my_support_tickets.html", {
         "tickets": page_obj,
         "page_obj": page_obj,
+        "current_status": status,
+        "status_choices": Ticket.Status.choices,
     })
 
 
@@ -642,12 +658,15 @@ def tickets_inbox(request: HttpRequest) -> HttpResponse:
         user_codes = _user_department_codes(request.user, active_school)
         qs = qs.filter(Q(assignee=request.user) | Q(recipients=request.user) | Q(department__slug__in=user_codes)).distinct()
 
+    valid_statuses = {value for value, _label in Ticket.Status.choices}
     status = (request.GET.get("status") or "").strip()
     q = (request.GET.get("q") or "").strip()
     mine = request.GET.get("mine") == "1"
 
-    if status:
+    if status in valid_statuses:
         qs = qs.filter(status=status)
+    else:
+        status = ""
     if mine:
         qs = qs.filter(Q(assignee=request.user) | Q(recipients=request.user)).distinct()
     if q:

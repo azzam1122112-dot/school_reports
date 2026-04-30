@@ -1,11 +1,11 @@
 {% if page_obj.paginator.num_pages > 1 %}
 <div style="display:flex;justify-content:center;align-items:center;gap:8px;padding:16px 0;direction:rtl">
   {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}" class="btn btn-sm btn-outline-secondary">&rarr; السابق</a>
+    <a href="?page={{ page_obj.previous_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{ k|urlencode }}={{ v|urlencode }}{% endif %}{% endfor %}" class="btn btn-sm btn-outline-secondary">&rarr; السابق</a>
   {% endif %}
   <span style="font-size:.9rem;color:var(--text-secondary,#666)">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
   {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}" class="btn btn-sm btn-outline-secondary">التالي &larr;</a>
+    <a href="?page={{ page_obj.next_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{ k|urlencode }}={{ v|urlencode }}{% endif %}{% endfor %}" class="btn btn-sm btn-outline-secondary">التالي &larr;</a>
   {% endif %}
 </div>
 {% endif %}

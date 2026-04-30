@@ -415,6 +415,12 @@
         <i class="fa-solid fa-filter"></i> تصفية
       </button>
 
+      {% if request.GET.q or request.GET.status or request.GET.order %}
+      <a href="?view={{ view_mode|default:'list' }}" class="lx-btn lx-btn-secondary">
+        <i class="fa-solid fa-rotate-left"></i> مسح
+      </a>
+      {% endif %}
+
       <!-- View Switcher -->
       <div class="view-toggles">
         {% with bq=request.GET.q|urlencode bs=request.GET.status bo=request.GET.order %}
