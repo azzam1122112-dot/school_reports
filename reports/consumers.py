@@ -76,11 +76,10 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
         self._disconnect_log_reason = None
         self.connected_at = time.monotonic()
         self.last_client_activity_ts = self.connected_at
-        session_key = self._scope_session_key()
         path = self.scope.get("path")
         if not user or not getattr(user, "is_authenticated", False):
             opmetrics.increment("ws.notifications.denied.unauthenticated")
-            logger.info("WS notifications reject unauthenticated trace_id=%s path=%s", self.trace_id, path)
+            logger.debug("WS notifications reject unauthenticated trace_id=%s path=%s", self.trace_id, path)
             self._remember_close_reason("unauthenticated")
             await self.close(code=4401)
             return
@@ -165,12 +164,6 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 exc,
             )
             return
-        logger.debug(
-            "WS notifications connected user_id=%s school_id=%s path=%s",
-            self.user_id,
-            self.active_school_id,
-            path,
-        )
         opmetrics.increment("ws.notifications.connect.accepted")
         _safe_cache_delta(_gauge_key("active"), 1)
         _safe_cache_delta(_gauge_key(f"user:{self.user_id}"), 1)
@@ -206,9 +199,6 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
             _safe_cache_delta(_gauge_key(f"user:{uid}"), -1)
         try:
             user = getattr(self, "user_id", None)
-            path = self.scope.get("path")
-            session_key = self._scope_session_key()
-            trace_id = getattr(self, "trace_id", "-")
             duration_ms = round((time.monotonic() - float(getattr(self, "connected_at", time.monotonic()))) * 1000, 1)
             # code=None means the TCP connection dropped with no WebSocket close
             # frame (e.g. page navigation, OS killing idle tab) — treat it as 1006.
@@ -218,8 +208,11 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                 else (int(code) if isinstance(code, str) and code.isdigit() else 1006)
             )
             reason = self._disconnect_reason(norm_code)
+            if norm_code == 1001:
+                opmetrics.increment("ws.notifications.close.navigation_1001")
+                return
             if norm_code == 1000:
-                logger.debug("WS notifications disconnected user_id=%s code=%s reason=%s duration_ms=%s", user, norm_code, reason, duration_ms)
+                return
             elif norm_code == 1006:
                 opmetrics.increment("ws.notifications.close.abnormal_1006")
                 bucket = timezone.now().strftime("%Y%m%d%H")
@@ -244,10 +237,10 @@ class NotificationCountsConsumer(AsyncJsonWebsocketConsumer):
                     )
             elif norm_code == 4401:
                 opmetrics.increment("ws.notifications.close.unauthorized_4401")
-                logger.info("WS notifications denied user_id=%s code=%s reason=%s duration_ms=%s", user, norm_code, reason, duration_ms)
+                logger.debug("WS notifications denied user_id=%s code=%s reason=%s duration_ms=%s", user, norm_code, reason, duration_ms)
             else:
                 opmetrics.increment("ws.notifications.close.other")
-                log_fn = logger.warning if self._is_clearly_abnormal_close(norm_code) else logger.info
+                log_fn = logger.warning if self._is_clearly_abnormal_close(norm_code) else logger.debug
                 log_fn(
                     "WS notifications close user_id=%s code=%s normalized_code=%s reason=%s duration_ms=%s",
                     user,

@@ -22,7 +22,6 @@
   var leaseMs = Number(cfg.leaseMs || 45000);
   var leaseRenewMs = Number(cfg.leaseRenewMs || 15000);
   var keepaliveMs = Number(cfg.keepaliveMs || 25000);
-  var hiddenCloseDelayMs = Number(cfg.hiddenCloseDelayMs || 30000);
   var reconnectBackoffSteps = [2000, 5000, 10000, 30000];
   var maxReconnectAttempts = Number(cfg.maxReconnectAttempts || 12);
   var retryCooldownMs = Number(cfg.retryCooldownMs || 90000);
@@ -51,7 +50,6 @@
   var ws = null;
   var wsTimer = null;
   var wsKeepaliveTimer = null;
-  var wsHiddenTimer = null;
   var pollTimerId = null;
   var pollInFlight = false;
   var pollBackoffMs = 60000;
@@ -62,18 +60,34 @@
   var stoppedByUser = false;
   var wsDisabled = false;
   var wsStartedPollingFallback = false;
-  var wsClosingForHidden = false;
-  var wsClosingForPageHide = false;
+  var wsStopReason = null;
+  var pageNavigatingAway = false;
   var currentState = STATE_IDLE;
   var leaderLeaseTimer = null;
   var leaderElectionTimer = null;
   var isLeader = false;
   var bc = null;
   var current = { unread: 0, signatures_pending: 0, count: 0 };
+  var socketOpenedAt = 0;
 
   function log() {
     if (!debug || !window.console || !console.log) return;
     try { console.log.apply(console, ['[WS-Notif]'].concat(Array.prototype.slice.call(arguments))); } catch (e) {}
+  }
+
+  function logCloseEvent(reason, code, durationMs) {
+    var unexpected = reason !== 'navigation' && reason !== 'logout';
+    var shortLived = durationMs > 0 && durationMs < 2000;
+    if (!unexpected && !shortLived) return;
+    if (!window.console || !console.warn) return;
+    try {
+      console.warn('[WS-Notif] close', {
+        reason: reason,
+        code: code,
+        durationMs: durationMs,
+        state: currentState
+      });
+    } catch (e) {}
   }
 
   function setState(next) {
@@ -163,10 +177,14 @@
       .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('http_' + r.status)); })
       .then(function (data) {
         if (data && data.authenticated === false) {
+          wsStopReason = 'auth_blocked';
           wsDisabled = true;
           pollStop();
           wsClearReconnect();
           wsStopKeepalive();
+          if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+            try { ws.close(4401, 'auth_blocked'); } catch (e) {}
+          }
           setState(STATE_AUTH_BLOCKED);
           return;
         }
@@ -197,6 +215,15 @@
   function enablePollingFallback() {
     wsStartedPollingFallback = true;
     if (isLeader) pollStart();
+  }
+
+  function classifyCloseReason(code) {
+    if (wsStopReason === 'logout') return 'logout';
+    if (wsStopReason === 'auth_blocked') return 'auth_blocked';
+    if (code === 1001 || pageNavigatingAway) return 'navigation';
+    if (code === 4401 || code === 4403) return 'auth_blocked';
+    if (code === 1006 || code === 1011 || code === 1012 || code === 1013) return 'network';
+    return 'unknown';
   }
 
   function wsUrl() {
@@ -258,30 +285,6 @@
     wsTimer = setTimeout(function () {
       wsConnect();
     }, Math.max(300, delayMs || 1000));
-  }
-
-  function wsCancelHiddenClose() {
-    if (wsHiddenTimer) {
-      clearTimeout(wsHiddenTimer);
-      wsHiddenTimer = null;
-    }
-    wsClosingForHidden = false;
-  }
-
-  function wsScheduleHiddenClose() {
-    wsCancelHiddenClose();
-    wsHiddenTimer = setTimeout(function () {
-      wsHiddenTimer = null;
-      if (!document.hidden || !ws || ws.readyState > 1) return;
-      wsClosingForHidden = true;
-      wsStopKeepalive();
-      try { ws.close(1000, 'tab_hidden'); } catch (e) {}
-      if (isLeader) {
-        releaseLeaderLease();
-        isLeader = false;
-        setState(STATE_FOLLOWER);
-      }
-    }, hiddenCloseDelayMs);
   }
 
   function clearLeaderLeaseTimer() {
@@ -369,7 +372,6 @@
   function wsCleanup() {
     wsStopKeepalive();
     wsClearReconnect();
-    wsCancelHiddenClose();
     if (ws) {
       try {
         ws.onclose = null;
@@ -412,8 +414,8 @@
       return;
     }
 
-    wsClosingForPageHide = false;
-    wsClosingForHidden = false;
+    wsStopReason = null;
+    pageNavigatingAway = false;
     wsCleanup();
     setState(STATE_CONNECTING);
 
@@ -426,6 +428,7 @@
     }
 
     ws.onopen = function () {
+      socketOpenedAt = Date.now();
       wsBackoffIndex = 0;
       wsFailedConnects = 0;
       reconnectAttempts = 0;
@@ -464,22 +467,25 @@
       ws = null;
       wsStopKeepalive();
 
-      if (wsClosingForPageHide || wsClosingForHidden) {
-        wsClosingForHidden = false;
+      var code = ev && typeof ev.code === 'number' && ev.code > 0 ? ev.code : 1006;
+      var reason = classifyCloseReason(code);
+      var durationMs = socketOpenedAt ? Math.max(0, Date.now() - socketOpenedAt) : 0;
+      logCloseEvent(reason, code, durationMs);
+      socketOpenedAt = 0;
+
+      if (reason === 'navigation') {
         setState(STATE_IDLE);
         return;
       }
-      if (!isLeader || wsDisabled || stoppedByUser) {
-        setState(STATE_STOPPED);
-        return;
-      }
-
-      var code = ev && typeof ev.code === 'number' && ev.code > 0 ? ev.code : 1006;
-      if (code === 4401 || code === 4403) {
+      if (reason === 'auth_blocked') {
         wsDisabled = true;
         pollStop();
         wsClearReconnect();
         setState(STATE_AUTH_BLOCKED);
+        return;
+      }
+      if (!isLeader || wsDisabled || stoppedByUser || reason === 'logout' || reason === 'auth_blocked') {
+        setState(STATE_STOPPED);
         return;
       }
       if (code === 4429 || code === 4409) {
@@ -491,7 +497,7 @@
       }
       if (code === 1000) {
         setState(STATE_IDLE);
-        if (!document.hidden && !wsClosingForPageHide && !wsClosingForHidden) {
+        if (!document.hidden) {
           wsScheduleReconnect(reconnectBackoffSteps[0]);
         }
         return;
@@ -517,7 +523,8 @@
     };
   }
 
-  function wsStop() {
+  function wsStop(reason) {
+    wsStopReason = reason || 'logout';
     stoppedByUser = true;
     releaseLeaderLease();
     isLeader = false;
@@ -539,9 +546,10 @@
     start: function () {
       stoppedByUser = false;
       wsDisabled = false;
+      wsStopReason = null;
       scheduleLeaderElection(150);
     },
-    stop: wsStop,
+    stop: function (reason) { wsStop(reason); },
     status: function () {
       return {
         state: currentState,
@@ -560,7 +568,7 @@
   document.addEventListener('click', function (e) {
     var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
     if (!a) return;
-    if ((a.getAttribute('href') || '').trim() === (cfg.logoutUrl || '/logout/')) wsStop();
+    if ((a.getAttribute('href') || '').trim() === (cfg.logoutUrl || '/logout/')) wsStop('logout');
   }, true);
 
   window.addEventListener('user-authenticated', function () {
@@ -574,13 +582,11 @@
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
       pollStop();
-      if (ws && ws.readyState === WebSocket.OPEN) wsScheduleHiddenClose();
       return;
     }
 
-    wsCancelHiddenClose();
-    wsClosingForHidden = false;
     if (wsDisabled || stoppedByUser) return;
+    pageNavigatingAway = false;
 
     if (!isLeader) {
       scheduleLeaderElection(Math.floor(Math.random() * 1500) + 300);
@@ -596,15 +602,11 @@
   }, { passive: true });
 
   window.addEventListener('pagehide', function () {
-    wsClosingForPageHide = true;
-    wsClearReconnect();
-    wsStopKeepalive();
-    wsCancelHiddenClose();
-    if (isLeader) releaseLeaderLease();
+    pageNavigatingAway = true;
   }, { passive: true });
 
   window.addEventListener('pageshow', function () {
-    wsClosingForPageHide = false;
+    pageNavigatingAway = false;
     if (document.hidden || wsDisabled || stoppedByUser) return;
     scheduleLeaderElection(Math.floor(Math.random() * 1000) + 250);
   }, { passive: true });
@@ -635,7 +637,7 @@
   });
 
   window.__srNotifWs = {
-    stop: wsStop,
+    stop: function (reason) { wsStop(reason); },
     state: function () { return currentState; },
     isLeader: function () { return isLeader; },
     resync: function () {

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import AnonymousUser
-from django.test import TransactionTestCase, override_settings
+from django.test import SimpleTestCase, TransactionTestCase, override_settings
 from unittest.mock import AsyncMock, patch
 
 from channels.testing import WebsocketCommunicator
@@ -13,6 +15,18 @@ from reports.models import Role, School, Teacher
 
 class _DummySession(dict):
     session_key = "test-session-key"
+
+
+class NotificationFrontendAssetsTests(SimpleTestCase):
+    def test_base_template_includes_notifications_manager_once(self):
+        base_template = Path("reports/templates/base.html").read_text(encoding="utf-8")
+        self.assertEqual(base_template.count("js/notifications-ws-manager.js"), 1)
+
+    def test_notifications_manager_keeps_singleton_guard_and_navigation_reason(self):
+        js_source = Path("static/js/notifications-ws-manager.js").read_text(encoding="utf-8")
+        self.assertIn("window.NotificationSocketManager", js_source)
+        self.assertIn("code === 1001", js_source)
+        self.assertIn("return 'navigation';", js_source)
 
 
 @override_settings(
@@ -158,3 +172,24 @@ class NotificationConsumerTests(TransactionTestCase):
                                 async_to_sync(consumer.disconnect)(1006)
         self.assertFalse(log_debug.called)
         self.assertTrue(log_warning.called)
+
+    def test_disconnect_1001_is_treated_as_navigation_without_logging(self):
+        consumer = NotificationCountsConsumer()
+        consumer.user_id = self.teacher.id
+        consumer.trace_id = "trace-5"
+        consumer.scope = {"path": "/ws/notifications/", "headers": []}
+        consumer.connected_at = 0.0
+        consumer.group_name = ""
+        consumer.channel_layer = AsyncMock()
+        consumer.channel_name = "test-channel"
+        consumer._idle_watchdog_task = None
+
+        with patch("reports.consumers.time.monotonic", return_value=1.0):
+            with patch("reports.consumers.logger.debug") as log_debug:
+                with patch("reports.consumers.logger.info") as log_info:
+                    with patch("reports.consumers.logger.warning") as log_warning:
+                        async_to_sync(consumer.disconnect)(1001)
+
+        self.assertFalse(log_debug.called)
+        self.assertFalse(log_info.called)
+        self.assertFalse(log_warning.called)
