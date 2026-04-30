@@ -1,10 +1,13 @@
 (function () {
   'use strict';
 
-  if (window.__SR_NOTIF_WS_MANAGER_LOADED__) return;
-  window.__SR_NOTIF_WS_MANAGER_LOADED__ = true;
-
   var cfg = window.__srNotifWsConfig || {};
+  var existingManager = window.NotificationSocketManager;
+  if (existingManager && typeof existingManager.init === 'function') {
+    existingManager.init(cfg);
+    return;
+  }
+
   var enabled = cfg.enabled === true;
   var auth = cfg.authenticated === true;
   var pollUrl = cfg.pollUrl || '/notifications/unread-count/';
@@ -13,13 +16,14 @@
   var debug = cfg.debug === true;
   var tabId = cfg.tabId || ('tab-' + Math.random().toString(36).slice(2));
   var sessionKey = cfg.sessionKey || 'anon';
+  var currentPath = String(cfg.currentPath || window.location.pathname || '/');
   var leaderKey = 'sr:notif-ws:leader:' + sessionKey;
   var broadcastName = 'sr-notif-ws:' + sessionKey;
   var leaseMs = Number(cfg.leaseMs || 45000);
   var leaseRenewMs = Number(cfg.leaseRenewMs || 15000);
   var keepaliveMs = Number(cfg.keepaliveMs || 25000);
   var hiddenCloseDelayMs = Number(cfg.hiddenCloseDelayMs || 30000);
-  var maxBackoffMs = Number(cfg.maxBackoffMs || 45000);
+  var reconnectBackoffSteps = [2000, 5000, 10000, 30000];
   var maxReconnectAttempts = Number(cfg.maxReconnectAttempts || 12);
   var retryCooldownMs = Number(cfg.retryCooldownMs || 90000);
   var maxFailuresBeforePoll = Number(cfg.maxFailuresBeforePoll || 6);
@@ -30,9 +34,11 @@
   var circDotMobile = document.getElementById('circDotMobile');
   var hasBadges = !!(notifDot || notifDotMobile || circDot || circDotMobile);
 
-  if (!enabled || !auth || !hasBadges) return;
-  if (window.__srNotifWsBootstrapped) return;
-  window.__srNotifWsBootstrapped = true;
+  function isAuthPagePath(pathname) {
+    return pathname === '/login/' || pathname === '/logout/' || pathname.indexOf('/login') === 0 || pathname.indexOf('/logout') === 0;
+  }
+
+  if (!enabled || !auth || !hasBadges || isAuthPagePath(currentPath)) return;
 
   var STATE_IDLE = 'idle';
   var STATE_FOLLOWER = 'follower';
@@ -49,7 +55,7 @@
   var pollTimerId = null;
   var pollInFlight = false;
   var pollBackoffMs = 60000;
-  var wsBackoffMs = 2000;
+  var wsBackoffIndex = 0;
   var wsFailedConnects = 0;
   var reconnectAttempts = 0;
   var wsCooldownUntil = 0;
@@ -148,6 +154,10 @@
 
   function pollTick() {
     if (document.hidden || pollInFlight || stoppedByUser) return;
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      pollSchedule(60000);
+      return;
+    }
     pollInFlight = true;
     fetch(pollUrl, { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('http_' + r.status)); })
@@ -363,7 +373,9 @@
     if (ws) {
       try {
         ws.onclose = null;
-        ws.close();
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+          ws.close();
+        }
       } catch (e) {}
       ws = null;
     }
@@ -388,6 +400,10 @@
       setState(STATE_AUTH_BLOCKED);
       return;
     }
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      setState(ws.readyState === WebSocket.OPEN ? STATE_CONNECTED : STATE_CONNECTING);
+      return;
+    }
 
     var nowTs = Date.now();
     if (wsCooldownUntil && nowTs < wsCooldownUntil) {
@@ -398,8 +414,8 @@
 
     wsClosingForPageHide = false;
     wsClosingForHidden = false;
-    setState(STATE_CONNECTING);
     wsCleanup();
+    setState(STATE_CONNECTING);
 
     try {
       ws = new WebSocket(wsUrl());
@@ -410,7 +426,7 @@
     }
 
     ws.onopen = function () {
-      wsBackoffMs = 2000;
+      wsBackoffIndex = 0;
       wsFailedConnects = 0;
       reconnectAttempts = 0;
       wsCooldownUntil = 0;
@@ -475,8 +491,8 @@
       }
       if (code === 1000) {
         setState(STATE_IDLE);
-        if (!document.hidden) {
-          wsScheduleReconnect(2000 + Math.floor(Math.random() * 2000));
+        if (!document.hidden && !wsClosingForPageHide && !wsClosingForHidden) {
+          wsScheduleReconnect(reconnectBackoffSteps[0]);
         }
         return;
       }
@@ -496,8 +512,8 @@
       }
 
       setState(STATE_RETRY_WAIT);
-      wsBackoffMs = Math.min(Math.round(wsBackoffMs * 2), maxBackoffMs);
-      wsScheduleReconnect(wsBackoffMs + Math.floor(Math.random() * 1500));
+      wsBackoffIndex = Math.min(wsBackoffIndex + 1, reconnectBackoffSteps.length - 1);
+      wsScheduleReconnect(reconnectBackoffSteps[wsBackoffIndex]);
     };
   }
 
@@ -511,10 +527,35 @@
     setState(STATE_STOPPED);
   }
 
+  var manager = {
+    init: function (nextCfg) {
+      if (nextCfg && nextCfg.activeSchoolId !== undefined) {
+        activeSchoolId = nextCfg.activeSchoolId == null ? null : Number(nextCfg.activeSchoolId);
+      }
+      if (!stoppedByUser && !wsDisabled && !document.hidden) {
+        scheduleLeaderElection(150);
+      }
+    },
+    start: function () {
+      stoppedByUser = false;
+      wsDisabled = false;
+      scheduleLeaderElection(150);
+    },
+    stop: wsStop,
+    status: function () {
+      return {
+        state: currentState,
+        isLeader: isLeader,
+        hasSocket: !!ws,
+        readyState: ws ? ws.readyState : null
+      };
+    }
+  };
+
+  window.NotificationSocketManager = manager;
+
   openBroadcastChannel();
   scheduleLeaderElection(Math.floor(Math.random() * 400) + 100);
-
-  window.addEventListener('beforeunload', wsStop);
 
   document.addEventListener('click', function (e) {
     var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
@@ -533,8 +574,7 @@
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
       pollStop();
-      wsStopKeepalive();
-      if (ws && ws.readyState <= 1) wsScheduleHiddenClose();
+      if (ws && ws.readyState === WebSocket.OPEN) wsScheduleHiddenClose();
       return;
     }
 
@@ -560,10 +600,6 @@
     wsClearReconnect();
     wsStopKeepalive();
     wsCancelHiddenClose();
-    if (ws) {
-      try { ws.close(1000, 'pagehide'); } catch (e) {}
-      ws = null;
-    }
     if (isLeader) releaseLeaderLease();
   }, { passive: true });
 

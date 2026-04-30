@@ -73,6 +73,7 @@ class NotificationConsumerTests(TransactionTestCase):
         consumer.trace_id = "trace-1"
         consumer.user_id = self.teacher.id
         consumer.active_school_id = self.school.id
+        consumer.scope = {"session": _DummySession(active_school_id=self.school.id), "user": self.teacher}
         consumer.send_json = AsyncMock()
         consumer._compute_counts_cached = AsyncMock(
             return_value={"count": 0, "unread": 0, "signatures_pending": 0}
@@ -86,6 +87,27 @@ class NotificationConsumerTests(TransactionTestCase):
         log_info.assert_not_called()
         consumer.send_json.assert_awaited_once_with(
             {"type": "counts", "count": 0, "unread": 0, "signatures_pending": 0}
+        )
+
+    def test_set_active_school_is_clamped_to_session_school(self):
+        other_school = School.objects.create(name="Other School", code="other-school")
+        consumer = NotificationCountsConsumer()
+        consumer.trace_id = "trace-4"
+        consumer.user_id = self.teacher.id
+        consumer.active_school_id = self.school.id
+        consumer.scope = {"session": _DummySession(active_school_id=self.school.id), "user": self.teacher}
+        consumer.send_json = AsyncMock()
+        consumer._compute_counts_cached = AsyncMock(
+            return_value={"count": 1, "unread": 1, "signatures_pending": 0}
+        )
+
+        async_to_sync(consumer.receive_json)(
+            {"type": "set_active_school", "active_school_id": other_school.id}
+        )
+
+        self.assertEqual(consumer.active_school_id, self.school.id)
+        consumer.send_json.assert_awaited_once_with(
+            {"type": "counts", "count": 1, "unread": 1, "signatures_pending": 0}
         )
 
     def test_disconnect_1006_logs_warning_only_when_repeated(self):
