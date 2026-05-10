@@ -1,4 +1,3 @@
-{# templates/choose_school.html (أو المسار المناسب عندك) #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -6,372 +5,441 @@
 
 {% block head %}
 <style>
-  /* =========================================================
-     Choose School — RTL / Modern / بدون لمس .btn/.card العامة
-     - Scoped بالكامل لتجنب تعارضات base/app.css
-     - متوافق مع data-theme="dark"
-     ========================================================= */
-
   .cs-wrap{
-    max-width: 760px;
-    margin: auto;
-    padding: 18px;
+    width:100%;
+    max-width:1120px;
+    margin:0 auto;
+    padding:clamp(12px, 2.5vw, 22px);
   }
 
-  .cs-card{
-    background: var(--card, #fff);
-    border-radius: 18px;
-    border: 1px solid var(--line, #e5e7eb);
-    padding: 20px;
-    box-shadow: 0 14px 38px rgba(15,23,42,.08);
+  .cs-shell{
+    display:grid;
+    gap:14px;
   }
 
-  .cs-hd{
+  .cs-hero{
+    background:var(--card, #fff);
+    border:1px solid var(--line-2, #eef2f7);
+    border-radius:18px;
+    box-shadow:0 14px 38px rgba(15,23,42,.07);
+    padding:clamp(16px, 3vw, 24px);
     display:flex;
-    align-items:flex-start;
     justify-content:space-between;
-    gap:12px;
+    align-items:flex-start;
+    gap:14px;
     flex-wrap:wrap;
   }
 
   .cs-title{
     margin:0;
-    font-size: 1.35rem;
-    font-weight: 950;
-    color: var(--ink, #111827);
-    letter-spacing: -.2px;
+    color:var(--ink, #0f172a);
+    font-size:clamp(1.3rem, 2vw, 1.75rem);
+    font-weight:950;
   }
 
   .cs-sub{
-    margin: 6px 0 0;
-    color: var(--muted, #6b7280);
-    font-weight: 800;
-    line-height: 1.7;
-    max-width: 680px;
+    margin:8px 0 0;
+    color:var(--muted, #64748b);
+    font-weight:800;
+    line-height:1.8;
+    max-width:720px;
   }
 
-  .cs-badge{
-    display:inline-flex;
+  .cs-current{
+    display:flex;
     align-items:center;
     gap:8px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(37,99,235,.08);
-    border: 1px solid rgba(37,99,235,.18);
-    color: rgba(30,64,175,.95);
-    font-weight: 950;
-    white-space: nowrap;
-  }
-  html[data-theme="dark"] .cs-badge{
-    background: rgba(37,99,235,.16);
-    border-color: rgba(37,99,235,.28);
-    color: rgba(191,219,254,.95);
+    min-height:38px;
+    padding:8px 12px;
+    border-radius:999px;
+    border:1px solid rgba(5,150,105,.20);
+    background:rgba(5,150,105,.08);
+    color:#047857;
+    font-weight:950;
+    white-space:nowrap;
   }
 
-  .cs-toolbar{
-    margin-top: 14px;
-    display:flex;
+  html[data-theme="dark"] .cs-current{
+    color:#a7f3d0;
+    background:rgba(5,150,105,.16);
+    border-color:rgba(5,150,105,.30);
+  }
+
+  .cs-panel{
+    background:var(--card, #fff);
+    border:1px solid var(--line-2, #eef2f7);
+    border-radius:18px;
+    box-shadow:0 14px 38px rgba(15,23,42,.07);
+    padding:clamp(14px, 2.5vw, 20px);
+  }
+
+  .cs-searchbar{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto auto;
     gap:10px;
-    flex-wrap:wrap;
-    align-items:flex-end;
+    align-items:end;
   }
 
   .cs-field{
-    flex: 1 1 280px;
-    min-width: 240px;
+    min-width:0;
   }
 
   .cs-label{
     display:block;
-    font-weight: 950;
-    color: var(--muted, #6b7280);
-    margin-bottom: 6px;
+    margin-bottom:7px;
+    color:var(--muted, #64748b);
+    font-weight:950;
   }
 
   .cs-search{
     width:100%;
-    min-height: 46px;
-    border-radius: 14px;
-    border: 1px solid var(--line, #e5e7eb);
-    padding: 10px 12px;
-    font-weight: 900;
-    outline: none;
-    background: var(--card, #fff);
-    color: var(--ink, #111827);
+    min-height:48px;
+    border-radius:14px;
+    border:1px solid var(--line, #e2e8f0);
+    background:var(--card, #fff);
+    color:var(--ink, #0f172a);
+    padding:10px 13px;
+    font-weight:900;
+    outline:none;
   }
 
   .cs-search:focus{
-    box-shadow: 0 0 0 3px rgba(37,99,235,.18);
-    border-color: rgba(37,99,235,.45);
-  }
-
-  .cs-meta{
-    color: var(--muted, #6b7280);
-    font-size: .9rem;
-    font-weight: 900;
-    white-space: nowrap;
-    display:flex;
-    gap:8px;
-    align-items:center;
-    padding-bottom: 4px;
-  }
-
-  .cs-list{
-    margin-top: 16px;
-    display:grid;
-    gap:10px;
-  }
-
-  .cs-select{
-    width:100%;
-    min-height: 320px;
-    border-radius: 14px;
-    border: 1px solid var(--line, #e5e7eb);
-    padding: 10px 12px;
-    font-weight: 900;
-    outline:none;
-    background: var(--card, #fff);
-    color: var(--ink, #111827);
-  }
-
-  .cs-select:focus{
-    box-shadow: 0 0 0 3px rgba(37,99,235,.18);
-    border-color: rgba(37,99,235,.45);
-  }
-
-  .cs-select option{
-    padding: 10px 8px;
-  }
-
-  .cs-actions{
-    margin-top: 16px;
-    display:flex;
-    gap:10px;
-    justify-content:flex-start;
-    flex-wrap:wrap;
-    align-items:center;
+    border-color:rgba(37,99,235,.50);
+    box-shadow:0 0 0 3px rgba(37,99,235,.18);
   }
 
   .cs-btn{
-    padding: 10px 16px;
-    border-radius: 999px;
-    border: 1px solid rgba(37,99,235,.22);
-    background: var(--brand, #2563eb);
+    min-height:48px;
+    border:1px solid rgba(37,99,235,.22);
+    border-radius:14px;
+    background:var(--brand, #2563eb);
     color:#fff;
-    font-weight: 900;
+    padding:10px 16px;
+    font-weight:950;
     cursor:pointer;
-    min-width: 170px;
-    transition: var(--t-fast, .15s ease);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    text-decoration:none;
+    white-space:nowrap;
   }
 
-  .cs-btn:hover{
-    transform: translateY(-1px);
-    box-shadow: 0 14px 26px rgba(2,6,23,.12);
+  .cs-btn.secondary{
+    background:transparent;
+    color:var(--brand, #2563eb);
+    border-color:rgba(37,99,235,.30);
+  }
+
+  .cs-count{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:48px;
+    padding:10px 13px;
+    border-radius:14px;
+    border:1px solid var(--line-2, #eef2f7);
+    color:var(--muted, #64748b);
+    font-weight:950;
+    white-space:nowrap;
   }
 
   .cs-hint{
-    margin-top: 10px;
-    color: var(--muted, #6b7280);
-    font-size: .85rem;
-    font-weight: 800;
+    margin:9px 0 0;
+    color:var(--muted, #64748b);
+    font-size:.88rem;
+    font-weight:800;
+  }
+
+  .cs-grid{
+    margin-top:16px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    gap:10px;
+  }
+
+  .cs-card{
+    border:1px solid var(--line-2, #eef2f7);
+    border-radius:14px;
+    background:var(--card, #fff);
+    padding:14px;
+    display:grid;
+    gap:12px;
+    min-height:166px;
+    position:relative;
+  }
+
+  .cs-card.is-current{
+    border-color:rgba(5,150,105,.35);
+    box-shadow:inset 0 0 0 1px rgba(5,150,105,.18);
+  }
+
+  .cs-school-name{
+    margin:0;
+    color:var(--ink, #0f172a);
+    font-size:1.03rem;
+    line-height:1.5;
+    font-weight:950;
+  }
+
+  .cs-school-code{
+    color:var(--muted, #64748b);
+    font-weight:900;
+    direction:ltr;
+    unicode-bidi:plaintext;
+  }
+
+  .cs-tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+
+  .cs-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 8px;
+    border-radius:999px;
+    border:1px solid var(--line-2, #eef2f7);
+    background:rgba(37,99,235,.05);
+    color:var(--muted, #64748b);
+    font-size:.82rem;
+    font-weight:900;
+  }
+
+  .cs-card-actions{
+    margin-top:auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+
+  .cs-enter{
+    min-height:42px;
+    border-radius:12px;
+    padding:8px 12px;
+    min-width:126px;
+  }
+
+  .cs-current-mark{
+    color:#047857;
+    font-size:.86rem;
+    font-weight:950;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+
+  html[data-theme="dark"] .cs-current-mark{
+    color:#a7f3d0;
   }
 
   .cs-empty{
-    display:none;
-    margin-top: 12px;
-    padding: 14px;
-    border-radius: 14px;
-    border: 1px dashed var(--line, #e5e7eb);
-    background: rgba(37,99,235,.05);
-    font-weight: 950;
-    color: var(--muted, #6b7280);
+    margin-top:16px;
+    padding:18px;
+    border-radius:14px;
+    border:1px dashed var(--line, #e2e8f0);
+    background:rgba(37,99,235,.05);
+    color:var(--muted, #64748b);
+    font-weight:900;
+    line-height:1.8;
     text-align:center;
   }
 
-  .cs-help{
-    margin-top: 12px;
-    padding: 12px 14px;
-    border-radius: 14px;
-    border: 1px solid var(--line, #e5e7eb);
-    background: linear-gradient(180deg, var(--line-2, rgba(37,99,235,.05)), var(--card, #fff));
-    color: var(--muted, #6b7280);
-    font-weight: 850;
-    line-height: 1.8;
+  .cs-pagination{
+    margin-top:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    flex-wrap:wrap;
   }
 
-  /* Reduce motion */
+  .cs-page{
+    min-height:40px;
+    min-width:40px;
+    border-radius:12px;
+    border:1px solid var(--line-2, #eef2f7);
+    color:var(--ink, #0f172a);
+    background:var(--card, #fff);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:8px 11px;
+    font-weight:950;
+    text-decoration:none;
+  }
+
+  .cs-page.current{
+    background:var(--brand, #2563eb);
+    border-color:var(--brand, #2563eb);
+    color:#fff;
+  }
+
+  @media (max-width: 720px){
+    .cs-searchbar{
+      grid-template-columns:1fr;
+    }
+    .cs-btn,
+    .cs-count{
+      width:100%;
+    }
+    .cs-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce){
     .cs-btn{ transition:none !important; }
-    .cs-btn:hover{ transform:none !important; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="cs-wrap" dir="rtl">
-  <div class="cs-card">
-    <div class="cs-hd">
+  <div class="cs-shell">
+    <section class="cs-hero" aria-labelledby="selectSchoolTitle">
       <div>
-        <h1 class="cs-title">اختيار المدرسة</h1>
+        <h1 id="selectSchoolTitle" class="cs-title">اختيار المدرسة</h1>
         <p class="cs-sub">
-          اختر المدرسة التي ترغب في إدارتها الآن. يمكن تغيير الاختيار لاحقًا في أي وقت.
+          اختر المدرسة التي ترغب في العمل عليها الآن. يظهر لك فقط ما تملك صلاحية الوصول إليه.
         </p>
       </div>
 
-      {% if schools %}
-        <span class="cs-badge" aria-label="عدد المدارس">
-          <i class="fa-solid fa-school" style="opacity:.9"></i>
-          <span id="schoolCountTop">{{ schools|length }}</span>
-          مدرسة
-        </span>
+      {% if current_school %}
+        <div class="cs-current" title="{{ current_school.name }}">
+          <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+          الحالية: {{ current_school.name }}
+        </div>
       {% endif %}
-    </div>
+    </section>
 
-    {% if schools %}
-      <form method="post" id="schoolForm" novalidate>
-        {% csrf_token %}
-
-        <div class="cs-toolbar">
-          <div class="cs-field">
-            <label class="cs-label" for="schoolSearch">بحث سريع</label>
-            <input
-              id="schoolSearch"
-              class="cs-search"
-              type="search"
-              placeholder="ابحث باسم المدرسة أو الكود…"
-              autocomplete="off"
-              spellcheck="false"
-              aria-describedby="searchHint"
-            />
-          </div>
-
-          <div class="cs-meta" aria-live="polite" aria-atomic="true">
-            <i class="fa-solid fa-filter" style="opacity:.85"></i>
-            <span id="schoolCount">{{ schools|length }}</span>
-            نتيجة
-          </div>
+    <section class="cs-panel" aria-label="بحث واختيار المدرسة">
+      <form method="get" class="cs-searchbar">
+        <div class="cs-field">
+          <label class="cs-label" for="schoolSearch">بحث سريع</label>
+          <input
+            id="schoolSearch"
+            class="cs-search"
+            type="search"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="ابحث باسم المدرسة أو الكود أو المدينة..."
+            autocomplete="off"
+            spellcheck="false"
+            aria-describedby="schoolSearchHint"
+          />
+          <p id="schoolSearchHint" class="cs-hint">يعرض النظام 24 مدرسة في كل صفحة حتى يبقى الاختيار سريعاً مع الأعداد الكبيرة.</p>
         </div>
 
+        <button type="submit" class="cs-btn">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          بحث
+        </button>
 
+        {% if search_query %}
+          <a href="{% url 'reports:select_school' %}" class="cs-btn secondary">مسح</a>
+        {% else %}
+          <div class="cs-count" aria-live="polite">
+            <i class="fa-solid fa-school" aria-hidden="true"></i>
+            {{ total_schools_count }} مدرسة
+          </div>
+        {% endif %}
+      </form>
 
-        <div class="cs-list">
-          <select id="schoolSelect" name="school_id" class="cs-select" size="12" required>
-            {% for s in schools %}
-              <option
-                value="{{ s.id }}"
-                data-name="{{ s.name|lower }}"
-                data-code="{{ s.code|lower }}"
-                {% if current_school and current_school.id == s.id %}selected{% endif %}
-              >
-                {{ s.name }} — ({{ s.code }})
-              </option>
+      {% if search_query %}
+        <div class="cs-hint" aria-live="polite">
+          {{ total_schools_count }} نتيجة مطابقة للبحث: <b>{{ search_query }}</b>
+        </div>
+      {% endif %}
+
+      {% if schools %}
+        <div class="cs-grid">
+          {% for school in schools %}
+            <article class="cs-card {% if current_school and current_school.id == school.id %}is-current{% endif %}">
+              <div>
+                <h2 class="cs-school-name">{{ school.name }}</h2>
+                <div class="cs-school-code">{{ school.code }}</div>
+              </div>
+
+              <div class="cs-tags" aria-label="بيانات المدرسة">
+                {% if school.city %}
+                  <span class="cs-tag"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>{{ school.city }}</span>
+                {% endif %}
+                <span class="cs-tag"><i class="fa-solid fa-layer-group" aria-hidden="true"></i>{{ school.get_stage_display }}</span>
+                <span class="cs-tag"><i class="fa-solid fa-users" aria-hidden="true"></i>{{ school.get_gender_display }}</span>
+              </div>
+
+              <div class="cs-card-actions">
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="school_id" value="{{ school.id }}">
+                  <button type="submit" class="cs-btn cs-enter">
+                    <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
+                    دخول
+                  </button>
+                </form>
+
+                {% if current_school and current_school.id == school.id %}
+                  <span class="cs-current-mark">
+                    <i class="fa-solid fa-check" aria-hidden="true"></i>
+                    محددة الآن
+                  </span>
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+
+        {% if page_obj.has_other_pages %}
+          <nav class="cs-pagination" aria-label="صفحات المدارس">
+            {% if page_obj.has_previous %}
+              <a class="cs-page" href="?page={{ page_obj.previous_page_number }}{% if query_params_without_page %}&{{ query_params_without_page }}{% endif %}">السابق</a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <span class="cs-page current" aria-current="page">{{ num }}</span>
+              {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                <a class="cs-page" href="?page={{ num }}{% if query_params_without_page %}&{{ query_params_without_page }}{% endif %}">{{ num }}</a>
+              {% endif %}
             {% endfor %}
-          </select>
-        </div>
 
-        <div id="noResults" class="cs-empty">لا توجد نتائج مطابقة للبحث.</div>
-
-        <div class="cs-actions">
-          <button type="submit" class="cs-btn">
-            <i class="fa-solid fa-arrow-right-to-bracket"></i> دخول لوحة المدير
-          </button>
-
-          {% if current_school %}
-            <span class="cs-hint" style="margin-top:0">
-              المدرسة الحالية: <b>{{ current_school.name }}</b>
-            </span>
+            {% if page_obj.has_next %}
+              <a class="cs-page" href="?page={{ page_obj.next_page_number }}{% if query_params_without_page %}&{{ query_params_without_page }}{% endif %}">التالي</a>
+            {% endif %}
+          </nav>
+        {% endif %}
+      {% else %}
+        <div class="cs-empty">
+          {% if search_query %}
+            لا توجد مدارس مطابقة لهذا البحث. جرّب اسماً أو كوداً آخر.
+          {% else %}
+            لا توجد مدارس مرتبطة بحسابك حالياً. تواصل مع مدير النظام لإضافة الصلاحية المناسبة.
           {% endif %}
         </div>
-      </form>
-    {% else %}
-      <div class="cs-help">
-        لا توجد مدارس مضافة بعد. قم بإضافة مدرسة من خلال لوحة تحكم Django
-        (<code>/admin-panel/</code>)
-        ثم عد إلى هذه الصفحة.
-      </div>
-    {% endif %}
+      {% endif %}
+    </section>
   </div>
 </div>
 
 <script nonce="{{ CSP_NONCE }}">
   (function(){
     const input = document.getElementById('schoolSearch');
-    const select = document.getElementById('schoolSelect');
-    const options = select ? Array.from(select.options) : [];
-    const count = document.getElementById('schoolCount');
-    const countTop = document.getElementById('schoolCountTop');
-    const empty = document.getElementById('noResults');
+    if(!input) return;
 
-    function setCounts(n){
-      if(count) count.textContent = String(n);
-      if(countTop) countTop.textContent = String(n);
-    }
-
-    function applyFilter(){
-      const q = (input && input.value ? input.value : '').trim().toLowerCase();
-      let visible = 0;
-
-      for(const opt of options){
-        const name = opt.getAttribute('data-name') || '';
-        const code = opt.getAttribute('data-code') || '';
-        const ok = !q || name.includes(q) || code.includes(q);
-        opt.hidden = !ok;
-        if(ok) visible += 1;
-      }
-
-      setCounts(visible);
-      if(empty) empty.style.display = visible === 0 ? 'block' : 'none';
-
-      // لو الخيار المحدد صار مخفي، اختر أول خيار ظاهر
-      if(select && select.selectedOptions && select.selectedOptions.length){
-        const selected = select.selectedOptions[0];
-        if(selected && selected.hidden){
-          const firstVisible = options.find(o => !o.hidden);
-          if(firstVisible) firstVisible.selected = true;
-        }
-      }
-    }
-
-    function focusSearch(){
-      if(input){
+    document.addEventListener('keydown', function(e){
+      const isMac = String(navigator.platform || '').toLowerCase().includes('mac');
+      const meta = isMac ? e.metaKey : e.ctrlKey;
+      if(meta && String(e.key || '').toLowerCase() === 'k'){
+        e.preventDefault();
         input.focus();
         input.select();
       }
-    }
-
-    if(input){
-      input.addEventListener('input', applyFilter);
-
-      // Ctrl+K / Cmd+K
-      document.addEventListener('keydown', function(e){
-        const isMac = String(navigator.platform || '').toLowerCase().includes('mac');
-        const meta = isMac ? e.metaKey : e.ctrlKey;
-        if(meta && String(e.key || '').toLowerCase() === 'k'){
-          e.preventDefault();
-          focusSearch();
-        }
-      });
-    }
-
-    // تحسين UX: Enter داخل البحث يختار أول نتيجة ظاهرة (إن وُجد)
-    if(input){
-      input.addEventListener('keydown', function(e){
-        if(e.key === 'Enter'){
-          e.preventDefault();
-          const firstVisible = options.find(o => !o.hidden);
-          if(firstVisible){
-            firstVisible.selected = true;
-            if(select) select.focus();
-          }
-        }
-        if(e.key === 'ArrowDown'){
-          e.preventDefault();
-          if(select) select.focus();
-        }
-      });
-    }
-
-    applyFilter();
+    });
   })();
 </script>
 {% endblock %}

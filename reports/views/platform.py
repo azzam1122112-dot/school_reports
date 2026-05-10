@@ -25,6 +25,38 @@ def _require_platform_school_access(request: HttpRequest, school: Optional[Schoo
     return bool(is_platform_admin(request.user) and platform_can_access_school(request.user, school))
 
 
+def _attach_directory_subscription_status(schools: list[School]) -> None:
+    if not schools:
+        return
+
+    subscription_by_school_id = {
+        sub.school_id: sub
+        for sub in SchoolSubscription.objects.filter(school_id__in=[school.id for school in schools]).select_related("plan")
+    }
+
+    for school in schools:
+        subscription = subscription_by_school_id.get(school.id)
+        school.directory_subscription = subscription
+
+        if subscription is None:
+            school.directory_subscription_state = "none"
+            school.directory_subscription_label = "بدون اشتراك"
+            continue
+
+        if bool(subscription.is_cancelled):
+            school.directory_subscription_state = "cancelled"
+            school.directory_subscription_label = "ملغي"
+            continue
+
+        if bool(subscription.is_expired):
+            school.directory_subscription_state = "expired"
+            school.directory_subscription_label = "منتهي"
+            continue
+
+        school.directory_subscription_state = "active"
+        school.directory_subscription_label = "ساري"
+
+
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def platform_schools_directory(request: HttpRequest) -> HttpResponse:
@@ -62,6 +94,9 @@ def platform_schools_directory(request: HttpRequest) -> HttpResponse:
         qs = qs.filter(city=city)
 
     page_obj = Paginator(qs.order_by("name"), 25).get_page(request.GET.get("page") or 1)
+    school_rows = list(page_obj.object_list)
+    _attach_directory_subscription_status(school_rows)
+    page_obj.object_list = school_rows
 
     ctx = {
         "schools": page_obj,

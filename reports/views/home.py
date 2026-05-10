@@ -6,6 +6,7 @@ from ._helpers import *
 from ._helpers import (
     _is_staff, _safe_next_url, _filter_by_school,
     _set_active_school, _get_active_school, _user_manager_schools,
+    _clean_query_params, _clean_query_value,
 )
 
 
@@ -20,10 +21,10 @@ def select_school(request: HttpRequest) -> HttpResponse:
     """
 
     if request.user.is_superuser:
-        schools_qs = School.objects.filter(is_active=True).order_by("name")
+        schools_qs = School.objects.filter(is_active=True)
     else:
         manager_schools = _user_manager_schools(request.user)
-        schools_qs = School.objects.filter(id__in=[s.id for s in manager_schools], is_active=True).order_by("name")
+        schools_qs = School.objects.filter(id__in=[s.id for s in manager_schools], is_active=True)
 
     # إن لم يكن للمستخدم أي مدارس مرتبطة به نسمح له برؤية لا شيء
 
@@ -37,9 +38,33 @@ def select_school(request: HttpRequest) -> HttpResponse:
         except (School.DoesNotExist, ValueError, TypeError):
             messages.error(request, "تعذّر اختيار المدرسة. فضلاً اختر مدرسة صحيحة.")
 
+    search_query = _clean_query_value(request.GET.get("q"))
+    if search_query:
+        schools_qs = schools_qs.filter(
+            Q(name__icontains=search_query)
+            | Q(code__icontains=search_query)
+            | Q(city__icontains=search_query)
+            | Q(stage__icontains=search_query)
+            | Q(gender__icontains=search_query)
+        )
+
+    schools_qs = schools_qs.order_by("name", "id").only(
+        "id",
+        "name",
+        "code",
+        "city",
+        "stage",
+        "gender",
+    )
+    page_obj = Paginator(schools_qs, 24).get_page(request.GET.get("page") or 1)
+
     context = {
-        "schools": list(schools_qs),
+        "schools": page_obj,
+        "page_obj": page_obj,
         "current_school": _get_active_school(request),
+        "search_query": search_query,
+        "total_schools_count": page_obj.paginator.count,
+        "query_params_without_page": _clean_query_params(request.GET),
     }
     return render(request, "reports/select_school.html", context)
 

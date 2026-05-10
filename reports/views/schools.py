@@ -9,7 +9,7 @@ from ._helpers import *
 from ._helpers import (
     _is_staff, _role_display_map, _filter_by_school,
     _model_has_field, _get_active_school, _user_manager_schools,
-    _clean_query_value, _parse_date_safe,
+    _clean_query_params, _clean_query_value, _parse_date_safe,
 )
 
 
@@ -372,10 +372,10 @@ def school_delete(request: HttpRequest, pk: int) -> HttpResponse:
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 @require_http_methods(["GET"])
 def schools_admin_list(request: HttpRequest) -> HttpResponse:
-    schools = (
+    q = _clean_query_value(request.GET.get("q"))
+    schools_qs = (
         School.objects.all()
         .select_related("subscription")
-        .order_by("name")
         .prefetch_related(
             Prefetch(
                 "memberships",
@@ -388,12 +388,34 @@ def schools_admin_list(request: HttpRequest) -> HttpResponse:
         )
     )
 
+    if q:
+        schools_qs = schools_qs.filter(
+            Q(name__icontains=q)
+            | Q(code__icontains=q)
+            | Q(city__icontains=q)
+            | Q(phone__icontains=q)
+            | Q(memberships__teacher__name__icontains=q)
+            | Q(memberships__teacher__phone__icontains=q)
+        ).distinct()
+
+    page_obj = Paginator(schools_qs.order_by("name", "id"), 24).get_page(request.GET.get("page") or 1)
+
     items = []
-    for s in schools:
+    for s in page_obj:
         managers = [m.teacher for m in getattr(s, "manager_memberships", []) if m.teacher]
         items.append({"school": s, "managers": managers})
 
-    return render(request, "reports/schools_admin_list.html", {"schools": items})
+    return render(
+        request,
+        "reports/schools_admin_list.html",
+        {
+            "schools": items,
+            "page_obj": page_obj,
+            "q": q,
+            "total_schools_count": page_obj.paginator.count,
+            "query_params_without_page": _clean_query_params(request.GET),
+        },
+    )
 
 
 @login_required(login_url="reports:login")
@@ -1080,6 +1102,7 @@ def school_manager_create(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def school_managers_list(request: HttpRequest) -> HttpResponse:
     """قائمة مدراء المدارس على مستوى المنصة."""
+    q = _clean_query_value(request.GET.get("q"))
     manager_memberships = SchoolMembership.objects.select_related("school").filter(
         role_type=SchoolMembership.RoleType.MANAGER,
     )
@@ -1098,8 +1121,20 @@ def school_managers_list(request: HttpRequest) -> HttpResponse:
         )
     )
 
+    if q:
+        managers_qs = managers_qs.filter(
+            Q(name__icontains=q)
+            | Q(phone__icontains=q)
+            | Q(email__icontains=q)
+            | Q(school_memberships__school__name__icontains=q)
+            | Q(school_memberships__school__code__icontains=q)
+            | Q(school_memberships__school__city__icontains=q)
+        ).distinct()
+
+    page_obj = Paginator(managers_qs, 24).get_page(request.GET.get("page") or 1)
+
     items: list[dict] = []
-    for t in managers_qs:
+    for t in page_obj:
         schools = []
         seen_school_ids: set[int] = set()
         for membership in getattr(t, "manager_school_memberships", []):
@@ -1111,7 +1146,17 @@ def school_managers_list(request: HttpRequest) -> HttpResponse:
             schools.append(school)
         items.append({"manager": t, "schools": schools})
 
-    return render(request, "reports/school_managers_list.html", {"managers": items})
+    return render(
+        request,
+        "reports/school_managers_list.html",
+        {
+            "managers": items,
+            "page_obj": page_obj,
+            "q": q,
+            "total_managers_count": page_obj.paginator.count,
+            "query_params_without_page": _clean_query_params(request.GET),
+        },
+    )
 
 
 @login_required(login_url="reports:login")
