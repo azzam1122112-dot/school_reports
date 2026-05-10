@@ -819,6 +819,7 @@
 
             {% if request.user.is_superuser %}
               <a class="tab {% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
+              <a class="tab {% if active == 'school_year_reset' %}is-active{% endif %}" href="{% url 'maintenance:school_year_reset' %}">تهيئة العام</a>
             {% elif SHOW_ADMIN_DASHBOARD_LINK %}
               <a class="tab {% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
             {% endif %}
@@ -1075,6 +1076,10 @@
             <a class="{% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">
               <span>لوحة الآدمن</span>
               <i class="fa-solid fa-gauge-high"></i>
+            </a>
+            <a class="{% if active == 'school_year_reset' %}is-active{% endif %}" href="{% url 'maintenance:school_year_reset' %}">
+              <span>تهيئة العام الدراسي</span>
+              <i class="fa-solid fa-rotate"></i>
             </a>
           {% else %}
             <a class="{% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">

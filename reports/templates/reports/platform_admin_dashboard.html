@@ -827,6 +827,9 @@
             <a href="{% url 'reports:platform_admin_create' %}" class="btn-modern">
                 <i class="fas fa-plus"></i> إضافة مشرف
             </a>
+            <a href="{% url 'maintenance:school_year_reset' %}" class="btn-modern outline">
+                <i class="fas fa-rotate"></i> تهيئة العام
+            </a>
             <button onclick="refreshDashboard()" class="btn-modern outline" id="refreshBtn">
                 <i class="fas fa-sync-alt"></i> تحديث البيانات
             </button>
@@ -961,6 +964,10 @@
             <a href="{% url 'reports:platform_audit_logs' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
                 <div class="stat-icon" style="background:#f3f4f6; color:#1f2937; margin-bottom:1rem;"><i class="fas fa-history"></i></div>
                 <span class="stat-value" style="font-size:1.1rem;">سجل النظام</span>
+            </a>
+            <a href="{% url 'maintenance:school_year_reset' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center; border-color:#fecdd3; background:#fff1f2;">
+                <div class="stat-icon" style="background:#fee2e2; color:#b91c1c; margin-bottom:1rem;"><i class="fas fa-rotate"></i></div>
+                <span class="stat-value" style="font-size:1.1rem; color:#991b1b;">تهيئة العام الدراسي</span>
             </a>
         </div>
     </div>

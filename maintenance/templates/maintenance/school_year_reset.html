@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}تهيئة العام الدراسي{% endblock %}
+
+{% block head %}
+{{ block.super }}
+<style>
+  .reset-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 20px 44px;
+  }
+  .reset-hero {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .reset-hero h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 3vw, 2.35rem);
+    font-weight: 950;
+    color: #0f172a;
+  }
+  .reset-hero p {
+    margin: 0;
+    color: #64748b;
+    font-weight: 700;
+  }
+  .danger-band {
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    color: #9f1239;
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-weight: 800;
+    margin-bottom: 18px;
+  }
+  .reset-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 960px) {
+    .reset-grid { grid-template-columns: 1fr; }
+  }
+  .reset-panel {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .04);
+  }
+  .reset-panel__head {
+    padding: 16px 18px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+  }
+  .reset-panel__head h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 950;
+    color: #0f172a;
+  }
+  .reset-panel__body { padding: 18px; }
+  .field-block {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .field-block label,
+  .field-label {
+    font-weight: 900;
+    color: #1e293b;
+  }
+  .hint {
+    color: #64748b;
+    font-size: .9rem;
+    font-weight: 700;
+  }
+  .segmented,
+  .check-grid {
+    display: grid;
+    gap: 10px;
+  }
+  .segmented {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (max-width: 640px) {
+    .segmented { grid-template-columns: 1fr; }
+  }
+  .choice {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 850;
+    color: #0f172a;
+    background: #fff;
+  }
+  .choice input { width: 18px; height: 18px; }
+  textarea,
+  input[type="text"] {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 12px;
+    font: inherit;
+    color: #0f172a;
+    background: #fff;
+  }
+  textarea {
+    min-height: 108px;
+    resize: vertical;
+    direction: ltr;
+    text-align: left;
+  }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .reset-btn {
+    border: 0;
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-weight: 950;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .reset-btn.primary { background: #2563eb; color: #fff; }
+  .reset-btn.danger { background: #dc2626; color: #fff; }
+  .reset-btn.muted { background: #f1f5f9; color: #334155; }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+  .summary-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    background: #f8fafc;
+  }
+  .summary-card strong {
+    display: block;
+    font-size: 1.45rem;
+    color: #0f172a;
+    line-height: 1.1;
+  }
+  .summary-card span {
+    display: block;
+    color: #64748b;
+    font-weight: 800;
+    margin-top: 5px;
+  }
+  .manifest-list,
+  .jobs-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .manifest-list li,
+  .jobs-list li {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #fff;
+    color: #334155;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  .confirm-box {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 16px;
+  }
+  .status-pill {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 4px 10px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-weight: 900;
+    font-size: .85rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="reset-page">
+  <section class="reset-hero">
+    <h1>تهيئة العام الدراسي</h1>
+    <p>أداة مدير النظام لحذف البيانات التشغيلية القديمة بعد معاينة إلزامية وسجل قابل للمراجعة.</p>
+  </section>
+
+  <div class="danger-band">
+    هذه العملية لا تحذف المدارس أو المعلمين أو الأقسام أو أنواع التقارير أو الاشتراكات أو الصلاحيات أو الإعدادات. التنفيذ النهائي يحتاج كتابة {{ confirm_phrase }}.
+  </div>
+
+  <div class="reset-grid">
+    <section class="reset-panel">
+      <div class="reset-panel__head">
+        <h2>إعداد المعاينة</h2>
+        <span class="status-pill">{{ schools_total }} مدرسة في المنصة</span>
+      </div>
+      <div class="reset-panel__body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="preview">
+
+          <div class="field-block">
+            <div class="field-label">نطاق المدارس</div>
+            <div class="segmented">
+              <label class="choice">
+                <input type="radio" name="target_mode" value="all">
+                جميع المدارس
+              </label>
+              <label class="choice">
+                <input type="radio" name="target_mode" value="specific" checked>
+                مدارس محددة
+              </label>
+            </div>
+            <div class="hint">لعدد كبير من المدارس، استخدم الأكواد أو المعرفات بدل عرض قائمة ضخمة.</div>
+          </div>
+
+          <div class="field-block">
+            <label for="school_ids">معرفات المدارس</label>
+            <textarea id="school_ids" name="school_ids" placeholder="1&#10;2&#10;3"></textarea>
+            <div class="hint">اكتب ID في كل سطر أو افصل بينها بفواصل.</div>
+          </div>
+
+          <div class="field-block">
+            <label for="school_codes">أكواد المدارس</label>
+            <textarea id="school_codes" name="school_codes" placeholder="school-a&#10;school-b"></textarea>
+            <div class="hint">استخدم أكواد المدارس عند توفرها، وهي مناسبة للتجهيز قبل التنفيذ.</div>
+          </div>
+
+          <div class="field-block">
+            <div class="field-label">البيانات التشغيلية المراد حذفها</div>
+            <div class="check-grid">
+              <label class="choice"><input type="checkbox" name="reports" checked> التقارير</label>
+              <label class="choice"><input type="checkbox" name="tickets" checked> الطلبات والتذاكر وملاحظاتها وصورها</label>
+              <label class="choice"><input type="checkbox" name="achievements" checked> ملفات الإنجاز وشواهدها</label>
+              <label class="choice"><input type="checkbox" name="notifications" checked> التعاميم والإشعارات ومستلموها</label>
+              <label class="choice"><input type="checkbox" name="share_links" checked> روابط المشاركة</label>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <label class="choice">
+              <input type="checkbox" name="delete_files">
+              حذف المرفقات من التخزين بعد نجاح حذف قاعدة البيانات
+            </label>
+          </div>
+
+          <div class="btn-row">
+            <button class="reset-btn primary" type="submit">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              معاينة فقط
+            </button>
+            <a class="reset-btn muted" href="{% url 'reports:platform_admin_dashboard' %}">العودة للوحة النظام</a>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <aside class="reset-panel">
+      <div class="reset-panel__head">
+        <h2>آخر العمليات</h2>
+      </div>
+      <div class="reset-panel__body">
+        <ul class="jobs-list">
+          {% for job in recent_jobs %}
+            <li>
+              <div><strong>#{{ job.id }}</strong> - {{ job.status_label }}</div>
+              <div class="hint">{{ job.created_at|date:"Y-m-d H:i" }} - {{ job.schools_count }} مدرسة</div>
+            </li>
+          {% empty %}
+            <li>لا توجد عمليات تهيئة مسجلة بعد.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  {% if preview_job %}
+    <section class="reset-panel" style="margin-top:18px;">
+      <div class="reset-panel__head">
+        <h2>ملخص المعاينة Job #{{ preview_job.id }}</h2>
+        <span class="status-pill">{{ preview_status_label }}</span>
+      </div>
+      <div class="reset-panel__body">
+        <div class="summary-grid">
+          {% for item in summary_cards %}
+            <div class="summary-card">
+              <strong>{{ item.value }}</strong>
+              <span>{{ item.label }}</span>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="danger-band" style="margin-top:16px; margin-bottom:0;">
+          {{ preview_job.dry_run_summary.protected_data_note }}
+        </div>
+
+        <div class="reset-grid" style="margin-top:16px;">
+          <div>
+            <h3>أمثلة الملفات المرشحة للحذف</h3>
+            <ul class="manifest-list">
+              {% for key in file_samples %}
+                <li>{{ key }}</li>
+              {% empty %}
+                <li>لا توجد ملفات مرتبطة بالبيانات المحددة.</li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div>
+            <h3>المدارس المستهدفة</h3>
+            <ul class="manifest-list">
+              {% for school in selected_schools %}
+                <li>{{ school.name }} - {{ school.code }} - #{{ school.id }}</li>
+              {% empty %}
+                <li>لم يتم عرض مدارس.</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <form method="post" class="confirm-box">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="execute">
+          <input type="hidden" name="job_id" value="{{ preview_job.id }}">
+          <div class="field-block">
+            <label for="confirm">تأكيد التنفيذ النهائي</label>
+            <input id="confirm" type="text" name="confirm" placeholder="{{ confirm_phrase }}" autocomplete="off">
+            <div class="hint">لن يظهر هذا التنفيذ إلا بعد المعاينة. اكتب العبارة كاملة لتبدأ عملية الحذف.</div>
+          </div>
+          <button class="reset-btn danger" type="submit">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            تنفيذ التهيئة النهائية
+          </button>
+        </form>
+      </div>
+    </section>
+  {% endif %}
+</main>
+{% endblock %}

@@ -220,6 +220,7 @@ INSTALLED_APPS = [
     # Our apps
     "core",
     "reports",
+    "maintenance",
 ]
 
 
