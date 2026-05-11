@@ -88,11 +88,12 @@
     font-size: .85rem;
     white-space: nowrap;
   }
+  /* ── Mode Cards ── */
   .mode-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
   }
   @media (max-width: 720px) {
     .reset-topbar { flex-direction: column; }
@@ -100,157 +101,275 @@
   }
   .mode-card {
     position: relative;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 14px;
-    display: grid;
-    gap: 6px;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px 16px 16px 46px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
     cursor: pointer;
     background: #fff;
+    transition: border-color .2s, background .2s, box-shadow .2s;
+  }
+  .mode-card:hover { border-color: #93c5fd; background: #f8faff; }
+  .mode-card:has(input:checked) {
+    border-color: #2563eb;
+    background: rgba(37,99,235,.04);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.1);
   }
   .mode-card input {
     position: absolute;
     inset-inline-start: 14px;
-    top: 18px;
+    top: 50%;
+    transform: translateY(-50%);
     width: 18px;
     height: 18px;
+    accent-color: #2563eb;
   }
   .mode-card strong,
   .data-card strong {
     color: #0f172a;
-    font-weight: 950;
+    font-weight: 900;
   }
   .mode-card span,
   .hint {
     color: #64748b;
-    font-size: .9rem;
-    font-weight: 750;
+    font-size: .88rem;
+    font-weight: 600;
   }
+
+  /* ── School Picker Shell ── */
   .school-picker {
-    border: 1px solid #dbe4ef;
-    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
     overflow: hidden;
     margin-bottom: 18px;
+    box-shadow: 0 4px 18px rgba(15,23,42,.06);
+    background: #fff;
   }
   .picker-toolbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    display: flex;
+    align-items: center;
     gap: 10px;
-    padding: 12px;
+    padding: 14px;
     background: #f8fafc;
     border-bottom: 1px solid #e2e8f0;
   }
   @media (max-width: 720px) {
-    .picker-toolbar { grid-template-columns: 1fr; }
+    .picker-toolbar { flex-wrap: wrap; }
+    .picker-search { width: 100%; }
   }
-  .picker-search,
-  .confirm-input {
+  .search-wrap {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+  }
+  .search-wrap-icon {
+    position: absolute;
+    top: 50%; right: 14px;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+    font-size: .88rem;
+  }
+  .picker-search {
     width: 100%;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 11px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 40px 10px 14px;
     font: inherit;
+    font-size: .9rem;
     color: #0f172a;
     background: #fff;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .picker-search:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+  }
+  .confirm-input {
+    width: 100%;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font: inherit;
+    font-size: .95rem;
+    color: #0f172a;
+    background: #fff;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .confirm-input:focus {
+    outline: none;
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220,38,38,.1);
   }
   .mini-btn,
   .reset-btn {
-    border: 0;
-    border-radius: 8px;
-    padding: 10px 14px;
+    border: 1.5px solid transparent;
+    border-radius: 10px;
+    padding: 9px 14px;
     font: inherit;
-    font-weight: 950;
+    font-size: .85rem;
+    font-weight: 800;
     cursor: pointer;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 7px;
+    transition: all .2s;
+    white-space: nowrap;
   }
-  .mini-btn { background: #eef2ff; color: #3730a3; }
-  .mini-btn.ghost { background: #f1f5f9; color: #334155; }
-  .reset-btn.primary { background: #2563eb; color: #fff; }
-  .reset-btn.danger { background: #dc2626; color: #fff; }
-  .reset-btn.muted { background: #f1f5f9; color: #334155; }
+  .mini-btn { background: rgba(37,99,235,.07); color: #1d4ed8; border-color: rgba(37,99,235,.2); }
+  .mini-btn:hover { background: rgba(37,99,235,.14); }
+  .mini-btn.ghost { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+  .mini-btn.ghost:hover { background: #e2e8f0; }
+  .reset-btn.primary { background: #2563eb; color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,.3); }
+  .reset-btn.primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+  .reset-btn.danger { background: #dc2626; color: #fff; box-shadow: 0 4px 14px rgba(220,38,38,.25); }
+  .reset-btn.danger:hover { background: #b91c1c; transform: translateY(-1px); }
+  .reset-btn.muted { background: #f1f5f9; color: #334155; border-color: #e2e8f0; }
+  .reset-btn.muted:hover { background: #e2e8f0; }
+
+  /* ── Selected Chips Strip ── */
   .selected-strip {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     flex-wrap: wrap;
-    padding: 12px;
-    border-bottom: 1px solid #e2e8f0;
-    background: #fff;
+    padding: 11px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #fdfdfe;
+    min-height: 52px;
   }
   .school-chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    border: 1px solid #bfdbfe;
-    background: #eff6ff;
+    gap: 6px;
+    border: 1px solid rgba(37,99,235,.22);
+    background: rgba(37,99,235,.07);
     color: #1d4ed8;
-    border-radius: 999px;
-    padding: 6px 10px;
-    font-weight: 900;
-    max-width: 100%;
+    border-radius: 9999px;
+    padding: 5px 6px 5px 12px;
+    font-weight: 800;
+    font-size: .8rem;
+    max-width: 200px;
   }
+  .school-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .school-chip button {
-    border: 0;
-    background: transparent;
-    color: inherit;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(37,99,235,.15);
+    color: #1d4ed8;
+    border: none;
     cursor: pointer;
-    font-weight: 950;
+    font-weight: 900;
+    font-size: .7rem;
     padding: 0;
-  }
-  .schools-results {
-    min-height: 280px;
-    max-height: 430px;
-    overflow: auto;
-    display: grid;
-    align-content: start;
-  }
-  .school-row {
-    display: grid;
-    grid-template-columns: 34px minmax(0, 1fr) auto;
-    gap: 12px;
+    display: flex;
     align-items: center;
-    padding: 12px 14px;
-    border-bottom: 1px solid #e2e8f0;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .2s;
+  }
+  .school-chip button:hover { background: #ef4444; color: #fff; }
+
+  /* ── Schools Results List ── */
+  .schools-results {
+    min-height: 300px;
+    max-height: 440px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .schools-results::-webkit-scrollbar { width: 5px; }
+  .schools-results::-webkit-scrollbar-track { background: transparent; }
+  .schools-results::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+  /* ── School Row (Card) ── */
+  .school-row {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
     background: #fff;
+    cursor: pointer;
+    transition: background .15s;
   }
   .school-row:last-child { border-bottom: 0; }
   .school-row:hover { background: #f8fafc; }
-  .school-row input {
-    width: 18px;
-    height: 18px;
+  .school-row input[type="checkbox"] { display: none; }
+  .school-row.is-selected { background: rgba(37,99,235,.04); border-bottom-color: rgba(37,99,235,.07); }
+
+  .school-avatar {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.05rem;
+    color: #fff;
+    flex-shrink: 0;
   }
+  .school-info { flex: 1; min-width: 0; }
   .school-name {
     color: #0f172a;
-    font-weight: 950;
+    font-weight: 800;
+    font-size: .93rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .school-meta {
     color: #64748b;
-    font-size: .88rem;
-    font-weight: 750;
-    margin-top: 3px;
+    font-size: .79rem;
+    font-weight: 600;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .school-row-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
   }
   .school-state {
-    border-radius: 999px;
-    padding: 4px 9px;
-    background: #dcfce7;
-    color: #166534;
-    font-weight: 900;
-    font-size: .8rem;
+    border-radius: 9999px;
+    padding: 3px 10px;
+    background: rgba(16,185,129,.1);
+    color: #059669;
+    font-weight: 800;
+    font-size: .74rem;
+    white-space: nowrap;
   }
-  .school-state.off { background: #f1f5f9; color: #64748b; }
+  .school-state.off { background: #f1f5f9; color: #94a3b8; }
+  .school-check-icon {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: .62rem;
+    transition: all .2s;
+    flex-shrink: 0;
+  }
+  .school-row.is-selected .school-check-icon { background: #2563eb; border-color: #2563eb; color: #fff; }
+
+  /* ── Picker Footer ── */
   .picker-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    padding: 12px;
+    padding: 12px 16px;
     border-top: 1px solid #e2e8f0;
     background: #f8fafc;
   }
@@ -388,7 +507,10 @@
 
           <section class="school-picker" id="schoolPicker" data-search-url="{{ school_search_url }}">
             <div class="picker-toolbar">
-              <input class="picker-search" id="schoolSearchInput" type="search" placeholder="ابحث باسم المدرسة أو الكود أو المدينة..." autocomplete="off">
+              <div class="search-wrap">
+                <i class="fa-solid fa-magnifying-glass search-wrap-icon"></i>
+                <input class="picker-search" id="schoolSearchInput" type="search" placeholder="ابحث باسم المدرسة أو الكود أو المدينة..." autocomplete="off">
+              </div>
               <button class="mini-btn" type="button" id="refreshSchoolsBtn">
                 <i class="fa-solid fa-rotate"></i>
                 تحديث
@@ -570,7 +692,7 @@
     Array.from(selected.values()).slice(0, 12).forEach(function (school) {
       const chip = document.createElement('span');
       chip.className = 'school-chip';
-      chip.innerHTML = '<span>' + escapeHtml(school.name) + '</span><button type="button" data-remove-id="' + school.id + '">×</button>';
+      chip.innerHTML = '<span>' + escapeHtml(school.name) + '</span><button type="button" data-remove-id="' + school.id + '" title="إزالة"><i class="fa-solid fa-xmark" style="pointer-events:none"></i></button>';
       selectedStrip.appendChild(chip);
     });
     if (selected.size > 12) {
@@ -582,27 +704,37 @@
     syncHiddenIds();
   }
 
+  const AVATAR_COLORS = ['#6366f1','#8b5cf6','#ec4899','#0ea5e9','#14b8a6','#f59e0b','#10b981','#f43f5e'];
+  function avatarColor(id) { return AVATAR_COLORS[Math.abs(parseInt(id, 10) || 0) % AVATAR_COLORS.length]; }
+  function avatarInitial(name) { return (name || '?').trim()[0] || '?'; }
+
   function renderRows(rows, append) {
     if (!append) resultsEl.innerHTML = '';
     visibleRows = append ? visibleRows.concat(rows) : rows.slice();
     if (!rows.length && !append) {
-      resultsEl.innerHTML = '<div class="school-row"><div></div><div class="hint">لا توجد مدارس مطابقة.</div><div></div></div>';
+      resultsEl.innerHTML = '<div style="text-align:center;padding:3rem 2rem;color:#94a3b8;font-weight:700;"><i class="fa-regular fa-circle-xmark" style="font-size:2rem;display:block;margin-bottom:.75rem;"></i>لا توجد مدارس مطابقة للبحث</div>';
       return;
     }
     rows.forEach(function (school) {
+      const isChecked = selected.has(String(school.id));
       const row = document.createElement('label');
-      row.className = 'school-row';
+      row.className = 'school-row' + (isChecked ? ' is-selected' : '');
       row.dataset.schoolId = school.id;
-      const checked = selected.has(String(school.id)) ? 'checked' : '';
       const stateClass = school.is_active ? 'school-state' : 'school-state off';
       const stateLabel = school.is_active ? 'نشطة' : 'غير نشطة';
+      const color = avatarColor(school.id);
+      const initial = escapeHtml(avatarInitial(school.name));
       row.innerHTML =
-        '<input type="checkbox" value="' + school.id + '" ' + checked + '>' +
-        '<div>' +
+        '<input type="checkbox" value="' + school.id + '"' + (isChecked ? ' checked' : '') + '>' +
+        '<div class="school-avatar" style="background:' + color + '">' + initial + '</div>' +
+        '<div class="school-info">' +
           '<div class="school-name">' + escapeHtml(school.name) + '</div>' +
-          '<div class="school-meta">#' + school.id + ' - ' + escapeHtml(school.code) + ' - ' + escapeHtml(school.city || 'بدون مدينة') + ' - ' + escapeHtml(school.stage) + ' - ' + escapeHtml(school.gender) + '</div>' +
+          '<div class="school-meta">#' + school.id + ' · ' + escapeHtml(school.code) + ' · ' + escapeHtml(school.city || 'بدون مدينة') + '</div>' +
         '</div>' +
-        '<span class="' + stateClass + '">' + stateLabel + '</span>';
+        '<div class="school-row-right">' +
+          '<span class="' + stateClass + '">' + stateLabel + '</span>' +
+          '<div class="school-check-icon"><i class="fa-solid fa-check"></i></div>' +
+        '</div>';
       resultsEl.appendChild(row);
     });
   }
@@ -646,6 +778,8 @@
     const row = visibleRows.find(function (item) { return String(item.id) === id; });
     if (input.checked && row) selected.set(id, row);
     if (!input.checked) selected.delete(id);
+    const label = input.closest('.school-row');
+    if (label) label.classList.toggle('is-selected', input.checked);
     renderSelected();
   });
 

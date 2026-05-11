@@ -118,6 +118,10 @@
     display:flex;
     align-items:center;
     gap:10px;
+    min-width: min(100%, 220px);
+  }
+  .file-name span{
+    overflow-wrap:anywhere;
   }
   .file-hint{
     margin-top: 8px;
@@ -133,6 +137,18 @@
     flex-wrap:wrap;
     align-items:center;
     margin-top: 12px;
+  }
+  .imp-actions .btn[disabled]{
+    opacity:.62;
+    cursor:not-allowed;
+    pointer-events:none;
+  }
+  .imp-submit-note{
+    width:100%;
+    color: var(--muted);
+    font-weight: 850;
+    line-height:1.7;
+    font-size:.92rem;
   }
 
   .imp-alert{
@@ -206,17 +222,18 @@
 
         <ul class="imp-list">
           <li>الملف يجب أن يكون بصيغة <b>.xlsx</b> فقط.</li>
-          <li>الصف الأول عناوين أعمدة (سيتم تجاهله).</li>
+          <li>الصف الأول عناوين أعمدة، ويُستخدم للتعرّف على الحقول عند وجودها.</li>
           <li>
-            ترتيب الأعمدة المطلوب:
+            العناوين أو الترتيب المفضّل للأعمدة:
             <ol>
               <li><b>الاسم الكامل</b> (مطلوب)</li>
               <li><b>رقم الجوال</b> (مطلوب — يُستخدم كاسم مستخدم وككلمة مرور افتراضية)</li>
               <li><b>رقم الهوية</b> (اختياري)</li>
             </ol>
           </li>
-          <li>كلمة المرور الافتراضية = رقم الجوال</li>
-          <li>إذا كان {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} مسجلاً مسبقاً برقم الجوال، سيتم ربطه بمدرستك فقط دون تغيير بياناته.</li>
+          <li>كلمة المرور الافتراضية للمدخلات الجديدة = رقم الجوال.</li>
+          <li>إذا كان {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} مسجلاً مسبقاً، سيتم ربطه بمدرستك وقد تُحدّث بياناته عند اختلاف الاسم أو الهوية أو الجوال.</li>
+          <li>الحد الأقصى للملف الواحد 2000 صف، ويخضع الاستيراد لحد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} في باقتك.</li>
         </ul>
 
         <div class="imp-note">
@@ -250,13 +267,14 @@
               accept=".xlsx"
               required
               class="sr-only"
+              aria-describedby="excelHint excelBad"
             >
 
-            <div class="file-hint">
+            <div class="file-hint" id="excelHint">
               تأكد أن الملف مطابق للتعليمات أعلاه. (سيتم رفض أي امتداد غير <b>.xlsx</b>)
             </div>
 
-            <div class="imp-bad" id="excelBad">
+            <div class="imp-bad" id="excelBad" role="alert" aria-live="polite" aria-hidden="true">
               <i class="fa-solid fa-triangle-exclamation"></i>
               الملف غير صالح. الرجاء اختيار ملف <b>.xlsx</b>.
             </div>
@@ -266,6 +284,7 @@
             <button type="submit" class="btn btn-primary" id="importBtn">
               <i class="fa-solid fa-upload"></i> بدء الاستيراد الآن
             </button>
+            <div class="imp-submit-note" id="importSubmitNote">اختر ملف Excel صالحًا لتفعيل زر الاستيراد.</div>
 
             <a href="{% url 'reports:manage_teachers' %}" class="btn">
               <i class="fa-solid fa-users-gear"></i> إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}
@@ -295,6 +314,9 @@
     var nameEl = document.getElementById('excelFileName');
     var badEl = document.getElementById('excelBad');
     var btn = document.getElementById('importBtn');
+    var submitNote = document.getElementById('importSubmitNote');
+    var defaultBtnHtml = btn ? btn.innerHTML : '';
+    var submitted = false;
 
     if(!input || !nameEl) return;
 
@@ -303,23 +325,44 @@
       return fileName.toLowerCase().endsWith('.xlsx');
     }
 
-    function setBad(isBad){
-      if(!badEl) return;
-      badEl.style.display = isBad ? 'block' : 'none';
-      if(btn) btn.disabled = isBad;
+    function updateState(fileName){
+      var hasFile = !!fileName;
+      var isBad = hasFile && !isXlsx(fileName);
+
+      nameEl.textContent = fileName || 'لم يتم اختيار ملف بعد';
+      nameEl.title = fileName || '';
+
+      if(badEl){
+        badEl.style.display = isBad ? 'block' : 'none';
+        badEl.setAttribute('aria-hidden', isBad ? 'false' : 'true');
+      }
+
+      if(btn){
+        btn.disabled = !hasFile || isBad || submitted;
+        btn.setAttribute('aria-busy', submitted ? 'true' : 'false');
+      }
+
+      if(submitNote){
+        if(isBad){
+          submitNote.textContent = 'اختر ملفًا بصيغة .xlsx فقط قبل بدء الاستيراد.';
+        } else if(hasFile){
+          submitNote.textContent = 'الملف جاهز للإرسال. لا تغلق الصفحة أثناء الاستيراد.';
+        } else {
+          submitNote.textContent = 'اختر ملف Excel صالحًا لتفعيل زر الاستيراد.';
+        }
+      }
+
+      return !isBad && hasFile;
     }
 
     input.addEventListener('change', function(){
       var file = input.files && input.files[0] ? input.files[0] : null;
       var fileName = file ? file.name : '';
-
-      nameEl.textContent = fileName || 'لم يتم اختيار ملف بعد';
-
-      if(fileName && !isXlsx(fileName)){
-        setBad(true);
-        return;
+      submitted = false;
+      if(btn && defaultBtnHtml) {
+        btn.innerHTML = defaultBtnHtml;
       }
-      setBad(false);
+      updateState(fileName);
     });
 
     // حماية إضافية قبل الإرسال
@@ -328,12 +371,30 @@
       form.addEventListener('submit', function(ev){
         var file = input.files && input.files[0] ? input.files[0] : null;
         var fileName = file ? file.name : '';
-        if(!fileName || !isXlsx(fileName)){
+        if(!updateState(fileName)){
           ev.preventDefault();
-          setBad(true);
+          try { input.focus(); } catch(e) {}
+          return;
+        }
+
+        if(submitted){
+          ev.preventDefault();
+          return;
+        }
+
+        submitted = true;
+        if(btn){
+          btn.disabled = true;
+          btn.setAttribute('aria-busy', 'true');
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الاستيراد...';
+        }
+        if(submitNote){
+          submitNote.textContent = 'جاري رفع الملف ومعالجته، قد يستغرق ذلك قليلًا حسب عدد الصفوف.';
         }
       });
     }
+
+    updateState('');
   })();
 </script>
 {% endblock %}
