@@ -6,6 +6,7 @@ from reports.forms import NotificationCreateForm
 from reports.models import (
     Department,
     DepartmentMembership,
+    Notification,
     NotificationRecipient,
     Role,
     School,
@@ -250,3 +251,81 @@ class NotificationDispatchTests(TransactionTestCase):
         )
 
         self.assertEqual(self._recipient_ids_for(notification), {self.teachers[0].id})
+
+    def test_platform_notify_without_active_school_can_send_to_all_schools(self):
+        second_school = School.objects.create(name="Second School", code="second-school")
+        SchoolSubscription.objects.create(
+            school=second_school,
+            plan=SubscriptionPlan.objects.first(),
+        )
+        second_teacher = Teacher.objects.create_user(
+            phone="500000200",
+            name="Second Teacher",
+            password="pass",
+            role=self.teacher_role,
+        )
+        SchoolMembership.objects.create(
+            school=second_school,
+            teacher=second_teacher,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        admin = Teacher.objects.create_superuser(
+            phone="500000999",
+            name="Platform Owner",
+            password="pass",
+        )
+        self.client.force_login(admin)
+
+        response = self.client.post(
+            reverse("reports:platform_school_notify"),
+            data={
+                "target_scope": "all",
+                "title": "Platform Notice",
+                "message": "Sent to every school in scope.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            Notification.objects.filter(title="Platform Notice", created_by=admin).count(),
+            2,
+        )
+        self.assertEqual(
+            NotificationRecipient.objects.filter(
+                notification__title="Platform Notice",
+                teacher__in=[self.manager, *self.teachers, second_teacher],
+            ).count(),
+            5,
+        )
+
+        school_notification = Notification.objects.get(title="Platform Notice", school=self.school)
+        NotificationRecipient.objects.filter(notification=school_notification, teacher=self.teachers[0]).update(is_read=True)
+
+        sent_response = self.client.get(reverse("reports:notifications_sent"))
+        self.assertContains(sent_response, "Platform Notice")
+        self.assertContains(sent_response, "1 / 4")
+        self.assertEqual(
+            sent_response.context["stats"][school_notification.id],
+            {"total": 4, "read": 1, "signed": 0},
+        )
+
+    def test_platform_notify_without_active_school_requires_selected_schools_for_selected_scope(self):
+        admin = Teacher.objects.create_superuser(
+            phone="500000998",
+            name="Platform Owner 2",
+            password="pass",
+        )
+        self.client.force_login(admin)
+
+        response = self.client.post(
+            reverse("reports:platform_school_notify"),
+            data={
+                "target_scope": "selected",
+                "title": "Platform Notice",
+                "message": "Missing schools.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "اختر مدرسة واحدة على الأقل")
+        self.assertFalse(Notification.objects.filter(title="Platform Notice").exists())

@@ -1016,6 +1016,24 @@ class PlatformAdminCreateForm(forms.ModelForm):
 
 
 class PlatformSchoolNotificationForm(forms.Form):
+    target_scope = forms.ChoiceField(
+        label="نطاق المدارس",
+        required=True,
+        choices=(
+            ("current", "المدرسة الحالية"),
+            ("selected", "مدارس محددة"),
+            ("all", "كل المدارس ضمن صلاحياتي"),
+        ),
+        initial="current",
+        widget=forms.RadioSelect,
+    )
+    selected_schools = forms.ModelMultipleChoiceField(
+        label="المدارس المحددة",
+        queryset=School.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="اختر مدرسة واحدة أو أكثر عند استخدام نطاق مدارس محددة.",
+    )
     title = forms.CharField(
         label="العنوان",
         required=False,
@@ -1028,6 +1046,66 @@ class PlatformSchoolNotificationForm(forms.Form):
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 5, "placeholder": "اكتب نص الإشعار هنا…"}),
     )
     is_important = forms.BooleanField(label="مهم؟", required=False)
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        self.active_school = kwargs.pop("active_school", None)
+        super().__init__(*args, **kwargs)
+
+        from .permissions import platform_allowed_schools_qs
+
+        allowed_schools = platform_allowed_schools_qs(self.user).order_by("name", "id")
+        self.fields["selected_schools"].queryset = allowed_schools
+
+        scope_choices = []
+        if self.active_school is not None and allowed_schools.filter(pk=self.active_school.pk).exists():
+            scope_choices.append(("current", f"المدرسة الحالية: {self.active_school.name}"))
+            self.fields["target_scope"].initial = "current"
+        else:
+            self.fields["target_scope"].initial = "selected"
+
+        scope_choices.extend(
+            (
+                ("selected", "مدارس محددة"),
+                ("all", "كل المدارس ضمن صلاحياتي"),
+            )
+        )
+        self.fields["target_scope"].choices = scope_choices
+
+    def clean(self):
+        cleaned = super().clean()
+        scope = cleaned.get("target_scope") or "selected"
+        selected_schools = cleaned.get("selected_schools")
+
+        from .permissions import platform_allowed_schools_qs
+
+        allowed_schools = platform_allowed_schools_qs(self.user)
+        if not allowed_schools.exists():
+            raise ValidationError("لا توجد مدارس متاحة ضمن صلاحياتك.")
+
+        if scope == "current":
+            active_school = self.active_school
+            if active_school is None:
+                raise ValidationError("لا توجد مدرسة حالية. اختر مدارس محددة أو كل المدارس.")
+            if not allowed_schools.filter(pk=active_school.pk).exists():
+                raise ValidationError("المدرسة الحالية خارج نطاق صلاحياتك.")
+
+        if scope == "selected" and not selected_schools:
+            self.add_error("selected_schools", "اختر مدرسة واحدة على الأقل.")
+
+        return cleaned
+
+    def target_schools(self):
+        scope = self.cleaned_data.get("target_scope") or "selected"
+
+        from .permissions import platform_allowed_schools_qs
+
+        allowed_schools = platform_allowed_schools_qs(self.user).order_by("name", "id")
+        if scope == "all":
+            return allowed_schools
+        if scope == "current" and self.active_school is not None:
+            return allowed_schools.filter(pk=self.active_school.pk)
+        return self.cleaned_data.get("selected_schools", School.objects.none()).order_by("name", "id")
 
 
 class PrivateCommentForm(forms.Form):

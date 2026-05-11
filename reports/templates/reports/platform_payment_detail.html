@@ -1,6 +1,6 @@
 {# reports/templates/reports/platform_payment_detail.html (مثال اسم) #}
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 
 {% block title %}تفاصيل عملية الدفع #{{ payment.id }}{% endblock %}
 
@@ -80,6 +80,32 @@
   .pay-detail .card{
     box-shadow: var(--pd-shadow);
     border-radius: var(--pd-radius);
+  }
+
+  .pay-detail .decision-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+    margin-bottom:12px;
+  }
+  .pay-detail .decision-card{
+    background:var(--pd-card);
+    border:1px solid var(--pd-line);
+    border-radius:var(--pd-radius);
+    box-shadow:var(--pd-shadow);
+    padding:14px;
+  }
+  .pay-detail .decision-card .label{display:block;margin-bottom:8px}
+  .pay-detail .decision-card .num{font-size:1.2rem;font-weight:950;color:var(--pd-ink)}
+  .pay-detail .decision-note{
+    margin-top:12px;
+    border:1px solid rgba(37,99,235,.20);
+    background:rgba(37,99,235,.08);
+    color:var(--pd-ink);
+    border-radius:14px;
+    padding:12px;
+    font-weight:900;
+    line-height:1.8;
   }
 
   .pay-detail .section-title{
@@ -192,6 +218,11 @@
     .pay-detail .actions{flex-direction:column}
     .pay-detail .actions .btn,
     .pay-detail .actions .btn-primary{width:100%}
+    .pay-detail .decision-grid{grid-template-columns:1fr}
+  }
+
+  @media(min-width:521px) and (max-width:820px){
+    .pay-detail .decision-grid{grid-template-columns:1fr 1fr}
   }
 </style>
 {% endblock %}
@@ -214,6 +245,21 @@
         >
           <i class="fa-solid fa-arrow-right"></i> عودة للقائمة
         </a>
+      </div>
+    </section>
+
+    <section class="decision-grid" aria-label="ملخص القرار المالي">
+      <div class="decision-card">
+        <span class="label">المبلغ</span>
+        <div class="num">{{ payment.amount|floatformat:0|intcomma }} ريال</div>
+      </div>
+      <div class="decision-card">
+        <span class="label">الباقة المطلوبة</span>
+        <div class="num">{{ payment.requested_plan.name|default:"-" }}</div>
+      </div>
+      <div class="decision-card">
+        <span class="label">المدرسة</span>
+        <div class="num">{{ payment.school.name }}</div>
       </div>
     </section>
 
@@ -242,7 +288,7 @@
 
         <div class="row">
           <span class="label">المبلغ</span>
-          <span class="value amount">{{ payment.amount }} ريال</span>
+          <span class="value amount">{{ payment.amount|floatformat:0|intcomma }} ريال</span>
         </div>
 
         <div class="row">
@@ -259,6 +305,20 @@
           <span class="label">ملاحظات المدرسة</span>
           <span class="value">{{ payment.notes|default:"-" }}</span>
         </div>
+      </div>
+
+      <div class="decision-note">
+        {% if payment.status == 'pending' %}
+          راجع الإيصال والمبلغ ثم اعتمد العملية لتحويلها إلى إيراد وتجديد اشتراك المدرسة تلقائيًا عند توفر الباقة.
+        {% elif payment.status == 'approved' and payment.amount < 0 %}
+          هذه عملية استرجاع معتمدة، وهي تخصم من صافي الإيراد في لوحة المالية.
+        {% elif payment.status == 'approved' %}
+          العملية معتمدة ومحسوبة ضمن الإيرادات. راجع الاشتراك المرتبط عند الحاجة.
+        {% elif payment.status == 'rejected' %}
+          العملية مرفوضة. اجعل الملاحظة واضحة للمدرسة لتسريع إعادة الرفع.
+        {% else %}
+          العملية غير نشطة حاليًا، ولن تُحسب ضمن التحصيل المقبول.
+        {% endif %}
       </div>
     </div>
 

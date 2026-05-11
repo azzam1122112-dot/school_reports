@@ -1,39 +1,175 @@
 {% extends "base.html" %}
 {% block title %}إرسال إشعار{% endblock %}
 
-{% block content %}
-<div class="container" dir="rtl" style="max-width:900px;margin:0 auto;padding:18px">
-  <div class="card" style="border-radius:18px">
-    <h1 style="margin:0 0 6px;font-weight:950">إرسال إشعار</h1>
-    <div class="muted" style="font-weight:850">سيصل الإشعار إلى جميع المستخدمين داخل المدرسة: <b>{{ school.name }}</b></div>
+{% block head %}
+<style>
+  .pn-page{max-width:980px;margin:0 auto;padding:clamp(12px,2.5vw,22px)}
+  .pn-panel{
+    background:var(--card);border:1px solid var(--line-2);border-radius:18px;
+    box-shadow:0 14px 38px rgba(15,23,42,.07);padding:clamp(16px,3vw,24px)
+  }
+  .pn-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
+  .pn-title{margin:0;color:var(--ink);font-size:clamp(1.35rem,2.4vw,1.8rem);font-weight:950}
+  .pn-sub{margin:8px 0 0;color:var(--muted);font-weight:850;line-height:1.8}
+  .pn-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .pn-field.full{grid-column:1/-1}
+  .pn-label{display:block;margin-bottom:7px;color:var(--muted);font-weight:950}
+  .pn-error{margin-top:7px;color:#dc2626;font-weight:850}
+  .pn-scope ul,.pn-schools ul{list-style:none;margin:0;padding:0}
+  .pn-scope ul{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .pn-scope label,.pn-schools label{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--line-2);
+    border-radius:14px;padding:10px 12px;background:rgba(37,99,235,.04);
+    color:var(--ink);font-weight:900;cursor:pointer
+  }
+  .pn-scope input,.pn-schools input{width:18px;height:18px;accent-color:var(--brand)}
+  .pn-schools-wrap{display:none;border:1px solid var(--line-2);border-radius:16px;padding:12px;background:rgba(15,23,42,.025)}
+  .pn-schools-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .pn-search{
+    min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--card);
+    color:var(--ink);padding:8px 12px;font-weight:900;outline:none;flex:1 1 240px
+  }
+  .pn-mini-btn{
+    min-height:42px;border-radius:12px;border:1px solid rgba(37,99,235,.28);
+    background:transparent;color:var(--brand);padding:8px 12px;font-weight:950
+  }
+  .pn-schools ul{max-height:310px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-inline-end:2px}
+  .pn-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .pn-actions .btn{border-radius:14px;min-height:46px}
+  .pn-muted{color:var(--muted);font-weight:850}
+  @media(max-width:760px){
+    .pn-grid,.pn-scope ul,.pn-schools ul{grid-template-columns:1fr}
+    .pn-actions .btn{width:100%;justify-content:center}
+  }
+</style>
+{% endblock %}
 
-    <form method="post" style="margin-top:14px">
+{% block content %}
+<div class="pn-page" dir="rtl">
+  <section class="pn-panel" aria-label="إرسال إشعار للمدارس">
+    <div class="pn-head">
+      <div>
+        <h1 class="pn-title">إرسال إشعار</h1>
+        <p class="pn-sub">
+          اختر مدرسة واحدة، مدارس محددة، أو كل المدارس ضمن صلاحياتك.
+          {% if allowed_schools_count %}<span class="pn-muted">النطاق المتاح: {{ allowed_schools_count }} مدرسة.</span>{% endif %}
+        </p>
+      </div>
+      <a class="btn btn-outline" href="{% if school %}{% url 'reports:platform_school_dashboard' %}{% else %}{% url 'reports:platform_schools_directory' %}{% endif %}">
+        رجوع
+      </a>
+    </div>
+
+    <form method="post" id="platformNotifyForm">
       {% csrf_token %}
       {{ form.non_field_errors }}
 
-      <div class="form-group">
-        <label class="form-label">العنوان</label>
-        {{ form.title }}
-        {{ form.title.errors }}
+      <div class="pn-grid">
+        <div class="pn-field full pn-scope">
+          <label class="pn-label">{{ form.target_scope.label }}</label>
+          {{ form.target_scope }}
+          {% if form.target_scope.errors %}<div class="pn-error">{{ form.target_scope.errors }}</div>{% endif %}
+        </div>
+
+        <div class="pn-field full pn-schools-wrap" id="selectedSchoolsWrap">
+          <label class="pn-label">{{ form.selected_schools.label }}</label>
+          <div class="pn-schools-tools">
+            <input class="pn-search" id="schoolFilter" type="search" placeholder="بحث في المدارس..." autocomplete="off">
+            <button class="pn-mini-btn" type="button" id="checkVisibleSchools">تحديد الظاهر</button>
+            <button class="pn-mini-btn" type="button" id="clearSchools">مسح التحديد</button>
+          </div>
+          <div class="pn-schools" id="schoolsList">
+            {{ form.selected_schools }}
+          </div>
+          {% if form.selected_schools.help_text %}<div class="pn-muted" style="margin-top:8px">{{ form.selected_schools.help_text }}</div>{% endif %}
+          {% if form.selected_schools.errors %}<div class="pn-error">{{ form.selected_schools.errors }}</div>{% endif %}
+        </div>
+
+        <div class="pn-field">
+          <label class="pn-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+          {{ form.title }}
+          {% if form.title.errors %}<div class="pn-error">{{ form.title.errors }}</div>{% endif %}
+        </div>
+
+        <div class="pn-field">
+          <label class="pn-label">{{ form.is_important.label }}</label>
+          <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:900;color:var(--ink)">
+            {{ form.is_important }}
+            <span>تمييز الإشعار كمهم</span>
+          </label>
+          {% if form.is_important.errors %}<div class="pn-error">{{ form.is_important.errors }}</div>{% endif %}
+        </div>
+
+        <div class="pn-field full">
+          <label class="pn-label" for="{{ form.message.id_for_label }}">{{ form.message.label }}</label>
+          {{ form.message }}
+          {% if form.message.errors %}<div class="pn-error">{{ form.message.errors }}</div>{% endif %}
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">الرسالة</label>
-        {{ form.message }}
-        {{ form.message.errors }}
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">مهم؟</label>
-        {{ form.is_important }}
-        {{ form.is_important.errors }}
-      </div>
-
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-        <button class="btn btn-primary" type="submit">إرسال</button>
-        <a class="btn btn-outline" href="{% url 'reports:platform_school_dashboard' %}">إلغاء</a>
+      <div class="pn-actions">
+        <button class="btn btn-primary" type="submit">
+          <i class="fa-solid fa-paper-plane"></i>
+          إرسال
+        </button>
+        <a class="btn btn-outline" href="{% url 'reports:notifications_sent' %}">الإشعارات المرسلة</a>
       </div>
     </form>
-  </div>
+  </section>
 </div>
+
+<script>
+(function(){
+  const selectedWrap = document.getElementById('selectedSchoolsWrap');
+  const scopeInputs = Array.from(document.querySelectorAll('input[name="target_scope"]'));
+  const schoolList = document.getElementById('schoolsList');
+  const filter = document.getElementById('schoolFilter');
+  const checkVisible = document.getElementById('checkVisibleSchools');
+  const clear = document.getElementById('clearSchools');
+
+  function currentScope(){
+    const checked = scopeInputs.find(input => input.checked);
+    return checked ? checked.value : '';
+  }
+
+  function syncScope(){
+    if (selectedWrap) selectedWrap.style.display = currentScope() === 'selected' ? 'block' : 'none';
+  }
+
+  function schoolItems(){
+    return schoolList ? Array.from(schoolList.querySelectorAll('li')) : [];
+  }
+
+  scopeInputs.forEach(input => input.addEventListener('change', syncScope));
+  syncScope();
+
+  if (filter) {
+    filter.addEventListener('input', function(){
+      const q = (filter.value || '').trim().toLowerCase();
+      schoolItems().forEach(item => {
+        item.style.display = !q || item.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  if (checkVisible) {
+    checkVisible.addEventListener('click', function(){
+      schoolItems().forEach(item => {
+        if (item.style.display === 'none') return;
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.checked = true;
+      });
+    });
+  }
+
+  if (clear) {
+    clear.addEventListener('click', function(){
+      schoolItems().forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.checked = false;
+      });
+    });
+  }
+})();
+</script>
 {% endblock %}

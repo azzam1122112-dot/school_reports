@@ -1,320 +1,228 @@
-{# reports/templates/reports/platform_subscriptions_list.html #}
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}إدارة الاشتراكات{% endblock %}
 
 {% block head %}
 <style>
-  /* ✅ Scoped فقط لهذه الصفحة — بدون لمس .btn / .card العامة */
   .subslist-scope{
     --sl-brand: var(--brand, #2563eb);
     --sl-ink: var(--ink, #0f172a);
     --sl-muted: var(--muted, #64748b);
     --sl-line: var(--line-2, var(--line, #e5e7eb));
     --sl-card: var(--card, #fff);
-    --sl-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
-    --sl-danger: var(--danger, #ef4444);
-    --sl-ok: var(--accent, #10b981);
-    --sl-warn: #f59e0b;
-    --sl-grad: linear-gradient(135deg, rgba(37,99,235,.95), rgba(59,130,246,.88));
-    --sl-grad-2: linear-gradient(135deg, rgba(15,23,42,.94), rgba(30,41,59,.86));
-    --sl-t: var(--t-fast, 180ms ease);
+    --sl-soft: rgba(37,99,235,.07);
+    --sl-ok: #059669;
+    --sl-warn: #d97706;
+    --sl-danger: #dc2626;
+    --sl-shadow: 0 18px 45px rgba(15,23,42,.09);
+    max-width:1240px;
+    margin:0 auto;
+    padding:clamp(12px,2.4vw,22px);
   }
-
-  .subslist-scope .wrap{max-width:1100px;margin-inline:auto}
-
-  .subslist-scope .kpis{
-    display:grid;
-    grid-template-columns: repeat(4, minmax(190px, 1fr));
-    gap: 12px;
-    margin: 12px 0 14px;
-  }
-  @media(max-width:980px){
-    .subslist-scope .kpis{grid-template-columns: repeat(2, minmax(160px, 1fr));}
-  }
-  @media(max-width:520px){
-    .subslist-scope .kpis{grid-template-columns:1fr;}
-  }
-
-  .subslist-scope .kpi{
-    background: var(--sl-card);
-    border:1px solid var(--sl-line);
-    border-radius: 16px;
-    box-shadow: var(--sl-shadow);
-    padding: 14px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap: 12px;
-  }
-  .subslist-scope .kpi .meta{display:grid;gap:4px;min-width:0}
-  .subslist-scope .kpi .label{color:var(--sl-muted);font-weight:900}
-  .subslist-scope .kpi .value{font-weight:950;font-size:1.25rem;color:var(--sl-ink)}
-  .subslist-scope .kpi .chip{
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background: rgba(37,99,235,.10);
-    color: var(--sl-brand);
-    border: 1px solid rgba(37,99,235,.14);
-    flex: 0 0 auto;
-  }
-  .subslist-scope .kpi.ok .chip{background: rgba(16,185,129,.10); color: var(--sl-ok); border-color: rgba(16,185,129,.16)}
-  .subslist-scope .kpi.bad .chip{background: rgba(239,68,68,.10); color: var(--sl-danger); border-color: rgba(239,68,68,.16)}
-  .subslist-scope .kpi.warn .chip{background: rgba(245,158,11,.12); color: var(--sl-warn); border-color: rgba(245,158,11,.18)}
-
-  /* Hero */
   .subslist-scope .hero{
-    padding: 16px 18px;
-    border-radius: 16px;
-    color:#fff;
+    min-height:210px;
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.18);
     background:
-      radial-gradient(900px 240px at 15% 0%, rgba(16,185,129,.16), transparent 55%),
-      radial-gradient(700px 220px at 90% 70%, rgba(255,255,255,.14), transparent 60%),
-      var(--sl-grad);
-    border: 1px solid rgba(255,255,255,.14);
-    box-shadow: var(--sl-shadow);
-    margin-bottom: 12px;
-  }
-  .subslist-scope .hero-head{
+      linear-gradient(135deg, rgba(9,32,63,.95), rgba(37,99,235,.88)),
+      url("https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1800&q=80") center/cover;
+    background-blend-mode:multiply;
+    color:#fff;
+    box-shadow:var(--sl-shadow);
+    padding:clamp(18px,3vw,28px);
     display:flex;
-    align-items:flex-start;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .subslist-scope .hero h1{margin:0;font-size:clamp(1.55rem,3vw,2.25rem);font-weight:950;letter-spacing:0}
+  .subslist-scope .hero p{margin:8px 0 0;max-width:760px;line-height:1.8;font-weight:850;opacity:.95}
+  .subslist-scope .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .subslist-scope .hero-actions .btn{min-height:44px;border-radius:14px}
+  .subslist-scope .hero-actions .btn-outline{color:#fff;border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.12)}
+
+  .subslist-scope .command-strip{
+    margin-top:-26px;
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:12px;
+    position:relative;
+    z-index:2;
+  }
+  .subslist-scope .command-card{
+    background:var(--sl-card);
+    border:1px solid var(--sl-line);
+    border-radius:18px;
+    box-shadow:var(--sl-shadow);
+    padding:15px;
+    min-height:118px;
+    display:flex;
     justify-content:space-between;
     gap:12px;
-    flex-wrap:wrap;
   }
-  .subslist-scope .hero h1{
-    margin:0;
-    font-weight:950;
-    font-size:clamp(1.15rem,2.4vw,1.55rem);
+  .subslist-scope .command-card .label{color:var(--sl-muted);font-weight:900}
+  .subslist-scope .command-card .value{margin-top:8px;color:var(--sl-ink);font-weight:950;font-size:1.35rem}
+  .subslist-scope .command-card .hint{margin-top:4px;color:var(--sl-muted);font-weight:800;font-size:.88rem}
+  .subslist-scope .command-card .ico{
+    width:46px;height:46px;border-radius:15px;display:grid;place-items:center;
+    background:var(--sl-soft);color:var(--sl-brand);border:1px solid rgba(37,99,235,.14);flex:0 0 auto
   }
-  .subslist-scope .hero p{
-    margin:6px 0 0;
-    opacity:.95;
-    font-weight:850;
-    line-height:1.65;
-    max-width:68ch;
-  }
-  .subslist-scope .hero-actions{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
+  .subslist-scope .command-card.ok .ico{background:rgba(5,150,105,.10);color:var(--sl-ok);border-color:rgba(5,150,105,.18)}
+  .subslist-scope .command-card.warn .ico{background:rgba(217,119,6,.12);color:var(--sl-warn);border-color:rgba(217,119,6,.20)}
+  .subslist-scope .command-card.danger .ico{background:rgba(220,38,38,.10);color:var(--sl-danger);border-color:rgba(220,38,38,.18)}
 
-  /* أزرار داخل الهيرو فقط */
-  .subslist-scope .hero-actions .btn{
-    border-radius: 14px;
-    min-height: 44px;
-    transition: var(--sl-t);
-  }
-  .subslist-scope .hero-actions .btn:hover{
-    transform: translateY(-1px);
-  }
-  .subslist-scope .hero-actions .btn-outline{
-    background: rgba(255,255,255,.12);
-    border-color: rgba(255,255,255,.22);
-    color:#fff;
-  }
-  .subslist-scope .hero-actions .btn-outline:hover{
-    background: rgba(255,255,255,.16);
-    border-color: rgba(255,255,255,.28);
-  }
-
-  /* Cards */
-  .subslist-scope .fcard,
-  .subslist-scope .tcard{
-    border:1px solid var(--sl-line);
-    border-radius: 16px;
-    box-shadow: var(--sl-shadow);
-  }
-  .subslist-scope .fcard{
-    padding: 14px;
-    margin-bottom: 14px;
-  }
-  .subslist-scope .tcard{
-    overflow:hidden;
-  }
-
-  /* Filters */
-  .subslist-scope .filters{
+  .subslist-scope .board{
     display:grid;
-    gap: 12px;
-    grid-template-columns: repeat(3, minmax(220px, 1fr));
-    align-items:end;
+    grid-template-columns:1fr 340px;
+    gap:14px;
+    margin-top:14px;
   }
-  .subslist-scope .filters .f-actions{
-    display:flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content:flex-start;
+  .subslist-scope .panel{
+    background:var(--sl-card);
+    border:1px solid var(--sl-line);
+    border-radius:18px;
+    box-shadow:var(--sl-shadow);
   }
-  @media(max-width:860px){
-    .subslist-scope .filters{grid-template-columns:1fr}
-  }
+  .subslist-scope .filters{padding:14px}
+  .subslist-scope .filters form{display:grid;grid-template-columns:1fr 210px 210px auto auto;gap:10px;align-items:end}
+  .subslist-scope .f-label{display:block;margin-bottom:6px;color:var(--sl-muted);font-weight:950}
+  .subslist-scope .filters input,.subslist-scope .filters select{width:100%;min-height:44px}
+  .subslist-scope .filters .btn{min-height:44px;border-radius:14px;justify-content:center}
 
-  .subslist-scope .f-label{
-    display:block;
-    margin-bottom: 6px;
-    color: var(--sl-muted);
-    font-weight: 900;
+  .subslist-scope .sales-card{padding:16px;display:grid;gap:14px;align-content:start}
+  .subslist-scope .sales-title{margin:0;color:var(--sl-ink);font-size:1rem;font-weight:950}
+  .subslist-scope .sales-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 0;border-bottom:1px solid var(--sl-line)
   }
-  .subslist-scope .filters select{
-    width:100%;
-    min-height: 44px;
+  .subslist-scope .sales-row:last-child{border-bottom:0}
+  .subslist-scope .sales-row span:first-child{color:var(--sl-muted);font-weight:900}
+  .subslist-scope .sales-row strong{color:var(--sl-ink);font-weight:950}
+  .subslist-scope .opportunity{
+    border:1px solid rgba(217,119,6,.22);
+    background:rgba(217,119,6,.08);
+    color:#92400e;
+    border-radius:16px;
+    padding:12px;
+    font-weight:900;
+    line-height:1.8;
   }
-  .subslist-scope .filters input[type="search"]{
-    width:100%;
-    min-height: 44px;
-  }
-  .subslist-scope .filters .btn{
-    min-height: 44px;
-    justify-content:center;
-    border-radius: 14px;
-  }
+  html[data-theme="dark"] .subslist-scope .opportunity{color:#fbbf24}
 
-  /* Table (نعتمد rtable من app.css، فقط تحسينات خفيفة) */
-  .subslist-scope .rtable thead th{font-weight:950}
+  .subslist-scope .table-card{margin-top:14px;overflow:hidden}
+  .subslist-scope .table-head{
+    padding:14px 16px;
+    border-bottom:1px solid var(--sl-line);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap
+  }
+  .subslist-scope .table-head h2{margin:0;color:var(--sl-ink);font-size:1.05rem;font-weight:950}
+  .subslist-scope .muted{color:var(--sl-muted);font-weight:850}
   .subslist-scope .school{font-weight:950;color:var(--sl-ink)}
-
-  /* Row actions */
-  .subslist-scope .row-actions{
-    display:flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content:flex-start;
-  }
-  .subslist-scope .row-actions .btn{
-    min-height: 38px;
-    padding: 8px 10px;
-    border-radius: 12px;
-  }
-
-  .subslist-scope .row-actions .btn-danger{
-    background: rgba(239,68,68,.10);
-    border-color: rgba(239,68,68,.22);
-    color: var(--sl-danger);
-  }
-  .subslist-scope .row-actions .btn-danger:hover{
-    background: rgba(239,68,68,.14);
-    border-color: rgba(239,68,68,.30);
-  }
-
-  /* Badges fallback */
+  .subslist-scope .subline{margin-top:5px;color:var(--sl-muted);font-weight:800;font-size:.88rem}
+  .subslist-scope .price{font-weight:950;color:var(--sl-brand)}
   .subslist-scope .badge{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-weight: 900;
-    font-size: .86rem;
-    border: 1px solid rgba(15,23,42,.08);
-    background: rgba(148,163,184,.15);
-    color: var(--sl-ink);
-    white-space:nowrap;
+    display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;
+    font-weight:950;font-size:.84rem;border:1px solid var(--sl-line);white-space:nowrap
   }
-  .subslist-scope .badge.success{
-    background: rgba(16,185,129,.12);
-    border-color: rgba(16,185,129,.22);
-    color: var(--sl-ok);
-  }
-  .subslist-scope .badge.danger{
-    background: rgba(239,68,68,.12);
-    border-color: rgba(239,68,68,.22);
-    color: var(--sl-danger);
-  }
+  .subslist-scope .badge.success{background:rgba(5,150,105,.10);color:var(--sl-ok);border-color:rgba(5,150,105,.18)}
+  .subslist-scope .badge.warning{background:rgba(217,119,6,.12);color:var(--sl-warn);border-color:rgba(217,119,6,.20)}
+  .subslist-scope .badge.danger{background:rgba(220,38,38,.10);color:var(--sl-danger);border-color:rgba(220,38,38,.18)}
+  .subslist-scope .row-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .subslist-scope .row-actions .btn{min-height:36px;padding:7px 10px;border-radius:12px}
+  .subslist-scope .btn-danger{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.25);color:var(--sl-danger)}
 
-  /* Mobile tweaks */
-  @media(max-width:520px){
-    .subslist-scope .hero{padding:14px}
-    .subslist-scope .hero-actions .btn{width:100%;justify-content:center}
-    .subslist-scope .row-actions .btn{width:100%}
+  @media(max-width:1050px){
+    .subslist-scope .command-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .subslist-scope .board{grid-template-columns:1fr}
+    .subslist-scope .filters form{grid-template-columns:1fr 1fr}
   }
-
-  /* Reduce motion */
-  @media (prefers-reduced-motion: reduce){
-    .subslist-scope .hero-actions .btn{transition:none !important}
-    .subslist-scope .hero-actions .btn:hover{transform:none !important}
+  @media(max-width:620px){
+    .subslist-scope .hero{align-items:flex-start}
+    .subslist-scope .hero-actions,.subslist-scope .hero-actions .btn{width:100%;justify-content:center}
+    .subslist-scope .command-strip,.subslist-scope .filters form{grid-template-columns:1fr}
+    .subslist-scope .row-actions .btn,.subslist-scope .row-actions form{width:100%}
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container subslist-scope" dir="rtl">
-  <div class="wrap">
+<div class="subslist-scope" dir="rtl">
+  <section class="hero" aria-label="إدارة الاشتراكات">
+    <div>
+      <h1>إدارة الاشتراكات</h1>
+      <p>حوّل الاشتراكات إلى لوحة نمو واضحة: متابعة التجديدات، تحصيل الدفعات، وتقليل فقد المدارس قبل انتهاء الفترة.</p>
+    </div>
+    <div class="hero-actions">
+      <a href="{% url 'reports:platform_subscription_add' %}" class="btn btn-primary">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        إضافة اشتراك
+      </a>
+      <a href="{% url 'reports:platform_payments_list' %}" class="btn btn-outline">
+        <i class="fa-solid fa-sack-dollar" aria-hidden="true"></i>
+        المدفوعات
+      </a>
+      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        لوحة المنصة
+      </a>
+    </div>
+  </section>
 
-    <section class="hero" aria-label="رأس إدارة الاشتراكات">
-      <div class="hero-head">
+  <section class="command-strip" aria-label="مؤشرات الاشتراكات">
+    <article class="command-card ok">
+      <div>
+        <div class="label">قيمة الاشتراكات السارية</div>
+        <div class="value">{{ active_value|floatformat:0|intcomma }} ريال</div>
+        <div class="hint">{{ stats_active|default:0 }} اشتراك نشط</div>
+      </div>
+      <div class="ico"><i class="fa-solid fa-chart-line"></i></div>
+    </article>
+    <article class="command-card">
+      <div>
+        <div class="label">المحصل هذا الشهر</div>
+        <div class="value">{{ collected_this_month|floatformat:0|intcomma }} ريال</div>
+        <div class="hint">مدفوعات مقبولة فقط</div>
+      </div>
+      <div class="ico"><i class="fa-solid fa-receipt"></i></div>
+    </article>
+    <article class="command-card warn">
+      <div>
+        <div class="label">فرص تجديد قريبة</div>
+        <div class="value">{{ expiring_soon_count|default:0 }}</div>
+        <div class="hint">خلال {{ soon_days }} يوم، بقيمة {{ expiring_value|floatformat:0|intcomma }} ريال</div>
+      </div>
+      <div class="ico"><i class="fa-solid fa-bullseye"></i></div>
+    </article>
+    <article class="command-card danger">
+      <div>
+        <div class="label">تحتاج متابعة عاجلة</div>
+        <div class="value">{{ urgent_renewals_count|default:0 }}</div>
+        <div class="hint">تنتهي خلال {{ urgent_days }} أيام</div>
+      </div>
+      <div class="ico"><i class="fa-solid fa-bell"></i></div>
+    </article>
+  </section>
+
+  <div class="board">
+    <section class="panel filters" aria-label="فلترة الاشتراكات">
+      <form method="get" novalidate>
         <div>
-          <h1>إدارة الاشتراكات</h1>
-          <p>تجديد وتعديل اشتراكات المدارس على مستوى المنصة.</p>
+          <label class="f-label">بحث سريع</label>
+          <input type="search" name="q" class="input" placeholder="اسم المدرسة..." value="{{ q|default:'' }}">
         </div>
-
-        <div class="hero-actions">
-          <a href="{% url 'reports:platform_subscription_add' %}" class="btn btn-primary">
-            <i class="fa-solid fa-plus" aria-hidden="true"></i>
-            إضافة اشتراك
-          </a>
-          <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
-            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            عودة للوحة المنصة
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <section class="kpis" aria-label="ملخص الاشتراكات">
-      <div class="kpi">
-        <div class="meta">
-          <div class="label">إجمالي الاشتراكات</div>
-          <div class="value">{{ stats_total|default:0 }}</div>
-        </div>
-        <div class="chip" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></div>
-      </div>
-
-      <div class="kpi ok">
-        <div class="meta">
-          <div class="label">اشتراكات سارية</div>
-          <div class="value">{{ stats_active|default:0 }}</div>
-        </div>
-        <div class="chip" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></div>
-      </div>
-
-      <div class="kpi bad">
-        <div class="meta">
-          <div class="label">اشتراكات ملغاة</div>
-          <div class="value">{{ stats_cancelled|default:0 }}</div>
-        </div>
-        <div class="chip" aria-hidden="true"><i class="fa-solid fa-ban"></i></div>
-      </div>
-
-      <div class="kpi warn">
-        <div class="meta">
-          <div class="label">اشتراكات منتهية</div>
-          <div class="value">{{ stats_expired|default:0 }}</div>
-        </div>
-        <div class="chip" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></div>
-      </div>
-    </section>
-
-    <div class="card fcard">
-      <form method="get" class="filters" novalidate>
         <div>
-          <label class="f-label">فلترة حسب الاشتراك</label>
+          <label class="f-label">حالة الاشتراك</label>
           <select name="status" class="input">
-            <option value="all" {% if status == 'all' or not status %}selected{% endif %}>الكل</option>
+            <option value="all" {% if status == 'all' or not status %}selected{% endif %}>كل الحالات</option>
             <option value="active" {% if status == 'active' %}selected{% endif %}>ساري</option>
             <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>ملغي</option>
             <option value="expired" {% if status == 'expired' %}selected{% endif %}>منتهي</option>
           </select>
         </div>
-
         <div>
-          <label class="f-label">حسب الباقة</label>
+          <label class="f-label">الباقة</label>
           <select name="plan" class="input">
             <option value="" {% if not plan_id %}selected{% endif %}>كل الباقات</option>
             {% for p in plans %}
@@ -324,41 +232,43 @@
             {% endfor %}
           </select>
         </div>
-
-        <div>
-          <label class="f-label">بحث باسم المدرسة</label>
-          <input type="search" name="q" class="input" placeholder="اكتب اسم المدرسة..." value="{{ q|default:'' }}">
-        </div>
-
-        <div class="f-actions">
-          <button type="submit" class="btn btn-outline">
-            <i class="fa-solid fa-filter" aria-hidden="true"></i>
-            تطبيق
-          </button>
-
-          {% if plan_id or status and status != 'all' %}
-            <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn btn-outline">
-              <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
-              مسح الفلتر
-            </a>
-          {% endif %}
-        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-filter" aria-hidden="true"></i>
+          تطبيق
+        </button>
+        <a href="{% url 'reports:platform_subscriptions_list' %}" class="btn btn-outline">
+          <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+          مسح
+        </a>
       </form>
-    </div>
+    </section>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 2px 10px;">
-      <div class="muted" style="font-weight:900">عرض {{ results_count|default:0 }} نتيجة</div>
-    </div>
+    <aside class="panel sales-card" aria-label="ملخص تجاري">
+      <h2 class="sales-title">ملخص القرار التجاري</h2>
+      <div class="sales-row"><span>إجمالي الاشتراكات</span><strong>{{ stats_total|default:0 }}</strong></div>
+      <div class="sales-row"><span>منتهية أو موقوفة</span><strong>{{ stats_expired|default:0 }}</strong></div>
+      <div class="sales-row"><span>ملغاة</span><strong>{{ stats_cancelled|default:0 }}</strong></div>
+      <div class="sales-row"><span>فجوات تحصيل في هذه الصفحة</span><strong>{{ collection_gap_count|default:0 }}</strong></div>
+      <div class="opportunity">
+        ركّز اليوم على التجديدات القريبة والمدارس التي لا تملك دفعة مسجلة للفترة الحالية؛ هذه أسرع فرص لتحسين التحصيل وتقليل الانقطاع.
+      </div>
+    </aside>
+  </div>
 
-    <div class="card tcard table-responsive">
+  <section class="panel table-card" aria-label="جدول الاشتراكات">
+    <div class="table-head">
+      <h2>محفظة الاشتراكات</h2>
+      <div class="muted">عرض {{ results_count|default:0 }} نتيجة</div>
+    </div>
+    <div class="table-responsive">
       <table class="rtable">
         <thead>
           <tr>
             <th style="text-align:right">المدرسة</th>
-            <th style="text-align:right">الخطة</th>
-            <th>تاريخ البدء</th>
-            <th>تاريخ الانتهاء</th>
-            <th>الحالة</th>
+            <th style="text-align:right">الباقة والقيمة</th>
+            <th>الفترة</th>
+            <th>الحالة التجارية</th>
+            <th>الدفع</th>
             <th>إجراءات</th>
           </tr>
         </thead>
@@ -366,86 +276,76 @@
           {% for sub in subscriptions %}
             <tr>
               <td data-label="المدرسة" style="text-align:right">
-                <span class="school">{{ sub.school.name }}</span>
+                <div class="school">{{ sub.school.name }}</div>
+                <div class="subline">{{ sub.school.code|default:"بدون كود" }}</div>
               </td>
-
-              <td data-label="الخطة" style="text-align:right">
-                {{ sub.plan.name }}
+              <td data-label="الباقة" style="text-align:right">
+                <div style="font-weight:950">{{ sub.plan.name }}</div>
+                <div class="price">{{ sub.plan.price|floatformat:0|intcomma }} ريال</div>
               </td>
-
-              <td data-label="البدء">
-                {{ sub.start_date|date:"Y-m-d" }}
+              <td data-label="الفترة">
+                <div>{{ sub.start_date|date:"Y-m-d" }}</div>
+                <div class="subline">حتى {{ sub.end_date|date:"Y-m-d" }}</div>
               </td>
-
-              <td data-label="الانتهاء">
-                {{ sub.end_date|date:"Y-m-d" }}
-              </td>
-
               <td data-label="الحالة">
                 {% if sub.is_cancelled %}
-                  <span class="badge danger"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
-                  {% if sub.cancel_reason %}
-                    <div class="muted" style="margin-top:6px">
-                      <span style="font-weight:950">سبب الإلغاء:</span>
-                      {{ sub.cancel_reason }}
-                    </div>
-                  {% endif %}
-                  <div class="muted" style="margin-top:6px">
-                    <span style="font-weight:950">المبلغ المسترجع:</span>
-                    {{ sub.refund_amount_for_period|default:0 }} ريال
-                  </div>
+                  <span class="badge danger"><i class="fa-solid fa-ban"></i> ملغي</span>
+                  {% if sub.cancel_reason %}<div class="subline">{{ sub.cancel_reason }}</div>{% endif %}
+                  <div class="subline">استرجاع: {{ sub.refund_amount_for_period|default:0|floatformat:0|intcomma }} ريال</div>
                 {% elif sub.is_expired %}
-                  <span class="badge danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> منتهي</span>
+                  <span class="badge danger"><i class="fa-solid fa-circle-xmark"></i> منتهي</span>
+                {% elif sub.commercial_priority == "collect" %}
+                  <span class="badge warning"><i class="fa-solid fa-receipt"></i> تحصيل مطلوب</span>
+                {% elif sub.commercial_priority == "urgent" %}
+                  <span class="badge warning"><i class="fa-solid fa-bell"></i> تجديد عاجل</span>
+                {% elif sub.commercial_priority == "renew" %}
+                  <span class="badge warning"><i class="fa-solid fa-bullseye"></i> فرصة تجديد</span>
                 {% else %}
-                  <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ساري</span>
+                  <span class="badge success"><i class="fa-solid fa-circle-check"></i> ساري</span>
+                {% endif %}
+                {% if not sub.is_cancelled and not sub.is_expired %}
+                  <div class="subline">{{ sub.days_remaining }} يوم متبقي</div>
                 {% endif %}
               </td>
-
+              <td data-label="الدفع">
+                {% if sub.has_payment_for_period %}
+                  <span class="badge success"><i class="fa-solid fa-check"></i> مسجل</span>
+                {% else %}
+                  <span class="badge warning"><i class="fa-solid fa-hourglass-half"></i> غير مسجل</span>
+                {% endif %}
+              </td>
               <td data-label="إجراء">
                 <div class="row-actions">
                   <a href="{% url 'reports:platform_subscription_detail' sub.id %}" class="btn btn-outline">
-                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    <i class="fa-solid fa-eye"></i>
                     عرض
                   </a>
-
                   {% if not sub.is_cancelled %}
-                    <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}" style="display:inline">
+                    <form method="post" action="{% url 'reports:platform_subscription_renew' sub.id %}">
                       {% csrf_token %}
                       <input type="hidden" name="next" value="{{ request.get_full_path }}">
-
-                      <button
-                        type="submit"
-                        class="btn btn-primary"
-                        data-confirm="تأكيد تجديد الاشتراك؟"
-                      >
-                        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                      <button type="submit" class="btn btn-primary" data-confirm="تأكيد تجديد الاشتراك؟">
+                        <i class="fa-solid fa-rotate"></i>
                         تجديد
                       </button>
                     </form>
                   {% endif %}
-
                   {% if sub.is_active and not sub.has_payment_for_period and sub.plan.price %}
-                    <form method="post" action="{% url 'reports:platform_subscription_record_payment' sub.id %}" style="display:inline">
+                    <form method="post" action="{% url 'reports:platform_subscription_record_payment' sub.id %}">
                       {% csrf_token %}
                       <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                      <button
-                        type="submit"
-                        class="btn btn-outline"
-                        data-confirm="تسجيل دفعة لهذا الاشتراك؟"
-                      >
-                        <i class="fa-solid fa-receipt" aria-hidden="true"></i>
+                      <button type="submit" class="btn btn-outline" data-confirm="تسجيل دفعة لهذا الاشتراك؟">
+                        <i class="fa-solid fa-receipt"></i>
                         تسجيل دفعة
                       </button>
                     </form>
                   {% endif %}
-
                   {% if not sub.is_cancelled and not sub.is_expired %}
-                    <form method="post" action="{% url 'reports:platform_subscription_delete' sub.id %}" style="display:inline">
+                    <form method="post" action="{% url 'reports:platform_subscription_delete' sub.id %}">
                       {% csrf_token %}
                       <input type="hidden" name="next" value="{{ request.get_full_path }}">
                       <input type="hidden" name="reason" value="{{ sub.cancel_reason|default:'' }}">
                       <input type="hidden" name="refund_amount" value="">
-
                       <button
                         type="submit"
                         class="btn btn-outline btn-danger"
@@ -453,7 +353,7 @@
                         data-refund-prompt="استرجاع مبلغ؟ اتركه فارغًا بدون استرجاع. اكتب (كامل) للاسترجاع الكامل أو اكتب رقمًا مثل 150.00 للاسترجاع الجزئي."
                         data-confirm="سيتم إلغاء اشتراك مدرسة: {{ sub.school.name }}. هل أنت متأكد؟"
                       >
-                        <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                        <i class="fa-solid fa-ban"></i>
                         إلغاء
                       </button>
                     </form>
@@ -463,8 +363,8 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" style="padding:20px;text-align:center" class="muted">
-                لا توجد اشتراكات مسجلة.
+              <td colspan="6" style="padding:28px;text-align:center" class="muted">
+                لا توجد اشتراكات مطابقة للفلتر الحالي.
               </td>
             </tr>
           {% endfor %}
@@ -472,68 +372,50 @@
       </table>
     </div>
     {% include "reports/_pagination.html" %}
-
-  </div>
+  </section>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
-    // تأكيدات آمنة بدون inline onclick
     var buttons = document.querySelectorAll('.subslist-scope [data-confirm]');
-    if(!buttons || !buttons.length) return;
-
-    for(var i=0;i<buttons.length;i++){
-      buttons[i].addEventListener('click', function(ev){
-        // لو كان هذا الزر خاص بـ "إلغاء الاشتراك": اجلب سبب الإلغاء
-        var promptLabel = this.getAttribute('data-reason-prompt');
+    buttons.forEach(function(button){
+      button.addEventListener('click', function(ev){
+        var promptLabel = button.getAttribute('data-reason-prompt');
         if(promptLabel){
-          var form = this.closest ? this.closest('form') : null;
+          var form = button.closest('form');
           var reasonInput = form ? form.querySelector('input[name="reason"]') : null;
           var refundInput = form ? form.querySelector('input[name="refund_amount"]') : null;
-          var current = reasonInput && reasonInput.value ? reasonInput.value : '';
-          var reason = window.prompt(promptLabel, current);
+          var reason = window.prompt(promptLabel, reasonInput && reasonInput.value ? reasonInput.value : '');
           if(reason === null){
             ev.preventDefault();
-            ev.stopPropagation();
             return false;
           }
           reason = (reason || '').trim();
           if(!reason){
             window.alert('سبب الإلغاء مطلوب.');
             ev.preventDefault();
-            ev.stopPropagation();
             return false;
           }
-          if(reasonInput){
-            reasonInput.value = reason;
-          }
+          if(reasonInput) reasonInput.value = reason;
 
-          // خيار استرجاع مبلغ (اختياري)
-          var refundPrompt = this.getAttribute('data-refund-prompt');
+          var refundPrompt = button.getAttribute('data-refund-prompt');
           if(refundPrompt && refundInput){
-            var currentRefund = refundInput.value ? refundInput.value : '';
-            var refund = window.prompt(refundPrompt, currentRefund);
+            var refund = window.prompt(refundPrompt, refundInput.value || '');
             if(refund === null){
-              // إلغاء كامل العملية
               ev.preventDefault();
-              ev.stopPropagation();
               return false;
             }
-            refund = (refund || '').trim();
-            refundInput.value = refund; // قد يكون فارغًا (بدون استرجاع)
+            refundInput.value = (refund || '').trim();
           }
         }
-
-        var msg = this.getAttribute('data-confirm') || 'هل أنت متأكد؟';
-        if(!window.confirm(msg)){
+        if(!window.confirm(button.getAttribute('data-confirm') || 'هل أنت متأكد؟')){
           ev.preventDefault();
-          ev.stopPropagation();
           return false;
         }
       });
-    }
+    });
   })();
 </script>
 {% endblock %}

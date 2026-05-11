@@ -9,397 +9,748 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
+  /* ===== DESIGN TOKENS ===== */
   :root {
-    --primary-color: #4f46e5;
-    --secondary-color: #ec4899;
-    --accent-color: #8b5cf6;
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --dark-bg: #0f172a;
-    --light-bg: #f8fafc;
-    --card-bg: rgba(255, 255, 255, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.6);
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+    --primary:       #4f46e5;
+    --primary-light: #818cf8;
+    --primary-dark:  #3730a3;
+    --secondary:     #ec4899;
+    --accent:        #8b5cf6;
+    --success:       #10b981;
+    --warning:       #f59e0b;
+    --danger:        #ef4444;
+    --info:          #06b6d4;
+
+    --bg-page:    #f0f2ff;
+    --bg-card:    rgba(255, 255, 255, 0.88);
+    --bg-subtle:  #f8fafc;
+    --border:     rgba(226, 232, 240, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.55);
+
+    --text-h:  #0f172a;
+    --text-1:  #1e293b;
+    --text-2:  #475569;
+    --text-3:  #94a3b8;
+
+    --radius-sm:  10px;
+    --radius-md:  16px;
+    --radius-lg:  24px;
+    --radius-xl:  32px;
+
+    --shadow-xs: 0 1px 3px rgba(15,23,42,.06);
+    --shadow-sm: 0 4px 12px rgba(15,23,42,.07);
+    --shadow-md: 0 10px 30px rgba(15,23,42,.09);
+    --shadow-lg: 0 20px 50px rgba(15,23,42,.12);
+    --shadow-colored: 0 14px 35px -8px rgba(79,70,229,.35);
+
+    --transition: all .3s cubic-bezier(.4,0,.2,1);
   }
 
-  [data-theme="dark"] {
-    --card-bg: rgba(30, 41, 59, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --light-bg: #0f172a;
-  }
+  /* ===== BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; }
 
   body {
     font-family: 'Tajawal', sans-serif;
-    background-color: var(--light-bg);
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+    background: var(--bg-page);
+    background-image:
+      radial-gradient(ellipse 70% 50% at 0% 0%,   rgba(79,70,229,.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 100% 0%,  rgba(236,72,153,.10) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 50% 100%, rgba(139,92,246,.08) 0%, transparent 60%);
     background-attachment: fixed;
+    min-height: 100vh;
   }
 
   .sub-container {
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 0 1.5rem;
+    max-width: 1260px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
     direction: rtl;
   }
 
-  /* Header */
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2.5rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .header-content h1 {
-    font-size: 2rem;
-    font-weight: 900;
-    margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .school-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: rgba(79, 70, 229, 0.1);
-    color: var(--primary-color);
-    border-radius: 9999px;
-    font-weight: 700;
-    font-size: 0.9rem;
-  }
-
-  .btn-back {
-    background: white;
-    color: var(--text-primary);
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 700;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .btn-back:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    color: var(--primary-color);
-  }
-
-  /* Grid Layout */
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: 350px 1fr;
-    gap: 2rem;
-    align-items: start;
-  }
-
-  @media (max-width: 900px) {
-    .dashboard-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  /* Cards */
-  .glass-card {
-    background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    border-radius: 24px;
-    padding: 2rem;
-    box-shadow: var(--shadow-md);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .glass-card:hover {
+  /* ===== HERO HEADER ===== */
+  .page-hero {
+    position: relative;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 45%, var(--accent) 100%);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem 2.5rem 3.5rem;
+    margin-bottom: -2rem;
+    overflow: hidden;
     box-shadow: var(--shadow-lg);
   }
 
-  /* Status Panel (Left) */
-  .status-content {
+  .page-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle 400px at 80% -20%, rgba(255,255,255,.15), transparent),
+      radial-gradient(circle 300px at -10% 100%, rgba(236,72,153,.25), transparent);
+    pointer-events: none;
+  }
+
+  .page-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0; height: 60px;
+    background: var(--bg-page);
+    clip-path: ellipse(55% 100% at 50% 100%);
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: rgba(255,255,255,.15);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.25);
+    color: #fff;
+    padding: .45rem 1rem;
+    border-radius: 9999px;
+    font-size: .85rem;
+    font-weight: 700;
+    margin-bottom: .75rem;
+    letter-spacing: .3px;
+  }
+
+  .hero-badge i { opacity: .8; }
+
+  .hero-title {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #fff;
+    margin: 0;
+    letter-spacing: -.5px;
+    text-shadow: 0 2px 20px rgba(0,0,0,.15);
+  }
+
+  .hero-subtitle {
+    color: rgba(255,255,255,.75);
+    font-size: .95rem;
+    margin-top: .4rem;
+    font-weight: 500;
+  }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: rgba(255,255,255,.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.3);
+    color: #fff;
+    padding: .75rem 1.5rem;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: .9rem;
+    transition: var(--transition);
+    white-space: nowrap;
+    align-self: flex-start;
+  }
+
+  .btn-back:hover {
+    background: rgba(255,255,255,.25);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.15);
+  }
+
+  /* ===== LAYOUT ===== */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 1.75rem;
+    align-items: start;
+    padding-top: 2rem;
+  }
+
+  @media (max-width: 960px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .page-hero { border-radius: var(--radius-lg); padding: 2rem 1.75rem 3rem; }
+    .hero-title { font-size: 1.75rem; }
+  }
+
+  /* ===== GLASS CARD ===== */
+  .glass-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+  }
+
+  .glass-card:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ===== STATUS SIDEBAR ===== */
+  .status-sidebar {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+    gap: 0;
   }
 
-  .plan-name {
+  .status-label {
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-3);
+    margin-bottom: .5rem;
+  }
+
+  .plan-name-display {
     font-size: 1.5rem;
     font-weight: 900;
-    color: var(--text-primary);
-    margin-bottom: 1.5rem;
+    color: var(--text-h);
+    margin-bottom: 1.75rem;
+    line-height: 1.2;
   }
 
   /* Progress Ring */
   .progress-ring {
     position: relative;
-    width: 220px;
-    height: 220px;
-    margin-bottom: 2rem;
+    width: 200px;
+    height: 200px;
+    margin-bottom: 1.75rem;
+    flex-shrink: 0;
   }
-  
+
   .progress-ring svg {
     transform: rotate(-90deg);
     width: 100%;
     height: 100%;
+    filter: drop-shadow(0 4px 12px rgba(16,185,129,.25));
   }
 
   .ring-circle-bg {
     fill: none;
-    stroke: rgba(0,0,0,0.05);
-    stroke-width: 12;
+    stroke: rgba(0,0,0,.06);
+    stroke-width: 14;
   }
-  
+
   .ring-circle-fg {
     fill: none;
-    stroke: var(--success-color);
-    stroke-width: 12;
+    stroke: var(--success);
+    stroke-width: 14;
     stroke-linecap: round;
-    stroke-dasharray: 628; /* 2 * PI * 100 */
+    stroke-dasharray: 628;
     stroke-dashoffset: 628;
-    transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1);
   }
 
   .ring-content {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
   }
 
   .days-number {
-    font-size: 3.5rem;
+    font-size: 3.25rem;
     font-weight: 900;
     line-height: 1;
-    color: var(--text-primary);
+    color: var(--text-h);
+    letter-spacing: -2px;
   }
 
   .days-label {
-    font-size: 1rem;
-    color: var(--text-secondary);
-    margin-top: 0.25rem;
+    font-size: .9rem;
+    color: var(--text-2);
+    margin-top: .2rem;
+    font-weight: 600;
   }
 
-  .status-badge {
-    padding: 0.75rem 1.5rem;
-    border-radius: 16px;
+  /* Stat Row */
+  .stat-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-box {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: .85rem 1rem;
+    text-align: center;
+  }
+
+  .stat-box-label {
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    display: block;
+    margin-bottom: .25rem;
+  }
+
+  .stat-box-value {
+    font-size: .95rem;
     font-weight: 800;
+    color: var(--text-1);
+    display: block;
+  }
+
+  /* Status Badge */
+  .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: .5rem;
+    padding: .7rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 800;
+    font-size: .95rem;
     width: 100%;
     justify-content: center;
     margin-bottom: 1rem;
   }
 
-  .status-active { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
-  .status-expired { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
-  .status-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
+  .badge-active   { background: rgba(16,185,129,.1);  color: var(--success); }
+  .badge-expired  { background: rgba(239,68,68,.1);   color: var(--danger);  }
+  .badge-warning  { background: rgba(245,158,11,.1);  color: var(--warning); }
+  .badge-cancelled{ background: rgba(100,116,139,.1); color: var(--text-2);  }
 
+  /* Cancel Reason Box */
+  .cancel-reason-box {
+    width: 100%;
+    background: rgba(239,68,68,.04);
+    border: 1px solid rgba(239,68,68,.15);
+    border-radius: var(--radius-sm);
+    padding: .9rem 1rem;
+    text-align: right;
+    font-size: .875rem;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .cancel-reason-box strong {
+    color: var(--danger);
+    display: block;
+    margin-bottom: .2rem;
+    font-size: .8rem;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+
+  /* Divider */
+  .card-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 1.25rem 0;
+  }
+
+  /* Support Link */
   .support-link {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    color: var(--primary-color);
+    gap: .5rem;
+    color: var(--primary);
     text-decoration: none;
     font-weight: 700;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--glass-border);
+    font-size: .9rem;
+    padding: .75rem 1.5rem;
+    border-radius: var(--radius-md);
+    border: 2px solid rgba(79,70,229,.15);
+    background: rgba(79,70,229,.04);
     width: 100%;
-    transition: color 0.2s;
+    transition: var(--transition);
   }
-  
-  .support-link:hover { color: var(--secondary-color); }
 
-  /* Plan Selector */
+  .support-link:hover {
+    background: rgba(79,70,229,.1);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+  }
+
+  /* ===== SECTION HEADER ===== */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-icon {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    box-shadow: 0 6px 16px rgba(79,70,229,.3);
+  }
+
+  .section-header-text h2 {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--text-h);
+    margin: 0 0 .15rem;
+  }
+
+  .section-header-text p {
+    font-size: .8rem;
+    color: var(--text-3);
+    margin: 0;
+    font-weight: 600;
+  }
+
+  /* ===== STEPS GUIDE ===== */
+  .steps-guide {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 2rem;
+    direction: rtl;
+  }
+
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex: 1;
+    position: relative;
+  }
+
+  .step-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-3);
+    font-weight: 900;
+    font-size: .85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    transition: var(--transition);
+  }
+
+  .step-num.active {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    box-shadow: 0 4px 12px rgba(79,70,229,.35);
+  }
+
+  .step-num.done {
+    background: var(--success);
+    color: white;
+  }
+
+  .step-label {
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+
+  .step-label.active { color: var(--primary); }
+  .step-label.done   { color: var(--success); }
+
+  /* ===== PLAN SELECTOR ===== */
   .plans-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
     gap: 1rem;
     margin-bottom: 2rem;
   }
-  
+
   .plan-option {
     display: block;
     cursor: pointer;
     position: relative;
     user-select: none;
   }
-  
+
   .plan-option input {
     position: absolute;
     opacity: 0;
     width: 0;
     height: 0;
   }
-  
+
   .plan-content {
     background: white;
-    border: 2px solid transparent; 
-    border-radius: 16px;
-    padding: 1.5rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 1.5rem 1.25rem;
     text-align: center;
-    transition: all 0.3s ease;
+    transition: var(--transition);
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    box-shadow: var(--shadow-sm);
+    align-items: center;
+    gap: .35rem;
+    box-shadow: var(--shadow-xs);
+    position: relative;
+    overflow: hidden;
   }
-  
+
+  .plan-content::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    opacity: 0;
+    transition: var(--transition);
+  }
+
   .plan-option input:checked + .plan-content {
-    border-color: var(--primary-color);
-    background: rgba(79, 70, 229, 0.04);
+    border-color: var(--primary);
+    background: rgba(79,70,229,.04);
     transform: translateY(-4px);
-    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.15);
+    box-shadow: 0 10px 25px rgba(79,70,229,.18);
   }
-  
+
+  .plan-option input:checked + .plan-content::before { opacity: 1; }
+
   .plan-option:hover .plan-content {
     background: #f8fafc;
+    border-color: rgba(79,70,229,.25);
+  }
+
+  .plan-badge {
+    position: absolute;
+    top: .6rem;
+    left: .6rem;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: white;
+    font-size: .65rem;
+    font-weight: 900;
+    padding: .2rem .55rem;
+    border-radius: 9999px;
+    letter-spacing: .5px;
   }
 
   .plan-title {
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-  
-  .plan-price {
-    font-size: 1.25rem;
+    font-size: 1rem;
     font-weight: 900;
-    color: var(--primary-color);
+    color: var(--text-h);
   }
-  
+
+  .plan-price {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--primary);
+    line-height: 1;
+  }
+
+  .plan-price small {
+    font-size: .75rem;
+    font-weight: 700;
+    opacity: .7;
+    margin-right: .2rem;
+  }
+
   .plan-days {
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
+    font-size: .8rem;
+    color: var(--text-3);
     font-weight: 600;
+    margin-top: .2rem;
   }
 
-  /* Payment Panel (Right) */
-  .section-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+  /* ===== DIVIDER ===== */
+  .form-divider {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 2rem 0;
   }
 
-  .section-title i { color: var(--primary-color); }
+  /* ===== BANK CARD ===== */
+  .bank-card-wrap {
+    perspective: 1000px;
+    margin-bottom: 1.75rem;
+  }
 
-  /* Bank Card */
   .bank-card {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    border-radius: 20px;
-    padding: 2rem;
-    color: white;
     position: relative;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 60%, #1a0533 100%);
+    border-radius: 20px;
+    padding: 2rem 2.25rem;
+    color: white;
     overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.5);
-    margin-bottom: 2rem;
+    box-shadow: 0 25px 50px rgba(10,10,30,.45), 0 0 0 1px rgba(255,255,255,.05);
+    transition: transform .4s ease, box-shadow .4s ease;
+  }
+
+  .bank-card:hover {
+    transform: rotateY(-2deg) rotateX(1deg) translateY(-4px);
+    box-shadow: 0 35px 60px rgba(10,10,30,.55), 0 0 0 1px rgba(255,255,255,.08);
   }
 
   .bank-card::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 60%);
+    top: -60%; right: -10%;
+    width: 380px; height: 380px;
+    background: radial-gradient(circle, rgba(139,92,246,.2), transparent 65%);
     border-radius: 50%;
   }
 
-  .chip {
-    width: 50px;
-    height: 36px;
-    background: linear-gradient(135deg, #fbbf24, #d97706);
-    border-radius: 6px;
-    margin-bottom: 1.5rem;
-    position: relative;
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);
-  }
-
-  .chip::after {
+  .bank-card::after {
     content: '';
     position: absolute;
-    top: 50%; left: 0; right: 0; height: 1px;
-    background: rgba(0,0,0,0.1);
+    bottom: -40%; left: -10%;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(236,72,153,.15), transparent 65%);
+    border-radius: 50%;
   }
 
-  .bank-details {
+  .card-inner { position: relative; z-index: 1; }
+
+  .card-top-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: flex-start;
+    margin-bottom: 1.75rem;
   }
 
-  .iban-group {
-    font-family: 'Courier New', monospace;
-    letter-spacing: 1px;
+  .chip {
+    width: 46px;
+    height: 34px;
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    border-radius: 7px;
+    box-shadow: inset 0 1px 3px rgba(255,255,255,.35), 0 2px 8px rgba(0,0,0,.3);
+    position: relative;
+    overflow: hidden;
   }
 
-  .iban-label {
-    font-size: 0.75rem;
+  .chip::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,.2) 0%, transparent 50%);
+  }
+
+  .chip-lines {
+    position: absolute;
+    inset: 30% 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 0 4px;
+  }
+
+  .chip-lines span {
+    display: block;
+    height: 1px;
+    background: rgba(0,0,0,.15);
+  }
+
+  .bank-name-block { text-align: left; }
+  .bank-name { font-size: 1rem; font-weight: 800; letter-spacing: .8px; }
+  .bank-sub  { font-size: .72rem; opacity: .65; margin-top: .1rem; }
+
+  .iban-block { margin-bottom: 1.5rem; }
+
+  .field-label {
+    font-size: .68rem;
     text-transform: uppercase;
-    opacity: 0.7;
-    margin-bottom: 0.25rem;
+    letter-spacing: 1.5px;
+    opacity: .55;
+    margin-bottom: .3rem;
     font-family: 'Tajawal', sans-serif;
   }
 
-  .iban-number {
-    font-size: 1.25rem;
+  .iban-value {
+    font-size: 1.2rem;
     font-weight: 700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1.5px;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: .75rem;
   }
 
   .copy-btn {
-    background: rgba(255,255,255,0.1);
-    border: none;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.15);
     color: white;
     width: 32px;
     height: 32px;
     border-radius: 50%;
     cursor: pointer;
-    display: grid;
-    place-items: center;
-    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    font-size: .85rem;
+    flex-shrink: 0;
   }
-  
-  .copy-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
 
-  /* Form */
+  .copy-btn:hover {
+    background: rgba(255,255,255,.22);
+    transform: scale(1.1);
+  }
+
+  .card-bottom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+
+  .acct-value {
+    font-size: .95rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+  }
+
+  .bene-value {
+    font-weight: 800;
+    font-size: .95rem;
+    letter-spacing: .8px;
+  }
+
+  /* ===== FORM FIELDS ===== */
   .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    gap: 1.25rem;
     margin-bottom: 1.5rem;
   }
 
@@ -407,122 +758,325 @@
     .form-grid { grid-template-columns: 1fr; }
   }
 
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
+  .form-group { display: flex; flex-direction: column; gap: .45rem; }
 
   .form-label {
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: var(--text-primary);
+    font-weight: 800;
+    font-size: .85rem;
+    color: var(--text-1);
+    letter-spacing: .2px;
   }
 
   .form-input {
-    background: var(--light-bg);
-    border: 2px solid transparent;
-    padding: 1rem;
-    border-radius: 12px;
+    background: var(--bg-subtle);
+    border: 2px solid var(--border);
+    padding: .9rem 1.1rem;
+    border-radius: var(--radius-md);
     font-family: inherit;
-    font-size: 1rem;
-    color: var(--text-primary);
-    transition: all 0.2s;
+    font-size: .95rem;
+    color: var(--text-1);
+    transition: var(--transition);
     width: 100%;
-    box-sizing: border-box; /* Fix for overflow */
   }
 
   .form-input:focus {
     outline: none;
-    border-color: var(--primary-color);
+    border-color: var(--primary);
     background: white;
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 4px rgba(79,70,229,.1);
   }
 
+  .amount-input {
+    background: linear-gradient(135deg, #eef2ff, #f5f3ff) !important;
+    color: var(--primary) !important;
+    font-weight: 900 !important;
+    font-size: 1.1rem !important;
+    border-color: rgba(79,70,229,.2) !important;
+    letter-spacing: .5px;
+  }
+
+  /* ===== UPLOAD BOX ===== */
   .upload-box {
-    border: 2px dashed #cbd5e1;
-    border-radius: 16px;
-    padding: 2rem;
+    border: 2.5px dashed #cbd5e1;
+    border-radius: var(--radius-md);
+    padding: 2.25rem 2rem;
     text-align: center;
     cursor: pointer;
-    background: rgba(255,255,255,0.5);
-    transition: all 0.3s;
+    background: rgba(255,255,255,.6);
+    transition: var(--transition);
     margin-bottom: 1.5rem;
+    position: relative;
+    display: block;
   }
 
   .upload-box:hover, .upload-box.drag-active {
-    border-color: var(--primary-color);
-    background: rgba(79, 70, 229, 0.05);
+    border-color: var(--primary);
+    background: rgba(79,70,229,.04);
   }
 
+  .upload-icon {
+    font-size: 2.75rem;
+    color: #cbd5e1;
+    margin-bottom: .85rem;
+    display: block;
+    transition: var(--transition);
+  }
+
+  .upload-box:hover .upload-icon { color: var(--primary); transform: translateY(-3px); }
+
+  .upload-title {
+    font-weight: 800;
+    color: var(--text-1);
+    font-size: 1rem;
+    margin-bottom: .25rem;
+  }
+
+  .upload-hint {
+    font-size: .82rem;
+    color: var(--text-3);
+    font-weight: 600;
+  }
+
+  /* Preview area */
+  .upload-preview {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(16,185,129,.06);
+    border: 2px solid rgba(16,185,129,.3);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .upload-preview.visible { display: flex; }
+
+  .preview-thumb {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 2px solid rgba(16,185,129,.3);
+  }
+
+  .preview-info { flex: 1; text-align: right; }
+  .preview-name { font-weight: 800; color: var(--text-1); font-size: .9rem; }
+  .preview-size { font-size: .78rem; color: var(--text-3); margin-top: .15rem; }
+
+  .preview-remove {
+    background: rgba(239,68,68,.1);
+    border: none;
+    color: var(--danger);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    font-size: .85rem;
+    flex-shrink: 0;
+  }
+
+  .preview-remove:hover { background: var(--danger); color: white; }
+
+  /* ===== SUBMIT BUTTON ===== */
   .btn-submit {
     width: 100%;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
     border: none;
-    padding: 1.25rem;
-    border-radius: 16px;
+    padding: 1.2rem;
+    border-radius: var(--radius-md);
     font-size: 1.1rem;
-    font-weight: 800;
+    font-weight: 900;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
+    transition: var(--transition);
+    box-shadow: var(--shadow-colored);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .6rem;
+    letter-spacing: .3px;
   }
 
   .btn-submit:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 25px -5px rgba(79, 70, 229, 0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 20px 40px -8px rgba(79,70,229,.45);
   }
 
-  /* History Table */
-  .history-container {
-    margin-top: 3rem;
+  .btn-submit:active { transform: translateY(-1px); }
+
+  .btn-submit.loading {
+    opacity: .8;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ===== HISTORY SECTION ===== */
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .view-all-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .85rem;
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+    padding: .45rem .9rem;
+    border-radius: var(--radius-sm);
+    background: rgba(79,70,229,.07);
+    border: 1px solid rgba(79,70,229,.15);
+    transition: var(--transition);
+  }
+
+  .view-all-link:hover {
+    background: rgba(79,70,229,.14);
+    transform: translateY(-1px);
   }
 
   .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    border-radius: 16px;
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
   }
 
   .custom-table {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
+    border-collapse: collapse;
     background: white;
-    min-width: 600px; /* Force scroll on mobile */
+    min-width: 600px;
   }
 
   .custom-table th {
-    background: #f1f5f9;
-    padding: 1.25rem 1.5rem;
+    background: var(--bg-subtle);
+    padding: 1rem 1.25rem;
     text-align: right;
     font-weight: 800;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    border-bottom: 2px solid #e2e8f0;
+    color: var(--text-2);
+    font-size: .82rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
   }
 
   .custom-table td {
-    padding: 1.25rem 1.5rem;
-    color: var(--text-primary);
+    padding: 1rem 1.25rem;
+    color: var(--text-1);
     border-bottom: 1px solid #f1f5f9;
     vertical-align: middle;
+    font-size: .9rem;
   }
 
   .custom-table tr:last-child td { border-bottom: none; }
-  .custom-table tbody tr { transition: background 0.2s; }
+  .custom-table tbody tr { transition: background .15s; }
   .custom-table tbody tr:hover { background: #f8fafc; }
 
-  /* Notes handling */
+  /* Table status chips */
+  .tbl-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .8rem;
+    border-radius: 9999px;
+    font-weight: 800;
+    font-size: .78rem;
+    white-space: nowrap;
+  }
+
+  .tbl-badge-success  { background: rgba(16,185,129,.1);  color: #059669; }
+  .tbl-badge-danger   { background: rgba(239,68,68,.1);   color: #dc2626; }
+  .tbl-badge-warning  { background: rgba(245,158,11,.1);  color: #d97706; }
+  .tbl-badge-neutral  { background: rgba(100,116,139,.1); color: #475569; }
+  .tbl-badge-refund   { background: rgba(239,68,68,.08);  color: #b91c1c; }
+
   .notes-cell {
-    max-width: 300px;
+    max-width: 260px;
     white-space: normal;
     word-wrap: break-word;
-    line-height: 1.6;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
+    line-height: 1.55;
+    color: var(--text-2);
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+  }
+
+  .empty-state i {
+    font-size: 3rem;
+    color: #e2e8f0;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .empty-state p {
+    color: var(--text-3);
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* ===== TOAST ===== */
+  .toast-container {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .toast {
+    background: #1e293b;
+    color: white;
+    padding: .85rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: .9rem;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    animation: toastIn .3s ease forwards;
+    pointer-events: all;
+  }
+
+  .toast.success { border-left: 4px solid var(--success); }
+  .toast.error   { border-left: 4px solid var(--danger); }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes toastOut {
+    to { opacity: 0; transform: translateY(-8px) scale(.96); }
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    .sub-container { padding: 1.5rem 1rem 3rem; }
+    .glass-card { padding: 1.5rem; }
+    .plans-grid { grid-template-columns: 1fr 1fr; }
+    .steps-guide { gap: 0; }
+    .step-label { display: none; }
+    .hero-title { font-size: 1.5rem; }
   }
 </style>
 {% endblock %}
@@ -530,28 +1084,31 @@
 {% block content %}
 <div class="sub-container">
 
-  <!-- Header -->
-  <header class="page-header">
-    <div class="header-content">
-      <div class="school-badge">
-        <i class="fa-solid fa-school"></i> {{ school.name }}
+  <!-- HERO HEADER -->
+  <header class="page-hero">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-badge">
+          <i class="fa-solid fa-school"></i> {{ school.name }}
+        </div>
+        <h1 class="hero-title">إدارة الاشتراك والمدفوعات</h1>
+        <p class="hero-subtitle">قم بتجديد باقتك وإدارة مدفوعاتك بكل سهولة ويسر</p>
       </div>
-      <h1>إدارة الاشتراك والمدفوعات</h1>
+      <a href="{% url 'reports:admin_dashboard' %}" class="btn-back">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span>لوحة التحكم</span>
+      </a>
     </div>
-    <a href="{% url 'reports:admin_dashboard' %}" class="btn-back">
-      <i class="fa-solid fa-arrow-right"></i>
-      <span>لوحة التحكم</span>
-    </a>
   </header>
 
   <div class="dashboard-grid">
-    
-    <!-- LEFT: Subscription Status -->
-    <aside class="glass-card status-content">
-      <h3 style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:0.5rem">الباقة الحالية</h3>
-      <div class="plan-name">{{ subscription.plan.name|default:"غير مشترك" }}</div>
 
-      <!-- Circular Progress -->
+    <!-- ========== SIDEBAR: Subscription Status ========== -->
+    <aside class="glass-card status-sidebar">
+      <div class="status-label">الباقة الحالية</div>
+      <div class="plan-name-display">{{ subscription.plan.name|default:"غير مشترك" }}</div>
+
+      <!-- Circular Progress Ring -->
       <div class="progress-ring">
         <svg viewBox="0 0 220 220">
           <circle class="ring-circle-bg" cx="110" cy="110" r="100"></circle>
@@ -563,148 +1120,233 @@
         </div>
       </div>
 
-      <!-- Status Badges -->
-      <div style="width: 100%; margin-bottom: 1.5rem;">
-        {% if subscription.is_cancelled %}
-          <div class="status-badge status-expired">
-            <i class="fa-solid fa-ban"></i> ملغي
-          </div>
-          {% if subscription.cancel_reason %}
-          <div style="background: rgba(239, 68, 68, 0.05); padding: 1rem; border-radius: 12px; font-size: 0.9rem; text-align: right;">
-            <strong style="color: var(--danger-color); display: block; margin-bottom: 0.25rem;">سبب الإلغاء:</strong>
-            {{ subscription.cancel_reason }}
-          </div>
-          {% endif %}
-        {% elif subscription.is_expired %}
-          <div class="status-badge status-expired">
-            <i class="fa-solid fa-triangle-exclamation"></i> منتهي
-          </div>
-        {% else %}
-          <div class="status-badge status-active">
-            <i class="fa-solid fa-check-circle"></i> نشط
-          </div>
-        {% endif %}
+      <!-- Quick Stats -->
+      <div class="stat-row">
+        <div class="stat-box">
+          <span class="stat-box-label">تاريخ الانتهاء</span>
+          <span class="stat-box-value" dir="ltr">{{ subscription.end_date|date:"Y-m-d"|default:"—" }}</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-label">حالة الباقة</span>
+          <span class="stat-box-value">
+            {% if subscription.is_cancelled %}ملغي{% elif subscription.is_expired %}منتهي{% else %}نشطة{% endif %}
+          </span>
+        </div>
       </div>
 
-      <div style="width: 100%; display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">
-        <span>تاريخ الانتهاء:</span>
-        <span style="font-weight: 700; color: var(--text-primary);" dir="ltr">{{ subscription.end_date|date:"Y-m-d"|default:"-" }}</span>
-      </div>
+      <!-- Status Badge -->
+      {% if subscription.is_cancelled %}
+        <div class="status-badge badge-cancelled">
+          <i class="fa-solid fa-ban"></i> الاشتراك ملغي
+        </div>
+        {% if subscription.cancel_reason %}
+        <div class="cancel-reason-box">
+          <strong>سبب الإلغاء</strong>
+          {{ subscription.cancel_reason }}
+        </div>
+        {% endif %}
+      {% elif subscription.is_expired %}
+        <div class="status-badge badge-expired">
+          <i class="fa-solid fa-triangle-exclamation"></i> الاشتراك منتهي
+        </div>
+      {% elif subscription.days_remaining <= 30 %}
+        <div class="status-badge badge-warning">
+          <i class="fa-solid fa-clock"></i> ينتهي قريباً
+        </div>
+      {% else %}
+        <div class="status-badge badge-active">
+          <i class="fa-solid fa-circle-check"></i> الاشتراك نشط
+        </div>
+      {% endif %}
+
+      <div class="card-divider"></div>
 
       <a href="{% url 'reports:support_ticket_create' %}" class="support-link">
-        <i class="fa-solid fa-life-ring"></i> تواصل مع الدعم الفني
+        <i class="fa-solid fa-headset"></i>
+        <span>تواصل مع الدعم الفني</span>
       </a>
     </aside>
 
-    <!-- RIGHT: Renewal & History -->
+    <!-- ========== MAIN: Renewal & History ========== -->
     <div>
-      
-      <!-- Payment Form Box -->
-      <div class="glass-card" style="margin-bottom: 2rem;">
-        
+
+      <!-- Payment Form Card -->
+      <div class="glass-card" style="margin-bottom: 1.75rem;">
+
+        <!-- Steps Guide -->
+        <div class="steps-guide">
+          <div class="step-item">
+            <div class="step-num active">١</div>
+            <span class="step-label active">اختر الباقة</span>
+          </div>
+          <div class="step-item">
+            <div class="step-num active">٢</div>
+            <span class="step-label active">حوّل المبلغ</span>
+          </div>
+          <div class="step-item">
+            <div class="step-num active">٣</div>
+            <span class="step-label active">ارفع الإيصال</span>
+          </div>
+        </div>
+
         <form action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data" id="paymentForm">
           {% csrf_token %}
-          
-          <!-- Plans Section -->
-          <h2 class="section-title"><i class="fa-solid fa-layer-group"></i> اختر الباقة</h2>
-          
+
+          <!-- Step 1: Plan Selection -->
+          <div class="section-header">
+            <div class="section-icon"><i class="fa-solid fa-layer-group"></i></div>
+            <div class="section-header-text">
+              <h2>اختر الباقة المناسبة</h2>
+              <p>اختر من باقاتنا المصممة لتناسب احتياجات مدرستك</p>
+            </div>
+          </div>
+
           <div class="plans-grid">
             {% for plan in plans %}
             <label class="plan-option">
-              <input type="radio" name="plan_id" value="{{ plan.id }}" data-price="{{ plan.price|stringformat:'f'|floatformat:2 }}" 
-                     {% if subscription.plan.id == plan.id %}checked{% endif %} required>
+              <input
+                type="radio"
+                name="plan_id"
+                value="{{ plan.id }}"
+                data-price="{{ plan.price|stringformat:'f'|floatformat:2 }}"
+                {% if subscription.plan.id == plan.id %}checked{% endif %}
+                required
+              >
               <div class="plan-content">
+                {% if plan.days_duration == 180 %}<span class="plan-badge">الأكثر طلباً</span>{% endif %}
+                {% if plan.days_duration == 365 %}<span class="plan-badge">الأفضل قيمة</span>{% endif %}
                 <span class="plan-title">{{ plan.name }}</span>
-                <span class="plan-price">{{ plan.price }} <small>ريال</small></span>
+                <span class="plan-price">{{ plan.price }}<small>ريال</small></span>
                 <div class="plan-days"><i class="fa-regular fa-calendar"></i> {{ plan.days_duration }} يوم</div>
               </div>
             </label>
             {% endfor %}
           </div>
-  
-          <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 2rem 0;">
 
-          <!-- Payment Details -->
-          <h2 class="section-title"><i class="fa-regular fa-credit-card"></i> سداد الرسوم</h2>
-          
-          <!-- Bank Card Style -->
-          <div class="bank-card">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <div class="chip"></div>
-              <div style="text-align: left;">
-                <div style="font-weight: 800; font-size: 1.1rem; letter-spacing: 1px;">Al Rajhi Bank</div>
-                <div style="font-size: 0.8rem; opacity: 0.8;">مصرف الراجحي</div>
-              </div>
+          <hr class="form-divider">
+
+          <!-- Step 2: Bank Transfer -->
+          <div class="section-header">
+            <div class="section-icon"><i class="fa-regular fa-credit-card"></i></div>
+            <div class="section-header-text">
+              <h2>بيانات التحويل البنكي</h2>
+              <p>حوّل المبلغ المطلوب إلى الحساب التالي ثم ارفع الإيصال</p>
             </div>
-  
-            <div style="margin-top: 1rem;">
-              <div class="iban-label">IBAN</div>
-              <div class="iban-number">
-                <span dir="ltr">SA85 8000 0660 6080 1622 0957</span>
-                <button type="button" class="copy-btn" onclick="copyToClip('SA8580000660608016220957')" title="نسخ">
-                  <i class="fa-regular fa-copy"></i>
-                </button>
-              </div>
-            </div>
-  
-            <div class="bank-details" style="margin-top: 1.5rem;">
-              <div>
-                <div class="iban-label">Account Number</div>
-                <div class="iban-number" style="font-size: 1rem;">
-                  <span dir="ltr">6600 0001 0006 0862 2095 7</span>
+          </div>
+
+          <!-- Bank Card -->
+          <div class="bank-card-wrap">
+            <div class="bank-card">
+              <div class="card-inner">
+                <div class="card-top-row">
+                  <div class="chip">
+                    <div class="chip-lines">
+                      <span></span><span></span><span></span>
+                    </div>
+                  </div>
+                  <div class="bank-name-block">
+                    <div class="bank-name">Al Rajhi Bank</div>
+                    <div class="bank-sub">مصرف الراجحي</div>
+                  </div>
                 </div>
-              </div>
-              <div style="text-align: left;">
-                <div class="iban-label">Beneficiary Name</div>
-                <div style="font-weight: 700; letter-spacing: 1px;">MANSOUR ALGHAMDI</div>
+
+                <div class="iban-block">
+                  <div class="field-label">IBAN</div>
+                  <div class="iban-value">
+                    <span dir="ltr">SA85 8000 0660 6080 1622 0957</span>
+                    <button type="button" class="copy-btn" id="copyIbanBtn" onclick="copyToClip('SA8580000660608016220957', this)" title="نسخ رقم الآيبان">
+                      <i class="fa-regular fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="card-bottom-row">
+                  <div>
+                    <div class="field-label">Account Number</div>
+                    <div class="acct-value" dir="ltr">6600 0001 0006 0862 2095 7</div>
+                  </div>
+                  <div style="text-align:left;">
+                    <div class="field-label">Beneficiary Name</div>
+                    <div class="bene-value">MANSOUR ALGHAMDI</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
+          <!-- Form Fields -->
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">المبلغ المطلوب (ريال)</label>
-              <input 
-                type="text" 
+              <label class="form-label"><i class="fa-solid fa-coins" style="color:var(--primary); margin-left:.4rem;"></i>المبلغ المطلوب (ريال)</label>
+              <input
+                type="text"
                 id="amountDisplay"
-                name="amount" 
-                class="form-input" 
-                readonly 
+                name="amount"
+                class="form-input amount-input"
+                readonly
                 value="{% if subscription and subscription.plan %}{{ subscription.plan.price|stringformat:'f'|floatformat:2 }}{% else %}0.00{% endif %}"
-                style="background: #eef2ff; color: var(--primary-color); font-weight: 800;"
               >
             </div>
             <div class="form-group">
-              <label class="form-label">ملاحظات التحويل</label>
+              <label class="form-label"><i class="fa-regular fa-note-sticky" style="color:var(--primary); margin-left:.4rem;"></i>ملاحظات التحويل</label>
               <input type="text" name="notes" class="form-input" placeholder="مثال: اسم صاحب الحساب المحول منه...">
             </div>
           </div>
 
-          <div class="form-group" style="margin-bottom: 1.5rem;">
-            <label class="form-label">صورة الإيصال</label>
-            <label for="receipt" class="upload-box" id="dropArea">
-              <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
-              <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">اضغط هنا لرفع الصورة</div>
-              <div style="font-size: 0.85rem; color: var(--text-secondary);" id="fileLabel">يدعم JPG, PNG (الحد الأقصى 10MB)</div>
-              <input type="file" name="receipt_image" id="receipt" style="opacity: 0; position: absolute; z-index: -1; width: 1px; height: 1px;" accept="image/*" required>
-            </label>
+          <hr class="form-divider">
+
+          <!-- Step 3: Receipt Upload -->
+          <div class="section-header">
+            <div class="section-icon"><i class="fa-solid fa-receipt"></i></div>
+            <div class="section-header-text">
+              <h2>رفع إيصال التحويل</h2>
+              <p>ارفع صورة واضحة لإيصال التحويل البنكي</p>
+            </div>
           </div>
 
-          <button type="submit" class="btn-submit">
-            <i class="fa-solid fa-paper-plane" style="margin-inline-end: 8px;"></i> تأكيد وإرسال الطلب
+          <label for="receipt" class="upload-box" id="dropArea">
+            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+            <div class="upload-title">اسحب وأفلت الصورة هنا أو اضغط للرفع</div>
+            <div class="upload-hint" id="fileLabel">يدعم JPG, PNG, WEBP — الحد الأقصى 10MB</div>
+            <input type="file" name="receipt_image" id="receipt" style="opacity:0;position:absolute;z-index:-1;width:1px;height:1px;" accept="image/*" required>
+          </label>
+
+          <!-- Preview -->
+          <div class="upload-preview" id="uploadPreview">
+            <img src="" alt="معاينة الإيصال" class="preview-thumb" id="previewThumb">
+            <div class="preview-info">
+              <div class="preview-name" id="previewName"></div>
+              <div class="preview-size" id="previewSize"></div>
+            </div>
+            <button type="button" class="preview-remove" id="removeFile" title="إزالة الصورة">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <button type="submit" class="btn-submit" id="submitBtn">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>تأكيد وإرسال الطلب</span>
           </button>
         </form>
       </div>
 
-      <!-- History Section -->
-      <div class="glass-card history-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h2 class="section-title" style="margin-bottom: 0;"><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات السابقة</h2>
-          <a href="{% url 'reports:subscription_history' %}" style="font-size: 0.9rem; color: var(--primary); font-weight: 700; text-decoration: none;">
-            عرض الكل <i class="fa-solid fa-arrow-left" style="font-size: 0.8em;"></i>
+      <!-- History Card -->
+      <div class="glass-card">
+        <div class="history-header">
+          <div class="section-header" style="margin-bottom:0;">
+            <div class="section-icon" style="background:linear-gradient(135deg,#0f172a,#334155);">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div class="section-header-text">
+              <h2>سجل العمليات</h2>
+              <p>آخر معاملات الاشتراك والمدفوعات</p>
+            </div>
+          </div>
+          <a href="{% url 'reports:subscription_history' %}" class="view-all-link">
+            عرض الكل <i class="fa-solid fa-arrow-left" style="font-size:.8em;"></i>
           </a>
         </div>
-        
+
         <div class="table-responsive">
           <table class="custom-table">
             <thead>
@@ -719,36 +1361,37 @@
             <tbody>
               {% for payment in payments %}
               <tr>
-                <td><span dir="ltr" style="font-weight: 600;">{{ payment.created_at|date:"Y-m-d" }}</span></td>
-                <td>{{ payment.requested_plan.name|default:"-" }}</td>
-                <td style="font-family: 'Courier New', monospace; font-weight: 700;">
-                    {% if payment.amount < 0 %}
-                    <span class="text-red-500" dir="ltr">{{ payment.amount }} SAR</span>
-                    {% else %}
-                    <span dir="ltr">{{ payment.amount }} SAR</span>
-                    {% endif %}
+                <td><span dir="ltr" style="font-weight:700;font-family:'Courier New',monospace;">{{ payment.created_at|date:"Y-m-d" }}</span></td>
+                <td style="font-weight:700;">{{ payment.requested_plan.name|default:"—" }}</td>
+                <td>
+                  {% if payment.amount < 0 %}
+                    <span dir="ltr" style="font-family:'Courier New',monospace;font-weight:800;color:var(--danger);">{{ payment.amount }} SAR</span>
+                  {% else %}
+                    <span dir="ltr" style="font-family:'Courier New',monospace;font-weight:800;">{{ payment.amount }} SAR</span>
+                  {% endif %}
                 </td>
                 <td>
-                   {% if payment.status == 'approved' and payment.amount < 0 %}
-                     <span style="color:#ef4444; font-weight:700"><i class="fa-solid fa-rotate-left"></i> استرجاع</span>
-                   {% elif payment.status == 'approved' %}
-                     <span style="color:var(--success-color); font-weight:700"><i class="fa-solid fa-check"></i> تم التفعيل</span>
-                   {% elif payment.status == 'cancelled' %}
-                     <span style="color:var(--text-secondary); font-weight:700"><i class="fa-solid fa-ban"></i> ملغي</span>
-                   {% elif payment.status == 'rejected' %}
-                     <span style="color:var(--danger-color); font-weight:700"><i class="fa-solid fa-xmark"></i> مرفوض</span>
-                   {% else %}
-                     <span style="color:var(--warning-color); font-weight:700"><i class="fa-solid fa-clock"></i> قيد المراجعة</span>
-                   {% endif %}
+                  {% if payment.status == 'approved' and payment.amount < 0 %}
+                    <span class="tbl-badge tbl-badge-refund"><i class="fa-solid fa-rotate-left"></i> استرجاع</span>
+                  {% elif payment.status == 'approved' %}
+                    <span class="tbl-badge tbl-badge-success"><i class="fa-solid fa-check"></i> تم التفعيل</span>
+                  {% elif payment.status == 'cancelled' %}
+                    <span class="tbl-badge tbl-badge-neutral"><i class="fa-solid fa-ban"></i> ملغي</span>
+                  {% elif payment.status == 'rejected' %}
+                    <span class="tbl-badge tbl-badge-danger"><i class="fa-solid fa-xmark"></i> مرفوض</span>
+                  {% else %}
+                    <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock"></i> قيد المراجعة</span>
+                  {% endif %}
                 </td>
-                <td class="notes-cell">
-                    {{ payment.notes|default:"-"|linebreaksbr }}
-                </td>
+                <td class="notes-cell">{{ payment.notes|default:"—"|linebreaksbr }}</td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                  لا توجد عمليات سابقة.
+                <td colspan="5">
+                  <div class="empty-state">
+                    <i class="fa-regular fa-rectangle-list"></i>
+                    <p>لا توجد عمليات سابقة حتى الآن</p>
+                  </div>
                 </td>
               </tr>
               {% endfor %}
@@ -757,148 +1400,172 @@
         </div>
       </div>
 
-    </div>
-  </div>
-</div>
+    </div><!-- /MAIN -->
+  </div><!-- /GRID -->
+</div><!-- /CONTAINER -->
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
-  document.addEventListener('DOMContentLoaded', () => {
-     // 1. Plan Amount Logic
-     const amountInput = document.getElementById('amountDisplay');
-     const planRadios = document.querySelectorAll('input[name="plan_id"]');
-     
-     if(planRadios.length > 0) {
-        // Init Check
-        const checked = document.querySelector('input[name="plan_id"]:checked');
-        if(checked) updateAmount(checked);
-        else if(planRadios[0]) {
-            planRadios[0].checked = true;
-            updateAmount(planRadios[0]);
-        }
+document.addEventListener('DOMContentLoaded', () => {
 
-        // Listener
-        planRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                updateAmount(this);
-            });
-        });
-     }
+  /* ── 1. Plan Amount Auto-update ── */
+  const amountInput = document.getElementById('amountDisplay');
+  const planRadios  = document.querySelectorAll('input[name="plan_id"]');
 
-     function updateAmount(radio) {
-         if(amountInput) {
-             amountInput.value = radio.dataset.price;
-         }
-     }
+  function updateAmount(radio) {
+    if (amountInput) amountInput.value = parseFloat(radio.dataset.price).toFixed(2);
+  }
 
-     // 2. Ring Animation
-     const days = {{ subscription.days_remaining|default:0 }};
-     const maxDays = 365; // Or plan duration if available
-     const circle = document.querySelector('.ring-circle-fg');
-     
-     if(circle) {
-         const radius = circle.r.baseVal.value;
-         const circumference = radius * 2 * Math.PI;
-         circle.style.strokeDasharray = `${circumference} ${circumference}`;
-         
-         const percent = Math.min(Math.max(days / maxDays, 0), 1);
-         const offset = circumference - (percent * circumference);
-         
-         let color = '#10b981'; // Green
-         if(days < 10) color = '#ef4444'; // Red
-         else if(days < 30) color = '#f59e0b'; // Orange
+  if (planRadios.length) {
+    const checked = document.querySelector('input[name="plan_id"]:checked');
+    if (checked) updateAmount(checked);
+    else { planRadios[0].checked = true; updateAmount(planRadios[0]); }
+    planRadios.forEach(r => r.addEventListener('change', () => updateAmount(r)));
+  }
 
-         circle.style.stroke = color;
+  /* ── 2. Progress Ring Animation ── */
+  const days   = {{ subscription.days_remaining|default:0 }};
+  const circle = document.querySelector('.ring-circle-fg');
+  if (circle) {
+    const r   = circle.r.baseVal.value;
+    const circ = 2 * Math.PI * r;
+    circle.style.strokeDasharray  = `${circ} ${circ}`;
+    circle.style.strokeDashoffset = circ;
 
-         setTimeout(() => {
-             circle.style.strokeDashoffset = offset;
-         }, 500);
-     }
+    let color = '#10b981';
+    if (days <= 0)  color = '#ef4444';
+    else if (days < 10)  color = '#ef4444';
+    else if (days < 30)  color = '#f59e0b';
+    circle.style.stroke = color;
 
-     // 3. File Upload Interaction
-     const fileInput = document.getElementById('receipt');
-     const fileLabel = document.getElementById('fileLabel');
-     const dropArea = document.getElementById('dropArea');
-     const icon = dropArea.querySelector('i');
+    const percent = Math.min(Math.max(days / 365, 0), 1);
+    const offset  = circ - percent * circ;
+    setTimeout(() => { circle.style.strokeDashoffset = offset; }, 500);
+  }
 
-     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, preventDefaults, false);
-     });
+  /* ── 3. File Upload + Preview ── */
+  const fileInput   = document.getElementById('receipt');
+  const fileLabel   = document.getElementById('fileLabel');
+  const dropArea    = document.getElementById('dropArea');
+  const preview     = document.getElementById('uploadPreview');
+  const previewThumb= document.getElementById('previewThumb');
+  const previewName = document.getElementById('previewName');
+  const previewSize = document.getElementById('previewSize');
+  const removeBtn   = document.getElementById('removeFile');
+  const uploadIcon  = dropArea ? dropArea.querySelector('.upload-icon') : null;
 
-     function preventDefaults (e) {
-        e.preventDefault();
-        e.stopPropagation();
-     }
+  function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+  ['dragenter','dragover','dragleave','drop'].forEach(ev => dropArea.addEventListener(ev, preventDefaults));
+  ['dragenter','dragover'].forEach(ev => dropArea.addEventListener(ev, () => dropArea.classList.add('drag-active')));
+  ['dragleave','drop'].forEach(ev => dropArea.addEventListener(ev, () => dropArea.classList.remove('drag-active')));
 
-     ['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, highlight, false);
-     });
-
-     ['dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, unhighlight, false);
-     });
-
-     function highlight(e) { dropArea.classList.add('drag-active'); }
-     function unhighlight(e) { dropArea.classList.remove('drag-active'); }
-
-     dropArea.addEventListener('drop', handleDrop, false);
-
-     function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        fileInput.files = files;
-        updateLabel(files[0]);
-     }
-
-     fileInput.addEventListener('change', function(){
-        if(this.files && this.files[0]){
-            updateLabel(this.files[0]);
-        }
-     });
-
-     function updateLabel(file) {
-         fileLabel.textContent = file.name;
-         fileLabel.style.color = '#10b981';
-         fileLabel.style.fontWeight = 'bold';
-         icon.className = "fa-solid fa-check-circle";
-         icon.style.color = '#10b981';
-         dropArea.style.borderColor = '#10b981';
-         dropArea.style.background = 'rgba(16, 185, 129, 0.05)';
-     }
-
-     // 4. Form Validation UI
-     const form = document.getElementById('paymentForm');
-     form.addEventListener('submit', function(e) {
-        if (!fileInput.value) {
-            e.preventDefault();
-            dropArea.style.borderColor = '#ef4444';
-            dropArea.style.backgroundColor = 'rgba(239, 68, 68, 0.05)';
-            dropArea.scrollIntoView({behavior: 'smooth', block: 'center'});
-            
-            // Create or update error message
-            let errorMsg = document.getElementById('file-error-msg');
-            if(!errorMsg) {
-                errorMsg = document.createElement('div');
-                errorMsg.id = 'file-error-msg';
-                errorMsg.style.color = '#ef4444';
-                errorMsg.style.fontSize = '0.9rem';
-                errorMsg.style.fontWeight = '700';
-                errorMsg.style.marginTop = '0.5rem';
-                errorMsg.textContent = 'يرجى إرفاق صورة الإيصال للمتابعة';
-                dropArea.parentNode.appendChild(errorMsg);
-            }
-        }
-     });
+  dropArea.addEventListener('drop', e => {
+    const files = e.dataTransfer.files;
+    if (files.length) { fileInput.files = files; showPreview(files[0]); }
   });
 
-  window.copyToClip = function(text) {
-     navigator.clipboard.writeText(text).then(() => {
-        const btn = document.querySelector('.copy-btn');
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-        setTimeout(() => btn.innerHTML = originalHtml, 2000);
-     }).catch(err => console.error('Failed to copy', err));
+  fileInput.addEventListener('change', function () {
+    if (this.files && this.files[0]) showPreview(this.files[0]);
+  });
+
+  function showPreview(file) {
+    // Validate size
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('حجم الملف يتجاوز الحد المسموح (10MB)', 'error');
+      fileInput.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewThumb.src = e.target.result;
+      previewName.textContent = file.name;
+      previewSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+      preview.classList.add('visible');
+      dropArea.style.display = 'none';
+      // Update icon feedback
+      if (uploadIcon) {
+        uploadIcon.className = 'fa-solid fa-circle-check upload-icon';
+        uploadIcon.style.color = '#10b981';
+      }
+      fileLabel.textContent = file.name;
+      fileLabel.style.color = '#10b981';
+    };
+    reader.readAsDataURL(file);
   }
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', () => {
+      fileInput.value = '';
+      preview.classList.remove('visible');
+      dropArea.style.display = '';
+      if (uploadIcon) {
+        uploadIcon.className = 'fa-solid fa-cloud-arrow-up upload-icon';
+        uploadIcon.style.color = '';
+      }
+      fileLabel.textContent = 'يدعم JPG, PNG, WEBP — الحد الأقصى 10MB';
+      fileLabel.style.color = '';
+    });
+  }
+
+  /* ── 4. Form Validation ── */
+  const form      = document.getElementById('paymentForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', function (e) {
+    if (!fileInput.value) {
+      e.preventDefault();
+      dropArea.style.borderColor = '#ef4444';
+      dropArea.style.background  = 'rgba(239,68,68,.04)';
+      dropArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showToast('يرجى إرفاق صورة الإيصال قبل الإرسال', 'error');
+      return;
+    }
+    // Loading state
+    submitBtn.classList.add('loading');
+    submitBtn.querySelector('span').textContent = 'جارٍ الإرسال...';
+    submitBtn.disabled = true;
+  });
+
+  /* ── 5. Toast Helper ── */
+  const toastContainer = document.getElementById('toastContainer');
+  function showToast(msg, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    const icon = type === 'success'
+      ? '<i class="fa-solid fa-circle-check"></i>'
+      : '<i class="fa-solid fa-circle-exclamation"></i>';
+    toast.innerHTML = `${icon} ${msg}`;
+    toastContainer.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = 'toastOut .3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+  window._showToast = showToast; // expose globally
+
+});
+
+/* ── Copy to Clipboard ── */
+window.copyToClip = function (text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+      btn.style.color = '#10b981';
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.style.color = '';
+      }, 2000);
+    }
+    if (window._showToast) window._showToast('تم نسخ رقم الآيبان بنجاح ✓', 'success');
+  }).catch(() => {
+    if (window._showToast) window._showToast('تعذّر النسخ، يرجى النسخ يدوياً', 'error');
+  });
+};
 </script>
 {% endblock %}

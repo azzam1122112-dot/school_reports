@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}تفاصيل الاشتراك{% endblock %}
 
@@ -75,6 +76,48 @@
     gap: 14px;
     grid-template-columns: 1.15fr .85fr;
     margin-bottom: 14px;
+  }
+
+  .subdetail-scope .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .subdetail-scope .summary-card {
+    background: var(--sd-card);
+    border: 1px solid var(--sd-line);
+    border-radius: 16px;
+    box-shadow: var(--sd-shadow);
+    padding: 14px;
+    min-height: 100px;
+  }
+
+  .subdetail-scope .summary-card .label {
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .subdetail-scope .summary-card .num {
+    color: var(--sd-ink);
+    font-weight: 950;
+    font-size: 1.2rem;
+  }
+
+  .subdetail-scope .commercial-note {
+    border: 1px solid rgba(245, 158, 11, .22);
+    background: rgba(245, 158, 11, .10);
+    color: #92400e;
+    border-radius: 14px;
+    padding: 12px;
+    font-weight: 900;
+    line-height: 1.8;
+    margin-top: 12px;
+  }
+
+  html[data-theme="dark"] .subdetail-scope .commercial-note {
+    color: #fbbf24;
   }
 
   @media (max-width: 920px) {
@@ -199,6 +242,10 @@
   }
 
   @media (max-width: 560px) {
+    .subdetail-scope .summary-grid {
+      grid-template-columns: 1fr;
+    }
+
     .subdetail-scope .row {
       flex-direction: column;
       align-items: stretch;
@@ -211,6 +258,12 @@
     .subdetail-scope .actions .btn,
     .subdetail-scope .actions form {
       width: 100%;
+    }
+  }
+
+  @media (min-width: 561px) and (max-width: 920px) {
+    .subdetail-scope .summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>
@@ -237,6 +290,25 @@
             قائمة الاشتراكات
           </a>
         {% endif %}
+      </div>
+    </section>
+
+    <section class="summary-grid" aria-label="ملخص مالي سريع">
+      <div class="summary-card">
+        <span class="label">قيمة الباقة</span>
+        <div class="num">{{ subscription.plan.price|floatformat:0|intcomma }} ريال</div>
+      </div>
+      <div class="summary-card">
+        <span class="label">مدفوع مقبول</span>
+        <div class="num">{{ approved_total|floatformat:0|intcomma }} ريال</div>
+      </div>
+      <div class="summary-card">
+        <span class="label">قيد المراجعة</span>
+        <div class="num">{{ pending_total|floatformat:0|intcomma }} ريال</div>
+      </div>
+      <div class="summary-card">
+        <span class="label">استرجاعات</span>
+        <div class="num">{{ refund_total|floatformat:0|intcomma }} ريال</div>
       </div>
     </section>
 
@@ -377,6 +449,20 @@
             </form>
           {% endif %}
         </div>
+
+        <div class="commercial-note">
+          {% if subscription.is_cancelled %}
+            هذا الاشتراك خارج المحفظة النشطة. راجع سبب الإلغاء والاسترجاع قبل أي إعادة تفعيل.
+          {% elif subscription.is_expired %}
+            فرصة استعادة: الاشتراك منتهي، والتجديد يعيد المدرسة مباشرة إلى المحفظة المدفوعة.
+          {% elif not has_payment_for_period and subscription.plan.price %}
+            أولوية تحصيل: الاشتراك ساري لكن لا توجد دفعة مسجلة للفترة الحالية.
+          {% elif subscription.days_remaining <= 7 %}
+            أولوية تجديد: تبقى أقل من أسبوع، تواصل مبكرًا لتجنب انقطاع الخدمة.
+          {% else %}
+            الاشتراك مستقر. أفضل إجراء الآن هو متابعة التجديد قبل آخر 30 يومًا.
+          {% endif %}
+        </div>
       </div>
     </div>
 
@@ -406,7 +492,7 @@
               <tr>
                 <td data-label="رقم العملية" style="text-align:right">#{{ payment.id }}</td>
                 <td data-label="التاريخ" style="text-align:right">{{ payment.payment_date|date:"Y-m-d" }}</td>
-                <td data-label="المبلغ" style="text-align:right">{{ payment.amount }} ريال</td>
+                <td data-label="المبلغ" style="text-align:right">{{ payment.amount|floatformat:0|intcomma }} ريال</td>
                 <td data-label="الحالة" style="text-align:right">
                   {% if payment.status == 'approved' %}
                     <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> مقبول</span>

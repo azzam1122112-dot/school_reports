@@ -565,15 +565,21 @@
               {% if n.created_by and n.created_by.name %}
                 <span><i class="fa-regular fa-user" aria-hidden="true"></i> المُرسِل: {{ n.created_by.name }} — {{ n.created_by.display_role_label }}</span>
               {% endif %}
+              {% if n.school %}
+                <span><i class="fa-solid fa-school" aria-hidden="true"></i> المدرسة: {{ n.school.name }}</span>
+              {% endif %}
             </div>
 
             <div class="progress-container">
               <div class="progress-info">
-                <span class="progress-label">معدل القراءة</span>
-                <span class="rate" id="rate-{{ n.id }}">0%</span>
+                <span class="progress-label">
+                  {% if n.requires_signature %}معدل التوقيع{% else %}معدل القراءة{% endif %}
+                  <small>({{ n.stat_used|default:0 }} / {{ n.stat_total|default:0 }})</small>
+                </span>
+                <span class="rate" id="rate-{{ n.id }}">{{ n.stat_rate|default:0 }}%</span>
               </div>
-              <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div class="bar"></div>
+              <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ n.stat_rate|default:0 }}">
+                <div class="bar" style="width:{{ n.stat_rate|default:0 }}%"></div>
               </div>
             </div>
 
@@ -658,7 +664,7 @@
       const lblEl = card.querySelector('.progress-label');
 
       if(lblEl){
-        lblEl.textContent = requiresSig ? 'معدل التوقيع' : 'معدل القراءة';
+        lblEl.textContent = (requiresSig ? 'معدل التوقيع' : 'معدل القراءة') + ' (' + used + ' / ' + total + ')';
       }
 
       if(pb){ pb.setAttribute('aria-valuenow', String(safeRate)); }

@@ -423,6 +423,8 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
     status = (request.GET.get("status") or "all").strip().lower()
     plan_id = (request.GET.get("plan") or "").strip()
     q = (request.GET.get("q") or "").strip()
+    soon_days = 30
+    urgent_days = 7
 
     base_qs = SchoolSubscription.objects.select_related("school", "plan")
 
@@ -438,6 +440,37 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
             ),
         ),
     )
+    money_stats = base_qs.aggregate(
+        active_value=Sum("plan__price", filter=Q(is_active=True, end_date__gte=today)),
+        expiring_value=Sum(
+            "plan__price",
+            filter=Q(
+                is_active=True,
+                end_date__gte=today,
+                end_date__lte=today + timedelta(days=soon_days),
+            ),
+        ),
+    )
+
+    payments_period_qs = Payment.objects.filter(
+        status=Payment.Status.APPROVED,
+        amount__gt=0,
+        payment_date__gte=today.replace(day=1),
+    )
+    payment_stats = payments_period_qs.aggregate(
+        collected_this_month=Sum("amount"),
+    )
+
+    expiring_soon_count = base_qs.filter(
+        is_active=True,
+        end_date__gte=today,
+        end_date__lte=today + timedelta(days=soon_days),
+    ).count()
+    urgent_renewals_count = base_qs.filter(
+        is_active=True,
+        end_date__gte=today,
+        end_date__lte=today + timedelta(days=urgent_days),
+    ).count()
 
     subscriptions = base_qs
     if status == "active":
@@ -491,6 +524,7 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
     page_obj = paginator.get_page(request.GET.get("page"))
 
     # تزيين كائنات الصفحة الحالية فقط (بدل كل النتائج)
+    collection_gap_count = 0
     for sub in page_obj:
         try:
             pref = getattr(sub, "_prefetched_active_payments", []) or []
@@ -500,6 +534,22 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
             )
         except Exception:
             sub.has_payment_for_period = False
+        if bool(getattr(sub, "is_active", False)) and not bool(getattr(sub, "is_expired", False)) and not sub.has_payment_for_period and getattr(sub.plan, "price", 0):
+            collection_gap_count += 1
+
+        try:
+            remaining = int(getattr(sub, "days_remaining", 0))
+        except Exception:
+            remaining = 0
+        sub.commercial_priority = "normal"
+        if bool(getattr(sub, "is_cancelled", False)) or bool(getattr(sub, "is_expired", False)):
+            sub.commercial_priority = "lost"
+        elif not sub.has_payment_for_period and getattr(sub.plan, "price", 0):
+            sub.commercial_priority = "collect"
+        elif remaining <= urgent_days:
+            sub.commercial_priority = "urgent"
+        elif remaining <= soon_days:
+            sub.commercial_priority = "renew"
 
         # مبلغ الاسترجاع لهذه الفترة (مجموع القيم السالبة كقيمة موجبة)
         try:
@@ -526,6 +576,14 @@ def platform_subscriptions_list(request: HttpRequest) -> HttpResponse:
         "stats_cancelled": stats.get("cancelled") or 0,
         "stats_expired": stats.get("expired") or 0,
         "results_count": paginator.count,
+        "active_value": money_stats.get("active_value") or 0,
+        "expiring_value": money_stats.get("expiring_value") or 0,
+        "collected_this_month": payment_stats.get("collected_this_month") or 0,
+        "expiring_soon_count": expiring_soon_count,
+        "urgent_renewals_count": urgent_renewals_count,
+        "collection_gap_count": collection_gap_count,
+        "soon_days": soon_days,
+        "urgent_days": urgent_days,
     }
 
     return render(request, "reports/platform_subscriptions.html", ctx)
@@ -561,6 +619,15 @@ def platform_subscription_detail(request: HttpRequest, pk: int) -> HttpResponse:
     if has_more:
         payments_list = payments_list[:40]
     payments_count = payments_qs.count() if has_more else len(payments_list)
+    approved_total = payments_qs.filter(status=Payment.Status.APPROVED, amount__gt=0).aggregate(total=Sum("amount")).get("total") or 0
+    refund_total = payments_qs.filter(status=Payment.Status.APPROVED, amount__lt=0).aggregate(total=Sum("amount")).get("total") or 0
+    pending_total = payments_qs.filter(status=Payment.Status.PENDING).aggregate(total=Sum("amount")).get("total") or 0
+
+    plan_price = getattr(getattr(subscription, "plan", None), "price", 0) or 0
+    try:
+        outstanding_amount = max(plan_price - approved_total, 0)
+    except Exception:
+        outstanding_amount = 0
 
     ctx = {
         "subscription": subscription,
@@ -568,6 +635,10 @@ def platform_subscription_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "payments_count": payments_count,
         "has_payment_for_period": has_payment_for_period,
         "next_url": next_url,
+        "approved_total": approved_total,
+        "refund_total": -refund_total,
+        "pending_total": pending_total,
+        "outstanding_amount": outstanding_amount,
     }
     return render(request, "reports/platform_subscription_detail.html", ctx)
 
@@ -802,8 +873,11 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_payments_list(request: HttpRequest) -> HttpResponse:
     status = (request.GET.get("status") or "active").strip().lower()
+    q = _clean_query_value(request.GET.get("q"))
+    start_date = _parse_date_safe(request.GET.get("start_date"))
+    end_date = _parse_date_safe(request.GET.get("end_date"))
 
-    base_qs = Payment.objects.select_related('school').order_by('-created_at')
+    base_qs = Payment.objects.select_related("school", "requested_plan", "subscription").order_by("-created_at")
 
     # ✅ افتراضيًا: لا نعرض (cancelled) ضمن المالية.
     # ملاحظة: الاسترجاعات = عمليات مقبولة بمبلغ سالب.
@@ -816,6 +890,20 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
     else:
         status = "active"
         payments = base_qs.exclude(status=Payment.Status.CANCELLED)
+
+    if q:
+        payment_fields = {f.name for f in Payment._meta.get_fields()}
+        query_filter = Q(school__name__icontains=q) | Q(school__code__icontains=q) | Q(notes__icontains=q)
+        if "transaction_id" in payment_fields:
+            query_filter |= Q(transaction_id__icontains=q)
+        payments = payments.filter(
+            query_filter
+        )
+
+    if start_date is not None:
+        payments = payments.filter(payment_date__gte=start_date)
+    if end_date is not None:
+        payments = payments.filter(payment_date__lte=end_date)
     
     # حساب الإحصائيات لعرضها في الكروت العلوية
     stats = payments.aggregate(
@@ -825,21 +913,37 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
         rejected=Count('id', filter=Q(status=Payment.Status.REJECTED)),
         cancelled=Count('id', filter=Q(status=Payment.Status.CANCELLED)),
         refunds=Count('id', filter=Q(status=Payment.Status.APPROVED, amount__lt=0)),
+        gross_revenue=Sum("amount", filter=Q(status=Payment.Status.APPROVED, amount__gt=0)),
+        refunds_value=Sum("amount", filter=Q(status=Payment.Status.APPROVED, amount__lt=0)),
+        pending_value=Sum("amount", filter=Q(status=Payment.Status.PENDING, amount__gt=0)),
     )
+    net_revenue = (stats.get("gross_revenue") or 0) + (stats.get("refunds_value") or 0)
 
     paginator = Paginator(payments, 50)
     page_obj = paginator.get_page(request.GET.get("page"))
+
+    params = request.GET.copy()
+    if "page" in params:
+        params.pop("page")
 
     ctx = {
         "payments": page_obj,
         "page_obj": page_obj,
         "status": status,
+        "q": q,
+        "start_date": start_date.isoformat() if start_date else "",
+        "end_date": end_date.isoformat() if end_date else "",
+        "qs": params.urlencode(),
         "payments_total": stats['total'] or 0,
         "payments_pending": stats['pending'] or 0,
         "payments_approved": stats['approved'] or 0,
         "payments_rejected": stats['rejected'] or 0,
         "payments_cancelled": stats['cancelled'] or 0,
         "payments_refunds": stats['refunds'] or 0,
+        "gross_revenue": stats.get("gross_revenue") or 0,
+        "refunds_value": -(stats.get("refunds_value") or 0),
+        "pending_value": stats.get("pending_value") or 0,
+        "net_revenue": net_revenue,
     }
     return render(request, "reports/platform_payments.html", ctx)
 

@@ -1035,12 +1035,16 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
         except Exception:
             pass
 
-    # ✅ صفحة "المرسلة" يجب أن تُظهر ما أرسله المستخدم الحالي فقط
-    # (مدير المدرسة كان يرى سابقًا جميع إشعارات المدرسة بما فيها إشعارات المشرفين)
-    if not request.user.is_superuser:
-        qs = qs.filter(created_by=request.user)
+    # صفحة "المرسلة" تعرض ما أرسله المستخدم الحالي فقط، بما في ذلك مدير النظام.
+    # كان مدير النظام يرى كل إشعارات المنصة، فتضيع إشعاراته وسط الصفحات ولا تبدو كأنها أُرسلت.
+    qs = qs.filter(created_by=request.user)
 
     qs = qs.select_related("created_by")
+    try:
+        if hasattr(Notification, "school"):
+            qs = qs.select_related("created_by", "school")
+    except Exception:
+        pass
     page = Paginator(qs, 20).get_page(request.GET.get("page") or 1)
 
     notif_ids = [n.id for n in page.object_list]
@@ -1096,6 +1100,18 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
                     "read": row.get("read", 0),
                     "signed": row.get("signed", 0),
                 }
+
+    for n in page.object_list:
+        bucket = stats.get(n.id, {})
+        total = int(bucket.get("total", 0) or 0)
+        read = int(bucket.get("read", 0) or 0)
+        signed = int(bucket.get("signed", 0) or 0)
+        used = signed if bool(getattr(n, "requires_signature", False)) else read
+        n.stat_total = total
+        n.stat_read = read
+        n.stat_signed = signed
+        n.stat_used = used
+        n.stat_rate = int(round((used / total) * 100)) if total else 0
 
     # أسماء مستلمين مختصرة
     rec_names_map: dict[int, list[str]] = {i: [] for i in notif_ids}

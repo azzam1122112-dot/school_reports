@@ -307,55 +307,77 @@ def platform_school_notify(request: HttpRequest) -> HttpResponse:
         return redirect("reports:home")
 
     active_school = _get_active_school(request)
-    if active_school is None:
-        messages.error(request, "فضلاً اختر مدرسة أولاً.")
-        return redirect("reports:platform_schools_directory")
-
-    if not _require_platform_school_access(request, active_school):
+    if active_school is not None and not _require_platform_school_access(request, active_school):
         messages.error(request, "هذه المدرسة خارج نطاق صلاحياتك.")
         return redirect("reports:platform_schools_directory")
 
-    form = PlatformSchoolNotificationForm(request.POST or None)
+    form = PlatformSchoolNotificationForm(
+        request.POST or None,
+        user=request.user,
+        active_school=active_school,
+    )
     if request.method == "POST" and form.is_valid():
         title = (form.cleaned_data.get("title") or "").strip()
         message_text = form.cleaned_data["message"]
         is_important = bool(form.cleaned_data.get("is_important"))
+        target_schools = list(form.target_schools())
 
         try:
+            created_count = 0
+            recipient_count = 0
             with transaction.atomic():
-                n = Notification.objects.create(
-                    title=title,
-                    message=message_text,
-                    is_important=is_important,
-                    school=active_school,
-                    created_by=request.user,
-                )
-                teacher_ids = list(
-                    SchoolMembership.objects.filter(
-                        school=active_school,
-                        is_active=True,
-                        teacher__is_active=True,
+                for school in target_schools:
+                    n = Notification.objects.create(
+                        title=title,
+                        message=message_text,
+                        is_important=is_important,
+                        school=school,
+                        created_by=request.user,
                     )
-                    .values_list("teacher_id", flat=True)
-                    .distinct()
-                )
-                recipients = [NotificationRecipient(notification=n, teacher_id=tid) for tid in teacher_ids]
-                NotificationRecipient.objects.bulk_create(recipients, ignore_conflicts=True)
+                    created_count += 1
+                    teacher_ids = list(
+                        SchoolMembership.objects.filter(
+                            school=school,
+                            is_active=True,
+                            teacher__is_active=True,
+                        )
+                        .values_list("teacher_id", flat=True)
+                        .distinct()
+                    )
+                    recipients = [NotificationRecipient(notification=n, teacher_id=tid) for tid in teacher_ids]
+                    NotificationRecipient.objects.bulk_create(recipients, ignore_conflicts=True)
+                    recipient_count += len(teacher_ids)
 
-                # Push WS delta (bulk_create doesn't trigger signals)
-                try:
-                    from ..realtime_notifications import push_new_notification_to_teachers
+                    try:
+                        from ..cache_utils import invalidate_user_notifications
 
-                    push_new_notification_to_teachers(notification=n, teacher_ids=teacher_ids)
-                except Exception:
-                    pass
-            messages.success(request, "تم إرسال الإشعار إلى جميع مستخدمي المدرسة.")
-            return redirect("reports:platform_school_dashboard")
+                        for tid in teacher_ids:
+                            invalidate_user_notifications(int(tid))
+                    except Exception:
+                        pass
+
+                    # Push WS delta (bulk_create doesn't trigger signals)
+                    try:
+                        from ..realtime_notifications import push_new_notification_to_teachers
+
+                        push_new_notification_to_teachers(notification=n, teacher_ids=teacher_ids)
+                    except Exception:
+                        pass
+            messages.success(request, f"تم إرسال الإشعار إلى {recipient_count} مستخدم ضمن {created_count} مدرسة.")
+            return redirect("reports:notifications_sent")
         except Exception:
             logger.exception("Failed to send school notification")
             messages.error(request, "تعذّر إرسال الإشعار. حاول مرة أخرى.")
 
-    return render(request, "reports/platform_school_notify.html", {"form": form, "school": active_school})
+    return render(
+        request,
+        "reports/platform_school_notify.html",
+        {
+            "form": form,
+            "school": active_school,
+            "allowed_schools_count": form.fields["selected_schools"].queryset.count(),
+        },
+    )
 
 
 @login_required(login_url="reports:login")
