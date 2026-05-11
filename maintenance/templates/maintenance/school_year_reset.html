@@ -6,139 +6,284 @@
 {{ block.super }}
 <style>
   .reset-page {
-    max-width: 1200px;
+    max-width: 1240px;
     margin: 0 auto;
-    padding: 28px 20px 44px;
+    padding: 28px 20px 48px;
   }
-  .reset-hero {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 20px;
+  .reset-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 18px;
   }
-  .reset-hero h1 {
+  .reset-title h1 {
     margin: 0;
-    font-size: clamp(1.7rem, 3vw, 2.35rem);
+    font-size: clamp(1.8rem, 3vw, 2.35rem);
     font-weight: 950;
     color: #0f172a;
   }
-  .reset-hero p {
-    margin: 0;
+  .reset-title p {
+    margin: 8px 0 0;
     color: #64748b;
-    font-weight: 700;
+    font-weight: 750;
+  }
+  .reset-back {
+    flex: 0 0 auto;
+    border: 1px solid #dbe4ef;
+    color: #334155;
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-decoration: none;
+    font-weight: 900;
   }
   .danger-band {
     background: #fff1f2;
     border: 1px solid #fecdd3;
     color: #9f1239;
     border-radius: 8px;
-    padding: 16px 18px;
-    font-weight: 800;
+    padding: 15px 18px;
+    font-weight: 850;
     margin-bottom: 18px;
   }
-  .reset-grid {
+  .reset-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+    grid-template-columns: minmax(0, 1fr) 340px;
     gap: 18px;
     align-items: start;
   }
-  @media (max-width: 960px) {
-    .reset-grid { grid-template-columns: 1fr; }
+  @media (max-width: 1040px) {
+    .reset-layout { grid-template-columns: 1fr; }
   }
   .reset-panel {
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, .04);
+    box-shadow: 0 14px 36px rgba(15, 23, 42, .05);
   }
   .reset-panel__head {
     padding: 16px 18px;
     border-bottom: 1px solid #e2e8f0;
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
-  .reset-panel__head h2 {
+  .reset-panel__head h2,
+  .reset-section-title {
     margin: 0;
+    color: #0f172a;
     font-size: 1.05rem;
     font-weight: 950;
-    color: #0f172a;
   }
   .reset-panel__body { padding: 18px; }
-  .field-block {
+  .status-pill {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 5px 11px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-weight: 900;
+    font-size: .85rem;
+    white-space: nowrap;
+  }
+  .mode-grid {
     display: grid;
-    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
     margin-bottom: 16px;
   }
-  .field-block label,
-  .field-label {
-    font-weight: 900;
-    color: #1e293b;
+  @media (max-width: 720px) {
+    .reset-topbar { flex-direction: column; }
+    .mode-grid { grid-template-columns: 1fr; }
   }
+  .mode-card {
+    position: relative;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 14px;
+    display: grid;
+    gap: 6px;
+    cursor: pointer;
+    background: #fff;
+  }
+  .mode-card input {
+    position: absolute;
+    inset-inline-start: 14px;
+    top: 18px;
+    width: 18px;
+    height: 18px;
+  }
+  .mode-card strong,
+  .data-card strong {
+    color: #0f172a;
+    font-weight: 950;
+  }
+  .mode-card span,
   .hint {
     color: #64748b;
     font-size: .9rem;
-    font-weight: 700;
+    font-weight: 750;
   }
-  .segmented,
-  .check-grid {
-    display: grid;
-    gap: 10px;
-  }
-  .segmented {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  @media (max-width: 640px) {
-    .segmented { grid-template-columns: 1fr; }
-  }
-  .choice {
-    border: 1px solid #cbd5e1;
+  .school-picker {
+    border: 1px solid #dbe4ef;
     border-radius: 8px;
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 850;
-    color: #0f172a;
-    background: #fff;
+    overflow: hidden;
+    margin-bottom: 18px;
   }
-  .choice input { width: 18px; height: 18px; }
-  textarea,
-  input[type="text"] {
+  .picker-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 10px;
+    padding: 12px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  @media (max-width: 720px) {
+    .picker-toolbar { grid-template-columns: 1fr; }
+  }
+  .picker-search,
+  .confirm-input {
     width: 100%;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 12px;
+    padding: 11px 12px;
     font: inherit;
     color: #0f172a;
     background: #fff;
   }
-  textarea {
-    min-height: 108px;
-    resize: vertical;
-    direction: ltr;
-    text-align: left;
-  }
-  .btn-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
+  .mini-btn,
   .reset-btn {
     border: 0;
     border-radius: 8px;
-    padding: 11px 18px;
+    padding: 10px 14px;
+    font: inherit;
     font-weight: 950;
     cursor: pointer;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
   }
+  .mini-btn { background: #eef2ff; color: #3730a3; }
+  .mini-btn.ghost { background: #f1f5f9; color: #334155; }
   .reset-btn.primary { background: #2563eb; color: #fff; }
   .reset-btn.danger { background: #dc2626; color: #fff; }
   .reset-btn.muted { background: #f1f5f9; color: #334155; }
+  .selected-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #fff;
+  }
+  .school-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-weight: 900;
+    max-width: 100%;
+  }
+  .school-chip button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-weight: 950;
+    padding: 0;
+  }
+  .schools-results {
+    min-height: 280px;
+    max-height: 430px;
+    overflow: auto;
+    display: grid;
+    align-content: start;
+  }
+  .school-row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #fff;
+  }
+  .school-row:last-child { border-bottom: 0; }
+  .school-row:hover { background: #f8fafc; }
+  .school-row input {
+    width: 18px;
+    height: 18px;
+  }
+  .school-name {
+    color: #0f172a;
+    font-weight: 950;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .school-meta {
+    color: #64748b;
+    font-size: .88rem;
+    font-weight: 750;
+    margin-top: 3px;
+  }
+  .school-state {
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: #dcfce7;
+    color: #166534;
+    font-weight: 900;
+    font-size: .8rem;
+  }
+  .school-state.off { background: #f1f5f9; color: #64748b; }
+  .picker-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .data-card {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+  }
+  .data-card input {
+    width: 18px;
+    height: 18px;
+  }
+  .delete-files {
+    margin-top: 16px;
+    border-color: #fed7aa;
+    background: #fff7ed;
+  }
+  .actions-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
   .summary-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
@@ -152,8 +297,8 @@
   }
   .summary-card strong {
     display: block;
-    font-size: 1.45rem;
     color: #0f172a;
+    font-size: 1.45rem;
     line-height: 1.1;
   }
   .summary-card span {
@@ -162,7 +307,7 @@
     font-weight: 800;
     margin-top: 5px;
   }
-  .manifest-list,
+  .plain-list,
   .jobs-list {
     list-style: none;
     padding: 0;
@@ -170,14 +315,14 @@
     display: grid;
     gap: 8px;
   }
-  .manifest-list li,
+  .plain-list li,
   .jobs-list li {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     padding: 10px 12px;
     background: #fff;
     color: #334155;
-    font-weight: 700;
+    font-weight: 750;
     overflow-wrap: anywhere;
   }
   .confirm-box {
@@ -187,91 +332,104 @@
     padding: 14px;
     margin-top: 16px;
   }
-  .status-pill {
-    display: inline-flex;
-    border-radius: 999px;
-    padding: 4px 10px;
-    background: #eef2ff;
-    color: #3730a3;
-    font-weight: 900;
-    font-size: .85rem;
+  .side-note {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    color: #475569;
+    font-weight: 800;
+    margin-bottom: 14px;
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <main class="reset-page">
-  <section class="reset-hero">
-    <h1>تهيئة العام الدراسي</h1>
-    <p>أداة مدير النظام لحذف البيانات التشغيلية القديمة بعد معاينة إلزامية وسجل قابل للمراجعة.</p>
-  </section>
+  <div class="reset-topbar">
+    <section class="reset-title">
+      <h1>تهيئة العام الدراسي</h1>
+      <p>اختر المدارس، راجع أرقام الحذف في المعاينة، ثم نفّذ بتأكيد كتابي عند الحاجة.</p>
+    </section>
+    <a class="reset-back" href="{% url 'reports:platform_admin_dashboard' %}">
+      <i class="fa-solid fa-arrow-right"></i>
+      لوحة مدير النظام
+    </a>
+  </div>
 
   <div class="danger-band">
     هذه العملية لا تحذف المدارس أو المعلمين أو الأقسام أو أنواع التقارير أو الاشتراكات أو الصلاحيات أو الإعدادات. التنفيذ النهائي يحتاج كتابة {{ confirm_phrase }}.
   </div>
 
-  <div class="reset-grid">
+  <div class="reset-layout">
     <section class="reset-panel">
       <div class="reset-panel__head">
         <h2>إعداد المعاينة</h2>
         <span class="status-pill">{{ schools_total }} مدرسة في المنصة</span>
       </div>
       <div class="reset-panel__body">
-        <form method="post">
+        <form method="post" id="resetForm">
           {% csrf_token %}
           <input type="hidden" name="action" value="preview">
+          <input type="hidden" name="school_ids" id="selectedSchoolIds">
 
-          <div class="field-block">
-            <div class="field-label">نطاق المدارس</div>
-            <div class="segmented">
-              <label class="choice">
-                <input type="radio" name="target_mode" value="all">
-                جميع المدارس
-              </label>
-              <label class="choice">
-                <input type="radio" name="target_mode" value="specific" checked>
-                مدارس محددة
-              </label>
-            </div>
-            <div class="hint">لعدد كبير من المدارس، استخدم الأكواد أو المعرفات بدل عرض قائمة ضخمة.</div>
-          </div>
-
-          <div class="field-block">
-            <label for="school_ids">معرفات المدارس</label>
-            <textarea id="school_ids" name="school_ids" placeholder="1&#10;2&#10;3"></textarea>
-            <div class="hint">اكتب ID في كل سطر أو افصل بينها بفواصل.</div>
-          </div>
-
-          <div class="field-block">
-            <label for="school_codes">أكواد المدارس</label>
-            <textarea id="school_codes" name="school_codes" placeholder="school-a&#10;school-b"></textarea>
-            <div class="hint">استخدم أكواد المدارس عند توفرها، وهي مناسبة للتجهيز قبل التنفيذ.</div>
-          </div>
-
-          <div class="field-block">
-            <div class="field-label">البيانات التشغيلية المراد حذفها</div>
-            <div class="check-grid">
-              <label class="choice"><input type="checkbox" name="reports" checked> التقارير</label>
-              <label class="choice"><input type="checkbox" name="tickets" checked> الطلبات والتذاكر وملاحظاتها وصورها</label>
-              <label class="choice"><input type="checkbox" name="achievements" checked> ملفات الإنجاز وشواهدها</label>
-              <label class="choice"><input type="checkbox" name="notifications" checked> التعاميم والإشعارات ومستلموها</label>
-              <label class="choice"><input type="checkbox" name="share_links" checked> روابط المشاركة</label>
-            </div>
-          </div>
-
-          <div class="field-block">
-            <label class="choice">
-              <input type="checkbox" name="delete_files">
-              حذف المرفقات من التخزين بعد نجاح حذف قاعدة البيانات
+          <div class="mode-grid">
+            <label class="mode-card">
+              <input type="radio" name="target_mode" value="all" id="targetAll">
+              <strong>جميع المدارس</strong>
+              <span>استخدمها عند تهيئة كامل المنصة بعد مراجعة المعاينة.</span>
+            </label>
+            <label class="mode-card">
+              <input type="radio" name="target_mode" value="specific" id="targetSpecific" checked>
+              <strong>مدارس محددة</strong>
+              <span>ابحث واختر المدارس المطلوبة بدون تحميل القائمة كاملة.</span>
             </label>
           </div>
 
-          <div class="btn-row">
+          <section class="school-picker" id="schoolPicker" data-search-url="{{ school_search_url }}">
+            <div class="picker-toolbar">
+              <input class="picker-search" id="schoolSearchInput" type="search" placeholder="ابحث باسم المدرسة أو الكود أو المدينة..." autocomplete="off">
+              <button class="mini-btn" type="button" id="refreshSchoolsBtn">
+                <i class="fa-solid fa-rotate"></i>
+                تحديث
+              </button>
+              <button class="mini-btn ghost" type="button" id="clearSelectedSchoolsBtn">
+                مسح الاختيار
+              </button>
+            </div>
+            <div class="selected-strip" id="selectedSchoolsStrip">
+              <span class="hint" id="selectedSchoolsHint">لم يتم اختيار مدارس بعد.</span>
+            </div>
+            <div class="schools-results" id="schoolsResults" aria-live="polite"></div>
+            <div class="picker-footer">
+              <span class="hint" id="schoolsResultMeta">جاري تحميل المدارس...</span>
+              <button class="mini-btn" type="button" id="loadMoreSchoolsBtn">عرض المزيد</button>
+            </div>
+          </section>
+
+          <section>
+            <h3 class="reset-section-title">البيانات التشغيلية المراد حذفها</h3>
+            <div class="data-grid">
+              <label class="data-card"><input type="checkbox" name="reports" checked> <strong>التقارير</strong></label>
+              <label class="data-card"><input type="checkbox" name="tickets" checked> <strong>الطلبات والتذاكر</strong></label>
+              <label class="data-card"><input type="checkbox" name="achievements" checked> <strong>ملفات الإنجاز</strong></label>
+              <label class="data-card"><input type="checkbox" name="notifications" checked> <strong>التعاميم والإشعارات</strong></label>
+              <label class="data-card"><input type="checkbox" name="share_links" checked> <strong>روابط المشاركة</strong></label>
+            </div>
+            <label class="data-card delete-files">
+              <input type="checkbox" name="delete_files">
+              <strong>حذف المرفقات من التخزين بعد نجاح حذف قاعدة البيانات</strong>
+            </label>
+          </section>
+
+          <div class="actions-row">
             <button class="reset-btn primary" type="submit">
               <i class="fa-solid fa-magnifying-glass"></i>
               معاينة فقط
             </button>
-            <a class="reset-btn muted" href="{% url 'reports:platform_admin_dashboard' %}">العودة للوحة النظام</a>
+            <button class="reset-btn muted" type="button" id="selectVisibleSchoolsBtn">
+              اختيار النتائج الظاهرة
+            </button>
           </div>
         </form>
       </div>
@@ -282,6 +440,9 @@
         <h2>آخر العمليات</h2>
       </div>
       <div class="reset-panel__body">
+        <div class="side-note">
+          ابدأ دائمًا بالمعاينة. التنفيذ الفعلي لن يعمل بدون العبارة المطلوبة.
+        </div>
         <ul class="jobs-list">
           {% for job in recent_jobs %}
             <li>
@@ -316,10 +477,10 @@
           {{ preview_job.dry_run_summary.protected_data_note }}
         </div>
 
-        <div class="reset-grid" style="margin-top:16px;">
+        <div class="reset-layout" style="grid-template-columns: minmax(0,1fr) minmax(280px,.7fr); margin-top:16px;">
           <div>
-            <h3>أمثلة الملفات المرشحة للحذف</h3>
-            <ul class="manifest-list">
+            <h3 class="reset-section-title" style="margin-bottom:10px;">أمثلة الملفات المرشحة للحذف</h3>
+            <ul class="plain-list">
               {% for key in file_samples %}
                 <li>{{ key }}</li>
               {% empty %}
@@ -328,8 +489,8 @@
             </ul>
           </div>
           <div>
-            <h3>المدارس المستهدفة</h3>
-            <ul class="manifest-list">
+            <h3 class="reset-section-title" style="margin-bottom:10px;">المدارس المستهدفة</h3>
+            <ul class="plain-list">
               {% for school in selected_schools %}
                 <li>{{ school.name }} - {{ school.code }} - #{{ school.id }}</li>
               {% empty %}
@@ -343,12 +504,10 @@
           {% csrf_token %}
           <input type="hidden" name="action" value="execute">
           <input type="hidden" name="job_id" value="{{ preview_job.id }}">
-          <div class="field-block">
-            <label for="confirm">تأكيد التنفيذ النهائي</label>
-            <input id="confirm" type="text" name="confirm" placeholder="{{ confirm_phrase }}" autocomplete="off">
-            <div class="hint">لن يظهر هذا التنفيذ إلا بعد المعاينة. اكتب العبارة كاملة لتبدأ عملية الحذف.</div>
-          </div>
-          <button class="reset-btn danger" type="submit">
+          <label for="confirm" style="display:block; font-weight:950; margin-bottom:8px;">تأكيد التنفيذ النهائي</label>
+          <input class="confirm-input" id="confirm" type="text" name="confirm" placeholder="{{ confirm_phrase }}" autocomplete="off">
+          <div class="hint" style="margin-top:8px;">اكتب العبارة كاملة لتبدأ عملية الحذف. لا يكفي الضغط على الزر وحده.</div>
+          <button class="reset-btn danger" type="submit" style="margin-top:12px;">
             <i class="fa-solid fa-triangle-exclamation"></i>
             تنفيذ التهيئة النهائية
           </button>
@@ -357,4 +516,189 @@
     </section>
   {% endif %}
 </main>
+
+<script>
+(function () {
+  const picker = document.getElementById('schoolPicker');
+  if (!picker) return;
+
+  const searchUrl = picker.dataset.searchUrl;
+  const resultsEl = document.getElementById('schoolsResults');
+  const searchInput = document.getElementById('schoolSearchInput');
+  const metaEl = document.getElementById('schoolsResultMeta');
+  const loadMoreBtn = document.getElementById('loadMoreSchoolsBtn');
+  const refreshBtn = document.getElementById('refreshSchoolsBtn');
+  const clearBtn = document.getElementById('clearSelectedSchoolsBtn');
+  const selectVisibleBtn = document.getElementById('selectVisibleSchoolsBtn');
+  const selectedIdsInput = document.getElementById('selectedSchoolIds');
+  const selectedStrip = document.getElementById('selectedSchoolsStrip');
+  const targetAll = document.getElementById('targetAll');
+  const targetSpecific = document.getElementById('targetSpecific');
+  const resetForm = document.getElementById('resetForm');
+
+  const selected = new Map();
+  let visibleRows = [];
+  let page = 1;
+  let hasNext = false;
+  let loading = false;
+  let timer = null;
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, function (char) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];
+    });
+  }
+
+  function syncHiddenIds() {
+    selectedIdsInput.value = Array.from(selected.keys()).join(',');
+  }
+
+  function renderSelected() {
+    selectedStrip.innerHTML = '';
+    if (!selected.size) {
+      const hint = document.createElement('span');
+      hint.className = 'hint';
+      hint.textContent = 'لم يتم اختيار مدارس بعد.';
+      selectedStrip.appendChild(hint);
+      syncHiddenIds();
+      return;
+    }
+    const count = document.createElement('span');
+    count.className = 'status-pill';
+    count.textContent = selected.size + ' مدرسة مختارة';
+    selectedStrip.appendChild(count);
+    Array.from(selected.values()).slice(0, 12).forEach(function (school) {
+      const chip = document.createElement('span');
+      chip.className = 'school-chip';
+      chip.innerHTML = '<span>' + escapeHtml(school.name) + '</span><button type="button" data-remove-id="' + school.id + '">×</button>';
+      selectedStrip.appendChild(chip);
+    });
+    if (selected.size > 12) {
+      const more = document.createElement('span');
+      more.className = 'hint';
+      more.textContent = '+' + (selected.size - 12) + ' أخرى';
+      selectedStrip.appendChild(more);
+    }
+    syncHiddenIds();
+  }
+
+  function renderRows(rows, append) {
+    if (!append) resultsEl.innerHTML = '';
+    visibleRows = append ? visibleRows.concat(rows) : rows.slice();
+    if (!rows.length && !append) {
+      resultsEl.innerHTML = '<div class="school-row"><div></div><div class="hint">لا توجد مدارس مطابقة.</div><div></div></div>';
+      return;
+    }
+    rows.forEach(function (school) {
+      const row = document.createElement('label');
+      row.className = 'school-row';
+      row.dataset.schoolId = school.id;
+      const checked = selected.has(String(school.id)) ? 'checked' : '';
+      const stateClass = school.is_active ? 'school-state' : 'school-state off';
+      const stateLabel = school.is_active ? 'نشطة' : 'غير نشطة';
+      row.innerHTML =
+        '<input type="checkbox" value="' + school.id + '" ' + checked + '>' +
+        '<div>' +
+          '<div class="school-name">' + escapeHtml(school.name) + '</div>' +
+          '<div class="school-meta">#' + school.id + ' - ' + escapeHtml(school.code) + ' - ' + escapeHtml(school.city || 'بدون مدينة') + ' - ' + escapeHtml(school.stage) + ' - ' + escapeHtml(school.gender) + '</div>' +
+        '</div>' +
+        '<span class="' + stateClass + '">' + stateLabel + '</span>';
+      resultsEl.appendChild(row);
+    });
+  }
+
+  async function loadSchools(options) {
+    if (loading) return;
+    const append = options && options.append;
+    loading = true;
+    metaEl.textContent = 'جاري تحميل المدارس...';
+    loadMoreBtn.disabled = true;
+    const url = new URL(searchUrl, window.location.origin);
+    url.searchParams.set('q', searchInput.value || '');
+    url.searchParams.set('page', String(page));
+    try {
+      const response = await fetch(url.toString(), {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const payload = await response.json();
+      hasNext = Boolean(payload.has_next);
+      renderRows(payload.results || [], append);
+      metaEl.textContent = 'تم العثور على ' + payload.total + ' مدرسة';
+      loadMoreBtn.style.display = hasNext ? 'inline-flex' : 'none';
+    } catch (error) {
+      resultsEl.innerHTML = '<div class="school-row"><div></div><div class="hint">تعذر تحميل المدارس. حاول مرة أخرى.</div><div></div></div>';
+      metaEl.textContent = 'خطأ في تحميل المدارس';
+    } finally {
+      loading = false;
+      loadMoreBtn.disabled = false;
+    }
+  }
+
+  function resetSearch() {
+    page = 1;
+    visibleRows = [];
+    loadSchools({append: false});
+  }
+
+  resultsEl.addEventListener('change', function (event) {
+    const input = event.target;
+    if (!input || input.type !== 'checkbox') return;
+    const id = String(input.value);
+    const row = visibleRows.find(function (item) { return String(item.id) === id; });
+    if (input.checked && row) selected.set(id, row);
+    if (!input.checked) selected.delete(id);
+    renderSelected();
+  });
+
+  selectedStrip.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-remove-id]');
+    if (!button) return;
+    selected.delete(String(button.dataset.removeId));
+    const input = resultsEl.querySelector('input[value="' + button.dataset.removeId + '"]');
+    if (input) input.checked = false;
+    renderSelected();
+  });
+
+  searchInput.addEventListener('input', function () {
+    clearTimeout(timer);
+    timer = setTimeout(resetSearch, 250);
+  });
+  refreshBtn.addEventListener('click', resetSearch);
+  clearBtn.addEventListener('click', function () {
+    selected.clear();
+    resultsEl.querySelectorAll('input[type="checkbox"]').forEach(function (input) { input.checked = false; });
+    renderSelected();
+  });
+  loadMoreBtn.addEventListener('click', function () {
+    if (!hasNext) return;
+    page += 1;
+    loadSchools({append: true});
+  });
+  selectVisibleBtn.addEventListener('click', function () {
+    if (targetAll.checked) return;
+    visibleRows.forEach(function (school) { selected.set(String(school.id), school); });
+    resultsEl.querySelectorAll('input[type="checkbox"]').forEach(function (input) { input.checked = true; });
+    renderSelected();
+  });
+
+  function syncMode() {
+    const all = targetAll.checked;
+    picker.style.opacity = all ? '0.55' : '1';
+    picker.style.pointerEvents = all ? 'none' : 'auto';
+  }
+  targetAll.addEventListener('change', syncMode);
+  targetSpecific.addEventListener('change', syncMode);
+
+  resetForm.addEventListener('submit', function (event) {
+    if (targetSpecific.checked && selected.size === 0) {
+      event.preventDefault();
+      metaEl.textContent = 'اختر مدرسة واحدة على الأقل أو فعّل خيار جميع المدارس.';
+      searchInput.focus();
+    }
+  });
+
+  renderSelected();
+  syncMode();
+  resetSearch();
+})();
+</script>
 {% endblock %}

@@ -4,7 +4,9 @@ import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
@@ -113,9 +115,51 @@ def _render_page(request: HttpRequest, *, preview_job: SchoolYearResetJob | None
         "file_samples": (summary.get("file_key_samples") or [])[:20] if summary else [],
         "selected_schools": selected_schools,
         "schools_total": School.objects.count(),
+        "school_search_url": reverse("maintenance:school_year_reset_school_search"),
         "default_include": {key: True for key in INCLUDE_KEYS},
     }
     return render(request, "maintenance/school_year_reset.html", context)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def school_year_reset_school_search(request: HttpRequest) -> JsonResponse:
+    if not _is_system_admin(request.user):
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    query = (request.GET.get("q") or "").strip()
+    page_number = request.GET.get("page") or 1
+    qs = School.objects.all().order_by("name", "id")
+    if query:
+        qs = qs.filter(
+            Q(name__icontains=query)
+            | Q(code__icontains=query)
+            | Q(city__icontains=query)
+            | Q(phone__icontains=query)
+        )
+
+    paginator = Paginator(qs.only("id", "name", "code", "city", "stage", "gender", "is_active"), 20)
+    page = paginator.get_page(page_number)
+    results = [
+        {
+            "id": school.id,
+            "name": school.name,
+            "code": school.code,
+            "city": school.city or "",
+            "stage": school.get_stage_display(),
+            "gender": school.get_gender_display(),
+            "is_active": bool(school.is_active),
+        }
+        for school in page.object_list
+    ]
+    return JsonResponse(
+        {
+            "results": results,
+            "page": page.number,
+            "has_next": page.has_next(),
+            "total": paginator.count,
+        }
+    )
 
 
 @login_required(login_url="reports:login")

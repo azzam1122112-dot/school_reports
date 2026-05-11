@@ -113,6 +113,29 @@ class SchoolYearResetTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
 
+    def test_superuser_view_shows_school_picker(self):
+        self.client.force_login(self.superuser)
+
+        response = self.client.get(reverse("maintenance:school_year_reset"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ابحث باسم المدرسة أو الكود أو المدينة")
+        self.assertContains(response, reverse("maintenance:school_year_reset_school_search"))
+
+    def test_school_search_endpoint_lists_schools_for_superuser_only(self):
+        self.client.force_login(self.superuser)
+
+        response = self.client.get(reverse("maintenance:school_year_reset_school_search"), {"q": "reset-a"})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["total"], 1)
+        self.assertEqual(payload["results"][0]["code"], "reset-a")
+
+        self.client.force_login(self.teacher)
+        forbidden = self.client.get(reverse("maintenance:school_year_reset_school_search"), {"q": "reset-a"})
+        self.assertEqual(forbidden.status_code, 403)
+
     def test_management_execute_without_confirm_fails(self):
         with self.assertRaises(CommandError):
             call_command(
