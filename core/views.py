@@ -14,6 +14,15 @@ from django.http import JsonResponse
 logger = logging.getLogger(__name__)
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = (os.getenv(name) or "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
 def healthz(request):
     """Minimal health/readiness probe for load balancers and uptime monitors.
 
@@ -56,30 +65,36 @@ def healthz(request):
         checks["cache"] = f"error: {exc}"
         healthy = False
 
-    # ── Channel Layer (best-effort) ──
-    try:
-        from channels.layers import get_channel_layer
-        layer = get_channel_layer()
-        if layer is not None:
-            import asyncio
+    # ── Channel Layer (optional, best-effort) ──
+    # A full Channels send/receive probe creates Redis channel-layer traffic.
+    # Keep it out of high-frequency platform health checks unless explicitly
+    # enabled for diagnostics.
+    if _env_bool("HEALTHZ_CHECK_CHANNELS", False):
+        try:
+            from channels.layers import get_channel_layer
+            layer = get_channel_layer()
+            if layer is not None:
+                import asyncio
 
-            async def _probe():
-                await layer.send("_healthz_probe", {"type": "healthz"})
-                await layer.receive("_healthz_probe")
+                async def _probe():
+                    await layer.send("_healthz_probe", {"type": "healthz"})
+                    await layer.receive("_healthz_probe")
 
-            t0 = time.monotonic()
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(asyncio.wait_for(_probe(), timeout=2.0))
-            finally:
-                loop.close()
-            ch_ms = round((time.monotonic() - t0) * 1000, 1)
-            checks["channels"] = f"ok ({ch_ms}ms)"
-        else:
-            checks["channels"] = "not configured"
-    except Exception as exc:
-        # Channel layer failure is non-critical (WebSocket only)
-        checks["channels"] = f"degraded: {exc}"
+                t0 = time.monotonic()
+                loop = asyncio.new_event_loop()
+                try:
+                    loop.run_until_complete(asyncio.wait_for(_probe(), timeout=2.0))
+                finally:
+                    loop.close()
+                ch_ms = round((time.monotonic() - t0) * 1000, 1)
+                checks["channels"] = f"ok ({ch_ms}ms)"
+            else:
+                checks["channels"] = "not configured"
+        except Exception as exc:
+            # Channel layer failure is non-critical (WebSocket only)
+            checks["channels"] = f"degraded: {exc}"
+    else:
+        checks["channels"] = "skipped"
 
     status_code = 200 if healthy else 503
     return JsonResponse({

@@ -42,6 +42,8 @@ services:
         value: "True"
       - key: PASSWORD_CHANGE_EMAIL_ENABLED
         value: "False"
+      - key: HEALTHZ_CHECK_CHANNELS
+        value: "False"
       - key: WEB_CONCURRENCY
         value: "1"
       - key: GUNICORN_THREADS

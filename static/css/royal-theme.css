@@ -899,6 +899,82 @@ html[data-theme="dark"] .userbox .menu {
   }
 }
 
+/* Mobile responsiveness guardrails across all templates */
+@media screen and (max-width: 768px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  main,
+  .container,
+  .page-main,
+  .card,
+  .panel,
+  .box,
+  .tile,
+  .royal-page,
+  [class$="-page"],
+  [class$="-wrap"],
+  [class$="-scope"],
+  [class$="-container"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  img,
+  video,
+  canvas,
+  iframe,
+  svg {
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea,
+  button,
+  .btn {
+    max-width: 100%;
+  }
+
+  .btn,
+  button[type="submit"],
+  .royal-actions,
+  .royal-form-actions,
+  .actions,
+  .row-actions,
+  .hero-actions,
+  .header-actions {
+    flex-wrap: wrap;
+  }
+
+  .table-responsive,
+  .royal-table-wrap,
+  .table-container,
+  .tblwrap,
+  .pt-table-responsive,
+  .aa-table-wrap,
+  [class*="table-wrap"],
+  [class*="table-responsive"] {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    max-width: 100%;
+  }
+
+  pre,
+  code,
+  .mono {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+
 @supports ((background-clip: text) or (-webkit-background-clip: text)) {
   .notif-scope .page-title {
     background-clip: text !important;
