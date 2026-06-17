@@ -1,0 +1,527 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}إعدادات الأرشفة{% endblock %}
+
+{% block head %}
+<style>
+  .platform-settings-scope {
+    --ps-brand: var(--brand, #006c35);
+    --ps-ink: var(--ink, #0f172a);
+    --ps-muted: var(--muted, #64748b);
+    --ps-line: var(--line-2, var(--line, #e5e7eb));
+    --ps-card: var(--card, #fff);
+    --ps-shadow: 0 16px 40px rgba(15,23,42,.08);
+    direction: rtl;
+  }
+  .platform-settings-scope .hero {
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(0, 108, 53, .96), rgba(15, 143, 135, .90)),
+      linear-gradient(90deg, rgba(185,151,91,.24), transparent);
+    color: #fff;
+    padding: clamp(18px, 3vw, 28px);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: 0 22px 58px rgba(16, 37, 31, .16);
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .platform-settings-scope .hero::before {
+    content: "";
+    position: absolute;
+    inset-inline: 22px;
+    top: 0;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, var(--royal-gold, #b9975b), #fff, transparent);
+  }
+  .platform-settings-scope h1 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 950; }
+  .platform-settings-scope .hero p { margin: 8px 0 0; line-height: 1.8; font-weight: 850; opacity: .94; }
+  .platform-settings-scope .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .platform-settings-scope .hero-actions .btn { min-height: 44px; border-radius: 12px; }
+  .platform-settings-scope .hero-actions .btn-outline { color: #fff; border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.12); }
+  .platform-settings-scope .panel {
+    background: var(--ps-card);
+    border: 1px solid rgba(185, 151, 91, .22);
+    border-radius: 18px;
+    box-shadow: 0 22px 58px rgba(16,37,31,.10);
+    overflow: hidden;
+  }
+  .platform-settings-scope .panel-head {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--ps-line);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .platform-settings-scope .panel-title {
+    color: var(--ps-ink);
+    font-size: 1.08rem;
+    font-weight: 950;
+    margin: 0;
+  }
+  .platform-settings-scope .muted { color: var(--ps-muted); font-weight: 850; line-height: 1.7; }
+  .platform-settings-scope .body { padding: 18px; display: grid; gap: 18px; }
+  .platform-settings-scope .section {
+    border: 1px solid rgba(185, 151, 91, .22);
+    border-radius: 14px;
+    padding: 16px;
+    background: rgba(248,250,252,.65);
+  }
+  html[data-theme="dark"] .platform-settings-scope .section { background: rgba(255,255,255,.03); }
+  .platform-settings-scope .section h2 {
+    margin: 0 0 12px;
+    color: var(--ps-ink);
+    font-size: 1rem;
+    font-weight: 950;
+  }
+  .platform-settings-scope .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .platform-settings-scope .field.full { grid-column: 1 / -1; }
+  .platform-settings-scope label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--ps-muted);
+    font-weight: 950;
+  }
+  .platform-settings-scope input,
+  .platform-settings-scope select,
+  .platform-settings-scope textarea {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--ps-line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: var(--ps-card);
+    color: var(--ps-ink);
+    font-weight: 850;
+  }
+  .platform-settings-scope .help {
+    margin-top: 6px;
+    color: var(--ps-muted);
+    font-weight: 800;
+    font-size: .88rem;
+    line-height: 1.6;
+  }
+  .platform-settings-scope .error {
+    color: #dc2626;
+    font-weight: 850;
+    margin-top: 6px;
+    font-size: .9rem;
+  }
+  .platform-settings-scope .preview {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .platform-settings-scope .metric {
+    border: 1px solid var(--ps-line);
+    border-radius: 12px;
+    padding: 13px;
+    background: var(--ps-card);
+  }
+  .platform-settings-scope .metric span { display: block; color: var(--ps-muted); font-weight: 900; font-size: .84rem; }
+  .platform-settings-scope .metric strong { display: block; margin-top: 7px; color: var(--ps-brand); font-weight: 950; font-size: 1.18rem; }
+  .platform-settings-scope .storage-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .platform-settings-scope .storage-head .btn { min-height: 40px; border-radius: 12px; }
+  .platform-settings-scope .storage-options { display: grid; gap: 12px; }
+  .platform-settings-scope .storage-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) 110px 120px 100px;
+    gap: 12px;
+    align-items: center;
+    border: 1px solid var(--ps-line);
+    border-radius: 10px;
+    padding: 14px;
+    background: var(--ps-card);
+    box-shadow: 0 8px 20px rgba(15,23,42,.04);
+  }
+  .platform-settings-scope .storage-row.is-template { display: none; }
+  .platform-settings-scope .storage-row:hover { border-color: rgba(0,108,53,.28); }
+  .platform-settings-scope .archive-switch {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-weight: 900;
+    color: var(--ps-ink);
+    border: 1px solid var(--ps-line);
+    border-radius: 10px;
+    background: rgba(248,250,252,.75);
+    cursor: pointer;
+    padding: 8px 10px;
+    user-select: none;
+  }
+  html[data-theme="dark"] .platform-settings-scope .archive-switch { background: rgba(255,255,255,.04); }
+  .platform-settings-scope .archive-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+  }
+  .platform-settings-scope .switch-track {
+    width: 42px;
+    height: 24px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    padding: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    transition: background .18s ease;
+    flex: 0 0 auto;
+  }
+  .platform-settings-scope .switch-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(15,23,42,.20);
+    transition: transform .18s ease;
+  }
+  .platform-settings-scope .archive-switch input:checked + .switch-track {
+    background: #006c35;
+  }
+  .platform-settings-scope .archive-switch input:checked + .switch-track .switch-thumb {
+    transform: translateX(-18px);
+  }
+  .platform-settings-scope .switch-text { min-width: 46px; text-align: center; }
+  .platform-settings-scope .archive-delete {
+    color: #b91c1c;
+    background: rgba(239,68,68,.08);
+    border: 1px solid rgba(239,68,68,.18);
+    border-radius: 10px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 950;
+    cursor: pointer;
+    padding: 8px 12px;
+    user-select: none;
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+  }
+  .platform-settings-scope .archive-delete:hover {
+    background: rgba(239,68,68,.14);
+    border-color: rgba(239,68,68,.32);
+    transform: translateY(-1px);
+  }
+  .platform-settings-scope .archive-delete input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+  }
+  .platform-settings-scope .delete-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    display: inline-grid;
+    place-items: center;
+    background: rgba(220,38,38,.10);
+  }
+  .platform-settings-scope .storage-row.is-marked-delete {
+    opacity: .58;
+    background: rgba(254,226,226,.45);
+    border-color: rgba(220,38,38,.28);
+  }
+  .platform-settings-scope .empty-options {
+    border: 1px dashed rgba(100,116,139,.35);
+    background: rgba(248,250,252,.72);
+    border-radius: 10px;
+    padding: 16px;
+    color: var(--ps-muted);
+    font-weight: 900;
+    text-align: center;
+  }
+  .platform-settings-scope .actions {
+    padding: 16px 18px;
+    border-top: 1px solid var(--ps-line);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .platform-settings-scope .actions .btn { min-height: 44px; }
+  @media(max-width:720px){
+    .platform-settings-scope .grid,
+    .platform-settings-scope .preview,
+    .platform-settings-scope .storage-row { grid-template-columns: 1fr; }
+    .platform-settings-scope .hero-actions,
+    .platform-settings-scope .hero-actions .btn,
+    .platform-settings-scope .actions .btn { width: 100%; justify-content: center; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="royal-page royal-page--narrow platform-settings-scope">
+  <section class="hero">
+    <div>
+      <span class="royal-kicker" style="background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.28)">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+        ضبط المنصة
+      </span>
+      <h1>إعدادات الأرشفة</h1>
+      <p>تحكم في تسعير إضافة الأرشفة ومساحة التخزين التي تظهر لمدير المدرسة عند رفع طلب الدفع.</p>
+    </div>
+    <div class="hero-actions">
+      <a href="{% url 'reports:platform_archive_addons_list' %}" class="btn btn-outline">
+        <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+        إضافات الأرشيف
+      </a>
+      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        لوحة المنصة
+      </a>
+    </div>
+  </section>
+
+  <form class="panel" method="post" novalidate>
+    {% csrf_token %}
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">تسعير الأرشفة والتخزين</h2>
+        <div class="muted">أي تعديل هنا ينعكس فوراً على صفحة اشتراك مدير المدرسة وطلبات الدفع الجديدة.</div>
+      </div>
+      {% if settings_obj.updated_at %}
+        <div class="muted">آخر تحديث: {{ settings_obj.updated_at|date:"Y-m-d H:i" }}</div>
+      {% endif %}
+    </div>
+
+    <div class="body">
+      {% if form.non_field_errors %}
+        <div class="error">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <section class="section">
+        <h2>إضافة الأرشفة</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="{{ form.archive_addon_annual_price.id_for_label }}">{{ form.archive_addon_annual_price.label }}</label>
+            {{ form.archive_addon_annual_price }}
+            <div class="help">السعر السنوي لتفعيل أو تجديد الأرشفة.</div>
+            {% for e in form.archive_addon_annual_price.errors %}<div class="error">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="field">
+            <label for="{{ form.archive_included_storage_gb.id_for_label }}">{{ form.archive_included_storage_gb.label }}</label>
+            {{ form.archive_included_storage_gb }}
+            <div class="help">المساحة التي يحصل عليها العميل عند تفعيل الإضافة.</div>
+            {% for e in form.archive_included_storage_gb.errors %}<div class="error">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="storage-head">
+          <div>
+            <h2>زيادة مساحة التخزين</h2>
+            <div class="help">
+              أضف الخيارات التي تريد أن تظهر للمدرسة عند طلب زيادة المساحة. كل خيار مستقل في المساحة والسعر والترتيب.
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary" id="addStorageOptionBtn">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            إضافة خيار مساحة
+          </button>
+        </div>
+        {{ storage_options_formset.management_form }}
+        {% if storage_options_formset.non_form_errors %}
+          <div class="error">{{ storage_options_formset.non_form_errors }}</div>
+        {% endif %}
+        <div class="storage-options" id="storageOptionsList">
+          {% for storage_form in storage_options_formset %}
+            <div class="storage-row" data-storage-row>
+              {% for hidden in storage_form.hidden_fields %}{{ hidden }}{% endfor %}
+              <div class="field">
+                <label for="{{ storage_form.storage_gb.id_for_label }}">{{ storage_form.storage_gb.label }}</label>
+                {{ storage_form.storage_gb }}
+                {% for e in storage_form.storage_gb.errors %}<div class="error">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="field">
+                <label for="{{ storage_form.price.id_for_label }}">{{ storage_form.price.label }}</label>
+                {{ storage_form.price }}
+                {% for e in storage_form.price.errors %}<div class="error">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="field">
+                <label for="{{ storage_form.sort_order.id_for_label }}">{{ storage_form.sort_order.label }}</label>
+                {{ storage_form.sort_order }}
+                {% for e in storage_form.sort_order.errors %}<div class="error">{{ e }}</div>{% endfor %}
+              </div>
+              <label class="archive-switch" for="{{ storage_form.is_active.id_for_label }}">
+                {{ storage_form.is_active }}
+                <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+                <span class="switch-text">مفعل</span>
+              </label>
+              {% if storage_form.DELETE %}
+                <label class="archive-delete" for="{{ storage_form.DELETE.id_for_label }}">
+                  {{ storage_form.DELETE }}
+                  <span class="delete-icon" aria-hidden="true"><i class="fa-solid fa-trash"></i></span>
+                  <span>حذف</span>
+                </label>
+              {% endif %}
+              {% for e in storage_form.non_field_errors %}<div class="error">{{ e }}</div>{% endfor %}
+            </div>
+          {% endfor %}
+          <div class="empty-options" id="storageOptionsEmpty" {% if storage_options_formset.forms %}style="display:none"{% endif %}>
+            لا توجد خيارات حالياً. اضغط “إضافة خيار مساحة” لإنشاء أول خيار.
+          </div>
+        </div>
+
+        <template id="storageOptionTemplate">
+          <div class="storage-row" data-storage-row>
+            {% for hidden in storage_options_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="field">
+              <label for="{{ storage_options_formset.empty_form.storage_gb.id_for_label }}">{{ storage_options_formset.empty_form.storage_gb.label }}</label>
+              {{ storage_options_formset.empty_form.storage_gb }}
+            </div>
+            <div class="field">
+              <label for="{{ storage_options_formset.empty_form.price.id_for_label }}">{{ storage_options_formset.empty_form.price.label }}</label>
+              {{ storage_options_formset.empty_form.price }}
+            </div>
+            <div class="field">
+              <label for="{{ storage_options_formset.empty_form.sort_order.id_for_label }}">{{ storage_options_formset.empty_form.sort_order.label }}</label>
+              {{ storage_options_formset.empty_form.sort_order }}
+            </div>
+            <label class="archive-switch" for="{{ storage_options_formset.empty_form.is_active.id_for_label }}">
+              {{ storage_options_formset.empty_form.is_active }}
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <span class="switch-text">مفعل</span>
+            </label>
+            {% if storage_options_formset.empty_form.DELETE %}
+              <button type="button" class="archive-delete" data-remove-new-row>
+                <span class="delete-icon" aria-hidden="true"><i class="fa-solid fa-trash"></i></span>
+                <span>حذف</span>
+              </button>
+            {% endif %}
+          </div>
+        </template>
+      </section>
+
+      <section class="preview" aria-label="معاينة الأسعار الحالية">
+        <div class="metric">
+          <span>الأرشفة السنوية</span>
+          <strong>{{ settings_obj.archive_addon_annual_price|floatformat:0|intcomma }} ريال</strong>
+        </div>
+        <div class="metric">
+          <span>المساحة المضمنة</span>
+          <strong>{{ settings_obj.archive_included_storage_gb }}GB</strong>
+        </div>
+        <div class="metric">
+          <span>زيادة التخزين</span>
+          <strong>خيارات متعددة</strong>
+        </div>
+      </section>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        حفظ الإعدادات
+      </button>
+      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
+document.addEventListener("DOMContentLoaded", function () {
+  const addBtn = document.getElementById("addStorageOptionBtn");
+  const list = document.getElementById("storageOptionsList");
+  const template = document.getElementById("storageOptionTemplate");
+  const emptyState = document.getElementById("storageOptionsEmpty");
+  const totalInput = document.getElementById("id_storage_options-TOTAL_FORMS");
+
+  if (!addBtn || !list || !template || !totalInput) return;
+
+  function rows() {
+    return Array.from(list.querySelectorAll("[data-storage-row]"));
+  }
+
+  function updateEmptyState() {
+    if (!emptyState) return;
+    emptyState.style.display = rows().length ? "none" : "";
+  }
+
+  function updateDeleteState(row) {
+    const del = row.querySelector('input[name$="-DELETE"]');
+    if (!del) return;
+    row.classList.toggle("is-marked-delete", del.checked);
+  }
+
+  function renumberRows() {
+    rows().forEach(function (row, index) {
+      row.querySelectorAll("input, select, textarea, label").forEach(function (el) {
+        ["name", "id", "for"].forEach(function (attr) {
+          const value = el.getAttribute(attr);
+          if (!value) return;
+          el.setAttribute(attr, value.replace(/storage_options-(?:__prefix__|\d+)-/g, "storage_options-" + index + "-"));
+        });
+      });
+      updateDeleteState(row);
+    });
+    totalInput.value = rows().length;
+    updateEmptyState();
+  }
+
+  addBtn.addEventListener("click", function () {
+    const index = parseInt(totalInput.value || "0", 10);
+    const html = template.innerHTML.replace(/__prefix__/g, String(index));
+    const holder = document.createElement("div");
+    holder.innerHTML = html.trim();
+    const row = holder.firstElementChild;
+    if (!row) return;
+
+    const active = row.querySelector('input[name$="-is_active"]');
+    if (active) active.checked = true;
+
+    const order = row.querySelector('input[name$="-sort_order"]');
+    if (order && !order.value) order.value = String((rows().length + 1) * 10);
+
+    list.insertBefore(row, emptyState || null);
+    renumberRows();
+
+    const firstInput = row.querySelector('input[name$="-storage_gb"]');
+    if (firstInput) firstInput.focus();
+  });
+
+  list.addEventListener("click", function (event) {
+    const removeBtn = event.target.closest("[data-remove-new-row]");
+    if (!removeBtn) return;
+    const row = removeBtn.closest("[data-storage-row]");
+    if (row) row.remove();
+    renumberRows();
+  });
+
+  list.addEventListener("change", function (event) {
+    const checkbox = event.target.closest('input[name$="-DELETE"]');
+    if (!checkbox) return;
+    const row = checkbox.closest("[data-storage-row]");
+    if (row) updateDeleteState(row);
+  });
+
+  renumberRows();
+});
+</script>
+{% endblock %}

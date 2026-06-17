@@ -6,13 +6,13 @@
 {% block head %}
 <style>
   .subslist-scope{
-    --sl-brand: var(--brand, #2563eb);
+    --sl-brand: var(--brand, #006c35);
     --sl-ink: var(--ink, #0f172a);
     --sl-muted: var(--muted, #64748b);
     --sl-line: var(--line-2, var(--line, #e5e7eb));
     --sl-card: var(--card, #fff);
-    --sl-soft: rgba(37,99,235,.07);
-    --sl-ok: #059669;
+    --sl-soft: rgba(0,108,53,.07);
+    --sl-ok: #16845b;
     --sl-warn: #d97706;
     --sl-danger: #dc2626;
     --sl-shadow: 0 18px 45px rgba(15,23,42,.09);
@@ -25,7 +25,7 @@
     border-radius:22px;
     border:1px solid rgba(255,255,255,.18);
     background:
-      linear-gradient(135deg, rgba(9,32,63,.95), rgba(37,99,235,.88)),
+      linear-gradient(135deg, rgba(9,32,63,.95), rgba(0,108,53,.88)),
       url("https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1800&q=80") center/cover;
     background-blend-mode:multiply;
     color:#fff;
@@ -67,9 +67,9 @@
   .subslist-scope .command-card .hint{margin-top:4px;color:var(--sl-muted);font-weight:800;font-size:.88rem}
   .subslist-scope .command-card .ico{
     width:46px;height:46px;border-radius:15px;display:grid;place-items:center;
-    background:var(--sl-soft);color:var(--sl-brand);border:1px solid rgba(37,99,235,.14);flex:0 0 auto
+    background:var(--sl-soft);color:var(--sl-brand);border:1px solid rgba(0,108,53,.14);flex:0 0 auto
   }
-  .subslist-scope .command-card.ok .ico{background:rgba(5,150,105,.10);color:var(--sl-ok);border-color:rgba(5,150,105,.18)}
+  .subslist-scope .command-card.ok .ico{background:rgba(22,132,91,.10);color:var(--sl-ok);border-color:rgba(22,132,91,.18)}
   .subslist-scope .command-card.warn .ico{background:rgba(217,119,6,.12);color:var(--sl-warn);border-color:rgba(217,119,6,.20)}
   .subslist-scope .command-card.danger .ico{background:rgba(220,38,38,.10);color:var(--sl-danger);border-color:rgba(220,38,38,.18)}
 
@@ -109,7 +109,7 @@
     font-weight:900;
     line-height:1.8;
   }
-  html[data-theme="dark"] .subslist-scope .opportunity{color:#fbbf24}
+  html[data-theme="dark"] .subslist-scope .opportunity{color:#d4b16d}
 
   .subslist-scope .table-card{margin-top:14px;overflow:hidden}
   .subslist-scope .table-head{
@@ -126,7 +126,7 @@
     display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;
     font-weight:950;font-size:.84rem;border:1px solid var(--sl-line);white-space:nowrap
   }
-  .subslist-scope .badge.success{background:rgba(5,150,105,.10);color:var(--sl-ok);border-color:rgba(5,150,105,.18)}
+  .subslist-scope .badge.success{background:rgba(22,132,91,.10);color:var(--sl-ok);border-color:rgba(22,132,91,.18)}
   .subslist-scope .badge.warning{background:rgba(217,119,6,.12);color:var(--sl-warn);border-color:rgba(217,119,6,.20)}
   .subslist-scope .badge.danger{background:rgba(220,38,38,.10);color:var(--sl-danger);border-color:rgba(220,38,38,.18)}
   .subslist-scope .row-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -162,6 +162,10 @@
       <a href="{% url 'reports:platform_payments_list' %}" class="btn btn-outline">
         <i class="fa-solid fa-sack-dollar" aria-hidden="true"></i>
         المدفوعات
+      </a>
+      <a href="{% url 'reports:platform_archive_addons_list' %}" class="btn btn-outline">
+        <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+        إضافات الأرشيف
       </a>
       <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>

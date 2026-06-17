@@ -16,7 +16,7 @@ from django.core.validators import MinValueValidator, FileExtensionValidator
 from django.db import models, transaction
 from django.db.models.signals import post_migrate, post_save
 from django.dispatch import receiver
-from django.utils.text import slugify
+from django.utils.text import get_valid_filename, slugify
 from django.utils import timezone
 
 # تخزين المرفقات (R2 أو محلي)
@@ -53,9 +53,18 @@ def _validate_academic_year_hijri(value: str) -> None:
         raise ValidationError("السنة الدراسية يجب أن تكون مثل 1447-1448 (فرق سنة واحدة)")
 
 
+def _safe_unique_filename(filename: str, *, fallback: str = "file") -> str:
+    base = os.path.basename(filename or fallback)
+    base = get_valid_filename(base) or fallback
+    stem, ext = os.path.splitext(base)
+    stem = (stem or fallback)[:80].strip("._-") or fallback
+    ext = (ext or "").lower()[:12]
+    return f"{stem}_{secrets.token_hex(8)}{ext}"
+
+
 def _achievement_pdf_upload_to(instance: "TeacherAchievementFile", filename: str) -> str:
     year = _normalize_academic_year_hijri(getattr(instance, "academic_year", "")) or "unknown"
-    return f"achievements/pdfs/{year}/teacher_{instance.teacher_id}.pdf"
+    return f"achievements/pdfs/{year}/teacher_{instance.teacher_id}_{secrets.token_hex(8)}.pdf"
 
 
 def _achievement_evidence_upload_to(instance: "AchievementEvidenceImage", filename: str) -> str:
@@ -63,46 +72,43 @@ def _achievement_evidence_upload_to(instance: "AchievementEvidenceImage", filena
         year = _normalize_academic_year_hijri(instance.section.file.academic_year)
     except Exception:
         year = "unknown"
-    return f"achievements/evidence/{year}/section_{instance.section.code}/teacher_{instance.section.file.teacher_id}/{filename}"
+    safe_name = _safe_unique_filename(filename, fallback="evidence")
+    return f"achievements/evidence/{year}/section_{instance.section.code}/teacher_{instance.section.file.teacher_id}/{safe_name}"
 
 
 def _payment_receipt_upload_to(instance: "Payment", filename: str) -> str:
     """مسار رفع صورة إيصال الدفع"""
-    return f"payments/receipts/{filename}"
+    return f"payments/receipts/{_safe_unique_filename(filename, fallback='receipt')}"
 
 
 def _report_image_upload_to(instance: "Report", filename: str) -> str:
     """مسار رفع صور التقرير"""
-    import os
-    import uuid
-
-    base = os.path.basename(filename or "image")
-    uid = uuid.uuid4().hex
+    base = _safe_unique_filename(filename, fallback="image")
     try:
         teacher_id = getattr(instance, "teacher_id", None) or "unknown"
     except Exception:
         teacher_id = "unknown"
-    return f"reports/teacher_{teacher_id}/{uid}_{base}"
+    return f"reports/teacher_{teacher_id}/{base}"
 
 
 def _ticket_attachment_upload_to(instance: "Ticket", filename: str) -> str:
     """مسار رفع مرفقات التذاكر"""
-    return f"tickets/attachments/{filename}"
+    return f"tickets/attachments/{_safe_unique_filename(filename, fallback='attachment')}"
 
 
 def _notification_attachment_upload_to(instance: "Notification", filename: str) -> str:
     """مسار رفع مرفقات الإشعارات/التعاميم"""
-    return f"notifications/attachments/{filename}"
+    return f"notifications/attachments/{_safe_unique_filename(filename, fallback='attachment')}"
 
 
 # NOTE: kept for historical migrations that referenced it.
 def _school_logo_upload_to(instance: "School", filename: str) -> str:
     """مسار رفع شعار المدرسة (legacy)."""
-    return f"schools/logos/{filename}"
+    return f"schools/logos/{_safe_unique_filename(filename, fallback='logo')}"
 
 def _ticket_image_upload_to(instance: "TicketImage", filename: str) -> str:
     """مسار رفع صور التذاكر"""
-    return f"tickets/images/{filename}"
+    return f"tickets/images/{_safe_unique_filename(filename, fallback='image')}"
 
 
 # =========================

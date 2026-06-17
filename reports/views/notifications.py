@@ -334,7 +334,7 @@ def notification_sign(request: HttpRequest, pk: int) -> HttpResponse:
     """Teacher signs a circular (NotificationRecipient.pk) using phone re-entry + acknowledgement."""
     if NotificationRecipient is None:
         messages.error(request, "نظام الإشعارات غير متاح حالياً.")
-        return redirect(request.POST.get("next") or "reports:my_notifications")
+        return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_notifications")
 
     rec = get_object_or_404(
         NotificationRecipient.objects.select_related(
@@ -1183,7 +1183,7 @@ def notifications_sent(request: HttpRequest, mode: str = "notification") -> Http
 @require_http_methods(["POST"])
 def notification_mark_read(request: HttpRequest, pk: int) -> HttpResponse:
     if NotificationRecipient is None:
-        return redirect(request.POST.get("next") or "reports:my_notifications")
+        return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_notifications")
     item = get_object_or_404(NotificationRecipient, pk=pk, teacher=request.user)
     if not getattr(item, "is_read", False):
         if hasattr(item, "is_read"):
@@ -1197,14 +1197,14 @@ def notification_mark_read(request: HttpRequest, pk: int) -> HttpResponse:
                 item.save()
         except Exception:
             item.save()
-    return redirect(request.POST.get("next") or "reports:my_notifications")
+    return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_notifications")
 
 # تحديد الكل كمقروء
 @login_required(login_url="reports:login")
 @require_http_methods(["POST"])
 def notifications_mark_all_read(request: HttpRequest) -> HttpResponse:
     if NotificationRecipient is None:
-        return redirect(request.POST.get("next") or "reports:my_notifications")
+        return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_notifications")
     qs = NotificationRecipient.objects.filter(teacher=request.user)
 
     # فصل: هذا الإجراء خاص بالإشعارات فقط (يستبعد التعاميم)
@@ -1242,14 +1242,14 @@ def notifications_mark_all_read(request: HttpRequest) -> HttpResponse:
     except Exception:
         pass
 
-    return redirect(request.POST.get("next") or "reports:my_notifications")
+    return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_notifications")
 
 
 @login_required(login_url="reports:login")
 @require_http_methods(["POST"])
 def circulars_mark_all_read(request: HttpRequest) -> HttpResponse:
     if NotificationRecipient is None:
-        return redirect(request.POST.get("next") or "reports:my_circulars")
+        return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_circulars")
 
     qs = NotificationRecipient.objects.filter(teacher=request.user)
     try:
@@ -1277,7 +1277,7 @@ def circulars_mark_all_read(request: HttpRequest) -> HttpResponse:
                 continue
 
     messages.success(request, "تم تحديد جميع التعاميم كمقروءة.")
-    return redirect(request.POST.get("next") or "reports:my_circulars")
+    return redirect(_safe_next_url(request.POST.get("next")) or "reports:my_circulars")
 
 # تعليم الإشعار كمقروء (حسب رقم الإشعار نفسه لا الـRecipient)
 @login_required(login_url="reports:login")

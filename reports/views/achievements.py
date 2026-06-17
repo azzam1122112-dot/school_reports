@@ -175,7 +175,9 @@ def achievement_file_delete(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("reports:achievement_my_files")
     
     # يمكن إضافة شرط الحالة لو أردنا منع حذف المعتمد، لكن السؤال يوحي بالحرية للتصحيح
+    file_school = getattr(file, "school", active_school)
     file.delete()
+    sync_school_archive_storage_usage(file_school)
     messages.success(request, "تم حذف ملف الإنجاز بنجاح ✅")
     return redirect("reports:achievement_my_files")
 
@@ -525,8 +527,13 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 messages.error(request, "لا يمكن إضافة أكثر من 8 صور لهذا المحور.")
                 return redirect("reports:achievement_file_detail", pk=ach_file.pk)
             imgs = imgs[:remaining]
+            capacity_error = archive_storage_capacity_error(active_school, imgs)
+            if capacity_error:
+                messages.error(request, capacity_error)
+                return redirect("reports:achievement_file_detail", pk=ach_file.pk)
             for f in imgs:
                 AchievementEvidenceImage.objects.create(section=sec, image=f)
+            sync_school_archive_storage_usage(active_school)
             messages.success(request, "تم رفع الشواهد ✅")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
@@ -538,6 +545,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     img.delete()
                 except Exception:
                     pass
+                sync_school_archive_storage_usage(active_school)
                 messages.success(request, "تم حذف الصورة ✅")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
@@ -581,6 +589,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             try:
                 ok = remove_report_evidence(section=sec, evidence_id=evidence_id_int)
                 if ok:
+                    sync_school_archive_storage_usage(active_school)
                     messages.success(request, "تم إزالة التقرير من الشواهد ✅")
                 else:
                     messages.error(request, "الشاهد غير موجود.")
@@ -637,6 +646,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     ach_file.save(update_fields=["status", "submitted_at", "updated_at"])
 
                     frozen = freeze_achievement_report_evidences(ach_file=ach_file)
+                    sync_school_archive_storage_usage(active_school)
 
                 # إشعار مدير المدرسة بملف إنجاز جديد
                 _notify_achievement_submitted(ach_file, active_school)

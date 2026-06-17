@@ -22,6 +22,7 @@ from reports.models import (
     TeacherAchievementFile,
     Ticket,
     TicketImage,
+    school_has_archive_addon,
 )
 
 from .models import SchoolYearResetJob
@@ -103,6 +104,19 @@ def _school_ids(schools: Iterable[School] | QuerySet[School]) -> list[int]:
     return [int(s.id) for s in schools]
 
 
+def _archive_protected_school_ids(school_ids: list[int]) -> set[int]:
+    protected: set[int] = set()
+    if not school_ids:
+        return protected
+    try:
+        for school in School.objects.filter(id__in=school_ids).select_related("archive_addon"):
+            if school_has_archive_addon(school):
+                protected.add(int(school.id))
+    except Exception:
+        return set()
+    return protected
+
+
 def _share_links_q(school_ids: list[int], include_options: dict[str, bool]) -> Q:
     query = Q(school_id__in=school_ids)
     if include_options.get("reports"):
@@ -133,13 +147,16 @@ def collect_file_keys(schools: Iterable[School] | QuerySet[School], include_opti
     school_ids = _school_ids(schools)
     if not school_ids:
         return []
+    protected_ids = _archive_protected_school_ids(school_ids)
+    report_school_ids = [sid for sid in school_ids if sid not in protected_ids]
+    achievement_school_ids = [sid for sid in school_ids if sid not in protected_ids]
 
     keys: set[str] = set()
 
-    if include_options["reports"]:
+    if include_options["reports"] and report_school_ids:
         keys.update(
             _file_values(
-                Report.objects.filter(school_id__in=school_ids),
+                Report.objects.filter(school_id__in=report_school_ids),
                 "image1",
                 "image2",
                 "image3",
@@ -152,17 +169,17 @@ def collect_file_keys(schools: Iterable[School] | QuerySet[School], include_opti
         keys.update(_file_values(ticket_qs, "attachment"))
         keys.update(_file_values(TicketImage.objects.filter(ticket__school_id__in=school_ids), "image"))
 
-    if include_options["achievements"]:
-        keys.update(_file_values(TeacherAchievementFile.objects.filter(school_id__in=school_ids), "pdf_file"))
+    if include_options["achievements"] and achievement_school_ids:
+        keys.update(_file_values(TeacherAchievementFile.objects.filter(school_id__in=achievement_school_ids), "pdf_file"))
         keys.update(
             _file_values(
-                AchievementEvidenceImage.objects.filter(section__file__school_id__in=school_ids),
+                AchievementEvidenceImage.objects.filter(section__file__school_id__in=achievement_school_ids),
                 "image",
             )
         )
         keys.update(
             _file_values(
-                AchievementEvidenceReport.objects.filter(section__file__school_id__in=school_ids),
+                AchievementEvidenceReport.objects.filter(section__file__school_id__in=achievement_school_ids),
                 "archived_image1",
                 "archived_image2",
                 "archived_image3",
@@ -179,6 +196,9 @@ def collect_file_keys(schools: Iterable[School] | QuerySet[School], include_opti
 def collect_reset_summary(schools: Iterable[School] | QuerySet[School], include_options: dict | None = None) -> dict:
     include_options = normalize_include_options(include_options)
     school_ids = _school_ids(schools)
+    protected_ids = _archive_protected_school_ids(school_ids)
+    report_school_ids = [sid for sid in school_ids if sid not in protected_ids]
+    achievement_school_ids = [sid for sid in school_ids if sid not in protected_ids]
     file_keys = collect_file_keys(School.objects.filter(id__in=school_ids), include_options)
 
     summary = {
@@ -197,26 +217,28 @@ def collect_reset_summary(schools: Iterable[School] | QuerySet[School], include_
         "share_links_count": 0,
         "file_keys_count": len(file_keys),
         "file_key_samples": file_keys[:20],
-        "protected_data_note": "لن يتم حذف المدارس أو المستخدمين أو الأقسام أو أنواع التقارير أو الاشتراكات أو الصلاحيات أو الإعدادات.",
+        "archive_protected_schools_count": len(protected_ids),
+        "archive_protected_school_ids": sorted(protected_ids),
+        "protected_data_note": "لن يتم حذف المدارس أو المستخدمين أو الأقسام أو أنواع التقارير أو الاشتراكات أو الصلاحيات أو الإعدادات. المدارس المفعّل لها ملحق الأرشفة لا تُحذف تقاريرها أو ملفات إنجازها عند التهيئة.",
     }
 
     if not school_ids:
         return summary
 
-    if include_options["reports"]:
-        summary["reports_count"] = Report.objects.filter(school_id__in=school_ids).count()
+    if include_options["reports"] and report_school_ids:
+        summary["reports_count"] = Report.objects.filter(school_id__in=report_school_ids).count()
 
     if include_options["tickets"]:
         summary["tickets_count"] = Ticket.objects.filter(school_id__in=school_ids).count()
         summary["ticket_images_count"] = TicketImage.objects.filter(ticket__school_id__in=school_ids).count()
 
-    if include_options["achievements"]:
-        summary["achievements_count"] = TeacherAchievementFile.objects.filter(school_id__in=school_ids).count()
+    if include_options["achievements"] and achievement_school_ids:
+        summary["achievements_count"] = TeacherAchievementFile.objects.filter(school_id__in=achievement_school_ids).count()
         summary["achievement_evidence_images_count"] = AchievementEvidenceImage.objects.filter(
-            section__file__school_id__in=school_ids
+            section__file__school_id__in=achievement_school_ids
         ).count()
         summary["achievement_evidence_reports_count"] = AchievementEvidenceReport.objects.filter(
-            section__file__school_id__in=school_ids
+            section__file__school_id__in=achievement_school_ids
         ).count()
 
     if include_options["notifications"]:
@@ -227,7 +249,14 @@ def collect_reset_summary(schools: Iterable[School] | QuerySet[School], include_
         ).count()
 
     if include_options["share_links"] or include_options["reports"] or include_options["achievements"]:
-        summary["share_links_count"] = ShareLink.objects.filter(_share_links_q(school_ids, include_options)).distinct().count()
+        share_link_qs = ShareLink.objects.filter(_share_links_q(school_ids, include_options))
+        if protected_ids:
+            share_link_qs = share_link_qs.exclude(
+                Q(school_id__in=protected_ids)
+                | Q(report__school_id__in=protected_ids)
+                | Q(achievement_file__school_id__in=protected_ids)
+            )
+        summary["share_links_count"] = share_link_qs.distinct().count()
 
     # RequestTicket has no school FK in the current schema; skipping it is intentional
     # to keep every deletion school-scoped.
@@ -290,6 +319,9 @@ def execute_school_year_reset(
     school_ids = _school_ids(target_schools)
     if not school_ids:
         raise ValueError("لا توجد مدارس مستهدفة للتنفيذ.")
+    protected_ids = _archive_protected_school_ids(school_ids)
+    report_school_ids = [sid for sid in school_ids if sid not in protected_ids]
+    achievement_school_ids = [sid for sid in school_ids if sid not in protected_ids]
 
     if job is not None:
         job.mark_running()
@@ -300,6 +332,7 @@ def execute_school_year_reset(
     summary_before = collect_reset_summary(School.objects.filter(id__in=school_ids), include_options)
     execution: dict = {
         "school_ids": school_ids,
+        "archive_protected_school_ids": sorted(protected_ids),
         "include_options": include_options,
         "summary_before": summary_before,
         "database_deletes": {},
@@ -316,11 +349,14 @@ def execute_school_year_reset(
     try:
         with transaction.atomic():
             if include_options["share_links"] or include_options["reports"] or include_options["achievements"]:
-                share_link_ids = list(
-                    ShareLink.objects.filter(_share_links_q(school_ids, include_options))
-                    .values_list("pk", flat=True)
-                    .distinct()
-                )
+                share_link_qs = ShareLink.objects.filter(_share_links_q(school_ids, include_options))
+                if protected_ids:
+                    share_link_qs = share_link_qs.exclude(
+                        Q(school_id__in=protected_ids)
+                        | Q(report__school_id__in=protected_ids)
+                        | Q(achievement_file__school_id__in=protected_ids)
+                    )
+                share_link_ids = list(share_link_qs.values_list("pk", flat=True).distinct())
                 execution["database_deletes"]["share_links"] = _delete_qs(
                     ShareLink.objects.filter(pk__in=share_link_ids)
                 )
@@ -339,15 +375,27 @@ def execute_school_year_reset(
                     "skipped": "RequestTicket has no school field; skipped to keep deletion school-scoped.",
                 }
 
-            if include_options["achievements"]:
+            if include_options["achievements"] and achievement_school_ids:
                 execution["database_deletes"]["achievements"] = _delete_qs(
-                    TeacherAchievementFile.objects.filter(school_id__in=school_ids)
+                    TeacherAchievementFile.objects.filter(school_id__in=achievement_school_ids)
                 )
+            elif include_options["achievements"] and protected_ids:
+                execution["database_deletes"]["achievements"] = {
+                    "total_deleted": 0,
+                    "skipped": "Protected by active archive add-on.",
+                    "protected_school_ids": sorted(protected_ids),
+                }
 
-            if include_options["reports"]:
+            if include_options["reports"] and report_school_ids:
                 execution["database_deletes"]["reports"] = _delete_qs(
-                    Report.objects.filter(school_id__in=school_ids)
+                    Report.objects.filter(school_id__in=report_school_ids)
                 )
+            elif include_options["reports"] and protected_ids:
+                execution["database_deletes"]["reports"] = {
+                    "total_deleted": 0,
+                    "skipped": "Protected by active archive add-on.",
+                    "protected_school_ids": sorted(protected_ids),
+                }
 
         if delete_files:
             execution["files"] = delete_storage_files(file_keys, batch_size=batch_size)

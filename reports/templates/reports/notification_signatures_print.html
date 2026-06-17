@@ -6,17 +6,17 @@
   <title>تقرير تواقيع: {{ n.title|default:"تعميم" }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <style>
     :root {
-      --font-main: 'Tajawal', sans-serif;
+      --font-main: 'Cairo', sans-serif;
       --ink: #0f172a;
       --muted: #64748b;
       --line: #000;
       --shade: #f8fafc;
-      --brand: #2563eb;
+      --brand: #006c35;
     }
 
     * { box-sizing: border-box; }
@@ -54,7 +54,7 @@
       text-decoration: none; border: none;
     }
     .btn-white { background: #fff; color: var(--ink); }
-    .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+    .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 4px 12px rgba(0,108,53,0.3); }
     .btn:hover { transform: translateY(-2px); opacity: 0.9; }
 
     /* A4 Canvas Look */
@@ -189,6 +189,8 @@
       padding-top: 10px;
     }
   </style>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
 </head>
 <body>
 

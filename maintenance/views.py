@@ -77,6 +77,7 @@ def _job_summary_cards(summary: dict) -> list[dict[str, object]]:
         {"label": "مستلمي الإشعارات", "value": summary.get("notification_recipients_count", 0)},
         {"label": "روابط المشاركة", "value": summary.get("share_links_count", 0)},
         {"label": "ملفات التخزين المرشحة", "value": summary.get("file_keys_count", 0)},
+        {"label": "مدارس محمية بالأرشيف", "value": summary.get("archive_protected_schools_count", 0)},
     ]
 
 

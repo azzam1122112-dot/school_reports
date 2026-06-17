@@ -15,6 +15,7 @@ from django.db import models as db_models
 
 from .models import (
     Department,
+    DepartmentMembership,
     Notification,
     NotificationRecipient,
     Report,
@@ -22,6 +23,12 @@ from .models import (
     School,
     SchoolMembership,
     Ticket,
+)
+from .permissions import (
+    is_platform_admin,
+    is_school_manager,
+    platform_allowed_schools_qs,
+    restrict_queryset_for_user,
 )
 from .serializers import (
     NotificationListSerializer,
@@ -67,6 +74,10 @@ class SchoolViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self.request.user, "is_superuser", False):
+            return School.objects.filter(is_active=True)
+        if is_platform_admin(self.request.user):
+            return platform_allowed_schools_qs(self.request.user)
         return School.objects.filter(
             memberships__teacher=self.request.user,
             memberships__is_active=True,
@@ -81,7 +92,9 @@ class ReportViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         school = _active_school(self.request)
-        return Report.objects.filter(school=school).select_related("category", "teacher").order_by("-created_at")
+        qs = Report.objects.filter(school=school).select_related("category", "teacher")
+        qs = restrict_queryset_for_user(qs, self.request.user, school)
+        return qs.order_by("-created_at")
 
 
 class ReportTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -106,9 +119,36 @@ class TicketViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         school = _active_school(self.request)
-        return Ticket.objects.filter(
+        qs = Ticket.objects.filter(
             school=school, is_platform=False,
-        ).select_related("creator").order_by("-created_at")
+        ).select_related("creator", "assignee", "department")
+
+        user = self.request.user
+        if getattr(user, "is_superuser", False) or is_platform_admin(user) or is_school_manager(user, active_school=school):
+            return qs.order_by("-created_at")
+
+        dept_ids = []
+        try:
+            dept_ids = list(
+                DepartmentMembership.objects.filter(
+                    teacher=user,
+                    department__school=school,
+                    department__is_active=True,
+                ).values_list("department_id", flat=True)
+            )
+        except Exception:
+            dept_ids = []
+
+        return (
+            qs.filter(
+                db_models.Q(creator=user)
+                | db_models.Q(assignee=user)
+                | db_models.Q(recipients=user)
+                | db_models.Q(department_id__in=dept_ids)
+            )
+            .distinct()
+            .order_by("-created_at")
+        )
 
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):

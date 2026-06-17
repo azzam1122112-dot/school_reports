@@ -18,11 +18,11 @@
     --nd-line-soft:  #f1f5f9;
     --nd-card:       #ffffff;
     --nd-bg:         #f8fafc;
-    --nd-brand:      #2563eb;
-    --nd-brand-2:    #1e40af;
-    --nd-brand-mid:  #3b82f6;
-    --nd-brand-soft: rgba(37,99,235,.09);
-    --nd-success:    #059669;
+    --nd-brand:      #006c35;
+    --nd-brand-2:    #00542a;
+    --nd-brand-mid:  #0f8f87;
+    --nd-brand-soft: rgba(0,108,53,.09);
+    --nd-success:    #16845b;
     --nd-danger:     #dc2626;
     --nd-warn:       #d97706;
     --nd-radius-sm:  10px;
@@ -43,7 +43,7 @@
     --nd-line-soft:  #0f172a;
     --nd-card:       #1e293b;
     --nd-bg:         #0f172a;
-    --nd-brand-soft: rgba(59,130,246,.12);
+    --nd-brand-soft: rgba(15,143,135,.12);
     --nd-shadow-xs:  0 1px 3px rgba(0,0,0,.3);
     --nd-shadow:     0 4px 20px rgba(0,0,0,.3);
     --nd-shadow-md:  0 8px 32px rgba(0,0,0,.4);
@@ -57,7 +57,7 @@
   /* ── Hero Header ── */
   .nd-hero {
     position: relative;
-    background: linear-gradient(135deg, var(--nd-brand) 0%, var(--nd-brand-2) 60%, #1e3a8a 100%);
+    background: linear-gradient(135deg, var(--nd-brand) 0%, var(--nd-brand-2) 60%, #073b2a 100%);
     border-radius: var(--nd-radius-lg);
     padding: 36px 36px 100px;
     margin-bottom: -70px;
@@ -196,8 +196,8 @@
     white-space: nowrap;
   }
   .nd-pill.imp   { background: rgba(220,38,38,.08);  border-color: rgba(220,38,38,.20);  color: #b91c1c; }
-  .nd-pill.blue  { background: var(--nd-brand-soft); border-color: rgba(37,99,235,.20);  color: var(--nd-brand-2); }
-  .nd-pill.green { background: rgba(5,150,105,.08);  border-color: rgba(5,150,105,.20);  color: var(--nd-success); }
+  .nd-pill.blue  { background: var(--nd-brand-soft); border-color: rgba(0,108,53,.20);  color: var(--nd-brand-2); }
+  .nd-pill.green { background: rgba(22,132,91,.08);  border-color: rgba(22,132,91,.20);  color: var(--nd-success); }
 
   /* ── Message Body ── */
   .nd-msg-body {
@@ -273,21 +273,21 @@
   .nd-btn:hover {
     transform: translateY(-2px);
     box-shadow: var(--nd-shadow);
-    border-color: rgba(37,99,235,.3);
+    border-color: rgba(0,108,53,.3);
   }
   .nd-btn.primary {
     background: linear-gradient(135deg, var(--nd-brand) 0%, var(--nd-brand-2) 100%);
     border-color: transparent;
     color: #fff;
-    box-shadow: 0 4px 14px rgba(37,99,235,.35);
+    box-shadow: 0 4px 14px rgba(0,108,53,.35);
   }
-  .nd-btn.primary:hover { box-shadow: 0 8px 22px rgba(37,99,235,.45); }
+  .nd-btn.primary:hover { box-shadow: 0 8px 22px rgba(0,108,53,.45); }
   .nd-btn.outline-blue {
-    border-color: rgba(37,99,235,.3);
+    border-color: rgba(0,108,53,.3);
     color: var(--nd-brand);
     background: var(--nd-brand-soft);
   }
-  .nd-btn.outline-blue:hover { background: rgba(37,99,235,.15); }
+  .nd-btn.outline-blue:hover { background: rgba(0,108,53,.15); }
   .nd-btn.danger {
     border-color: rgba(220,38,38,.25);
     color: var(--nd-danger);
@@ -312,7 +312,7 @@
     flex-direction: column;
     gap: 4px;
   }
-  .nd-stat.signed { background: rgba(5,150,105,.07);  border-color: rgba(5,150,105,.2); }
+  .nd-stat.signed { background: rgba(22,132,91,.07);  border-color: rgba(22,132,91,.2); }
   .nd-stat.unsigned{ background: rgba(220,38,38,.05);  border-color: rgba(220,38,38,.18); }
   .nd-stat-num {
     font-size: 1.6rem;
@@ -364,7 +364,7 @@
   }
   .nd-search-wrap input[type="search"]:focus {
     border-color: var(--nd-brand);
-    box-shadow: 0 0 0 4px rgba(37,99,235,.1);
+    box-shadow: 0 0 0 4px rgba(0,108,53,.1);
   }
   .nd-filter-tabs {
     display: flex;
@@ -436,9 +436,9 @@
     border: 1px solid transparent;
     white-space: nowrap;
   }
-  .nd-chip.read    { background: rgba(5,150,105,.1);  border-color: rgba(5,150,105,.22); color: #065f46; }
+  .nd-chip.read    { background: rgba(22,132,91,.1);  border-color: rgba(22,132,91,.22); color: #065f46; }
   .nd-chip.unread  { background: rgba(100,116,139,.09); border-color: rgba(100,116,139,.18); color: var(--nd-ink-soft); }
-  .nd-chip.signed  { background: rgba(5,150,105,.1);  border-color: rgba(5,150,105,.22); color: #065f46; }
+  .nd-chip.signed  { background: rgba(22,132,91,.1);  border-color: rgba(22,132,91,.22); color: #065f46; }
   .nd-chip.unsigned{ background: rgba(220,38,38,.08);  border-color: rgba(220,38,38,.18); color: #991b1b; }
 
   /* ── Recipient avatar ── */

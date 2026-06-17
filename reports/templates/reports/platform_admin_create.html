@@ -2,37 +2,51 @@
 {% block title %}إضافة مشرف منصة{% endblock %}
 
 {% block content %}
-<div class="container" dir="rtl" style="max-width:920px;margin:0 auto;padding:18px">
-  <div class="card" style="border-radius:18px">
-    <h1 style="margin:0 0 6px;font-weight:950">إضافة مشرف منصة</h1>
-    <div class="muted" style="font-weight:850">ينشئ هذا الحساب بصلاحية (عرض + تواصل) مع نطاق مدارس محدد.</div>
+<div class="royal-page">
+  <header class="royal-hero">
+    <div>
+      <span class="royal-kicker">
+        <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+        صلاحيات المنصة
+      </span>
+      <h1 class="royal-title">إضافة مشرف منصة</h1>
+      <p class="royal-subtitle">أنشئ حسابًا إداريًا بنطاق مدارس واضح وصلاحيات مناسبة للدور.</p>
+    </div>
+    <div class="royal-actions">
+      <a class="btn btn-outline" href="{% url 'reports:platform_admins_list' %}">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        رجوع للقائمة
+      </a>
+    </div>
+  </header>
 
+  <section class="royal-panel">
     <form method="post" style="margin-top:14px">
       {% csrf_token %}
       {{ form.non_field_errors }}
 
-      <div class="grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
-        <div>
+      <div class="royal-grid">
+        <div class="royal-field">
           <label class="form-label">الاسم</label>
           {{ form.name }}
           {{ form.name.errors }}
         </div>
-        <div>
+        <div class="royal-field">
           <label class="form-label">رقم الجوال</label>
           {{ form.phone }}
           {{ form.phone.errors }}
         </div>
-        <div>
+        <div class="royal-field">
           <label class="form-label">الدور</label>
           {{ form.role }}
           {{ form.role.errors }}
         </div>
-        <div>
+        <div class="royal-field">
           <label class="form-label">كلمة المرور</label>
           {{ form.password }}
           {{ form.password.errors }}
         </div>
-        <div>
+        <div class="royal-field">
           <label class="form-label">نشط؟</label>
           {{ form.is_active }}
           {{ form.is_active.errors }}
@@ -41,31 +55,34 @@
 
       <hr style="margin:16px 0;border-color:var(--line-2)">
 
-      <div class="grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
-        <div>
+      <div class="royal-grid">
+        <div class="royal-field">
           <label class="form-label">نطاق بنين/بنات</label>
           {{ form.gender_scope }}
           {{ form.gender_scope.errors }}
         </div>
-        <div>
+        <div class="royal-field">
           <label class="form-label">مدن (اختياري) — افصل بفواصل</label>
           {{ form.cities }}
           {{ form.cities.errors }}
         </div>
       </div>
 
-      <div style="margin-top:12px">
+      <div class="royal-field full" style="margin-top:12px">
         <label class="form-label">مدارس محددة (اختياري)</label>
         {{ form.allowed_schools }}
         {{ form.allowed_schools.errors }}
-        <div class="muted" style="margin-top:6px;font-weight:850">إذا اخترت مدارس محددة، ستُطبّق كأقوى تقييد.</div>
+        <div class="royal-note">إذا اخترت مدارس محددة، ستُطبّق كأقوى تقييد على صلاحيات المشرف.</div>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
-        <button class="btn btn-primary" type="submit">حفظ</button>
-        <a class="btn btn-outline" href="{% url 'reports:platform_admins_list' %}">رجوع</a>
+      <div class="royal-form-actions" style="margin-top:14px">
+        <button class="btn btn-primary" type="submit">
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
+          حفظ المشرف
+        </button>
+        <a class="btn btn-outline" href="{% url 'reports:platform_admins_list' %}">إلغاء</a>
       </div>
     </form>
-  </div>
+  </section>
 </div>
 {% endblock %}

@@ -105,13 +105,19 @@
 {% endblock %}
 
 {% block content %}
-<div class="container se-wrap" dir="rtl">
-  <section class="card se-card">
+<div class="royal-page royal-page--narrow se-wrap">
+  <section class="royal-panel se-card">
     <div class="se-top">
-      <div class="se-ico" aria-hidden="true">⛔</div>
+      <div class="se-ico" aria-hidden="true">
+        <i class="fa-solid fa-lock"></i>
+      </div>
 
       <div class="se-body">
-        <h1 class="page-title se-title">
+        <span class="royal-kicker">
+          <i class="fa-solid fa-crown" aria-hidden="true"></i>
+          حالة الاشتراك
+        </span>
+        <h1 class="royal-title page-title se-title">
           {% if subscription and subscription.is_cancelled %}
             عفوًا، تم إلغاء الاشتراك
           {% else %}
@@ -119,7 +125,7 @@
           {% endif %}
         </h1>
 
-        <p class="page-subtitle se-sub">
+        <p class="royal-subtitle page-subtitle se-sub">
           {% if school %}
             {% if subscription and subscription.is_cancelled %}
               تم إلغاء اشتراك مدرسة <b>{{ school.name }}</b>.
@@ -141,7 +147,7 @@
           {% endif %}
         </p>
 
-        <div class="se-box">
+        <div class="royal-note se-box">
           <div class="se-box-row">
             <div class="se-box-ttl">تفاصيل الاشتراك</div>
 
@@ -171,18 +177,21 @@
       </div>
     </div>
 
-    <div class="se-actions">
+    <div class="royal-form-actions se-actions">
       {% if user.is_authenticated %}
         {% if is_manager %}
           <a href="{% url 'reports:my_subscription' %}" class="btn btn-primary">
+            <i class="fa-solid fa-rotate" aria-hidden="true"></i>
             تجديد الاشتراك
           </a>
         {% endif %}
         <a href="{% url 'reports:logout' %}" class="btn btn-outline">
+          <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
           تسجيل الخروج
         </a>
       {% else %}
         <a href="{% url 'reports:login' %}" class="btn btn-primary">
+          <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
           تسجيل الدخول
         </a>
       {% endif %}

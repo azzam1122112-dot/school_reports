@@ -159,22 +159,26 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mgr-wrap" dir="rtl">
-  <div class="mgr-head">
+<div class="royal-page mgr-wrap">
+  <header class="royal-hero mgr-head">
     <div>
-      <h1 class="mgr-title">إدارة مدراء المدرسة</h1>
-      <p class="mgr-sub">إضافة أو إزالة المدراء لهذه المدرسة.</p>
+      <span class="royal-kicker">
+        <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
+        إدارة القيادات
+      </span>
+      <h1 class="royal-title mgr-title">إدارة مدراء المدرسة</h1>
+      <p class="royal-subtitle mgr-sub">إضافة أو إزالة المدراء لهذه المدرسة ضمن صلاحيات واضحة وآمنة.</p>
     </div>
 
     <a href="{% url 'reports:schools_admin_list' %}" class="btn btn-outline">
       <i class="fa-solid fa-arrow-right"></i> عودة لقائمة المدارس
     </a>
-  </div>
+  </header>
 
   <div class="mgr-shell" style="margin-top:14px">
-    <div class="card mgr-card">
+    <div class="royal-panel mgr-card">
       <div style="margin-bottom:12px">
-        <span class="mgr-badge">
+        <span class="royal-badge mgr-badge">
           <i class="fa-solid fa-school" style="opacity:.85"></i>
           المدرسة: {{ school.name }} — الكود: {{ school.code }}
         </span>
@@ -188,8 +192,8 @@
           </h3>
 
           {% if managers %}
-            <div class="table-responsive mgr-table">
-              <table class="rtable">
+            <div class="royal-table-wrap mgr-table">
+              <table class="royal-table rtable">
                 <thead>
                   <tr>
                     <th>المدير</th>
@@ -226,7 +230,7 @@
               ملاحظة: الإزالة لا تحذف المستخدم، فقط تفك ارتباطه كمدير لهذه المدرسة.
             </div>
           {% else %}
-            <div class="mgr-muted" style="font-weight:900">
+            <div class="royal-empty">
               لا يوجد مدراء معيّنون لهذه المدرسة بعد.
             </div>
           {% endif %}
@@ -268,7 +272,7 @@
             </div>
           </form>
 
-          <div class="mgr-row" style="margin-top:12px">
+          <div class="royal-note mgr-row" style="margin-top:12px">
             <div class="mgr-muted">
               <i class="fa-solid fa-shield-halved" style="opacity:.85"></i>
               تلميح أمان: الإضافة/الإزالة تتم عبر POST مع CSRF، وتم منع الإرسال المكرر تلقائيًا.

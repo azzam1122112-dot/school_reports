@@ -11,14 +11,14 @@
      - متوافق مع data-theme
      ========================================================= */
   .plans-scope{
-    --pl-brand: var(--brand, #2563eb);
+    --pl-brand: var(--brand, #006c35);
     --pl-ink: var(--ink, #0f172a);
     --pl-muted: var(--muted, #64748b);
     --pl-line: var(--line-2, var(--line, #e5e7eb));
     --pl-card: var(--card, #fff);
     --pl-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
     --pl-danger: var(--danger, #ef4444);
-    --pl-ok: var(--accent, #10b981);
+    --pl-ok: var(--accent, #16845b);
     --pl-t: var(--t-fast, .18s ease);
   }
 
@@ -82,7 +82,7 @@
     position:absolute;
     inset:0 0 auto 0;
     height:4px;
-    background: linear-gradient(135deg, var(--pl-brand), #4f46e5 65%, var(--pl-ok));
+    background: linear-gradient(135deg, var(--pl-brand), #006c35 65%, var(--pl-ok));
     opacity:.95;
   }
 
@@ -219,6 +219,14 @@
       <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
         عودة للوحة المنصة
+      </a>
+      <a href="{% url 'reports:platform_archive_addons_list' %}" class="btn btn-outline">
+        <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+        إضافات الأرشيف
+      </a>
+      <a href="{% url 'reports:platform_settings' %}" class="btn btn-outline">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+        تسعير الأرشيف
       </a>
     </div>
   </div>

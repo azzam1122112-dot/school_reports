@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from django.db.models import Count, Q
+from django.db.models.functions import TruncWeek
 
 from ._helpers import *
 from ._helpers import (
@@ -55,6 +56,121 @@ def _resolve_department_by_code_or_pk(code_or_pk: str, school: Optional[School] 
 
     dept_label = _arabic_label_for_in_school(dept_obj or dept_code, school)
     return dept_obj, dept_code, dept_label
+
+
+_DASHBOARD_PERIOD_LABELS = {
+    "all": "الكل",
+    "year": "هذا العام",
+    "quarter": "هذا الربع",
+    "month": "هذا الشهر",
+}
+
+
+def _normalize_dashboard_period(raw: str | None) -> str:
+    value = (raw or "all").strip().lower()
+    return value if value in _DASHBOARD_PERIOD_LABELS else "all"
+
+
+def _dashboard_period_start(period: str):
+    now = timezone.now()
+    if period == "year":
+        return now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    if period == "quarter":
+        quarter_month = ((now.month - 1) // 3) * 3 + 1
+        return now.replace(month=quarter_month, day=1, hour=0, minute=0, second=0, microsecond=0)
+    if period == "month":
+        return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return None
+
+
+def _build_school_dashboard_payload(active_school: Optional[School], period: str, *, reporttypes_count: int = 0) -> dict:
+    """Build the JSON payload used by the school dashboard UI.
+
+    Keeping this server-side makes the dashboard API and the rendered page share
+    one source of truth for counters and chart data.
+    """
+    period = _normalize_dashboard_period(period)
+    start_at = _dashboard_period_start(period)
+    now = timezone.now()
+
+    teachers_qs = Teacher.objects.all()
+    if active_school is not None:
+        teachers_qs = teachers_qs.filter(
+            school_memberships__school=active_school,
+            school_memberships__is_active=True,
+        ).distinct()
+
+    reports_qs = _filter_by_school(Report.objects.all(), active_school)
+    tickets_qs = _filter_by_school(Ticket.objects.filter(is_platform=False), active_school)
+    if start_at is not None:
+        reports_qs = reports_qs.filter(created_at__gte=start_at)
+        tickets_qs = tickets_qs.filter(created_at__gte=start_at)
+
+    ticket_agg = tickets_qs.aggregate(
+        total=Count("id"),
+        open=Count("id", filter=Q(status__in=["open", "in_progress"])),
+        done=Count("id", filter=Q(status="done")),
+        rejected=Count("id", filter=Q(status="rejected")),
+    )
+
+    chart_start = start_at or (now - timedelta(weeks=8))
+    reports_by_week = (
+        reports_qs.filter(created_at__gte=chart_start)
+        .annotate(week=TruncWeek("created_at"))
+        .values("week")
+        .annotate(count=Count("id"))
+        .order_by("week")
+    )
+    reports_labels = []
+    reports_data = []
+    for item in reports_by_week:
+        week_value = item.get("week")
+        if week_value:
+            reports_labels.append(week_value.strftime("%d/%m"))
+            reports_data.append(int(item.get("count") or 0))
+
+    reports_by_category = (
+        reports_qs.values("category__name")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:6]
+    )
+    category_labels = []
+    category_data = []
+    for item in reports_by_category:
+        category_labels.append(item.get("category__name") or "غير محدد")
+        category_data.append(int(item.get("count") or 0))
+
+    teachers_labels = []
+    teachers_data = []
+    if active_school is not None and Department is not None:
+        teachers_by_dept_qs = (
+            Department.objects.filter(school=active_school)
+            .annotate(teacher_count=Count("memberships__teacher", distinct=True))
+            .order_by("-teacher_count")[:6]
+        )
+        for dept in teachers_by_dept_qs:
+            teachers_labels.append(dept.name)
+            teachers_data.append(int(dept.teacher_count or 0))
+
+    return {
+        "period": period,
+        "period_label": _DASHBOARD_PERIOD_LABELS.get(period, "الكل"),
+        "generated_at": timezone.localtime(now).strftime("%Y-%m-%d %H:%M"),
+        "kpis": {
+            "reports_count": int(reports_qs.count()),
+            "teachers_count": int(teachers_qs.count()),
+            "reporttypes_count": int(reporttypes_count or 0),
+            "tickets_total": int(ticket_agg.get("total") or 0),
+            "tickets_open": int(ticket_agg.get("open") or 0),
+            "tickets_done": int(ticket_agg.get("done") or 0),
+            "tickets_rejected": int(ticket_agg.get("rejected") or 0),
+        },
+        "charts": {
+            "reports": {"labels": reports_labels, "data": reports_data},
+            "categories": {"labels": category_labels, "data": category_data},
+            "teachers": {"labels": teachers_labels, "data": teachers_data},
+        },
+    }
 
 def _members_for_department(dept_code: str, school: Optional[School] = None):
     if not dept_code:
@@ -218,6 +334,7 @@ class _SchoolSettingsForm(forms.ModelForm):
             "gender",
             "city",
             "phone",
+            "current_academic_year",
             "share_link_default_days",
         ]
 
@@ -238,12 +355,25 @@ class _SchoolSettingsForm(forms.ModelForm):
                 continue
             if not re.match(r"^\d{4}-\d{4}$", p):
                  # يمكن تجاهل غير الصالح أو رفع خطأ. سنرفض الخطأ لتنبيه المستخدم.
-                pass 
+                raise forms.ValidationError("صيغة السنة الدراسية يجب أن تكون مثل 1447-1448")
             years.append(p)
         
         # ترتيبها
         years.sort()
         return years
+
+    def clean_current_academic_year(self):
+        import re
+
+        value = (self.cleaned_data.get("current_academic_year") or "").strip().replace("–", "-").replace("—", "-")
+        if not value:
+            return value
+        if not re.match(r"^\d{4}-\d{4}$", value):
+            raise forms.ValidationError("صيغة السنة الحالية يجب أن تكون مثل 1447-1448")
+        start, end = value.split("-", 1)
+        if int(end) != int(start) + 1:
+            raise forms.ValidationError("السنة الحالية يجب أن تكون بفارق سنة واحدة، مثل 1447-1448")
+        return value
 
     def save(self, commit=True):
         self.instance.allowed_academic_years = self.cleaned_data["years_text"]
@@ -815,7 +945,73 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         
         ctx['recent_activities'] = recent_activities
 
+    selected_period = _normalize_dashboard_period(request.GET.get("period"))
+    dashboard_payload = _build_school_dashboard_payload(
+        active_school,
+        selected_period,
+        reporttypes_count=reporttypes_count,
+    )
+
+    wants_json = (
+        request.GET.get("format") == "json"
+        or request.headers.get("x-requested-with") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("accept") or "")
+    )
+    if wants_json:
+        return JsonResponse(dashboard_payload, json_dumps_params={"ensure_ascii": False})
+
+    # Let the rendered dashboard and the JSON refresh use the same payload.
+    payload_kpis = dashboard_payload["kpis"]
+    payload_charts = dashboard_payload["charts"]
+    ctx.update(
+        {
+            **payload_kpis,
+            "initial_period": selected_period,
+            "dashboard_period_payload": json.dumps(dashboard_payload, ensure_ascii=False),
+            "reports_labels": json.dumps(payload_charts["reports"]["labels"], ensure_ascii=False),
+            "reports_data": json.dumps(payload_charts["reports"]["data"]),
+            "dept_labels": json.dumps(payload_charts["categories"]["labels"], ensure_ascii=False),
+            "dept_data": json.dumps(payload_charts["categories"]["data"]),
+            "teachers_labels": json.dumps(payload_charts["teachers"]["labels"], ensure_ascii=False),
+            "teachers_data": json.dumps(payload_charts["teachers"]["data"]),
+        }
+    )
+
     return render(request, "reports/admin_dashboard.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(_is_staff, login_url="reports:login")
+@role_required({"manager"})
+@require_http_methods(["GET"])
+def admin_dashboard_data(request: HttpRequest) -> HttpResponse:
+    """JSON data endpoint for the school dashboard."""
+    active_school = _get_active_school(request)
+    if School.objects.filter(is_active=True).exists():
+        if active_school is None:
+            return JsonResponse({"detail": "active_school_required"}, status=403)
+        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+            return JsonResponse({"detail": "forbidden"}, status=403)
+
+    reporttypes_count = 0
+    try:
+        from ..models import ReportType  # type: ignore
+
+        rt_qs = ReportType.objects.all()
+        if hasattr(ReportType, "is_active"):
+            rt_qs = rt_qs.filter(is_active=True)
+        if active_school is not None and _model_has_field(ReportType, "school"):
+            rt_qs = rt_qs.filter(school=active_school)
+        reporttypes_count = rt_qs.count()
+    except Exception:
+        reporttypes_count = 0
+
+    payload = _build_school_dashboard_payload(
+        active_school,
+        _normalize_dashboard_period(request.GET.get("period")),
+        reporttypes_count=reporttypes_count,
+    )
+    return JsonResponse(payload, json_dumps_params={"ensure_ascii": False})
 
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff, login_url="reports:login")

@@ -10,12 +10,12 @@
 /* Base Variables - يمكن تخصيصها حسب الحاجة */
 :root {
     /* Colors */
-    --pad-primary: #4f46e5;
-    --pad-secondary: #10b981;
+    --pad-primary: #006c35;
+    --pad-secondary: #16845b;
     --pad-danger: #ef4444;
-    --pad-warning: #f59e0b;
-    --pad-info: #0ea5e9;
-    --pad-purple: #8b5cf6;
+    --pad-warning: #b9975b;
+    --pad-info: #0072bc;
+    --pad-purple: #b9975b;
     
     /* Backgrounds */
     --pad-bg-light: #f8fafc;
@@ -285,7 +285,7 @@
 }
 
 .pad-gradient-success {
-    background: linear-gradient(135deg, var(--pad-secondary), #059669);
+    background: linear-gradient(135deg, var(--pad-secondary), #16845b);
 }
 
 .pad-gradient-danger {

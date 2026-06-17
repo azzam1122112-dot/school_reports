@@ -25,13 +25,13 @@
     --d-card: var(--card, #ffffff);
     --d-bg: var(--bg, #f5f9ff);
 
-    --d-brand: #2563eb;
-    --d-brand-2: #3b82f6;
+    --d-brand: #006c35;
+    --d-brand-2: #0f8f87;
     --d-brand-soft: #dbeafe;
     --d-danger-bg: #fff1f2;
     --d-danger-line: #fecdd3;
 
-    --d-shadow: 0 24px 54px rgba(37, 99, 235, .09);
+    --d-shadow: 0 24px 54px rgba(0, 108, 53, .09);
     --d-shadow-sm: 0 8px 22px rgba(2, 6, 23, .07);
     --d-radius-lg: 22px;
     --d-radius-md: 14px;
@@ -65,7 +65,7 @@
     border:1px solid var(--d-line);
     border-radius:var(--d-radius-lg);
     background:
-      radial-gradient(1100px 420px at 100% -20%, rgba(37,99,235,.12), transparent 60%),
+      radial-gradient(1100px 420px at 100% -20%, rgba(0,108,53,.12), transparent 60%),
       radial-gradient(900px 360px at 0% -10%, rgba(16,185,129,.1), transparent 58%),
       linear-gradient(180deg, var(--d-card), color-mix(in srgb, var(--d-card) 88%, var(--d-bg)));
     box-shadow:var(--d-shadow);
@@ -96,7 +96,7 @@
     border-radius:999px;
     border:1px solid color-mix(in srgb, var(--d-brand) 24%, var(--d-line));
     background:var(--d-brand-soft);
-    color:#1d4ed8;
+    color:#00542a;
     font-weight:900;
     font-size:.88rem;
   }
@@ -144,7 +144,7 @@
     padding:7px 12px;
     background:linear-gradient(180deg, #eef4ff, #dbeafe);
     border:1px solid #c7d8ff;
-    color:#1e3a8a;
+    color:#073b2a;
     font-size:.84rem;
     font-weight:950;
     white-space:nowrap;
@@ -199,8 +199,8 @@
     font-weight:900;
   }
   .dept-scope select:focus{
-    border-color: rgba(59,130,246,.55);
-    box-shadow:0 0 0 3px rgba(59,130,246,.14);
+    border-color: rgba(15,143,135,.55);
+    box-shadow:0 0 0 3px rgba(15,143,135,.14);
   }
 
   .dept-scope .d-btn{
@@ -232,7 +232,7 @@
   .dept-scope .d-btn-primary{
     border-color:transparent;
     background:linear-gradient(135deg, var(--d-brand), var(--d-brand-2));
-    box-shadow:0 10px 26px rgba(37,99,235,.28);
+    box-shadow:0 10px 26px rgba(0,108,53,.28);
   }
   .dept-scope .d-btn-secondary{
     background:linear-gradient(180deg, var(--d-line2), var(--d-card));
@@ -264,8 +264,8 @@
     transition:var(--d-t);
   }
   .dept-scope .search input:focus{
-    border-color: rgba(59,130,246,.55);
-    box-shadow:0 0 0 3px rgba(59,130,246,.14);
+    border-color: rgba(15,143,135,.55);
+    box-shadow:0 0 0 3px rgba(15,143,135,.14);
   }
   .dept-scope .search svg{
     position:absolute;
@@ -319,15 +319,15 @@
     display:grid;
     place-items:center;
     font-weight:950;
-    background: rgba(37,99,235,.10);
-    color: rgba(30,64,175,.95);
-    border:1px solid rgba(37,99,235,.18);
+    background: rgba(0,108,53,.10);
+    color: rgba(0,84,42,.95);
+    border:1px solid rgba(0,108,53,.18);
     flex:0 0 auto;
   }
   html[data-theme="dark"] .dept-scope .avatar{
-    background: rgba(37,99,235,.16);
+    background: rgba(0,108,53,.16);
     color: rgba(219,234,254,.95);
-    border-color: rgba(37,99,235,.28);
+    border-color: rgba(0,108,53,.28);
   }
 
   .dept-scope .name{font-weight:950;color:var(--d-ink);line-height:1.2}
@@ -350,14 +350,14 @@
     background: rgba(148,163,184,.12);
   }
   .dept-scope .role-officer{
-    background: rgba(37,99,235,.10);
-    color: rgba(30,64,175,.98);
-    border-color: rgba(37,99,235,.18);
+    background: rgba(0,108,53,.10);
+    color: rgba(0,84,42,.98);
+    border-color: rgba(0,108,53,.18);
   }
   html[data-theme="dark"] .dept-scope .role-officer{
-    background: rgba(37,99,235,.16);
+    background: rgba(0,108,53,.16);
     color: rgba(219,234,254,.95);
-    border-color: rgba(37,99,235,.28);
+    border-color: rgba(0,108,53,.28);
   }
   .dept-scope .role-member{
     background: rgba(16,185,129,.10);

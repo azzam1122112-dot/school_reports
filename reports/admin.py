@@ -22,8 +22,11 @@ from .models import (
     SchoolMembership,
     PlatformAdminScope,
     PlatformAdminRole,
+    PlatformSettings,
     SubscriptionPlan,
     SchoolSubscription,
+    SchoolArchiveAddon,
+    ArchiveStorageOption,
     Payment,
     AuditLog,
 )
@@ -298,7 +301,7 @@ class TicketNoteAdmin(admin.ModelAdmin):
 # =========================
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "is_active", "created_at")
+    list_display = ("name", "code", "current_academic_year", "is_active", "created_at")
     list_filter = ("is_active", "created_at")
     search_fields = ("name", "code")
     prepopulated_fields = {"code": ("name",)}
@@ -542,10 +545,51 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
             return
 
 
+@admin.register(PlatformSettings)
+class PlatformSettingsAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "share_link_default_days",
+        "archive_addon_annual_price",
+        "archive_included_storage_gb",
+        "updated_at",
+    )
+    readonly_fields = ("created_at", "updated_at")
+    fields = (
+        "share_link_default_days",
+        "archive_addon_annual_price",
+        "archive_included_storage_gb",
+        "updated_by",
+        "created_at",
+        "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        if PlatformSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+
+@admin.register(SchoolArchiveAddon)
+class SchoolArchiveAddonAdmin(admin.ModelAdmin):
+    list_display = ("school", "is_enabled", "start_date", "end_date", "storage_limit_gb", "paid_amount", "is_active", "days_remaining")
+    list_filter = ("is_enabled", "start_date", "end_date")
+    search_fields = ("school__name", "school__code", "notes")
+    autocomplete_fields = ("school",)
+    date_hierarchy = "start_date"
+
+
+@admin.register(ArchiveStorageOption)
+class ArchiveStorageOptionAdmin(admin.ModelAdmin):
+    list_display = ("storage_gb", "price", "is_active", "sort_order", "updated_at")
+    list_filter = ("is_active",)
+    ordering = ("sort_order", "storage_gb", "id")
+
+
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("id", "school", "requested_plan", "amount", "status", "payment_date", "created_at")
-    list_filter = ("status", "payment_date", "created_at")
+    list_display = ("id", "school", "purpose", "requested_plan", "amount", "status", "payment_date", "created_at")
+    list_filter = ("purpose", "status", "payment_date", "created_at")
     search_fields = ("school__name", "notes", "transaction_id")
     autocomplete_fields = ("school", "requested_plan")
     date_hierarchy = "created_at"

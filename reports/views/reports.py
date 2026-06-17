@@ -12,7 +12,7 @@ from django.core.cache import cache
 from ._helpers import *
 from ._helpers import (
     _is_staff, _is_staff_or_officer, _is_manager_in_school,
-    _parse_date_safe, _filter_by_school, _safe_redirect,
+    _parse_date_safe, _filter_by_school, _safe_next_url, _safe_redirect,
     _private_comment_role_label, _model_has_field,
     _get_active_school, _is_report_viewer,
     _ensure_achievement_sections,
@@ -81,6 +81,11 @@ def add_report(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, active_school=active_school)
         if form.is_valid():
+            capacity_error = archive_storage_capacity_error(active_school, form.files.values())
+            if capacity_error:
+                messages.error(request, capacity_error)
+                return render(request, "reports/add_report.html", {"form": form})
+
             report = form.save(commit=False)
             report.teacher = request.user
             if hasattr(report, "school") and active_school is not None:
@@ -95,6 +100,7 @@ def add_report(request: HttpRequest) -> HttpResponse:
                 report.teacher_name = teacher_name_final
 
             report.save()
+            sync_school_archive_storage_usage(getattr(report, "school", active_school))
 
             # إشعار مدير المدرسة ورئيس القسم بتقرير جديد
             _notify_report_created(report, active_school)
@@ -265,6 +271,75 @@ def school_reports_readonly(request: HttpRequest) -> HttpResponse:
         "qs": _clean_query_params(request.GET),
     }
     return render(request, "reports/admin_reports.html", context)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["GET"])
+def school_archive(request: HttpRequest) -> HttpResponse:
+    """أرشيف مدفوع مستقل للتقارير وملفات الإنجاز حسب السنة الدراسية."""
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
+        return redirect("reports:select_school")
+
+    is_manager = is_school_manager(request.user, active_school=active_school)
+    is_viewer = _is_report_viewer(request.user, active_school)
+    is_platform = bool(is_platform_admin(request.user) and platform_can_access_school(request.user, active_school))
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    school_wide = bool(is_superuser or is_manager or is_viewer or is_platform)
+
+    if not school_archive_enabled(active_school):
+        return render(
+            request,
+            "reports/school_archive.html",
+            {
+                "archive_enabled": False,
+                "current_school": active_school,
+                "school_wide": school_wide,
+            },
+        )
+
+    years = archive_available_years(
+        school=active_school,
+        teacher=request.user,
+        school_wide=school_wide,
+    )
+    selected_year = (request.GET.get("year") or "").strip()
+    if selected_year not in years:
+        selected_year = years[0] if years else ""
+
+    payload = archive_payload(
+        school=active_school,
+        selected_year=selected_year,
+        teacher=request.user,
+        school_wide=school_wide,
+    )
+
+    reports_page = svc_paginate(payload["reports_qs"], per_page=15, page=request.GET.get("reports_page", 1))
+    achievement_files_page = svc_paginate(
+        payload["achievement_files_qs"],
+        per_page=20,
+        page=request.GET.get("files_page", 1),
+    )
+
+    return render(
+        request,
+        "reports/school_archive.html",
+        {
+            "archive_enabled": True,
+            "current_school": active_school,
+            "school_wide": school_wide,
+            "years": years,
+            "selected_year": selected_year,
+            "selected_year_label": archive_year_label(selected_year) if selected_year else "",
+            "reports": reports_page,
+            "achievement_files": achievement_files_page,
+            "report_stats": payload["report_stats"],
+            "achievement_stats": payload["achievement_stats"],
+            "unclassified_year": UNCLASSIFIED_YEAR,
+            "qs": _clean_query_params(request.GET),
+        },
+    )
 
 
 @login_required(login_url="reports:login")
@@ -555,7 +630,9 @@ def admin_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
             messages.error(request, "لا تملك صلاحية حذف هذا التقرير.")
             return _safe_redirect(request, "reports:admin_reports")
         
+        report_school = getattr(report, "school", active_school)
         report.delete()
+        sync_school_archive_storage_usage(report_school)
         messages.success(request, "🗑️ تم حذف التقرير بنجاح.")
     except Exception:
         messages.error(request, "تعذّر حذف التقرير.")
@@ -588,7 +665,9 @@ def officer_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
             messages.error(request, "لا تملك صلاحية حذف هذا التقرير.")
             return _safe_redirect(request, "reports:admin_reports")
         
+        report_school = getattr(r, "school", active_school)
         r.delete()
+        sync_school_archive_storage_usage(report_school)
         messages.success(request, "🗑️ تم حذف التقرير بنجاح.")
     except Exception:
         messages.error(request, "تعذّر حذف التقرير أو لا تملك صلاحية لذلك.")
@@ -1353,9 +1432,25 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, instance=r, active_school=form_school)
         if form.is_valid():
+            report_school = form_school or getattr(r, "school", None)
+            replacing_files = [
+                getattr(r, field_name, None)
+                for field_name in ("image1", "image2", "image3", "image4")
+                if field_name in form.files
+            ]
+            capacity_error = archive_storage_capacity_error(
+                report_school,
+                form.files.values(),
+                replacing_files=replacing_files,
+            )
+            if capacity_error:
+                messages.error(request, capacity_error)
+                return render(request, "reports/edit_report.html", {"form": form, "report": r})
+
             form.save()
+            sync_school_archive_storage_usage(report_school)
             messages.success(request, "✏️ تم تحديث التقرير بنجاح.")
-            nxt = request.POST.get("next") or request.GET.get("next")
+            nxt = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
             if nxt:
                 return redirect(nxt)
             # إذا كان المستخدم ليس صاحب التقرير، يعود لـ admin_reports
@@ -1375,7 +1470,9 @@ def delete_my_report(request: HttpRequest, pk: int) -> HttpResponse:
     qs = Report.objects.filter(teacher=request.user)
     qs = _filter_by_school(qs, active_school)
     r = get_object_or_404(qs, pk=pk)
+    report_school = getattr(r, "school", active_school)
     r.delete()
+    sync_school_archive_storage_usage(report_school)
     messages.success(request, "🗑️ تم حذف التقرير.")
-    nxt = request.POST.get("next") or request.GET.get("next")
+    nxt = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
     return redirect(nxt or "reports:my_reports")

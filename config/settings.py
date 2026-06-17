@@ -78,6 +78,7 @@ def _default_allowed_hosts() -> list[str]:
         "school-reports.onrender.com",
         "app.tawtheeq-ksa.com",
         "tawtheeq-ksa.com",
+        "www.tawtheeq-ksa.com",
     ]
 
     # Render external URL (preferred)
@@ -113,6 +114,7 @@ def _default_csrf_trusted_origins() -> list[str]:
         "https://school-reports.onrender.com",
         "https://app.tawtheeq-ksa.com",
         "https://tawtheeq-ksa.com",
+        "https://www.tawtheeq-ksa.com",
     ]
 
     # Derive trusted origins from allowed hosts to reduce host-mismatch CSRF issues.
@@ -679,6 +681,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 # ----------------- Upload limits -----------------
 DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FIELDS", "20000"))
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(40 * 1024 * 1024)))
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(2 * 1024 * 1024)))
+DATA_UPLOAD_MAX_NUMBER_FILES = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FILES", "20"))
 
 
 # ----------------- Cloudflare R2 (conditional) -----------------

@@ -7,17 +7,17 @@
 {% block head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   /* ===== DESIGN TOKENS ===== */
   :root {
-    --primary:       #4f46e5;
+    --primary:       #006c35;
     --primary-light: #818cf8;
     --primary-dark:  #3730a3;
     --secondary:     #ec4899;
-    --accent:        #8b5cf6;
-    --success:       #10b981;
-    --warning:       #f59e0b;
+    --accent:        #b9975b;
+    --success:       #16845b;
+    --warning:       #b9975b;
     --danger:        #ef4444;
     --info:          #06b6d4;
 
@@ -50,7 +50,7 @@
   *, *::before, *::after { box-sizing: border-box; }
 
   body {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
     background: var(--bg-page);
     background-image:
       radial-gradient(ellipse 70% 50% at 0% 0%,   rgba(79,70,229,.12) 0%, transparent 60%),
@@ -555,7 +555,7 @@
     position: absolute;
     top: .6rem;
     left: .6rem;
-    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    background: linear-gradient(135deg, #b9975b, #ef4444);
     color: white;
     font-size: .65rem;
     font-weight: 900;
@@ -651,7 +651,7 @@
   .chip {
     width: 46px;
     height: 34px;
-    background: linear-gradient(135deg, #fbbf24, #d97706);
+    background: linear-gradient(135deg, #d4b16d, #d97706);
     border-radius: 7px;
     box-shadow: inset 0 1px 3px rgba(255,255,255,.35), 0 2px 8px rgba(0,0,0,.3);
     position: relative;
@@ -692,7 +692,7 @@
     letter-spacing: 1.5px;
     opacity: .55;
     margin-bottom: .3rem;
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
   }
 
   .iban-value {
@@ -914,6 +914,120 @@
     transform: none;
   }
 
+  /* ===== ARCHIVE ADDON ===== */
+  .archive-card {
+    margin-bottom: 1.75rem;
+    border: 1px solid rgba(6,182,212,.22);
+  }
+
+  .archive-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .archive-metric {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+  }
+
+  .archive-metric span {
+    display: block;
+    color: var(--text-3);
+    font-size: .78rem;
+    font-weight: 800;
+    margin-bottom: .35rem;
+  }
+
+  .archive-metric strong {
+    color: var(--text-h);
+    font-size: 1.05rem;
+    font-weight: 900;
+  }
+
+  .archive-progress {
+    height: 10px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+    margin-top: .75rem;
+  }
+
+  .archive-progress span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--info), var(--success));
+    border-radius: inherit;
+  }
+
+  .archive-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .archive-action-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+  }
+
+  .archive-action-box h3 {
+    margin: 0 0 .35rem;
+    color: var(--text-h);
+    font-size: 1rem;
+    font-weight: 900;
+  }
+
+  .archive-action-box p {
+    margin: 0 0 1rem;
+    color: var(--text-2);
+    font-size: .88rem;
+    line-height: 1.7;
+    font-weight: 600;
+  }
+
+  .archive-price {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .25rem;
+    color: var(--primary);
+    font-weight: 900;
+    margin-bottom: 1rem;
+  }
+
+  .archive-price strong { font-size: 1.5rem; }
+
+  .archive-file {
+    width: 100%;
+    background: var(--bg-subtle);
+    border: 1px dashed #cbd5e1;
+    border-radius: var(--radius-sm);
+    padding: .85rem;
+    margin-bottom: .85rem;
+    font-family: inherit;
+  }
+
+  .archive-pending {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    border-radius: var(--radius-md);
+    padding: .9rem 1rem;
+    background: rgba(245,158,11,.1);
+    color: #92400e;
+    font-weight: 900;
+    margin-top: 1rem;
+  }
+
+  .archive-single {
+    grid-template-columns: 1fr;
+  }
+
   /* ===== HISTORY SECTION ===== */
   .history-header {
     display: flex;
@@ -995,7 +1109,7 @@
     white-space: nowrap;
   }
 
-  .tbl-badge-success  { background: rgba(16,185,129,.1);  color: #059669; }
+  .tbl-badge-success  { background: rgba(16,185,129,.1);  color: #16845b; }
   .tbl-badge-danger   { background: rgba(239,68,68,.1);   color: #dc2626; }
   .tbl-badge-warning  { background: rgba(245,158,11,.1);  color: #d97706; }
   .tbl-badge-neutral  { background: rgba(100,116,139,.1); color: #475569; }
@@ -1074,6 +1188,8 @@
     .sub-container { padding: 1.5rem 1rem 3rem; }
     .glass-card { padding: 1.5rem; }
     .plans-grid { grid-template-columns: 1fr 1fr; }
+    .archive-summary,
+    .archive-actions { grid-template-columns: 1fr; }
     .steps-guide { gap: 0; }
     .step-label { display: none; }
     .hero-title { font-size: 1.5rem; }
@@ -1330,6 +1446,105 @@
         </form>
       </div>
 
+      <!-- Archive Addon Card -->
+      <div class="glass-card archive-card">
+        <div class="section-header">
+          <div class="section-icon" style="background:linear-gradient(135deg,#06b6d4,#16845b);">
+            <i class="fa-solid fa-box-archive"></i>
+          </div>
+          <div class="section-header-text">
+            <h2>إضافة الأرشفة وملفات الإنجاز</h2>
+            <p>إضافة مستقلة تحفظ تقارير الأعوام السابقة وملفات الإنجاز ويمكن رفع مساحة تخزينها عند الحاجة</p>
+          </div>
+        </div>
+
+        <div class="archive-summary">
+          <div class="archive-metric">
+            <span>حالة الأرشفة</span>
+            <strong>
+              {% if archive_addon and archive_addon.is_active %}مفعّلة{% elif pending_archive_addon_payment %}قيد المراجعة{% else %}غير مفعّلة{% endif %}
+            </strong>
+          </div>
+          <div class="archive-metric">
+            <span>تاريخ الانتهاء</span>
+            <strong dir="ltr">{% if archive_addon.end_date %}{{ archive_addon.end_date|date:"Y-m-d" }}{% else %}—{% endif %}</strong>
+          </div>
+          <div class="archive-metric">
+            <span>مساحة التخزين</span>
+            <strong>{{ archive_addon.storage_used_gb|default:0 }}GB / {{ archive_addon.storage_limit_gb|default:archive_included_storage_gb }}GB</strong>
+            <div class="archive-progress" aria-label="نسبة استخدام التخزين">
+              <span style="width:{{ archive_addon.storage_usage_percent|default:0 }}%"></span>
+            </div>
+          </div>
+        </div>
+
+        {% if pending_archive_addon_payment %}
+          <div class="archive-pending">
+            <i class="fa-solid fa-hourglass-half"></i>
+            طلب تفعيل الأرشفة قيد مراجعة مدير النظام.
+          </div>
+        {% elif not archive_addon or not archive_addon.is_active %}
+          <div class="archive-actions archive-single">
+            <form class="archive-action-box" action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="payment_kind" value="archive_addon">
+              <h3>تفعيل الأرشفة السنوية</h3>
+              <p>يحافظ النظام على تقارير المدرسة وملفات الإنجاز عند تهيئة العام الدراسي، مع مساحة ابتدائية قدرها {{ archive_included_storage_gb }}GB.</p>
+              <div class="archive-price"><strong>{{ archive_addon_price|floatformat:0 }}</strong><span>ريال / سنة</span></div>
+              <input type="file" name="receipt_image" class="archive-file" accept="image/*" required>
+              <input type="text" name="notes" class="form-input" placeholder="ملاحظات التحويل، إن وجدت">
+              <button type="submit" class="btn-submit" style="margin-top:1rem;">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>طلب تفعيل الأرشفة</span>
+              </button>
+            </form>
+          </div>
+        {% else %}
+          <div class="archive-actions">
+            <form class="archive-action-box" action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="payment_kind" value="archive_addon">
+              <h3>تجديد الأرشفة سنة إضافية</h3>
+              <p>عند الاعتماد تُمدد فترة الأرشفة سنة كاملة مع استمرار حماية بيانات الأعوام السابقة.</p>
+              <div class="archive-price"><strong>{{ archive_addon_price|floatformat:0 }}</strong><span>ريال</span></div>
+              <input type="file" name="receipt_image" class="archive-file" accept="image/*" required>
+              <input type="text" name="notes" class="form-input" placeholder="ملاحظات التحويل، إن وجدت">
+              <button type="submit" class="btn-submit" style="margin-top:1rem;">
+                <i class="fa-solid fa-rotate"></i>
+                <span>طلب التجديد</span>
+              </button>
+            </form>
+
+            <form class="archive-action-box" action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="payment_kind" value="archive_storage">
+              <h3>زيادة مساحة التخزين</h3>
+              <p>اختر إحدى باقات زيادة مساحة الأرشيف التي يتيحها مدير النظام.</p>
+              {% if pending_archive_storage_payment %}
+                <div class="archive-pending" style="margin-bottom:1rem;">
+                  <i class="fa-solid fa-hourglass-half"></i>
+                  يوجد طلب زيادة مساحة قيد المراجعة.
+                </div>
+              {% endif %}
+              <div class="form-group" style="margin-bottom:.85rem;">
+                <label class="form-label" for="archiveStorageUnits">المساحة المطلوبة</label>
+                <select id="archiveStorageUnits" name="archive_storage_option_id" class="form-input" {% if pending_archive_storage_payment %}disabled{% endif %} required>
+                  {% for option in archive_storage_options %}
+                    <option value="{{ option.id }}">{{ option.storage_gb }}GB - {{ option.price|floatformat:0 }} ريال</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <input type="file" name="receipt_image" class="archive-file" accept="image/*" {% if not pending_archive_storage_payment %}required{% endif %} {% if pending_archive_storage_payment %}disabled{% endif %}>
+              <input type="text" name="notes" class="form-input" placeholder="ملاحظات التحويل، إن وجدت" {% if pending_archive_storage_payment %}disabled{% endif %}>
+              <button type="submit" class="btn-submit" style="margin-top:1rem;" {% if pending_archive_storage_payment %}disabled{% endif %}>
+                <i class="fa-solid fa-hard-drive"></i>
+                <span>طلب زيادة المساحة</span>
+              </button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+
       <!-- History Card -->
       <div class="glass-card">
         <div class="history-header">
@@ -1352,7 +1567,7 @@
             <thead>
               <tr>
                 <th>التاريخ</th>
-                <th>الباقة</th>
+                <th>العملية</th>
                 <th>المبلغ</th>
                 <th>الحالة</th>
                 <th>ملاحظات</th>
@@ -1362,7 +1577,15 @@
               {% for payment in payments %}
               <tr>
                 <td><span dir="ltr" style="font-weight:700;font-family:'Courier New',monospace;">{{ payment.created_at|date:"Y-m-d" }}</span></td>
-                <td style="font-weight:700;">{{ payment.requested_plan.name|default:"—" }}</td>
+                <td style="font-weight:700;">
+                  {% if payment.purpose == 'archive_addon' %}
+                    إضافة الأرشفة
+                  {% elif payment.purpose == 'archive_storage' %}
+                    زيادة مساحة الأرشيف {{ payment.archive_storage_gb }}GB
+                  {% else %}
+                    {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
+                  {% endif %}
+                </td>
                 <td>
                   {% if payment.amount < 0 %}
                     <span dir="ltr" style="font-family:'Courier New',monospace;font-weight:800;color:var(--danger);">{{ payment.amount }} SAR</span>
@@ -1437,10 +1660,10 @@ document.addEventListener('DOMContentLoaded', () => {
     circle.style.strokeDasharray  = `${circ} ${circ}`;
     circle.style.strokeDashoffset = circ;
 
-    let color = '#10b981';
+    let color = '#16845b';
     if (days <= 0)  color = '#ef4444';
     else if (days < 10)  color = '#ef4444';
-    else if (days < 30)  color = '#f59e0b';
+    else if (days < 30)  color = '#b9975b';
     circle.style.stroke = color;
 
     const percent = Math.min(Math.max(days / 365, 0), 1);
@@ -1490,10 +1713,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update icon feedback
       if (uploadIcon) {
         uploadIcon.className = 'fa-solid fa-circle-check upload-icon';
-        uploadIcon.style.color = '#10b981';
+        uploadIcon.style.color = '#16845b';
       }
       fileLabel.textContent = file.name;
-      fileLabel.style.color = '#10b981';
+      fileLabel.style.color = '#16845b';
     };
     reader.readAsDataURL(file);
   }
@@ -1556,7 +1779,7 @@ window.copyToClip = function (text, btn) {
     if (btn) {
       const orig = btn.innerHTML;
       btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-      btn.style.color = '#10b981';
+      btn.style.color = '#16845b';
       setTimeout(() => {
         btn.innerHTML = orig;
         btn.style.color = '';

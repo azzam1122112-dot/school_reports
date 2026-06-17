@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#2563eb" />
+  <meta name="theme-color" content="#006c35" />
   <meta name="color-scheme" content="light dark" />
 
   <!-- Favicon (مهم لتفادي طلب /favicon.ico الافتراضي) -->
@@ -44,7 +44,7 @@
   <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
     /* 
@@ -52,27 +52,27 @@
        Global Design System Overlay
     */
     :root {
-      --font-base: 'Tajawal', system-ui, -apple-system, sans-serif;
+      --font-base: 'Cairo', system-ui, -apple-system, sans-serif;
       
       /* Palette */
-      --brand: #1e293b;       /* Slate 900 (Professional Dark) */
-      --brand-alpha: rgba(30, 41, 59, 0.95);
-      --accent: #2563eb;      /* Royal Blue */
-      --accent-hover: #1d4ed8;
+      --brand: #006c35;
+      --brand-alpha: rgba(0, 108, 53, 0.95);
+      --accent: #b9975b;
+      --accent-hover: #8d6b2f;
       
       --surface: #ffffff;
-      --bg-body: #f8fafc;     /* Slate 50 */
-      --bg-sub: #f1f5f9;      /* Slate 100 */
+      --bg-body: #f4f7f3;
+      --bg-sub: #edf5ef;
       
-      --text-main: #0f172a;   /* Slate 900 */
-      --text-muted: #64748b;  /* Slate 500 */
-      --text-light: #94a3b8;  /* Slate 400 */
+      --text-main: #10251f;
+      --text-muted: #68766f;
+      --text-light: #8d9b95;
       
       --border-light: #e2e8f0;
       --border-focus: #cbd5e1;
       
-      --success: #10b981;
-      --warning: #f59e0b;
+      --success: #16845b;
+      --warning: #b9975b;
       --danger: #ef4444;
       
       /* Elevations */
@@ -420,7 +420,7 @@
       background: linear-gradient(90deg, 
         transparent 0%, 
         var(--accent) 20%, 
-        #60a5fa 50%, 
+        #0f8f87 50%, 
         var(--accent) 80%, 
         transparent 100%
       );
@@ -699,7 +699,7 @@
     .btn-primary {
         background: var(--accent);
         color: white;
-        box-shadow: 0 2px 4px rgba(37,99,235,0.2);
+        box-shadow: 0 2px 4px rgba(0,108,53,0.2);
     }
     .btn-primary:hover {
         background: var(--accent-hover);
@@ -748,9 +748,9 @@
     
     /* Scroll Progress */
     .progress-bar {
-        background: linear-gradient(90deg, var(--accent), #60a5fa);
+        background: linear-gradient(90deg, var(--accent), #0f8f87);
         height: 3px;
-        box-shadow: 0 1px 2px rgba(37,99,235,0.3);
+        box-shadow: 0 1px 2px rgba(0,108,53,0.3);
     }
   </style>
 
@@ -759,6 +759,7 @@
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/v4-shims.min.css' %}">
 
   <link rel="stylesheet" href="{% static 'css/mobile-professional.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}" />
 
   {% block head %}{% endblock %}
 </head>
@@ -790,6 +791,9 @@
           {% if IS_REPORT_VIEWER %}
             <a class="tab {% if active == 'school_reports_readonly' %}is-active{% endif %}" href="{% url 'reports:school_reports_readonly' %}">التقارير</a>
             <a class="tab {% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
+            {% if SHOW_ARCHIVE_LINK %}
+              <a class="tab {% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">الأرشيف</a>
+            {% endif %}
           {% elif request.user.is_platform_admin and not request.user.is_superuser %}
             <a class="tab {% if active == 'home' or active == 'platform_school_dashboard' or active == 'platform_schools_directory' %}is-active{% endif %}" href="{% if SCHOOL_ID %}{% url 'reports:platform_school_dashboard' %}{% else %}{% url 'reports:platform_schools_directory' %}{% endif %}">الرئيسية</a>
             <a class="tab {% if active == 'platform_schools_directory' %}is-active{% endif %}" href="{% url 'reports:platform_schools_directory' %}">المدارس</a>
@@ -799,6 +803,9 @@
               <a class="tab {% if active == 'platform_school_reports' %}is-active{% endif %}" href="{% url 'reports:platform_school_reports' %}">التقارير</a>
               <a class="tab {% if active == 'platform_school_tickets' or active == 'ticket_detail' %}is-active{% endif %}" href="{% url 'reports:platform_school_tickets' %}">التذاكر</a>
               <a class="tab {% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
+              {% if SHOW_ARCHIVE_LINK %}
+                <a class="tab {% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">الأرشيف</a>
+              {% endif %}
             {% endif %}
           {% else %}
             <a class="tab {% if active == 'home' %}is-active{% endif %}" href="{% url 'reports:home' %}">الرئيسية</a>
@@ -819,9 +826,14 @@
 
             {% if request.user.is_superuser %}
               <a class="tab {% if active == 'platform_admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:platform_admin_dashboard' %}">لوحة الآدمن</a>
+              <a class="tab {% if active == 'platform_archive_addons_list' or active == 'platform_archive_addon_add' or active == 'platform_archive_addon_edit' %}is-active{% endif %}" href="{% url 'reports:platform_archive_addons_list' %}">إضافات الأرشيف</a>
+              <a class="tab {% if active == 'platform_settings' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">إعدادات الأرشفة</a>
               <a class="tab {% if active == 'school_year_reset' %}is-active{% endif %}" href="{% url 'maintenance:school_year_reset' %}">تهيئة العام</a>
             {% elif SHOW_ADMIN_DASHBOARD_LINK %}
               <a class="tab {% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدير</a>
+            {% endif %}
+            {% if SHOW_ARCHIVE_LINK %}
+              <a class="tab {% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">الأرشيف</a>
             {% endif %}
           {% endif %}
         {% else %}
@@ -901,6 +913,12 @@
                   <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                   ملفات الإنجاز
                 </a>
+                {% if SHOW_ARCHIVE_LINK %}
+                  <a href="{% url 'reports:school_archive' %}" class="mi" role="menuitem">
+                    <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+                    الأرشيف
+                  </a>
+                {% endif %}
               {% else %}
                 {% if request.user.is_platform_admin and not request.user.is_superuser %}
                   {% if SCHOOL_ID %}
@@ -929,11 +947,23 @@
                     <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                     ملفات الإنجاز
                   </a>
+                  {% if SHOW_ARCHIVE_LINK %}
+                    <a href="{% url 'reports:school_archive' %}" class="mi" role="menuitem">
+                      <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+                      الأرشيف
+                    </a>
+                  {% endif %}
                 {% else %}
                   <a href="{% url 'reports:achievement_my_files' %}" class="mi" role="menuitem">
                     <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                     ملف الإنجاز
                   </a>
+                  {% if SHOW_ARCHIVE_LINK %}
+                    <a href="{% url 'reports:school_archive' %}" class="mi" role="menuitem">
+                      <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+                      الأرشيف
+                    </a>
+                  {% endif %}
                 {% endif %}
 
                 <a href="{% url 'reports:my_profile' %}" class="mi" role="menuitem">
@@ -1009,6 +1039,12 @@
             <span>ملفات الإنجاز</span>
             <i class="fa-solid fa-file-lines"></i>
           </a>
+          {% if SHOW_ARCHIVE_LINK %}
+            <a class="{% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">
+              <span>الأرشيف</span>
+              <i class="fa-solid fa-box-archive"></i>
+            </a>
+          {% endif %}
           <a href="{% url 'reports:logout' %}">
             <span>تسجيل الخروج</span>
             <i class="fa-solid fa-right-to-bracket"></i>
@@ -1038,6 +1074,12 @@
             <span>ملفات الإنجاز</span>
             <i class="fa-solid fa-file-lines"></i>
           </a>
+          {% if SHOW_ARCHIVE_LINK %}
+            <a class="{% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">
+              <span>الأرشيف</span>
+              <i class="fa-solid fa-box-archive"></i>
+            </a>
+          {% endif %}
         {% endif %}
 
         <a class="{% if active == 'my_profile' %}is-active{% endif %}" href="{% url 'reports:my_profile' %}">
@@ -1077,6 +1119,14 @@
               <span>لوحة الآدمن</span>
               <i class="fa-solid fa-gauge-high"></i>
             </a>
+            <a class="{% if active == 'platform_archive_addons_list' or active == 'platform_archive_addon_add' or active == 'platform_archive_addon_edit' %}is-active{% endif %}" href="{% url 'reports:platform_archive_addons_list' %}">
+              <span>إضافات الأرشيف</span>
+              <i class="fa-solid fa-box-archive"></i>
+            </a>
+            <a class="{% if active == 'platform_settings' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">
+              <span>إعدادات الأرشفة</span>
+              <i class="fa-solid fa-sliders"></i>
+            </a>
             <a class="{% if active == 'school_year_reset' %}is-active{% endif %}" href="{% url 'maintenance:school_year_reset' %}">
               <span>تهيئة العام الدراسي</span>
               <i class="fa-solid fa-rotate"></i>
@@ -1098,6 +1148,13 @@
           <a class="{% if active == 'achievement_my_files' %}is-active{% endif %}" href="{% url 'reports:achievement_my_files' %}">
             <span>ملف الإنجاز</span>
             <i class="fa-solid fa-file-lines"></i>
+          </a>
+        {% endif %}
+
+        {% if SHOW_ARCHIVE_LINK %}
+          <a class="{% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">
+            <span>الأرشيف</span>
+            <i class="fa-solid fa-box-archive"></i>
           </a>
         {% endif %}
 

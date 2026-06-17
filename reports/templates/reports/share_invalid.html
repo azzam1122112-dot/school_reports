@@ -2,10 +2,25 @@
 {% block title %}رابط غير صالح{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width:760px">
-  <div class="card" style="padding:18px">
-    <h1 style="margin:0;font-weight:950">الرابط غير صالح</h1>
-    <p class="muted" style="margin-top:8px">قد يكون الرابط منتهي الصلاحية أو تم إلغاؤه.</p>
-  </div>
+<div class="royal-page royal-page--narrow">
+  <section class="royal-panel">
+    <span class="royal-kicker">
+      <i class="fa-solid fa-link-slash" aria-hidden="true"></i>
+      تعذر الوصول
+    </span>
+    <h1 class="royal-title">الرابط غير صالح</h1>
+    <p class="royal-subtitle">قد يكون الرابط منتهي الصلاحية أو تم إلغاؤه من الجهة المرسلة.</p>
+
+    <div class="royal-actions" style="margin-top:16px">
+      <a href="{% url 'reports:home' %}" class="btn btn-primary">
+        <i class="fa-solid fa-house" aria-hidden="true"></i>
+        العودة للرئيسية
+      </a>
+      <a href="javascript:history.back();" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        رجوع
+      </a>
+    </div>
+  </section>
 </div>
 {% endblock %}

@@ -42,6 +42,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import cache_control, never_cache
@@ -214,8 +215,11 @@ from ..forms import (
     TicketCreateForm,
     DepartmentForm,  # إن لم تكن موجودة في مشروعك سيتم استخدام بديل داخلي
     ManagerCreateForm,
+    ArchiveStorageOptionForm,
+    PlatformSettingsForm,
     SubscriptionPlanForm,
     SchoolSubscriptionForm,
+    SchoolArchiveAddonForm,
     AchievementCreateYearForm,
     TeacherAchievementFileForm,
     AchievementSectionNotesForm,
@@ -249,13 +253,26 @@ from ..models import (
     MANAGER_SLUG,
     SubscriptionPlan,
     SchoolSubscription,
+    SchoolArchiveAddon,
+    ArchiveStorageOption,
     Payment,
     AuditLog,
+    school_has_archive_addon,
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
     AchievementEvidenceReport,
     TeacherPrivateComment,
+)
+
+from ..services_archive import (
+    UNCLASSIFIED_YEAR,
+    archive_available_years,
+    archive_payload,
+    archive_storage_capacity_error,
+    archive_year_label,
+    school_archive_enabled,
+    sync_school_archive_storage_usage,
 )
 
 from ..services_achievement import (
@@ -417,8 +434,8 @@ def _is_manager_in_school(user, active_school: Optional[School]) -> bool:
 
 
 def _safe_redirect(request: HttpRequest, fallback_name: str) -> HttpResponse:
-    nxt = request.POST.get("next") or request.GET.get("next")
-    if nxt and url_has_allowed_host_and_scheme(nxt, {request.get_host()}):
+    nxt = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+    if nxt:
         return redirect(nxt)
     return redirect(fallback_name)
 

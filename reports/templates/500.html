@@ -94,10 +94,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="e500-wrap">
-  <div class="e500-card">
+<div class="royal-page royal-page--narrow e500-wrap">
+  <section class="royal-panel e500-card">
     <div class="e500-top">
-      <div class="e500-badge">
+      <div class="royal-status danger e500-badge">
         <i class="fa-solid fa-triangle-exclamation" style="opacity:.95"></i>
         حدث خطأ غير متوقع
       </div>
@@ -109,8 +109,8 @@
 
     <div class="e500-body">
       <div class="e500-code">500</div>
-      <h2 class="e500-title">عذراً، حدث خطأ في الخادم.</h2>
-      <p class="e500-desc">
+      <h1 class="royal-title e500-title">عذراً، حدث خطأ في الخادم.</h1>
+      <p class="royal-subtitle e500-desc">
         لا تقلق—تم تسجيل المشكلة وسنقوم بمراجعتها قريباً. جرّب تحديث الصفحة أو العودة للرئيسية.
       </p>
 
@@ -133,6 +133,6 @@
         </a>
       </div>
     </div>
-  </div>
+  </section>
 </div>
 {% endblock %}

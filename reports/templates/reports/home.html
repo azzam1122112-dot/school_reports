@@ -12,12 +12,12 @@
 
   /* ── Design tokens (light) ── */
   .home-wrapper {
-    --dh-brand:       #2563eb;
-    --dh-brand-dk:    #1e40af;
-    --dh-brand-mid:   #3b82f6;
-    --dh-brand-soft:  rgba(37,99,235,.09);
-    --dh-accent:      #059669;
-    --dh-purple:      #8b5cf6;
+    --dh-brand:       #006c35;
+    --dh-brand-dk:    #00542a;
+    --dh-brand-mid:   #0f8f87;
+    --dh-brand-soft:  rgba(0,108,53,.09);
+    --dh-accent:      #16845b;
+    --dh-purple:      #b9975b;
     --dh-warn:        #d97706;
     --dh-danger:      #dc2626;
     --dh-ink:         #0f172a;
@@ -40,7 +40,7 @@
 
   /* ── Dark mode overrides ── */
   html[data-theme="dark"] .home-wrapper {
-    --dh-brand-soft:  rgba(59,130,246,.12);
+    --dh-brand-soft:  rgba(15,143,135,.12);
     --dh-ink:         #f1f5f9;
     --dh-ink-soft:    #cbd5e1;
     --dh-muted:       #94a3b8;
@@ -64,8 +64,8 @@
   @keyframes dh-popIn   { from{opacity:0;transform:scale(.88) translateY(16px)} to{opacity:1;transform:none} }
   @keyframes dh-fadeIn  { from{opacity:0} to{opacity:1} }
   @keyframes dh-fab-glow {
-    0%,100% { box-shadow: 0 6px 20px rgba(37,99,235,.45), 0 0 0 0 rgba(37,99,235,.3); }
-    50%     { box-shadow: 0 8px 28px rgba(37,99,235,.55), 0 0 0 10px rgba(37,99,235,0); }
+    0%,100% { box-shadow: 0 6px 20px rgba(0,108,53,.45), 0 0 0 0 rgba(0,108,53,.3); }
+    50%     { box-shadow: 0 8px 28px rgba(0,108,53,.55), 0 0 0 10px rgba(0,108,53,0); }
   }
   @keyframes dh-badgePop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.22)} }
 
@@ -74,7 +74,7 @@
     max-width: 1380px;
     margin: 0 auto;
     padding: 24px 20px 100px;
-    font-family: 'Cairo', 'Tajawal', sans-serif;
+    font-family: 'Cairo', 'Cairo', sans-serif;
     color: var(--dh-ink);
     background: var(--dh-bg);
     min-height: 100vh;
@@ -163,12 +163,12 @@
      ════════════════════════════ */
   .hero-section {
     position: relative;
-    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 30%, #2563eb 70%, #3b82f6 100%);
+    background: linear-gradient(135deg, #073b2a 0%, #00542a 30%, #006c35 70%, #0f8f87 100%);
     border-radius: var(--dh-r-xl);
     padding: 3rem 2.5rem;
     color: #fff;
     overflow: hidden;
-    box-shadow: 0 20px 50px -10px rgba(37,99,235,.45), 0 0 0 1px rgba(255,255,255,.08) inset;
+    box-shadow: 0 20px 50px -10px rgba(0,108,53,.45), 0 0 0 1px rgba(255,255,255,.08) inset;
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2rem;
     margin-bottom: 2rem;
     animation: dh-scaleIn .5s ease;
@@ -212,7 +212,7 @@
     text-decoration: none; transition: all var(--dh-t);
     box-shadow: 0 4px 12px rgba(0,0,0,.12); min-height: 48px;
   }
-  .btn-white:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(37,99,235,.3); color: var(--dh-brand-dk); }
+  .btn-white:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,108,53,.3); color: var(--dh-brand-dk); }
 
   .btn-glass {
     background: rgba(255,255,255,.14); color: #fff;
@@ -230,7 +230,7 @@
     position: absolute; top: -4px; left: -4px;
     width: 11px; height: 11px;
     background: #f87171;
-    border: 2px solid rgba(37,99,235,.5); border-radius: 50%;
+    border: 2px solid rgba(0,108,53,.5); border-radius: 50%;
     animation: dh-pulse 1.8s ease infinite;
   }
 
@@ -319,7 +319,7 @@
   .st-prim::before  { background: var(--dh-brand); }
   .st-accent::before{ background: var(--dh-accent); }
   .st-warn::before  { background: var(--dh-warn); }
-  .st-info::before  { background: #0ea5e9; }
+  .st-info::before  { background: #0072bc; }
   .stat-card:hover::before { transform: scale(1.6); opacity: .09; }
   /* Top accent bar */
   .stat-card::after {
@@ -330,8 +330,8 @@
   .st-prim::after  { background: var(--dh-brand); }
   .st-accent::after{ background: var(--dh-accent); }
   .st-warn::after  { background: var(--dh-warn); }
-  .st-info::after  { background: #0ea5e9; }
-  .stat-card:hover { transform: translateY(-5px); box-shadow: var(--dh-sh-md); border-color: rgba(37,99,235,.22); }
+  .st-info::after  { background: #0072bc; }
+  .stat-card:hover { transform: translateY(-5px); box-shadow: var(--dh-sh-md); border-color: rgba(0,108,53,.22); }
   .stat-card:hover::after { opacity: 1; }
   .stat-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
   .stat-icon {
@@ -339,10 +339,10 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 1.35rem; flex-shrink: 0;
   }
-  .st-prim  .stat-icon { background: rgba(37,99,235,.1);  color: var(--dh-brand); }
-  .st-accent .stat-icon { background: rgba(5,150,105,.1);  color: var(--dh-accent); }
+  .st-prim  .stat-icon { background: rgba(0,108,53,.1);  color: var(--dh-brand); }
+  .st-accent .stat-icon { background: rgba(22,132,91,.1);  color: var(--dh-accent); }
   .st-warn  .stat-icon { background: rgba(217,119,6,.1);  color: var(--dh-warn); }
-  .st-info  .stat-icon { background: rgba(14,165,233,.1); color: #0ea5e9; }
+  .st-info  .stat-icon { background: rgba(14,165,233,.1); color: #0072bc; }
   .stat-val {
     font-size: 2.4rem; font-weight: 900; color: var(--dh-ink);
     line-height: 1; margin-bottom: 4px; font-variant-numeric: tabular-nums;
@@ -352,7 +352,7 @@
     display: inline-flex; align-items: center; gap: 4px;
     padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap;
   }
-  .stat-badge.active  { background: rgba(5,150,105,.1);  color: var(--dh-accent); border: 1px solid rgba(5,150,105,.2); }
+  .stat-badge.active  { background: rgba(22,132,91,.1);  color: var(--dh-accent); border: 1px solid rgba(22,132,91,.2); }
   .stat-badge.pending { background: rgba(217,119,6,.1);  color: var(--dh-warn);   border: 1px solid rgba(217,119,6,.2); }
 
   /* ════════════════════════════
@@ -394,7 +394,7 @@
   }
   .lux-item:hover::before { transform: scaleY(1); }
   .lux-item:hover {
-    transform: translateX(-6px); border-color: rgba(37,99,235,.25); box-shadow: var(--dh-sh);
+    transform: translateX(-6px); border-color: rgba(0,108,53,.25); box-shadow: var(--dh-sh);
   }
   .li-icon {
     width: 44px; height: 44px; background: var(--dh-line-soft); color: var(--dh-muted);
@@ -428,7 +428,7 @@
     padding: 10px 20px; background: var(--dh-brand); color: #fff;
     border-radius: var(--dh-r-sm); font-weight: 700; font-size: .9rem;
     text-decoration: none; margin-top: 4px; transition: all var(--dh-t);
-    box-shadow: 0 4px 12px rgba(37,99,235,.3);
+    box-shadow: 0 4px 12px rgba(0,108,53,.3);
   }
   .dh-empty-cta:hover { background: var(--dh-brand-dk); transform: translateY(-2px); }
 
@@ -441,7 +441,7 @@
     text-decoration: none; color: var(--dh-ink); display: block;
   }
   .widget-card:last-child { margin-bottom: 0; }
-  .widget-card:hover { transform: translateY(-3px); box-shadow: var(--dh-sh); border-color: rgba(37,99,235,.2); }
+  .widget-card:hover { transform: translateY(-3px); box-shadow: var(--dh-sh); border-color: rgba(0,108,53,.2); }
   .widget-card::after {
     content: ''; position: absolute; bottom: -20px; left: -20px;
     width: 80px; height: 80px; border-radius: 50%;
@@ -467,7 +467,7 @@
   }
   .wc-btn:last-child { margin-bottom: 0; }
   .wc-btn.primary { background: var(--dh-purple); color: #fff; box-shadow: 0 4px 12px rgba(139,92,246,.3); }
-  .wc-btn.primary:hover { background: #7c3aed; transform: translateY(-1px); }
+  .wc-btn.primary:hover { background: #b9975b; transform: translateY(-1px); }
   .wc-btn.ghost   { background: var(--dh-line-soft); color: var(--dh-ink); border-color: var(--dh-border); }
   .wc-btn.ghost:hover { background: var(--dh-border); }
   .widget-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -480,9 +480,9 @@
 
   /* ── Motivation Banner ── */
   .motiv-banner {
-    background: linear-gradient(135deg, #059669 0%, #047857 60%, #065f46 100%);
+    background: linear-gradient(135deg, #16845b 0%, #047857 60%, #065f46 100%);
     color: #fff; padding: 1.6rem; border-radius: var(--dh-r-lg);
-    box-shadow: 0 10px 24px rgba(5,150,105,.3);
+    box-shadow: 0 10px 24px rgba(22,132,91,.3);
     position: relative; overflow: hidden; margin-bottom: 1.1rem;
   }
   .motiv-banner::before {
@@ -593,7 +593,7 @@
       <div class="hn-modal">
         <div class="hn-head">
           <h3>
-            <i class="fa-solid fa-bell" style="color:#f59e0b"></i>
+            <i class="fa-solid fa-bell" style="color:#b9975b"></i>
             رسالة جديدة
             {% if home_notification.is_important %}
               <span style="background:rgba(220,38,38,.1);color:#dc2626;font-size:.72em;padding:3px 9px;border-radius:12px;border:1px solid rgba(220,38,38,.2);">هام</span>
@@ -751,7 +751,7 @@
     <div>
       <div class="sec-header">
         <h3 class="sec-title">
-          <div class="sec-title-icon" style="background:rgba(37,99,235,.1);color:var(--dh-brand)">
+          <div class="sec-title-icon" style="background:rgba(0,108,53,.1);color:var(--dh-brand)">
             <i class="fa-solid fa-clock-rotate-left"></i>
           </div>
           أحدث النشاطات
@@ -804,7 +804,7 @@
       <div class="widget-card">
         <div class="wc-header">
           <div class="wc-title">
-            <div class="wc-icon" style="background:rgba(139,92,246,.1);color:#8b5cf6">
+            <div class="wc-icon" style="background:rgba(139,92,246,.1);color:#b9975b">
               <i class="fa-solid fa-ticket"></i>
             </div>
             ملخص الطلبات
@@ -812,7 +812,7 @@
         </div>
         <div class="wc-mini-grid">
           <div class="wc-mini-stat">
-            <div class="wc-mini-num" style="color:#059669">{{ req_stats.done|default:"0" }}</div>
+            <div class="wc-mini-num" style="color:#16845b">{{ req_stats.done|default:"0" }}</div>
             <div class="wc-mini-lbl">مكتملة</div>
           </div>
           <div class="wc-mini-stat">
@@ -831,7 +831,7 @@
         <a href="{{ assignedUrl }}" class="widget-card">
           <div class="widget-link">
             <div class="wl-left">
-              <div class="wl-icon" style="background:#eff6ff;color:#2563eb"><i class="fa-solid fa-inbox"></i></div>
+              <div class="wl-icon" style="background:#eff6ff;color:#006c35"><i class="fa-solid fa-inbox"></i></div>
               <div>
                 <div class="wl-text">الوارد</div>
                 <div class="wl-sub">المعيّن لي</div>
@@ -947,7 +947,7 @@ document.addEventListener('DOMContentLoaded', function() {
     heroBtn.addEventListener('click', function(e) {
       var r = document.createElement('span');
       r.className = 'btn-ripple';
-      r.style.cssText = 'position:absolute;width:10px;height:10px;border-radius:50%;background:rgba(37,99,235,.2);pointer-events:none;animation:dh-ripple .6s ease forwards;left:' + (e.offsetX - 5) + 'px;top:' + (e.offsetY - 5) + 'px';
+      r.style.cssText = 'position:absolute;width:10px;height:10px;border-radius:50%;background:rgba(0,108,53,.2);pointer-events:none;animation:dh-ripple .6s ease forwards;left:' + (e.offsetX - 5) + 'px;top:' + (e.offsetY - 5) + 'px';
       heroBtn.appendChild(r);
       setTimeout(function() { r.remove(); }, 700);
     });

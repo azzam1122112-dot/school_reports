@@ -7,15 +7,15 @@
 {% block head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --primary: #4f46e5;
-    --primary-dark: #4338ca;
+    --primary: #006c35;
+    --primary-dark: #00542a;
     --secondary: #ec4899;
-    --accent: #8b5cf6;
-    --success: #10b981;
-    --warning: #f59e0b;
+    --accent: #b9975b;
+    --success: #16845b;
+    --warning: #b9975b;
     --danger: #ef4444;
     --dark-bg: #0f172a;
     --light-bg: #f8fafc;
@@ -37,10 +37,10 @@
   }
 
   body {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
     background-color: var(--light-bg);
     background-image: 
-      radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.10) 0px, transparent 50%),
+      radial-gradient(at 0% 0%, rgba(0, 108, 53, 0.10) 0px, transparent 50%),
       radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.10) 0px, transparent 50%);
     background-attachment: fixed;
     color: var(--text-main);
@@ -125,7 +125,7 @@
   .glass-input:focus {
       background: white;
       border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+      box-shadow: 0 0 0 4px rgba(0, 108, 53, 0.1);
   }
 
   .btn-action {
@@ -145,9 +145,9 @@
   .btn-primary {
       background: linear-gradient(135deg, var(--primary), var(--primary-dark));
       color: white;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 108, 53, 0.3);
   }
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(79, 70, 229, 0.4); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0, 108, 53, 0.4); }
 
   .btn-dashboard {
       background: white;
@@ -204,7 +204,7 @@
   .teacher-card:hover {
       transform: translateY(-5px) scale(1.02);
       box-shadow: var(--shadow-lg);
-      border-color: rgba(79, 70, 229, 0.3);
+      border-color: rgba(0, 108, 53, 0.3);
   }
   
   .card-header {
@@ -235,7 +235,7 @@
       gap: 6px;
   }
   
-  .st-approved { background: rgba(16, 185, 129, 0.15); color: #059669; }
+  .st-approved { background: rgba(16, 185, 129, 0.15); color: #16845b; }
   .st-rejected { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
   .st-submitted { background: rgba(245, 158, 11, 0.15); color: #d97706; }
   .st-draft { background: rgba(100, 116, 139, 0.15); color: #475569; }
@@ -273,7 +273,7 @@
       transition: 0.2s;
   }
 
-  .btn-view { background: rgba(79, 70, 229, 0.1); color: var(--primary); }
+  .btn-view { background: rgba(0, 108, 53, 0.1); color: var(--primary); }
   .btn-view:hover { background: var(--primary); color: white; }
 
   .btn-print { background: rgba(248, 250, 252, 0.8); color: var(--text-muted); border: 1px solid transparent; }

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .base import *
 from .audit import AuditLog
+from .achievements import AchievementEvidenceImage, AchievementEvidenceReport, TeacherAchievementFile
 from .reports import Report
 from .schools import DepartmentMembership, SchoolMembership, Teacher
 from .tickets import Ticket
@@ -27,6 +28,67 @@ def trigger_report_background_tasks(sender, instance, created, **kwargs):
         # معالجة الصور فقط (لا نقوم بتوليد PDF)
         run_task_safe(process_report_images, instance.pk)
     # إذا لم توجد صور: لا يوجد أي مهام مطلوبة هنا
+    _sync_archive_usage_after_commit(getattr(instance, "school", None))
+
+
+def _sync_archive_usage_after_commit(school):
+    if school is None:
+        return
+
+    def _sync():
+        try:
+            from ..services_archive import sync_school_archive_storage_usage
+
+            sync_school_archive_storage_usage(school)
+        except Exception:
+            pass
+
+    try:
+        transaction.on_commit(_sync)
+    except Exception:
+        _sync()
+
+
+def _achievement_school(instance):
+    try:
+        return instance.section.file.school
+    except Exception:
+        return None
+
+
+@receiver(models.signals.post_delete, sender=Report)
+def sync_archive_usage_after_report_delete(sender, instance, **kwargs):
+    _sync_archive_usage_after_commit(getattr(instance, "school", None))
+
+
+@receiver(post_save, sender=TeacherAchievementFile)
+def sync_archive_usage_after_achievement_file_save(sender, instance, **kwargs):
+    _sync_archive_usage_after_commit(getattr(instance, "school", None))
+
+
+@receiver(models.signals.post_delete, sender=TeacherAchievementFile)
+def sync_archive_usage_after_achievement_file_delete(sender, instance, **kwargs):
+    _sync_archive_usage_after_commit(getattr(instance, "school", None))
+
+
+@receiver(post_save, sender=AchievementEvidenceImage)
+def sync_archive_usage_after_evidence_image_save(sender, instance, **kwargs):
+    _sync_archive_usage_after_commit(_achievement_school(instance))
+
+
+@receiver(models.signals.post_delete, sender=AchievementEvidenceImage)
+def sync_archive_usage_after_evidence_image_delete(sender, instance, **kwargs):
+    _sync_archive_usage_after_commit(_achievement_school(instance))
+
+
+@receiver(post_save, sender=AchievementEvidenceReport)
+def sync_archive_usage_after_evidence_report_save(sender, instance, **kwargs):
+    _sync_archive_usage_after_commit(_achievement_school(instance))
+
+
+@receiver(models.signals.post_delete, sender=AchievementEvidenceReport)
+def sync_archive_usage_after_evidence_report_delete(sender, instance, **kwargs):
+    _sync_archive_usage_after_commit(_achievement_school(instance))
 
 
 @receiver(post_save, sender=Ticket)

@@ -3,13 +3,21 @@
 {% block title %}غير متاح{% endblock %}
 
 {% block content %}
-<div class="container py-5 text-center">
-  <div class="card shadow-sm p-5">
-    <h2 class="mb-3">هذه الصفحة غير متاحة</h2>
-    <p class="text-muted mb-4">يمكنك متابعة استخدام الطباعة مباشرة من صفحة التقرير.</p>
-    <div class="mt-3">
-      <a href="{% url 'reports:my_reports' %}" class="btn btn-outline-secondary">العودة لتقاريري</a>
+<div class="royal-page royal-page--narrow">
+  <section class="royal-panel" style="text-align:center">
+    <span class="royal-kicker" style="margin-inline:auto">
+      <i class="fa-solid fa-print" aria-hidden="true"></i>
+      تنبيه خدمة
+    </span>
+    <h1 class="royal-title">هذه الصفحة غير متاحة حاليًا</h1>
+    <p class="royal-subtitle">يمكنك متابعة استخدام الطباعة مباشرة من صفحة التقرير، وستظهر خيارات PDF هناك بشكل أوضح.</p>
+
+    <div class="royal-actions" style="justify-content:center;margin-top:16px">
+      <a href="{% url 'reports:my_reports' %}" class="btn btn-primary">
+        <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+        العودة لتقاريري
+      </a>
     </div>
-  </div>
+  </section>
 </div>
 {% endblock %}

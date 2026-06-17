@@ -2,12 +2,124 @@
 # -*- coding: utf-8 -*-
 """Subscription, payment, plan management & footer content pages."""
 
+from decimal import Decimal
+
 from ._helpers import *
 from ._helpers import (
     _is_staff, _safe_next_url,
     _school_manager_label, _get_active_school,
-    _clean_query_value, _parse_date_safe,
+    _clean_query_value, _clean_query_params, _parse_date_safe,
 )
+
+ARCHIVE_ADDON_ANNUAL_PRICE = Decimal("399.00")
+ARCHIVE_ADDON_INCLUDED_STORAGE_GB = 50
+ARCHIVE_STORAGE_BLOCK_GB = 50
+ARCHIVE_STORAGE_BLOCK_PRICE = Decimal("99.00")
+
+
+def _archive_pricing():
+    try:
+        settings_obj = PlatformSettings.get_solo()
+    except Exception:
+        settings_obj = None
+
+    return {
+        "addon_price": Decimal(getattr(settings_obj, "archive_addon_annual_price", ARCHIVE_ADDON_ANNUAL_PRICE) or ARCHIVE_ADDON_ANNUAL_PRICE),
+        "included_storage_gb": int(getattr(settings_obj, "archive_included_storage_gb", ARCHIVE_ADDON_INCLUDED_STORAGE_GB) or ARCHIVE_ADDON_INCLUDED_STORAGE_GB),
+        "storage_block_gb": int(getattr(settings_obj, "archive_storage_block_gb", ARCHIVE_STORAGE_BLOCK_GB) or ARCHIVE_STORAGE_BLOCK_GB),
+        "storage_block_price": Decimal(getattr(settings_obj, "archive_storage_block_price", ARCHIVE_STORAGE_BLOCK_PRICE) or ARCHIVE_STORAGE_BLOCK_PRICE),
+    }
+
+
+def _ensure_default_archive_storage_option(settings_obj: PlatformSettings) -> None:
+    if ArchiveStorageOption.objects.exists():
+        return
+    ArchiveStorageOption.objects.create(
+        storage_gb=int(getattr(settings_obj, "archive_storage_block_gb", ARCHIVE_STORAGE_BLOCK_GB) or ARCHIVE_STORAGE_BLOCK_GB),
+        price=Decimal(getattr(settings_obj, "archive_storage_block_price", ARCHIVE_STORAGE_BLOCK_PRICE) or ARCHIVE_STORAGE_BLOCK_PRICE),
+        sort_order=10,
+        is_active=True,
+    )
+
+
+def _archive_storage_options(active_only: bool = True):
+    try:
+        _ensure_default_archive_storage_option(PlatformSettings.get_solo())
+    except Exception:
+        pass
+    qs = ArchiveStorageOption.objects.all().order_by("sort_order", "storage_gb", "id")
+    if active_only:
+        qs = qs.filter(is_active=True)
+    return list(qs)
+
+
+def _payment_purpose_label(payment: Payment) -> str:
+    try:
+        return payment.get_purpose_display()
+    except Exception:
+        return "اشتراك المدرسة"
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_settings(request: HttpRequest) -> HttpResponse:
+    """إعدادات الأرشفة وتسعيرها."""
+    settings_obj = PlatformSettings.get_solo()
+    _ensure_default_archive_storage_option(settings_obj)
+    form = PlatformSettingsForm(request.POST or None, instance=settings_obj)
+    StorageOptionFormSet = forms.modelformset_factory(
+        ArchiveStorageOption,
+        form=ArchiveStorageOptionForm,
+        extra=0,
+        can_delete=True,
+    )
+    storage_options_formset = StorageOptionFormSet(
+        request.POST or None,
+        queryset=ArchiveStorageOption.objects.all().order_by("sort_order", "storage_gb", "id"),
+        prefix="storage_options",
+    )
+
+    if request.method == "POST":
+        if form.is_valid() and storage_options_formset.is_valid():
+            has_active_option = False
+            for option_form in storage_options_formset.forms:
+                if not getattr(option_form, "cleaned_data", None):
+                    continue
+                if option_form.cleaned_data.get("DELETE"):
+                    continue
+                if option_form.cleaned_data.get("storage_gb") and option_form.cleaned_data.get("price") and option_form.cleaned_data.get("is_active"):
+                    has_active_option = True
+
+            if not has_active_option:
+                messages.error(request, "أضف خيار تخزين واحد مفعّل على الأقل.")
+                return render(
+                    request,
+                    "reports/platform_settings.html",
+                    {
+                        "form": form,
+                        "settings_obj": settings_obj,
+                        "storage_options_formset": storage_options_formset,
+                    },
+                )
+
+            saved = form.save(commit=False)
+            saved.updated_by = request.user
+            saved.save()
+            storage_options_formset.save()
+            messages.success(request, "تم حفظ إعدادات الأرشفة بنجاح.")
+            return redirect("reports:platform_settings")
+        messages.error(request, "تعذر حفظ الإعدادات. تحقق من القيم المدخلة.")
+
+    return render(
+        request,
+        "reports/platform_settings.html",
+        {
+            "form": form,
+            "settings_obj": settings_obj,
+            "storage_options_formset": storage_options_formset,
+        },
+    )
 
 
 @login_required(login_url="reports:login")
@@ -348,6 +460,19 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "reports/platform_admin_dashboard.html", ctx)
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET"])
+def platform_admin_dashboard_data(request: HttpRequest) -> HttpResponse:
+    """JSON data endpoint for the platform dashboard."""
+    query = request.GET.copy()
+    query["format"] = "json"
+    request.GET = query
+    request.META["HTTP_ACCEPT"] = "application/json"
+    request.META["HTTP_X_REQUESTED_WITH"] = "XMLHttpRequest"
+    return platform_admin_dashboard(request)
 
 
 # =========================
@@ -869,6 +994,97 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
     plans = SubscriptionPlan.objects.all().order_by('price')
     return render(request, "reports/platform_plans.html", {"plans": plans})
 
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+def platform_archive_addons_list(request: HttpRequest) -> HttpResponse:
+    """إدارة ملحق الأرشفة المدفوع كإضافة مستقلة عن الاشتراك."""
+    today = timezone.localdate()
+    status = (request.GET.get("status") or "all").strip().lower()
+    q = _clean_query_value(request.GET.get("q"))
+
+    addons = SchoolArchiveAddon.objects.select_related("school").order_by("school__name", "id")
+    if q:
+        addons = addons.filter(Q(school__name__icontains=q) | Q(school__code__icontains=q))
+
+    if status == "active":
+        addons = addons.filter(is_enabled=True).filter(Q(end_date__isnull=True) | Q(end_date__gte=today), start_date__lte=today)
+    elif status == "disabled":
+        addons = addons.filter(is_enabled=False)
+    elif status == "expired":
+        addons = addons.filter(is_enabled=True, end_date__lt=today)
+
+    stats_base = SchoolArchiveAddon.objects.all()
+    stats = {
+        "total": stats_base.count(),
+        "active": stats_base.filter(is_enabled=True).filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=today),
+            start_date__lte=today,
+        ).count(),
+        "expired": stats_base.filter(is_enabled=True, end_date__lt=today).count(),
+        "disabled": stats_base.filter(is_enabled=False).count(),
+        "schools_without_addon": School.objects.filter(archive_addon__isnull=True).count(),
+    }
+
+    page_obj = svc_paginate(addons, per_page=30, page=request.GET.get("page", 1))
+    for addon in page_obj:
+        try:
+            sync_school_archive_storage_usage(addon.school)
+            addon.refresh_from_db(fields=["storage_used_bytes", "updated_at"])
+        except Exception:
+            pass
+    return render(
+        request,
+        "reports/platform_archive_addons.html",
+        {
+            "addons": page_obj,
+            "page_obj": page_obj,
+            "stats": stats,
+            "status": status,
+            "q": q,
+            "today": today,
+            "results_count": addons.count(),
+            "qs": _clean_query_params(request.GET),
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_archive_addon_form(request: HttpRequest, pk: Optional[int] = None) -> HttpResponse:
+    addon = get_object_or_404(SchoolArchiveAddon.objects.select_related("school"), pk=pk) if pk else None
+    form = SchoolArchiveAddonForm(request.POST or None, instance=addon)
+
+    if request.method == "POST":
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ ملحق الأرشيف بنجاح.")
+            return redirect("reports:platform_archive_addons_list")
+        messages.error(request, "تعذّر الحفظ. تحقق من الحقول.")
+
+    return render(
+        request,
+        "reports/platform_archive_addon_form.html",
+        {
+            "form": form,
+            "addon": addon,
+        },
+    )
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["POST"])
+def platform_archive_addon_toggle(request: HttpRequest, pk: int) -> HttpResponse:
+    addon = get_object_or_404(SchoolArchiveAddon, pk=pk)
+    addon.is_enabled = not bool(addon.is_enabled)
+    addon.save(update_fields=["is_enabled", "updated_at"])
+    messages.success(request, "تم تفعيل ملحق الأرشيف." if addon.is_enabled else "تم إيقاف ملحق الأرشيف.")
+    next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+    return redirect(next_url or "reports:platform_archive_addons_list")
+
+
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_payments_list(request: HttpRequest) -> HttpResponse:
@@ -969,41 +1185,96 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
         with transaction.atomic():
             payment.save()
 
-            # ✅ عند اعتماد الدفع لأول مرة: حدّث/جدّد اشتراك المدرسة.
-            # ملاحظة: تم إلغاء تغيير الباقة من النظام؛ عند وجود اشتراك قائم نقوم بالتجديد فقط.
             if prev_status != Payment.Status.APPROVED and payment.status == Payment.Status.APPROVED:
-                plan_to_apply = payment.requested_plan
-                subscription = getattr(payment.school, "subscription", None)
-
                 today = timezone.localdate()
+                purpose = getattr(payment, "purpose", Payment.Purpose.SUBSCRIPTION)
+                pricing = _archive_pricing()
 
-                if subscription is None:
-                    if plan_to_apply is not None:
-                        subscription = SchoolSubscription(
-                            school=payment.school,
-                            plan=plan_to_apply,
-                            start_date=today,
-                            end_date=today,
-                            is_active=True,
+                if purpose == Payment.Purpose.ARCHIVE_ADDON:
+                    addon, _created = SchoolArchiveAddon.objects.select_for_update().get_or_create(
+                        school=payment.school,
+                        defaults={
+                            "is_enabled": True,
+                            "start_date": today,
+                            "end_date": today + timedelta(days=364),
+                            "storage_limit_gb": pricing["included_storage_gb"],
+                            "paid_amount": payment.amount,
+                        },
+                    )
+                    if not _created:
+                        current_end = addon.end_date if addon.end_date and addon.end_date >= today else today
+                        addon.is_enabled = True
+                        addon.start_date = addon.start_date or today
+                        addon.end_date = current_end + timedelta(days=365)
+                        addon.storage_limit_gb = max(
+                            int(addon.storage_limit_gb or 0),
+                            pricing["included_storage_gb"],
                         )
-                        subscription.save()
-                    else:
-                        messages.warning(
-                            request,
-                            "تم اعتماد الدفع، لكن لا توجد باقة مطلوبة لتفعيل الاشتراك تلقائياً.",
+                        addon.paid_amount = (addon.paid_amount or 0) + payment.amount
+                        addon.save(
+                            update_fields=[
+                                "is_enabled",
+                                "start_date",
+                                "end_date",
+                                "storage_limit_gb",
+                                "paid_amount",
+                                "updated_at",
+                            ]
                         )
+                    messages.success(request, "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
+
+                elif purpose == Payment.Purpose.ARCHIVE_STORAGE:
+                    try:
+                        addon = SchoolArchiveAddon.objects.select_for_update().get(school=payment.school)
+                    except SchoolArchiveAddon.DoesNotExist:
+                        messages.error(request, "لا يمكن اعتماد زيادة التخزين قبل تفعيل إضافة الأرشفة لهذه المدرسة.")
+                        transaction.set_rollback(True)
+                        return redirect("reports:platform_payment_detail", pk=pk)
+
+                    added_gb = int(payment.archive_storage_gb or 0)
+                    if added_gb <= 0:
+                        messages.error(request, "طلب زيادة التخزين لا يحتوي على مساحة صالحة.")
+                        transaction.set_rollback(True)
+                        return redirect("reports:platform_payment_detail", pk=pk)
+
+                    addon.storage_limit_gb = int(addon.storage_limit_gb or 0) + added_gb
+                    addon.paid_amount = (addon.paid_amount or 0) + payment.amount
+                    addon.save(update_fields=["storage_limit_gb", "paid_amount", "updated_at"])
+                    messages.success(request, f"تمت زيادة مساحة أرشيف المدرسة بمقدار {added_gb}GB.")
+
                 else:
-                    subscription.is_active = True
+                    # عند اعتماد دفع الاشتراك لأول مرة: حدّث/جدّد اشتراك المدرسة.
+                    # ملاحظة: تم إلغاء تغيير الباقة من النظام؛ عند وجود اشتراك قائم نقوم بالتجديد فقط.
+                    plan_to_apply = payment.requested_plan
+                    subscription = getattr(payment.school, "subscription", None)
 
-                    # ✅ تجديد بنفس الباقة فقط (بدون تغيير الباقة)
-                    days = int(getattr(subscription.plan, "days_duration", 0) or 0)
-                    subscription.start_date = today
-                    subscription.end_date = today if days <= 0 else today + timedelta(days=days - 1)
-                    subscription.save(update_fields=["start_date", "end_date", "is_active", "updated_at"])
+                    if subscription is None:
+                        if plan_to_apply is not None:
+                            subscription = SchoolSubscription(
+                                school=payment.school,
+                                plan=plan_to_apply,
+                                start_date=today,
+                                end_date=today,
+                                is_active=True,
+                            )
+                            subscription.save()
+                        else:
+                            messages.warning(
+                                request,
+                                "تم اعتماد الدفع، لكن لا توجد باقة مطلوبة لتفعيل الاشتراك تلقائياً.",
+                            )
+                    else:
+                        subscription.is_active = True
 
-                if subscription is not None and payment.subscription_id != subscription.id:
-                    payment.subscription = subscription
-                    payment.save(update_fields=["subscription"])
+                        # تجديد بنفس الباقة فقط (بدون تغيير الباقة)
+                        days = int(getattr(subscription.plan, "days_duration", 0) or 0)
+                        subscription.start_date = today
+                        subscription.end_date = today if days <= 0 else today + timedelta(days=days - 1)
+                        subscription.save(update_fields=["start_date", "end_date", "is_active", "updated_at"])
+
+                    if subscription is not None and payment.subscription_id != subscription.id:
+                        payment.subscription = subscription
+                        payment.save(update_fields=["subscription"])
 
         messages.success(request, "تم تحديث حالة الدفع بنجاح.")
         return redirect("reports:platform_payment_detail", pk=pk)
@@ -1131,7 +1402,26 @@ def my_subscription(request):
         .select_related("plan")
         .first()
     )
-    
+
+    archive_addon = SchoolArchiveAddon.objects.filter(school=membership.school).first()
+    if archive_addon is not None:
+        try:
+            sync_school_archive_storage_usage(membership.school)
+            archive_addon.refresh_from_db(fields=["storage_used_bytes", "updated_at"])
+        except Exception:
+            pass
+    pricing = _archive_pricing()
+    pending_archive_addon_payment = Payment.objects.filter(
+        school=membership.school,
+        purpose=Payment.Purpose.ARCHIVE_ADDON,
+        status=Payment.Status.PENDING,
+    ).order_by("-created_at").first()
+    pending_archive_storage_payment = Payment.objects.filter(
+        school=membership.school,
+        purpose=Payment.Purpose.ARCHIVE_STORAGE,
+        status=Payment.Status.PENDING,
+    ).order_by("-created_at").first()
+
     # تظهر آخر 4 عمليات فقط
     payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:4]
     
@@ -1142,6 +1432,14 @@ def my_subscription(request):
         # سيتم تعطيل غير النشطة في القالب.
         "plans": SubscriptionPlan.objects.all().order_by("days_duration", "price"),
         "payments": payments,
+        "archive_addon": archive_addon,
+        "archive_addon_price": pricing["addon_price"],
+        "archive_included_storage_gb": pricing["included_storage_gb"],
+        "archive_storage_block_gb": pricing["storage_block_gb"],
+        "archive_storage_block_price": pricing["storage_block_price"],
+        "archive_storage_options": _archive_storage_options(active_only=True),
+        "pending_archive_addon_payment": pending_archive_addon_payment,
+        "pending_archive_storage_payment": pending_archive_storage_payment,
     }
     return render(request, 'reports/my_subscription.html', context)
 
@@ -1213,11 +1511,90 @@ def payment_create(request):
 
     if request.method == 'POST':
         receipt = request.FILES.get('receipt_image')
-        notes = request.POST.get('notes')
+        notes = (request.POST.get('notes') or "").strip()
+        payment_kind = (request.POST.get("payment_kind") or Payment.Purpose.SUBSCRIPTION).strip()
         plan_id = request.POST.get('plan_id')
-
         requested_plan = None
-        
+        pricing = _archive_pricing()
+
+        if not receipt:
+            messages.error(request, "يرجى إرفاق صورة الإيصال.")
+            return redirect('reports:my_subscription')
+
+        if payment_kind == Payment.Purpose.ARCHIVE_ADDON:
+            if Payment.objects.filter(
+                school=membership.school,
+                purpose=Payment.Purpose.ARCHIVE_ADDON,
+                status=Payment.Status.PENDING,
+            ).exists():
+                messages.warning(request, "لديك طلب تفعيل أرشفة قيد المراجعة بالفعل.")
+                return redirect('reports:my_subscription')
+
+            amount = pricing["addon_price"]
+            request_notes = "طلب تفعيل/تجديد إضافة الأرشفة السنوية."
+            if notes:
+                request_notes = f"{request_notes}\n{notes}"
+
+            Payment.objects.create(
+                school=membership.school,
+                subscription=subscription,
+                requested_plan=None,
+                purpose=Payment.Purpose.ARCHIVE_ADDON,
+                amount=amount,
+                receipt_image=receipt,
+                notes=request_notes,
+                created_by=request.user,
+            )
+            messages.success(request, "تم رفع طلب تفعيل الأرشفة، وسيظهر الأرشيف فور اعتماد مدير النظام.")
+            return redirect('reports:my_subscription')
+
+        if payment_kind == Payment.Purpose.ARCHIVE_STORAGE:
+            archive_addon = SchoolArchiveAddon.objects.filter(school=membership.school).first()
+            if not archive_addon or not archive_addon.is_active:
+                messages.error(request, "زيادة مساحة التخزين متاحة بعد تفعيل إضافة الأرشفة فقط.")
+                return redirect('reports:my_subscription')
+
+            if Payment.objects.filter(
+                school=membership.school,
+                purpose=Payment.Purpose.ARCHIVE_STORAGE,
+                status=Payment.Status.PENDING,
+            ).exists():
+                messages.warning(request, "لديك طلب زيادة مساحة قيد المراجعة بالفعل.")
+                return redirect('reports:my_subscription')
+
+            option_id = request.POST.get("archive_storage_option_id")
+            storage_option = None
+            if option_id:
+                try:
+                    storage_option = ArchiveStorageOption.objects.get(pk=option_id, is_active=True)
+                except (ArchiveStorageOption.DoesNotExist, ValueError, TypeError):
+                    storage_option = None
+
+            if storage_option is None:
+                messages.error(request, "اختر خيار زيادة مساحة صالح.")
+                return redirect('reports:my_subscription')
+
+            storage_gb = int(storage_option.storage_gb or 0)
+            amount = storage_option.price
+
+            request_notes = f"طلب زيادة مساحة أرشيف بمقدار {storage_gb}GB."
+            if notes:
+                request_notes = f"{request_notes}\n{notes}"
+
+            Payment.objects.create(
+                school=membership.school,
+                subscription=subscription,
+                requested_plan=None,
+                purpose=Payment.Purpose.ARCHIVE_STORAGE,
+                archive_storage_gb=storage_gb,
+                amount=amount,
+                receipt_image=receipt,
+                notes=request_notes,
+                created_by=request.user,
+            )
+            messages.success(request, "تم رفع طلب زيادة مساحة الأرشيف، وسيتم تحديث الحد فور الاعتماد.")
+            return redirect('reports:my_subscription')
+
         # 1. محاولة أخذ الباقة من اختيار المستخدم
         if plan_id:
             try:
@@ -1242,33 +1619,30 @@ def payment_create(request):
         except Exception:
             pass
 
-        if not receipt:
-            messages.error(request, "يرجى إرفاق صورة الإيصال.")
-            return redirect('reports:my_subscription')
-
         Payment.objects.create(
             school=membership.school,
             subscription=subscription,
             requested_plan=requested_plan,
+            purpose=Payment.Purpose.SUBSCRIPTION,
             amount=amount,
             receipt_image=receipt,
             notes=notes,
             created_by=request.user
         )
         
-        msg = f"""
+        msg = format_html("""
         <div style="text-align: center; line-height: 1.6;">
             <p style="margin-bottom: 0.5rem; font-weight: 700; font-size: 1.1rem;">تم استلام طلبك بنجاح ✅</p>
             <p style="margin-bottom: 0.5rem;">جاري مراجعة الإيصال والتحقق منه، وسيتم تفعيل الباقة التالية فور الاعتماد:</p>
             <div style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.75rem 1rem; border-radius: 12px; display: inline-block; margin-top: 0.5rem; color: #fff;">
-                <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 0.25rem;">{requested_plan.name}</div>
+                <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 0.25rem;">{}</div>
                 <div style="font-size: 0.9rem;">
-                    السعر: {requested_plan.price} ريال &bull; المدة: {requested_plan.days_duration} يوم
+                    السعر: {} ريال &bull; المدة: {} يوم
                 </div>
             </div>
         </div>
-        """
-        messages.success(request, mark_safe(msg))
+        """, requested_plan.name, requested_plan.price, requested_plan.days_duration)
+        messages.success(request, msg)
         return redirect('reports:my_subscription')
             
     return redirect('reports:my_subscription')

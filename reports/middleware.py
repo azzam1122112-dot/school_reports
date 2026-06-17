@@ -671,6 +671,7 @@ class PlatformAdminAccessMiddleware:
             "reports:achievement_file_detail",
             "reports:achievement_file_print",
             "reports:achievement_file_pdf",
+            "reports:school_archive",
 
             # lightweight badge endpoint (optional; avoids noisy 403 logs)
             "reports:unread_notifications_count",
@@ -779,6 +780,7 @@ class ReportViewerAccessMiddleware:
                 # ملف الإنجاز (قراءة فقط لمشرف التقارير)
                 reverse("reports:achievement_school_files"),
                 reverse("reports:achievement_school_teachers"),
+                reverse("reports:school_archive"),
                 # نسمح بها لتسهيل redirect من views (لكن POST سيُمنع أعلاه)
                 reverse("reports:achievement_my_files"),
                 reverse("reports:logout"),
@@ -899,7 +901,7 @@ class ContentSecurityPolicyMiddleware:
 
         # Do not enforce strict CSP on Django admin (it uses inline scripts without our nonce)
         try:
-            if request.path.startswith("/admin/"):
+            if request.path.startswith("/admin-panel/"):
                 return response
         except Exception:
             pass

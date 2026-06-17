@@ -8,10 +8,10 @@
 {% block head %}
 <style>
   :root {
-    --c-primary: #3b82f6; 
-    --c-primary-dark: #2563eb;
+    --c-primary: #0f8f87; 
+    --c-primary-dark: #006c35;
     --c-primary-light: #eff6ff;
-    --c-success: #10b981;
+    --c-success: #16845b;
     --c-text-main: #0f172a;
     --c-text-muted: #64748b;
     --c-bg: #f8fafc;
@@ -20,7 +20,7 @@
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-elegant: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --font-heading: 'Tajawal', system-ui, sans-serif;
+    --font-heading: 'Cairo', system-ui, sans-serif;
   }
 
   body {
@@ -60,7 +60,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: linear-gradient(135deg, var(--c-primary-dark), #4f46e5);
+    background: linear-gradient(135deg, var(--c-primary-dark), #006c35);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -168,7 +168,7 @@
   input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--c-primary);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 4px rgba(15, 143, 135, 0.1);
   }
 
   textarea {
@@ -307,7 +307,7 @@
     margin-top: 1.5rem;
     padding: 1.5rem;
     background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 1px dashed #3b82f6;
+    border: 1px dashed #0f8f87;
     border-radius: 1rem;
     position: relative;
   }
@@ -316,13 +316,13 @@
     position: absolute;
     top: -0.75rem;
     right: 1.5rem;
-    background: #2563eb;
+    background: #006c35;
     color: white;
     font-size: 0.75rem;
     padding: 0.25rem 0.75rem;
     border-radius: 1rem;
     font-weight: 800;
-    box-shadow: 0 2px 4px rgba(37,99,235,0.2);
+    box-shadow: 0 2px 4px rgba(0,108,53,0.2);
   }
 
   /* Footer Actions */
@@ -348,13 +348,13 @@
     display: inline-flex;
     align-items: center;
     gap: 0.75rem;
-    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 10px 15px -3px rgba(0, 108, 53, 0.3);
     transition: all 0.3s ease;
   }
   
   .btn-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 20px 25px -5px rgba(0, 108, 53, 0.4);
     filter: brightness(1.1);
   }
 
@@ -415,7 +415,7 @@
   }
 
   .doc-title {
-    font-family: 'Amiri', 'Times New Roman', serif;
+    font-family: var(--font-heading);
     font-size: 2rem;
     font-weight: 900;
     line-height: 1.2;
@@ -443,7 +443,7 @@
   }
 
   .doc-body {
-    font-family: 'Amiri', serif;
+    font-family: var(--font-heading);
     font-size: 1.15rem;
     line-height: 1.9;
     color: #334155;
@@ -516,6 +516,59 @@
       border-radius: 8px;
       font-size: 0.9rem;
     }
+  }
+
+  /* Royal Ministry identity override */
+  .circular-page {
+    --c-primary: var(--brand, #006c35);
+    --c-primary-dark: var(--brand, #006c35);
+    --c-primary-light: rgba(0, 108, 53, .07);
+    --c-success: #16845b;
+    --c-text-main: var(--ink, #10251f);
+    --c-text-muted: var(--muted, #68766f);
+    --c-bg: var(--bg-body, #f4f7f3);
+    --c-card-bg: var(--card, #ffffff);
+    --c-border: rgba(185, 151, 91, .22);
+    --font-heading: var(--font, "Cairo", system-ui, sans-serif);
+    background:
+      radial-gradient(circle at 90% 0%, rgba(185, 151, 91, .13), transparent 30%),
+      linear-gradient(180deg, var(--c-bg), rgba(237, 245, 239, .75));
+  }
+
+  .app-card,
+  .doc-preview,
+  .teacher-selector {
+    border-color: rgba(185, 151, 91, .24);
+    box-shadow: 0 22px 58px rgba(16, 37, 31, .10);
+  }
+
+  .app-card-header {
+    background: linear-gradient(135deg, rgba(185, 151, 91, .12), rgba(0, 108, 53, .04));
+  }
+
+  .header-content h1 {
+    background: linear-gradient(135deg, var(--c-primary-dark), var(--royal-gold, #b9975b));
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .btn-submit,
+  .sig-badge {
+    background: linear-gradient(135deg, var(--c-primary), var(--royal-gold, #b9975b));
+    box-shadow: 0 14px 28px rgba(0, 108, 53, .22);
+  }
+
+  .sig-settings-box {
+    background: linear-gradient(135deg, rgba(185, 151, 91, .10), rgba(0, 108, 53, .06));
+    border-color: rgba(185, 151, 91, .45);
+  }
+
+  .doc-header {
+    border-bottom-color: var(--c-primary-dark);
+  }
+
+  .doc-title {
+    color: var(--c-primary-dark);
   }
 </style>
 {% endblock %}

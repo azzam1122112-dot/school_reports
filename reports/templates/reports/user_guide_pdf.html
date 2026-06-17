@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -83,7 +84,7 @@
       margin: 0;
       font-weight: 700;
       font-size: 11.5pt;
-      color: #1d4ed8;
+      color: #00542a;
     }
 
     .header-date {
@@ -103,7 +104,7 @@
     h1 {
       font-size: 18pt;
       font-weight: 800;
-      color: #1e3a8a;
+      color: #073b2a;
       margin: 0 0 5mm;
       line-height: 1.45;
       border-bottom: 1.2px solid #d1d5db;
@@ -114,7 +115,7 @@
     h2 {
       font-size: 15pt;
       font-weight: 700;
-      color: #1d4ed8;
+      color: #00542a;
       margin: 8mm 0 3mm;
       border-bottom: 1px solid #e5e7eb;
       padding-bottom: 2mm;
@@ -157,7 +158,7 @@
     }
 
     ul li::marker {
-      color: #7c3aed;
+      color: #b9975b;
     }
 
     table {
@@ -169,7 +170,7 @@
 
     th {
       background: #eef2ff;
-      color: #1e3a8a;
+      color: #073b2a;
       border: 1px solid #dbeafe;
       padding: 2.2mm 2.8mm;
       font-weight: 700;
@@ -214,14 +215,14 @@
     }
 
     a {
-      color: #1d4ed8;
+      color: #00542a;
       text-decoration: none;
       font-weight: 600;
     }
 
     blockquote {
       background: #fffbeb;
-      border-right: 3px solid #f59e0b;
+      border-right: 3px solid #b9975b;
       padding: 2.5mm 3mm;
       margin: 3mm 0;
       color: #78350f;
@@ -284,6 +285,8 @@
       page-break-before: avoid;
     }
   </style>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
 </head>
 <body>
   <div class="header">

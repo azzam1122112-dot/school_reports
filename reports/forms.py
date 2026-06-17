@@ -41,8 +41,11 @@ from .models import (
     NotificationRecipient,
     School,
     SchoolMembership,
+    PlatformSettings,
     SubscriptionPlan,
     SchoolSubscription,
+    SchoolArchiveAddon,
+    ArchiveStorageOption,
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
@@ -2483,6 +2486,99 @@ class SchoolSubscriptionForm(forms.ModelForm):
         if commit:
             subscription.save()
         return subscription
+
+
+class SchoolArchiveAddonForm(forms.ModelForm):
+    class Meta:
+        model = SchoolArchiveAddon
+        fields = ["school", "is_enabled", "start_date", "end_date", "storage_limit_gb", "paid_amount", "notes"]
+        widgets = {
+            "school": forms.Select(attrs={"class": "form-select"}),
+            "is_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "end_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "storage_limit_gb": forms.NumberInput(attrs={"class": "form-control", "min": "1", "step": "1"}),
+            "paid_amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+        }
+        labels = {
+            "school": "المدرسة",
+            "is_enabled": "مفعّل؟",
+            "start_date": "تاريخ بداية الملحق",
+            "end_date": "تاريخ نهاية الملحق",
+            "storage_limit_gb": "حد التخزين (GB)",
+            "paid_amount": "قيمة الملحق",
+            "notes": "ملاحظات",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            self.fields["school"].queryset = School.objects.order_by("name", "id")
+            if getattr(self.instance, "pk", None):
+                self.fields["school"].disabled = True
+        except Exception:
+            pass
+
+    def clean_school(self):
+        if getattr(self.instance, "pk", None):
+            return self.instance.school
+        school = self.cleaned_data.get("school")
+        if school is not None and SchoolArchiveAddon.objects.filter(school=school).exists():
+            raise ValidationError("هذه المدرسة لديها ملحق أرشيف بالفعل. استخدم التعديل بدلاً من الإضافة.")
+        return school
+
+
+class PlatformSettingsForm(forms.ModelForm):
+    class Meta:
+        model = PlatformSettings
+        fields = [
+            "archive_addon_annual_price",
+            "archive_included_storage_gb",
+        ]
+        widgets = {
+            "archive_addon_annual_price": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
+            "archive_included_storage_gb": forms.NumberInput(attrs={"class": "form-control", "min": "1", "step": "1"}),
+        }
+        labels = {
+            "archive_addon_annual_price": "سعر الأرشفة السنوي",
+            "archive_included_storage_gb": "المساحة المضمنة مع الأرشفة (GB)",
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        annual_price = cleaned.get("archive_addon_annual_price")
+        included = cleaned.get("archive_included_storage_gb")
+
+        if annual_price is not None and annual_price <= 0:
+            self.add_error("archive_addon_annual_price", "سعر الأرشفة يجب أن يكون أكبر من صفر.")
+        if included is not None and included < 1:
+            self.add_error("archive_included_storage_gb", "المساحة المضمنة يجب أن تكون 1GB أو أكثر.")
+        return cleaned
+
+
+class ArchiveStorageOptionForm(forms.ModelForm):
+    class Meta:
+        model = ArchiveStorageOption
+        fields = ["storage_gb", "price", "sort_order", "is_active"]
+        widgets = {
+            "storage_gb": forms.NumberInput(attrs={"class": "form-control", "min": "1", "step": "1"}),
+            "price": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
+            "sort_order": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "1"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+        labels = {
+            "storage_gb": "المساحة (GB)",
+            "price": "السعر",
+            "sort_order": "الترتيب",
+            "is_active": "مفعّل",
+        }
+
+    def clean_price(self):
+        price = self.cleaned_data.get("price")
+        if price is not None and price <= 0:
+            raise ValidationError("السعر يجب أن يكون أكبر من صفر.")
+        return price
 
 
 # ==============================

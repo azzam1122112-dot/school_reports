@@ -8,12 +8,12 @@
 {% block head %}
 <style>
   :root {
-    --c-primary: #3b82f6; 
-    --c-primary-dark: #2563eb;
+    --c-primary: #0f8f87; 
+    --c-primary-dark: #006c35;
     --c-primary-light: #eff6ff;
-    --c-success: #10b981;
+    --c-success: #16845b;
     --c-danger: #ef4444;
-    --c-warn: #f59e0b;
+    --c-warn: #b9975b;
     --c-text-main: #0f172a;
     --c-text-muted: #64748b;
     --c-bg: #f8fafc;
@@ -22,7 +22,7 @@
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-elegant: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --font-heading: 'Tajawal', system-ui, sans-serif;
+    --font-heading: 'Cairo', system-ui, sans-serif;
   }
 
   body {
@@ -64,7 +64,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: linear-gradient(135deg, var(--c-primary-dark), #4f46e5);
+    background: linear-gradient(135deg, var(--c-primary-dark), #006c35);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -103,7 +103,7 @@
     border: none;
   }
   .btn-action.primary:hover {
-     box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+     box-shadow: 0 10px 15px -3px rgba(0, 108, 53, 0.3);
   }
 
   /* Pills */
@@ -345,7 +345,7 @@
             </div>
             {% endif %}
 
-            <h2 style="font-family:'Tajawal',sans-serif; margin-bottom:2rem; font-size:1.75rem;">{{ n.title }}</h2>
+            <h2 style="font-family:'Cairo',sans-serif; margin-bottom:2rem; font-size:1.75rem;">{{ n.title }}</h2>
 
             <div class="doc-content">{% if body %}{{ body|linebreaksbr }}{% else %}<span style="color:var(--c-text-muted); font-style:italic">لا يوجد محتوى نصي (فقط مرفق أو عنوان)</span>{% endif %}</div>
 

@@ -1,6 +1,6 @@
 services:
   # ── Scaling notes ─────────────────────────────────────────────
-  # Current: 1 web + 1 worker + 1 beat + 1 Redis (starter plan).
+  # Current dashboard: 1 Python web on Starter (512MB) + split workers + Redis.
   # All services are horizontally scalable EXCEPT beat (singleton).
   # Scaling path:
   #   100 schools  → current config
@@ -21,9 +21,9 @@ services:
       - key: SITE_URL
         value: "https://app.tawtheeq-ksa.com"
       - key: ALLOWED_HOSTS
-        value: "app.tawtheeq-ksa.com,tawtheeq-ksa.com,school-7lgm.onrender.com,school-reports.onrender.com"
+        value: "app.tawtheeq-ksa.com,tawtheeq-ksa.com,www.tawtheeq-ksa.com,school-7lgm.onrender.com,school-reports.onrender.com"
       - key: CSRF_TRUSTED_ORIGINS
-        value: "https://app.tawtheeq-ksa.com,https://tawtheeq-ksa.com,https://school-7lgm.onrender.com,https://school-reports.onrender.com"
+        value: "https://app.tawtheeq-ksa.com,https://tawtheeq-ksa.com,https://www.tawtheeq-ksa.com,https://school-7lgm.onrender.com,https://school-reports.onrender.com"
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
@@ -40,16 +40,18 @@ services:
           property: connectionString
       - key: PRODUCTION_STRICT_MODE
         value: "True"
+      - key: PASSWORD_CHANGE_EMAIL_ENABLED
+        value: "False"
       - key: WEB_CONCURRENCY
-        value: "3"
+        value: "1"
       - key: GUNICORN_THREADS
         value: "2"
       - key: GUNICORN_TIMEOUT
         value: "120"
       - key: GUNICORN_MAX_REQUESTS
-        value: "2000"
+        value: "800"
       - key: GUNICORN_MAX_REQUESTS_JITTER
-        value: "200"
+        value: "80"
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY

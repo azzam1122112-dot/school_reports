@@ -4,21 +4,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#2563eb">
+  <meta name="theme-color" content="#006c35">
   <meta name="description" content="تسجيل مدرسة جديدة في منصة توثيق">
   <title>تسجيل مدرسة جديدة | منصة توثيق</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <style>
     :root {
-      --brand: #2563eb;
-      --brand-dark: #1e40af;
+      --brand: #006c35;
+      --brand-dark: #00542a;
       --brand-light: #eff6ff;
-      --accent: #059669;
+      --accent: #16845b;
       --ink: #0f172a;
       --muted: #64748b;
       --border: #e2e8f0;
@@ -27,8 +27,8 @@
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Tajawal', sans-serif;
-      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #1e40af 100%);
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(135deg, #1e3a5f 0%, #006c35 50%, #00542a 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -83,7 +83,7 @@
     .form-control:focus, .form-select:focus {
       outline: none;
       border-color: var(--brand);
-      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+      box-shadow: 0 0 0 3px rgba(0,108,53,.12);
     }
     .help-text {
       font-size: .78rem;
@@ -126,11 +126,11 @@
     .btn-primary {
       background: linear-gradient(135deg, var(--brand), var(--brand-dark));
       color: #fff;
-      box-shadow: 0 4px 14px rgba(37,99,235,.35);
+      box-shadow: 0 4px 14px rgba(0,108,53,.35);
     }
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(37,99,235,.4);
+      box-shadow: 0 6px 20px rgba(0,108,53,.4);
     }
     .login-link {
       text-align: center;
@@ -167,6 +167,8 @@
       .row { flex-direction: column; gap: 0; }
     }
   </style>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
 </head>
 <body>
   <div class="card" style="position:relative;">

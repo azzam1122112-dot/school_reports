@@ -12,17 +12,17 @@
      ========================================================= */
 
   :root {
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --accent-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --gold-gradient: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+    --primary-gradient: linear-gradient(135deg, #006c35 0%, #b9975b 100%);
+    --accent-gradient: linear-gradient(135deg, #b9975b 0%, #006c35 100%);
+    --success-gradient: linear-gradient(135deg, #16845b 0%, #0f8f87 100%);
+    --gold-gradient: linear-gradient(135deg, #f5ead8 0%, #b9975b 100%);
   }
 
   .notify-scope {
-    --primary: #667eea;
-    --secondary: #764ba2;
-    --accent: #f5576c;
-    --success: #00f2fe;
+    --primary: #006c35;
+    --secondary: #b9975b;
+    --accent: #b9975b;
+    --success: #16845b;
 
     --bg-main: #f5f7fa;
     --card-bg: #ffffff;
@@ -39,7 +39,7 @@
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 10px 40px rgba(0, 0, 0, 0.08);
     --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
-    --shadow-colored: 0 10px 30px rgba(102, 126, 234, 0.25);
+    --shadow-colored: 0 10px 30px rgba(0, 108, 53, 0.22);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     color: var(--text-primary);
@@ -163,11 +163,11 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    background: linear-gradient(to bottom, rgba(102, 126, 234, 0.03), transparent);
+    background: linear-gradient(to bottom, rgba(0, 108, 53, 0.04), transparent);
   }
 
   html[data-theme="dark"] .notify-scope .card-hd {
-    background: linear-gradient(to bottom, rgba(102, 126, 234, 0.08), transparent);
+    background: linear-gradient(to bottom, rgba(0, 108, 53, 0.08), transparent);
   }
 
   .notify-scope .card-hd strong {
@@ -250,7 +250,7 @@
   .notify-scope select:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+    box-shadow: 0 0 0 4px rgba(0, 108, 53, 0.13);
     background: var(--card-bg);
   }
 
@@ -318,20 +318,20 @@
   }
 
   .notify-scope .btn-primary:hover {
-    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.35);
+    box-shadow: 0 15px 40px rgba(0, 108, 53, 0.28);
     transform: translateY(-3px);
   }
 
   .notify-scope .btn-ghost {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
-    border-color: rgba(102, 126, 234, 0.3);
+    background: linear-gradient(135deg, rgba(0, 108, 53, 0.08), rgba(185, 151, 91, 0.12));
+    border-color: rgba(185, 151, 91, 0.3);
     color: var(--primary);
   }
 
   html[data-theme="dark"] .notify-scope .btn-ghost {
-    background: rgba(102, 126, 234, 0.15);
-    border-color: rgba(102, 126, 234, 0.3);
-    color: #a5b4fc;
+    background: rgba(0, 108, 53, 0.15);
+    border-color: rgba(185, 151, 91, 0.3);
+    color: #d4b575;
   }
 
   .notify-scope .btn:disabled {
@@ -368,7 +368,7 @@
     background: var(--primary-gradient);
     color: #fff;
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 108, 53, 0.22);
     transition: var(--transition);
   }
 
@@ -393,7 +393,7 @@
 
   .notify-scope .teacher-tools input[type="search"]:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+    box-shadow: 0 0 0 4px rgba(0, 108, 53, 0.13);
   }
 
   .notify-scope .teacher-tools .mini {
@@ -461,13 +461,13 @@
 
   .notify-scope .teacher-list li.is-selected {
     border-color: var(--primary);
-    background: rgba(102, 126, 234, 0.1);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    background: rgba(0, 108, 53, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 108, 53, 0.14);
   }
 
   .notify-scope .teacher-list li:hover {
-    border-color: rgba(102, 126, 234, 0.4);
-    background: rgba(102, 126, 234, 0.05);
+    border-color: rgba(0, 108, 53, 0.4);
+    background: rgba(0, 108, 53, 0.05);
   }
 
   .notify-scope .teacher-list label {
@@ -515,7 +515,7 @@
   }
 
   html[data-theme="dark"] .notify-scope .notif {
-    border-color: rgba(102, 126, 234, 0.4);
+    border-color: rgba(0, 108, 53, 0.4);
   }
 
   .notify-scope .nt-h {
@@ -634,6 +634,71 @@
       flex-direction: column;
       gap: 10px;
     }
+  }
+
+  /* Royal Ministry identity override */
+  .notify-scope {
+    --primary: var(--brand, #006c35);
+    --secondary: var(--royal-gold, #b9975b);
+    --accent: var(--royal-gold, #b9975b);
+    --success: #16845b;
+    --bg-main: var(--bg-body, #f4f7f3);
+    --card-bg: var(--card, #ffffff);
+    --input-bg: rgba(255, 255, 255, .86);
+    --text-primary: var(--ink, #10251f);
+    --text-secondary: var(--muted, #68766f);
+    --text-light: var(--muted, #68766f);
+    --border-color: rgba(185, 151, 91, .22);
+    --hover-bg: rgba(0, 108, 53, .06);
+    --primary-gradient: linear-gradient(135deg, var(--brand, #006c35), var(--moe-teal, #0f8f87));
+    --accent-gradient: linear-gradient(135deg, var(--royal-gold, #b9975b), var(--brand, #006c35));
+    --success-gradient: linear-gradient(135deg, var(--success, #16845b), var(--moe-teal, #0f8f87));
+    --gold-gradient: linear-gradient(135deg, #f5ead8, var(--royal-gold, #b9975b));
+    font-family: var(--font, "Cairo", system-ui, sans-serif);
+  }
+
+  .notify-scope .page-head,
+  .notify-scope .card,
+  .notify-scope .notif {
+    border-color: rgba(185, 151, 91, .24);
+    box-shadow: 0 22px 58px rgba(16, 37, 31, .10);
+  }
+
+  .notify-scope .title {
+    font-weight: 950;
+    letter-spacing: 0;
+  }
+
+  .notify-scope .title::before {
+    content: "\f0f3";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    color: var(--royal-gold, #b9975b);
+    -webkit-text-fill-color: currentColor;
+  }
+
+  .notify-scope input:focus,
+  .notify-scope textarea:focus,
+  .notify-scope select:focus,
+  .notify-scope .teacher-tools input[type="search"]:focus {
+    border-color: var(--brand, #006c35);
+    box-shadow: 0 0 0 4px rgba(0, 108, 53, .13);
+  }
+
+  .notify-scope .chip,
+  .notify-scope .teacher-tools .count,
+  .notify-scope .btn-primary {
+    box-shadow: 0 12px 30px rgba(0, 108, 53, .20);
+  }
+
+  .notify-scope .teacher-list li.is-selected,
+  .notify-scope .teacher-list li:hover {
+    border-color: rgba(0, 108, 53, .42);
+    background: rgba(0, 108, 53, .07);
+  }
+
+  .notify-scope .nt-body {
+    border-right-color: var(--royal-gold, #b9975b);
   }
 </style>
 {% endblock %}

@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}{% if addon %}تعديل ملحق الأرشيف{% else %}تفعيل ملحق الأرشيف{% endif %}{% endblock %}
+
+{% block head %}
+<style>
+  .addon-form-scope {
+    direction: rtl;
+  }
+  .addon-form-scope .card {
+    background: var(--card, #fff);
+    border: 1px solid rgba(185, 151, 91, .22);
+    border-radius: 18px;
+    box-shadow: 0 22px 58px rgba(16,37,31,.10);
+    overflow: hidden;
+    position: relative;
+  }
+  .addon-form-scope .card::before {
+    content: "";
+    position: absolute;
+    inset-inline: 20px;
+    top: 0;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, var(--royal-gold, #b9975b), var(--brand, #006c35), transparent);
+  }
+  .addon-form-scope .head {
+    padding: 20px;
+    border-bottom: 1px solid rgba(185, 151, 91, .22);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .addon-form-scope h1 {
+    margin: 0;
+    color: var(--ink, #0f172a);
+    font-size: 1.35rem;
+    font-weight: 950;
+  }
+  .addon-form-scope .sub {
+    margin-top: 6px;
+    color: var(--muted, #64748b);
+    font-weight: 850;
+    line-height: 1.7;
+  }
+  .addon-form-scope .body {
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+  }
+  .addon-form-scope .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .addon-form-scope .field.full { grid-column: 1 / -1; }
+  .addon-form-scope label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--muted, #64748b);
+    font-weight: 950;
+  }
+  .addon-form-scope input:not([type="checkbox"]),
+  .addon-form-scope select,
+  .addon-form-scope textarea {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid rgba(185, 151, 91, .22);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: var(--card, #fff);
+    color: var(--ink, #0f172a);
+    font-weight: 800;
+  }
+  .addon-form-scope .check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+  }
+  .addon-form-scope .error {
+    color: #dc2626;
+    font-weight: 850;
+    margin-top: 6px;
+    font-size: .9rem;
+  }
+  .addon-form-scope .actions {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(185, 151, 91, .22);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  @media(max-width:720px){
+    .addon-form-scope .grid{grid-template-columns:1fr}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="royal-page royal-page--narrow addon-form-scope">
+  <form class="card" method="post" novalidate>
+    {% csrf_token %}
+    <div class="head">
+      <div>
+        <span class="royal-kicker">
+          <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+          {% if addon %}تعديل الإضافة{% else %}تفعيل جديد{% endif %}
+        </span>
+        <h1>{% if addon %}تعديل ملحق الأرشيف{% else %}تفعيل ملحق الأرشيف{% endif %}</h1>
+        <div class="royal-subtitle sub">هذه إضافة مدفوعة مستقلة يمكن تفعيلها لأي مدرسة بغض النظر عن باقتها الحالية.</div>
+      </div>
+      <a href="{% url 'reports:platform_archive_addons_list' %}" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        رجوع
+      </a>
+    </div>
+
+    <div class="body">
+      {% if form.non_field_errors %}
+        <div class="error">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="grid">
+        <div class="field full">
+          <label for="{{ form.school.id_for_label }}">{{ form.school.label }}</label>
+          {{ form.school }}
+          {% for e in form.school.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label for="{{ form.start_date.id_for_label }}">{{ form.start_date.label }}</label>
+          {{ form.start_date }}
+          {% for e in form.start_date.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label for="{{ form.end_date.id_for_label }}">{{ form.end_date.label }}</label>
+          {{ form.end_date }}
+          {% for e in form.end_date.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label for="{{ form.paid_amount.id_for_label }}">{{ form.paid_amount.label }}</label>
+          {{ form.paid_amount }}
+          {% for e in form.paid_amount.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label for="{{ form.storage_limit_gb.id_for_label }}">{{ form.storage_limit_gb.label }}</label>
+          {{ form.storage_limit_gb }}
+          {% for e in form.storage_limit_gb.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field">
+          <label>{{ form.is_enabled.label }}</label>
+          <div class="royal-note check-row">{{ form.is_enabled }} <span>تفعيل ظهور الأرشيف وحماية بيانات المدرسة في تهيئة العام</span></div>
+          {% for e in form.is_enabled.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field full">
+          <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+          {{ form.notes }}
+          {% for e in form.notes.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        حفظ الملحق
+      </button>
+      <a href="{% url 'reports:platform_archive_addons_list' %}" class="btn btn-outline">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -41,6 +41,7 @@ urlpatterns = [
     # =========================
     path("reports/admin/", views.admin_reports, name="admin_reports"),
     path("reports/admin/<int:pk>/delete/", views.admin_delete_report, name="admin_delete_report"),
+    path("archive/", views.school_archive, name="school_archive"),
 
     # =========================
     # تقارير المدرسة (مشرف عرض فقط)
@@ -177,6 +178,8 @@ urlpatterns = [
     path("api/department-members/", views.api_department_members, name="api_department_members"),
     path("api/notification-teachers/", views.api_notification_teachers, name="api_notification_teachers"),
     path("api/school-departments/", views.api_school_departments, name="api_school_departments"),
+    path("api/dashboard/school/", views.admin_dashboard_data, name="api_admin_dashboard_data"),
+    path("api/dashboard/platform/", views.platform_admin_dashboard_data, name="api_platform_dashboard_data"),
 
     # =========================
     # الإشعارات
@@ -252,6 +255,7 @@ urlpatterns = [
     # إدارة المنصة (Custom Views)
     # =========================
     path("platform/subscriptions/", views.platform_subscriptions_list, name="platform_subscriptions_list"),
+    path("platform/settings/", views.platform_settings, name="platform_settings"),
     path("platform/subscriptions/add/", views.platform_subscription_form, name="platform_subscription_add"),
     path("platform/subscriptions/<int:pk>/", views.platform_subscription_detail, name="platform_subscription_detail"),
     path("platform/subscriptions/<int:pk>/renew/", views.platform_subscription_renew, name="platform_subscription_renew"),
@@ -268,6 +272,10 @@ urlpatterns = [
     path("platform/payments/", views.platform_payments_list, name="platform_payments_list"),
     path("platform/payments/<int:pk>/", views.platform_payment_detail, name="platform_payment_detail"),
     path("platform/tickets/", views.platform_tickets_list, name="platform_tickets_list"),
+    path("platform/archive-addons/", views.platform_archive_addons_list, name="platform_archive_addons_list"),
+    path("platform/archive-addons/add/", views.platform_archive_addon_form, name="platform_archive_addon_add"),
+    path("platform/archive-addons/<int:pk>/edit/", views.platform_archive_addon_form, name="platform_archive_addon_edit"),
+    path("platform/archive-addons/<int:pk>/toggle/", views.platform_archive_addon_toggle, name="platform_archive_addon_toggle"),
 
     # =========================
     # صفحات المحتوى (Footer)

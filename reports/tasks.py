@@ -45,6 +45,21 @@ def _task_ctx(task_obj) -> tuple[str | None, int, str | None]:
         return None, 0, None
 
 
+def _email_delivery_configured() -> bool:
+    """Return False when production SMTP is still at its placeholder config."""
+    backend = (getattr(settings, "EMAIL_BACKEND", "") or "").lower()
+    if "console" in backend or "locmem" in backend:
+        return True
+    if "smtp" not in backend:
+        return True
+
+    host = (getattr(settings, "EMAIL_HOST", "") or "").strip().lower()
+    env = (getattr(settings, "ENV", "") or "").strip().lower()
+    if env == "production" and host in {"", "localhost", "127.0.0.1"}:
+        return False
+    return True
+
+
 @shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={"max_retries": 3})
 def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 2000) -> int:
     """Delete AuditLog rows older than N days.
@@ -979,6 +994,10 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
 
     enabled = bool(getattr(settings, "PASSWORD_CHANGE_EMAIL_ENABLED", True))
     if not enabled:
+        opmetrics.increment("celery.task.failure.send_password_change_email_task")
+        return False
+    if not _email_delivery_configured():
+        logger.warning("Password change email skipped: production SMTP is not configured.")
         opmetrics.increment("celery.task.failure.send_password_change_email_task")
         return False
 

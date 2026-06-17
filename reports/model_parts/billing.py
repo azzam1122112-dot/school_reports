@@ -138,6 +138,11 @@ class Payment(models.Model):
         REJECTED = "rejected", "مرفوض"
         CANCELLED = "cancelled", "ملغي"
 
+    class Purpose(models.TextChoices):
+        SUBSCRIPTION = "subscription", "اشتراك المدرسة"
+        ARCHIVE_ADDON = "archive_addon", "إضافة الأرشفة"
+        ARCHIVE_STORAGE = "archive_storage", "زيادة مساحة الأرشيف"
+
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
@@ -162,6 +167,18 @@ class Payment(models.Model):
         verbose_name="الاشتراك المرتبط"
     )
     amount = models.DecimalField("المبلغ", max_digits=10, decimal_places=2)
+    purpose = models.CharField(
+        "نوع العملية",
+        max_length=32,
+        choices=Purpose.choices,
+        default=Purpose.SUBSCRIPTION,
+        db_index=True,
+    )
+    archive_storage_gb = models.PositiveIntegerField(
+        "مساحة أرشيف إضافية (GB)",
+        default=0,
+        help_text="تستخدم فقط عند طلب زيادة مساحة تخزين الأرشيف.",
+    )
     receipt_image = models.ImageField(
         "صورة الإيصال",
         upload_to=_payment_receipt_upload_to,
@@ -199,3 +216,103 @@ class Payment(models.Model):
 
 
 # =========================
+
+
+class SchoolArchiveAddon(models.Model):
+    """استحقاق مستقل لميزة أرشفة التقارير وملفات الإنجاز.
+
+    هذا الملحق منفصل عن باقة الاشتراك الأساسية، بحيث يمكن تفعيله لأي مدرسة
+    بغض النظر عن الخطة الحالية.
+    """
+
+    school = models.OneToOneField(
+        School,
+        on_delete=models.CASCADE,
+        related_name="archive_addon",
+        verbose_name="المدرسة",
+    )
+    is_enabled = models.BooleanField("مفعّل؟", default=True, db_index=True)
+    start_date = models.DateField("تاريخ بداية الملحق", default=timezone.localdate)
+    end_date = models.DateField(
+        "تاريخ نهاية الملحق",
+        null=True,
+        blank=True,
+        help_text="اتركه فارغًا إذا كان الملحق مفتوح المدة.",
+        db_index=True,
+    )
+    storage_limit_gb = models.PositiveIntegerField("حد التخزين (GB)", default=50)
+    storage_used_bytes = models.PositiveBigIntegerField("المستخدم من التخزين (بايت)", default=0)
+    paid_amount = models.DecimalField("قيمة الملحق", max_digits=10, decimal_places=2, default=0)
+    notes = models.TextField("ملاحظات", blank=True, default="")
+    created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
+    updated_at = models.DateTimeField("تاريخ التحديث", auto_now=True)
+
+    class Meta:
+        verbose_name = "ملحق أرشفة مدرسة"
+        verbose_name_plural = "ملحقات أرشفة المدارس"
+        indexes = [
+            models.Index(fields=["is_enabled", "end_date"]),
+        ]
+
+    def __str__(self):
+        return f"أرشفة {self.school.name}"
+
+    @property
+    def is_active(self) -> bool:
+        if not self.is_enabled:
+            return False
+        today = timezone.localdate()
+        if self.start_date and self.start_date > today:
+            return False
+        if self.end_date and self.end_date < today:
+            return False
+        return True
+
+    @property
+    def days_remaining(self):
+        if not self.end_date:
+            return None
+        return (self.end_date - timezone.localdate()).days
+
+    @property
+    def storage_used_gb(self) -> float:
+        return round((self.storage_used_bytes or 0) / (1024 ** 3), 2)
+
+    @property
+    def storage_usage_percent(self) -> int:
+        if not self.storage_limit_gb:
+            return 0
+        used_gb = (self.storage_used_bytes or 0) / (1024 ** 3)
+        return min(100, int((used_gb / self.storage_limit_gb) * 100))
+
+
+def school_has_archive_addon(school: School | None) -> bool:
+    if school is None:
+        return False
+    try:
+        addon = getattr(school, "archive_addon", None)
+    except Exception:
+        addon = None
+    try:
+        return bool(addon and addon.is_active)
+    except Exception:
+        return False
+
+
+class ArchiveStorageOption(models.Model):
+    """خيارات زيادة مساحة الأرشيف التي يديرها مدير النظام."""
+
+    storage_gb = models.PositiveIntegerField("المساحة (GB)", validators=[MinValueValidator(1)])
+    price = models.DecimalField("السعر", max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    is_active = models.BooleanField("مفعّل؟", default=True, db_index=True)
+    sort_order = models.PositiveSmallIntegerField("الترتيب", default=10)
+    created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
+    updated_at = models.DateTimeField("تاريخ التحديث", auto_now=True)
+
+    class Meta:
+        verbose_name = "خيار زيادة مساحة الأرشيف"
+        verbose_name_plural = "خيارات زيادة مساحة الأرشيف"
+        ordering = ["sort_order", "storage_gb", "id"]
+
+    def __str__(self):
+        return f"{self.storage_gb}GB - {self.price} ريال"

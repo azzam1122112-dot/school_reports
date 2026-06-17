@@ -10,10 +10,10 @@
 <style>
     /* 2026 Premium Modern Dashboard Styling */
     :root {
-        --primary-color: #4f46e5; /* Indigo */
-        --secondary-color: #10b981; /* Emerald */
+        --primary-color: #006c35; /* Indigo */
+        --secondary-color: #16845b; /* Emerald */
         --danger-color: #ef4444; /* Red */
-        --warning-color: #f59e0b; /* Amber */
+        --warning-color: #b9975b; /* Amber */
         --dark-bg: #111827;
         --card-bg: #ffffff;
         --text-main: #1f2937;
@@ -76,7 +76,7 @@
     .quick-search:focus {
         outline: none;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        box-shadow: 0 0 0 3px rgba(0, 108, 53, 0.1);
     }
     
     .search-icon {
@@ -117,7 +117,7 @@
     }
     
     .search-result-item:hover {
-        background: rgba(79, 70, 229, 0.05);
+        background: rgba(0, 108, 53, 0.05);
     }
     
     .search-result-item:last-child {
@@ -139,7 +139,7 @@
         font-weight: 800;
         color: var(--text-main);
         margin: 0;
-        background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+        background: linear-gradient(135deg, var(--primary-color), #b9975b);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -155,7 +155,7 @@
     .time-filters {
         display: flex;
         gap: 0.5rem;
-        background: rgba(79, 70, 229, 0.05);
+        background: rgba(0, 108, 53, 0.05);
         padding: 0.5rem;
         border-radius: var(--radius-md);
         margin-bottom: 1.5rem;
@@ -174,7 +174,7 @@
     }
     
     .filter-btn:hover {
-        background: rgba(79, 70, 229, 0.1);
+        background: rgba(0, 108, 53, 0.1);
         color: var(--primary-color);
     }
     
@@ -235,7 +235,7 @@
         right: 0;
         width: 100px;
         height: 100px;
-        background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), transparent);
+        background: linear-gradient(135deg, rgba(0, 108, 53, 0.05), transparent);
         border-radius: 0 0 0 100%;
         pointer-events: none;
     }
@@ -276,7 +276,7 @@
         transform: scale(1.1) rotate(5deg);
     }
     
-    .bg-indigo-light { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #4338ca; }
+    .bg-indigo-light { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #00542a; }
     .bg-emerald-light { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46; }
     .bg-amber-light { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
     .bg-rose-light { background: linear-gradient(135deg, #ffe4e6, #fecdd3); color: #be123c; }
@@ -334,7 +334,7 @@
     }
     
     .timeline-item:hover {
-        background: rgba(79, 70, 229, 0.03);
+        background: rgba(0, 108, 53, 0.03);
     }
     
     .timeline-item:nth-child(1) { animation-delay: 0.1s; }
@@ -354,7 +354,7 @@
     }
     
     .timeline-icon.emerald { background: #d1fae5; color: #065f46; }
-    .timeline-icon.indigo { background: #e0e7ff; color: #4338ca; }
+    .timeline-icon.indigo { background: #e0e7ff; color: #00542a; }
     .timeline-icon.amber { background: #fef3c7; color: #92400e; }
     .timeline-icon.rose { background: #ffe4e6; color: #be123c; }
     
@@ -407,7 +407,7 @@
     .export-btn:hover {
         border-color: var(--primary-color);
         color: var(--primary-color);
-        background: rgba(79, 70, 229, 0.05);
+        background: rgba(0, 108, 53, 0.05);
     }
 
     /* Sections */
@@ -517,7 +517,7 @@
     }
     
     .btn-modern:hover {
-        background: #4338ca;
+        background: #00542a;
         transform: translateY(-1px);
     }
     
@@ -549,7 +549,7 @@
     }
 
     .notif-item-link:hover, .notif-item:hover {
-        background: rgba(79, 70, 229, 0.03);
+        background: rgba(0, 108, 53, 0.03);
     }
     
     .notif-icon {
@@ -937,6 +937,14 @@
                 </small>
                 {% endif %}
             </a>
+            <a href="{% url 'reports:platform_archive_addons_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
+                <div class="stat-icon bg-indigo-light" style="margin-bottom:1rem;"><i class="fas fa-box-archive"></i></div>
+                <span class="stat-value" style="font-size:1.1rem;">إضافات الأرشيف</span>
+            </a>
+            <a href="{% url 'reports:platform_settings' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
+                <div class="stat-icon bg-emerald-light" style="margin-bottom:1rem;"><i class="fas fa-sliders"></i></div>
+                <span class="stat-value" style="font-size:1.1rem;">إعدادات الأرشفة</span>
+            </a>
             <a href="{% url 'reports:platform_tickets_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
                 <div class="stat-icon bg-rose-light" style="margin-bottom:1rem;"><i class="fas fa-headset"></i></div>
                 <span class="stat-value" style="font-size:1.1rem;">تذاكر الدعم الفني</span>
@@ -950,7 +958,7 @@
                 <span class="stat-value" style="font-size:1.1rem;">مشرفي المنصة</span>
             </a>
             <a href="{% url 'reports:school_managers_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon" style="background:#e0e7ff; color:#4338ca; margin-bottom:1rem;"><i class="fas fa-user-tie"></i></div>
+                <div class="stat-icon" style="background:#e0e7ff; color:#00542a; margin-bottom:1rem;"><i class="fas fa-user-tie"></i></div>
                 <span class="stat-value" style="font-size:1.1rem;">مدراء المدارس</span>
             </a>
             <a href="{% url 'reports:schools_admin_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
@@ -1231,18 +1239,36 @@
 
 <!-- JavaScript للرسوم البيانية والتفاعلية -->
 <script>
+if (typeof Chart === 'undefined') {
+    window.Chart = function () {
+        return {
+            data: { labels: [], datasets: [{ data: [] }] },
+            update: function () {}
+        };
+    };
+    window.Chart.defaults = { font: {}, color: '#6b7280' };
+    document.querySelectorAll('.chart-container').forEach((box) => {
+        if (box.querySelector('.chart-fallback')) return;
+        const notice = document.createElement('div');
+        notice.className = 'chart-fallback muted';
+        notice.style.cssText = 'display:grid;place-items:center;height:100%;font-weight:800;text-align:center;padding:1rem;';
+        notice.textContent = 'تعذر تحميل الرسوم البيانية حالياً، لكن بيانات اللوحة محدثة.';
+        box.appendChild(notice);
+    });
+}
+
 // إعدادات Chart.js العامة
 Chart.defaults.font.family = 'Cairo, sans-serif';
 Chart.defaults.color = '#6b7280';
 
 // الألوان
 const colors = {
-    primary: '#4f46e5',
-    secondary: '#10b981',
-    warning: '#f59e0b',
+    primary: '#006c35',
+    secondary: '#16845b',
+    warning: '#b9975b',
     danger: '#ef4444',
-    info: '#0ea5e9',
-    purple: '#8b5cf6',
+    info: '#0072bc',
+    purple: '#b9975b',
 };
 
 const PERIOD_LABELS = {
@@ -1251,6 +1277,7 @@ const PERIOD_LABELS = {
     quarter: 'هذا الربع',
     month: 'هذا الشهر',
 };
+const PLATFORM_DASHBOARD_API_URL = "{% url 'reports:api_platform_dashboard_data' %}";
 
 let currentPeriod = '{{ initial_period|default:"all" }}';
 let dashboardRequestController = null;
@@ -1424,7 +1451,7 @@ const reportsChart = new Chart(reportsCtx, {
         datasets: [{
             label: 'عدد التقارير',
             data: {{ reports_data|safe }},
-            backgroundColor: 'rgba(79, 70, 229, 0.8)',
+            backgroundColor: 'rgba(0, 108, 53, 0.8)',
             borderColor: colors.primary,
             borderWidth: 2,
             borderRadius: 8,
@@ -1511,7 +1538,7 @@ const schoolsChart = new Chart(schoolsCtx, {
                 callbacks: {
                     label: function(context) {
                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        const percentage = total ? ((context.parsed / total) * 100).toFixed(1) : '0.0';
                         return context.label + ': ' + context.parsed + ' مدرسة (' + percentage + '%)';
                     }
                 }
@@ -1550,9 +1577,8 @@ async function fetchDashboardPeriod(period, { force = false } = {}) {
         if (dashboardRequestController) dashboardRequestController.abort();
         dashboardRequestController = new AbortController();
 
-        const url = new URL(window.location.href);
+        const url = new URL(PLATFORM_DASHBOARD_API_URL, window.location.origin);
         url.searchParams.set('period', normalized);
-        url.searchParams.set('format', 'json');
         if (force) {
             url.searchParams.set('_ts', String(Date.now()));
         }
@@ -1747,8 +1773,8 @@ window.addEventListener('load', () => {
     });
 });
 
-console.log('%c 🎉 لوحة مدير النظام Premium 2026 ', 'background: linear-gradient(135deg, #4f46e5, #8b5cf6); color: white; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px;');
-console.log('%c تم التطوير بواسطة فريق التطوير ❤️ ', 'color: #10b981; font-size: 12px; font-weight: bold;');
+console.log('%c 🎉 لوحة مدير النظام Premium 2026 ', 'background: linear-gradient(135deg, #006c35, #b9975b); color: white; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px;');
+console.log('%c تم التطوير بواسطة فريق التطوير ❤️ ', 'color: #16845b; font-size: 12px; font-weight: bold;');
 </script>
 
 {% endblock %}

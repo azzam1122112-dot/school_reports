@@ -6,12 +6,12 @@
 {% block head %}
 <style>
   .paylist-scope{
-    --pl-brand: var(--brand, #2563eb);
+    --pl-brand: var(--brand, #006c35);
     --pl-ink: var(--ink, #0f172a);
     --pl-muted: var(--muted, #64748b);
     --pl-line: var(--line-2, var(--line, #e5e7eb));
     --pl-card: var(--card, #fff);
-    --pl-ok: #059669;
+    --pl-ok: #16845b;
     --pl-warn: #d97706;
     --pl-danger: #dc2626;
     --pl-shadow: 0 18px 45px rgba(15,23,42,.09);
@@ -66,9 +66,9 @@
   .paylist-scope .kpi .hint{margin-top:4px;color:var(--pl-muted);font-weight:800;font-size:.88rem}
   .paylist-scope .kpi .ico{
     width:46px;height:46px;border-radius:15px;display:grid;place-items:center;
-    background:rgba(37,99,235,.08);color:var(--pl-brand);border:1px solid rgba(37,99,235,.14);flex:0 0 auto
+    background:rgba(0,108,53,.08);color:var(--pl-brand);border:1px solid rgba(0,108,53,.14);flex:0 0 auto
   }
-  .paylist-scope .kpi.ok .ico{background:rgba(5,150,105,.10);color:var(--pl-ok);border-color:rgba(5,150,105,.18)}
+  .paylist-scope .kpi.ok .ico{background:rgba(22,132,91,.10);color:var(--pl-ok);border-color:rgba(22,132,91,.18)}
   .paylist-scope .kpi.warn .ico{background:rgba(217,119,6,.12);color:var(--pl-warn);border-color:rgba(217,119,6,.20)}
   .paylist-scope .kpi.danger .ico{background:rgba(220,38,38,.10);color:var(--pl-danger);border-color:rgba(220,38,38,.18)}
 
@@ -90,7 +90,7 @@
     font-weight:950;background:rgba(248,250,252,.75)
   }
   html[data-theme="dark"] .paylist-scope .tab{background:rgba(255,255,255,.04)}
-  .paylist-scope .tab.active{background:rgba(37,99,235,.10);border-color:rgba(37,99,235,.28);color:var(--pl-brand)}
+  .paylist-scope .tab.active{background:rgba(0,108,53,.10);border-color:rgba(0,108,53,.28);color:var(--pl-brand)}
 
   .paylist-scope .table-card{margin-top:14px;overflow:hidden}
   .paylist-scope .table-head{
@@ -107,7 +107,7 @@
     display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;
     font-weight:950;font-size:.84rem;border:1px solid var(--pl-line);white-space:nowrap
   }
-  .paylist-scope .badge.success{background:rgba(5,150,105,.10);color:var(--pl-ok);border-color:rgba(5,150,105,.18)}
+  .paylist-scope .badge.success{background:rgba(22,132,91,.10);color:var(--pl-ok);border-color:rgba(22,132,91,.18)}
   .paylist-scope .badge.warning{background:rgba(217,119,6,.12);color:var(--pl-warn);border-color:rgba(217,119,6,.20)}
   .paylist-scope .badge.danger{background:rgba(220,38,38,.10);color:var(--pl-danger);border-color:rgba(220,38,38,.18)}
   .paylist-scope .badge.neutral{background:rgba(100,116,139,.12);color:#475569;border-color:rgba(100,116,139,.22)}
@@ -230,7 +230,7 @@
           <tr>
             <th style="text-align:right">المدرسة</th>
             <th>المبلغ</th>
-            <th>الخطة</th>
+            <th>نوع العملية</th>
             <th>التاريخ</th>
             <th>الحالة</th>
             <th>إجراء</th>
@@ -250,8 +250,15 @@
                   <span class="amount">{{ payment.amount|floatformat:0|intcomma }} ريال</span>
                 {% endif %}
               </td>
-              <td data-label="الخطة">
-                {{ payment.requested_plan.name|default:"-" }}
+              <td data-label="نوع العملية">
+                {% if payment.purpose == 'archive_addon' %}
+                  إضافة الأرشفة
+                {% elif payment.purpose == 'archive_storage' %}
+                  زيادة مساحة الأرشيف
+                  <div class="subline">{{ payment.archive_storage_gb }}GB</div>
+                {% else %}
+                  {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
+                {% endif %}
               </td>
               <td data-label="التاريخ">
                 {% if payment.payment_date %}{{ payment.payment_date|date:"Y-m-d" }}{% else %}-{% endif %}

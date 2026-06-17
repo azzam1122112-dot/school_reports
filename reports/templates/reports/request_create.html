@@ -14,10 +14,10 @@
         --font-primary: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         
         /* Modern Blue Palette */
-        --c-brand: #3b82f6;
-        --c-brand-dark: #1d4ed8;
+        --c-brand: #0f8f87;
+        --c-brand-dark: #00542a;
         --c-brand-light: #eff6ff;
-        --c-accent: #6366f1;
+        --c-accent: #0f8f87;
         
         /* Neutrals */
         --c-text-main: #0f172a;
@@ -28,7 +28,7 @@
         --c-surface: #ffffff;
         
         /* Status */
-        --c-success: #10b981;
+        --c-success: #16845b;
         --c-danger: #ef4444;
         
         /* Effects */
@@ -38,7 +38,7 @@
         --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
         --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.05);
-        --shadow-glow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        --shadow-glow: 0 0 0 4px rgba(15, 143, 135, 0.15);
         --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -328,12 +328,12 @@
         justify-content: center;
         gap: 10px;
         transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
+        box-shadow: 0 4px 6px -1px rgba(0, 108, 53, 0.4);
     }
     
     .submit-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.5);
+        box-shadow: 0 10px 15px -3px rgba(0, 108, 53, 0.5);
     }
     
     .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
@@ -355,7 +355,7 @@
     /* Badge/Info Box */
     .info-box {
         background: var(--c-brand-light);
-        border: 1px solid rgba(59, 130, 246, 0.2);
+        border: 1px solid rgba(15, 143, 135, 0.2);
         color: var(--c-brand-dark);
         padding: 16px;
         border-radius: var(--radius-lg);
@@ -522,7 +522,7 @@
     if(!msg) return;
     msg.textContent = text || '';
     if(type === 'error') msg.style.color = '#e11d48';
-    else if(type === 'ok') msg.style.color = '#059669';
+    else if(type === 'ok') msg.style.color = '#16845b';
     else msg.style.color = 'var(--ink-light)';
   }
 

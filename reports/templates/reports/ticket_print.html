@@ -8,13 +8,13 @@
   {% if not for_pdf %}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   {% endif %}
 
   <style>
     :root {
-      --font-body: 'Tajawal', Tahoma, Arial, sans-serif;
+      --font-body: 'Cairo', Tahoma, Arial, sans-serif;
       --ink: #111;
       --muted: #444;
       --line: #000;
@@ -82,7 +82,7 @@
       text-decoration: none;
       font-size: 14px;
     }
-    .btn-print { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .btn-print { background: #006c35; color: #fff; border-color: #006c35; }
 
     .header {
       display: grid;
@@ -222,6 +222,8 @@
       gap: 10px;
     }
   </style>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
 </head>
 <body>
 

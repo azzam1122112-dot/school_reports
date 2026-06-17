@@ -15,7 +15,7 @@
 
 :root {
   /* Unified Palette */
-  --c-brand: #2563eb;       /* Brand Blue */
+  --c-brand: #006c35;       /* Brand Blue */
   --c-brand-rgb: 37, 99, 235;
   --c-text: #0f172a;        /* Slate 900 */
   --c-text-muted: #64748b;  /* Slate 500 */
@@ -24,22 +24,22 @@
   --c-border: #e2e8f0;      /* Slate 200 */
   
   /* Type Specific Colors (Crucial for distinction) */
-  --c-platform: #7c3aed;    /* Violet for Tech Support */
+  --c-platform: #b9975b;    /* Violet for Tech Support */
   --c-platform-bg: #f5f3ff;
-  --c-request: #0ea5e9;     /* Sky for Requests */
+  --c-request: #0072bc;     /* Sky for Requests */
   --c-request-bg: #f0f9ff;
 
   /* Status Colors */
-  --s-new: #3b82f6; --s-new-bg: #eff6ff;
-  --s-pro: #8b5cf6; --s-pro-bg: #f5f3ff;
-  --s-don: #10b981; --s-don-bg: #ecfdf5;
+  --s-new: #0f8f87; --s-new-bg: #eff6ff;
+  --s-pro: #b9975b; --s-pro-bg: #f5f3ff;
+  --s-don: #16845b; --s-don-bg: #ecfdf5;
   --s-rej: #ef4444; --s-rej-bg: #fef2f2;
 }
 
 .ticket-wrapper {
   max-width: 1200px;
   margin: 0 auto;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   color: var(--c-text);
   padding-bottom: 60px;
 }
@@ -110,7 +110,7 @@
 .badge-type.platform {
   background: var(--c-platform-bg);
   color: var(--c-platform);
-  border-color: rgba(124, 58, 237, 0.2);
+  border-color: rgba(185, 151, 91, 0.2);
 }
 
 .hero-title {
@@ -142,7 +142,7 @@
   gap: 8px;
   border: 1px solid transparent;
 }
-.st-open { background: var(--s-new-bg); color: var(--s-new); border-color: rgba(59,130,246,0.2); }
+.st-open { background: var(--s-new-bg); color: var(--s-new); border-color: rgba(15,143,135,0.2); }
 .st-in_progress { background: var(--s-pro-bg); color: var(--s-pro); border-color: rgba(139,92,246,0.2); }
 .st-done { background: var(--s-don-bg); color: var(--s-don); border-color: rgba(16,185,129,0.2); }
 .st-rejected { background: var(--s-rej-bg); color: var(--s-rej); border-color: rgba(239,68,68,0.2); }
@@ -244,10 +244,10 @@
   background: var(--c-brand);
   color: #fff;
   border-color: var(--c-brand);
-  box-shadow: 0 4px 6px rgba(37,99,235,0.2);
+  box-shadow: 0 4px 6px rgba(0,108,53,0.2);
 }
 .action-btn.primary:hover {
-  background: #1d4ed8;
+  background: #00542a;
   transform: translateY(-1px);
 }
 
@@ -297,7 +297,7 @@
 .lux-input:focus, .lux-select:focus, .lux-textarea:focus {
   outline: none;
   border-color: var(--c-brand);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  box-shadow: 0 0 0 3px rgba(0,108,53,0.1);
 }
 
 /* Gallery */

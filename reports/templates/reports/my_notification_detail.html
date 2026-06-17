@@ -16,11 +16,11 @@
     --mnd-line-soft:   #f1f5f9;
     --mnd-card:        #ffffff;
     --mnd-bg:          #f8fafc;
-    --mnd-brand:       #2563eb;
-    --mnd-brand-2:     #1e40af;
-    --mnd-brand-mid:   #3b82f6;
-    --mnd-brand-soft:  rgba(37,99,235,.09);
-    --mnd-success:     #059669;
+    --mnd-brand:       #006c35;
+    --mnd-brand-2:     #00542a;
+    --mnd-brand-mid:   #0f8f87;
+    --mnd-brand-soft:  rgba(0,108,53,.09);
+    --mnd-success:     #16845b;
     --mnd-danger:      #dc2626;
     --mnd-warn:        #d97706;
     --mnd-radius-sm:   10px;
@@ -41,7 +41,7 @@
     --mnd-line-soft:   #0f172a;
     --mnd-card:        #1e293b;
     --mnd-bg:          #0f172a;
-    --mnd-brand-soft:  rgba(59,130,246,.12);
+    --mnd-brand-soft:  rgba(15,143,135,.12);
     --mnd-shadow-xs:   0 1px 3px rgba(0,0,0,.3);
     --mnd-shadow:      0 4px 20px rgba(0,0,0,.3);
     --mnd-shadow-md:   0 8px 32px rgba(0,0,0,.4);
@@ -55,7 +55,7 @@
   /* ── Hero Header ── */
   .mnd-hero {
     position: relative;
-    background: linear-gradient(135deg, var(--mnd-brand) 0%, var(--mnd-brand-2) 60%, #1e3a8a 100%);
+    background: linear-gradient(135deg, var(--mnd-brand) 0%, var(--mnd-brand-2) 60%, #073b2a 100%);
     border-radius: var(--mnd-radius-lg);
     padding: 36px 36px 96px;
     margin-bottom: -68px;
@@ -193,10 +193,10 @@
     white-space: nowrap;
   }
   .mnd-pill.imp      { background: rgba(220,38,38,.08);  border-color: rgba(220,38,38,.20);  color: #b91c1c; }
-  .mnd-pill.blue     { background: var(--mnd-brand-soft); border-color: rgba(37,99,235,.20); color: var(--mnd-brand-2); }
-  .mnd-pill.signed   { background: rgba(5,150,105,.08);  border-color: rgba(5,150,105,.20);  color: #065f46; }
+  .mnd-pill.blue     { background: var(--mnd-brand-soft); border-color: rgba(0,108,53,.20); color: var(--mnd-brand-2); }
+  .mnd-pill.signed   { background: rgba(22,132,91,.08);  border-color: rgba(22,132,91,.20);  color: #065f46; }
   .mnd-pill.unsigned { background: rgba(220,38,38,.06);  border-color: rgba(220,38,38,.18);  color: #991b1b; }
-  .mnd-pill.read     { background: rgba(5,150,105,.07);  border-color: rgba(5,150,105,.18);  color: #065f46; }
+  .mnd-pill.read     { background: rgba(22,132,91,.07);  border-color: rgba(22,132,91,.18);  color: #065f46; }
 
   /* ── Message Body — multi-line aware ── */
   .mnd-msg-body {
@@ -305,8 +305,8 @@
     transition: border-color var(--mnd-t), box-shadow var(--mnd-t);
   }
   .mnd-input:focus {
-    border-color: rgba(37,99,235,.4);
-    box-shadow: 0 0 0 4px rgba(37,99,235,.10);
+    border-color: rgba(0,108,53,.4);
+    box-shadow: 0 0 0 4px rgba(0,108,53,.10);
   }
   .mnd-input-note {
     margin-top: 6px;
@@ -331,7 +331,7 @@
     transition: border-color var(--mnd-t), background var(--mnd-t);
   }
   .mnd-check-wrap:has(input:checked) {
-    border-color: rgba(37,99,235,.3);
+    border-color: rgba(0,108,53,.3);
     background: var(--mnd-brand-soft);
   }
   .mnd-check-wrap input[type="checkbox"] {
@@ -370,7 +370,7 @@
   .mnd-btn:hover {
     transform: translateY(-2px);
     box-shadow: var(--mnd-shadow);
-    border-color: rgba(37,99,235,.3);
+    border-color: rgba(0,108,53,.3);
   }
   .mnd-btn:disabled {
     opacity: .5;
@@ -383,9 +383,9 @@
     background: linear-gradient(135deg, var(--mnd-brand) 0%, var(--mnd-brand-2) 100%);
     border-color: transparent;
     color: #fff;
-    box-shadow: 0 4px 14px rgba(37,99,235,.35);
+    box-shadow: 0 4px 14px rgba(0,108,53,.35);
   }
-  .mnd-btn.primary:hover:not(:disabled) { box-shadow: 0 8px 24px rgba(37,99,235,.45); }
+  .mnd-btn.primary:hover:not(:disabled) { box-shadow: 0 8px 24px rgba(0,108,53,.45); }
 
   /* ── Submit note ── */
   .mnd-submit-note {
@@ -398,15 +398,15 @@
   .mnd-signed-banner {
     display: flex; align-items: center; gap: 16px;
     padding: 18px 22px;
-    background: rgba(5,150,105,.07);
-    border: 1px solid rgba(5,150,105,.2);
+    background: rgba(22,132,91,.07);
+    border: 1px solid rgba(22,132,91,.2);
     border-radius: 14px;
     color: #065f46;
   }
   html[data-theme="dark"] .mnd-signed-banner { color: #6ee7b7; }
   .mnd-signed-icon {
     width: 46px; height: 46px;
-    background: rgba(5,150,105,.12);
+    background: rgba(22,132,91,.12);
     border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
     font-size: 1.2rem;
@@ -569,7 +569,7 @@
         <section class="mnd-card" aria-label="التوقيع على التعميم">
           <div class="mnd-card-hd">
             <div class="mnd-card-hd-title">
-              <div class="mnd-card-hd-icon" {% if r.is_signed %}style="background:rgba(5,150,105,.1);color:#059669"{% endif %}>
+              <div class="mnd-card-hd-icon" {% if r.is_signed %}style="background:rgba(22,132,91,.1);color:#16845b"{% endif %}>
                 <i class="fa-solid fa-pen-nib"></i>
               </div>
               التوقيع على التعميم

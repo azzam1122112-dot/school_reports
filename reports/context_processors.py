@@ -13,7 +13,7 @@ from django.apps import apps
 from django.db.models import Q
 from django.urls import reverse
 
-from .models import Ticket, Department, Report, School
+from .models import Ticket, Department, Report, School, school_has_archive_addon
 from .permissions import effective_user_role_label, get_school_manager_school_ids, is_report_viewer_for_school
 
 # حالات التذاكر
@@ -754,6 +754,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "SHOW_OFFICER_REPORTS_LINK": False,
             "SHOW_DEPARTMENT_REPORTS_LINK": False,
             "SHOW_SCHOOL_REPORTS_LINK": False,
+            "SHOW_ARCHIVE_LINK": False,
             "IS_SCHOOL_MANAGER": False,
             "DEPARTMENT_REPORTS_URLNAME": None,
             "NAV_OFFICER_REPORTS": 0,
@@ -931,6 +932,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
 
     # هل المستخدم مشرف تقارير (عرض فقط) ضمن المدرسة النشطة؟
     is_report_viewer = is_report_viewer_for_school(u, active_school) if active_school is not None else False
+    show_archive_link = bool(active_school is not None and school_has_archive_addon(active_school))
 
     # روابط لوحة المدير: تظهر لكل من لديه is_staff (مدير/سوبر أدمن) أو مدير مدرسة
     show_admin_link = bool(getattr(u, "is_staff", False)) or any_school_manager
@@ -1018,6 +1020,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SHOW_OFFICER_REPORTS_LINK": show_officer_link,
         "SHOW_DEPARTMENT_REPORTS_LINK": show_dept_reports_link,
         "SHOW_SCHOOL_REPORTS_LINK": show_school_reports_link,
+        "SHOW_ARCHIVE_LINK": show_archive_link,
         "DEPARTMENT_REPORTS_URLNAME": dept_reports_urlname,
         "NAV_OFFICER_REPORTS": nav_officer_reports,
         "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,

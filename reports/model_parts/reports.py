@@ -32,6 +32,14 @@ class Report(models.Model):
 
     title = models.CharField("العنوان / البرنامج", max_length=255, db_index=True)
     report_date = models.DateField("تاريخ التقرير / البرنامج", db_index=True)
+    academic_year = models.CharField(
+        "السنة الدراسية (هجري)",
+        max_length=9,
+        blank=True,
+        default="",
+        help_text="تُملأ تلقائيًا من إعدادات المدرسة عند إنشاء التقرير.",
+        db_index=True,
+    )
     day_name = models.CharField("اليوم", max_length=20, blank=True, null=True)
 
     beneficiaries_count = models.PositiveIntegerField(
@@ -72,6 +80,7 @@ class Report(models.Model):
             models.Index(fields=["school", "report_date"]),
             models.Index(fields=["school", "created_at"]),
             models.Index(fields=["school", "category"]),
+            models.Index(fields=["school", "academic_year", "-report_date", "-id"]),
             # ✅ my_reports: filter(teacher, school) + order_by(-report_date, -id)
             models.Index(fields=["teacher", "school", "-report_date", "-id"]),
             # ✅ admin_reports: filter(school) + order_by(-report_date, -id)
@@ -108,6 +117,23 @@ class Report(models.Model):
             except Exception:
                 pass
 
+        if self.academic_year:
+            try:
+                self.academic_year = _normalize_academic_year_hijri(self.academic_year)
+            except Exception:
+                pass
+        elif getattr(self, "school_id", None):
+            try:
+                current_year = (getattr(self.school, "current_academic_year", "") or "").strip()
+                if not current_year:
+                    years = getattr(self.school, "allowed_academic_years", None) or []
+                    if years:
+                        current_year = str(sorted(years)[-1])
+                if current_year:
+                    self.academic_year = _normalize_academic_year_hijri(current_year)
+            except Exception:
+                pass
+
         super().save(*args, **kwargs)
 
 
@@ -124,6 +150,34 @@ class PlatformSettings(models.Model):
         "مدة صلاحية رابط المشاركة (بالأيام)",
         default=7,
         help_text="المدة الافتراضية لروابط مشاركة التقارير/ملفات الإنجاز.",
+    )
+    archive_addon_annual_price = models.DecimalField(
+        "سعر إضافة الأرشفة السنوي",
+        max_digits=10,
+        decimal_places=2,
+        default=399,
+        validators=[MinValueValidator(0)],
+        help_text="السعر الذي يظهر لمدير المدرسة عند طلب تفعيل أو تجديد الأرشفة.",
+    )
+    archive_included_storage_gb = models.PositiveIntegerField(
+        "مساحة الأرشفة المضمنة (GB)",
+        default=50,
+        validators=[MinValueValidator(1)],
+        help_text="المساحة التي يحصل عليها العميل عند تفعيل إضافة الأرشفة.",
+    )
+    archive_storage_block_gb = models.PositiveIntegerField(
+        "حجم باقة زيادة التخزين (GB)",
+        default=50,
+        validators=[MinValueValidator(1)],
+        help_text="حجم كل وحدة زيادة مساحة، مثال: 50GB.",
+    )
+    archive_storage_block_price = models.DecimalField(
+        "سعر باقة زيادة التخزين",
+        max_digits=10,
+        decimal_places=2,
+        default=99,
+        validators=[MinValueValidator(0)],
+        help_text="سعر كل وحدة زيادة مساحة تخزين للأرشيف.",
     )
 
     updated_by = models.ForeignKey(

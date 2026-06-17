@@ -2,26 +2,44 @@
 {% block title %}ملف الإنجاز{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width:820px">
-  <div class="card" style="padding:18px">
-    <h1 style="margin:0;font-weight:950">ملف الإنجاز</h1>
-    <div class="muted" style="margin-top:6px">{{ file.teacher_name }} — {{ file.academic_year }}</div>
-
-    <div style="margin-top:14px">
-      {% if pdf_error %}
-        <div class="muted">{{ pdf_error }}</div>
-      {% endif %}
-
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a class="btn btn-primary" href="{{ download_url }}" target="_blank" rel="noopener">
-          {% if file.pdf_file %}عرض / تنزيل PDF{% else %}توليد / تنزيل PDF{% endif %}
-        </a>
-
-        {% if whatsapp_url %}
-          <a class="btn" style="background:#25D366;color:white" href="{{ whatsapp_url }}" target="_blank" rel="noopener">مشاركة واتساب</a>
-        {% endif %}
-      </div>
+<div class="royal-page royal-page--narrow">
+  <section class="royal-hero">
+    <div>
+      <span class="royal-kicker">
+        <i class="fa-solid fa-award" aria-hidden="true"></i>
+        مشاركة موثوقة
+      </span>
+      <h1 class="royal-title">ملف الإنجاز</h1>
+      <p class="royal-subtitle">{{ file.teacher_name }} - {{ file.academic_year }}</p>
     </div>
-  </div>
+    <div class="royal-badge">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+      رابط رسمي آمن
+    </div>
+  </section>
+
+  <section class="royal-panel">
+    <div class="royal-note">
+      {% if pdf_error %}
+        {{ pdf_error }}
+      {% else %}
+        يمكنك عرض ملف الإنجاز أو تنزيله مباشرة، ومشاركته عبر واتساب عند توفر الرابط.
+      {% endif %}
+    </div>
+
+    <div class="royal-actions" style="margin-top:16px">
+      <a class="btn btn-primary" href="{{ download_url }}" target="_blank" rel="noopener">
+        <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+        {% if file.pdf_file %}عرض وتنزيل PDF{% else %}توليد وتنزيل PDF{% endif %}
+      </a>
+
+      {% if whatsapp_url %}
+        <a class="btn btn-outline" href="{{ whatsapp_url }}" target="_blank" rel="noopener">
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+          مشاركة واتساب
+        </a>
+      {% endif %}
+    </div>
+  </section>
 </div>
 {% endblock %}

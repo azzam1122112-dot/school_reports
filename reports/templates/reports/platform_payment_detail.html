@@ -8,8 +8,8 @@
 <style>
   /* ✅ Scoped فقط لهذه الصفحة (بدون لمس .btn/.card العامة) */
   .pay-detail{
-    --pd-brand: var(--brand, #2563eb);
-    --pd-accent: var(--accent, #10b981);
+    --pd-brand: var(--brand, #006c35);
+    --pd-accent: var(--accent, #16845b);
     --pd-danger: var(--danger, #ef4444);
     --pd-ink: var(--ink, #0f172a);
     --pd-muted: var(--muted, #64748b);
@@ -32,9 +32,9 @@
     border-radius: var(--pd-radius);
     color:#fff;
     background:
-      radial-gradient(900px 240px at 20% 0%, rgba(37,99,235,.22), transparent 55%),
+      radial-gradient(900px 240px at 20% 0%, rgba(0,108,53,.22), transparent 55%),
       radial-gradient(700px 260px at 85% 75%, rgba(16,185,129,.16), transparent 60%),
-      linear-gradient(135deg, rgba(37,99,235,.96), rgba(14,165,233,.88));
+      linear-gradient(135deg, rgba(0,108,53,.96), rgba(14,165,233,.88));
     box-shadow: var(--pd-shadow);
     position:relative;
     overflow:hidden;
@@ -99,8 +99,8 @@
   .pay-detail .decision-card .num{font-size:1.2rem;font-weight:950;color:var(--pd-ink)}
   .pay-detail .decision-note{
     margin-top:12px;
-    border:1px solid rgba(37,99,235,.20);
-    background:rgba(37,99,235,.08);
+    border:1px solid rgba(0,108,53,.20);
+    background:rgba(0,108,53,.08);
     color:var(--pd-ink);
     border-radius:14px;
     padding:12px;
@@ -178,8 +178,8 @@
   .pay-detail .badge.success{background: rgba(16,185,129,.12); color: #047857; border-color: rgba(16,185,129,.22)}
   .pay-detail .badge.warning{background: rgba(245,158,11,.14); color: #92400e; border-color: rgba(245,158,11,.24)}
   .pay-detail .badge.danger{background: rgba(239,68,68,.12); color: #b91c1c; border-color: rgba(239,68,68,.24)}
-  html[data-theme="dark"] .pay-detail .badge.success{color:#34d399}
-  html[data-theme="dark"] .pay-detail .badge.warning{color:#fbbf24}
+  html[data-theme="dark"] .pay-detail .badge.success{color:#35a96f}
+  html[data-theme="dark"] .pay-detail .badge.warning{color:#d4b16d}
   html[data-theme="dark"] .pay-detail .badge.danger{color:#fca5a5}
 
   /* Form */
@@ -254,8 +254,16 @@
         <div class="num">{{ payment.amount|floatformat:0|intcomma }} ريال</div>
       </div>
       <div class="decision-card">
-        <span class="label">الباقة المطلوبة</span>
-        <div class="num">{{ payment.requested_plan.name|default:"-" }}</div>
+        <span class="label">نوع العملية</span>
+        <div class="num">
+          {% if payment.purpose == 'archive_addon' %}
+            إضافة الأرشفة
+          {% elif payment.purpose == 'archive_storage' %}
+            زيادة مساحة الأرشيف
+          {% else %}
+            {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
+          {% endif %}
+        </div>
       </div>
       <div class="decision-card">
         <span class="label">المدرسة</span>
@@ -292,6 +300,19 @@
         </div>
 
         <div class="row">
+          <span class="label">نوع العملية</span>
+          <span class="value">
+            {% if payment.purpose == 'archive_addon' %}
+              تفعيل/تجديد إضافة الأرشفة السنوية
+            {% elif payment.purpose == 'archive_storage' %}
+              زيادة مساحة الأرشيف بمقدار {{ payment.archive_storage_gb }}GB
+            {% else %}
+              تجديد اشتراك المدرسة{% if payment.requested_plan %} - {{ payment.requested_plan.name }}{% endif %}
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="row">
           <span class="label">التاريخ</span>
           <span class="value">{{ payment.payment_date|date:"Y-m-d" }}</span>
         </div>
@@ -309,7 +330,13 @@
 
       <div class="decision-note">
         {% if payment.status == 'pending' %}
-          راجع الإيصال والمبلغ ثم اعتمد العملية لتحويلها إلى إيراد وتجديد اشتراك المدرسة تلقائيًا عند توفر الباقة.
+          {% if payment.purpose == 'archive_addon' %}
+            راجع الإيصال والمبلغ ثم اعتمد العملية لتفعيل أو تجديد إضافة الأرشفة للمدرسة تلقائيًا.
+          {% elif payment.purpose == 'archive_storage' %}
+            راجع الإيصال والمبلغ ثم اعتمد العملية لزيادة حد تخزين الأرشيف تلقائيًا.
+          {% else %}
+            راجع الإيصال والمبلغ ثم اعتمد العملية لتحويلها إلى إيراد وتجديد اشتراك المدرسة تلقائيًا عند توفر الباقة.
+          {% endif %}
         {% elif payment.status == 'approved' and payment.amount < 0 %}
           هذه عملية استرجاع معتمدة، وهي تخصم من صافي الإيراد في لوحة المالية.
         {% elif payment.status == 'approved' %}

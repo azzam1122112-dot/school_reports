@@ -65,10 +65,10 @@ else \
     exec gunicorn config.asgi:application \
         --bind 0.0.0.0:${PORT:-10000} \
         -k uvicorn.workers.UvicornWorker \
-        --workers ${WEB_CONCURRENCY:-3} \
+        --workers ${WEB_CONCURRENCY:-1} \
         --threads ${GUNICORN_THREADS:-2} \
         --timeout ${GUNICORN_TIMEOUT:-120} \
         --keep-alive ${GUNICORN_KEEPALIVE:-5} \
-        --max-requests ${GUNICORN_MAX_REQUESTS:-2000} \
-        --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-200}; \
+        --max-requests ${GUNICORN_MAX_REQUESTS:-800} \
+        --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-80}; \
 fi"]

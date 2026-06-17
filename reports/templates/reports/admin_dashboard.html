@@ -10,11 +10,11 @@
 <style>
     /* Premium School Dashboard 2026 */
     :root {
-        --primary: #2563eb;
+        --primary: #006c35;
         --secondary: #64748b;
-        --accent: #8b5cf6;
-        --success: #10b981;
-        --warning: #f59e0b;
+        --accent: #b9975b;
+        --success: #16845b;
+        --warning: #b9975b;
         --danger: #ef4444;
         --surface: #ffffff;
         --background: #f8fafc;
@@ -85,7 +85,7 @@
     
     .warning-banner.warning {
         background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        border-color: #f59e0b;
+        border-color: #b9975b;
     }
     
     .warning-banner.expired {
@@ -126,7 +126,7 @@
 
     /* Hero Section */
     .hero-card {
-        background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, var(--primary) 0%, #00542a 100%);
         color: white;
         border-radius: 16px;
         padding: 2rem;
@@ -134,7 +134,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.3);
+        box-shadow: 0 20px 25px -5px rgba(0, 108, 53, 0.3);
         position: relative;
         overflow: hidden;
         animation: fadeIn 0.6s ease;
@@ -225,6 +225,63 @@
         font-weight: 500;
     }
 
+    .dashboard-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin: -0.75rem 0 1.75rem;
+        padding: 0.75rem;
+        border: 1px solid rgba(0, 108, 53, 0.12);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: var(--shadow-sm);
+        flex-wrap: wrap;
+    }
+
+    .period-filters {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .period-btn {
+        border: 0;
+        background: transparent;
+        color: var(--text-muted);
+        border-radius: 10px;
+        padding: 0.55rem 0.95rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .period-btn:hover {
+        background: rgba(0, 108, 53, 0.08);
+        color: var(--primary);
+    }
+
+    .period-btn.active {
+        background: var(--primary);
+        color: #fff;
+        box-shadow: var(--shadow-md);
+    }
+
+    .toolbar-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 700;
+        flex-wrap: wrap;
+    }
+
+    .school-dash.is-loading {
+        opacity: 0.74;
+        transition: opacity 0.2s ease;
+    }
+
     /* Action Grid */
     .action-grid {
         display: grid;
@@ -258,7 +315,7 @@
         right: 0;
         width: 60px;
         height: 60px;
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), transparent);
+        background: linear-gradient(135deg, rgba(0, 108, 53, 0.05), transparent);
         border-radius: 0 0 0 100%;
     }
     
@@ -358,7 +415,7 @@
     }
     
     .list-item:hover {
-        background: rgba(37, 99, 235, 0.02);
+        background: rgba(0, 108, 53, 0.02);
         margin: 0 -0.5rem;
         padding: 0.875rem 0.5rem;
         border-radius: 6px;
@@ -385,7 +442,7 @@
     }
     
     .activity-item:hover {
-        background: rgba(37, 99, 235, 0.03);
+        background: rgba(0, 108, 53, 0.03);
     }
     
     .activity-item:nth-child(1) { animation-delay: 0.1s; }
@@ -403,7 +460,7 @@
         font-size: 1rem;
     }
     
-    .activity-icon.primary { background: #dbeafe; color: #1e40af; }
+    .activity-icon.primary { background: #dbeafe; color: #00542a; }
     .activity-icon.warning { background: #fef3c7; color: #92400e; }
     .activity-icon.success { background: #d1fae5; color: #065f46; }
     
@@ -451,6 +508,11 @@
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         }
         .content-grid { grid-template-columns: 1fr; }
+        .dashboard-toolbar { align-items: stretch; }
+        .dashboard-toolbar,
+        .period-filters,
+        .toolbar-meta { width: 100%; }
+        .period-btn { flex: 1 1 calc(50% - 0.5rem); }
     }
     
     @media (max-width: 640px) {
@@ -475,7 +537,7 @@
     .badge-success { background: #d1fae5; color: #065f46; }
     .badge-warning { background: #fef3c7; color: #92400e; }
     .badge-danger { background: #fee2e2; color: #b91c1c; }
-    .badge-info { background: #dbeafe; color: #1e40af; }
+    .badge-info { background: #dbeafe; color: #00542a; }
 </style>
 {% endblock %}
 
@@ -504,7 +566,7 @@
         </div>
         {% elif subscription_warning == 'warning' %}
         <div class="warning-banner warning">
-            <div class="warning-icon" style="color: #f59e0b;">
+            <div class="warning-icon" style="color: #b9975b;">
                 <i class="fas fa-clock"></i>
             </div>
             <div class="warning-content">
@@ -514,7 +576,7 @@
                     ننصح بالتجديد مبكراً.
                 </p>
             </div>
-            <a href="{% url 'reports:my_subscription' %}" class="btn btn-sm" style="background: #f59e0b; color: white; white-space: nowrap;">
+            <a href="{% url 'reports:my_subscription' %}" class="btn btn-sm" style="background: #b9975b; color: white; white-space: nowrap;">
                 عرض التفاصيل
             </a>
         </div>
@@ -539,7 +601,7 @@
         <div class="hero-content">
             <h1>{{ active_school.name }}</h1>
             <div class="school-meta">
-                <span><i class="fas fa-calendar-alt"></i> السنة: {{ active_school.file.academic_year|default:"الحالية" }}</span>
+                <span><i class="fas fa-calendar-alt"></i> السنة: {{ active_school.current_academic_year|default:"الحالية" }}</span>
                 <span><i class="fas fa-users"></i> إجمالي {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}: {{ teachers_count }}</span>
                 <span><i class="fas fa-building"></i> {{ active_school.get_stage_display }}</span>
             </div>
@@ -551,15 +613,15 @@
         </div>
         <div class="hero-stats">
             <div class="h-stat">
-                <span class="h-stat-val">{{ reports_count }}</span>
+                <span class="h-stat-val" id="schoolReportsCount">{{ reports_count }}</span>
                 <span class="h-stat-lbl">تقرير</span>
             </div>
             <div class="h-stat">
-                <span class="h-stat-val">{{ tickets_total }}</span>
+                <span class="h-stat-val" id="schoolTicketsTotal">{{ tickets_total }}</span>
                 <span class="h-stat-lbl">طلب</span>
             </div>
             <div class="h-stat">
-                <span class="h-stat-val">{{ tickets_open|default:0 }}</span>
+                <span class="h-stat-val" id="schoolTicketsOpen">{{ tickets_open|default:0 }}</span>
                 <span class="h-stat-lbl">قيد المعالجة</span>
             </div>
         </div>
@@ -577,6 +639,24 @@
     </div>
     {% endif %}
 
+    {% if active_school %}
+    <div class="dashboard-toolbar" aria-label="تحديث بيانات لوحة المدرسة">
+        <div class="period-filters" role="group" aria-label="الفترة">
+            <button type="button" class="period-btn {% if initial_period == 'all' %}active{% endif %}" data-school-period="all" aria-pressed="{% if initial_period == 'all' %}true{% else %}false{% endif %}">الكل</button>
+            <button type="button" class="period-btn {% if initial_period == 'year' %}active{% endif %}" data-school-period="year" aria-pressed="{% if initial_period == 'year' %}true{% else %}false{% endif %}">هذا العام</button>
+            <button type="button" class="period-btn {% if initial_period == 'quarter' %}active{% endif %}" data-school-period="quarter" aria-pressed="{% if initial_period == 'quarter' %}true{% else %}false{% endif %}">هذا الربع</button>
+            <button type="button" class="period-btn {% if initial_period == 'month' %}active{% endif %}" data-school-period="month" aria-pressed="{% if initial_period == 'month' %}true{% else %}false{% endif %}">هذا الشهر</button>
+        </div>
+        <div class="toolbar-meta">
+            <span>الفترة: <strong id="schoolActivePeriodLabel">الكل</strong></span>
+            <span id="schoolDashboardUpdated">آخر تحديث: الآن</span>
+            <button type="button" class="btn btn-sm btn-outline" id="refreshSchoolDashboard">
+                <i class="fas fa-sync-alt"></i> تحديث
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Quick Actions Grid -->
     <div class="action-grid">
         <a href="{% url 'reports:add_teacher' %}" class="action-card">
@@ -584,23 +664,23 @@
             <span class="action-title">إضافة معلم</span>
         </a>
         <a href="{% url 'reports:manage_teachers' %}" class="action-card">
-            <div class="action-icon" style="color:#0ea5e9; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-chalkboard-teacher"></i></div>
+            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-chalkboard-teacher"></i></div>
             <span class="action-title">إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</span>
         </a>
         <a href="{% url 'reports:departments_list' %}" class="action-card">
-            <div class="action-icon" style="color:#8b5cf6; background:linear-gradient(135deg, #f3e8ff, #e9d5ff)"><i class="fas fa-building"></i></div>
+            <div class="action-icon" style="color:#b9975b; background:linear-gradient(135deg, #f3e8ff, #e9d5ff)"><i class="fas fa-building"></i></div>
             <span class="action-title">الأقسام</span>
         </a>
         <a href="{% url 'reports:admin_reports' %}" class="action-card">
-            <div class="action-icon" style="color:#10b981; background:linear-gradient(135deg, #d1fae5, #a7f3d0)"><i class="fas fa-file-contract"></i></div>
+            <div class="action-icon" style="color:#16845b; background:linear-gradient(135deg, #d1fae5, #a7f3d0)"><i class="fas fa-file-contract"></i></div>
             <span class="action-title">تقارير المدرسة</span>
         </a>
         <a href="{% url 'reports:request_create' %}" class="action-card">
-            <div class="action-icon" style="color:#f59e0b; background:linear-gradient(135deg, #fef3c7, #fde68a)"><i class="fas fa-plus-circle"></i></div>
+            <div class="action-icon" style="color:#b9975b; background:linear-gradient(135deg, #fef3c7, #fde68a)"><i class="fas fa-plus-circle"></i></div>
             <span class="action-title">طلب جديد</span>
         </a>
         <a href="{% url 'reports:manager_school_tickets' %}" class="action-card">
-            <div class="action-icon" style="color:#0ea5e9; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-inbox"></i></div>
+            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-inbox"></i></div>
             <span class="action-title">طلبات المدرسة</span>
         </a>
         <a href="{% url 'reports:my_subscription' %}" class="action-card">
@@ -608,23 +688,23 @@
             <span class="action-title">اشتراك المدرسة</span>
         </a>
         <a href="{% url 'reports:reporttypes_list' %}" class="action-card">
-            <div class="action-icon" style="color:#6366f1; background:linear-gradient(135deg, #e0e7ff, #c7d2fe)"><i class="fas fa-list-alt"></i></div>
+            <div class="action-icon" style="color:#0f8f87; background:linear-gradient(135deg, #e0e7ff, #c7d2fe)"><i class="fas fa-list-alt"></i></div>
             <span class="action-title">أنواع التقارير</span>
         </a>
         <a href="{% url 'reports:notifications_sent' %}" class="action-card">
-            <div class="action-icon" style="color:#0ea5e9; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-bell"></i></div>
+            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-bell"></i></div>
             <span class="action-title">الإشعارات</span>
         </a>
         <a href="{% url 'reports:circulars_sent' %}" class="action-card">
-            <div class="action-icon" style="color:#2563eb; background:linear-gradient(135deg, #dbeafe, #bfdbfe)"><i class="fas fa-clipboard-check"></i></div>
+            <div class="action-icon" style="color:#006c35; background:linear-gradient(135deg, #dbeafe, #bfdbfe)"><i class="fas fa-clipboard-check"></i></div>
             <span class="action-title">التعاميم</span>
         </a>
         <a href="{% url 'reports:notifications_create' %}" class="action-card">
-            <div class="action-icon" style="color:#f59e0b; background:linear-gradient(135deg, #fff7ed, #fed7aa)"><i class="fas fa-bell"></i></div>
+            <div class="action-icon" style="color:#b9975b; background:linear-gradient(135deg, #fff7ed, #fed7aa)"><i class="fas fa-bell"></i></div>
             <span class="action-title">إرسال إشعار</span>
         </a>
         <a href="{% url 'reports:circulars_create' %}" class="action-card">
-            <div class="action-icon" style="color:#2563eb; background:linear-gradient(135deg, #eff6ff, #dbeafe)"><i class="fas fa-bullhorn"></i></div>
+            <div class="action-icon" style="color:#006c35; background:linear-gradient(135deg, #eff6ff, #dbeafe)"><i class="fas fa-bullhorn"></i></div>
             <span class="action-title">إرسال تعميم</span>
         </a>
         <a href="{% url 'reports:my_support_tickets' %}" class="action-card">
@@ -684,11 +764,11 @@
                 </div>
                 <div class="list-item">
                     <span><i class="fas fa-users" style="color: var(--primary);"></i> عدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</span>
-                    <strong style="font-size: 1.1rem; color: var(--primary);">{{ teachers_count }}</strong>
+                    <strong id="schoolTeachersCountSide" style="font-size: 1.1rem; color: var(--primary);">{{ teachers_count }}</strong>
                 </div>
                 <div class="list-item">
                     <span><i class="fas fa-file-alt" style="color: var(--accent);"></i> أنواع التقارير</span>
-                    <strong style="font-size: 1.1rem; color: var(--accent);">{{ reporttypes_count }}</strong>
+                    <strong id="schoolReportTypesCountSide" style="font-size: 1.1rem; color: var(--accent);">{{ reporttypes_count }}</strong>
                 </div>
                 <div class="list-item">
                     <span><i class="fas fa-chart-line" style="color: var(--success);"></i> إحصائية الطلبات</span>
@@ -757,184 +837,255 @@
 
 </div>
 
+{% if active_school %}
+{{ dashboard_period_payload|json_script:"schoolDashboardPayload" }}
 <!-- JavaScript for Charts -->
 <script>
-{% if active_school %}
-// Chart.js Configuration
-Chart.defaults.font.family = 'Cairo, sans-serif';
-Chart.defaults.color = '#64748b';
-
-const colors = {
-    primary: '#2563eb',
-    secondary: '#64748b',
-    accent: '#8b5cf6',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-};
-
-// 1. Reports Activity Chart
-const reportsCtx = document.getElementById('reportsChart').getContext('2d');
-new Chart(reportsCtx, {
-    type: 'line',
-    data: {
-        labels: {{ reports_labels|safe }},
-        datasets: [{
-            label: 'عدد التقارير',
-            data: {{ reports_data|safe }},
-            borderColor: colors.primary,
-            backgroundColor: 'rgba(37, 99, 235, 0.1)',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 5,
-            pointHoverRadius: 8,
-            pointBackgroundColor: colors.primary,
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                callbacks: {
-                    label: function(context) {
-                        return 'التقارير: ' + context.parsed.y;
-                    }
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                ticks: { stepSize: 1 }
-            },
-            x: {
-                grid: { display: false }
-            }
-        }
+(function () {
+    const payloadEl = document.getElementById('schoolDashboardPayload');
+    let dashboardPayload = {};
+    try {
+        dashboardPayload = payloadEl ? JSON.parse(payloadEl.textContent || '{}') : {};
+    } catch (error) {
+        dashboardPayload = {};
     }
-});
 
-// 2. Reports by Department Chart
-const deptCtx = document.getElementById('deptChart').getContext('2d');
-new Chart(deptCtx, {
-    type: 'doughnut',
-    data: {
-        labels: {{ dept_labels|safe }},
-        datasets: [{
-            data: {{ dept_data|safe }},
-            backgroundColor: [
-                colors.primary,
-                colors.accent,
-                colors.success,
-                colors.warning,
-                colors.danger,
-                colors.secondary
-            ],
-            borderWidth: 3,
-            borderColor: '#fff',
-            hoverOffset: 10
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    usePointStyle: true,
-                    padding: 15,
-                    font: { size: 11 }
-                }
-            },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12
-            }
-        },
-        cutout: '65%'
+    const PERIOD_LABELS = {
+        all: 'الكل',
+        year: 'هذا العام',
+        quarter: 'هذا الربع',
+        month: 'هذا الشهر',
+    };
+    const SCHOOL_DASHBOARD_API_URL = "{% url 'reports:api_admin_dashboard_data' %}";
+    let currentPeriod = dashboardPayload.period || '{{ initial_period|default:"all" }}';
+    let requestController = null;
+
+    const colors = {
+        primary: '#006c35',
+        secondary: '#64748b',
+        accent: '#b9975b',
+        success: '#16845b',
+        warning: '#b9975b',
+        danger: '#ef4444',
+    };
+
+    function formatNumber(value) {
+        return Number(value || 0).toLocaleString('ar-SA');
     }
-});
 
-// 3. Teachers by Department Chart (if available)
-{% if teachers_labels %}
-const teachersCtx = document.getElementById('teachersChart').getContext('2d');
-new Chart(teachersCtx, {
-    type: 'bar',
-    data: {
-        labels: {{ teachers_labels|safe }},
-        datasets: [{
-            label: 'عدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}',
-            data: {{ teachers_data|safe }},
-            backgroundColor: 'rgba(245, 158, 11, 0.8)',
-            borderColor: colors.warning,
-            borderWidth: 2,
-            borderRadius: 6,
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                ticks: { stepSize: 1 }
-            },
-            x: {
-                grid: { display: false }
-            }
-        }
+    function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
     }
-});
-{% endif %}
 
-// Number Animation
-function animateNumber(element, target) {
-    const duration = 1000;
-    const steps = 60;
-    const increment = target / steps;
-    let current = 0;
-    
-    const timer = setInterval(() => {
-        current += increment;
-        if (current >= target) {
-            element.textContent = target;
-            clearInterval(timer);
-        } else {
-            element.textContent = Math.floor(current);
-        }
-    }, duration / steps);
-}
+    function setLoading(isLoading) {
+        const root = document.querySelector('.school-dash');
+        if (root) root.classList.toggle('is-loading', !!isLoading);
+    }
 
-// Animate numbers on load
-window.addEventListener('load', () => {
-    document.querySelectorAll('.h-stat-val').forEach(el => {
-        const value = parseInt(el.textContent);
-        if (!isNaN(value)) {
-            el.textContent = '0';
-            setTimeout(() => animateNumber(el, value), 300);
+    function markPeriod(period) {
+        document.querySelectorAll('.period-btn[data-school-period]').forEach((btn) => {
+            const active = btn.getAttribute('data-school-period') === period;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+
+    function syncMeta(payload) {
+        const period = payload.period || currentPeriod || 'all';
+        const label = payload.period_label || PERIOD_LABELS[period] || 'الكل';
+        setText('schoolActivePeriodLabel', label);
+        setText('schoolDashboardUpdated', payload.generated_at ? ('آخر تحديث: ' + payload.generated_at) : 'آخر تحديث: الآن');
+        markPeriod(period);
+    }
+
+    function applyKpis(payload) {
+        const kpis = payload.kpis || {};
+        setText('schoolReportsCount', formatNumber(kpis.reports_count));
+        setText('schoolTicketsTotal', formatNumber(kpis.tickets_total));
+        setText('schoolTicketsOpen', formatNumber(kpis.tickets_open));
+        setText('schoolTeachersCountSide', formatNumber(kpis.teachers_count));
+        setText('schoolReportTypesCountSide', formatNumber(kpis.reporttypes_count));
+    }
+
+    function missingChartsNotice() {
+        document.querySelectorAll('.chart-container').forEach((box) => {
+            if (box.querySelector('.chart-fallback')) return;
+            const notice = document.createElement('div');
+            notice.className = 'chart-fallback muted';
+            notice.style.cssText = 'display:grid;place-items:center;height:100%;font-weight:800;text-align:center;padding:1rem;';
+            notice.textContent = 'تعذر تحميل الرسوم البيانية حالياً، لكن بيانات اللوحة محدثة.';
+            box.appendChild(notice);
+        });
+    }
+
+    if (typeof Chart === 'undefined') {
+        missingChartsNotice();
+        applyKpis(dashboardPayload);
+        syncMeta(dashboardPayload);
+        return;
+    }
+
+    Chart.defaults.font.family = 'Cairo, sans-serif';
+    Chart.defaults.color = '#64748b';
+
+    const charts = dashboardPayload.charts || {};
+    const reportsChart = new Chart(document.getElementById('reportsChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: (charts.reports && charts.reports.labels) || [],
+            datasets: [{
+                label: 'عدد التقارير',
+                data: (charts.reports && charts.reports.data) || [],
+                borderColor: colors.primary,
+                backgroundColor: 'rgba(0, 108, 53, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 8,
+                pointBackgroundColor: colors.primary,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            }
         }
     });
-});
 
-console.log('%c 🎓 لوحة إدارة المدرسة Premium 2026 ', 'background: linear-gradient(135deg, #2563eb, #8b5cf6); color: white; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px;');
-{% endif %}
+    const deptChart = new Chart(document.getElementById('deptChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: (charts.categories && charts.categories.labels) || [],
+            datasets: [{
+                data: (charts.categories && charts.categories.data) || [],
+                backgroundColor: [colors.primary, colors.accent, colors.success, colors.warning, colors.danger, colors.secondary],
+                borderWidth: 3,
+                borderColor: '#fff',
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 15, font: { size: 11 } } } },
+            cutout: '65%'
+        }
+    });
+
+    const teachersCanvas = document.getElementById('teachersChart');
+    const teachersChart = teachersCanvas ? new Chart(teachersCanvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: (charts.teachers && charts.teachers.labels) || [],
+            datasets: [{
+                label: 'عدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}',
+                data: (charts.teachers && charts.teachers.data) || [],
+                backgroundColor: 'rgba(185, 151, 91, 0.82)',
+                borderColor: colors.warning,
+                borderWidth: 2,
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            }
+        }
+    }) : null;
+
+    function applyCharts(payload) {
+        const nextCharts = payload.charts || {};
+        const reports = nextCharts.reports || { labels: [], data: [] };
+        const categories = nextCharts.categories || { labels: [], data: [] };
+        const teachers = nextCharts.teachers || { labels: [], data: [] };
+
+        reportsChart.data.labels = reports.labels || [];
+        reportsChart.data.datasets[0].data = reports.data || [];
+        reportsChart.update();
+
+        deptChart.data.labels = categories.labels || [];
+        deptChart.data.datasets[0].data = categories.data || [];
+        deptChart.update();
+
+        if (teachersChart) {
+            teachersChart.data.labels = teachers.labels || [];
+            teachersChart.data.datasets[0].data = teachers.data || [];
+            teachersChart.update();
+        }
+    }
+
+    function applyPayload(payload, updateUrl) {
+        dashboardPayload = payload || {};
+        currentPeriod = dashboardPayload.period || currentPeriod || 'all';
+        applyKpis(dashboardPayload);
+        applyCharts(dashboardPayload);
+        syncMeta(dashboardPayload);
+        if (updateUrl) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('period', currentPeriod);
+            history.replaceState({}, '', url.toString());
+        }
+    }
+
+    async function fetchPeriod(period, force) {
+        const normalized = PERIOD_LABELS[period] ? period : 'all';
+        const refreshBtn = document.getElementById('refreshSchoolDashboard');
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
+        }
+        setLoading(true);
+        try {
+            if (requestController) requestController.abort();
+            requestController = new AbortController();
+            const url = new URL(SCHOOL_DASHBOARD_API_URL, window.location.origin);
+            url.searchParams.set('period', normalized);
+            if (force) url.searchParams.set('_ts', String(Date.now()));
+
+            const response = await fetch(url.toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                signal: requestController.signal,
+            });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            applyPayload(await response.json(), true);
+        } catch (error) {
+            if (!error || error.name !== 'AbortError') {
+                console.error('School dashboard refresh failed:', error);
+            }
+        } finally {
+            setLoading(false);
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث';
+            }
+        }
+    }
+
+    document.querySelectorAll('.period-btn[data-school-period]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const period = button.getAttribute('data-school-period') || 'all';
+            if (period !== currentPeriod) fetchPeriod(period, false);
+        });
+    });
+
+    const refreshBtn = document.getElementById('refreshSchoolDashboard');
+    if (refreshBtn) refreshBtn.addEventListener('click', () => fetchPeriod(currentPeriod || 'all', true));
+
+    applyPayload(dashboardPayload, false);
+}());
 </script>
+{% endif %}
 
 {% endblock %}

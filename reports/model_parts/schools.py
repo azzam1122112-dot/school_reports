@@ -53,6 +53,14 @@ class School(models.Model):
         blank=True,
         help_text="قائمة بالسنوات الدراسية (هجري) التي تظهر للمعلم عند إنشاء ملف إنجاز.",
     )
+    current_academic_year = models.CharField(
+        "السنة الدراسية الحالية (هجري)",
+        max_length=9,
+        blank=True,
+        default="",
+        help_text="مثال: 1447-1448. تُستخدم لتصنيف التقارير الجديدة وأرشفة السنوات.",
+        db_index=True,
+    )
     created_at = models.DateTimeField("أُنشئت في", auto_now_add=True)
     updated_at = models.DateTimeField("تم التحديث في", auto_now=True)
 
@@ -67,6 +75,8 @@ class School(models.Model):
     def save(self, *args, **kwargs):
         if self.code:
             self.code = self.code.strip().lower()
+        if self.current_academic_year:
+            self.current_academic_year = _normalize_academic_year_hijri(self.current_academic_year)
         super().save(*args, **kwargs)
 
 
