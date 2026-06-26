@@ -548,11 +548,17 @@
       }
 
       passkeyBtn.addEventListener('click', async function(){
+        const identifierValue = identifier ? identifier.value.trim() : '';
+        if (!identifierValue) {
+          showStatus('اكتب رقم الجوال أو الهوية أولاً ثم اضغط الدخول بالبصمة.', true);
+          if (identifier) identifier.focus();
+          return;
+        }
         try {
           passkeyBtn.disabled = true;
           showStatus('افتح نافذة البصمة أو قفل الجهاز لإكمال الدخول...', false);
           const options = await postJSON(passkeyBtn.dataset.optionsUrl, {
-            identifier: identifier ? identifier.value : '',
+            identifier: identifierValue,
           });
           const credential = await navigator.credentials.get({
             publicKey: prepareRequestOptions(options.publicKey),

@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import secrets
 from io import BytesIO
 from dataclasses import dataclass
@@ -33,7 +34,19 @@ def credential_hash(credential_id: bytes) -> str:
 
 
 def rp_id_from_request(request) -> str:
-    return (request.get_host() or "").split(":", 1)[0].strip().lower()
+    """معرّف النطاق (RP ID) لمفاتيح البصمة.
+
+    افتراضياً يُشتق من مضيف الطلب الحالي، لكن إذا ضُبط ``WEBAUTHN_RP_ID``
+    (مثل ``tawtheeq-ksa.com``) وكان المضيف الحالي مطابقاً له أو نطاقاً فرعياً
+    منه، نستخدم المعرّف الثابت. هذا يجعل البصمة المسجّلة من أي نطاق فرعي
+    (apex / www / app) تعمل على بقية النطاقات الفرعية، وفق معيار WebAuthn الذي
+    يسمح بأن يكون ``rp.id`` لاحقة قابلة للتسجيل من نطاق الأصل.
+    """
+    host = (request.get_host() or "").split(":", 1)[0].strip().lower()
+    configured = (os.getenv("WEBAUTHN_RP_ID") or "").strip().lower().lstrip(".")
+    if configured and (host == configured or host.endswith("." + configured)):
+        return configured
+    return host
 
 
 def origin_from_request(request) -> str:

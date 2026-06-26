@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY = "_webauthn_register_challenge"
 WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY = "_webauthn_auth_challenge"
+WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY = "_webauthn_auth_allowed_credentials"
 
 
 def _force_password_change_notice() -> str:
@@ -641,9 +642,6 @@ def passkey_register_verify(request: HttpRequest) -> JsonResponse:
 
 @require_http_methods(["POST"])
 def passkey_login_options(request: HttpRequest) -> JsonResponse:
-    challenge = random_challenge()
-    request.session[WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY] = challenge
-
     allow_credentials = []
     try:
         payload = json_body(request)
@@ -651,36 +649,62 @@ def passkey_login_options(request: HttpRequest) -> JsonResponse:
         payload = {}
 
     identifier = (payload.get("identifier") or "").strip()
-    if identifier:
-        attempts = [identifier]
-        ident_no_plus = identifier.lstrip("+")
-        if ident_no_plus != identifier:
-            attempts.append(ident_no_plus)
-        if identifier.isdigit() and len(identifier) == 9:
-            attempts.append("0" + identifier)
-        if ident_no_plus.isdigit() and ident_no_plus.startswith("966") and len(ident_no_plus) >= 12:
-            attempts.append("0" + ident_no_plus[-9:])
-        attempts = list(dict.fromkeys([item for item in attempts if item]))
+    if not identifier:
+        request.session.pop(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY, None)
+        request.session.pop(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY, None)
+        return _passkey_response(
+            False,
+            status=400,
+            error="identifier_required",
+            message="اكتب رقم الجوال أو الهوية أولاً ثم اضغط الدخول بالبصمة.",
+        )
 
-        user = Teacher.objects.filter(Q(phone__in=attempts) | Q(national_id=identifier)).first()
-        if user is not None:
-            for credential in WebAuthnCredential.objects.filter(teacher=user, is_active=True).only("credential_id", "transports"):
-                allow_credentials.append(
-                    {
-                        "type": "public-key",
-                        "id": b64url_encode(bytes(credential.credential_id)),
-                        "transports": credential.transports or ["internal"],
-                    }
-                )
+    attempts = [identifier]
+    ident_no_plus = identifier.lstrip("+")
+    if ident_no_plus != identifier:
+        attempts.append(ident_no_plus)
+    if identifier.isdigit() and len(identifier) == 9:
+        attempts.append("0" + identifier)
+    if ident_no_plus.isdigit() and ident_no_plus.startswith("966") and len(ident_no_plus) >= 12:
+        attempts.append("0" + ident_no_plus[-9:])
+    attempts = list(dict.fromkeys([item for item in attempts if item]))
+
+    user = Teacher.objects.filter(Q(phone__in=attempts) | Q(national_id=identifier)).first()
+    if user is not None:
+        for credential in WebAuthnCredential.objects.filter(teacher=user, is_active=True).only("credential_id", "transports"):
+            credential_id = bytes(credential.credential_id)
+            allow_credentials.append(
+                {
+                    "type": "public-key",
+                    "id": b64url_encode(credential_id),
+                    "transports": credential.transports or ["internal"],
+                    "hash": credential_hash(credential_id),
+                }
+            )
+
+    if not allow_credentials:
+        request.session.pop(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY, None)
+        request.session.pop(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY, None)
+        return _passkey_response(
+            False,
+            status=404,
+            error="passkey_not_enabled",
+            message="لا توجد بصمة مفعلة لهذا الرقم أو الهوية. سجّل الدخول بكلمة المرور ثم فعّل البصمة من الملف الشخصي.",
+        )
+
+    challenge = random_challenge()
+    request.session[WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY] = challenge
+    request.session[WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY] = [item["hash"] for item in allow_credentials]
+    for item in allow_credentials:
+        item.pop("hash", None)
 
     public_key = {
         "challenge": challenge,
         "rpId": rp_id_from_request(request),
         "timeout": 60000,
         "userVerification": "preferred",
+        "allowCredentials": allow_credentials,
     }
-    if allow_credentials:
-        public_key["allowCredentials"] = allow_credentials
     return _passkey_response(True, publicKey=public_key)
 
 
@@ -694,9 +718,14 @@ def passkey_login_verify(request: HttpRequest) -> JsonResponse:
         payload = json_body(request)
         response = payload.get("response") or {}
         raw_id = b64url_decode(payload.get("rawId") or payload.get("id") or "")
+        raw_id_hash = credential_hash(raw_id)
+        allowed_hashes = request.session.get(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY) or []
+        if raw_id_hash not in allowed_hashes:
+            return _passkey_response(False, status=403, error="credential_not_allowed", message="مفتاح البصمة لا يطابق الرقم أو الهوية المدخلة.")
+
         credential = (
             WebAuthnCredential.objects.select_related("teacher")
-            .filter(credential_id_hash=credential_hash(raw_id), is_active=True)
+            .filter(credential_id_hash=raw_id_hash, is_active=True)
             .first()
         )
         if credential is None:
@@ -727,6 +756,7 @@ def passkey_login_verify(request: HttpRequest) -> JsonResponse:
         credential.last_used_at = timezone.now()
         credential.save(update_fields=["sign_count", "last_used_at"])
         request.session.pop(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY, None)
+        request.session.pop(WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY, None)
 
         return _complete_passkey_login(
             request,
