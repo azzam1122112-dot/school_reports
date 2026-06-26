@@ -60,6 +60,16 @@
     padding:8px 11px;font-weight:950;text-decoration:none
   }
   .schools-page-link.current{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  /* 👑 ROYAL LUXURY — قائمة المدارس (زمرّدي + ذهبي) */
+  .schools-input:focus{border-color:rgba(10,92,51,.5);box-shadow:0 0 0 3px rgba(10,92,51,.12)}
+  .schools-btn{background:linear-gradient(135deg,#0a5c33,#074426);border-color:rgba(185,151,91,.35)}
+  .schools-btn.secondary{background:transparent;color:#0a5c33;border-color:rgba(185,151,91,.45)}
+  .school-card{border-color:rgba(185,151,91,.2);transition:border-color .15s,box-shadow .15s}
+  .school-card:hover{border-color:rgba(185,151,91,.45);box-shadow:0 14px 30px -18px rgba(10,92,51,.4)}
+  .school-name{color:#0a5c33}
+  .school-tag i{color:#b9975b}
+  .schools-page-link.current{background:linear-gradient(135deg,#0a5c33,#074426);border-color:#0a5c33}
   @media(max-width:720px){
     .schools-searchbar{grid-template-columns:1fr}
     .schools-btn,.schools-count{width:100%}
@@ -88,7 +98,7 @@
       <form method="get" class="schools-searchbar">
         <div>
           <label class="schools-label" for="schoolSearch">بحث</label>
-          <input id="schoolSearch" class="schools-input" type="search" name="q" value="{{ q }}" placeholder="اسم المدرسة / الكود / المدينة / الجوال / المدير..." autocomplete="off" spellcheck="false">
+          <input id="schoolSearch" class="schools-input" type="search" name="q" value="{{ q }}" placeholder="اسم المدرسة / المدينة / الجوال / المدير..." autocomplete="off" spellcheck="false">
           <p class="schools-hint">يعرض النظام 24 مدرسة في كل صفحة للحفاظ على سرعة الصفحة.</p>
         </div>
         <button type="submit" class="schools-btn"><i class="fa-solid fa-magnifying-glass"></i> بحث</button>
@@ -110,7 +120,6 @@
               <article class="school-card">
                 <div>
                   <h2 class="school-name">{{ s.name }}</h2>
-                  {% if s.code %}<div class="school-code">{{ s.code }}</div>{% endif %}
                 </div>
 
                 <div class="school-tags">
@@ -137,7 +146,7 @@
                   <a class="btn btn-outline" href="{% url 'reports:school_profile' s.id %}">بروفايل</a>
                   <a class="btn btn-outline" href="{% url 'reports:school_managers_manage' s.id %}">المدراء</a>
                   <a class="btn btn-outline" href="{% url 'reports:school_update' s.id %}">تعديل</a>
-                  <form method="post" action="{% url 'reports:school_delete' s.id %}" onsubmit="return confirm('سيتم حذف المدرسة وكل بياناتها، هل أنت متأكد؟');">
+                  <form method="post" action="{% url 'reports:school_delete' s.id %}" data-confirm="سيتم حذف المدرسة «{{ s.name|escapejs }}» وكل بياناتها نهائيًا، هل أنت متأكد؟">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger">حذف</button>
                   </form>

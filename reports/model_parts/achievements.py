@@ -75,6 +75,7 @@ class TeacherAchievementFile(models.Model):
         null=True,
         validators=[validate_pdf_file],
     )
+    storage_bytes = models.PositiveBigIntegerField(default=0, editable=False)
     pdf_generated_at = models.DateTimeField("آخر توليد PDF", null=True, blank=True)
 
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
@@ -181,6 +182,7 @@ class AchievementEvidenceImage(models.Model):
         upload_to=_achievement_evidence_upload_to,
         validators=[validate_image_file],
     )
+    storage_bytes = models.PositiveBigIntegerField(default=0, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -270,6 +272,7 @@ class AchievementEvidenceReport(models.Model):
         null=True,
         validators=[validate_image_file],
     )
+    storage_bytes = models.PositiveBigIntegerField(default=0, editable=False)
 
     class Meta:
         verbose_name = "تقرير شاهد"

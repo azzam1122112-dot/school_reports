@@ -171,6 +171,22 @@
     .schools-scope .schools-list label{ transition:none !important; }
     .schools-scope .schools-list label:hover{ transform:none !important; }
   }
+
+  /* ============================================================
+     👑 ROYAL LUXURY — نموذج مدير مدرسة (زمرّدي + ذهبي)
+     ============================================================ */
+  .schools-scope .page-title{ color:#0a5c33; }
+  .schools-scope .card{ position:relative; overflow:hidden; border-color:rgba(185,151,91,.22); box-shadow:0 22px 54px -28px rgba(10,92,51,.45); }
+  .schools-scope .card::before{ content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:2;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent); }
+  .schools-scope .section-title{ color:#0a5c33; }
+  .schools-scope .section-title i{ color:#b9975b; }
+  .schools-scope .school-check{ accent-color:#0a5c33; }
+  .schools-scope .schools-list label:hover{ border-color:rgba(185,151,91,.4); background:rgba(212,177,109,.07); }
+  .schools-scope .count-pill{ background:rgba(212,177,109,.14); border-color:rgba(185,151,91,.35); color:#7a5c1e; }
+  .schools-scope .count-pill i{ color:#b9975b; }
+  .schools-scope .btn-primary{ background:linear-gradient(135deg,#0a5c33,#074426); border:1px solid rgba(185,151,91,.35); }
+  .schools-scope .input:focus, .schools-scope input:focus, .schools-scope textarea:focus{ border-color:rgba(10,92,51,.5); box-shadow:0 0 0 3px rgba(10,92,51,.12); }
 </style>
 {% endblock %}
 

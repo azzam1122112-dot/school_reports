@@ -836,6 +836,46 @@
     outline: 3px solid var(--ar-primary);
     outline-offset: 3px;
   }
+
+  /* ============================================================
+     👑 ROYAL OVERLAY — هوية فخمة (زمرّدي + ذهبي)
+     ============================================================ */
+  .add-report-page .ar-header{
+    background:
+      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:24px !important;
+    box-shadow:0 26px 60px -24px rgba(5,46,26,.7) !important;
+    padding-top:38px !important;
+  }
+  .add-report-page .ar-header::before{
+    content:"\f521" !important; font-family:"Font Awesome 6 Free" !important; font-weight:900 !important;
+    width:auto !important; height:auto !important; background:none !important; opacity:1 !important;
+    top:14px !important; right:auto !important; left:22px !important; transform:none !important;
+    font-size:2.4rem !important; color:rgba(212,177,109,.18) !important;
+  }
+  .add-report-page .ar-header::after{
+    content:"" !important; position:absolute; top:0; right:0; left:0; height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .add-report-page .ar-title-box h1{
+    background:linear-gradient(90deg,#ffffff 0%, #fbf3df 60%, #e6cf9a 100%) !important;
+    -webkit-background-clip:text !important; background-clip:text !important; -webkit-text-fill-color:transparent !important;
+    font-weight:950 !important;
+  }
+  .add-report-page .ar-title-box p{ color:rgba(255,255,255,.82) !important; font-weight:800 !important; }
+  .add-report-page .ar-back-btn{
+    background:rgba(212,177,109,.16) !important; color:#fdf6e6 !important;
+    border:1px solid rgba(212,177,109,.5) !important; font-weight:900 !important;
+  }
+  .add-report-page .ar-back-btn:hover{ background:#d4b16d !important; color:#063d22 !important; }
+
+  /* لمسة ذهبية على البطاقات */
+  .add-report-page .ar-card{
+    border:1px solid rgba(185,151,91,.20) !important;
+    box-shadow:0 14px 34px -22px rgba(10,92,51,.4) !important;
+  }
 </style>
 {% endblock %}
 
@@ -855,6 +895,53 @@
 
     <form id="report-form" method="POST" enctype="multipart/form-data" autocomplete="off" novalidate>
       {% csrf_token %}
+
+      <style>
+        .tpl-picker{background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1.5px solid #bbf7d0;border-radius:20px;padding:16px 20px;margin-bottom:22px;}
+        .tpl-picker-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+        .tpl-picker-head .ttl{font-weight:900;color:#006c35;font-size:1.08rem;display:flex;align-items:center;gap:8px;}
+        .tpl-picker-head .hint{font-size:.9rem;color:#0072bc;font-weight:700;}
+        .tpl-chips{display:flex;flex-wrap:wrap;gap:10px;}
+        .tpl-chip{cursor:pointer;border:1.5px solid #006c3533;background:#fff;color:#0f172a;border-radius:999px;padding:8px 16px;font-weight:800;font-size:.98rem;display:inline-flex;align-items:center;gap:8px;transition:all .15s;}
+        .tpl-chip:hover{border-color:#006c35;background:#006c35;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px #006c3526;}
+        .tpl-chip.is-active{border-color:#006c35;background:#006c35;color:#fff;}
+        .tpl-chip i{opacity:.85;}
+        .tpl-clear{cursor:pointer;border:none;background:transparent;color:#64748b;font-weight:800;font-size:.92rem;text-decoration:underline;}
+        .tpl-applied{margin-top:10px;color:#16a34a;font-weight:800;font-size:.95rem;display:none;align-items:center;gap:6px;}
+        .draft-banner{background:linear-gradient(135deg,#fff7ed,#fef3c7);border:1.5px solid #fcd34d;border-radius:18px;padding:14px 18px;margin-bottom:22px;display:none;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+        .draft-banner .msg{font-weight:800;color:#92400e;display:flex;align-items:center;gap:10px;font-size:1rem;}
+        .draft-banner .msg i{font-size:1.3rem;color:#d97706;}
+        .draft-banner .msg small{display:block;font-weight:700;color:#b45309;font-size:.82rem;margin-top:2px;}
+        .draft-actions{display:flex;gap:8px;flex-wrap:wrap;}
+        .draft-btn{cursor:pointer;border-radius:999px;font-weight:800;font-size:.95rem;padding:8px 18px;border:1.5px solid transparent;display:inline-flex;align-items:center;gap:6px;transition:all .15s;}
+        .draft-btn.restore{background:#d97706;color:#fff;}
+        .draft-btn.restore:hover{background:#b45309;}
+        .draft-btn.discard{background:#fff;color:#92400e;border-color:#fcd34d;}
+        .draft-btn.discard:hover{background:#fef3c7;}
+        .draft-saved{display:none;align-items:center;gap:6px;color:#16a34a;font-weight:800;font-size:.88rem;margin-bottom:16px;}
+        .draft-saved i{font-size:.95rem;}
+      </style>
+
+      <div class="draft-banner" id="draftBanner" role="status">
+        <span class="msg">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>لديك مسودة غير محفوظة لهذا التقرير.<small id="draftTime"></small></span>
+        </span>
+        <span class="draft-actions">
+          <button type="button" class="draft-btn restore" id="draftRestore"><i class="fa-solid fa-rotate-right"></i> استعادة المسودة</button>
+          <button type="button" class="draft-btn discard" id="draftDiscard"><i class="fa-solid fa-xmark"></i> تجاهل</button>
+        </span>
+      </div>
+      <div class="draft-saved" id="draftSaved"><i class="fa-solid fa-cloud-arrow-up"></i> تم حفظ مسودة تلقائيًا</div>
+
+      <div class="tpl-picker" id="tplPicker" hidden>
+        <div class="tpl-picker-head">
+          <span class="ttl"><i class="fa-solid fa-wand-magic-sparkles"></i> قوالب جاهزة</span>
+          <span class="hint">اختر قالبًا فتُعبّأ الحقول تلقائيًا — يمكنك تعديلها بعدها</span>
+        </div>
+        <div class="tpl-chips" id="tplChips"></div>
+        <div class="tpl-applied" id="tplApplied"><i class="fa-solid fa-circle-check"></i> تم تطبيق القالب — راجع الحقول قبل الحفظ.</div>
+      </div>
 
       <div id="validationAlert" class="ar-validation-alert" hidden aria-live="assertive" aria-atomic="true">
         <div class="ar-validation-card" role="alert">
@@ -913,6 +1000,7 @@
                <div class="ar-field" data-group="report_date" style="margin:0">
                  <label for="{{ form.report_date.id_for_label }}"><i class="fa-regular fa-calendar"></i> التاريخ <span class="ar-required-mark">مطلوب</span></label>
                  {{ form.report_date }}
+                 <div id="reportDateHijri" aria-live="polite" style="margin-top:6px;font-weight:800;color:#0a5c33;font-size:.95rem;"></div>
                  {% if form.report_date.errors %}<div class="ar-error-msg">{{ form.report_date.errors.0 }}</div>{% endif %}
                  <div class="ar-error-msg" id="futureDateErr" style="display:none">تاريخ مستقبلي غير مسموح</div>
                </div>
@@ -1030,6 +1118,16 @@
     var d = document.getElementById("id_report_date");
     var day = document.getElementById("id_day_name");
     var err = document.getElementById("futureDateErr");
+    var hijriEcho = document.getElementById("reportDateHijri");
+    // التقويم الهجري (أم القرى) مدمج في المتصفّح عبر Intl — بلا أي مكتبة خارجية
+    var hijriFmt = null;
+    try { hijriFmt = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {day:'2-digit', month:'long', year:'numeric'}); } catch(e){ hijriFmt = null; }
+    var applyHijri = function(){
+       if(!hijriEcho) return;
+       var dt = parseDateInput(d.value);
+       if(!dt || !hijriFmt){ hijriEcho.textContent = ""; return; }
+       hijriEcho.textContent = "📅 الموافق " + hijriFmt.format(dt) + " هـ";
+    };
     if(day){ day.setAttribute('readonly','readonly'); day.setAttribute('tabindex','-1'); }
     if(d){
        d.setAttribute("max", todayYYYYMMDD());
@@ -1048,8 +1146,10 @@
          if(dt && dt.getTime() > now.getTime()){
             if(err) err.style.display="flex";
             if(day) day.value="";
+            if(hijriEcho) hijriEcho.textContent="";
          } else {
             applyDay();
+            applyHijri();
          }
        });
        d.dispatchEvent(new Event('change'));
@@ -1413,6 +1513,135 @@
          }
       };
     }
+  })();
+</script>
+
+<script nonce="{{ CSP_NONCE }}">
+  /* ===== قوالب التقارير الجاهزة ===== */
+  (function(){
+    var data = [];
+    try { data = JSON.parse('{{ report_templates_json|escapejs }}') || []; } catch(e){ data = []; }
+    var picker = document.getElementById("tplPicker");
+    var chips  = document.getElementById("tplChips");
+    var applied = document.getElementById("tplApplied");
+    if(!picker || !chips || !data.length) return;
+
+    picker.hidden = false;
+
+    function setVal(id, val){
+      var el = document.getElementById(id);
+      if(!el) return;
+      if(val === null || typeof val === "undefined") return;
+      el.value = val;
+      el.dispatchEvent(new Event("input", {bubbles:true}));
+      el.dispatchEvent(new Event("change", {bubbles:true}));
+    }
+
+    function applyTemplate(tpl, chip){
+      if(tpl.category_code){ setVal("id_category", tpl.category_code); }
+      if(tpl.title){ setVal("id_title", tpl.title); }
+      if(tpl.idea){ setVal("id_idea", tpl.idea); }
+      if(tpl.beneficiaries_count !== null && typeof tpl.beneficiaries_count !== "undefined"){
+        setVal("id_beneficiaries_count", tpl.beneficiaries_count);
+      }
+      // إبراز الاختيار الحالي
+      Array.prototype.forEach.call(chips.querySelectorAll(".tpl-chip"), function(c){ c.classList.remove("is-active"); });
+      if(chip){ chip.classList.add("is-active"); }
+      if(applied){ applied.style.display = "flex"; }
+    }
+
+    data.forEach(function(tpl){
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "tpl-chip";
+      chip.innerHTML = '<i class="fa-solid fa-file-lines"></i> ' +
+        (tpl.name ? String(tpl.name).replace(/[<>&]/g, "") : "قالب");
+      chip.addEventListener("click", function(){ applyTemplate(tpl, chip); });
+      chips.appendChild(chip);
+    });
+  })();
+</script>
+
+<script nonce="{{ CSP_NONCE }}">
+  /* ===== حفظ تلقائي للمسودّة ===== */
+  (function(){
+    var FIELDS = ["id_category","id_title","id_report_date","id_beneficiaries_count","id_idea"];
+    var KEY = "sr:draft:add_report:u{{ request.user.id|default:0 }}:s{{ request.session.active_school_id|default:0 }}";
+    var form = document.getElementById("report-form");
+    if(!form || !window.localStorage) return;
+
+    var banner = document.getElementById("draftBanner");
+    var savedTag = document.getElementById("draftSaved");
+    var timeEl = document.getElementById("draftTime");
+
+    function els(){ return FIELDS.map(function(id){ return document.getElementById(id); }); }
+    function isEmpty(){
+      return els().every(function(el){ return !el || !(el.value || "").trim(); });
+    }
+    function collect(){
+      var data = {};
+      els().forEach(function(el){ if(el){ data[el.id] = el.value; } });
+      return data;
+    }
+    function fmtTime(ts){
+      try { return new Date(ts).toLocaleString("ar"); } catch(e){ return ""; }
+    }
+
+    var saveTimer = null, savedTimer = null;
+    function scheduleSave(){
+      if(saveTimer){ clearTimeout(saveTimer); }
+      saveTimer = setTimeout(function(){
+        if(isEmpty()){ try{ localStorage.removeItem(KEY); }catch(e){} return; }
+        try{
+          localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), d: collect() }));
+          if(savedTag){
+            savedTag.style.display = "flex";
+            if(savedTimer){ clearTimeout(savedTimer); }
+            savedTimer = setTimeout(function(){ savedTag.style.display = "none"; }, 2200);
+          }
+        }catch(e){}
+      }, 600);
+    }
+
+    function fillFrom(data){
+      FIELDS.forEach(function(id){
+        var el = document.getElementById(id);
+        if(el && typeof data[id] !== "undefined"){
+          el.value = data[id];
+          el.dispatchEvent(new Event("input", {bubbles:true}));
+          el.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+      });
+    }
+
+    // عرض بانر الاستعادة إن وُجدت مسودة والنموذج فارغ
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch(e){ raw = null; }
+    if(raw && isEmpty()){
+      try{
+        var parsed = JSON.parse(raw);
+        if(parsed && parsed.d){
+          if(banner){ banner.style.display = "flex"; }
+          if(timeEl && parsed.t){ timeEl.textContent = "آخر حفظ: " + fmtTime(parsed.t); }
+          var rb = document.getElementById("draftRestore");
+          var db = document.getElementById("draftDiscard");
+          if(rb){ rb.addEventListener("click", function(){ fillFrom(parsed.d); if(banner){ banner.style.display="none"; } }); }
+          if(db){ db.addEventListener("click", function(){ try{ localStorage.removeItem(KEY); }catch(e){} if(banner){ banner.style.display="none"; } }); }
+        }
+      }catch(e){}
+    }
+
+    // مراقبة التغييرات
+    els().forEach(function(el){
+      if(!el) return;
+      el.addEventListener("input", scheduleSave);
+      el.addEventListener("change", scheduleSave);
+    });
+
+    // مسح المسودة عند الإرسال
+    form.addEventListener("submit", function(){
+      try{ localStorage.removeItem(KEY); }catch(e){}
+    });
   })();
 </script>
 {% endblock %}

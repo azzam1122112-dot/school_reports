@@ -8,11 +8,6 @@ from ._helpers import (
     _model_has_field, _get_active_school, _school_teachers_obj_label,
     _is_report_viewer, _user_manager_schools,
 )
-from ..services_legacy_roles import (
-    LEGACY_MANAGER_ROLE_SLUG,
-    current_legacy_role_slug,
-    sync_legacy_teacher_role,
-)
 
 
 def _notify_achievement_submitted(ach_file, active_school):
@@ -128,9 +123,15 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
         .distinct()
     )
     
-    # استخراج السنوات المسموحة من إعدادات المدرسة
-    allowed = active_school.allowed_academic_years if active_school else []
-    
+    # السنوات المسموحة: المصدر المركزي (يديره مدير النظام) أولًا، ثم إعدادات المدرسة كتراجع
+    from ..models import AcademicYear
+
+    allowed = list(
+        AcademicYear.objects.filter(is_active=True).order_by("-value").values_list("value", flat=True)
+    )
+    if not allowed and active_school:
+        allowed = list(active_school.allowed_academic_years or [])
+
     create_form = AchievementCreateYearForm(
         request.POST or None, 
         year_choices=existing_years,
@@ -290,13 +291,11 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
     )
     
     if q:
-        from django.db.models import Q
-        from django.db.models import Prefetch
-        teachers = teachers.filter(
-            Q(name__icontains=q)
-            | Q(phone__icontains=q)
-            | Q(national_id__icontains=q)
-        )
+        from ..search_utils import smart_search_q, ACHIEVEMENT_TEACHER_SEARCH_FIELDS
+
+        search_q = smart_search_q(q, ACHIEVEMENT_TEACHER_SEARCH_FIELDS)
+        if search_q:
+            teachers = teachers.filter(search_q).distinct()
 
     files_by_teacher_id = {}
     if year:
@@ -933,17 +932,12 @@ def report_viewer_create(request: HttpRequest) -> HttpResponse:
 
                     viewer = form.save(commit=True)
 
-                    # تأكيد: لا نعطي صلاحيات موظف لوحة ولا دور manager
+                    # تأكيد: لا نعطي صلاحيات موظف لوحة
                     try:
-                        sync_legacy_teacher_role(viewer, create_missing=False)
                         viewer.is_staff = False
-                        viewer.save(update_fields=["role", "is_staff"])
+                        viewer.save(update_fields=["is_staff"])
                     except Exception:
-                        try:
-                            viewer.is_staff = False
-                            viewer.save(update_fields=["is_staff"])
-                        except Exception:
-                            viewer.save()
+                        viewer.save()
 
                     SchoolMembership.objects.update_or_create(
                         school=active_school,
@@ -1010,12 +1004,8 @@ def report_viewer_update(request: HttpRequest, pk: int) -> HttpResponse:
                     updated = form.save(commit=True)
                     # ضمان عدم منحه صلاحيات موظف لوحة
                     try:
-                        update_fields = ["is_staff"]
                         updated.is_staff = False
-                        if current_legacy_role_slug(updated) == LEGACY_MANAGER_ROLE_SLUG:
-                            sync_legacy_teacher_role(updated, create_missing=False)
-                            update_fields.append("role")
-                        updated.save(update_fields=update_fields)
+                        updated.save(update_fields=["is_staff"])
                     except Exception:
                         pass
                 messages.success(request, "✏️ تم تحديث بيانات مشرف التقارير.")

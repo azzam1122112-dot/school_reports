@@ -8,7 +8,6 @@ from reports.models import (
     DepartmentMembership,
     Notification,
     NotificationRecipient,
-    Role,
     School,
     SchoolMembership,
     SchoolSubscription,
@@ -29,17 +28,6 @@ class NotificationDispatchTests(TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        self.manager_role, _ = Role.objects.get_or_create(
-            slug="manager",
-            defaults={
-                "name": "Manager",
-                "is_staff_by_default": True,
-            },
-        )
-        self.teacher_role, _ = Role.objects.get_or_create(
-            slug="teacher",
-            defaults={"name": "Teacher"},
-        )
         self.school = School.objects.create(name="Test School", code="test-school")
         plan = SubscriptionPlan.objects.create(
             name="Test Plan",
@@ -58,7 +46,6 @@ class NotificationDispatchTests(TransactionTestCase):
             phone="500000001",
             name="School Manager",
             password="pass",
-            role=self.manager_role,
             is_staff=True,
         )
         SchoolMembership.objects.create(
@@ -74,7 +61,6 @@ class NotificationDispatchTests(TransactionTestCase):
                 phone=f"50000010{idx}",
                 name=f"Teacher {idx}",
                 password="pass",
-                role=self.teacher_role,
             )
             memberships.append(
                 SchoolMembership(
@@ -262,7 +248,6 @@ class NotificationDispatchTests(TransactionTestCase):
             phone="500000200",
             name="Second Teacher",
             password="pass",
-            role=self.teacher_role,
         )
         SchoolMembership.objects.create(
             school=second_school,

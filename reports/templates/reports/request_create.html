@@ -4,49 +4,61 @@
 {% block title %}طلب جديد | المنصة{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 <style>
-    /* 
-       DESIGN SYSTEM 2026 
-       Theme: Neo-Professional (Clean, Trustworthy, Global)
+    /*
+       DESIGN SYSTEM 2026
+       هوية المنصة: أخضر سعودي (#006c35) + ذهبي (#b9975b)
+       متوافق مع نظام التصميم في base.html + دعم الوضع الليلي
     */
-    :root {
+    .ticket-page {
         --font-primary: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        
-        /* Modern Blue Palette */
-        --c-brand: #0f8f87;
-        --c-brand-dark: #00542a;
-        --c-brand-light: #eff6ff;
-        --c-accent: #0f8f87;
-        
-        /* Neutrals */
-        --c-text-main: #0f172a;
-        --c-text-muted: #64748b;
+
+        /* ألوان الهوية */
+        --c-brand: #006c35;
+        --c-brand-dark: #00532a;
+        --c-brand-light: #eef6f0;
+        --c-accent: #b9975b;
+
+        /* محايدة (وضع فاتح) */
+        --c-text-main: #10251f;
+        --c-text-muted: #68766f;
         --c-text-light: #94a3b8;
-        --c-border: #e2e8f0;
-        --c-bg: #f8fafc;
+        --c-border: #e3ebe5;
+        --c-bg: #f4f7f3;
         --c-surface: #ffffff;
-        
-        /* Status */
+
+        /* حالات */
         --c-success: #16845b;
         --c-danger: #ef4444;
-        
-        /* Effects */
+
+        /* تأثيرات */
         --radius-xl: 16px;
         --radius-lg: 12px;
         --radius-md: 8px;
         --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
-        --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.05);
-        --shadow-glow: 0 0 0 4px rgba(15, 143, 135, 0.15);
+        --shadow-sm: 0 4px 6px -1px rgb(16 37 31 / 0.06);
+        --shadow-md: 0 10px 28px -3px rgb(16 37 31 / 0.10);
+        --shadow-glow: 0 0 0 4px rgba(0, 108, 53, 0.15);
         --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+        font-family: var(--font-primary);
+        color: var(--c-text-main);
     }
 
-    body {
-        background-color: var(--c-bg);
-        color: var(--c-text-main);
-        font-family: var(--font-primary);
-        -webkit-font-smoothing: antialiased;
+    html[data-theme="dark"] .ticket-page {
+        --c-brand: #34d399;
+        --c-brand-dark: #6ee7b7;
+        --c-brand-light: rgba(52, 211, 153, 0.12);
+        --c-accent: #d4b483;
+        --c-text-main: #f1f5f9;
+        --c-text-muted: #93a3b5;
+        --c-text-light: #6b7a8d;
+        --c-border: #28344a;
+        --c-bg: #0f1827;
+        --c-surface: #131c2b;
+        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+        --shadow-md: 0 10px 28px -3px rgb(0 0 0 / 0.5);
+        --shadow-glow: 0 0 0 4px rgba(52, 211, 153, 0.22);
     }
 
     /* Container & Layout */
@@ -125,7 +137,12 @@
         color: var(--c-text-main);
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+    }
+
+    .form-section-title i {
+        color: var(--c-brand);
+        font-size: 1.1rem;
     }
 
     .form-group {
@@ -195,6 +212,36 @@
         display: flex;
         align-items: center;
         gap: 6px;
+    }
+
+    html[data-theme="dark"] .field-error {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.35);
+        color: #fca5a5;
+    }
+
+    /* نصوص مساعدة تُحقن عبر JS داخل صندوق المستلمين */
+    .help-text {
+        font-size: 0.85rem;
+        color: var(--c-text-muted);
+        padding: 10px 4px;
+        text-align: center;
+    }
+
+    .error-text {
+        font-size: 0.88rem;
+        color: var(--c-danger);
+        font-weight: 600;
+        padding: 12px;
+        text-align: center;
+        background: rgba(239, 68, 68, 0.06);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        border-radius: var(--radius-md);
+    }
+
+    .recipients-box.disabled {
+        opacity: 0.6;
+        pointer-events: none;
     }
 
     /* Dynamic JS Components Styling */
@@ -281,8 +328,13 @@
     .upload-icon {
         font-size: 2rem;
         color: var(--c-text-light);
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         display: block;
+        transition: color 0.2s var(--ease);
+    }
+
+    .upload-box:hover .upload-icon {
+        color: var(--c-brand);
     }
 
     .previews-grid {
@@ -355,7 +407,7 @@
     /* Badge/Info Box */
     .info-box {
         background: var(--c-brand-light);
-        border: 1px solid rgba(15, 143, 135, 0.2);
+        border: 1px solid rgba(0, 108, 53, 0.2);
         color: var(--c-brand-dark);
         padding: 16px;
         border-radius: var(--radius-lg);
@@ -365,6 +417,8 @@
         display: flex;
         gap: 12px;
     }
+
+    .info-box svg { flex: 0 0 auto; color: var(--c-brand); }
 
     /* Anim */
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -389,7 +443,7 @@
             <div class="main-col">
                 <div class="modern-card">
                     <div class="form-section-title">
-                        <span>📄</span> تفاصيل الطلب
+                        <i class="fa-solid fa-file-lines"></i> تفاصيل الطلب
                     </div>
 
                     <div class="info-box">
@@ -420,7 +474,7 @@
                 <div class="modern-card is-sticky">
                     
                     <div class="form-section-title">
-                        <span>🎯</span> التوجيه
+                        <i class="fa-solid fa-paper-plane"></i> التوجيه
                     </div>
 
                     {% if form.non_field_errors %}
@@ -466,9 +520,9 @@
                         <label class="form-label">المرفقات (اختياري)</label>
                         <input id="id_images" name="images" type="file" accept="image/*" multiple hidden>
                         <label for="id_images" class="upload-box">
-                            <span class="upload-icon">📷</span>
-                            <div style="font-weight:600; font-size:0.9rem">ارفاق صور</div>
-                            <div class="field-help" style="margin-top:4px">Max 4 images</div>
+                            <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                            <div style="font-weight:600; font-size:0.9rem">إرفاق صور</div>
+                            <div class="field-help" style="margin-top:4px">بحد أقصى 4 صور</div>
                         </label>
                          {% if form.errors.images %}<div class="field-error">{{ form.errors.images.0 }}</div>{% endif %}
                         <div class="previews-grid" id="previews"></div>
@@ -521,9 +575,9 @@
   function setMsg(text, type){
     if(!msg) return;
     msg.textContent = text || '';
-    if(type === 'error') msg.style.color = '#e11d48';
-    else if(type === 'ok') msg.style.color = '#16845b';
-    else msg.style.color = 'var(--ink-light)';
+    if(type === 'error') msg.style.color = 'var(--c-danger)';
+    else if(type === 'ok') msg.style.color = 'var(--c-success)';
+    else msg.style.color = 'var(--c-text-light)';
   }
 
   function setLoading(isLoading, text){
@@ -615,7 +669,7 @@
     title.style.gap = '8px';
     title.style.alignItems = 'center';
     
-    title.innerHTML = '<span class="txt">اختر المستلمين</span><span class="count" style="color:var(--brand-600);font-weight:700"></span>';
+    title.innerHTML = '<span class="txt">اختر المستلمين</span><span class="count" style="color:var(--c-brand);font-weight:700"></span>';
 
     const caret = document.createElement('span');
     caret.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
@@ -698,7 +752,7 @@
 
     setRecipientsDisabled(true);
     // Show spinner in box
-    recipientsBox.innerHTML = '<div style="padding:10px;text-align:center;color:var(--ink-light)">...جاري تحميل الموظفين</div>';
+    recipientsBox.innerHTML = '<div style="padding:10px;text-align:center;color:var(--c-text-light)">...جاري تحميل الموظفين</div>';
 
     try{
       const baseUrl = "{% url 'reports:api_department_members' %}";

@@ -1,4 +1,5 @@
 {% load static %}
+{% load hijri_tags %}
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -438,7 +439,7 @@
                   {% if ev.is_frozen %}
                     {{ ev.frozen_data.report_date|default:"—" }}
                   {% elif ev.report and ev.report.report_date %}
-                    {{ ev.report.report_date|date:"Y-m-d" }}
+                    {{ ev.report.report_date|hijri }} هـ
                   {% else %}
                     —
                   {% endif %}

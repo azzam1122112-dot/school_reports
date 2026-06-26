@@ -1,6 +1,8 @@
 asgiref==3.9.1
 Brotli==1.2.0
 cffi==1.17.1
+cbor2==5.6.5
+cryptography==46.0.7
 cssselect2==0.8.0
 fonttools==4.60.2
 Pillow==11.3.0
@@ -48,6 +50,9 @@ openpyxl==3.1.5
 
 # PDF
 weasyprint
+
+# Hijri date conversion (pure-Python, no native deps)
+hijri-converter==2.3.1
 
 # MIME detection (optional; validators fall back if unavailable)
 python-magic==0.4.27

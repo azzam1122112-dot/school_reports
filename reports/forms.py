@@ -34,6 +34,7 @@ from .models import (
     Department,
     DepartmentMembership,
     ReportType,
+    ReportTemplate,
     Report,
     Ticket,
     TicketNote,
@@ -49,10 +50,6 @@ from .models import (
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
-)
-from .services_legacy_roles import (
-    sync_legacy_role_for_department,
-    sync_legacy_teacher_role,
 )
 
 logger = logging.getLogger(__name__)
@@ -132,10 +129,14 @@ class MyProfilePhoneForm(forms.ModelForm):
 class MyPasswordChangeForm(PasswordChangeForm):
     """نموذج تغيير كلمة المرور مع تحسين شكل الحقول."""
 
+    # حد أدنى مبسّط للطول (بلا قيود "رقمية/شائعة/تشابه").
+    SIMPLE_MIN_LENGTH = 6
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.password_min_length = 8
         self.password_requirements = self._build_password_requirements()
+        # تبسيط: نتجاوز ما يضبطه المُدقّق الافتراضي ونعتمد حدًّا بسيطًا.
+        self.password_min_length = self.SIMPLE_MIN_LENGTH
         for name, f in self.fields.items():
             try:
                 f.widget.attrs.setdefault("class", "form-control")
@@ -203,6 +204,20 @@ class MyPasswordChangeForm(PasswordChangeForm):
         )
 
         return requirements
+
+    def clean_new_password2(self):
+        """تبسيط القبول: نتجاوز مدققات Django الصارمة (الطول 8/الشائعة/الرقمية/التشابه)
+        ونكتفي بتطابق التأكيد + حدّ أدنى بسيط للطول.
+        """
+        password1 = self.cleaned_data.get("new_password1")
+        password2 = self.cleaned_data.get("new_password2")
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError("كلمتا المرور غير متطابقتين.")
+        if password2 and len(password2) < self.password_min_length:
+            raise forms.ValidationError(
+                f"كلمة المرور يجب أن تكون {self.password_min_length} أحرف على الأقل."
+            )
+        return password2
 
 
 def _validate_academic_year_hijri(value: str) -> str:
@@ -556,13 +571,6 @@ class TeacherForm(forms.ModelForm):
         elif self.instance and self.instance.pk:
             instance.password = self.instance.password  # إبقاء كلمة المرور
 
-        sync_legacy_role_for_department(
-            instance,
-            dep,
-            teacher_department_slugs=TEACHERS_DEPT_SLUGS,
-            create_missing=False,
-        )
-
         if dep and dep.slug in TEACHERS_DEPT_SLUGS:
             role_in_dept = DepartmentMembership.TEACHER
         else:
@@ -670,10 +678,6 @@ class TeacherCreateForm(forms.ModelForm):
         instance: Teacher = super().save(commit=False)
         pwd = (self.cleaned_data.get("password") or "").strip()
         instance.set_password(pwd)
-
-        # توافق تراثي: Teacher.role ليس مصدر الصلاحيات، لكن بعض الشاشات القديمة
-        # ما زالت تقرؤه للعرض. الكتابة الموحّدة موجودة في services_legacy_roles.
-        sync_legacy_teacher_role(instance, create_missing=True)
 
         if commit:
             instance.save()
@@ -786,9 +790,6 @@ class TeacherEditForm(forms.ModelForm):
             instance.set_password(new_pwd)
         elif self.instance and getattr(self.instance, "pk", None):
             instance.password = self.instance.password
-
-        # توافق تراثي مركزي: شاشة التعديل القديمة ما زالت تتوقع role=teacher للعرض.
-        sync_legacy_teacher_role(instance, create_missing=True)
 
         if commit:
             instance.save()
@@ -1012,7 +1013,6 @@ class PlatformAdminCreateForm(forms.ModelForm):
         if pwd:
             instance.set_password(pwd)
         instance.is_platform_admin = True
-        sync_legacy_teacher_role(instance, create_missing=False)
         if commit:
             instance.save()
         return instance
@@ -1470,12 +1470,8 @@ class DepartmentForm(forms.ModelForm):
         label="أنواع التقارير المرتبطة",
         queryset=ReportType.objects.filter(is_active=True).order_by("order", "name"),
         required=False,
-        widget=forms.SelectMultiple(
-            attrs={
-                "class": "form-select",
-                "size": "8",
-                "aria-label": "اختر نوع/أنواع التقارير للقسم",
-            }
+        widget=forms.CheckboxSelectMultiple(
+            attrs={"aria-label": "اختر نوع/أنواع التقارير للقسم"}
         ),
         help_text="المسؤولون عن هذا القسم سيشاهدون التقارير من هذه الأنواع فقط.",
     )
@@ -1485,7 +1481,8 @@ class DepartmentForm(forms.ModelForm):
         fields = ["name", "slug", "is_active", "reporttypes"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "maxlength": "120"}),
-            "slug": forms.TextInput(attrs={"class": "form-control", "maxlength": "64"}),
+            # الكود (slug) يُولَّد تلقائيًا من الاسم — مخفي تمامًا عن المستخدم.
+            "slug": forms.HiddenInput(),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
@@ -1528,6 +1525,11 @@ class DepartmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.active_school = active_school
+
+        # الكود (slug) مخفي ويُولَّد تلقائيًا من الاسم في clean_slug،
+        # لذا لا يجب أن يكون مطلوبًا على مستوى الحقل.
+        if "slug" in self.fields:
+            self.fields["slug"].required = False
 
         # حصر أنواع التقارير على المدرسة النشطة
         if ReportType is not None:
@@ -1599,6 +1601,56 @@ class ReportTypeForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+# ==============================
+# 📌 نموذج قالب التقرير (إضافة/تعديل)
+# ==============================
+class ReportTemplateForm(forms.ModelForm):
+    """نموذج إدارة قوالب التقارير الجاهزة لمدير المدرسة."""
+
+    class Meta:
+        model = ReportTemplate
+        fields = ["name", "category", "title", "idea", "beneficiaries_count", "order", "is_active"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "smart-input", "maxlength": "120", "placeholder": "مثال: الإذاعة الصباحية"}
+            ),
+            "title": forms.TextInput(
+                attrs={"class": "smart-input", "maxlength": "255", "placeholder": "عنوان التقرير المقترح (اختياري)"}
+            ),
+            "idea": forms.Textarea(
+                attrs={"class": "smart-input", "rows": 6, "placeholder": "النص الجاهز الذي سيظهر في تفاصيل التقرير"}
+            ),
+            "beneficiaries_count": forms.NumberInput(
+                attrs={"class": "smart-input", "min": "0", "inputmode": "numeric", "placeholder": "اختياري"}
+            ),
+            "order": forms.NumberInput(attrs={"class": "smart-input", "min": "0", "inputmode": "numeric"}),
+            "is_active": forms.CheckboxInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.active_school = kwargs.pop("active_school", None)
+        super().__init__(*args, **kwargs)
+
+        qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
+        if self.active_school is not None and hasattr(ReportType, "school"):
+            qs = qs.filter(school=self.active_school)
+        self.fields["category"] = forms.ModelChoiceField(
+            label="نوع التقرير",
+            queryset=qs,
+            required=False,
+            empty_label="— بدون نوع محدّد —",
+            widget=forms.Select(attrs={"class": "smart-input"}),
+        )
+
+    def save(self, commit: bool = True):
+        instance = super().save(commit=False)
+        if hasattr(instance, "school") and self.active_school is not None:
+            instance.school = self.active_school
+        if commit:
+            instance.save()
+        return instance
+
 
 # ==============================
 # 📌 إنشاء إشعار
@@ -2533,27 +2585,45 @@ class PlatformSettingsForm(forms.ModelForm):
     class Meta:
         model = PlatformSettings
         fields = [
+            "maintenance_mode_enabled",
+            "maintenance_message",
             "archive_addon_annual_price",
             "archive_included_storage_gb",
+            "free_storage_mb",
         ]
         widgets = {
+            "maintenance_mode_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "maintenance_message": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "مثال: نعمل حالياً على تحسين المنصة، سنعود قريباً بإذن الله.",
+                }
+            ),
             "archive_addon_annual_price": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
             "archive_included_storage_gb": forms.NumberInput(attrs={"class": "form-control", "min": "1", "step": "1"}),
+            "free_storage_mb": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "1"}),
         }
         labels = {
+            "maintenance_mode_enabled": "تفعيل وضع الصيانة والتطوير",
+            "maintenance_message": "رسالة تظهر للمستخدمين",
             "archive_addon_annual_price": "سعر الأرشفة السنوي",
             "archive_included_storage_gb": "المساحة المضمنة مع الأرشفة (GB)",
+            "free_storage_mb": "حد التخزين المجاني لكل مدرسة غير مشتركة (ميجابايت)",
         }
 
     def clean(self):
         cleaned = super().clean()
         annual_price = cleaned.get("archive_addon_annual_price")
         included = cleaned.get("archive_included_storage_gb")
+        free_mb = cleaned.get("free_storage_mb")
 
         if annual_price is not None and annual_price <= 0:
             self.add_error("archive_addon_annual_price", "سعر الأرشفة يجب أن يكون أكبر من صفر.")
         if included is not None and included < 1:
             self.add_error("archive_included_storage_gb", "المساحة المضمنة يجب أن تكون 1GB أو أكثر.")
+        if free_mb is not None and free_mb < 0:
+            self.add_error("free_storage_mb", "القيمة يجب أن تكون 0 أو أكثر (0 = غير محدود).")
         return cleaned
 
 

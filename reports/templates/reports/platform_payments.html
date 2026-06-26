@@ -20,14 +20,17 @@
     padding:clamp(12px,2.4vw,22px);
   }
   .paylist-scope .hero{
+    position:relative;
+    overflow:hidden;
     min-height:210px;
     border-radius:22px;
     color:#fff;
+    /* تدرّج فخم بالكامل عبر CSS — بلا أي صورة خارجية (أسرع وأكثر خصوصية وموثوقية) */
     background:
-      linear-gradient(135deg, rgba(5,40,35,.95), rgba(16,185,129,.72)),
-      url("https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?auto=format&fit=crop&w=1800&q=80") center/cover;
-    background-blend-mode:multiply;
-    border:1px solid rgba(255,255,255,.18);
+      radial-gradient(120% 160% at 90% -20%, rgba(212,177,109,.26), transparent 46%),
+      radial-gradient(110% 150% at -5% 120%, rgba(16,185,129,.30), transparent 52%),
+      linear-gradient(135deg, #063d22 0%, #0a5c33 55%, #052e1a 100%);
+    border:1px solid rgba(212,177,109,.34);
     box-shadow:var(--pl-shadow);
     padding:clamp(18px,3vw,28px);
     display:flex;
@@ -36,6 +39,11 @@
     gap:18px;
     flex-wrap:wrap;
   }
+  .paylist-scope .hero::before{
+    content:"";position:absolute;inset-inline:0;top:0;height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .paylist-scope .hero > *{position:relative;z-index:1}
   .paylist-scope .hero h1{margin:0;font-size:clamp(1.55rem,3vw,2.25rem);font-weight:950;letter-spacing:0}
   .paylist-scope .hero p{margin:8px 0 0;max-width:740px;line-height:1.8;font-weight:850;opacity:.96}
   .paylist-scope .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
@@ -91,6 +99,11 @@
   }
   html[data-theme="dark"] .paylist-scope .tab{background:rgba(255,255,255,.04)}
   .paylist-scope .tab.active{background:rgba(0,108,53,.10);border-color:rgba(0,108,53,.28);color:var(--pl-brand)}
+  .paylist-scope .tab .count{
+    display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;
+    border-radius:999px;background:rgba(100,116,139,.16);color:#475569;font-size:.78rem;font-weight:950
+  }
+  .paylist-scope .tab.active .count{background:rgba(0,108,53,.16);color:var(--pl-brand)}
 
   .paylist-scope .table-card{margin-top:14px;overflow:hidden}
   .paylist-scope .table-head{
@@ -121,6 +134,126 @@
     .paylist-scope .hero-actions,.paylist-scope .hero-actions .btn{width:100%;justify-content:center}
     .paylist-scope .kpis,.paylist-scope .filters form{grid-template-columns:1fr}
   }
+
+  /* ============================================================
+     👑 ROYAL LUXURY — هوية فخمة (زمرّدي + ذهبي)
+     ============================================================ */
+  .paylist-scope{ --pl-gold:#d4b16d; --pl-gold-soft:#e6cf9a; --pl-gold-deep:#b9975b; --pl-green:#0a5c33; }
+
+  /* الهيرو: عنوان ذهبي متدرّج + تاج + أزرار ذهبية */
+  .paylist-scope .hero{ min-height:200px; box-shadow:0 26px 60px -24px rgba(5,46,26,.7) !important; }
+  .paylist-scope .hero::after{
+    content:"\f51e"; font-family:"Font Awesome 6 Free"; font-weight:900;
+    position:absolute; top:16px; left:24px; font-size:2.6rem; color:rgba(212,177,109,.16); z-index:0;
+  }
+  .paylist-scope .hero h1{
+    background:linear-gradient(90deg,#ffffff 0%, #fbf3df 55%, var(--pl-gold-soft) 100%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .paylist-scope .hero p{ color:rgba(255,255,255,.86) !important; }
+  .paylist-scope .hero-actions .btn-primary{
+    background:linear-gradient(135deg, var(--pl-gold), var(--pl-gold-deep)) !important;
+    border:1px solid rgba(212,177,109,.6) !important; color:#063d22 !important; font-weight:950 !important;
+    box-shadow:0 10px 24px -10px rgba(185,151,91,.7) !important;
+  }
+  .paylist-scope .hero-actions .btn-outline{ border-color:rgba(212,177,109,.5) !important; background:rgba(212,177,109,.14) !important; gap:9px; }
+  .paylist-scope .hero-actions .btn-outline .dash-ico{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:26px; height:26px; border-radius:9px; flex:0 0 auto;
+    background:rgba(212,177,109,.24); color:var(--pl-gold-soft); font-size:.84rem;
+    transition:background .15s ease, transform .15s ease;
+  }
+  .paylist-scope .hero-actions .btn-outline:hover .dash-ico{ background:rgba(212,177,109,.4); transform:translateY(-1px); }
+
+  /* بطاقات المؤشرات: إطار ذهبي + قيمة متدرّجة + رفعة عند المرور */
+  .paylist-scope .kpi{
+    border:1px solid rgba(185,151,91,.22) !important;
+    border-radius:20px !important;
+    box-shadow:0 16px 40px -26px rgba(10,92,51,.42) !important;
+    position:relative; overflow:hidden;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .paylist-scope .kpi::before{
+    content:""; position:absolute; top:0; right:0; width:78px; height:78px;
+    background:linear-gradient(135deg, rgba(212,177,109,.20), transparent 70%); border-radius:0 0 0 100%; pointer-events:none;
+  }
+  .paylist-scope .kpi:hover{ transform:translateY(-4px); border-color:rgba(185,151,91,.5) !important; box-shadow:0 24px 46px -24px rgba(10,92,51,.5) !important; }
+  .paylist-scope .kpi .value{ font-size:1.5rem !important; }
+  /* تدرّج زمرّدي/ذهبي يميّز "صافي الإيراد" فقط؛ تبقى بقية البطاقات بلونها الدلالي */
+  .paylist-scope .kpi.ok .value{
+    background:linear-gradient(180deg, var(--pl-green), #063d22);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  html[data-theme="dark"] .paylist-scope .kpi.ok .value{ background:linear-gradient(180deg,#e6cf9a,#d4b16d); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .paylist-scope .kpi.warn .value{ color:var(--pl-warn) !important; }
+  .paylist-scope .kpi.danger .value{ color:var(--pl-danger) !important; }
+  .paylist-scope .kpi.ok .ico{ background:linear-gradient(135deg,#0b6238,#063d22) !important; color:var(--pl-gold-soft) !important; border:none !important; }
+  .paylist-scope .kpi .ico{
+    background:linear-gradient(135deg, var(--pl-gold-soft), var(--pl-gold)) !important; color:#063d22 !important; border:none !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 8px 16px -10px rgba(185,151,91,.9);
+  }
+
+  /* اللوحات: إطار ذهبي خفيف + شريط علوي للجدول */
+  .paylist-scope .panel{ border:1px solid rgba(185,151,91,.18) !important; border-radius:20px !important; box-shadow:0 18px 44px -28px rgba(10,92,51,.4) !important; }
+  .paylist-scope .table-card{ position:relative; }
+  .paylist-scope .table-card::before{
+    content:""; position:absolute; inset-inline:0; top:0; height:3px; z-index:1;
+    background:linear-gradient(90deg, transparent, var(--pl-gold) 18%, var(--pl-gold-soft) 50%, var(--pl-gold) 82%, transparent);
+  }
+  .paylist-scope .table-head h2{ position:relative; padding-inline-start:14px; }
+  .paylist-scope .table-head h2::before{
+    content:""; position:absolute; inset-inline-start:0; top:50%; transform:translateY(-50%);
+    width:4px; height:18px; border-radius:999px; background:linear-gradient(180deg,var(--pl-gold),var(--pl-gold-deep));
+  }
+
+  /* الفلاتر: تركيز ذهبي + زر تطبيق فخم */
+  .paylist-scope .filters input:focus{ border-color:rgba(185,151,91,.7) !important; box-shadow:0 0 0 3px rgba(212,177,109,.2) !important; }
+  .paylist-scope .filters .btn-primary{ background:linear-gradient(135deg, var(--pl-green), #074426) !important; border:none !important; }
+
+  /* التبويبات: حالة نشطة ملكية */
+  .paylist-scope .tab{ transition:all .15s ease; }
+  .paylist-scope .tab:hover{ border-color:rgba(185,151,91,.5); transform:translateY(-1px); }
+  .paylist-scope .tab.active{
+    background:linear-gradient(135deg, var(--pl-green), #074426) !important; color:#fff !important; border-color:transparent !important;
+    box-shadow:0 10px 22px -12px rgba(10,92,51,.6);
+  }
+  .paylist-scope .tab.active .count{ background:rgba(212,177,109,.30) !important; color:#fdf6e6 !important; }
+
+  /* الجدول: رأس مميّز + صفوف بمرور أنيق + مبلغ ذهبي للموجب */
+  .paylist-scope .rtable thead th{
+    background:#faf7ef !important; color:var(--pl-green) !important; font-weight:950 !important;
+    border-bottom:2px solid rgba(185,151,91,.3) !important;
+  }
+  html[data-theme="dark"] .paylist-scope .rtable thead th{ background:#14532d !important; color:var(--pl-gold-soft) !important; }
+  .paylist-scope .rtable tbody tr{ transition:background .14s ease; }
+  .paylist-scope .rtable tbody tr:hover{ background:rgba(212,177,109,.06); }
+  .paylist-scope .amount:not(.negative){
+    background:linear-gradient(180deg,var(--pl-green),#063d22);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  html[data-theme="dark"] .paylist-scope .amount:not(.negative){ background:linear-gradient(180deg,#e6cf9a,#d4b16d); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .paylist-scope .btn-min{ border-color:rgba(185,151,91,.4) !important; }
+  .paylist-scope .btn-min:hover{ background:var(--pl-green) !important; color:#fff !important; border-color:var(--pl-green) !important; }
+
+  @media (prefers-reduced-motion: reduce){
+    .paylist-scope .kpi, .paylist-scope .tab, .paylist-scope .rtable tbody tr, .paylist-scope .btn-min{ transition:none !important; }
+  }
+
+  /* شارة الطلب الموحّد */
+  .paylist-scope .badge.batch{
+    background:rgba(0,108,53,.10); color:var(--pl-green);
+    border-color:rgba(0,108,53,.22); font-size:.78rem;
+  }
+  html[data-theme="dark"] .paylist-scope .badge.batch{ color:var(--pl-gold-soft); border-color:rgba(212,177,109,.3); }
+
+  /* رابط الإيصال يتحوّل لزر عند المرور */
+  .paylist-scope .receipt-link{ text-decoration:none; transition:all .15s ease; }
+  .paylist-scope .receipt-link:hover{ background:var(--pl-green); color:#fff; border-color:var(--pl-green); }
+
+  /* تبويب "قيد المراجعة": إبراز العدّاد بلون كهرماني عندما توجد عمليات تنتظر قرارًا */
+  .paylist-scope .tab-pending:not(.active) .count{
+    background:rgba(217,119,6,.16) !important; color:var(--pl-warn) !important;
+  }
 </style>
 {% endblock %}
 
@@ -133,11 +266,10 @@
     </div>
     <div class="hero-actions">
       <a class="btn btn-primary" href="{% url 'reports:platform_subscriptions_list' %}">
-        <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
         الاشتراكات
       </a>
       <a class="btn btn-outline" href="{% url 'reports:platform_admin_dashboard' %}">
-        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        <span class="dash-ico" aria-hidden="true"><i class="fa-solid fa-gauge-high"></i></span>
         لوحة المنصة
       </a>
     </div>
@@ -204,17 +336,25 @@
     </form>
 
     <nav class="tabs" aria-label="حالات المدفوعات">
-      <a class="tab {% if status == 'active' %}active{% endif %}" href="{% url 'reports:platform_payments_list' %}?status=active">
+      <a class="tab {% if status == 'active' %}active{% endif %}" href="?status=active{% if filter_qs %}&{{ filter_qs }}{% endif %}">
         <i class="fa-solid fa-list"></i> العمليات النشطة
+        <span class="count">{{ tab_counts.active }}</span>
       </a>
-      <a class="tab {% if status == 'refunds' %}active{% endif %}" href="{% url 'reports:platform_payments_list' %}?status=refunds">
+      <a class="tab tab-pending {% if status == 'pending' %}active{% endif %}" href="?status=pending{% if filter_qs %}&{{ filter_qs }}{% endif %}">
+        <i class="fa-solid fa-hourglass-half"></i> قيد المراجعة
+        <span class="count">{{ tab_counts.pending }}</span>
+      </a>
+      <a class="tab {% if status == 'refunds' %}active{% endif %}" href="?status=refunds{% if filter_qs %}&{{ filter_qs }}{% endif %}">
         <i class="fa-solid fa-rotate-left"></i> الاسترجاعات
+        <span class="count">{{ tab_counts.refunds }}</span>
       </a>
-      <a class="tab {% if status == 'cancelled' %}active{% endif %}" href="{% url 'reports:platform_payments_list' %}?status=cancelled">
+      <a class="tab {% if status == 'cancelled' %}active{% endif %}" href="?status=cancelled{% if filter_qs %}&{{ filter_qs }}{% endif %}">
         <i class="fa-solid fa-ban"></i> الملغاة
+        <span class="count">{{ tab_counts.cancelled }}</span>
       </a>
-      <a class="tab {% if status == 'all' %}active{% endif %}" href="{% url 'reports:platform_payments_list' %}?status=all">
+      <a class="tab {% if status == 'all' %}active{% endif %}" href="?status=all{% if filter_qs %}&{{ filter_qs }}{% endif %}">
         <i class="fa-solid fa-layer-group"></i> الكل
+        <span class="count">{{ tab_counts.all }}</span>
       </a>
     </nav>
   </section>
@@ -222,7 +362,7 @@
   <section class="panel table-card" aria-label="جدول المدفوعات">
     <div class="table-head">
       <h2>عمليات التحصيل</h2>
-      <div class="muted">{{ payments_total|default:0 }} عملية ضمن العرض الحالي</div>
+      <div class="muted">{{ table_count|default:0 }} عملية في هذا التبويب</div>
     </div>
     <div class="table-responsive">
       <table class="rtable">
@@ -241,7 +381,10 @@
             <tr>
               <td data-label="المدرسة" style="text-align:right">
                 <div class="school">{% firstof payment.school.name "—" %}</div>
-                <div class="subline">{{ payment.school.code|default:"بدون كود" }}</div>
+                <div class="subline">
+                  {{ payment.school.code|default:"بدون كود" }}
+                  {% if payment.created_by %} · <i class="fa-solid fa-user" aria-hidden="true"></i> {{ payment.created_by.name }}{% endif %}
+                </div>
               </td>
               <td data-label="المبلغ">
                 {% if payment.amount < 0 %}
@@ -258,6 +401,13 @@
                   <div class="subline">{{ payment.archive_storage_gb }}GB</div>
                 {% else %}
                   {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
+                {% endif %}
+                {% if payment.batch_ref %}
+                  <div class="subline">
+                    <span class="badge batch" title="جزء من طلب دفع موحّد بإيصال واحد">
+                      <i class="fa-solid fa-layer-group"></i> طلب موحّد
+                    </span>
+                  </div>
                 {% endif %}
               </td>
               <td data-label="التاريخ">
@@ -279,10 +429,18 @@
                 {% endif %}
               </td>
               <td data-label="إجراء">
-                <a href="{% url 'reports:platform_payment_detail' payment.id %}" class="btn btn-outline btn-min">
-                  <i class="fa-solid fa-eye"></i>
-                  تفاصيل
-                </a>
+                <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                  {% if payment.receipt_image %}
+                    <a href="{{ payment.receipt_image.url }}" target="_blank" rel="noopener"
+                       class="badge neutral receipt-link" title="عرض إيصال التحويل">
+                      <i class="fa-solid fa-paperclip"></i> إيصال
+                    </a>
+                  {% endif %}
+                  <a href="{% url 'reports:platform_payment_detail' payment.id %}" class="btn btn-outline btn-min">
+                    <i class="fa-solid fa-eye"></i>
+                    تفاصيل
+                  </a>
+                </div>
               </td>
             </tr>
           {% empty %}

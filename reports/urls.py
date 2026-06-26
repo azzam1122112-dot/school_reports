@@ -13,9 +13,14 @@ urlpatterns = [
     path("guide/download/", views.user_guide_download, name="user_guide_download"),
     path("guide/download/pdf/", views.user_guide_download_pdf, name="user_guide_download_pdf"),
     path("login/", views.login_view, name="login"),
+    path("platform-login/", views.login_view, {"admin_only": True}, name="platform_login"),
+    path("login/passkey/options/", views.passkey_login_options, name="passkey_login_options"),
+    path("login/passkey/verify/", views.passkey_login_verify, name="passkey_login_verify"),
     path("register/", views.register_school, name="register_school"),
     path("logout/", views.logout_view, name="logout"),
     path("profile/", views.my_profile, name="my_profile"),
+    path("profile/passkey/register/options/", views.passkey_register_options, name="passkey_register_options"),
+    path("profile/passkey/register/verify/", views.passkey_register_verify, name="passkey_register_verify"),
 
     # =========================
     # الصفحة الرئيسية
@@ -42,6 +47,7 @@ urlpatterns = [
     path("reports/admin/", views.admin_reports, name="admin_reports"),
     path("reports/admin/<int:pk>/delete/", views.admin_delete_report, name="admin_delete_report"),
     path("archive/", views.school_archive, name="school_archive"),
+    path("archive/export/", views.school_archive_export, name="school_archive_export"),
 
     # =========================
     # تقارير المدرسة (مشرف عرض فقط)
@@ -75,6 +81,7 @@ urlpatterns = [
     path("staff/teachers/", views.manage_teachers, name="manage_teachers"),
     path("staff/teachers/add/", views.add_teacher, name="add_teacher"),
     path("staff/teachers/import/", views.bulk_import_teachers, name="bulk_import_teachers"),
+    path("staff/teachers/import/template/", views.bulk_import_teachers_template, name="bulk_import_teachers_template"),
     path("staff/teachers/<int:pk>/edit/", views.edit_teacher, name="edit_teacher"),
     path("staff/teachers/<int:pk>/delete/", views.delete_teacher, name="delete_teacher"),
 
@@ -84,21 +91,17 @@ urlpatterns = [
     # =========================
     path("staff/departments/", views.departments_list, name="departments_list"),
 
-    # إضافة قسم (اسم جديد + اسم قديم)
+    # إضافة قسم
     path("staff/departments/add/", views.department_create, name="department_create"),
-    path("staff/departments/add/", views.department_create, name="departments_add"),  # alias قديم
 
-    # تعديل بالأكواد الدلالية (slug/code) + توافق قديم (pk)
+    # تعديل بالأكواد الدلالية (slug/code)
     path("staff/departments/<slug:code>/edit/", views.department_edit, name="department_edit"),
-    path("staff/departments/<int:pk>/edit/", views.department_update, name="departments_edit"),  # alias قديم
 
-    # الأعضاء بالأكواد الدلالية + توافق قديم (pk)
+    # الأعضاء بالأكواد الدلالية
     path("staff/departments/<slug:code>/members/", views.department_members, name="department_members"),
-    path("staff/departments/<int:pk>/members/", views.department_members, name="departments_members"),  # alias قديم
 
-    # حذف بالأكواد الدلالية + توافق قديم (pk)
+    # حذف بالأكواد الدلالية
     path("staff/departments/<slug:code>/delete/", views.department_delete, name="department_delete"),
-    path("staff/departments/<int:pk>/delete/", views.department_delete, name="departments_delete"),  # alias قديم
 
     # =========================
     # لوحة المدير
@@ -138,7 +141,6 @@ urlpatterns = [
     path("platform/admins/<int:pk>/delete/", views.platform_admin_delete, name="platform_admin_delete"),
 
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
-    path("manager/", views.admin_dashboard, name="manager_dashboard"),  # alias قديم
 
     # =========================
     # أنواع التقارير
@@ -147,6 +149,22 @@ urlpatterns = [
     path("staff/report-types/add/", views.reporttype_create, name="reporttype_create"),
     path("staff/report-types/<int:pk>/edit/", views.reporttype_update, name="reporttype_update"),
     path("staff/report-types/<int:pk>/delete/", views.reporttype_delete, name="reporttype_delete"),
+
+    # =========================
+    # قوالب التقارير الجاهزة (مدير المدرسة)
+    # =========================
+    path("staff/report-templates/", views.report_templates_list, name="report_templates_list"),
+    path("staff/report-templates/add/", views.report_template_create, name="report_template_create"),
+    path("staff/report-templates/<int:pk>/edit/", views.report_template_update, name="report_template_update"),
+    path("staff/report-templates/<int:pk>/delete/", views.report_template_delete, name="report_template_delete"),
+    path("api/report-templates/", views.api_report_templates, name="api_report_templates"),
+
+    # =========================
+    # تصدير بيانات المدرسة (مدير المدرسة)
+    # =========================
+    path("staff/export/", views.school_data_export, name="school_data_export"),
+    path("staff/export/download/", views.school_data_export_download, name="school_data_export_download"),
+    path("staff/export/download/zip/", views.school_data_export_zip, name="school_data_export_zip"),
 
     # =========================
     # التذاكر (Requests/Tickets)
@@ -180,6 +198,7 @@ urlpatterns = [
     path("api/school-departments/", views.api_school_departments, name="api_school_departments"),
     path("api/dashboard/school/", views.admin_dashboard_data, name="api_admin_dashboard_data"),
     path("api/dashboard/platform/", views.platform_admin_dashboard_data, name="api_platform_dashboard_data"),
+    path("api/dashboard/platform/search/", views.platform_admin_dashboard_search, name="api_platform_dashboard_search"),
 
     # =========================
     # الإشعارات
@@ -256,6 +275,7 @@ urlpatterns = [
     # =========================
     path("platform/subscriptions/", views.platform_subscriptions_list, name="platform_subscriptions_list"),
     path("platform/settings/", views.platform_settings, name="platform_settings"),
+    path("platform/academic-years/", views.platform_academic_years, name="platform_academic_years"),
     path("platform/subscriptions/add/", views.platform_subscription_form, name="platform_subscription_add"),
     path("platform/subscriptions/<int:pk>/", views.platform_subscription_detail, name="platform_subscription_detail"),
     path("platform/subscriptions/<int:pk>/renew/", views.platform_subscription_renew, name="platform_subscription_renew"),

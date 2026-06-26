@@ -3,6 +3,7 @@
 """Subscription, payment, plan management & footer content pages."""
 
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from ._helpers import *
 from ._helpers import (
@@ -60,11 +61,11 @@ def _payment_purpose_label(payment: Payment) -> str:
         return "اشتراك المدرسة"
 
 
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
 @require_http_methods(["GET", "POST"])
 def platform_settings(request: HttpRequest) -> HttpResponse:
-    """إعدادات الأرشفة وتسعيرها."""
+    """إعدادات المنصة العامة وتسعير الأرشفة."""
     settings_obj = PlatformSettings.get_solo()
     _ensure_default_archive_storage_option(settings_obj)
     form = PlatformSettingsForm(request.POST or None, instance=settings_obj)
@@ -107,9 +108,23 @@ def platform_settings(request: HttpRequest) -> HttpResponse:
             saved.updated_by = request.user
             saved.save()
             storage_options_formset.save()
-            messages.success(request, "تم حفظ إعدادات الأرشفة بنجاح.")
+            try:
+                from django.core.cache import cache
+
+                cache.delete("platform_maintenance_state_v1")
+            except Exception:
+                pass
+            messages.success(request, "تم حفظ إعدادات المنصة بنجاح.")
             return redirect("reports:platform_settings")
         messages.error(request, "تعذر حفظ الإعدادات. تحقق من القيم المدخلة.")
+
+    # نظرة عامة على التخزين عبر المنصّة (حقل مخزّن رخيص — بلا أي قراءة شبكية)
+    storage_overview = School.objects.aggregate(
+        used=Sum("storage_used_bytes"),
+        schools=Count("id"),
+    )
+    platform_storage_used_bytes = int(storage_overview.get("used") or 0)
+    schools_count = int(storage_overview.get("schools") or 0)
 
     return render(
         request,
@@ -118,12 +133,14 @@ def platform_settings(request: HttpRequest) -> HttpResponse:
             "form": form,
             "settings_obj": settings_obj,
             "storage_options_formset": storage_options_formset,
+            "platform_storage_used_bytes": platform_storage_used_bytes,
+            "schools_count": schools_count,
         },
     )
 
 
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
 def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     """لوحة تحكم خاصة بالمشرف العام لإدارة المنصة بالكامل - تحديث 2026."""
     from django.core.cache import cache
@@ -155,26 +172,18 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         return None
     
     # البيانات الحرجة (بدون كاش أو كاش قصير جداً)
+    # ملاحظة: عدّاد التذاكر المفتوحة يأتي من payload الفترة (kpis.tickets_open) أدناه،
+    # لذا لا نحسبه هنا تفاديًا لاستعلام مهدور.
     pending_payments = Payment.objects.filter(status=Payment.Status.PENDING).count()
-    tickets_open = Ticket.objects.filter(status__in=["open", "in_progress"], is_platform=True).count()
-    
+
     # البيانات الإحصائية (كاش 5 دقائق)
-    stats_cache_key = "platform_stats_v2"
+    stats_cache_key = "platform_stats_v3"
     stats = cache.get(stats_cache_key)
     
     if not stats:
-        reports_count = Report.objects.count()
+        # ملاحظة: عدّادات التقارير والتذاكر (إجمالي/منجز/مرفوض) تُعرض حسب الفترة المختارة،
+        # وتأتي من payload الفترة، لذلك لا نحسب نسخة "كل الوقت" هنا (كانت تُحسب ثم تُتجاوز).
         teachers_count = Teacher.objects.count()
-
-        # تجميع عدادات التذاكر في استعلام واحد بدل 3
-        ticket_agg = Ticket.objects.filter(is_platform=True).aggregate(
-            total=Count("id"),
-            done=Count("id", filter=Q(status="done")),
-            rejected=Count("id", filter=Q(status="rejected")),
-        )
-        tickets_total = ticket_agg["total"]
-        tickets_done = ticket_agg["done"]
-        tickets_rejected = ticket_agg["rejected"]
 
         # تحسين الاستعلامات باستخدام aggregate
         school_stats = School.objects.aggregate(
@@ -204,11 +213,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             pass
 
         stats = {
-            "reports_count": reports_count,
             "teachers_count": teachers_count,
-            "tickets_total": tickets_total,
-            "tickets_done": tickets_done,
-            "tickets_rejected": tickets_rejected,
             "platform_schools_total": school_stats['total'],
             "platform_schools_active": school_stats['active'],
             "platform_managers_count": platform_managers_count,
@@ -222,9 +227,11 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             pass
     
     # بيانات الاشتراكات والمالية (كاش 3 دقائق)
-    financial_cache_key = "platform_financial_v2"
+    # ملاحظة: إجمالي الإيرادات يُعرض حسب الفترة المختارة (kpis.total_revenue)، لذا لا نحسب
+    # نسخة "كل الوقت" هنا (كانت تُحسب ثم تُتجاوز).
+    financial_cache_key = "platform_financial_v3"
     financial = cache.get(financial_cache_key)
-    
+
     if not financial:
         subscriptions_active = SchoolSubscription.objects.filter(is_active=True, end_date__gte=now.date()).count()
         subscriptions_expired = SchoolSubscription.objects.filter(Q(is_active=False) | Q(end_date__lt=now.date())).count()
@@ -233,21 +240,18 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             end_date__gte=now.date(),
             end_date__lte=now.date() + timedelta(days=30)
         ).count()
-        
-        total_revenue = Payment.objects.filter(status=Payment.Status.APPROVED).aggregate(total=Sum('amount'))['total'] or 0
-        
+
         # قائمة الاشتراكات المنتهية قريباً (للجدول)
         subscriptions_expiring_list = SchoolSubscription.objects.filter(
             is_active=True,
             end_date__gte=now.date(),
             end_date__lte=now.date() + timedelta(days=30)
         ).select_related('school', 'plan').order_by('end_date')[:10]
-        
+
         financial = {
             "subscriptions_active": subscriptions_active,
             "subscriptions_expired": subscriptions_expired,
             "subscriptions_expiring_soon": subscriptions_expiring_soon,
-            "total_revenue": total_revenue,
             "subscriptions_expiring_list": list(subscriptions_expiring_list),
         }
         
@@ -255,7 +259,10 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             cache.set(financial_cache_key, financial, 180)  # 3 دقائق
         except Exception:
             pass
-    
+
+    # ملاحظة: SchoolSubscription.days_remaining خاصية محسوبة (read-only)،
+    # والقالب يقرأها مباشرة، فلا حاجة لإسنادها هنا (الإسناد كان يسبب AttributeError).
+
     # بيانات الرسوم الثابتة (غير مرتبطة بفترة الفلتر) - كاش 10 دقائق
     charts_cache_key = "platform_charts_v2"
     charts = cache.get(charts_cache_key)
@@ -269,11 +276,12 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         stage_labels = []
         stage_data = []
         stage_colors = []
+        # المفاتيح يجب أن تطابق School.Stage القيم الفعلية: kg / primary / middle / high
         color_map = {
-            'primary': '#3b82f6',
-            'middle': '#10b981', 
-            'secondary': '#f59e0b',
-            'all': '#8b5cf6'
+            'kg': '#8b5cf6',       # بنفسجي — رياض أطفال
+            'primary': '#3b82f6',  # أزرق — ابتدائي
+            'middle': '#10b981',   # أخضر — متوسط
+            'high': '#f59e0b',     # كهرماني — ثانوي
         }
         
         for item in schools_by_stage:
@@ -462,8 +470,8 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/platform_admin_dashboard.html", ctx)
 
 
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
 @require_http_methods(["GET"])
 def platform_admin_dashboard_data(request: HttpRequest) -> HttpResponse:
     """JSON data endpoint for the platform dashboard."""
@@ -473,6 +481,85 @@ def platform_admin_dashboard_data(request: HttpRequest) -> HttpResponse:
     request.META["HTTP_ACCEPT"] = "application/json"
     request.META["HTTP_X_REQUESTED_WITH"] = "XMLHttpRequest"
     return platform_admin_dashboard(request)
+
+
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
+@require_http_methods(["GET"])
+def platform_admin_dashboard_search(request: HttpRequest) -> HttpResponse:
+    """Lightweight global search for the platform admin dashboard."""
+    query = (request.GET.get("q") or "").strip()
+    results: list[dict[str, str]] = []
+
+    if len(query) < 2:
+        return JsonResponse({"results": results}, json_dumps_params={"ensure_ascii": False})
+    query_params = urlencode({"q": query})
+
+    school_qs = (
+        School.objects.filter(
+            Q(name__icontains=query)
+            | Q(code__icontains=query)
+            | Q(city__icontains=query)
+            | Q(phone__icontains=query)
+        )
+        .only("id", "name", "code", "city")
+        .order_by("name")[:5]
+    )
+    for school in school_qs:
+        subtitle_bits = [bit for bit in (school.code, school.city) if bit]
+        results.append({
+            "title": school.name,
+            "subtitle": " · ".join(subtitle_bits) or "مدرسة",
+            "type": "مدرسة",
+            "icon": "fa-school",
+            "href": f"{reverse('reports:schools_admin_list')}?{query_params}",
+        })
+
+    # نبحث في مدراء المدارس فقط لأنهم الفئة التي يديرها مشرف المنصة وتظهر فعلاً
+    # في صفحة الوجهة (school_managers_list). هذا يضمن أن نتيجة البحث قابلة للوصول.
+    manager_qs = (
+        Teacher.objects.filter(
+            Q(name__icontains=query)
+            | Q(phone__icontains=query)
+            | Q(email__icontains=query)
+            | Q(national_id__icontains=query),
+            school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
+            school_memberships__is_active=True,
+        )
+        .distinct()
+        .only("id", "name", "phone")
+        .order_by("name")[:5]
+    )
+    for teacher in manager_qs:
+        results.append({
+            "title": teacher.name,
+            "subtitle": teacher.phone or "مدير مدرسة",
+            "type": "مدير مدرسة",
+            "icon": "fa-user-tie",
+            "href": f"{reverse('reports:school_managers_list')}?{query_params}",
+        })
+
+    ticket_qs = (
+        Ticket.objects.filter(
+            Q(title__icontains=query)
+            | Q(body__icontains=query)
+            | Q(school__name__icontains=query),
+            is_platform=True,
+        )
+        .select_related("school")
+        .only("id", "title", "status", "school__name")
+        .order_by("-updated_at")[:5]
+    )
+    for ticket in ticket_qs:
+        results.append({
+            "title": f"#{ticket.pk} - {ticket.title}",
+            "subtitle": getattr(ticket.school, "name", "") or ticket.get_status_display(),
+            "type": "تذكرة",
+            "icon": "fa-headset",
+            "href": reverse("reports:ticket_detail", kwargs={"pk": ticket.pk}),
+        })
+
+    return JsonResponse({"results": results[:12]}, json_dumps_params={"ensure_ascii": False})
 
 
 # =========================
@@ -1089,51 +1176,67 @@ def platform_archive_addon_toggle(request: HttpRequest, pk: int) -> HttpResponse
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_payments_list(request: HttpRequest) -> HttpResponse:
     status = (request.GET.get("status") or "active").strip().lower()
+    if status not in {"active", "pending", "refunds", "cancelled", "all"}:
+        status = "active"
     q = _clean_query_value(request.GET.get("q"))
     start_date = _parse_date_safe(request.GET.get("start_date"))
     end_date = _parse_date_safe(request.GET.get("end_date"))
 
-    base_qs = Payment.objects.select_related("school", "requested_plan", "subscription").order_by("-created_at")
+    base_qs = Payment.objects.select_related(
+        "school", "requested_plan", "subscription", "created_by"
+    ).order_by("-created_at")
 
-    # ✅ افتراضيًا: لا نعرض (cancelled) ضمن المالية.
-    # ملاحظة: الاسترجاعات = عمليات مقبولة بمبلغ سالب.
-    if status == "refunds":
-        payments = base_qs.filter(status=Payment.Status.APPROVED, amount__lt=0)
-    elif status == "cancelled":
-        payments = base_qs.filter(status=Payment.Status.CANCELLED)
-    elif status == "all":
-        payments = base_qs
-    else:
-        status = "active"
-        payments = base_qs.exclude(status=Payment.Status.CANCELLED)
-
+    # نطاق ثابت يحترم البحث والتاريخ فقط (لا يتأثر بتبويب الحالة) — تُحسب عليه
+    # المؤشرات المالية وعدّادات التبويبات حتى تبقى ثابتة عند التنقل بين التبويبات.
+    scope_qs = base_qs
     if q:
         payment_fields = {f.name for f in Payment._meta.get_fields()}
         query_filter = Q(school__name__icontains=q) | Q(school__code__icontains=q) | Q(notes__icontains=q)
         if "transaction_id" in payment_fields:
             query_filter |= Q(transaction_id__icontains=q)
-        payments = payments.filter(
-            query_filter
-        )
-
+        scope_qs = scope_qs.filter(query_filter)
     if start_date is not None:
-        payments = payments.filter(payment_date__gte=start_date)
+        scope_qs = scope_qs.filter(payment_date__gte=start_date)
     if end_date is not None:
-        payments = payments.filter(payment_date__lte=end_date)
-    
-    # حساب الإحصائيات لعرضها في الكروت العلوية
-    stats = payments.aggregate(
-        total=Count('id'),
-        pending=Count('id', filter=Q(status=Payment.Status.PENDING)),
-        approved=Count('id', filter=Q(status=Payment.Status.APPROVED)),
-        rejected=Count('id', filter=Q(status=Payment.Status.REJECTED)),
-        cancelled=Count('id', filter=Q(status=Payment.Status.CANCELLED)),
-        refunds=Count('id', filter=Q(status=Payment.Status.APPROVED, amount__lt=0)),
+        scope_qs = scope_qs.filter(payment_date__lte=end_date)
+
+    # جدول العمليات = النطاق + تبويب الحالة.
+    # ملاحظة: الاسترجاعات = عمليات مقبولة بمبلغ سالب.
+    if status == "pending":
+        payments = scope_qs.filter(status=Payment.Status.PENDING)
+    elif status == "refunds":
+        payments = scope_qs.filter(status=Payment.Status.APPROVED, amount__lt=0)
+    elif status == "cancelled":
+        payments = scope_qs.filter(status=Payment.Status.CANCELLED)
+    elif status == "all":
+        payments = scope_qs
+    else:
+        payments = scope_qs.exclude(status=Payment.Status.CANCELLED)
+
+    # المؤشرات المالية (مستقلة عن تبويب الحالة، ضمن نطاق البحث/التاريخ)
+    stats = scope_qs.aggregate(
+        total=Count("id"),
+        pending=Count("id", filter=Q(status=Payment.Status.PENDING)),
+        approved=Count("id", filter=Q(status=Payment.Status.APPROVED, amount__gt=0)),
+        rejected=Count("id", filter=Q(status=Payment.Status.REJECTED)),
+        cancelled=Count("id", filter=Q(status=Payment.Status.CANCELLED)),
+        refunds=Count("id", filter=Q(status=Payment.Status.APPROVED, amount__lt=0)),
         gross_revenue=Sum("amount", filter=Q(status=Payment.Status.APPROVED, amount__gt=0)),
         refunds_value=Sum("amount", filter=Q(status=Payment.Status.APPROVED, amount__lt=0)),
         pending_value=Sum("amount", filter=Q(status=Payment.Status.PENDING, amount__gt=0)),
     )
     net_revenue = (stats.get("gross_revenue") or 0) + (stats.get("refunds_value") or 0)
+
+    # عدّادات التبويبات (مشتقة من نفس النطاق دون استعلامات إضافية)
+    total_count = stats.get("total") or 0
+    cancelled_count = stats.get("cancelled") or 0
+    tab_counts = {
+        "active": total_count - cancelled_count,
+        "pending": stats.get("pending") or 0,
+        "refunds": stats.get("refunds") or 0,
+        "cancelled": cancelled_count,
+        "all": total_count,
+    }
 
     paginator = Paginator(payments, 50)
     page_obj = paginator.get_page(request.GET.get("page"))
@@ -1141,6 +1244,10 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
     params = request.GET.copy()
     if "page" in params:
         params.pop("page")
+    # معاملات الفلترة بدون status — لتمرير البحث/التاريخ مع روابط التبويبات
+    filter_params = request.GET.copy()
+    for key in ("page", "status"):
+        filter_params.pop(key, None)
 
     ctx = {
         "payments": page_obj,
@@ -1150,18 +1257,118 @@ def platform_payments_list(request: HttpRequest) -> HttpResponse:
         "start_date": start_date.isoformat() if start_date else "",
         "end_date": end_date.isoformat() if end_date else "",
         "qs": params.urlencode(),
-        "payments_total": stats['total'] or 0,
-        "payments_pending": stats['pending'] or 0,
-        "payments_approved": stats['approved'] or 0,
-        "payments_rejected": stats['rejected'] or 0,
-        "payments_cancelled": stats['cancelled'] or 0,
-        "payments_refunds": stats['refunds'] or 0,
+        "filter_qs": filter_params.urlencode(),
+        "table_count": payments.count(),
+        "tab_counts": tab_counts,
+        "payments_total": total_count,
+        "payments_pending": stats["pending"] or 0,
+        "payments_approved": stats["approved"] or 0,
+        "payments_rejected": stats["rejected"] or 0,
+        "payments_cancelled": cancelled_count,
+        "payments_refunds": stats["refunds"] or 0,
         "gross_revenue": stats.get("gross_revenue") or 0,
         "refunds_value": -(stats.get("refunds_value") or 0),
         "pending_value": stats.get("pending_value") or 0,
         "net_revenue": net_revenue,
     }
     return render(request, "reports/platform_payments.html", ctx)
+
+class _ApprovalError(Exception):
+    """خطأ يمنع اعتماد عملية دفع (يستوجب التراجع عن المعاملة)."""
+
+
+# ترتيب تطبيق أثر الاعتماد داخل الطلب الموحّد: الاشتراك ثم الأرشفة ثم المساحة
+# (لأن زيادة المساحة تتطلب وجود إضافة أرشفة مفعّلة).
+_PURPOSE_APPLY_ORDER = {
+    Payment.Purpose.SUBSCRIPTION: 0,
+    Payment.Purpose.ARCHIVE_ADDON: 1,
+    Payment.Purpose.ARCHIVE_STORAGE: 2,
+}
+
+
+def _apply_payment_effects(payment, today, pricing):
+    """يطبّق أثر اعتماد عملية دفع واحدة حسب غرضها.
+
+    يعيد (level, message) حيث level ∈ {"success", "warning"}.
+    يرمي ``_ApprovalError`` إذا تعذّر تطبيق الأثر (يستوجب التراجع).
+    """
+    purpose = getattr(payment, "purpose", Payment.Purpose.SUBSCRIPTION)
+
+    if purpose == Payment.Purpose.ARCHIVE_ADDON:
+        addon, _created = SchoolArchiveAddon.objects.select_for_update().get_or_create(
+            school=payment.school,
+            defaults={
+                "is_enabled": True,
+                "start_date": today,
+                "end_date": today + timedelta(days=364),
+                "storage_limit_gb": pricing["included_storage_gb"],
+                "paid_amount": payment.amount,
+            },
+        )
+        if not _created:
+            current_end = addon.end_date if addon.end_date and addon.end_date >= today else today
+            addon.is_enabled = True
+            addon.start_date = addon.start_date or today
+            addon.end_date = current_end + timedelta(days=365)
+            addon.storage_limit_gb = max(
+                int(addon.storage_limit_gb or 0),
+                pricing["included_storage_gb"],
+            )
+            addon.paid_amount = (addon.paid_amount or 0) + payment.amount
+            addon.save(
+                update_fields=[
+                    "is_enabled", "start_date", "end_date",
+                    "storage_limit_gb", "paid_amount", "updated_at",
+                ]
+            )
+        return ("success", "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
+
+    if purpose == Payment.Purpose.ARCHIVE_STORAGE:
+        try:
+            addon = SchoolArchiveAddon.objects.select_for_update().get(school=payment.school)
+        except SchoolArchiveAddon.DoesNotExist:
+            raise _ApprovalError("لا يمكن اعتماد زيادة التخزين قبل تفعيل إضافة الأرشفة لهذه المدرسة.")
+
+        added_gb = int(payment.archive_storage_gb or 0)
+        if added_gb <= 0:
+            raise _ApprovalError("طلب زيادة التخزين لا يحتوي على مساحة صالحة.")
+
+        addon.storage_limit_gb = int(addon.storage_limit_gb or 0) + added_gb
+        addon.paid_amount = (addon.paid_amount or 0) + payment.amount
+        addon.save(update_fields=["storage_limit_gb", "paid_amount", "updated_at"])
+        return ("success", f"تمت زيادة مساحة أرشيف المدرسة بمقدار {added_gb}GB.")
+
+    # ── الاشتراك ──
+    plan_to_apply = payment.requested_plan
+    subscription = getattr(payment.school, "subscription", None)
+    level, msg = "success", "تم تجديد/تفعيل اشتراك المدرسة تلقائياً."
+
+    if subscription is None:
+        if plan_to_apply is not None:
+            subscription = SchoolSubscription(
+                school=payment.school,
+                plan=plan_to_apply,
+                start_date=today,
+                end_date=today,
+                is_active=True,
+            )
+            subscription.save()
+        else:
+            level, msg = ("warning", "تم اعتماد الدفع، لكن لا توجد باقة مطلوبة لتفعيل الاشتراك تلقائياً.")
+    else:
+        subscription.is_active = True
+        # تجديد بنفس الباقة فقط (بدون تغيير الباقة)
+        days = int(getattr(subscription.plan, "days_duration", 0) or 0)
+        subscription.start_date = today
+        subscription.end_date = today if days <= 0 else today + timedelta(days=days - 1)
+        subscription.save(update_fields=["start_date", "end_date", "is_active", "updated_at"])
+
+    if subscription is not None and payment.subscription_id != subscription.id:
+        payment.subscription = subscription
+        payment.save(update_fields=["subscription"])
+
+    return (level, msg)
+
 
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
@@ -1170,116 +1377,78 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
         Payment.objects.select_related("school", "subscription", "requested_plan"),
         pk=pk,
     )
-    
+
+    # ── عمليات الطلب الموحّد الشقيقة (نفس batch_ref) ──
+    batch_payments = []
+    if payment.batch_ref:
+        batch_payments = list(
+            Payment.objects.filter(school=payment.school, batch_ref=payment.batch_ref)
+            .select_related("requested_plan")
+            .order_by("id")
+        )
+
     if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+        today = timezone.localdate()
+        pricing = _archive_pricing()
+
+        # ===== (أ) اعتماد الطلب الموحّد كاملاً بضغطة واحدة =====
+        if action == "approve_batch" and payment.batch_ref:
+            pending = [p for p in batch_payments if p.status == Payment.Status.PENDING]
+            if not pending:
+                messages.info(request, "لا توجد عناصر قيد المراجعة في هذا الطلب.")
+                return redirect("reports:platform_payment_detail", pk=pk)
+
+            pending.sort(key=lambda p: _PURPOSE_APPLY_ORDER.get(p.purpose, 99))
+            try:
+                with transaction.atomic():
+                    for p in pending:
+                        p.status = Payment.Status.APPROVED
+                        p.save(update_fields=["status", "updated_at"])
+                        _apply_payment_effects(p, today, pricing)
+            except _ApprovalError as exc:
+                messages.error(request, f"تعذّر اعتماد الطلب: {exc}")
+                return redirect("reports:platform_payment_detail", pk=pk)
+
+            messages.success(request, f"تم اعتماد الطلب الموحّد كاملاً ({len(pending)} عنصر) وتفعيل بنوده تلقائياً.")
+            return redirect("reports:platform_payment_detail", pk=pk)
+
+        # ===== (ب) تحديث حالة عملية واحدة =====
         prev_status = payment.status
         new_status = request.POST.get("status")
         notes = request.POST.get("notes")
-        
+
         if new_status in Payment.Status.values:
             payment.status = new_status
-        
         if notes is not None:
             payment.notes = notes
 
-        with transaction.atomic():
-            payment.save()
-
-            if prev_status != Payment.Status.APPROVED and payment.status == Payment.Status.APPROVED:
-                today = timezone.localdate()
-                purpose = getattr(payment, "purpose", Payment.Purpose.SUBSCRIPTION)
-                pricing = _archive_pricing()
-
-                if purpose == Payment.Purpose.ARCHIVE_ADDON:
-                    addon, _created = SchoolArchiveAddon.objects.select_for_update().get_or_create(
-                        school=payment.school,
-                        defaults={
-                            "is_enabled": True,
-                            "start_date": today,
-                            "end_date": today + timedelta(days=364),
-                            "storage_limit_gb": pricing["included_storage_gb"],
-                            "paid_amount": payment.amount,
-                        },
-                    )
-                    if not _created:
-                        current_end = addon.end_date if addon.end_date and addon.end_date >= today else today
-                        addon.is_enabled = True
-                        addon.start_date = addon.start_date or today
-                        addon.end_date = current_end + timedelta(days=365)
-                        addon.storage_limit_gb = max(
-                            int(addon.storage_limit_gb or 0),
-                            pricing["included_storage_gb"],
-                        )
-                        addon.paid_amount = (addon.paid_amount or 0) + payment.amount
-                        addon.save(
-                            update_fields=[
-                                "is_enabled",
-                                "start_date",
-                                "end_date",
-                                "storage_limit_gb",
-                                "paid_amount",
-                                "updated_at",
-                            ]
-                        )
-                    messages.success(request, "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
-
-                elif purpose == Payment.Purpose.ARCHIVE_STORAGE:
-                    try:
-                        addon = SchoolArchiveAddon.objects.select_for_update().get(school=payment.school)
-                    except SchoolArchiveAddon.DoesNotExist:
-                        messages.error(request, "لا يمكن اعتماد زيادة التخزين قبل تفعيل إضافة الأرشفة لهذه المدرسة.")
-                        transaction.set_rollback(True)
-                        return redirect("reports:platform_payment_detail", pk=pk)
-
-                    added_gb = int(payment.archive_storage_gb or 0)
-                    if added_gb <= 0:
-                        messages.error(request, "طلب زيادة التخزين لا يحتوي على مساحة صالحة.")
-                        transaction.set_rollback(True)
-                        return redirect("reports:platform_payment_detail", pk=pk)
-
-                    addon.storage_limit_gb = int(addon.storage_limit_gb or 0) + added_gb
-                    addon.paid_amount = (addon.paid_amount or 0) + payment.amount
-                    addon.save(update_fields=["storage_limit_gb", "paid_amount", "updated_at"])
-                    messages.success(request, f"تمت زيادة مساحة أرشيف المدرسة بمقدار {added_gb}GB.")
-
-                else:
-                    # عند اعتماد دفع الاشتراك لأول مرة: حدّث/جدّد اشتراك المدرسة.
-                    # ملاحظة: تم إلغاء تغيير الباقة من النظام؛ عند وجود اشتراك قائم نقوم بالتجديد فقط.
-                    plan_to_apply = payment.requested_plan
-                    subscription = getattr(payment.school, "subscription", None)
-
-                    if subscription is None:
-                        if plan_to_apply is not None:
-                            subscription = SchoolSubscription(
-                                school=payment.school,
-                                plan=plan_to_apply,
-                                start_date=today,
-                                end_date=today,
-                                is_active=True,
-                            )
-                            subscription.save()
-                        else:
-                            messages.warning(
-                                request,
-                                "تم اعتماد الدفع، لكن لا توجد باقة مطلوبة لتفعيل الاشتراك تلقائياً.",
-                            )
-                    else:
-                        subscription.is_active = True
-
-                        # تجديد بنفس الباقة فقط (بدون تغيير الباقة)
-                        days = int(getattr(subscription.plan, "days_duration", 0) or 0)
-                        subscription.start_date = today
-                        subscription.end_date = today if days <= 0 else today + timedelta(days=days - 1)
-                        subscription.save(update_fields=["start_date", "end_date", "is_active", "updated_at"])
-
-                    if subscription is not None and payment.subscription_id != subscription.id:
-                        payment.subscription = subscription
-                        payment.save(update_fields=["subscription"])
+        try:
+            with transaction.atomic():
+                payment.save()
+                if prev_status != Payment.Status.APPROVED and payment.status == Payment.Status.APPROVED:
+                    level, msg = _apply_payment_effects(payment, today, pricing)
+                    getattr(messages, level)(request, msg)
+        except _ApprovalError as exc:
+            messages.error(request, str(exc))
+            return redirect("reports:platform_payment_detail", pk=pk)
 
         messages.success(request, "تم تحديث حالة الدفع بنجاح.")
         return redirect("reports:platform_payment_detail", pk=pk)
 
-    return render(request, "reports/platform_payment_detail.html", {"payment": payment})
+    batch_total = sum((p.amount for p in batch_payments), Decimal("0")) if batch_payments else None
+    batch_has_pending = any(p.status == Payment.Status.PENDING for p in batch_payments)
+
+    return render(
+        request,
+        "reports/platform_payment_detail.html",
+        {
+            "payment": payment,
+            "batch_payments": batch_payments,
+            "batch_total": batch_total,
+            "batch_has_pending": batch_has_pending,
+        },
+    )
 
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
@@ -1287,23 +1456,32 @@ def platform_tickets_list(request: HttpRequest) -> HttpResponse:
     query = request.GET.get("q", "").strip()
     status_filter = request.GET.get("status", "").strip()
 
-    # تذاكر الدعم الفني فقط (platform tickets)
-    tickets = (
+    # تذاكر الدعم الفني فقط (platform tickets) — نطاق ثابت يحترم البحث فقط
+    scope = (
         Ticket.objects.filter(is_platform=True)
         .select_related("creator", "school")
         .order_by("-created_at")
     )
-
-    if status_filter and status_filter != "all":
-        tickets = tickets.filter(status=status_filter)
-
     if query:
-        tickets = tickets.filter(
+        scope = scope.filter(
             Q(school__name__icontains=query) |
             Q(school__code__icontains=query) |
             Q(title__icontains=query) |
             Q(id__icontains=query)
         )
+
+    # عدّادات الحالات (ضمن نطاق البحث، مستقلة عن التبويب المختار)
+    tab_counts = scope.aggregate(
+        all=Count("id"),
+        open=Count("id", filter=Q(status=Ticket.Status.OPEN)),
+        in_progress=Count("id", filter=Q(status=Ticket.Status.IN_PROGRESS)),
+        done=Count("id", filter=Q(status=Ticket.Status.DONE)),
+        rejected=Count("id", filter=Q(status=Ticket.Status.REJECTED)),
+    )
+
+    tickets = scope
+    if status_filter and status_filter != "all":
+        tickets = tickets.filter(status=status_filter)
 
     paginator = Paginator(tickets, 30)
     page_obj = paginator.get_page(request.GET.get("page"))
@@ -1313,6 +1491,7 @@ def platform_tickets_list(request: HttpRequest) -> HttpResponse:
         "page_obj": page_obj,
         "search_query": query,
         "current_status": status_filter,
+        "tab_counts": tab_counts,
     })
 
 
@@ -1480,6 +1659,163 @@ def subscription_history(request):
     }
     return render(request, 'reports/subscription_history.html', context)
 
+def _create_unified_payment(request, membership, subscription):
+    """ينشئ طلب دفع موحّد: يجمع الاشتراك + إضافة الأرشفة + زيادة المساحة في إيصال واحد.
+
+    لكل عنصر مختار يُنشأ سجل Payment مستقل بنفس صورة الإيصال (ملف واحد مشترك)،
+    حتى يبقى منطق الاعتماد الحالي (لكل غرض على حدة) سليمًا دون تغيير.
+
+    قيد مهم: زيادة مساحة التخزين تتطلب وجود إضافة أرشفة مفعّلة مسبقًا، لأن اعتمادها
+    يفشل إن لم تكن الإضافة موجودة. لذلك لا نسمح بطلب المساحة ضمن نفس الطلب الذي
+    يُفعّل الإضافة لأول مرة.
+    """
+    import uuid
+
+    school = membership.school
+    receipt = request.FILES.get("receipt_image")
+    notes = (request.POST.get("notes") or "").strip()
+    pricing = _archive_pricing()
+
+    if not receipt:
+        messages.error(request, "يرجى إرفاق صورة الإيصال.")
+        return redirect("reports:my_subscription")
+
+    include_sub = (request.POST.get("include_subscription") or "") == "1"
+    include_addon = (request.POST.get("include_archive_addon") or "") == "1"
+    include_storage = (request.POST.get("include_archive_storage") or "") == "1"
+
+    if not (include_sub or include_addon or include_storage):
+        messages.error(request, "اختر عنصرًا واحدًا على الأقل للدفع.")
+        return redirect("reports:my_subscription")
+
+    archive_addon = SchoolArchiveAddon.objects.filter(school=school).first()
+    addon_active = bool(archive_addon and archive_addon.is_active)
+
+    items = []      # كل عنصر: dict يحوي بيانات إنشاء Payment + label
+    warnings = []   # عناصر تم تخطّيها مع سبب
+
+    # 1) اشتراك المنصّة
+    if include_sub:
+        requested_plan = None
+        plan_id = request.POST.get("plan_id")
+        if plan_id:
+            requested_plan = SubscriptionPlan.objects.filter(pk=plan_id).first()
+        if not requested_plan and subscription:
+            requested_plan = subscription.plan
+        if not requested_plan:
+            messages.error(request, "يرجى اختيار باقة للاشتراك/التجديد.")
+            return redirect("reports:my_subscription")
+        amount = getattr(requested_plan, "price", 0) or 0
+        try:
+            if float(amount) <= 0:
+                messages.error(request, "لا يمكن إنشاء طلب دفع لباقة مجانية/غير صالحة.")
+                return redirect("reports:my_subscription")
+        except (TypeError, ValueError):
+            messages.error(request, "سعر الباقة غير صالح.")
+            return redirect("reports:my_subscription")
+        items.append({
+            "purpose": Payment.Purpose.SUBSCRIPTION,
+            "requested_plan": requested_plan,
+            "amount": amount,
+            "label": f"اشتراك: {requested_plan.name}",
+        })
+
+    # 2) إضافة الأرشفة (تفعيل/تجديد)
+    if include_addon:
+        if Payment.objects.filter(
+            school=school,
+            purpose=Payment.Purpose.ARCHIVE_ADDON,
+            status=Payment.Status.PENDING,
+        ).exists():
+            warnings.append("إضافة الأرشفة (يوجد طلب قيد المراجعة)")
+        else:
+            items.append({
+                "purpose": Payment.Purpose.ARCHIVE_ADDON,
+                "requested_plan": None,
+                "amount": pricing["addon_price"],
+                "label": "إضافة الأرشفة السنوية",
+            })
+
+    # 3) زيادة مساحة التخزين (تتطلب إضافة أرشفة مفعّلة مسبقًا)
+    if include_storage:
+        if not addon_active:
+            warnings.append("زيادة المساحة (تتاح بعد تفعيل إضافة الأرشفة)")
+        elif Payment.objects.filter(
+            school=school,
+            purpose=Payment.Purpose.ARCHIVE_STORAGE,
+            status=Payment.Status.PENDING,
+        ).exists():
+            warnings.append("زيادة المساحة (يوجد طلب قيد المراجعة)")
+        else:
+            option = None
+            option_id = request.POST.get("archive_storage_option_id")
+            if option_id:
+                option = ArchiveStorageOption.objects.filter(pk=option_id, is_active=True).first()
+            if option is None:
+                messages.error(request, "اختر خيار زيادة مساحة صالح.")
+                return redirect("reports:my_subscription")
+            items.append({
+                "purpose": Payment.Purpose.ARCHIVE_STORAGE,
+                "requested_plan": None,
+                "amount": option.price,
+                "archive_storage_gb": int(option.storage_gb or 0),
+                "label": f"زيادة مساحة الأرشيف {option.storage_gb}GB",
+            })
+
+    if not items:
+        if warnings:
+            messages.warning(request, "تعذّر إنشاء الطلب: " + " ، ".join(warnings))
+        else:
+            messages.error(request, "لا توجد عناصر صالحة للدفع.")
+        return redirect("reports:my_subscription")
+
+    batch = uuid.uuid4().hex[:8]
+    total = sum((Decimal(str(it["amount"])) for it in items), Decimal("0"))
+    labels = "، ".join(it["label"] for it in items)
+    base_note = f"[طلب موحّد {batch}] {labels} — الإجمالي {total} ريال."
+    if notes:
+        base_note = f"{base_note}\nملاحظة المدير: {notes}"
+
+    with transaction.atomic():
+        shared_name = None
+        for it in items:
+            payment = Payment(
+                school=school,
+                subscription=subscription,
+                requested_plan=it.get("requested_plan"),
+                purpose=it["purpose"],
+                amount=it["amount"],
+                archive_storage_gb=it.get("archive_storage_gb", 0),
+                notes=base_note,
+                batch_ref=batch if len(items) > 1 else "",
+                created_by=request.user,
+            )
+            if shared_name is None:
+                # نحفظ الملف مرة واحدة ثم نعيد استخدام اسمه لبقية السجلات
+                payment.receipt_image = receipt
+                payment.save()
+                shared_name = payment.receipt_image.name
+            else:
+                payment.receipt_image.name = shared_name
+                payment.save()
+
+    msg = format_html(
+        """
+        <div style="text-align:center; line-height:1.7;">
+            <p style="margin:0 0 .4rem; font-weight:800; font-size:1.1rem;">تم استلام طلبك الموحّد بنجاح ✅</p>
+            <p style="margin:0 0 .5rem;">عدد العناصر: {} &bull; الإجمالي: {} ريال</p>
+            <p style="margin:0; font-size:.9rem; opacity:.85;">سيتم تفعيل كل عنصر فور اعتماد مدير النظام.</p>
+        </div>
+        """,
+        len(items),
+        total,
+    )
+    messages.success(request, msg)
+    if warnings:
+        messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
+    return redirect("reports:my_subscription")
+
+
 @login_required(login_url="reports:login")
 @ratelimit(key="user", rate="5/m", method="POST", block=True)
 def payment_create(request):
@@ -1510,6 +1846,10 @@ def payment_create(request):
     )
 
     if request.method == 'POST':
+        # ✅ مسار الدفع الموحّد: تجميع كل العناصر المختارة في إيصال واحد
+        if (request.POST.get("unified") or "").strip() == "1":
+            return _create_unified_payment(request, membership, subscription)
+
         receipt = request.FILES.get('receipt_image')
         notes = (request.POST.get('notes') or "").strip()
         payment_kind = (request.POST.get("payment_kind") or Payment.Purpose.SUBSCRIPTION).strip()
@@ -1894,3 +2234,94 @@ def faq(request: HttpRequest) -> HttpResponse:
 def privacy_policy(request: HttpRequest) -> HttpResponse:
     """صفحة سياسة الخصوصية"""
     return render(request, "reports/privacy_policy.html")
+
+
+# =====================================================================
+# إدارة السنوات الدراسية (مدير النظام) — مصدر مركزي لخيارات المدارس
+# =====================================================================
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_academic_years(request: HttpRequest) -> HttpResponse:
+    """صفحة تحكم مدير النظام في السنوات الدراسية المتاحة للمدارس."""
+    import re
+    from ..models import AcademicYear, School
+
+    def _norm(v: str) -> str:
+        return (v or "").strip().replace("–", "-").replace("—", "-")
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+
+        if action == "add":
+            value = _norm(request.POST.get("value"))
+            if not re.match(r"^\d{4}-\d{4}$", value):
+                messages.error(request, "صيغة السنة يجب أن تكون مثل 1447-1448")
+            else:
+                start, end = value.split("-", 1)
+                if int(end) != int(start) + 1:
+                    messages.error(request, "السنة يجب أن تكون بفارق سنة واحدة، مثل 1447-1448")
+                else:
+                    _, created = AcademicYear.objects.get_or_create(
+                        value=value, defaults={"is_active": True, "order": int(start)}
+                    )
+                    messages.success(request, "✅ تمت إضافة السنة." if created else "السنة موجودة مسبقًا.")
+            return redirect("reports:platform_academic_years")
+
+        if action == "generate":
+            # توليد السنوات الثلاث القادمة تلقائيًا اعتمادًا على آخر سنة مسجّلة
+            existing = list(AcademicYear.objects.values_list("value", flat=True))
+            anchor = 0
+            for v in existing:
+                try:
+                    anchor = max(anchor, int(str(v)[:4]))
+                except Exception:
+                    pass
+            if anchor == 0:
+                today = timezone.localdate()
+                g = today.year + (today.month - 1) / 12.0
+                anchor = int(round((g - 622) * 33.0 / 32.0))
+            added = 0
+            for st in range(anchor, anchor + 4):
+                _, created = AcademicYear.objects.get_or_create(
+                    value=f"{st}-{st + 1}", defaults={"is_active": True, "order": st}
+                )
+                added += 1 if created else 0
+            messages.success(request, f"تم توليد {added} سنة جديدة." if added else "لا توجد سنوات جديدة لإضافتها.")
+            return redirect("reports:platform_academic_years")
+
+        if action == "toggle":
+            obj = AcademicYear.objects.filter(pk=request.POST.get("id")).first()
+            if obj:
+                obj.is_active = not obj.is_active
+                obj.save(update_fields=["is_active"])
+                messages.success(request, "تم تحديث حالة السنة.")
+            return redirect("reports:platform_academic_years")
+
+        if action == "delete":
+            obj = AcademicYear.objects.filter(pk=request.POST.get("id")).first()
+            if obj:
+                used = School.objects.filter(current_academic_year=obj.value).count()
+                if used:
+                    messages.error(request, f"لا يمكن حذف «{obj.value}» لأنها السنة الحالية لـ {used} مدرسة. عطّلها بدلًا من الحذف.")
+                else:
+                    obj.delete()
+                    messages.success(request, "🗑️ تم حذف السنة.")
+            return redirect("reports:platform_academic_years")
+
+    years = list(AcademicYear.objects.all().order_by("-value"))
+    # عدد المدارس التي تعتمد كل سنة كسنة حالية
+    usage = {
+        row["current_academic_year"]: row["c"]
+        for row in School.objects.exclude(current_academic_year="")
+        .values("current_academic_year")
+        .annotate(c=Count("id"))
+    }
+    items = [{"obj": y, "schools": usage.get(y.value, 0)} for y in years]
+    active_count = sum(1 for y in years if y.is_active)
+
+    return render(
+        request,
+        "reports/platform_academic_years.html",
+        {"items": items, "total": len(years), "active_count": active_count},
+    )

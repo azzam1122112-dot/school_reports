@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 from channels.testing import WebsocketCommunicator
 
 from reports.consumers import NotificationCountsConsumer
-from reports.models import Role, School, Teacher
+from reports.models import School, Teacher
 
 
 class _DummySession(dict):
@@ -36,16 +36,11 @@ class NotificationConsumerTests(TransactionTestCase):
     reset_sequences = True
 
     def setUp(self):
-        self.teacher_role, _ = Role.objects.get_or_create(
-            slug="teacher",
-            defaults={"name": "Teacher"},
-        )
         self.school = School.objects.create(name="WS School", code="ws-school")
         self.teacher = Teacher.objects.create_user(
             phone="511111111",
             name="WS Teacher",
             password="pass",
-            role=self.teacher_role,
         )
 
     def _communicator(self, user):

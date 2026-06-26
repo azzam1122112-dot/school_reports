@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load humanize %}
 
-{% block title %}إعدادات الأرشفة{% endblock %}
+{% block title %}إعدادات المنصة{% endblock %}
 
 {% block head %}
 <style>
@@ -80,6 +80,28 @@
     color: var(--ps-ink);
     font-size: 1rem;
     font-weight: 950;
+  }
+  .platform-settings-scope .maintenance-box {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    border-color: rgba(185,151,91,.34);
+    background: linear-gradient(135deg, rgba(255,251,235,.72), rgba(240,253,244,.72));
+  }
+  html[data-theme="dark"] .platform-settings-scope .maintenance-box { background: rgba(185,151,91,.08); }
+  .platform-settings-scope .maintenance-box.is-enabled {
+    border-color: rgba(220,38,38,.32);
+    background: rgba(254,226,226,.58);
+  }
+  .platform-settings-scope .maintenance-control {
+    min-width: 210px;
+  }
+  .platform-settings-scope .maintenance-label {
+    margin: 0 0 6px;
+    color: var(--ps-ink);
+    font-weight: 950;
+    font-size: 1rem;
   }
   .platform-settings-scope .grid {
     display: grid;
@@ -266,10 +288,34 @@
     .platform-settings-scope .grid,
     .platform-settings-scope .preview,
     .platform-settings-scope .storage-row { grid-template-columns: 1fr; }
+    .platform-settings-scope .maintenance-box { grid-template-columns: 1fr; }
+    .platform-settings-scope .maintenance-control { min-width: 0; width: 100%; }
     .platform-settings-scope .hero-actions,
     .platform-settings-scope .hero-actions .btn,
     .platform-settings-scope .actions .btn { width: 100%; justify-content: center; }
   }
+
+  /* شريط حالة وضع الصيانة */
+  .platform-settings-scope .maintenance-box h2 i { color: var(--gold, #b9975b); margin-inline-end: 6px; }
+  .platform-settings-scope .maintenance-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin: 10px 0 8px; padding: 7px 14px; border-radius: 999px;
+    font-weight: 950; font-size: .92rem; border: 1px solid transparent;
+  }
+  .platform-settings-scope .maintenance-status .sdot {
+    width: 9px; height: 9px; border-radius: 999px; background: currentColor; flex: 0 0 auto;
+  }
+  .platform-settings-scope .maintenance-status.ok {
+    color: #047857; background: rgba(5,150,105,.10); border-color: rgba(5,150,105,.28);
+  }
+  .platform-settings-scope .maintenance-status.warn {
+    color: #b91c1c; background: rgba(220,38,38,.10); border-color: rgba(220,38,38,.30);
+  }
+  .platform-settings-scope .maintenance-status.warn .sdot {
+    box-shadow: 0 0 0 4px rgba(220,38,38,.14); animation: msPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes msPulse { 0%,100%{ box-shadow:0 0 0 4px rgba(220,38,38,.14);} 50%{ box-shadow:0 0 0 7px rgba(220,38,38,.05);} }
+  @media (prefers-reduced-motion: reduce){ .platform-settings-scope .maintenance-status.warn .sdot{ animation:none !important; } }
 </style>
 {% endblock %}
 
@@ -281,8 +327,8 @@
         <i class="fa-solid fa-sliders" aria-hidden="true"></i>
         ضبط المنصة
       </span>
-      <h1>إعدادات الأرشفة</h1>
-      <p>تحكم في تسعير إضافة الأرشفة ومساحة التخزين التي تظهر لمدير المدرسة عند رفع طلب الدفع.</p>
+      <h1>إعدادات المنصة</h1>
+      <p>تحكم في وضع الصيانة والتطوير وتسعير إضافة الأرشفة ومساحة التخزين.</p>
     </div>
     <div class="hero-actions">
       <a href="{% url 'reports:platform_archive_addons_list' %}" class="btn btn-outline">
@@ -300,8 +346,8 @@
     {% csrf_token %}
     <div class="panel-head">
       <div>
-        <h2 class="panel-title">تسعير الأرشفة والتخزين</h2>
-        <div class="muted">أي تعديل هنا ينعكس فوراً على صفحة اشتراك مدير المدرسة وطلبات الدفع الجديدة.</div>
+        <h2 class="panel-title">التحكم العام والتسعير</h2>
+        <div class="muted">وضع الصيانة يوقف استخدام الموقع للمستخدمين، بينما يبقى السوبر يوزر قادراً على الدخول لإدارته.</div>
       </div>
       {% if settings_obj.updated_at %}
         <div class="muted">آخر تحديث: {{ settings_obj.updated_at|date:"Y-m-d H:i" }}</div>
@@ -312,6 +358,36 @@
       {% if form.non_field_errors %}
         <div class="error">{{ form.non_field_errors }}</div>
       {% endif %}
+
+      <section class="section maintenance-box {% if form.maintenance_mode_enabled.value %}is-enabled{% endif %}" id="maintenanceBox">
+        <div>
+          <h2><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i> وضع الصيانة والتطوير</h2>
+          <p class="maintenance-label">إيقاف استخدام الموقع مؤقتاً للمستخدمين</p>
+          <div class="maintenance-status {% if form.maintenance_mode_enabled.value %}warn{% else %}ok{% endif %}" id="maintenanceStatus" aria-live="polite">
+            <span class="sdot" aria-hidden="true"></span>
+            <span class="stxt">{% if form.maintenance_mode_enabled.value %}مفعّل — الموقع متوقف حالياً للمستخدمين{% else %}معطّل — الموقع يعمل بشكل طبيعي{% endif %}</span>
+          </div>
+          <div class="help">
+            عند التفعيل سيشاهد المستخدمون شاشة صيانة احترافية بدلاً من صفحات الموقع، بينما يبقى السوبر يوزر قادراً على الدخول والإدارة.
+          </div>
+        </div>
+        <div class="maintenance-control">
+          <label class="archive-switch" for="{{ form.maintenance_mode_enabled.id_for_label }}">
+            {{ form.maintenance_mode_enabled }}
+            <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+            <span class="switch-text" id="maintenanceSwitchText">{% if form.maintenance_mode_enabled.value %}مفعّل{% else %}معطّل{% endif %}</span>
+          </label>
+          {% for e in form.maintenance_mode_enabled.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="field full" style="grid-column:1 / -1;">
+          <label for="{{ form.maintenance_message.id_for_label }}">{{ form.maintenance_message.label }}</label>
+          {{ form.maintenance_message }}
+          <div class="help">
+            يدعم تنسيق ماركداون البسيط (عناوين، قوائم، و**عريض**). اتركها فارغة لاستخدام الرسالة الافتراضية في شاشة الصيانة.
+          </div>
+          {% for e in form.maintenance_message.errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+      </section>
 
       <section class="section">
         <h2>إضافة الأرشفة</h2>
@@ -327,6 +403,22 @@
             {{ form.archive_included_storage_gb }}
             <div class="help">المساحة التي يحصل عليها العميل عند تفعيل الإضافة.</div>
             {% for e in form.archive_included_storage_gb.errors %}<div class="error">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>حد التخزين الأساسي (للمدارس غير المشتركة)</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="{{ form.free_storage_mb.id_for_label }}">{{ form.free_storage_mb.label }}</label>
+            {{ form.free_storage_mb }}
+            <div class="help">
+              الحد الأقصى لإجمالي حجم الصور والملفات لكل مدرسة <strong>لا تملك إضافة أرشفة مفعّلة</strong>.
+              القيمة بالميجابايت (1024MB = 1GB). ضع <strong>0</strong> لإلغاء الحد (تخزين غير محدود).
+              يُحسب الاستهلاك من الحجم الفعلي للملفات.
+            </div>
+            {% for e in form.free_storage_mb.errors %}<div class="error">{{ e }}</div>{% endfor %}
           </div>
         </div>
       </section>
@@ -417,7 +509,7 @@
         </template>
       </section>
 
-      <section class="preview" aria-label="معاينة الأسعار الحالية">
+      <section class="preview" aria-label="معاينة الأسعار والحدود الحالية">
         <div class="metric">
           <span>الأرشفة السنوية</span>
           <strong>{{ settings_obj.archive_addon_annual_price|floatformat:0|intcomma }} ريال</strong>
@@ -427,8 +519,16 @@
           <strong>{{ settings_obj.archive_included_storage_gb }}GB</strong>
         </div>
         <div class="metric">
-          <span>زيادة التخزين</span>
-          <strong>خيارات متعددة</strong>
+          <span>الحد المجاني لكل مدرسة</span>
+          <strong>{% if settings_obj.free_storage_mb %}{{ settings_obj.free_storage_mb|intcomma }}MB{% else %}غير محدود{% endif %}</strong>
+        </div>
+        <div class="metric">
+          <span>إجمالي تخزين المنصة</span>
+          <strong>{{ platform_storage_used_bytes|filesizeformat }}</strong>
+        </div>
+        <div class="metric">
+          <span>عدد المدارس</span>
+          <strong>{{ schools_count|intcomma }}</strong>
         </div>
       </section>
     </div>
@@ -445,6 +545,46 @@
 {% endblock %}
 
 {% block scripts %}
+<script nonce="{{ CSP_NONCE }}">
+/* وضع الصيانة: تغذية بصرية فورية + تأكيد قبل إيقاف الموقع */
+(function () {
+  const box = document.getElementById("maintenanceBox");
+  const input = document.getElementById("{{ form.maintenance_mode_enabled.id_for_label }}");
+  const status = document.getElementById("maintenanceStatus");
+  const switchText = document.getElementById("maintenanceSwitchText");
+  if (!input) return;
+
+  const form = box ? box.closest("form") : null;
+  const initiallyEnabled = input.checked;
+
+  function render() {
+    const on = input.checked;
+    if (box) box.classList.toggle("is-enabled", on);
+    if (status) {
+      status.className = "maintenance-status " + (on ? "warn" : "ok");
+      const txt = status.querySelector(".stxt");
+      if (txt) txt.textContent = on
+        ? "مفعّل — الموقع متوقف حالياً للمستخدمين"
+        : "معطّل — الموقع يعمل بشكل طبيعي";
+    }
+    if (switchText) switchText.textContent = on ? "مفعّل" : "معطّل";
+  }
+
+  input.addEventListener("change", render);
+  render();
+
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      if (input.checked && !initiallyEnabled) {
+        const ok = window.confirm(
+          "سيتم إيقاف الموقع لجميع المستخدمين فوراً وعرض شاشة الصيانة، بينما يبقى دخولك أنت متاحاً.\nهل تريد تفعيل وضع الصيانة الآن؟"
+        );
+        if (!ok) { e.preventDefault(); }
+      }
+    });
+  }
+})();
+</script>
 <script nonce="{{ CSP_NONCE }}">
 document.addEventListener("DOMContentLoaded", function () {
   const addBtn = document.getElementById("addStorageOptionBtn");

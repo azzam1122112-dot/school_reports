@@ -68,6 +68,22 @@ class PlatformBillingPagesTests(TestCase):
         self.assertContains(response, "عمليات التحصيل")
         self.assertContains(response, self.school.name)
 
+    def test_pending_tab_filters_to_pending_only(self):
+        response = self.client.get(
+            reverse("reports:platform_payments_list"),
+            data={"status": "pending"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "قيد المراجعة")
+        # setUp فيه عملية معلّقة واحدة فقط → التبويب يعرض صفًا واحدًا
+        self.assertContains(response, "1 عملية في هذا التبويب")
+
+    def test_platform_settings_page_shows_storage_overview(self):
+        response = self.client.get(reverse("reports:platform_settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "الحد المجاني لكل مدرسة")
+        self.assertContains(response, "إجمالي تخزين المنصة")
+
     def test_platform_detail_pages_render_decision_blocks(self):
         subscription_response = self.client.get(
             reverse("reports:platform_subscription_detail", args=[self.subscription.id])

@@ -8,7 +8,6 @@ from django.urls import reverse
 from reports.models import (
     Report,
     ReportType,
-    Role,
     School,
     SchoolMembership,
     SchoolSubscription,
@@ -22,10 +21,6 @@ from reports.tasks import send_password_change_email_task
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class SecurityRegressionTests(TestCase):
     def setUp(self):
-        self.teacher_role, _ = Role.objects.get_or_create(
-            slug="teacher",
-            defaults={"name": "Teacher"},
-        )
         self.school = School.objects.create(name="Security School", code="security-school")
         plan = SubscriptionPlan.objects.create(
             name="Security Plan",
@@ -44,13 +39,11 @@ class SecurityRegressionTests(TestCase):
             phone="500010001",
             name="Current Teacher",
             password="pass",
-            role=self.teacher_role,
         )
         self.other_user = Teacher.objects.create_user(
             phone="500010002",
             name="Other Teacher",
             password="pass",
-            role=self.teacher_role,
         )
         SchoolMembership.objects.bulk_create(
             [
@@ -148,19 +141,10 @@ class SecurityRegressionTests(TestCase):
         self.assertEqual(ids, {own_ticket.id, assigned_ticket.id})
 
     def test_school_dashboard_data_endpoint_returns_tenant_payload_for_manager(self):
-        manager_role, _ = Role.objects.get_or_create(
-            slug="manager",
-            defaults={
-                "name": "Manager",
-                "is_staff_by_default": True,
-                "can_view_all_reports": True,
-            },
-        )
         manager = Teacher.objects.create_user(
             phone="500010003",
             name="School Manager",
             password="pass",
-            role=manager_role,
         )
         SchoolMembership.objects.create(
             school=self.school,

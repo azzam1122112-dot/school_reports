@@ -180,7 +180,7 @@
       <div style="margin-bottom:12px">
         <span class="royal-badge mgr-badge">
           <i class="fa-solid fa-school" style="opacity:.85"></i>
-          المدرسة: {{ school.name }} — الكود: {{ school.code }}
+          المدرسة: {{ school.name }}
         </span>
       </div>
 
@@ -205,16 +205,12 @@
                   <tr>
                     <td data-label="المدير"><b>{{ m.name }}</b></td>
                     <td data-label="إجراء">
-                      <form method="post" style="margin:0" class="js-once">
+                      <form method="post" style="margin:0" class="js-once" data-confirm="هل تريد إزالة المدير «{{ m.name|escapejs }}» من المدرسة؟">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="remove">
                         <input type="hidden" name="teacher_id" value="{{ m.id }}">
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button
-                          type="submit"
-                          class="btn btn-danger mgr-danger-btn"
-                          onclick="return confirm('هل تريد إزالة هذا المدير من المدرسة؟');"
-                        >
+                        <button type="submit" class="btn btn-danger mgr-danger-btn">
                           <i class="fa-solid fa-user-minus"></i> إزالة
                         </button>
                       </form>

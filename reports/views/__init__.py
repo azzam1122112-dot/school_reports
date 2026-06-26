@@ -16,5 +16,7 @@ from .schools import *           # noqa: F401,F403
 from .notifications import *     # noqa: F401,F403
 from .subscriptions import *     # noqa: F401,F403
 from .reporttypes import *       # noqa: F401,F403
+from .report_templates import *  # noqa: F401,F403
+from .exports import *           # noqa: F401,F403
 from .api import *               # noqa: F401,F403
 from .onboarding import *       # noqa: F401,F403

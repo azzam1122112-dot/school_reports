@@ -4,16 +4,12 @@ from datetime import date
 
 from django.test import TestCase
 
-from reports.models import Report, ReportType, Role, School, Teacher
+from reports.models import Report, ReportType, School, Teacher
 from reports.services_reports import get_teacher_reports_queryset
 
 
 class TeacherReportsQuerysetPerformanceTests(TestCase):
     def setUp(self):
-        self.teacher_role, _ = Role.objects.get_or_create(
-            slug="teacher",
-            defaults={"name": "Teacher"},
-        )
         self.school = School.objects.create(name="Perf School", code="perf-school")
         self.report_type = ReportType.objects.create(
             school=self.school,
@@ -25,7 +21,6 @@ class TeacherReportsQuerysetPerformanceTests(TestCase):
             phone="522222222",
             name="Perf Teacher",
             password="pass",
-            role=self.teacher_role,
         )
         Report.objects.bulk_create(
             [

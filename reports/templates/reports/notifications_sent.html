@@ -13,24 +13,24 @@
 
   :root {
     --primary-gradient: linear-gradient(135deg, #006c35 0%, #b9975b 100%);
-    --accent-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --accent-gradient: linear-gradient(135deg, #b9975b 0%, #8d6b2f 100%);
+    --success-gradient: linear-gradient(135deg, #0a8f49 0%, #006c35 100%);
     --dark-gradient: linear-gradient(135deg, #434343 0%, #000000 100%);
   }
 
   .ns-scope {
     --primary: #006c35;
     --secondary: #b9975b;
-    --accent: #f5576c;
-    --success: #00f2fe;
+    --accent: #b9975b;
+    --success: #16845b;
 
-    --bg-main: #f5f7fa;
+    --bg-main: #f4f7f3;
     --card-bg: #ffffff;
-    --text-primary: #1a202c;
-    --text-secondary: #4a5568;
-    --text-light: #718096;
-    --border-color: #e2e8f0;
-    --hover-bg: #edf2f7;
+    --text-primary: #10251f;
+    --text-secondary: #475c54;
+    --text-light: #68766f;
+    --border-color: #e3ebe5;
+    --hover-bg: #edf5ef;
 
     --radius-xl: 24px;
     --radius-lg: 16px;
@@ -38,12 +38,25 @@
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 10px 40px rgba(0, 0, 0, 0.08);
     --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
-    --shadow-colored: 0 10px 30px rgba(102, 126, 234, 0.25);
+    --shadow-colored: 0 10px 30px rgba(0, 108, 53, 0.25);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
     background: var(--bg-main);
     min-height: 100vh;
     padding: 2rem 0;
+  }
+
+  html[data-theme="dark"] .ns-scope {
+    --bg-main: transparent;
+    --card-bg: #131c2b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #c2ccd9;
+    --text-light: #93a3b5;
+    --border-color: #28344a;
+    --hover-bg: #1b2538;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 10px 40px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
   }
 
   .ns-scope .wrap {
@@ -131,7 +144,7 @@
 
   .ns-scope .create-btn:hover {
     transform: translateY(-3px);
-    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.35);
+    box-shadow: 0 15px 40px rgba(0, 108, 53, 0.30);
   }
 
   .ns-scope .create-btn:hover::before {
@@ -200,7 +213,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    background: linear-gradient(to bottom, rgba(102, 126, 234, 0.03), transparent);
+    background: linear-gradient(to bottom, rgba(0, 108, 53, 0.04), transparent);
   }
 
   .ns-scope .notif-title {
@@ -241,9 +254,9 @@
   }
 
   .ns-scope .pill.blue {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #0a8f49 0%, #006c35 100%);
     color: #fff;
-    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 108, 53, 0.28);
   }
 
   .ns-scope .pill:hover {
@@ -255,7 +268,7 @@
   }
 
   html[data-theme="dark"] .ns-scope .pill.blue {
-    background: linear-gradient(135deg, #0f8f87 0%, #00542a 100%);
+    background: linear-gradient(135deg, #15a85c 0%, #0a8f49 100%);
   }
 
   /* ===== Time ===== */
@@ -379,7 +392,7 @@
     gap: 12px;
     flex-wrap: wrap;
     align-items: center;
-    background: linear-gradient(to top, rgba(102, 126, 234, 0.02), transparent);
+    background: linear-gradient(to top, rgba(0, 108, 53, 0.03), transparent);
   }
 
   .ns-scope .ns-btn {
@@ -407,11 +420,11 @@
     background: var(--success-gradient);
     color: #fff;
     border-color: transparent;
-    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 108, 53, 0.28);
   }
 
   .ns-scope .ns-btn.primary:hover {
-    box-shadow: 0 8px 20px rgba(79, 172, 254, 0.4);
+    box-shadow: 0 8px 20px rgba(0, 108, 53, 0.38);
   }
 
   .ns-scope .ns-btn.danger {
@@ -506,6 +519,74 @@
       margin: 0;
     }
   }
+
+  /* 👑 ROYAL OVERLAY — الإشعارات المرسلة */
+  .ns-scope .page-header{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
+    padding:24px 22px !important; color:#fff !important;
+  }
+  .ns-scope .page-header::after{
+    content:""; position:absolute; top:0; right:0; left:0; height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .ns-scope .page-header h1{
+    color:#fff !important;
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .ns-scope .create-btn{
+    background:rgba(212,177,109,.18) !important; color:#fdf6e6 !important; border:1px solid rgba(212,177,109,.5) !important;
+  }
+  .ns-scope .create-btn:hover{ background:#d4b16d !important; color:#063d22 !important; }
+  .ns-scope .notif-card{
+    border:1px solid rgba(185,151,91,.20) !important;
+    box-shadow:0 14px 34px -24px rgba(10,92,51,.4) !important;
+    transition:transform .16s, box-shadow .16s;
+  }
+  .ns-scope .notif-card:hover{ transform:translateY(-3px); box-shadow:0 20px 38px -22px rgba(10,92,51,.5) !important; }
+
+  /* ===== نافذة تأكيد الحذف (بديل confirm البدائي) ===== */
+  .ns-confirm {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 32px 28px 26px;
+    width: min(440px, 92vw);
+    max-width: 440px;
+    text-align: center;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.4);
+  }
+  .ns-confirm::backdrop {
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+  }
+  .ns-confirm .ns-confirm-icon {
+    width: 72px; height: 72px; margin: 0 auto 18px;
+    border-radius: 50%; display: grid; place-items: center;
+    font-size: 1.7rem; color: #ef4444;
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(239, 68, 68, 0.22);
+  }
+  .ns-confirm .ns-confirm-title { margin: 0 0 10px; font-weight: 800; font-size: 1.25rem; color: var(--text-primary); }
+  .ns-confirm .ns-confirm-text { margin: 0 0 24px; color: var(--text-secondary); font-weight: 500; line-height: 1.7; }
+  .ns-confirm .ns-confirm-actions { display: flex; gap: 12px; }
+  .ns-confirm .ns-confirm-btn {
+    flex: 1; min-height: 50px; border-radius: var(--radius-md);
+    font-weight: 800; font-size: 1rem; font-family: inherit; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    transition: var(--transition); border: 1.5px solid transparent;
+  }
+  .ns-confirm .ns-confirm-cancel { background: var(--hover-bg); color: var(--text-primary); border-color: var(--border-color); }
+  .ns-confirm .ns-confirm-cancel:hover { background: var(--border-color); }
+  .ns-confirm .ns-confirm-ok { background: #ef4444; color: #fff; box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3); }
+  .ns-confirm .ns-confirm-ok:hover { background: #dc2626; transform: translateY(-1px); }
+  @media (max-width: 420px) { .ns-confirm .ns-confirm-actions { flex-direction: column-reverse; } }
 </style>
 {% endblock %}
 
@@ -630,6 +711,21 @@
       </div>
     {% endif %}
   </div>
+
+  <!-- Confirm Delete Dialog -->
+  <dialog id="nsConfirmDialog" class="ns-confirm" aria-labelledby="nsConfirmTitle">
+    <div class="ns-confirm-icon" aria-hidden="true"><i class="fa-regular fa-trash-can"></i></div>
+    <h3 id="nsConfirmTitle" class="ns-confirm-title">تأكيد حذف الإشعار</h3>
+    <p class="ns-confirm-text">سيتم حذف هذا الإشعار نهائيًا ولا يمكن التراجع عن العملية. هل تريد المتابعة؟</p>
+    <div class="ns-confirm-actions">
+      <button type="button" class="ns-confirm-btn ns-confirm-cancel" data-ns-action="confirm-cancel">
+        <i class="fa-solid fa-xmark"></i> إلغاء
+      </button>
+      <button type="button" class="ns-confirm-btn ns-confirm-ok" data-ns-action="confirm-ok">
+        <i class="fa-regular fa-trash-can"></i> حذف نهائيًا
+      </button>
+    </div>
+  </dialog>
 </div>
 
 {{ stats|json_script:"notif-stats-data" }}
@@ -690,13 +786,45 @@
       }
     });
 
-    // Confirm delete (CSP-safe)
+    // Confirm delete عبر نافذة مخصّصة (بديل confirm البدائي، CSP-safe)
+    var confirmDialog = document.getElementById('nsConfirmDialog');
+    var pendingDeleteForm = null;
+
+    function closeConfirm(){
+      pendingDeleteForm = null;
+      if(confirmDialog && confirmDialog.open) confirmDialog.close();
+    }
+
+    if(confirmDialog){
+      confirmDialog.addEventListener('click', function(ev){
+        if(ev.target === confirmDialog) closeConfirm();
+      });
+      confirmDialog.addEventListener('cancel', function(){ pendingDeleteForm = null; });
+      document.addEventListener('click', function(ev){
+        var t = ev.target;
+        if(!t || !t.closest) return;
+        if(t.closest('[data-ns-action="confirm-cancel"]')){ ev.preventDefault(); closeConfirm(); return; }
+        if(t.closest('[data-ns-action="confirm-ok"]')){
+          ev.preventDefault();
+          var form = pendingDeleteForm;
+          closeConfirm();
+          if(form) form.submit();
+        }
+      });
+    }
+
     document.querySelectorAll('form.js-delete-form').forEach(function(f){
       f.addEventListener('submit', function(e){
-        try{
-          var ok = window.confirm('هل تريد حذف هذا الإشعار نهائيًا؟');
-          if(!ok){ e.preventDefault(); }
-        }catch(err){}
+        // إن لم تتوفر النافذة المخصّصة، نكتفي بـ confirm كحل احتياطي
+        if(!confirmDialog || typeof confirmDialog.showModal !== 'function'){
+          if(!window.confirm('هل تريد حذف هذا الإشعار نهائيًا؟')) e.preventDefault();
+          return;
+        }
+        e.preventDefault();
+        pendingDeleteForm = f;
+        confirmDialog.showModal();
+        var okBtn = confirmDialog.querySelector('.ns-confirm-ok');
+        if(okBtn){ try{ okBtn.focus(); }catch(err){} }
       });
     });
   })();

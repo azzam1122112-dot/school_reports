@@ -4,7 +4,6 @@ from django.urls import reverse
 from reports.models import (
     Department,
     DepartmentMembership,
-    Role,
     School,
     SchoolMembership,
     SchoolSubscription,
@@ -17,10 +16,6 @@ from reports.models import (
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class TicketsInboxViewTests(TestCase):
     def setUp(self):
-        self.teacher_role, _ = Role.objects.get_or_create(
-            slug="teacher",
-            defaults={"name": "Teacher"},
-        )
         self.school = School.objects.create(name="Inbox School", code="inbox-school")
         plan = SubscriptionPlan.objects.create(
             name="Inbox Plan",
@@ -33,7 +28,6 @@ class TicketsInboxViewTests(TestCase):
             phone="500000401",
             name="Inbox Teacher",
             password="pass",
-            role=self.teacher_role,
         )
         SchoolMembership.objects.create(
             school=self.school,
@@ -46,7 +40,6 @@ class TicketsInboxViewTests(TestCase):
             phone="500000402",
             name="Inbox Other",
             password="pass",
-            role=self.teacher_role,
         )
         SchoolMembership.objects.create(
             school=self.school,
@@ -152,13 +145,11 @@ class TicketsInboxViewTests(TestCase):
             phone="500000403",
             name="Inbox Recipient Owner",
             password="pass",
-            role=self.teacher_role,
         )
         third_user = Teacher.objects.create_user(
             phone="500000404",
             name="Inbox Recipient Other",
             password="pass",
-            role=self.teacher_role,
         )
         SchoolMembership.objects.create(
             school=self.school,
@@ -208,16 +199,11 @@ class TicketsInboxViewTests(TestCase):
         self.assertEqual(len(response.context["tickets"]), 1)
 
     def test_tickets_inbox_department_tickets_show_without_mine_and_hide_with_mine(self):
-        staff_role = Role.objects.create(
-            slug="inbox-staff",
-            name="Inbox Staff",
-            is_staff_by_default=True,
-        )
         staff_user = Teacher.objects.create_user(
             phone="500000405",
             name="Inbox Staff User",
             password="pass",
-            role=staff_role,
+            is_staff=True,
         )
         SchoolMembership.objects.create(
             school=self.school,
@@ -228,7 +214,6 @@ class TicketsInboxViewTests(TestCase):
             phone="500000406",
             name="Inbox Department Owner",
             password="pass",
-            role=self.teacher_role,
         )
         SchoolMembership.objects.create(
             school=self.school,

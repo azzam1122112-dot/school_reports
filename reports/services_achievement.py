@@ -25,7 +25,11 @@ def achievement_picker_reports_qs(*, teacher, active_school: Optional[School], q
         qs = qs.filter(school=active_school)
     q = (q or "").strip()
     if q:
-        qs = qs.filter(Q(title__icontains=q) | Q(idea__icontains=q))
+        from .search_utils import smart_search_q, REPORT_SEARCH_FIELDS
+
+        search_q = smart_search_q(q, REPORT_SEARCH_FIELDS)
+        if search_q:
+            qs = qs.filter(search_q).distinct()
     return qs.order_by("-report_date", "-id")
 
 

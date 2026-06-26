@@ -8,9 +8,9 @@
 {% block head %}
 <style>
   :root {
-    --c-primary: #0f8f87; 
+    --c-primary: #006c35;
     --c-primary-dark: #006c35;
-    --c-primary-light: #eff6ff;
+    --c-primary-light: rgba(0, 108, 53, .07);
     --c-success: #16845b;
     --c-text-main: #0f172a;
     --c-text-muted: #64748b;
@@ -168,7 +168,7 @@
   input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--c-primary);
-    box-shadow: 0 0 0 4px rgba(15, 143, 135, 0.1);
+    box-shadow: 0 0 0 4px rgba(0, 108, 53, 0.12);
   }
 
   textarea {
@@ -302,12 +302,67 @@
     cursor: pointer;
   }
 
+  /* ✅ إصلاح تخطيط اختيار المعلمين: Django 4 يغلّف كل خيار بـ <div>،
+     فنجعلها شفافة حتى تصبح الـ label عناصر شبكة مباشرة */
+  #id_teachers > div { display: contents; }
+
+  /* ===== مفتاح «هام وعاجل» (Toggle Switch) ===== */
+  .imp-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border: 1.5px solid var(--c-border);
+    border-radius: 1rem;
+    background: var(--c-card-bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .imp-toggle-row:has(#id_is_important:checked) {
+    border-color: #ef4444;
+    background: linear-gradient(135deg, rgba(239,68,68,.06), rgba(239,68,68,.02));
+  }
+  .imp-toggle-text { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
+  .imp-toggle-text .t { display: flex; align-items: center; gap: .5rem; }
+  .imp-toggle-text small { font-weight: 400; color: var(--c-text-muted); font-size: .82rem; }
+  #id_is_important {
+    appearance: none; -webkit-appearance: none;
+    width: 52px; height: 30px; flex: 0 0 auto;
+    border-radius: 999px; background: #cbd5e1; border: none;
+    position: relative; cursor: pointer; transition: background .2s ease;
+    padding: 0; margin: 0;
+  }
+  #id_is_important::before {
+    content: ""; position: absolute; top: 3px; right: 3px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    transition: right .2s ease;
+  }
+  #id_is_important:checked { background: #ef4444; }
+  #id_is_important:checked::before { right: 25px; }
+
+  /* ===== معاينة المرفق قبل الإرسال ===== */
+  .attach-preview { margin-top: .75rem; }
+  .attach-preview .attach-thumb {
+    max-width: 100%; max-height: 220px; border-radius: .75rem;
+    border: 1px solid var(--c-border); display: block;
+  }
+  .attach-preview .attach-name { font-size: .82rem; color: var(--c-text-muted); margin-top: .4rem; word-break: break-all; }
+  .attach-preview .attach-file {
+    display: inline-flex; align-items: center; gap: .6rem;
+    padding: .7rem 1rem; border: 1px solid var(--c-border); border-radius: .75rem;
+    background: var(--c-primary-light); color: var(--c-primary-dark);
+    font-weight: 600; font-size: .9rem; word-break: break-all;
+  }
+  .attach-preview .attach-file i { font-size: 1.3rem; color: #dc2626; }
+
   /* Signature Settings - Highlight Box */
   .sig-settings-box {
     margin-top: 1.5rem;
     padding: 1.5rem;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 1px dashed #0f8f87;
+    background: linear-gradient(135deg, rgba(185,151,91,.10) 0%, rgba(0,108,53,.06) 100%);
+    border: 1px dashed rgba(185,151,91,.45);
     border-radius: 1rem;
     position: relative;
   }
@@ -570,6 +625,80 @@
   .doc-title {
     color: var(--c-primary-dark);
   }
+
+  /* 👑 ROYAL OVERLAY — إرسال تعميم */
+  .circular-page .page-header{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
+    padding:26px 24px !important; color:#fff !important;
+  }
+  .circular-page .page-header::after{
+    content:""; position:absolute; top:0; right:0; left:0; height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .circular-page .page-header h1{
+    color:#fff !important;
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .circular-page .page-header h1 i{ -webkit-text-fill-color:#e6cf9a !important; color:#e6cf9a !important; }
+  .circular-page .header-subtitle{ color:rgba(255,255,255,.82) !important; font-weight:800 !important; }
+  .circular-page .btn-primary,
+  .circular-page button[type="submit"].primary{
+    background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important;
+    box-shadow:0 10px 22px -12px rgba(10,92,51,.6) !important;
+  }
+
+  /* ===== الوضع الليلي ===== */
+  html[data-theme="dark"] .circular-page {
+    --c-text-main: #f1f5f9;
+    --c-text-muted: #93a3b5;
+    --c-card-bg: #131c2b;
+    --c-border: #28344a;
+    --c-bg: transparent;
+    background:
+      radial-gradient(circle at 90% 0%, rgba(185, 151, 91, .10), transparent 30%),
+      transparent;
+  }
+  html[data-theme="dark"] .circular-page .app-card,
+  html[data-theme="dark"] .circular-page .teacher-selector {
+    border-color: #28344a;
+    box-shadow: 0 22px 58px rgba(0, 0, 0, .45);
+  }
+  html[data-theme="dark"] .circular-page .app-card-header {
+    background: linear-gradient(135deg, rgba(185, 151, 91, .10), rgba(0, 108, 53, .10));
+  }
+  html[data-theme="dark"] .circular-page .form-control,
+  html[data-theme="dark"] .circular-page input[type="text"],
+  html[data-theme="dark"] .circular-page input[type="file"],
+  html[data-theme="dark"] .circular-page input[type="date"],
+  html[data-theme="dark"] .circular-page input[type="url"],
+  html[data-theme="dark"] .circular-page input[type="search"],
+  html[data-theme="dark"] .circular-page textarea,
+  html[data-theme="dark"] .circular-page select {
+    background-color: #0f1827;
+    color: var(--c-text-main);
+    border-color: #28344a;
+  }
+  html[data-theme="dark"] .circular-page .teacher-selector {
+    background: #0f1827;
+  }
+  html[data-theme="dark"] .circular-page .teacher-list-container label,
+  html[data-theme="dark"] .circular-page #id_teachers label {
+    background: #131c2b;
+    border-color: #28344a;
+    color: var(--c-text-main);
+  }
+  html[data-theme="dark"] .circular-page .header-actions .btn-link {
+    background: #131c2b;
+    color: var(--c-text-main);
+    border-color: #28344a;
+  }
+  /* معاينة المستند تبقى كورقة بيضاء واقعية حتى في الوضع الليلي */
 </style>
 {% endblock %}
 
@@ -657,15 +786,19 @@
                         {{ form.attachment }}
                         <div class="form-hint">يسمح بـ PDF / صور (Max 5MB)</div>
                         {% if form.attachment.errors %}<div class="error-list">{{ form.attachment.errors }}</div>{% endif %}
+                        <div id="attachPreview" class="attach-preview" style="display:none" aria-live="polite"></div>
                     </div>
                   {% endif %}
                   
                   <!-- Important Toggle -->
                   <div class="full-width" style="margin-block:0.5rem">
                     {% if form.is_important %}
-                      <label class="form-label" style="flex-direction:row; justify-content:flex-start; gap:0.75rem; cursor:pointer; align-items:center;">
+                      <label class="imp-toggle-row" for="{{ form.is_important.id_for_label }}">
+                         <span class="imp-toggle-text">
+                           <span class="t"><i class="fa-solid fa-fire" style="color:#ef4444"></i> تعميم هام وعاجل</span>
+                           <small>يُبرز التعميم بشارة حمراء للمستلمين.</small>
+                         </span>
                          {{ form.is_important }}
-                         <span style="font-weight:normal; font-size:1rem;">هل هذا التعميم هام وعاجل؟ <i class="fa-solid fa-fire text-red"></i></span>
                       </label>
                     {% endif %}
                   </div>
@@ -852,17 +985,44 @@
       dlineBox: $("#pv_deadline_box"),
       dlineVal: $("#pv_deadline")
   };
+  const attachPreview = document.getElementById('attachPreview');
+  let attachObjUrl = null;
+
+  function renderAttachPreview(){
+    if(!attachPreview || !inputs.file) return;
+    // تنظيف رابط سابق
+    if(attachObjUrl){ try{ URL.revokeObjectURL(attachObjUrl); }catch(e){} attachObjUrl = null; }
+
+    const f = inputs.file.files && inputs.file.files[0];
+    if(!f){ attachPreview.style.display = 'none'; attachPreview.innerHTML = ''; return; }
+
+    const sizeKB = (f.size/1024).toFixed(0) + 'KB';
+    const isImg = (f.type || '').toLowerCase().startsWith('image/');
+    attachPreview.style.display = 'block';
+
+    if(isImg){
+      attachObjUrl = URL.createObjectURL(f);
+      attachPreview.innerHTML =
+        '<img src="' + attachObjUrl + '" alt="معاينة المرفق" class="attach-thumb">' +
+        '<div class="attach-name">' + f.name + ' · ' + sizeKB + '</div>';
+    } else {
+      attachPreview.innerHTML =
+        '<div class="attach-file"><i class="fa-solid fa-file-pdf"></i> ' + f.name + ' · ' + sizeKB + '</div>';
+    }
+  }
 
   function updatePreview(){
     if(preview.title && inputs.title) preview.title.textContent = inputs.title.value || 'عنوان التعميم';
     if(preview.body && inputs.msg) preview.body.textContent = inputs.msg.value || 'نص التعميم...';
-    
+
     if(preview.imp && inputs.imp) preview.imp.style.display = inputs.imp.checked ? 'inline-flex' : 'none';
 
     if(preview.att && inputs.file){
-      preview.att.style.display = (inputs.file.files && inputs.file.files.length) ? 'inline-flex' : 'none';
+      const hasFile = !!(inputs.file.files && inputs.file.files.length);
+      preview.att.style.display = hasFile ? 'inline-flex' : 'none';
+      renderAttachPreview();
     }
-    
+
     if(preview.dlineBox && inputs.date){
         if(inputs.date.value){
            preview.dlineBox.style.display = 'inline';

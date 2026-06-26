@@ -1,4 +1,5 @@
 {% load static %}
+{% load hijri_tags %}
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -18,7 +19,7 @@
       --ink: #111;
       --muted: #444;
       --line: #000;
-      --shade: #f3f3f3;
+      --shade: #eef5f0;
     }
 
     * { box-sizing: border-box; }
@@ -35,14 +36,50 @@
     /* A4 canvas */
     .page {
       width: 210mm;
+      max-width: 100%;
       min-height: 297mm;
       margin: 18px auto;
       background: #fff;
-      padding: 10mm 12mm 12mm;
+      padding: 12mm 12mm 12mm;
       position: relative;
-      box-shadow: 0 0 14px rgba(0,0,0,0.10);
+      box-shadow: 0 18px 50px rgba(2, 6, 23, 0.14);
+      border-radius: 6px;
       display: flex;
       flex-direction: column;
+    }
+    /* شريط هوية علوي للمعاينة فقط (يُخفى عند الطباعة لإبقاء الوثيقة رسمية) */
+    .page::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #006c35 0%, #b9975b 100%);
+      border-radius: 6px 6px 0 0;
+    }
+
+    /* الاستجابة للجوال والتابلت (شاشة فقط) */
+    @media screen and (max-width: 820px) {
+      body { background: #eef2f0; }
+      .page {
+        width: 100%;
+        min-height: auto;
+        margin: 12px auto;
+        padding: 18px 16px 20px;
+        border-radius: 12px;
+      }
+      .header { grid-template-columns: 1fr; gap: 8px; text-align: center; }
+      .hdr-right, .hdr-left { text-align: center; direction: rtl; }
+      .meta-table th { width: auto; white-space: normal; }
+      .images-grid { grid-template-columns: 1fr 1fr; }
+      .signatures.three-sigs,
+      .signatures.two-sigs { grid-template-columns: 1fr; }
+      .signatures.one-sig { max-width: 100%; margin-right: 0; }
+    }
+    @media screen and (max-width: 480px) {
+      .images-grid { grid-template-columns: 1fr; }
+      .meta-table, .meta-table tr, .meta-table td, .meta-table th { display: block; width: 100%; }
+      .meta-table th { border-bottom: none; }
+      .meta-table td { border-top: none; margin-bottom: 2px; }
     }
 
     @page { size: A4; margin: 14mm 12mm; }
@@ -50,13 +87,32 @@
       body { background: #fff; }
       .page {
         width: auto;
-        min-height: 250mm; /* الحفاظ على ارتفاع كافي لدفع التوقيعات للأسفل */
+        max-width: none;
+        /* يملأ المساحة القابلة للطباعة في A4 (297مم − هامشَي 14مم) ليلتصق
+           الفاصل المرن بالتواقيع في نهاية الصفحة. نطرح 2مم أمانًا ضد التقريب
+           لتفادي ظهور صفحة ثانية فارغة */
+        min-height: calc(297mm - 30mm);
         margin: 0;
         padding: 0;
         box-shadow: none;
+        border-radius: 0;
       }
+      /* المجموعة الختامية (التواقيع + التذييل) تبقى متماسكة في الأسفل */
+      .signatures, .report-footer { break-inside: avoid; }
+      .page::before { display: none !important; } /* إخفاء شريط الهوية في الطباعة */
       .no-print { display: none !important; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      /* ضغط التخطيط لزيادة فرصة الطباعة في صفحة واحدة (مع إبقاء الوضوح) */
+      .title { margin: 8px 0 4px; }
+      .subtitle { margin: 0 0 8px; }
+      .meta-table { margin-bottom: 8px; }
+      .meta-table th, .meta-table td { padding: 5px 9px; }
+      .section { margin-bottom: 8px; }
+      .section-body { line-height: 1.55; widows: 2; orphans: 2; }
+      .img-box img { height: 100px; }
+      .images-grid { gap: 6px; }
+      .signature-spacer { min-height: 16px; }
     }
 
     /* Toolbar (screen only) */
@@ -64,29 +120,55 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: #111;
+      background: linear-gradient(135deg, #006c35 0%, #00532a 60%, #073b2a 100%);
       color: #fff;
-      padding: 10px;
-      text-align: center;
+      padding: 12px 16px;
       display: flex;
       gap: 10px;
       justify-content: center;
       align-items: center;
+      flex-wrap: wrap;
       font-weight: 800;
+      box-shadow: 0 6px 22px rgba(2, 6, 23, 0.18);
     }
+    .toolbar .tb-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 900;
+      font-size: 14px;
+      margin-inline-end: auto;
+      white-space: nowrap;
+    }
+    .toolbar .tb-title i { color: #e6cf9a; }
     .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       background: #fff;
       color: #111;
-      border: 1px solid rgba(0,0,0,0.15);
-      padding: 8px 16px;
-      border-radius: 8px;
+      border: 1px solid rgba(0,0,0,0.12);
+      padding: 10px 18px;
+      border-radius: 10px;
       cursor: pointer;
       font-family: inherit;
       font-weight: 900;
       text-decoration: none;
       font-size: 14px;
+      min-height: 44px;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
     }
-    .btn-print { background: #006c35; color: #fff; border-color: #006c35; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.16); }
+    .btn-print { background: #e6cf9a; color: #063d22; border-color: #e6cf9a; }
+    .btn-back { background: rgba(255,255,255,0.14); color: #fff; border-color: rgba(255,255,255,0.30); }
+    .btn-back:hover { background: rgba(255,255,255,0.26); }
+
+    @media (max-width: 600px) {
+      .toolbar { padding: 10px 12px; gap: 8px; }
+      .toolbar .tb-title { width: 100%; margin: 0 0 2px; justify-content: center; }
+      .toolbar .btn { flex: 1; }
+    }
 
     /* Official header */
     .header {
@@ -169,6 +251,8 @@
       font-weight: 1000;
       font-size: 14px;
       margin: 0 0 6px;
+      border-right: 4px solid #006c35;
+      padding-right: 8px;
     }
     .section-body {
       font-size: 14px;
@@ -211,30 +295,35 @@
       min-height: 20px;
     }
 
+    /* ===== التواقيع: تصميم رسمي فاخر بلا حدود/جداول ===== */
     .signatures {
-      border: 1px solid var(--line);
-      padding: 6px;
+      border: none;
+      padding: 0;
       display: grid;
-      gap: 6px;
-      margin-top: 8px;
+      gap: 28px;
+      margin-top: 14px;
       margin-bottom: 0;
       page-break-inside: avoid;
-      /* تأكيد تثبيت التوقيعات في الأسفل */
       page-break-before: auto;
     }
-    
-    /* منع تقطع التوقيعات وتثبيتها في الأسفل */
+
     @media print {
       .signature-spacer {
-        min-height: 40px;
+        min-height: 16px;
       }
       .signatures {
         position: relative;
         break-inside: avoid;
       }
     }
+    .signatures.three-sigs {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
     .signatures.two-sigs {
       grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      max-width: 80%;
+      margin-inline: auto;
     }
     .signatures.one-sig {
       grid-template-columns: 1fr;
@@ -242,28 +331,34 @@
       margin-right: auto;
     }
     .sig {
-      border: 1px solid var(--line);
-      padding: 6px;
-      min-height: 55px;
+      border: none;
+      padding: 0 6px;
+      min-height: 70px;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      text-align: center;
     }
     .sig h4 {
-      margin: 0 0 6px;
-      font-size: 13px;
+      margin: 0;
+      font-size: 13.5px;
       font-weight: 1000;
-      text-align: center;
+      color: var(--ink);
+      letter-spacing: .2px;
     }
     .sig .sig-space {
       flex: 1;
-      min-height: 30px;
+      min-height: 38px; /* مساحة التوقيع اليدوي */
     }
+    /* خط التوقيع الأنيق (بدلاً من صندوق/جدول) */
     .sig .sig-line {
       margin-top: auto;
-      border-top: 1px solid var(--line);
-      padding-top: 5px;
+      width: 100%;
+      max-width: 200px;
+      border-top: 1.4px solid var(--ink);
+      padding-top: 6px;
       font-size: 12px;
-      color: var(--muted);
+      color: var(--ink);
       font-weight: 800;
       text-align: center;
     }
@@ -271,10 +366,12 @@
       display: inline;
       font-size: 11px;
       color: var(--muted);
-      margin-left: 4px;
+      font-weight: 700;
+      margin-left: 3px;
     }
 
-    .footer {
+    /* اسم فريد لتفادي التعارض مع .footer العام في app.css (خلفية خضراء داكنة !important) */
+    .report-footer {
       margin-top: 4px;
       border-top: 1px solid var(--line);
       padding-top: 6px;
@@ -283,7 +380,9 @@
       display: flex;
       justify-content: space-between;
       gap: 10px;
+      background: transparent;
     }
+    .report-footer div { color: var(--muted); }
   </style>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
@@ -292,12 +391,12 @@
 
   <!-- Screen Toolbar -->
   <div class="toolbar no-print">
-    <span>معاينة الطباعة (A4)</span>
-    <button onclick="window.print()" class="btn btn-print">
-      <i class="fas fa-print"></i> طباعة / حفظ كـ 
+    <span class="tb-title"><i class="fa-solid fa-file-lines"></i> معاينة التقرير — جاهز للطباعة (A4)</span>
+    <button type="button" id="btnPrint" class="btn btn-print">
+      <i class="fas fa-print"></i> طباعة / حفظ PDF
     </button>
-    <button onclick="goBack()" class="btn">
-      <i class="fas fa-arrow-right"></i> عودة
+    <button type="button" id="btnBack" class="btn btn-back">
+      <i class="fas fa-arrow-right"></i> رجوع
     </button>
   </div>
 
@@ -318,7 +417,7 @@
       </div>
 
       <div class="hdr-block hdr-left">
-        <div>التاريخ: {{ r.report_date|date:"Y/m/d" }}</div>
+        <div>التاريخ: {{ r.report_date|hijri }} هـ</div>
         {% if r.day_name %}<div>اليوم: {{ r.day_name }}</div>{% endif %}
         <div>رقم التقرير: {{ r.id }}</div>
       </div>
@@ -332,7 +431,7 @@
         <th>التصنيف</th>
         <td>{% if r.category %}{{ r.category.name }}{% else %}عام{% endif %}</td>
         <th>تاريخ التنفيذ</th>
-        <td>{{ r.report_date|date:"Y/m/d" }}</td>
+        <td>{{ r.report_date|hijri }} هـ</td>
       </tr>
       <tr>
         <th>المنفذ</th>
@@ -391,14 +490,24 @@
 
     {% comment %}
     ============================================
-    قسم التوقيعات
-    - إذا كان التقرير مرتبط بقسم: عرض توقيعين ({{ SCHOOL_HEAD_OF_DEPARTMENT_LABEL|default:"رئيس القسم" }} + {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }})
-    - إذا لم يكن مرتبط بقسم: عرض توقيع واحد ({{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }} فقط)
+    قسم التوقيعات (مخطط ديناميكي ثلاثي)
+    - مرتبط بقسم: المنفّذ + المسؤول (رئيس القسم) + مدير المدرسة
+    - غير مرتبط بقسم: المنفّذ + مدير المدرسة
     ============================================
     {% endcomment %}
+    {% firstof r.teacher_display_name r.teacher_name r.teacher.name as executor_name %}
     {% if head_decision and not head_decision.no_render %}
-      {# التقرير مرتبط بقسم → توقيعان #}
-      <div class="signatures two-sigs">
+      {# مرتبط بقسم → ثلاثة تواقيع #}
+      <div class="signatures three-sigs">
+        <div class="sig">
+          <h4>{{ executor_label|default:"المنفّذ" }}</h4>
+          <div class="sig-space"></div>
+          <div class="sig-line">
+            <span class="sig-label">الاسم:</span>
+            {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+          </div>
+        </div>
+
         <div class="sig">
           <h4>{{ SCHOOL_HEAD_OF_DEPARTMENT_LABEL|default:"رئيس القسم" }}</h4>
           <div class="sig-space"></div>
@@ -424,8 +533,17 @@
         </div>
       </div>
     {% else %}
-      {# التقرير غير مرتبط بقسم → توقيع واحد فقط #}
-      <div class="signatures one-sig">
+      {# غير مرتبط بقسم → توقيعان: المنفّذ + المدير #}
+      <div class="signatures two-sigs">
+        <div class="sig">
+          <h4>{{ executor_label|default:"المنفّذ" }}</h4>
+          <div class="sig-space"></div>
+          <div class="sig-line">
+            <span class="sig-label">الاسم:</span>
+            {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+          </div>
+        </div>
+
         <div class="sig">
           <h4>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h4>
           <div class="sig-space"></div>
@@ -473,7 +591,7 @@
                     {% endif %}
 
                     {% if c.created_by_id == current_user_id or is_superuser %}
-                      <form method="post" onsubmit="return confirm('حذف التعليق نهائيًا؟');" style="display:inline;">
+                      <form method="post" class="js-confirm-delete" data-confirm="حذف التعليق نهائيًا؟" style="display:inline;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="private_comment_delete" />
                         <input type="hidden" name="comment_id" value="{{ c.id }}" />
@@ -506,7 +624,7 @@
       </section>
     {% endif %}
 
-    <div class="footer">
+    <div class="report-footer">
       <div>تم إصدار التقرير إلكترونيًا — {% now "Y/m/d H:i" %}</div>
       <div>منصة توثيق التقارير المدرسية</div>
     </div>
@@ -536,9 +654,64 @@
       {% endif %}
     }
 
+    // ===== التحجيم التلقائي ليُطبع التقرير في صفحة A4 واحدة قدر الإمكان =====
+    // يقيس ارتفاع المحتوى مقارنةً بالمساحة القابلة للطباعة، وإن تجاوزها يُصغّر
+    // عبر zoom دون النزول تحت 65% حفاظًا على الوضوح.
+    var MIN_FIT_SCALE = 0.65;
+
+    function pxPerMm() {
+      var ruler = document.createElement('div');
+      ruler.style.cssText = 'position:absolute;visibility:hidden;height:100mm;width:0;top:0;left:0;';
+      document.body.appendChild(ruler);
+      var v = ruler.getBoundingClientRect().height / 100;
+      ruler.remove();
+      return v || 3.7795; // 96dpi fallback
+    }
+
+    function fitToOnePage() {
+      var page = document.querySelector('.page');
+      if (!page) return;
+      page.style.zoom = '1';
+      // المساحة القابلة للطباعة داخل A4 مع هوامش @page (14mm أعلى/أسفل)
+      var printableMm = 297 - 14 - 14;
+      var target = pxPerMm() * printableMm;
+      var h = page.scrollHeight;
+      if (h > target + 2) {
+        var scale = Math.max(target / h, MIN_FIT_SCALE);
+        page.style.zoom = String(scale);
+      }
+    }
+
+    function resetFit() {
+      var page = document.querySelector('.page');
+      if (page) page.style.zoom = '1';
+    }
+
+    // قبل الطباعة (Ctrl+P أو من المتصفح)
+    window.addEventListener('beforeprint', fitToOnePage);
+    window.addEventListener('afterprint', resetFit);
+
+    // ربط أزرار شريط الأدوات (متوافق مع CSP بدل onclick)
+    var _btnPrint = document.getElementById('btnPrint');
+    if (_btnPrint) _btnPrint.addEventListener('click', function(){
+      fitToOnePage();                 // لمتصفحات لا تطلق beforeprint (Safari)
+      setTimeout(function(){ window.print(); }, 30);
+    });
+    var _btnBack = document.getElementById('btnBack');
+    if (_btnBack) _btnBack.addEventListener('click', goBack);
+
+    // تأكيد حذف التعليق (بدل onsubmit المضمّن)
+    document.querySelectorAll('form.js-confirm-delete').forEach(function(f){
+      f.addEventListener('submit', function(e){
+        var msg = f.getAttribute('data-confirm') || 'تأكيد الحذف؟';
+        if (!window.confirm(msg)) e.preventDefault();
+      });
+    });
+
     // Auto print if ?print=true (optional)
     if(window.location.search.includes('print=true')){
-      window.print();
+      fitToOnePage();
+      setTimeout(function(){ window.print(); }, 60);
     }
   </script>
 </body>

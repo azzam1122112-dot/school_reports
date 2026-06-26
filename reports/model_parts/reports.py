@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .base import *
-from .schools import School, Teacher
+from .schools import School, Teacher, ReportType
 
 class Report(models.Model):
     school = models.ForeignKey(
@@ -66,6 +66,9 @@ class Report(models.Model):
     image2 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
     image3 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
     image4 = models.ImageField(upload_to=_report_image_upload_to, blank=True, null=True, validators=[validate_image_file])
+
+    # حجم ملفات هذا السجل (بايت) — يُحدّث تلقائيًا لتتبّع التخزين بلا قراءة شبكية عند الفحص
+    storage_bytes = models.PositiveBigIntegerField(default=0, editable=False)
 
 
     created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True, db_index=True)
@@ -138,6 +141,82 @@ class Report(models.Model):
 
 
 # =========================
+# قوالب التقارير الجاهزة (لكل مدرسة)
+# =========================
+class ReportTemplate(models.Model):
+    """قالب جاهز يُعبّئ حقول التقرير تلقائيًا عند الإنشاء.
+
+    يُدار من قِبل مدير المدرسة، ويستخدمه المعلمون لتسريع إدخال التقارير المتكررة
+    (مثل: الإذاعة الصباحية، الاصطفاف، حصة الانتظار...).
+    """
+
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="report_templates",
+        verbose_name="المدرسة",
+        help_text="يظهر هذا القالب فقط داخل المدرسة المحددة.",
+    )
+    category = models.ForeignKey(
+        "ReportType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="templates",
+        verbose_name="نوع التقرير",
+        help_text="يُختار تلقائيًا عند تطبيق القالب (اختياري).",
+    )
+    name = models.CharField(
+        "اسم القالب",
+        max_length=120,
+        help_text="اسم مختصر يظهر للمعلم في قائمة القوالب، مثل: الإذاعة الصباحية.",
+    )
+    title = models.CharField(
+        "عنوان التقرير المقترح",
+        max_length=255,
+        blank=True,
+        help_text="يُعبّأ في حقل العنوان عند تطبيق القالب.",
+    )
+    idea = models.TextField(
+        "نص التفاصيل المقترح",
+        blank=True,
+        help_text="يُعبّأ في حقل تفاصيل التقرير عند تطبيق القالب.",
+    )
+    beneficiaries_count = models.PositiveIntegerField(
+        "عدد المستفيدين المقترح",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="اتركه فارغًا إذا لا ينطبق.",
+    )
+    order = models.PositiveIntegerField("الترتيب", default=0)
+    is_active = models.BooleanField("نشط", default=True, db_index=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="report_templates_created",
+        verbose_name="أنشأه",
+    )
+    created_at = models.DateTimeField("تاريخ الإنشاء", auto_now_add=True)
+    updated_at = models.DateTimeField("تاريخ التحديث", auto_now=True)
+
+    class Meta:
+        ordering = ("order", "name")
+        indexes = [
+            models.Index(fields=["school", "is_active", "order"]),
+        ]
+        verbose_name = "قالب تقرير"
+        verbose_name_plural = "قوالب التقارير"
+
+    def __str__(self) -> str:
+        return self.name
+
+
+# =========================
 
 
 class PlatformSettings(models.Model):
@@ -179,6 +258,26 @@ class PlatformSettings(models.Model):
         validators=[MinValueValidator(0)],
         help_text="سعر كل وحدة زيادة مساحة تخزين للأرشيف.",
     )
+    free_storage_mb = models.PositiveIntegerField(
+        "حد التخزين المجاني لكل مدرسة (ميجابايت)",
+        default=1024,
+        help_text=(
+            "الحد الأقصى لإجمالي حجم الصور والملفات لكل مدرسة غير مشتركة في إضافة الأرشفة. "
+            "القيمة بالميجابايت (1024MB = 1GB). ضع 0 لإلغاء الحد (تخزين غير محدود)."
+        ),
+    )
+    maintenance_mode_enabled = models.BooleanField(
+        "تفعيل وضع الصيانة والتطوير",
+        default=False,
+        db_index=True,
+        help_text="عند التفعيل تظهر شاشة الصيانة للمستخدمين ولا يمكنهم استخدام الموقع حتى إيقافها.",
+    )
+    maintenance_message = models.TextField(
+        "رسالة الصيانة",
+        blank=True,
+        default="",
+        help_text="رسالة اختيارية تظهر للمستخدمين في شاشة الصيانة.",
+    )
 
     updated_by = models.ForeignKey(
         Teacher,
@@ -204,6 +303,16 @@ class PlatformSettings(models.Model):
 
     def __str__(self) -> str:
         return "إعدادات المنصة"
+
+    def save(self, *args, **kwargs):
+        result = super().save(*args, **kwargs)
+        try:
+            from django.core.cache import cache
+
+            cache.delete("platform_maintenance_state_v1")
+        except Exception:
+            pass
+        return result
 
 
 def get_share_link_default_days(school: Optional["School"] = None) -> int:

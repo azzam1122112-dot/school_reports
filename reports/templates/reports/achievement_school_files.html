@@ -291,6 +291,33 @@
   @media (max-width: 768px) {
     .controls-bar { flex-direction: column; align-items: stretch; }
   }
+
+  /* 👑 ROYAL OVERLAY — ملفات إنجاز المدرسة */
+  .page-container .header-section{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:22px !important; padding:26px 24px !important; color:#fff !important;
+    box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
+  }
+  .page-container .header-section::after{
+    content:""; position:absolute; top:0; right:0; left:0; height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .page-container .page-title{
+    color:#fff !important;
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .page-container .page-subtitle{ color:rgba(255,255,255,.82) !important; font-weight:800 !important; }
+  .page-container .controls-bar{
+    border:1px solid rgba(185,151,91,.2) !important;
+    box-shadow:0 14px 34px -26px rgba(10,92,51,.4) !important;
+  }
+  .page-container .glass-input:focus{ border-color:rgba(185,151,91,.7) !important; box-shadow:0 0 0 3px rgba(212,177,109,.2) !important; }
+  .page-container .btn-primary{ background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important; }
 </style>
 {% endblock %}
 

@@ -5,8 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#006c35">
-  <meta name="description" content="تسجيل الدخول لمنصة توثيق">
-  <title>تسجيل الدخول | منصة توثيق</title>
+  <meta name="description" content="{% if admin_login %}دخول مدير النظام لمنصة توثيق{% else %}تسجيل الدخول لمنصة توثيق{% endif %}">
+  <title>{% if admin_login %}دخول مدير النظام{% else %}تسجيل الدخول{% endif %} | منصة توثيق</title>
 
   <!-- Typography & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -228,6 +228,45 @@
       transform: translateY(0);
     }
 
+    .btn-passkey {
+      width: 100%;
+      min-height: 48px;
+      margin-top: 12px;
+      border: 1px solid rgba(0,108,53,.22);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--brand-dark);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all .2s;
+    }
+    .btn-passkey:hover {
+      background: rgba(0,108,53,.06);
+      border-color: rgba(0,108,53,.36);
+      transform: translateY(-1px);
+    }
+    .passkey-status {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(0,108,53,.07);
+      color: var(--brand-dark);
+      font-size: .88rem;
+      font-weight: 700;
+      line-height: 1.7;
+    }
+    .passkey-status.is-error {
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
     /* Links */
     .form-footer {
       display: flex;
@@ -305,8 +344,14 @@
           <div class="logo-circle">
             <img src="{% static 'img/logo1.png' %}" alt="منصة توثيق" class="brand-logo-img">
           </div>
-          <h1 class="brand-title">منصة توثيق</h1>
-          <div class="brand-sub">سجّل دخولك لمتابعة أعمالك</div>
+          <h1 class="brand-title">{% if admin_login %}لوحة مدير النظام{% else %}منصة توثيق{% endif %}</h1>
+          <div class="brand-sub">
+            {% if admin_login %}
+              دخول مخصص للسوبر آدمن وإدارة المنصة
+            {% else %}
+              سجّل دخولك لمتابعة أعمالك
+            {% endif %}
+          </div>
         </div>
 
         <!-- Messages -->
@@ -333,7 +378,7 @@
         {% endif %}
 
         <!-- Form -->
-        <form method="post" action="{% url 'reports:login' %}" id="loginForm">
+        <form method="post" action="{% url login_action_name|default:'reports:login' %}" id="loginForm">
           {% csrf_token %}
           <!-- Redirect Next -->
           <input type="hidden" name="next" value="{{ next|default:'' }}">
@@ -360,8 +405,19 @@
           </div>
 
           <button type="submit" class="btn-login" id="loginSubmitBtn">
-            تسجيل الدخول <i class="fa-solid fa-arrow-left"></i>
+            {% if admin_login %}دخول لوحة الإدارة{% else %}تسجيل الدخول{% endif %} <i class="fa-solid fa-arrow-left"></i>
           </button>
+
+          <button
+            type="button"
+            class="btn-passkey"
+            id="passkeyLoginBtn"
+            data-options-url="{% url 'reports:passkey_login_options' %}"
+            data-verify-url="{% url 'reports:passkey_login_verify' %}"
+          >
+            {% if admin_login %}دخول الإدارة بالبصمة{% else %}الدخول بالبصمة{% endif %} <i class="fa-solid fa-fingerprint"></i>
+          </button>
+          <div class="passkey-status" id="passkeyStatus" role="status" aria-live="polite"></div>
 
           <div class="form-footer">
              <a href="#" class="link" onclick="alert('يرجى التواصل مع إدارة المدرسة / إدارة المنصة لاستعادة كلمة المرور.');return false;">
@@ -413,6 +469,101 @@
         btn.disabled = true;
         btn.setAttribute('aria-disabled', 'true');
         btn.innerHTML = 'جارٍ تسجيل الدخول... <i class="fa-solid fa-spinner fa-spin"></i>';
+      });
+    })();
+
+    (function(){
+      const passkeyBtn = document.getElementById('passkeyLoginBtn');
+      const statusBox = document.getElementById('passkeyStatus');
+      const identifier = document.getElementById('identifier');
+      const nextInput = document.querySelector('input[name="next"]');
+      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (!passkeyBtn || !statusBox || !window.PublicKeyCredential || !navigator.credentials) return;
+
+      passkeyBtn.style.display = 'flex';
+
+      function showStatus(text, isError) {
+        statusBox.textContent = text;
+        statusBox.classList.toggle('is-error', !!isError);
+        statusBox.style.display = text ? 'block' : 'none';
+      }
+
+      function b64ToBuffer(value) {
+        const base64 = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+        const binary = atob(padded);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes.buffer;
+      }
+
+      function bufferToB64(buffer) {
+        const bytes = new Uint8Array(buffer || new ArrayBuffer(0));
+        let binary = '';
+        bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+      }
+
+      function prepareRequestOptions(publicKey) {
+        publicKey.challenge = b64ToBuffer(publicKey.challenge);
+        if (publicKey.allowCredentials) {
+          publicKey.allowCredentials = publicKey.allowCredentials.map((item) => ({
+            ...item,
+            id: b64ToBuffer(item.id),
+          }));
+        }
+        return publicKey;
+      }
+
+      function credentialToJSON(credential) {
+        return {
+          id: credential.id,
+          rawId: bufferToB64(credential.rawId),
+          type: credential.type,
+          response: {
+            authenticatorData: bufferToB64(credential.response.authenticatorData),
+            clientDataJSON: bufferToB64(credential.response.clientDataJSON),
+            signature: bufferToB64(credential.response.signature),
+            userHandle: credential.response.userHandle ? bufferToB64(credential.response.userHandle) : null,
+          },
+          next: nextInput ? nextInput.value : '',
+        };
+      }
+
+      async function postJSON(url, payload) {
+        const response = await fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfInput ? csrfInput.value : '',
+          },
+          body: JSON.stringify(payload || {}),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error(data.message || 'تعذر تنفيذ العملية.');
+        }
+        return data;
+      }
+
+      passkeyBtn.addEventListener('click', async function(){
+        try {
+          passkeyBtn.disabled = true;
+          showStatus('افتح نافذة البصمة أو قفل الجهاز لإكمال الدخول...', false);
+          const options = await postJSON(passkeyBtn.dataset.optionsUrl, {
+            identifier: identifier ? identifier.value : '',
+          });
+          const credential = await navigator.credentials.get({
+            publicKey: prepareRequestOptions(options.publicKey),
+          });
+          const verified = await postJSON(passkeyBtn.dataset.verifyUrl, credentialToJSON(credential));
+          window.location.href = verified.redirect || '/';
+        } catch (error) {
+          showStatus(error && error.message ? error.message : 'تعذر تسجيل الدخول بالبصمة.', true);
+        } finally {
+          passkeyBtn.disabled = false;
+        }
       });
     })();
   </script>

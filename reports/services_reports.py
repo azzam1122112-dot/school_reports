@@ -19,6 +19,7 @@ except Exception:  # pragma: no cover
     ReportType = None  # type: ignore
 
 from .permissions import allowed_categories_for, restrict_queryset_for_user
+from .search_utils import smart_search_q, REPORT_SEARCH_FIELDS
 
 
 def _model_has_field(model, field_name: str) -> bool:
@@ -92,7 +93,9 @@ def apply_teacher_report_filters(
     if end_date:
         qs = qs.filter(report_date__lte=end_date)
     if q:
-        qs = qs.filter(Q(title__icontains=q) | Q(idea__icontains=q))
+        search_q = smart_search_q(q, REPORT_SEARCH_FIELDS)
+        if search_q:
+            qs = qs.filter(search_q).distinct()
     return qs
 
 

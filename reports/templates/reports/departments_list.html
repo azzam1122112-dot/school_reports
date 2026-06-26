@@ -178,6 +178,46 @@
     .smart-card, .smart-header { padding-left: 10px !important; padding-right: 10px !important; }
     .smart-header .dashboard-btn { left: 10px; top: 10px; padding: 6px 12px; font-size: .98rem; }
   }
+
+  /* ============================================================
+     👑 ROYAL LUXURY — أقسام (زمرّدي + ذهبي)
+     ============================================================ */
+  body { background: linear-gradient(120deg, #eef3ee 0%, #f7f3ea 100%); }
+  .smart-card { border:1px solid rgba(185,151,91,.22); box-shadow:0 26px 60px -28px rgba(10,92,51,.5); }
+  .smart-card::before{ content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:3;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent); }
+  .smart-header{
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.26), transparent 50%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border-bottom:none !important;
+  }
+  .smart-header .title{
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .smart-header .title .icon{ -webkit-text-fill-color:#e6cf9a; color:#e6cf9a; }
+  .smart-header .dashboard-btn{ background:rgba(212,177,109,.18); color:#fdf6e6; border:1px solid rgba(212,177,109,.5); }
+  .smart-header .dashboard-btn:hover{ background:#d4b16d; color:#063d22; }
+  .smart-btn{ background:linear-gradient(135deg,#0a5c33,#074426); box-shadow:0 10px 22px -12px rgba(10,92,51,.6); }
+  .smart-btn:hover{ background:#fff; color:#0a5c33; border:1.5px solid #0a5c33; }
+  .smart-btn.ghost{ color:#0a5c33; border:1.5px solid rgba(185,151,91,.45); }
+  .smart-btn.ghost:hover{ background:#0a5c33; color:#fff; border-color:#0a5c33; }
+  .smart-btn.danger{ background:#fff; color:#dc2626; border:1.5px solid #fecaca; min-width:auto; padding:9px 16px; box-shadow:none; }
+  .smart-btn.danger:hover{ background:#dc2626; color:#fff; border-color:#dc2626; }
+
+  .smart-table-wrap{ border:1px solid rgba(185,151,91,.2); }
+  table.smart-table thead th{ background:#faf7ef; color:#0a5c33; border-bottom:2px solid rgba(185,151,91,.3); }
+  table.smart-table tbody tr:hover{ background:rgba(212,177,109,.06); }
+  .dept-name{ font-weight:900; color:#0f172a; }
+  .dept-name i{ color:#b9975b; margin-inline-end:4px; }
+
+  .dept-count{ display:inline-flex; align-items:center; gap:7px; padding:5px 13px; border-radius:999px; font-weight:950; font-size:1rem; border:1px solid; }
+  .dept-count.reports{ color:#0a5c33; background:rgba(10,92,51,.08); border-color:rgba(10,92,51,.2); }
+  .dept-count.reports i{ color:#0a5c33; }
+  .dept-count.members{ color:#7a5c1e; background:rgba(212,177,109,.14); border-color:rgba(185,151,91,.35); }
+  .dept-count.members i{ color:#b9975b; }
+  .dept-tickets{ font-weight:850; color:#475569; }
+  .smart-pill.on{ color:#16a34a; background:#f0fdf4; border-color:#bbf7d0; }
 </style>
 {% endblock head %}
 
@@ -197,21 +237,20 @@
       إدارة الأقسام
     </div>
     <div class="desc">
-      يمكنك من هنا إضافة أو تعديل أو حذف الأقسام وإدارة أعضاء كل قسم بشكل حديث ومتناسق مع المنصة.
+      يمكنك من هنا إضافة أو تعديل أو حذف الأقسام وإدارة أعضاء كل قسم.
     </div>
   </div>
   <div class="smart-actions">
     <a class="smart-btn" href="{% url 'reports:department_create' %}"><i class="fa-solid fa-plus"></i> قسم جديد</a>
-    <a class="smart-btn ghost" href="{% url 'reports:manage_teachers' %}"><i class="fa-solid fa-users"></i> قائمة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }}</a>
   </div>
   <div class="smart-table-wrap">
     <table class="smart-table">
       <thead>
         <tr>
           <th>#</th>
-          <th>الكود (slug)</th>
           <th>الاسم</th>
           <th>الحالة</th>
+          <th>عدد التقارير</th>
           <th>عدد الأعضاء</th>
           <th>التذاكر (جـديد / قيد / منجزة)</th>
           <th>إجراءات</th>
@@ -222,21 +261,21 @@
           {% with code=d.slug|default:d.pk %}
           <tr>
             <td>{{ forloop.counter }}</td>
-            <td><code>{{ code|default:"—" }}</code></td>
-            <td>{{ d.name|default:"—" }}</td>
+            <td class="dept-name"><i class="fa-solid fa-layer-group"></i> {{ d.name|default:"—" }}</td>
             <td>
               {% if d.is_active %}
-                <span class="smart-pill on">نشط</span>
+                <span class="smart-pill on"><i class="fa-solid fa-circle-check"></i> نشط</span>
               {% else %}
-                <span class="smart-pill off">غير نشط</span>
+                <span class="smart-pill off"><i class="fa-solid fa-circle-pause"></i> غير نشط</span>
               {% endif %}
             </td>
-            <td>{{ d.members_count|default:"—" }}</td>
-            <td>{{ d.tickets_summary|default:"—" }}</td>
+            <td><span class="dept-count reports"><i class="fa-solid fa-file-lines"></i> {{ d.reports_count|default:"0" }}</span></td>
+            <td><span class="dept-count members"><i class="fa-solid fa-users"></i> {{ d.members_count|default:"0" }}</span></td>
+            <td><span class="dept-tickets">{{ d.tickets_summary|default:"—" }}</span></td>
             <td class="smart-table-actions">
               <a class="smart-btn ghost" href="{% url 'reports:department_edit' code=code %}"><i class="fa-solid fa-pen-to-square"></i> تعديل</a>
               <a class="smart-btn ghost" href="{% url 'reports:department_members' code=code %}"><i class="fa-solid fa-users"></i> الأعضاء</a>
-              <form method="post" action="{% url 'reports:department_delete' code=code %}" style="display:inline" onsubmit="return confirm('هل تريد حذف هذا القسم نهائيًا؟');">{% csrf_token %}<button class="smart-btn danger" type="submit"><i class="fa-solid fa-trash-can"></i> حذف</button></form>
+              <form method="post" action="{% url 'reports:department_delete' code=code %}" style="display:inline" data-confirm="هل تريد حذف القسم «{{ d.name|escapejs }}» نهائيًا؟">{% csrf_token %}<button class="smart-btn danger" type="submit"><i class="fa-solid fa-trash-can"></i> حذف</button></form>
             </td>
           </tr>
           {% endwith %}
@@ -247,4 +286,12 @@
     </table>
   </div>
 </div>
+
+<script nonce="{{ CSP_NONCE }}">
+  document.querySelectorAll('form[data-confirm]').forEach(function(f){
+    f.addEventListener('submit', function(e){
+      if(!window.confirm(f.getAttribute('data-confirm'))){ e.preventDefault(); }
+    });
+  });
+</script>
 {% endblock content %}

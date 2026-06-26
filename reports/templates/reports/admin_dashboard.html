@@ -350,7 +350,36 @@
     .action-card:hover .action-icon {
         transform: scale(1.1) rotate(5deg);
     }
-    
+
+    /* بطاقة ميزة غير مفعّلة (تتطلب اشتراك الأرشفة) */
+    .action-card.is-locked {
+        cursor: not-allowed;
+        filter: grayscale(.7);
+        opacity: .6;
+    }
+    .action-card.is-locked:hover {
+        transform: none;
+        box-shadow: var(--shadow);
+        border-color: var(--border);
+    }
+    .action-card.is-locked:hover .action-icon { transform: none; }
+    .action-card .lock-badge {
+        position: absolute;
+        top: 10px;
+        inset-inline-start: 10px;
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        display: grid; place-items: center;
+        background: #64748b; color: #fff; font-size: .78rem;
+        z-index: 2;
+    }
+    .action-card .lock-hint {
+        font-size: .72rem;
+        font-weight: 800;
+        color: #b45309;
+        margin-top: 2px;
+    }
+
     .action-title {
         color: var(--text);
         font-weight: 600;
@@ -538,6 +567,153 @@
     .badge-warning { background: #fef3c7; color: #92400e; }
     .badge-danger { background: #fee2e2; color: #b91c1c; }
     .badge-info { background: #dbeafe; color: #00542a; }
+
+    /* ============================================================
+       👑 ROYAL OVERLAY 2026 — هوية فخمة (زمرّدي + ذهبي)
+       طبقة تحسين بصرية فوق التصميم القائم دون المساس بالبيانات/الرسوم.
+       ============================================================ */
+    :root{
+        --royal-green:#0a5c33;
+        --royal-green-deep:#063d22;
+        --royal-gold:#d4b16d;
+        --royal-gold-soft:#e6cf9a;
+        --royal-gold-deep:#b9975b;
+    }
+
+    .school-dash{ position:relative; }
+
+    /* —— الهيرو الملكي —— */
+    .school-dash .hero-card{
+        background:
+            radial-gradient(120% 140% at 90% -10%, rgba(212,177,109,.22) 0%, transparent 45%),
+            linear-gradient(135deg, #0b6238 0%, #074426 55%, #052e1a 100%) !important;
+        border:1px solid rgba(212,177,109,.42) !important;
+        border-radius:24px !important;
+        box-shadow:0 26px 60px -22px rgba(5,46,26,.75), inset 0 1px 0 rgba(255,255,255,.06) !important;
+    }
+    /* شريط ذهبي علوي رفيع */
+    .school-dash .hero-card{ padding-top:2.25rem !important; }
+    .school-dash .hero-card > .hero-content::before{
+        content:"";
+        position:absolute; top:-1.35rem; right:0; left:0;
+        height:4px; border-radius:999px;
+        background:linear-gradient(90deg, transparent, var(--royal-gold) 18%, var(--royal-gold-soft) 50%, var(--royal-gold) 82%, transparent);
+        opacity:.9;
+    }
+    /* زخرفة تاج خفيفة في الزاوية */
+    .school-dash .hero-card > .hero-content::after{
+        content:"\f521"; /* fa-crown */
+        font-family:"Font Awesome 6 Free"; font-weight:900;
+        position:absolute; top:-.2rem; left:-.2rem;
+        font-size:2.4rem; color:rgba(212,177,109,.16);
+        pointer-events:none;
+    }
+    .school-dash .hero-content h1{
+        font-weight:950 !important; letter-spacing:-.5px;
+        font-size:2rem !important;
+        background:linear-gradient(90deg,#ffffff 0%, #fbf3df 60%, var(--royal-gold-soft) 100%);
+        -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+        text-shadow:none !important;
+    }
+    .school-dash .school-meta span{
+        background:rgba(212,177,109,.12);
+        border:1px solid rgba(212,177,109,.28);
+        padding:.32rem .7rem; border-radius:999px;
+        font-weight:800; backdrop-filter:blur(4px);
+    }
+    .school-dash .school-meta span i{ color:var(--royal-gold-soft); }
+
+    /* بطاقة الإحصائيات الذهبية */
+    .school-dash .hero-stats{
+        background:rgba(8,40,24,.42) !important;
+        border:1px solid rgba(212,177,109,.40) !important;
+        border-radius:18px !important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 12px 30px -16px rgba(0,0,0,.6) !important;
+    }
+    .school-dash .h-stat-val{
+        background:linear-gradient(180deg,#ffffff, var(--royal-gold-soft));
+        -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+        font-weight:950 !important;
+    }
+    .school-dash .h-stat + .h-stat{ position:relative; }
+    .school-dash .h-stat + .h-stat::before{
+        content:""; position:absolute; right:-1rem; top:15%; height:70%; width:1px;
+        background:linear-gradient(180deg, transparent, rgba(212,177,109,.5), transparent);
+    }
+    .school-dash .h-stat-lbl{ color:#e8f5ee; opacity:.85; }
+
+    /* زر إعدادات/تبديل داخل الهيرو */
+    .school-dash .hero-content .btn{
+        border:1px solid rgba(212,177,109,.5) !important;
+        background:rgba(212,177,109,.16) !important;
+        color:#fdf6e6 !important; font-weight:800;
+    }
+    .school-dash .hero-content .btn:hover{
+        background:var(--royal-gold) !important; color:#063d22 !important;
+        border-color:var(--royal-gold) !important;
+    }
+    .royal-hero-actions{ display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
+
+    /* فاصل ذهبي قبل الإجراءات */
+    .royal-section-title{
+        display:flex; align-items:center; gap:.85rem;
+        margin:0 0 1.1rem; color:var(--text);
+        font-weight:950; font-size:1.15rem;
+    }
+    .royal-section-title::before{
+        content:"\f521"; font-family:"Font Awesome 6 Free"; font-weight:900;
+        color:var(--royal-gold-deep); font-size:1.05rem;
+    }
+    .royal-section-title::after{
+        content:""; flex:1; height:2px; border-radius:999px;
+        background:linear-gradient(90deg, rgba(185,151,91,.55), rgba(185,151,91,.06));
+    }
+    [data-theme="dark"] .royal-section-title{ color:#f1f5f9; }
+
+    /* —— بطاقات الإجراءات الملكية —— */
+    .school-dash .action-card{
+        border:1px solid rgba(185,151,91,.20) !important;
+        border-radius:18px !important;
+        background:
+            linear-gradient(180deg, rgba(212,177,109,.05), transparent 40%),
+            var(--surface) !important;
+        box-shadow:0 10px 26px -18px rgba(10,92,51,.45) !important;
+    }
+    .school-dash .action-card::before{
+        background:linear-gradient(135deg, rgba(212,177,109,.30), transparent 70%) !important;
+        width:74px !important; height:74px !important;
+    }
+    .school-dash .action-card::after{
+        content:""; position:absolute; inset:0; border-radius:18px; padding:1px;
+        background:linear-gradient(135deg, rgba(212,177,109,.0), rgba(212,177,109,.0));
+        -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite:xor; mask-composite:exclude;
+        transition:background .3s ease; pointer-events:none;
+    }
+    .school-dash .action-card:hover{
+        transform:translateY(-6px) !important;
+        border-color:rgba(185,151,91,.55) !important;
+        box-shadow:0 22px 40px -20px rgba(10,92,51,.55) !important;
+    }
+    .school-dash .action-card:hover::after{
+        background:linear-gradient(135deg, var(--royal-gold), rgba(212,177,109,.15));
+    }
+    .school-dash .action-card:hover .action-title{ color:var(--royal-green); }
+    [data-theme="dark"] .school-dash .action-card:hover .action-title{ color:var(--royal-gold-soft); }
+    .school-dash .action-card:hover .action-icon{
+        box-shadow:0 0 0 4px rgba(212,177,109,.22);
+    }
+    .school-dash .action-title{ font-weight:800 !important; }
+
+    /* أزرار الفترة بلمسة ذهبية */
+    .school-dash .period-btn.active{
+        background:linear-gradient(135deg, var(--royal-green), #074426) !important;
+        box-shadow:0 8px 18px -8px rgba(10,92,51,.6) !important;
+    }
+
+    @media (max-width: 640px){
+        .school-dash .hero-content h1{ font-size:1.55rem !important; }
+    }
 </style>
 {% endblock %}
 
@@ -605,10 +781,15 @@
                 <span><i class="fas fa-users"></i> إجمالي {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}: {{ teachers_count }}</span>
                 <span><i class="fas fa-building"></i> {{ active_school.get_stage_display }}</span>
             </div>
-            <div style="margin-top:1rem;">
-                <a href="{% url 'reports:school_settings' %}" class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:white; border:none; backdrop-filter: blur(10px);">
+            <div class="royal-hero-actions">
+                <a href="{% url 'reports:school_settings' %}" class="btn btn-sm">
                     <i class="fas fa-cog"></i> إعدادات المدرسة
                 </a>
+                {% if USER_SCHOOLS|length > 1 %}
+                <a href="{% url 'reports:select_school' %}" class="btn btn-sm">
+                    <i class="fas fa-arrow-right-arrow-left"></i> تبديل المدرسة
+                </a>
+                {% endif %}
             </div>
         </div>
         <div class="hero-stats">
@@ -658,6 +839,7 @@
     {% endif %}
 
     <!-- Quick Actions Grid -->
+    <h2 class="royal-section-title">الإجراءات السريعة</h2>
     <div class="action-grid">
         <a href="{% url 'reports:add_teacher' %}" class="action-card">
             <div class="action-icon"><i class="fas fa-user-plus"></i></div>
@@ -691,6 +873,33 @@
             <div class="action-icon" style="color:#0f8f87; background:linear-gradient(135deg, #e0e7ff, #c7d2fe)"><i class="fas fa-list-alt"></i></div>
             <span class="action-title">أنواع التقارير</span>
         </a>
+        <a href="{% url 'reports:report_templates_list' %}" class="action-card">
+            <div class="action-icon" style="color:#0f8f87; background:linear-gradient(135deg, #dcfce7, #bbf7d0)"><i class="fas fa-layer-group"></i></div>
+            <span class="action-title">قوالب التقارير</span>
+        </a>
+        {% if SHOW_ARCHIVE_LINK %}
+        <a href="{% url 'reports:school_archive' %}" class="action-card">
+            <div class="action-icon" style="color:#0a5c33; background:linear-gradient(135deg, #e9f3ec, #cbe6d6)"><i class="fas fa-box-archive"></i></div>
+            <span class="action-title">أرشيف السنوات</span>
+        </a>
+        <a href="{% url 'reports:school_data_export' %}" class="action-card">
+            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #dbeafe, #bfdbfe)"><i class="fas fa-file-export"></i></div>
+            <span class="action-title">تصدير بيانات المدرسة</span>
+        </a>
+        {% else %}
+        <div class="action-card is-locked" aria-disabled="true" title="تتطلب اشتراك الأرشفة">
+            <span class="lock-badge"><i class="fas fa-lock"></i></span>
+            <div class="action-icon" style="color:#0a5c33; background:linear-gradient(135deg, #e9f3ec, #cbe6d6)"><i class="fas fa-box-archive"></i></div>
+            <span class="action-title">أرشيف السنوات</span>
+            <span class="lock-hint">تتطلب اشتراك الأرشفة</span>
+        </div>
+        <div class="action-card is-locked" aria-disabled="true" title="تتطلب اشتراك الأرشفة">
+            <span class="lock-badge"><i class="fas fa-lock"></i></span>
+            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #dbeafe, #bfdbfe)"><i class="fas fa-file-export"></i></div>
+            <span class="action-title">تصدير بيانات المدرسة</span>
+            <span class="lock-hint">تتطلب اشتراك الأرشفة</span>
+        </div>
+        {% endif %}
         <a href="{% url 'reports:notifications_sent' %}" class="action-card">
             <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-bell"></i></div>
             <span class="action-title">الإشعارات</span>

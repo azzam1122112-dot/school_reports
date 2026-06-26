@@ -1183,6 +1183,156 @@
     to { opacity: 0; transform: translateY(-8px) scale(.96); }
   }
 
+  /* ===== UNIFIED ORDER ITEMS ===== */
+  .order-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .order-item {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-subtle);
+    overflow: hidden;
+    transition: var(--transition);
+  }
+
+  .order-item.is-active {
+    border-color: var(--primary);
+    background: rgba(0, 108, 53, 0.04);
+    box-shadow: 0 0 0 3px rgba(0, 108, 53, 0.08);
+  }
+
+  .order-item.is-locked {
+    opacity: 0.65;
+  }
+
+  .order-item-head {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1.1rem 1.25rem;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  .order-item.is-locked .order-item-head {
+    cursor: not-allowed;
+  }
+
+  .order-toggle {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    flex: 0 0 auto;
+    cursor: pointer;
+    position: relative;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+  }
+  .order-toggle::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 9px;
+    top: 4px;
+    width: 7px; height: 13px;
+    border: solid #fff;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .order-toggle:checked {
+    background: linear-gradient(135deg, var(--primary, #006c35), #074426);
+    border-color: var(--primary, #006c35);
+  }
+  .order-toggle:checked::after { opacity: 1; }
+  .order-toggle:focus-visible { box-shadow: 0 0 0 3px rgba(0,108,53,.25); outline: none; }
+  .order-toggle:disabled { opacity: .45; cursor: not-allowed; }
+  .order-item:not(.is-locked) .order-item-head:hover { background: rgba(0,108,53,.035); }
+
+  /* حالة الاختيار: شارة نصّية تتغيّر تلقائيًا */
+  .order-item .pick-state {
+    flex: 0 0 auto; font-size: .78rem; font-weight: 900; padding: 4px 10px; border-radius: 999px;
+    color: #64748b; background: #f1f5f9; border: 1px solid #e2e8f0; white-space: nowrap;
+  }
+  .order-item .pick-state::after { content: "اضغط للاختيار"; }
+  .order-item.is-active .pick-state {
+    color: #fff; background: linear-gradient(135deg, var(--primary, #006c35), #074426); border-color: transparent;
+  }
+  .order-item.is-active .pick-state::after { content: "✓ محدّد"; }
+  .order-item.is-locked .pick-state { color:#94a3b8; }
+  .order-item.is-locked .pick-state::after { content: "غير متاح"; }
+
+  .order-item-title {
+    flex: 1 1 auto;
+    font-weight: 800;
+    color: var(--text-h);
+    font-size: 1.02rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .order-item-title i { color: var(--primary); }
+
+  .order-item-amount {
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 0.98rem;
+    white-space: nowrap;
+  }
+
+  .order-item-body {
+    padding: 0 1.25rem 1.2rem;
+    /* مخفي افتراضيًا حتى يُفعّل البند */
+    display: none;
+  }
+
+  .order-item.is-active .order-item-body { display: block; }
+
+  .order-item-note {
+    margin: 0;
+    color: var(--text-2);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .order-item-note i { color: var(--accent); }
+
+  /* ملخّص الطلب */
+  .order-summary {
+    background: linear-gradient(135deg, rgba(0,108,53,.06), rgba(185,151,91,.06));
+    border: 1.5px solid rgba(0, 108, 53, 0.18);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.35rem;
+  }
+
+  .order-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-weight: 800;
+    color: var(--text-h);
+  }
+
+  .order-total-wrap { font-size: 0.95rem; color: var(--text-2); }
+
+  .order-total-wrap strong {
+    font-size: 1.6rem;
+    color: var(--primary);
+    margin-inline-end: 0.3rem;
+  }
+
   /* ===== RESPONSIVE ===== */
   @media (max-width: 600px) {
     .sub-container { padding: 1.5rem 1rem 3rem; }
@@ -1193,6 +1343,8 @@
     .steps-guide { gap: 0; }
     .step-label { display: none; }
     .hero-title { font-size: 1.5rem; }
+    .order-item-head { padding: 1rem; gap: 0.6rem; }
+    .order-item-title { font-size: 0.95rem; }
   }
 </style>
 {% endblock %}
@@ -1245,13 +1397,17 @@
         <div class="stat-box">
           <span class="stat-box-label">حالة الباقة</span>
           <span class="stat-box-value">
-            {% if subscription.is_cancelled %}ملغي{% elif subscription.is_expired %}منتهي{% else %}نشطة{% endif %}
+            {% if not subscription %}غير مشترك{% elif subscription.is_cancelled %}ملغي{% elif subscription.is_expired %}منتهي{% else %}نشطة{% endif %}
           </span>
         </div>
       </div>
 
       <!-- Status Badge -->
-      {% if subscription.is_cancelled %}
+      {% if not subscription %}
+        <div class="status-badge badge-expired">
+          <i class="fa-solid fa-circle-info"></i> لا يوجد اشتراك بعد
+        </div>
+      {% elif subscription.is_cancelled %}
         <div class="status-badge badge-cancelled">
           <i class="fa-solid fa-ban"></i> الاشتراك ملغي
         </div>
@@ -1286,67 +1442,127 @@
     <!-- ========== MAIN: Renewal & History ========== -->
     <div>
 
-      <!-- Payment Form Card -->
+      <!-- Unified Payment Order Card -->
       <div class="glass-card" style="margin-bottom: 1.75rem;">
 
-        <!-- Steps Guide -->
-        <div class="steps-guide">
-          <div class="step-item">
-            <div class="step-num active">١</div>
-            <span class="step-label active">اختر الباقة</span>
-          </div>
-          <div class="step-item">
-            <div class="step-num active">٢</div>
-            <span class="step-label active">حوّل المبلغ</span>
-          </div>
-          <div class="step-item">
-            <div class="step-num active">٣</div>
-            <span class="step-label active">ارفع الإيصال</span>
+        <div class="section-header">
+          <div class="section-icon"><i class="fa-solid fa-cart-shopping"></i></div>
+          <div class="section-header-text">
+            <h2>طلب دفع موحّد</h2>
+            <p><b>اضغط على البنود التي تريد دفعها لتحديدها</b> (يمكنك اختيار أكثر من بند)، ثم حوّل <b>الإجمالي</b> مرة واحدة وارفع إيصالًا واحدًا.</p>
           </div>
         </div>
 
         <form action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data" id="paymentForm">
           {% csrf_token %}
+          <input type="hidden" name="unified" value="1">
 
-          <!-- Step 1: Plan Selection -->
-          <div class="section-header">
-            <div class="section-icon"><i class="fa-solid fa-layer-group"></i></div>
-            <div class="section-header-text">
-              <h2>اختر الباقة المناسبة</h2>
-              <p>اختر من باقاتنا المصممة لتناسب احتياجات مدرستك</p>
+          <!-- ===== العناصر القابلة للاختيار ===== -->
+          <div class="order-items">
+
+            <!-- 1) اشتراك المنصّة -->
+            <div class="order-item" id="item-subscription">
+              <label class="order-item-head">
+                <input type="checkbox" name="include_subscription" value="1" class="order-toggle"
+                       data-target="subBody"
+                       {% if not subscription or subscription.is_expired or subscription.is_cancelled %}checked{% endif %}>
+                <span class="order-item-title">
+                  <i class="fa-solid fa-layer-group"></i> اشتراك المنصّة
+                </span>
+                <span class="pick-state" aria-hidden="true"></span>
+                <span class="order-item-amount" data-amount-for="subscription">—</span>
+              </label>
+              <div class="order-item-body" id="subBody">
+                <div class="plans-grid">
+                  {% for plan in plans %}
+                  <label class="plan-option">
+                    <input type="radio" name="plan_id" value="{{ plan.id }}"
+                           data-price="{{ plan.price|stringformat:'f'|floatformat:2 }}"
+                           {% if subscription.plan.id == plan.id %}checked{% endif %}>
+                    <div class="plan-content">
+                      {% if plan.days_duration == 180 %}<span class="plan-badge">الأكثر طلباً</span>{% endif %}
+                      {% if plan.days_duration == 365 %}<span class="plan-badge">الأفضل قيمة</span>{% endif %}
+                      <span class="plan-title">{{ plan.name }}</span>
+                      <span class="plan-price">{{ plan.price }}<small>ريال</small></span>
+                      <div class="plan-days"><i class="fa-regular fa-calendar"></i> {{ plan.days_duration }} يوم</div>
+                    </div>
+                  </label>
+                  {% endfor %}
+                </div>
+              </div>
             </div>
+
+            <!-- 2) إضافة الأرشفة -->
+            <div class="order-item {% if pending_archive_addon_payment %}is-locked{% endif %}" id="item-addon">
+              <label class="order-item-head">
+                <input type="checkbox" name="include_archive_addon" value="1" class="order-toggle"
+                       data-target="addonBody"
+                       data-price="{{ archive_addon_price|stringformat:'f'|floatformat:2 }}"
+                       {% if pending_archive_addon_payment %}disabled{% endif %}>
+                <span class="order-item-title">
+                  <i class="fa-solid fa-box-archive"></i>
+                  {% if archive_addon and archive_addon.is_active %}تجديد الأرشفة (سنة إضافية){% else %}تفعيل الأرشفة السنوية{% endif %}
+                </span>
+                <span class="pick-state" aria-hidden="true"></span>
+                <span class="order-item-amount" data-amount-for="addon">{{ archive_addon_price|floatformat:0 }} ريال</span>
+              </label>
+              <div class="order-item-body" id="addonBody">
+                {% if pending_archive_addon_payment %}
+                  <p class="order-item-note"><i class="fa-solid fa-hourglass-half"></i> يوجد طلب تفعيل/تجديد أرشفة قيد المراجعة.</p>
+                {% else %}
+                  <p class="order-item-note">
+                    تحفظ تقارير الأعوام السابقة وملفات الإنجاز، مع مساحة ابتدائية {{ archive_included_storage_gb }}GB.
+                  </p>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- 3) زيادة مساحة التخزين -->
+            <div class="order-item {% if not archive_addon or not archive_addon.is_active or pending_archive_storage_payment %}is-locked{% endif %}" id="item-storage">
+              <label class="order-item-head">
+                <input type="checkbox" name="include_archive_storage" value="1" class="order-toggle"
+                       data-target="storageBody"
+                       {% if not archive_addon or not archive_addon.is_active or pending_archive_storage_payment %}disabled{% endif %}>
+                <span class="order-item-title">
+                  <i class="fa-solid fa-hard-drive"></i> زيادة مساحة التخزين
+                </span>
+                <span class="pick-state" aria-hidden="true"></span>
+                <span class="order-item-amount" data-amount-for="storage">—</span>
+              </label>
+              <div class="order-item-body" id="storageBody">
+                {% if not archive_addon or not archive_addon.is_active %}
+                  <p class="order-item-note"><i class="fa-solid fa-lock"></i> تتاح بعد تفعيل إضافة الأرشفة واعتمادها.</p>
+                {% elif pending_archive_storage_payment %}
+                  <p class="order-item-note"><i class="fa-solid fa-hourglass-half"></i> يوجد طلب زيادة مساحة قيد المراجعة.</p>
+                {% else %}
+                  <label class="form-label" for="archiveStorageUnits">المساحة المطلوبة</label>
+                  <select id="archiveStorageUnits" name="archive_storage_option_id" class="form-input">
+                    {% for option in archive_storage_options %}
+                      <option value="{{ option.id }}" data-price="{{ option.price|stringformat:'f'|floatformat:2 }}">{{ option.storage_gb }}GB - {{ option.price|floatformat:0 }} ريال</option>
+                    {% endfor %}
+                  </select>
+                {% endif %}
+              </div>
+            </div>
+
           </div>
 
-          <div class="plans-grid">
-            {% for plan in plans %}
-            <label class="plan-option">
-              <input
-                type="radio"
-                name="plan_id"
-                value="{{ plan.id }}"
-                data-price="{{ plan.price|stringformat:'f'|floatformat:2 }}"
-                {% if subscription.plan.id == plan.id %}checked{% endif %}
-                required
-              >
-              <div class="plan-content">
-                {% if plan.days_duration == 180 %}<span class="plan-badge">الأكثر طلباً</span>{% endif %}
-                {% if plan.days_duration == 365 %}<span class="plan-badge">الأفضل قيمة</span>{% endif %}
-                <span class="plan-title">{{ plan.name }}</span>
-                <span class="plan-price">{{ plan.price }}<small>ريال</small></span>
-                <div class="plan-days"><i class="fa-regular fa-calendar"></i> {{ plan.days_duration }} يوم</div>
-              </div>
-            </label>
-            {% endfor %}
+          <!-- ===== ملخّص الطلب ===== -->
+          <div class="order-summary">
+            <div class="order-summary-row">
+              <span>الإجمالي المطلوب تحويله</span>
+              <span class="order-total-wrap"><strong id="orderTotal">0.00</strong> ريال</span>
+            </div>
           </div>
 
           <hr class="form-divider">
 
-          <!-- Step 2: Bank Transfer -->
+          <!-- ===== بيانات التحويل البنكي ===== -->
           <div class="section-header">
             <div class="section-icon"><i class="fa-regular fa-credit-card"></i></div>
             <div class="section-header-text">
               <h2>بيانات التحويل البنكي</h2>
-              <p>حوّل المبلغ المطلوب إلى الحساب التالي ثم ارفع الإيصال</p>
+              <p>حوّل الإجمالي أعلاه إلى الحساب التالي ثم ارفع الإيصال</p>
             </div>
           </div>
 
@@ -1370,7 +1586,7 @@
                   <div class="field-label">IBAN</div>
                   <div class="iban-value">
                     <span dir="ltr">SA85 8000 0660 6080 1622 0957</span>
-                    <button type="button" class="copy-btn" id="copyIbanBtn" onclick="copyToClip('SA8580000660608016220957', this)" title="نسخ رقم الآيبان">
+                    <button type="button" class="copy-btn" id="copyIbanBtn" data-copy="SA8580000660608016220957" title="نسخ رقم الآيبان" aria-label="نسخ رقم الآيبان">
                       <i class="fa-regular fa-copy"></i>
                     </button>
                   </div>
@@ -1390,33 +1606,20 @@
             </div>
           </div>
 
-          <!-- Form Fields -->
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label"><i class="fa-solid fa-coins" style="color:var(--primary); margin-left:.4rem;"></i>المبلغ المطلوب (ريال)</label>
-              <input
-                type="text"
-                id="amountDisplay"
-                name="amount"
-                class="form-input amount-input"
-                readonly
-                value="{% if subscription and subscription.plan %}{{ subscription.plan.price|stringformat:'f'|floatformat:2 }}{% else %}0.00{% endif %}"
-              >
-            </div>
-            <div class="form-group">
-              <label class="form-label"><i class="fa-regular fa-note-sticky" style="color:var(--primary); margin-left:.4rem;"></i>ملاحظات التحويل</label>
-              <input type="text" name="notes" class="form-input" placeholder="مثال: اسم صاحب الحساب المحول منه...">
-            </div>
+          <!-- ملاحظات -->
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label class="form-label"><i class="fa-regular fa-note-sticky" style="color:var(--primary); margin-left:.4rem;"></i>ملاحظات التحويل (اختياري)</label>
+            <input type="text" name="notes" class="form-input" placeholder="مثال: اسم صاحب الحساب المحوّل منه...">
           </div>
 
           <hr class="form-divider">
 
-          <!-- Step 3: Receipt Upload -->
+          <!-- رفع الإيصال -->
           <div class="section-header">
             <div class="section-icon"><i class="fa-solid fa-receipt"></i></div>
             <div class="section-header-text">
               <h2>رفع إيصال التحويل</h2>
-              <p>ارفع صورة واضحة لإيصال التحويل البنكي</p>
+              <p>ارفع صورة واضحة لإيصال التحويل البنكي (إيصال واحد لكل العناصر)</p>
             </div>
           </div>
 
@@ -1446,15 +1649,15 @@
         </form>
       </div>
 
-      <!-- Archive Addon Card -->
-      <div class="glass-card archive-card">
+      <!-- Archive Status Card (read-only) -->
+      <div class="glass-card archive-card" style="margin-bottom: 1.75rem;">
         <div class="section-header">
           <div class="section-icon" style="background:linear-gradient(135deg,#06b6d4,#16845b);">
             <i class="fa-solid fa-box-archive"></i>
           </div>
           <div class="section-header-text">
-            <h2>إضافة الأرشفة وملفات الإنجاز</h2>
-            <p>إضافة مستقلة تحفظ تقارير الأعوام السابقة وملفات الإنجاز ويمكن رفع مساحة تخزينها عند الحاجة</p>
+            <h2>حالة الأرشفة</h2>
+            <p>إضافة مستقلة تحفظ تقارير الأعوام السابقة وملفات الإنجاز</p>
           </div>
         </div>
 
@@ -1477,72 +1680,6 @@
             </div>
           </div>
         </div>
-
-        {% if pending_archive_addon_payment %}
-          <div class="archive-pending">
-            <i class="fa-solid fa-hourglass-half"></i>
-            طلب تفعيل الأرشفة قيد مراجعة مدير النظام.
-          </div>
-        {% elif not archive_addon or not archive_addon.is_active %}
-          <div class="archive-actions archive-single">
-            <form class="archive-action-box" action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data">
-              {% csrf_token %}
-              <input type="hidden" name="payment_kind" value="archive_addon">
-              <h3>تفعيل الأرشفة السنوية</h3>
-              <p>يحافظ النظام على تقارير المدرسة وملفات الإنجاز عند تهيئة العام الدراسي، مع مساحة ابتدائية قدرها {{ archive_included_storage_gb }}GB.</p>
-              <div class="archive-price"><strong>{{ archive_addon_price|floatformat:0 }}</strong><span>ريال / سنة</span></div>
-              <input type="file" name="receipt_image" class="archive-file" accept="image/*" required>
-              <input type="text" name="notes" class="form-input" placeholder="ملاحظات التحويل، إن وجدت">
-              <button type="submit" class="btn-submit" style="margin-top:1rem;">
-                <i class="fa-solid fa-paper-plane"></i>
-                <span>طلب تفعيل الأرشفة</span>
-              </button>
-            </form>
-          </div>
-        {% else %}
-          <div class="archive-actions">
-            <form class="archive-action-box" action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data">
-              {% csrf_token %}
-              <input type="hidden" name="payment_kind" value="archive_addon">
-              <h3>تجديد الأرشفة سنة إضافية</h3>
-              <p>عند الاعتماد تُمدد فترة الأرشفة سنة كاملة مع استمرار حماية بيانات الأعوام السابقة.</p>
-              <div class="archive-price"><strong>{{ archive_addon_price|floatformat:0 }}</strong><span>ريال</span></div>
-              <input type="file" name="receipt_image" class="archive-file" accept="image/*" required>
-              <input type="text" name="notes" class="form-input" placeholder="ملاحظات التحويل، إن وجدت">
-              <button type="submit" class="btn-submit" style="margin-top:1rem;">
-                <i class="fa-solid fa-rotate"></i>
-                <span>طلب التجديد</span>
-              </button>
-            </form>
-
-            <form class="archive-action-box" action="{% url 'reports:payment_create' %}" method="POST" enctype="multipart/form-data">
-              {% csrf_token %}
-              <input type="hidden" name="payment_kind" value="archive_storage">
-              <h3>زيادة مساحة التخزين</h3>
-              <p>اختر إحدى باقات زيادة مساحة الأرشيف التي يتيحها مدير النظام.</p>
-              {% if pending_archive_storage_payment %}
-                <div class="archive-pending" style="margin-bottom:1rem;">
-                  <i class="fa-solid fa-hourglass-half"></i>
-                  يوجد طلب زيادة مساحة قيد المراجعة.
-                </div>
-              {% endif %}
-              <div class="form-group" style="margin-bottom:.85rem;">
-                <label class="form-label" for="archiveStorageUnits">المساحة المطلوبة</label>
-                <select id="archiveStorageUnits" name="archive_storage_option_id" class="form-input" {% if pending_archive_storage_payment %}disabled{% endif %} required>
-                  {% for option in archive_storage_options %}
-                    <option value="{{ option.id }}">{{ option.storage_gb }}GB - {{ option.price|floatformat:0 }} ريال</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <input type="file" name="receipt_image" class="archive-file" accept="image/*" {% if not pending_archive_storage_payment %}required{% endif %} {% if pending_archive_storage_payment %}disabled{% endif %}>
-              <input type="text" name="notes" class="form-input" placeholder="ملاحظات التحويل، إن وجدت" {% if pending_archive_storage_payment %}disabled{% endif %}>
-              <button type="submit" class="btn-submit" style="margin-top:1rem;" {% if pending_archive_storage_payment %}disabled{% endif %}>
-                <i class="fa-solid fa-hard-drive"></i>
-                <span>طلب زيادة المساحة</span>
-              </button>
-            </form>
-          </div>
-        {% endif %}
       </div>
 
       <!-- History Card -->
@@ -1636,23 +1773,71 @@
 <script nonce="{{ CSP_NONCE }}">
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ── 1. Plan Amount Auto-update ── */
-  const amountInput = document.getElementById('amountDisplay');
-  const planRadios  = document.querySelectorAll('input[name="plan_id"]');
+  /* ── 1. Unified Order: toggles + live total ── */
+  const orderToggles = document.querySelectorAll('.order-toggle');
+  const planRadios   = document.querySelectorAll('input[name="plan_id"]');
+  const storageSel   = document.getElementById('archiveStorageUnits');
+  const orderTotalEl = document.getElementById('orderTotal');
 
-  function updateAmount(radio) {
-    if (amountInput) amountInput.value = parseFloat(radio.dataset.price).toFixed(2);
+  function fmt(n) { return (Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2); }
+
+  function setItemAmount(key, value) {
+    const el = document.querySelector('[data-amount-for="' + key + '"]');
+    if (el) el.textContent = (value == null) ? '—' : (fmt(value) + ' ريال');
   }
 
-  if (planRadios.length) {
-    const checked = document.querySelector('input[name="plan_id"]:checked');
-    if (checked) updateAmount(checked);
-    else { planRadios[0].checked = true; updateAmount(planRadios[0]); }
-    planRadios.forEach(r => r.addEventListener('change', () => updateAmount(r)));
+  function subscriptionAmount() {
+    const r = document.querySelector('input[name="plan_id"]:checked');
+    return r ? (parseFloat(r.dataset.price) || 0) : 0;
   }
+  function addonAmount() {
+    const c = document.querySelector('input[name="include_archive_addon"]');
+    return (c && c.dataset.price) ? (parseFloat(c.dataset.price) || 0) : 0;
+  }
+  function storageAmount() {
+    if (!storageSel) return null;
+    const opt = storageSel.options[storageSel.selectedIndex];
+    return opt ? (parseFloat(opt.dataset.price) || 0) : 0;
+  }
+
+  function isOn(name) {
+    const c = document.querySelector('input[name="' + name + '"]');
+    return !!(c && c.checked && !c.disabled);
+  }
+
+  function recompute() {
+    // أظهر سعر كل بند (إرشاديًا)، واحسب الإجمالي للبنود المختارة فقط
+    setItemAmount('subscription', subscriptionAmount());
+    setItemAmount('addon', addonAmount());
+    setItemAmount('storage', storageSel ? storageAmount() : null);
+
+    let total = 0;
+    if (isOn('include_subscription')) total += subscriptionAmount();
+    if (isOn('include_archive_addon')) total += addonAmount();
+    if (isOn('include_archive_storage')) total += (storageAmount() || 0);
+
+    if (orderTotalEl) orderTotalEl.textContent = fmt(total);
+  }
+
+  // إظهار/إخفاء جسم كل بند حسب اختياره + تمييزه
+  orderToggles.forEach(t => {
+    const sync = () => {
+      const item = t.closest('.order-item');
+      if (item) item.classList.toggle('is-active', t.checked && !t.disabled);
+      recompute();
+    };
+    t.addEventListener('change', sync);
+    sync(); // الحالة الابتدائية
+  });
+
+  planRadios.forEach(r => r.addEventListener('change', recompute));
+  if (storageSel) storageSel.addEventListener('change', recompute);
+  recompute();
 
   /* ── 2. Progress Ring Animation ── */
-  const days   = {{ subscription.days_remaining|default:0 }};
+  const days     = {{ subscription.days_remaining|default:0 }};
+  // النسبة محسوبة وفق مدة الباقة الفعلية (90/180/365...) لا قيمة ثابتة
+  const totalDays = Math.max(parseInt('{{ subscription.plan.days_duration|default:365 }}', 10) || 365, 1);
   const circle = document.querySelector('.ring-circle-fg');
   if (circle) {
     const r   = circle.r.baseVal.value;
@@ -1666,10 +1851,34 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (days < 30)  color = '#b9975b';
     circle.style.stroke = color;
 
-    const percent = Math.min(Math.max(days / 365, 0), 1);
+    const percent = Math.min(Math.max(days / totalDays, 0), 1);
     const offset  = circ - percent * circ;
     setTimeout(() => { circle.style.strokeDashoffset = offset; }, 500);
   }
+
+  /* ── نسخ رقم الآيبان (عبر مستمع حدث متوافق مع CSP بدل onclick) ── */
+  document.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const text = btn.getAttribute('data-copy') || '';
+      const done = () => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        btn.style.color = '#16845b';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
+        if (window._showToast) window._showToast('تم نسخ رقم الآيبان بنجاح ✓', 'success');
+      };
+      const fail = () => { if (window._showToast) window._showToast('تعذّر النسخ، يرجى النسخ يدوياً', 'error'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(fail);
+      } else {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done();
+        } catch (e) { fail(); }
+      }
+    });
+  });
 
   /* ── 3. File Upload + Preview ── */
   const fileInput   = document.getElementById('receipt');
@@ -1683,18 +1892,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const uploadIcon  = dropArea ? dropArea.querySelector('.upload-icon') : null;
 
   function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-  ['dragenter','dragover','dragleave','drop'].forEach(ev => dropArea.addEventListener(ev, preventDefaults));
-  ['dragenter','dragover'].forEach(ev => dropArea.addEventListener(ev, () => dropArea.classList.add('drag-active')));
-  ['dragleave','drop'].forEach(ev => dropArea.addEventListener(ev, () => dropArea.classList.remove('drag-active')));
+  if (dropArea && fileInput) {
+    ['dragenter','dragover','dragleave','drop'].forEach(ev => dropArea.addEventListener(ev, preventDefaults));
+    ['dragenter','dragover'].forEach(ev => dropArea.addEventListener(ev, () => dropArea.classList.add('drag-active')));
+    ['dragleave','drop'].forEach(ev => dropArea.addEventListener(ev, () => dropArea.classList.remove('drag-active')));
 
-  dropArea.addEventListener('drop', e => {
-    const files = e.dataTransfer.files;
-    if (files.length) { fileInput.files = files; showPreview(files[0]); }
-  });
+    dropArea.addEventListener('drop', e => {
+      const files = e.dataTransfer.files;
+      if (files.length) { fileInput.files = files; showPreview(files[0]); }
+    });
 
-  fileInput.addEventListener('change', function () {
-    if (this.files && this.files[0]) showPreview(this.files[0]);
-  });
+    fileInput.addEventListener('change', function () {
+      if (this.files && this.files[0]) showPreview(this.files[0]);
+    });
+  }
 
   function showPreview(file) {
     // Validate size
@@ -1739,20 +1950,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const form      = document.getElementById('paymentForm');
   const submitBtn = document.getElementById('submitBtn');
 
-  form.addEventListener('submit', function (e) {
-    if (!fileInput.value) {
-      e.preventDefault();
-      dropArea.style.borderColor = '#ef4444';
-      dropArea.style.background  = 'rgba(239,68,68,.04)';
-      dropArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      showToast('يرجى إرفاق صورة الإيصال قبل الإرسال', 'error');
-      return;
-    }
-    // Loading state
-    submitBtn.classList.add('loading');
-    submitBtn.querySelector('span').textContent = 'جارٍ الإرسال...';
-    submitBtn.disabled = true;
-  });
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      // يجب اختيار عنصر واحد على الأقل
+      const anySelected = isOn('include_subscription') || isOn('include_archive_addon') || isOn('include_archive_storage');
+      if (!anySelected) {
+        e.preventDefault();
+        const items = document.querySelector('.order-items');
+        if (items) items.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast('اختر عنصرًا واحدًا على الأقل للدفع', 'error');
+        return;
+      }
+      if (fileInput && !fileInput.value) {
+        e.preventDefault();
+        if (dropArea) {
+          dropArea.style.borderColor = '#ef4444';
+          dropArea.style.background  = 'rgba(239,68,68,.04)';
+          dropArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        showToast('يرجى إرفاق صورة الإيصال قبل الإرسال', 'error');
+        return;
+      }
+      // Loading state
+      if (submitBtn) {
+        submitBtn.classList.add('loading');
+        const lbl = submitBtn.querySelector('span');
+        if (lbl) lbl.textContent = 'جارٍ الإرسال...';
+        submitBtn.disabled = true;
+      }
+    });
+  }
 
   /* ── 5. Toast Helper ── */
   const toastContainer = document.getElementById('toastContainer');
@@ -1772,23 +1999,5 @@ document.addEventListener('DOMContentLoaded', () => {
   window._showToast = showToast; // expose globally
 
 });
-
-/* ── Copy to Clipboard ── */
-window.copyToClip = function (text, btn) {
-  navigator.clipboard.writeText(text).then(() => {
-    if (btn) {
-      const orig = btn.innerHTML;
-      btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-      btn.style.color = '#16845b';
-      setTimeout(() => {
-        btn.innerHTML = orig;
-        btn.style.color = '';
-      }, 2000);
-    }
-    if (window._showToast) window._showToast('تم نسخ رقم الآيبان بنجاح ✓', 'success');
-  }).catch(() => {
-    if (window._showToast) window._showToast('تعذّر النسخ، يرجى النسخ يدوياً', 'error');
-  });
-};
 </script>
 {% endblock %}

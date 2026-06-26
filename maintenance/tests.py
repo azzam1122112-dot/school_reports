@@ -9,7 +9,7 @@ from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from reports.models import Department, Report, ReportType, Role, School, Teacher, Ticket
+from reports.models import Department, Report, ReportType, School, Teacher, Ticket
 
 from .models import SchoolYearResetJob
 from .services import collect_reset_summary, execute_school_year_reset
@@ -18,14 +18,12 @@ from .services import collect_reset_summary, execute_school_year_reset
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class SchoolYearResetTests(TestCase):
     def setUp(self):
-        self.role, _ = Role.objects.get_or_create(slug="teacher", defaults={"name": "Teacher"})
         self.school = School.objects.create(name="Reset A", code="reset-a")
         self.other_school = School.objects.create(name="Reset B", code="reset-b")
         self.teacher = Teacher.objects.create_user(
             phone="590000001",
             name="Reset Teacher",
             password="pass",
-            role=self.role,
         )
         self.superuser = Teacher.objects.create_superuser(
             phone="590000099",

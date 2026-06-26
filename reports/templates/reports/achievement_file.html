@@ -1,6 +1,7 @@
 {# reports/templates/reports/achievement_file_detail.html (or your file) #}
 {% extends "base.html" %}
 {% load static %}
+{% load hijri_tags %}
 
 {% block title %}ملف الإنجاز{% endblock %}
 
@@ -773,6 +774,45 @@
       transform: none !important;
     }
   }
+
+  /* 👑 ROYAL OVERLAY — ملف الإنجاز */
+  .af-wrap .af-card{
+    border:1px solid rgba(185,151,91,.18) !important;
+    box-shadow:0 20px 50px -30px rgba(10,92,51,.42) !important;
+  }
+  .af-wrap .af-hero{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.24), transparent 50%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:20px !important; padding:24px 22px !important; color:#fff !important;
+    box-shadow:0 18px 40px -24px rgba(5,46,26,.6) !important;
+  }
+  .af-wrap .af-hero::after{
+    content:""; position:absolute; top:0; right:0; left:0; height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .af-wrap .af-hero h1{
+    color:#fff !important;
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .af-wrap .af-hero .sub-info{ color:rgba(255,255,255,.85) !important; font-weight:800 !important; }
+  .af-wrap .af-hero .sub-info i{ color:#e6cf9a !important; }
+  .af-wrap .af-ministry-logo{
+    border:2px solid rgba(212,177,109,.5) !important; border-radius:14px; background:#fff; padding:4px;
+    box-shadow:0 8px 18px -10px rgba(0,0,0,.4);
+  }
+  .af-wrap .af-year-badge{
+    background:rgba(212,177,109,.18) !important; border:1px solid rgba(212,177,109,.5) !important;
+    color:#fdf6e6 !important; font-weight:900 !important;
+  }
+  .af-wrap .af-year-badge i{ color:#e6cf9a !important; }
+  .af-wrap .btn-primary, .af-wrap .af-btn-primary{
+    background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important;
+    box-shadow:0 10px 22px -12px rgba(10,92,51,.6) !important;
+  }
 </style>
 {% endblock %}
 
@@ -1079,7 +1119,7 @@
                           {% if ev.is_frozen and ev.frozen_data.report_date %}
                             <span style="opacity:0.9;">{{ ev.frozen_data.report_date }}</span>
                           {% elif ev.report and ev.report.report_date %}
-                            <span style="opacity:0.9;">{{ ev.report.report_date|date:"Y-m-d" }}</span>
+                            <span style="opacity:0.9;">{{ ev.report.report_date|hijri }} هـ</span>
                           {% endif %}
                         </div>
                       </div>

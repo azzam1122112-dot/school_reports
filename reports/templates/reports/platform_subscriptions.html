@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load humanize hijri_tags %}
 
 {% block title %}إدارة الاشتراكات{% endblock %}
 
@@ -144,6 +144,23 @@
     .subslist-scope .command-strip,.subslist-scope .filters form{grid-template-columns:1fr}
     .subslist-scope .row-actions .btn,.subslist-scope .row-actions form{width:100%}
   }
+
+  /* ============================================================
+     👑 ROYAL LUXURY — إدارة الاشتراكات (زمرّدي + ذهبي)
+     ============================================================ */
+  .subslist-scope{ --sl-brand:#0a5c33; }
+  .subslist-scope .hero{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.24), transparent 50%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+  }
+  .subslist-scope .hero::before{ content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:2;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent); }
+  .subslist-scope .command-card{ border-color:rgba(185,151,91,.2); }
+  .subslist-scope .price{ color:#0a5c33; }
+  .subslist-scope .btn-primary{ background:linear-gradient(135deg,#0a5c33,#074426); border:1px solid rgba(185,151,91,.35); }
+  .subslist-scope table tbody tr:hover{ background:rgba(212,177,109,.05); }
 </style>
 {% endblock %}
 
@@ -281,15 +298,15 @@
             <tr>
               <td data-label="المدرسة" style="text-align:right">
                 <div class="school">{{ sub.school.name }}</div>
-                <div class="subline">{{ sub.school.code|default:"بدون كود" }}</div>
+                {% if sub.school.city %}<div class="subline"><i class="fa-solid fa-location-dot" style="opacity:.7"></i> {{ sub.school.city }}</div>{% endif %}
               </td>
               <td data-label="الباقة" style="text-align:right">
                 <div style="font-weight:950">{{ sub.plan.name }}</div>
                 <div class="price">{{ sub.plan.price|floatformat:0|intcomma }} ريال</div>
               </td>
               <td data-label="الفترة">
-                <div>{{ sub.start_date|date:"Y-m-d" }}</div>
-                <div class="subline">حتى {{ sub.end_date|date:"Y-m-d" }}</div>
+                <div>{{ sub.start_date|hijri }} هـ</div>
+                <div class="subline">حتى {{ sub.end_date|hijri }} هـ</div>
               </td>
               <td data-label="الحالة">
                 {% if sub.is_cancelled %}

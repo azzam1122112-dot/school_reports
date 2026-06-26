@@ -7,7 +7,7 @@ from ._helpers import (
     _is_staff, _is_staff_or_officer, _is_manager_in_school,
     _role_display_map, _school_manager_label,
     _get_active_school, _canonical_sender_name, _canonical_role_label,
-    effective_user_role_label,
+    effective_user_role_label, _safe_next_url,
 )
 
 
@@ -273,7 +273,7 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
         if notif_fk:
             qs = NotificationRecipient.objects.filter(**{f"{notif_fk}": n})
             if user_fk:
-                qs = qs.select_related(f"{user_fk}", f"{user_fk}__role")
+                qs = qs.select_related(f"{user_fk}")
             qs = qs.order_by("id")
 
             # Batch-prefetch SchoolMembership to avoid N+1 in effective_user_role_label
@@ -314,10 +314,21 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     "signed_at": signed_at_str,
                 })
 
+    # اسم اليوم بالعربية لتاريخ الإرسال (بتوقيت محلي)
+    created_day_name = ""
+    try:
+        if getattr(n, "created_at", None):
+            _days = {1: "الاثنين", 2: "الثلاثاء", 3: "الأربعاء", 4: "الخميس",
+                     5: "الجمعة", 6: "السبت", 7: "الأحد"}
+            created_day_name = _days.get(timezone.localtime(n.created_at).isoweekday(), "")
+    except Exception:
+        created_day_name = ""
+
     ctx = {
         "n": n,
         "body": body,
         "recipients": recipients,
+        "created_day_name": created_day_name,
         "signature_stats": {
             "total": int(sig_total),
             "signed": int(sig_signed),
@@ -356,6 +367,12 @@ def notification_sign(request: HttpRequest, pk: int) -> HttpResponse:
 
     if bool(getattr(rec, "is_signed", False)):
         messages.info(request, "تم تسجيل توقيعك مسبقاً على هذا التعميم.")
+        return redirect("reports:my_circular_detail", pk=rec.pk)
+
+    # ✅ منع التوقيع بعد انتهاء آخر موعد للتوقيع (إن حُدّد)
+    deadline = getattr(n, "signature_deadline_at", None)
+    if deadline and timezone.now() > deadline:
+        messages.error(request, "انتهى آخر موعد للتوقيع على هذا التعميم، ولم يعد بالإمكان اعتماد التوقيع.")
         return redirect("reports:my_circular_detail", pk=rec.pk)
 
     now = timezone.now()
@@ -479,7 +496,7 @@ def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse
     qs = (
         NotificationRecipient.objects
         .filter(notification=n)
-        .select_related("teacher", "teacher__role")
+        .select_related("teacher")
         .order_by("teacher__name", "id")
     )
 
@@ -573,7 +590,7 @@ def notification_signatures_csv(request: HttpRequest, pk: int) -> HttpResponse:
     qs = (
         NotificationRecipient.objects
         .filter(notification=n)
-        .select_related("teacher", "teacher__role")
+        .select_related("teacher")
         .order_by("teacher__name", "id")
     )
 
@@ -709,7 +726,7 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
 
     qs = (
         NotificationRecipient.objects
-        .select_related("notification", "notification__created_by", "notification__created_by__role")
+        .select_related("notification", "notification__created_by")
         .filter(teacher=request.user)
         .order_by("-created_at", "-id")
     )
@@ -740,39 +757,10 @@ def my_notifications(request: HttpRequest) -> HttpResponse:
 
     page = Paginator(qs, 12).get_page(request.GET.get("page") or 1)
 
-    # عند فتح تبويب "إشعاراتي" غالباً يتوقع المستخدم أن تصبح الإشعارات المعروضة كمقروءة.
-    # لا يمكن الاعتماد على "إغلاق التبويب" كإشارة مؤكدة من المتصفح، لذا نُحدّثها هنا.
-    try:
-        items = list(page.object_list)
-        unread_ids = [x.pk for x in items if hasattr(x, "is_read") and not bool(getattr(x, "is_read", False))]
-        if unread_ids:
-            now = timezone.now()
-            fields = {f.name for f in NotificationRecipient._meta.get_fields()}
-            upd: dict = {}
-            if "is_read" in fields:
-                upd["is_read"] = True
-            if "read_at" in fields:
-                upd["read_at"] = now
-            if upd:
-                NotificationRecipient.objects.filter(pk__in=unread_ids, teacher=request.user).update(**upd)
-
-                # Bulk update won't trigger post_save; request a one-off WS resync.
-                try:
-                    from ..realtime_notifications import push_force_resync
-
-                    push_force_resync(teacher_id=int(getattr(request.user, "id", 0) or 0))
-                except Exception:
-                    pass
-
-                for x in items:
-                    if x.pk in unread_ids:
-                        if "is_read" in upd:
-                            setattr(x, "is_read", True)
-                        if "read_at" in upd:
-                            setattr(x, "read_at", now)
-            page.object_list = items
-    except Exception:
-        pass
+    # ملاحظة: لا نُعلّم الإشعارات كمقروءة تلقائيًا عند فتح القائمة.
+    # يبقى الإشعار "غير مقروء" حتى يفتح المستخدم تفاصيله (يُعلَّم في صفحة التفاصيل)،
+    # أو يضغط "تمت القراءة" لإشعار، أو "تحديد الكل كمقروء". هذا يجعل فلتر
+    # "غير المقروء فقط" والعدّاد ذا معنى حقيقي.
 
     # اسم المرسل + الدور الصحيح (مُوحّد)
     try:
@@ -893,7 +881,6 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
             NotificationRecipient.objects.select_related(
                 "notification",
                 "notification__created_by",
-                "notification__created_by__role",
             ),
             pk=pk,
             teacher=request.user,
@@ -956,6 +943,14 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
     except Exception:
         pass
 
+    # هل انتهى آخر موعد للتوقيع؟ (لإغلاق نموذج التوقيع في الواجهة)
+    signing_closed = False
+    try:
+        _deadline = getattr(n, "signature_deadline_at", None)
+        signing_closed = bool(_deadline and timezone.now() > _deadline)
+    except Exception:
+        signing_closed = False
+
     return render(
         request,
         "reports/my_circular_detail.html" if is_circular else "reports/my_notification_detail.html",
@@ -965,6 +960,7 @@ def my_notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "body": body,
             "sender_name": sender_name,
             "sender_role_label": sender_role_label,
+            "signing_closed": signing_closed,
         },
     )
 

@@ -70,6 +70,26 @@
     .sm-actions .btn{width:100%;justify-content:center}
     .sm-grid{grid-template-columns:1fr}
   }
+
+  /* ============================================================
+     👑 ROYAL LUXURY — مدراء المدارس (زمرّدي + ذهبي)
+     ============================================================ */
+  .sm-hero{ position:relative; overflow:hidden; border-color:rgba(185,151,91,.22); box-shadow:0 22px 50px -26px rgba(10,92,51,.4); }
+  .sm-hero::before{ content:""; position:absolute; inset-inline:0; top:0; height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent); }
+  .sm-panel{ border-color:rgba(185,151,91,.2); }
+  .sm-title{ color:#0a5c33; }
+  .sm-input:focus{ border-color:rgba(10,92,51,.5); box-shadow:0 0 0 3px rgba(10,92,51,.12); }
+  .sm-btn{ background:linear-gradient(135deg,#0a5c33,#074426); border-color:rgba(185,151,91,.35); }
+  .sm-btn.secondary{ background:transparent; color:#0a5c33; border-color:rgba(185,151,91,.45); }
+  .sm-count{ border-color:rgba(185,151,91,.3); }
+  .sm-card{ border-color:rgba(185,151,91,.2); transition:border-color .15s, box-shadow .15s; }
+  .sm-card:hover{ border-color:rgba(185,151,91,.45); box-shadow:0 14px 30px -18px rgba(10,92,51,.4); }
+  .sm-name{ color:#0f172a; }
+  .sm-school{ background:rgba(10,92,51,.06); border-color:rgba(185,151,91,.3); }
+  .sm-school code{ color:#b9975b; }
+  .sm-page-link.current{ background:linear-gradient(135deg,#0a5c33,#074426); border-color:#0a5c33; }
+  .sm-page-link:hover:not(.current){ border-color:#0a5c33; color:#0a5c33; }
 </style>
 {% endblock %}
 
@@ -143,7 +163,7 @@
 
                 <div class="sm-card-actions">
                   <a class="btn btn-outline" href="{% url 'reports:school_manager_update' m.id %}">تعديل المدير</a>
-                  <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" onsubmit="return confirm('{% if m.is_active %}هل أنت متأكد من تعطيل هذا المدير؟{% else %}هل أنت متأكد من إعادة تفعيل هذا المدير؟{% endif %}');">
+                  <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" data-confirm="{% if m.is_active %}هل أنت متأكد من تعطيل هذا المدير؟{% else %}هل أنت متأكد من إعادة تفعيل هذا المدير؟{% endif %}">
                     {% csrf_token %}
                     {% if m.is_active %}
                       <button type="submit" class="btn btn-danger">تعطيل</button>

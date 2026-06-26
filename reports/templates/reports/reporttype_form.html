@@ -178,6 +178,48 @@
           font-size: .98rem;
         }
       }
+
+      /* مفتاح "نشط" — Toggle واضح */
+      .smart-switch { display: flex; align-items: center; gap: 14px; cursor: pointer; user-select: none; }
+      .smart-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+      .smart-switch .sw-track {
+        flex: 0 0 auto; position: relative; width: 58px; height: 32px; border-radius: 999px;
+        background: #cbd5e1; transition: background .2s; box-shadow: inset 0 1px 3px rgba(0,0,0,.18);
+      }
+      .smart-switch .sw-track::after {
+        content: ""; position: absolute; top: 3px; right: 3px; width: 26px; height: 26px;
+        border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.28); transition: transform .2s;
+      }
+      .smart-switch input:checked + .sw-track { background: linear-gradient(135deg, #0a5c33, #074426); }
+      .smart-switch input:checked + .sw-track::after { transform: translateX(-26px); }
+      .smart-switch input:focus-visible + .sw-track { box-shadow: 0 0 0 3px rgba(10,92,51,.25); }
+      .smart-switch .sw-text { font-weight: 900; color: #0f172a; font-size: 1.06rem; }
+
+      /* ============================================================
+         👑 ROYAL LUXURY — نموذج نوع تقرير (زمرّدي + ذهبي)
+         ============================================================ */
+      body { background: linear-gradient(120deg, #eef3ee 0%, #f7f3ea 100%); }
+      .smart-card { border:1px solid rgba(185,151,91,.22); box-shadow:0 26px 60px -28px rgba(10,92,51,.5); }
+      .smart-card::before{ content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:3;
+        background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent); }
+      .smart-header{
+        background:
+          radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.26), transparent 50%),
+          linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+        border-bottom:none !important;
+      }
+      .smart-header .title{
+        background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+      }
+      .smart-header .title .icon{ -webkit-text-fill-color:#e6cf9a; color:#e6cf9a; }
+      .smart-header .dashboard-btn{ background:rgba(212,177,109,.18); color:#fdf6e6; border:1px solid rgba(212,177,109,.5); }
+      .smart-header .dashboard-btn:hover{ background:#d4b16d; color:#063d22; }
+      .smart-label{ color:#0a5c33; }
+      .smart-input:focus, .smart-form select:focus, .smart-form textarea:focus { border-color:#0a5c33; box-shadow:0 0 0 3px rgba(10,92,51,.12); }
+      .smart-btn{ background:linear-gradient(135deg,#0a5c33,#074426); box-shadow:0 10px 22px -12px rgba(10,92,51,.6); }
+      .smart-btn:hover{ background:#fff; color:#0a5c33; border:1.5px solid #0a5c33; }
+      .smart-btn.ghost{ color:#0a5c33; border:1.5px solid rgba(185,151,91,.45); }
+      .smart-btn.ghost:hover{ background:#0a5c33; color:#fff; border-color:#0a5c33; }
     </style>
     {% endblock head %}
 
@@ -229,8 +271,10 @@
           {% if form.order.errors %}<div class="smart-error">{{ form.order.errors.0 }}</div>{% endif %}
         </div>
         <div class="smart-section">
-          <label style="font-weight:700;">
-            {{ form.is_active }} نشط (يظهر في النماذج)
+          <label class="smart-switch">
+            {{ form.is_active }}
+            <span class="sw-track" aria-hidden="true"></span>
+            <span class="sw-text">نشط — يظهر في نماذج إضافة التقارير</span>
           </label>
           {% if form.is_active.errors %}<div class="smart-error">{{ form.is_active.errors.0 }}</div>{% endif %}
         </div>

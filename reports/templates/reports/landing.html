@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
 
   <style>
     :root {
@@ -448,6 +448,10 @@
       display: inline-block;
     }
 
+    .mobile-title {
+      display: none;
+    }
+
     .hero-copy p {
       margin: 0;
       max-width: 620px;
@@ -549,6 +553,54 @@
       line-height: 1.8;
       font-size: 0.88rem;
       font-weight: 600;
+    }
+
+    .hero-product-proof {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      margin: 6px 0 22px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      box-shadow: 0 16px 34px rgba(11, 23, 32, 0.06);
+    }
+
+    .hero-product-proof strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--emerald-strong);
+      font-size: 0.9rem;
+      font-weight: 900;
+    }
+
+    .hero-product-proof span {
+      color: var(--ink-soft);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      font-weight: 700;
+    }
+
+    .proof-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .proof-badges b {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(15, 76, 92, 0.09);
+      color: var(--emerald-strong);
+      font-size: 0.76rem;
+      font-weight: 900;
+      white-space: nowrap;
     }
 
     .hero-stats {
@@ -1032,6 +1084,49 @@
 
     .show-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .live-proof-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: -18px 0 30px;
+    }
+
+    .live-proof-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.80);
+      border: 1px solid rgba(20, 33, 43, 0.08);
+      box-shadow: 0 18px 38px rgba(11, 23, 32, 0.06);
+    }
+
+    .live-proof-card i {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: rgba(15, 76, 92, 0.10);
+      color: var(--emerald-strong);
+    }
+
+    .live-proof-card strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 0.9rem;
+      font-weight: 900;
+    }
+
+    .live-proof-card span {
+      color: var(--ink-soft);
+      font-size: 0.78rem;
+      line-height: 1.7;
+      font-weight: 700;
     }
 
     .show-card {
@@ -2184,6 +2279,7 @@
       }
 
       .show-grid,
+      .live-proof-strip,
       .pillars-grid,
       .pricing-grid,
       .footer-grid {
@@ -2215,6 +2311,7 @@
 
       .results-grid,
       .show-grid,
+      .live-proof-strip,
       .process-grid,
       .faq-grid,
       .footer-grid,
@@ -2251,8 +2348,13 @@
       .portfolio-points,
       .hero-ribbon,
       .hero-proof,
+      .hero-product-proof,
       .hero-stats {
         grid-template-columns: 1fr;
+      }
+
+      .proof-badges {
+        justify-content: flex-start;
       }
 
       .show-shot-stack {
@@ -2328,12 +2430,19 @@
         min-height: 64px;
         padding: 8px 12px;
         border-radius: 16px;
+        gap: 8px;
+      }
+
+      .brand-copy {
+        display: none;
+      }
+
+      .nav-actions {
+        gap: 8px;
       }
 
       .mobile-login-btn {
-        min-height: 44px;
-        padding: 0 12px;
-        font-size: 0.84rem;
+        display: none;
       }
 
       .brand img {
@@ -2366,6 +2475,21 @@
         min-height: 50px;
         padding: 13px 18px;
         font-size: 0.94rem;
+      }
+
+      .nav .btn {
+        width: auto;
+        min-height: 44px;
+        padding: 0 12px;
+        font-size: 0.82rem;
+        line-height: 1.35;
+        flex: none;
+      }
+
+      .menu-btn {
+        width: 44px;
+        height: 44px;
+        flex: none;
       }
 
       .eyebrow {
@@ -2410,6 +2534,15 @@
       .flow-card,
       .contact-item {
         grid-template-columns: 1fr;
+      }
+
+      .hero-product-proof {
+        padding: 14px;
+        overflow: hidden;
+      }
+
+      .proof-badges b {
+        white-space: normal;
       }
 
       .shot-caption {
@@ -2528,6 +2661,157 @@
   </style>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
+  <style>
+    @media (max-width: 980px) {
+      html,
+      body {
+        overflow-x: hidden !important;
+      }
+
+      .hero-grid,
+      .window-body,
+      .portfolio-shell,
+      .pricing-advisor,
+      .results-grid,
+      .show-grid,
+      .live-proof-strip,
+      .process-grid,
+      .faq-grid,
+      .footer-grid,
+      .pillars-grid,
+      .pricing-grid,
+      .decision-grid,
+      .hero-ribbon,
+      .hero-proof,
+      .hero-product-proof,
+      .hero-stats {
+        grid-template-columns: 1fr !important;
+      }
+
+      .hero-stage {
+        max-width: 100% !important;
+      }
+
+      .show-card.featured-shot,
+      .price-card:first-child {
+        grid-column: auto !important;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .container {
+        width: calc(100% - 16px) !important;
+        max-width: 100% !important;
+      }
+
+      .nav {
+        gap: 8px !important;
+      }
+
+      .nav .brand-copy,
+      .nav .mobile-login-btn {
+        display: none !important;
+      }
+
+      .nav-actions {
+        gap: 8px !important;
+      }
+
+      .nav .btn {
+        width: auto !important;
+        min-height: 44px !important;
+        padding: 0 12px !important;
+        font-size: 0.82rem !important;
+        line-height: 1.35 !important;
+        flex: none !important;
+      }
+
+      .nav .menu-btn {
+        width: 44px !important;
+        height: 44px !important;
+        flex: none !important;
+      }
+
+      .hero-product-proof {
+        grid-template-columns: 1fr !important;
+        overflow: hidden;
+      }
+
+      .hero-copy,
+      .hero-copy h1,
+      .hero-copy p,
+      .section-head,
+      .section-head h2,
+      .section-head p {
+        max-width: 100% !important;
+      }
+
+      .hero-grid,
+      .hero-copy,
+      .hero-stage {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      .hero-copy {
+        justify-items: center !important;
+        text-align: center !important;
+      }
+
+      .hero-copy h1 {
+        width: min(310px, 82vw) !important;
+        max-width: min(310px, 82vw) !important;
+        font-size: 1.28rem !important;
+        line-height: 1.25 !important;
+        text-align: center !important;
+        text-wrap: initial !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+      }
+
+      .desktop-title {
+        display: none !important;
+      }
+
+      .mobile-title {
+        display: block !important;
+      }
+
+      .hero-copy p {
+        width: min(320px, 84vw) !important;
+        max-width: min(320px, 84vw) !important;
+        text-align: center !important;
+        text-wrap: initial !important;
+      }
+
+      .proof-badges {
+        justify-content: center !important;
+      }
+
+      .proof-badges b {
+        white-space: normal !important;
+      }
+
+      .hero-ribbon,
+      .hero-proof,
+      .hero-stats {
+        justify-items: center !important;
+      }
+
+      .ribbon-card,
+      .proof-tile,
+      .impact-card {
+        width: min(292px, 78vw) !important;
+        max-width: min(292px, 78vw) !important;
+      }
+
+      .ribbon-card p,
+      .proof-tile p,
+      .impact-card p {
+        overflow-wrap: break-word !important;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="nav-shell">
@@ -2599,15 +2883,22 @@
     <section class="hero">
       <div class="container hero-grid">
         <div class="hero-copy reveal">
-          <span class="eyebrow"><i class="fa-solid fa-crown"></i> منصة تشغيل مدرسي بمظهر يليق بالإدارة الحديثة</span>
+          <span class="eyebrow"><i class="fa-solid fa-crown"></i> منصة تشغيل مدرسي جاهزة للإطلاق بثقة</span>
           <h1>
-            كل ما تحتاجه المدرسة
-            <span class="accent">لتوثيق العمل وإبراز الإنجاز</span>
-            في لوحة واحدة أنيقة وواضحة
+            <span class="desktop-title">
+              اجعل المدرسة تبدو
+              <span class="accent">أكثر تنظيماً واحترافاً</span>
+              من أول تقرير حتى آخر ملف إنجاز
+            </span>
+            <span class="mobile-title">
+              توثيق مدرسي احترافي
+              <span class="accent">من أول تقرير</span>
+              حتى ملف الإنجاز
+            </span>
           </h1>
           <p>
-            توثيق يجمع التقارير المصورة، الطلبات، التعاميم، وملفات الإنجاز داخل تجربة تشغيل مرتبة وسريعة الفهم.
-            النتيجة هي متابعة يومية أهدأ، مخرجات جاهزة للطباعة والعرض، وصورة مهنية أقوى أمام الإدارة والزوار والجهات الخارجية.
+            توثيق يحول العمل اليومي داخل المدرسة إلى مسار واضح: تقارير مصورة، طلبات، تعاميم، ملفات إنجاز، ومخرجات PDF جاهزة للعرض.
+            الصفحة التي يراها المدير ليست وعداً تسويقياً فقط، بل منتج فعلي يختصر المتابعة ويرفع جودة الصورة الرسمية للمدرسة.
           </p>
 
           <div class="hero-actions">
@@ -2619,6 +2910,18 @@
               شاهد الواجهات الحقيقية
               <i class="fa-solid fa-desktop"></i>
             </a>
+          </div>
+
+          <div class="hero-product-proof reveal stagger-1">
+            <div>
+              <strong>لقطات حية من بيئة تجريبية آمنة</strong>
+              <span>الصور المستخدمة في الصفحة مأخوذة من صفحات المنصة نفسها بعد تنظيف بيانات العرض، حتى يرى الزائر منتجاً حقيقياً لا رسماً تسويقياً.</span>
+            </div>
+            <div class="proof-badges" aria-label="إثباتات المنتج">
+              <b><i class="fa-solid fa-gauge-high"></i> لوحة مدير</b>
+              <b><i class="fa-solid fa-list-check"></i> طلبات</b>
+              <b><i class="fa-solid fa-file-pdf"></i> تقرير رسمي</b>
+            </div>
           </div>
 
           <div class="hero-ribbon reveal stagger-1">
@@ -2685,10 +2988,10 @@
             </div>
 
             <div class="dashboard-preview">
-              <img src="{% static 'img/SC1.webp' %}" alt="لقطة من لوحة متابعة منصة توثيق" loading="eager" width="1200" height="675">
+              <img src="{% static 'img/landing/dashboard-live.webp' %}" alt="لقطة حية من لوحة مدير المدرسة في منصة توثيق" loading="eager" width="1200" height="675">
               <div class="overlay-stat top">
-                <strong>صورة تشغيلية فورية</strong>
-                <span>مؤشرات يومية واضحة بدل التشتت بين قنوات متعددة</span>
+                <strong>لوحة حقيقية من النظام</strong>
+                <span>بيانات تجريبية آمنة تعرض شكل تجربة المدير الفعلية</span>
               </div>
               <div class="overlay-stat bottom">
                 <strong>مخرجات رسمية جاهزة</strong>
@@ -2836,36 +3139,60 @@
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow"><i class="fa-solid fa-desktop"></i> لقطات حقيقية من النظام</span>
-          <h2>هذا ليس عرضاً نظرياً. هذه هي الواجهات التي سيراها فريق المدرسة بعد التسجيل مباشرة</h2>
-          <p>اللقطات هنا تخدم التسويق لأنها تبرهن على وجود منتج جاد، منظم، وقادر على تقديم تجربة عمل حقيقية لا مجرد تصميم جميل.</p>
+          <h2>اعرض المنتج كما سيستخدمه العميل: لوحة متابعة، طلبات، ومخرج رسمي جاهز للطباعة</h2>
+          <p>الصور التالية مأخوذة من بيئة تجريبية داخل المنصة، لذلك تمنح صفحة الهبوط دليلاً بصرياً مباشراً على أن توثيق منتج جاهز وليس فكرة على الورق.</p>
+        </div>
+
+        <div class="live-proof-strip reveal stagger-1">
+          <article class="live-proof-card">
+            <i class="fa-solid fa-shield-halved"></i>
+            <div>
+              <strong>بيانات عرض آمنة</strong>
+              <span>أسماء وأرقام تجريبية تصلح للنشر دون كشف بيانات مدارس حقيقية.</span>
+            </div>
+          </article>
+          <article class="live-proof-card">
+            <i class="fa-solid fa-window-maximize"></i>
+            <div>
+              <strong>صور من صفحات فعلية</strong>
+              <span>تم التقاطها من لوحة المدير والطلبات ومعاينة التقرير داخل المشروع.</span>
+            </div>
+          </article>
+          <article class="live-proof-card">
+            <i class="fa-solid fa-cloud"></i>
+            <div>
+              <strong>جاهزة للعرض السريع</strong>
+              <span>صور WebP خفيفة ومثبتة الأبعاد حتى تبقى الصفحة سريعة وواضحة.</span>
+            </div>
+          </article>
         </div>
 
         <div class="show-grid">
           <article class="show-card featured-shot reveal stagger-1">
             <div class="show-frame">
               <div class="frame-bar">
-                <span class="frame-pill"><i class="fa-solid fa-chart-line"></i> لوحة المؤشرات</span>
-                <span class="frame-pill">نظرة إدارية سريعة</span>
+                <span class="frame-pill"><i class="fa-solid fa-chart-line"></i> لوحة المدير</span>
+                <span class="frame-pill">نظرة تشغيلية فورية</span>
               </div>
               <div class="show-shot">
-                <img src="{% static 'img/SC1.webp' %}" alt="لقطة من لوحة النظام تعرض المؤشرات الرئيسية" loading="lazy" width="1200" height="675">
+                <img src="{% static 'img/landing/dashboard-live.webp' %}" alt="لقطة حية من لوحة مدير المدرسة تعرض الإجراءات والمؤشرات" loading="lazy" width="1200" height="675">
                 <div class="show-shot-stack" aria-hidden="true">
                   <div class="mini-shot">
-                    <img src="{% static 'img/SUPPORT.webp' %}" alt="" loading="lazy" width="1200" height="675">
+                    <img src="{% static 'img/landing/tickets-live.webp' %}" alt="" loading="lazy" width="1200" height="675">
                   </div>
                   <div class="mini-shot">
-                    <img src="{% static 'img/REPORT.webp' %}" alt="" loading="lazy" width="1200" height="675">
+                    <img src="{% static 'img/landing/report-live.webp' %}" alt="" loading="lazy" width="1200" height="675">
                   </div>
                 </div>
                 <div class="shot-caption">
-                  <span>مؤشرات النشاط والملفات والدعم في شاشة واحدة</span>
-                  <span>Dashboard</span>
+                  <span>إجراءات المدرسة، التقارير، الطلبات، والإعدادات في واجهة واحدة</span>
+                  <span>Live dashboard</span>
                 </div>
               </div>
             </div>
             <div>
-              <h3>لوحة قيادة تعطي الإدارة صورة صباحية واضحة قبل أن تبدأ الفوضى</h3>
-              <p>الفائدة التسويقية هنا مباشرة: المدير لا يبحث عن الحقيقة التشغيلية من أكثر من جهة، بل يجدها أمامه بشكل مرتب وسريع القراءة.</p>
+              <h3>لوحة قيادة تمنح المدير إحساس السيطرة من أول زيارة</h3>
+              <p>القيمة التسويقية هنا واضحة: العميل يرى نظاماً قابلاً للتشغيل فوراً، لا صفحة تعريفية تخفي المنتج الحقيقي خلف كلمات عامة.</p>
             </div>
           </article>
 
@@ -2876,16 +3203,16 @@
                 <span class="frame-pill">مسار تنفيذ</span>
               </div>
               <div class="show-shot">
-                <img src="{% static 'img/SUPPORT.webp' %}" alt="لقطة من صفحة التذاكر والطلبات في منصة توثيق" loading="lazy" width="1200" height="675">
+                <img src="{% static 'img/landing/tickets-live.webp' %}" alt="لقطة حية من صفحة طلبات المدرسة في منصة توثيق" loading="lazy" width="1200" height="675">
                 <div class="shot-caption">
                   <span>تفاصيل الطلب وتاريخ الحالة واتخاذ الإجراء من نفس الصفحة</span>
-                  <span>Support</span>
+                  <span>Requests</span>
                 </div>
               </div>
             </div>
             <div>
-              <h3>كل طلب يعرف أين وصل ومن تعامل معه</h3>
-              <p>هذا النوع من الوضوح يرفع الثقة في الإدارة نفسها، لا في الأداة فقط، لأنه يقلل مساحة النسيان والارتجال.</p>
+              <h3>طلبات المدرسة تتحول إلى مسار مرئي لا محادثات متفرقة</h3>
+              <p>هذا الوضوح يهم صاحب القرار لأنه يقلل النسيان، ويثبت الحالة، ويجعل المتابعة اليومية قابلة للقياس والمراجعة.</p>
             </div>
           </article>
 
@@ -2896,16 +3223,16 @@
                 <span class="frame-pill">جاهز للطباعة</span>
               </div>
               <div class="show-shot">
-                <img src="{% static 'img/REPORT.webp' %}" alt="لقطة من تقرير PDF رسمي داخل منصة توثيق" loading="lazy" width="1200" height="675">
+                <img src="{% static 'img/landing/report-live.webp' %}" alt="لقطة حية من معاينة تقرير رسمي داخل منصة توثيق" loading="lazy" width="1200" height="675">
                 <div class="shot-caption">
-                  <span>تقرير احترافي بالشواهد والمرفقات، لا ملفاً مجمعاً على عجل</span>
-                  <span>PDF</span>
+                  <span>تقرير رسمي قابل للطباعة والحفظ بصيغة PDF</span>
+                  <span>Official output</span>
                 </div>
               </div>
             </div>
             <div>
-              <h3>المخرج النهائي يبدو بمستوى يليق بالمدرسة عند العرض أو الأرشفة</h3>
-              <p>هذه نقطة بيع مهمة: المنصة لا تنظم العمل فقط، بل تحسن شكل النتيجة النهائية أمام أي جهة تطلبها.</p>
+              <h3>المخرج النهائي يرفع هيبة التوثيق عند الطباعة أو الأرشفة</h3>
+              <p>نقطة البيع هنا قوية: المنصة لا تحفظ البيانات فقط، بل تمنح المدرسة مخرجات تبدو جاهزة للزيارة والمراجعة والعرض الرسمي.</p>
             </div>
           </article>
         </div>

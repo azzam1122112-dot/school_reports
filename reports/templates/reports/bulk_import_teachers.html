@@ -198,6 +198,61 @@
   @media (prefers-reduced-motion: reduce){
     .imp-wrap *{ transition:none !important; }
   }
+
+  /* 👑 ROYAL OVERLAY — استيراد المعلمين */
+  .imp-wrap .imp-header{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
+    padding:26px 24px !important; color:#fff !important;
+  }
+  .imp-wrap .imp-header::after{
+    content:""; position:absolute; top:0; right:0; left:0; height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .imp-wrap .imp-title{
+    color:#fff !important;
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .imp-wrap .imp-sub{ color:rgba(255,255,255,.82) !important; font-weight:800 !important; }
+  .imp-wrap .imp-header .btn-ghost{
+    background:rgba(212,177,109,.16) !important; color:#fdf6e6 !important; border:1px solid rgba(212,177,109,.5) !important;
+  }
+  .imp-wrap .imp-header .btn-ghost:hover{ background:#d4b16d !important; color:#063d22 !important; }
+  .imp-wrap .imp-box, .imp-wrap .card{
+    border:1px solid rgba(185,151,91,.18) !important;
+    box-shadow:0 16px 40px -28px rgba(10,92,51,.4) !important;
+  }
+  .imp-wrap .imp-box h3{ color:#0a5c33 !important; }
+  .imp-wrap .imp-box h3 i{ color:#b9975b !important; }
+  .imp-wrap .btn-primary{ background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important; box-shadow:0 10px 22px -12px rgba(10,92,51,.6) !important; }
+
+  /* زر تنزيل القالب الذهبي */
+  .imp-wrap .btn-gold{
+    display:inline-flex; align-items:center; gap:9px; width:100%; justify-content:center;
+    background:linear-gradient(135deg,#e6cf9a,#d4b16d) !important; color:#063d22 !important;
+    border:1px solid rgba(185,151,91,.5) !important; font-weight:950 !important; border-radius:14px !important;
+    min-height:48px; box-shadow:0 10px 22px -12px rgba(185,151,91,.8);
+    text-decoration:none; transition:transform .15s ease;
+  }
+  .imp-wrap .btn-gold:hover{ transform:translateY(-2px); }
+  .imp-wrap .imp-tpl-hint{ margin:8px 0 16px; color:var(--imp-muted,#64748b); font-weight:700; font-size:.88rem; text-align:center; }
+
+  /* منطقة السحب والإفلات */
+  .imp-wrap .drop-zone{
+    border:2px dashed rgba(185,151,91,.5); border-radius:18px; padding:26px 18px; text-align:center;
+    background:linear-gradient(180deg, rgba(212,177,109,.06), transparent 60%); cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .imp-wrap .drop-zone:hover{ border-color:rgba(10,92,51,.5); }
+  .imp-wrap .drop-zone.is-drag{ border-color:#0a5c33; background:rgba(10,92,51,.08); }
+  .imp-wrap .drop-ico{ font-size:2.4rem; color:#b9975b; margin-bottom:8px; }
+  .imp-wrap .drop-main{ font-weight:850; color:var(--imp-ink,#0f172a); margin-bottom:12px; }
+  .imp-wrap .drop-zone .file-name{ font-weight:850; color:#0a5c33; }
 </style>
 {% endblock %}
 
@@ -206,7 +261,7 @@
   <div class="imp-header">
     <div>
       <h1 class="imp-title">استيراد {{ SCHOOL_TEACHERS_LABEL|default:"معلمين" }} من ملف Excel</h1>
-      <p class="imp-sub">ارفع ملف <b>.xlsx</b> لاستيراد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} وربطهم بمدرستك بشكل سريع.</p>
+      <p class="imp-sub">نزّل القالب الجاهز، املأه، ثم ارفعه (Excel أو CSV) لاستيراد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} وربطهم بمدرستك بسرعة.</p>
     </div>
 
     <a href="{% url 'reports:manage_teachers' %}" class="btn btn-ghost">
@@ -221,7 +276,8 @@
         <h3><i class="fa-solid fa-circle-info" style="opacity:.85"></i> تعليمات الاستيراد</h3>
 
         <ul class="imp-list">
-          <li>الملف يجب أن يكون بصيغة <b>.xlsx</b> فقط.</li>
+          <li><b>الأسهل:</b> نزّل «القالب الجاهز» من اليسار وستجد الأعمدة جاهزة مع أمثلة.</li>
+          <li>الصيغ المدعومة: <b>.xlsx</b> أو <b>.csv</b>.</li>
           <li>الصف الأول عناوين أعمدة، ويُستخدم للتعرّف على الحقول عند وجودها.</li>
           <li>
             العناوين أو الترتيب المفضّل للأعمدة:
@@ -245,39 +301,45 @@
       <div class="card imp-box">
         <h3><i class="fa-solid fa-file-arrow-up" style="opacity:.85"></i> رفع ملف الاستيراد</h3>
 
+        <!-- خطوة 1: تنزيل القالب الجاهز -->
+        <a href="{% url 'reports:bulk_import_teachers_template' %}" class="btn btn-gold imp-tpl-btn">
+          <i class="fa-solid fa-download"></i> تنزيل القالب الجاهز (Excel)
+        </a>
+        <div class="imp-tpl-hint">أسهل طريقة: نزّل القالب، املأه ببيانات المعلمين، ثم ارفعه هنا.</div>
+
         <form method="post" enctype="multipart/form-data" novalidate>
           {% csrf_token %}
 
-          <div class="file-card">
-            <div class="file-row">
-              <div class="file-name">
-                <i class="fa-solid fa-file-excel" style="opacity:.85"></i>
-                <span id="excelFileName">لم يتم اختيار ملف بعد</span>
-              </div>
-
-              <label class="btn btn-primary" for="excel_file" style="cursor:pointer">
-                <i class="fa-solid fa-folder-open"></i> اختيار ملف
-              </label>
+          <!-- منطقة السحب والإفلات -->
+          <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="منطقة رفع الملف">
+            <div class="drop-ico"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div class="drop-main">اسحب الملف وأفلته هنا، أو</div>
+            <label class="btn btn-primary" for="excel_file" style="cursor:pointer">
+              <i class="fa-solid fa-folder-open"></i> اختيار ملف
+            </label>
+            <div class="file-name" style="margin-top:10px">
+              <i class="fa-solid fa-file-lines" style="opacity:.85"></i>
+              <span id="excelFileName">لم يتم اختيار ملف بعد</span>
             </div>
 
             <input
               type="file"
               name="excel_file"
               id="excel_file"
-              accept=".xlsx"
+              accept=".xlsx,.csv"
               required
               class="sr-only"
               aria-describedby="excelHint excelBad"
             >
+          </div>
 
-            <div class="file-hint" id="excelHint">
-              تأكد أن الملف مطابق للتعليمات أعلاه. (سيتم رفض أي امتداد غير <b>.xlsx</b>)
-            </div>
+          <div class="file-hint" id="excelHint">
+            الصيغ المدعومة: <b>.xlsx</b> و <b>.csv</b>. تأكد أن الأعمدة مطابقة للتعليمات أعلاه.
+          </div>
 
-            <div class="imp-bad" id="excelBad" role="alert" aria-live="polite" aria-hidden="true">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              الملف غير صالح. الرجاء اختيار ملف <b>.xlsx</b>.
-            </div>
+          <div class="imp-bad" id="excelBad" role="alert" aria-live="polite" aria-hidden="true">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            الملف غير صالح. الرجاء اختيار ملف <b>.xlsx</b> أو <b>.csv</b>.
           </div>
 
           <div class="imp-actions">
@@ -308,26 +370,55 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
     var input = document.getElementById('excel_file');
     var nameEl = document.getElementById('excelFileName');
     var badEl = document.getElementById('excelBad');
     var btn = document.getElementById('importBtn');
     var submitNote = document.getElementById('importSubmitNote');
+    var dropZone = document.getElementById('dropZone');
     var defaultBtnHtml = btn ? btn.innerHTML : '';
     var submitted = false;
 
     if(!input || !nameEl) return;
 
-    function isXlsx(fileName){
+    function isValidExt(fileName){
       if(!fileName) return false;
-      return fileName.toLowerCase().endsWith('.xlsx');
+      var f = fileName.toLowerCase();
+      return f.endsWith('.xlsx') || f.endsWith('.csv');
+    }
+
+    // ===== السحب والإفلات =====
+    if(dropZone){
+      ['dragenter','dragover','dragleave','drop'].forEach(function(ev){
+        dropZone.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); });
+      });
+      ['dragenter','dragover'].forEach(function(ev){
+        dropZone.addEventListener(ev, function(){ dropZone.classList.add('is-drag'); });
+      });
+      ['dragleave','drop'].forEach(function(ev){
+        dropZone.addEventListener(ev, function(){ dropZone.classList.remove('is-drag'); });
+      });
+      dropZone.addEventListener('drop', function(e){
+        var files = e.dataTransfer && e.dataTransfer.files;
+        if(files && files.length){
+          input.files = files;
+          var fn = files[0] ? files[0].name : '';
+          submitted = false;
+          if(btn && defaultBtnHtml) btn.innerHTML = defaultBtnHtml;
+          updateState(fn);
+        }
+      });
+      dropZone.addEventListener('click', function(e){
+        if(e.target.closest('label,a,button')) return;
+        input.click();
+      });
     }
 
     function updateState(fileName){
       var hasFile = !!fileName;
-      var isBad = hasFile && !isXlsx(fileName);
+      var isBad = hasFile && !isValidExt(fileName);
 
       nameEl.textContent = fileName || 'لم يتم اختيار ملف بعد';
       nameEl.title = fileName || '';
@@ -344,11 +435,11 @@
 
       if(submitNote){
         if(isBad){
-          submitNote.textContent = 'اختر ملفًا بصيغة .xlsx فقط قبل بدء الاستيراد.';
+          submitNote.textContent = 'اختر ملفًا بصيغة .xlsx أو .csv قبل بدء الاستيراد.';
         } else if(hasFile){
           submitNote.textContent = 'الملف جاهز للإرسال. لا تغلق الصفحة أثناء الاستيراد.';
         } else {
-          submitNote.textContent = 'اختر ملف Excel صالحًا لتفعيل زر الاستيراد.';
+          submitNote.textContent = 'اختر ملفًا (Excel أو CSV) لتفعيل زر الاستيراد.';
         }
       }
 

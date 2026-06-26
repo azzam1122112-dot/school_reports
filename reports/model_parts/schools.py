@@ -61,6 +61,11 @@ class School(models.Model):
         help_text="مثال: 1447-1448. تُستخدم لتصنيف التقارير الجديدة وأرشفة السنوات.",
         db_index=True,
     )
+    storage_used_bytes = models.PositiveBigIntegerField(
+        "إجمالي التخزين المستخدم (بايت)",
+        default=0,
+        help_text="إجمالي تزايدي لحجم ملفات المدرسة (تقارير + ملفات إنجاز + شواهد). يُحدّث تلقائيًا.",
+    )
     created_at = models.DateTimeField("أُنشئت في", auto_now_add=True)
     updated_at = models.DateTimeField("تم التحديث في", auto_now=True)
 
@@ -81,40 +86,35 @@ class School(models.Model):
 
 
 # =========================
-# مرجع الأدوار الديناميكي
+# السنوات الدراسية (مرجع مركزي يديره مدير النظام)
 # =========================
-class Role(models.Model):
-    slug = models.SlugField("المعرّف (slug)", max_length=64, unique=True)
-    name = models.CharField("الاسم", max_length=120)
+class AcademicYear(models.Model):
+    """قائمة السنوات الدراسية الهجرية المتاحة على مستوى المنصة.
 
-    # يمنح الوصول للوحة التحكم افتراضيًا للمستخدمين الذين يحملون هذا الدور
-    is_staff_by_default = models.BooleanField("يمتلك لوحة التحكم افتراضيًا؟", default=False)
+    يديرها مدير النظام من لوحة الآدمن، وتُستخدم كمصدر للخيارات في إعدادات المدرسة.
+    """
 
-    # يرى كل أنواع التقارير (يتجاوز القيود التفصيلية)
-    can_view_all_reports = models.BooleanField("يشاهد كل التصنيفات؟", default=False)
-
-    # أنواع التقارير المسموح لهذا الدور برؤيتها (عند تعطيل can_view_all_reports)
-    allowed_reporttypes = models.ManyToManyField(
-        "ReportType",
-        blank=True,
-        related_name="roles_allowed",
-        verbose_name="الأنواع المسموح بها",
-    )
-
-    is_active = models.BooleanField("نشط", default=True)
+    value = models.CharField("السنة الدراسية (هجري)", max_length=9, unique=True, db_index=True)
+    is_active = models.BooleanField("نشطة (تظهر للمدارس)", default=True)
+    order = models.PositiveIntegerField("الترتيب", default=0)
+    created_at = models.DateTimeField("أُضيفت في", auto_now_add=True)
 
     class Meta:
-        ordering = ("slug",)
-        verbose_name = "دور"
-        verbose_name_plural = "الأدوار"
+        ordering = ("-value",)
+        verbose_name = "سنة دراسية"
+        verbose_name_plural = "السنوات الدراسية"
 
     def __str__(self) -> str:
-        return self.name or self.slug
+        return self.value
+
+    def clean(self):
+        super().clean()
+        self.value = _normalize_academic_year_hijri(self.value or "")
+        _validate_academic_year_hijri(self.value)
 
     def save(self, *args, **kwargs):
-        # تطبيع slug
-        if self.slug:
-            self.slug = self.slug.strip().lower()
+        if self.value:
+            self.value = _normalize_academic_year_hijri(self.value)
         super().save(*args, **kwargs)
 
 
@@ -138,13 +138,6 @@ class TeacherManager(BaseUserManager):
     def create_superuser(self, phone, name, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        # إن وُجد دور manager نربطه
-        try:
-            mgr = Role.objects.filter(slug=MANAGER_SLUG).first()
-            if mgr:
-                extra_fields.setdefault("role", mgr)
-        except Exception:
-            pass
         return self.create_user(phone, name, password, **extra_fields)
 
 
@@ -153,15 +146,6 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField("البريد الإلكتروني", blank=True, default="")
     national_id = models.CharField("الهوية الوطنية", max_length=20, blank=True, null=True, unique=True)
     name = models.CharField("الاسم", max_length=150, db_index=True)
-
-    role = models.ForeignKey(
-        Role,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="الدور",
-        related_name="users",
-    )
 
     # لاحقاً يمكن ربط المعلّم مباشرة بمدرسة افتراضية
     # school = models.ForeignKey(
@@ -174,7 +158,6 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     # )
 
     is_active = models.BooleanField("نشط", default=True)
-    # يُحدَّث تلقائيًا حسب role.is_staff_by_default
     is_staff = models.BooleanField("موظّف لوحة", default=False)
     is_platform_admin = models.BooleanField("مشرف عام للمنصة؟", default=False)
     current_session_key = models.CharField(max_length=64, blank=True, default="")
@@ -188,10 +171,6 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = "مستخدم (معلم)"
         verbose_name_plural = "المستخدمون"
-
-    @property
-    def role_display(self) -> str:
-        return getattr(self.role, "name", "-")
 
     @property
     def display_role_label(self) -> str:
@@ -219,19 +198,12 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
 
             return effective_user_role_label(self, active_school=active_school, active_school_id=sid)
         except Exception:
-            role_obj = getattr(self, "role", None)
-            return (
-                (getattr(role_obj, "name", None) or "").strip()
-                or (getattr(role_obj, "slug", None) or "").strip()
-                or "مستخدم"
-            )
+            return "مستخدم"
 
     def save(self, *args, **kwargs):
         try:
             if bool(self.is_superuser):
                 self.is_staff = True
-            elif self.role is not None:
-                self.is_staff = bool(self.role.is_staff_by_default)
         except Exception:
             pass
         super().save(*args, **kwargs)
@@ -239,6 +211,41 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         role_name = self.display_role_label
         return f"{self.name} ({role_name or 'بدون دور'})"
+
+
+class WebAuthnCredential(models.Model):
+    """A passkey used for biometric login.
+
+    Fingerprint/Face ID data remains on the user's device. The server stores
+    only the public key and credential id needed to verify future sign-ins.
+    """
+
+    teacher = models.ForeignKey(
+        Teacher,
+        on_delete=models.CASCADE,
+        related_name="webauthn_credentials",
+        verbose_name="المستخدم",
+    )
+    credential_id = models.BinaryField("معرّف المفتاح", unique=True)
+    credential_id_hash = models.CharField("بصمة معرّف المفتاح", max_length=64, unique=True, db_index=True)
+    public_key_cose = models.BinaryField("المفتاح العام")
+    sign_count = models.PositiveBigIntegerField("عداد التوقيع", default=0)
+    device_name = models.CharField("اسم الجهاز", max_length=120, blank=True, default="")
+    transports = models.JSONField("وسائل النقل", default=list, blank=True)
+    is_active = models.BooleanField("نشط", default=True, db_index=True)
+    last_used_at = models.DateTimeField("آخر استخدام", null=True, blank=True)
+    created_at = models.DateTimeField("تاريخ الإضافة", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "مفتاح دخول بالبصمة"
+        verbose_name_plural = "مفاتيح الدخول بالبصمة"
+        indexes = [
+            models.Index(fields=["teacher", "is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        label = self.device_name or "مفتاح دخول"
+        return f"{label} - {self.teacher}"
 
 
 # =========================

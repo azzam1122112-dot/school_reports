@@ -6,7 +6,6 @@ from django.urls import reverse
 from reports.models import (
     Department,
     DepartmentMembership,
-    Role,
     School,
     SchoolMembership,
     SchoolSubscription,
@@ -19,10 +18,6 @@ from reports.models import (
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class AssignedToMeViewTests(TestCase):
     def setUp(self):
-        self.teacher_role, _ = Role.objects.get_or_create(
-            slug="teacher",
-            defaults={"name": "Teacher"},
-        )
         self.school = School.objects.create(name="Assigned School", code="assigned-school")
         plan = SubscriptionPlan.objects.create(
             name="Assigned Plan",
@@ -35,7 +30,6 @@ class AssignedToMeViewTests(TestCase):
             phone="500000301",
             name="Assigned Teacher",
             password="pass",
-            role=self.teacher_role,
         )
         SchoolMembership.objects.create(
             school=self.school,
@@ -142,7 +136,6 @@ class AssignedToMeViewTests(TestCase):
             phone="500000302",
             name="Other Assigned User",
             password="pass",
-            role=self.teacher_role,
         )
         SchoolMembership.objects.create(
             school=self.school,
@@ -189,13 +182,11 @@ class AssignedToMeViewTests(TestCase):
             phone="500000303",
             name="Recipient Owner",
             password="pass",
-            role=self.teacher_role,
         )
         third_user = Teacher.objects.create_user(
             phone="500000304",
             name="Recipient Other",
             password="pass",
-            role=self.teacher_role,
         )
         SchoolMembership.objects.create(
             school=self.school,

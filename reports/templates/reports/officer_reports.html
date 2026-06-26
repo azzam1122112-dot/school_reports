@@ -1,6 +1,7 @@
 {# reports/templates/reports/officer_reports.html #}
 {% extends "base.html" %}
 {% load static %}
+{% load hijri_tags %}
 
 {% block title %}لوحة المسؤول - تقارير قسمي{% endblock %}
 
@@ -774,7 +775,7 @@
               {% for r in reports %}
                 <tr>
                   <td>
-                    {{ r.report_date|date:"Y-m-d" }}<br>
+                    {{ r.report_date|hijri }} هـ<br>
                     <small class="muted">{{ r.day_name|default_if_none:"" }}</small>
                   </td>
 
@@ -824,7 +825,7 @@
                         data-idea-id="idea-{{ r.pk }}"
                         data-teacher="{% if r.teacher_name %}{{ r.teacher_name|escapejs }}{% else %}{% if r.teacher and r.teacher.name %}{{ r.teacher.name|escapejs }}{% endif %}{% endif %}"
                         data-title="{{ r.title|default_if_none:''|escapejs }}"
-                        data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
+                        data-date="{{ r.report_date|hijri }} - {{ r.day_name|default_if_none:''|escapejs }}"
                         data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
                         aria-label="عرض التفاصيل"
                         title="عرض التفاصيل"
@@ -874,7 +875,7 @@
           {% for r in reports %}
             <article class="report-card">
               <div class="report-header">
-                <span>📅 {{ r.report_date|date:"Y-m-d" }} – {{ r.day_name|default_if_none:"" }}</span>
+                <span>📅 {{ r.report_date|hijri }} هـ – {{ r.day_name|default_if_none:"" }}</span>
                 <span>
                   👨‍🏫
                   {% if r.teacher_name %}
@@ -912,7 +913,7 @@
                   data-idea-id="idea-m-{{ r.pk }}"
                   data-teacher="{% if r.teacher_name %}{{ r.teacher_name|escapejs }}{% else %}{% if r.teacher and r.teacher.name %}{{ r.teacher.name|escapejs }}{% endif %}{% endif %}"
                   data-title="{{ r.title|default_if_none:''|escapejs }}"
-                  data-date="{{ r.report_date|date:'Y-m-d' }} - {{ r.day_name|default_if_none:''|escapejs }}"
+                  data-date="{{ r.report_date|hijri }} - {{ r.day_name|default_if_none:''|escapejs }}"
                   data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}"
                 >👁 عرض</button>
 

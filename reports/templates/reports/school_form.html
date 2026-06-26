@@ -90,6 +90,20 @@
   }
   .actions .btn{min-height:42px}
   .actions .btn-primary{flex:1}
+
+  /* 👑 ROYAL LUXURY — نموذج المدرسة (زمرّدي + ذهبي) */
+  .schoolform-head{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.26), transparent 50%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+  }
+  .schoolform-head::before{ content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:2;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent); }
+  .schoolform-page input:focus, .schoolform-page select:focus, .schoolform-page textarea:focus{
+    border-color:rgba(10,92,51,.5) !important; box-shadow:0 0 0 3px rgba(10,92,51,.12) !important;
+  }
+  .schoolform-page .btn-primary{ background:linear-gradient(135deg,#0a5c33,#074426); border:1px solid rgba(185,151,91,.35); }
   .actions .btn-outline{flex:0 0 auto}
 
   @media(max-width:520px){
@@ -130,6 +144,8 @@
       <div class="schoolform-card">
         <form method="post" enctype="multipart/form-data" class="grid" novalidate>
           {% csrf_token %}
+          {# الكود الداخلي مخفي ويُولَّد تلقائيًا من اسم المدرسة #}
+          {{ form.code }}
 
           {% if form.non_field_errors %}
             <div class="msg error" data-autohide="false">
@@ -146,17 +162,8 @@
             {% endif %}
           </div>
 
-          <!-- الكود/المرحلة/النوع -->
-          <div class="row-3">
-            <div class="field">
-              <label for="id_code" class="lbl">الكود الداخلي</label>
-              {{ form.code }}
-              <div class="hint">كود قصير (بالإنجليزية) لتمييز المدرسة، يُستخدم داخليًا.</div>
-              {% if form.code.errors %}
-                <div style="color:var(--danger);font-weight:950;font-size:.9rem;margin-top:6px">{{ form.code.errors.0 }}</div>
-              {% endif %}
-            </div>
-
+          <!-- المرحلة/النوع -->
+          <div class="row-2">
             <div class="field">
               <label for="id_stage" class="lbl">المرحلة</label>
               {{ form.stage }}

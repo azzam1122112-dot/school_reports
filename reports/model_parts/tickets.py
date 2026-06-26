@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .base import *
-from .schools import Department, Role, School, SchoolMembership, Teacher
+from .schools import Department, School, SchoolMembership, Teacher
 
 
 # =========================
@@ -302,64 +302,32 @@ class RequestLog(models.Model):
 @receiver(post_migrate)
 def ensure_manager_department_and_role(sender, **kwargs):
     """
-    يضمن وجود دور المدير بعد الهجرات، ويضمن وجود قسم (الإدارة) داخل كل مدرسة.
+    يضمن وجود قسم (الإدارة) الدائم داخل كل مدرسة بعد الهجرات.
 
     لماذا؟
-    - الأقسام أصبحت مخصصة لكل مدرسة، لذا نحتاج Department(slug='manager') لكل مدرسة.
-    - دور Role(slug='manager') يبقى كمرجع عام (اختياري) لبعض الشاشات/المهام.
+    - الأقسام مخصصة لكل مدرسة، لذا نحتاج Department(slug='manager') لكل مدرسة.
     """
     try:
         with transaction.atomic():
-            role, created = Role.objects.get_or_create(
-                slug=MANAGER_SLUG,
-                defaults={
-                    "name": MANAGER_ROLE_LABEL,
-                    "is_staff_by_default": True,
-                    "can_view_all_reports": True,
-                    "is_active": True,
-                },
-            )
-            if not created:
-                r_upd = []
-                if role.name != MANAGER_ROLE_LABEL:
-                    role.name = MANAGER_ROLE_LABEL
-                    r_upd.append("name")
-                if not role.is_staff_by_default:
-                    role.is_staff_by_default = True
-                    r_upd.append("is_staff_by_default")
-                if not role.can_view_all_reports:
-                    role.can_view_all_reports = True
-                    r_upd.append("can_view_all_reports")
-                if not role.is_active:
-                    role.is_active = True
-                    r_upd.append("is_active")
-                if r_upd:
-                    role.save(update_fields=r_upd)
-
-            # ✅ قسم الإدارة لكل مدرسة
-            try:
-                schools = School.objects.all().only("id")
-                for s in schools:
-                    dep, _ = Department.objects.get_or_create(
-                        school=s,
-                        slug=MANAGER_SLUG,
-                        defaults={"name": MANAGER_NAME, "role_label": MANAGER_ROLE_LABEL, "is_active": True},
-                    )
-                    updates = []
-                    if dep.name != MANAGER_NAME:
-                        dep.name = MANAGER_NAME
-                        updates.append("name")
-                    if dep.role_label != MANAGER_ROLE_LABEL:
-                        dep.role_label = MANAGER_ROLE_LABEL
-                        updates.append("role_label")
-                    if not dep.is_active:
-                        dep.is_active = True
-                        updates.append("is_active")
-                    if updates:
-                        dep.save(update_fields=updates)
-            except Exception:
-                # لا نوقف post_migrate بسبب مشاكل بيانات
-                pass
+            schools = School.objects.all().only("id")
+            for s in schools:
+                dep, _ = Department.objects.get_or_create(
+                    school=s,
+                    slug=MANAGER_SLUG,
+                    defaults={"name": MANAGER_NAME, "role_label": MANAGER_ROLE_LABEL, "is_active": True},
+                )
+                updates = []
+                if dep.name != MANAGER_NAME:
+                    dep.name = MANAGER_NAME
+                    updates.append("name")
+                if dep.role_label != MANAGER_ROLE_LABEL:
+                    dep.role_label = MANAGER_ROLE_LABEL
+                    updates.append("role_label")
+                if not dep.is_active:
+                    dep.is_active = True
+                    updates.append("is_active")
+                if updates:
+                    dep.save(update_fields=updates)
     except Exception:
         # لا نرفع خطأ أثناء post_migrate للحفاظ على استقرار الهجرات
         pass

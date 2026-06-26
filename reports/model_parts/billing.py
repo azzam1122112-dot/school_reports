@@ -179,6 +179,14 @@ class Payment(models.Model):
         default=0,
         help_text="تستخدم فقط عند طلب زيادة مساحة تخزين الأرشيف.",
     )
+    batch_ref = models.CharField(
+        "مرجع الطلب الموحّد",
+        max_length=32,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="يربط عمليات الدفع التي أُنشئت معًا ضمن طلب موحّد واحد (إيصال واحد).",
+    )
     receipt_image = models.ImageField(
         "صورة الإيصال",
         upload_to=_payment_receipt_upload_to,

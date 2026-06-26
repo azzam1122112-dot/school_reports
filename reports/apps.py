@@ -11,3 +11,11 @@ class ReportsConfig(AppConfig):
             from . import signals  # noqa: F401
         except Exception:
             pass
+
+        # Register incremental storage-usage tracking signals.
+        try:
+            from . import storage_tracking
+
+            storage_tracking.connect_all()
+        except Exception:
+            pass

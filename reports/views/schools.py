@@ -274,12 +274,37 @@ def _all_departments(active_school: Optional[School] = None):
         except Exception:
             logger.exception("Failed to batch department memberships for departments list")
 
+    # عدد تقارير كل قسم = مجموع تقارير أنواع التقارير المرتبطة بالقسم (ضمن المدرسة النشطة)
+    reports_count_by_department = defaultdict(int)
+    if Report is not None and department_ids and hasattr(Department, "reporttypes"):
+        try:
+            report_qs = Report.objects.all()
+            if active_school is not None and _model_has_field(Report, "school"):
+                report_qs = report_qs.filter(school=active_school)
+            counts_by_type = {
+                int(r["category_id"]): int(r["c"] or 0)
+                for r in report_qs.values("category_id").annotate(c=Count("id"))
+                if r.get("category_id")
+            }
+            through = Department.reporttypes.through
+            m2m_rows = (
+                through.objects
+                .filter(department_id__in=department_ids)
+                .values_list("department_id", "reporttype_id")
+            )
+            for did, rtid in m2m_rows:
+                if did and rtid:
+                    reports_count_by_department[int(did)] += counts_by_type.get(int(rtid), 0)
+        except Exception:
+            logger.exception("Failed to batch report counts for departments list")
+
     items = []
     for department in departments:
         code = _dept_code_for(department)
         stats = ticket_stats_map.get(department.pk) or {"open": 0, "in_progress": 0, "done": 0}
         member_ids = membership_teacher_ids_by_department.get(int(department.pk), set())
         members_count = len(member_ids)
+        reports_count = reports_count_by_department.get(int(department.pk), 0)
 
         items.append(
             {
@@ -289,6 +314,7 @@ def _all_departments(active_school: Optional[School] = None):
                 "name": _arabic_label_for_in_school(department, active_school),
                 "is_active": getattr(department, "is_active", True),
                 "members_count": members_count,
+                "reports_count": reports_count,
                 "stats": stats,
                 "tickets_summary": f"{stats['open']} / {stats['in_progress']} / {stats['done']}",
             }
@@ -318,14 +344,78 @@ def get_department_form():
 
 
 # ---- إعدادات المدرسة الحالية (للمدير أو المشرف العام) ----
-class _SchoolSettingsForm(forms.ModelForm):
-    years_text = forms.CharField(
-        label="السنوات الدراسية المتاحة (هجري)",
-        required=False,
-        widget=forms.TextInput(attrs={"class": "input", "placeholder": "1446-1447, 1447-1448 ..."}),
-        help_text="أدخل السنوات المسموحة مفصولة بفاصلة. اتركها فارغة لاستخدام الوضع الافتراضي."
-    )
+def _approx_current_hijri_year() -> int:
+    """تقدير السنة الهجرية الحالية (يكفي لتوليد نطاق اختيار واسع)."""
+    import datetime
 
+    today = datetime.date.today()
+    g = today.year + (today.month - 1) / 12.0
+    try:
+        return int(round((g - 622) * 33.0 / 32.0))
+    except Exception:
+        return 1447
+
+
+def _hijri_academic_year_options(instance) -> list[str]:
+    """قائمة سنوات دراسية هجرية للاختيار.
+
+    المصدر الأساسي: السنوات النشطة التي يديرها مدير النظام (AcademicYear).
+    إن لم توجد سنوات مركزية، نتراجع لنطاق تلقائي محسوب (لضمان عدم تعطّل الصفحة).
+    في الحالتين نضمّ أي قيم محفوظة فعلًا في المدرسة حتى لا تختفي.
+    """
+    import re
+
+    existing: set[str] = set()
+    cur = (getattr(instance, "current_academic_year", "") or "").strip()
+    if re.match(r"^\d{4}-\d{4}$", cur):
+        existing.add(cur)
+    for y in (getattr(instance, "allowed_academic_years", None) or []):
+        ys = str(y).strip()
+        if re.match(r"^\d{4}-\d{4}$", ys):
+            existing.add(ys)
+
+    # المصدر المركزي (يديره الآدمن)
+    try:
+        from ..models import AcademicYear
+        central = list(
+            AcademicYear.objects.filter(is_active=True).values_list("value", flat=True)
+        )
+    except Exception:
+        central = []
+
+    if central:
+        values = set(central) | existing
+        return sorted(v for v in values if re.match(r"^\d{4}-\d{4}$", str(v)))
+
+    # ── تراجع: نطاق تلقائي محسوب ──
+    starts: set[int] = set()
+    candidates: list[int] = [_approx_current_hijri_year()]
+
+    cur = (getattr(instance, "current_academic_year", "") or "").strip()
+    m = re.match(r"^(\d{4})-(\d{4})$", cur)
+    if m:
+        s = int(m.group(1))
+        starts.add(s)
+        candidates.append(s)
+
+    for y in (getattr(instance, "allowed_academic_years", None) or []):
+        mm = re.match(r"^(\d{4})-(\d{4})$", str(y).strip())
+        if mm:
+            s = int(mm.group(1))
+            starts.add(s)
+            candidates.append(s)
+
+    # المرتكز = أحدث قيمة (يضمن ظهور السنوات القادمة حتى لو كانت السنة المحفوظة قديمة)
+    anchor = max(candidates)
+
+    # نطاق: 3 سنوات سابقة + 5 قادمة حول المرتكز (قائمة مركّزة وكافية)
+    for s in range(anchor - 3, anchor + 6):
+        starts.add(s)
+
+    return [f"{s}-{s + 1}" for s in sorted(starts)]
+
+
+class _SchoolSettingsForm(forms.ModelForm):
     class Meta:
         model = School
         fields = [
@@ -340,27 +430,22 @@ class _SchoolSettingsForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance.pk and self.instance.allowed_academic_years:
-            self.fields["years_text"].initial = ", ".join(self.instance.allowed_academic_years)
 
-    def clean_years_text(self):
-        import re
-        data = self.cleaned_data.get("years_text", "")
-        if not data:
-            return []
-        years = []
-        for part in data.replace("،", ",").split(","):
-            p = part.strip()
-            if not p:
-                continue
-            if not re.match(r"^\d{4}-\d{4}$", p):
-                 # يمكن تجاهل غير الصالح أو رفع خطأ. سنرفض الخطأ لتنبيه المستخدم.
-                raise forms.ValidationError("صيغة السنة الدراسية يجب أن تكون مثل 1447-1448")
-            years.append(p)
-        
-        # ترتيبها
-        years.sort()
-        return years
+        year_options = _hijri_academic_year_options(self.instance)
+        choices = [(y, f"{y} هـ") for y in year_options]
+
+        # السنة الحالية: قائمة منسدلة بدل الإدخال اليدوي
+        self.fields["current_academic_year"] = forms.ChoiceField(
+            label="السنة الدراسية الحالية (هجري)",
+            required=False,
+            choices=[("", "— اختر السنة —")] + choices,
+            widget=forms.Select(),
+        )
+        self.fields["current_academic_year"].initial = (
+            getattr(self.instance, "current_academic_year", "") or ""
+        ).strip()
+        # ملاحظة: السنوات المتاحة للمدارس صارت تُدار مركزيًا من لوحة الآدمن
+        # (نموذج AcademicYear)، لذا أُزيل حقل اختيارها هنا منعًا للتكرار/الالتباس.
 
     def clean_current_academic_year(self):
         import re
@@ -374,10 +459,6 @@ class _SchoolSettingsForm(forms.ModelForm):
         if int(end) != int(start) + 1:
             raise forms.ValidationError("السنة الحالية يجب أن تكون بفارق سنة واحدة، مثل 1447-1448")
         return value
-
-    def save(self, commit=True):
-        self.instance.allowed_academic_years = self.cleaned_data["years_text"]
-        return super().save(commit=commit)
 
 
 @login_required(login_url="reports:login")
@@ -446,6 +527,41 @@ class _SchoolAdminForm(forms.ModelForm):
             "phone",
             "is_active",
         ]
+        # الكود الداخلي مخفي عن المستخدم ويُولَّد تلقائيًا من الاسم.
+        widgets = {"code": forms.HiddenInput()}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "code" in self.fields:
+            self.fields["code"].required = False
+
+    def _slugify_code(self, text: str) -> str:
+        from django.utils.text import slugify
+        try:
+            from unidecode import unidecode  # type: ignore
+            text = unidecode(text or "")
+        except Exception:
+            pass
+        return slugify(text or "", allow_unicode=False)
+
+    def clean_code(self):
+        code = (self.cleaned_data.get("code") or "").strip().lower()
+        if not code:
+            code = self._slugify_code(self.cleaned_data.get("name") or "")
+        if not code:
+            code = "school"
+        # ضمان كود فريد (مع استبعاد السجلّ الحالي عند التعديل)
+        base = code[:60]
+        candidate = base
+        counter = 2
+        qs = School.objects.all()
+        if getattr(self.instance, "pk", None):
+            qs = qs.exclude(pk=self.instance.pk)
+        while qs.filter(code=candidate).exists():
+            suffix = f"-{counter}"
+            candidate = f"{base[:60 - len(suffix)]}{suffix}"
+            counter += 1
+        return candidate
 
 
 @login_required(login_url="reports:login")
@@ -1158,30 +1274,6 @@ def department_create(request: HttpRequest) -> HttpResponse:
             return redirect("reports:departments_list")
         messages.error(request, "تعذّر الحفظ. تحقّق من الحقول.")
     return render(request, "reports/department_form.html", {"form": form, "mode": "create"})
-
-@login_required(login_url="reports:login")
-@role_required({"manager"})
-@require_http_methods(["GET", "POST"])
-def department_update(request: HttpRequest, pk: int) -> HttpResponse:
-    active_school = _get_active_school(request)
-    if School.objects.filter(is_active=True).exists():
-        if active_school is None:
-            messages.error(request, "فضلاً اختر مدرسة أولاً.")
-            return redirect("reports:select_school")
-        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
-            messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
-            return redirect("reports:select_school")
-    FormCls = get_department_form()
-    if not (Department is not None and FormCls is not None):
-        messages.error(request, "نموذج الأقسام غير مُعد بعد.")
-        return redirect("reports:departments_list")
-    dep = get_object_or_404(Department, pk=pk, school=active_school)  # type: ignore[arg-type]
-    form = FormCls(request.POST or None, instance=dep, active_school=active_school)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "✏️ تم تحديث بيانات القسم.")
-        return redirect("reports:departments_list")
-    return render(request, "reports/department_form.html", {"form": form, "title": "تعديل قسم", "dep": dep})
 
 @login_required(login_url="reports:login")
 @role_required({"manager"})

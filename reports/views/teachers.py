@@ -19,7 +19,7 @@ def _decorate_manage_teacher_rows(teachers, *, active_school: Optional[School]) 
         try:
             is_manager_here = bool(getattr(teacher, "is_school_manager_in_active_school", False))
             if active_school is None:
-                is_manager_here = is_school_manager(teacher, allow_legacy_role=True)
+                is_manager_here = is_school_manager(teacher)
         except Exception:
             is_manager_here = False
 
@@ -62,7 +62,7 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
 
     term = (request.GET.get("q") or "").strip()
 
-    qs = Teacher.objects.select_related("role").order_by("-id")
+    qs = Teacher.objects.order_by("-id")
 
     # ✅ عزل حسب المدرسة (نُظهر المعلمين + مشرفي التقارير المرتبطين بالمدرسة)
     if active_school is not None:
@@ -164,17 +164,16 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         excel_file = request.FILES.get("excel_file")
         if not excel_file:
-            messages.error(request, "الرجاء اختيار ملف Excel.")
+            messages.error(request, "الرجاء اختيار ملف للاستيراد.")
             return render(request, "reports/bulk_import_teachers.html")
 
-        # تحقق بسيط من الامتداد لتقليل أخطاء المستخدم
-        try:
-            fname = (getattr(excel_file, "name", "") or "").lower()
-            if not fname.endswith(".xlsx"):
-                messages.error(request, "الملف غير صالح. الرجاء اختيار ملف بصيغة .xlsx")
-                return render(request, "reports/bulk_import_teachers.html")
-        except Exception:
-            pass
+        # دعم صيغتين: Excel (.xlsx) و CSV (.csv)
+        fname = (getattr(excel_file, "name", "") or "").lower()
+        is_csv = fname.endswith(".csv")
+        is_xlsx = fname.endswith(".xlsx")
+        if not (is_csv or is_xlsx):
+            messages.error(request, "صيغة غير مدعومة. الرجاء اختيار ملف بصيغة .xlsx أو .csv")
+            return render(request, "reports/bulk_import_teachers.html")
 
         try:
             import re
@@ -225,8 +224,22 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                 digits = re.sub(r"\D+", "", s)
                 return digits or s
 
-            wb = openpyxl.load_workbook(excel_file, read_only=True, data_only=True)
-            sheet = wb.active
+            # قراءة موحّدة للصفوف من xlsx أو csv
+            if is_xlsx:
+                wb = openpyxl.load_workbook(excel_file, read_only=True, data_only=True)
+                sheet = wb.active
+                all_rows = list(sheet.iter_rows(values_only=True))
+            else:
+                import csv as _csv
+                import io as _io
+
+                raw = excel_file.read()
+                if isinstance(raw, bytes):
+                    # utf-8-sig يتعامل مع BOM الذي يضيفه Excel عند حفظ CSV
+                    text = raw.decode("utf-8-sig", errors="replace")
+                else:
+                    text = str(raw)
+                all_rows = [tuple(r) for r in _csv.reader(_io.StringIO(text))]
 
             def _norm_header(v) -> str:
                 s = _norm_str(v).lower()
@@ -234,7 +247,8 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                 s = re.sub(r"[\-_/\\]+", "", s)
                 return s
 
-            header_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True), None) or ()
+            header_row = (all_rows[0] if all_rows else ()) or ()
+            data_rows = all_rows[1:] if len(all_rows) > 1 else []
             header_norm = [_norm_header(h) for h in (header_row or ())]
 
             def _find_col_idx(candidates: tuple[str, ...]) -> int | None:
@@ -258,7 +272,7 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
             nat_ids_in_file: set[str] = set()
 
             max_rows_guard = 2000
-            for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+            for row_idx, row in enumerate(data_rows, start=2):
                 if len(parsed_rows) >= max_rows_guard:
                     messages.error(request, f"الملف يحتوي على عدد كبير من الصفوف (>{max_rows_guard}). الرجاء تقسيم الملف.")
                     return render(request, "reports/bulk_import_teachers.html")
@@ -460,6 +474,65 @@ def bulk_import_teachers(request: HttpRequest) -> HttpResponse:
             messages.error(request, "تعذّر معالجة الملف. تأكد أنه ملف .xlsx صحيح ومطابق للتعليمات.")
 
     return render(request, "reports/bulk_import_teachers.html")
+
+
+@login_required(login_url="reports:login")
+@role_required({"manager"})
+@require_http_methods(["GET"])
+def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
+    """تنزيل قالب Excel جاهز بالأعمدة الصحيحة + صفوف مثال — لتسهيل الاستيراد."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "المعلمون"
+    ws.sheet_view.rightToLeft = True
+
+    headers = ["الاسم الكامل", "رقم الجوال", "رقم الهوية"]
+    examples = [
+        ["محمد أحمد الغامدي", "0551234567", "1012345678"],
+        ["سارة علي الشهري", "0509876543", ""],
+    ]
+
+    header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=12)
+    header_fill = PatternFill("solid", fgColor="0F8F6B")
+    center = Alignment(horizontal="center", vertical="center")
+    right = Alignment(horizontal="right", vertical="center", readingOrder=2)
+    thin = Side(style="thin", color="D6E4DC")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for col, head in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=head)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = border
+    for r, row in enumerate(examples, start=2):
+        for col, val in enumerate(row, start=1):
+            cell = ws.cell(row=r, column=col, value=val)
+            cell.alignment = right
+            cell.border = border
+
+    ws.column_dimensions["A"].width = 30
+    ws.column_dimensions["B"].width = 18
+    ws.column_dimensions["C"].width = 18
+    ws.freeze_panes = "A2"
+    # تلميحات في صف أسفل المثال
+    ws.cell(row=5, column=1, value="مطلوب").alignment = right
+    ws.cell(row=5, column=2, value="مطلوب (يُستخدم كاسم دخول وكلمة مرور افتراضية)").alignment = right
+    ws.cell(row=5, column=3, value="اختياري").alignment = right
+
+    from io import BytesIO
+    buf = BytesIO()
+    wb.save(buf)
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="teachers-import-template.xlsx"'
+    return response
+
 
 @login_required(login_url="reports:login")
 @role_required({"manager"})

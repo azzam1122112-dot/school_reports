@@ -72,6 +72,13 @@
     padding:clamp(14px,2.2vw,22px);
   }
 
+  .dept-scope .toolbar{
+    display:flex;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .dept-scope .toolbar .d-btn{ min-height:42px; }
+
   .dept-scope .header{
     display:flex;
     align-items:flex-start;
@@ -422,6 +429,53 @@
     .dept-scope .member-card:hover,
     .dept-scope .d-btn:hover{transform:none !important}
   }
+
+  /* ============================================================
+     👑 ROYAL LUXURY — أعضاء القسم (زمرّدي + ذهبي)
+     ============================================================ */
+  .dept-scope{ --d-brand:#0a5c33; --d-brand-2:#074426; --d-brand-soft:#e9f3ec; }
+  html[data-theme="dark"] .dept-scope{ --d-brand-soft:#123524; }
+  .dept-scope .panel{
+    border-color:rgba(185,151,91,.22);
+    background:
+      radial-gradient(1100px 420px at 100% -20%, rgba(10,92,51,.10), transparent 60%),
+      radial-gradient(900px 360px at 0% -10%, rgba(212,177,109,.12), transparent 58%),
+      linear-gradient(180deg, var(--d-card), color-mix(in srgb, var(--d-card) 88%, var(--d-bg)));
+    box-shadow:0 26px 60px -28px rgba(10,92,51,.5);
+  }
+  .dept-scope .panel::before{
+    content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:2;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .dept-scope .kicker{
+    border-color:rgba(185,151,91,.4);
+    background:linear-gradient(180deg,#0b6238,#074426);
+    color:#fdf6e6;
+  }
+  .dept-scope .kicker i{ color:#e6cf9a; }
+  .dept-scope .badge{
+    background:linear-gradient(180deg,#faf7ef,#f1e8d2);
+    border-color:rgba(185,151,91,.4);
+    color:#5a4416;
+  }
+  html[data-theme="dark"] .dept-scope .badge{
+    background:linear-gradient(180deg,#2a2415,#221d10);
+    border-color:#5a4a22; color:#e6cf9a;
+  }
+  .dept-scope .badge i{ color:#b9975b; }
+  .dept-scope .d-btn-primary{ box-shadow:0 10px 26px rgba(10,92,51,.28); }
+  .dept-scope .avatar{
+    background:linear-gradient(135deg, rgba(10,92,51,.12), rgba(212,177,109,.18));
+    color:#0a5c33; border-color:rgba(185,151,91,.3);
+  }
+  .dept-scope .role-officer{
+    background:linear-gradient(180deg,#0b6238,#074426); color:#fdf6e6; border-color:rgba(185,151,91,.4);
+  }
+  .dept-scope .role-officer i{ color:#e6cf9a; }
+  .dept-scope .role-member{
+    background:rgba(212,177,109,.14); color:#7a5c1e; border-color:rgba(185,151,91,.35);
+  }
+  .dept-scope .role-member i{ color:#b9975b; }
 </style>
 {% endblock head %}
 
@@ -429,6 +483,13 @@
 <div class="dept-scope">
   <div class="wrap" dir="rtl">
     <div class="panel">
+      <div class="toolbar">
+        <a href="{% url 'reports:departments_list' %}" class="d-btn d-btn-secondary">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          رجوع للأقسام
+        </a>
+      </div>
+
       <div class="header">
         <div class="header-left">
           <span class="kicker">
@@ -450,16 +511,11 @@
           </h1>
 
           <div class="sub">
-            {% if has_dept_model %}وضع الأقسام المُهيكل (Department/Member){% else %}وضع الأدوار التراثي (Teacher.role){% endif %}
+            عيّن مسؤولًا للقسم وأسنِد الأعضاء إليه؛ المسؤول يطّلع على تقارير الأنواع المرتبطة بالقسم فقط.
           </div>
         </div>
 
         <div class="header-actions">
-          <a href="{% url 'reports:departments_list' %}" class="d-btn d-btn-secondary">
-            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            رجوع للأقسام
-          </a>
-
           <div class="stats" aria-label="إحصاءات القسم">
             <span class="badge">
               <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
@@ -560,7 +616,7 @@
               </div>
 
               <div class="actions">
-                <form method="post" onsubmit="return confirm('إلغاء تكليف {{ m.name }} من هذا القسم؟');">
+                <form method="post" data-confirm="إلغاء تكليف {{ m.name|escapejs }} من هذا القسم؟">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="remove">
                   <input type="hidden" name="teacher_id" value="{{ m.id }}">
@@ -586,7 +642,7 @@
               </div>
 
               <div class="actions">
-                <form method="post" onsubmit="return confirm('إلغاء تكليف {{ m.name }} من هذا القسم؟');">
+                <form method="post" data-confirm="إلغاء تكليف {{ m.name|escapejs }} من هذا القسم؟">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="remove">
                   <input type="hidden" name="teacher_id" value="{{ m.id }}">
@@ -654,5 +710,12 @@
     input.addEventListener('input', apply);
     apply();
   })();
+
+  // تأكيد الحذف/الإلغاء بدون onsubmit المضمّن (متوافق مع CSP)
+  document.querySelectorAll('form[data-confirm]').forEach(function(f){
+    f.addEventListener('submit', function(e){
+      if(!window.confirm(f.getAttribute('data-confirm'))){ e.preventDefault(); }
+    });
+  });
 </script>
 {% endblock scripts %}

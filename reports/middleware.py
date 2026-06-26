@@ -2,7 +2,7 @@ from django.conf import settings
 import logging
 from django.contrib.auth import logout
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse, resolve
 from django.utils import timezone
 from django.contrib import messages
@@ -129,6 +129,131 @@ class AuditLogMiddleware:
             del _thread_locals.request
         if hasattr(_thread_locals, "suppress_audit_logging"):
             delattr(_thread_locals, "suppress_audit_logging")
+        return response
+
+
+class MaintenanceModeMiddleware:
+    """Show a site-wide maintenance screen while keeping superuser access."""
+
+    CACHE_KEY = "platform_maintenance_state_v1"
+    CACHE_TIMEOUT = 15
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def _state(self) -> dict:
+        try:
+            from django.core.cache import cache
+
+            cached = cache.get(self.CACHE_KEY)
+            if cached is not None:
+                return cached
+        except Exception:
+            cache = None  # type: ignore
+
+        state = {"enabled": False, "message": ""}
+        try:
+            from .models import PlatformSettings
+
+            row = (
+                PlatformSettings.objects.order_by("id")
+                .values("maintenance_mode_enabled", "maintenance_message")
+                .first()
+            )
+            if row:
+                state = {
+                    "enabled": bool(row.get("maintenance_mode_enabled")),
+                    "message": (row.get("maintenance_message") or "").strip(),
+                }
+        except Exception:
+            return state
+
+        try:
+            if cache is not None:
+                cache.set(self.CACHE_KEY, state, self.CACHE_TIMEOUT)
+        except Exception:
+            pass
+        return state
+
+    def _wants_json(self, request) -> bool:
+        try:
+            accept = (request.headers.get("Accept") or "").lower()
+            xrw = (request.headers.get("X-Requested-With") or "").lower()
+            path = (getattr(request, "path", "") or "").lower()
+            return path.startswith("/api/") or ("application/json" in accept) or (xrw == "xmlhttprequest")
+        except Exception:
+            return False
+
+    def _is_exempt_path(self, request) -> bool:
+        path = getattr(request, "path", "") or ""
+        if path.startswith(("/static/", "/media/", "/admin-panel/")):
+            return True
+        normalized_path = path.rstrip("/") or "/"
+        if normalized_path in {
+            "/platform-login",
+            "/platform-dashboard",
+            "/platform/settings",
+            "/api/dashboard/platform",
+            "/api/dashboard/platform/search",
+        }:
+            return True
+        if path in {
+            "/healthz/",
+            "/favicon.ico",
+            "/favicon.png",
+            "/robots.txt",
+            "/sitemap.xml",
+            "/sw.js",
+            "/.well-known/security.txt",
+        }:
+            return True
+
+        try:
+            match = resolve(request.path_info)
+            full_name = f"{match.namespace}:{match.url_name}" if match.namespace else (match.url_name or "")
+        except Exception:
+            full_name = ""
+
+        return full_name in {
+            "reports:login",
+            "reports:platform_login",
+            "reports:logout",
+            "reports:platform_admin_dashboard",
+            "reports:api_platform_dashboard_data",
+            "reports:api_platform_dashboard_search",
+            "reports:platform_settings",
+            "service_worker",
+        }
+
+    def __call__(self, request):
+        state = self._state()
+        if not bool(state.get("enabled")):
+            return self.get_response(request)
+
+        user = getattr(request, "user", None)
+        if getattr(user, "is_authenticated", False) and getattr(user, "is_superuser", False):
+            return self.get_response(request)
+
+        if self._is_exempt_path(request):
+            return self.get_response(request)
+
+        message = (state.get("message") or "").strip()
+        if self._wants_json(request):
+            return JsonResponse(
+                {
+                    "detail": "maintenance_mode",
+                    "message": message or "الموقع تحت الصيانة والتطوير حالياً.",
+                },
+                status=503,
+            )
+
+        response = render(
+            request,
+            "reports/maintenance_mode.html",
+            {"maintenance_message": message},
+            status=503,
+        )
+        response["Retry-After"] = "300"
         return response
 
 
@@ -870,8 +995,8 @@ class ContentSecurityPolicyMiddleware:
             "form-action 'self'",
             "object-src 'none'",
             "frame-ancestors 'none'",
-            f"script-src 'self' 'nonce-{nonce}'",
-            f"script-src-elem 'self' 'nonce-{nonce}'",
+            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
+            f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
             "img-src 'self' data: blob: https:",

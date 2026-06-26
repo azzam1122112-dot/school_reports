@@ -1,6 +1,7 @@
 {# reports/templates/reports/admin_reports.html (أو اسم القالب لديك) #}
 {% extends "base.html" %}
 {% load static %}
+{% load hijri_tags %}
 
 {% block title %}لوحة التحكم بالتقارير{% endblock %}
 
@@ -8,46 +9,55 @@
 <style>
   /* =========================================================
      لوحة التقارير - تصميم 2026
-     تصميم عصري وفخم مع تأثيرات متقدمة
+     هوية المنصة: أخضر سعودي (#006c35) + ذهبي (#b9975b)
+     متوافق مع نظام التصميم في base.html
      ========================================================= */
 
-  :root {
-    --primary-gradient: linear-gradient(135deg, #006c35 0%, #b9975b 100%);
-    --accent-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  }
-
   .repdash-wrap {
+    /* ── ألوان الهوية ── */
     --rd-primary: #006c35;
+    --rd-primary-soft: rgba(0, 108, 53, 0.08);
+    --rd-primary-ring: rgba(0, 108, 53, 0.16);
     --rd-secondary: #b9975b;
-    --rd-bg: #f5f7fa;
+    --rd-gradient: linear-gradient(135deg, #006c35 0%, #0a8f49 55%, #b9975b 140%);
+
+    /* ── أسطح وألوان محايدة (وضع فاتح) ── */
+    --rd-bg: #f4f7f3;
     --rd-card: #ffffff;
-    --rd-text: #1a202c;
-    --rd-text-light: #718096;
-    --rd-border: #e2e8f0;
-    --rd-hover: #edf2f7;
-    
-    --rd-radius-xl: 24px;
-    --rd-radius-lg: 18px;
-    --rd-radius-md: 14px;
-    --rd-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-    --rd-shadow-md: 0 10px 40px rgba(0, 0, 0, 0.08);
-    --rd-shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
-    --rd-ring: 0 0 0 4px rgba(102, 126, 234, 0.15);
-    --rd-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+    --rd-soft: #edf5ef;
+    --rd-text: #10251f;
+    --rd-text-light: #68766f;
+    --rd-border: #e3ebe5;
+
+    --rd-radius-xl: 22px;
+    --rd-radius-lg: 16px;
+    --rd-radius-md: 12px;
+    --rd-shadow-sm: 0 1px 3px rgba(16, 37, 31, 0.05);
+    --rd-shadow-md: 0 8px 28px rgba(16, 37, 31, 0.07);
+    --rd-shadow-lg: 0 22px 55px rgba(16, 37, 31, 0.14);
+    --rd-ring: 0 0 0 4px var(--rd-primary-ring);
+    --rd-transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
     background: var(--rd-bg);
     min-height: 100vh;
     padding: 2rem 0;
   }
 
   html[data-theme="dark"] .repdash-wrap {
-    --rd-bg: #0f172a;
-    --rd-card: #1e293b;
+    --rd-primary: #34d399;
+    --rd-primary-soft: rgba(52, 211, 153, 0.10);
+    --rd-primary-ring: rgba(52, 211, 153, 0.22);
+    --rd-secondary: #d4b483;
+    --rd-gradient: linear-gradient(135deg, #0a8f49 0%, #15a85c 55%, #d4b483 150%);
+    --rd-bg: #0b1220;
+    --rd-card: #131c2b;
+    --rd-soft: #1b2538;
     --rd-text: #f1f5f9;
-    --rd-text-light: #94a3b8;
-    --rd-border: #334155;
-    --rd-hover: #1e293b;
+    --rd-text-light: #93a3b5;
+    --rd-border: #28344a;
+    --rd-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --rd-shadow-md: 0 8px 28px rgba(0, 0, 0, 0.4);
+    --rd-shadow-lg: 0 22px 55px rgba(0, 0, 0, 0.55);
   }
 
   .repdash-container {
@@ -60,14 +70,15 @@
   .repdash-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 24px;
     flex-wrap: wrap;
-    margin: 0 0 40px;
+    margin: 0 0 28px;
     background: var(--rd-card);
-    padding: 32px;
+    padding: 28px 32px;
     border-radius: var(--rd-radius-xl);
     box-shadow: var(--rd-shadow-md);
+    border: 1px solid var(--rd-border);
     position: relative;
     overflow: hidden;
   }
@@ -75,43 +86,47 @@
   .repdash-header::before {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+    inset-block-start: 0;
+    inset-inline: 0;
     height: 5px;
-    background: var(--primary-gradient);
+    background: var(--rd-gradient);
+  }
+
+  .repdash-header-main {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+  }
+
+  .repdash-header-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--rd-radius-lg);
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    background: var(--rd-gradient);
+    color: #fff;
+    font-size: 1.6rem;
+    box-shadow: 0 10px 24px rgba(0, 108, 53, 0.28);
   }
 
   .repdash-title {
     margin: 0;
     font-weight: 800;
-    font-size: clamp(1.5rem, 3vw, 2.25rem);
-    background: var(--primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    display: flex;
-    align-items: center;
-    gap: 14px;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    color: var(--rd-text);
     letter-spacing: -0.3px;
-  }
-
-  .repdash-title i {
-    font-size: 1.3em;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(1.05); }
+    line-height: 1.2;
   }
 
   .repdash-sub {
-    margin: 10px 0 0;
+    margin: 6px 0 0;
     color: var(--rd-text-light);
     font-weight: 600;
-    font-size: 1.05rem;
-    line-height: 1.6;
+    font-size: 1rem;
+    line-height: 1.5;
   }
 
   .repdash-header-actions {
@@ -119,90 +134,124 @@
     gap: 12px;
     flex-wrap: wrap;
     align-items: center;
-    margin-top: 4px;
+  }
+
+  /* بطاقة عدّاد التقارير في الترويسة */
+  .repdash-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-radius: var(--rd-radius-lg);
+    background: var(--rd-primary-soft);
+    border: 1px solid var(--rd-border);
+    color: var(--rd-text);
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .repdash-count .n {
+    font-size: 1.5rem;
+    color: var(--rd-primary);
+    line-height: 1;
+  }
+
+  .repdash-count .lbl {
+    font-size: 0.8rem;
+    color: var(--rd-text-light);
+    font-weight: 700;
   }
 
   /* ===== Cards ===== */
   .repdash-card {
     background: var(--rd-card);
-    border: 2px solid var(--rd-border);
+    border: 1px solid var(--rd-border);
     border-radius: var(--rd-radius-xl);
     box-shadow: var(--rd-shadow-md);
     overflow: hidden;
     transition: var(--rd-transition);
   }
 
-  .repdash-card:hover {
-    box-shadow: var(--rd-shadow-lg);
-  }
-
   /* ===== Filters ===== */
   .repdash-filters {
-    padding: 28px;
-    margin-bottom: 28px;
+    padding: 24px;
+    margin-bottom: 24px;
   }
 
   .repdash-filters-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 18px;
     align-items: end;
   }
 
   .repdash-field {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    min-width: 0;
   }
 
   .repdash-field label {
     display: block;
-    font-size: 1rem;
     font-weight: 800;
-    color: var(--rd-text);
-    margin-bottom: 0;
-    text-transform: uppercase;
+    color: var(--rd-text-light);
     letter-spacing: 0.02em;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
   }
 
   .repdash-control {
     width: 100%;
-    padding: 14px 18px;
-    border: 2px solid var(--rd-border);
+    padding: 13px 16px;
+    border: 1.5px solid var(--rd-border);
     border-radius: var(--rd-radius-md);
-    font-size: 1rem;
+    font-size: 0.98rem;
     font-weight: 600;
+    font-family: inherit;
     background: var(--rd-card);
     color: var(--rd-text);
     transition: var(--rd-transition);
-    box-shadow: var(--rd-shadow-sm);
   }
 
   .repdash-control:focus {
     outline: none;
     border-color: var(--rd-primary);
     box-shadow: var(--rd-ring);
-    transform: translateY(-2px);
   }
 
   .repdash-control:hover {
-    border-color: rgba(102, 126, 234, 0.5);
+    border-color: var(--rd-primary);
+  }
+
+  /* قائمة منسدلة بسهم مخصّص (لتمييزها عن حقول الإدخال النصية) */
+  select.repdash-control {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-inline-end: 42px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23006c35' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 16px center;
+    cursor: pointer;
+  }
+
+  html[data-theme="dark"] select.repdash-control {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2334d399' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   }
 
   .repdash-actions {
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
   }
 
-  /* ===== Table - تصميم محسّن ===== */
+  /* ===== Table ===== */
   .repdash-table-wrap {
-    margin-top: 28px;
     box-shadow: var(--rd-shadow-md);
     border-radius: var(--rd-radius-xl);
     overflow: hidden;
-    border: 2px solid var(--rd-border);
+    border: 1px solid var(--rd-border);
   }
 
   .repdash-table-scroll {
@@ -217,19 +266,21 @@
   }
 
   .repdash-table thead th {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.08));
-    padding: 20px 18px;
+    background: var(--rd-soft);
+    padding: 16px 18px;
     font-weight: 800;
     color: var(--rd-text);
-    border-bottom: 3px solid var(--rd-primary);
+    border-bottom: 2px solid var(--rd-primary);
     white-space: nowrap;
-    font-size: 1rem;
-    text-transform: uppercase;
+    font-size: 0.85rem;
     letter-spacing: 0.02em;
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
 
   .repdash-table td {
-    padding: 18px;
+    padding: 16px 18px;
     border-bottom: 1px solid var(--rd-border);
     vertical-align: middle;
     color: var(--rd-text);
@@ -237,197 +288,148 @@
   }
 
   .repdash-table tbody tr {
-    transition: var(--rd-transition);
+    transition: background 0.18s ease;
     background: var(--rd-card);
   }
 
   .repdash-table tbody tr:hover {
-    background: rgba(102, 126, 234, 0.08);
-    transform: scale(1.001);
-  }
-
-  html[data-theme="dark"] .repdash-table tbody tr:hover {
-    background: rgba(102, 126, 234, 0.15);
+    background: var(--rd-primary-soft);
   }
 
   .repdash-table tbody tr:last-child td {
     border-bottom: none;
   }
 
-  /* ===== Badges - تصميم محسّن ===== */
+  /* ===== Badges ===== */
   .rd-badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
+    gap: 7px;
+    padding: 7px 14px;
     border-radius: 999px;
-    font-weight: 800;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 0.85rem;
     white-space: nowrap;
-    transition: var(--rd-transition);
-    box-shadow: var(--rd-shadow-sm);
-  }
-
-  .rd-badge:hover {
-    transform: scale(1.05);
-    box-shadow: var(--rd-shadow-md);
+    border: 1px solid transparent;
   }
 
   .rd-badge-school {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    border: 2px solid rgba(15, 143, 135, 0.4);
-    color: #00542a;
+    background: var(--rd-primary-soft);
+    border-color: rgba(0, 108, 53, 0.25);
+    color: var(--rd-primary);
   }
 
   html[data-theme="dark"] .rd-badge-school {
-    background: linear-gradient(135deg, rgba(15, 143, 135, 0.2) 0%, rgba(15, 143, 135, 0.15) 100%);
-    color: #93c5fd;
+    color: #6ee7b7;
   }
 
   .rd-badge-cat {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border: 2px solid rgba(245, 158, 11, 0.4);
-    color: #92400e;
+    background: rgba(185, 151, 91, 0.12);
+    border-color: rgba(185, 151, 91, 0.30);
+    color: #8d6b2f;
   }
 
   html[data-theme="dark"] .rd-badge-cat {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.15) 100%);
-    color: #fcd34d;
+    color: #e6cfa3;
   }
 
-  /* ===== User Cell - تصميم محسّن ===== */
+  /* ===== User Cell ===== */
   .rd-user {
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 240px;
+    min-width: 200px;
   }
 
   .rd-avatar {
-    width: 52px;
-    height: 52px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
     display: grid;
     place-items: center;
     font-weight: 800;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #fff;
-    background: var(--primary-gradient);
-    border: 3px solid var(--rd-border);
+    background: var(--rd-gradient);
     flex: 0 0 auto;
-    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
-    transition: var(--rd-transition);
-  }
-
-  .rd-avatar:hover {
-    transform: scale(1.1);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 5px 14px rgba(0, 108, 53, 0.28);
   }
 
   .rd-user .nm {
     font-weight: 800;
     color: var(--rd-text);
     line-height: 1.4;
-    font-size: 1rem;
+    font-size: 0.98rem;
   }
 
-  /* ===== Icon Buttons - تصميم محسّن للوضوح ===== */
+  /* ===== Icon Buttons ===== */
   .rd-iconbtn {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 10px 12px;
+    min-width: 42px;
+    min-height: 42px;
+    padding: 9px 12px;
     border-radius: var(--rd-radius-md);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    border: 2px solid var(--rd-border);
+    border: 1.5px solid var(--rd-border);
     background: var(--rd-card);
     color: var(--rd-text);
     cursor: pointer;
     transition: var(--rd-transition);
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.9rem;
-    box-shadow: var(--rd-shadow-sm);
     white-space: nowrap;
   }
 
   .rd-iconbtn i {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
   }
 
   .rd-iconbtn:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
+    box-shadow: var(--rd-shadow-sm);
+  }
+
+  /* الأزرار هادئة (محايدة) افتراضيًا، ويظهر لونها الدلالي عند التحويم فقط
+     لتقليل الضجيج البصري وإبراز بيانات الجدول */
+  .rd-iconbtn {
+    color: var(--rd-text-light);
+  }
+
+  .rd-iconbtn.rd-view:hover,
+  .rd-iconbtn.rd-view:focus-visible {
     color: var(--rd-primary);
-    box-shadow: var(--rd-shadow-md);
-    background: rgba(102, 126, 234, 0.12);
+    background: var(--rd-primary-soft);
     border-color: var(--rd-primary);
   }
 
-  html[data-theme="dark"] .rd-iconbtn:hover {
-    background: rgba(102, 126, 234, 0.2);
-  }
-
-  .rd-iconbtn.rd-del:hover {
-    color: #ff6b6b;
-    background: rgba(255, 107, 107, 0.12);
-    border-color: #ff6b6b;
-  }
-
-  /* أزرار ملونة للتمييز */
-  .rd-iconbtn.rd-view {
-    color: #006c35;
-    border-color: rgba(102, 126, 234, 0.3);
-    background: rgba(102, 126, 234, 0.05);
-  }
-
-  .rd-iconbtn.rd-view:hover {
-    background: rgba(102, 126, 234, 0.15);
-    border-color: #006c35;
-  }
-
-  .rd-iconbtn.rd-print {
-    color: #16845b;
-    border-color: rgba(16, 185, 129, 0.3);
-    background: rgba(16, 185, 129, 0.05);
-  }
-
-  .rd-iconbtn.rd-print:hover {
-    background: rgba(16, 185, 129, 0.15);
-    border-color: #16845b;
-  }
-
-  .rd-iconbtn.rd-edit {
-    color: #b9975b;
-    border-color: rgba(245, 158, 11, 0.3);
-    background: rgba(245, 158, 11, 0.05);
-  }
-
-  .rd-iconbtn.rd-edit:hover {
-    background: rgba(245, 158, 11, 0.15);
-    border-color: #b9975b;
-  }
-
-  .rd-iconbtn.rd-share {
+  .rd-iconbtn.rd-print:hover,
+  .rd-iconbtn.rd-print:focus-visible {
     color: #0f8f87;
-    border-color: rgba(15, 143, 135, 0.3);
-    background: rgba(15, 143, 135, 0.05);
-  }
-
-  .rd-iconbtn.rd-share:hover {
-    background: rgba(15, 143, 135, 0.15);
+    background: rgba(15, 143, 135, 0.12);
     border-color: #0f8f87;
   }
 
-  .rd-iconbtn.rd-del {
-    color: #ef4444;
-    border-color: rgba(239, 68, 68, 0.3);
-    background: rgba(239, 68, 68, 0.05);
+  .rd-iconbtn.rd-edit:hover,
+  .rd-iconbtn.rd-edit:focus-visible {
+    color: #8d6b2f;
+    background: rgba(185, 151, 91, 0.15);
+    border-color: var(--rd-secondary);
   }
 
-  .rd-iconbtn.rd-del:hover {
-    background: rgba(239, 68, 68, 0.15);
+  .rd-iconbtn.rd-share:hover,
+  .rd-iconbtn.rd-share:focus-visible {
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.12);
+    border-color: #2563eb;
+  }
+
+  .rd-iconbtn.rd-del:hover,
+  .rd-iconbtn.rd-del:focus-visible {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
     border-color: #ef4444;
   }
 
@@ -468,7 +470,7 @@
   .rd-empty i {
     opacity: 0.5;
     margin-bottom: 20px;
-    background: var(--primary-gradient);
+    background: var(--rd-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -478,15 +480,15 @@
   /* ===== Mobile Cards - تصميم محسّن ===== */
   .repdash-mobile {
     display: none;
-    gap: 24px;
-    margin-top: 28px;
+    gap: 16px;
+    margin-top: 4px;
   }
 
   .rd-card {
     background: var(--rd-card);
-    border: 2px solid var(--rd-border);
+    border: 1px solid var(--rd-border);
     border-radius: var(--rd-radius-lg);
-    padding: 24px;
+    padding: 20px;
     box-shadow: var(--rd-shadow-md);
     transition: var(--rd-transition);
     position: relative;
@@ -500,7 +502,7 @@
     right: 0;
     width: 4px;
     height: 100%;
-    background: var(--primary-gradient);
+    background: var(--rd-gradient);
     opacity: 0.7;
   }
 
@@ -515,9 +517,9 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 16px;
-    padding-bottom: 18px;
-    margin-bottom: 18px;
-    border-bottom: 2px solid var(--rd-border);
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--rd-border);
   }
 
   .rd-card-title {
@@ -533,7 +535,7 @@
     font-size: 0.95rem;
     white-space: nowrap;
     padding: 6px 12px;
-    background: var(--rd-hover);
+    background: var(--rd-soft);
     border-radius: var(--rd-radius-md);
   }
 
@@ -571,9 +573,9 @@
   }
 
   .rd-card-actions {
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 2px solid var(--rd-border);
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rd-border);
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 12px;
@@ -613,22 +615,22 @@
     background: var(--rd-card);
     color: var(--rd-text);
     box-shadow: 0 30px 100px rgba(0, 0, 0, 0.4);
-    border: 2px solid var(--rd-border);
+    border: 1px solid var(--rd-border);
   }
 
   .repdash-wrap dialog::backdrop {
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
   }
 
   .rd-dlg-hd {
-    padding: 24px 28px;
-    border-bottom: 3px solid var(--rd-border);
+    padding: 22px 26px;
+    border-bottom: 1px solid var(--rd-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.05));
+    background: var(--rd-primary-soft);
   }
 
   .rd-dlg-hd h3 {
@@ -654,7 +656,7 @@
     border: 2px solid var(--rd-border);
     border-radius: var(--rd-radius-md);
     padding: 20px;
-    background: linear-gradient(to bottom, rgba(102, 126, 234, 0.03), transparent);
+    background: linear-gradient(to bottom, var(--rd-primary-soft), transparent);
     box-shadow: var(--rd-shadow-sm);
   }
 
@@ -710,13 +712,98 @@
     border: 2px solid var(--rd-border);
     cursor: zoom-in;
     transition: var(--rd-transition);
-    background: var(--rd-hover);
+    background: var(--rd-soft);
   }
 
   .rd-thumb:hover {
     transform: translateY(-4px) scale(1.05);
     box-shadow: var(--rd-shadow-md);
     border-color: var(--rd-primary);
+  }
+
+  /* ===== Confirm Delete Dialog ===== */
+  .repdash-wrap dialog.rd-confirm {
+    width: min(440px, 92vw);
+    max-width: 440px;
+    padding: 32px 28px 26px;
+    text-align: center;
+    border-radius: var(--rd-radius-xl);
+  }
+
+  .rd-confirm-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.7rem;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(239, 68, 68, 0.22);
+  }
+
+  .rd-confirm-title {
+    margin: 0 0 10px;
+    font-weight: 800;
+    font-size: 1.25rem;
+    color: var(--rd-text);
+  }
+
+  .rd-confirm-text {
+    margin: 0 0 24px;
+    color: var(--rd-text-light);
+    font-weight: 600;
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .rd-confirm-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .rd-confirm-btn {
+    flex: 1;
+    min-height: 50px;
+    border-radius: var(--rd-radius-md);
+    font-weight: 800;
+    font-size: 1rem;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: var(--rd-transition);
+    border: 1.5px solid transparent;
+  }
+
+  .rd-confirm-cancel {
+    background: var(--rd-soft);
+    color: var(--rd-text);
+    border-color: var(--rd-border);
+  }
+
+  .rd-confirm-cancel:hover {
+    background: var(--rd-border);
+  }
+
+  .rd-confirm-ok {
+    background: #ef4444;
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.30);
+  }
+
+  .rd-confirm-ok:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 420px) {
+    .rd-confirm-actions {
+      flex-direction: column-reverse;
+    }
   }
 
   /* ===== Lightbox ===== */
@@ -778,11 +865,20 @@
     .repdash-header {
       padding: 20px;
       flex-direction: column;
-      align-items: flex-start;
+      align-items: stretch;
+    }
+
+    .repdash-header-actions {
+      width: 100%;
+    }
+
+    .repdash-count {
+      width: 100%;
+      justify-content: center;
     }
 
     .repdash-title {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
     }
 
     .repdash-sub {
@@ -870,17 +966,21 @@
 
     <!-- Header -->
     <div class="repdash-header">
-      <div>
-        <h1 class="repdash-title">
-          <i class="fa-solid fa-chart-pie" style="opacity:.9;"></i>
-          لوحة التقارير
-        </h1>
-        <p class="repdash-sub">إدارة ومتابعة التقارير والأنشطة المدرسية</p>
+      <div class="repdash-header-main">
+        <div class="repdash-header-icon" aria-hidden="true">
+          <i class="fa-solid fa-chart-pie"></i>
+        </div>
+        <div>
+          <h1 class="repdash-title">لوحة التقارير</h1>
+          <p class="repdash-sub">إدارة ومتابعة التقارير والأنشطة المدرسية</p>
+        </div>
       </div>
 
       <div class="repdash-header-actions">
-        {# مثال: زر تصدير إن أردت لاحقًا #}
-        {# <a class="btn btn-ghost" href="?export=csv"><i class="fa-solid fa-file-csv"></i> تصدير CSV</a> #}
+        <div class="repdash-count" title="إجمالي التقارير المطابقة">
+          <span class="n">{{ reports.paginator.count|default:"0" }}</span>
+          <span class="lbl">تقرير</span>
+        </div>
       </div>
     </div>
 
@@ -922,9 +1022,8 @@
             </button>
 
             {% if start_date or end_date or teacher_name or category %}
-              <a href="{% url 'reports:admin_reports' %}" class="btn btn-ghost" title="مسح الفلاتر" style="min-height:48px; font-weight: 700;">
+              <a href="{% url 'reports:admin_reports' %}" class="btn btn-outline" title="مسح الفلاتر" style="min-height:48px; font-weight: 700;">
                 <i class="fa-solid fa-rotate-left"></i> إعادة تعيين
-              </a>
               </a>
             {% endif %}
           </div>
@@ -957,7 +1056,7 @@
                 <td>{{ r.id }}</td>
 
                 <td>
-                  <div style="font-weight:900; font-size:1rem;">{{ r.report_date|date:"Y-m-d" }}</div>
+                  <div style="font-weight:900; font-size:1rem;">{{ r.report_date|hijri }} هـ</div>
                   <div style="font-size:.9rem; color:var(--rd-text-light); font-weight:700; margin-top:4px;">{{ r.day_name }}</div>
                 </td>
 
@@ -968,7 +1067,7 @@
                         <i class="fa-solid fa-school" style="opacity:.85"></i> {{ r.school.name }}
                       </span>
                     {% else %}
-                      <span style="color:var(--muted); font-weight:850;">—</span>
+                      <span style="color:var(--rd-text-light); font-weight:850;">—</span>
                     {% endif %}
                   </td>
                 {% endif %}
@@ -994,7 +1093,7 @@
                 </td>
 
                 <td>
-                  <span style="font-weight:900; font-size:1.05rem; color:var(--rd-primary); background:rgba(102, 126, 234, 0.1); padding:6px 14px; border-radius:999px; display:inline-block;">
+                  <span style="font-weight:900; font-size:1.05rem; color:var(--rd-primary); background:var(--rd-primary-soft); padding:6px 14px; border-radius:999px; display:inline-block;">
                     {{ r.beneficiaries_count|default:"0" }}
                   </span>
                 </td>
@@ -1036,7 +1135,7 @@
                   <div id="rd-data-{{ r.pk }}" style="display:none;" data-images="{% if r.image1 %}{{ r.image1.url }}{% endif %}|{% if r.image2 %}{{ r.image2.url }}{% endif %}|{% if r.image3 %}{{ r.image3.url }}{% endif %}|{% if r.image4 %}{{ r.image4.url }}{% endif %}">
                     <div class="d-teacher">{{ r.teacher_display_name }}</div>
                     <div class="d-title">{{ r.title }}</div>
-                    <div class="d-date">{{ r.report_date|date:"Y-m-d" }}</div>
+                    <div class="d-date">{{ r.report_date|hijri }} هـ</div>
                     <div class="d-category">{% if r.category %}{{ r.category.name }}{% endif %}</div>
                     <div class="d-idea">{{ r.idea|default:""|linebreaksbr }}</div>
                   </div>
@@ -1063,7 +1162,7 @@
         <div class="rd-card">
           <div class="rd-card-hd">
             <div class="rd-card-title">{{ r.title }}</div>
-            <div class="rd-card-date">{{ r.report_date|date:"Y-m-d" }}</div>
+            <div class="rd-card-date">{{ r.report_date|hijri }} هـ</div>
           </div>
 
           {% if request.user.is_superuser and r.school %}
@@ -1143,7 +1242,7 @@
           </a>
         {% endif %}
 
-        <span class="btn btn-ghost" style="cursor:default; opacity:.9; min-height:48px; font-weight:800; font-size:1.05rem; padding:14px 28px;">
+        <span class="btn btn-outline" style="cursor:default; opacity:.9; min-height:48px; font-weight:800; font-size:1.05rem; padding:14px 28px;">
           صفحة {{ reports.number }} من {{ reports.paginator.num_pages }}
         </span>
 
@@ -1208,6 +1307,23 @@
       <img id="rdLightboxImg" src="" alt="صورة مرفقة">
     </div>
   </dialog>
+
+  <!-- Confirm Delete Dialog -->
+  <dialog id="rdConfirmDialog" class="rd-confirm" aria-labelledby="rdConfirmTitle">
+    <div class="rd-confirm-icon" aria-hidden="true">
+      <i class="fa-solid fa-trash-can"></i>
+    </div>
+    <h3 id="rdConfirmTitle" class="rd-confirm-title">تأكيد حذف التقرير</h3>
+    <p class="rd-confirm-text">سيتم حذف هذا التقرير نهائيًا ولا يمكن التراجع عن العملية. هل تريد المتابعة؟</p>
+    <div class="rd-confirm-actions">
+      <button type="button" class="rd-confirm-btn rd-confirm-cancel" data-rd-action="confirm-cancel">
+        <i class="fa-solid fa-xmark"></i> إلغاء
+      </button>
+      <button type="button" class="rd-confirm-btn rd-confirm-ok" data-rd-action="confirm-ok">
+        <i class="fa-solid fa-trash-can"></i> حذف نهائيًا
+      </button>
+    </div>
+  </dialog>
 </div>
 {% endblock %}
 
@@ -1269,7 +1385,7 @@
 
         if(arr.length === 0){
           var sp = document.createElement('div');
-          sp.style.color = 'var(--muted)';
+          sp.style.color = 'var(--rd-text-light)';
           sp.style.fontWeight = '850';
           sp.style.fontSize = '.92rem';
           sp.textContent = 'لا توجد صور مرفقة';
@@ -1331,11 +1447,53 @@
         window.rdCloseDetails();
         return;
       }
+
+      var confirmCancel = t.closest ? t.closest('[data-rd-action="confirm-cancel"]') : null;
+      if(confirmCancel){
+        ev.preventDefault();
+        rdCloseConfirm();
+        return;
+      }
+
+      var confirmOk = t.closest ? t.closest('[data-rd-action="confirm-ok"]') : null;
+      if(confirmOk){
+        ev.preventDefault();
+        var form = pendingDeleteForm;
+        rdCloseConfirm();
+        if(form) form.submit();
+        return;
+      }
     });
+
+    // ===== نافذة تأكيد الحذف المخصّصة (بديل confirm البدائي) =====
+    var confirmDialog = byId('rdConfirmDialog');
+    var pendingDeleteForm = null;
+
+    function rdCloseConfirm(){
+      pendingDeleteForm = null;
+      if(confirmDialog && confirmDialog.open) confirmDialog.close();
+    }
+
+    if(confirmDialog){
+      // إغلاق عند النقر على الخلفية أو زر Escape
+      confirmDialog.addEventListener('click', function(ev){
+        if(ev.target === confirmDialog) rdCloseConfirm();
+      });
+      confirmDialog.addEventListener('cancel', function(){ pendingDeleteForm = null; });
+    }
 
     document.querySelectorAll('form.rd-delete-form').forEach(function(form){
       form.addEventListener('submit', function(ev){
-        if(!confirm('هل أنت متأكد من الحذف؟')) ev.preventDefault();
+        // إن لم تتوفر النافذة المخصّصة (دعم قديم) نكتفي بـ confirm
+        if(!confirmDialog || typeof confirmDialog.showModal !== 'function'){
+          if(!confirm('هل أنت متأكد من الحذف؟')) ev.preventDefault();
+          return;
+        }
+        ev.preventDefault();
+        pendingDeleteForm = form;
+        confirmDialog.showModal();
+        var okBtn = confirmDialog.querySelector('.rd-confirm-ok');
+        if(okBtn){ try{ okBtn.focus(); }catch(e){} }
       });
     });
   })();

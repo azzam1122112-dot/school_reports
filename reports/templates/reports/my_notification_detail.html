@@ -455,6 +455,32 @@
     .mnd-btn:hover, .mnd-back-btn:hover { transform: none !important; }
   }
 
+  /* 👑 ROYAL OVERLAY — تفاصيل إشعاري */
+  .mnd-scope .mnd-hero{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.24), transparent 50%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
+    color:#fff !important;
+  }
+  .mnd-scope .mnd-hero::after{
+    content:""; position:absolute; top:0; right:0; left:0; height:4px; z-index:2;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .mnd-scope .mnd-hero h1, .mnd-scope .mnd-hero h2{
+    color:#fff !important;
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .mnd-scope .mnd-hero-icon{
+    background:linear-gradient(135deg,#e6cf9a,#d4b16d) !important; color:#063d22 !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 10px 22px -12px rgba(185,151,91,.9) !important;
+  }
+  .mnd-scope .mnd-btn.primary, .mnd-scope .btn-primary{
+    background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important;
+  }
 </style>
 {% endblock %}
 

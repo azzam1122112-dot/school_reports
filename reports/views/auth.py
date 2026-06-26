@@ -6,23 +6,41 @@ import re
 import logging
 from typing import Any
 
+import cbor2
 from django.conf import settings
+from django.db import IntegrityError
 from django.db.models import Q
+from django.utils import timezone
 
 from ._helpers import *
 from ._helpers import (
     _is_staff, _safe_next_url, _set_active_school,
     _get_active_school, _user_schools, _is_report_viewer,
 )
+from ..webauthn import (
+    b64url_decode,
+    b64url_encode,
+    credential_hash,
+    json_body,
+    origin_from_request,
+    parse_authenticator_data,
+    parse_client_data,
+    random_challenge,
+    rp_id_from_request,
+    verify_signature,
+)
 from ..middleware import (
     clear_force_password_change_flag,
     is_force_password_change_required,
 )
-from ..permissions import has_legacy_manager_role
+from ..models import WebAuthnCredential
 from core import opmetrics
 
 
 logger = logging.getLogger(__name__)
+
+WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY = "_webauthn_register_challenge"
+WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY = "_webauthn_auth_challenge"
 
 
 def _force_password_change_notice() -> str:
@@ -30,6 +48,115 @@ def _force_password_change_notice() -> str:
         "لحماية حسابك وبيانات المدرسة، يلزم تغيير كلمة المرور الحالية الآن "
         "لأنها ما زالت مطابقة لرقم الجوال."
     )
+
+
+def _passkey_response(ok: bool, *, status: int = 200, **payload: Any) -> JsonResponse:
+    payload["ok"] = ok
+    return JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
+
+
+def _default_login_redirect_name(user) -> str:
+    if getattr(user, "is_superuser", False):
+        return "reports:platform_admin_dashboard"
+    if is_platform_admin(user):
+        return "reports:platform_schools_directory"
+    if _is_staff(user):
+        return "reports:admin_dashboard"
+    return "reports:home"
+
+
+def _is_platform_admin_path(value: str | None) -> bool:
+    path = (value or "").split("?", 1)[0].rstrip("/") or "/"
+    return path in {"/platform-dashboard", "/platform/settings"}
+
+
+def _complete_passkey_login(request: HttpRequest, user: Teacher, *, next_url: str | None = None) -> JsonResponse:
+    if not getattr(user, "is_active", False):
+        return _passkey_response(False, status=403, error="inactive_user", message="عذرًا، حسابك موقوف.")
+
+    if not getattr(user, "is_superuser", False):
+        memberships = (
+            SchoolMembership.objects.filter(teacher=user, is_active=True)
+            .select_related("school", "school__subscription")
+            .order_by("id")
+        )
+
+        if memberships.exists():
+            active_school = None
+            any_active_subscription = False
+            is_any_manager = False
+            manager_school = None
+            first_school_name = None
+
+            for m in memberships:
+                if first_school_name is None:
+                    first_school_name = getattr(getattr(m, "school", None), "name", None)
+                if m.role_type == SchoolMembership.RoleType.MANAGER:
+                    is_any_manager = True
+                    if manager_school is None:
+                        manager_school = m.school
+
+                sub = None
+                try:
+                    sub = getattr(m.school, "subscription", None)
+                except Exception:
+                    sub = None
+
+                if sub is not None and not bool(sub.is_expired) and bool(getattr(m.school, "is_active", True)):
+                    any_active_subscription = True
+                    if active_school is None:
+                        active_school = m.school
+
+            if not any_active_subscription:
+                if is_any_manager and manager_school is not None:
+                    login(request, user)
+                    is_force_password_change_required(request)
+                    _set_active_school(request, manager_school)
+                    return _passkey_response(True, redirect=reverse("reports:subscription_expired"))
+
+                school_label = f" ({first_school_name})" if first_school_name else ""
+                return _passkey_response(
+                    False,
+                    status=403,
+                    error="subscription_expired",
+                    message=f"عذرًا، اشتراك المدرسة{school_label} منتهي. لا يمكن الدخول حتى يتم تجديد الاشتراك.",
+                )
+
+            login(request, user)
+            if active_school is not None:
+                _set_active_school(request, active_school)
+        else:
+            login(request, user)
+            messages.warning(request, "تنبيه: حسابك غير مرتبط بمدرسة فعّالة. تواصل مع إدارة النظام لربط الحساب بالمدرسة.")
+    else:
+        login(request, user)
+
+    try:
+        schools = _user_schools(user)
+        if len(schools) == 1:
+            _set_active_school(request, schools[0])
+        elif user.is_superuser:
+            qs = School.objects.filter(is_active=True)
+            if qs.count() == 1:
+                s = qs.first()
+                if s is not None:
+                    _set_active_school(request, s)
+    except Exception:
+        pass
+
+    if is_force_password_change_required(request):
+        messages.warning(request, _force_password_change_notice())
+        return _passkey_response(True, redirect=reverse("reports:my_profile"))
+
+    safe_next = _safe_next_url(next_url)
+    if safe_next and _is_platform_admin_path(safe_next) and not getattr(user, "is_superuser", False):
+        return _passkey_response(
+            False,
+            status=403,
+            error="admin_only",
+            message="هذا الدخول خاص بمدير النظام فقط.",
+        )
+    return _passkey_response(True, redirect=safe_next or reverse(_default_login_redirect_name(user)))
 
 
 def _landing_duration_label(days: int) -> str:
@@ -161,8 +288,19 @@ def _landing_card_title(capacity: int, is_unlimited: bool) -> str:
 @never_cache
 @cache_control(no_cache=True, must_revalidate=True, no_store=True, max_age=0)
 @require_http_methods(["GET", "POST"])
-def login_view(request: HttpRequest) -> HttpResponse:
+def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
+    default_next = reverse("reports:platform_admin_dashboard") if admin_only else ""
+    next_value = _safe_next_url(
+        request.POST.get("next")
+        or request.GET.get("next")
+        or default_next
+    )
+
     if request.user.is_authenticated:
+        if admin_only and not getattr(request.user, "is_superuser", False):
+            logout(request)
+            messages.error(request, "هذا الدخول خاص بمدير النظام فقط. سجّل الدخول بحساب السوبر آدمن.")
+            return redirect("reports:platform_login")
         if is_force_password_change_required(request):
             return redirect("reports:my_profile")
         # إن كان المستخدم موظّف لوحة (مدير/سوبر أدمن) نوجّهه للوحة المناسبة
@@ -217,6 +355,17 @@ def login_view(request: HttpRequest) -> HttpResponse:
             except Exception:
                 user = None
         if user is not None:
+            if admin_only and not getattr(user, "is_superuser", False):
+                logger.warning(
+                    "Admin login rejected non-superuser user_id=%s identifier=%s trace_id=%s",
+                    getattr(user, "id", None),
+                    identifier,
+                    getattr(request, "trace_id", None),
+                )
+                opmetrics.increment("auth.login.failure")
+                messages.error(request, "هذا الدخول خاص بمدير النظام فقط.")
+                return redirect("reports:platform_login")
+
             # ✅ قواعد الاشتراك عند تسجيل الدخول:
             # - السوبر: يتجاوز دائمًا.
             # - مدير المدرسة: يُسمح له بالدخول حتى لو انتهى الاشتراك، لكن يُوجّه لصفحة (انتهاء الاشتراك)
@@ -240,7 +389,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                         if force_password_change:
                             messages.warning(request, _force_password_change_notice())
                             return redirect("reports:my_profile")
-                        next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+                        next_url = next_value
                         if getattr(user, "is_superuser", False):
                             default_name = "reports:platform_admin_dashboard"
                         elif is_platform_admin(user):
@@ -257,18 +406,10 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     manager_school = None
                     first_school_name = None
 
-                    legacy_manager_role = has_legacy_manager_role(user)
-
                     for m in memberships:
                         if first_school_name is None:
                             first_school_name = getattr(getattr(m, "school", None), "name", None)
                         if m.role_type == SchoolMembership.RoleType.MANAGER:
-                            is_any_manager = True
-                            if manager_school is None:
-                                manager_school = m.school
-
-                        # دعم حسابات مدير قديمة تعتمد على Role(slug='manager') حتى لو role_type مختلف.
-                        if not is_any_manager and legacy_manager_role:
                             is_any_manager = True
                             if manager_school is None:
                                 manager_school = m.school
@@ -340,7 +481,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 messages.warning(request, _force_password_change_notice())
                 return redirect("reports:my_profile")
 
-            next_url = _safe_next_url(request.POST.get("next") or request.GET.get("next"))
+            next_url = next_value
             # الوجهة الافتراضية حسب الدور
             if getattr(user, "is_superuser", False):
                 default_name = "reports:platform_admin_dashboard"
@@ -386,8 +527,215 @@ def login_view(request: HttpRequest) -> HttpResponse:
             opmetrics.increment("auth.login.failure")
             messages.error(request, "رقم الجوال/الهوية أو كلمة المرور غير صحيحة")
 
-    context = {"next": _safe_next_url(request.GET.get("next"))}
+    context = {
+        "next": next_value,
+        "admin_login": admin_only,
+        "login_action_name": "reports:platform_login" if admin_only else "reports:login",
+    }
     return render(request, "reports/login.html", context)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def passkey_register_options(request: HttpRequest) -> JsonResponse:
+    if is_force_password_change_required(request):
+        return _passkey_response(
+            False,
+            status=403,
+            error="password_change_required",
+            message="غيّر كلمة المرور أولاً ثم فعّل الدخول بالبصمة.",
+        )
+
+    user = request.user
+    challenge = random_challenge()
+    request.session[WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY] = challenge
+
+    existing = []
+    for credential in WebAuthnCredential.objects.filter(teacher=user, is_active=True).only("credential_id", "transports"):
+        existing.append(
+            {
+                "type": "public-key",
+                "id": b64url_encode(bytes(credential.credential_id)),
+                "transports": credential.transports or ["internal"],
+            }
+        )
+
+    options = {
+        "challenge": challenge,
+        "rp": {
+            "name": "منصة توثيق",
+            "id": rp_id_from_request(request),
+        },
+        "user": {
+            "id": b64url_encode(str(user.pk).encode("utf-8")),
+            "name": getattr(user, "phone", "") or str(user.pk),
+            "displayName": getattr(user, "name", "") or getattr(user, "phone", "") or "مستخدم",
+        },
+        "pubKeyCredParams": [
+            {"type": "public-key", "alg": -7},
+            {"type": "public-key", "alg": -257},
+        ],
+        "timeout": 60000,
+        "attestation": "none",
+        "excludeCredentials": existing,
+        "authenticatorSelection": {
+            "authenticatorAttachment": "platform",
+            "residentKey": "preferred",
+            "requireResidentKey": False,
+            "userVerification": "preferred",
+        },
+    }
+    return _passkey_response(True, publicKey=options)
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def passkey_register_verify(request: HttpRequest) -> JsonResponse:
+    challenge = request.session.get(WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY)
+    if not challenge:
+        return _passkey_response(False, status=400, error="challenge_missing", message="انتهت صلاحية محاولة التفعيل.")
+
+    try:
+        payload = json_body(request)
+        response = payload.get("response") or {}
+        client_data_hash = parse_client_data(
+            client_data_json_b64=response.get("clientDataJSON") or "",
+            expected_type="webauthn.create",
+            expected_challenge=challenge,
+            expected_origin=origin_from_request(request),
+        )
+
+        attestation = cbor2.loads(b64url_decode(response.get("attestationObject") or ""))
+        auth_data = bytes(attestation.get("authData") or b"")
+        parsed = parse_authenticator_data(auth_data, rp_id=rp_id_from_request(request), require_attested_credential=True)
+        if not parsed.credential_id or not parsed.public_key_cose:
+            raise ValueError("credential_invalid")
+
+        raw_id = b64url_decode(payload.get("rawId") or payload.get("id") or "")
+        credential_id = raw_id or parsed.credential_id
+        if credential_id != parsed.credential_id:
+            raise ValueError("credential_id_mismatch")
+
+        transports = response.get("transports")
+        if not isinstance(transports, list):
+            transports = ["internal"]
+
+        device_name = (payload.get("deviceName") or "").strip()[:120]
+        WebAuthnCredential.objects.create(
+            teacher=request.user,
+            credential_id=credential_id,
+            credential_id_hash=credential_hash(credential_id),
+            public_key_cose=parsed.public_key_cose,
+            sign_count=parsed.sign_count,
+            device_name=device_name,
+            transports=transports,
+        )
+        request.session.pop(WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY, None)
+        return _passkey_response(True, message="تم تفعيل الدخول بالبصمة لهذا الجهاز.")
+    except IntegrityError:
+        return _passkey_response(False, status=409, error="credential_exists", message="هذا الجهاز مفعّل مسبقاً.")
+    except Exception:
+        logger.exception("Passkey registration failed user_id=%s", getattr(request.user, "id", None))
+        return _passkey_response(False, status=400, error="registration_failed", message="تعذر تفعيل الدخول بالبصمة.")
+
+
+@require_http_methods(["POST"])
+def passkey_login_options(request: HttpRequest) -> JsonResponse:
+    challenge = random_challenge()
+    request.session[WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY] = challenge
+
+    allow_credentials = []
+    try:
+        payload = json_body(request)
+    except ValueError:
+        payload = {}
+
+    identifier = (payload.get("identifier") or "").strip()
+    if identifier:
+        attempts = [identifier]
+        ident_no_plus = identifier.lstrip("+")
+        if ident_no_plus != identifier:
+            attempts.append(ident_no_plus)
+        if identifier.isdigit() and len(identifier) == 9:
+            attempts.append("0" + identifier)
+        if ident_no_plus.isdigit() and ident_no_plus.startswith("966") and len(ident_no_plus) >= 12:
+            attempts.append("0" + ident_no_plus[-9:])
+        attempts = list(dict.fromkeys([item for item in attempts if item]))
+
+        user = Teacher.objects.filter(Q(phone__in=attempts) | Q(national_id=identifier)).first()
+        if user is not None:
+            for credential in WebAuthnCredential.objects.filter(teacher=user, is_active=True).only("credential_id", "transports"):
+                allow_credentials.append(
+                    {
+                        "type": "public-key",
+                        "id": b64url_encode(bytes(credential.credential_id)),
+                        "transports": credential.transports or ["internal"],
+                    }
+                )
+
+    public_key = {
+        "challenge": challenge,
+        "rpId": rp_id_from_request(request),
+        "timeout": 60000,
+        "userVerification": "preferred",
+    }
+    if allow_credentials:
+        public_key["allowCredentials"] = allow_credentials
+    return _passkey_response(True, publicKey=public_key)
+
+
+@require_http_methods(["POST"])
+def passkey_login_verify(request: HttpRequest) -> JsonResponse:
+    challenge = request.session.get(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY)
+    if not challenge:
+        return _passkey_response(False, status=400, error="challenge_missing", message="انتهت صلاحية محاولة الدخول.")
+
+    try:
+        payload = json_body(request)
+        response = payload.get("response") or {}
+        raw_id = b64url_decode(payload.get("rawId") or payload.get("id") or "")
+        credential = (
+            WebAuthnCredential.objects.select_related("teacher")
+            .filter(credential_id_hash=credential_hash(raw_id), is_active=True)
+            .first()
+        )
+        if credential is None:
+            return _passkey_response(False, status=404, error="credential_not_found", message="لم يتم العثور على مفتاح بصمة لهذا الجهاز.")
+
+        client_data_hash = parse_client_data(
+            client_data_json_b64=response.get("clientDataJSON") or "",
+            expected_type="webauthn.get",
+            expected_challenge=challenge,
+            expected_origin=origin_from_request(request),
+        )
+        auth_data_b64 = response.get("authenticatorData") or ""
+        auth_data = b64url_decode(auth_data_b64)
+        parsed = parse_authenticator_data(auth_data, rp_id=rp_id_from_request(request))
+        verify_signature(
+            public_key_cose=bytes(credential.public_key_cose),
+            signature_b64=response.get("signature") or "",
+            authenticator_data_b64=auth_data_b64,
+            client_data_hash=client_data_hash,
+        )
+
+        old_count = int(credential.sign_count or 0)
+        new_count = int(parsed.sign_count or 0)
+        if old_count and new_count and new_count <= old_count:
+            return _passkey_response(False, status=403, error="sign_count_invalid", message="تعذر التحقق من مفتاح البصمة.")
+        if new_count > old_count:
+            credential.sign_count = new_count
+        credential.last_used_at = timezone.now()
+        credential.save(update_fields=["sign_count", "last_used_at"])
+        request.session.pop(WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY, None)
+
+        return _complete_passkey_login(
+            request,
+            credential.teacher,
+            next_url=(payload.get("next") or request.GET.get("next") or ""),
+        )
+    except Exception:
+        logger.exception("Passkey login failed")
+        return _passkey_response(False, status=400, error="login_failed", message="تعذر تسجيل الدخول بالبصمة.")
 
 
 @login_required(login_url="reports:login")
@@ -468,6 +816,7 @@ def my_profile(request: HttpRequest) -> HttpResponse:
         "phone_form": phone_form,
         "pwd_form": pwd_form,
         "force_password_change": force_password_change,
+        "passkey_credentials": WebAuthnCredential.objects.filter(teacher=request.user, is_active=True).order_by("-created_at"),
     }
     return render(request, "reports/my_profile.html", ctx)
 

@@ -12,9 +12,11 @@ from .forms import DepartmentForm  # نموذج القسم الذي يحتوي �
 
 from .models import (
     Teacher,
-    Role,
+    WebAuthnCredential,
     Department,
     ReportType,
+    ReportTemplate,
+    AcademicYear,
     Report,
     Ticket,
     TicketNote,
@@ -44,7 +46,7 @@ class TeacherCreationForm(forms.ModelForm):
 
     class Meta:
         model = Teacher
-        fields = ("phone", "name", "national_id", "role", "is_active")
+        fields = ("phone", "name", "national_id", "is_active")
 
     def clean_password2(self):
         p1 = self.cleaned_data.get("password1")
@@ -73,7 +75,6 @@ class TeacherChangeForm(forms.ModelForm):
             "phone",
             "name",
             "national_id",
-            "role",
             "is_active",
             "is_superuser",
             "groups",
@@ -90,15 +91,14 @@ class TeacherAdmin(UserAdmin):
     form = TeacherChangeForm
     model = Teacher
 
-    list_display = ("name", "phone", "national_id", "role", "is_active", "is_staff")
-    list_filter = ("role", "is_active", "is_staff", "is_superuser", "groups")
+    list_display = ("name", "phone", "national_id", "is_active", "is_staff")
+    list_filter = ("is_active", "is_staff", "is_superuser", "groups")
     search_fields = ("name", "phone", "national_id")
     ordering = ("name",)
-    list_select_related = ("role",)
 
     fieldsets = (
         (None, {"fields": ("phone", "password")}),
-        ("المعلومات الشخصية", {"fields": ("name", "national_id", "role")}),
+        ("المعلومات الشخصية", {"fields": ("name", "national_id")}),
         (
             "الصلاحيات",
             {
@@ -124,7 +124,6 @@ class TeacherAdmin(UserAdmin):
                     "phone",
                     "name",
                     "national_id",
-                    "role",
                     "password1",
                     "password2",
                     "is_active",
@@ -142,18 +141,17 @@ class TeacherAdmin(UserAdmin):
         return super().delete_model(request, obj)
 
 
-# =========================
-# إدارة الأدوار/التصنيفات/الأقسام (ديناميكي)
-# =========================
-@admin.register(Role)
-class RoleAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "is_staff_by_default", "can_view_all_reports", "is_active")
-    list_filter = ("is_active", "is_staff_by_default", "can_view_all_reports")
-    search_fields = ("name", "slug")
-    prepopulated_fields = {"slug": ("name",)}
-    filter_horizontal = ("allowed_reporttypes",)
+@admin.register(WebAuthnCredential)
+class WebAuthnCredentialAdmin(admin.ModelAdmin):
+    list_display = ("teacher", "device_name", "is_active", "last_used_at", "created_at")
+    list_filter = ("is_active", "created_at", "last_used_at")
+    search_fields = ("teacher__name", "teacher__phone", "device_name", "credential_id_hash")
+    readonly_fields = ("credential_id_hash", "last_used_at", "created_at")
 
 
+# =========================
+# إدارة التصنيفات/الأقسام (ديناميكي)
+# =========================
 @admin.register(ReportType)
 class ReportTypeAdmin(admin.ModelAdmin):
     list_display = ("name", "code", "order", "is_active", "created_at", "updated_at")
@@ -162,6 +160,25 @@ class ReportTypeAdmin(admin.ModelAdmin):
     list_editable = ("order", "is_active")
     ordering = ("order", "name")
     prepopulated_fields = {"code": ("name",)}
+
+
+@admin.register(AcademicYear)
+class AcademicYearAdmin(admin.ModelAdmin):
+    list_display = ("value", "is_active", "order", "created_at")
+    list_filter = ("is_active",)
+    list_editable = ("is_active", "order")
+    search_fields = ("value",)
+    ordering = ("-value",)
+
+
+@admin.register(ReportTemplate)
+class ReportTemplateAdmin(admin.ModelAdmin):
+    list_display = ("name", "school", "category", "is_active", "order", "updated_at")
+    list_filter = ("is_active", "school")
+    search_fields = ("name", "title", "idea")
+    list_editable = ("is_active", "order")
+    autocomplete_fields = ("category",)
+    ordering = ("school", "order", "name")
 
 
 @admin.register(Department)
@@ -549,16 +566,21 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
 class PlatformSettingsAdmin(admin.ModelAdmin):
     list_display = (
         "id",
+        "maintenance_mode_enabled",
         "share_link_default_days",
         "archive_addon_annual_price",
         "archive_included_storage_gb",
+        "free_storage_mb",
         "updated_at",
     )
     readonly_fields = ("created_at", "updated_at")
     fields = (
+        "maintenance_mode_enabled",
+        "maintenance_message",
         "share_link_default_days",
         "archive_addon_annual_price",
         "archive_included_storage_gb",
+        "free_storage_mb",
         "updated_by",
         "created_at",
         "updated_at",

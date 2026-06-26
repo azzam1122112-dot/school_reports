@@ -244,6 +244,49 @@
       transform:none !important;
     }
   }
+
+  /* ============================================================
+     👑 ROYAL LUXURY — تذاكر الدعم الفني (زمرّدي + ذهبي)
+     ============================================================ */
+  .support-scope .hero{
+    position:relative;
+    overflow:hidden;
+    border-color:rgba(212,177,109,.45);
+    background:
+      radial-gradient(900px 380px at 15% 10%, rgba(212,177,109,.18), transparent 55%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%);
+    box-shadow:0 22px 54px -26px rgba(10,92,51,.55);
+  }
+  .support-scope .hero::before{
+    content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:2;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .support-scope .hero .title i{ color:#e6cf9a; }
+  .support-scope .btnx.primary{ background:#fdf6e6; color:#063d22; border-color:#e6cf9a; }
+
+  .support-scope .input:focus{
+    border-color: rgba(10,92,51,.5);
+    box-shadow: 0 0 0 4px rgba(10,92,51,.14);
+  }
+  .support-scope .item:hover{
+    border-color: rgba(185,151,91,.5);
+    background: color-mix(in srgb, var(--card) 92%, #f2e8cf 8%);
+  }
+  .support-scope .item:focus-visible{
+    box-shadow:0 0 0 4px rgba(10,92,51,.16), 0 14px 40px rgba(2,6,23,.12);
+    border-color: rgba(10,92,51,.5);
+  }
+  .support-scope .tid{
+    background:rgba(10,92,51,.08); border-color:rgba(10,92,51,.2); color:#0a5c33;
+  }
+  /* لون حالة "قيد المعالجة" ذهبي منسجم مع الهوية */
+  .support-scope .b-in{ --bg:#faf3e0; --fg:#7a5c1e; --bd:#e6cf9a; }
+  .support-scope .item.state-in::after{ background:#b9975b; }
+  .support-scope .item.state-done::after{ background:#0a5c33; }
+  .support-scope .item.state-open::after{ background:#0b6238; }
+  .support-scope .empty .spark{
+    background:rgba(10,92,51,.08); border-color:rgba(185,151,91,.3); color:#0a5c33;
+  }
 </style>
 {% endblock %}
 
@@ -292,7 +335,7 @@
         {% endif %}
 
         <div class="meta" aria-label="إحصاءات">
-          <span>الإجمالي: <b style="color:var(--ink)">{{ tickets|length }}</b></span>
+          <span>الإجمالي: <b style="color:var(--ink)">{{ page_obj.paginator.count }}</b></span>
         </div>
       </form>
 

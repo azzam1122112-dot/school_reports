@@ -272,6 +272,7 @@ MIDDLEWARE = [
     "reports.middleware_single_session.EnforceSingleSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "reports.middleware.AuditLogMiddleware",
+    "reports.middleware.MaintenanceModeMiddleware",
     "reports.middleware.IdleLogoutMiddleware",
     "reports.middleware.ActiveSchoolGuardMiddleware",
     "reports.middleware.SubscriptionMiddleware",

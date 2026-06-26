@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% load static humanize %}
+{% load static humanize hijri_tags %}
 
 {% block title %}لوحة مدير النظام | تحديث 2026 Premium{% endblock %}
 
 {% block head %}
 <!-- Chart.js Library -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <style>
     /* 2026 Premium Modern Dashboard Styling */
@@ -199,6 +199,342 @@
     .period-meta strong {
         color: var(--text-main);
         font-weight: 700;
+    }
+
+    .dashboard-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .dashboard-topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .hero-panel,
+    .control-panel,
+    .section-panel {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .hero-panel {
+        padding: 1.35rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .hero-copy {
+        min-width: 0;
+    }
+
+    .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--primary-color);
+        background: rgba(0, 108, 53, 0.08);
+        border: 1px solid rgba(0, 108, 53, 0.12);
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        margin-bottom: 0.75rem;
+    }
+
+    .hero-panel h1 {
+        margin: 0;
+        font-size: clamp(1.35rem, 2.4vw, 2rem);
+        font-weight: 900;
+        color: var(--text-main);
+        line-height: 1.35;
+    }
+
+    .hero-panel p {
+        margin: 0.4rem 0 0;
+        color: var(--text-muted);
+        font-weight: 600;
+        line-height: 1.8;
+    }
+
+    .hero-actions,
+    .control-actions {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .control-panel {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .control-panel .quick-search-container,
+    .control-panel .time-filters {
+        margin-bottom: 0;
+    }
+
+    .control-note {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .alert-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.85rem;
+    }
+
+    .alert-tile {
+        display: flex;
+        gap: 0.85rem;
+        align-items: center;
+        padding: 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: inherit;
+        text-decoration: none;
+        min-width: 0;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .alert-tile:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .alert-tile.danger {
+        background: #fff1f2;
+        border-color: #fecdd3;
+    }
+
+    .alert-tile.warning {
+        background: #fffbeb;
+        border-color: #fde68a;
+    }
+
+    .alert-tile.info {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+    }
+
+    .alert-icon,
+    .metric-icon,
+    .action-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        font-size: 1rem;
+    }
+
+    .alert-body,
+    .action-body {
+        min-width: 0;
+    }
+
+    .alert-body strong,
+    .action-body strong {
+        display: block;
+        color: var(--text-main);
+        font-size: 0.95rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .alert-body span,
+    .action-body span {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.6;
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .metric-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.15rem;
+        box-shadow: var(--shadow-sm);
+        min-width: 0;
+    }
+
+    .metric-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .metric-value {
+        color: var(--text-main);
+        font-size: clamp(1.5rem, 2.4vw, 2.15rem);
+        font-weight: 900;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .metric-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-top: 0.45rem;
+    }
+
+    .section-panel {
+        padding: 1.2rem;
+    }
+
+    .section-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .section-heading h2,
+    .section-heading h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: var(--text-main);
+        font-weight: 900;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .section-heading p {
+        margin: 0.3rem 0 0;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .action-groups {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .action-group {
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 0.85rem;
+        background: rgba(248, 250, 252, 0.62);
+        min-width: 0;
+    }
+
+    .action-group-title {
+        margin: 0 0 0.7rem;
+        font-size: 0.9rem;
+        color: var(--text-main);
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .action-list {
+        display: grid;
+        gap: 0.55rem;
+    }
+
+    .action-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: var(--card-bg);
+        color: inherit;
+        text-decoration: none;
+        min-height: 72px;
+        transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    }
+
+    .action-card:hover {
+        border-color: rgba(0, 108, 53, 0.2);
+        background: rgba(0, 108, 53, 0.035);
+        transform: translateY(-1px);
+    }
+
+    .action-card.is-danger {
+        border-color: #fecdd3;
+        background: #fff1f2;
+    }
+
+    .action-card.is-warning {
+        border-color: #fde68a;
+        background: #fffbeb;
+    }
+
+    .action-badge {
+        margin-inline-start: auto;
+        background: #ef4444;
+        color: white;
+        min-width: 1.65rem;
+        height: 1.65rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 900;
+        padding: 0 0.45rem;
+    }
+
+    .dashboard-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(320px, 0.9fr);
+        gap: 1.25rem;
+        align-items: start;
+    }
+
+    .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .mini-stat-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+        padding: 0.7rem 0;
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .mini-stat-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
     }
 
     .dashboard-container.is-loading {
@@ -602,6 +938,51 @@
         .dashboard-container {
             padding: 1rem;
         }
+
+        .dashboard-shell {
+            gap: 1rem;
+        }
+
+        .dashboard-topbar,
+        .dashboard-layout,
+        .action-groups,
+        .alert-strip {
+            grid-template-columns: 1fr;
+        }
+
+        .hero-panel {
+            align-items: flex-start;
+            flex-direction: column;
+            padding: 1rem;
+        }
+
+        .hero-actions,
+        .control-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .hero-actions .btn-modern,
+        .control-actions .btn-modern {
+            width: 100%;
+            justify-content: center;
+            padding-inline: 0.6rem;
+        }
+
+        .metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .metric-card {
+            padding: 0.9rem;
+        }
+
+        .metric-value {
+            font-size: 1.45rem;
+            white-space: normal;
+        }
         
         .welcome-header {
             flex-direction: column;
@@ -681,6 +1062,26 @@
     }
     
     @media (max-width: 480px) {
+        .hero-actions,
+        .control-actions,
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .section-panel {
+            padding: 0.9rem;
+        }
+
+        .section-heading {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .alert-tile,
+        .action-card {
+            align-items: flex-start;
+        }
+
         .welcome-title h1 {
             font-size: 1.25rem;
         }
@@ -802,185 +1203,202 @@
 
 {% block content %}
 <div class="dashboard-container">
-    
-    <!-- Quick Search Bar -->
-    <div class="quick-search-container">
-        <i class="fas fa-search search-icon"></i>
-        <input type="text" 
-               class="quick-search" 
-               id="globalSearch" 
-               placeholder="🔍 بحث سريع عن مدرسة، معلم، أو تذكرة..."
-               autocomplete="off">
-        <div class="search-results" id="searchResults"></div>
-    </div>
-    
-    <!-- Welcome Header -->
-    <div class="welcome-header">
-        <div class="welcome-title">
-            <h1>أهلاً بك، مدير النظام 👋</h1>
-            <span class="welcome-date">نظرة عامة شاملة على أداء المنصة وتحليلات فورية لحظية.</span>
-        </div>
-        <div class="actions" style="display:flex; gap:0.75rem; flex-wrap: wrap;">
-            <a href="{% url 'reports:platform_schools_directory' %}" class="btn-modern outline">
-                <i class="fas fa-search"></i> دليل المدارس
-            </a>
-            <a href="{% url 'reports:platform_admin_create' %}" class="btn-modern">
-                <i class="fas fa-plus"></i> إضافة مشرف
-            </a>
-            <a href="{% url 'maintenance:school_year_reset' %}" class="btn-modern outline">
-                <i class="fas fa-rotate"></i> تهيئة العام
-            </a>
-            <button onclick="refreshDashboard()" class="btn-modern outline" id="refreshBtn">
-                <i class="fas fa-sync-alt"></i> تحديث البيانات
-            </button>
-        </div>
-    </div>
-    
-    <!-- Time Filters -->
-    <div class="time-filters" id="timeFilters">
-        <button class="filter-btn {% if initial_period == 'all' %}active{% endif %}" data-period="all" type="button" aria-pressed="{% if initial_period == 'all' %}true{% else %}false{% endif %}">
-            <i class="fas fa-infinity"></i> الكل
-        </button>
-        <button class="filter-btn {% if initial_period == 'year' %}active{% endif %}" data-period="year" type="button" aria-pressed="{% if initial_period == 'year' %}true{% else %}false{% endif %}">
-            <i class="fas fa-calendar"></i> هذا العام
-        </button>
-        <button class="filter-btn {% if initial_period == 'quarter' %}active{% endif %}" data-period="quarter" type="button" aria-pressed="{% if initial_period == 'quarter' %}true{% else %}false{% endif %}">
-            <i class="fas fa-calendar-week"></i> هذا الربع
-        </button>
-        <button class="filter-btn {% if initial_period == 'month' %}active{% endif %}" data-period="month" type="button" aria-pressed="{% if initial_period == 'month' %}true{% else %}false{% endif %}">
-            <i class="fas fa-calendar-day"></i> هذا الشهر
-        </button>
-    </div>
-    <div class="period-meta">
-        <span>الفترة الحالية: <strong id="activePeriodLabel">—</strong></span>
-        <span id="dashboardLastUpdated">آخر تحديث: —</span>
-    </div>
+    <div class="dashboard-shell">
+        <div class="dashboard-topbar">
+            <section class="hero-panel">
+                <div class="hero-copy">
+                    <span class="eyebrow"><i class="fas fa-shield-alt"></i> لوحة مدير النظام</span>
+                    <h1>مركز تشغيل المنصة</h1>
+                    <p>مؤشرات مختصرة، تنبيهات قابلة للتنفيذ، وإجراءات إدارية مرتبة حسب سير العمل.</p>
+                </div>
+                <div class="hero-actions">
+                    <a href="{% url 'reports:platform_schools_directory' %}" class="btn-modern outline">
+                        <i class="fas fa-search"></i> دليل المدارس
+                    </a>
+                    <a href="{% url 'reports:platform_admin_create' %}" class="btn-modern">
+                        <i class="fas fa-plus"></i> إضافة مشرف
+                    </a>
+                </div>
+            </section>
 
-    <!-- Alerts -->
-    {% if pending_payments > 0 %}
-    <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #fca5a5; border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1.5rem; color: #991b1b; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.1);">
-        <div style="background: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #ef4444; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <i class="fas fa-bell fa-shake"></i>
+            <aside class="control-panel" aria-label="أدوات الداشبورد">
+                <div class="quick-search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text"
+                           class="quick-search"
+                           id="globalSearch"
+                           placeholder="بحث عن مدرسة، مستخدم، تذكرة، أو إجراء..."
+                           autocomplete="off"
+                           aria-label="بحث سريع في المنصة">
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+                <div class="time-filters" id="timeFilters" aria-label="فترة التحليل">
+                    <button class="filter-btn {% if initial_period == 'all' %}active{% endif %}" data-period="all" type="button" aria-pressed="{% if initial_period == 'all' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-infinity"></i> الكل
+                    </button>
+                    <button class="filter-btn {% if initial_period == 'year' %}active{% endif %}" data-period="year" type="button" aria-pressed="{% if initial_period == 'year' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-calendar"></i> هذا العام
+                    </button>
+                    <button class="filter-btn {% if initial_period == 'quarter' %}active{% endif %}" data-period="quarter" type="button" aria-pressed="{% if initial_period == 'quarter' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-calendar-week"></i> هذا الربع
+                    </button>
+                    <button class="filter-btn {% if initial_period == 'month' %}active{% endif %}" data-period="month" type="button" aria-pressed="{% if initial_period == 'month' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-calendar-day"></i> هذا الشهر
+                    </button>
+                </div>
+                <div class="period-meta">
+                    <span>الفترة الحالية: <strong id="activePeriodLabel">—</strong></span>
+                    <span id="dashboardLastUpdated">آخر تحديث: —</span>
+                </div>
+                <div class="control-actions">
+                    <button class="btn-modern outline" id="refreshBtn" type="button">
+                        <i class="fas fa-sync-alt"></i> تحديث البيانات
+                    </button>
+                    <a href="{% url 'reports:platform_audit_logs' %}" class="btn-modern outline">
+                        <i class="fas fa-history"></i> سجل النظام
+                    </a>
+                </div>
+                <div class="control-note">الفلاتر الزمنية تطبق على مؤشرات الفترة والرسوم المرتبطة بها.</div>
+            </aside>
         </div>
-        <div style="flex-grow: 1;">
-            <h3 style="margin:0 0 0.5rem 0; font-weight:800; font-size:1.25rem;">تنبيه: يوجد طلبات اشتراك جديدة!</h3>
-            <p style="margin:0; opacity: 0.9;">يوجد <strong>{{ pending_payments }}</strong> طلب اشتراك/تجديد بانتظار الموافقة والمراجعة المالية.</p>
-        </div>
-        <a href="{% url 'reports:platform_payments_list' %}" style="background: #ef4444; color: white; padding: 0.75rem 2rem; border-radius: 12px; text-decoration: none; font-weight: 800; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.4); transition: transform 0.2s;">
-            مراجعة الطلبات <i class="fas fa-arrow-left" style="margin-right: 0.5rem;"></i>
-        </a>
-    </div>
-    {% endif %}
 
-    <!-- Main Stats Grid -->
-    <div class="stats-grid">
-        <!-- Schools -->
-        <div class="stat-card">
-            <div class="stat-header">
-                <div class="stat-icon bg-indigo-light"><i class="fas fa-school"></i></div>
-                <span class="status-badge status-active" id="schoolsActiveBadge">+{{ platform_schools_active }} نشطة</span>
+        <div class="alert-strip" aria-label="تنبيهات تشغيلية">
+            <a href="{% url 'reports:platform_payments_list' %}" class="alert-tile {% if pending_payments > 0 %}danger{% endif %}">
+                <span class="alert-icon bg-rose-light"><i class="fas fa-receipt"></i></span>
+                <span class="alert-body">
+                    <strong>{{ pending_payments }} مدفوعات معلقة</strong>
+                    <span>مراجعة واعتماد طلبات الاشتراك والتجديد.</span>
+                </span>
+            </a>
+            <a href="{% url 'reports:platform_tickets_list' %}" class="alert-tile {% if tickets_open > 0 %}warning{% endif %}">
+                <span class="alert-icon bg-amber-light"><i class="fas fa-headset"></i></span>
+                <span class="alert-body">
+                    <strong><span id="ticketsOpenAlertStat">{{ tickets_open }}</span> تذاكر مفتوحة</strong>
+                    <span>طلبات تحتاج متابعة من فريق الدعم.</span>
+                </span>
+            </a>
+            <a href="{% url 'reports:platform_subscriptions_list' %}" class="alert-tile {% if subscriptions_expiring_soon > 0 %}info{% endif %}">
+                <span class="alert-icon bg-indigo-light"><i class="fas fa-calendar-alt"></i></span>
+                <span class="alert-body">
+                    <strong>{{ subscriptions_expiring_soon }} اشتراكات قريبة الانتهاء</strong>
+                    <span>خلال الثلاثين يومًا القادمة.</span>
+                </span>
+            </a>
+        </div>
+
+        <section class="metrics-grid" aria-label="مؤشرات المنصة">
+            <article class="metric-card">
+                <div class="metric-head">
+                    <span class="metric-icon bg-indigo-light"><i class="fas fa-school"></i></span>
+                    <span class="status-badge status-active" id="schoolsActiveBadge">+{{ platform_schools_active }} نشطة</span>
+                </div>
+                <div class="metric-value stat-value" id="schoolsTotalStat">{{ platform_schools_total }}</div>
+                <div class="metric-label">إجمالي المدارس</div>
+            </article>
+            <article class="metric-card">
+                <div class="metric-head">
+                    <span class="metric-icon bg-emerald-light"><i class="fas fa-coins"></i></span>
+                </div>
+                <div class="metric-value stat-value" id="revenueStat">{{ total_revenue|floatformat:0|intcomma|stringformat:"s"|add:" ر.س" }}</div>
+                <div class="metric-label" id="revenueStatLabel">المبيعات خلال الفترة</div>
+            </article>
+            <article class="metric-card">
+                <div class="metric-head">
+                    <span class="metric-icon bg-amber-light"><i class="fas fa-file-alt"></i></span>
+                </div>
+                <div class="metric-value stat-value" id="reportsStat">{{ reports_count }}</div>
+                <div class="metric-label" id="reportsStatLabel">التقارير خلال الفترة</div>
+            </article>
+            <article class="metric-card">
+                <div class="metric-head">
+                    <span class="metric-icon bg-rose-light"><i class="fas fa-headset"></i></span>
+                    <span class="status-badge status-danger" id="ticketsOpenBadge">{{ tickets_open }} مفتوحة</span>
+                </div>
+                <div class="metric-value stat-value" id="ticketsTotalStat">{{ tickets_total }}</div>
+                <div class="metric-label" id="ticketsStatLabel">تذاكر الدعم خلال الفترة</div>
+            </article>
+        </section>
+
+        <section class="section-panel" aria-label="الإجراءات التشغيلية">
+            <div class="section-heading">
+                <div>
+                    <h2><i class="fas fa-bolt"></i> الإجراءات التشغيلية</h2>
+                    <p>اختصارات مرتبة حسب نوع العمل حتى لا تختلط بالإحصائيات.</p>
+                </div>
             </div>
-            <div class="stat-value" id="schoolsTotalStat">{{ platform_schools_total }}</div>
-            <div class="stat-label">إجمالي المدارس المسجلة</div>
-        </div>
-
-        <!-- Revenue -->
-        <div class="stat-card">
-            <div class="stat-header">
-                <div class="stat-icon bg-emerald-light"><i class="fas fa-coins"></i></div>
+            <div class="action-groups">
+                <div class="action-group">
+                    <h3 class="action-group-title"><i class="fas fa-school"></i> المدارس والمستخدمون</h3>
+                    <div class="action-list">
+                        <a href="{% url 'reports:schools_admin_list' %}" class="action-card" data-search-item data-search-title="إدارة المدارس المدارس">
+                            <span class="action-icon bg-emerald-light"><i class="fas fa-school"></i></span>
+                            <span class="action-body"><strong>إدارة المدارس</strong><span>عرض وتعديل بيانات المدارس.</span></span>
+                        </a>
+                        <a href="{% url 'reports:school_create' %}" class="action-card" data-search-item data-search-title="إضافة مدرسة جديدة">
+                            <span class="action-icon bg-amber-light"><i class="fas fa-plus"></i></span>
+                            <span class="action-body"><strong>إضافة مدرسة</strong><span>إنشاء مدرسة جديدة على المنصة.</span></span>
+                        </a>
+                        <a href="{% url 'reports:school_managers_list' %}" class="action-card" data-search-item data-search-title="مدراء المدارس المستخدمون">
+                            <span class="action-icon bg-indigo-light"><i class="fas fa-user-tie"></i></span>
+                            <span class="action-body"><strong>مدراء المدارس</strong><span>متابعة حسابات الإدارة المدرسية.</span></span>
+                        </a>
+                    </div>
+                </div>
+                <div class="action-group">
+                    <h3 class="action-group-title"><i class="fas fa-file-invoice-dollar"></i> الاشتراكات والمالية</h3>
+                    <div class="action-list">
+                        <a href="{% url 'reports:platform_subscriptions_list' %}" class="action-card" data-search-item data-search-title="إدارة الاشتراكات الاشتراك">
+                            <span class="action-icon bg-indigo-light"><i class="fas fa-file-invoice-dollar"></i></span>
+                            <span class="action-body"><strong>إدارة الاشتراكات</strong><span>الحالة والتجديد والانتهاء.</span></span>
+                        </a>
+                        <a href="{% url 'reports:platform_payments_list' %}" class="action-card {% if pending_payments > 0 %}is-warning{% endif %}" data-search-item data-search-title="المدفوعات المالية الفواتير">
+                            <span class="action-icon bg-amber-light"><i class="fas fa-receipt"></i></span>
+                            <span class="action-body"><strong>المدفوعات المالية</strong><span>اعتماد ومراجعة العمليات.</span></span>
+                            {% if pending_payments > 0 %}<span class="action-badge">{{ pending_payments }}</span>{% endif %}
+                        </a>
+                        <a href="{% url 'reports:platform_plans_list' %}" class="action-card" data-search-item data-search-title="باقات الاشتراك الخطط">
+                            <span class="action-icon bg-emerald-light"><i class="fas fa-tags"></i></span>
+                            <span class="action-body"><strong>باقات الاشتراك</strong><span>إدارة الخطط والأسعار.</span></span>
+                        </a>
+                        <a href="{% url 'reports:platform_archive_addons_list' %}" class="action-card" data-search-item data-search-title="إضافات الأرشيف التخزين">
+                            <span class="action-icon bg-indigo-light"><i class="fas fa-box-archive"></i></span>
+                            <span class="action-body"><strong>إضافات الأرشيف</strong><span>مساحات الأرشفة وخياراتها.</span></span>
+                        </a>
+                    </div>
+                </div>
+                <div class="action-group">
+                    <h3 class="action-group-title"><i class="fas fa-cogs"></i> النظام والدعم</h3>
+                    <div class="action-list">
+                        <a href="{% url 'reports:platform_tickets_list' %}" class="action-card" data-search-item data-search-title="تذاكر الدعم الفني الدعم">
+                            <span class="action-icon bg-rose-light"><i class="fas fa-headset"></i></span>
+                            <span class="action-body"><strong>تذاكر الدعم الفني</strong><span>متابعة طلبات المنصة.</span></span>
+                        </a>
+                        <a href="{% url 'reports:platform_school_notify' %}" class="action-card" data-search-item data-search-title="إرسال إشعار للمدرسة تنبيه">
+                            <span class="action-icon bg-rose-light"><i class="fas fa-bullhorn"></i></span>
+                            <span class="action-body"><strong>إرسال إشعار</strong><span>مراسلة مدرسة محددة.</span></span>
+                        </a>
+                        <a href="{% url 'reports:platform_admins_list' %}" class="action-card" data-search-item data-search-title="مشرفي المنصة المدراء">
+                            <span class="action-icon" style="background:#f3f4f6; color:#374151;"><i class="fas fa-users-cog"></i></span>
+                            <span class="action-body"><strong>مشرفي المنصة</strong><span>إدارة صلاحيات فريق النظام.</span></span>
+                        </a>
+                        <a href="{% url 'reports:platform_settings' %}" class="action-card" data-search-item data-search-title="إعدادات المنصة التهيئة الأسعار المساحات">
+                            <span class="action-icon bg-indigo-light"><i class="fas fa-sliders"></i></span>
+                            <span class="action-body"><strong>إعدادات المنصة</strong><span>الأسعار والمساحات والإعدادات العامة.</span></span>
+                        </a>
+                        <a href="{% url 'reports:platform_academic_years' %}" class="action-card" data-search-item data-search-title="السنوات الدراسية الهجرية الأعوام">
+                            <span class="action-icon bg-emerald-light"><i class="fas fa-calendar-days"></i></span>
+                            <span class="action-body"><strong>السنوات الدراسية</strong><span>إدارة السنوات الهجرية المتاحة للمدارس.</span></span>
+                        </a>
+                        <a href="{% url 'maintenance:school_year_reset' %}" class="action-card is-danger" data-search-item data-search-title="تهيئة العام الدراسي إعادة ضبط">
+                            <span class="action-icon" style="background:#fee2e2; color:#b91c1c;"><i class="fas fa-rotate"></i></span>
+                            <span class="action-body"><strong>تهيئة العام الدراسي</strong><span>إجراء حساس قبل بداية عام جديد.</span></span>
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div class="stat-value" id="revenueStat">{{ total_revenue|floatformat:0|intcomma|stringformat:"s"|add:" ر.س" }}</div>
-            <div class="stat-label" id="revenueStatLabel">المبيعات خلال الفترة</div>
-        </div>
+        </section>
 
-        <!-- Reports -->
-        <div class="stat-card">
-            <div class="stat-header">
-                <div class="stat-icon bg-amber-light"><i class="fas fa-file-alt"></i></div>
-            </div>
-            <div class="stat-value" id="reportsStat">{{ reports_count }}</div>
-            <div class="stat-label" id="reportsStatLabel">التقارير خلال الفترة</div>
-        </div>
-
-        <!-- Tickets -->
-        <div class="stat-card">
-            <div class="stat-header">
-                <div class="stat-icon bg-rose-light"><i class="fas fa-headset"></i></div>
-                <span class="status-badge status-danger" id="ticketsOpenBadge">{{ tickets_open }} مفتوحة</span>
-            </div>
-            <div class="stat-value" id="ticketsTotalStat">{{ tickets_total }}</div>
-            <div class="stat-label" id="ticketsStatLabel">تذاكر الدعم خلال الفترة</div>
-        </div>
-    </div>
-
-    <!-- System Actions Grid -->
-    <div style="margin-bottom: 2.5rem;">
-        <h3 class="section-title"><i class="fas fa-cogs"></i> إدارة النظام</h3>
-        <div class="stats-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
-            <a href="{% url 'reports:platform_subscriptions_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon bg-indigo-light" style="margin-bottom:1rem;"><i class="fas fa-file-invoice-dollar"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">إدارة الاشتراكات</span>
-            </a>
-            <a href="{% url 'reports:platform_plans_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon bg-emerald-light" style="margin-bottom:1rem;"><i class="fas fa-tags"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">باقات الاشتراك</span>
-            </a>
-            <a href="{% url 'reports:platform_payments_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center; position: relative; {% if pending_payments > 0 %}border: 2px solid #ef4444; background: #fff1f2; transform: scale(1.02);{% endif %}">
-                {% if pending_payments > 0 %}
-                <span style="position: absolute; top: 15px; right: 15px; background: #ef4444; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3); animation: pulse 2s infinite;">{{ pending_payments }}</span>
-                {% endif %}
-                <div class="stat-icon bg-amber-light" style="margin-bottom:1rem;"><i class="fas fa-receipt"></i></div>
-                <span class="stat-value" style="font-size:1.1rem; {% if pending_payments > 0 %}color: #991b1b; font-weight: 800;{% endif %}">المدفوعات المالية</span>
-                {% if pending_payments > 0 %}
-                <small style="color: #ef4444; font-weight: 700; margin-top: 0.5rem; display: block; font-size: 0.8rem;">
-                    <i class="fas fa-clock"></i> طلبات معلقة
-                </small>
-                {% endif %}
-            </a>
-            <a href="{% url 'reports:platform_archive_addons_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon bg-indigo-light" style="margin-bottom:1rem;"><i class="fas fa-box-archive"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">إضافات الأرشيف</span>
-            </a>
-            <a href="{% url 'reports:platform_settings' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon bg-emerald-light" style="margin-bottom:1rem;"><i class="fas fa-sliders"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">إعدادات الأرشفة</span>
-            </a>
-            <a href="{% url 'reports:platform_tickets_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon bg-rose-light" style="margin-bottom:1rem;"><i class="fas fa-headset"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">تذاكر الدعم الفني</span>
-            </a>
-            <a href="{% url 'reports:platform_school_notify' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon bg-rose-light" style="margin-bottom:1rem;"><i class="fas fa-bullhorn"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">إرسال إشعار للمدرسة</span>
-            </a>
-            <a href="{% url 'reports:platform_admins_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon" style="background:#f3f4f6; color:#374151; margin-bottom:1rem;"><i class="fas fa-users-cog"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">مشرفي المنصة</span>
-            </a>
-            <a href="{% url 'reports:school_managers_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon" style="background:#e0e7ff; color:#00542a; margin-bottom:1rem;"><i class="fas fa-user-tie"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">مدراء المدارس</span>
-            </a>
-            <a href="{% url 'reports:schools_admin_list' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon" style="background:#d1fae5; color:#065f46; margin-bottom:1rem;"><i class="fas fa-school"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">إدارة المدارس</span>
-            </a>
-            <a href="{% url 'reports:school_create' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon" style="background:#fef3c7; color:#92400e; margin-bottom:1rem;"><i class="fas fa-plus"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">إضافة مدرسة</span>
-            </a>
-            <a href="{% url 'reports:platform_audit_logs' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center;">
-                <div class="stat-icon" style="background:#f3f4f6; color:#1f2937; margin-bottom:1rem;"><i class="fas fa-history"></i></div>
-                <span class="stat-value" style="font-size:1.1rem;">سجل النظام</span>
-            </a>
-            <a href="{% url 'maintenance:school_year_reset' %}" class="stat-card" style="text-decoration:none; align-items:center; text-align:center; padding:2rem; justify-content:center; border-color:#fecdd3; background:#fff1f2;">
-                <div class="stat-icon" style="background:#fee2e2; color:#b91c1c; margin-bottom:1rem;"><i class="fas fa-rotate"></i></div>
-                <span class="stat-value" style="font-size:1.1rem; color:#991b1b;">تهيئة العام الدراسي</span>
-            </a>
-        </div>
-    </div>
-
-    <div class="content-grid">
+    <div class="dashboard-layout">
         <!-- Main Content Area -->
         <div class="main-column">
             
@@ -992,10 +1410,10 @@
                         نمو الإيرادات الشهرية
                     </h3>
                     <div class="export-buttons">
-                        <button class="export-btn" onclick="exportChartToPDF('revenueChart')">
-                            <i class="fas fa-file-pdf"></i> PDF
+                        <button class="export-btn" type="button" data-print-chart="revenueChart" data-print-title="نمو الإيرادات الشهرية">
+                            <i class="fas fa-print"></i> طباعة
                         </button>
-                        <button class="export-btn" onclick="exportChartToImage('revenueChart')">
+                        <button class="export-btn" type="button" data-export-chart="revenueChart">
                             <i class="fas fa-image"></i> صورة
                         </button>
                     </div>
@@ -1042,26 +1460,24 @@
                                     </td>
                                     <td>{{ sub.plan.name }}</td>
                                     <td>
-                                        {% with days_left=sub.end_date|timeuntil %}
-                                            {% if "يوم" in days_left and days_left|slice:":2"|add:"0" < 7 %}
-                                                <span class="status-badge status-danger">
-                                                    <i class="fas fa-exclamation-circle"></i> حرج
-                                                </span>
-                                            {% elif "يوم" in days_left and days_left|slice:":2"|add:"0" < 15 %}
-                                                <span class="status-badge status-warning">
-                                                    <i class="fas fa-exclamation-triangle"></i> تحذير
-                                                </span>
-                                            {% else %}
-                                                <span class="status-badge status-active">
-                                                    <i class="fas fa-clock"></i> قريب
-                                                </span>
-                                            {% endif %}
-                                        {% endwith %}
+                                        {% if sub.days_remaining != None and sub.days_remaining < 7 %}
+                                            <span class="status-badge status-danger">
+                                                <i class="fas fa-exclamation-circle"></i> حرج
+                                            </span>
+                                        {% elif sub.days_remaining != None and sub.days_remaining < 15 %}
+                                            <span class="status-badge status-warning">
+                                                <i class="fas fa-exclamation-triangle"></i> تحذير
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge status-active">
+                                                <i class="fas fa-clock"></i> قريب
+                                            </span>
+                                        {% endif %}
                                     </td>
-                                    <td>{{ sub.end_date|date:"Y-m-d" }}</td>
+                                    <td>{{ sub.end_date|hijri }} هـ</td>
                                     <td>
                                         <strong style="color: var(--warning-color);">
-                                            {{ sub.end_date|timeuntil }}
+                                            {% if sub.days_remaining != None %}{{ sub.days_remaining }} يوم{% else %}{{ sub.end_date|timeuntil }}{% endif %}
                                         </strong>
                                     </td>
                                     <td>
@@ -1075,7 +1491,7 @@
                             <tr>
                                 <td colspan="6" style="text-align:center; padding: 3rem; color:var(--text-muted);">
                                     <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--secondary-color); margin-bottom: 1rem; display: block;"></i>
-                                    <strong style="font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">ممتاز! 🎉</strong>
+                                    <strong style="font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">الوضع مستقر</strong>
                                     لا توجد اشتراكات تنتهي خلال الـ 30 يوم القادمة.
                                 </td>
                             </tr>
@@ -1090,8 +1506,13 @@
                 <div class="card-header">
                     <h3 style="margin:0; font-size:1.1rem; font-weight:700">
                         <i class="fas fa-file-alt" style="color: var(--primary-color);"></i>
-                        نشاط التقارير الأسبوعي
+                        نشاط التقارير الشهري
                     </h3>
+                    <div class="export-buttons">
+                        <button class="export-btn" type="button" data-print-chart="reportsChart" data-print-title="نشاط التقارير الشهري">
+                            <i class="fas fa-print"></i> طباعة
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -1105,60 +1526,6 @@
         <!-- Sidebar / Alerts & Activity -->
         <div class="side-column">
 
-            <!-- Alerts Card (Actionable) -->
-            <div class="card-panel">
-                <div class="card-header">
-                    <h3 style="margin:0; font-size:1.1rem; font-weight:700">
-                        🔔 تنبيهات مهمة
-                    </h3>
-                </div>
-                <div class="card-body" style="padding:0;">
-                    {% if tickets_open > 0 %}
-                    <a href="{% url 'reports:platform_tickets_list' %}" class="notif-item notif-item-link">
-                        <div class="notif-icon" style="background:#fee2e2; color:#be123c"><i class="fas fa-ticket-alt"></i></div>
-                        <div class="notif-content">
-                            <h4>طلبات دعم فني تحتاج مراجعة</h4>
-                            <p>يوجد {{ tickets_open }} تذكرة مفتوحة/قيد المعالجة.</p>
-                            <span class="notif-time">اضغط لعرض التذاكر</span>
-                        </div>
-                    </a>
-                    {% endif %}
-
-                    {% if pending_payments > 0 %}
-                    <a href="{% url 'reports:platform_payments_list' %}?status=active" class="notif-item notif-item-link">
-                        <div class="notif-icon" style="background:#fef3c7; color:#b45309"><i class="fas fa-file-invoice-dollar"></i></div>
-                        <div class="notif-content">
-                            <h4>فواتير/مدفوعات معلّقة</h4>
-                            <p>يوجد {{ pending_payments }} عملية دفع بانتظار الاعتماد.</p>
-                            <span class="notif-time">اضغط لعرض المالية</span>
-                        </div>
-                    </a>
-                    {% endif %}
-
-                    {% if subscriptions_expiring_soon > 0 %}
-                    <a href="{% url 'reports:platform_subscriptions_list' %}" class="notif-item notif-item-link">
-                        <div class="notif-icon" style="background:#e0f2fe; color:#0369a1"><i class="fas fa-calendar-alt"></i></div>
-                        <div class="notif-content">
-                            <h4>اشتراكات تنتهي قريباً</h4>
-                            <p>يوجد {{ subscriptions_expiring_soon }} اشتراك ينتهي خلال 30 يوم.</p>
-                            <span class="notif-time">اضغط لعرض الاشتراكات</span>
-                        </div>
-                    </a>
-                    {% endif %}
-
-                    {% if tickets_open == 0 and pending_payments == 0 and subscriptions_expiring_soon == 0 %}
-                    <div class="notif-item">
-                        <div class="notif-icon" style="background:#d1fae5; color:#065f46"><i class="fas fa-check"></i></div>
-                        <div class="notif-content">
-                            <h4>لا توجد تنبيهات حالياً</h4>
-                            <p>كل شيء يبدو ممتازاً! 🎉</p>
-                            <span class="notif-time">—</span>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            
             <!-- Schools Distribution Chart -->
             <div class="card-panel">
                 <div class="card-header">
@@ -1193,7 +1560,7 @@
                                 <div class="timeline-content">
                                     <h4>{{ activity.title }}</h4>
                                     <p>{{ activity.description }}</p>
-                                    <span class="timeline-time">{{ activity.time|timesince }}</span>
+                                    <span class="timeline-time">{{ activity.time|naturaltime }}</span>
                                 </div>
                             </div>
                             {% endfor %}
@@ -1234,11 +1601,12 @@
         </div>
     </div>
 </div>
+</div>
 
 {{ dashboard_period_payload|json_script:"dashboardPeriodPayload" }}
 
 <!-- JavaScript للرسوم البيانية والتفاعلية -->
-<script>
+<script nonce="{{ CSP_NONCE }}">
 if (typeof Chart === 'undefined') {
     window.Chart = function () {
         return {
@@ -1278,6 +1646,7 @@ const PERIOD_LABELS = {
     month: 'هذا الشهر',
 };
 const PLATFORM_DASHBOARD_API_URL = "{% url 'reports:api_platform_dashboard_data' %}";
+const PLATFORM_DASHBOARD_SEARCH_URL = "{% url 'reports:api_platform_dashboard_search' %}";
 
 let currentPeriod = '{{ initial_period|default:"all" }}';
 let dashboardRequestController = null;
@@ -1313,6 +1682,7 @@ function applyKpiData(payload) {
     const reportsEl = document.getElementById('reportsStat');
     const ticketsTotalEl = document.getElementById('ticketsTotalStat');
     const ticketsOpenBadgeEl = document.getElementById('ticketsOpenBadge');
+    const ticketsOpenAlertEl = document.getElementById('ticketsOpenAlertStat');
 
     if (schoolsTotalEl) schoolsTotalEl.textContent = formatNumberAr(kpis.schools_total);
     if (schoolsActiveBadgeEl) schoolsActiveBadgeEl.textContent = '+' + formatNumberAr(kpis.schools_active) + ' نشطة';
@@ -1320,6 +1690,7 @@ function applyKpiData(payload) {
     if (reportsEl) reportsEl.textContent = formatNumberAr(kpis.reports_count);
     if (ticketsTotalEl) ticketsTotalEl.textContent = formatNumberAr(kpis.tickets_total);
     if (ticketsOpenBadgeEl) ticketsOpenBadgeEl.textContent = formatNumberAr(kpis.tickets_open) + ' مفتوحة';
+    if (ticketsOpenAlertEl) ticketsOpenAlertEl.textContent = formatNumberAr(kpis.tickets_open);
 
     const sideDone = document.getElementById('ticketsDoneSideStat');
     const sideOpen = document.getElementById('ticketsOpenSideStat');
@@ -1611,25 +1982,34 @@ function refreshDashboard() {
     fetchDashboardPeriod(currentPeriod || 'all', { force: true });
 }
 
-// البحث السريع (عملي على عناصر الصفحة)
+// البحث السريع: يجمع بين اختصارات الصفحة ونتائج فعلية من قاعدة البيانات.
 let searchTimeout;
 const searchInput = document.getElementById('globalSearch');
 const searchResults = document.getElementById('searchResults');
+let searchRequestController = null;
 
-function buildSearchIndex() {
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function buildLocalSearchIndex() {
     const indexed = [];
-    document.querySelectorAll('a.stat-card').forEach((item) => {
+    document.querySelectorAll('[data-search-item]').forEach((item) => {
+        const title = (item.getAttribute('data-search-title') || item.textContent || '').trim();
+        const displayTitle = (item.querySelector('strong')?.textContent || title).trim();
+        const subtitle = (item.querySelector('.action-body span')?.textContent || 'إجراء سريع').trim();
         indexed.push({
-            title: (item.textContent || '').trim(),
+            title: displayTitle,
+            searchable: title + ' ' + displayTitle + ' ' + subtitle,
+            subtitle: subtitle,
+            type: 'إجراء',
             href: item.getAttribute('href') || '#',
             icon: 'fa-link',
-        });
-    });
-    document.querySelectorAll('.timeline-item').forEach((item) => {
-        indexed.push({
-            title: (item.textContent || '').trim(),
-            href: '#',
-            icon: 'fa-history',
         });
     });
     return indexed;
@@ -1643,12 +2023,33 @@ function renderSearchResults(items) {
     }
     searchResults.innerHTML = items.slice(0, 8).map((item) => {
         const safeHref = item.href || '#';
-        return '<a class="search-result-item" href="' + safeHref + '" style="display:flex;gap:.75rem;align-items:center;text-decoration:none;color:inherit;">'
-            + '<i class="fas ' + item.icon + '" style="color:var(--primary-color);"></i>'
-            + '<span>' + item.title + '</span>'
+        return '<a class="search-result-item" href="' + escapeHtml(safeHref) + '" style="display:flex;gap:.75rem;align-items:flex-start;text-decoration:none;color:inherit;">'
+            + '<i class="fas ' + escapeHtml(item.icon || 'fa-search') + '" style="color:var(--primary-color);margin-top:.2rem;"></i>'
+            + '<span style="min-width:0;">'
+            + '<strong style="display:block;color:var(--text-main);font-size:.92rem;">' + escapeHtml(item.title) + '</strong>'
+            + '<small style="display:block;color:var(--text-muted);font-weight:700;margin-top:.15rem;">' + escapeHtml(item.type || 'نتيجة') + (item.subtitle ? ' · ' + escapeHtml(item.subtitle) : '') + '</small>'
+            + '</span>'
             + '</a>';
     }).join('');
     searchResults.classList.add('active');
+}
+
+async function fetchRemoteSearch(query) {
+    if (searchRequestController) searchRequestController.abort();
+    searchRequestController = new AbortController();
+    const url = new URL(PLATFORM_DASHBOARD_SEARCH_URL, window.location.origin);
+    url.searchParams.set('q', query);
+    const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+        },
+        signal: searchRequestController.signal,
+    });
+    if (!response.ok) return [];
+    const payload = await response.json();
+    return Array.isArray(payload.results) ? payload.results : [];
 }
 
 if (searchInput && searchResults) {
@@ -1660,9 +2061,19 @@ if (searchInput && searchResults) {
             searchResults.innerHTML = '';
             return;
         }
-        searchTimeout = setTimeout(() => {
-            const results = buildSearchIndex().filter((item) => item.title.toLowerCase().includes(query));
-            renderSearchResults(results);
+        searchTimeout = setTimeout(async () => {
+            const localResults = buildLocalSearchIndex().filter((item) => {
+                return (item.searchable || item.title || '').toLowerCase().includes(query);
+            });
+            renderSearchResults(localResults);
+            try {
+                const remoteResults = await fetchRemoteSearch(query);
+                renderSearchResults([...localResults, ...remoteResults]);
+            } catch (error) {
+                if (!error || error.name !== 'AbortError') {
+                    renderSearchResults(localResults);
+                }
+            }
         }, 180);
     });
 }
@@ -1682,6 +2093,24 @@ document.querySelectorAll('.filter-btn[data-period]').forEach((button) => {
     });
 });
 
+// ربط الأزرار عبر مستمعات أحداث (بدل onclick المضمّن المحظور بسياسة CSP)
+(function bindActionButtons() {
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshDashboard);
+    }
+    document.querySelectorAll('[data-print-chart]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            printChart(btn.getAttribute('data-print-chart'), btn.getAttribute('data-print-title') || '');
+        });
+    });
+    document.querySelectorAll('[data-export-chart]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            exportChartToImage(btn.getAttribute('data-export-chart'));
+        });
+    });
+})();
+
 if (dashboardPayload && Object.keys(dashboardPayload).length) {
     applyDashboardPayload(dashboardPayload, { updateUrl: false });
 } else {
@@ -1689,31 +2118,49 @@ if (dashboardPayload && Object.keys(dashboardPayload).length) {
     markActivePeriod(currentPeriod);
 }
 
-// تصدير الرسوم البيانية إلى PDF
-function exportChartToPDF(chartId) {
-    alert('سيتم تطبيق هذه الميزة قريباً!\nستتمكن من تصدير الرسم البياني كملف PDF.');
-    // يمكن استخدام jsPDF و html2canvas
+function getChartImageUrl(chartId) {
+    const canvas = document.getElementById(chartId);
+    if (!canvas || typeof canvas.toDataURL !== 'function') return '';
+    return canvas.toDataURL('image/png');
+}
+
+// طباعة الرسم البياني، ويمكن حفظه PDF من نافذة الطباعة.
+function printChart(chartId, title) {
+    const url = getChartImageUrl(chartId);
+    if (!url) {
+        alert('تعذر تجهيز الرسم للطباعة حالياً.');
+        return;
+    }
+    const popup = window.open('', '_blank', 'width=980,height=720');
+    if (!popup) {
+        alert('يرجى السماح بالنوافذ المنبثقة لطباعة الرسم.');
+        return;
+    }
+    popup.document.write(
+        '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'
+        + '<title>' + escapeHtml(title || 'رسم بياني') + '</title>'
+        + '<style>body{font-family:Cairo,Arial,sans-serif;margin:32px;color:#111827;text-align:center}img{max-width:100%;border:1px solid #e5e7eb;border-radius:10px}h1{font-size:22px;margin-bottom:24px}</style>'
+        + '</head><body><h1>' + escapeHtml(title || 'رسم بياني') + '</h1><img src="' + url + '" alt=""></body></html>'
+    );
+    popup.document.close();
+    popup.focus();
+    setTimeout(function () {
+        popup.print();
+    }, 250);
 }
 
 // تصدير الرسوم البيانية كصورة
 function exportChartToImage(chartId) {
-    const canvas = document.getElementById(chartId);
-    const url = canvas.toDataURL('image/png');
+    const url = getChartImageUrl(chartId);
+    if (!url) {
+        alert('تعذر تجهيز الصورة حالياً.');
+        return;
+    }
     const link = document.createElement('a');
     link.download = chartId + '_' + new Date().getTime() + '.png';
     link.href = url;
     link.click();
 }
-
-// تحديث الوقت الفعلي (كل 30 ثانية)
-setInterval(() => {
-    // في التطبيق الحقيقي، استخدم AJAX لجلب البيانات الحرجة فقط
-    // fetch('/api/platform/live-stats/')
-    //     .then(r => r.json())
-    //     .then(data => {
-    //         // تحديث العناصر المهمة فقط
-    //     });
-}, 30000);
 
 // Animation on scroll
 const observerOptions = {
@@ -1761,7 +2208,7 @@ function animateNumber(element, target) {
 
 // تطبيق الأنيميشن على الأرقام عند التحميل
 window.addEventListener('load', () => {
-    document.querySelectorAll('.stat-value').forEach(el => {
+    document.querySelectorAll('.metric-card .stat-value').forEach(el => {
         // استخراج الرقم فقط
         const text = el.textContent.replace(/[^\d]/g, '');
         const value = parseInt(text);
@@ -1772,9 +2219,6 @@ window.addEventListener('load', () => {
         }
     });
 });
-
-console.log('%c 🎉 لوحة مدير النظام Premium 2026 ', 'background: linear-gradient(135deg, #006c35, #b9975b); color: white; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px;');
-console.log('%c تم التطوير بواسطة فريق التطوير ❤️ ', 'color: #16845b; font-size: 12px; font-weight: bold;');
 </script>
 
 {% endblock %}

@@ -178,6 +178,23 @@
     font-size: .92rem;
   }
 
+  /* معاينة المرفق قبل الإرسال */
+  .t-attach-preview{ margin-top: 10px; }
+  .t-attach-preview .thumb{
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    display: block;
+  }
+  .t-attach-preview .name{
+    margin-top: 6px;
+    color: var(--muted);
+    font-weight: 850;
+    font-size: .9rem;
+    word-break: break-all;
+  }
+
   /* Actions */
   .t-actions{
     margin-top: 4px;
@@ -224,7 +241,7 @@
   <section class="ticket-hero" aria-label="عنوان صفحة الدعم">
     <div class="ticket-hero-inner">
       <div>
-        <h1><span aria-hidden="true">🎧</span> طلب دعم فني للمنصة</h1>
+        <h1><i class="fa-solid fa-headset" aria-hidden="true"></i> طلب دعم فني للمنصة</h1>
         <p>اكتب المشكلة بوضوح، وأرفق صورة إن لزم. سيصل الطلب للإدارة للمتابعة.</p>
       </div>
 
@@ -277,6 +294,8 @@
             <span>JPG / PNG — يفضّل أقل من 10MB</span>
           </div>
 
+          <div id="attachPreview" class="t-attach-preview" style="display:none" aria-live="polite"></div>
+
           {% if form.attachment.errors %}<div class="t-err">{{ form.attachment.errors.0 }}</div>{% endif %}
         </div>
 
@@ -286,7 +305,7 @@
             <span>إرسال الطلب</span>
           </button>
 
-          <a class="btn btn-ghost" href="{% url 'reports:my_requests' %}" data-smart-back="1">
+          <a class="btn btn-outline" href="{% url 'reports:my_requests' %}" data-smart-back="1">
             <i class="fa-solid fa-arrow-right"></i> رجوع لطلباتي
           </a>
         </div>
@@ -304,9 +323,27 @@
     if(!form || !btn) return;
 
     var fileInput = form.querySelector('input[type="file"]');
+    var attachPreview = document.getElementById('attachPreview');
+    var attachObjUrl = null;
     if(fileInput){
       // تحسين بسيط: قبول الصور فقط على الجوال/سطح المكتب
       try{ fileInput.setAttribute('accept','image/*'); }catch(e){ /* ignore */ }
+
+      // معاينة الصورة قبل الإرسال
+      fileInput.addEventListener('change', function(){
+        if(!attachPreview) return;
+        if(attachObjUrl){ try{ URL.revokeObjectURL(attachObjUrl); }catch(e){} attachObjUrl = null; }
+        var f = fileInput.files && fileInput.files[0];
+        if(!f){ attachPreview.style.display='none'; attachPreview.innerHTML=''; return; }
+        var sizeKB = (f.size/1024).toFixed(0) + 'KB';
+        attachPreview.style.display='block';
+        if((f.type||'').toLowerCase().indexOf('image/') === 0){
+          attachObjUrl = URL.createObjectURL(f);
+          attachPreview.innerHTML = '<img src="'+attachObjUrl+'" alt="معاينة المرفق" class="thumb"><div class="name">'+f.name+' · '+sizeKB+'</div>';
+        } else {
+          attachPreview.innerHTML = '<div class="name"><i class="fa-solid fa-paperclip"></i> '+f.name+' · '+sizeKB+'</div>';
+        }
+      });
     }
 
     form.addEventListener('submit', function(){

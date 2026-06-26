@@ -98,52 +98,137 @@ def calculate_school_archive_storage_bytes(school: School | None) -> int:
     return total
 
 
-def sync_school_archive_storage_usage(school: School | None) -> int:
+def recompute_school_storage(school: School | None) -> int:
+    """يعيد حساب التخزين الفعلي للمدرسة (مسح كامل دقيق) ويخزّنه على المدرسة.
+
+    يُستخدم للتهيئة الأولية (backfill) أو المصالحة عند الاشتباه بانحراف.
+    قد يقرأ أحجام الملفات من التخزين (شبكة) — لذا لا يُستدعى في المسار الساخن.
+    """
     if school is None:
         return 0
+    used = calculate_school_archive_storage_bytes(school)
+    try:
+        School.objects.filter(pk=school.pk).update(storage_used_bytes=used)
+    except Exception:
+        pass
+    # مزامنة نسخة الإضافة إن وُجدت (للتوافق الخلفي)
     try:
         addon = SchoolArchiveAddon.objects.get(school=school)
+        if addon.storage_used_bytes != used:
+            addon.storage_used_bytes = used
+            addon.save(update_fields=["storage_used_bytes", "updated_at"])
     except SchoolArchiveAddon.DoesNotExist:
-        return 0
-
-    used = calculate_school_archive_storage_bytes(school)
-    if addon.storage_used_bytes != used:
-        addon.storage_used_bytes = used
-        addon.save(update_fields=["storage_used_bytes", "updated_at"])
+        pass
     return used
 
 
-def archive_storage_capacity_error(school: School | None, incoming_files, *, replacing_files=None) -> str:
-    """Return an Arabic error message when an active archive add-on exceeds its quota."""
+def sync_school_archive_storage_usage(school: School | None) -> int:
+    """توافق خلفي: يحدّث نسخة الإضافة من الإجمالي التزايدي المخزّن (بلا مسح شبكي)."""
     if school is None:
-        return ""
+        return 0
+    used = int(
+        School.objects.filter(pk=school.pk)
+        .values_list("storage_used_bytes", flat=True)
+        .first()
+        or 0
+    )
     try:
         addon = SchoolArchiveAddon.objects.get(school=school)
+        if addon.storage_used_bytes != used:
+            addon.storage_used_bytes = used
+            addon.save(update_fields=["storage_used_bytes", "updated_at"])
     except SchoolArchiveAddon.DoesNotExist:
-        return ""
-    if not addon.is_active:
+        pass
+    return used
+
+
+def _platform_free_storage_bytes() -> int:
+    """حد التخزين المجاني الأساسي لكل مدرسة (بالبايت) من إعدادات المنصة.
+
+    0 = غير محدود.
+    """
+    try:
+        from .models import PlatformSettings
+
+        mb = int(getattr(PlatformSettings.get_solo(), "free_storage_mb", 0) or 0)
+    except Exception:
+        mb = 0
+    return max(0, mb) * 1024 * 1024
+
+
+def school_storage_limit_bytes(school: School | None) -> int:
+    """الحد الفعلي لتخزين المدرسة (بالبايت).
+
+    - إن كانت لديها إضافة أرشفة مفعّلة: حدّ الإضافة (storage_limit_gb).
+    - وإلا: الحد المجاني الأساسي من إعدادات المنصة (free_storage_mb).
+    - 0 يعني غير محدود.
+    """
+    if school is None:
+        return 0
+    try:
+        addon = SchoolArchiveAddon.objects.get(school=school)
+        if addon.is_active:
+            return int(addon.storage_limit_gb or 0) * 1024 * 1024 * 1024
+    except SchoolArchiveAddon.DoesNotExist:
+        pass
+    return _platform_free_storage_bytes()
+
+
+def _human_size(num_bytes: int) -> str:
+    """تنسيق دقيق للحجم: بايت/كيلو/ميجا/جيجا حسب المقدار."""
+    b = max(0, int(num_bytes or 0))
+    if b < 1024:
+        return f"{b} بايت"
+    kb = b / 1024
+    if kb < 1024:
+        return f"{round(kb, 1)}KB"
+    mb = kb / 1024
+    if mb < 1024:
+        return f"{round(mb, 1)}MB"
+    return f"{round(mb / 1024, 2)}GB"
+
+
+def archive_storage_capacity_error(school: School | None, incoming_files, *, replacing_files=None) -> str:
+    """رسالة خطأ عربية عند تجاوز حدّ تخزين المدرسة.
+
+    يُطبَّق على جميع المدارس: حدّ إضافة الأرشفة إن كانت مفعّلة، وإلا الحدّ المجاني
+    الأساسي من إعدادات المنصة. الحساب يعتمد على الحجم الفعلي للملفات (دقيق).
+    """
+    if school is None:
         return ""
 
     incoming_bytes = _incoming_size(incoming_files)
     if incoming_bytes <= 0:
         return ""
 
-    used_bytes = calculate_school_archive_storage_bytes(school)
-    replaced_bytes = sum(_file_size(value) for value in (replacing_files or []))
-    projected_used_bytes = max(0, used_bytes - replaced_bytes) + incoming_bytes
-    limit_bytes = int(addon.storage_limit_gb or 0) * 1024 * 1024 * 1024
-    if limit_bytes <= 0 or projected_used_bytes <= limit_bytes:
+    limit_bytes = school_storage_limit_bytes(school)
+    if limit_bytes <= 0:
+        # 0 = غير محدود
         return ""
 
-    used_gb = round(used_bytes / (1024 ** 3), 2)
-    replaced_gb = round(replaced_bytes / (1024 ** 3), 2)
-    incoming_gb = round(incoming_bytes / (1024 ** 3), 2)
-    replaced_text = f"، وسيتم استبدال {replaced_gb}GB" if replaced_bytes else ""
-    return (
-        f"مساحة الأرشيف غير كافية. المستخدم حالياً {used_gb}GB، "
-        f"والملفات الجديدة {incoming_gb}GB{replaced_text}، والحد المتاح {addon.storage_limit_gb}GB. "
-        "يمكنك طلب زيادة المساحة من صفحة الاشتراك."
+    # الحجم المستخدم يُقرأ من الإجمالي التزايدي المخزّن (بلا أي طلب شبكي إلى التخزين).
+    # يُحدَّث هذا الإجمالي تلقائيًا عبر إشارات storage_tracking عند كل رفع/حذف.
+    used_bytes = int(
+        School.objects.filter(pk=school.pk)
+        .values_list("storage_used_bytes", flat=True)
+        .first()
+        or 0
     )
+    replaced_bytes = sum(_file_size(value) for value in (replacing_files or []))
+    projected_used_bytes = max(0, used_bytes - replaced_bytes) + incoming_bytes
+    if projected_used_bytes <= limit_bytes:
+        return ""
+
+    has_active_addon = school_has_archive_addon(school)
+    replaced_text = f"، وسيتم استبدال {_human_size(replaced_bytes)}" if replaced_bytes else ""
+    base = (
+        f"تم تجاوز حد التخزين المتاح للمدرسة. المستخدم حالياً {_human_size(used_bytes)}، "
+        f"والملفات الجديدة {_human_size(incoming_bytes)}{replaced_text}، "
+        f"والحد المتاح {_human_size(limit_bytes)}. "
+    )
+    if has_active_addon:
+        return base + "يمكنك طلب زيادة المساحة من صفحة الاشتراك."
+    return base + "يرجى حذف ملفات قديمة أو ترقية باقة التخزين (إضافة الأرشفة) من صفحة الاشتراك."
 
 
 def archive_available_years(*, school: School, teacher=None, school_wide: bool = False) -> list[str]:

@@ -409,6 +409,23 @@
     outline-offset: 2px;
   }
 
+  .profile-password-simplehint {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0.25rem 0 0.5rem;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(10, 92, 51, 0.06);
+    border: 1px solid rgba(185, 151, 91, 0.28);
+    color: #0a5c33;
+    font-weight: 800;
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+  .profile-password-simplehint i { color: #b9975b; font-size: 1.1rem; flex: 0 0 auto; }
+  html[data-theme="dark"] .profile-password-simplehint { background: rgba(212,177,109,.08); color: #e6cf9a; }
+
   .profile-password-panel {
     padding: 1.1rem 1.1rem 1rem;
     background:
@@ -663,6 +680,66 @@
     line-height: 1.8;
     font-weight: 600;
   }
+
+  .profile-passkey-panel {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .profile-passkey-copy {
+    margin: 0;
+    color: var(--prof-text-light);
+    line-height: 1.9;
+    font-weight: 600;
+  }
+
+  .profile-passkey-list {
+    display: grid;
+    gap: .75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .profile-passkey-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .9rem 1rem;
+    border: 1px solid var(--prof-border);
+    border-radius: var(--prof-radius-md);
+    background: var(--prof-bg-secondary);
+  }
+
+  .profile-passkey-item strong {
+    display: block;
+    color: var(--prof-text);
+    font-weight: 800;
+  }
+
+  .profile-passkey-item span {
+    display: block;
+    color: var(--prof-text-light);
+    font-size: .84rem;
+    font-weight: 650;
+    margin-top: .2rem;
+  }
+
+  .profile-passkey-status {
+    display: none;
+    padding: .85rem 1rem;
+    border-radius: var(--prof-radius-md);
+    background: rgba(0,108,53,.08);
+    color: var(--prof-primary-dark);
+    line-height: 1.7;
+    font-weight: 700;
+  }
+
+  .profile-passkey-status.is-error {
+    background: rgba(239,68,68,.10);
+    color: var(--prof-danger-dark);
+  }
   
   /* ========== Responsive Design ========== */
   
@@ -759,6 +836,67 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+
+  /* ============================================================
+     👑 ROYAL OVERLAY — حسابي (زمرّدي + ذهبي)
+     ============================================================ */
+  .profile-scope .profile-header{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:24px !important;
+    box-shadow:0 26px 60px -24px rgba(5,46,26,.7) !important;
+    padding:30px 26px !important; color:#fff !important;
+  }
+  .profile-scope .profile-header::after{
+    content:"\f521"; font-family:"Font Awesome 6 Free"; font-weight:900;
+    position:absolute; top:14px; left:22px; font-size:2.4rem; color:rgba(212,177,109,.18);
+  }
+  .profile-scope .profile-header::before{
+    content:""; position:absolute; top:0; right:0; left:0; height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .profile-scope .profile-title{
+    color:#fff !important;
+    background:linear-gradient(90deg,#ffffff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .profile-scope .profile-title i{ -webkit-text-fill-color:#e6cf9a; color:#e6cf9a; }
+  .profile-scope .profile-subtitle{ color:rgba(255,255,255,.82) !important; font-weight:800 !important; }
+
+  .profile-scope .profile-card{
+    border:1px solid rgba(185,151,91,.20) !important;
+    border-radius:20px !important;
+    box-shadow:0 16px 40px -26px rgba(10,92,51,.4) !important;
+    position:relative; overflow:hidden;
+  }
+  .profile-scope .profile-card::before{
+    content:""; position:absolute; top:0; right:0; width:84px; height:84px;
+    background:linear-gradient(135deg, rgba(212,177,109,.18), transparent 70%); border-radius:0 0 0 100%; pointer-events:none;
+  }
+  .profile-scope .profile-card-title{ color:#0a5c33 !important; font-weight:950 !important; }
+  .profile-scope .profile-card-title i{ color:#b9975b !important; }
+  [data-theme="dark"] .profile-scope .profile-card-title{ color:#e6cf9a !important; }
+
+  .profile-scope .profile-school-item{
+    border:1px solid #ece7da !important; border-radius:14px !important;
+    background:#faf7ef !important; transition:transform .15s, box-shadow .15s;
+  }
+  .profile-scope .profile-school-item:hover{ transform:translateX(-3px); box-shadow:0 10px 22px -16px rgba(10,92,51,.5); }
+  .profile-scope .profile-school-badge{
+    background:linear-gradient(135deg,#0b6238,#063d22) !important; color:#e6cf9a !important; border:none !important;
+  }
+  [data-theme="dark"] .profile-scope .profile-school-item{ background:#0f172a !important; border-color:#1e293b !important; }
+
+  /* أزرار الحفظ بلمسة ملكية */
+  .profile-scope .profile-form button[type="submit"],
+  .profile-scope .profile-btn-primary,
+  .profile-scope button.profile-submit{
+    background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important;
+    box-shadow:0 10px 22px -12px rgba(10,92,51,.6) !important;
   }
 </style>
 {% endblock %}
@@ -900,9 +1038,7 @@
           class="profile-form"
           novalidate
           data-password-form
-          data-password-min-length="{{ pwd_form.password_min_length|default:'8' }}"
-          data-user-phone="{{ request.user.phone|default:'' }}"
-          data-user-name="{{ request.user.name|default:'' }}"
+          data-password-min-length="{{ pwd_form.password_min_length|default:'6' }}"
         >
           {% csrf_token %}
 
@@ -947,44 +1083,9 @@
               {% endif %}
           </div>
 
-          <div class="profile-password-panel" aria-live="polite">
-            <div class="profile-password-panel-head">
-              <div>
-                <span class="profile-password-kicker">
-                  <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-                  <span>شروط كلمة المرور</span>
-                </span>
-
-              </div>
-              <div class="profile-password-strength">
-                <span class="profile-password-strength-label">مستوى القوة</span>
-                <strong class="profile-password-strength-value" data-password-strength-text>ابدأ بكتابة كلمة المرور</strong>
-              </div>
-            </div>
-            <div class="profile-password-meter" aria-hidden="true">
-              <span class="profile-password-meter-bar" data-password-strength-bar></span>
-            </div>
-            <ul class="profile-password-rules">
-              {% for requirement in pwd_form.password_requirements %}
-                <li
-                  class="profile-password-rule {% if requirement.mode == 'live' %}is-live{% endif %}"
-                  data-rule-key="{{ requirement.key }}"
-                >
-                  <span class="profile-password-rule-icon">
-                    <i class="fa-solid fa-shield" aria-hidden="true"></i>
-                  </span>
-                  <div class="profile-password-rule-main">
-                    <span>{{ requirement.label }}</span>
-                    {% if requirement.hint %}
-                      <small>{{ requirement.hint }}</small>
-                    {% endif %}
-                  </div>
-                  <span class="profile-password-rule-status" data-rule-status>
-                    {% if requirement.mode == "live" %}بانتظار الإدخال{% else %}يتحقق عند الحفظ{% endif %}
-                  </span>
-                </li>
-              {% endfor %}
-            </ul>
+          <div class="profile-password-simplehint">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            <span>اكتب كلمة مرور جديدة من <b>{{ pwd_form.password_min_length|default:'6' }} أحرف على الأقل</b>، ثم أعد كتابتها للتأكيد.</span>
           </div>
 
           <div class="profile-form-group">
@@ -1058,6 +1159,47 @@
         </form>
       </div>
 
+      <div class="profile-card">
+        <h2 class="profile-card-title">
+          <i class="fa-solid fa-fingerprint" aria-hidden="true"></i>
+          <span>الدخول بالبصمة</span>
+        </h2>
+        <div class="profile-passkey-panel">
+          <p class="profile-passkey-copy">
+            فعّل هذا الخيار على جهازك الحالي، وبعدها يمكنك تسجيل الدخول من شاشة الدخول باستخدام بصمة الجهاز أو Face ID أو قفل الشاشة.
+          </p>
+          {% if force_password_change %}
+            <div class="profile-locked-box">تفعيل البصمة متاح بعد تغيير كلمة المرور الحالية أولاً.</div>
+          {% else %}
+            <button
+              type="button"
+              class="profile-btn profile-btn-primary"
+              id="registerPasskeyBtn"
+              data-options-url="{% url 'reports:passkey_register_options' %}"
+              data-verify-url="{% url 'reports:passkey_register_verify' %}"
+            >
+              <i class="fa-solid fa-fingerprint" aria-hidden="true"></i>
+              <span>تفعيل البصمة لهذا الجهاز</span>
+            </button>
+            <div class="profile-passkey-status" id="profilePasskeyStatus" role="status" aria-live="polite"></div>
+          {% endif %}
+
+          {% if passkey_credentials %}
+            <ul class="profile-passkey-list" aria-label="الأجهزة المفعلة للدخول بالبصمة">
+              {% for credential in passkey_credentials %}
+                <li class="profile-passkey-item">
+                  <div>
+                    <strong>{{ credential.device_name|default:"جهاز مفعل" }}</strong>
+                    <span>أضيف في {{ credential.created_at|date:"Y-m-d H:i" }}</span>
+                  </div>
+                  <i class="fa-solid fa-circle-check" style="color:var(--prof-success-dark)" aria-hidden="true"></i>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1070,10 +1212,29 @@
       const form = document.querySelector('[data-password-form]');
       if (!form) return;
 
+      // إظهار/إخفاء كلمة المرور — يعمل دائمًا (مستقل عن أي عناصر أخرى)
+      form.querySelectorAll('[data-toggle-password]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          const target = document.getElementById(this.dataset.target || '');
+          if (!target) return;
+          const isHidden = target.type === 'password';
+          target.type = isHidden ? 'text' : 'password';
+          const icon = this.querySelector('i');
+          if (icon) {
+            icon.classList.toggle('fa-eye', !isHidden);
+            icon.classList.toggle('fa-eye-slash', isHidden);
+          }
+          const lbl = isHidden ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور';
+          this.setAttribute('aria-label', lbl);
+          this.setAttribute('title', lbl);
+        });
+      });
+
       const primaryInput = form.querySelector('[data-password-primary]');
       const confirmInput = form.querySelector('[data-password-confirm]');
       const strengthText = form.querySelector('[data-password-strength-text]');
       const strengthBar = form.querySelector('[data-password-strength-bar]');
+      // الواجهة المبسّطة لا تعرض مقياس القوة/الشروط؛ نكتفي بالأزرار أعلاه.
       if (!primaryInput || !confirmInput || !strengthText || !strengthBar) return;
 
       const userPhone = (form.dataset.userPhone || '').trim();
@@ -1201,6 +1362,106 @@
       primaryInput.addEventListener('input', updateRules);
       confirmInput.addEventListener('input', updateRules);
       updateRules();
+    })();
+  </script>
+  <script nonce="{{ CSP_NONCE }}">
+    (function () {
+      const button = document.getElementById('registerPasskeyBtn');
+      const statusBox = document.getElementById('profilePasskeyStatus');
+      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (!button || !statusBox) return;
+
+      if (!window.PublicKeyCredential || !navigator.credentials) {
+        button.disabled = true;
+        statusBox.textContent = 'هذا المتصفح لا يدعم الدخول بالبصمة. جرّب Chrome أو Safari أو Edge على جهاز يدعم قفل الشاشة.';
+        statusBox.classList.add('is-error');
+        statusBox.style.display = 'block';
+        return;
+      }
+
+      function showStatus(text, isError) {
+        statusBox.textContent = text;
+        statusBox.classList.toggle('is-error', !!isError);
+        statusBox.style.display = text ? 'block' : 'none';
+      }
+
+      function b64ToBuffer(value) {
+        const base64 = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+        const binary = atob(padded);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes.buffer;
+      }
+
+      function bufferToB64(buffer) {
+        const bytes = new Uint8Array(buffer || new ArrayBuffer(0));
+        let binary = '';
+        bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+      }
+
+      function prepareCreationOptions(publicKey) {
+        publicKey.challenge = b64ToBuffer(publicKey.challenge);
+        publicKey.user.id = b64ToBuffer(publicKey.user.id);
+        if (publicKey.excludeCredentials) {
+          publicKey.excludeCredentials = publicKey.excludeCredentials.map((item) => ({
+            ...item,
+            id: b64ToBuffer(item.id),
+          }));
+        }
+        return publicKey;
+      }
+
+      function credentialToJSON(credential) {
+        const transports = credential.response.getTransports ? credential.response.getTransports() : ['internal'];
+        return {
+          id: credential.id,
+          rawId: bufferToB64(credential.rawId),
+          type: credential.type,
+          deviceName: navigator.userAgent.includes('Mobile') ? 'جوال المستخدم' : 'جهاز المستخدم',
+          response: {
+            attestationObject: bufferToB64(credential.response.attestationObject),
+            clientDataJSON: bufferToB64(credential.response.clientDataJSON),
+            transports: transports,
+          },
+        };
+      }
+
+      async function postJSON(url, payload) {
+        const response = await fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfInput ? csrfInput.value : '',
+          },
+          body: JSON.stringify(payload || {}),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error(data.message || 'تعذر تنفيذ العملية.');
+        }
+        return data;
+      }
+
+      button.addEventListener('click', async function () {
+        try {
+          button.disabled = true;
+          showStatus('سيطلب المتصفح بصمة الجهاز أو قفل الشاشة لإكمال التفعيل...', false);
+          const options = await postJSON(button.dataset.optionsUrl, {});
+          const credential = await navigator.credentials.create({
+            publicKey: prepareCreationOptions(options.publicKey),
+          });
+          const verified = await postJSON(button.dataset.verifyUrl, credentialToJSON(credential));
+          showStatus(verified.message || 'تم تفعيل الدخول بالبصمة لهذا الجهاز.', false);
+          setTimeout(() => window.location.reload(), 900);
+        } catch (error) {
+          showStatus(error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.', true);
+        } finally {
+          button.disabled = false;
+        }
+      });
     })();
   </script>
 {% endblock %}

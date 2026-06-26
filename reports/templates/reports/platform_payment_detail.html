@@ -23,6 +23,44 @@
 
   .pay-detail .wrap{max-width:980px;margin-inline:auto}
 
+  /* ===== طلب موحّد (Batch) ===== */
+  .pay-detail .batch-panel{
+    border:1.5px solid var(--pd-line);
+    border-radius:var(--pd-radius);
+    background:rgba(0,108,53,.03);
+    padding:16px 18px;
+    margin-bottom:18px;
+  }
+  .pay-detail .batch-head{
+    display:flex;align-items:center;gap:8px;
+    font-weight:800;color:var(--pd-ink);margin-bottom:12px;
+  }
+  .pay-detail .batch-head i{color:var(--pd-brand)}
+  .pay-detail .batch-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .pay-detail .batch-item{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 12px;background:var(--pd-card);
+    border:1px solid var(--pd-line);border-radius:12px;
+  }
+  .pay-detail .batch-item-name{flex:1 1 auto;font-weight:700;color:var(--pd-ink)}
+  .pay-detail .batch-current{color:var(--pd-muted);font-weight:600;font-size:.85em}
+  .pay-detail .batch-item-amount{font-weight:800;color:var(--pd-brand);white-space:nowrap}
+  .pay-detail .batch-item-status{
+    font-size:.8rem;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap;
+    background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;
+  }
+  .pay-detail .batch-st-approved{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+  .pay-detail .batch-st-rejected{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+  .pay-detail .batch-st-cancelled{background:#f1f5f9;color:#475569;border-color:#e2e8f0}
+  .pay-detail .batch-total{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    margin-top:12px;padding-top:12px;border-top:1px dashed var(--pd-line);
+    font-weight:800;color:var(--pd-ink);
+  }
+  .pay-detail .batch-total strong{font-size:1.3rem;color:var(--pd-brand)}
+  .pay-detail .batch-approve-form{margin-top:12px}
+  .pay-detail .batch-approve-btn{width:100%;justify-content:center}
+
   /* HERO */
   .pay-detail .hero{
     margin-top: 10px;
@@ -376,11 +414,53 @@
         </div>
       {% endif %}
 
+      {# ===== طلب دفع موحّد: عرض كل البنود + اعتماد بضغطة واحدة ===== #}
+      {% if batch_payments %}
+        <div class="batch-panel">
+          <div class="batch-head">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>هذا الإيصال يخص طلبًا موحّدًا ({{ batch_payments|length }} عنصر)</span>
+          </div>
+          <ul class="batch-list">
+            {% for bp in batch_payments %}
+              <li class="batch-item">
+                <span class="batch-item-name">
+                  {% if bp.purpose == 'archive_addon' %}إضافة الأرشفة
+                  {% elif bp.purpose == 'archive_storage' %}زيادة مساحة الأرشيف {{ bp.archive_storage_gb }}GB
+                  {% else %}اشتراك: {{ bp.requested_plan.name|default:"اشتراك المدرسة" }}{% endif %}
+                  {% if bp.id == payment.id %}<span class="batch-current">(الحالي)</span>{% endif %}
+                </span>
+                <span class="batch-item-amount">{{ bp.amount|floatformat:0|intcomma }} ريال</span>
+                <span class="batch-item-status batch-st-{{ bp.status }}">
+                  {% if bp.status == 'approved' %}مقبول{% elif bp.status == 'rejected' %}مرفوض{% elif bp.status == 'cancelled' %}ملغي{% else %}قيد المراجعة{% endif %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+          <div class="batch-total">
+            <span>إجمالي الطلب</span>
+            <strong>{{ batch_total|floatformat:0|intcomma }} ريال</strong>
+          </div>
+          {% if batch_has_pending %}
+            <form method="post" class="batch-approve-form">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="approve_batch">
+              <button type="submit" class="btn btn-primary batch-approve-btn">
+                <i class="fa-solid fa-circle-check"></i> اعتماد الطلب الموحّد كاملاً
+              </button>
+              <div class="help">يعتمد كل البنود قيد المراجعة دفعة واحدة ويفعّلها تلقائيًا بالترتيب الصحيح.</div>
+            </form>
+          {% else %}
+            <div class="help"><i class="fa-solid fa-check"></i> تمت معالجة جميع بنود هذا الطلب.</div>
+          {% endif %}
+        </div>
+      {% endif %}
+
       <form method="post" class="form-grid" novalidate>
         {% csrf_token %}
 
         <div>
-          <label for="id_status">تحديث الحالة</label>
+          <label for="id_status">تحديث الحالة{% if batch_payments %} (لهذا البند فقط){% endif %}</label>
           <select id="id_status" name="status" class="select" required>
             <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>قيد المراجعة</option>
             <option value="approved" {% if payment.status == 'approved' %}selected{% endif %}>قبول الدفع</option>

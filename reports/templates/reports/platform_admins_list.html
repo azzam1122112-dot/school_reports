@@ -98,10 +98,14 @@
                     <i class="fa-solid fa-pen" aria-hidden="true"></i>
                     تعديل
                   </a>
-                  <a class="btn btn-outline" href="{% url 'reports:platform_admin_delete' a.pk %}">
-                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                    حذف
-                  </a>
+                  <form method="post" action="{% url 'reports:platform_admin_delete' a.pk %}" style="margin:0"
+                        data-confirm="سيتم حذف المشرف «{{ a.name|escapejs }}» ولن يتمكّن من الوصول للنظام. هل أنت متأكد؟">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline" style="color:var(--danger);border-color:rgba(220,38,38,.4)">
+                      <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                      حذف
+                    </button>
+                  </form>
                 </div>
               </td>
             </tr>

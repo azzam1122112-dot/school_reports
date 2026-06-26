@@ -233,6 +233,38 @@
       margin-inline-start: 8px;
     }
   }
+
+  /* ============================================================
+     👑 ROYAL LUXURY — طلبات المدرسة (زمرّدي + ذهبي)
+     ============================================================ */
+  .inbox-wrap .inbox-card{
+    position:relative;
+    overflow:hidden;
+    border-color:rgba(185,151,91,.22);
+    box-shadow:0 26px 60px -28px rgba(10,92,51,.45);
+  }
+  .inbox-wrap .inbox-card::before{
+    content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:3;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .inbox-wrap .title{ color:#0a5c33; padding-top:6px; }
+  .inbox-wrap .inbox-filters{ border-color:rgba(185,151,91,.22); }
+  .inbox-wrap .tbl thead th{ color:#0a5c33; }
+  .inbox-wrap .btn-open{
+    background:linear-gradient(135deg,#0a5c33,#074426);
+    border-color:rgba(185,151,91,.35);
+    box-shadow:0 8px 20px -10px rgba(10,92,51,.6);
+  }
+  .inbox-wrap .dept-chip{
+    background:rgba(10,92,51,.08); color:#0a5c33; border-color:rgba(10,92,51,.2);
+  }
+  /* مواءمة لون حالة "قيد المعالجة" مع الهوية الذهبية بدل البنفسجي */
+  .inbox-wrap .s-in_progress,
+  .inbox-wrap .s-pending{
+    background:rgba(212,177,109,.16);
+    color:#7a5c1e;
+    border-color:rgba(185,151,91,.35);
+  }
 </style>
 {% endblock %}
 
@@ -261,7 +293,7 @@
       <div class="actions">
         <button class="btn btn-primary" type="submit">تطبيق</button>
         {% if q or status or mine %}
-          <a href="{% url 'reports:tickets_inbox' %}" class="btn btn-outline">مسح</a>
+          <a href="{{ request.path }}" class="btn btn-outline">مسح</a>
         {% endif %}
       </div>
     </form>

@@ -247,7 +247,6 @@ from ..models import (
     Ticket,
     TicketNote,
     TicketImage,
-    Role,
     School,
     SchoolMembership,
     MANAGER_SLUG,
@@ -430,7 +429,7 @@ def _is_manager_in_school(user, active_school: Optional[School]) -> bool:
     """
     if getattr(user, "is_superuser", False):
         return True
-    return is_school_manager(user, active_school=active_school, allow_legacy_role=True)
+    return is_school_manager(user, active_school=active_school)
 
 
 def _safe_redirect(request: HttpRequest, fallback_name: str) -> HttpResponse:
@@ -601,7 +600,7 @@ def _user_manager_schools(user) -> list[School]:
         return []
 
     try:
-        school_ids = get_school_manager_school_ids(user, allow_legacy_role=True)
+        school_ids = get_school_manager_school_ids(user)
         if not school_ids:
             return []
         qs = School.objects.filter(id__in=list(school_ids), is_active=True).order_by("name")

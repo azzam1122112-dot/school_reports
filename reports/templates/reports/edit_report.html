@@ -526,6 +526,7 @@
             <div class="row">
               <label for="{{ form.report_date.id_for_label }}">📅 التاريخ</label>
               {{ form.report_date }}
+              <div id="reportDateHijri" aria-live="polite" style="margin-top:6px;font-weight:800;color:#0a5c33;font-size:.95rem;"></div>
               {% if form.report_date.errors %}
                 <div class="msg err">{% for e in form.report_date.errors %}• {{ e }}<br>{% endfor %}</div>
               {% endif %}
@@ -872,13 +873,20 @@
   (function(){
     const dateInput = document.getElementById("id_report_date");
     const dayInput  = document.getElementById("id_day_name");
+    const hijriEcho = document.getElementById("reportDateHijri");
     if(!dateInput || !dayInput) return;
 
+    let hijriFmt = null;
+    try { hijriFmt = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {day:'2-digit', month:'long', year:'numeric'}); } catch(e){ hijriFmt = null; }
+
     function setDay(v){
-      if(!v){ dayInput.value=""; return; }
+      if(!v){ dayInput.value=""; if(hijriEcho) hijriEcho.textContent=""; return; }
       const d = new Date(v);
       const days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-      if(!isNaN(d.getTime())) dayInput.value = days[d.getDay()];
+      if(!isNaN(d.getTime())){
+        dayInput.value = days[d.getDay()];
+        if(hijriEcho && hijriFmt) hijriEcho.textContent = "📅 الموافق " + hijriFmt.format(d) + " هـ";
+      }
     }
 
     setDay(dateInput.value);

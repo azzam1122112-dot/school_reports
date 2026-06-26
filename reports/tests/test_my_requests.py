@@ -3,16 +3,12 @@ from urllib.parse import quote
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from reports.models import Role, School, SchoolMembership, SchoolSubscription, SubscriptionPlan, Teacher, Ticket
+from reports.models import School, SchoolMembership, SchoolSubscription, SubscriptionPlan, Teacher, Ticket
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class MyRequestsViewTests(TestCase):
     def setUp(self):
-        self.teacher_role, _ = Role.objects.get_or_create(
-            slug="teacher",
-            defaults={"name": "Teacher"},
-        )
         self.school = School.objects.create(name="Test School", code="test-school")
         plan = SubscriptionPlan.objects.create(
             name="Test Plan",
@@ -24,9 +20,7 @@ class MyRequestsViewTests(TestCase):
         self.user = Teacher.objects.create_user(
             phone="500000201",
             name="Teacher User",
-            password="pass",
-            role=self.teacher_role,
-        )
+            password="pass",        )
         SchoolMembership.objects.create(
             school=self.school,
             teacher=self.user,
@@ -126,9 +120,7 @@ class MyRequestsViewTests(TestCase):
         other_user = Teacher.objects.create_user(
             phone="500000202",
             name="Other Teacher",
-            password="pass",
-            role=self.teacher_role,
-        )
+            password="pass",        )
         SchoolMembership.objects.create(
             school=self.school,
             teacher=other_user,

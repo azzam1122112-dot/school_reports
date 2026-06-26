@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load humanize hijri_tags %}
 
 {% block title %}تفاصيل الاشتراك{% endblock %}
 
@@ -266,6 +266,19 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
+
+  /* 👑 ROYAL LUXURY — تفاصيل الاشتراك (زمرّدي + ذهبي) */
+  .subdetail-scope{ --sd-brand:#0a5c33; }
+  .subdetail-scope .hero{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.24), transparent 50%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+  }
+  .subdetail-scope .hero::before{ content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:2;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent); }
+  .subdetail-scope .btn-primary{ background:linear-gradient(135deg,#0a5c33,#074426); border:1px solid rgba(185,151,91,.35); }
+  .subdetail-scope table tbody tr:hover{ background:rgba(212,177,109,.05); }
 </style>
 {% endblock %}
 
@@ -328,11 +341,6 @@
           </div>
 
           <div class="row">
-            <span class="label">كود المدرسة</span>
-            <span class="value">{{ subscription.school.code|default:"-" }}</span>
-          </div>
-
-          <div class="row">
             <span class="label">الخطة الحالية</span>
             <span class="value">{{ subscription.plan.name }}</span>
           </div>
@@ -344,12 +352,12 @@
 
           <div class="row">
             <span class="label">تاريخ البدء</span>
-            <span class="value">{{ subscription.start_date|date:"Y-m-d" }}</span>
+            <span class="value">{{ subscription.start_date|hijri }} هـ</span>
           </div>
 
           <div class="row">
             <span class="label">تاريخ الانتهاء</span>
-            <span class="value">{{ subscription.end_date|date:"Y-m-d" }}</span>
+            <span class="value">{{ subscription.end_date|hijri }} هـ</span>
           </div>
 
           <div class="row">
@@ -491,7 +499,7 @@
             {% for payment in payments %}
               <tr>
                 <td data-label="رقم العملية" style="text-align:right">#{{ payment.id }}</td>
-                <td data-label="التاريخ" style="text-align:right">{{ payment.payment_date|date:"Y-m-d" }}</td>
+                <td data-label="التاريخ" style="text-align:right">{{ payment.payment_date|hijri }} هـ</td>
                 <td data-label="المبلغ" style="text-align:right">{{ payment.amount|floatformat:0|intcomma }} ريال</td>
                 <td data-label="الحالة" style="text-align:right">
                   {% if payment.status == 'approved' %}

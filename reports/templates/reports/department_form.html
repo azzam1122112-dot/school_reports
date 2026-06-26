@@ -1,8 +1,6 @@
 {# templates/reports/department_form.html #}
 {% extends "base.html" %}
 
-
-
 {% block title %}{% if form.instance.pk %}تعديل قسم{% else %}إضافة قسم{% endif %}{% endblock %}
 
 {% block head %}
@@ -12,7 +10,7 @@
     min-height: 100vh;
   }
   .smart-card {
-    max-width: 700px;
+    max-width: 720px;
     margin: 40px auto 24px auto;
     background: #fff;
     border-radius: 32px;
@@ -26,220 +24,125 @@
   .smart-header {
     background: linear-gradient(90deg, #006c35 0%, #0072bc 100%);
     color: #fff;
-    padding: 32px 36px 18px 36px;
+    padding: 32px 36px 22px 36px;
     border-bottom-left-radius: 48px 32px;
     border-bottom-right-radius: 48px 32px;
     box-shadow: 0 2px 16px #006c3522;
     position: relative;
   }
-  .smart-header .icon {
-    font-size: 2.2rem;
-    margin-left: 12px;
-    vertical-align: middle;
+  .smart-header .icon { font-size: 2.2rem; margin-left: 12px; vertical-align: middle; }
+  .smart-header .breadcrumbs { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; opacity: 0.93; }
+  .smart-header .breadcrumbs a { color: #fff; text-decoration: underline dotted; margin: 0 4px; transition: color .18s; }
+  .smart-header .breadcrumbs a:hover { color: #d4b16d; }
+  .smart-header .title {
+    font-size: 2.1rem; font-weight: 900; margin-bottom: 6px; letter-spacing: -1px;
+    display: flex; align-items: center; gap: 10px;
   }
-  .smart-header .breadcrumbs {
-    font-size: 1.05rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-    opacity: 0.93;
+  .smart-header .desc { font-size: 1.08rem; font-weight: 500; opacity: 0.96; margin-bottom: 0; }
+  .smart-header .dashboard-btn {
+    position: absolute; left: 36px; top: 32px; background: #fff; color: #006c35;
+    border-radius: 999px; font-weight: 900; padding: 8px 22px; box-shadow: 0 2px 12px #006c3522;
+    border: none; font-size: 1.08rem; text-decoration: none; transition: background .18s, color .18s; z-index: 2;
   }
-  .smart-header .breadcrumbs a {
-    color: #fff;
-    text-decoration: underline dotted;
-    margin: 0 4px;
-    transition: color .18s;
+  .smart-header .dashboard-btn:hover { background: #006c35; color: #fff; }
+  .smart-form { padding: 30px 36px 0 36px; display: flex; flex-direction: column; gap: 22px; }
+  .smart-section {
+    background: #f8fafc; border-radius: 18px; padding: 20px 22px 16px 22px;
+    box-shadow: 0 1.5px 0 #006c3511; border: 1px solid #e0e7ff;
   }
-  .smart-header .breadcrumbs a:hover {
-    color: #d4b16d;
+  .smart-label { font-weight: 900; color: #006c35; margin-bottom: 8px; display: block; font-size: 1.08rem; }
+  .smart-label .req { color: #b9975b; }
+  .smart-input, .smart-form select, .smart-form textarea {
+    width: 100%; border-radius: 12px; border: 1.5px solid #cbd5e1; padding: 12px 14px;
+    font-size: 1.08rem; font-weight: 700; background: #fff; color: #222; transition: border-color .18s, box-shadow .18s;
+  }
+  .smart-input:focus, .smart-form select:focus, .smart-form textarea:focus { border-color: #006c35; outline: none; }
+  .smart-help { color: #64748b; font-size: .97rem; margin-top: 6px; font-weight: 600; }
+  .smart-error { color: #b91c1c; background: #fee2e2; border-radius: 8px; padding: 6px 10px; font-weight: 800; margin-top: 6px; font-size: .98rem; }
+  .smart-actions { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+  .smart-btn {
+    border-radius: 999px; min-width: 120px; font-weight: 900; font-size: 1.08rem; padding: 12px 30px;
+    border: none; background: linear-gradient(90deg, #006c35 0%, #0072bc 100%); color: #fff;
+    box-shadow: 0 2px 12px #006c3522; transition: background .18s, color .18s, transform .18s; cursor: pointer;
+  }
+  .smart-btn:hover { background: #fff; color: #006c35; border: 1.5px solid #006c35; transform: translateY(-2px); }
+  .smart-btn.ghost { background: #fff; color: #006c35; border: 1.5px solid #006c35; box-shadow: none; }
+  .smart-btn.ghost:hover { background: #006c35; color: #fff; }
+  .smart-danger-zone { margin: 24px 36px 0 36px; padding-top: 18px; border-top: 1.5px dashed #fecaca; text-align: left; }
+  .smart-btn.danger { background: #b91c1c; color: #fff; border: none; box-shadow: 0 2px 12px #b91c1c22; }
+  .smart-btn.danger:hover { background: #fff; color: #b91c1c; border: 1.5px solid #b91c1c; }
+
+  /* مفتاح "نشط" — Toggle واضح */
+  .smart-switch { display: flex; align-items: center; gap: 14px; cursor: pointer; user-select: none; }
+  .smart-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .smart-switch .sw-track {
+    flex: 0 0 auto; position: relative; width: 58px; height: 32px; border-radius: 999px;
+    background: #cbd5e1; transition: background .2s; box-shadow: inset 0 1px 3px rgba(0,0,0,.18);
+  }
+  .smart-switch .sw-track::after {
+    content: ""; position: absolute; top: 3px; right: 3px; width: 26px; height: 26px;
+    border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.28); transition: transform .2s;
+  }
+  .smart-switch input:checked + .sw-track { background: linear-gradient(135deg, #0a5c33, #074426); }
+  .smart-switch input:checked + .sw-track::after { transform: translateX(-26px); }
+  .smart-switch input:focus-visible + .sw-track { box-shadow: 0 0 0 3px rgba(10,92,51,.25); }
+  .smart-switch .sw-text { font-weight: 900; color: #0f172a; font-size: 1.06rem; }
+  .smart-switch .sw-state { font-weight: 900; font-size: .92rem; }
+  .smart-switch input:checked ~ .sw-text .sw-state { color: #0a5c33; }
+  .smart-switch input:not(:checked) ~ .sw-text .sw-state { color: #94a3b8; }
+
+  /* شبكة أنواع التقارير */
+  .rt-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .rt-choices > div { margin: 0; }
+  .rt-choices label {
+    display: flex; align-items: center; gap: 9px; width: 100%; cursor: pointer;
+    background: #fff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 11px 14px;
+    font-weight: 800; color: #334155; transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .rt-choices label:hover { border-color: #b9975b; background: #fffdf7; }
+  .rt-choices input[type=checkbox] { width: 18px; height: 18px; accent-color: #0a5c33; cursor: pointer; flex: 0 0 auto; }
+  .rt-empty { color: #64748b; font-weight: 800; padding: 6px 2px; }
+
+  .smart-note { background: #f0fdfa; border: 1.5px solid #0072bc; color: #006c35; border-radius: 12px; padding: 10px 18px; font-weight: 800; font-size: 1.01rem; }
+  .smart-note.ok { background: #f0fdf4; border-color: #35a96f; color: #15803d; }
+  .smart-note.warn { background: #fef9c3; border-color: #d4b16d; color: #b45309; }
+
+  @media (max-width: 600px) {
+    .smart-card, .smart-header, .smart-form { padding-left: 14px !important; padding-right: 14px !important; }
+    .smart-danger-zone { margin-left: 14px; margin-right: 14px; }
+    .smart-header .dashboard-btn { left: 12px; top: 12px; padding: 6px 12px; font-size: .98rem; }
+  }
+
+  /* ============================================================
+     👑 ROYAL LUXURY — نموذج قسم (زمرّدي + ذهبي)
+     ============================================================ */
+  body { background: linear-gradient(120deg, #eef3ee 0%, #f7f3ea 100%); }
+  .smart-card { border: 1px solid rgba(185,151,91,.22); box-shadow: 0 26px 60px -28px rgba(10,92,51,.5); }
+  .smart-card::before {
+    content: ""; position: absolute; inset-inline: 0; top: 0; height: 4px; z-index: 3;
+    background: linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .smart-header {
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.26), transparent 50%),
+      linear-gradient(135deg, #0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border-bottom: none !important;
   }
   .smart-header .title {
-    font-size: 2.1rem;
-    font-weight: 900;
-    margin-bottom: 6px;
-    letter-spacing: -1px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    background: linear-gradient(90deg, #fff, #e6cf9a);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   }
-  .smart-header .desc {
-    font-size: 1.08rem;
-    font-weight: 500;
-    opacity: 0.96;
-    margin-bottom: 0;
-  }
-  .smart-header .dashboard-btn {
-    position: absolute;
-    left: 36px;
-    top: 32px;
-    background: #fff;
-    color: #006c35;
-    border-radius: 999px;
-    font-weight: 900;
-    padding: 8px 22px;
-    box-shadow: 0 2px 12px #006c3522;
-    border: none;
-    font-size: 1.08rem;
-    text-decoration: none;
-    transition: background .18s, color .18s;
-    z-index: 2;
-  }
-  .smart-header .dashboard-btn:hover {
-    background: #006c35;
-    color: #fff;
-  }
-  .smart-form {
-    padding: 32px 36px 0 36px;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  .smart-section {
-    background: #f8fafc;
-    border-radius: 18px;
-    padding: 18px 22px 12px 22px;
-    box-shadow: 0 1.5px 0 #006c3511;
-    margin-bottom: 0;
-    border: 1px solid #e0e7ff;
-  }
-  .smart-label {
-    font-weight: 900;
-    color: #006c35;
-    margin-bottom: 6px;
-    display: block;
-    font-size: 1.08rem;
-  }
-  .smart-input, .smart-form select, .smart-form textarea {
-    width: 100%;
-    border-radius: 10px;
-    border: 1.5px solid #cbd5e1;
-    padding: 10px 12px;
-    font-size: 1.08rem;
-    font-weight: 700;
-    background: #fff;
-    color: #222;
-    margin-bottom: 4px;
-    transition: border-color .18s;
-  }
-  .smart-input:focus, .smart-form select:focus, .smart-form textarea:focus {
-    border-color: #006c35;
-    outline: none;
-  }
-  .smart-help {
-    color: #64748b;
-    font-size: .97rem;
-    margin-bottom: 4px;
-    font-weight: 600;
-  }
-  .smart-error {
-    color: #b91c1c;
-    background: #fee2e2;
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-weight: 800;
-    margin-bottom: 4px;
-    font-size: .98rem;
-  }
-  .smart-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 8px;
-    flex-wrap: wrap;
-  }
-  .smart-btn {
-    border-radius: 999px;
-    min-width: 120px;
-    font-weight: 900;
-    font-size: 1.08rem;
-    padding: 10px 28px;
-    border: none;
-    background: linear-gradient(90deg, #006c35 0%, #0072bc 100%);
-    color: #fff;
-    box-shadow: 0 2px 12px #006c3522;
-    transition: background .18s, color .18s, transform .18s;
-    cursor: pointer;
-  }
-  .smart-btn:hover {
-    background: #fff;
-    color: #006c35;
-    border: 1.5px solid #006c35;
-    transform: translateY(-2px);
-  }
-  .smart-btn.ghost {
-    background: #fff;
-    color: #006c35;
-    border: 1.5px solid #006c35;
-    box-shadow: none;
-  }
-  .smart-btn.ghost:hover {
-    background: #006c35;
-    color: #fff;
-  }
-  .smart-danger-zone {
-    margin-top: 24px;
-    padding-top: 18px;
-    border-top: 1.5px dashed #fecaca;
-    text-align: left;
-  }
-  .smart-btn.danger {
-    background: #b91c1c;
-    color: #fff;
-    border: none;
-    box-shadow: 0 2px 12px #b91c1c22;
-  }
-  .smart-btn.danger:hover {
-    background: #fff;
-    color: #b91c1c;
-    border: 1.5px solid #b91c1c;
-  }
-  .smart-preview {
-    display: flex;
-    gap: 12px;
-    margin-top: 8px;
-    flex-wrap: wrap;
-  }
-  .smart-pill {
-    background: #e0e7ff;
-    color: #006c35;
-    border-radius: 999px;
-    padding: 7px 18px;
-    font-weight: 900;
-    font-size: 1.01rem;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    border: 1.5px solid #006c3533;
-  }
-  .smart-note {
-    background: #f0fdfa;
-    border: 1.5px solid #0072bc;
-    color: #006c35;
-    border-radius: 12px;
-    padding: 10px 18px;
-    font-weight: 800;
-    margin-bottom: 10px;
-    font-size: 1.01rem;
-  }
-  .smart-note.ok {
-    background: #f0fdf4;
-    border-color: #35a96f;
-    color: #15803d;
-  }
-  .smart-note.warn {
-    background: #fef9c3;
-    border-color: #d4b16d;
-    color: #b45309;
-  }
-  @media (max-width: 600px) {
-    .smart-card, .smart-header, .smart-form {
-      padding-left: 10px !important;
-      padding-right: 10px !important;
-    }
-    .smart-header .dashboard-btn {
-      left: 10px;
-      top: 10px;
-      padding: 6px 12px;
-      font-size: .98rem;
-    }
+  .smart-header .title .icon { -webkit-text-fill-color: #e6cf9a; color: #e6cf9a; }
+  .smart-header .dashboard-btn { background: rgba(212,177,109,.18); color: #fdf6e6; border: 1px solid rgba(212,177,109,.5); }
+  .smart-header .dashboard-btn:hover { background: #d4b16d; color: #063d22; }
+  .smart-label { color: #0a5c33; }
+  .smart-input:focus, .smart-form select:focus, .smart-form textarea:focus { border-color: #0a5c33; box-shadow: 0 0 0 3px rgba(10,92,51,.12); }
+  .smart-btn { background: linear-gradient(135deg, #0a5c33, #074426); box-shadow: 0 10px 22px -12px rgba(10,92,51,.6); }
+  .smart-btn:hover { background: #fff; color: #0a5c33; border: 1.5px solid #0a5c33; }
+  .smart-btn.ghost { color: #0a5c33; border: 1.5px solid rgba(185,151,91,.45); }
+  .smart-btn.ghost:hover { background: #0a5c33; color: #fff; border-color: #0a5c33; }
+  .rt-choices input[type=checkbox]:checked + * , .rt-choices label:has(input:checked) {
+    border-color: #0a5c33; background: rgba(10,92,51,.06); box-shadow: 0 0 0 1px rgba(10,92,51,.18) inset;
   }
 </style>
 {% endblock head %}
@@ -262,10 +165,11 @@
       {% if form.instance.pk %}تعديل قسم{% else %}إضافة قسم{% endif %}
     </div>
     <div class="desc">
-      يمكنك من هنا إضافة أو تعديل قسم جديد ليظهر كخيار "دور" في نماذج {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }}.<br>
-      <span style="color:#d4b16d;font-weight:900">تلميح:</span> استخدم كود فريد (slug) لتمييز القسم. الحفظ السريع: <span style="background:#fff;color:#006c35;padding:2px 8px;border-radius:8px;font-weight:900;">Ctrl/⌘ + S</span>
-    </div>
+      أنشئ قسمًا لتنظيم {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }} وربطه بأنواع التقارير المناسبة.
+      <span style="color:#e6cf9a;font-weight:900">·</span>
+     </div>
   </div>
+
   <form method="post" class="smart-form" novalidate id="deptForm">
     {% csrf_token %}
     {% if form.non_field_errors %}
@@ -273,33 +177,27 @@
         {% for e in form.non_field_errors %}• {{ e }}<br>{% endfor %}
       </div>
     {% endif %}
-    {% with current_slug=form.slug.value|default:form.instance.slug %}
+
+    {% with current_slug=form.instance.slug %}
       {% if current_slug == "manager" %}
         <div class="smart-note ok">
-          <strong>قسم المدير الدائم</strong> — هذا القسم محجوز بـ <code>slug=manager</code> ويتمتع بصلاحيات المدير.
-          لا يمكن تغيير كوده، ويمكنك فقط إضافة موظفين لهذا القسم من شاشة الأعضاء.
+          <strong>قسم المدير الدائم</strong> — هذا القسم محجوز ويتمتع بصلاحيات المدير. لا يمكن تغيير اسمه.
         </div>
       {% elif current_slug == "teachers" %}
         <div class="smart-note warn">
-          <strong>قسم الكادر التعليمي</strong> — هذا القسم مخصص لحسابات "{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}". يفضّل عدم تغيير كوده حتى لا تتأثر الصلاحيات.
+          <strong>قسم الكادر التعليمي</strong> — هذا القسم مخصص لحسابات "{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}".
         </div>
       {% endif %}
     {% endwith %}
+
     <div class="smart-section">
-      <label class="smart-label" for="{{ form.name.id_for_label }}">اسم القسم</label>
+      <label class="smart-label" for="{{ form.name.id_for_label }}">اسم القسم <span class="req">*</span></label>
       {{ form.name }}
       {% if form.name.help_text %}<div class="smart-help">{{ form.name.help_text }}</div>{% endif %}
       {% for e in form.name.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
-    </div>
-    <div class="smart-section">
-      <label class="smart-label" for="{{ form.slug.id_for_label }}">الكود (slug)</label>
-      {{ form.slug }}
       {% for e in form.slug.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
-      <div class="smart-help">قصير وفريد (مثال: <b>activity</b>). يُستخدم أيضًا كقيمة “الدور”.</div>
-      <label style="margin-top:10px;font-weight:700;display:block;">
-        <input type="checkbox" id="autoSlug" checked style="margin-left:6px;"> توليد الكود تلقائيًا من الاسم (مع خرائط خاصة للمنصة)
-      </label>
     </div>
+
     {% if form.description %}
       <div class="smart-section">
         <label class="smart-label" for="{{ form.description.id_for_label }}">الوصف</label>
@@ -307,35 +205,36 @@
         {% for e in form.description.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
       </div>
     {% endif %}
+
     <div class="smart-section">
-      <label style="font-weight:700;">
-        {{ form.is_active }} نشط
+      <label class="smart-switch">
+        {{ form.is_active }}
+        <span class="sw-track" aria-hidden="true"></span>
+        <span class="sw-text">القسم نشط ومتاح للاستخدام</span>
       </label>
       {% for e in form.is_active.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
     </div>
+
     {% if form.reporttypes %}
       <div class="smart-section">
-        <label class="smart-label" for="{{ form.reporttypes.id_for_label }}">أنواع التقارير المرتبطة</label>
-        {{ form.reporttypes }}
+        <label class="smart-label">أنواع التقارير المرتبطة</label>
+        <div class="rt-choices">{{ form.reporttypes }}</div>
         {% if form.reporttypes.help_text %}<div class="smart-help">{{ form.reporttypes.help_text }}</div>{% endif %}
         {% for e in form.reporttypes.errors %}<div class="smart-error">• {{ e }}</div>{% endfor %}
       </div>
     {% endif %}
-    <div class="smart-section">
-      <div class="smart-help"><i class="fa-solid fa-eye"></i> معاينة كيف سيظهر هذا القسم كخيار “دور”:</div>
-      <div class="smart-preview" id="rolePreview">
-        <span class="smart-pill" title="قيمة الدور (slug)"><i class="fa-solid fa-key"></i> <span id="pvCode">—</span></span>
-        <span class="smart-pill" title="الاسم المعروض"><i class="fa-solid fa-tag"></i> <span id="pvLabel">—</span></span>
-      </div>
-    </div>
+
     {% for h in form.hidden_fields %}{{ h }}{% endfor %}
+
     <div class="smart-actions">
       <button class="smart-btn" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
       <a class="smart-btn ghost" href="{% url 'reports:departments_list' %}"><i class="fa-solid fa-arrow-right"></i> رجوع</a>
     </div>
   </form>
+
   {% if form.instance.pk %}
-    <form method="post" action="{% url 'reports:department_delete' code=form.instance.slug %}" class="smart-danger-zone" onsubmit="return confirm('هل تريد حذف هذا القسم نهائيًا؟');">
+    <form method="post" action="{% url 'reports:department_delete' code=form.instance.slug %}" class="smart-danger-zone"
+          data-confirm="هل تريد حذف هذا القسم نهائيًا؟">
       {% csrf_token %}
       <button class="smart-btn danger" type="submit"><i class="fa-solid fa-trash-can"></i> حذف القسم</button>
     </form>
@@ -345,35 +244,54 @@
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
-  // إضافة صنف .smart-input لكل مدخلات النموذج (مدخلات نص/تحديد فقط)
+  // إضافة صنف .smart-input لمدخلات النص (دون مدخلات الاختيار/المخفية)
   (function(){
     var form = document.getElementById('deptForm');
     if(!form) return;
-    var sel = 'input[type=text], input[type=url], input[type=email], input[type=search], textarea, select';
+    var sel = 'input[type=text], input[type=url], input[type=email], input[type=search], textarea';
     form.querySelectorAll(sel).forEach(function(el){
       if(!el.classList.contains('smart-input')) el.classList.add('smart-input');
     });
   })();
-  // خرائط المنصة للأسماء → slug
+
+  // خرائط المنصة للأسماء → slug (الكود يُولّد تلقائيًا ويُخزَّن في حقل مخفي)
   var ALIASES = {"الإدارة":"manager","الادارة":"manager","مدير":"manager","المعلمين":"teachers","معلمين":"teachers","النشاط":"activity","التطوع":"volunteer","الشؤون المدرسية":"affairs","الشؤون الإدارية":"admin","الشؤون الادارية":"admin"};
   function normArabicDigits(s){return (s || '').replace(/[٠-٩]/g, function(d){return String("٠١٢٣٤٥٦٧٨٩".indexOf(d));});}
-  function translitArabic(s){var map = {'ا':'a','أ':'a','إ':'i','آ':'a','ء':'','ؤ':'w','ئ':'y','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'h','و':'w','ي':'y','ى':'a','ﻻ':'la','لا':'la'};return (s || '').replace(/[\u064B-\u065F]/g,'').split('').map(function(ch){return (map[ch] !== undefined) ? map[ch] : ch;}).join('');}
-  function slugifyAscii(s){s = (s || '').trim();if(ALIASES[s]) return ALIASES[s];s = normArabicDigits(s);s = translitArabic(s);try{ s = s.normalize('NFKD'); }catch(e){}s = s.replace(/[\u064B-\u065F]/g,'');s = s.replace(/[\s_]+/g,'-');s = s.replace(/[^a-zA-Z0-9-]/g,'');s = s.toLowerCase().replace(/-+/g,'-').replace(/^-+|-+$/g,'');return s;}
+  function translitArabic(s){var map = {'ا':'a','أ':'a','إ':'i','آ':'a','ء':'','ؤ':'w','ئ':'y','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'h','و':'w','ي':'y','ى':'a','ﻻ':'la','لا':'la'};return (s || '').replace(/[ً-ٟ]/g,'').split('').map(function(ch){return (map[ch] !== undefined) ? map[ch] : ch;}).join('');}
+  function slugifyAscii(s){s = (s || '').trim();if(ALIASES[s]) return ALIASES[s];s = normArabicDigits(s);s = translitArabic(s);try{ s = s.normalize('NFKD'); }catch(e){}s = s.replace(/[ً-ٟ]/g,'');s = s.replace(/[\s_]+/g,'-');s = s.replace(/[^a-zA-Z0-9-]/g,'');s = s.toLowerCase().replace(/-+/g,'-').replace(/^-+|-+$/g,'');return s;}
+
   (function(){
     var name = document.getElementById("{{ form.name.id_for_label }}");
     var slug = document.getElementById("{{ form.slug.id_for_label }}");
-    var auto = document.getElementById("autoSlug");
-    var pvCode = document.getElementById("pvCode");
-    var pvLabel = document.getElementById("pvLabel");
     var formEl = document.getElementById("deptForm");
     var isEdit = "{{ form.instance.pk|yesno:'1,0' }}" === "1";
-    var initialSlug = (slug && slug.value) ? slug.value.trim() : "";
-    if(isEdit && initialSlug){slug.dataset.touched = "1";}
-    function updatePreview(){pvCode.textContent = (slug && slug.value) ? slug.value : "—";pvLabel.textContent = (name && name.value) ? name.value : "—";}
-    function lockReserved(){if(!slug || !name) return;var v = (slug.value || "").toLowerCase();if(v === "manager"){name.readOnly = true;slug.readOnly = true;if(auto){auto.checked = false;auto.disabled = true;}return;}if(v === "teachers"){slug.readOnly = true;if(auto){auto.checked = false;auto.disabled = true;}name.readOnly = false;return;}name.readOnly = false;slug.readOnly = false;if(auto) auto.disabled = false;}
-    function syncSlug(){if(!name || !slug) return;if(auto && !auto.checked) return;var generated = slugifyAscii(name.value);if(!generated) {updatePreview();lockReserved();return;}if(isEdit){if(!slug.value.trim()){slug.value = generated;}} else {if(!slug.dataset.touched || !slug.value.trim()){slug.value = generated;}}updatePreview();lockReserved();}
-    if(name && slug){name.addEventListener("input", syncSlug);name.addEventListener("blur", syncSlug);if(auto){auto.addEventListener("change", function(){syncSlug();});}slug.addEventListener("input", function(){slug.dataset.touched = "1";updatePreview();lockReserved();});updatePreview();lockReserved();syncSlug();}
-    document.addEventListener("keydown", function(e){if((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === "s"){e.preventDefault();if(formEl){if(formEl.requestSubmit){formEl.requestSubmit();} else {formEl.submit();}}}});
+
+    // في وضع التعديل: احتفظ بالكود الحالي ولا تغيّره عند تعديل الاسم.
+    function syncSlug(){
+      if(!name || !slug) return;
+      if(isEdit && (slug.value || "").trim()) return;     // لا تُعدّل كود قسم قائم
+      var generated = slugifyAscii(name.value);
+      if(generated){ slug.value = generated; }
+    }
+    if(name && slug){
+      name.addEventListener("input", syncSlug);
+      name.addEventListener("blur", syncSlug);
+      syncSlug();
+    }
+
+    document.addEventListener("keydown", function(e){
+      if((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === "s"){
+        e.preventDefault();
+        if(formEl){ if(formEl.requestSubmit){ formEl.requestSubmit(); } else { formEl.submit(); } }
+      }
+    });
   })();
+
+  // تأكيد الحذف بدون onsubmit المضمّن (متوافق مع CSP)
+  document.querySelectorAll('form[data-confirm]').forEach(function(f){
+    f.addEventListener('submit', function(e){
+      if(!window.confirm(f.getAttribute('data-confirm'))){ e.preventDefault(); }
+    });
+  });
 </script>
 {% endblock scripts %}

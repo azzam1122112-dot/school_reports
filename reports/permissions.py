@@ -24,7 +24,6 @@ __all__ = [
     "get_member_departments",
     "is_officer",
     "is_department_member",
-    "has_legacy_manager_role",
     "get_school_manager_school_ids",
     "is_school_manager",
     "is_report_viewer_for_school",
@@ -172,26 +171,6 @@ def platform_can_access_school(user, school: School | None) -> bool:
 # ==============================
 # أدوات داخلية
 # ==============================
-def _user_role(user):
-    """يعيد كائن Role المرتبط بالمستخدم إن وجد، وإلا None."""
-    try:
-        return getattr(user, "role", None)
-    except Exception:
-        return None
-
-
-def _user_role_slug(user) -> Optional[str]:
-    """يعيد slug للدور الحالي للمستخدم أو None إن لم يوجد."""
-    role = _user_role(user)
-    return getattr(role, "slug", None) if role else None
-
-
-def has_legacy_manager_role(user) -> bool:
-    """توافق خلفي: هل ما زال الحساب يعتمد على Role.slug='manager'؟"""
-    slug = (_user_role_slug(user) or "").strip().lower()
-    return slug == str(SchoolMembership.RoleType.MANAGER).strip().lower()
-
-
 def _school_membership_cache(user) -> dict:
     cache = getattr(user, "_school_membership_cache", None)
     if not isinstance(cache, dict):
@@ -266,39 +245,32 @@ def _get_school_membership(
     return membership
 
 
-def get_school_manager_school_ids(user, *, allow_legacy_role: bool = False) -> Set[int]:
-    """Returns school ids where the user should be treated as a school manager.
+def get_school_manager_school_ids(user) -> Set[int]:
+    """Returns school ids where the user is an active school manager.
 
-    - `allow_legacy_role=False`: strict modern source of truth via `SchoolMembership`.
-    - `allow_legacy_role=True`: compatibility mode for old `Role.slug='manager'` users,
-      scoped only to schools where they still have an active membership.
+    Source of truth is ``SchoolMembership`` with ``role_type=manager``.
     """
     if not getattr(user, "is_authenticated", False):
         return set()
 
     cache = getattr(user, "_school_manager_ids_cache", None)
-    if not isinstance(cache, dict):
-        cache = {}
-        setattr(user, "_school_manager_ids_cache", cache)
-
-    cache_key = bool(allow_legacy_role)
-    if cache_key in cache:
-        return set(cache[cache_key])
+    if cache is not None:
+        return set(cache)
 
     try:
-        qs = SchoolMembership.objects.filter(teacher=user, is_active=True)
-        if allow_legacy_role and has_legacy_manager_role(user):
-            ids = {int(x) for x in qs.values_list("school_id", flat=True) if x}
-        else:
-            ids = {
-                int(x)
-                for x in qs.filter(role_type=SchoolMembership.RoleType.MANAGER).values_list("school_id", flat=True)
-                if x
-            }
+        ids = {
+            int(x)
+            for x in SchoolMembership.objects.filter(
+                teacher=user,
+                is_active=True,
+                role_type=SchoolMembership.RoleType.MANAGER,
+            ).values_list("school_id", flat=True)
+            if x
+        }
     except Exception:
         ids = set()
 
-    cache[cache_key] = tuple(sorted(ids))
+    setattr(user, "_school_manager_ids_cache", tuple(sorted(ids)))
     return ids
 
 
@@ -307,35 +279,21 @@ def is_school_manager(
     active_school: Optional[School] = None,
     *,
     active_school_id: Optional[int] = None,
-    allow_legacy_role: bool = False,
 ) -> bool:
-    """Canonical manager detection.
-
-    Use strict mode (`allow_legacy_role=False`) for authorization.
-    Use compatibility mode (`allow_legacy_role=True`) only for display/login bridges
-    while the legacy `Role` model is still present.
-    """
+    """Canonical manager detection via ``SchoolMembership``."""
     if not getattr(user, "is_authenticated", False):
         return False
 
     school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
     if school_id:
-        if _get_school_membership(
+        return _get_school_membership(
             user,
             active_school=active_school,
             active_school_id=school_id,
             role_types=[SchoolMembership.RoleType.MANAGER],
-        ) is not None:
-            return True
-        if allow_legacy_role and has_legacy_manager_role(user):
-            return _get_school_membership(
-                user,
-                active_school=active_school,
-                active_school_id=school_id,
-            ) is not None
-        return False
+        ) is not None
 
-    return bool(get_school_manager_school_ids(user, allow_legacy_role=allow_legacy_role))
+    return bool(get_school_manager_school_ids(user))
 
 
 def effective_user_role_label(
@@ -378,7 +336,6 @@ def effective_user_role_label(
             user,
             active_school=school,
             active_school_id=school_id,
-            allow_legacy_role=True,
         ):
             label = labels["manager"]
         elif getattr(user, "is_staff", False):
@@ -401,12 +358,7 @@ def effective_user_role_label(
             elif is_report_viewer_for_school(user, active_school=school, active_school_id=school_id):
                 label = str(SchoolMembership.RoleType.REPORT_VIEWER.label)
             else:
-                role_obj = _user_role(user)
-                label = (
-                    (getattr(role_obj, "name", None) or "").strip()
-                    or (getattr(role_obj, "slug", None) or "").strip()
-                    or "مستخدم"
-                )
+                label = "مستخدم"
     except Exception:
         label = "مستخدم"
 
@@ -691,18 +643,9 @@ def role_required(allowed_roles: Iterable[str]):
                     messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
                     return redirect("reports:home")
 
-            role_slug = _user_role_slug(user)
-
-            # ⚠️ المدير (manager) صلاحية مدرسية، لا نعتمد فقط على Role.slug
-            if "manager" in allowed:
-                if is_school_manager(user, active_school_id=active_school_id):
-                    return view_func(request, *args, **kwargs)
-            else:
-                # أدوار عالمية أخرى يمكن السماح بها عبر Role.slug
-                if role_slug in allowed:
-                    return view_func(request, *args, **kwargs)
-
-            # ملاحظة: دعم المدير تم أعلاه بشكل صريح ومشدّد
+            # المدير (manager) صلاحية مدرسية تُحسم عبر SchoolMembership.
+            if "manager" in allowed and is_school_manager(user, active_school_id=active_school_id):
+                return view_func(request, *args, **kwargs)
 
             messages.error(request, "لا تملك صلاحية الوصول إلى هذه الصفحة.")
             return redirect("reports:home")

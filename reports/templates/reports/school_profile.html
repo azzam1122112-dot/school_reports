@@ -128,6 +128,17 @@
     gap:10px;
   }
   .schoolp-kpi .num{font-weight:950;font-size:1.35rem;color:var(--brand)}
+
+  /* 👑 ROYAL LUXURY — بروفايل المدرسة (زمرّدي + ذهبي) */
+  .schoolp-head{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.26), transparent 50%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+  }
+  .schoolp-head::before{ content:""; position:absolute; inset-inline:0; top:0; height:4px; z-index:2;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent); }
+  .schoolp-kpi .num{ color:#0a5c33; }
   .schoolp-kpi .lbl{color:var(--muted);font-weight:850;margin-top:2px}
   .schoolp-kpi-ico{
     width:44px;height:44px;border-radius:14px;
@@ -182,13 +193,6 @@
         <div class="schoolp-cardish">
           <div class="schoolp-block-title">
             <span>بيانات المدرسة</span>
-            <small>
-              {% if school.code %}
-                <span class="schoolp-mono">#{{ school.code }}</span>
-              {% else %}
-                —
-              {% endif %}
-            </small>
           </div>
 
           <div class="schoolp-rows">

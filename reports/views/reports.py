@@ -77,14 +77,24 @@ def _notify_report_created(report, active_school):
 @ratelimit(key="user", rate="30/h", method="POST", block=True)
 @require_http_methods(["GET", "POST"])
 def add_report(request: HttpRequest) -> HttpResponse:
+    import json as _json
+    from .report_templates import active_templates_for_school
+
     active_school = _get_active_school(request)
+    report_templates_json = _json.dumps(
+        active_templates_for_school(active_school), ensure_ascii=False
+    )
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, active_school=active_school)
         if form.is_valid():
             capacity_error = archive_storage_capacity_error(active_school, form.files.values())
             if capacity_error:
                 messages.error(request, capacity_error)
-                return render(request, "reports/add_report.html", {"form": form})
+                return render(
+                    request,
+                    "reports/add_report.html",
+                    {"form": form, "report_templates_json": report_templates_json},
+                )
 
             report = form.save(commit=False)
             report.teacher = request.user
@@ -128,7 +138,11 @@ def add_report(request: HttpRequest) -> HttpResponse:
     else:
         form = ReportForm(active_school=active_school)
 
-    return render(request, "reports/add_report.html", {"form": form})
+    return render(
+        request,
+        "reports/add_report.html",
+        {"form": form, "report_templates_json": report_templates_json},
+    )
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
@@ -322,12 +336,25 @@ def school_archive(request: HttpRequest) -> HttpResponse:
         page=request.GET.get("files_page", 1),
     )
 
+    # ملحق الأرشفة + مزامنة استهلاك التخزين لعرض شريط المساحة للمدير.
+    archive_addon = SchoolArchiveAddon.objects.filter(school=active_school).first()
+    if archive_addon is not None:
+        try:
+            sync_school_archive_storage_usage(active_school)
+            archive_addon.refresh_from_db(
+                fields=["storage_used_bytes", "storage_limit_gb", "end_date", "updated_at"]
+            )
+        except Exception:
+            pass
+
     return render(
         request,
         "reports/school_archive.html",
         {
             "archive_enabled": True,
             "current_school": active_school,
+            "archive_addon": archive_addon,
+            "current_academic_year": (getattr(active_school, "current_academic_year", "") or "").strip(),
             "school_wide": school_wide,
             "years": years,
             "selected_year": selected_year,
@@ -337,8 +364,63 @@ def school_archive(request: HttpRequest) -> HttpResponse:
             "report_stats": payload["report_stats"],
             "achievement_stats": payload["achievement_stats"],
             "unclassified_year": UNCLASSIFIED_YEAR,
+            "archived_at": timezone.localtime(),
             "qs": _clean_query_params(request.GET),
         },
+    )
+
+
+@login_required(login_url="reports:login")
+@ratelimit(key="user", rate="6/h", method="GET", block=True)
+@require_http_methods(["GET"])
+def school_archive_export(request: HttpRequest) -> HttpResponse:
+    """تنزيل أرشيف سنة دراسية محددة كحزمة ZIP (ملفات + تحقّق سلامة)."""
+    from django.http import FileResponse
+    from ..services_export import build_school_export_zip_file, archive_zip_filename
+
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
+        return redirect("reports:select_school")
+
+    if not school_archive_enabled(active_school):
+        messages.error(request, "ميزة الأرشفة غير مفعّلة لهذه المدرسة.")
+        return redirect("reports:school_archive")
+
+    is_manager = is_school_manager(request.user, active_school=active_school)
+    is_viewer = _is_report_viewer(request.user, active_school)
+    is_platform = bool(is_platform_admin(request.user) and platform_can_access_school(request.user, active_school))
+    is_superuser = bool(getattr(request.user, "is_superuser", False))
+    school_wide = bool(is_superuser or is_manager or is_viewer or is_platform)
+
+    years = archive_available_years(school=active_school, teacher=request.user, school_wide=school_wide)
+    selected_year = (request.GET.get("year") or "").strip()
+    if selected_year not in years:
+        messages.error(request, "السنة المطلوبة غير متاحة في الأرشيف.")
+        return redirect("reports:school_archive")
+
+    try:
+        zip_file = build_school_export_zip_file(
+            active_school,
+            academic_year=selected_year,
+            teacher=request.user,
+            school_wide=school_wide,
+            request=request,
+        )
+    except Exception:
+        logger.exception("school_archive_export failed school_id=%s", getattr(active_school, "id", None))
+        messages.error(request, "تعذّر إنشاء أرشيف السنة. حاول لاحقًا.")
+        return redirect(f"{reverse('reports:school_archive')}?year={selected_year}")
+
+    logger.info(
+        "Year archive exported school_id=%s user_id=%s year=%s school_wide=%s",
+        getattr(active_school, "id", None), getattr(request.user, "id", None), selected_year, school_wide,
+    )
+    return FileResponse(
+        zip_file,
+        as_attachment=True,
+        filename=archive_zip_filename(active_school, selected_year),
+        content_type="application/zip",
     )
 
 
@@ -889,6 +971,14 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
         if not school_principal:
             school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
 
+        # مسمّى المنفّذ حسب نوع المدرسة (بنين/بنات)
+        try:
+            _gender = (getattr(school_scope, "gender", "") or "").strip().lower()
+            _girls_val = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
+            executor_label = "المنفّذة" if _gender == _girls_val else "المنفّذ"
+        except Exception:
+            executor_label = "المنفّذ"
+
         # إعدادات المدرسة (الاسم + المرحلة + الشعار)
         school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
         school_stage = ""
@@ -931,6 +1021,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "r": r,
                 "head_decision": head_decision,
                 "SCHOOL_PRINCIPAL": school_principal,
+                "executor_label": executor_label,
                 "SCHOOL_NAME": school_name,
                 "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,
@@ -1215,6 +1306,14 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
         if not moe_logo_url:
             moe_logo_url = static("img/UntiTtled-1.png")
 
+        # مسمّى المنفّذ حسب نوع المدرسة (بنين/بنات)
+        try:
+            _gender = (getattr(school_scope, "gender", "") or "").strip().lower()
+            _girls_val = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
+            executor_label = "المنفّذة" if _gender == _girls_val else "المنفّذ"
+        except Exception:
+            executor_label = "المنفّذ"
+
         return render(
             request,
             "reports/report_print.html",
@@ -1222,6 +1321,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
                 "r": r,
                 "head_decision": head_decision,
                 "SCHOOL_PRINCIPAL": school_principal,
+                "executor_label": executor_label,
                 "SCHOOL_NAME": school_name,
                 "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,

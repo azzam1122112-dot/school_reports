@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load hijri_tags %}
 
 {% block title %}أرشيف السنوات{% endblock %}
 
@@ -264,6 +265,128 @@
       padding: 8px 14px;
     }
   }
+
+  /* شارات الختم الزمني/القراءة فقط/السلامة */
+  .archive-meta-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .archive-chip {
+    display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px;
+    font-weight:850; font-size:.84rem; color:var(--ar-muted);
+    background:rgba(185,151,91,.08); border:1px solid var(--ar-line);
+  }
+  .archive-chip i { color:var(--ar-amber, #8d6b2f); }
+  .archive-chip.readonly { color:#0a5c33; background:rgba(10,92,51,.08); border-color:rgba(10,92,51,.22); }
+  .archive-chip.readonly i { color:#0a5c33; }
+
+  /* شريط تنزيل أرشيف السنة */
+  .archive-download-bar {
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    margin-bottom:18px; padding:16px 18px; border-radius:18px;
+    border:1px solid rgba(212,177,109,.42);
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.18), transparent 50%),
+      linear-gradient(135deg, rgba(11,98,56,.06), rgba(212,177,109,.05));
+  }
+  .archive-download-text strong { display:flex; align-items:center; gap:8px; color:var(--ar-ink); font-weight:950; font-size:1.05rem; }
+  .archive-download-text strong i { color:#b9975b; }
+  .archive-download-text span { display:block; margin-top:5px; color:var(--ar-muted); font-weight:750; font-size:.9rem; line-height:1.7; max-width:640px; }
+  .archive-download-btn {
+    background:linear-gradient(135deg, #0a5c33, #074426) !important; border:none !important; color:#fff !important;
+    font-weight:950 !important; border-radius:14px !important; min-height:48px; white-space:nowrap;
+    box-shadow:0 12px 26px -12px rgba(10,92,51,.6);
+  }
+  .archive-download-btn:hover { transform:translateY(-2px); }
+  .archive-download-btn[aria-disabled="true"] { opacity:.75; pointer-events:none; }
+  @media (max-width:640px){ .archive-download-bar { flex-direction:column; align-items:stretch; } .archive-download-btn { justify-content:center; } }
+
+  /* ترقيم صفحات كل جدول (مستقل) */
+  .archive-pager {
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:14px 18px; border-top:1px solid var(--ar-line);
+  }
+  .archive-pg {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:40px; min-height:40px; padding:0 10px; border-radius:12px;
+    border:1px solid var(--ar-line); background:var(--ar-card); color:var(--ar-ink);
+    text-decoration:none; font-weight:900; transition:border-color .15s, color .15s, background .15s;
+  }
+  .archive-pg:hover { border-color:#0a5c33; color:#0a5c33; background:rgba(10,92,51,.06); }
+  .archive-pg.disabled { opacity:.4; pointer-events:none; }
+  .archive-pg-info { color:var(--ar-muted); font-weight:900; font-size:.9rem; white-space:nowrap; }
+  .archive-pg-info b { color:var(--ar-ink); }
+
+  /* بطاقة مساحة الأرشيف (للمدير المشترك) */
+  .archive-storage-card {
+    margin-bottom:18px; padding:16px 18px; border-radius:18px;
+    border:1px solid rgba(212,177,109,.42); background:var(--ar-card);
+    box-shadow:0 18px 50px rgba(16,37,31,.08);
+  }
+  .asc-top { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .asc-top strong { display:flex; align-items:center; gap:8px; color:var(--ar-ink); font-weight:950; font-size:1.05rem; }
+  .asc-top strong i { color:#b9975b; }
+  .asc-quota { font-weight:950; color:#0a5c33; font-size:1.05rem; white-space:nowrap; }
+  .asc-quota small { color:var(--ar-muted); font-weight:800; font-size:.82rem; }
+  .asc-bar {
+    margin:12px 0 10px; height:14px; border-radius:999px; overflow:hidden;
+    background:rgba(10,92,51,.08); border:1px solid rgba(10,92,51,.14);
+  }
+  .asc-fill {
+    display:block; height:100%; border-radius:999px;
+    background:linear-gradient(90deg,#0a5c33,#0b6238); transition:width .4s ease;
+  }
+  .archive-storage-card.is-warn .asc-fill { background:linear-gradient(90deg,#b9975b,#d4b16d); }
+  .archive-storage-card.is-warn .asc-quota { color:#7a5c1e; }
+  .archive-storage-card.is-danger { border-color:rgba(220,38,38,.4); }
+  .archive-storage-card.is-danger .asc-fill { background:linear-gradient(90deg,#dc2626,#b91c1c); }
+  .archive-storage-card.is-danger .asc-quota { color:#dc2626; }
+  .asc-foot { display:flex; align-items:center; gap:16px; flex-wrap:wrap; color:var(--ar-muted); font-weight:850; font-size:.9rem; }
+  .asc-foot i { opacity:.85; }
+  .asc-upgrade {
+    margin-inline-start:auto; display:inline-flex; align-items:center; gap:7px;
+    padding:8px 14px; border-radius:12px; text-decoration:none; font-weight:950;
+    color:#0a5c33; background:rgba(10,92,51,.08); border:1px solid rgba(10,92,51,.22);
+    transition:background .15s, color .15s;
+  }
+  .asc-upgrade:hover { background:#0a5c33; color:#fff; }
+  .asc-alert {
+    margin-top:12px; padding:10px 14px; border-radius:12px; font-weight:900; font-size:.9rem;
+    color:#991b1b; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.25);
+    display:flex; align-items:center; gap:8px;
+  }
+
+  /* شريط "كيف يعمل الأرشيف" */
+  .archive-howto {
+    display:flex; align-items:stretch; gap:10px; flex-wrap:wrap; margin-bottom:20px;
+    padding:14px 16px; border-radius:18px; border:1px solid var(--ar-line);
+    background:linear-gradient(180deg, rgba(212,177,109,.07), var(--ar-card));
+  }
+  .ah-step { display:flex; align-items:center; gap:10px; flex:1 1 190px; }
+  .ah-num {
+    flex:0 0 auto; width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
+    font-weight:950; color:#fff; background:linear-gradient(135deg,#0a5c33,#074426);
+    box-shadow:0 6px 14px -6px rgba(10,92,51,.7);
+  }
+  .ah-step b { display:block; color:var(--ar-ink); font-weight:950; font-size:.96rem; }
+  .ah-step small { color:var(--ar-muted); font-weight:750; font-size:.82rem; }
+  .ah-sep { color:#b9975b; align-self:center; }
+  @media (max-width:760px){ .ah-sep { display:none; } }
+
+  /* عنوان خطوة مرقّم */
+  .archive-step-head { display:flex; align-items:center; gap:10px; margin:22px 2px 10px; }
+  .archive-step-head:first-of-type { margin-top:0; }
+  .archive-step-head .step-n {
+    width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
+    font-weight:950; color:#063d22; background:linear-gradient(135deg,#e6cf9a,#d4b16d); flex:0 0 auto;
+  }
+  .archive-step-head h2 { margin:0; font-size:1.08rem; font-weight:950; color:var(--ar-ink); }
+  .archive-step-head .hint { color:var(--ar-muted); font-weight:800; font-size:.86rem; }
+
+  /* لافتة "تعرض الآن" */
+  .archive-now {
+    display:inline-flex; align-items:center; gap:8px; margin-top:10px; padding:8px 14px;
+    border-radius:999px; font-weight:950; color:#0a5c33;
+    background:rgba(10,92,51,.08); border:1px solid rgba(10,92,51,.2);
+  }
+  .archive-now i { color:#b9975b; }
 </style>
 {% endblock %}
 
@@ -287,6 +410,11 @@
             الرجوع إلى تقاريرك وملفات إنجازك حسب السنة الدراسية.
           {% endif %}
         </p>
+        {% if archive_enabled %}
+        <div class="archive-meta-row">
+          <span class="archive-chip readonly"><i class="fa-solid fa-lock" aria-hidden="true"></i> أرشيف للقراءة فقط — تظهر البيانات تلقائيًا حسب السنة</span>
+        </div>
+        {% endif %}
       </div>
       <a class="btn btn-outline" href="{% url 'reports:home' %}">
         <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
@@ -301,16 +429,29 @@
         <div>هذه ميزة مدفوعة مستقلة يمكن تفعيلها على أي اشتراك من إدارة المنصة.</div>
       </div>
     {% else %}
+      <div class="archive-howto">
+        <div class="ah-step"><span class="ah-num">١</span><div><b>اختر السنة</b><small>تظهر بياناتها تلقائيًا.</small></div></div>
+        <i class="fa-solid fa-arrow-left ah-sep" aria-hidden="true"></i>
+        <div class="ah-step"><span class="ah-num">٢</span><div><b>راجع المحتوى</b><small>تقارير وملفات إنجاز السنة.</small></div></div>
+        <i class="fa-solid fa-arrow-left ah-sep" aria-hidden="true"></i>
+        <div class="ah-step"><span class="ah-num">٣</span><div><b>أرشِف ونزّل</b><small>حزمة موثّقة (PDF + صور).</small></div></div>
+      </div>
+
+      <div class="archive-step-head">
+        <span class="step-n">١</span>
+        <h2>اختر السنة الدراسية</h2>
+      </div>
       <form class="royal-panel archive-panel" method="get">
         <div class="archive-field">
           <label for="archiveYear">السنة الدراسية</label>
-          <select id="archiveYear" name="year" onchange="this.form.submit()">
+          <select id="archiveYear" name="year" data-autosubmit="1">
             {% for year in years %}
               <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>
-                {% if year == unclassified_year %}تقارير غير مصنفة بسنة{% else %}{{ year }} هـ{% endif %}
+                {% if year == unclassified_year %}تقارير غير مصنفة بسنة{% else %}{{ year }} هـ{% endif %}{% if current_academic_year and year == current_academic_year %} — السنة الحالية{% endif %}
               </option>
             {% endfor %}
           </select>
+          {% if selected_year %}<span class="archive-now"><i class="fa-solid fa-eye" aria-hidden="true"></i> تعرض الآن: {{ selected_year_label }}</span>{% endif %}
         </div>
 
         <div class="archive-kpi">
@@ -331,9 +472,65 @@
         </div>
       </form>
 
+      {% if archive_addon %}
+        {% with pct=archive_addon.storage_usage_percent %}
+        <div class="archive-storage-card{% if pct >= 90 %} is-danger{% elif pct >= 75 %} is-warn{% endif %}">
+          <div class="asc-top">
+            <strong><i class="fa-solid fa-database" aria-hidden="true"></i> مساحة الأرشيف</strong>
+            <span class="asc-quota">{{ archive_addon.storage_used_gb }} <small>من</small> {{ archive_addon.storage_limit_gb }} GB</span>
+          </div>
+          <div class="asc-bar" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="استهلاك مساحة الأرشيف">
+            <span class="asc-fill" style="width:{{ pct }}%"></span>
+          </div>
+          <div class="asc-foot">
+            <span class="asc-pct"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> {{ pct }}% مُستخدَم</span>
+            {% if archive_addon.end_date %}
+              <span class="asc-end"><i class="fa-regular fa-calendar-xmark" aria-hidden="true"></i> ينتهي الملحق: {{ archive_addon.end_date|hijri }} هـ</span>
+            {% else %}
+              <span class="asc-end"><i class="fa-solid fa-infinity" aria-hidden="true"></i> مدّة مفتوحة</span>
+            {% endif %}
+            <a class="asc-upgrade" href="{% url 'reports:my_subscription' %}">
+              <i class="fa-solid fa-circle-plus" aria-hidden="true"></i> طلب زيادة المساحة
+            </a>
+          </div>
+          {% if pct >= 90 %}
+            <div class="asc-alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> اقتربت من حدّ المساحة — قد يتعذّر رفع تقارير/ملفات جديدة. يُنصح بزيادة المساحة.</div>
+          {% endif %}
+        </div>
+        {% endwith %}
+      {% endif %}
+
+      {% if years and selected_year %}
+        <div class="archive-step-head">
+          <span class="step-n">٢</span>
+          <h2>أرشفة السنة وتوثيقها</h2>
+          <span class="hint">— التنزيل = حفظ نسخة موثّقة للقراءة فقط</span>
+        </div>
+        <div class="archive-download-bar">
+          <div class="archive-download-text">
+            <strong><i class="fa-solid fa-box-archive" aria-hidden="true"></i> حزمة أرشيف {{ selected_year_label }}</strong>
+            <span>كل تقارير وملفات إنجاز هذه السنة في ملف واحد مضغوط: صور + ملف PDF رسمي لكل تقرير + فهرس Excel.</span>
+            <div class="archive-meta-row" style="margin-top:10px">
+              {% if archived_at %}<span class="archive-chip"><i class="fa-regular fa-clock" aria-hidden="true"></i> ختم زمني: {{ archived_at|date:"Y-m-d H:i" }}</span>{% endif %}
+              <span class="archive-chip"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> تحقّق سلامة SHA-256</span>
+            </div>
+          </div>
+          <a class="btn btn-primary archive-download-btn" id="archiveDownloadBtn"
+             href="{% url 'reports:school_archive_export' %}?year={{ selected_year|urlencode }}">
+            <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
+            أرشفة هذه السنة (ZIP)
+          </a>
+        </div>
+      {% endif %}
+
       {% if not years %}
         <div class="royal-empty archive-empty">لا توجد سنوات مؤرشفة حتى الآن.</div>
       {% else %}
+        <div class="archive-step-head">
+          <span class="step-n">٣</span>
+          <h2>محتوى السنة المختارة</h2>
+          <span class="hint">— تصفّح التقارير وملفات الإنجاز</span>
+        </div>
         <div class="archive-grid">
           <section class="royal-panel archive-section">
             <div class="archive-section-head">
@@ -356,7 +553,7 @@
                       <div class="archive-title-cell">{{ r.title }}</div>
                       <div class="archive-meta">{{ r.teacher_display_name }}</div>
                     </td>
-                    <td>{{ r.report_date|date:"Y-m-d" }}</td>
+                    <td>{{ r.report_date|hijri }} هـ</td>
                     <td>{% if r.category %}{{ r.category.name }}{% else %}—{% endif %}</td>
                     <td>
                       <div class="archive-actions">
@@ -372,6 +569,21 @@
                 {% endfor %}
               </tbody>
             </table>
+            {% if reports.paginator.num_pages > 1 %}
+              <nav class="archive-pager" aria-label="تنقّل صفحات التقارير">
+                {% if reports.has_previous %}
+                  <a class="archive-pg" href="?year={{ selected_year|urlencode }}&amp;files_page={{ achievement_files.number }}&amp;reports_page={{ reports.previous_page_number }}" aria-label="الصفحة السابقة"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a>
+                {% else %}
+                  <span class="archive-pg disabled"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></span>
+                {% endif %}
+                <span class="archive-pg-info">صفحة <b>{{ reports.number }}</b> من {{ reports.paginator.num_pages }} · {{ reports.paginator.count }} تقرير</span>
+                {% if reports.has_next %}
+                  <a class="archive-pg" href="?year={{ selected_year|urlencode }}&amp;files_page={{ achievement_files.number }}&amp;reports_page={{ reports.next_page_number }}" aria-label="الصفحة التالية"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
+                {% else %}
+                  <span class="archive-pg disabled"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></span>
+                {% endif %}
+              </nav>
+            {% endif %}
           </section>
 
           <section class="royal-panel archive-section">
@@ -417,10 +629,44 @@
                 {% endfor %}
               </tbody>
             </table>
+            {% if achievement_files.paginator.num_pages > 1 %}
+              <nav class="archive-pager" aria-label="تنقّل صفحات ملفات الإنجاز">
+                {% if achievement_files.has_previous %}
+                  <a class="archive-pg" href="?year={{ selected_year|urlencode }}&amp;reports_page={{ reports.number }}&amp;files_page={{ achievement_files.previous_page_number }}" aria-label="الصفحة السابقة"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a>
+                {% else %}
+                  <span class="archive-pg disabled"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></span>
+                {% endif %}
+                <span class="archive-pg-info">صفحة <b>{{ achievement_files.number }}</b> من {{ achievement_files.paginator.num_pages }} · {{ achievement_files.paginator.count }} ملف</span>
+                {% if achievement_files.has_next %}
+                  <a class="archive-pg" href="?year={{ selected_year|urlencode }}&amp;reports_page={{ reports.number }}&amp;files_page={{ achievement_files.next_page_number }}" aria-label="الصفحة التالية"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
+                {% else %}
+                  <span class="archive-pg disabled"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></span>
+                {% endif %}
+              </nav>
+            {% endif %}
           </section>
         </div>
       {% endif %}
     {% endif %}
   </div>
 </div>
+
+<script nonce="{{ CSP_NONCE }}">
+  (function(){
+    // إرسال نموذج السنة عند التغيير (بديل onchange المحظور بسياسة CSP)
+    document.querySelectorAll('select[data-autosubmit]').forEach(function(sel){
+      sel.addEventListener('change', function(){ if (sel.form) sel.form.submit(); });
+    });
+    // حالة تحميل عند تنزيل أرشيف السنة
+    var dl = document.getElementById('archiveDownloadBtn');
+    if (dl) {
+      dl.addEventListener('click', function(){
+        var original = dl.innerHTML;
+        dl.setAttribute('aria-disabled', 'true');
+        dl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ تجهيز الأرشيف...';
+        setTimeout(function(){ dl.removeAttribute('aria-disabled'); dl.innerHTML = original; }, 6000);
+      });
+    }
+  })();
+</script>
 {% endblock %}

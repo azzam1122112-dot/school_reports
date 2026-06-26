@@ -210,6 +210,7 @@
     font-size: .97rem;
     font-weight: 500;
     word-break: break-word;
+    overflow-wrap: anywhere;
     position: relative;
     margin-bottom: 18px;
   }
@@ -557,6 +558,67 @@
     .nd-search-wrap input { transition: none !important; }
     .nd-btn:hover, .nd-back-btn:hover { transform: none !important; }
   }
+
+  /* 👑 ROYAL OVERLAY — تفاصيل الإشعار */
+  .nd-scope .nd-hero{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.24), transparent 50%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
+    color:#fff !important;
+  }
+  .nd-scope .nd-hero::after{
+    content:""; position:absolute; top:0; right:0; left:0; height:4px; z-index:2;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .nd-scope .nd-hero h1, .nd-scope .nd-hero h2{
+    color:#fff !important;
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .nd-scope .nd-hero-icon{
+    background:linear-gradient(135deg,#e6cf9a,#d4b16d) !important; color:#063d22 !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 10px 22px -12px rgba(185,151,91,.9) !important;
+  }
+  .nd-scope .nd-btn.primary, .nd-scope .btn-primary{
+    background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important;
+  }
+
+  /* ── نافذة تأكيد الحذف (بديل confirm البدائي) ── */
+  .nd-confirm {
+    border: 1px solid var(--nd-line);
+    border-radius: var(--nd-radius-lg);
+    padding: 32px 28px 26px;
+    width: min(440px, 92vw);
+    max-width: 440px;
+    text-align: center;
+    background: var(--nd-card);
+    color: var(--nd-ink);
+    box-shadow: var(--nd-shadow-lg);
+  }
+  .nd-confirm::backdrop { background: rgba(0,0,0,.55); backdrop-filter: blur(8px); }
+  .nd-confirm .nd-confirm-icon {
+    width: 72px; height: 72px; margin: 0 auto 18px;
+    border-radius: 50%; display: grid; place-items: center;
+    font-size: 1.7rem; color: var(--nd-danger);
+    background: rgba(220,38,38,.10); border: 1px solid rgba(220,38,38,.22);
+  }
+  .nd-confirm .nd-confirm-title { margin: 0 0 10px; font-weight: 800; font-size: 1.25rem; color: var(--nd-ink); }
+  .nd-confirm .nd-confirm-text { margin: 0 0 24px; color: var(--nd-ink-soft); font-weight: 500; line-height: 1.7; }
+  .nd-confirm .nd-confirm-actions { display: flex; gap: 12px; }
+  .nd-confirm .nd-confirm-btn {
+    flex: 1; min-height: 50px; border-radius: var(--nd-radius-sm);
+    font-weight: 800; font-size: 1rem; font-family: inherit; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all var(--nd-t); border: 1px solid transparent;
+  }
+  .nd-confirm .nd-confirm-cancel { background: var(--nd-line-soft); color: var(--nd-ink); border-color: var(--nd-line); }
+  .nd-confirm .nd-confirm-cancel:hover { background: var(--nd-line); }
+  .nd-confirm .nd-confirm-ok { background: var(--nd-danger); color: #fff; box-shadow: 0 6px 16px rgba(220,38,38,.3); }
+  .nd-confirm .nd-confirm-ok:hover { background: #b91c1c; transform: translateY(-1px); }
+  @media (max-width: 420px) { .nd-confirm .nd-confirm-actions { flex-direction: column-reverse; } }
 </style>
 {% endblock %}
 
@@ -581,7 +643,7 @@
             </h1>
             <p class="nd-hero-sub">
               {{ n.title|default:"بدون عنوان" }}
-              {% if n.created_at %} &nbsp;·&nbsp; {{ n.created_at|date:"Y-m-d H:i" }}{% endif %}
+              {% if n.created_at %} &nbsp;·&nbsp; {% if created_day_name %}{{ created_day_name }} {% endif %}{{ n.created_at|date:"Y-m-d H:i" }}{% endif %}
             </p>
           </div>
         </div>
@@ -641,7 +703,7 @@
               {% if n.created_at %}
                 <div class="nd-meta-item">
                   <span class="nd-meta-item-label"><i class="fa-regular fa-calendar"></i> تاريخ الإرسال</span>
-                  <span class="nd-meta-item-value">{{ n.created_at|date:"Y-m-d H:i" }}</span>
+                  <span class="nd-meta-item-value">{% if created_day_name %}{{ created_day_name }} · {% endif %}{{ n.created_at|date:"Y-m-d H:i" }}</span>
                 </div>
               {% endif %}
               {% if n.expires_at %}
@@ -809,6 +871,21 @@
       </div>
     </div><!-- /.nd-content -->
   </div><!-- /.nd-page -->
+
+  <!-- Confirm Delete Dialog -->
+  <dialog id="ndConfirmDialog" class="nd-confirm" aria-labelledby="ndConfirmTitle">
+    <div class="nd-confirm-icon" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></div>
+    <h3 id="ndConfirmTitle" class="nd-confirm-title">تأكيد حذف الإشعار</h3>
+    <p class="nd-confirm-text">سيتم حذف هذا الإشعار نهائيًا ولا يمكن التراجع عن العملية. هل تريد المتابعة؟</p>
+    <div class="nd-confirm-actions">
+      <button type="button" class="nd-confirm-btn nd-confirm-cancel" data-nd-action="confirm-cancel">
+        <i class="fa-solid fa-xmark"></i> إلغاء
+      </button>
+      <button type="button" class="nd-confirm-btn nd-confirm-ok" data-nd-action="confirm-ok">
+        <i class="fa-solid fa-trash-can"></i> حذف نهائيًا
+      </button>
+    </div>
+  </dialog>
 </div><!-- /.nd-scope -->
 {% endblock %}
 
@@ -874,13 +951,40 @@
       });
     }
 
-    // Confirm delete — CSP-safe, no inline handler
+    // Confirm delete عبر نافذة مخصّصة (بديل confirm البدائي) — CSP-safe
     var delForm = document.getElementById('deleteNotifForm');
+    var confirmDialog = document.getElementById('ndConfirmDialog');
+
+    function closeNdConfirm() {
+      if (confirmDialog && confirmDialog.open) confirmDialog.close();
+    }
+
     if (delForm) {
       delForm.addEventListener('submit', function(e) {
-        try {
+        if (!confirmDialog || typeof confirmDialog.showModal !== 'function') {
           if (!window.confirm('حذف الإشعار نهائيًا؟ لا يمكن التراجع.')) e.preventDefault();
-        } catch(err) {}
+          return;
+        }
+        e.preventDefault();
+        confirmDialog.showModal();
+        var okBtn = confirmDialog.querySelector('.nd-confirm-ok');
+        if (okBtn) { try { okBtn.focus(); } catch(err) {} }
+      });
+    }
+
+    if (confirmDialog) {
+      confirmDialog.addEventListener('click', function(ev) {
+        if (ev.target === confirmDialog) closeNdConfirm();
+      });
+      document.addEventListener('click', function(ev) {
+        var t = ev.target;
+        if (!t || !t.closest) return;
+        if (t.closest('[data-nd-action="confirm-cancel"]')) { ev.preventDefault(); closeNdConfirm(); return; }
+        if (t.closest('[data-nd-action="confirm-ok"]')) {
+          ev.preventDefault();
+          closeNdConfirm();
+          if (delForm) delForm.submit();
+        }
       });
     }
 

@@ -501,6 +501,97 @@
       transform: none !important;
     }
   }
+
+  /* 👑 ROYAL OVERLAY — إشعاراتي */
+  .notif-scope .page-head{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
+      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
+    border:1px solid rgba(212,177,109,.42) !important;
+    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
+    padding:24px 22px !important; color:#fff !important;
+  }
+  .notif-scope .page-head::after{
+    content:""; position:absolute; top:0; right:0; left:0; height:4px;
+    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  }
+  .notif-scope .page-title{
+    color:#fff !important;
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .notif-scope .page-title i{ -webkit-text-fill-color:#e6cf9a !important; color:#e6cf9a !important; }
+  .notif-scope .page-head .chip{
+    background:rgba(212,177,109,.2) !important; border:1px solid rgba(212,177,109,.5) !important; color:#fdf6e6 !important;
+  }
+  .notif-scope .notif-card,
+  .notif-scope .notification-item,
+  .notif-scope .n-card{
+    border:1px solid rgba(185,151,91,.20) !important;
+    box-shadow:0 12px 30px -22px rgba(10,92,51,.38) !important;
+  }
+
+  /* ===== بحث داخل الإشعارات ===== */
+  .notif-scope .notif-search {
+    position: relative;
+    flex: 1 1 220px;
+    min-width: 180px;
+  }
+  .notif-scope .notif-search i {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #e6cf9a;
+  }
+  .notif-scope .notif-search input {
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    border: 1px solid rgba(212,177,109,.5);
+    border-radius: var(--notif-radius-md);
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    min-height: 44px;
+  }
+  .notif-scope .notif-search input::placeholder { color: rgba(255,255,255,.7); }
+  .notif-scope .notif-search input:focus {
+    outline: none;
+    border-color: #e6cf9a;
+    box-shadow: 0 0 0 4px rgba(212,177,109,.25);
+  }
+
+  /* ===== تحسين تباين عناصر الترويسة على الخلفية الخضراء الملكية ===== */
+  .notif-scope .page-head .toggle { color: #fdf6e6; }
+  .notif-scope .page-head .toggle input[type="checkbox"] { accent-color: #d4b16d; }
+  .notif-scope .page-head .btn-outline {
+    color: #fdf6e6;
+    border-color: rgba(212,177,109,.55);
+    background: rgba(255,255,255,.10);
+  }
+  .notif-scope .page-head .btn-outline:hover {
+    background: #d4b16d;
+    color: #063d22;
+    border-color: #d4b16d;
+    box-shadow: 0 8px 20px rgba(0,0,0,.2);
+  }
+
+  /* ===== رسالة عدم وجود نتائج للفلترة ===== */
+  .notif-scope .filter-empty {
+    display: none;
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--notif-text-soft);
+    font-size: 1.05rem;
+    font-weight: 700;
+    border: 2px dashed var(--notif-border);
+    border-radius: var(--notif-radius-xl);
+    background: var(--notif-surface);
+  }
+  .notif-scope .filter-empty i { font-size: 2.5rem; display: block; margin-bottom: 14px; opacity: .4; }
 </style>
 {% endblock %}
 
@@ -523,6 +614,11 @@
       </h1>
 
       <div class="head-actions">
+        <div class="notif-search">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input type="search" id="notifSearch" placeholder="ابحث في الإشعارات…" aria-label="بحث في الإشعارات">
+        </div>
+
         <label class="toggle" for="onlyUnread">
           <input type="checkbox" id="onlyUnread">
           إظهار غير المقروء فقط
@@ -577,11 +673,6 @@
 
             <div class="n-actions">
               <div class="left">
-                <span class="time-badge">
-                  <i class="fa-regular fa-clock" aria-hidden="true"></i>
-                  {{ r.created_at|date:"Y-m-d H:i" }}
-                </span>
-
                 <a
                   class="btn-sm ghost"
                   aria-label="عرض الإشعار كاملًا"
@@ -590,7 +681,7 @@
                   rel="noopener"
                 >
                   <i class="fa-regular fa-eye" aria-hidden="true"></i>
-                  عرض
+                  عرض التفاصيل
                 </a>
               </div>
 
@@ -621,6 +712,11 @@
           {% endwith %}
         {% endfor %}
       </section>
+
+      <div class="filter-empty" id="filterEmpty">
+        <i class="fa-regular fa-face-smile" aria-hidden="true"></i>
+        لا توجد إشعارات مطابقة للبحث/الفلتر الحالي.
+      </div>
 
       {% if page_obj.paginator.num_pages > 1 %}
         <nav class="pager" aria-label="التنقل بين الصفحات">
@@ -677,14 +773,26 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   const onlyUnread = $('#onlyUnread');
+  const searchInput = $('#notifSearch');
+  const filterEmpty = $('#filterEmpty');
 
   function applyFilters(){
     const only = !!(onlyUnread && onlyUnread.checked);
+    const term = (searchInput && searchInput.value ? searchInput.value : '').trim().toLowerCase();
+    let visible = 0;
     $$('.n-card').forEach(c=>{
       const isRead = c.classList.contains('read');
       const passUnread = !only || !isRead;
-      c.style.display = (passUnread) ? '' : 'none';
+      const passSearch = !term || (c.textContent || '').toLowerCase().indexOf(term) !== -1;
+      const show = passUnread && passSearch;
+      c.style.display = show ? '' : 'none';
+      if(show) visible++;
     });
+    // رسالة "لا نتائج" تظهر فقط عند وجود بطاقات لكنها مخفية بالفلترة
+    if(filterEmpty){
+      const hasCards = $$('.n-card').length > 0;
+      filterEmpty.style.display = (hasCards && visible === 0) ? '' : 'none';
+    }
   }
 
   if(onlyUnread){
@@ -698,6 +806,14 @@ document.addEventListener('DOMContentLoaded', function(){
     onlyUnread.addEventListener('change', function(){
       try{ localStorage.setItem(LS_ONLY_KEY, onlyUnread.checked ? '1' : '0'); }catch(e){}
       applyFilters();
+    });
+  }
+
+  if(searchInput){
+    let _t = null;
+    searchInput.addEventListener('input', function(){
+      if(_t) clearTimeout(_t);
+      _t = setTimeout(applyFilters, 80);
     });
   }
 

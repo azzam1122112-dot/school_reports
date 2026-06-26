@@ -1,6 +1,7 @@
 {# reports/templates/reports/my_reports.html #}
 {% extends "base.html" %}
 {% load static %}
+{% load hijri_tags %}
 
 {% block title %}📋 تقاريري{% endblock %}
 
@@ -906,6 +907,70 @@
       transition-duration: 0.01ms !important;
     }
   }
+
+  /* ============================================================
+     👑 ROYAL OVERLAY — تقاريري (زمرّدي + ذهبي)
+     ============================================================ */
+  .mr-wrap .mr-stat{
+    border:1px solid rgba(185,151,91,.20) !important;
+    border-radius:18px !important;
+    box-shadow:0 14px 34px -24px rgba(10,92,51,.4) !important;
+    position:relative; overflow:hidden;
+    transition:transform .16s, box-shadow .16s;
+  }
+  .mr-wrap .mr-stat::before{
+    content:""; position:absolute; top:0; right:0; width:70px; height:70px;
+    background:linear-gradient(135deg, rgba(212,177,109,.20), transparent 70%); border-radius:0 0 0 100%; pointer-events:none;
+  }
+  .mr-wrap .mr-stat:hover{ transform:translateY(-4px); box-shadow:0 20px 38px -22px rgba(10,92,51,.5); }
+  .mr-wrap .mr-stat-ico{
+    background:linear-gradient(135deg,#e6cf9a,#d4b16d) !important; color:#063d22 !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 8px 16px -10px rgba(185,151,91,.9) !important;
+  }
+  .mr-wrap .mr-stat-ico.green{ background:linear-gradient(135deg,#0b6238,#063d22) !important; color:#e6cf9a !important; }
+  .mr-wrap .mr-stat-ico.amber{ background:linear-gradient(135deg,#0a5c33,#0f8f6b) !important; color:#fff !important; }
+  .mr-wrap .mr-stat .num{
+    background:linear-gradient(180deg,#0a5c33,#063d22); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  [data-theme="dark"] .mr-wrap .mr-stat .num{ background:linear-gradient(180deg,#e6cf9a,#d4b16d); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+
+  .mr-wrap .mr-card{
+    border:1px solid rgba(185,151,91,.18) !important;
+    border-radius:22px !important;
+    box-shadow:0 18px 44px -28px rgba(10,92,51,.4) !important;
+  }
+  .mr-wrap .mr-card > .mr-hd{
+    background:
+      radial-gradient(120% 180% at 92% -40%, rgba(212,177,109,.20), transparent 50%),
+      linear-gradient(135deg,#0b6238,#063d22) !important;
+    padding:18px 20px !important; margin-bottom:18px !important;
+    border-radius:18px !important; color:#fff !important;
+    border:1px solid rgba(212,177,109,.4) !important;
+    box-shadow:0 14px 30px -20px rgba(5,46,26,.6) !important;
+  }
+  .mr-wrap .mr-card > .mr-hd .mr-title{
+    color:#fff !important;
+    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-weight:950 !important;
+  }
+  .mr-wrap .mr-card > .mr-hd .mr-title i{ -webkit-text-fill-color:#e6cf9a !important; color:#e6cf9a !important; }
+  .mr-wrap .mr-card > .mr-hd .btn-primary{
+    background:rgba(212,177,109,.18) !important; border:1px solid rgba(212,177,109,.5) !important; color:#fdf6e6 !important; font-weight:900 !important;
+  }
+  .mr-wrap .mr-card > .mr-hd .btn-primary:hover{ background:#d4b16d !important; color:#063d22 !important; }
+
+  .mr-wrap .mr-table thead th{
+    background:#faf7ef !important; color:#0a5c33 !important; font-weight:950 !important;
+    border-bottom:2px solid rgba(185,151,91,.3) !important;
+  }
+  [data-theme="dark"] .mr-wrap .mr-table thead th{ background:#14532d !important; color:#e6cf9a !important; }
+  .mr-wrap .mr-chip{
+    background:linear-gradient(135deg, rgba(212,177,109,.16), rgba(10,92,51,.08)) !important;
+    color:#0a5c33 !important; border:1px solid rgba(185,151,91,.3) !important; font-weight:900 !important;
+  }
+  [data-theme="dark"] .mr-wrap .mr-chip{ color:#e6cf9a !important; }
+  .mr-wrap .btn-primary{ background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important; }
 </style>
 {% endblock %}
 
@@ -999,7 +1064,7 @@
             {% for report in reports %}
               <tr>
                 <td>
-                  <div class="mr-date">{{ report.report_date|date:"Y-m-d" }}</div>
+                  <div class="mr-date">{{ report.report_date|hijri }} هـ</div>
                   <div class="mr-day">{{ report.day_name }}</div>
                 </td>
 
@@ -1082,7 +1147,7 @@
         {% for report in reports %}
           <div class="mr-mcard">
             <div class="mr-mtop">
-              <div class="mr-mdate">{{ report.report_date|date:"Y-m-d" }} • {{ report.day_name }}</div>
+              <div class="mr-mdate">{{ report.report_date|hijri }} هـ • {{ report.day_name }}</div>
               <div class="mr-chip">
                 {% if report.category and report.category.name %}{{ report.category.name }}{% else %}عام{% endif %}
               </div>
