@@ -1,6 +1,6 @@
 asgiref==3.9.1
 Brotli==1.2.0
-cffi==1.17.1
+cffi==2.0.0
 cbor2==5.6.5
 cryptography==46.0.7
 cssselect2==0.8.0
