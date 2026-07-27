@@ -36,6 +36,9 @@ class LandingPageTests(TestCase):
         self.assertIn('aria-expanded="false"', html)
         self.assertIn('id="security"', html)
         self.assertNotIn('href="/terms/', html)
+        self.assertIn('src="/static/js/landing.js"', html)
+        self.assertNotIn("var periodButtons", html)
+        self.assertIn("no-store", response.headers["Cache-Control"])
 
     def test_active_plans_drive_the_pricing_cards_and_period_switch(self):
         SubscriptionPlan.objects.create(

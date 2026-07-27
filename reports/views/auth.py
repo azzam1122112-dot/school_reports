@@ -897,6 +897,8 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/my_profile.html", ctx)
 
 
+@never_cache
+@cache_control(no_cache=True, must_revalidate=True, no_store=True, max_age=0)
 @require_http_methods(["GET"])
 def platform_landing(request: HttpRequest) -> HttpResponse:
     """الصفحة الرئيسية العامة للمنصة (تعريف + مميزات + زر دخول).
