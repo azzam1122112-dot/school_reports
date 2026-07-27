@@ -10,21 +10,24 @@ Flow:
 """
 from __future__ import annotations
 
-from datetime import timedelta
+import logging
 
 from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET, require_http_methods
 from django_ratelimit.decorators import ratelimit
 
 from ..models import (
     School,
+    SchoolArchiveAddon,
     SchoolMembership,
     SchoolSubscription,
     SubscriptionPlan,
@@ -35,6 +38,11 @@ from ..models import (
 # ── Trial settings (configurable via env / settings.py) ─────────────
 TRIAL_DAYS = int(getattr(settings, "TRIAL_DAYS", 14))
 TRIAL_PLAN_NAME = getattr(settings, "TRIAL_PLAN_NAME", "تجربة مجانية")
+TRIAL_MAX_TEACHERS = int(getattr(settings, "TRIAL_MAX_TEACHERS", 5))
+TRIAL_ARCHIVE_STORAGE_GB = int(getattr(settings, "TRIAL_ARCHIVE_STORAGE_GB", 1))
+REGISTRATION_RECEIPT_SESSION_KEY = "school_registration_receipt"
+
+logger = logging.getLogger(__name__)
 
 
 def _generate_unique_school_code(school_name: str) -> str:
@@ -71,29 +79,64 @@ class SchoolRegistrationForm(forms.Form):
     )
     city = forms.CharField(
         label="المدينة", max_length=120, required=False,
-        widget=forms.TextInput(attrs={"class": "form-control"}),
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "مثال: الرياض"}),
     )
 
     # Manager info
     manager_name = forms.CharField(
         label="اسم مدير المدرسة", max_length=120,
-        widget=forms.TextInput(attrs={"class": "form-control"}),
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "الاسم الكامل",
+                "autocomplete": "name",
+            }
+        ),
     )
     manager_phone = forms.CharField(
-        label="رقم الجوال (للدخول)", max_length=20,
-        widget=forms.TextInput(attrs={"class": "form-control", "dir": "ltr", "placeholder": "05xxxxxxxx"}),
+        label="رقم الجوال", max_length=16,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "dir": "ltr",
+                "placeholder": "05XXXXXXXX",
+                "inputmode": "tel",
+                "autocomplete": "tel",
+            }
+        ),
     )
     password = forms.CharField(
-        label="كلمة المرور", min_length=6,
-        widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password"}),
+        label="كلمة المرور", min_length=8,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "new-password",
+                "placeholder": "8 أحرف على الأقل",
+            }
+        ),
     )
     password_confirm = forms.CharField(
         label="تأكيد كلمة المرور",
-        widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password"}),
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "new-password",
+                "placeholder": "أعد كتابة كلمة المرور",
+            }
+        ),
     )
 
     def clean_manager_phone(self):
-        phone = self.cleaned_data["manager_phone"].strip()
+        raw_phone = (self.cleaned_data.get("manager_phone") or "").strip()
+        phone = raw_phone.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
+        phone = "".join(character for character in phone if character.isdigit())
+        if phone.startswith("9665") and len(phone) == 12:
+            phone = f"0{phone[3:]}"
+        elif phone.startswith("5") and len(phone) == 9:
+            phone = f"0{phone}"
+
+        if len(phone) != 10 or not phone.startswith("05"):
+            raise forms.ValidationError("أدخل رقم جوال سعودي صحيحًا يبدأ بـ 05 ويتكون من 10 أرقام.")
         if Teacher.objects.filter(phone=phone).exists():
             raise forms.ValidationError("رقم الجوال مسجّل مسبقاً. استخدم صفحة الدخول.")
         return phone
@@ -104,6 +147,40 @@ class SchoolRegistrationForm(forms.Form):
             if cleaned["password"] != cleaned["password_confirm"]:
                 self.add_error("password_confirm", "كلمتا المرور غير متطابقتين.")
         return cleaned
+
+
+def _get_or_create_trial_plan() -> SubscriptionPlan:
+    """Return the canonical full-feature trial plan with a small user capacity."""
+    plan = (
+        SubscriptionPlan.objects.filter(name=TRIAL_PLAN_NAME, price=0)
+        .order_by("-is_active", "id")
+        .first()
+    )
+    if plan is None:
+        return SubscriptionPlan.objects.create(
+            name=TRIAL_PLAN_NAME,
+            price=0,
+            days_duration=TRIAL_DAYS,
+            max_teachers=TRIAL_MAX_TEACHERS,
+            description=(
+                "تجربة كاملة للتقارير وملفات الإنجاز والطلبات والتعاميم والأرشيف"
+            ),
+            is_active=True,
+        )
+
+    changed_fields: list[str] = []
+    desired_values = {
+        "days_duration": TRIAL_DAYS,
+        "max_teachers": TRIAL_MAX_TEACHERS,
+        "is_active": True,
+    }
+    for field_name, desired_value in desired_values.items():
+        if getattr(plan, field_name) != desired_value:
+            setattr(plan, field_name, desired_value)
+            changed_fields.append(field_name)
+    if changed_fields:
+        plan.save(update_fields=changed_fields)
+    return plan
 
 
 # ── View ─────────────────────────────────────────────────────────────
@@ -156,36 +233,69 @@ def register_school(request):
                     )
 
                     # 4. Auto-provision trial subscription
-                    plan, _ = SubscriptionPlan.objects.get_or_create(
-                        name=TRIAL_PLAN_NAME,
-                        defaults={
-                            "price": 0,
-                            "days_duration": TRIAL_DAYS,
-                            "description": f"فترة تجربة مجانية ({TRIAL_DAYS} يوم)",
-                            "is_active": True,
-                        },
-                    )
+                    plan = _get_or_create_trial_plan()
                     today = timezone.localdate()
-                    SchoolSubscription.objects.create(
+                    subscription = SchoolSubscription.objects.create(
                         school=school,
                         plan=plan,
                         start_date=today,
-                        end_date=today + timedelta(days=TRIAL_DAYS),
+                        end_date=today,
                     )
 
-                    # 5. Log the manager in
-                    login(request, manager)
-                    request.session["active_school_id"] = school.id
+                    # 5. Give the trial access to the full archive journey too.
+                    SchoolArchiveAddon.objects.create(
+                        school=school,
+                        is_enabled=True,
+                        start_date=subscription.start_date,
+                        end_date=subscription.end_date,
+                        storage_limit_gb=max(1, TRIAL_ARCHIVE_STORAGE_GB),
+                        paid_amount=0,
+                        notes="مساحة أرشيف تجريبية تُوقف تلقائيًا بانتهاء التجربة المجانية.",
+                    )
 
-                messages.success(
-                    request,
-                    f"تم تسجيل مدرسة «{school.name}» بنجاح! لديك فترة تجربة مجانية {TRIAL_DAYS} يوم.",
+                # Log in only after the database transaction has committed.
+                login(request, manager)
+                request.session["active_school_id"] = school.id
+                request.session[REGISTRATION_RECEIPT_SESSION_KEY] = {
+                    "school_name": school.name,
+                    "manager_name": manager.name,
+                    "phone": manager.phone,
+                    # Shown once on the next no-store page, then removed from session.
+                    "password": form.cleaned_data["password"],
+                    "trial_days": TRIAL_DAYS,
+                    "trial_end_date": subscription.end_date.strftime("%Y/%m/%d"),
+                    "teacher_limit": max(1, TRIAL_MAX_TEACHERS),
+                    "archive_storage_gb": max(1, TRIAL_ARCHIVE_STORAGE_GB),
+                }
+                return redirect("reports:registration_success")
+
+            except Exception:
+                logger.exception(
+                    "School self-registration failed phone=%s",
+                    form.cleaned_data.get("manager_phone", ""),
                 )
-                return redirect("reports:admin_dashboard")
-
-            except Exception as exc:
-                messages.error(request, f"حدث خطأ أثناء التسجيل: {exc}")
+                messages.error(request, "تعذر إكمال التسجيل الآن. لم تُحفظ أي بيانات؛ حاول مرة أخرى.")
     else:
         form = SchoolRegistrationForm()
 
-    return render(request, "reports/register_school.html", {"form": form})
+    return render(
+        request,
+        "reports/register_school.html",
+        {
+            "form": form,
+            "trial_days": TRIAL_DAYS,
+            "trial_teacher_limit": max(1, TRIAL_MAX_TEACHERS),
+            "trial_archive_storage_gb": max(1, TRIAL_ARCHIVE_STORAGE_GB),
+        },
+    )
+
+
+@never_cache
+@login_required
+@require_GET
+def registration_success(request):
+    """Show the new manager's credentials once, then remove them from session."""
+    receipt = request.session.pop(REGISTRATION_RECEIPT_SESSION_KEY, None)
+    if not receipt:
+        return redirect("reports:admin_dashboard")
+    return render(request, "reports/registration_success.html", {"receipt": receipt})

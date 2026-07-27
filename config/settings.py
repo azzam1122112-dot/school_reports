@@ -849,3 +849,13 @@ DEPARTMENT_HEAD_ROLE_SLUG = "department_head"
 SITE_URL = (os.getenv("SITE_URL") or "").strip()
 if not SITE_URL:
     SITE_URL = "https://tawtheeq-ksa.com" if ENV == "production" else "http://127.0.0.1:8000"
+
+# Self-service school trial. The free plan exposes the complete product journey
+# while keeping teacher count and archive storage deliberately small.
+TRIAL_DAYS = max(1, int(os.getenv("TRIAL_DAYS", "14") or "14"))
+TRIAL_PLAN_NAME = (os.getenv("TRIAL_PLAN_NAME") or "تجربة مجانية").strip()
+TRIAL_MAX_TEACHERS = max(1, int(os.getenv("TRIAL_MAX_TEACHERS", "5") or "5"))
+TRIAL_ARCHIVE_STORAGE_GB = max(
+    1,
+    int(os.getenv("TRIAL_ARCHIVE_STORAGE_GB", "1") or "1"),
+)

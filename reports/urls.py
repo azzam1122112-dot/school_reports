@@ -17,6 +17,7 @@ urlpatterns = [
     path("login/passkey/options/", views.passkey_login_options, name="passkey_login_options"),
     path("login/passkey/verify/", views.passkey_login_verify, name="passkey_login_verify"),
     path("register/", views.register_school, name="register_school"),
+    path("register/success/", views.registration_success, name="registration_success"),
     path("logout/", views.logout_view, name="logout"),
     path("profile/", views.my_profile, name="my_profile"),
     path("profile/passkey/register/options/", views.passkey_register_options, name="passkey_register_options"),
