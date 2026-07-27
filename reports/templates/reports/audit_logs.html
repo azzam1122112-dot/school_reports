@@ -301,14 +301,14 @@
   <div class="audit-hero">
     <div class="audit-hd">
       <div>
-        <h2 class="audit-title">
+        <h1 class="audit-title">
           <i class="fa-solid fa-clock-rotate-left" style="opacity:.9"></i>
           {% if is_platform %}
             سجل النظام
           {% else %}
             سجل العمليات: {% if active_school %}{{ active_school.name }}{% else %}المدرسة{% endif %}
           {% endif %}
-        </h2>
+        </h1>
         <div class="audit-hint">
           {% if is_platform %}مراقبة كافة العمليات في المنصة{% else %}مراقبة كافة التغييرات في المدرسة{% endif %}
         </div>
@@ -318,7 +318,7 @@
         <a class="btn btn-ghost" href="{% if is_platform %}{% url 'reports:platform_admin_dashboard' %}{% else %}{% url 'reports:admin_dashboard' %}{% endif %}">
           <i class="fa-solid fa-arrow-right"></i> عودة
         </a>
-        <a class="btn btn-ghost" href="{% if is_platform %}{% url 'reports:platform_audit_logs' %}{% else %}#{% endif %}">
+        <a class="btn btn-ghost" href="{% if is_platform %}{% url 'reports:platform_audit_logs' %}{% else %}{% url 'reports:school_audit_logs' %}{% endif %}">
           <i class="fa-solid fa-rotate-right"></i> تحديث
         </a>
       </div>
@@ -361,7 +361,7 @@
           <button type="submit" class="btn btn-primary">
             <i class="fa-solid fa-filter"></i> تصفية
           </button>
-          <a href="{% if is_platform %}{% url 'reports:platform_audit_logs' %}{% else %}#{% endif %}" class="btn">
+          <a href="{% if is_platform %}{% url 'reports:platform_audit_logs' %}{% else %}{% url 'reports:school_audit_logs' %}{% endif %}" class="btn">
             <i class="fa-solid fa-eraser"></i> مسح
           </a>
         </div>

@@ -28,6 +28,8 @@ from .models import (
     SubscriptionPlan,
     SchoolSubscription,
     SchoolArchiveAddon,
+    SchoolYearArchive,
+    SchoolYearArchiveDownload,
     ArchiveStorageOption,
     Payment,
     AuditLog,
@@ -608,14 +610,86 @@ class ArchiveStorageOptionAdmin(admin.ModelAdmin):
     ordering = ("sort_order", "storage_gb", "id")
 
 
+@admin.register(SchoolYearArchive)
+class SchoolYearArchiveAdmin(admin.ModelAdmin):
+    list_display = (
+        "school",
+        "academic_year",
+        "version",
+        "status",
+        "file_count",
+        "ticket_count",
+        "circular_count",
+        "storage_bytes",
+        "created_by",
+        "created_at",
+    )
+    list_filter = ("status", "academic_year", "created_at")
+    search_fields = ("school__name", "school__code", "academic_year", "archive_sha256")
+    autocomplete_fields = ("school", "created_by")
+    readonly_fields = (
+        "school",
+        "academic_year",
+        "version",
+        "status",
+        "archive_file",
+        "storage_bytes",
+        "archive_sha256",
+        "file_count",
+        "missing_file_count",
+        "failed_pdf_count",
+        "report_count",
+        "achievement_count",
+        "ticket_count",
+        "circular_count",
+        "notification_count",
+        "notes",
+        "created_by",
+        "created_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return bool(request.user.is_superuser)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SchoolYearArchiveDownload)
+class SchoolYearArchiveDownloadAdmin(admin.ModelAdmin):
+    list_display = ("archive", "downloaded_by", "downloaded_at")
+    list_filter = ("downloaded_at",)
+    search_fields = ("archive__school__name", "archive__academic_year", "downloaded_by__name")
+    readonly_fields = ("archive", "downloaded_by", "downloaded_at")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("id", "school", "purpose", "requested_plan", "amount", "status", "payment_date", "created_at")
+    list_display = (
+        "id",
+        "school",
+        "purpose",
+        "requested_plan",
+        "amount",
+        "status",
+        "effects_applied_at",
+        "payment_date",
+        "created_at",
+    )
     list_filter = ("purpose", "status", "payment_date", "created_at")
     search_fields = ("school__name", "notes", "transaction_id")
     autocomplete_fields = ("school", "requested_plan")
     date_hierarchy = "created_at"
-    readonly_fields = ("created_at",)
+    readonly_fields = ("effects_applied_at", "created_at")
 
 
 @admin.register(AuditLog)

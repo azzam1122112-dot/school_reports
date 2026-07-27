@@ -1,0 +1,405 @@
+<style nonce="{{ CSP_NONCE }}">
+  .passkey-prompt {
+    width: min(520px, calc(100vw - 28px));
+    max-height: calc(100vh - 28px);
+    padding: 0;
+    overflow: auto;
+    border: 1px solid rgba(185, 151, 91, .42);
+    border-radius: 24px;
+    color: #17221c;
+    background: #fff;
+    box-shadow: 0 32px 90px rgba(4, 36, 19, .34);
+  }
+
+  .passkey-prompt::backdrop {
+    background: rgba(3, 22, 12, .68);
+    backdrop-filter: blur(6px);
+  }
+
+  .passkey-prompt__top {
+    position: relative;
+    min-height: 154px;
+    padding: 28px 28px 24px;
+    overflow: hidden;
+    color: #fff;
+    background:
+      radial-gradient(circle at 8% 10%, rgba(255, 255, 255, .17), transparent 30%),
+      radial-gradient(circle at 92% 110%, rgba(185, 151, 91, .37), transparent 38%),
+      linear-gradient(128deg, #064e2c, #006c35);
+  }
+
+  .passkey-prompt__top::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: -34px;
+    top: -62px;
+    width: 180px;
+    height: 180px;
+    border: 28px solid rgba(255, 255, 255, .06);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .passkey-prompt__icon {
+    width: 58px;
+    height: 58px;
+    margin-bottom: 15px;
+    border: 1px solid rgba(255, 255, 255, .3);
+    border-radius: 17px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: rgba(255, 255, 255, .12);
+    font-size: 1.55rem;
+  }
+
+  .passkey-prompt__title {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    color: #fff;
+    font-size: 1.38rem;
+    font-weight: 950;
+  }
+
+  .passkey-prompt__close {
+    position: absolute;
+    z-index: 2;
+    inset-inline-start: 18px;
+    top: 18px;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 12px;
+    color: #fff;
+    background: rgba(255, 255, 255, .1);
+    cursor: pointer;
+  }
+
+  .passkey-prompt__body { padding: 24px 28px 27px; }
+  .passkey-prompt__lead {
+    margin: 0;
+    color: #31423a;
+    font-size: .98rem;
+    font-weight: 800;
+    line-height: 1.85;
+  }
+
+  .passkey-prompt__benefits {
+    margin: 18px 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+    list-style: none;
+  }
+
+  .passkey-prompt__benefits li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #4d5f55;
+    font-size: .85rem;
+    line-height: 1.7;
+  }
+
+  .passkey-prompt__benefits i {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    color: #006c35;
+    background: #eaf7ef;
+    font-size: .72rem;
+  }
+
+  .passkey-prompt__privacy {
+    padding: 12px 13px;
+    border: 1px solid #dce9e1;
+    border-radius: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    color: #526359;
+    background: #f6faf7;
+    font-size: .75rem;
+    line-height: 1.65;
+  }
+
+  .passkey-prompt__privacy i { margin-top: 4px; color: #006c35; }
+  .passkey-prompt__status {
+    display: none;
+    margin-top: 13px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    color: #075c32;
+    background: #ebf8f0;
+    font-size: .8rem;
+    font-weight: 800;
+    line-height: 1.6;
+  }
+  .passkey-prompt__status.is-visible { display: block; }
+  .passkey-prompt__status.is-error { color: #a52626; background: #fff0f0; }
+
+  .passkey-prompt__actions {
+    margin-top: 19px;
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 10px;
+  }
+
+  .passkey-prompt__button {
+    min-height: 49px;
+    padding: 11px 15px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: inherit;
+    font-size: .87rem;
+    font-weight: 950;
+    cursor: pointer;
+  }
+
+  .passkey-prompt__button:disabled { opacity: .62; cursor: wait; }
+  .passkey-prompt__button--primary {
+    color: #fff;
+    background: linear-gradient(135deg, #006c35, #07552f);
+    box-shadow: 0 12px 25px rgba(0, 108, 53, .2);
+  }
+  .passkey-prompt__button--secondary {
+    color: #42534a;
+    border-color: #dce6df;
+    background: #f5f8f6;
+  }
+
+  html[data-theme="dark"] .passkey-prompt {
+    color: #eef7f1;
+    border-color: #3c5b47;
+    background: #16271d;
+  }
+  html[data-theme="dark"] .passkey-prompt__lead { color: #d8e5dc; }
+  html[data-theme="dark"] .passkey-prompt__benefits li { color: #b6c6bb; }
+  html[data-theme="dark"] .passkey-prompt__benefits i { background: rgba(31, 147, 82, .18); }
+  html[data-theme="dark"] .passkey-prompt__privacy {
+    color: #aebeb3;
+    border-color: #304b3a;
+    background: #102018;
+  }
+  html[data-theme="dark"] .passkey-prompt__button--secondary {
+    color: #d1ded5;
+    border-color: #36513f;
+    background: #203328;
+  }
+
+  @media (max-width: 520px) {
+    .passkey-prompt__top { padding: 24px 20px 21px; }
+    .passkey-prompt__body { padding: 21px 19px 22px; }
+    .passkey-prompt__actions { grid-template-columns: 1fr; }
+    .passkey-prompt__button--secondary { order: 2; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .passkey-prompt { scroll-behavior: auto; }
+  }
+</style>
+
+<dialog class="passkey-prompt" id="passkeyEnrollmentPrompt"
+        aria-labelledby="passkeyPromptTitle"
+        data-options-url="{% url 'reports:passkey_register_options' %}"
+        data-verify-url="{% url 'reports:passkey_register_verify' %}"
+        data-dismiss-url="{% url 'reports:passkey_enroll_prompt_dismiss' %}">
+  <header class="passkey-prompt__top">
+    <button type="button" class="passkey-prompt__close" id="passkeyPromptClose" aria-label="التفعيل لاحقًا وإغلاق النافذة">
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+    <div class="passkey-prompt__icon"><i class="fa-solid fa-fingerprint" aria-hidden="true"></i></div>
+    <h2 class="passkey-prompt__title" id="passkeyPromptTitle">دخول أسرع في المرة القادمة</h2>
+  </header>
+
+  <div class="passkey-prompt__body">
+    {% csrf_token %}
+    <p class="passkey-prompt__lead">
+      هل تريد تفعيل الدخول ببصمة الجهاز أو Face ID أو رمز قفل الشاشة؟ التفعيل اختياري ولن يلغي كلمة المرور.
+    </p>
+
+    <ul class="passkey-prompt__benefits">
+      <li><i class="fa-solid fa-check" aria-hidden="true"></i><span>تسجيل دخول أسرع من هذا الجهاز في الزيارات القادمة.</span></li>
+      <li><i class="fa-solid fa-check" aria-hidden="true"></i><span>يمكنك عرض الأجهزة المفعّلة لاحقًا من صفحة حسابي.</span></li>
+    </ul>
+
+    <div class="passkey-prompt__privacy">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+      <span>بصمتك أو صورة وجهك لا تُرسل إلى المنصة ولا تُحفظ فيها؛ تبقى داخل جهازك، ونحفظ مفتاحًا عامًا مشفرًا للتحقق فقط.</span>
+    </div>
+
+    <div class="passkey-prompt__status" id="passkeyPromptStatus" role="status" aria-live="polite"></div>
+
+    <div class="passkey-prompt__actions">
+      <button type="button" class="passkey-prompt__button passkey-prompt__button--primary" id="passkeyPromptActivate">
+        <i class="fa-solid fa-fingerprint" aria-hidden="true"></i>
+        تفعيل الآن
+      </button>
+      <button type="button" class="passkey-prompt__button passkey-prompt__button--secondary" id="passkeyPromptLater">
+        ليس الآن
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<script nonce="{{ CSP_NONCE }}">
+  document.addEventListener('DOMContentLoaded', function () {
+    var prompt = document.getElementById('passkeyEnrollmentPrompt');
+    var activateButton = document.getElementById('passkeyPromptActivate');
+    var laterButton = document.getElementById('passkeyPromptLater');
+    var closeButton = document.getElementById('passkeyPromptClose');
+    var statusBox = document.getElementById('passkeyPromptStatus');
+    var csrfInput = prompt ? prompt.querySelector('[name="csrfmiddlewaretoken"]') : null;
+    if (!prompt || !activateButton || !laterButton || !statusBox) return;
+
+    function bufferFromBase64(value) {
+      var base64 = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+      var padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      var binary = atob(padded);
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+
+    function base64FromBuffer(buffer) {
+      var bytes = new Uint8Array(buffer || new ArrayBuffer(0));
+      var binary = '';
+      bytes.forEach(function (byte) { binary += String.fromCharCode(byte); });
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+
+    function prepareOptions(publicKey) {
+      publicKey.challenge = bufferFromBase64(publicKey.challenge);
+      publicKey.user.id = bufferFromBase64(publicKey.user.id);
+      publicKey.excludeCredentials = (publicKey.excludeCredentials || []).map(function (item) {
+        item.id = bufferFromBase64(item.id);
+        return item;
+      });
+      return publicKey;
+    }
+
+    function credentialPayload(credential) {
+      var transports = credential.response.getTransports
+        ? credential.response.getTransports()
+        : ['internal'];
+      var isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+      return {
+        id: credential.id,
+        rawId: base64FromBuffer(credential.rawId),
+        type: credential.type,
+        deviceName: isMobile ? 'جوال المستخدم' : 'جهاز المستخدم',
+        response: {
+          attestationObject: base64FromBuffer(credential.response.attestationObject),
+          clientDataJSON: base64FromBuffer(credential.response.clientDataJSON),
+          transports: transports
+        }
+      };
+    }
+
+    async function postJSON(url, payload) {
+      var response = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfInput ? csrfInput.value : ''
+        },
+        body: JSON.stringify(payload || {})
+      });
+      var data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.message || 'تعذر تنفيذ العملية.');
+      return data;
+    }
+
+    function showStatus(message, isError) {
+      statusBox.textContent = message || '';
+      statusBox.classList.toggle('is-visible', !!message);
+      statusBox.classList.toggle('is-error', !!isError);
+    }
+
+    function closePrompt() {
+      if (prompt.open && prompt.close) prompt.close();
+      else prompt.removeAttribute('open');
+    }
+
+    async function dismissPrompt() {
+      closePrompt();
+      try {
+        await postJSON(prompt.dataset.dismissUrl, {});
+      } catch (error) {
+        // The choice is still respected visually; the next page can retry clearing the session flag.
+      }
+    }
+
+    if (!window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) {
+      dismissPrompt();
+      return;
+    }
+
+    laterButton.addEventListener('click', dismissPrompt);
+    if (closeButton) closeButton.addEventListener('click', dismissPrompt);
+    prompt.addEventListener('cancel', function (event) {
+      event.preventDefault();
+      dismissPrompt();
+    });
+    prompt.addEventListener('click', function (event) {
+      if (event.target === prompt) dismissPrompt();
+    });
+
+    activateButton.addEventListener('click', async function () {
+      try {
+        activateButton.disabled = true;
+        laterButton.disabled = true;
+        showStatus('سيطلب جهازك البصمة أو قفل الشاشة لإكمال التفعيل...', false);
+        var options = await postJSON(prompt.dataset.optionsUrl, {});
+        var credential = await navigator.credentials.create({
+          publicKey: prepareOptions(options.publicKey)
+        });
+        var verified = await postJSON(prompt.dataset.verifyUrl, credentialPayload(credential));
+        showStatus(verified.message || 'تم تفعيل الدخول بالبصمة بنجاح.', false);
+        setTimeout(function () { window.location.reload(); }, 900);
+      } catch (error) {
+        var cancelled = error && (error.name === 'NotAllowedError' || error.name === 'AbortError');
+        showStatus(
+          cancelled
+            ? 'لم يكتمل التفعيل. يمكنك المحاولة مرة أخرى أو اختيار «ليس الآن».'
+            : (error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.'),
+          !cancelled
+        );
+        activateButton.disabled = false;
+        laterButton.disabled = false;
+      }
+    });
+
+    function showPrompt() {
+      if (prompt.open) return;
+      if (prompt.showModal) prompt.showModal();
+      else prompt.setAttribute('open', '');
+      activateButton.focus();
+    }
+
+    var homeNotification = document.getElementById('homeNotification');
+    if (homeNotification && !homeNotification.hidden) {
+      var notificationObserver = new MutationObserver(function () {
+        if (homeNotification.hidden) {
+          notificationObserver.disconnect();
+          showPrompt();
+        }
+      });
+      notificationObserver.observe(homeNotification, {
+        attributes: true,
+        attributeFilter: ['hidden']
+      });
+    } else {
+      showPrompt();
+    }
+  });
+</script>

@@ -64,8 +64,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   # ── Worker separation ──────────────────────────────────────────
   # Each queue gets its own worker for isolation.  To rollback to a
@@ -106,8 +108,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: worker
     name: school-worker-notifications
@@ -142,8 +146,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: worker
     name: school-worker-images
@@ -178,8 +184,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: worker
     name: school-worker-periodic
@@ -214,8 +222,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: worker
     name: school-beat
@@ -250,8 +260,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: redis
     name: tawtheeq-redis

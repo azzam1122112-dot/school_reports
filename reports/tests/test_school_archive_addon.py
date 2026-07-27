@@ -4,7 +4,6 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from unittest.mock import patch
 
 from maintenance.services import collect_reset_summary, execute_school_year_reset
 from reports.services_archive import archive_storage_capacity_error
@@ -235,14 +234,13 @@ class SchoolArchiveAddonTests(TestCase):
                 self.name = "file.bin"
 
         mb = 1024 * 1024
-        with patch("reports.services_archive.calculate_school_archive_storage_bytes", return_value=800 * mb):
-            msg = archive_storage_capacity_error(
-                self.school,
-                [Sized(700 * mb)],
-                replacing_files=[Sized(800 * mb)],
-            )
+        School.objects.filter(pk=self.school.pk).update(storage_used_bytes=800 * mb)
+        msg = archive_storage_capacity_error(
+            self.school,
+            [Sized(700 * mb)],
+            replacing_files=[Sized(800 * mb)],
+        )
         self.assertEqual(msg, "")
 
-        with patch("reports.services_archive.calculate_school_archive_storage_bytes", return_value=800 * mb):
-            msg = archive_storage_capacity_error(self.school, [Sized(700 * mb)])
-        self.assertIn("مساحة الأرشيف غير كافية", msg)
+        msg = archive_storage_capacity_error(self.school, [Sized(700 * mb)])
+        self.assertIn("تم تجاوز حد التخزين", msg)

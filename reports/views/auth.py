@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY = "_webauthn_register_challenge"
 WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY = "_webauthn_auth_challenge"
 WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY = "_webauthn_auth_allowed_credentials"
+PASSKEY_ENROLL_PROMPT_SESSION_KEY = "passkey_enroll_prompt"
 
 
 def _force_password_change_notice() -> str:
@@ -54,6 +55,26 @@ def _force_password_change_notice() -> str:
 def _passkey_response(ok: bool, *, status: int = 200, **payload: Any) -> JsonResponse:
     payload["ok"] = ok
     return JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
+
+
+def _offer_passkey_enrollment(request: HttpRequest, user: Teacher) -> None:
+    """Show the optional passkey prompt after a successful password login.
+
+    The flag is session-scoped, so choosing "later" suppresses the prompt for
+    the current login only. A future password login may offer it again.
+    """
+    try:
+        has_passkey = WebAuthnCredential.objects.filter(
+            teacher=user,
+            is_active=True,
+        ).exists()
+        if has_passkey:
+            request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
+        else:
+            request.session[PASSKEY_ENROLL_PROMPT_SESSION_KEY] = True
+    except Exception:
+        # Passkey enrollment is an optional enhancement and must never block login.
+        request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
 
 
 def _default_login_redirect_name(user) -> str:
@@ -390,6 +411,7 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                         if force_password_change:
                             messages.warning(request, _force_password_change_notice())
                             return redirect("reports:my_profile")
+                        _offer_passkey_enrollment(request, user)
                         next_url = next_value
                         if getattr(user, "is_superuser", False):
                             default_name = "reports:platform_admin_dashboard"
@@ -482,6 +504,7 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                 messages.warning(request, _force_password_change_notice())
                 return redirect("reports:my_profile")
 
+            _offer_passkey_enrollment(request, user)
             next_url = next_value
             # الوجهة الافتراضية حسب الدور
             if getattr(user, "is_superuser", False):
@@ -583,7 +606,7 @@ def passkey_register_options(request: HttpRequest) -> JsonResponse:
             "authenticatorAttachment": "platform",
             "residentKey": "preferred",
             "requireResidentKey": False,
-            "userVerification": "preferred",
+            "userVerification": "required",
         },
     }
     return _passkey_response(True, publicKey=options)
@@ -608,7 +631,12 @@ def passkey_register_verify(request: HttpRequest) -> JsonResponse:
 
         attestation = cbor2.loads(b64url_decode(response.get("attestationObject") or ""))
         auth_data = bytes(attestation.get("authData") or b"")
-        parsed = parse_authenticator_data(auth_data, rp_id=rp_id_from_request(request), require_attested_credential=True)
+        parsed = parse_authenticator_data(
+            auth_data,
+            rp_id=rp_id_from_request(request),
+            require_attested_credential=True,
+            require_user_verification=True,
+        )
         if not parsed.credential_id or not parsed.public_key_cose:
             raise ValueError("credential_invalid")
 
@@ -632,12 +660,20 @@ def passkey_register_verify(request: HttpRequest) -> JsonResponse:
             transports=transports,
         )
         request.session.pop(WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY, None)
+        request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
         return _passkey_response(True, message="تم تفعيل الدخول بالبصمة لهذا الجهاز.")
     except IntegrityError:
         return _passkey_response(False, status=409, error="credential_exists", message="هذا الجهاز مفعّل مسبقاً.")
     except Exception:
         logger.exception("Passkey registration failed user_id=%s", getattr(request.user, "id", None))
         return _passkey_response(False, status=400, error="registration_failed", message="تعذر تفعيل الدخول بالبصمة.")
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def passkey_enroll_prompt_dismiss(request: HttpRequest) -> JsonResponse:
+    request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
+    return _passkey_response(True)
 
 
 @require_http_methods(["POST"])
@@ -702,7 +738,7 @@ def passkey_login_options(request: HttpRequest) -> JsonResponse:
         "challenge": challenge,
         "rpId": rp_id_from_request(request),
         "timeout": 60000,
-        "userVerification": "preferred",
+        "userVerification": "required",
         "allowCredentials": allow_credentials,
     }
     return _passkey_response(True, publicKey=public_key)
@@ -739,7 +775,11 @@ def passkey_login_verify(request: HttpRequest) -> JsonResponse:
         )
         auth_data_b64 = response.get("authenticatorData") or ""
         auth_data = b64url_decode(auth_data_b64)
-        parsed = parse_authenticator_data(auth_data, rp_id=rp_id_from_request(request))
+        parsed = parse_authenticator_data(
+            auth_data,
+            rp_id=rp_id_from_request(request),
+            require_user_verification=True,
+        )
         verify_signature(
             public_key_cose=bytes(credential.public_key_cose),
             signature_b64=response.get("signature") or "",
@@ -1078,6 +1118,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
     ]
 
     ctx = {
+        "trial_days": trial_days_target,
         "pricing_trial_plan": pricing_trial_plan,
         "pricing_cards": pricing_cards,
         "pricing_plans": pricing_cards,

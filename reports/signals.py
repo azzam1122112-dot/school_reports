@@ -181,6 +181,9 @@ def _notif_recipient_pre_save(sender, instance: NotificationRecipient, **kwargs)
 
     Important: queryset.update()/bulk_update won't trigger this.
     """
+    if kwargs.get("raw"):
+        return
+
     try:
         if not getattr(instance, "pk", None):
             return
@@ -214,6 +217,9 @@ def _notif_recipient_pre_save(sender, instance: NotificationRecipient, **kwargs)
 @receiver(post_save, sender=NotificationRecipient)
 def _notif_recipient_post_save(sender, instance: NotificationRecipient, created: bool, **kwargs):
     """Push counter updates to the recipient over WebSocket."""
+    if kwargs.get("raw"):
+        return
+
     if push_delta_to_user is None:
         return
 
@@ -337,6 +343,9 @@ def notify_admin_on_subscription(sender, instance, created, **kwargs):
     """
     إشعار مدير النظام عند إنشاء اشتراك جديد أو تجديده.
     """
+    if kwargs.get("raw"):
+        return
+
     try:
         school_name = getattr(instance.school, "name", "مدرسة")
         plan_name = getattr(instance.plan, "name", "باقة")
@@ -404,6 +413,9 @@ def notify_admin_on_platform_ticket(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Report)
 def _invalidate_school_on_report(sender, instance, **kwargs):
     """Bust school stats cache when a report is created/updated."""
+    if kwargs.get("raw"):
+        return
+
     try:
         sid = getattr(instance, "school_id", None)
         if sid:
@@ -415,6 +427,9 @@ def _invalidate_school_on_report(sender, instance, **kwargs):
 @receiver(post_save, sender=Ticket)
 def _invalidate_school_on_ticket(sender, instance, **kwargs):
     """Bust school stats cache when a ticket is created/updated."""
+    if kwargs.get("raw"):
+        return
+
     try:
         sid = getattr(instance, "school_id", None)
         if sid:
@@ -426,6 +441,9 @@ def _invalidate_school_on_ticket(sender, instance, **kwargs):
 @receiver(post_save, sender=NotificationRecipient)
 def _invalidate_user_notif_cache(sender, instance, **kwargs):
     """Bust unread notification count for the recipient."""
+    if kwargs.get("raw"):
+        return
+
     try:
         tid = getattr(instance.teacher, "id", None)
         if tid:

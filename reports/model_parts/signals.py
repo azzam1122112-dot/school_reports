@@ -8,11 +8,42 @@ from .schools import DepartmentMembership, SchoolMembership, Teacher
 from .tickets import Ticket
 from .notifications import TicketImage
 
+
+def _bump_nav_context_role_version(user_id):
+    """Invalidate cached navigation whenever a school membership changes."""
+    if not user_id:
+        return
+    from django.core.cache import cache
+
+    key = f"navctx:role-version:u{int(user_id)}"
+    try:
+        cache.incr(key)
+    except (ValueError, TypeError):
+        cache.set(key, 2, timeout=None)
+    except Exception:
+        pass
+
+
+@receiver(post_save, sender=SchoolMembership)
+def invalidate_nav_context_after_membership_save(sender, instance, **kwargs):
+    if kwargs.get("raw"):
+        return
+    _bump_nav_context_role_version(getattr(instance, "teacher_id", None))
+
+
+@receiver(models.signals.post_delete, sender=SchoolMembership)
+def invalidate_nav_context_after_membership_delete(sender, instance, **kwargs):
+    _bump_nav_context_role_version(getattr(instance, "teacher_id", None))
+
+
 @receiver(post_save, sender=Report)
 def trigger_report_background_tasks(sender, instance, created, **kwargs):
     """
     عند إنشاء تقرير جديد أو تحديثه، نقوم بجدولة المهام في الخلفية وتحديث الكاش.
     """
+    if kwargs.get("raw"):
+        return
+
     from django.core.cache import cache
     if instance.school_id:
         cache.delete(f"admin_stats_{instance.school_id}")
@@ -63,6 +94,8 @@ def sync_archive_usage_after_report_delete(sender, instance, **kwargs):
 
 @receiver(post_save, sender=TeacherAchievementFile)
 def sync_archive_usage_after_achievement_file_save(sender, instance, **kwargs):
+    if kwargs.get("raw"):
+        return
     _sync_archive_usage_after_commit(getattr(instance, "school", None))
 
 
@@ -73,6 +106,8 @@ def sync_archive_usage_after_achievement_file_delete(sender, instance, **kwargs)
 
 @receiver(post_save, sender=AchievementEvidenceImage)
 def sync_archive_usage_after_evidence_image_save(sender, instance, **kwargs):
+    if kwargs.get("raw"):
+        return
     _sync_archive_usage_after_commit(_achievement_school(instance))
 
 
@@ -83,6 +118,8 @@ def sync_archive_usage_after_evidence_image_delete(sender, instance, **kwargs):
 
 @receiver(post_save, sender=AchievementEvidenceReport)
 def sync_archive_usage_after_evidence_report_save(sender, instance, **kwargs):
+    if kwargs.get("raw"):
+        return
     _sync_archive_usage_after_commit(_achievement_school(instance))
 
 
@@ -96,6 +133,9 @@ def trigger_ticket_notifications(sender, instance, created, **kwargs):
     """
     عند إنشاء تذكرة جديدة، نقوم بإرسال إشعارات للمسؤولين المعنيين وتحديث الكاش.
     """
+    if kwargs.get("raw"):
+        return
+
     from django.core.cache import cache
     if instance.school_id:
         cache.delete(f"admin_stats_{instance.school_id}")
@@ -154,6 +194,9 @@ def trigger_ticket_image_processing(sender, instance, created, **kwargs):
     """
     عند رفع صورة تذكرة، نقوم بجدولة معالجتها في الخلفية.
     """
+    if kwargs.get("raw"):
+        return
+
     from ..tasks import process_ticket_image
     if instance.image:
         try:
@@ -177,6 +220,9 @@ def trigger_ticket_image_processing(sender, instance, created, **kwargs):
 # سجل العمليات (Audit Logs)
 @receiver(post_save)
 def audit_log_save(sender, instance, created, **kwargs):
+    if kwargs.get("raw"):
+        return
+
     from ..middleware import is_audit_logging_suppressed
 
     if is_audit_logging_suppressed():

@@ -61,6 +61,24 @@ def notifications_create(request: HttpRequest, mode: str = "notification") -> Ht
     )
     if request.method == "POST":
         if form.is_valid():
+            attachment = form.cleaned_data.get("attachment")
+            storage_school = active_school or form.cleaned_data.get("target_school")
+            capacity_error = archive_storage_capacity_error(
+                storage_school,
+                [attachment] if attachment and is_circular else [],
+            )
+            if capacity_error:
+                form.add_error("attachment", capacity_error)
+                messages.error(request, capacity_error)
+                return render(
+                    request,
+                    "reports/circulars_create.html" if is_circular else "reports/notifications_create.html",
+                    {
+                        "form": form,
+                        "mode": mode,
+                        "title": "إنشاء تعميم" if is_circular else "إنشاء إشعار",
+                    },
+                )
             try:
                 with transaction.atomic():
                     form.save(

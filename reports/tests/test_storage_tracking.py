@@ -3,7 +3,8 @@ import datetime
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
-from reports.models import Report, School, Teacher
+from reports.models import Notification, Report, School, Teacher, Ticket, TicketImage
+from reports.services_archive import school_storage_overview
 
 
 def _png(nbytes=2000):
@@ -76,4 +77,49 @@ class StorageTrackingSignalsTests(TestCase):
             title="t",
             report_date=datetime.date(2026, 1, 1),
         )
+        self.assertEqual(self._school_used(), 0)
+
+    def test_tickets_images_and_circular_attachments_are_counted_and_deleted(self):
+        ticket = Ticket.objects.create(
+            school=self.school,
+            creator=self.teacher,
+            title="طلب",
+            attachment=SimpleUploadedFile(
+                "ticket.pdf",
+                b"%PDF-ticket",
+                content_type="application/pdf",
+            ),
+        )
+        image = TicketImage.objects.create(
+            ticket=ticket,
+            image=SimpleUploadedFile(
+                "evidence.png",
+                _png(2200),
+                content_type="image/png",
+            ),
+        )
+        circular = Notification.objects.create(
+            school=self.school,
+            created_by=self.teacher,
+            title="تعميم",
+            message="نص",
+            requires_signature=True,
+            attachment=SimpleUploadedFile(
+                "circular.pdf",
+                b"%PDF-circular",
+                content_type="application/pdf",
+            ),
+        )
+
+        expected = ticket.storage_bytes + image.storage_bytes + circular.storage_bytes
+        self.assertGreater(expected, 0)
+        self.assertEqual(self._school_used(), expected)
+        overview = school_storage_overview(self.school)
+        self.assertEqual(overview["used_bytes"], expected)
+        self.assertEqual(overview["breakdown"]["tickets"]["bytes"], ticket.storage_bytes + image.storage_bytes)
+        self.assertEqual(overview["breakdown"]["circulars"]["bytes"], circular.storage_bytes)
+
+        image.delete()
+        circular.delete()
+        ticket.delete()
         self.assertEqual(self._school_used(), 0)

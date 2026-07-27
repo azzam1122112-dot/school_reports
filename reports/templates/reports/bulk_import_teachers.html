@@ -1,491 +1,688 @@
-{# reports/templates/reports/teachers_import.html #}
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}استيراد معلمين{% endblock %}
+{% block title %}إضافة منسوبي المدرسة{% endblock %}
 
 {% block head %}
-<style>
-  /* صفحة الاستيراد فقط — بدون لمس .btn / .card العامة */
-  .imp-wrap{
-    --t: var(--t-fast);
-    --r: 18px;
-    --shadow: 0 18px 50px rgba(2,6,23,.10);
+<style nonce="{{ CSP_NONCE }}">
+  .onboard {
+    --ob-green: #006c35;
+    --ob-green-dark: #064e2c;
+    --ob-green-soft: #eaf7ef;
+    --ob-gold: #b9975b;
+    --ob-ink: #17221c;
+    --ob-muted: #647168;
+    --ob-border: #dbe7df;
+    --ob-card: #fff;
+    --ob-surface: #f6faf7;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 24px 18px 90px;
+    color: var(--ob-ink);
   }
-
-  .imp-header{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:12px;
-    flex-wrap:wrap;
-    margin-bottom: 14px;
+  html[data-theme="dark"] .onboard {
+    --ob-green-soft: rgba(38, 145, 85, .16);
+    --ob-ink: #edf7f0;
+    --ob-muted: #adbbb1;
+    --ob-border: #304b3a;
+    --ob-card: #16271d;
+    --ob-surface: #102018;
   }
-
-  .imp-title{
-    margin:0;
-    font-weight: 950;
-    color: var(--ink);
-    letter-spacing: -.3px;
-    line-height:1.2;
-    font-size: clamp(1.15rem, 2.2vw, 1.45rem);
-  }
-  .imp-sub{
-    margin: 8px 0 0;
-    font-weight: 850;
-    color: var(--muted);
-    line-height:1.7;
-  }
-
-  .imp-hero{
-    position:relative;
-    overflow:hidden;
-    border-radius: var(--r);
-    border: 1px solid var(--line);
+  .ob-hero {
+    padding: 30px;
+    border: 1px solid rgba(185, 151, 91, .36);
+    border-radius: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    color: #fff;
     background:
-      radial-gradient(900px 420px at 10% 0%, rgba(0,108,53,.14), transparent 55%),
-      radial-gradient(800px 420px at 95% 85%, rgba(16,185,129,.10), transparent 55%),
-      linear-gradient(180deg, var(--line-2), var(--card));
-    box-shadow: var(--shadow);
-    padding: clamp(14px, 2.4vw, 18px);
+      radial-gradient(circle at 8% 10%, rgba(255,255,255,.15), transparent 28%),
+      radial-gradient(circle at 90% 110%, rgba(185,151,91,.34), transparent 36%),
+      linear-gradient(128deg, #064e2c, #006c35);
+    box-shadow: 0 20px 50px rgba(6, 78, 44, .18);
   }
-  html[data-theme="dark"] .imp-hero{
-    background:
-      radial-gradient(900px 420px at 10% 0%, rgba(0,108,53,.18), transparent 55%),
-      radial-gradient(800px 420px at 95% 85%, rgba(16,185,129,.12), transparent 55%),
-      linear-gradient(180deg, #0f1629, #0b1220);
-    border-color: #1b2744;
+  .ob-eyebrow { margin-bottom: 8px; color: #dff3e7; font-size: .8rem; font-weight: 900; }
+  .ob-title { margin: 0; color: #fff; font-size: clamp(1.5rem, 3vw, 2.15rem); font-weight: 950; }
+  .ob-subtitle { max-width: 720px; margin: 9px 0 0; color: rgba(255,255,255,.8); line-height: 1.8; }
+  .ob-capacity {
+    min-width: 190px;
+    padding: 16px 18px;
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 17px;
+    background: rgba(3, 45, 25, .27);
+    text-align: center;
   }
+  .ob-capacity strong { display: block; color: #fff; font-size: 1.35rem; }
+  .ob-capacity span { color: rgba(255,255,255,.72); font-size: .77rem; font-weight: 800; }
 
-  .imp-grid{
-    display:grid;
-    gap:14px;
-    margin-top: 14px;
-  }
-  @media(min-width: 980px){
-    .imp-grid{ grid-template-columns: 1.1fr .9fr; align-items:start; }
-  }
-
-  .imp-box h3{
-    margin:0 0 10px;
-    font-weight:950;
-    display:flex;
-    gap:10px;
-    align-items:center;
-    color: var(--ink);
-  }
-
-  .imp-list{
-    margin:0;
-    padding: 0 18px 0 0;
-    color: var(--muted);
-    font-weight: 850;
-    line-height:1.9;
-  }
-  .imp-list li{ margin: 6px 0; }
-  .imp-list ol{
-    margin: 8px 0 0;
-    padding: 0 18px 0 0;
-  }
-
-  .imp-note{
-    margin-top: 10px;
-    padding: 12px;
+  .ob-steps {
+    margin: 18px 0;
+    padding: 13px;
+    border: 1px solid var(--ob-border);
     border-radius: 16px;
-    border: 1px solid var(--line);
-    background: linear-gradient(180deg, var(--card), var(--line-2));
-    color: var(--muted);
-    font-weight: 850;
-    line-height:1.8;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: var(--ob-card);
   }
-
-  .file-card{
-    border-radius: 18px;
-    border: 1px dashed var(--line);
-    background: linear-gradient(180deg, var(--card), var(--line-2));
-    padding: 14px;
-  }
-  .file-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    flex-wrap:wrap;
-  }
-  .file-name{
-    font-weight: 950;
-    color: var(--ink);
-    display:flex;
-    align-items:center;
-    gap:10px;
-    min-width: min(100%, 220px);
-  }
-  .file-name span{
-    overflow-wrap:anywhere;
-  }
-  .file-hint{
-    margin-top: 8px;
-    color: var(--muted);
-    font-weight: 850;
-    line-height:1.7;
-    font-size: .95rem;
-  }
-
-  .imp-actions{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-    margin-top: 12px;
-  }
-  .imp-actions .btn[disabled]{
-    opacity:.62;
-    cursor:not-allowed;
-    pointer-events:none;
-  }
-  .imp-submit-note{
-    width:100%;
-    color: var(--muted);
-    font-weight: 850;
-    line-height:1.7;
-    font-size:.92rem;
-  }
-
-  .imp-alert{
-    border-radius: 18px;
-    border: 1px solid var(--line);
-    background: linear-gradient(180deg, var(--line-2), var(--card));
-    padding: 14px;
-  }
-  .imp-alert .row{
-    display:flex;
-    gap:12px;
-    align-items:flex-start;
-  }
-  .imp-alert .ic{
-    width: 44px; height: 44px;
-    border-radius: 14px;
-    display:grid;
-    place-items:center;
-    border: 1px solid rgba(0,108,53,.22);
-    background: rgba(0,108,53,.10);
-    color: rgba(0,108,53,.95);
-  }
-  .imp-alert h4{
-    margin:0;
-    font-weight:950;
-    color: var(--ink);
-  }
-  .imp-alert p{
-    margin: 6px 0 0;
-    color: var(--muted);
-    font-weight: 850;
-    line-height: 1.8;
-  }
-
-  .imp-bad{
-    display:none;
-    margin-top: 10px;
-    border-radius: 16px;
-    border: 1px solid rgba(239,68,68,.25);
-    background: rgba(239,68,68,.08);
-    color: var(--ink);
+  .ob-step {
+    padding: 9px 10px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--ob-muted);
+    font-size: .78rem;
     font-weight: 900;
-    padding: 10px 12px;
-    line-height: 1.8;
+  }
+  .ob-step span {
+    width: 27px;
+    height: 27px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    background: var(--ob-surface);
+  }
+  .ob-step.is-active { color: var(--ob-green); background: var(--ob-green-soft); }
+  .ob-step.is-active span { color: #fff; background: var(--ob-green); }
+
+  .ob-card {
+    padding: 23px;
+    border: 1px solid var(--ob-border);
+    border-radius: 21px;
+    background: var(--ob-card);
+    box-shadow: 0 10px 34px rgba(22, 65, 38, .07);
+  }
+  .ob-card + .ob-card { margin-top: 16px; }
+  .ob-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .ob-card-title { margin: 0; font-size: 1.12rem; font-weight: 950; }
+  .ob-card-copy { margin: 5px 0 0; color: var(--ob-muted); font-size: .82rem; line-height: 1.7; }
+
+  .ob-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .ob-tab {
+    min-height: 116px;
+    padding: 18px;
+    border: 1px solid var(--ob-border);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: inherit;
+    background: var(--ob-card);
+    text-decoration: none;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease;
+  }
+  .ob-tab:hover { transform: translateY(-2px); border-color: rgba(0,108,53,.4); }
+  .ob-tab.is-active { border-color: rgba(0,108,53,.46); background: var(--ob-green-soft); }
+  .ob-tab-icon {
+    width: 52px;
+    height: 52px;
+    flex: 0 0 auto;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: var(--ob-green);
+    background: var(--ob-green-soft);
+    font-size: 1.25rem;
+  }
+  .ob-tab.is-active .ob-tab-icon { color: #fff; background: var(--ob-green); }
+  .ob-tab strong { display: block; font-size: .95rem; }
+  .ob-tab small { display: block; margin-top: 5px; color: var(--ob-muted); line-height: 1.6; }
+
+  .ob-table-wrap { overflow-x: auto; border: 1px solid var(--ob-border); border-radius: 15px; }
+  .ob-table { width: 100%; min-width: 930px; border-collapse: collapse; }
+  .ob-table th {
+    padding: 12px;
+    color: var(--ob-muted);
+    background: var(--ob-surface);
+    font-size: .73rem;
+    font-weight: 950;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .ob-table td { padding: 9px; border-top: 1px solid var(--ob-border); vertical-align: top; }
+  .ob-input {
+    width: 100%;
+    min-height: 43px;
+    padding: 9px 11px;
+    border: 1px solid var(--ob-border);
+    border-radius: 11px;
+    color: var(--ob-ink);
+    background: var(--ob-card);
+    font: inherit;
+    font-size: .78rem;
+  }
+  .ob-input:focus { outline: 0; border-color: var(--ob-green); box-shadow: 0 0 0 3px rgba(0,108,53,.1); }
+  .ob-remove {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #f0caca;
+    border-radius: 11px;
+    color: #b62f2f;
+    background: #fff4f4;
+    cursor: pointer;
+  }
+  .ob-table-actions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 9px; }
+
+  .ob-btn {
+    min-height: 45px;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #fff;
+    background: var(--ob-green);
+    font-family: inherit;
+    font-size: .82rem;
+    font-weight: 950;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .ob-btn:hover { filter: brightness(.96); }
+  .ob-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .ob-btn-secondary { color: var(--ob-ink); border-color: var(--ob-border); background: var(--ob-card); }
+  .ob-btn-gold { color: #2e2108; background: linear-gradient(135deg, #e6cf9a, #b9975b); }
+  .ob-actions { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .ob-paste {
+    margin-top: 14px;
+    padding: 16px;
+    border: 1px dashed rgba(0,108,53,.35);
+    border-radius: 14px;
+    background: var(--ob-surface);
+  }
+  .ob-paste summary { color: var(--ob-green); font-weight: 950; cursor: pointer; }
+  .ob-paste p { margin: 8px 0; color: var(--ob-muted); font-size: .76rem; }
+  .ob-paste textarea { min-height: 112px; resize: vertical; }
+
+  .ob-login-note {
+    margin-top: 14px;
+    padding: 13px;
+    border: 1px solid #cce6d5;
+    border-radius: 13px;
+    display: flex;
+    gap: 10px;
+    color: #075c32;
+    background: #eff9f3;
+    font-size: .78rem;
+    line-height: 1.7;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    .imp-wrap *{ transition:none !important; }
+  .ob-upload-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 16px; }
+  .ob-drop {
+    min-height: 245px;
+    padding: 25px;
+    border: 2px dashed rgba(0,108,53,.35);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: var(--ob-surface);
+    transition: border-color .18s ease, background .18s ease;
   }
+  .ob-drop.is-drag { border-color: var(--ob-green); background: var(--ob-green-soft); }
+  .ob-drop-icon { margin-bottom: 12px; color: var(--ob-green); font-size: 2.2rem; }
+  .ob-file-name { margin-top: 10px; color: var(--ob-muted); font-size: .76rem; font-weight: 800; }
+  .ob-hidden-file { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .ob-checklist { margin: 0; padding: 0; display: grid; gap: 11px; list-style: none; }
+  .ob-checklist li { display: flex; gap: 9px; color: var(--ob-muted); font-size: .78rem; line-height: 1.65; }
+  .ob-checklist i { margin-top: 4px; color: var(--ob-green); }
 
-  /* 👑 ROYAL OVERLAY — استيراد المعلمين */
-  .imp-wrap .imp-header{
-    position:relative; overflow:hidden;
-    background:
-      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
-      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
-    border:1px solid rgba(212,177,109,.42) !important;
-    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
-    padding:26px 24px !important; color:#fff !important;
+  .ob-summary {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 9px;
+    margin-bottom: 16px;
   }
-  .imp-wrap .imp-header::after{
-    content:""; position:absolute; top:0; right:0; left:0; height:4px;
-    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
+  .ob-summary-item { padding: 13px; border-radius: 13px; text-align: center; background: var(--ob-surface); }
+  .ob-summary-item strong { display: block; font-size: 1.25rem; }
+  .ob-summary-item span { color: var(--ob-muted); font-size: .67rem; font-weight: 850; }
+  .ob-state {
+    display: inline-flex;
+    padding: 5px 8px;
+    border-radius: 999px;
+    color: #075c32;
+    background: var(--ob-green-soft);
+    font-size: .67rem;
+    font-weight: 950;
+    white-space: nowrap;
   }
-  .imp-wrap .imp-title{
-    color:#fff !important;
-    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-    font-weight:950 !important;
+  .ob-state--invalid { color: #ad2828; background: #fff0f0; }
+  .ob-row-errors { margin-top: 5px; color: #b12828; font-size: .68rem; line-height: 1.5; }
+  .ob-row-warnings { margin-top: 5px; color: #9a5a12; font-size: .68rem; line-height: 1.5; }
+  .ob-alert {
+    margin-bottom: 14px;
+    padding: 13px 14px;
+    border: 1px solid #f0cf9e;
+    border-radius: 13px;
+    color: #8c500e;
+    background: #fff8e9;
+    font-size: .8rem;
+    font-weight: 800;
   }
-  .imp-wrap .imp-sub{ color:rgba(255,255,255,.82) !important; font-weight:800 !important; }
-  .imp-wrap .imp-header .btn-ghost{
-    background:rgba(212,177,109,.16) !important; color:#fdf6e6 !important; border:1px solid rgba(212,177,109,.5) !important;
+  .ob-complete { max-width: 760px; margin: 18px auto 0; text-align: center; }
+  .ob-complete-icon {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 15px;
+    border-radius: 23px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: var(--ob-green);
+    font-size: 1.8rem;
   }
-  .imp-wrap .imp-header .btn-ghost:hover{ background:#d4b16d !important; color:#063d22 !important; }
-  .imp-wrap .imp-box, .imp-wrap .card{
-    border:1px solid rgba(185,151,91,.18) !important;
-    box-shadow:0 16px 40px -28px rgba(10,92,51,.4) !important;
-  }
-  .imp-wrap .imp-box h3{ color:#0a5c33 !important; }
-  .imp-wrap .imp-box h3 i{ color:#b9975b !important; }
-  .imp-wrap .btn-primary{ background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important; box-shadow:0 10px 22px -12px rgba(10,92,51,.6) !important; }
+  .ob-complete h2 { margin: 0; font-size: 1.45rem; }
+  .ob-complete p { color: var(--ob-muted); }
 
-  /* زر تنزيل القالب الذهبي */
-  .imp-wrap .btn-gold{
-    display:inline-flex; align-items:center; gap:9px; width:100%; justify-content:center;
-    background:linear-gradient(135deg,#e6cf9a,#d4b16d) !important; color:#063d22 !important;
-    border:1px solid rgba(185,151,91,.5) !important; font-weight:950 !important; border-radius:14px !important;
-    min-height:48px; box-shadow:0 10px 22px -12px rgba(185,151,91,.8);
-    text-decoration:none; transition:transform .15s ease;
+  @media (max-width: 850px) {
+    .ob-hero { align-items: flex-start; flex-direction: column; }
+    .ob-capacity { width: 100%; }
+    .ob-upload-grid { grid-template-columns: 1fr; }
+    .ob-summary { grid-template-columns: repeat(2, 1fr); }
   }
-  .imp-wrap .btn-gold:hover{ transform:translateY(-2px); }
-  .imp-wrap .imp-tpl-hint{ margin:8px 0 16px; color:var(--imp-muted,#64748b); font-weight:700; font-size:.88rem; text-align:center; }
-
-  /* منطقة السحب والإفلات */
-  .imp-wrap .drop-zone{
-    border:2px dashed rgba(185,151,91,.5); border-radius:18px; padding:26px 18px; text-align:center;
-    background:linear-gradient(180deg, rgba(212,177,109,.06), transparent 60%); cursor:pointer;
-    transition:border-color .15s ease, background .15s ease;
+  @media (max-width: 620px) {
+    .onboard { padding: 11px 9px 80px; }
+    .ob-hero { padding: 23px 18px; border-radius: 20px; }
+    .ob-steps { grid-template-columns: 1fr; }
+    .ob-tabs { grid-template-columns: 1fr; }
+    .ob-card { padding: 16px; }
+    .ob-actions .ob-btn { width: 100%; }
   }
-  .imp-wrap .drop-zone:hover{ border-color:rgba(10,92,51,.5); }
-  .imp-wrap .drop-zone.is-drag{ border-color:#0a5c33; background:rgba(10,92,51,.08); }
-  .imp-wrap .drop-ico{ font-size:2.4rem; color:#b9975b; margin-bottom:8px; }
-  .imp-wrap .drop-main{ font-weight:850; color:var(--imp-ink,#0f172a); margin-bottom:12px; }
-  .imp-wrap .drop-zone .file-name{ font-weight:850; color:#0a5c33; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="imp-wrap">
-  <div class="imp-header">
+<main class="onboard" dir="rtl">
+  <header class="ob-hero">
     <div>
-      <h1 class="imp-title">استيراد {{ SCHOOL_TEACHERS_LABEL|default:"معلمين" }} من ملف Excel</h1>
-      <p class="imp-sub">نزّل القالب الجاهز، املأه، ثم ارفعه (Excel أو CSV) لاستيراد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} وربطهم بمدرستك بسرعة.</p>
+      <div class="ob-eyebrow"><i class="fa-solid fa-users" aria-hidden="true"></i> إدارة منسوبي المدرسة</div>
+      <h1 class="ob-title">إضافة منسوبي المدرسة بسهولة</h1>
+      <p class="ob-subtitle">أضف عدة مستخدمين مباشرة أو ارفع ملف Excel، ثم راجع النتيجة قبل حفظ أي بيانات.</p>
     </div>
+    <div class="ob-capacity" aria-label="سعة باقة المستخدمين">
+      {% if capacity.maximum %}
+        <strong>{{ capacity.current }} / {{ capacity.maximum }}</strong>
+        <span>المستخدمون في الباقة — متبقٍ {{ capacity.remaining }}</span>
+      {% else %}
+        <strong>{{ capacity.current }}</strong>
+        <span>مستخدمًا في المدرسة — الباقة غير محدودة</span>
+      {% endif %}
+    </div>
+  </header>
 
-    <a href="{% url 'reports:manage_teachers' %}" class="btn btn-ghost">
-      <i class="fa-solid fa-arrow-right"></i> عودة لإدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}
-    </a>
-  </div>
-
-  <section class="imp-hero" aria-label="منطقة الاستيراد">
-    <div class="imp-grid">
-      <!-- Instructions -->
-      <div class="card imp-box">
-        <h3><i class="fa-solid fa-circle-info" style="opacity:.85"></i> تعليمات الاستيراد</h3>
-
-        <ul class="imp-list">
-          <li><b>الأسهل:</b> نزّل «القالب الجاهز» من اليسار وستجد الأعمدة جاهزة مع أمثلة.</li>
-          <li>الصيغ المدعومة: <b>.xlsx</b> أو <b>.csv</b>.</li>
-          <li>الصف الأول عناوين أعمدة، ويُستخدم للتعرّف على الحقول عند وجودها.</li>
-          <li>
-            العناوين أو الترتيب المفضّل للأعمدة:
-            <ol>
-              <li><b>الاسم الكامل</b> (مطلوب)</li>
-              <li><b>رقم الجوال</b> (مطلوب — يُستخدم كاسم مستخدم وككلمة مرور افتراضية)</li>
-              <li><b>رقم الهوية</b> (اختياري)</li>
-            </ol>
-          </li>
-          <li>كلمة المرور الافتراضية للمدخلات الجديدة = رقم الجوال.</li>
-          <li>إذا كان {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} مسجلاً مسبقاً، سيتم ربطه بمدرستك وقد تُحدّث بياناته عند اختلاف الاسم أو الهوية أو الجوال.</li>
-          <li>الحد الأقصى للملف الواحد 2000 صف، ويخضع الاستيراد لحد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} في باقتك.</li>
-        </ul>
-
-        <div class="imp-note">
-          <b>ملاحظة أمنية:</b> يُفضّل تنبيه {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} لتغيير كلمة المرور بعد أول تسجيل دخول.
+  {% if request.GET.completed and result %}
+    <section class="ob-card ob-complete" aria-labelledby="completeTitle">
+      <div class="ob-complete-icon"><i class="fa-solid fa-check" aria-hidden="true"></i></div>
+      <h2 id="completeTitle">اكتملت إضافة المستخدمين</h2>
+      <p>تمت معالجة {{ result.total }} مستخدم: {{ result.created }} حساب جديد، {{ result.linked }} حساب مرتبط، و{{ result.reactivated }} عضوية أُعيد تفعيلها.</p>
+      {% if result.created %}
+        <div class="ob-login-note">
+          <i class="fa-solid fa-key" aria-hidden="true"></i>
+          <span>كلمة المرور المؤقتة لكل حساب جديد هي رقم جواله، وسيُطلب منه تغييرها عند أول تسجيل دخول.</span>
         </div>
-      </div>
-
-      <!-- Upload -->
-      <div class="card imp-box">
-        <h3><i class="fa-solid fa-file-arrow-up" style="opacity:.85"></i> رفع ملف الاستيراد</h3>
-
-        <!-- خطوة 1: تنزيل القالب الجاهز -->
-        <a href="{% url 'reports:bulk_import_teachers_template' %}" class="btn btn-gold imp-tpl-btn">
-          <i class="fa-solid fa-download"></i> تنزيل القالب الجاهز (Excel)
-        </a>
-        <div class="imp-tpl-hint">أسهل طريقة: نزّل القالب، املأه ببيانات المعلمين، ثم ارفعه هنا.</div>
-
-        <form method="post" enctype="multipart/form-data" novalidate>
+      {% endif %}
+      <div class="ob-actions">
+        {% if result.created %}
+          <a class="ob-btn ob-btn-gold" href="{% url 'reports:bulk_import_teachers_result' %}">
+            <i class="fa-solid fa-file-excel" aria-hidden="true"></i> تنزيل بيانات الدخول
+          </a>
+        {% endif %}
+        <a class="ob-btn" href="{% url 'reports:manage_teachers' %}">عرض المستخدمين</a>
+        <form method="post">
           {% csrf_token %}
-
-          <!-- منطقة السحب والإفلات -->
-          <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="منطقة رفع الملف">
-            <div class="drop-ico"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-            <div class="drop-main">اسحب الملف وأفلته هنا، أو</div>
-            <label class="btn btn-primary" for="excel_file" style="cursor:pointer">
-              <i class="fa-solid fa-folder-open"></i> اختيار ملف
-            </label>
-            <div class="file-name" style="margin-top:10px">
-              <i class="fa-solid fa-file-lines" style="opacity:.85"></i>
-              <span id="excelFileName">لم يتم اختيار ملف بعد</span>
-            </div>
-
-            <input
-              type="file"
-              name="excel_file"
-              id="excel_file"
-              accept=".xlsx,.csv"
-              required
-              class="sr-only"
-              aria-describedby="excelHint excelBad"
-            >
-          </div>
-
-          <div class="file-hint" id="excelHint">
-            الصيغ المدعومة: <b>.xlsx</b> و <b>.csv</b>. تأكد أن الأعمدة مطابقة للتعليمات أعلاه.
-          </div>
-
-          <div class="imp-bad" id="excelBad" role="alert" aria-live="polite" aria-hidden="true">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            الملف غير صالح. الرجاء اختيار ملف <b>.xlsx</b> أو <b>.csv</b>.
-          </div>
-
-          <div class="imp-actions">
-            <button type="submit" class="btn btn-primary" id="importBtn">
-              <i class="fa-solid fa-upload"></i> بدء الاستيراد الآن
-            </button>
-            <div class="imp-submit-note" id="importSubmitNote">اختر ملف Excel صالحًا لتفعيل زر الاستيراد.</div>
-
-            <a href="{% url 'reports:manage_teachers' %}" class="btn">
-              <i class="fa-solid fa-users-gear"></i> إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}
-            </a>
-          </div>
+          <button class="ob-btn ob-btn-secondary" type="submit" name="action" value="cancel">بدء إضافة جديدة</button>
         </form>
       </div>
+    </section>
+
+  {% elif request.GET.step == "preview" and preview %}
+    <nav class="ob-steps" aria-label="خطوات الإضافة">
+      <div class="ob-step"><span>1</span> اختيار الطريقة</div>
+      <div class="ob-step"><span>2</span> إدخال البيانات</div>
+      <div class="ob-step is-active"><span>3</span> المراجعة والتأكيد</div>
+    </nav>
+
+    <section class="ob-card" aria-labelledby="previewTitle">
+      <div class="ob-card-head">
+        <div>
+          <h2 class="ob-card-title" id="previewTitle">راجع النتائج قبل الحفظ</h2>
+          <p class="ob-card-copy">لن يُحفظ أي مستخدم حتى تضغط زر التأكيد. الحسابات الموجودة ستُربط بالمدرسة فقط دون تغيير بياناتها أو كلمات مرورها.</p>
+        </div>
+        {% if preview.summary.invalid or preview.summary.warnings %}
+          <a class="ob-btn ob-btn-secondary" href="{% url 'reports:bulk_import_teachers_issues' %}">
+            <i class="fa-solid fa-download" aria-hidden="true"></i> تنزيل الملاحظات
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="ob-summary" aria-label="ملخص المعاينة">
+        <div class="ob-summary-item"><strong>{{ preview.summary.total }}</strong><span>إجمالي الصفوف</span></div>
+        <div class="ob-summary-item"><strong>{{ preview.summary.new }}</strong><span>حسابات جديدة</span></div>
+        <div class="ob-summary-item"><strong>{{ preview.summary.link }}</strong><span>ربط حسابات موجودة</span></div>
+        <div class="ob-summary-item"><strong>{{ preview.summary.existing }}</strong><span>مرتبطة مسبقًا</span></div>
+        <div class="ob-summary-item"><strong>{{ preview.summary.invalid }}</strong><span>تحتاج تصحيحًا</span></div>
+      </div>
+
+      {% if preview.capacity_error %}
+        <div class="ob-alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> {{ preview.capacity_error }}</div>
+      {% endif %}
+
+      <div class="ob-table-wrap" role="region" aria-label="جدول معاينة المستخدمين" tabindex="0">
+        <table class="ob-table">
+          <thead>
+            <tr>
+              <th>الصف</th>
+              <th>الاسم</th>
+              <th>الجوال</th>
+              <th>المسمى / القسم</th>
+              <th>النتيجة</th>
+              <th>الملاحظات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in preview.rows %}
+              <tr>
+                <td>{{ row.row_number }}</td>
+                <td>{{ row.name|default:"—" }}</td>
+                <td dir="ltr">{{ row.phone|default:"—" }}</td>
+                <td>
+                  {{ row.job_title_label }}
+                  {% if row.department_name %}<div class="ob-card-copy">{{ row.department_name }}</div>{% endif %}
+                </td>
+                <td><span class="ob-state {% if row.state == 'invalid' %}ob-state--invalid{% endif %}">{{ row.state_label }}</span></td>
+                <td>
+                  {% for error in row.errors %}<div class="ob-row-errors">{{ error }}</div>{% endfor %}
+                  {% for warning in row.warnings %}<div class="ob-row-warnings">{{ warning }}</div>{% endfor %}
+                  {% if not row.errors and not row.warnings %}<span class="ob-card-copy">جاهز</span>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ob-actions">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="preview_token" value="{{ preview.token }}">
+          <button class="ob-btn" type="submit" name="action" value="confirm" {% if not preview.can_confirm %}disabled{% endif %}>
+            <i class="fa-solid fa-check" aria-hidden="true"></i>
+            تأكيد إضافة {{ preview.summary.total }} مستخدم
+          </button>
+        </form>
+        <a class="ob-btn ob-btn-secondary" href="?mode={{ preview.source|default:'quick' }}">
+          <i class="fa-solid fa-pen" aria-hidden="true"></i> العودة والتصحيح
+        </a>
+        <form method="post">
+          {% csrf_token %}
+          <button class="ob-btn ob-btn-secondary" type="submit" name="action" value="cancel">إلغاء العملية</button>
+        </form>
+      </div>
+    </section>
+
+  {% else %}
+    <nav class="ob-steps" aria-label="خطوات الإضافة">
+      <div class="ob-step is-active"><span>1</span> اختيار الطريقة</div>
+      <div class="ob-step is-active"><span>2</span> إدخال البيانات</div>
+      <div class="ob-step"><span>3</span> المراجعة والتأكيد</div>
+    </nav>
+
+    <div class="ob-tabs" aria-label="طرق إضافة المستخدمين">
+      <a class="ob-tab {% if active_mode != 'file' %}is-active{% endif %}" href="?mode=quick">
+        <span class="ob-tab-icon"><i class="fa-solid fa-table-cells" aria-hidden="true"></i></span>
+        <span><strong>إضافة سريعة</strong><small>للأعداد القليلة والمتوسطة، مع إمكانية لصق صفوف من Excel.</small></span>
+      </a>
+      <a class="ob-tab {% if active_mode == 'file' %}is-active{% endif %}" href="?mode=file">
+        <span class="ob-tab-icon"><i class="fa-solid fa-file-excel" aria-hidden="true"></i></span>
+        <span><strong>رفع ملف Excel</strong><small>الأنسب عند تجهيز عشرات أو مئات المستخدمين دفعة واحدة.</small></span>
+      </a>
     </div>
 
-    <div class="imp-alert" style="margin-top:14px;">
-      <div class="row">
-        <div class="ic" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></div>
-        <div>
-          <h4>نصيحة تقنية</h4>
-          <p>الاستيراد الجماعي يوفّر وقتًا كبيرًا عند إعداد المدرسة لأول مرة أو بداية العام الدراسي الجديد.</p>
+    {% if active_mode == "file" %}
+      <section class="ob-card" aria-labelledby="fileModeTitle">
+        <div class="ob-card-head">
+          <div>
+            <h2 class="ob-card-title" id="fileModeTitle">رفع ملف المستخدمين</h2>
+            <p class="ob-card-copy">نزّل القالب الفارغ، املأ ورقة «المعلمون»، ثم ارفع الملف لمراجعته قبل الحفظ.</p>
+          </div>
+          <a class="ob-btn ob-btn-gold" href="{% url 'reports:bulk_import_teachers_template' %}">
+            <i class="fa-solid fa-download" aria-hidden="true"></i> تنزيل القالب الآمن
+          </a>
         </div>
-      </div>
-    </div>
-  </section>
-</div>
+
+        <div class="ob-upload-grid">
+          <form method="post" enctype="multipart/form-data" id="filePreviewForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="file_preview">
+            <div class="ob-drop" id="onboardingDropZone">
+              <div class="ob-drop-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></div>
+              <strong>اسحب ملف Excel أو CSV هنا</strong>
+              <div class="ob-card-copy">أو اختر الملف من جهازك</div>
+              <label class="ob-btn ob-btn-secondary" for="onboardingFile">اختيار ملف</label>
+              <input class="ob-hidden-file" id="onboardingFile" type="file" name="excel_file" accept=".xlsx,.csv" required>
+              <div class="ob-file-name" id="onboardingFileName">لم يتم اختيار ملف</div>
+            </div>
+            <div class="ob-actions">
+              <button class="ob-btn" id="filePreviewButton" type="submit" disabled>
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> معاينة الملف
+              </button>
+            </div>
+          </form>
+
+          <aside class="ob-card">
+            <h3 class="ob-card-title">قبل الرفع</h3>
+            <ul class="ob-checklist">
+              <li><i class="fa-solid fa-check" aria-hidden="true"></i><span>الاسم والجوال مطلوبان، وبقية الحقول اختيارية.</span></li>
+              <li><i class="fa-solid fa-check" aria-hidden="true"></i><span>القالب الأساسي فارغ؛ الأمثلة موجودة في ورقة تعليمات منفصلة.</span></li>
+              <li><i class="fa-solid fa-check" aria-hidden="true"></i><span>الحساب الموجود يُربط فقط ولا تُغيّر بياناته أو كلمة مروره.</span></li>
+              <li><i class="fa-solid fa-check" aria-hidden="true"></i><span>لن تُحفظ أي بيانات قبل شاشة المراجعة والتأكيد.</span></li>
+            </ul>
+            <div class="ob-login-note">
+              <i class="fa-solid fa-key" aria-hidden="true"></i>
+              <span>كلمة المرور المؤقتة للحساب الجديد هي رقم الجوال، مع تغيير إلزامي عند أول دخول.</span>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+    {% else %}
+      <section class="ob-card" aria-labelledby="quickModeTitle">
+        <div class="ob-card-head">
+          <div>
+            <h2 class="ob-card-title" id="quickModeTitle">أدخل عدة مستخدمين مرة واحدة</h2>
+            <p class="ob-card-copy">يكفي الاسم ورقم الجوال. المسمى الافتراضي «معلم»، ويمكن إضافة الهوية والقسم عند الحاجة.</p>
+          </div>
+          <a class="ob-btn ob-btn-secondary" href="{% url 'reports:add_teacher' %}">إضافة فردية</a>
+        </div>
+
+        <form method="post" id="quickOnboardingForm">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="quick_preview">
+          <div class="ob-table-wrap">
+            <table class="ob-table">
+              <thead>
+                <tr>
+                  <th>الاسم الكامل *</th>
+                  <th>رقم الجوال *</th>
+                  <th>رقم الهوية</th>
+                  <th>المسمى الوظيفي</th>
+                  <th>القسم</th>
+                  <th><span class="sr-only">حذف</span></th>
+                </tr>
+              </thead>
+              <tbody id="quickRows">
+                {% if preview and preview.source == "quick" %}
+                  {% for row in preview.rows %}
+                    <tr class="quick-row">
+                      <td><input class="ob-input" name="name" value="{{ row.name }}" aria-label="الاسم الكامل للصف {{ forloop.counter }}" required></td>
+                      <td><input class="ob-input" name="phone" value="{{ row.phone }}" aria-label="رقم الجوال للصف {{ forloop.counter }}" inputmode="numeric" maxlength="10" required></td>
+                      <td><input class="ob-input" name="national_id" value="{{ row.national_id }}" aria-label="رقم الهوية للصف {{ forloop.counter }}" inputmode="numeric" maxlength="10"></td>
+                      <td>
+                        <select class="ob-input" name="job_title" aria-label="المسمى الوظيفي للصف {{ forloop.counter }}">
+                          {% for value, label in job_title_choices %}<option value="{{ value }}" {% if row.job_title == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                      </td>
+                      <td>
+                        <select class="ob-input" name="department" aria-label="القسم للصف {{ forloop.counter }}">
+                          <option value="">بدون قسم</option>
+                          {% for department in departments %}<option value="{{ department.id }}" {% if row.department_id == department.id %}selected{% endif %}>{{ department.name }}</option>{% endfor %}
+                        </select>
+                      </td>
+                      <td><button class="ob-remove remove-quick-row" type="button" aria-label="حذف الصف"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  {% for index in "123" %}
+                    <tr class="quick-row">
+                      <td><input class="ob-input" name="name" aria-label="الاسم الكامل للصف {{ forloop.counter }}" {% if forloop.first %}required{% endif %}></td>
+                      <td><input class="ob-input" name="phone" aria-label="رقم الجوال للصف {{ forloop.counter }}" inputmode="numeric" maxlength="10" {% if forloop.first %}required{% endif %}></td>
+                      <td><input class="ob-input" name="national_id" aria-label="رقم الهوية للصف {{ forloop.counter }}" inputmode="numeric" maxlength="10"></td>
+                      <td>
+                        <select class="ob-input" name="job_title" aria-label="المسمى الوظيفي للصف {{ forloop.counter }}">
+                          {% for value, label in job_title_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                        </select>
+                      </td>
+                      <td>
+                        <select class="ob-input" name="department" aria-label="القسم للصف {{ forloop.counter }}">
+                          <option value="">بدون قسم</option>
+                          {% for department in departments %}<option value="{{ department.id }}">{{ department.name }}</option>{% endfor %}
+                        </select>
+                      </td>
+                      <td><button class="ob-remove remove-quick-row" type="button" aria-label="حذف الصف"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="ob-table-actions">
+            <button class="ob-btn ob-btn-secondary" id="addQuickRow" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i> إضافة صف</button>
+          </div>
+
+          <details class="ob-paste">
+            <summary>لصق عدة صفوف مباشرة من Excel</summary>
+            <p>انسخ الأعمدة بالترتيب: الاسم، الجوال، الهوية، المسمى، القسم. يمكن الاكتفاء بالاسم والجوال.</p>
+            <textarea class="ob-input" name="pasted_rows" aria-label="صفوف منسوخة من Excel" placeholder="محمد أحمد	0551234567&#10;سارة علي	0509876543"></textarea>
+          </details>
+
+          <div class="ob-login-note">
+            <i class="fa-solid fa-key" aria-hidden="true"></i>
+            <span>كلمة المرور المؤقتة لكل حساب جديد ستكون رقم الجوال، وسيطلب النظام تغييرها عند أول تسجيل دخول.</span>
+          </div>
+
+          <div class="ob-actions">
+            <button class="ob-btn" type="submit"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> مراجعة المستخدمين قبل الحفظ</button>
+            <a class="ob-btn ob-btn-secondary" href="{% url 'reports:manage_teachers' %}">العودة للقائمة</a>
+          </div>
+        </form>
+      </section>
+    {% endif %}
+  {% endif %}
+</main>
+
+<template id="quickRowTemplate">
+  <tr class="quick-row">
+    <td><input class="ob-input" name="name" aria-label="الاسم الكامل"></td>
+    <td><input class="ob-input" name="phone" aria-label="رقم الجوال" inputmode="numeric" maxlength="10"></td>
+    <td><input class="ob-input" name="national_id" aria-label="رقم الهوية" inputmode="numeric" maxlength="10"></td>
+    <td>
+      <select class="ob-input" name="job_title" aria-label="المسمى الوظيفي">
+        {% for value, label in job_title_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+    </td>
+    <td>
+      <select class="ob-input" name="department" aria-label="القسم">
+        <option value="">بدون قسم</option>
+        {% for department in departments %}<option value="{{ department.id }}">{{ department.name }}</option>{% endfor %}
+      </select>
+    </td>
+    <td><button class="ob-remove remove-quick-row" type="button" aria-label="حذف الصف"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td>
+  </tr>
+</template>
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
-  (function(){
-    var input = document.getElementById('excel_file');
-    var nameEl = document.getElementById('excelFileName');
-    var badEl = document.getElementById('excelBad');
-    var btn = document.getElementById('importBtn');
-    var submitNote = document.getElementById('importSubmitNote');
-    var dropZone = document.getElementById('dropZone');
-    var defaultBtnHtml = btn ? btn.innerHTML : '';
-    var submitted = false;
+  document.addEventListener('DOMContentLoaded', function () {
+    var rows = document.getElementById('quickRows');
+    var addButton = document.getElementById('addQuickRow');
+    var template = document.getElementById('quickRowTemplate');
 
-    if(!input || !nameEl) return;
-
-    function isValidExt(fileName){
-      if(!fileName) return false;
-      var f = fileName.toLowerCase();
-      return f.endsWith('.xlsx') || f.endsWith('.csv');
-    }
-
-    // ===== السحب والإفلات =====
-    if(dropZone){
-      ['dragenter','dragover','dragleave','drop'].forEach(function(ev){
-        dropZone.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); });
-      });
-      ['dragenter','dragover'].forEach(function(ev){
-        dropZone.addEventListener(ev, function(){ dropZone.classList.add('is-drag'); });
-      });
-      ['dragleave','drop'].forEach(function(ev){
-        dropZone.addEventListener(ev, function(){ dropZone.classList.remove('is-drag'); });
-      });
-      dropZone.addEventListener('drop', function(e){
-        var files = e.dataTransfer && e.dataTransfer.files;
-        if(files && files.length){
-          input.files = files;
-          var fn = files[0] ? files[0].name : '';
-          submitted = false;
-          if(btn && defaultBtnHtml) btn.innerHTML = defaultBtnHtml;
-          updateState(fn);
-        }
-      });
-      dropZone.addEventListener('click', function(e){
-        if(e.target.closest('label,a,button')) return;
-        input.click();
+    function bindRemoveButtons(scope) {
+      (scope || document).querySelectorAll('.remove-quick-row').forEach(function (button) {
+        if (button.dataset.bound) return;
+        button.dataset.bound = '1';
+        button.addEventListener('click', function () {
+          var row = button.closest('.quick-row');
+          var allRows = rows ? rows.querySelectorAll('.quick-row') : [];
+          if (row && allRows.length > 1) row.remove();
+          else if (row) row.querySelectorAll('input').forEach(function (input) { input.value = ''; });
+        });
       });
     }
 
-    function updateState(fileName){
-      var hasFile = !!fileName;
-      var isBad = hasFile && !isValidExt(fileName);
-
-      nameEl.textContent = fileName || 'لم يتم اختيار ملف بعد';
-      nameEl.title = fileName || '';
-
-      if(badEl){
-        badEl.style.display = isBad ? 'block' : 'none';
-        badEl.setAttribute('aria-hidden', isBad ? 'false' : 'true');
-      }
-
-      if(btn){
-        btn.disabled = !hasFile || isBad || submitted;
-        btn.setAttribute('aria-busy', submitted ? 'true' : 'false');
-      }
-
-      if(submitNote){
-        if(isBad){
-          submitNote.textContent = 'اختر ملفًا بصيغة .xlsx أو .csv قبل بدء الاستيراد.';
-        } else if(hasFile){
-          submitNote.textContent = 'الملف جاهز للإرسال. لا تغلق الصفحة أثناء الاستيراد.';
-        } else {
-          submitNote.textContent = 'اختر ملفًا (Excel أو CSV) لتفعيل زر الاستيراد.';
-        }
-      }
-
-      return !isBad && hasFile;
-    }
-
-    input.addEventListener('change', function(){
-      var file = input.files && input.files[0] ? input.files[0] : null;
-      var fileName = file ? file.name : '';
-      submitted = false;
-      if(btn && defaultBtnHtml) {
-        btn.innerHTML = defaultBtnHtml;
-      }
-      updateState(fileName);
-    });
-
-    // حماية إضافية قبل الإرسال
-    var form = input.closest('form');
-    if(form){
-      form.addEventListener('submit', function(ev){
-        var file = input.files && input.files[0] ? input.files[0] : null;
-        var fileName = file ? file.name : '';
-        if(!updateState(fileName)){
-          ev.preventDefault();
-          try { input.focus(); } catch(e) {}
-          return;
-        }
-
-        if(submitted){
-          ev.preventDefault();
-          return;
-        }
-
-        submitted = true;
-        if(btn){
-          btn.disabled = true;
-          btn.setAttribute('aria-busy', 'true');
-          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الاستيراد...';
-        }
-        if(submitNote){
-          submitNote.textContent = 'جاري رفع الملف ومعالجته، قد يستغرق ذلك قليلًا حسب عدد الصفوف.';
-        }
+    if (rows && addButton && template) {
+      bindRemoveButtons(rows);
+      addButton.addEventListener('click', function () {
+        var fragment = template.content.cloneNode(true);
+        rows.appendChild(fragment);
+        bindRemoveButtons(rows);
+        var newRow = rows.lastElementChild;
+        var firstInput = newRow ? newRow.querySelector('input') : null;
+        if (firstInput) firstInput.focus();
       });
     }
 
-    updateState('');
-  })();
+    var dropZone = document.getElementById('onboardingDropZone');
+    var fileInput = document.getElementById('onboardingFile');
+    var fileName = document.getElementById('onboardingFileName');
+    var previewButton = document.getElementById('filePreviewButton');
+    if (dropZone && fileInput) {
+      function updateFile() {
+        var file = fileInput.files && fileInput.files[0];
+        if (fileName) fileName.textContent = file ? file.name : 'لم يتم اختيار ملف';
+        if (previewButton) previewButton.disabled = !file;
+      }
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function (eventName) {
+        dropZone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+      });
+      ['dragenter', 'dragover'].forEach(function (eventName) {
+        dropZone.addEventListener(eventName, function () { dropZone.classList.add('is-drag'); });
+      });
+      ['dragleave', 'drop'].forEach(function (eventName) {
+        dropZone.addEventListener(eventName, function () { dropZone.classList.remove('is-drag'); });
+      });
+      dropZone.addEventListener('drop', function (event) {
+        if (event.dataTransfer && event.dataTransfer.files.length) {
+          fileInput.files = event.dataTransfer.files;
+          updateFile();
+        }
+      });
+      fileInput.addEventListener('change', updateFile);
+      updateFile();
+    }
+  });
 </script>
 {% endblock %}

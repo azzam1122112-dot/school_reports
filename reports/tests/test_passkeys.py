@@ -1,8 +1,15 @@
+import hashlib
+
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from reports.models import Teacher, WebAuthnCredential
-from reports.webauthn import b64url_encode, credential_hash
+from reports.views.auth import PASSKEY_ENROLL_PROMPT_SESSION_KEY
+from reports.webauthn import (
+    b64url_encode,
+    credential_hash,
+    parse_authenticator_data,
+)
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
@@ -39,6 +46,84 @@ class PasskeyEndpointTests(TestCase):
         self.assertIn("challenge", payload["publicKey"])
         self.assertEqual(payload["publicKey"]["rp"]["id"], "testserver")
         self.assertEqual(payload["publicKey"]["user"]["name"], self.user.phone)
+        self.assertEqual(
+            payload["publicKey"]["authenticatorSelection"]["userVerification"],
+            "required",
+        )
+
+    def test_password_login_offers_optional_passkey_enrollment(self):
+        user = Teacher.objects.create_user(
+            phone="555000444",
+            name="New Passkey User",
+            password="safe-pass",
+        )
+
+        response = self.client.post(
+            reverse("reports:login"),
+            {"phone": user.phone, "password": "safe-pass"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(self.client.session[PASSKEY_ENROLL_PROMPT_SESSION_KEY])
+
+        profile_response = self.client.get(reverse("reports:my_profile"))
+        self.assertContains(profile_response, 'id="passkeyEnrollmentPrompt"')
+        self.assertContains(profile_response, "تفعيل الآن")
+        self.assertContains(profile_response, "ليس الآن")
+        self.assertContains(profile_response, "لا تُرسل إلى المنصة")
+
+    def test_password_login_does_not_prompt_user_with_active_passkey(self):
+        response = self.client.post(
+            reverse("reports:login"),
+            {"phone": self.user.phone, "password": "pass"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn(PASSKEY_ENROLL_PROMPT_SESSION_KEY, self.client.session)
+        profile_response = self.client.get(reverse("reports:my_profile"))
+        self.assertNotContains(profile_response, 'id="passkeyEnrollmentPrompt"')
+
+    def test_password_change_requirement_takes_priority_over_passkey_prompt(self):
+        user = Teacher.objects.create_user(
+            phone="555000555",
+            name="Default Password User",
+            password="555000555",
+        )
+
+        response = self.client.post(
+            reverse("reports:login"),
+            {"phone": user.phone, "password": user.phone},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("reports:my_profile"),
+            fetch_redirect_response=False,
+        )
+        self.assertNotIn(PASSKEY_ENROLL_PROMPT_SESSION_KEY, self.client.session)
+
+    def test_user_can_dismiss_optional_prompt_for_current_session(self):
+        user = Teacher.objects.create_user(
+            phone="555000666",
+            name="Dismiss Passkey User",
+            password="safe-pass",
+        )
+        self.client.force_login(user)
+        session = self.client.session
+        session[PASSKEY_ENROLL_PROMPT_SESSION_KEY] = True
+        session.save()
+
+        response = self.client.post(reverse("reports:passkey_enroll_prompt_dismiss"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertNotIn(PASSKEY_ENROLL_PROMPT_SESSION_KEY, self.client.session)
+
+    def test_dismiss_endpoint_requires_login(self):
+        response = self.client.post(reverse("reports:passkey_enroll_prompt_dismiss"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response["Location"])
 
     def test_login_options_are_available_before_login(self):
         response = self.client.post(
@@ -52,6 +137,7 @@ class PasskeyEndpointTests(TestCase):
         self.assertTrue(payload["ok"])
         self.assertIn("challenge", payload["publicKey"])
         self.assertEqual(payload["publicKey"]["rpId"], "testserver")
+        self.assertEqual(payload["publicKey"]["userVerification"], "required")
         self.assertEqual(payload["publicKey"]["allowCredentials"][0]["id"], b64url_encode(self.credential_id))
 
     def test_login_options_require_identifier(self):
@@ -157,3 +243,25 @@ class PasskeyRpIdTests(TestCase):
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("WEBAUTHN_RP_ID", None)
             self.assertEqual(self._rp_id("testserver"), "testserver")
+
+
+class PasskeyUserVerificationTests(TestCase):
+    def _authenticator_data(self, rp_id: str, flags: int) -> bytes:
+        return hashlib.sha256(rp_id.encode("utf-8")).digest() + bytes([flags]) + (0).to_bytes(4, "big")
+
+    def test_user_verification_flag_is_required_when_requested(self):
+        with self.assertRaisesRegex(ValueError, "user_verification_required"):
+            parse_authenticator_data(
+                self._authenticator_data("testserver", 0x01),
+                rp_id="testserver",
+                require_user_verification=True,
+            )
+
+    def test_verified_user_flag_is_accepted(self):
+        parsed = parse_authenticator_data(
+            self._authenticator_data("testserver", 0x05),
+            rp_id="testserver",
+            require_user_verification=True,
+        )
+
+        self.assertEqual(parsed.flags, 0x05)

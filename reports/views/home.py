@@ -139,6 +139,12 @@ def home(request: HttpRequest) -> HttpResponse:
         return redirect("reports:platform_schools_directory")
     # -----------------------------------------------
 
+    # مدير المدرسة له رئيسية واحدة واضحة: لوحة إدارة المدرسة.
+    # يحتفظ المدير بإمكانية الوصول لصفحاته الشخصية من قائمة الحساب، لكن لا
+    # ينبغي أن تقوده كلمة "الرئيسية" إلى لوحة المعلم وتخلق مسارين متنافسين.
+    if is_school_manager(request.user):
+        return redirect("reports:admin_dashboard")
+
     active_school = _get_active_school(request)
     stats = {"today_count": 0, "total_count": 0, "last_title": "—"}
     req_stats = {"open": 0, "in_progress": 0, "done": 0, "rejected": 0, "total": 0}
@@ -226,9 +232,10 @@ def home(request: HttpRequest) -> HttpResponse:
             "reports/home.html",
             {
                 "stats": stats,
-                "recent_reports": recent_reports[:2],
+                "recent_reports": recent_reports[:4],
                 "req_stats": req_stats,
-                "recent_tickets": recent_tickets[:2],
+                "recent_tickets": recent_tickets[:3],
+                "active_requests_count": req_stats["open"] + req_stats["in_progress"],
                 "home_notification": home_notification,
                 "home_notification_recipient_id": home_notification_recipient_id,
             },

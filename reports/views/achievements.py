@@ -279,11 +279,17 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
 
     # Search Logic
     q = request.GET.get("q", "").strip()
+    status = (request.GET.get("status") or "").strip()
+    valid_statuses = {value for value, _label in TeacherAchievementFile.Status.choices}
+    if status not in valid_statuses | {"missing"}:
+        status = ""
 
     teachers = (
         Teacher.objects.filter(
+            is_active=True,
             school_memberships__school=active_school,
             school_memberships__is_active=True,
+            school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
         )
         .distinct()
         .only("id", "name", "phone", "national_id")
@@ -308,6 +314,18 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
             # تصفية الملفات أيضاً لتحسين الأداء
             files = files.filter(teacher__in=teachers)
 
+        teacher_ids_with_files = files.values_list("teacher_id", flat=True)
+        if status == "missing":
+            teachers = teachers.exclude(id__in=teacher_ids_with_files)
+            files = files.none()
+        elif status:
+            matching_teacher_ids = files.filter(status=status).values_list(
+                "teacher_id",
+                flat=True,
+            )
+            teachers = teachers.filter(id__in=matching_teacher_ids)
+            files = files.filter(status=status)
+
         files_by_teacher_id = {f.teacher_id: f for f in files}
 
     rows = [{"teacher": t, "file": files_by_teacher_id.get(t.id)} for t in teachers]
@@ -322,6 +340,8 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
             "current_school": active_school,
             "is_manager": _can_manage_achievement(request.user, active_school),
             "q": q,
+            "status": status,
+            "status_choices": TeacherAchievementFile.Status.choices,
         },
     )
 

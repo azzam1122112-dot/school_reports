@@ -22,6 +22,26 @@ logger = logging.getLogger(__name__)
 from core import opmetrics
 
 
+@shared_task(
+    bind=True,
+    ignore_result=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": 5},
+)
+def delete_orphaned_storage_file_task(
+    self,
+    model_label: str,
+    field_name: str,
+    file_name: str,
+) -> bool:
+    """Retry deletion of an unreferenced local/R2 object after transient errors."""
+    from .file_cleanup import delete_file_if_unreferenced
+
+    return delete_file_if_unreferenced(model_label, field_name, file_name)
+
+
 def _periodic_lock(lock_name: str, ttl: int = 600) -> bool:
     """Acquire a cache-based lock to prevent overlapping periodic tasks.
 

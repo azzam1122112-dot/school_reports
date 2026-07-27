@@ -428,17 +428,17 @@
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }} يمكنه إضافة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} من لوحة الإدارة إما فردياً أو عن طريق استيراد قائمة من ملف Excel.</p>
+        <p>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }} يمكنه إضافة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} من «لوحة المدرسة ← فريق المدرسة»، إما فرديًا أو باستيراد قائمة Excel.</p>
       </div>
     </div>
 
     <div class="faq-item">
       <div class="faq-question" onclick="toggleFAQ(this)">
-        <h3>لا أرى لوحة المدير، لماذا؟</h3>
+        <h3>لا أرى لوحة المدرسة، لماذا؟</h3>
         <div class="faq-icon"><i class="fa-solid fa-chevron-down"></i></div>
       </div>
       <div class="faq-answer">
-        <p>لوحة {{ SCHOOL_MANAGER_LABEL|default:"المدير" }} متاحة فقط للمستخدمين ذوي صلاحية "{{ SCHOOL_MANAGER_LABEL|default:"مدير مدرسة" }}". تواصل مع مشرف المنصة لضبط الصلاحيات إذا كنت تعتقد أنك يجب أن تمتلك هذه الصلاحية.</p>
+        <p>لوحة المدرسة هي الصفحة الرئيسية لحساب {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}. إذا لم تظهر بعد تسجيل الدخول، فتأكد من ربط الحساب بالمدرسة بدور المدير، أو تواصل مع مشرف المنصة لضبط الصلاحية.</p>
       </div>
     </div>
 
@@ -463,7 +463,7 @@
 
 </div>
 
-<script>
+<script nonce="{{ CSP_NONCE }}">
   function toggleFAQ(element) {
     const item = element.closest('.faq-item');
     const isActive = item.classList.contains('active');

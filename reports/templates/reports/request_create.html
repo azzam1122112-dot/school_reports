@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}طلب جديد | المنصة{% endblock %}
+{% block title %}طلب مدرسي جديد{% endblock %}
 
 {% block head %}
 <style>
@@ -430,8 +430,8 @@
 <div class="ticket-page" dir="rtl">
     
     <div class="page-header">
-        <h1 class="page-title">إنشاء طلب جديد</h1>
-        <p class="page-desc">نحن هنا لمساعدتك. قم بملء النموذج المفصل أدناه ليتم توجيه طلبك للفريق المختص بأسرع وقت.</p>
+        <h1 class="page-title">إنشاء طلب مدرسي جديد</h1>
+        <p class="page-desc">أرسل طلبك إلى القسم المختص داخل المدرسة، وتابع حالته والردود عليه من صفحة طلباتي.</p>
     </div>
 
     <form method="post" enctype="multipart/form-data" id="ticket-form" novalidate>
@@ -449,8 +449,8 @@
                     <div class="info-box">
                         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <div>
-                            <strong>نصائح لسرعة الاستجابة:</strong><br>
-                            اكتب عنواناً دقيقاً (مثال: عطل في الطابعة HP بالدور الثاني)، واشرح المشكلة بالتفصيل في الوصف.
+                            <strong>ليصل طلبك إلى الشخص المناسب:</strong><br>
+                            اكتب عنوانًا واضحًا، وحدد المطلوب ومكانه وأي معلومات تساعد القسم المختص على التنفيذ.
                         </div>
                     </div>
 
@@ -461,9 +461,9 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="{{ form.body.id_for_label }}" class="form-label">تفاصيل المشكلة <span class="req">*</span></label>
+                        <label for="{{ form.body.id_for_label }}" class="form-label">تفاصيل الطلب <span class="req">*</span></label>
                         {{ form.body }}
-                        <div class="field-help">يرجى توضيح المشكلة، المكان، وأي خطوات قمت بمحاولتها.</div>
+                        <div class="field-help">وضّح المطلوب، المكان، والموعد أو الأولوية إن وجدت.</div>
                         {% for e in form.body.errors %}<div class="field-error">⚠️ {{ e }}</div>{% endfor %}
                     </div>
                 </div>
@@ -484,7 +484,7 @@
                     {% endif %}
 
                     <div class="form-group">
-                        <label class="form-label">القسم المختص <span class="req">*</span></label>
+                        <label for="{{ form.department.id_for_label }}" class="form-label">القسم المختص <span class="req">*</span></label>
                         <select id="{{ form.department.id_for_label }}" name="{{ form.department.html_name }}" class="tk-select" required>
                             <option value="" selected hidden>— اختر القسم —</option>
                             {% for d in form.fields.department.queryset %}

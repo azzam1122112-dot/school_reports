@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Static analysis used by CI. Keep development-only tooling out of production.
+ruff==0.16.0
+PyYAML==6.0.3

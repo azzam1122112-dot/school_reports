@@ -196,6 +196,22 @@
     transform: translateY(-1px);
   }
 
+  .inbox-wrap .pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .inbox-wrap .pager__status {
+    color: var(--muted);
+    font-size: .82rem;
+    font-weight: 850;
+  }
+
   /* Mobile: table -> cards */
   @media(max-width:860px){
     .inbox-wrap .tbl{min-width: 0}
@@ -271,7 +287,7 @@
 {% block content %}
 <div class="container inbox-wrap" dir="rtl">
   <div class="inbox-card">
-    <h2 class="title">{{ page_heading|default:"📥 صندوق الطلبات" }}</h2>
+    <h1 class="title">{{ page_heading|default:"صندوق الطلبات" }}</h1>
     <div class="subtitle">{{ page_subtitle|default:"استعرض الطلبات الواردة، فلتر حسب الحالة أو ابحث بالعنوان/التفاصيل." }}</div>
 
     <form method="get" class="inbox-filters" aria-label="فلترة الطلبات" novalidate>
@@ -279,6 +295,7 @@
         <input type="text" name="q" value="{{ q }}" class="input" placeholder="بحث في العنوان/التفاصيل">
         <select name="status" class="select" aria-label="الحالة">
           <option value="">كل الحالات</option>
+          <option value="attention" {% if status == "attention" %}selected{% endif %}>تحتاج متابعة</option>
           {% for v,lbl in status_choices %}
             <option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ lbl }}</option>
           {% endfor %}
@@ -375,6 +392,22 @@
         </tbody>
       </table>
     </div>
+
+    {% if tickets.has_other_pages %}
+      <nav class="pager" aria-label="صفحات الطلبات">
+        {% if tickets.has_previous %}
+          <a class="btn btn-outline" href="?page={{ tickets.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if status %}&status={{ status|urlencode }}{% endif %}{% if mine %}&mine=1{% endif %}">
+            السابق
+          </a>
+        {% endif %}
+        <span class="pager__status">صفحة {{ tickets.number }} من {{ tickets.paginator.num_pages }}</span>
+        {% if tickets.has_next %}
+          <a class="btn btn-outline" href="?page={{ tickets.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if status %}&status={{ status|urlencode }}{% endif %}{% if mine %}&mine=1{% endif %}">
+            التالي
+          </a>
+        {% endif %}
+      </nav>
+    {% endif %}
 
   </div>
 </div>

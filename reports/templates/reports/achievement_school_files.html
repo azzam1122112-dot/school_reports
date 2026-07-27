@@ -63,7 +63,7 @@
   .page-title {
     font-size: 2.2rem;
     font-weight: 900;
-    margin-bottom: 0.5rem;
+    margin: 0 0 0.5rem;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -326,7 +326,7 @@
 
   <!-- Header -->
   <div class="header-section">
-      <div class="page-title">ملفات إنجاز {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</div>
+      <h1 class="page-title">ملفات إنجاز {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</h1>
       <div class="page-subtitle">استعراض ومتابعة ملفات الإنجاز للكادر التعليمي حسب السنة الدراسية</div>
   </div>
 
@@ -337,13 +337,13 @@
           <div class="control-group">
               <label class="control-label">السنة الدراسية</label>
               {% if year_choices %}
-                <select name="year" class="glass-input" onchange="this.form.submit()">
+                <select name="year" id="achievementYearSelect" class="glass-input">
                   {% for y in year_choices %}
                     <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} هـ</option>
                   {% endfor %}
                 </select>
               {% else %}
-                <input name="year" class="glass-input" value="{{ year }}" placeholder="YYYY-YYYY" onblur="this.form.submit()">
+                <input name="year" id="achievementYearInput" class="glass-input" value="{{ year }}" placeholder="1447-1448">
               {% endif %}
           </div>
 
@@ -354,13 +354,30 @@
                   <i class="fa-solid fa-search" style="position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: var(--text-muted);"></i>
               </div>
           </div>
+
+          <div class="control-group">
+              <label class="control-label">حالة الملف</label>
+              <select name="status" id="achievementStatusSelect" class="glass-input">
+                <option value="">جميع الحالات</option>
+                <option value="missing" {% if status == "missing" %}selected{% endif %}>لم ينشئ ملفًا</option>
+                {% for value, label in status_choices %}
+                  <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+          </div>
+
+          <div class="control-group" style="align-self:flex-end">
+              <button type="submit" class="btn-action btn-view">
+                <i class="fa-solid fa-filter" aria-hidden="true"></i> تطبيق
+              </button>
+          </div>
       </form>
 
       <!-- Dashboard Button -->
       {% if is_manager %}
       <div style="flex-shrink: 0;">
           <a href="{% url 'reports:admin_dashboard' %}" class="btn-action btn-dashboard">
-              <i class="fa-solid fa-gauge"></i> لوحة المدير
+              <i class="fa-solid fa-gauge"></i> لوحة المدرسة
           </a>
       </div>
       {% endif %}
@@ -376,9 +393,9 @@
           <i class="fa-solid fa-users-viewfinder"></i>
           <span id="resultCount">{{ rows|length }}</span> {{ SCHOOL_TEACHER_LABEL|default:"معلم" }}
       </div>
-      {% if q %}
+      {% if q or status %}
       <a href="{% url 'reports:achievement_school_files' %}?year={{ year }}" class="stat-chip" style="background: #fee2e2; color: #ef4444; text-decoration: none; cursor: pointer;">
-          <i class="fa-solid fa-times"></i> إلغاء البحث
+          <i class="fa-solid fa-times"></i> مسح التصفية
       </a>
       {% endif %}
   </div>
@@ -457,14 +474,23 @@
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const grid = document.getElementById('teachersGrid');
+    const filterForm = document.getElementById('filterForm');
+    const yearSelect = document.getElementById('achievementYearSelect');
+    const yearInput = document.getElementById('achievementYearInput');
+    const statusSelect = document.getElementById('achievementStatusSelect');
     const items = grid.querySelectorAll('.item-row');
     const noResults = document.getElementById('noResultsMsg');
     const countLabel = document.getElementById('resultCount');
-    
-    // Prevent Enter key in search (client-side only filter)
-    searchInput.addEventListener('keydown', (e) => {
-        if(e.key === 'Enter') e.preventDefault();
-    });
+
+    if (yearSelect && filterForm) {
+        yearSelect.addEventListener('change', () => filterForm.submit());
+    }
+    if (yearInput && filterForm) {
+        yearInput.addEventListener('change', () => filterForm.submit());
+    }
+    if (statusSelect && filterForm) {
+        statusSelect.addEventListener('change', () => filterForm.submit());
+    }
 
     searchInput.addEventListener('input', function(e) {
         const query = e.target.value.toLowerCase().trim();

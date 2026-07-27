@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 
 from .models import (
     AchievementEvidenceImage,
     AchievementEvidenceReport,
+    Notification,
     Report,
     School,
     SchoolArchiveAddon,
+    SchoolYearArchive,
     TeacherAchievementFile,
+    Ticket,
+    TicketImage,
     school_has_archive_addon,
 )
 
@@ -95,7 +99,68 @@ def calculate_school_archive_storage_bytes(school: School | None) -> int:
         total += _file_size(evidence.archived_image3)
         total += _file_size(evidence.archived_image4)
 
+    for year_archive in SchoolYearArchive.objects.filter(school=school).only("archive_file"):
+        total += _file_size(year_archive.archive_file)
+
+    for ticket in Ticket.objects.filter(school=school).only("attachment"):
+        total += _file_size(ticket.attachment)
+
+    for ticket_image in TicketImage.objects.filter(ticket__school=school).only("image"):
+        total += _file_size(ticket_image.image)
+
+    for notification in Notification.objects.filter(school=school).only("attachment"):
+        total += _file_size(notification.attachment)
+
     return total
+
+
+def school_storage_breakdown(school: School | None) -> dict:
+    """Fast manager-facing breakdown from incrementally maintained byte fields."""
+    if school is None:
+        return {
+            "reports": 0,
+            "achievements": 0,
+            "tickets": 0,
+            "circulars": 0,
+            "notifications": 0,
+            "snapshots": 0,
+            "total": 0,
+        }
+
+    def _sum(queryset) -> int:
+        return int(queryset.aggregate(total=Sum("storage_bytes")).get("total") or 0)
+
+    circulars_qs = Notification.objects.filter(school=school, requires_signature=True)
+    notifications_qs = Notification.objects.filter(school=school, requires_signature=False)
+    values = {
+        "reports": _sum(Report.objects.filter(school=school)),
+        "achievements": (
+            _sum(TeacherAchievementFile.objects.filter(school=school))
+            + _sum(AchievementEvidenceImage.objects.filter(section__file__school=school))
+            + _sum(AchievementEvidenceReport.objects.filter(section__file__school=school))
+        ),
+        "tickets": (
+            _sum(Ticket.objects.filter(school=school))
+            + _sum(TicketImage.objects.filter(ticket__school=school))
+        ),
+        "circulars": _sum(circulars_qs),
+        "notifications": _sum(notifications_qs),
+        "snapshots": _sum(SchoolYearArchive.objects.filter(school=school)),
+    }
+    values["total"] = sum(values.values())
+    return values
+
+
+def school_administrative_archive_stats(school: School | None) -> dict:
+    """School-wide records included as-of snapshot time (they have no academic-year field)."""
+    if school is None:
+        return {"tickets": 0, "circulars": 0, "notifications": 0}
+    notifications = Notification.objects.filter(school=school)
+    return {
+        "tickets": Ticket.objects.filter(school=school).count(),
+        "circulars": notifications.filter(requires_signature=True).count(),
+        "notifications": notifications.filter(requires_signature=False).count(),
+    }
 
 
 def recompute_school_storage(school: School | None) -> int:
@@ -188,6 +253,39 @@ def _human_size(num_bytes: int) -> str:
     return f"{round(mb / 1024, 2)}GB"
 
 
+def school_storage_overview(school: School | None) -> dict:
+    """Single source of truth for manager storage cards."""
+    if school is None:
+        used = 0
+    else:
+        used = int(
+            School.objects.filter(pk=school.pk)
+            .values_list("storage_used_bytes", flat=True)
+            .first()
+            or 0
+        )
+    limit = school_storage_limit_bytes(school)
+    is_unlimited = limit <= 0
+    percent = 0 if is_unlimited else min(100, round((used / limit) * 100, 1))
+    remaining = 0 if is_unlimited else max(0, limit - used)
+    breakdown = school_storage_breakdown(school)
+    return {
+        "used_bytes": used,
+        "limit_bytes": limit,
+        "remaining_bytes": remaining,
+        "used_label": _human_size(used),
+        "limit_label": "غير محدود" if is_unlimited else _human_size(limit),
+        "remaining_label": "غير محدود" if is_unlimited else _human_size(remaining),
+        "usage_percent": percent,
+        "is_unlimited": is_unlimited,
+        "breakdown": {
+            key: {"bytes": value, "label": _human_size(value)}
+            for key, value in breakdown.items()
+            if key != "total"
+        },
+    }
+
+
 def archive_storage_capacity_error(school: School | None, incoming_files, *, replacing_files=None) -> str:
     """رسالة خطأ عربية عند تجاوز حدّ تخزين المدرسة.
 
@@ -234,17 +332,6 @@ def archive_storage_capacity_error(school: School | None, incoming_files, *, rep
 def archive_available_years(*, school: School, teacher=None, school_wide: bool = False) -> list[str]:
     years: set[str] = set()
 
-    try:
-        if school.current_academic_year:
-            years.add(str(school.current_academic_year).strip())
-    except Exception:
-        pass
-
-    try:
-        years.update(str(y).strip() for y in (school.allowed_academic_years or []) if str(y).strip())
-    except Exception:
-        pass
-
     reports_qs = Report.objects.filter(school=school)
     achievements_qs = TeacherAchievementFile.objects.filter(school=school)
     if not school_wide and teacher is not None:
@@ -253,6 +340,22 @@ def archive_available_years(*, school: School, teacher=None, school_wide: bool =
 
     years.update(reports_qs.exclude(academic_year="").values_list("academic_year", flat=True).distinct())
     years.update(achievements_qs.values_list("academic_year", flat=True).distinct())
+    if school_wide:
+        years.update(
+            SchoolYearArchive.objects.filter(school=school)
+            .exclude(academic_year="")
+            .values_list("academic_year", flat=True)
+            .distinct()
+        )
+        # التذاكر والتعاميم لا تحمل سنة دراسية في نموذجها. إذا كانت هي المحتوى
+        # الوحيد، نستخدم سنة المدرسة الحالية كوعاء واضح للنسخة الإدارية.
+        has_administrative_records = (
+            Ticket.objects.filter(school=school).exists()
+            or Notification.objects.filter(school=school).exists()
+        )
+        current_year = (getattr(school, "current_academic_year", "") or "").strip()
+        if has_administrative_records and current_year:
+            years.add(current_year)
 
     sorted_years = _clean_years(years)
     if reports_qs.filter(Q(academic_year="") | Q(academic_year__isnull=True)).exists():
@@ -260,7 +363,16 @@ def archive_available_years(*, school: School, teacher=None, school_wide: bool =
     return sorted_years
 
 
-def archive_payload(*, school: School, selected_year: str, teacher=None, school_wide: bool = False) -> dict:
+def archive_payload(
+    *,
+    school: School,
+    selected_year: str,
+    teacher=None,
+    school_wide: bool = False,
+    search: str = "",
+    teacher_id: int | None = None,
+    category_id: int | None = None,
+) -> dict:
     reports_qs = (
         Report.objects.select_related("teacher", "category", "school")
         .filter(school=school)
@@ -282,6 +394,23 @@ def archive_payload(*, school: School, selected_year: str, teacher=None, school_
     elif selected_year:
         reports_qs = reports_qs.filter(academic_year=selected_year)
         achievements_qs = achievements_qs.filter(academic_year=selected_year)
+
+    search = (search or "").strip()
+    if search:
+        reports_qs = reports_qs.filter(
+            Q(title__icontains=search)
+            | Q(teacher__name__icontains=search)
+            | Q(teacher__phone__icontains=search)
+        )
+        achievements_qs = achievements_qs.filter(
+            Q(teacher__name__icontains=search)
+            | Q(teacher__phone__icontains=search)
+        )
+    if teacher_id:
+        reports_qs = reports_qs.filter(teacher_id=teacher_id)
+        achievements_qs = achievements_qs.filter(teacher_id=teacher_id)
+    if category_id:
+        reports_qs = reports_qs.filter(category_id=category_id)
 
     report_stats = reports_qs.aggregate(
         total=Count("id"),

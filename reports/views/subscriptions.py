@@ -149,6 +149,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     import json
     
     now = timezone.now()
+    force_refresh = (request.GET.get("refresh") or "").strip() == "1"
 
     period_labels = {
         "all": "الكل",
@@ -177,8 +178,8 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     pending_payments = Payment.objects.filter(status=Payment.Status.PENDING).count()
 
     # البيانات الإحصائية (كاش 5 دقائق)
-    stats_cache_key = "platform_stats_v3"
-    stats = cache.get(stats_cache_key)
+    stats_cache_key = "platform_stats_v4"
+    stats = None if force_refresh else cache.get(stats_cache_key)
     
     if not stats:
         # ملاحظة: عدّادات التقارير والتذاكر (إجمالي/منجز/مرفوض) تُعرض حسب الفترة المختارة،
@@ -188,8 +189,25 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         # تحسين الاستعلامات باستخدام aggregate
         school_stats = School.objects.aggregate(
             total=Count('id'),
-            active=Count('id', filter=Q(is_active=True))
+            active=Count('id', filter=Q(is_active=True)),
+            storage_used=Sum("storage_used_bytes"),
         )
+
+        # ملخص تشغيلي للتخزين دون أي اتصالات شبكية مع R2.
+        # الحد الفعلي يأتي من إضافة الأرشيف النشطة، وإلا من الحد المجاني العام.
+        platform_settings = PlatformSettings.get_solo()
+        free_limit_bytes = max(0, int(getattr(platform_settings, "free_storage_mb", 0) or 0)) * 1024 * 1024
+        storage_near_limit_count = 0
+        for school in School.objects.only("id", "storage_used_bytes").select_related("archive_addon").iterator():
+            limit_bytes = free_limit_bytes
+            try:
+                addon = school.archive_addon
+                if addon.is_active:
+                    limit_bytes = max(0, int(addon.storage_limit_gb or 0)) * 1024 * 1024 * 1024
+            except SchoolArchiveAddon.DoesNotExist:
+                pass
+            if limit_bytes > 0 and int(school.storage_used_bytes or 0) >= int(limit_bytes * 0.8):
+                storage_near_limit_count += 1
         
         platform_managers_count = (
             Teacher.objects.filter(
@@ -216,6 +234,8 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             "teachers_count": teachers_count,
             "platform_schools_total": school_stats['total'],
             "platform_schools_active": school_stats['active'],
+            "platform_storage_used_bytes": int(school_stats["storage_used"] or 0),
+            "storage_near_limit_count": storage_near_limit_count,
             "platform_managers_count": platform_managers_count,
             "has_reporttype": has_reporttype,
             "reporttypes_count": reporttypes_count,
@@ -230,7 +250,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     # ملاحظة: إجمالي الإيرادات يُعرض حسب الفترة المختارة (kpis.total_revenue)، لذا لا نحسب
     # نسخة "كل الوقت" هنا (كانت تُحسب ثم تُتجاوز).
     financial_cache_key = "platform_financial_v3"
-    financial = cache.get(financial_cache_key)
+    financial = None if force_refresh else cache.get(financial_cache_key)
 
     if not financial:
         subscriptions_active = SchoolSubscription.objects.filter(is_active=True, end_date__gte=now.date()).count()
@@ -265,7 +285,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
 
     # بيانات الرسوم الثابتة (غير مرتبطة بفترة الفلتر) - كاش 10 دقائق
     charts_cache_key = "platform_charts_v2"
-    charts = cache.get(charts_cache_key)
+    charts = None if force_refresh else cache.get(charts_cache_key)
     
     if not charts:
         # توزيع المدارس حسب المرحلة
@@ -301,9 +321,9 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         except Exception:
             pass
 
-    def _build_period_payload(period: str) -> dict:
-        cache_key = f"platform_dashboard_period_payload_v1:{period}"
-        cached_payload = cache.get(cache_key)
+    def _build_period_payload(period: str, *, force: bool = False) -> dict:
+        cache_key = f"platform_dashboard_period_payload_v2:{period}"
+        cached_payload = None if force else cache.get(cache_key)
         if cached_payload:
             return cached_payload
 
@@ -315,7 +335,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         schools_qs = School.objects.all()
 
         if start_at is not None:
-            payments_qs = payments_qs.filter(created_at__gte=start_at)
+            payments_qs = payments_qs.filter(payment_date__gte=start_at.date())
             reports_qs = reports_qs.filter(created_at__gte=start_at)
             tickets_qs = tickets_qs.filter(created_at__gte=start_at)
             schools_qs = schools_qs.filter(created_at__gte=start_at)
@@ -333,7 +353,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
 
         revenue_rows = (
             payments_qs
-            .annotate(month=TruncMonth("created_at"))
+            .annotate(month=TruncMonth("payment_date"))
             .values("month")
             .annotate(total=Sum("amount"))
             .order_by("month")
@@ -372,12 +392,19 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
                 "schools_total": int(stats.get("platform_schools_total", 0)),
                 "schools_active": int(stats.get("platform_schools_active", 0)),
                 "schools_created_in_period": int(schools_count_period),
+                "subscriptions_active": int(financial.get("subscriptions_active", 0)),
+                "storage_used_bytes": int(stats.get("platform_storage_used_bytes", 0)),
+                "storage_near_limit": int(stats.get("storage_near_limit_count", 0)),
                 "total_revenue": float(total_revenue_period),
                 "reports_count": int(reports_count_period),
                 "tickets_total": int(tickets_agg.get("total") or 0),
                 "tickets_open": int(tickets_agg.get("open") or 0),
                 "tickets_done": int(tickets_agg.get("done") or 0),
                 "tickets_rejected": int(tickets_agg.get("rejected") or 0),
+            },
+            "operations": {
+                "pending_payments": int(pending_payments),
+                "subscriptions_expiring_soon": int(financial.get("subscriptions_expiring_soon", 0)),
             },
             "charts": {
                 "revenue": {
@@ -436,7 +463,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         pass
     
     selected_period = _normalize_period(request.GET.get("period"))
-    period_payload = _build_period_payload(selected_period)
+    period_payload = _build_period_payload(selected_period, force=force_refresh)
 
     wants_json = (
         request.GET.get("format") == "json"
@@ -1292,6 +1319,35 @@ def _apply_payment_effects(payment, today, pricing):
     يعيد (level, message) حيث level ∈ {"success", "warning"}.
     يرمي ``_ApprovalError`` إذا تعذّر تطبيق الأثر (يستوجب التراجع).
     """
+    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    if payment.effects_applied_at is not None:
+        return ("warning", "سبق تطبيق أثر عملية الدفع هذه؛ لم يُكرّر التفعيل أو زيادة المساحة.")
+
+    def applied(level, message):
+        payment.effects_applied_at = timezone.now()
+        payment.save(update_fields=["effects_applied_at", "updated_at"])
+        try:
+            from ..utils import create_system_notification
+
+            manager_ids = list(
+                SchoolMembership.objects.filter(
+                    school=payment.school,
+                    role_type=SchoolMembership.RoleType.MANAGER,
+                    is_active=True,
+                ).values_list("teacher_id", flat=True)
+            )
+            if manager_ids:
+                create_system_notification(
+                    title="تم اعتماد طلب المدرسة",
+                    message=message,
+                    school=payment.school,
+                    teacher_ids=manager_ids,
+                    is_important=True,
+                )
+        except Exception:
+            logger.exception("Failed to notify school managers after payment approval")
+        return (level, message)
+
     purpose = getattr(payment, "purpose", Payment.Purpose.SUBSCRIPTION)
 
     if purpose == Payment.Purpose.ARCHIVE_ADDON:
@@ -1321,7 +1377,7 @@ def _apply_payment_effects(payment, today, pricing):
                     "storage_limit_gb", "paid_amount", "updated_at",
                 ]
             )
-        return ("success", "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
+        return applied("success", "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
 
     if purpose == Payment.Purpose.ARCHIVE_STORAGE:
         try:
@@ -1336,7 +1392,7 @@ def _apply_payment_effects(payment, today, pricing):
         addon.storage_limit_gb = int(addon.storage_limit_gb or 0) + added_gb
         addon.paid_amount = (addon.paid_amount or 0) + payment.amount
         addon.save(update_fields=["storage_limit_gb", "paid_amount", "updated_at"])
-        return ("success", f"تمت زيادة مساحة أرشيف المدرسة بمقدار {added_gb}GB.")
+        return applied("success", f"تمت زيادة مساحة أرشيف المدرسة بمقدار {added_gb}GB.")
 
     # ── الاشتراك ──
     plan_to_apply = payment.requested_plan
@@ -1367,7 +1423,7 @@ def _apply_payment_effects(payment, today, pricing):
         payment.subscription = subscription
         payment.save(update_fields=["subscription"])
 
-    return (level, msg)
+    return applied(level, msg)
 
 
 @login_required(login_url="reports:login")
@@ -1617,8 +1673,16 @@ def my_subscription(request):
         "archive_storage_block_gb": pricing["storage_block_gb"],
         "archive_storage_block_price": pricing["storage_block_price"],
         "archive_storage_options": _archive_storage_options(active_only=True),
+        "storage_overview": school_storage_overview(membership.school),
         "pending_archive_addon_payment": pending_archive_addon_payment,
         "pending_archive_storage_payment": pending_archive_storage_payment,
+        "has_saved_archives": SchoolYearArchive.objects.filter(
+            school=membership.school,
+            status__in=[
+                SchoolYearArchive.Status.READY,
+                SchoolYearArchive.Status.PARTIAL,
+            ],
+        ).exists(),
     }
     return render(request, 'reports/my_subscription.html', context)
 

@@ -1,978 +1,842 @@
-{# reports/templates/reports/home.html - Premium 2026 Edition #}
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}الرئيسية | {{ request.user.name|default:"مرحباً" }}{% endblock %}
+{% block title %}مساحة عمل المعلم{% endblock %}
 
 {% block head %}
-<style>
-  /* ============================================================
-     Home Dashboard — Premium 2026 Edition (Full Refresh)
-     ============================================================ */
-
-  /* ── Design tokens (light) ── */
-  .home-wrapper {
-    --dh-brand:       #006c35;
-    --dh-brand-dk:    #00542a;
-    --dh-brand-mid:   #0f8f87;
-    --dh-brand-soft:  rgba(0,108,53,.09);
-    --dh-accent:      #16845b;
-    --dh-purple:      #b9975b;
-    --dh-warn:        #d97706;
-    --dh-danger:      #dc2626;
-    --dh-ink:         #0f172a;
-    --dh-ink-soft:    #334155;
-    --dh-muted:       #64748b;
-    --dh-border:      #e2e8f0;
-    --dh-line-soft:   #f1f5f9;
-    --dh-bg:          #f8fafc;
-    --dh-card:        #ffffff;
-    --dh-r-xl:        22px;
-    --dh-r-lg:        16px;
-    --dh-r-md:        12px;
-    --dh-r-sm:        8px;
-    --dh-sh-xs:       0 1px 3px rgba(2,6,23,.05);
-    --dh-sh:          0 4px 20px rgba(2,6,23,.08);
-    --dh-sh-md:       0 8px 32px rgba(2,6,23,.11);
-    --dh-sh-lg:       0 20px 60px rgba(2,6,23,.14);
-    --dh-t:           .22s cubic-bezier(.4,0,.2,1);
-  }
-
-  /* ── Dark mode overrides ── */
-  html[data-theme="dark"] .home-wrapper {
-    --dh-brand-soft:  rgba(15,143,135,.12);
-    --dh-ink:         #f1f5f9;
-    --dh-ink-soft:    #cbd5e1;
-    --dh-muted:       #94a3b8;
-    --dh-border:      #1e293b;
-    --dh-line-soft:   #0f172a;
-    --dh-bg:          #0f172a;
-    --dh-card:        #1e293b;
-    --dh-sh-xs:       0 1px 3px rgba(0,0,0,.25);
-    --dh-sh:          0 4px 20px rgba(0,0,0,.3);
-    --dh-sh-md:       0 8px 32px rgba(0,0,0,.4);
-    --dh-sh-lg:       0 20px 60px rgba(0,0,0,.5);
-  }
-
-  /* ── Keyframes ── */
-  @keyframes dh-fadeUp  { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:none} }
-  @keyframes dh-scaleIn { from{opacity:0;transform:scale(.94)}       to{opacity:1;transform:none} }
-  @keyframes dh-slideR  { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:none} }
-  @keyframes dh-float   { 0%,100%{transform:translateY(0) rotate(-12deg)} 50%{transform:translateY(-12px) rotate(-12deg)} }
-  @keyframes dh-pulse   { 0%,100%{opacity:1} 50%{opacity:.5} }
-  @keyframes dh-shimmer { 0%{transform:translateX(120%)} 100%{transform:translateX(-120%)} }
-  @keyframes dh-popIn   { from{opacity:0;transform:scale(.88) translateY(16px)} to{opacity:1;transform:none} }
-  @keyframes dh-fadeIn  { from{opacity:0} to{opacity:1} }
-  @keyframes dh-fab-glow {
-    0%,100% { box-shadow: 0 6px 20px rgba(0,108,53,.45), 0 0 0 0 rgba(0,108,53,.3); }
-    50%     { box-shadow: 0 8px 28px rgba(0,108,53,.55), 0 0 0 10px rgba(0,108,53,0); }
-  }
-  @keyframes dh-badgePop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.22)} }
-
-  /* ── Wrapper ── */
-  .home-wrapper {
-    max-width: 1380px;
+<style nonce="{{ CSP_NONCE }}">
+  .teacher-home {
+    --th-green: #006c35;
+    --th-green-dark: #064e2c;
+    --th-green-soft: #ecf8f1;
+    --th-gold: #b9975b;
+    --th-blue: #2563eb;
+    --th-orange: #c96a16;
+    --th-red: #c33b3b;
+    --th-ink: #17221c;
+    --th-muted: #617067;
+    --th-border: #dce7df;
+    --th-card: #fff;
+    --th-surface: #f6faf7;
+    --th-shadow: 0 14px 42px rgba(20, 64, 39, .09);
+    max-width: 1320px;
     margin: 0 auto;
-    padding: 24px 20px 100px;
-    font-family: 'Cairo', 'Cairo', sans-serif;
-    color: var(--dh-ink);
-    background: var(--dh-bg);
-    min-height: 100vh;
-    animation: dh-fadeUp .5s ease;
+    padding: 26px 20px 92px;
+    color: var(--th-ink);
   }
 
-  /* ════════════════════════════
-     1. NOTIFICATION POPUP
-     ════════════════════════════ */
-  .hn-overlay {
-    position: fixed; inset: 0; z-index: 9000;
-    /* Use dynamic viewport height so iOS Safari doesn't push modal below fold */
-    height: 100vh;
-    height: 100dvh;
-    background: rgba(15,23,42,.8);
-    backdrop-filter: blur(10px);
-    display: none;
-    align-items: center; justify-content: center;
-    padding: 1rem;
-    overflow-y: auto;
-    animation: dh-fadeIn .3s ease;
-  }
-  .hn-overlay.is-open { display: flex; }
-
-  /* On mobile, anchor the modal near the top so it's always visible */
-  @media (max-width: 768px) {
-    .hn-overlay {
-      align-items: flex-start;
-      padding-top: max(16px, env(safe-area-inset-top, 16px));
-      padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
-    }
-  }
-  .hn-modal {
-    width: 100%; max-width: 540px;
-    background: var(--dh-card);
-    border-radius: 24px;
-    box-shadow: 0 30px 60px rgba(0,0,0,.35);
-    overflow: hidden;
-    animation: dh-popIn .42s cubic-bezier(.16,1,.3,1);
-    border: 1px solid var(--dh-border);
-  }
-  .hn-head {
-    background: linear-gradient(180deg, var(--dh-line-soft), var(--dh-card));
-    padding: 18px 22px;
-    border-bottom: 1px solid var(--dh-border);
-    display: flex; justify-content: space-between; align-items: center; gap: 10px;
-  }
-  .hn-head h3 {
-    margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--dh-ink);
-    display: flex; align-items: center; gap: 8px;
-  }
-  .hn-close {
-    background: var(--dh-line-soft);
-    border: 1px solid var(--dh-border);
-    border-radius: 8px;
-    width: 32px; height: 32px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; color: var(--dh-muted); cursor: pointer;
-    transition: all var(--dh-t);
-  }
-  .hn-close:hover { background: rgba(220,38,38,.1); color: var(--dh-danger); border-color: rgba(220,38,38,.2); }
-  .hn-body { padding: 22px 24px; font-size: 1rem; line-height: 1.75; color: var(--dh-ink-soft); }
-  .hn-title {
-    font-weight: 800; font-size: 1.1rem; color: var(--dh-ink);
-    margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--dh-border);
-  }
-  .hn-foot {
-    padding: 14px 24px; background: var(--dh-line-soft);
-    font-size: .88rem; color: var(--dh-muted);
-    border-top: 1px solid var(--dh-border);
-    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
-  }
-  .hn-sig-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 14px;
-    background: rgba(220,38,38,.08);
-    border: 1px solid rgba(220,38,38,.22);
-    border-radius: 999px;
-    color: var(--dh-danger);
-    font-size: .82rem; font-weight: 700;
-    animation: dh-badgePop 2s ease infinite;
+  html[data-theme="dark"] .teacher-home {
+    --th-green-soft: rgba(35, 130, 77, .18);
+    --th-ink: #eef7f1;
+    --th-muted: #a9b9ae;
+    --th-border: #2d4937;
+    --th-card: #16271d;
+    --th-surface: #102018;
+    --th-shadow: 0 14px 42px rgba(0, 0, 0, .28);
   }
 
-  /* ════════════════════════════
-     2. HERO SECTION
-     ════════════════════════════ */
-  .hero-section {
+  .th-hero {
     position: relative;
-    background: linear-gradient(135deg, #073b2a 0%, #00542a 30%, #006c35 70%, #0f8f87 100%);
-    border-radius: var(--dh-r-xl);
-    padding: 3rem 2.5rem;
-    color: #fff;
     overflow: hidden;
-    box-shadow: 0 20px 50px -10px rgba(0,108,53,.45), 0 0 0 1px rgba(255,255,255,.08) inset;
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2rem;
-    margin-bottom: 2rem;
-    animation: dh-scaleIn .5s ease;
-  }
-  .hero-section::before {
-    content: ''; position: absolute; inset: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(260px, .55fr);
+    gap: 28px;
+    align-items: center;
+    min-height: 260px;
+    padding: 38px;
+    border: 1px solid rgba(185, 151, 91, .36);
+    border-radius: 28px;
+    color: #fff;
     background:
-      radial-gradient(ellipse 60% 80% at 95% 10%, rgba(255,255,255,.13) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 70% at 5%  90%, rgba(255,255,255,.08) 0%, transparent 50%);
+      radial-gradient(circle at 8% 15%, rgba(255, 255, 255, .16), transparent 26%),
+      radial-gradient(circle at 86% 105%, rgba(185, 151, 91, .34), transparent 35%),
+      linear-gradient(128deg, #064e2c 0%, #006c35 58%, #0a7543 100%);
+    box-shadow: 0 22px 55px rgba(6, 78, 44, .2);
+  }
+
+  .th-hero::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: -68px;
+    top: -90px;
+    width: 260px;
+    height: 260px;
+    border: 42px solid rgba(255, 255, 255, .055);
+    border-radius: 50%;
     pointer-events: none;
   }
-  /* Diagonal shimmer band */
-  .hero-section::after {
-    content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
-    background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.08) 50%, transparent 65%);
-    animation: dh-shimmer 5s ease-in-out infinite;
-    pointer-events: none;
+
+  .th-hero-main,
+  .th-hero-side { position: relative; z-index: 1; }
+
+  .th-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #e5f5eb;
+    font-size: .86rem;
+    font-weight: 800;
   }
-  .hero-content { position: relative; z-index: 2; max-width: 620px; }
-  .hero-sub {
-    display: inline-flex; align-items: center; gap: 7px;
-    background: rgba(255,255,255,.15);
-    border: 1px solid rgba(255,255,255,.25);
+
+  .th-title {
+    margin: 0;
+    max-width: 760px;
+    color: #fff;
+    font-size: clamp(1.7rem, 3vw, 2.55rem);
+    font-weight: 950;
+    line-height: 1.35;
+    letter-spacing: -.5px;
+  }
+
+  .th-lead {
+    max-width: 700px;
+    margin: 12px 0 22px;
+    color: rgba(255, 255, 255, .82);
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+
+  .th-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .th-btn {
+    min-height: 46px;
+    padding: 11px 18px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    font-weight: 900;
+    text-decoration: none;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+
+  .th-btn:hover { transform: translateY(-2px); }
+  .th-btn-primary {
+    color: var(--th-green-dark);
+    background: #fff;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .17);
+  }
+  .th-btn-secondary {
+    color: #fff;
+    border-color: rgba(255, 255, 255, .32);
+    background: rgba(255, 255, 255, .1);
+  }
+
+  .th-hero-side {
+    padding: 22px;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: 20px;
+    background: rgba(2, 45, 25, .28);
+    backdrop-filter: blur(10px);
+  }
+
+  .th-side-label {
+    margin-bottom: 7px;
+    color: rgba(255, 255, 255, .7);
+    font-size: .78rem;
+    font-weight: 800;
+  }
+  .th-side-value {
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 950;
+    line-height: 1.55;
+  }
+  .th-side-separator {
+    height: 1px;
+    margin: 16px 0;
+    background: rgba(255, 255, 255, .16);
+  }
+
+  .th-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .th-kpi {
+    min-width: 0;
+    padding: 19px;
+    border: 1px solid var(--th-border);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: inherit;
+    background: var(--th-card);
+    box-shadow: 0 8px 28px rgba(25, 70, 43, .055);
+    text-decoration: none;
+    transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+  }
+  .th-kpi:hover {
+    transform: translateY(-3px);
+    border-color: rgba(0, 108, 53, .4);
+    box-shadow: var(--th-shadow);
+  }
+  .th-kpi-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 auto;
+    border-radius: 15px;
+    display: grid;
+    place-items: center;
+    color: var(--th-green);
+    background: var(--th-green-soft);
+    font-size: 1.12rem;
+  }
+  .th-kpi:nth-child(2) .th-kpi-icon { color: var(--th-blue); background: rgba(37, 99, 235, .1); }
+  .th-kpi:nth-child(3) .th-kpi-icon { color: var(--th-orange); background: rgba(201, 106, 22, .1); }
+  .th-kpi-value { font-size: 1.55rem; font-weight: 950; line-height: 1.15; }
+  .th-kpi-label { margin-top: 4px; color: var(--th-muted); font-size: .82rem; font-weight: 800; }
+
+  .th-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(290px, .75fr);
+    gap: 18px;
+    align-items: start;
+    margin-top: 22px;
+  }
+
+  .th-stack { display: grid; gap: 18px; }
+  .th-card {
+    padding: 22px;
+    border: 1px solid var(--th-border);
+    border-radius: 21px;
+    background: var(--th-card);
+    box-shadow: 0 8px 28px rgba(25, 70, 43, .055);
+  }
+  .th-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 17px;
+  }
+  .th-card-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--th-ink);
+    font-size: 1.08rem;
+    font-weight: 950;
+  }
+  .th-card-title i { color: var(--th-green); }
+  .th-link {
+    color: var(--th-green);
+    font-size: .82rem;
+    font-weight: 900;
+    text-decoration: none;
+  }
+  .th-link:hover { text-decoration: underline; }
+
+  .th-attention {
+    display: grid;
+    gap: 10px;
+  }
+  .th-attention-item {
+    padding: 13px;
+    border: 1px solid var(--th-border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: inherit;
+    background: var(--th-surface);
+    text-decoration: none;
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .th-attention-item:hover { border-color: rgba(0, 108, 53, .4); transform: translateX(-2px); }
+  .th-attention-icon {
+    width: 39px;
+    height: 39px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    color: var(--th-green);
+    background: var(--th-green-soft);
+  }
+  .th-attention-text { min-width: 0; flex: 1; }
+  .th-attention-name { font-size: .88rem; font-weight: 900; }
+  .th-attention-hint { margin-top: 2px; color: var(--th-muted); font-size: .73rem; }
+  .th-count {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
     border-radius: 999px;
-    padding: 5px 14px;
-    font-size: .82rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: var(--th-green);
+    font-size: .76rem;
+    font-weight: 950;
+  }
+
+  .th-all-clear {
+    padding: 17px;
+    border: 1px dashed rgba(0, 108, 53, .35);
+    border-radius: 15px;
+    text-align: center;
+    color: var(--th-muted);
+    background: var(--th-green-soft);
+  }
+  .th-all-clear i { display: block; margin-bottom: 8px; color: var(--th-green); font-size: 1.45rem; }
+  .th-all-clear strong { display: block; margin-bottom: 4px; color: var(--th-ink); }
+
+  .th-report-list,
+  .th-ticket-list { display: grid; gap: 10px; }
+  .th-report,
+  .th-ticket {
+    padding: 14px;
+    border: 1px solid var(--th-border);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    color: inherit;
+    background: var(--th-surface);
+    text-decoration: none;
+    transition: transform .18s ease, border-color .18s ease;
+  }
+  .th-report:hover,
+  .th-ticket:hover { transform: translateX(-3px); border-color: rgba(0, 108, 53, .38); }
+  .th-report-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    color: var(--th-green);
+    background: var(--th-green-soft);
+  }
+  .th-item-body { min-width: 0; flex: 1; }
+  .th-item-title {
+    overflow: hidden;
+    color: var(--th-ink);
+    font-size: .89rem;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .th-item-meta {
+    margin-top: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    color: var(--th-muted);
+    font-size: .73rem;
+  }
+  .th-item-arrow { color: #93a49a; font-size: .8rem; }
+
+  .th-empty {
+    padding: 28px 16px;
+    border: 1px dashed var(--th-border);
+    border-radius: 16px;
+    text-align: center;
+    color: var(--th-muted);
+    background: var(--th-surface);
+  }
+  .th-empty i { margin-bottom: 9px; color: var(--th-green); font-size: 1.6rem; }
+  .th-empty strong { display: block; margin-bottom: 5px; color: var(--th-ink); }
+  .th-empty .th-link { display: inline-block; margin-top: 10px; }
+
+  .th-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .th-action {
+    min-height: 105px;
+    padding: 15px;
+    border: 1px solid var(--th-border);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: inherit;
+    background: var(--th-surface);
+    text-decoration: none;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease;
+  }
+  .th-action:hover { transform: translateY(-3px); border-color: rgba(0, 108, 53, .4); background: var(--th-green-soft); }
+  .th-action i { color: var(--th-green); font-size: 1.18rem; }
+  .th-action strong { font-size: .84rem; font-weight: 950; }
+
+  .th-request-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
     margin-bottom: 14px;
   }
-  .hero-title {
-    font-size: clamp(1.8rem, 4vw, 2.6rem);
-    font-weight: 900; margin: 0 0 12px; line-height: 1.2; letter-spacing: -.02em;
+  .th-request-stat {
+    padding: 11px 7px;
+    border-radius: 12px;
+    text-align: center;
+    background: var(--th-surface);
   }
-  .hero-desc { font-size: 1.05rem; line-height: 1.65; opacity: .92; max-width: 50ch; }
-  .hero-grid-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+  .th-request-stat strong { display: block; font-size: 1.15rem; }
+  .th-request-stat span { color: var(--th-muted); font-size: .69rem; font-weight: 800; }
 
-  .btn-white {
-    position: relative; overflow: hidden;
-    background: #fff; color: var(--dh-brand); border: none;
-    font-weight: 800; font-size: .95rem; padding: 13px 26px;
-    border-radius: 12px; display: inline-flex; align-items: center; gap: 9px;
-    text-decoration: none; transition: all var(--dh-t);
-    box-shadow: 0 4px 12px rgba(0,0,0,.12); min-height: 48px;
+  .th-status {
+    flex: 0 0 auto;
+    padding: 5px 8px;
+    border-radius: 999px;
+    color: var(--th-green);
+    background: var(--th-green-soft);
+    font-size: .66rem;
+    font-weight: 900;
   }
-  .btn-white:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,108,53,.3); color: var(--dh-brand-dk); }
+  .th-status.status-open { color: var(--th-orange); background: rgba(201, 106, 22, .1); }
+  .th-status.status-in_progress { color: var(--th-blue); background: rgba(37, 99, 235, .1); }
+  .th-status.status-rejected { color: var(--th-red); background: rgba(195, 59, 59, .1); }
 
-  .btn-glass {
-    background: rgba(255,255,255,.14); color: #fff;
-    border: 1.5px solid rgba(255,255,255,.3);
-    font-weight: 700; font-size: .92rem; padding: 11px 22px;
-    border-radius: 12px; display: inline-flex; align-items: center; gap: 8px;
-    text-decoration: none; backdrop-filter: blur(10px);
-    transition: all var(--dh-t); min-height: 48px; position: relative; white-space: nowrap;
-  }
-  .btn-glass:hover {
-    background: rgba(255,255,255,.25); border-color: rgba(255,255,255,.7);
-    transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.15);
-  }
-  .hero-dot {
-    position: absolute; top: -4px; left: -4px;
-    width: 11px; height: 11px;
-    background: #f87171;
-    border: 2px solid rgba(0,108,53,.5); border-radius: 50%;
-    animation: dh-pulse 1.8s ease infinite;
+  .th-mobile-add {
+    display: none;
+    position: fixed;
+    inset-inline-start: 16px;
+    bottom: 18px;
+    z-index: 20;
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: var(--th-green);
+    box-shadow: 0 14px 30px rgba(0, 108, 53, .36);
+    text-decoration: none;
+    font-size: 1.25rem;
   }
 
-  /* Decorative mini-cards (desktop only) */
-  .hero-visual {
-    position: relative; z-index: 2;
-    display: none; flex-direction: column; align-items: center; gap: 12px; flex-shrink: 0;
+  .th-notification-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 20, 11, .66);
+    backdrop-filter: blur(5px);
   }
-  @media (min-width: 900px) { .hero-visual { display: flex; } }
-  .hero-mini-card {
-    background: rgba(255,255,255,.14);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,.22);
-    border-radius: 14px; padding: 12px 16px;
-    display: flex; align-items: center; gap: 12px; min-width: 200px;
-    transition: transform var(--dh-t);
+  .th-notification-overlay[hidden] { display: none; }
+  .th-notification {
+    width: min(560px, 100%);
+    overflow: hidden;
+    border: 1px solid rgba(185, 151, 91, .45);
+    border-radius: 22px;
+    color: var(--th-ink);
+    background: var(--th-card);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .3);
   }
-  .hero-mini-card:nth-child(2) { animation: dh-float 4s ease-in-out infinite; }
-  .hero-mini-card:hover { transform: scale(1.03); }
-  .hero-mc-icon {
-    width: 36px; height: 36px; background: rgba(255,255,255,.2);
-    border-radius: 10px; display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; flex-shrink: 0;
+  .th-notification-head {
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    color: #fff;
+    background: linear-gradient(120deg, var(--th-green-dark), var(--th-green));
   }
-  .hero-mc-label { font-size: .8rem; opacity: .8; font-weight: 600; }
-  .hero-mc-val   { font-size: 1.2rem; font-weight: 800; }
+  .th-notification-head h2 { margin: 0; font-size: 1.05rem; font-weight: 950; }
+  .th-notification-close {
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 11px;
+    color: #fff;
+    background: rgba(255, 255, 255, .1);
+    cursor: pointer;
+  }
+  .th-notification-body { padding: 22px; line-height: 1.9; }
+  .th-notification-title { margin-bottom: 8px; font-size: 1.08rem; font-weight: 950; }
+  .th-important,
+  .th-signature {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    color: var(--th-red);
+    background: rgba(195, 59, 59, .1);
+    font-size: .72rem;
+    font-weight: 900;
+  }
+  .th-signature { margin-top: 14px; color: var(--th-orange); background: rgba(201, 106, 22, .1); }
+  .th-notification-foot {
+    padding: 13px 20px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--th-muted);
+    background: var(--th-surface);
+    font-size: .75rem;
+  }
 
-  /* ════════════════════════════
-     3. ALERT BANNER
-     ════════════════════════════ */
-  .dh-alert {
-    display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 12px;
-    padding: 16px 20px; border-radius: var(--dh-r-lg);
-    margin-bottom: 24px; border: 1px solid;
-    animation: dh-fadeUp .4s ease;
+  @media (max-width: 960px) {
+    .th-hero { grid-template-columns: 1fr; }
+    .th-hero-side { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+    .th-side-separator { width: 1px; height: 48px; margin: 0 18px; }
+    .th-layout { grid-template-columns: 1fr; }
   }
-  .dh-alert.danger {
-    background: rgba(220,38,38,.06); border-color: rgba(220,38,38,.22); color: #991b1b;
-  }
-  html[data-theme="dark"] .dh-alert.danger {
-    background: rgba(220,38,38,.1); border-color: rgba(220,38,38,.3); color: #fca5a5;
-  }
-  .dh-alert-body { display: flex; align-items: center; gap: 14px; flex: 1; }
-  .dh-alert-icon {
-    width: 42px; height: 42px; background: rgba(220,38,38,.1);
-    border-radius: 10px; display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem; flex-shrink: 0;
-  }
-  .dh-alert-title { font-weight: 800; font-size: 1rem; margin-bottom: 2px; }
-  .dh-alert-sub   { font-size: .88rem; opacity: .85; }
-  .dh-alert-btn {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 10px 18px; background: var(--dh-danger); color: #fff;
-    border-radius: var(--dh-r-sm); font-weight: 700; font-size: .88rem;
-    text-decoration: none; transition: all var(--dh-t);
-    white-space: nowrap; min-height: 40px; box-shadow: 0 4px 12px rgba(220,38,38,.3);
-  }
-  .dh-alert-btn:hover { background: #b91c1c; transform: translateY(-1px); }
 
-  /* ════════════════════════════
-     4. STATS GRID
-     ════════════════════════════ */
-  .stats-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px; margin-bottom: 32px;
+  @media (max-width: 680px) {
+    .teacher-home { padding: 12px 10px 90px; }
+    .th-hero { min-height: auto; padding: 25px 19px; border-radius: 21px; }
+    .th-title { font-size: 1.48rem; }
+    .th-lead { margin-bottom: 18px; font-size: .86rem; line-height: 1.75; }
+    .th-hero-actions .th-btn { flex: 1; padding-inline: 11px; }
+    .th-hero-side { padding: 15px; }
+    .th-kpis { grid-template-columns: 1fr; gap: 9px; }
+    .th-kpi { padding: 14px; }
+    .th-card { padding: 16px; border-radius: 17px; }
+    .th-card-head { align-items: flex-start; }
+    .th-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .th-mobile-add { display: flex; }
+    .th-notification-foot { flex-direction: column; }
   }
-  .stat-card {
-    background: var(--dh-card); border: 1px solid var(--dh-border);
-    border-radius: var(--dh-r-lg); padding: 1.6rem 1.75rem;
-    position: relative; overflow: hidden;
-    transition: all var(--dh-t); box-shadow: var(--dh-sh-xs);
-    animation: dh-fadeUp .5s ease backwards;
-  }
-  .stat-card:nth-child(1) { animation-delay: .08s; }
-  .stat-card:nth-child(2) { animation-delay: .16s; }
-  .stat-card:nth-child(3) { animation-delay: .24s; }
-  .stat-card:nth-child(4) { animation-delay: .32s; }
-  /* Decorative orb */
-  .stat-card::before {
-    content: ''; position: absolute;
-    top: -30px; right: -30px; width: 110px; height: 110px;
-    border-radius: 50%; opacity: .06; transition: transform var(--dh-t);
-  }
-  .st-prim::before  { background: var(--dh-brand); }
-  .st-accent::before{ background: var(--dh-accent); }
-  .st-warn::before  { background: var(--dh-warn); }
-  .st-info::before  { background: #0072bc; }
-  .stat-card:hover::before { transform: scale(1.6); opacity: .09; }
-  /* Top accent bar */
-  .stat-card::after {
-    content: ''; position: absolute;
-    top: 0; right: 0; left: 0; height: 3px;
-    border-radius: 4px 4px 0 0; opacity: 0; transition: opacity var(--dh-t);
-  }
-  .st-prim::after  { background: var(--dh-brand); }
-  .st-accent::after{ background: var(--dh-accent); }
-  .st-warn::after  { background: var(--dh-warn); }
-  .st-info::after  { background: #0072bc; }
-  .stat-card:hover { transform: translateY(-5px); box-shadow: var(--dh-sh-md); border-color: rgba(0,108,53,.22); }
-  .stat-card:hover::after { opacity: 1; }
-  .stat-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
-  .stat-icon {
-    width: 48px; height: 48px; border-radius: 13px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.35rem; flex-shrink: 0;
-  }
-  .st-prim  .stat-icon { background: rgba(0,108,53,.1);  color: var(--dh-brand); }
-  .st-accent .stat-icon { background: rgba(22,132,91,.1);  color: var(--dh-accent); }
-  .st-warn  .stat-icon { background: rgba(217,119,6,.1);  color: var(--dh-warn); }
-  .st-info  .stat-icon { background: rgba(14,165,233,.1); color: #0072bc; }
-  .stat-val {
-    font-size: 2.4rem; font-weight: 900; color: var(--dh-ink);
-    line-height: 1; margin-bottom: 4px; font-variant-numeric: tabular-nums;
-  }
-  .stat-lbl { font-size: .92rem; font-weight: 600; color: var(--dh-muted); }
-  .stat-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap;
-  }
-  .stat-badge.active  { background: rgba(22,132,91,.1);  color: var(--dh-accent); border: 1px solid rgba(22,132,91,.2); }
-  .stat-badge.pending { background: rgba(217,119,6,.1);  color: var(--dh-warn);   border: 1px solid rgba(217,119,6,.2); }
 
-  /* ════════════════════════════
-     5. MAIN SPLIT
-     ════════════════════════════ */
-  .main-split { display: grid; gap: 24px; grid-template-columns: 2.2fr 1fr; }
-  @media (max-width: 900px) { .main-split { grid-template-columns: 1fr; } }
-  .sec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .sec-title {
-    font-size: 1.12rem; font-weight: 800; margin: 0; color: var(--dh-ink);
-    display: flex; align-items: center; gap: 9px;
-  }
-  .sec-title-icon {
-    width: 34px; height: 34px; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center; font-size: .9rem; flex-shrink: 0;
-  }
-  .sec-link { font-size: .88rem; color: var(--dh-brand); text-decoration: none; font-weight: 700; }
-  .sec-link:hover { text-decoration: underline; }
-
-  /* List Items */
-  .lux-list { display: flex; flex-direction: column; gap: 10px; }
-  .lux-item {
-    background: var(--dh-card); border: 1px solid var(--dh-border);
-    border-radius: var(--dh-r-md); padding: 1.15rem 1.2rem;
-    display: flex; align-items: center; gap: 1rem;
-    text-decoration: none; color: var(--dh-ink);
-    transition: all var(--dh-t); position: relative; overflow: hidden;
-    box-shadow: var(--dh-sh-xs);
-    animation: dh-slideR .4s ease backwards;
-  }
-  .lux-item:nth-child(1) { animation-delay: .07s; }
-  .lux-item:nth-child(2) { animation-delay: .14s; }
-  .lux-item::before {
-    content: ''; position: absolute;
-    right: 0; top: 0; width: 3px; height: 100%;
-    background: var(--dh-brand);
-    border-radius: 0 var(--dh-r-md) var(--dh-r-md) 0;
-    transform: scaleY(0); transition: transform var(--dh-t);
-  }
-  .lux-item:hover::before { transform: scaleY(1); }
-  .lux-item:hover {
-    transform: translateX(-6px); border-color: rgba(0,108,53,.25); box-shadow: var(--dh-sh);
-  }
-  .li-icon {
-    width: 44px; height: 44px; background: var(--dh-line-soft); color: var(--dh-muted);
-    border-radius: 11px; display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem; flex-shrink: 0; transition: all var(--dh-t);
-  }
-  .lux-item:hover .li-icon { background: var(--dh-brand-soft); color: var(--dh-brand); }
-  .li-body { flex: 1; min-width: 0; }
-  .li-title { font-weight: 700; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .97rem; }
-  .li-meta  { font-size: .83rem; color: var(--dh-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .li-tag   { padding: 2px 8px; background: var(--dh-line-soft); border: 1px solid var(--dh-border); border-radius: 5px; font-size: .78rem; font-weight: 600; color: var(--dh-muted); }
-  .li-arrow { color: var(--dh-muted); font-size: .8rem; opacity: .5; transition: transform var(--dh-t), opacity var(--dh-t); }
-  .lux-item:hover .li-arrow { transform: translateX(-4px); opacity: 1; }
-
-  /* Empty state */
-  .dh-empty {
-    background: var(--dh-card); border: 1px dashed var(--dh-border);
-    border-radius: var(--dh-r-lg); padding: 52px 32px; text-align: center;
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
-  }
-  .dh-empty-icon {
-    width: 72px; height: 72px; background: var(--dh-line-soft);
-    border: 1px solid var(--dh-border); border-radius: 22px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem; color: var(--dh-muted); margin-bottom: 4px;
-  }
-  .dh-empty-title { font-weight: 800; font-size: 1.05rem; color: var(--dh-ink); margin: 0; }
-  .dh-empty-sub   { font-size: .9rem; color: var(--dh-muted); margin: 0; }
-  .dh-empty-cta {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 10px 20px; background: var(--dh-brand); color: #fff;
-    border-radius: var(--dh-r-sm); font-weight: 700; font-size: .9rem;
-    text-decoration: none; margin-top: 4px; transition: all var(--dh-t);
-    box-shadow: 0 4px 12px rgba(0,108,53,.3);
-  }
-  .dh-empty-cta:hover { background: var(--dh-brand-dk); transform: translateY(-2px); }
-
-  /* ── Widget Cards (Sidebar) ── */
-  .widget-card {
-    background: var(--dh-card); border: 1px solid var(--dh-border);
-    border-radius: var(--dh-r-lg); padding: 1.4rem;
-    margin-bottom: 1.1rem; box-shadow: var(--dh-sh-xs);
-    transition: all var(--dh-t); position: relative; overflow: hidden;
-    text-decoration: none; color: var(--dh-ink); display: block;
-  }
-  .widget-card:last-child { margin-bottom: 0; }
-  .widget-card:hover { transform: translateY(-3px); box-shadow: var(--dh-sh); border-color: rgba(0,108,53,.2); }
-  .widget-card::after {
-    content: ''; position: absolute; bottom: -20px; left: -20px;
-    width: 80px; height: 80px; border-radius: 50%;
-    background: radial-gradient(circle, var(--dh-brand-soft), transparent 70%);
-    pointer-events: none; opacity: 0; transition: opacity var(--dh-t);
-  }
-  .widget-card:hover::after { opacity: 1; }
-  .wc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
-  .wc-title  { display: flex; align-items: center; gap: 9px; font-size: .98rem; font-weight: 800; color: var(--dh-ink); }
-  .wc-icon   { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: .9rem; flex-shrink: 0; }
-  .wc-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-  .wc-mini-stat {
-    background: var(--dh-line-soft); border: 1px solid var(--dh-border);
-    border-radius: var(--dh-r-sm); padding: 10px; text-align: center;
-  }
-  .wc-mini-num { font-size: 1.45rem; font-weight: 900; line-height: 1; margin-bottom: 3px; }
-  .wc-mini-lbl { font-size: .78rem; font-weight: 600; color: var(--dh-muted); }
-  .wc-btn {
-    display: flex; align-items: center; justify-content: center; gap: 7px;
-    width: 100%; padding: 11px; border-radius: var(--dh-r-sm);
-    text-align: center; text-decoration: none; font-weight: 700; font-size: .88rem;
-    transition: all var(--dh-t); min-height: 42px; margin-bottom: 8px; border: 1px solid transparent;
-  }
-  .wc-btn:last-child { margin-bottom: 0; }
-  .wc-btn.primary { background: var(--dh-purple); color: #fff; box-shadow: 0 4px 12px rgba(139,92,246,.3); }
-  .wc-btn.primary:hover { background: #b9975b; transform: translateY(-1px); }
-  .wc-btn.ghost   { background: var(--dh-line-soft); color: var(--dh-ink); border-color: var(--dh-border); }
-  .wc-btn.ghost:hover { background: var(--dh-border); }
-  .widget-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .wl-left  { display: flex; align-items: center; gap: 12px; }
-  .wl-icon  { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
-  .wl-text  { font-weight: 700; font-size: .95rem; color: var(--dh-ink); }
-  .wl-sub   { font-size: .8rem; color: var(--dh-muted); font-weight: 500; margin-top: 1px; }
-  .wl-arrow { color: var(--dh-muted); opacity: .5; font-size: .85rem; transition: all var(--dh-t); }
-  .widget-card:hover .wl-arrow { transform: translateX(-4px); opacity: 1; color: var(--dh-brand); }
-
-  /* ── Motivation Banner ── */
-  .motiv-banner {
-    background: linear-gradient(135deg, #16845b 0%, #047857 60%, #065f46 100%);
-    color: #fff; padding: 1.6rem; border-radius: var(--dh-r-lg);
-    box-shadow: 0 10px 24px rgba(22,132,91,.3);
-    position: relative; overflow: hidden; margin-bottom: 1.1rem;
-  }
-  .motiv-banner::before {
-    content: '⚡'; position: absolute; top: -15px; right: -10px;
-    font-size: 7rem; opacity: .08;
-    animation: dh-float 3.5s ease-in-out infinite; pointer-events: none;
-  }
-  .motiv-title { font-size: 1.05rem; font-weight: 800; margin: 0 0 7px; }
-  .motiv-desc  { font-size: .9rem; opacity: .88; line-height: 1.55; margin: 0 0 16px; }
-  .motiv-cta {
-    display: inline-flex; align-items: center; gap: 7px;
-    background: rgba(255,255,255,.2); color: #fff;
-    padding: 8px 16px; border-radius: 8px; font-size: .88rem; font-weight: 700;
-    text-decoration: none; border: 1px solid rgba(255,255,255,.3);
-    transition: all var(--dh-t); min-height: 38px;
-  }
-  .motiv-cta:hover { background: rgba(255,255,255,.3); transform: translateY(-1px); }
-
-  /* ════════════════════════════
-     6. FLOATING ACTION BUTTON
-     ════════════════════════════ */
-  .dh-fab {
-    position: fixed; bottom: 28px; left: 24px; z-index: 800;
-    display: none; flex-direction: column; align-items: flex-start; gap: 10px;
-  }
-  @media (max-width: 768px) { .dh-fab { display: flex; } }
-  .dh-fab-main {
-    width: 58px; height: 58px;
-    background: linear-gradient(135deg, var(--dh-brand) 0%, var(--dh-brand-dk) 100%);
-    border-radius: 50%; border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 1.3rem;
-    transition: all var(--dh-t); text-decoration: none;
-    animation: dh-fab-glow 2.5s ease infinite;
-  }
-  .dh-fab-main:hover { transform: scale(1.08) translateY(-2px); }
-  .dh-fab-label {
-    background: var(--dh-ink); color: #fff;
-    font-size: .78rem; font-weight: 700;
-    padding: 5px 12px; border-radius: 8px; white-space: nowrap;
-    opacity: 0; transform: translateX(-8px);
-    transition: all var(--dh-t); pointer-events: none;
-  }
-  .dh-fab:hover .dh-fab-label { opacity: 1; transform: none; }
-
-  /* ════════════════════════════
-     7. RESPONSIVE
-     ════════════════════════════ */
-  @media (max-width: 768px) {
-    .home-wrapper { padding: 12px 12px 86px; }
-    .hero-section { padding: 1.4rem 1rem; flex-direction: column; align-items: stretch; border-radius: 16px; }
-    .hero-title { font-size: 1.42rem; }
-    .hero-desc { font-size: .88rem; line-height: 1.6; }
-    .hero-sub { font-size: .74rem; }
-    .hero-grid-actions { flex-direction: column; margin-top: 14px; gap: 8px; }
-    .btn-white, .btn-glass { width: 100%; justify-content: center; min-height: 40px; padding: 10px 12px; font-size: .84rem; }
-    .stats-container { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
-    .stat-card { padding: 1rem .85rem; border-radius: 13px; }
-    .stat-icon { width: 38px; height: 38px; border-radius: 10px; font-size: 1rem; }
-    .stat-val { font-size: 1.45rem; }
-    .stat-lbl { font-size: .78rem; }
-    .stat-badge { font-size: .68rem; padding: 2px 6px; }
-    .sec-title { font-size: .95rem; }
-    .sec-title-icon { width: 28px; height: 28px; border-radius: 8px; font-size: .78rem; }
-    .lux-list { gap: 8px; }
-    .lux-item { padding: .82rem .76rem; border-radius: 11px; gap: .7rem; }
-    .li-icon { width: 34px; height: 34px; border-radius: 9px; font-size: .9rem; }
-    .li-title { font-size: .84rem; }
-    .li-meta { font-size: .72rem; gap: 6px; }
-    .widget-card { padding: .95rem; border-radius: 12px; margin-bottom: .75rem; }
-    .dh-empty { padding: 28px 14px; border-radius: 12px; }
-    .dh-empty-icon { width: 54px; height: 54px; border-radius: 14px; font-size: 1.45rem; }
-    .dh-empty-title { font-size: .92rem; }
-    .dh-empty-sub { font-size: .8rem; }
-    .main-split { grid-template-columns: 1fr; gap: 14px; }
-  }
-  @media (max-width: 480px) {
-    .home-wrapper { padding: 10px 10px 84px; }
-    .hero-title { font-size: 1.28rem; }
-    .hero-desc { font-size: .82rem; }
-    .stats-container { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .stat-val { font-size: 1.28rem; }
-    .stat-card { padding: .82rem .72rem; }
-    .lux-item { padding: .72rem .66rem; }
-    .widget-card { padding: .8rem; }
-  }
   @media (prefers-reduced-motion: reduce) {
-    .home-wrapper, .stat-card, .lux-item, .widget-card,
-    .btn-white, .btn-glass, .hero-mini-card, .dh-fab-main,
-    .hero-section::after, .motiv-banner::before { animation: none !important; transition: none !important; }
+    .teacher-home * { scroll-behavior: auto !important; transition: none !important; }
   }
-
-  /* ── keep old names for --dash-* used elsewhere (compat shim) ── */
-  .home-wrapper { --dash-brand: var(--dh-brand); --dash-muted: var(--dh-muted); --dash-border: var(--dh-border); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="home-wrapper" dir="rtl">
-
-  <!-- ═══ NOTIFICATION POPUP ═══ -->
+<main class="teacher-home" dir="rtl">
   {% if home_notification %}
-    <div class="hn-overlay is-open" id="notifOverlay"
+    <div class="th-notification-overlay" id="homeNotification"
+         role="dialog" aria-modal="true" aria-labelledby="homeNotificationTitle"
          {% if home_notification_recipient_id %}
-           data-recipient="{{ home_notification_recipient_id }}"
-           data-url="{% url 'reports:notification_mark_read' home_notification_recipient_id %}"
+           data-storage-key="teacher_notification_{{ home_notification_recipient_id }}"
+           data-mark-url="{% url 'reports:notification_mark_read' home_notification_recipient_id %}"
          {% endif %}>
-      <div class="hn-modal">
-        <div class="hn-head">
-          <h3>
-            <i class="fa-solid fa-bell" style="color:#b9975b"></i>
+      <section class="th-notification">
+        <header class="th-notification-head">
+          <h2 id="homeNotificationTitle">
+            <i class="fa-solid fa-bell" aria-hidden="true"></i>
             رسالة جديدة
-            {% if home_notification.is_important %}
-              <span style="background:rgba(220,38,38,.1);color:#dc2626;font-size:.72em;padding:3px 9px;border-radius:12px;border:1px solid rgba(220,38,38,.2);">هام</span>
-            {% endif %}
-          </h3>
-          <button type="button" class="hn-close" id="notifClose" aria-label="إغلاق">
-            <i class="fa-solid fa-xmark"></i>
+            {% if home_notification.is_important %}<span class="th-important">هامة</span>{% endif %}
+          </h2>
+          <button type="button" class="th-notification-close" id="homeNotificationClose" aria-label="إغلاق الرسالة">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
-        </div>
-        <div class="hn-body">
+        </header>
+        <div class="th-notification-body">
+          {% csrf_token %}
           {% if home_notification.title %}
-            <div class="hn-title">{{ home_notification.title }}</div>
+            <div class="th-notification-title">{{ home_notification.title }}</div>
           {% endif %}
-          {{ home_notification.message|linebreaksbr }}
+          <div>{{ home_notification.message|linebreaksbr }}</div>
           {% if home_notification.requires_signature %}
-            <div style="margin-top:16px">
-              <span class="hn-sig-badge">
-                <i class="fa-solid fa-pen-to-square"></i> يتطلب توقيعك
-              </span>
-            </div>
+            <span class="th-signature"><i class="fa-solid fa-pen" aria-hidden="true"></i> يتطلب الاطلاع والتوقيع</span>
           {% endif %}
         </div>
-        <div class="hn-foot">
-          <span style="font-weight:700;color:var(--dh-ink-soft)">
-            <i class="fa-regular fa-user"></i>&nbsp;
+        <footer class="th-notification-foot">
+          <span>
+            المرسل:
             {% if home_notification.created_by %}
-              {% firstof home_notification.created_by.name home_notification.created_by.phone "—" %}
-            {% else %}الإدارة{% endif %}
+              {% firstof home_notification.created_by.name home_notification.created_by.phone "الإدارة" %}
+            {% else %}
+              الإدارة
+            {% endif %}
           </span>
-          <span dir="ltr" style="font-size:.85rem">{{ home_notification.created_at|date:"Y-m-d H:i" }}</span>
-        </div>
-      </div>
+          <time dir="ltr">{{ home_notification.created_at|date:"Y-m-d H:i" }}</time>
+        </footer>
+      </section>
     </div>
   {% endif %}
 
-  <!-- ═══ HERO SECTION ═══ -->
-  <section class="hero-section">
-    <div class="hero-content">
-      <div class="hero-sub">
-        <i class="fa-solid fa-school" style="opacity:.9"></i>
-        {% if SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}منصة توثـيق{% endif %}
+  <section class="th-hero" aria-labelledby="teacherHomeTitle">
+    <div class="th-hero-main">
+      <div class="th-eyebrow">
+        <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
+        مساحة عمل المعلم
       </div>
-      <h1 class="hero-title">أهلًا، {{ request.user.name|default:"مستخدمنا العزيز" }} 👋</h1>
-      <p class="hero-desc">عوداً حميداً! لديك اليوم فرصة جديدة لتوثيق إنجازاتك ومتابعة تقدمك بكل سهولة.</p>
-      <div class="hero-grid-actions">
-        <a href="{% url 'reports:add_report' %}" class="btn-white" id="heroAddBtn">
-          <i class="fa-solid fa-plus-circle"></i> إضافة تقرير
+      <h1 class="th-title" id="teacherHomeTitle">مرحبًا، {{ request.user.name|default:"معلمنا" }}</h1>
+      <p class="th-lead">وثّق عملك، تابع طلباتك، واحتفظ بإنجازاتك من مكان واحد واضح.</p>
+      <div class="th-hero-actions">
+        <a href="{% url 'reports:add_report' %}" class="th-btn th-btn-primary">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          إضافة تقرير
         </a>
-        <a href="{% url 'reports:my_reports' %}" class="btn-glass">
-          <i class="fa-solid fa-folder-open"></i> تقاريري
+        <a href="{% url 'reports:my_reports' %}" class="th-btn th-btn-secondary">
+          <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+          استعراض تقاريري
         </a>
-        {% url 'reports:my_notifications' as notifUrl %}
-        {% if notifUrl %}
-          <a href="{{ notifUrl }}" class="btn-glass" style="position:relative">
-            <i class="fa-regular fa-bell"></i>
-            {% if NAV_NOTIFICATIONS_UNREAD %}<span class="hero-dot"></span>{% endif %}
-          </a>
-        {% endif %}
-        {% url 'reports:my_circulars' as circUrl %}
-        {% if circUrl %}
-          <a href="{{ circUrl }}" class="btn-glass" style="position:relative" title="التعاميم">
-            <i class="fa-solid fa-bullhorn"></i>
-            {% if NAV_SIGNATURES_PENDING %}<span class="hero-dot"></span>{% endif %}
-          </a>
-        {% endif %}
       </div>
     </div>
-    <!-- Decorative mini-cards (desktop only) -->
-    <div class="hero-visual">
-      <div class="hero-mini-card">
-        <div class="hero-mc-icon"><i class="fa-solid fa-calendar-day"></i></div>
-        <div>
-          <div class="hero-mc-label">تقارير اليوم</div>
-          <div class="hero-mc-val">{{ stats.today_count|default:"0" }}</div>
-        </div>
+    <aside class="th-hero-side" aria-label="ملخص المدرسة وآخر توثيق">
+      <div>
+        <div class="th-side-label">المدرسة الحالية</div>
+        <div class="th-side-value">{{ SCHOOL_NAME|default:"لم تُحدد المدرسة" }}</div>
       </div>
-      <div class="hero-mini-card">
-        <div class="hero-mc-icon"><i class="fa-solid fa-layer-group"></i></div>
-        <div>
-          <div class="hero-mc-label">إجمالي التقارير</div>
-          <div class="hero-mc-val">{{ stats.total_count|default:"0" }}</div>
-        </div>
+      <div class="th-side-separator" aria-hidden="true"></div>
+      <div>
+        <div class="th-side-label">آخر تقرير موثّق</div>
+        <div class="th-side-value">{{ stats.last_title|default:"لا يوجد حتى الآن" }}</div>
       </div>
-      <div class="hero-mini-card">
-        <div class="hero-mc-icon"><i class="fa-solid fa-ticket"></i></div>
-        <div>
-          <div class="hero-mc-label">طلبات نشطة</div>
-          <div class="hero-mc-val">{{ req_stats.open|default:"0" }}</div>
-        </div>
-      </div>
-    </div>
+    </aside>
   </section>
 
-  <!-- ═══ PENDING SIGNATURES ALERT ═══ -->
-  {% if NAV_SIGNATURES_PENDING %}
-    <div class="dh-alert danger">
-      <div class="dh-alert-body">
-        <div class="dh-alert-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-        <div>
-          <div class="dh-alert-title">تعاميم بانتظار توقيعك</div>
-          <div class="dh-alert-sub">لديك <strong>{{ NAV_SIGNATURES_PENDING }}</strong> تعميم يتطلب اطلاعك وتوقيعك.</div>
-        </div>
-      </div>
-      <a href="{% url 'reports:my_circulars' %}" class="dh-alert-btn">
-        <i class="fa-solid fa-pen-to-square"></i> عرض وتوقيع
-      </a>
-    </div>
-  {% endif %}
-
-  <!-- ═══ STATS GRID ═══ -->
-  <section class="stats-container" aria-label="الإحصاءات">
-    <div class="stat-card st-prim">
-      <div class="stat-head">
-        <div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div>
-        {% if stats.today_count > 0 %}
-          <span class="stat-badge active"><i class="fa-solid fa-circle" style="font-size:.5em"></i> نشط اليوم</span>
-        {% endif %}
-      </div>
-      <div class="stat-val" data-target="{{ stats.today_count|default:'0' }}">{{ stats.today_count|default:"0" }}</div>
-      <div class="stat-lbl">تقارير اليوم</div>
-    </div>
-    <div class="stat-card st-info">
-      <div class="stat-head">
-        <div class="stat-icon"><i class="fa-solid fa-layer-group"></i></div>
-      </div>
-      <div class="stat-val" data-target="{{ stats.total_count|default:'0' }}">{{ stats.total_count|default:"0" }}</div>
-      <div class="stat-lbl">إجمالي التقارير</div>
-    </div>
-    <div class="stat-card st-accent">
-      <div class="stat-head">
-        <div class="stat-icon"><i class="fa-solid fa-hourglass-half"></i></div>
-        {% if req_stats.in_progress > 0 %}
-          <span class="stat-badge pending"><i class="fa-solid fa-circle" style="font-size:.5em"></i> جارية</span>
-        {% endif %}
-      </div>
-      <div class="stat-val" data-target="{{ req_stats.in_progress|default:'0' }}">{{ req_stats.in_progress|default:"0" }}</div>
-      <div class="stat-lbl">طلبات جارية</div>
-    </div>
-    <div class="stat-card st-warn">
-      <div class="stat-head">
-        <div class="stat-icon"><i class="fa-regular fa-bell"></i></div>
-        {% if req_stats.open > 0 %}
-          <span class="stat-badge pending"><i class="fa-solid fa-circle" style="font-size:.5em"></i> جديدة</span>
-        {% endif %}
-      </div>
-      <div class="stat-val" data-target="{{ req_stats.open|default:'0' }}">{{ req_stats.open|default:"0" }}</div>
-      <div class="stat-lbl">طلبات مفتوحة</div>
-    </div>
-  </section>
-
-  <!-- ═══ MAIN SPLIT ═══ -->
-  <div class="main-split">
-
-    <!-- LEFT: RECENT REPORTS -->
-    <div>
-      <div class="sec-header">
-        <h3 class="sec-title">
-          <div class="sec-title-icon" style="background:rgba(0,108,53,.1);color:var(--dh-brand)">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-          </div>
-          أحدث النشاطات
-        </h3>
-        <a href="{% url 'reports:my_reports' %}" class="sec-link">عرض الكل <i class="fa-solid fa-arrow-left" style="font-size:.8em"></i></a>
-      </div>
-      {% if recent_reports %}
-        <div class="lux-list">
-          {% for r in recent_reports %}
-            <a href="{% url 'reports:report_print' r.id %}?next={{ request.get_full_path|urlencode }}" class="lux-item">
-              <div class="li-icon"><i class="fa-regular fa-file-lines"></i></div>
-              <div class="li-body">
-                <div class="li-title">{{ r.title }}</div>
-                <div class="li-meta">
-                  <span><i class="fa-regular fa-calendar" style="font-size:.85em"></i> {{ r.report_date }}</span>
-                  <span>·</span>
-                  <span>{{ r.day_name }}</span>
-                  {% if r.category %}<span class="li-tag">{{ r.category.name }}</span>{% endif %}
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-left li-arrow"></i>
-            </a>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="dh-empty">
-          <div class="dh-empty-icon"><i class="fa-regular fa-folder-open"></i></div>
-          <p class="dh-empty-title">لا توجد تقارير حديثة</p>
-          <p class="dh-empty-sub">ابدأ بتوثيق إنجازاتك اليومية الآن.</p>
-          <a href="{% url 'reports:add_report' %}" class="dh-empty-cta">
-            <i class="fa-solid fa-plus"></i> أضف أول تقرير
-          </a>
-        </div>
-      {% endif %}
-    </div>
-
-    <!-- RIGHT: SIDEBAR -->
-    <div>
-      {% if not stats.today_count %}
-        <div class="motiv-banner">
-          <p class="motiv-title"><i class="fa-solid fa-bolt"></i> إنجاز سريع!</p>
-          <p class="motiv-desc">لم تُسجّل أي تقرير اليوم بعد. التوثيق الفوري يوفر جهدك ووقتك لاحقاً.</p>
-          <a href="{% url 'reports:add_report' %}" class="motiv-cta">
-            <i class="fa-solid fa-pen-to-square"></i> وثّق الآن
-          </a>
-        </div>
-      {% endif %}
-
-      <!-- Requests Summary Widget -->
-      <div class="widget-card">
-        <div class="wc-header">
-          <div class="wc-title">
-            <div class="wc-icon" style="background:rgba(139,92,246,.1);color:#b9975b">
-              <i class="fa-solid fa-ticket"></i>
-            </div>
-            ملخص الطلبات
-          </div>
-        </div>
-        <div class="wc-mini-grid">
-          <div class="wc-mini-stat">
-            <div class="wc-mini-num" style="color:#16845b">{{ req_stats.done|default:"0" }}</div>
-            <div class="wc-mini-lbl">مكتملة</div>
-          </div>
-          <div class="wc-mini-stat">
-            <div class="wc-mini-num" style="color:#dc2626">{{ req_stats.rejected|default:"0" }}</div>
-            <div class="wc-mini-lbl">مرفوضة</div>
-          </div>
-        </div>
-        <a href="{% url 'reports:request_create' %}" class="wc-btn primary">
-          <i class="fa-solid fa-plus"></i> فتح طلب جديد
-        </a>
-        <a href="{% url 'reports:my_requests' %}" class="wc-btn ghost">عرض كل الطلبات</a>
-      </div>
-
-      {% url 'reports:assigned_to_me' as assignedUrl %}
-      {% if assignedUrl %}
-        <a href="{{ assignedUrl }}" class="widget-card">
-          <div class="widget-link">
-            <div class="wl-left">
-              <div class="wl-icon" style="background:#eff6ff;color:#006c35"><i class="fa-solid fa-inbox"></i></div>
-              <div>
-                <div class="wl-text">الوارد</div>
-                <div class="wl-sub">المعيّن لي</div>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-left wl-arrow"></i>
-          </div>
-        </a>
-      {% endif %}
-
-      <a href="{% url 'reports:achievement_my_files' %}" class="widget-card">
-        <div class="widget-link">
-          <div class="wl-left">
-            <div class="wl-icon" style="background:#fff7ed;color:#ea580c"><i class="fa-solid fa-briefcase"></i></div>
-            <div>
-              <div class="wl-text">ملف الإنجاز</div>
-              <div class="wl-sub">وثائقي وإنجازاتي</div>
-            </div>
-          </div>
-          <i class="fa-solid fa-chevron-left wl-arrow"></i>
-        </div>
-      </a>
-
-      {% if stats.today_count %}
-        <div class="motiv-banner">
-          <p class="motiv-title"><i class="fa-solid fa-check-circle"></i> أحسنت!</p>
-          <p class="motiv-desc">سجّلت {{ stats.today_count }} تقرير اليوم. استمر في التوثيق المنتظم.</p>
-          <a href="{% url 'reports:add_report' %}" class="motiv-cta">
-            <i class="fa-solid fa-plus"></i> أضف المزيد
-          </a>
-        </div>
-      {% endif %}
-    </div>
-
-  </div><!-- /.main-split -->
-
-  <!-- ═══ FAB (Mobile) ═══ -->
-  <div class="dh-fab" aria-label="إجراء سريع">
-    <span class="dh-fab-label"><i class="fa-solid fa-plus"></i> إضافة تقرير</span>
-    <a href="{% url 'reports:add_report' %}" class="dh-fab-main" aria-label="إضافة تقرير جديد">
-      <i class="fa-solid fa-plus"></i>
+  <section class="th-kpis" aria-label="مؤشرات عملي">
+    <a class="th-kpi" href="{% url 'reports:my_reports' %}">
+      <span class="th-kpi-icon"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i></span>
+      <span>
+        <span class="th-kpi-value">{{ stats.today_count|default:"0" }}</span>
+        <span class="th-kpi-label">تقارير اليوم</span>
+      </span>
     </a>
+    <a class="th-kpi" href="{% url 'reports:my_reports' %}">
+      <span class="th-kpi-icon"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span>
+      <span>
+        <span class="th-kpi-value">{{ stats.total_count|default:"0" }}</span>
+        <span class="th-kpi-label">إجمالي تقاريري</span>
+      </span>
+    </a>
+    <a class="th-kpi" href="{% url 'reports:my_requests' %}">
+      <span class="th-kpi-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></span>
+      <span>
+        <span class="th-kpi-value">{{ active_requests_count|default:"0" }}</span>
+        <span class="th-kpi-label">طلبات تحتاج متابعة</span>
+      </span>
+    </a>
+  </section>
+
+  <div class="th-layout">
+    <div class="th-stack">
+      <section class="th-card" aria-labelledby="recentReportsTitle">
+        <div class="th-card-head">
+          <h2 class="th-card-title" id="recentReportsTitle">
+            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+            أحدث تقاريري
+          </h2>
+          <a class="th-link" href="{% url 'reports:my_reports' %}">عرض جميع التقارير</a>
+        </div>
+        {% if recent_reports %}
+          <div class="th-report-list">
+            {% for report in recent_reports %}
+              <a class="th-report" href="{% url 'reports:report_print' report.id %}?next={{ request.get_full_path|urlencode }}">
+                <span class="th-report-icon"><i class="fa-regular fa-file-lines" aria-hidden="true"></i></span>
+                <span class="th-item-body">
+                  <span class="th-item-title">{{ report.title }}</span>
+                  <span class="th-item-meta">
+                    <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ report.report_date|date:"Y-m-d" }}</span>
+                    {% if report.day_name %}<span>{{ report.day_name }}</span>{% endif %}
+                    <span>{{ report.beneficiaries_count|default:"0" }} مستفيد</span>
+                  </span>
+                </span>
+                <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="th-empty">
+            <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
+            <strong>ابدأ أول توثيق لك</strong>
+            <div>أنشئ تقريرًا مختصرًا عن نشاطك أو برنامجك ثم أضف الصور الداعمة.</div>
+            <a class="th-link" href="{% url 'reports:add_report' %}">إضافة أول تقرير</a>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="th-card" aria-labelledby="recentRequestsTitle">
+        <div class="th-card-head">
+          <h2 class="th-card-title" id="recentRequestsTitle">
+            <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+            طلباتي المدرسية
+          </h2>
+          <a class="th-link" href="{% url 'reports:my_requests' %}">عرض جميع الطلبات</a>
+        </div>
+        <div class="th-request-summary" aria-label="ملخص حالات الطلبات">
+          <div class="th-request-stat"><strong>{{ req_stats.open|default:"0" }}</strong><span>مفتوحة</span></div>
+          <div class="th-request-stat"><strong>{{ req_stats.in_progress|default:"0" }}</strong><span>قيد التنفيذ</span></div>
+          <div class="th-request-stat"><strong>{{ req_stats.done|default:"0" }}</strong><span>مكتملة</span></div>
+        </div>
+        {% if recent_tickets %}
+          <div class="th-ticket-list">
+            {% for ticket in recent_tickets %}
+              <a class="th-ticket" href="{% url 'reports:ticket_detail' ticket.id %}">
+                <span class="th-item-body">
+                  <span class="th-item-title">{{ ticket.title }}</span>
+                  <span class="th-item-meta">
+                    {% if ticket.department %}<span>{{ ticket.department.name }}</span>{% endif %}
+                    <span>{{ ticket.created_at|date:"Y-m-d" }}</span>
+                  </span>
+                </span>
+                <span class="th-status status-{{ ticket.status }}">{{ ticket.get_status_display }}</span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="th-empty">
+            <i class="fa-regular fa-circle-check" aria-hidden="true"></i>
+            <strong>لا توجد طلبات سابقة</strong>
+            <div>يمكنك إرسال طلب داخلي إلى القسم المختص ومتابعة تنفيذه.</div>
+            <a class="th-link" href="{% url 'reports:request_create' %}">إنشاء طلب مدرسي</a>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+
+    <aside class="th-stack">
+      <section class="th-card" aria-labelledby="todayFollowupTitle">
+        <div class="th-card-head">
+          <h2 class="th-card-title" id="todayFollowupTitle">
+            <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
+            متابعة اليوم
+          </h2>
+        </div>
+        {% if NAV_NOTIFICATIONS_UNREAD or NAV_SIGNATURES_PENDING or NAV_ASSIGNED_TO_ME or active_requests_count %}
+          <div class="th-attention">
+            {% if NAV_NOTIFICATIONS_UNREAD %}
+              <a class="th-attention-item" href="{% url 'reports:my_notifications' %}">
+                <span class="th-attention-icon"><i class="fa-regular fa-bell" aria-hidden="true"></i></span>
+                <span class="th-attention-text">
+                  <span class="th-attention-name">إشعارات غير مقروءة</span>
+                  <span class="th-attention-hint">اطّلع على آخر رسائل المدرسة</span>
+                </span>
+                <span class="th-count">{{ NAV_NOTIFICATIONS_UNREAD }}</span>
+              </a>
+            {% endif %}
+            {% if NAV_SIGNATURES_PENDING %}
+              <a class="th-attention-item" href="{% url 'reports:my_circulars' %}">
+                <span class="th-attention-icon"><i class="fa-solid fa-signature" aria-hidden="true"></i></span>
+                <span class="th-attention-text">
+                  <span class="th-attention-name">تعاميم تنتظر توقيعك</span>
+                  <span class="th-attention-hint">راجع التعميم ثم أكّد الاطلاع</span>
+                </span>
+                <span class="th-count">{{ NAV_SIGNATURES_PENDING }}</span>
+              </a>
+            {% endif %}
+            {% if NAV_ASSIGNED_TO_ME %}
+              <a class="th-attention-item" href="{% url 'reports:assigned_to_me' %}">
+                <span class="th-attention-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
+                <span class="th-attention-text">
+                  <span class="th-attention-name">مهام معيّنة لك</span>
+                  <span class="th-attention-hint">طلبات تحتاج إجراءك أو ردك</span>
+                </span>
+                <span class="th-count">{{ NAV_ASSIGNED_TO_ME }}</span>
+              </a>
+            {% endif %}
+            {% if active_requests_count %}
+              <a class="th-attention-item" href="{% url 'reports:my_requests' %}">
+                <span class="th-attention-icon"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i></span>
+                <span class="th-attention-text">
+                  <span class="th-attention-name">طلباتك النشطة</span>
+                  <span class="th-attention-hint">تابع المستجدات والردود</span>
+                </span>
+                <span class="th-count">{{ active_requests_count }}</span>
+              </a>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="th-all-clear">
+            <i class="fa-regular fa-circle-check" aria-hidden="true"></i>
+            <strong>كل شيء محدث</strong>
+            لا توجد عناصر عاجلة تحتاج متابعتك الآن.
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="th-card" aria-labelledby="workspaceTitle">
+        <div class="th-card-head">
+          <h2 class="th-card-title" id="workspaceTitle">
+            <i class="fa-solid fa-grid-2" aria-hidden="true"></i>
+            مساحة عملي
+          </h2>
+        </div>
+        <div class="th-actions">
+          <a class="th-action" href="{% url 'reports:add_report' %}">
+            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+            <strong>توثيق تقرير</strong>
+          </a>
+          <a class="th-action" href="{% url 'reports:request_create' %}">
+            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+            <strong>طلب مدرسي</strong>
+          </a>
+          <a class="th-action" href="{% url 'reports:achievement_my_files' %}">
+            <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
+            <strong>ملف الإنجاز</strong>
+          </a>
+          <a class="th-action" href="{% url 'reports:my_circulars' %}">
+            <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+            <strong>التعاميم الواردة</strong>
+          </a>
+        </div>
+      </section>
+    </aside>
   </div>
 
-</div><!-- /.home-wrapper -->
+  <a class="th-mobile-add" href="{% url 'reports:add_report' %}" aria-label="إضافة تقرير جديد">
+    <i class="fa-solid fa-plus" aria-hidden="true"></i>
+  </a>
+</main>
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
-document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
+    var overlay = document.getElementById('homeNotification');
+    if (!overlay) return;
 
-  /* ── Notification Modal ── */
-  var overlay = document.getElementById('notifOverlay');
-  if (overlay) {
-    var closeBtn    = document.getElementById('notifClose');
-    var recipientId = overlay.dataset.recipient;
-    var markUrl     = overlay.dataset.url;
-    var storageKey  = recipientId ? ('hn_saw_' + recipientId) : null;
+    var closeButton = document.getElementById('homeNotificationClose');
+    var storageKey = overlay.dataset.storageKey;
+    var markUrl = overlay.dataset.markUrl;
 
-    function markRead(url) {
-      try {
-        var token = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value
-                    || (document.cookie.split('; ').find(function(r){ return r.startsWith('csrftoken='); }) || '').split('=')[1];
-        fetch(url, { method: 'POST', headers: { 'X-CSRFToken': token || '', 'X-Requested-With': 'XMLHttpRequest' } });
-      } catch(e) {}
+    function csrfToken() {
+      var input = overlay.querySelector('[name="csrfmiddlewaretoken"]');
+      if (input && input.value) return input.value;
+      var cookie = document.cookie.split('; ').find(function (row) {
+        return row.indexOf('csrftoken=') === 0;
+      });
+      return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
+    }
+
+    function markRead() {
+      if (!markUrl) return;
+      fetch(markUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': csrfToken(),
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }).catch(function () {});
+    }
+
+    function closeNotification() {
+      overlay.hidden = true;
+      if (storageKey) localStorage.setItem(storageKey, '1');
+      markRead();
     }
 
     if (storageKey && localStorage.getItem(storageKey)) {
-      overlay.classList.remove('is-open');
-      overlay.remove();
-      if (markUrl) markRead(markUrl);
-    } else {
-      var closeNotif = function() {
-        overlay.classList.remove('is-open');
-        if (storageKey) localStorage.setItem(storageKey, '1');
-        if (markUrl) markRead(markUrl);
-      };
-      if (closeBtn) closeBtn.addEventListener('click', closeNotif);
-      overlay.addEventListener('click', function(e) { if (e.target === overlay) closeNotif(); });
-      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeNotif(); });
+      closeNotification();
+      return;
     }
-  }
 
-  /* ── Counter-up animation (easeOutCubic) ── */
-  function animateCounter(el, target, delay) {
-    var duration = Math.min(1400, Math.max(600, target * 20));
-    setTimeout(function() {
-      var start = null;
-      function step(ts) {
-        if (!start) start = ts;
-        var progress = Math.min((ts - start) / duration, 1);
-        var eased = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(target * eased);
-        if (progress < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }, delay || 0);
-  }
-
-  document.querySelectorAll('.stat-val[data-target]').forEach(function(el, i) {
-    var t = parseInt(el.getAttribute('data-target'), 10);
-    if (!isNaN(t) && t > 0) { el.textContent = '0'; animateCounter(el, t, 200 + i * 80); }
-  });
-
-  document.querySelectorAll('.hero-mc-val').forEach(function(el) {
-    var t = parseInt(el.textContent, 10);
-    if (!isNaN(t) && t > 0) { el.textContent = '0'; animateCounter(el, t, 400); }
-  });
-
-  /* ── Ripple on hero primary button ── */
-  var heroBtn = document.getElementById('heroAddBtn');
-  if (heroBtn) {
-    heroBtn.addEventListener('click', function(e) {
-      var r = document.createElement('span');
-      r.className = 'btn-ripple';
-      r.style.cssText = 'position:absolute;width:10px;height:10px;border-radius:50%;background:rgba(0,108,53,.2);pointer-events:none;animation:dh-ripple .6s ease forwards;left:' + (e.offsetX - 5) + 'px;top:' + (e.offsetY - 5) + 'px';
-      heroBtn.appendChild(r);
-      setTimeout(function() { r.remove(); }, 700);
+    if (closeButton) {
+      closeButton.focus();
+      closeButton.addEventListener('click', closeNotification);
+    }
+    overlay.addEventListener('click', function (event) {
+      if (event.target === overlay) closeNotification();
     });
-  }
-
-  /* ── Scroll reveal for sidebar widgets ── */
-  if ('IntersectionObserver' in window) {
-    var io = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
-          io.unobserve(entry.target);
-        }
-      });
-    }, { threshold: .08, rootMargin: '0px 0px -40px 0px' });
-
-    document.querySelectorAll('.widget-card, .motiv-banner, .lux-item').forEach(function(el, i) {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(18px)';
-      el.style.transition = 'opacity .55s ease ' + (i * 0.07) + 's, transform .55s ease ' + (i * 0.07) + 's';
-      io.observe(el);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !overlay.hidden) closeNotification();
     });
-  }
-
-});
+  });
 </script>
 {% endblock %}

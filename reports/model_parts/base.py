@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import secrets
 import os
 
@@ -22,6 +22,14 @@ from django.utils import timezone
 # تخزين المرفقات (R2 أو محلي)
 from ..storage import PublicRawMediaStorage
 from ..validators import validate_attachment_file, validate_circular_attachment_file, validate_image_file, validate_pdf_file
+
+if TYPE_CHECKING:
+    from .achievements import AchievementEvidenceImage, TeacherAchievementFile
+    from .billing import Payment
+    from .notifications import Notification, TicketImage
+    from .reports import Report
+    from .schools import School
+    from .tickets import Ticket
 
 # =========================
 # ثوابت عامة

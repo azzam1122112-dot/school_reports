@@ -384,14 +384,14 @@
          <div class="tb-row" style="flex:1">
              <!-- Search -->
              <div class="field-group" style="flex:1">
-                 <label class="field-label">البحث</label>
-                 <input class="input-lux" type="search" name="q" placeholder="ابحث برقم الطلب، العنوان..." value="{{ request.GET.q|default_if_none:'' }}">
+                 <label class="field-label" for="myRequestsSearch">البحث</label>
+                 <input class="input-lux" id="myRequestsSearch" type="search" name="q" placeholder="ابحث برقم الطلب، العنوان..." value="{{ request.GET.q|default_if_none:'' }}">
              </div>
              
              <!-- Status Filter (Corrected Labels) -->
              <div class="field-group">
-                 <label class="field-label">حالة الطلب</label>
-                 <select class="input-lux select-lux" name="status">
+                 <label class="field-label" for="myRequestsStatus">حالة الطلب</label>
+                 <select class="input-lux select-lux" id="myRequestsStatus" name="status">
                     <option value="">جميع الحالات</option>
                     <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>جديدة</option>
                     <!-- Removed Duplicate/English Labels -->
@@ -403,8 +403,8 @@
 
              <!-- Sort -->
              <div class="field-group">
-                 <label class="field-label">ترتيب العرض</label>
-                 <select class="input-lux select-lux" name="order">
+                 <label class="field-label" for="myRequestsOrder">ترتيب العرض</label>
+                 <select class="input-lux select-lux" id="myRequestsOrder" name="order">
                     <option value="-created_at" {% if request.GET.order|default:"-created_at" == "-created_at" %}selected{% endif %}>الأحدث أولاً</option>
                     <option value="created_at" {% if request.GET.order == "created_at" %}selected{% endif %}>الأقدم أولاً</option>
                  </select>

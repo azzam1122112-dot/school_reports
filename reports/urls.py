@@ -21,6 +21,7 @@ urlpatterns = [
     path("profile/", views.my_profile, name="my_profile"),
     path("profile/passkey/register/options/", views.passkey_register_options, name="passkey_register_options"),
     path("profile/passkey/register/verify/", views.passkey_register_verify, name="passkey_register_verify"),
+    path("profile/passkey/prompt/dismiss/", views.passkey_enroll_prompt_dismiss, name="passkey_enroll_prompt_dismiss"),
 
     # =========================
     # الصفحة الرئيسية
@@ -47,6 +48,8 @@ urlpatterns = [
     path("reports/admin/", views.admin_reports, name="admin_reports"),
     path("reports/admin/<int:pk>/delete/", views.admin_delete_report, name="admin_delete_report"),
     path("archive/", views.school_archive, name="school_archive"),
+    path("archive/create/", views.school_archive_create, name="school_archive_create"),
+    path("archive/download/<int:pk>/", views.school_archive_download, name="school_archive_download"),
     path("archive/export/", views.school_archive_export, name="school_archive_export"),
 
     # =========================
@@ -80,8 +83,10 @@ urlpatterns = [
     # =========================
     path("staff/teachers/", views.manage_teachers, name="manage_teachers"),
     path("staff/teachers/add/", views.add_teacher, name="add_teacher"),
-    path("staff/teachers/import/", views.bulk_import_teachers, name="bulk_import_teachers"),
+    path("staff/teachers/import/", views.teacher_onboarding, name="bulk_import_teachers"),
     path("staff/teachers/import/template/", views.bulk_import_teachers_template, name="bulk_import_teachers_template"),
+    path("staff/teachers/import/issues/", views.bulk_import_teachers_issues, name="bulk_import_teachers_issues"),
+    path("staff/teachers/import/result/", views.bulk_import_teachers_result, name="bulk_import_teachers_result"),
     path("staff/teachers/<int:pk>/edit/", views.edit_teacher, name="edit_teacher"),
     path("staff/teachers/<int:pk>/delete/", views.delete_teacher, name="delete_teacher"),
 
@@ -141,6 +146,7 @@ urlpatterns = [
     path("platform/admins/<int:pk>/delete/", views.platform_admin_delete, name="platform_admin_delete"),
 
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
+    path("staff/audit-logs/", views.school_audit_logs, name="school_audit_logs"),
 
     # =========================
     # أنواع التقارير

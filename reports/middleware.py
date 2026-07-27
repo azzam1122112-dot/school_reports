@@ -577,10 +577,15 @@ class SubscriptionMiddleware:
             allowed_paths |= {
                 reverse('reports:my_subscription'),
                 reverse('reports:payment_create'),
+                reverse('reports:school_archive'),
+                reverse('reports:school_archive_create'),
             }
 
         # السماح بهذه المسارات دائمًا لتجنب حلقات redirect
-        if request.path in allowed_paths:
+        archive_download_prefix = reverse("reports:school_archive").rstrip("/") + "/download/"
+        if request.path in allowed_paths or (
+            is_manager and request.path.startswith(archive_download_prefix)
+        ):
             return self.get_response(request)
 
         # 5) فحص انتهاء الاشتراك/غيابه
@@ -797,6 +802,7 @@ class PlatformAdminAccessMiddleware:
             "reports:achievement_file_print",
             "reports:achievement_file_pdf",
             "reports:school_archive",
+            "reports:school_archive_download",
 
             # lightweight badge endpoint (optional; avoids noisy 403 logs)
             "reports:unread_notifications_count",
@@ -897,6 +903,9 @@ class ReportViewerAccessMiddleware:
             messages.error(request, "هذا الحساب للعرض فقط ولا يملك صلاحية تنفيذ عمليات.")
             return redirect("reports:school_reports_readonly")
 
+        if full_name == "reports:school_archive_download":
+            return self.get_response(request)
+
         # مسارات مسموحة (قراءة فقط)
         allowed_paths = set()
         try:
@@ -954,10 +963,11 @@ class ContentSecurityPolicyMiddleware:
     """Adds a Content Security Policy header in production.
 
     Notes:
-    - This project uses inline <style>/<script> in templates, so we must allow
-      'unsafe-inline' unless we migrate to nonces/hashes.
+    - Inline scripts use a per-request nonce; a regression test enforces this.
+    - Inline styles still require ``unsafe-inline`` until the remaining template
+      styles are moved to static stylesheets.
     - External fonts/icons are loaded via Google Fonts + cdnjs.
-    - Media assets may be served from HTTPS URLs (depending on storage/CDN).
+    - Media assets may be served from signed HTTPS URLs.
     """
 
     def __init__(self, get_response):

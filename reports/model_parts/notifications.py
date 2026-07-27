@@ -18,6 +18,11 @@ class Notification(models.Model):
         validators=[validate_circular_attachment_file],
         help_text="يسمح بـ PDF/صور. حد أقصى 5MB.",
     )
+    storage_bytes = models.PositiveBigIntegerField(
+        "حجم المرفق",
+        default=0,
+        editable=False,
+    )
 
     # =========================
     # التواقيع (للتعاميم الإلزامية)
@@ -126,6 +131,11 @@ class TicketImage(models.Model):
         blank=False,
         null=False,
         validators=[validate_image_file],
+    )
+    storage_bytes = models.PositiveBigIntegerField(
+        "حجم الصورة",
+        default=0,
+        editable=False,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

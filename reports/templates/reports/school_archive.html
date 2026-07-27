@@ -1,672 +1,365 @@
 {% extends "base.html" %}
 {% load hijri_tags %}
 
-{% block title %}أرشيف السنوات{% endblock %}
+{% block title %}أرشيف المدرسة{% endblock %}
 
 {% block head %}
-<style>
-  .archive-wrap {
-    --ar-ink: var(--ink, #10251f);
-    --ar-muted: var(--muted, #68766f);
-    --ar-line: rgba(185, 151, 91, .22);
-    --ar-card: var(--card, #ffffff);
-    --ar-bg: transparent;
-    --ar-blue: var(--brand, #006c35);
-    --ar-green: var(--success, #16845b);
-    --ar-amber: var(--royal-gold-strong, #8d6b2f);
-    --ar-red: #dc2626;
-    direction: rtl;
+<style nonce="{{ CSP_NONCE }}">
+  .archive-page {
+    --ar-green:#006c35; --ar-green-dark:#064e2c; --ar-gold:#b9975b;
+    --ar-ink:var(--ink,#15221b); --ar-muted:var(--muted,#66736b);
+    --ar-line:var(--line,#dce7df); --ar-card:var(--card,#fff);
+    max-width:1280px;margin:0 auto;padding:22px 16px 80px;direction:rtl;color:var(--ar-ink)
   }
+  .ar-hero {
+    position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;gap:20px;
+    padding:28px;border:1px solid rgba(185,151,91,.4);border-radius:24px;color:#fff;
+    background:radial-gradient(circle at 85% 0,rgba(185,151,91,.3),transparent 35%),
+      linear-gradient(130deg,var(--ar-green-dark),var(--ar-green));
+    box-shadow:0 22px 50px rgba(6,78,44,.18)
+  }
+  .ar-kicker{display:flex;align-items:center;gap:7px;color:#dcefe4;font-size:.8rem;font-weight:900}
+  .ar-title{margin:8px 0 0;color:#fff;font-size:clamp(1.55rem,3vw,2.2rem);font-weight:950}
+  .ar-subtitle{max-width:720px;margin:8px 0 0;color:rgba(255,255,255,.8);font-weight:750;line-height:1.8}
+  .ar-status{min-width:195px;padding:14px 16px;border:1px solid rgba(255,255,255,.24);border-radius:16px;background:rgba(3,45,25,.28)}
+  .ar-status b,.ar-status span{display:block}.ar-status b{font-size:1rem}.ar-status span{margin-top:3px;color:rgba(255,255,255,.72);font-size:.78rem}
 
-  html[data-theme="dark"] .archive-wrap {
-    --ar-ink: #f5f7fb;
-    --ar-muted: #a8b3c4;
-    --ar-line: #334155;
-    --ar-card: #111827;
-    --ar-bg: #0f172a;
+  .ar-alert,.ar-upsell,.ar-storage,.ar-filter,.ar-section,.ar-snapshot-action {
+    margin-top:16px;border:1px solid var(--ar-line);border-radius:18px;background:var(--ar-card)
   }
+  .ar-alert{display:flex;align-items:flex-start;gap:12px;padding:15px 17px;font-weight:800;line-height:1.7}
+  .ar-alert i{margin-top:4px}.ar-alert--warn{border-color:#e8c978;background:rgba(185,151,91,.08);color:#705318}
+  .ar-alert--danger{border-color:#efb4b4;background:rgba(220,38,38,.06);color:#a21f1f}
+  .ar-alert--success{border-color:#abd8bc;background:rgba(0,108,53,.06);color:#075e34}
+  .ar-upsell{display:grid;grid-template-columns:1fr auto;align-items:center;gap:20px;padding:24px;background:linear-gradient(135deg,rgba(0,108,53,.07),rgba(185,151,91,.09))}
+  .ar-upsell h2{margin:0;font-size:1.25rem}.ar-upsell p{margin:7px 0 0;color:var(--ar-muted);line-height:1.8;font-weight:750}
+  .ar-price{text-align:center}.ar-price strong{display:block;color:var(--ar-green);font-size:1.55rem}.ar-price span{color:var(--ar-muted);font-size:.78rem;font-weight:850}
 
-  .archive-shell {
-    max-width: 1220px;
-    margin: 0 auto;
-  }
+  .ar-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:9px 15px;border:1px solid var(--ar-line);border-radius:12px;background:var(--ar-card);color:var(--ar-ink);font:inherit;font-weight:900;text-decoration:none;cursor:pointer}
+  .ar-btn:hover{border-color:var(--ar-green);color:var(--ar-green)}.ar-btn--primary{border-color:transparent;background:linear-gradient(135deg,var(--ar-green),var(--ar-green-dark));color:#fff}
+  .ar-btn--primary:hover{color:#fff;transform:translateY(-1px)}.ar-btn--gold{border-color:transparent;background:linear-gradient(135deg,#c5a263,#9a783d);color:#fff}
+  .ar-btn[disabled]{opacity:.55;cursor:not-allowed;transform:none}
+  .ar-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
 
-  .archive-head {
-    margin-bottom: 18px;
-  }
+  .ar-storage{padding:18px}.ar-storage-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .ar-storage-top strong{display:flex;align-items:center;gap:8px}.ar-storage-top b{color:var(--ar-green)}
+  .ar-storage progress{display:block;width:100%;height:14px;margin:12px 0 8px;accent-color:var(--ar-green)}
+  .ar-storage-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:var(--ar-muted);font-size:.84rem;font-weight:850}
+  .ar-storage-foot .ar-btn{margin-inline-start:auto}
+  .ar-storage-breakdown{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:13px}
+  .ar-storage-part{padding:10px 11px;border:1px solid var(--ar-line);border-radius:11px;background:rgba(0,108,53,.025)}
+  .ar-storage-part span,.ar-storage-part b{display:block}.ar-storage-part span{color:var(--ar-muted);font-size:.73rem;font-weight:850}.ar-storage-part b{margin-top:3px;font-size:.87rem}
 
-  .archive-title {
-    margin: 0;
-    color: var(--ar-ink);
-    font-size: clamp(1.45rem, 3vw, 2rem);
-    font-weight: 950;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .ar-filter{padding:17px;display:grid;grid-template-columns:1.15fr 1.5fr 1fr 1fr auto;align-items:end;gap:10px}
+  .ar-field{display:flex;flex-direction:column;gap:6px}.ar-field label{font-size:.78rem;color:var(--ar-muted);font-weight:900}
+  .ar-field input,.ar-field select{width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--ar-line);border-radius:11px;background:var(--ar-card);color:var(--ar-ink);font:inherit;font-weight:800;outline:none}
+  .ar-field input:focus,.ar-field select:focus{border-color:var(--ar-green);box-shadow:0 0 0 3px rgba(0,108,53,.1)}
 
-  .archive-sub {
-    margin: 8px 0 0;
-    color: var(--ar-muted);
-    font-weight: 700;
-    line-height: 1.7;
-  }
+  .ar-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+  .ar-kpi{padding:14px;border:1px solid var(--ar-line);border-radius:14px;background:var(--ar-card)}
+  .ar-kpi span,.ar-kpi strong{display:block}.ar-kpi span{color:var(--ar-muted);font-size:.77rem;font-weight:850}.ar-kpi strong{margin-top:5px;font-size:1.28rem}
 
-  .archive-panel,
-  .archive-section,
-  .archive-empty,
-  .archive-upgrade {
-    background: var(--ar-card);
-    border: 1px solid var(--ar-line);
-    border-radius: 18px;
-    box-shadow: 0 22px 58px rgba(16, 37, 31, 0.10);
-  }
+  .ar-section{overflow:hidden}.ar-section-head{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:18px;border-bottom:1px solid var(--ar-line)}
+  .ar-section-head h2{margin:0;display:flex;align-items:center;gap:9px;font-size:1.15rem}.ar-section-head p{margin:5px 0 0;color:var(--ar-muted);font-size:.84rem;font-weight:750}
+  .ar-section-body{padding:18px}
+  .ar-snapshot-action{padding:18px;border-color:rgba(185,151,91,.38);background:linear-gradient(135deg,rgba(0,108,53,.04),rgba(185,151,91,.07))}
+  .ar-snapshot-action h3{margin:0;font-size:1.03rem}.ar-snapshot-action p{margin:6px 0 0;color:var(--ar-muted);font-size:.87rem;line-height:1.7;font-weight:750}
 
-  .archive-panel {
-    padding: 18px;
-    display: grid;
-    grid-template-columns: minmax(260px, 1fr) repeat(4, minmax(120px, auto));
-    gap: 14px;
-    align-items: end;
-    margin-bottom: 18px;
-  }
+  .ar-versions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+  .ar-version{padding:16px;border:1px solid var(--ar-line);border-radius:15px;background:var(--ar-card)}
+  .ar-version.is-partial{border-color:#e4c36f;background:rgba(185,151,91,.045)}
+  .ar-version-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .ar-version-title{font-weight:950}.ar-version-date{color:var(--ar-muted);font-size:.8rem;font-weight:800}
+  .ar-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:rgba(0,108,53,.1);color:var(--ar-green);font-size:.74rem;font-weight:950}
+  .ar-badge--warn{background:rgba(185,151,91,.15);color:#765719}.ar-version-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+  .ar-version-meta span{padding:5px 8px;border-radius:9px;background:rgba(100,116,139,.07);color:var(--ar-muted);font-size:.75rem;font-weight:850}
+  .ar-hash{margin-top:10px;color:var(--ar-muted);font:700 .72rem/1.6 monospace;direction:ltr;text-align:left;overflow-wrap:anywhere}
 
-  .archive-field label,
-  .archive-kpi span {
-    display: block;
-    color: var(--ar-muted);
-    font-size: .85rem;
-    font-weight: 850;
-    margin-bottom: 7px;
-  }
+  .ar-grid{display:grid;grid-template-columns:1.25fr .9fr;gap:14px}
+  .ar-table-wrap{overflow-x:auto}.ar-table{width:100%;border-collapse:collapse;min-width:620px}
+  .ar-table th,.ar-table td{padding:12px 13px;border-bottom:1px solid var(--ar-line);text-align:right;vertical-align:middle}
+  .ar-table th{background:rgba(0,108,53,.055);color:var(--ar-green);font-size:.78rem;font-weight:950}
+  .ar-table td{font-size:.86rem}.ar-name{font-weight:950}.ar-meta{margin-top:3px;color:var(--ar-muted);font-size:.76rem;font-weight:750}
+  .ar-empty{padding:34px 18px;text-align:center;color:var(--ar-muted);font-weight:800}.ar-empty i{display:block;margin-bottom:8px;font-size:2rem;color:var(--ar-gold)}
+  .ar-pagination{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;border-top:1px solid var(--ar-line);font-size:.8rem;font-weight:850}
 
-  .archive-field select {
-    width: 100%;
-    min-height: 46px;
-    border: 1px solid var(--ar-line);
-    border-radius: 12px;
-    padding: 10px 12px;
-    background: var(--ar-card);
-    color: var(--ar-ink);
-    font-weight: 850;
-  }
-
-  .archive-kpi strong {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--ar-ink);
-    font-size: 1.2rem;
-    font-weight: 950;
-    white-space: nowrap;
-  }
-
-  .archive-grid {
-    display: grid;
-    grid-template-columns: 1.25fr .9fr;
-    gap: 18px;
-    align-items: start;
-  }
-
-  .archive-section {
-    overflow: hidden;
-  }
-
-  .archive-section-head {
-    padding: 16px 18px;
-    border-bottom: 1px solid var(--ar-line);
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .archive-section-head h2 {
-    margin: 0;
-    color: var(--ar-ink);
-    font-size: 1.05rem;
-    font-weight: 950;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .archive-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .archive-table th,
-  .archive-table td {
-    padding: 13px 14px;
-    border-bottom: 1px solid var(--ar-line);
-    text-align: right;
-    vertical-align: middle;
-    color: var(--ar-ink);
-  }
-
-  .archive-table th {
-    color: var(--ar-blue);
-    font-size: .82rem;
-    font-weight: 950;
-    background: linear-gradient(180deg, rgba(185, 151, 91, .13), rgba(0, 108, 53, .05));
-    white-space: nowrap;
-  }
-
-  .archive-table tr:last-child td {
-    border-bottom: 0;
-  }
-
-  .archive-title-cell {
-    font-weight: 950;
-    line-height: 1.5;
-  }
-
-  .archive-meta {
-    color: var(--ar-muted);
-    font-weight: 750;
-    font-size: .85rem;
-    margin-top: 3px;
-  }
-
-  .archive-actions {
-    display: inline-flex;
-    gap: 7px;
-    flex-wrap: wrap;
-  }
-
-  .archive-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    min-height: 38px;
-    padding: 8px 11px;
-    border-radius: 12px;
-    border: 1px solid var(--ar-line);
-    color: var(--ar-ink);
-    background: var(--ar-card);
-    text-decoration: none;
-    font-weight: 850;
-  }
-
-  .archive-btn:hover {
-    border-color: var(--ar-blue);
-    color: var(--ar-blue);
-  }
-
-  .archive-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-size: .78rem;
-    font-weight: 950;
-    background: rgba(0, 108, 53, .1);
-    color: var(--ar-blue);
-    white-space: nowrap;
-  }
-
-  .st-approved { background: rgba(22, 132, 91, .12); color: var(--ar-green); }
-  .st-submitted { background: rgba(180, 83, 9, .12); color: var(--ar-amber); }
-  .st-returned { background: rgba(220, 38, 38, .12); color: var(--ar-red); }
-
-  .archive-empty,
-  .archive-upgrade {
-    padding: 38px 20px;
-    text-align: center;
-    color: var(--ar-muted);
-    font-weight: 800;
-    line-height: 1.8;
-  }
-
-  .archive-upgrade {
-    max-width: 760px;
-    margin: 24px auto 0;
-  }
-
-  .archive-upgrade i {
-    color: var(--ar-amber);
-    font-size: 2rem;
-    margin-bottom: 10px;
-  }
-
-  @media (max-width: 980px) {
-    .archive-panel,
-    .archive-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .archive-head {
-      flex-direction: column;
-    }
-  }
-
-  @media (max-width: 680px) {
-    .archive-table,
-    .archive-table tbody,
-    .archive-table tr,
-    .archive-table td {
-      display: block;
-      width: 100%;
-    }
-
-    .archive-table thead {
-      display: none;
-    }
-
-    .archive-table tr {
-      border-bottom: 1px solid var(--ar-line);
-      padding: 10px 0;
-    }
-
-    .archive-table td {
-      border-bottom: 0;
-      padding: 8px 14px;
-    }
-  }
-
-  /* شارات الختم الزمني/القراءة فقط/السلامة */
-  .archive-meta-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-  .archive-chip {
-    display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px;
-    font-weight:850; font-size:.84rem; color:var(--ar-muted);
-    background:rgba(185,151,91,.08); border:1px solid var(--ar-line);
-  }
-  .archive-chip i { color:var(--ar-amber, #8d6b2f); }
-  .archive-chip.readonly { color:#0a5c33; background:rgba(10,92,51,.08); border-color:rgba(10,92,51,.22); }
-  .archive-chip.readonly i { color:#0a5c33; }
-
-  /* شريط تنزيل أرشيف السنة */
-  .archive-download-bar {
-    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-    margin-bottom:18px; padding:16px 18px; border-radius:18px;
-    border:1px solid rgba(212,177,109,.42);
-    background:
-      radial-gradient(120% 160% at 92% -30%, rgba(212,177,109,.18), transparent 50%),
-      linear-gradient(135deg, rgba(11,98,56,.06), rgba(212,177,109,.05));
-  }
-  .archive-download-text strong { display:flex; align-items:center; gap:8px; color:var(--ar-ink); font-weight:950; font-size:1.05rem; }
-  .archive-download-text strong i { color:#b9975b; }
-  .archive-download-text span { display:block; margin-top:5px; color:var(--ar-muted); font-weight:750; font-size:.9rem; line-height:1.7; max-width:640px; }
-  .archive-download-btn {
-    background:linear-gradient(135deg, #0a5c33, #074426) !important; border:none !important; color:#fff !important;
-    font-weight:950 !important; border-radius:14px !important; min-height:48px; white-space:nowrap;
-    box-shadow:0 12px 26px -12px rgba(10,92,51,.6);
-  }
-  .archive-download-btn:hover { transform:translateY(-2px); }
-  .archive-download-btn[aria-disabled="true"] { opacity:.75; pointer-events:none; }
-  @media (max-width:640px){ .archive-download-bar { flex-direction:column; align-items:stretch; } .archive-download-btn { justify-content:center; } }
-
-  /* ترقيم صفحات كل جدول (مستقل) */
-  .archive-pager {
-    display:flex; align-items:center; justify-content:center; gap:10px;
-    padding:14px 18px; border-top:1px solid var(--ar-line);
-  }
-  .archive-pg {
-    display:inline-flex; align-items:center; justify-content:center;
-    min-width:40px; min-height:40px; padding:0 10px; border-radius:12px;
-    border:1px solid var(--ar-line); background:var(--ar-card); color:var(--ar-ink);
-    text-decoration:none; font-weight:900; transition:border-color .15s, color .15s, background .15s;
-  }
-  .archive-pg:hover { border-color:#0a5c33; color:#0a5c33; background:rgba(10,92,51,.06); }
-  .archive-pg.disabled { opacity:.4; pointer-events:none; }
-  .archive-pg-info { color:var(--ar-muted); font-weight:900; font-size:.9rem; white-space:nowrap; }
-  .archive-pg-info b { color:var(--ar-ink); }
-
-  /* بطاقة مساحة الأرشيف (للمدير المشترك) */
-  .archive-storage-card {
-    margin-bottom:18px; padding:16px 18px; border-radius:18px;
-    border:1px solid rgba(212,177,109,.42); background:var(--ar-card);
-    box-shadow:0 18px 50px rgba(16,37,31,.08);
-  }
-  .asc-top { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-  .asc-top strong { display:flex; align-items:center; gap:8px; color:var(--ar-ink); font-weight:950; font-size:1.05rem; }
-  .asc-top strong i { color:#b9975b; }
-  .asc-quota { font-weight:950; color:#0a5c33; font-size:1.05rem; white-space:nowrap; }
-  .asc-quota small { color:var(--ar-muted); font-weight:800; font-size:.82rem; }
-  .asc-bar {
-    margin:12px 0 10px; height:14px; border-radius:999px; overflow:hidden;
-    background:rgba(10,92,51,.08); border:1px solid rgba(10,92,51,.14);
-  }
-  .asc-fill {
-    display:block; height:100%; border-radius:999px;
-    background:linear-gradient(90deg,#0a5c33,#0b6238); transition:width .4s ease;
-  }
-  .archive-storage-card.is-warn .asc-fill { background:linear-gradient(90deg,#b9975b,#d4b16d); }
-  .archive-storage-card.is-warn .asc-quota { color:#7a5c1e; }
-  .archive-storage-card.is-danger { border-color:rgba(220,38,38,.4); }
-  .archive-storage-card.is-danger .asc-fill { background:linear-gradient(90deg,#dc2626,#b91c1c); }
-  .archive-storage-card.is-danger .asc-quota { color:#dc2626; }
-  .asc-foot { display:flex; align-items:center; gap:16px; flex-wrap:wrap; color:var(--ar-muted); font-weight:850; font-size:.9rem; }
-  .asc-foot i { opacity:.85; }
-  .asc-upgrade {
-    margin-inline-start:auto; display:inline-flex; align-items:center; gap:7px;
-    padding:8px 14px; border-radius:12px; text-decoration:none; font-weight:950;
-    color:#0a5c33; background:rgba(10,92,51,.08); border:1px solid rgba(10,92,51,.22);
-    transition:background .15s, color .15s;
-  }
-  .asc-upgrade:hover { background:#0a5c33; color:#fff; }
-  .asc-alert {
-    margin-top:12px; padding:10px 14px; border-radius:12px; font-weight:900; font-size:.9rem;
-    color:#991b1b; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.25);
-    display:flex; align-items:center; gap:8px;
-  }
-
-  /* شريط "كيف يعمل الأرشيف" */
-  .archive-howto {
-    display:flex; align-items:stretch; gap:10px; flex-wrap:wrap; margin-bottom:20px;
-    padding:14px 16px; border-radius:18px; border:1px solid var(--ar-line);
-    background:linear-gradient(180deg, rgba(212,177,109,.07), var(--ar-card));
-  }
-  .ah-step { display:flex; align-items:center; gap:10px; flex:1 1 190px; }
-  .ah-num {
-    flex:0 0 auto; width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
-    font-weight:950; color:#fff; background:linear-gradient(135deg,#0a5c33,#074426);
-    box-shadow:0 6px 14px -6px rgba(10,92,51,.7);
-  }
-  .ah-step b { display:block; color:var(--ar-ink); font-weight:950; font-size:.96rem; }
-  .ah-step small { color:var(--ar-muted); font-weight:750; font-size:.82rem; }
-  .ah-sep { color:#b9975b; align-self:center; }
-  @media (max-width:760px){ .ah-sep { display:none; } }
-
-  /* عنوان خطوة مرقّم */
-  .archive-step-head { display:flex; align-items:center; gap:10px; margin:22px 2px 10px; }
-  .archive-step-head:first-of-type { margin-top:0; }
-  .archive-step-head .step-n {
-    width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
-    font-weight:950; color:#063d22; background:linear-gradient(135deg,#e6cf9a,#d4b16d); flex:0 0 auto;
-  }
-  .archive-step-head h2 { margin:0; font-size:1.08rem; font-weight:950; color:var(--ar-ink); }
-  .archive-step-head .hint { color:var(--ar-muted); font-weight:800; font-size:.86rem; }
-
-  /* لافتة "تعرض الآن" */
-  .archive-now {
-    display:inline-flex; align-items:center; gap:8px; margin-top:10px; padding:8px 14px;
-    border-radius:999px; font-weight:950; color:#0a5c33;
-    background:rgba(10,92,51,.08); border:1px solid rgba(10,92,51,.2);
-  }
-  .archive-now i { color:#b9975b; }
+  html[data-theme="dark"] .archive-page{--ar-line:#30483a;--ar-card:#14251b}
+  html[data-theme="dark"] .ar-alert--warn{color:#e9d092}html[data-theme="dark"] .ar-alert--danger{color:#f4aaaa}html[data-theme="dark"] .ar-alert--success{color:#8be0ac}
+  @media(max-width:980px){.ar-filter{grid-template-columns:repeat(2,1fr)}.ar-filter .ar-actions{grid-column:1/-1}.ar-grid{grid-template-columns:1fr}}
+  @media(max-width:720px){.ar-hero,.ar-upsell{grid-template-columns:1fr;flex-direction:column;align-items:flex-start}.ar-status{width:100%}.ar-kpis,.ar-versions{grid-template-columns:1fr 1fr}.ar-storage-breakdown{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.archive-page{padding:10px 8px 70px}.ar-hero{padding:21px 17px}.ar-filter,.ar-kpis,.ar-versions{grid-template-columns:1fr}.ar-filter .ar-actions{grid-column:auto}.ar-actions .ar-btn{width:100%}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="royal-page archive-wrap">
-  <div class="archive-shell">
-    <div class="royal-hero archive-head">
-      <div>
-        <span class="royal-kicker">
-          <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
-          ذاكرة المدرسة
-        </span>
-        <h1 class="royal-title archive-title">
-          <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
-          أرشيف السنوات
-        </h1>
-        <p class="royal-subtitle archive-sub">
-          {% if school_wide %}
-            الرجوع إلى تقارير المدرسة وملفات الإنجاز حسب السنة الدراسية.
-          {% else %}
-            الرجوع إلى تقاريرك وملفات إنجازك حسب السنة الدراسية.
-          {% endif %}
-        </p>
-        {% if archive_enabled %}
-        <div class="archive-meta-row">
-          <span class="archive-chip readonly"><i class="fa-solid fa-lock" aria-hidden="true"></i> أرشيف للقراءة فقط — تظهر البيانات تلقائيًا حسب السنة</span>
-        </div>
-        {% endif %}
-      </div>
-      <a class="btn btn-outline" href="{% url 'reports:home' %}">
-        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-        رجوع
-      </a>
+<main class="archive-page">
+  <header class="ar-hero">
+    <div>
+      <span class="ar-kicker"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> ذاكرة المدرسة الموثقة</span>
+      <h1 class="ar-title">أرشيف السنوات</h1>
+      <p class="ar-subtitle">احفظ نسخة ZIP ثابتة تضم PDF لكل تقرير وملف إنجاز وطلب وتعميم وإشعار، مع المرفقات الأصلية وفهرس Excel وبصمة SHA-256 وسجل تنزيل.</p>
     </div>
+    <div class="ar-status">
+      {% if archive_enabled %}
+        <b><i class="fa-solid fa-circle-check" aria-hidden="true"></i> الأرشفة مفعّلة</b>
+        {% if archive_addon.end_date %}<span>حتى {{ archive_addon.end_date|hijri }} هـ</span>{% else %}<span>مدة مفتوحة</span>{% endif %}
+      {% elif pending_archive_payment %}
+        <b><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> الطلب قيد المراجعة</b>
+        <span>سيظهر التفعيل فور اعتماد الإيصال</span>
+      {% elif has_saved_archives %}
+        <b><i class="fa-solid fa-box-archive" aria-hidden="true"></i> النسخ محفوظة</b>
+        <span>التفعيل منتهٍ؛ التنزيلات السابقة ما زالت متاحة</span>
+      {% else %}
+        <b><i class="fa-solid fa-lock" aria-hidden="true"></i> غير مفعّلة</b>
+        <span>يمكن للمدير طلبها مباشرة</span>
+      {% endif %}
+    </div>
+  </header>
 
-    {% if not archive_enabled %}
-      <div class="royal-panel archive-upgrade">
-        <i class="fa-solid fa-lock" aria-hidden="true"></i>
-        <h2 style="margin:0 0 8px;color:var(--ar-ink);font-weight:950">الأرشيف غير مفعّل لهذه المدرسة</h2>
-        <div>هذه ميزة مدفوعة مستقلة يمكن تفعيلها على أي اشتراك من إدارة المنصة.</div>
+  {% if can_manage_archive and not archive_enabled %}
+    {% if pending_archive_payment %}
+      <div class="ar-alert ar-alert--warn">
+        <i class="fa-solid fa-clock" aria-hidden="true"></i>
+        <div><strong>طلب الأرشفة قيد المراجعة.</strong><br>لن تحتاج إلى رفع طلب جديد. ستتمكن من إنشاء النسخ فور اعتماد الطلب.</div>
       </div>
     {% else %}
-      <div class="archive-howto">
-        <div class="ah-step"><span class="ah-num">١</span><div><b>اختر السنة</b><small>تظهر بياناتها تلقائيًا.</small></div></div>
-        <i class="fa-solid fa-arrow-left ah-sep" aria-hidden="true"></i>
-        <div class="ah-step"><span class="ah-num">٢</span><div><b>راجع المحتوى</b><small>تقارير وملفات إنجاز السنة.</small></div></div>
-        <i class="fa-solid fa-arrow-left ah-sep" aria-hidden="true"></i>
-        <div class="ah-step"><span class="ah-num">٣</span><div><b>أرشِف ونزّل</b><small>حزمة موثّقة (PDF + صور).</small></div></div>
-      </div>
+      <section class="ar-upsell" aria-labelledby="activateArchiveTitle">
+        <div>
+          <h2 id="activateArchiveTitle">{% if has_saved_archives %}جدّد الأرشفة لإنشاء نسخ جديدة{% else %}فعّل أرشيف المدرسة{% endif %}</h2>
+          <p>نسخ سنوية ثابتة، فهرس Excel، تحقق SHA-256، وحماية بيانات المدرسة من تصفير السنة. النسخ التي حفظتها سابقًا لا تُحذف بانتهاء الإضافة.</p>
+          <div class="ar-actions">
+            <a class="ar-btn ar-btn--primary" href="{% url 'reports:my_subscription' %}#archiveOrder">
+              <i class="fa-solid fa-credit-card" aria-hidden="true"></i>
+              {% if has_saved_archives %}طلب التجديد{% else %}طلب التفعيل الآن{% endif %}
+            </a>
+          </div>
+        </div>
+        <div class="ar-price">
+          <strong>{{ archive_price|floatformat:0 }} ريال</strong>
+          <span>سنويًا · يشمل {{ archive_included_storage_gb }}GB</span>
+        </div>
+      </section>
+    {% endif %}
+  {% endif %}
 
-      <div class="archive-step-head">
-        <span class="step-n">١</span>
-        <h2>اختر السنة الدراسية</h2>
+  {% if archive_enabled and archive_addon.days_remaining != None and archive_addon.days_remaining <= 30 %}
+    <div class="ar-alert {% if archive_addon.days_remaining <= 7 %}ar-alert--danger{% else %}ar-alert--warn{% endif %}">
+      <i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i>
+      <div>
+        <strong>تبقى {{ archive_addon.days_remaining }} يومًا على انتهاء الأرشفة.</strong>
+        النسخ المحفوظة ستبقى، لكن إنشاء نسخ جديدة سيتوقف بعد الانتهاء.
+        {% if can_manage_archive %}<a href="{% url 'reports:my_subscription' %}#archiveOrder">جدّد الآن</a>{% endif %}
       </div>
-      <form class="royal-panel archive-panel" method="get">
-        <div class="archive-field">
+    </div>
+  {% endif %}
+
+  {% if storage_overview %}
+    {% with pct=storage_overview.usage_percent %}
+      <section class="ar-storage" aria-label="استهلاك مساحة الأرشيف">
+        <div class="ar-storage-top">
+          <strong><i class="fa-solid fa-database" aria-hidden="true"></i> مساحة المدرسة والأرشيف</strong>
+          <b>{{ storage_overview.used_label }} من {{ storage_overview.limit_label }}</b>
+        </div>
+        {% if not storage_overview.is_unlimited %}<progress value="{{ pct }}" max="100">{{ pct }}%</progress>{% endif %}
+        <div class="ar-storage-foot">
+          {% if storage_overview.is_unlimited %}<span>السعة غير محدودة</span>{% else %}<span>{{ pct }}% مستخدم · المتبقي {{ storage_overview.remaining_label }}</span>{% endif %}
+          <span>يشمل التقارير والإنجاز والتذاكر والتعاميم والإشعارات والنسخ المحفوظة.</span>
+          {% if can_manage_archive and archive_enabled %}
+            <a class="ar-btn" href="{% url 'reports:my_subscription' %}#archiveOrder"><i class="fa-solid fa-plus" aria-hidden="true"></i> زيادة المساحة</a>
+          {% endif %}
+        </div>
+        <div class="ar-storage-breakdown" aria-label="تفصيل استهلاك المساحة">
+          <div class="ar-storage-part"><span>التقارير وصورها</span><b>{{ storage_overview.breakdown.reports.label }}</b></div>
+          <div class="ar-storage-part"><span>ملفات الإنجاز وشواهدها</span><b>{{ storage_overview.breakdown.achievements.label }}</b></div>
+          <div class="ar-storage-part"><span>التذاكر وصورها</span><b>{{ storage_overview.breakdown.tickets.label }}</b></div>
+          <div class="ar-storage-part"><span>مرفقات التعاميم</span><b>{{ storage_overview.breakdown.circulars.label }}</b></div>
+          <div class="ar-storage-part"><span>مرفقات الإشعارات</span><b>{{ storage_overview.breakdown.notifications.label }}</b></div>
+          <div class="ar-storage-part"><span>نسخ الأرشيف الثابتة</span><b>{{ storage_overview.breakdown.snapshots.label }}</b></div>
+        </div>
+      </section>
+      {% if not storage_overview.is_unlimited and pct >= 90 %}
+        <div class="ar-alert ar-alert--danger"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><div><strong>المساحة قاربت الامتلاء.</strong> قد لا تتمكن من حفظ نسخة سنة جديدة قبل زيادة المساحة.</div></div>
+      {% endif %}
+    {% endwith %}
+  {% endif %}
+
+  {% if archive_access_available %}
+    {% if years %}
+      <form class="ar-filter" method="get" aria-label="البحث داخل الأرشيف">
+        <div class="ar-field">
           <label for="archiveYear">السنة الدراسية</label>
-          <select id="archiveYear" name="year" data-autosubmit="1">
+          <select id="archiveYear" name="year">
             {% for year in years %}
-              <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>
-                {% if year == unclassified_year %}تقارير غير مصنفة بسنة{% else %}{{ year }} هـ{% endif %}{% if current_academic_year and year == current_academic_year %} — السنة الحالية{% endif %}
-              </option>
+              <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{% if year == unclassified_year %}غير مصنفة بسنة{% else %}{{ year }} هـ{% endif %}</option>
             {% endfor %}
           </select>
-          {% if selected_year %}<span class="archive-now"><i class="fa-solid fa-eye" aria-hidden="true"></i> تعرض الآن: {{ selected_year_label }}</span>{% endif %}
         </div>
-
-        <div class="archive-kpi">
-          <span>التقارير</span>
-          <strong><i class="fa-solid fa-file-lines" aria-hidden="true"></i>{{ report_stats.total }}</strong>
+        <div class="ar-field">
+          <label for="archiveSearch">اسم التقرير أو المعلم أو الجوال</label>
+          <input id="archiveSearch" type="search" name="q" value="{{ search }}" placeholder="ابحث داخل السنة">
         </div>
-        <div class="archive-kpi">
-          <span>تقارير بصور</span>
-          <strong><i class="fa-solid fa-image" aria-hidden="true"></i>{{ report_stats.with_images }}</strong>
-        </div>
-        <div class="archive-kpi">
-          <span>ملفات الإنجاز</span>
-          <strong><i class="fa-solid fa-folder-open" aria-hidden="true"></i>{{ achievement_stats.total }}</strong>
-        </div>
-        <div class="archive-kpi">
-          <span>المعتمدة</span>
-          <strong><i class="fa-solid fa-circle-check" aria-hidden="true"></i>{{ achievement_stats.approved }}</strong>
+        {% if school_wide %}
+          <div class="ar-field">
+            <label for="archiveTeacher">المعلم</label>
+            <select id="archiveTeacher" name="teacher">
+              <option value="">جميع المعلمين</option>
+              {% for teacher in teacher_options %}<option value="{{ teacher.id }}" {% if teacher_filter == teacher.id|stringformat:"s" %}selected{% endif %}>{{ teacher.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="ar-field">
+            <label for="archiveCategory">تصنيف التقرير</label>
+            <select id="archiveCategory" name="category">
+              <option value="">كل التصنيفات</option>
+              {% for category in category_options %}<option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>{% endfor %}
+            </select>
+          </div>
+        {% endif %}
+        <div class="ar-actions">
+          <button class="ar-btn ar-btn--primary" type="submit"><i class="fa-solid fa-filter" aria-hidden="true"></i> عرض</button>
+          {% if search or teacher_filter or category_filter %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}">مسح</a>{% endif %}
         </div>
       </form>
 
-      {% if archive_addon %}
-        {% with pct=archive_addon.storage_usage_percent %}
-        <div class="archive-storage-card{% if pct >= 90 %} is-danger{% elif pct >= 75 %} is-warn{% endif %}">
-          <div class="asc-top">
-            <strong><i class="fa-solid fa-database" aria-hidden="true"></i> مساحة الأرشيف</strong>
-            <span class="asc-quota">{{ archive_addon.storage_used_gb }} <small>من</small> {{ archive_addon.storage_limit_gb }} GB</span>
-          </div>
-          <div class="asc-bar" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="استهلاك مساحة الأرشيف">
-            <span class="asc-fill" style="width:{{ pct }}%"></span>
-          </div>
-          <div class="asc-foot">
-            <span class="asc-pct"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> {{ pct }}% مُستخدَم</span>
-            {% if archive_addon.end_date %}
-              <span class="asc-end"><i class="fa-regular fa-calendar-xmark" aria-hidden="true"></i> ينتهي الملحق: {{ archive_addon.end_date|hijri }} هـ</span>
+      <div class="ar-kpis" aria-label="ملخص السنة">
+        <div class="ar-kpi"><span>التقارير المطابقة</span><strong>{{ report_stats.total }}</strong></div>
+        <div class="ar-kpi"><span>تقارير بصور</span><strong>{{ report_stats.with_images }}</strong></div>
+        <div class="ar-kpi"><span>ملفات الإنجاز</span><strong>{{ achievement_stats.total }}</strong></div>
+        <div class="ar-kpi"><span>ملفات معتمدة</span><strong>{{ achievement_stats.approved }}</strong></div>
+        {% if school_wide %}
+          <div class="ar-kpi"><span>التذاكر حتى الآن</span><strong>{{ administrative_stats.tickets }}</strong></div>
+          <div class="ar-kpi"><span>التعاميم حتى الآن</span><strong>{{ administrative_stats.circulars }}</strong></div>
+          <div class="ar-kpi"><span>الإشعارات حتى الآن</span><strong>{{ administrative_stats.notifications }}</strong></div>
+        {% endif %}
+      </div>
+
+      {% if school_wide %}
+        <div class="ar-alert ar-alert--success">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+          <div><strong>ماذا تحفظ نسخة السنة؟</strong><br>التقارير وملفات الإنجاز تُرشّح بحسب السنة المختارة. أما التذاكر والتعاميم والإشعارات فلا تحمل سنة دراسية في النظام؛ لذلك تحفظ النسخة جميع سجلاتها وحالاتها ومرفقاتها كما هي لحظة الإنشاء.</div>
+        </div>
+      {% endif %}
+
+      {% if school_wide %}
+        <section class="ar-section" aria-labelledby="snapshotsTitle">
+          <header class="ar-section-head">
+            <div><h2 id="snapshotsTitle"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> النسخ المحفوظة — {{ selected_year_label }}</h2><p>هذه النسخ ثابتة؛ تعديل التقرير الحي لاحقًا لا يغيّر محتواها.</p></div>
+          </header>
+          <div class="ar-section-body">
+            {% if can_create_archive %}
+              <div class="ar-snapshot-action">
+                <h3>حفظ إصدار جديد من الحالة الحالية</h3>
+                <p>سيُنشأ ZIP مستقل يحتوي PDF لكل سجل، والمرفقات والصور الأصلية، وفهرس Excel وبصمات التحقق. لا تُستبدل النسخ السابقة، وتُحتسب النسخة الجديدة من مساحة التخزين.</p>
+                <form method="post" action="{% url 'reports:school_archive_create' %}" class="archive-create-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="year" value="{{ selected_year }}">
+                  <div class="ar-actions">
+                    <button class="ar-btn ar-btn--gold archive-create-button" type="submit" {% if not report_stats.total and not achievement_stats.total and not administrative_stats.tickets and not administrative_stats.circulars and not administrative_stats.notifications %}disabled{% endif %}>
+                      <i class="fa-solid fa-camera" aria-hidden="true"></i> إنشاء نسخة ثابتة الآن
+                    </button>
+                  </div>
+                </form>
+              </div>
+            {% elif can_manage_archive %}
+              <div class="ar-alert ar-alert--warn"><i class="fa-solid fa-lock" aria-hidden="true"></i><div>يمكنك تنزيل النسخ السابقة، ويلزم تجديد الإضافة لإنشاء نسخة جديدة.</div></div>
+            {% endif %}
+
+            {% if archive_versions %}
+              <div class="ar-versions">
+                {% for version in archive_versions %}
+                  <article class="ar-version {% if version.status == 'partial' %}is-partial{% endif %}">
+                    <div class="ar-version-top">
+                      <div><div class="ar-version-title">الإصدار {{ version.version }}</div><div class="ar-version-date">{{ version.created_at|date:"Y-m-d H:i" }} · {{ version.created_by.name|default:"النظام" }}</div></div>
+                      <span class="ar-badge {% if version.status == 'partial' %}ar-badge--warn{% endif %}">{{ version.get_status_display }}</span>
+                    </div>
+                    <div class="ar-version-meta">
+                      <span>{{ version.report_count }} تقرير</span><span>{{ version.achievement_count }} ملف إنجاز</span><span>{{ version.ticket_count }} تذكرة</span><span>{{ version.circular_count }} تعميم</span><span>{{ version.notification_count }} إشعار</span><span>{{ version.file_count }} ملف داخل الحزمة</span><span>{{ version.archive_size_mb }}MB</span><span>{{ version.download_count }} تنزيل</span>
+                      {% if version.missing_file_count %}<span>{{ version.missing_file_count }} ملف مفقود</span>{% endif %}
+                      {% if version.failed_pdf_count %}<span>{{ version.failed_pdf_count }} PDF متعذر</span>{% endif %}
+                    </div>
+                    <div class="ar-hash" title="بصمة SHA-256">{{ version.archive_sha256 }}</div>
+                    <div class="ar-actions">
+                      <a class="ar-btn ar-btn--primary" href="{% url 'reports:school_archive_download' version.pk %}"><i class="fa-solid fa-download" aria-hidden="true"></i> تنزيل هذه النسخة</a>
+                    </div>
+                  </article>
+                {% endfor %}
+              </div>
+              {% if archive_versions.paginator.num_pages > 1 %}
+                <nav class="ar-pagination" aria-label="صفحات نسخ الأرشيف">
+                  {% if archive_versions.has_previous %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&archive_page={{ archive_versions.previous_page_number }}">السابق</a>{% endif %}
+                  <span>صفحة {{ archive_versions.number }} من {{ archive_versions.paginator.num_pages }}</span>
+                  {% if archive_versions.has_next %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&archive_page={{ archive_versions.next_page_number }}">التالي</a>{% endif %}
+                </nav>
+              {% endif %}
             {% else %}
-              <span class="asc-end"><i class="fa-solid fa-infinity" aria-hidden="true"></i> مدّة مفتوحة</span>
+              <div class="ar-empty"><i class="fa-regular fa-folder-open" aria-hidden="true"></i>لم تُحفظ نسخة ثابتة لهذه السنة بعد.</div>
             {% endif %}
-            <a class="asc-upgrade" href="{% url 'reports:my_subscription' %}">
-              <i class="fa-solid fa-circle-plus" aria-hidden="true"></i> طلب زيادة المساحة
-            </a>
           </div>
-          {% if pct >= 90 %}
-            <div class="asc-alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> اقتربت من حدّ المساحة — قد يتعذّر رفع تقارير/ملفات جديدة. يُنصح بزيادة المساحة.</div>
-          {% endif %}
-        </div>
-        {% endwith %}
+        </section>
+      {% elif archive_enabled and selected_year %}
+        <div class="ar-actions"><a class="ar-btn ar-btn--primary" href="{% url 'reports:school_archive_export' %}?year={{ selected_year|urlencode }}"><i class="fa-solid fa-download" aria-hidden="true"></i> تنزيل نسختي الحالية</a></div>
       {% endif %}
 
-      {% if years and selected_year %}
-        <div class="archive-step-head">
-          <span class="step-n">٢</span>
-          <h2>أرشفة السنة وتوثيقها</h2>
-          <span class="hint">— التنزيل = حفظ نسخة موثّقة للقراءة فقط</span>
-        </div>
-        <div class="archive-download-bar">
-          <div class="archive-download-text">
-            <strong><i class="fa-solid fa-box-archive" aria-hidden="true"></i> حزمة أرشيف {{ selected_year_label }}</strong>
-            <span>كل تقارير وملفات إنجاز هذه السنة في ملف واحد مضغوط: صور + ملف PDF رسمي لكل تقرير + فهرس Excel.</span>
-            <div class="archive-meta-row" style="margin-top:10px">
-              {% if archived_at %}<span class="archive-chip"><i class="fa-regular fa-clock" aria-hidden="true"></i> ختم زمني: {{ archived_at|date:"Y-m-d H:i" }}</span>{% endif %}
-              <span class="archive-chip"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> تحقّق سلامة SHA-256</span>
-            </div>
+      <section class="ar-section" aria-labelledby="liveContentTitle">
+        <header class="ar-section-head"><div><h2 id="liveContentTitle"><i class="fa-solid fa-table-list" aria-hidden="true"></i> المحتوى الحالي للسنة</h2><p>هذه معاينة حية قابلة للتغيير؛ اعتمد على النسخ المحفوظة للتوثيق النهائي.</p></div></header>
+        <div class="ar-section-body">
+          <div class="ar-grid">
+            <section>
+              <h3>التقارير</h3>
+              <div class="ar-table-wrap">
+                <table class="ar-table">
+                  <thead><tr><th>التقرير</th><th>التاريخ</th><th>التصنيف</th><th>إجراء</th></tr></thead>
+                  <tbody>
+                    {% for report in reports %}
+                      <tr><td><div class="ar-name">{{ report.title }}</div><div class="ar-meta">{{ report.teacher_display_name }}</div></td><td>{{ report.report_date|hijri }} هـ</td><td>{{ report.category.name|default:"—" }}</td><td><a class="ar-btn" href="{% url 'reports:report_print' report.pk %}" target="_blank" rel="noopener">طباعة</a></td></tr>
+                    {% empty %}<tr><td colspan="4"><div class="ar-empty">لا توجد تقارير مطابقة.</div></td></tr>{% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% if reports.paginator.num_pages > 1 %}<nav class="ar-pagination">{% if reports.has_previous %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&reports_page={{ reports.previous_page_number }}&files_page={{ achievement_files.number }}">السابق</a>{% endif %}<span>{{ reports.number }} / {{ reports.paginator.num_pages }}</span>{% if reports.has_next %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&reports_page={{ reports.next_page_number }}&files_page={{ achievement_files.number }}">التالي</a>{% endif %}</nav>{% endif %}
+            </section>
+            <section>
+              <h3>ملفات الإنجاز</h3>
+              <div class="ar-table-wrap">
+                <table class="ar-table">
+                  <thead><tr><th>المعلم</th><th>الحالة</th><th>إجراء</th></tr></thead>
+                  <tbody>
+                    {% for file in achievement_files %}
+                      <tr><td><div class="ar-name">{{ file.teacher_name|default:file.teacher.name }}</div><div class="ar-meta">{{ file.academic_year }} هـ</div></td><td>{{ file.get_status_display }}</td><td><a class="ar-btn" href="{% url 'reports:achievement_file_detail' file.pk %}">فتح</a></td></tr>
+                    {% empty %}<tr><td colspan="3"><div class="ar-empty">لا توجد ملفات إنجاز مطابقة.</div></td></tr>{% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% if achievement_files.paginator.num_pages > 1 %}<nav class="ar-pagination">{% if achievement_files.has_previous %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&files_page={{ achievement_files.previous_page_number }}&reports_page={{ reports.number }}">السابق</a>{% endif %}<span>{{ achievement_files.number }} / {{ achievement_files.paginator.num_pages }}</span>{% if achievement_files.has_next %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&files_page={{ achievement_files.next_page_number }}&reports_page={{ reports.number }}">التالي</a>{% endif %}</nav>{% endif %}
+            </section>
           </div>
-          <a class="btn btn-primary archive-download-btn" id="archiveDownloadBtn"
-             href="{% url 'reports:school_archive_export' %}?year={{ selected_year|urlencode }}">
-            <i class="fa-solid fa-file-zipper" aria-hidden="true"></i>
-            أرشفة هذه السنة (ZIP)
-          </a>
         </div>
-      {% endif %}
-
-      {% if not years %}
-        <div class="royal-empty archive-empty">لا توجد سنوات مؤرشفة حتى الآن.</div>
-      {% else %}
-        <div class="archive-step-head">
-          <span class="step-n">٣</span>
-          <h2>محتوى السنة المختارة</h2>
-          <span class="hint">— تصفّح التقارير وملفات الإنجاز</span>
-        </div>
-        <div class="archive-grid">
-          <section class="royal-panel archive-section">
-            <div class="archive-section-head">
-              <h2><i class="fa-solid fa-file-lines" aria-hidden="true"></i> التقارير</h2>
-              <span class="archive-badge">{{ selected_year_label }}</span>
-            </div>
-            <table class="royal-table archive-table">
-              <thead>
-                <tr>
-                  <th>التقرير</th>
-                  <th>التاريخ</th>
-                  <th>التصنيف</th>
-                  <th>إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for r in reports %}
-                  <tr>
-                    <td>
-                      <div class="archive-title-cell">{{ r.title }}</div>
-                      <div class="archive-meta">{{ r.teacher_display_name }}</div>
-                    </td>
-                    <td>{{ r.report_date|hijri }} هـ</td>
-                    <td>{% if r.category %}{{ r.category.name }}{% else %}—{% endif %}</td>
-                    <td>
-                      <div class="archive-actions">
-                        <a class="archive-btn" href="{% url 'reports:report_print' r.pk %}" target="_blank" rel="noopener">
-                          <i class="fa-solid fa-print" aria-hidden="true"></i>
-                          طباعة
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                {% empty %}
-                  <tr><td colspan="4"><div class="royal-empty archive-empty">لا توجد تقارير لهذه السنة.</div></td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            {% if reports.paginator.num_pages > 1 %}
-              <nav class="archive-pager" aria-label="تنقّل صفحات التقارير">
-                {% if reports.has_previous %}
-                  <a class="archive-pg" href="?year={{ selected_year|urlencode }}&amp;files_page={{ achievement_files.number }}&amp;reports_page={{ reports.previous_page_number }}" aria-label="الصفحة السابقة"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a>
-                {% else %}
-                  <span class="archive-pg disabled"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></span>
-                {% endif %}
-                <span class="archive-pg-info">صفحة <b>{{ reports.number }}</b> من {{ reports.paginator.num_pages }} · {{ reports.paginator.count }} تقرير</span>
-                {% if reports.has_next %}
-                  <a class="archive-pg" href="?year={{ selected_year|urlencode }}&amp;files_page={{ achievement_files.number }}&amp;reports_page={{ reports.next_page_number }}" aria-label="الصفحة التالية"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
-                {% else %}
-                  <span class="archive-pg disabled"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></span>
-                {% endif %}
-              </nav>
-            {% endif %}
-          </section>
-
-          <section class="royal-panel archive-section">
-            <div class="archive-section-head">
-              <h2><i class="fa-solid fa-folder-open" aria-hidden="true"></i> ملفات الإنجاز</h2>
-              <span class="archive-badge">{{ achievement_stats.submitted }} قيد المراجعة</span>
-            </div>
-            <table class="royal-table archive-table">
-              <thead>
-                <tr>
-                  <th>الملف</th>
-                  <th>الحالة</th>
-                  <th>إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for f in achievement_files %}
-                  <tr>
-                    <td>
-                      <div class="archive-title-cell">{{ f.teacher_name|default:f.teacher.name }}</div>
-                      <div class="archive-meta">{{ f.academic_year }} هـ</div>
-                    </td>
-                    <td>
-                      <span class="royal-status {% if f.status == 'approved' %}ok{% elif f.status == 'submitted' %}warn{% elif f.status == 'returned' %}danger{% endif %}">
-                        {{ f.get_status_display }}
-                      </span>
-                    </td>
-                    <td>
-                      <div class="archive-actions">
-                        <a class="archive-btn" href="{% url 'reports:achievement_file_detail' f.pk %}">
-                          <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                          فتح
-                        </a>
-                        <a class="archive-btn" href="{% url 'reports:achievement_file_print' f.pk %}" target="_blank" rel="noopener">
-                          <i class="fa-solid fa-print" aria-hidden="true"></i>
-                          PDF
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                {% empty %}
-                  <tr><td colspan="3"><div class="royal-empty archive-empty">لا توجد ملفات إنجاز لهذه السنة.</div></td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            {% if achievement_files.paginator.num_pages > 1 %}
-              <nav class="archive-pager" aria-label="تنقّل صفحات ملفات الإنجاز">
-                {% if achievement_files.has_previous %}
-                  <a class="archive-pg" href="?year={{ selected_year|urlencode }}&amp;reports_page={{ reports.number }}&amp;files_page={{ achievement_files.previous_page_number }}" aria-label="الصفحة السابقة"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a>
-                {% else %}
-                  <span class="archive-pg disabled"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></span>
-                {% endif %}
-                <span class="archive-pg-info">صفحة <b>{{ achievement_files.number }}</b> من {{ achievement_files.paginator.num_pages }} · {{ achievement_files.paginator.count }} ملف</span>
-                {% if achievement_files.has_next %}
-                  <a class="archive-pg" href="?year={{ selected_year|urlencode }}&amp;reports_page={{ reports.number }}&amp;files_page={{ achievement_files.next_page_number }}" aria-label="الصفحة التالية"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
-                {% else %}
-                  <span class="archive-pg disabled"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></span>
-                {% endif %}
-              </nav>
-            {% endif %}
-          </section>
-        </div>
-      {% endif %}
+      </section>
+    {% else %}
+      <div class="ar-empty"><i class="fa-solid fa-box-open" aria-hidden="true"></i>لا توجد تقارير أو ملفات إنجاز مصنفة بسنة حتى الآن.</div>
     {% endif %}
-  </div>
-</div>
+  {% elif not can_manage_archive %}
+    <div class="ar-alert ar-alert--warn"><i class="fa-solid fa-lock" aria-hidden="true"></i><div>ميزة الأرشفة غير مفعلة لهذه المدرسة.</div></div>
+  {% endif %}
+</main>
+{% endblock %}
 
+{% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
-  (function(){
-    // إرسال نموذج السنة عند التغيير (بديل onchange المحظور بسياسة CSP)
-    document.querySelectorAll('select[data-autosubmit]').forEach(function(sel){
-      sel.addEventListener('change', function(){ if (sel.form) sel.form.submit(); });
-    });
-    // حالة تحميل عند تنزيل أرشيف السنة
-    var dl = document.getElementById('archiveDownloadBtn');
-    if (dl) {
-      dl.addEventListener('click', function(){
-        var original = dl.innerHTML;
-        dl.setAttribute('aria-disabled', 'true');
-        dl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ تجهيز الأرشيف...';
-        setTimeout(function(){ dl.removeAttribute('aria-disabled'); dl.innerHTML = original; }, 6000);
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".archive-create-form").forEach(function (form) {
+      form.addEventListener("submit", function (event) {
+        var confirmed = window.confirm("سيتم حفظ إصدار جديد مستقل ويُحتسب من مساحة التخزين. هل تريد المتابعة؟");
+        if (!confirmed) {
+          event.preventDefault();
+          return;
+        }
+        var button = form.querySelector(".archive-create-button");
+        if (button) {
+          button.disabled = true;
+          button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> جارٍ بناء النسخة...';
+        }
       });
-    }
-  })();
+    });
+  });
 </script>
 {% endblock %}

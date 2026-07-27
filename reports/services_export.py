@@ -15,9 +15,12 @@ from django.utils import timezone
 from .models import (
     Department,
     DepartmentMembership,
+    Notification,
     Report,
     SchoolMembership,
     TeacherAchievementFile,
+    Ticket,
+    TicketImage,
 )
 
 # ألوان الهوية
@@ -31,6 +34,13 @@ def _counts(school) -> dict:
     return {
         "reports": Report.objects.filter(school=school).count(),
         "achievements": TeacherAchievementFile.objects.filter(school=school).count(),
+        "tickets": Ticket.objects.filter(school=school).count(),
+        "circulars": Notification.objects.filter(
+            school=school, requires_signature=True
+        ).count(),
+        "notifications": Notification.objects.filter(
+            school=school, requires_signature=False
+        ).count(),
         "teachers": SchoolMembership.objects.filter(
             school=school, role_type=SchoolMembership.RoleType.TEACHER
         ).count(),
@@ -111,6 +121,9 @@ def build_school_export_workbook(school):
         ("السنة الدراسية الحالية", getattr(school, "current_academic_year", "") or "—"),
         ("عدد التقارير", counts["reports"]),
         ("عدد ملفات الإنجاز", counts["achievements"]),
+        ("عدد التذاكر والطلبات", counts["tickets"]),
+        ("عدد التعاميم", counts["circulars"]),
+        ("عدد الإشعارات", counts["notifications"]),
         ("عدد المعلمين", counts["teachers"]),
         ("عدد الأقسام", counts["departments"]),
         ("تاريخ التصدير", timezone.localtime().strftime("%Y-%m-%d %H:%M")),
@@ -179,6 +192,52 @@ def build_school_export_workbook(school):
         ach_rows,
     )
 
+    # ---------------- ورقة الطلبات والتذاكر ----------------
+    ws_tickets = wb.create_sheet("الطلبات والتذاكر")
+    _style_sheet_rtl(ws_tickets)
+    ticket_rows = []
+    for ticket in _tickets_qs(school).iterator(chunk_size=100):
+        ticket_rows.append(
+            [
+                ticket.id,
+                ticket.title or "",
+                getattr(ticket.creator, "name", "") or "—",
+                getattr(ticket.department, "name", "") or "—",
+                ticket.get_status_display(),
+                ticket.created_at.strftime("%Y-%m-%d %H:%M"),
+                "نعم" if getattr(ticket.attachment, "name", "") else "لا",
+                (ticket.body or "").strip(),
+            ]
+        )
+    _write_table(
+        ws_tickets,
+        ["#", "العنوان", "المرسل", "القسم", "الحالة", "التاريخ", "مرفق", "التفاصيل"],
+        ticket_rows,
+    )
+
+    # ---------------- ورقة التعاميم والإشعارات ----------------
+    ws_notifications = wb.create_sheet("التعاميم والإشعارات")
+    _style_sheet_rtl(ws_notifications)
+    notification_rows = []
+    for notification in _notifications_qs(school).iterator(chunk_size=100):
+        notification_rows.append(
+            [
+                notification.id,
+                "تعميم" if notification.requires_signature else "إشعار",
+                notification.title or "",
+                getattr(notification.created_by, "name", "") or "—",
+                notification.created_at.strftime("%Y-%m-%d %H:%M"),
+                notification.recipients.count(),
+                "نعم" if getattr(notification.attachment, "name", "") else "لا",
+                (notification.message or "").strip(),
+            ]
+        )
+    _write_table(
+        ws_notifications,
+        ["#", "النوع", "العنوان", "المرسل", "التاريخ", "المستلمون", "مرفق", "النص"],
+        notification_rows,
+    )
+
     # ---------------- ورقة المعلمين ----------------
     ws_teachers = wb.create_sheet("المعلمون")
     _style_sheet_rtl(ws_teachers)
@@ -231,6 +290,117 @@ def build_school_export_bytes(school) -> bytes:
     wb = build_school_export_workbook(school)
     buffer = BytesIO()
     wb.save(buffer)
+    return buffer.getvalue()
+
+
+def build_year_archive_index_bytes(
+    school,
+    academic_year,
+    *,
+    teacher=None,
+    school_wide=True,
+) -> bytes:
+    """Build the Excel index promised inside every yearly archive package."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from .services_archive import UNCLASSIFIED_YEAR
+
+    reports = _reports_qs(
+        school,
+        academic_year=academic_year,
+        teacher=teacher,
+        school_wide=school_wide,
+    )
+    achievements = (
+        TeacherAchievementFile.objects.none()
+        if academic_year == UNCLASSIFIED_YEAR
+        else _achievement_files_qs(
+            school,
+            academic_year=academic_year,
+            teacher=teacher,
+            school_wide=school_wide,
+        )
+    )
+
+    workbook = Workbook()
+    report_sheet = workbook.active
+    report_sheet.title = "التقارير"
+    achievement_sheet = workbook.create_sheet("ملفات الإنجاز")
+    sheets = [report_sheet, achievement_sheet]
+    ticket_sheet = None
+    notification_sheet = None
+    if school_wide:
+        ticket_sheet = workbook.create_sheet("الطلبات والتذاكر")
+        notification_sheet = workbook.create_sheet("التعاميم والإشعارات")
+        sheets.extend([ticket_sheet, notification_sheet])
+    for sheet in sheets:
+        sheet.sheet_view.rightToLeft = True
+
+    report_sheet.append(["المعرف", "العنوان", "المعلم", "التاريخ", "التصنيف", "السنة الدراسية"])
+    for report in reports.iterator():
+        report_sheet.append(
+            [
+                report.pk,
+                report.title,
+                getattr(report, "teacher_display_name", "")
+                or getattr(getattr(report, "teacher", None), "name", ""),
+                report.report_date.isoformat() if report.report_date else "",
+                getattr(getattr(report, "category", None), "name", ""),
+                report.academic_year or "غير مصنف",
+            ]
+        )
+
+    achievement_sheet.append(["المعرف", "المعلم", "السنة الدراسية", "الحالة"])
+    for achievement in achievements.iterator():
+        achievement_sheet.append(
+            [
+                achievement.pk,
+                getattr(achievement, "teacher_name", "")
+                or getattr(getattr(achievement, "teacher", None), "name", ""),
+                achievement.academic_year,
+                achievement.get_status_display(),
+            ]
+        )
+
+    if ticket_sheet is not None:
+        ticket_sheet.append(["المعرف", "العنوان", "المرسل", "القسم", "الحالة", "تاريخ الإنشاء"])
+        for ticket in _tickets_qs(school).iterator(chunk_size=100):
+            ticket_sheet.append(
+                [
+                    ticket.pk,
+                    ticket.title,
+                    getattr(ticket.creator, "name", ""),
+                    getattr(ticket.department, "name", ""),
+                    ticket.get_status_display(),
+                    ticket.created_at.isoformat() if ticket.created_at else "",
+                ]
+            )
+
+    if notification_sheet is not None:
+        notification_sheet.append(["المعرف", "النوع", "العنوان", "المرسل", "تاريخ الإنشاء", "المستلمون"])
+        for notification in _notifications_qs(school).iterator(chunk_size=100):
+            notification_sheet.append(
+                [
+                    notification.pk,
+                    "تعميم" if notification.requires_signature else "إشعار",
+                    notification.title,
+                    getattr(notification.created_by, "name", ""),
+                    notification.created_at.isoformat() if notification.created_at else "",
+                    notification.recipients.count(),
+                ]
+            )
+
+    for sheet in sheets:
+        for cell in sheet[1]:
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill("solid", fgColor=_HEADER_FILL)
+            cell.alignment = Alignment(horizontal="center")
+        sheet.freeze_panes = "A2"
+        for column, width in {"A": 12, "B": 34, "C": 28, "D": 18, "E": 24, "F": 20}.items():
+            sheet.column_dimensions[column].width = width
+
+    buffer = BytesIO()
+    workbook.save(buffer)
     return buffer.getvalue()
 
 
@@ -313,6 +483,73 @@ def _achievement_arc_name(ach) -> str:
     return f"ملفات-الإنجاز/{tname} - {year}.pdf"
 
 
+def _tickets_qs(school):
+    return (
+        Ticket.objects.filter(school=school)
+        .select_related("creator", "assignee", "department", "school")
+        .prefetch_related("recipients", "notes__author", "images")
+        .order_by("-created_at", "-id")
+    )
+
+
+def _notifications_qs(school):
+    return (
+        Notification.objects.filter(school=school)
+        .select_related("created_by", "school")
+        .prefetch_related("recipients__teacher")
+        .order_by("-created_at", "-id")
+    )
+
+
+def _ticket_folder(ticket) -> str:
+    day = ticket.created_at.strftime("%Y-%m-%d") if ticket.created_at else "بدون-تاريخ"
+    name = _safe_segment(
+        f"{day} - {ticket.title} - {ticket.id}",
+        fallback=f"طلب-{ticket.id}",
+    )
+    return f"الطلبات-والتذاكر/{name}"
+
+
+def _notification_folder(notification) -> str:
+    root = "التعاميم" if notification.requires_signature else "الإشعارات"
+    day = (
+        notification.created_at.strftime("%Y-%m-%d")
+        if notification.created_at
+        else "بدون-تاريخ"
+    )
+    title = notification.title or ((notification.message or "")[:40])
+    name = _safe_segment(
+        f"{day} - {title} - {notification.id}",
+        fallback=f"سجل-{notification.id}",
+    )
+    return f"{root}/{name}"
+
+
+def _administrative_file_fields(school):
+    """Original attachments/images for school-wide administrative records."""
+    for ticket in _tickets_qs(school).iterator(chunk_size=100):
+        folder = _ticket_folder(ticket)
+        field = getattr(ticket, "attachment", None)
+        name = getattr(field, "name", "") or ""
+        if name:
+            ext = os.path.splitext(name)[1].lower() or ".bin"
+            yield f"{folder}/المرفق-الرئيسي{ext}", field
+        for index, ticket_image in enumerate(ticket.images.all(), start=1):
+            image = getattr(ticket_image, "image", None)
+            image_name = getattr(image, "name", "") or ""
+            if image_name:
+                ext = os.path.splitext(image_name)[1].lower() or ".jpg"
+                yield f"{folder}/صورة-{index}{ext}", image
+
+    for notification in _notifications_qs(school).iterator(chunk_size=100):
+        field = getattr(notification, "attachment", None)
+        name = getattr(field, "name", "") or ""
+        if not name:
+            continue
+        ext = os.path.splitext(name)[1].lower() or ".bin"
+        yield f"{_notification_folder(notification)}/المرفق{ext}", field
+
+
 def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_wide=True):
     """مولّد ينتج (مسار_داخل_الأرشيف، حقل_الملف) لكل ملف فعلي للمدرسة.
 
@@ -376,52 +613,25 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
         base = os.path.basename(name) or f"شاهد-{ev.id}.jpg"
         yield f"ملفات-الإنجاز/شواهد/{tname} - {year}/{section}/{base}", field
 
-    # الطلبات/التذاكر والتعاميم/الإشعارات لا ترتبط بسنة دراسية،
-    # لذا تُضمَّن فقط في التصدير الكامل للمدرسة (وليس أرشيف سنة أو معلّم).
+    # السجلات الإدارية لا تحمل سنة دراسية؛ يضيفها أرشيف السنة صراحةً
+    # بوصفها "الحالة حتى لحظة إنشاء النسخة". وهنا نضيفها للتصدير الكامل.
     if academic_year or not school_wide:
         return
 
-    # 4) مرفقات الطلبات والتذاكر (PDF/صور/مستندات)
-    from .models import Notification, Ticket
-
-    tickets = (
-        Ticket.objects.filter(school=school)
-        .select_related("creator", "department")
-        .order_by("-created_at")
-    )
-    for tk in tickets.iterator():
-        field = getattr(tk, "attachment", None)
-        name = getattr(field, "name", "") or ""
-        if not name:
-            continue
-        ext = os.path.splitext(name)[1].lower()
-        day = tk.created_at.strftime("%Y-%m-%d") if getattr(tk, "created_at", None) else "بدون-تاريخ"
-        fname = _safe_segment(f"{day} - {tk.title} - {tk.id}", fallback=f"طلب-{tk.id}")
-        yield f"الطلبات-والتذاكر/{fname}{ext}", field
-
-    # 5) مرفقات التعاميم والإشعارات (PDF/صور)
-    notifications = Notification.objects.filter(school=school).order_by("-created_at")
-    for note in notifications.iterator():
-        field = getattr(note, "attachment", None)
-        name = getattr(field, "name", "") or ""
-        if not name:
-            continue
-        ext = os.path.splitext(name)[1].lower()
-        folder = "التعاميم" if getattr(note, "requires_signature", False) else "الإشعارات"
-        day = note.created_at.strftime("%Y-%m-%d") if getattr(note, "created_at", None) else "بدون-تاريخ"
-        title = note.title or ((note.message or "")[:40])
-        fname = _safe_segment(f"{day} - {title} - {note.id}", fallback=f"تعميم-{note.id}")
-        yield f"{folder}/{fname}{ext}", field
+    yield from _administrative_file_fields(school)
 
 
 def count_export_files(school, *, academic_year=None, teacher=None, school_wide=True) -> int:
     """عدد الملفات الفعلية التي ستُصدَّر (للعرض في صفحة المعاينة)."""
     try:
-        return sum(
+        count = sum(
             1 for _ in _file_fields_for_school(
                 school, academic_year=academic_year, teacher=teacher, school_wide=school_wide
             )
         )
+        if academic_year and school_wide:
+            count += sum(1 for _ in _administrative_file_fields(school))
+        return count
     except Exception:
         return 0
 
@@ -435,32 +645,82 @@ def archive_zip_filename(school, academic_year=None) -> str:
     return f"archive-{code}{year_part}-{stamp}.zip"
 
 
-def build_school_export_zip_file(school, *, academic_year=None, teacher=None, school_wide=True, request=None):
+def build_school_export_zip_file(
+    school,
+    *,
+    academic_year=None,
+    teacher=None,
+    school_wide=True,
+    request=None,
+    return_metadata=False,
+):
     """يبني أرشيف ZIP يحوي ملفات المدرسة الفعلية + فهرس + ملف تحقّق سلامة (SHA-256).
 
     - عند تمرير ``academic_year`` يصبح أرشيف سنة محددة (مع manifest سلامة للسنة).
     - عند عدم تمريرها يصبح تصدير المدرسة الكامل (مع فهرس Excel).
     - ``request`` (اختياري): يُمرَّر لتوليد PDF ملفات الإنجاز غير المخزّنة لحظيًا.
-    - يُعيد كائنًا شبيهًا بملف (SpooledTemporaryFile) مؤشّره عند البداية، صالحًا للبثّ.
+    - عند ``return_metadata=True`` يعيد ``(file, metadata)`` لإظهار تقرير اكتمال صريح.
     """
     import hashlib
-    from .services_archive import UNCLASSIFIED_YEAR
+    from .services_archive import UNCLASSIFIED_YEAR, archive_year_label
 
     is_year_archive = bool(academic_year)
     is_unclassified = academic_year == UNCLASSIFIED_YEAR
     generated_at = timezone.localtime().strftime("%Y-%m-%d %H:%M:%S %Z")
     manifest_lines = []  # (sha256, size, path)
+    missing_file_count = 0
+    report_count = _reports_qs(
+        school,
+        academic_year=academic_year,
+        teacher=teacher,
+        school_wide=school_wide,
+    ).count()
+    achievement_count = (
+        0
+        if is_unclassified
+        else _achievement_files_qs(
+            school,
+            academic_year=academic_year,
+            teacher=teacher,
+            school_wide=school_wide,
+        ).count()
+    )
+    ticket_count = _tickets_qs(school).count() if school_wide else 0
+    circular_count = (
+        Notification.objects.filter(school=school, requires_signature=True).count()
+        if school_wide
+        else 0
+    )
+    notification_count = (
+        Notification.objects.filter(school=school, requires_signature=False).count()
+        if school_wide
+        else 0
+    )
 
     tmp = tempfile.SpooledTemporaryFile(max_size=24 * 1024 * 1024)
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=1) as zf:
-        # فهرس Excel في جذر الأرشيف (للتصدير الكامل)
-        if not is_year_archive:
-            try:
-                zf.writestr("ملخص-البيانات.xlsx", build_school_export_bytes(school))
-            except Exception:
-                pass
-
         added = 0
+
+        def write_bytes(archive_path: str, data: bytes) -> None:
+            nonlocal added
+            zf.writestr(archive_path, data)
+            manifest_lines.append((hashlib.sha256(data).hexdigest(), len(data), archive_path))
+            added += 1
+
+        try:
+            if is_year_archive:
+                index_bytes = build_year_archive_index_bytes(
+                    school,
+                    academic_year,
+                    teacher=teacher,
+                    school_wide=school_wide,
+                )
+                write_bytes("فهرس-السنة.xlsx", index_bytes)
+            else:
+                write_bytes("ملخص-البيانات.xlsx", build_school_export_bytes(school))
+        except Exception:
+            missing_file_count += 1
+
         for arc_path, field in _file_fields_for_school(
             school, academic_year=academic_year, teacher=teacher, school_wide=school_wide
         ):
@@ -473,20 +733,36 @@ def build_school_export_zip_file(school, *, academic_year=None, teacher=None, sc
                         field.close()
                     except Exception:
                         pass
-                zf.writestr(arc_path, data)
-                manifest_lines.append((hashlib.sha256(data).hexdigest(), len(data), arc_path))
-                added += 1
+                write_bytes(arc_path, data)
             except Exception:
-                # ملف مفقود من التخزين أو تعذّرت قراءته — نتخطّاه دون كسر التصدير
-                continue
+                missing_file_count += 1
 
-        # توليد PDF (server-side) مع تجاهل آمن عند الفشل.
-        # weasy_unavailable: عند فشل مكتبات الطباعة نوقف بقية المحاولات لتفادي البطء.
+        # السجلات الإدارية غير مرتبطة بسنة دراسية في قاعدة البيانات. في النسخة
+        # السنوية للمدرسة نحفظ حالتها كاملة حتى لحظة إنشاء النسخة.
+        if is_year_archive and school_wide:
+            for arc_path, field in _administrative_file_fields(school):
+                try:
+                    field.open("rb")
+                    try:
+                        data = field.read()
+                    finally:
+                        try:
+                            field.close()
+                        except Exception:
+                            pass
+                    write_bytes(arc_path, data)
+                except Exception:
+                    missing_file_count += 1
+
         weasy_unavailable = False
-        gen_ok = 0           # ملفات إنجاز مُولّدة
+        gen_ok = 0
         gen_failed = 0
-        rep_ok = 0           # تقارير مُولّدة كـ PDF
+        rep_ok = 0
         rep_failed = 0
+        ticket_pdf_ok = 0
+        ticket_pdf_failed = 0
+        notification_pdf_ok = 0
+        notification_pdf_failed = 0
 
         # (أ) ملف PDF لكل تقرير (لكل النطاقات بما فيها غير المصنّفة بسنة)
         for rep in _reports_qs(
@@ -507,9 +783,7 @@ def build_school_export_zip_file(school, *, academic_year=None, teacher=None, sc
                 rep_failed += 1
                 continue
             arc = f"{_report_folder(rep)}/التقرير.pdf"
-            zf.writestr(arc, pdf_bytes)
-            manifest_lines.append((hashlib.sha256(pdf_bytes).hexdigest(), len(pdf_bytes), arc))
-            added += 1
+            write_bytes(arc, pdf_bytes)
             rep_ok += 1
 
         # (ب) ملفات الإنجاز غير المخزّنة (لا تنطبق على غير المصنّفة بسنة)
@@ -535,38 +809,98 @@ def build_school_export_zip_file(school, *, academic_year=None, teacher=None, sc
                     gen_failed += 1
                     continue
                 arc = _achievement_arc_name(ach)
-                zf.writestr(arc, pdf_bytes)
-                manifest_lines.append((hashlib.sha256(pdf_bytes).hexdigest(), len(pdf_bytes), arc))
-                added += 1
+                write_bytes(arc, pdf_bytes)
                 gen_ok += 1
 
-        # ملاحظات المحتوى (للتصدير الكامل): تشرح ما يحتويه الأرشيف وما قد لا يظهر ولماذا.
-        content_notes = []
-        if not is_year_archive:
-            content_notes = [
-                "محتوى الأرشيف:",
-                "  • التقارير: لكل تقرير ملف PDF رسمي (التقرير.pdf) + صوره الأصلية داخل مجلده.",
-            ]
-            if rep_ok:
-                content_notes.append(f"    ✓ وُلِّد {rep_ok} ملف PDF للتقارير أثناء التصدير.")
-            if rep_failed:
-                content_notes.append(
-                    f"    ⚠ تعذّر توليد {rep_failed} ملف PDF للتقارير "
-                    "(قد تكون مكتبات الطباعة غير متوفّرة على هذا الخادم)."
-                )
-            content_notes.append("  • ملفات الإنجاز: تُدرَج بصيغة PDF (تُولَّد تلقائيًا أثناء التصدير عند الحاجة).")
-            if gen_ok:
-                content_notes.append(f"    ✓ وُلِّد {gen_ok} ملف PDF لملفات الإنجاز أثناء التصدير.")
-            if gen_failed:
-                content_notes.append(
-                    f"    ⚠ تعذّر توليد {gen_failed} ملف PDF لملفات الإنجاز "
-                    "(قد تكون مكتبات الطباعة غير متوفّرة على هذا الخادم)."
-                )
-            content_notes.append("  • مرفقات الطلبات/التذاكر والتعاميم/الإشعارات: تُدرَج إن كان لها مرفق مرفوع.")
-            content_notes.append("=" * 60)
+        # (ج) PDF موثق لكل طلب/تذكرة ولكل تعميم/إشعار، مع سجل الحالات
+        # والمستلمين والتوقيعات. تُحفظ المرفقات الأصلية بجانبه.
+        if school_wide:
+            from .pdf_archive_records import (
+                generate_notification_archive_pdf,
+                generate_ticket_archive_pdf,
+            )
 
-        # ملف تحقّق السلامة (معيار حفظ عالمي: بصمات SHA-256 لكل ملف)
-        scope = (f"السنة الدراسية {academic_year} هـ" if is_year_archive else "كل السنوات")
+            for ticket in _tickets_qs(school).iterator(chunk_size=100):
+                if weasy_unavailable:
+                    ticket_pdf_failed += 1
+                    continue
+                try:
+                    pdf_bytes = generate_ticket_archive_pdf(ticket, request=request)
+                except OSError:
+                    weasy_unavailable = True
+                    ticket_pdf_failed += 1
+                    continue
+                except Exception:
+                    ticket_pdf_failed += 1
+                    continue
+                write_bytes(f"{_ticket_folder(ticket)}/سجل-الطلب.pdf", pdf_bytes)
+                ticket_pdf_ok += 1
+
+            for notification in _notifications_qs(school).iterator(chunk_size=100):
+                if weasy_unavailable:
+                    notification_pdf_failed += 1
+                    continue
+                try:
+                    pdf_bytes = generate_notification_archive_pdf(
+                        notification,
+                        request=request,
+                    )
+                except OSError:
+                    weasy_unavailable = True
+                    notification_pdf_failed += 1
+                    continue
+                except Exception:
+                    notification_pdf_failed += 1
+                    continue
+                write_bytes(
+                    f"{_notification_folder(notification)}/السجل.pdf",
+                    pdf_bytes,
+                )
+                notification_pdf_ok += 1
+
+        content_notes = [
+            "تقرير اكتمال الحزمة:",
+            f"  • التقارير في النطاق: {report_count}",
+            f"  • ملفات الإنجاز في النطاق: {achievement_count}",
+            f"  • الطلبات والتذاكر حتى لحظة إنشاء النسخة: {ticket_count}",
+            f"  • التعاميم حتى لحظة إنشاء النسخة: {circular_count}",
+            f"  • الإشعارات حتى لحظة إنشاء النسخة: {notification_count}",
+            f"  • ملفات PDF للتقارير التي تم توليدها: {rep_ok}",
+            f"  • ملفات PDF لملفات الإنجاز التي تم توليدها: {gen_ok}",
+            f"  • ملفات PDF للطلبات والتذاكر التي تم توليدها: {ticket_pdf_ok}",
+            f"  • ملفات PDF للتعاميم والإشعارات التي تم توليدها: {notification_pdf_ok}",
+        ]
+        if missing_file_count:
+            content_notes.append(f"  ⚠ ملفات أصلية تعذرت قراءتها: {missing_file_count}")
+        if rep_failed:
+            content_notes.append(f"  ⚠ ملفات PDF للتقارير تعذر توليدها: {rep_failed}")
+        if gen_failed:
+            content_notes.append(f"  ⚠ ملفات PDF لملفات الإنجاز تعذر توليدها: {gen_failed}")
+        if ticket_pdf_failed:
+            content_notes.append(
+                f"  ⚠ ملفات PDF للطلبات والتذاكر تعذر توليدها: {ticket_pdf_failed}"
+            )
+        if notification_pdf_failed:
+            content_notes.append(
+                "  ⚠ ملفات PDF للتعاميم والإشعارات تعذر توليدها: "
+                f"{notification_pdf_failed}"
+            )
+        if not (
+            missing_file_count
+            or rep_failed
+            or gen_failed
+            or ticket_pdf_failed
+            or notification_pdf_failed
+        ):
+            content_notes.append("  ✓ اكتمل إنشاء الحزمة دون ملفات مفقودة أو أخطاء توليد.")
+        if school_wide:
+            content_notes.append(
+                "  • ملاحظة النطاق: السجلات الإدارية لا تحمل سنة دراسية؛ "
+                "لذلك تم حفظ حالتها كاملة حتى لحظة إنشاء النسخة."
+            )
+        content_notes.append("=" * 60)
+
+        scope = archive_year_label(academic_year) if is_year_archive else "كل السنوات"
         header = [
             "ملف تحقّق وسلامة الأرشيف — منصة توثيق لتقارير المدارس",
             "=" * 60,
@@ -584,11 +918,54 @@ def build_school_export_zip_file(school, *, academic_year=None, teacher=None, sc
         body = [f"{h}  {str(size).ljust(12)}  {path}" for (h, size, path) in manifest_lines]
         zf.writestr("الفهرس-والتحقق.txt", "\n".join(header + body) + "\n")
 
-        if added == 0:
+        if (
+            report_count == 0
+            and achievement_count == 0
+            and ticket_count == 0
+            and circular_count == 0
+            and notification_count == 0
+        ):
             zf.writestr(
                 "اقرأني.txt",
-                "لا توجد ملفات (صور تقارير أو ملفات إنجاز) ضمن هذا النطاق.\n",
+                "لا توجد تقارير أو ملفات إنجاز ضمن هذه السنة وقت إنشاء النسخة.\n",
             )
 
     tmp.seek(0)
-    return tmp
+    digest = hashlib.sha256()
+    archive_size = 0
+    while True:
+        chunk = tmp.read(1024 * 1024)
+        if not chunk:
+            break
+        digest.update(chunk)
+        archive_size += len(chunk)
+    tmp.seek(0)
+    metadata = {
+        "generated_at": generated_at,
+        "file_count": added,
+        "missing_file_count": missing_file_count,
+        "failed_pdf_count": (
+            rep_failed
+            + gen_failed
+            + ticket_pdf_failed
+            + notification_pdf_failed
+        ),
+        "generated_report_pdf_count": rep_ok,
+        "generated_achievement_pdf_count": gen_ok,
+        "report_count": report_count,
+        "achievement_count": achievement_count,
+        "ticket_count": ticket_count,
+        "circular_count": circular_count,
+        "notification_count": notification_count,
+        "archive_size_bytes": archive_size,
+        "archive_sha256": digest.hexdigest(),
+        "is_partial": bool(
+            missing_file_count
+            or rep_failed
+            or gen_failed
+            or ticket_pdf_failed
+            or notification_pdf_failed
+        ),
+        "notes": "\n".join(content_notes),
+    }
+    return (tmp, metadata) if return_metadata else tmp

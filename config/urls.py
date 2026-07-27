@@ -1,6 +1,6 @@
 # config/urls.py
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, reverse
 from django.conf import settings
 from django.conf.urls.static import static as serve_static
 from django.contrib.staticfiles import finders
@@ -61,10 +61,16 @@ def robots_txt(_request):
 
 def security_txt(request):
     base = request.build_absolute_uri("/").rstrip("/")
+    contact_email = (
+        str(getattr(settings, "SECURITY_CONTACT_EMAIL", "support@tawtheeq-ksa.com"))
+        .replace("\r", "")
+        .replace("\n", "")
+        .strip()
+    )
     content = "\n".join([
-        "Contact: mailto:support@example.com",
+        f"Contact: mailto:{contact_email}",
         f"Canonical: {base}/.well-known/security.txt",
-        f"Policy: {base}/privacy-policy/",
+        f"Policy: {request.build_absolute_uri(reverse('reports:privacy_policy'))}",
         "Preferred-Languages: ar, en",
         "",
     ])
@@ -74,14 +80,14 @@ def security_txt(request):
 
 
 def sitemap_xml(request):
-    base = request.build_absolute_uri("/").rstrip("/")
-    urls = [
-        f"{base}/",
-        f"{base}/login/",
-        f"{base}/user-guide/",
-        f"{base}/privacy-policy/",
-        f"{base}/faq/",
-    ]
+    route_names = (
+        "reports:landing",
+        "reports:login",
+        "reports:user_guide",
+        "reports:privacy_policy",
+        "reports:faq",
+    )
+    urls = [request.build_absolute_uri(reverse(name)) for name in route_names]
     body = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for url in urls:
         body.append(f"  <url><loc>{url}</loc></url>")

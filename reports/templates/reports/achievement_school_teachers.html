@@ -210,7 +210,7 @@
         <div class="aa-links">
           <a class="btn" href="{% url 'reports:admin_dashboard' %}">
             <i class="fa-solid fa-gauge" aria-hidden="true"></i>
-            لوحة المدير
+            لوحة المدرسة
           </a>
           <a class="btn" href="{% url 'reports:achievement_school_files' %}">
             <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
@@ -324,7 +324,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ CSP_NONCE }}">
   (function(){
     // منع النقر المكرر + تحسين بسيط: رفض يتطلب ملاحظة (تنبيه فقط)
     function closest(el, selector){

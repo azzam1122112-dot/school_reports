@@ -24,6 +24,7 @@ logs/
 
 # Test / Coverage / Type-check
 .pytest_cache/
+pytest-cache-files-*/
 .coverage
 htmlcov/
 .mypy_cache/
@@ -33,6 +34,7 @@ htmlcov/
 .vscode/
 .idea/
 *.code-workspace
+*.ipynb_checkpoints/
 
 # Node (إن وُجد)
 node_modules/
@@ -50,6 +52,7 @@ staticfiles/
 # مرفوعات المستخدمين (لا تُرفع للمستودع)
 media/
 mediafiles/
+tmp/
 
 # ملفات البيئة والأسرار
 .env

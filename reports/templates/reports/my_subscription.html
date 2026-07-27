@@ -922,7 +922,7 @@
 
   .archive-summary {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
   }
@@ -1443,7 +1443,7 @@
     <div>
 
       <!-- Unified Payment Order Card -->
-      <div class="glass-card" style="margin-bottom: 1.75rem;">
+      <div class="glass-card" id="archiveOrder" style="margin-bottom: 1.75rem;">
 
         <div class="section-header">
           <div class="section-icon"><i class="fa-solid fa-cart-shopping"></i></div>
@@ -1511,7 +1511,7 @@
                   <p class="order-item-note"><i class="fa-solid fa-hourglass-half"></i> يوجد طلب تفعيل/تجديد أرشفة قيد المراجعة.</p>
                 {% else %}
                   <p class="order-item-note">
-                    تحفظ تقارير الأعوام السابقة وملفات الإنجاز، مع مساحة ابتدائية {{ archive_included_storage_gb }}GB.
+                    تنشئ نسخًا سنوية ثابتة بفهرس Excel وبصمة تحقق، مع مساحة ابتدائية {{ archive_included_storage_gb }}GB. النسخ المحفوظة لا تُحذف عند انتهاء الإضافة.
                   </p>
                 {% endif %}
               </div>
@@ -1657,7 +1657,7 @@
           </div>
           <div class="section-header-text">
             <h2>حالة الأرشفة</h2>
-            <p>إضافة مستقلة تحفظ تقارير الأعوام السابقة وملفات الإنجاز</p>
+            <p>تحفظ التقارير وملفات الإنجاز والتذاكر والتعاميم والإشعارات ومرفقاتها</p>
           </div>
         </div>
 
@@ -1674,12 +1674,26 @@
           </div>
           <div class="archive-metric">
             <span>مساحة التخزين</span>
-            <strong>{{ archive_addon.storage_used_gb|default:0 }}GB / {{ archive_addon.storage_limit_gb|default:archive_included_storage_gb }}GB</strong>
-            <div class="archive-progress" aria-label="نسبة استخدام التخزين">
-              <span style="width:{{ archive_addon.storage_usage_percent|default:0 }}%"></span>
-            </div>
+            <strong>{{ storage_overview.used_label }} / {{ storage_overview.limit_label }}</strong>
+            {% if not storage_overview.is_unlimited %}<div class="archive-progress" aria-label="نسبة استخدام التخزين"><span style="width:{{ storage_overview.usage_percent }}%"></span></div>{% endif %}
+          </div>
+          <div class="archive-metric">
+            <span>المتبقي للمدرسة</span>
+            <strong>{{ storage_overview.remaining_label }}</strong>
           </div>
         </div>
+        <p style="margin:-.5rem 0 1.25rem;color:var(--text-3);font-size:.82rem;font-weight:750;line-height:1.8;">
+          يحتسب الاستخدام الفعلي: التقارير {{ storage_overview.breakdown.reports.label }}،
+          الإنجاز {{ storage_overview.breakdown.achievements.label }}،
+          التذاكر {{ storage_overview.breakdown.tickets.label }}،
+          التعاميم والإشعارات {{ storage_overview.breakdown.circulars.label }} + {{ storage_overview.breakdown.notifications.label }}،
+          والنسخ الثابتة {{ storage_overview.breakdown.snapshots.label }}.
+        </p>
+        {% if archive_addon and archive_addon.is_active or has_saved_archives %}
+          <a class="view-all-link" href="{% url 'reports:school_archive' %}">
+            فتح أرشيف السنوات <i class="fa-solid fa-arrow-left"></i>
+          </a>
+        {% endif %}
       </div>
 
       <!-- History Card -->
