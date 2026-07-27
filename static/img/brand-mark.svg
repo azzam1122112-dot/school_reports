@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">شعار منصة توثيق</title>
+  <defs>
+    <linearGradient id="bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#15915B"/>
+      <stop offset="1" stop-color="#06442B"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#bg)"/>
+  <path d="M20 15.5h19.5L48 24v24.5H20z" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M39.5 15.5V24H48" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="m25.5 36 4.7 4.8 9.6-10.2" fill="none" stroke="#E8C98C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

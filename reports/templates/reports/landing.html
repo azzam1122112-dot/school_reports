@@ -5,18 +5,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#006c35">
-  <title>منصة توثيق | إدارة المدرسة وتوثيق إنجازها من مكان واحد</title>
+  <title>منصة توثيق | لوحة تشغيل وتوثيق متكاملة للمدرسة</title>
   <meta name="description" content="منصة توثيق تجمع تقارير المدرسة وملفات إنجاز المعلمين والطلبات والتعاميم والأرشيف في تجربة واضحة، مع PDF رسمي ومشاركة آمنة. ابدأ تجربة مجانية.">
   <meta name="keywords" content="منصة توثيق, إدارة مدرسية, تقارير مدرسية, ملفات إنجاز المعلمين, تعاميم مدرسية, أرشيف المدرسة">
   <meta property="og:locale" content="ar_SA">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="منصة توثيق — مدرستك أوضح، إنجازك موثّق">
-  <meta property="og:description" content="شغّل التوثيق والطلبات والتعاميم وملفات الإنجاز من منصة مدرسية واحدة.">
+  <meta property="og:title" content="منصة توثيق — إدارة المدرسة تبدأ من صورة واضحة">
+  <meta property="og:description" content="لوحة تشغيل واحدة للتقارير والإنجاز والطلبات والتعاميم والأرشيف المدرسي.">
   <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/landing/dashboard-live.webp' %}">
   <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
   <link rel="manifest" href="{% static 'manifest.json' %}">
-  <link rel="icon" href="{% static 'img/logo1.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/brand-mark.svg' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -42,7 +42,7 @@
     <div class="shell">
       <nav class="main-nav" aria-label="التنقل الرئيسي">
         <a class="brand" href="#top" aria-label="منصة توثيق — الرئيسية">
-          <span class="brand-mark"><img src="{% static 'img/logo1.png' %}" alt="" width="48" height="48"></span>
+          <span class="brand-mark"><img src="{% static 'img/brand-mark.svg' %}" alt="" width="44" height="44"></span>
           <span class="brand-text"><strong>توثيق</strong><small>للعمل المدرسي</small></span>
         </a>
 
@@ -92,14 +92,13 @@
       <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
       <div class="shell hero-grid">
         <div class="hero-copy reveal">
-          <div class="overline"><span></span> منصة سعودية لتوثيق العمل المدرسي</div>
+          <div class="overline"><span></span> منصة تشغيل وتوثيق للمدرسة</div>
           <h1>
-            مدرستك أوضح.
-            <span>إنجازك موثّق.</span>
-            وإدارتك أكثر هدوءًا.
+            إدارة المدرسة
+            <span>تبدأ من صورة واضحة.</span>
           </h1>
           <p class="hero-lead">
-            اجمع تقارير المدرسة، ملفات إنجاز المعلمين، الطلبات، التعاميم والأرشيف في منصة واحدة؛ ليعرف المدير ما تم، وما ينتظر، وما يحتاج قرارًا—دون تشتت.
+            لوحة واحدة تمنح المدير حالة العمل كما هي: ما أُنجز، ما ينتظر الاعتماد، وما يحتاج متابعة. والتقارير والإنجاز والطلبات والتعاميم والأرشيف تعمل في مسار واحد منظم.
           </p>
           <div class="hero-actions">
             <a class="button button-primary button-large" href="{% url 'reports:register_school' %}">
@@ -113,14 +112,14 @@
           </div>
           <div class="assurance" aria-label="مزايا البدء">
             <span><i class="fa-solid fa-check"></i> دون بطاقة ائتمانية</span>
-            <span><i class="fa-solid fa-check"></i> إعداد المدرسة خلال دقائق</span>
-            <span><i class="fa-solid fa-check"></i> دعم العربية والجوال</span>
+            <span><i class="fa-solid fa-check"></i> حساب المدرسة جاهز خلال دقائق</span>
+            <span><i class="fa-solid fa-check"></i> تجربة عربية كاملة على الجوال</span>
           </div>
           <div class="hero-quote">
             <div class="quote-icon"><i class="fa-solid fa-quote-right"></i></div>
             <div>
-              <strong>مصممة من واقع يوم المدرسة</strong>
-              <p>واجهة تمنح المدير صورة تنفيذية، وتمنح المعلم طريقًا قصيرًا للتوثيق.</p>
+              <strong>ليست مستودع ملفات آخر</strong>
+              <p>كل إجراء له مسؤول وحالة وتاريخ ومخرج يمكن الرجوع إليه.</p>
             </div>
           </div>
         </div>
@@ -138,11 +137,11 @@
           </div>
           <div class="float-card float-card-top">
             <span class="float-icon"><i class="fa-solid fa-chart-pie"></i></span>
-            <div><strong>صورة تنفيذية فورية</strong><small>ما تم وما يحتاج متابعة</small></div>
+            <div><strong>اليوم أمامك بوضوح</strong><small>أولوية، حالة، وإجراء تالٍ</small></div>
           </div>
           <div class="float-card float-card-bottom">
             <span class="float-icon gold"><i class="fa-solid fa-file-pdf"></i></span>
-            <div><strong>مخرجات رسمية</strong><small>PDF جاهز للطباعة والمشاركة</small></div>
+            <div><strong>مخرجات تحمل هوية المدرسة</strong><small>PDF منظم للطباعة والمشاركة</small></div>
           </div>
         </div>
       </div>
@@ -150,9 +149,9 @@
       <div class="shell">
         <div class="trust-bar reveal">
           <div><strong>{{ trial_days|default:14 }}</strong><span>يومًا للتجربة</span></div>
-          <div><i class="fa-solid fa-layer-group"></i><span>منصة واحدة بدل الأدوات المتفرقة</span></div>
-          <div><i class="fa-solid fa-mobile-screen-button"></i><span>جاهزة للمكتب والجوال</span></div>
-          <div><i class="fa-solid fa-shield-halved"></i><span>عزل بيانات كل مدرسة</span></div>
+          <div><i class="fa-solid fa-layer-group"></i><span>ستة مسارات تشغيل في مكان واحد</span></div>
+          <div><i class="fa-solid fa-mobile-screen-button"></i><span>للمدير على المكتب وللمعلم على الجوال</span></div>
+          <div><i class="fa-solid fa-shield-halved"></i><span>صلاحيات واضحة وبيانات معزولة</span></div>
         </div>
       </div>
     </section>
@@ -160,40 +159,40 @@
     <section class="section problem-section" id="value">
       <div class="shell">
         <header class="section-heading reveal">
-          <span class="section-kicker">من الفوضى إلى الوضوح</span>
-          <h2>كل ما يحتاجه المدير لاتخاذ قرار أسرع، في مشهد واحد</h2>
-          <p>توثيق لا تضيف عبئًا إداريًا جديدًا؛ بل ترتّب العمل الموجود أصلًا وتحوّله إلى معلومات ومخرجات يمكن الاعتماد عليها.</p>
+          <span class="section-kicker">ما الذي يتغير داخل المدرسة؟</span>
+          <h2>من متابعة مشتتة إلى تشغيل يمكن قياسه والرجوع إليه</h2>
+          <p>توثيق ترتّب العمل القائم ولا تضيف دورة إدارية جديدة؛ النتيجة رؤية أدق للمدير وخطوات أقصر للفريق.</p>
         </header>
 
         <div class="value-grid">
           <article class="value-card reveal">
             <span class="card-number">01</span>
             <div class="value-icon"><i class="fa-solid fa-eye"></i></div>
-            <h3>اعرف الحالة دون سؤال</h3>
-            <p>لوحة مدير تجمع المؤشرات والطلبات والتقارير الحديثة، وتضع الإجراء التالي في مكان واضح.</p>
+            <h3>ابدأ من الأولوية</h3>
+            <p>لوحة المدير تعرض ما يحتاج قرارًا أو اعتمادًا قبل التفاصيل التي يمكن أن تنتظر.</p>
             <ul>
-              <li>ملخص يومي قابل للتصفية</li>
-              <li>تنبيهات للأمور التي تحتاج انتباهًا</li>
+              <li>حالة العمل في فترة تختارها</li>
+              <li>إجراءات مباشرة من لوحة واحدة</li>
             </ul>
           </article>
           <article class="value-card featured reveal">
             <span class="card-number">02</span>
             <div class="value-icon"><i class="fa-solid fa-route"></i></div>
-            <h3>اجعل لكل عمل مسارًا</h3>
-            <p>من رفع التقرير إلى اعتماد الإنجاز، ومن إرسال الطلب إلى إغلاقه؛ المسؤولية والحالة والتاريخ محفوظة.</p>
+            <h3>تابع دون مطاردة</h3>
+            <p>من رفع التقرير إلى اعتماد الإنجاز، ومن فتح الطلب إلى إغلاقه؛ المسؤولية والحالة والتاريخ موثقة.</p>
             <ul>
-              <li>تقليل المتابعة الشفهية</li>
-              <li>سجل واضح لكل إجراء</li>
+              <li>معرفة المسؤول والخطوة التالية</li>
+              <li>سجل زمني واضح لكل إجراء</li>
             </ul>
           </article>
           <article class="value-card reveal">
             <span class="card-number">03</span>
             <div class="value-icon"><i class="fa-solid fa-award"></i></div>
-            <h3>أظهر المدرسة باحتراف</h3>
-            <p>حوّل العمل اليومي إلى PDF منظم وملفات إنجاز وروابط مشاركة تليق بزيارة أو مراجعة رسمية.</p>
+            <h3>قدّم شواهد جاهزة</h3>
+            <p>حوّل العمل اليومي إلى تقارير وملفات إنجاز وأرشيف منظم عند الزيارة أو المراجعة.</p>
             <ul>
-              <li>قوالب موحدة باسم المدرسة</li>
-              <li>مشاركة مضبوطة بدل الملفات العشوائية</li>
+              <li>PDF موحد بهوية المدرسة</li>
+              <li>مشاركة مؤقتة ومضبوطة</li>
             </ul>
           </article>
         </div>
@@ -203,9 +202,9 @@
     <section class="section features-section" id="features">
       <div class="shell">
         <header class="section-heading section-heading-light reveal">
-          <span class="section-kicker">نظام متكامل</span>
-          <h2>ستة مسارات تعمل معًا لخدمة المدرسة</h2>
-          <p>تجربة موحدة للمدير والمعلم، بصلاحيات واضحة وبيانات تبقى داخل نطاق المدرسة.</p>
+          <span class="section-kicker">نظام واحد، لا أدوات متفرقة</span>
+          <h2>كل مسار في مكانه، وكلها تصب في لوحة المدير</h2>
+          <p>واجهات مخصصة لكل دور، مع انتقال واضح من الإدخال إلى المراجعة ثم الحفظ أو المشاركة.</p>
         </header>
 
         <div class="feature-grid">
@@ -297,26 +296,26 @@
     <section class="section roles-section">
       <div class="shell roles-shell">
         <div class="roles-copy reveal">
-          <span class="section-kicker">تجربة لكل دور</span>
-          <h2>بسيطة للمعلم، عميقة للمدير</h2>
-          <p>لا يرى كل مستخدم النظام كله؛ يرى فقط ما يساعده على إنجاز دوره بسرعة ووضوح.</p>
+          <span class="section-kicker">تجربة مبنية حسب الدور</span>
+          <h2>رؤية كاملة للمدير، وخطوات قصيرة للفريق</h2>
+          <p>لا يرى المستخدم تعقيد النظام؛ تظهر له الأدوات والمهام التي تخص عمله فقط.</p>
           <a class="button button-primary" href="{% url 'reports:register_school' %}">جرّب رحلة مدرستك</a>
         </div>
         <div class="role-list">
           <article class="role-row reveal">
             <span class="role-avatar"><i class="fa-solid fa-user-tie"></i></span>
             <div><strong>مدير المدرسة</strong><p>لوحة قيادة، إدارة المعلمين، الاعتمادات، الأرشيف والاشتراك.</p></div>
-            <span class="role-result">قرار أوضح</span>
+            <span class="role-result">قيادة ومتابعة</span>
           </article>
           <article class="role-row reveal">
             <span class="role-avatar"><i class="fa-solid fa-chalkboard-user"></i></span>
             <div><strong>المعلم</strong><p>رفع تقرير، بناء ملف إنجاز، متابعة الطلبات والتوقيع على التعاميم.</p></div>
-            <span class="role-result">خطوات أقل</span>
+            <span class="role-result">إنجاز سريع</span>
           </article>
           <article class="role-row reveal">
-            <span class="role-avatar"><i class="fa-solid fa-building-shield"></i></span>
-            <div><strong>إدارة المنصة</strong><p>إدارة المدارس والاشتراكات والدعم ضمن صلاحيات ونطاقات محددة.</p></div>
-            <span class="role-result">تشغيل منضبط</span>
+            <span class="role-avatar"><i class="fa-solid fa-users-gear"></i></span>
+            <div><strong>الفريق الإداري</strong><p>استلام الطلبات، متابعة المهام والتعاميم والعمل ضمن صلاحيات محددة.</p></div>
+            <span class="role-result">مسؤولية واضحة</span>
           </article>
         </div>
       </div>
@@ -458,8 +457,8 @@
         <div class="final-panel reveal">
           <div class="final-pattern" aria-hidden="true"></div>
           <div class="final-copy">
-            <span>جاهز لترى الفرق داخل مدرستك؟</span>
-            <h2>ابدأ اليوم، واجعل أول تقرير هو بداية ذاكرة مدرسية منظمة.</h2>
+            <span>اختبر المنصة على عمل مدرستك الحقيقي</span>
+            <h2>ابدأ بتقرير واحد، وشاهد كيف تصبح المتابعة أوضح.</h2>
             <p>تجربة مجانية لمدة {{ trial_days|default:14 }} يوم، دون بطاقة ائتمانية.</p>
           </div>
           <div class="final-actions">
@@ -476,10 +475,10 @@
       <div class="footer-main">
         <div class="footer-brand">
           <a class="brand" href="#top">
-            <span class="brand-mark"><img src="{% static 'img/logo1.png' %}" alt="" width="48" height="48"></span>
+            <span class="brand-mark"><img src="{% static 'img/brand-mark.svg' %}" alt="" width="44" height="44"></span>
             <span class="brand-text"><strong>توثيق</strong><small>للعمل المدرسي</small></span>
           </a>
-          <p>منصة تجعل العمل المدرسي أوضح في الداخل، وأكثر احترافًا عند العرض.</p>
+          <p>منصة تشغيل وتوثيق تمنح المدرسة صورة واضحة عن العمل، وسجلًا مهنيًا لما أُنجز.</p>
         </div>
         <div class="footer-links"><strong>المنصة</strong><a href="#features">الحلول</a><a href="#product">الواجهات</a><a href="#pricing">الباقات</a></div>
         <div class="footer-links"><strong>المساعدة</strong><a href="{% url 'reports:user_guide' %}">دليل المستخدم</a><a href="{% url 'reports:faq' %}">مركز الأسئلة</a><a href="{% url 'reports:login' %}">تسجيل الدخول</a></div>

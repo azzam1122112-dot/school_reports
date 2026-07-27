@@ -14,13 +14,17 @@ class LandingPageTests(TestCase):
         response = self.client.get(reverse("reports:landing"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "مدرستك أوضح")
+        self.assertContains(response, "إدارة المدرسة")
+        self.assertContains(response, "تبدأ من صورة واضحة")
         self.assertContains(response, "ملفات إنجاز المعلمين")
         self.assertContains(response, "التعاميم")
         self.assertContains(response, "الأرشيف")
         self.assertContains(response, "ابدأ تجربة مجانية 21 يوم")
         self.assertContains(response, reverse("reports:register_school"))
         self.assertContains(response, "img/landing/dashboard-live.webp")
+        self.assertContains(response, "img/brand-mark.svg")
+        self.assertNotContains(response, "+500K")
+        self.assertNotContains(response, "100% رضا")
 
     def test_landing_has_accessible_navigation_and_single_main_heading(self):
         response = self.client.get(reverse("reports:landing"))
