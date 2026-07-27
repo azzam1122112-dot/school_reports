@@ -68,7 +68,7 @@ class LandingPageTests(TestCase):
         self.assertContains(response, 'data-period="1y"')
         self.assertContains(response, "650")
         self.assertContains(response, "1,250")
-        self.assertContains(response, "حتى 50 مستخدم")
+        self.assertContains(response, "حتى 50 معلماً")
         self.assertContains(response, "تشغيل كامل للتجربة")
 
     def test_inactive_plans_are_not_advertised(self):

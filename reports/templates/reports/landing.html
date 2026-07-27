@@ -345,9 +345,9 @@
     <section class="section pricing-section" id="pricing">
       <div class="shell">
         <header class="section-heading reveal">
-          <span class="section-kicker">ابدأ دون مخاطرة</span>
-          <h2>جرّب أولًا، ثم اختر السعة المناسبة</h2>
-          <p>الأسعار والسعات أدناه تُحدّث مباشرة من إدارة المنصة، ويمكنك بدء التجربة قبل اتخاذ قرار التفعيل.</p>
+          <span class="section-kicker">تسعير واضح للمدرسة</span>
+          <h2>اختر عدد المعلمين، ثم وفّر مع الاشتراك السنوي</h2>
+          <p>جميع الباقات تشمل أدوات التشغيل والتوثيق الأساسية؛ الاختلاف في سعة المعلمين والمدة فقط.</p>
         </header>
 
         {% if pricing_cards %}
@@ -392,6 +392,7 @@
                 <div class="period-content {% if pricing_initial_period == '6m' %}active{% endif %}" data-period-content="6m">
                   <div class="price-value"><strong>{{ card.period_6m.price_display }}</strong><span>ريال</span></div>
                   <div class="price-duration">{{ card.period_6m.duration_label }} · {{ card.capacity_label }}</div>
+                  <div class="price-equivalent">ما يعادل {{ card.period_6m.monthly_equivalent_display }} ريال شهريًا</div>
                   <ul>{% for feature in card.period_6m.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}</ul>
                 </div>
               {% endif %}
@@ -399,6 +400,10 @@
                 <div class="period-content {% if pricing_initial_period == '1y' or not card.period_6m %}active{% endif %}" data-period-content="1y">
                   <div class="price-value"><strong>{{ card.period_1y.price_display }}</strong><span>ريال</span></div>
                   <div class="price-duration">{{ card.period_1y.duration_label }} · {{ card.capacity_label }}</div>
+                  <div class="price-equivalent">ما يعادل {{ card.period_1y.monthly_equivalent_display }} ريال شهريًا</div>
+                  {% if card.period_1y.savings_display %}
+                    <div class="annual-saving"><i class="fa-solid fa-piggy-bank"></i> وفّر {{ card.period_1y.savings_display }} ريال مقارنة بتجديدين نصف سنويين</div>
+                  {% endif %}
                   <ul>{% for feature in card.period_1y.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}</ul>
                 </div>
               {% endif %}
@@ -411,7 +416,10 @@
             </article>
           {% endfor %}
         </div>
-        <p class="pricing-note"><i class="fa-solid fa-circle-info"></i> إضافة الأرشيف ومساحته متاحة بشكل مستقل من حساب المدرسة بعد التفعيل.</p>
+        <div class="pricing-disclosures">
+          <p class="pricing-note"><i class="fa-solid fa-circle-info"></i> الأسعار قبل ضريبة القيمة المضافة، وتُضاف عند انطباقها.</p>
+          <p class="pricing-note"><i class="fa-solid fa-box-archive"></i> إضافة الأرشيف السنوية اختيارية: 50GB بسعر 399 ريال، وكل 50GB إضافية بسعر 149 ريال.</p>
+        </div>
       </div>
     </section>
 

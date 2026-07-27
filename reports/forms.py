@@ -2461,10 +2461,16 @@ class SubscriptionPlanForm(forms.ModelForm):
         model = SubscriptionPlan
         fields = ["name", "description", "price", "days_duration", "max_teachers", "is_active"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "اسم الخطة (مثلاً: باقة سنوية)"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "وصف مميزات الخطة..."}),
-            "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
-            "days_duration": forms.NumberInput(attrs={"class": "form-control"}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "مثال: الاحترافية | سنوية"}),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 5,
+                    "placeholder": "اكتب كل ميزة في سطر مستقل؛ تظهر أول ثلاث ميزات في صفحة الأسعار.",
+                }
+            ),
+            "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": 0}),
+            "days_duration": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
             "max_teachers": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
@@ -2476,6 +2482,31 @@ class SubscriptionPlanForm(forms.ModelForm):
             "max_teachers": "حد المعلمين",
             "is_active": "نشط؟",
         }
+        help_texts = {
+            "description": "اكتب ثلاث جمل قصيرة، كل جملة في سطر مستقل، لتظهر كمميزات واضحة في بطاقة السعر.",
+            "price": "السعر قبل ضريبة القيمة المضافة. استخدم 0 للتجربة المجانية فقط.",
+            "days_duration": "14 للتجربة، 180 لستة أشهر، و365 للسنة.",
+            "max_teachers": "لا يشمل مدير المدرسة. القيمة 0 تعني سعة غير محدودة.",
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        days = cleaned_data.get("days_duration")
+        max_teachers = cleaned_data.get("max_teachers")
+
+        if days and max_teachers is not None:
+            duplicate = SubscriptionPlan.objects.filter(
+                days_duration=days,
+                max_teachers=max_teachers,
+            )
+            if self.instance.pk:
+                duplicate = duplicate.exclude(pk=self.instance.pk)
+            if duplicate.exists():
+                self.add_error(
+                    None,
+                    "توجد باقة أخرى بنفس المدة وحد المعلمين. عدّل الباقة الحالية بدل إنشاء نسخة مكررة.",
+                )
+        return cleaned_data
 
 
 class SchoolSubscriptionForm(forms.ModelForm):

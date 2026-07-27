@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Subscription, payment, plan management & footer content pages."""
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from urllib.parse import urlencode
 
 from ._helpers import *
@@ -15,7 +15,7 @@ from ._helpers import (
 ARCHIVE_ADDON_ANNUAL_PRICE = Decimal("399.00")
 ARCHIVE_ADDON_INCLUDED_STORAGE_GB = 50
 ARCHIVE_STORAGE_BLOCK_GB = 50
-ARCHIVE_STORAGE_BLOCK_PRICE = Decimal("99.00")
+ARCHIVE_STORAGE_BLOCK_PRICE = Decimal("149.00")
 
 
 def _archive_pricing():
@@ -1105,8 +1105,98 @@ def platform_subscription_delete(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_plans_list(request: HttpRequest) -> HttpResponse:
-    plans = SubscriptionPlan.objects.all().order_by('price')
-    return render(request, "reports/platform_plans.html", {"plans": plans})
+    plans = list(
+        SubscriptionPlan.objects.all().order_by(
+            "-is_active",
+            "max_teachers",
+            "days_duration",
+            "price",
+            "id",
+        )
+    )
+    paired_plans = {}
+
+    for plan in plans:
+        if plan.price <= 0:
+            plan.period_key = "trial"
+            plan.period_label = "تجربة مجانية"
+            months = None
+        elif plan.days_duration >= 300:
+            plan.period_key = "annual"
+            plan.period_label = "سنة"
+            months = 12
+        elif plan.days_duration >= 45:
+            plan.period_key = "semiannual"
+            plan.period_label = "6 أشهر"
+            months = 6
+        else:
+            plan.period_key = "custom"
+            plan.period_label = f"{plan.days_duration} يوم"
+            months = None
+
+        plan.monthly_equivalent = None
+        if months:
+            plan.monthly_equivalent = (plan.price / Decimal(months)).quantize(
+                Decimal("1"),
+                rounding=ROUND_HALF_UP,
+            )
+
+        plan.feature_lines = [
+            line.strip().lstrip("-*•▪●‣").strip()
+            for line in (plan.description or "").replace("\r", "").split("\n")
+            if line.strip()
+        ][:4]
+        plan.is_recommended = bool(plan.price > 0 and plan.max_teachers == 50)
+        plan.annual_savings = None
+        plan.annual_discount_percent = None
+        paired_plans[(plan.max_teachers, plan.period_key)] = plan
+
+    for plan in plans:
+        if plan.period_key != "annual":
+            continue
+        semiannual = paired_plans.get((plan.max_teachers, "semiannual"))
+        if semiannual is None:
+            continue
+        comparison_price = semiannual.price * 2
+        savings = max(Decimal("0"), comparison_price - plan.price)
+        plan.annual_savings = savings
+        if comparison_price > 0:
+            plan.annual_discount_percent = int(
+                ((savings / comparison_price) * 100).quantize(
+                    Decimal("1"),
+                    rounding=ROUND_HALF_UP,
+                )
+            )
+
+    active_plans = [plan for plan in plans if plan.is_active]
+    paid_plans = [plan for plan in active_plans if plan.price > 0]
+    annual_discounts = [
+        plan.annual_discount_percent
+        for plan in active_plans
+        if plan.annual_discount_percent is not None
+    ]
+    capacities = {
+        plan.max_teachers
+        for plan in paid_plans
+        if plan.max_teachers > 0
+    }
+    stats = {
+        "active_count": len(active_plans),
+        "paid_count": len(paid_plans),
+        "semiannual_count": sum(plan.period_key == "semiannual" for plan in paid_plans),
+        "annual_count": sum(plan.period_key == "annual" for plan in paid_plans),
+        "capacity_count": len(capacities),
+        "annual_discount_max": max(annual_discounts, default=0),
+    }
+
+    return render(
+        request,
+        "reports/platform_plans.html",
+        {
+            "plans": plans,
+            "stats": stats,
+        },
+    )
 
 
 @login_required(login_url="reports:login")

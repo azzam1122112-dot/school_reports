@@ -1,3 +1,4 @@
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -83,6 +84,19 @@ class PlatformBillingPagesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "الحد المجاني لكل مدرسة")
         self.assertContains(response, "إجمالي تخزين المنصة")
+
+    def test_platform_plans_page_shows_pricing_policy_and_annual_savings(self):
+        call_command("sync_default_pricing", "--deactivate-other-plans")
+
+        response = self.client.get(reverse("reports:platform_plans_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "سياسة التسعير المعتمدة")
+        self.assertContains(response, "ما يعادل")
+        self.assertContains(response, "وفّر 199 ريال")
+        self.assertContains(response, "399 ريال سنوياً")
+        self.assertEqual(response.context["stats"]["active_count"], 7)
+        self.assertEqual(response.context["stats"]["capacity_count"], 3)
 
     def test_platform_detail_pages_render_decision_blocks(self):
         subscription_response = self.client.get(

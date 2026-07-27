@@ -109,6 +109,13 @@
     border-color: rgba(0,108,53,.35);
   }
 
+  /* Keep the ISO filter format readable instead of Chromium's reversed RTL date segments. */
+  .audit-date-input{
+    direction:ltr;
+    text-align:left;
+    font-variant-numeric:tabular-nums;
+  }
+
   .filter-actions{
     display:flex;
     gap:8px;
@@ -349,12 +356,32 @@
 
         <div class="ig">
           <label>من تاريخ</label>
-          <input type="date" name="start_date" value="{{ q_start }}" class="inp">
+          <input
+            type="text"
+            name="start_date"
+            value="{{ q_start }}"
+            class="inp audit-date-input"
+            dir="ltr"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="YYYY-MM-DD"
+            pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
+          >
         </div>
 
         <div class="ig">
           <label>إلى تاريخ</label>
-          <input type="date" name="end_date" value="{{ q_end }}" class="inp">
+          <input
+            type="text"
+            name="end_date"
+            value="{{ q_end }}"
+            class="inp audit-date-input"
+            dir="ltr"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="YYYY-MM-DD"
+            pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
+          >
         </div>
 
         <div class="filter-actions">

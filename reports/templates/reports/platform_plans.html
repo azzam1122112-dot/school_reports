@@ -1,323 +1,527 @@
-{# reports/templates/reports/platform/plans_list.html (مثال اسم) #}
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}خطط الاشتراك{% endblock %}
+{% block title %}الاشتراكات والباقات{% endblock %}
 
 {% block head %}
-<style>
-  /* =========================================================
-     PLANS (page-only) — Scoped داخل .plans-scope فقط
-     - بدون لمس .btn / .card العامة
-     - متوافق مع data-theme
-     ========================================================= */
-  .plans-scope{
-    --pl-brand: var(--brand, #006c35);
-    --pl-ink: var(--ink, #0f172a);
-    --pl-muted: var(--muted, #64748b);
-    --pl-line: var(--line-2, var(--line, #e5e7eb));
-    --pl-card: var(--card, #fff);
-    --pl-shadow: var(--shadow, 0 14px 36px rgba(2,6,23,.10));
-    --pl-danger: var(--danger, #ef4444);
-    --pl-ok: var(--accent, #16845b);
-    --pl-t: var(--t-fast, .18s ease);
-  }
+<style nonce="{{ CSP_NONCE }}">
+    .plans-page {
+        --plans-ink: #18392f;
+        --plans-green: #21624e;
+        --plans-green-deep: #133f34;
+        --plans-gold: #c9922e;
+        --plans-cream: #f8f5ed;
+        color: var(--plans-ink);
+    }
 
-  /* Head */
-  .plans-scope .page-head{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:12px;
-    flex-wrap:wrap;
-    margin-bottom: 12px;
-  }
-  .plans-scope .page-title{
-    margin:0;
-    font-weight:950;
-    color:var(--pl-ink);
-    letter-spacing:-.3px;
-  }
-  .plans-scope .page-subtitle{
-    margin:6px 0 0;
-    color:var(--pl-muted);
-    font-weight:850;
-    line-height:1.7;
-  }
+    .plans-hero {
+        position: relative;
+        overflow: hidden;
+        padding: clamp(1.5rem, 4vw, 2.6rem);
+        border-radius: 24px;
+        color: #fff;
+        background:
+            radial-gradient(circle at 10% 10%, rgba(201, 146, 46, .3), transparent 34%),
+            linear-gradient(135deg, var(--plans-green-deep), var(--plans-green));
+        box-shadow: 0 18px 45px rgba(19, 63, 52, .18);
+    }
 
-  .plans-scope .head-actions{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    justify-content:flex-start;
-    align-items:center;
-  }
-  @media(max-width:560px){
-    .plans-scope .head-actions{width:100%}
-    .plans-scope .head-actions .btn{width:100%; justify-content:center}
-  }
+    .plans-hero::after {
+        content: "";
+        position: absolute;
+        inset-inline-end: -80px;
+        bottom: -110px;
+        width: 250px;
+        height: 250px;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 50%;
+    }
 
-  /* Grid */
-  .plans-scope .plans-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
-    gap:12px;
-  }
+    .plans-hero__content {
+        position: relative;
+        z-index: 1;
+        max-width: 780px;
+    }
 
-  /* Card (داخل الكارد العامة) */
-  .plans-scope .p-card{
-    position:relative;
-    overflow:hidden;
-    border-radius:16px;
-    box-shadow: var(--pl-shadow);
-    border:1px solid var(--pl-line);
-    background: var(--pl-card);
-    transition: var(--pl-t);
-  }
-  .plans-scope .p-card:hover{
-    transform: translateY(-2px);
-    box-shadow: 0 18px 46px rgba(2,6,23,.12);
-  }
-  .plans-scope .p-card::before{
-    content:"";
-    position:absolute;
-    inset:0 0 auto 0;
-    height:4px;
-    background: linear-gradient(135deg, var(--pl-brand), #006c35 65%, var(--pl-ok));
-    opacity:.95;
-  }
+    .plans-hero__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        margin-bottom: .75rem;
+        color: #f8d992;
+        font-size: .88rem;
+        font-weight: 800;
+    }
 
-  .plans-scope .p-body{
-    padding: 14px;
-  }
+    .plans-hero h1 {
+        margin: 0 0 .65rem;
+        color: #fff;
+        font-size: clamp(1.65rem, 4vw, 2.45rem);
+        font-weight: 900;
+    }
 
-  .plans-scope .p-top{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:12px;
-  }
+    .plans-hero p {
+        max-width: 680px;
+        margin: 0;
+        color: rgba(255, 255, 255, .82);
+        line-height: 1.9;
+    }
 
-  .plans-scope .p-name{
-    margin:0;
-    font-weight:950;
-    font-size:1.06rem;
-    color:var(--pl-ink);
-  }
+    .plans-actions {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .7rem;
+        margin-top: 1.35rem;
+    }
 
-  .plans-scope .p-meta{
-    margin-top:8px;
-    display:grid;
-    gap:6px;
-    color:var(--pl-muted);
-    font-weight:850;
-    line-height:1.55;
-  }
+    .plans-actions .btn {
+        border-radius: 12px;
+        font-weight: 800;
+    }
 
-  .plans-scope .p-meta b{
-    color:var(--pl-ink);
-    font-weight:950;
-  }
+    .plans-actions .btn-primary {
+        color: var(--plans-green-deep);
+        border-color: #fff;
+        background: #fff;
+    }
 
-  .plans-scope .price{
-    margin-top:12px;
-    font-size:1.55rem;
-    font-weight:950;
-    color:var(--pl-brand);
-    display:flex;
-    align-items:baseline;
-    gap:8px;
-  }
-  .plans-scope .price small{
-    font-weight:900;
-    color:var(--pl-muted);
-    font-size:.9rem;
-  }
+    .plans-actions .btn-outline-light:hover {
+        color: var(--plans-green-deep);
+    }
 
-  .plans-scope .desc{
-    margin-top:10px;
-    color:var(--pl-muted);
-    font-weight:850;
-    min-height:44px;
-    line-height:1.75;
-  }
+    .plans-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: .85rem;
+        margin: 1.25rem 0;
+    }
 
-  .plans-scope .p-actions{
-    margin-top:14px;
-    display:grid;
-    gap:10px;
-  }
-  .plans-scope .btn-block{
-    width:100%;
-    justify-content:center;
-  }
+    .plans-metric {
+        padding: 1rem;
+        border: 1px solid rgba(33, 98, 78, .12);
+        border-radius: 16px;
+        background: var(--surface-color, #fff);
+        box-shadow: 0 8px 22px rgba(19, 63, 52, .06);
+    }
 
-  /* Badge (آمنة حتى لو ما عندك badge بالـapp.css) */
-  .plans-scope .badge{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:6px 10px;
-    border-radius:999px;
-    border:1px solid rgba(15,23,42,.10);
-    background: rgba(148,163,184,.10);
-    color: var(--pl-ink);
-    font-weight:900;
-    font-size:.85rem;
-    white-space:nowrap;
-  }
-  .plans-scope .badge.success{
-    background: rgba(16,185,129,.12);
-    color: var(--pl-ok);
-    border-color: rgba(16,185,129,.22);
-  }
+    .plans-metric__label {
+        display: block;
+        margin-bottom: .25rem;
+        color: var(--muted-color, #6a7a74);
+        font-size: .8rem;
+        font-weight: 700;
+    }
 
-  /* Footer small bar */
-  .plans-scope .p-foot{
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed var(--pl-line);
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-    color: var(--pl-muted);
-    font-weight:850;
-    font-size:.95rem;
-  }
+    .plans-metric__value {
+        color: var(--plans-green-deep);
+        font-size: 1.45rem;
+        font-weight: 900;
+    }
 
-  /* Empty */
-  .plans-scope .empty{
-    grid-column:1/-1;
-    text-align:center;
-    padding:22px;
-    font-weight:900;
-    color:var(--pl-muted);
-  }
+    .pricing-policy {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 1.35rem;
+        padding: 1.15rem 1.25rem;
+        border: 1px solid rgba(201, 146, 46, .25);
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(201, 146, 46, .1), rgba(248, 245, 237, .78));
+    }
 
-  /* Reduced motion */
-  @media (prefers-reduced-motion: reduce){
-    .plans-scope .p-card{ transition:none !important; }
-    .plans-scope .p-card:hover{ transform:none !important; }
-  }
+    .pricing-policy__icon {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 13px;
+        color: #fff;
+        background: var(--plans-gold);
+    }
+
+    .pricing-policy h2 {
+        margin: 0 0 .3rem;
+        font-size: 1rem;
+        font-weight: 900;
+    }
+
+    .pricing-policy p {
+        margin: 0;
+        color: #5d6b66;
+        font-size: .9rem;
+        line-height: 1.8;
+    }
+
+    .plans-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .plan-card {
+        position: relative;
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+        padding: 1.25rem;
+        border: 1px solid rgba(33, 98, 78, .14);
+        border-radius: 20px;
+        background: var(--surface-color, #fff);
+        box-shadow: 0 10px 28px rgba(19, 63, 52, .07);
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+    .plan-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(33, 98, 78, .32);
+        box-shadow: 0 16px 34px rgba(19, 63, 52, .11);
+    }
+
+    .plan-card--recommended {
+        border: 2px solid var(--plans-gold);
+    }
+
+    .plan-card--inactive {
+        opacity: .67;
+    }
+
+    .plan-card__badges {
+        display: flex;
+        min-height: 28px;
+        flex-wrap: wrap;
+        gap: .45rem;
+        margin-bottom: .85rem;
+    }
+
+    .plan-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: .32rem .62rem;
+        border-radius: 999px;
+        color: var(--plans-green-deep);
+        background: #e8f3ef;
+        font-size: .72rem;
+        font-weight: 850;
+    }
+
+    .plan-badge--gold {
+        color: #714b09;
+        background: #fff0c9;
+    }
+
+    .plan-badge--muted {
+        color: #66736f;
+        background: #edf0ef;
+    }
+
+    .plan-card h3 {
+        margin: 0;
+        color: var(--plans-green-deep);
+        font-size: 1.15rem;
+        font-weight: 900;
+    }
+
+    .plan-card__capacity {
+        margin: .35rem 0 1rem;
+        color: #71807b;
+        font-size: .84rem;
+        font-weight: 700;
+    }
+
+    .plan-card__price {
+        display: flex;
+        align-items: baseline;
+        gap: .38rem;
+        margin-bottom: .2rem;
+    }
+
+    .plan-card__amount {
+        color: var(--plans-green-deep);
+        font-size: 2rem;
+        font-weight: 950;
+        letter-spacing: -.04em;
+    }
+
+    .plan-card__currency {
+        color: #66736f;
+        font-size: .82rem;
+        font-weight: 800;
+    }
+
+    .plan-card__equivalent {
+        min-height: 1.45rem;
+        color: #74817c;
+        font-size: .8rem;
+    }
+
+    .plan-card__saving {
+        margin-top: .65rem;
+        padding: .58rem .72rem;
+        border-radius: 11px;
+        color: #176d4d;
+        background: #e8f7ef;
+        font-size: .8rem;
+        font-weight: 850;
+    }
+
+    .plan-card__features {
+        display: grid;
+        gap: .62rem;
+        margin: 1rem 0 1.25rem;
+        padding: 0;
+        list-style: none;
+    }
+
+    .plan-card__features li {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: .55rem;
+        align-items: start;
+        color: #40534d;
+        font-size: .86rem;
+        line-height: 1.65;
+    }
+
+    .plan-card__features i {
+        margin-top: .22rem;
+        color: var(--plans-green);
+    }
+
+    .plan-card__footer {
+        display: flex;
+        gap: .55rem;
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(33, 98, 78, .1);
+    }
+
+    .plan-card__footer .btn {
+        flex: 1;
+        border-radius: 10px;
+        font-size: .82rem;
+        font-weight: 800;
+    }
+
+    .archive-note {
+        display: flex;
+        gap: .9rem;
+        align-items: center;
+        margin-top: 1.25rem;
+        padding: 1rem 1.2rem;
+        border-radius: 16px;
+        color: #fff;
+        background: linear-gradient(135deg, #263d37, #31594d);
+    }
+
+    .archive-note i {
+        color: #f3cb71;
+        font-size: 1.35rem;
+    }
+
+    .archive-note strong,
+    .archive-note span {
+        display: block;
+    }
+
+    .archive-note span {
+        margin-top: .2rem;
+        color: rgba(255, 255, 255, .72);
+        font-size: .82rem;
+        line-height: 1.7;
+    }
+
+    .plans-empty {
+        padding: 3.5rem 1.5rem;
+        border: 1px dashed rgba(33, 98, 78, .28);
+        border-radius: 20px;
+        text-align: center;
+        background: rgba(248, 245, 237, .65);
+    }
+
+    .plans-empty i {
+        display: block;
+        margin-bottom: .8rem;
+        color: var(--plans-gold);
+        font-size: 2.4rem;
+    }
+
+    @media (max-width: 1100px) {
+        .plans-metrics {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .plans-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 680px) {
+        .plans-metrics,
+        .plans-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .pricing-policy {
+            grid-template-columns: 1fr;
+        }
+
+        .plans-actions .btn {
+            width: 100%;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container plans-scope" dir="rtl">
-  <div class="page-head">
-    <div>
-      <h1 class="page-title">خطط الاشتراك</h1>
-      <p class="page-subtitle">إدارة باقات الأسعار المتاحة للمدارس.</p>
-    </div>
-
-    <div class="head-actions">
-      <a href="{% url 'reports:platform_plan_add' %}" class="btn btn-primary">
-        <i class="fa-solid fa-plus" aria-hidden="true"></i>
-        إضافة خطة جديدة
-      </a>
-
-      <a href="{% url 'reports:platform_admin_dashboard' %}" class="btn btn-outline">
-        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-        عودة للوحة المنصة
-      </a>
-      <a href="{% url 'reports:platform_archive_addons_list' %}" class="btn btn-outline">
-        <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
-        إضافات الأرشيف
-      </a>
-      <a href="{% url 'reports:platform_settings' %}" class="btn btn-outline">
-        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
-        تسعير الأرشيف
-      </a>
-    </div>
-  </div>
-
-  <div class="plans-grid">
-    {% for plan in plans %}
-      <div class="card p-card">
-        <div class="p-body">
-          <div class="p-top">
-            <div>
-              <h3 class="p-name">{{ plan.name }}</h3>
-
-              <div class="p-meta">
-                <div>⏱️ المدة: <b>{{ plan.days_duration }}</b> يوم</div>
-                <div>
-                  👥 حد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}:
-                  {% if plan.max_teachers and plan.max_teachers > 0 %}
-                    <b>{{ plan.max_teachers }}</b>
-                  {% else %}
-                    <b>غير محدود</b>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-
-            {% if plan.is_active %}
-              <span class="badge success">
-                <i class="fa-solid fa-circle-check" aria-hidden="true"></i> فعال
-              </span>
-            {% else %}
-              <span class="badge">
-                <i class="fa-regular fa-circle" aria-hidden="true"></i> غير فعال
-              </span>
-            {% endif %}
-          </div>
-
-          <div class="price">
-            {{ plan.price }} <small>ريال</small>
-          </div>
-
-          <div class="desc">
-            {{ plan.description|default:"—"|truncatechars:120 }}
-          </div>
-
-          <div class="p-actions">
-            <a href="{% url 'reports:platform_plan_edit' plan.id %}" class="btn btn-outline btn-block">
-              <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-              تعديل الخطة
-            </a>
-
-            <form method="post" action="{% url 'reports:platform_plan_delete' plan.id %}" data-confirm="1">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button type="submit" class="btn btn-danger btn-block">
-                <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                حذف الخطة
-              </button>
-            </form>
-          </div>
-
-          <div class="p-foot" aria-label="معلومات إضافية">
-            <span>المعرّف: <b style="color:var(--pl-ink)">{{ plan.id }}</b></span>
-            {% if plan.updated_at %}
-              <span>آخر تحديث: <span dir="ltr">{{ plan.updated_at|date:"Y-m-d H:i" }}</span></span>
-            {% endif %}
-          </div>
+<div class="plans-page">
+    <section class="plans-hero">
+        <div class="plans-hero__content">
+            <span class="plans-hero__eyebrow"><i class="fas fa-tags"></i> إدارة الاشتراكات</span>
+            <h1>الباقات والأسعار</h1>
+            <p>إدارة دورة الاشتراك والسعة والأسعار من مكان واحد، مع عرض واضح للقيمة الشهرية ووفر الاشتراك السنوي.</p>
         </div>
-      </div>
-    {% empty %}
-      <div class="card empty">لا توجد خطط اشتراك مضافة.</div>
-    {% endfor %}
-  </div>
+        <div class="plans-actions">
+            <a class="btn btn-primary" href="{% url 'reports:platform_plan_add' %}">
+                <i class="fas fa-plus ms-1"></i> إضافة باقة
+            </a>
+            <a class="btn btn-outline-light" href="{% url 'reports:platform_subscriptions_list' %}">
+                <i class="fas fa-address-card ms-1"></i> الاشتراكات
+            </a>
+            <a class="btn btn-outline-light" href="{% url 'reports:platform_archive_addons_list' %}">
+                <i class="fas fa-archive ms-1"></i> سعات الأرشفة
+            </a>
+            <a class="btn btn-outline-light" href="{% url 'reports:platform_admin_dashboard' %}">
+                <i class="fas fa-arrow-right ms-1"></i> لوحة المنصة
+            </a>
+        </div>
+    </section>
+
+    <section class="plans-metrics" aria-label="ملخص الباقات">
+        <article class="plans-metric">
+            <span class="plans-metric__label">الباقات النشطة</span>
+            <strong class="plans-metric__value">{{ stats.active_count }}</strong>
+        </article>
+        <article class="plans-metric">
+            <span class="plans-metric__label">شرائح السعة</span>
+            <strong class="plans-metric__value">{{ stats.capacity_count }}</strong>
+        </article>
+        <article class="plans-metric">
+            <span class="plans-metric__label">باقات 6 أشهر</span>
+            <strong class="plans-metric__value">{{ stats.semiannual_count }}</strong>
+        </article>
+        <article class="plans-metric">
+            <span class="plans-metric__label">الباقات السنوية</span>
+            <strong class="plans-metric__value">{{ stats.annual_count }}</strong>
+        </article>
+        <article class="plans-metric">
+            <span class="plans-metric__label">أعلى وفر سنوي</span>
+            <strong class="plans-metric__value">{{ stats.annual_discount_max }}%</strong>
+        </article>
+    </section>
+
+    <section class="pricing-policy">
+        <span class="pricing-policy__icon"><i class="fas fa-balance-scale"></i></span>
+        <div>
+            <h2>سياسة التسعير المعتمدة</h2>
+            <p>جميع الباقات المدفوعة تشمل الوظائف الأساسية نفسها، ويختلف السعر حسب عدد المعلمين ومدة الاشتراك. الباقة السنوية تمنح وفراً مباشراً، وجميع الأسعار المعروضة قبل ضريبة القيمة المضافة.</p>
+        </div>
+    </section>
+
+    {% if plans %}
+        <section class="plans-grid" aria-label="قائمة الباقات">
+            {% for plan in plans %}
+                <article class="plan-card{% if plan.is_recommended %} plan-card--recommended{% endif %}{% if not plan.is_active %} plan-card--inactive{% endif %}">
+                    <div class="plan-card__badges">
+                        <span class="plan-badge{% if plan.period_key == 'annual' %} plan-badge--gold{% endif %}">{{ plan.period_label }}</span>
+                        {% if plan.is_recommended %}<span class="plan-badge plan-badge--gold">الأكثر طلباً</span>{% endif %}
+                        {% if not plan.is_active %}<span class="plan-badge plan-badge--muted">غير نشطة</span>{% endif %}
+                    </div>
+
+                    <h3>{{ plan.name }}</h3>
+                    <p class="plan-card__capacity">
+                        {% if plan.max_teachers > 0 %}
+                            حتى {{ plan.max_teachers }} معلماً
+                        {% else %}
+                            عدد معلمين مخصص
+                        {% endif %}
+                    </p>
+
+                    <div class="plan-card__price">
+                        {% if plan.price > 0 %}
+                            <strong class="plan-card__amount">{{ plan.price|floatformat:0 }}</strong>
+                            <span class="plan-card__currency">ريال / {{ plan.period_label }}</span>
+                        {% else %}
+                            <strong class="plan-card__amount">مجاناً</strong>
+                        {% endif %}
+                    </div>
+                    <div class="plan-card__equivalent">
+                        {% if plan.monthly_equivalent %}
+                            ما يعادل {{ plan.monthly_equivalent|floatformat:0 }} ريال شهرياً
+                        {% else %}
+                            تجربة كاملة دون التزام مالي
+                        {% endif %}
+                    </div>
+
+                    {% if plan.annual_savings %}
+                        <div class="plan-card__saving">
+                            <i class="fas fa-piggy-bank ms-1"></i>
+                            وفّر {{ plan.annual_savings|floatformat:0 }} ريال سنوياً ({{ plan.annual_discount_percent }}%)
+                        </div>
+                    {% endif %}
+
+                    <ul class="plan-card__features">
+                        {% for feature in plan.feature_lines %}
+                            <li><i class="fas fa-check-circle"></i><span>{{ feature }}</span></li>
+                        {% empty %}
+                            <li><i class="fas fa-check-circle"></i><span>إدارة التقارير والتوثيق المدرسي</span></li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="plan-card__footer">
+                        <a class="btn btn-outline-primary" href="{% url 'reports:platform_plan_edit' plan.pk %}">
+                            <i class="fas fa-pen ms-1"></i> تعديل
+                        </a>
+                        <form method="post" action="{% url 'reports:platform_plan_delete' plan.pk %}" class="plan-delete-form" data-plan-name="{{ plan.name }}">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger w-100" type="submit">
+                                <i class="fas fa-trash ms-1"></i> حذف
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="plans-empty">
+            <i class="fas fa-box-open"></i>
+            <h2 class="h5 fw-bold">لا توجد باقات مضافة بعد</h2>
+            <p class="text-muted">ابدأ بإضافة باقات الاشتراك أو نفّذ أمر مزامنة الأسعار الافتراضية.</p>
+            <a class="btn btn-primary" href="{% url 'reports:platform_plan_add' %}">إضافة أول باقة</a>
+        </section>
+    {% endif %}
+
+    <aside class="archive-note">
+        <i class="fas fa-archive"></i>
+        <div>
+            <strong>الأرشفة طويلة المدى: 399 ريال سنوياً وتشمل 50 جيجابايت</strong>
+            <span>يمكن إضافة كل 50 جيجابايت إضافية مقابل 149 ريالاً سنوياً. الأسعار قبل ضريبة القيمة المضافة.</span>
+        </div>
+    </aside>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
-  (function(){
-    function onReady(fn){
-      if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
-      else fn();
-    }
-
-    onReady(function(){
-      document.querySelectorAll('form[data-confirm="1"]').forEach(function(f){
-        f.addEventListener("submit", function(e){
-          var ok = confirm("هل أنت متأكد من حذف هذه الخطة؟");
-          if(!ok) e.preventDefault();
+    document.querySelectorAll(".plan-delete-form").forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+            const planName = form.dataset.planName || "هذه الباقة";
+            if (!window.confirm("هل تريد حذف باقة «" + planName + "»؟ لا يمكن التراجع عن الحذف.")) {
+                event.preventDefault();
+            }
         });
-      });
     });
-  })();
 </script>
 {% endblock %}

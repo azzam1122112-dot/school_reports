@@ -300,10 +300,16 @@ def _landing_period_key(days: int, is_trial: bool) -> str | None:
 
 def _landing_card_title(capacity: int, is_unlimited: bool) -> str:
     if is_unlimited:
-        return "باقة تشغيل موسعة"
+        return "باقة مخصصة"
     if capacity <= 0:
         return "باقة مخصصة"
-    return f"باقة {capacity} مستخدم"
+    if capacity <= 25:
+        return "الباقة الأساسية"
+    if capacity <= 50:
+        return "الباقة الاحترافية"
+    if capacity <= 100:
+        return "الباقة الموسعة"
+    return "باقة تشغيل موسعة"
 
 
 @ratelimit(key="ip", rate="10/m", method="POST", block=True)
@@ -933,16 +939,10 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             price_int = int(round(raw_price))
 
         if is_unlimited:
-            capacity_label = "مستخدمون غير محدودين"
+            capacity_label = "معلمون غير محدودين"
             capacity_hint = 999999
-        elif capacity <= 2:
-            capacity_label = f"حتى {capacity} مستخدم"
-            capacity_hint = capacity
-        elif capacity <= 10:
-            capacity_label = f"حتى {capacity} مستخدمين"
-            capacity_hint = capacity
         else:
-            capacity_label = f"حتى {capacity} مستخدم"
+            capacity_label = f"حتى {capacity} معلماً"
             capacity_hint = capacity
 
         return {
@@ -1032,6 +1032,25 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         if default_plan is None:
             continue
 
+        for period_key, months in (("6m", 6), ("1y", 12)):
+            period_plan = plans_by_period.get(period_key)
+            if period_plan is None:
+                continue
+            monthly_equivalent = float(period_plan["price_value"]) / months
+            period_plan["monthly_equivalent_display"] = f"{int(round(monthly_equivalent)):,}"
+
+        semiannual_plan = plans_by_period.get("6m")
+        annual_plan = plans_by_period.get("1y")
+        annual_savings = 0
+        annual_discount_percent = 0
+        if semiannual_plan is not None and annual_plan is not None:
+            two_periods_price = float(semiannual_plan["price_value"]) * 2
+            annual_savings = max(0, int(round(two_periods_price - float(annual_plan["price_value"]))))
+            if two_periods_price > 0:
+                annual_discount_percent = int(round((annual_savings / two_periods_price) * 100))
+            annual_plan["savings_display"] = f"{annual_savings:,}"
+            annual_plan["discount_percent"] = annual_discount_percent
+
         card = {
             "capacity_hint": group["capacity_hint"],
             "capacity_label": group["capacity_label"],
@@ -1047,6 +1066,8 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             "is_featured": False,
             "is_recommended": False,
             "badge": "",
+            "annual_savings": annual_savings,
+            "annual_discount_percent": annual_discount_percent,
         }
         pricing_cards.append(card)
 
@@ -1108,6 +1129,10 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         mark_values = [mark_values[i] for i in sorted(index_set)]
 
     active_mark = min(mark_values, key=lambda v: abs(v - initial_users))
+    annual_discount_max = max(
+        [int(card.get("annual_discount_percent") or 0) for card in pricing_cards],
+        default=0,
+    )
     advisor_marks = [
         {
             "value": v,
@@ -1126,7 +1151,12 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         "pricing_initial_period": initial_period,
         "pricing_periods": [
             {"key": "6m", "label": "6 أشهر", "available": available_periods["6m"], "active": initial_period == "6m"},
-            {"key": "1y", "label": "سنة", "available": available_periods["1y"], "active": initial_period == "1y"},
+            {
+                "key": "1y",
+                "label": f"سنة · وفّر حتى {annual_discount_max}%" if annual_discount_max else "سنة",
+                "available": available_periods["1y"],
+                "active": initial_period == "1y",
+            },
         ],
         "pricing_slider": {
             "min": slider_min,
