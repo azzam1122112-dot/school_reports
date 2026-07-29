@@ -54,6 +54,111 @@ def _archive_storage_options(active_only: bool = True):
     return list(qs)
 
 
+def _renewal_plan_catalog(current_plan_id: int | None = None) -> list[dict]:
+    """Return customer-facing renewal plans grouped by school capacity.
+
+    Trial and inactive plans must never be offered as renewal choices.  The
+    catalogue keeps every published paid duration visible inside its capacity
+    group so the school can compare all available choices without opening a
+    collapsed control first.
+    """
+    plans = list(
+        SubscriptionPlan.objects.filter(
+            is_active=True,
+            price__gt=0,
+        ).order_by(
+            "max_teachers",
+            "days_duration",
+            "price",
+            "id",
+        )
+    )
+    groups: dict[int, dict] = {}
+
+    for plan in plans:
+        capacity = int(plan.max_teachers or 0)
+        group = groups.setdefault(
+            capacity,
+            {
+                "capacity": capacity,
+                "capacity_label": (
+                    "عدد مستخدمين غير محدود"
+                    if capacity <= 0
+                    else f"حتى {capacity} مستخدم"
+                ),
+                "is_recommended": capacity == 50,
+                "options": [],
+                "features": [],
+            },
+        )
+
+        days = int(plan.days_duration or 0)
+        if 160 <= days <= 210:
+            duration_label = "6 أشهر"
+            months = 6
+        elif 330 <= days <= 400:
+            duration_label = "سنة"
+            months = 12
+        else:
+            duration_label = f"{days} يوم"
+            months = None
+
+        features = [
+            line.strip().lstrip("-*•▪●‣").strip()
+            for line in (plan.description or "").replace("\r", "").split("\n")
+            if line.strip()
+        ][:3]
+        if not group["features"] and features:
+            group["features"] = features
+
+        monthly_equivalent = None
+        if months:
+            monthly_equivalent = (plan.price / Decimal(months)).quantize(
+                Decimal("1"),
+                rounding=ROUND_HALF_UP,
+            )
+
+        group["options"].append(
+            {
+                "plan": plan,
+                "duration_label": duration_label,
+                "monthly_equivalent": monthly_equivalent,
+                "is_current": plan.id == current_plan_id,
+                "annual_savings": None,
+            }
+        )
+
+    for group in groups.values():
+        semiannual = next(
+            (
+                option
+                for option in group["options"]
+                if 160 <= int(option["plan"].days_duration or 0) <= 210
+            ),
+            None,
+        )
+        annual = next(
+            (
+                option
+                for option in group["options"]
+                if 330 <= int(option["plan"].days_duration or 0) <= 400
+            ),
+            None,
+        )
+        if semiannual and annual:
+            savings = (semiannual["plan"].price * 2) - annual["plan"].price
+            if savings > 0:
+                annual["annual_savings"] = savings
+
+    return sorted(
+        groups.values(),
+        key=lambda group: (
+            1 if group["capacity"] <= 0 else 0,
+            group["capacity"] if group["capacity"] > 0 else 999999,
+        ),
+    )
+
+
 def _payment_purpose_label(payment: Payment) -> str:
     try:
         return payment.get_purpose_display()
@@ -1749,13 +1854,27 @@ def my_subscription(request):
 
     # تظهر آخر 4 عمليات فقط
     payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:4]
+    renewal_catalog = _renewal_plan_catalog(
+        subscription.plan_id if subscription else None
+    )
+    renewal_plans = [
+        option["plan"]
+        for group in renewal_catalog
+        for option in group["options"]
+    ]
+    current_plan_ids = {plan.id for plan in renewal_plans}
+    default_renewal_plan_id = (
+        subscription.plan_id
+        if subscription and subscription.plan_id in current_plan_ids
+        else (renewal_plans[0].id if renewal_plans else None)
+    )
     
     context = {
         "subscription": subscription,
         "school": membership.school,
-        # ✅ أظهر كل الخطط (حتى لو غير نشطة) حتى لا تبدو "مفقودة".
-        # سيتم تعطيل غير النشطة في القالب.
-        "plans": SubscriptionPlan.objects.all().order_by("days_duration", "price"),
+        "plans": renewal_plans,
+        "renewal_catalog": renewal_catalog,
+        "default_renewal_plan_id": default_renewal_plan_id,
         "payments": payments,
         "archive_addon": archive_addon,
         "archive_addon_price": pricing["addon_price"],
@@ -1853,8 +1972,20 @@ def _create_unified_payment(request, membership, subscription):
         requested_plan = None
         plan_id = request.POST.get("plan_id")
         if plan_id:
-            requested_plan = SubscriptionPlan.objects.filter(pk=plan_id).first()
-        if not requested_plan and subscription:
+            requested_plan = SubscriptionPlan.objects.filter(
+                pk=plan_id,
+                is_active=True,
+                price__gt=0,
+            ).first()
+            if requested_plan is None:
+                messages.error(request, "الباقة المختارة غير متاحة للتجديد.")
+                return redirect("reports:my_subscription")
+        if (
+            not requested_plan
+            and subscription
+            and subscription.plan.is_active
+            and subscription.plan.price > 0
+        ):
             requested_plan = subscription.plan
         if not requested_plan:
             messages.error(request, "يرجى اختيار باقة للاشتراك/التجديد.")
@@ -2091,13 +2222,22 @@ def payment_create(request):
 
         # 1. محاولة أخذ الباقة من اختيار المستخدم
         if plan_id:
-            try:
-                requested_plan = SubscriptionPlan.objects.get(pk=plan_id)
-            except SubscriptionPlan.DoesNotExist:
-                pass
+            requested_plan = SubscriptionPlan.objects.filter(
+                pk=plan_id,
+                is_active=True,
+                price__gt=0,
+            ).first()
+            if requested_plan is None:
+                messages.error(request, "الباقة المختارة غير متاحة للتجديد.")
+                return redirect("reports:my_subscription")
         
         # 2. إذا لم يختر، نأخذ الباقة الحالية
-        if not requested_plan and subscription:
+        if (
+            not requested_plan
+            and subscription
+            and subscription.plan.is_active
+            and subscription.plan.price > 0
+        ):
             requested_plan = subscription.plan
 
         # التحقق النهائي

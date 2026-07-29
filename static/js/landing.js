@@ -83,6 +83,52 @@
     }
   );
 
+  var lightbox = document.getElementById("productLightbox");
+  var lightboxImage = document.getElementById("productLightboxImage");
+  var lightboxCaption = document.getElementById("productLightboxCaption");
+  var lightboxClose = document.getElementById("productLightboxClose");
+
+  Array.prototype.forEach.call(
+    document.querySelectorAll("[data-product-image]"),
+    function (trigger) {
+      trigger.addEventListener("click", function () {
+        var source = trigger.getAttribute("data-product-image");
+        var image = trigger.querySelector("img");
+        if (!source) return;
+
+        if (!lightbox || !lightbox.showModal) {
+          var openedImage = window.open(source, "_blank");
+          if (openedImage) openedImage.opener = null;
+          return;
+        }
+
+        if (lightboxImage) {
+          lightboxImage.src = source;
+          lightboxImage.alt = image ? image.alt : "";
+        }
+        if (lightboxCaption) {
+          lightboxCaption.textContent =
+            trigger.getAttribute("data-product-caption") || "";
+        }
+        lightbox.showModal();
+      });
+    }
+  );
+
+  if (lightboxClose && lightbox) {
+    lightboxClose.addEventListener("click", function () {
+      lightbox.close();
+    });
+  }
+  if (lightbox) {
+    lightbox.addEventListener("click", function (event) {
+      if (event.target === lightbox) lightbox.close();
+    });
+    lightbox.addEventListener("close", function () {
+      if (lightboxImage) lightboxImage.removeAttribute("src");
+    });
+  }
+
   var revealItems = document.querySelectorAll(".reveal");
   if (
     !("IntersectionObserver" in window)

@@ -99,6 +99,36 @@ class UnifiedPaymentTests(TestCase):
             0,
         )
 
+    @override_settings(RATELIMIT_ENABLE=False)
+    def test_inactive_plan_cannot_be_submitted_manually(self):
+        inactive_plan = SubscriptionPlan.objects.create(
+            name="باقة متوقفة",
+            price=250,
+            days_duration=90,
+            max_teachers=10,
+            is_active=False,
+        )
+
+        response = self.client.post(
+            reverse("reports:payment_create"),
+            {
+                "unified": "1",
+                "include_subscription": "1",
+                "plan_id": str(inactive_plan.id),
+                "receipt_image": _receipt(),
+            },
+            follow=False,
+            REMOTE_ADDR="127.0.0.2",
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            Payment.objects.filter(
+                school=self.school,
+                requested_plan=inactive_plan,
+            ).exists()
+        )
+
     def test_storage_allowed_with_active_addon(self):
         SchoolArchiveAddon.objects.create(
             school=self.school,
@@ -130,6 +160,62 @@ class UnifiedPaymentTests(TestCase):
         )
         self.assertEqual(len(refs), 1)
         self.assertTrue(next(iter(refs)))  # non-empty
+
+    def test_subscription_page_shows_only_published_paid_renewal_plans(self):
+        published_plan = SubscriptionPlan.objects.create(
+            name="باقة 25 مستخدم | 6 أشهر",
+            price=699,
+            days_duration=180,
+            max_teachers=25,
+            description="تشغيل كامل للمدرسة\nدعم فني",
+        )
+        SubscriptionPlan.objects.create(
+            name="باقة قديمة غير منشورة",
+            price=300,
+            days_duration=90,
+            max_teachers=10,
+            is_active=False,
+        )
+        SubscriptionPlan.objects.create(
+            name="التجربة المجانية",
+            price=0,
+            days_duration=14,
+            max_teachers=5,
+        )
+
+        response = self.client.get(reverse("reports:my_subscription"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, published_plan.name)
+        self.assertNotContains(response, "باقة قديمة غير منشورة")
+        self.assertNotContains(response, "التجربة المجانية")
+        self.assertContains(response, 'id="schoolSubscriptionPlans"')
+        self.assertContains(response, 'id="archiveSubscriptionService"')
+        self.assertContains(response, 'id="archiveStorageService"')
+        self.assertContains(response, "زيادة مساحة تخزين الأرشيف")
+
+        offered_ids = {
+            option["plan"].id
+            for group in response.context["renewal_catalog"]
+            for option in group["options"]
+        }
+        self.assertEqual(offered_ids, {self.plan.id, published_plan.id})
+
+    def test_all_renewal_plan_choices_are_rendered_without_collapsing_catalog(self):
+        SubscriptionPlan.objects.create(
+            name="باقة سنوية 50 مستخدم",
+            price=1800,
+            days_duration=365,
+            max_teachers=50,
+        )
+
+        response = self.client.get(reverse("reports:my_subscription"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="renewal-catalog"')
+        self.assertContains(response, "عدد مستخدمين غير محدود")
+        self.assertContains(response, "حتى 50 مستخدم")
+        self.assertNotContains(response, 'id="subBody"')
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])

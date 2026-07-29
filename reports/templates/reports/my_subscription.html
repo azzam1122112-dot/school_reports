@@ -1333,7 +1333,565 @@
     margin-inline-end: 0.3rem;
   }
 
+  /* ===== PREMIUM SUBSCRIPTION CHECKOUT ===== */
+  .checkout-hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin: -0.25rem -0.25rem 1.75rem;
+    padding: 1.65rem 1.75rem;
+    border-radius: 22px;
+    color: #fff;
+    background:
+      radial-gradient(circle at 10% 0%, rgba(185,151,91,.38), transparent 34%),
+      linear-gradient(135deg, #0b2d21 0%, #07522f 62%, #0b3b2b 100%);
+    box-shadow: 0 18px 38px -24px rgba(5, 64, 37, .8);
+  }
+
+  .checkout-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .12;
+    pointer-events: none;
+    background-image:
+      linear-gradient(45deg, transparent 46%, #fff 47%, #fff 49%, transparent 50%);
+    background-size: 26px 26px;
+  }
+
+  .checkout-hero > * { position: relative; z-index: 1; }
+
+  .checkout-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    margin-bottom: .55rem;
+    color: #f5d89d;
+    font-size: .76rem;
+    font-weight: 900;
+    letter-spacing: .3px;
+  }
+
+  .checkout-hero h2 {
+    margin: 0 0 .4rem;
+    color: #fff;
+    font-size: clamp(1.35rem, 2vw, 1.85rem);
+    font-weight: 900;
+  }
+
+  .checkout-hero p {
+    max-width: 690px;
+    margin: 0;
+    color: rgba(255,255,255,.78);
+    font-size: .88rem;
+    font-weight: 650;
+    line-height: 1.85;
+  }
+
+  .checkout-security {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 175px;
+    padding: .85rem 1rem;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 16px;
+    background: rgba(255,255,255,.09);
+    backdrop-filter: blur(8px);
+  }
+
+  .checkout-security > i {
+    color: #f5d89d;
+    font-size: 1.5rem;
+  }
+
+  .checkout-security span { display: flex; flex-direction: column; gap: .1rem; }
+  .checkout-security strong { color: #fff; font-size: .82rem; }
+  .checkout-security span span,
+  .checkout-security small { color: rgba(255,255,255,.7); font-size: .7rem; }
+
+  .purchase-flow {
+    display: grid;
+    gap: 1.35rem;
+  }
+
+  .purchase-section.order-item {
+    position: relative;
+    overflow: hidden;
+    margin: 0;
+    padding: 1.45rem;
+    border: 1px solid #e5e9e7;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #fff, #fbfcfb);
+    box-shadow: 0 12px 28px -28px rgba(15,23,42,.55);
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+
+  .purchase-section.order-item::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 4px;
+    background: #dce7e1;
+  }
+
+  .purchase-section.order-item.is-active {
+    border-color: rgba(0,108,53,.42);
+    background: linear-gradient(180deg, #fff, #f7fcf9);
+    box-shadow: 0 16px 36px -28px rgba(0,108,53,.75);
+  }
+
+  .purchase-section.order-item.is-active::before {
+    background: linear-gradient(180deg, #006c35, #b9975b);
+  }
+
+  .purchase-section.order-item.is-locked { opacity: 1; }
+
+  .purchase-section-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .purchase-number {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border: 1px solid #dde8e2;
+    border-radius: 15px;
+    color: var(--primary);
+    background: #f1f8f4;
+    font-size: .83rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .purchase-kicker {
+    display: block;
+    margin-bottom: .16rem;
+    color: #9a763b;
+    font-size: .7rem;
+    font-weight: 900;
+  }
+
+  .purchase-heading h3 {
+    margin: 0 0 .22rem;
+    color: var(--text-h);
+    font-size: 1.12rem;
+    font-weight: 900;
+  }
+
+  .purchase-heading p {
+    margin: 0;
+    color: var(--text-2);
+    font-size: .79rem;
+    font-weight: 650;
+    line-height: 1.7;
+  }
+
+  .service-switch {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-width: 160px;
+    padding: .72rem .8rem;
+    border: 1px solid #e1e8e4;
+    border-radius: 15px;
+    background: #fff;
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .service-switch .order-toggle {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .service-switch-control {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    flex: 0 0 auto;
+    border-radius: 99px;
+    background: #d9e1dd;
+    transition: background .2s ease;
+  }
+
+  .service-switch-control::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    inset-inline-start: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(15,23,42,.2);
+    transition: transform .2s ease;
+  }
+
+  .service-switch .order-toggle:checked + .service-switch-control {
+    background: linear-gradient(135deg, #006c35, #0b8650);
+  }
+
+  .service-switch .order-toggle:checked + .service-switch-control::after {
+    transform: translateX(-18px);
+  }
+
+  .service-switch .order-toggle:focus-visible + .service-switch-control {
+    box-shadow: 0 0 0 4px rgba(0,108,53,.16);
+  }
+
+  .service-switch:has(.order-toggle:disabled) {
+    cursor: not-allowed;
+    background: #f6f7f7;
+  }
+
+  .service-switch-copy {
+    display: flex;
+    flex-direction: column;
+    gap: .08rem;
+  }
+
+  .service-switch-copy strong { color: var(--text-1); font-size: .76rem; white-space: nowrap; }
+  .service-switch-copy small { color: var(--text-3); font-size: .64rem; font-weight: 700; }
+
+  .renewal-catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+    gap: 1rem;
+  }
+
+  .plan-family {
+    position: relative;
+    padding: 1.05rem;
+    border: 1px solid #e3e9e6;
+    border-radius: 19px;
+    background: #fff;
+  }
+
+  .plan-family--recommended {
+    border-color: rgba(185,151,91,.55);
+    box-shadow: 0 12px 24px -24px rgba(122,87,30,.9);
+  }
+
+  .plan-family-badge {
+    position: absolute;
+    top: .7rem;
+    inset-inline-end: .7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .28rem;
+    padding: .3rem .55rem;
+    border-radius: 999px;
+    color: #6e4d1f;
+    background: #fff4dc;
+    font-size: .62rem;
+    font-weight: 900;
+  }
+
+  .plan-family-head {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    margin-bottom: .9rem;
+    padding-inline-end: 4.7rem;
+  }
+
+  .plan-family:not(.plan-family--recommended) .plan-family-head { padding-inline-end: 0; }
+
+  .plan-family-icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    color: var(--primary);
+    background: #eef7f2;
+  }
+
+  .plan-family-head span { color: var(--text-3); font-size: .65rem; font-weight: 800; }
+  .plan-family-head h4 { margin: .05rem 0 0; color: var(--text-h); font-size: .98rem; font-weight: 900; }
+
+  .plan-duration-options { display: grid; gap: .55rem; }
+
+  .plan-duration-choice {
+    position: relative;
+    display: block;
+    cursor: pointer;
+  }
+
+  .plan-duration-choice > input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .plan-duration-card {
+    display: grid;
+    grid-template-columns: auto minmax(0,1fr) auto;
+    align-items: center;
+    gap: .65rem;
+    min-height: 68px;
+    padding: .72rem;
+    border: 1.5px solid #e5e9e7;
+    border-radius: 14px;
+    background: #fbfcfc;
+    transition: var(--transition);
+  }
+
+  .plan-duration-choice:hover .plan-duration-card {
+    border-color: rgba(0,108,53,.3);
+    background: #f8fcfa;
+  }
+
+  .plan-duration-choice > input:checked + .plan-duration-card {
+    border-color: var(--primary);
+    background: #f0f8f4;
+    box-shadow: 0 0 0 3px rgba(0,108,53,.08);
+  }
+
+  .choice-check {
+    display: grid;
+    place-items: center;
+    width: 23px;
+    height: 23px;
+    border: 1.5px solid #cbd7d1;
+    border-radius: 50%;
+    color: transparent;
+    background: #fff;
+    font-size: .62rem;
+  }
+
+  .plan-duration-choice > input:checked + .plan-duration-card .choice-check {
+    color: #fff;
+    border-color: var(--primary);
+    background: var(--primary);
+  }
+
+  .duration-copy { display: flex; flex-direction: column; min-width: 0; }
+  .duration-copy strong { color: var(--text-1); font-size: .8rem; }
+  .duration-copy small { color: var(--text-3); font-size: .62rem; font-weight: 700; }
+
+  .current-plan-chip {
+    width: fit-content;
+    margin-top: .16rem;
+    padding: .12rem .4rem;
+    border-radius: 99px;
+    color: #0d6b45 !important;
+    background: #dff5e9;
+  }
+
+  .duration-price { display: flex; align-items: baseline; gap: .2rem; color: var(--primary); }
+  .duration-price strong { font-size: 1.05rem; font-weight: 900; }
+  .duration-price small { font-size: .62rem; font-weight: 800; }
+
+  .monthly-price {
+    grid-column: 2 / -1;
+    color: #8a6a35;
+    font-size: .59rem;
+    font-weight: 800;
+  }
+
+  .annual-saving-chip {
+    grid-column: 2 / -1;
+    display: inline-flex;
+    align-items: center;
+    gap: .28rem;
+    width: fit-content;
+    padding: .18rem .45rem;
+    border-radius: 999px;
+    color: #08633d;
+    background: #dcf5e7;
+    font-size: .58rem;
+    font-weight: 900;
+  }
+
+  .plan-feature-list {
+    display: grid;
+    gap: .35rem;
+    margin: .85rem 0 0;
+    padding: .8rem 0 0;
+    border-top: 1px dashed #e4e9e6;
+    list-style: none;
+  }
+
+  .plan-feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: .42rem;
+    color: var(--text-2);
+    font-size: .67rem;
+    font-weight: 700;
+    line-height: 1.55;
+  }
+
+  .plan-feature-list i { margin-top: .2rem; color: #16845b; font-size: .58rem; }
+
+  .archive-offer {
+    display: grid;
+    grid-template-columns: 1.05fr repeat(3, 1fr);
+    gap: .75rem;
+  }
+
+  .archive-offer > div {
+    min-height: 104px;
+    padding: .9rem;
+    border: 1px solid #e4e9e7;
+    border-radius: 16px;
+    background: #fff;
+  }
+
+  .archive-offer-price {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: #fff;
+    border-color: transparent !important;
+    background: linear-gradient(145deg, #0b3e2c, #087442) !important;
+  }
+
+  .archive-offer-price > span { color: rgba(255,255,255,.68); font-size: .66rem; font-weight: 800; }
+  .archive-offer-price > strong { color: #fff; font-size: 1.65rem; font-weight: 900; }
+  .archive-offer-price > strong small { color: #f4d69d; font-size: .7rem; }
+
+  .archive-offer-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+  }
+
+  .archive-offer-feature > i { margin-top: .15rem; color: #a77f3e; font-size: 1rem; }
+  .archive-offer-feature div { display: flex; flex-direction: column; gap: .2rem; }
+  .archive-offer-feature strong { color: var(--text-1); font-size: .75rem; line-height: 1.55; }
+  .archive-offer-feature span { color: var(--text-3); font-size: .62rem; font-weight: 700; line-height: 1.6; }
+
+  .service-notice {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .85rem;
+    padding: .68rem .8rem;
+    border: 1px solid #dfe7e3;
+    border-radius: 12px;
+    color: var(--text-2);
+    background: #f8faf9;
+    font-size: .7rem;
+    font-weight: 750;
+    line-height: 1.65;
+  }
+
+  .service-notice > i { color: var(--primary); }
+  .service-notice--success { color: #0d5e3e; border-color: #c9ead8; background: #eefaf3; }
+  .service-notice--pending { color: #775821; border-color: #ecdcae; background: #fff9e9; }
+  .service-notice--locked { margin-top: 0; color: #64748b; background: #f5f7f6; }
+
+  .storage-purchase-grid {
+    display: grid;
+    grid-template-columns: .9fr 1.1fr;
+    gap: .85rem;
+  }
+
+  .storage-live-card,
+  .storage-option-card {
+    padding: 1rem;
+    border: 1px solid #e3e9e6;
+    border-radius: 17px;
+    background: #fff;
+  }
+
+  .storage-live-head,
+  .storage-live-values {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+  }
+
+  .storage-live-head span { color: var(--text-2); font-size: .7rem; font-weight: 800; }
+  .storage-live-head strong { color: var(--primary); font-size: .9rem; }
+  .storage-live-values { margin-top: .65rem; }
+  .storage-live-values strong { color: var(--text-h); font-size: 1rem; }
+  .storage-live-values span { color: var(--text-3); font-size: .7rem; font-weight: 750; }
+  .storage-live-card .archive-progress { margin: .7rem 0 .5rem; }
+  .storage-live-card > small { color: var(--text-3); font-size: .63rem; font-weight: 750; }
+
+  .storage-select { margin-top: .45rem; font-weight: 850; }
+  .storage-option-help { margin: .55rem 0 0; color: #16845b; font-size: .65rem; font-weight: 750; }
+  .storage-option-help i { margin-inline-end: .25rem; }
+
+  .service-empty-state {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: 1rem;
+    border: 1px dashed #d5dfda;
+    border-radius: 15px;
+    color: var(--text-2);
+    background: #f8faf9;
+  }
+
+  .service-empty-state > i { color: var(--primary); font-size: 1.2rem; }
+  .service-empty-state div { display: flex; flex-direction: column; }
+  .service-empty-state strong { font-size: .8rem; }
+  .service-empty-state span { color: var(--text-3); font-size: .7rem; font-weight: 700; }
+
+  .premium-order-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-top: 1.35rem;
+    padding: 1.15rem 1.3rem;
+    border-color: rgba(185,151,91,.45);
+    background: linear-gradient(135deg, #fffaf0, #f4faf6);
+  }
+
+  .premium-order-summary > div {
+    display: flex;
+    flex-direction: column;
+    gap: .08rem;
+  }
+
+  .summary-kicker { color: #96703a; font-size: .63rem; font-weight: 900; }
+  .premium-order-summary > div > strong { color: var(--text-h); font-size: .9rem; }
+  .premium-order-summary > div > small { color: var(--text-3); font-size: .65rem; font-weight: 700; }
+
+  .premium-order-summary .order-total-wrap {
+    display: flex;
+    align-items: baseline;
+    gap: .35rem;
+    min-width: 150px;
+    justify-content: flex-end;
+    color: var(--primary);
+  }
+
+  .premium-order-summary .order-total-wrap strong {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 900;
+  }
+
+  .premium-order-summary .order-total-wrap small { font-size: .74rem; font-weight: 900; }
+
   /* ===== RESPONSIVE ===== */
+  @media (max-width: 1050px) {
+    .archive-offer { grid-template-columns: repeat(2, 1fr); }
+  }
+
   @media (max-width: 600px) {
     .sub-container { padding: 1.5rem 1rem 3rem; }
     .glass-card { padding: 1.5rem; }
@@ -1345,6 +1903,19 @@
     .hero-title { font-size: 1.5rem; }
     .order-item-head { padding: 1rem; gap: 0.6rem; }
     .order-item-title { font-size: 0.95rem; }
+    .checkout-hero { align-items: flex-start; flex-direction: column; padding: 1.3rem; }
+    .checkout-security { width: 100%; }
+    .purchase-section.order-item { padding: 1.1rem; }
+    .purchase-section-head { grid-template-columns: auto 1fr; align-items: start; }
+    .purchase-number { width: 40px; height: 40px; }
+    .service-switch { grid-column: 1 / -1; width: 100%; min-width: 0; justify-content: center; }
+    .renewal-catalog,
+    .archive-offer,
+    .storage-purchase-grid { grid-template-columns: 1fr; }
+    .premium-order-summary { align-items: flex-start; flex-direction: column; }
+    .premium-order-summary .order-total-wrap { width: 100%; justify-content: flex-start; }
+    .plan-family-head { padding-inline-end: 0; padding-top: 1.6rem; }
+    .plan-family:not(.plan-family--recommended) .plan-family-head { padding-top: 0; }
   }
 </style>
 {% endblock %}
@@ -1442,14 +2013,18 @@
     <!-- ========== MAIN: Renewal & History ========== -->
     <div>
 
-      <!-- Unified Payment Order Card -->
+      <!-- Premium subscription checkout -->
       <div class="glass-card" id="archiveOrder" style="margin-bottom: 1.75rem;">
 
-        <div class="section-header">
-          <div class="section-icon"><i class="fa-solid fa-cart-shopping"></i></div>
-          <div class="section-header-text">
-            <h2>طلب دفع موحّد</h2>
-            <p><b>اضغط على البنود التي تريد دفعها لتحديدها</b> (يمكنك اختيار أكثر من بند)، ثم حوّل <b>الإجمالي</b> مرة واحدة وارفع إيصالًا واحدًا.</p>
+        <div class="checkout-hero">
+          <div>
+            <span class="checkout-eyebrow"><i class="fa-solid fa-gem"></i> خدمات المدرسة</span>
+            <h2>اختر ما تحتاجه بوضوح</h2>
+            <p>تجديد المنصة، والأرشيف السنوي، ومساحة الأرشيف خدمات مستقلة. اختر أي خدمة مؤهلة، ثم ارفع إيصالًا واحدًا للإجمالي.</p>
+          </div>
+          <div class="checkout-security">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span><strong>طلب موثّق</strong>تُراجع الدفعة قبل التفعيل</span>
           </div>
         </div>
 
@@ -1457,102 +2032,195 @@
           {% csrf_token %}
           <input type="hidden" name="unified" value="1">
 
-          <!-- ===== العناصر القابلة للاختيار ===== -->
-          <div class="order-items">
+          <div class="purchase-flow">
 
-            <!-- 1) اشتراك المنصّة -->
-            <div class="order-item" id="item-subscription">
-              <label class="order-item-head">
-                <input type="checkbox" name="include_subscription" value="1" class="order-toggle"
-                       data-target="subBody"
-                       {% if not subscription or subscription.is_expired or subscription.is_cancelled %}checked{% endif %}>
-                <span class="order-item-title">
-                  <i class="fa-solid fa-layer-group"></i> اشتراك المنصّة
-                </span>
-                <span class="pick-state" aria-hidden="true"></span>
-                <span class="order-item-amount" data-amount-for="subscription">—</span>
-              </label>
-              <div class="order-item-body" id="subBody">
-                <div class="plans-grid">
-                  {% for plan in plans %}
-                  <label class="plan-option">
-                    <input type="radio" name="plan_id" value="{{ plan.id }}"
-                           data-price="{{ plan.price|stringformat:'f'|floatformat:2 }}"
-                           {% if subscription.plan.id == plan.id %}checked{% endif %}>
-                    <div class="plan-content">
-                      {% if plan.days_duration == 180 %}<span class="plan-badge">الأكثر طلباً</span>{% endif %}
-                      {% if plan.days_duration == 365 %}<span class="plan-badge">الأفضل قيمة</span>{% endif %}
-                      <span class="plan-title">{{ plan.name }}</span>
-                      <span class="plan-price">{{ plan.price }}<small>ريال</small></span>
-                      <div class="plan-days"><i class="fa-regular fa-calendar"></i> {{ plan.days_duration }} يوم</div>
-                    </div>
-                  </label>
+            <!-- 1) School subscription renewal -->
+            <section class="purchase-section order-item purchase-section--school" id="schoolSubscriptionPlans">
+              <div class="purchase-section-head">
+                <div class="purchase-number">01</div>
+                <div class="purchase-heading">
+                  <span class="purchase-kicker">الاشتراك الأساسي</span>
+                  <h3>تجديد اشتراك المدرسة</h3>
+                  <p>كل الباقات المنشورة ظاهرة أمامك. قارن السعة والمدة ثم اختر الأنسب.</p>
+                </div>
+                <label class="service-switch">
+                  <input type="checkbox" name="include_subscription" value="1" class="order-toggle"
+                         {% if not subscription or subscription.is_expired or subscription.is_cancelled %}checked{% endif %}>
+                  <span class="service-switch-control" aria-hidden="true"></span>
+                  <span class="service-switch-copy">
+                    <strong>إضافة التجديد</strong>
+                    <small>إلى طلب الدفع</small>
+                  </span>
+                </label>
+              </div>
+
+              {% if renewal_catalog %}
+                <div class="renewal-catalog">
+                  {% for group in renewal_catalog %}
+                    <article class="plan-family {% if group.is_recommended %}plan-family--recommended{% endif %}">
+                      {% if group.is_recommended %}
+                        <span class="plan-family-badge"><i class="fa-solid fa-star"></i> الأكثر طلبًا</span>
+                      {% endif %}
+                      <div class="plan-family-head">
+                        <div class="plan-family-icon"><i class="fa-solid fa-users"></i></div>
+                        <div>
+                          <span>سعة الباقة</span>
+                          <h4>{{ group.capacity_label }}</h4>
+                        </div>
+                      </div>
+
+                      <div class="plan-duration-options">
+                        {% for option in group.options %}
+                          <label class="plan-duration-choice">
+                            <input type="radio" name="plan_id" value="{{ option.plan.id }}"
+                                   data-price="{{ option.plan.price|stringformat:'f'|floatformat:2 }}"
+                                   {% if option.plan.id == default_renewal_plan_id %}checked{% endif %}>
+                            <span class="plan-duration-card">
+                              <span class="choice-check"><i class="fa-solid fa-check"></i></span>
+                              <span class="duration-copy">
+                                <strong>{{ option.plan.name }}</strong>
+                                {% if option.is_current %}<small class="current-plan-chip">باقتك الحالية · {{ option.duration_label }}</small>{% else %}<small>{{ option.duration_label }} · {{ option.plan.days_duration }} يوم</small>{% endif %}
+                              </span>
+                              <span class="duration-price">
+                                <strong>{{ option.plan.price|floatformat:0 }}</strong>
+                                <small>ريال</small>
+                              </span>
+                              {% if option.monthly_equivalent %}
+                                <span class="monthly-price">يعادل {{ option.monthly_equivalent|floatformat:0 }} ريال/شهر</span>
+                              {% endif %}
+                              {% if option.annual_savings %}
+                                <span class="annual-saving-chip"><i class="fa-solid fa-piggy-bank"></i> وفّر {{ option.annual_savings|floatformat:0 }} ريال</span>
+                              {% endif %}
+                            </span>
+                          </label>
+                        {% endfor %}
+                      </div>
+
+                      {% if group.features %}
+                        <ul class="plan-feature-list">
+                          {% for feature in group.features %}
+                            <li><i class="fa-solid fa-check"></i>{{ feature }}</li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    </article>
                   {% endfor %}
                 </div>
-              </div>
-            </div>
+              {% else %}
+                <div class="service-empty-state">
+                  <i class="fa-solid fa-circle-info"></i>
+                  <div><strong>لا توجد باقات مدفوعة منشورة حاليًا</strong><span>تواصل مع الدعم لاختيار الباقة المناسبة لمدرستك.</span></div>
+                </div>
+              {% endif %}
+            </section>
 
-            <!-- 2) إضافة الأرشفة -->
-            <div class="order-item {% if pending_archive_addon_payment %}is-locked{% endif %}" id="item-addon">
-              <label class="order-item-head">
-                <input type="checkbox" name="include_archive_addon" value="1" class="order-toggle"
-                       data-target="addonBody"
-                       data-price="{{ archive_addon_price|stringformat:'f'|floatformat:2 }}"
-                       {% if pending_archive_addon_payment %}disabled{% endif %}>
-                <span class="order-item-title">
-                  <i class="fa-solid fa-box-archive"></i>
-                  {% if archive_addon and archive_addon.is_active %}تجديد الأرشفة (سنة إضافية){% else %}تفعيل الأرشفة السنوية{% endif %}
-                </span>
-                <span class="pick-state" aria-hidden="true"></span>
-                <span class="order-item-amount" data-amount-for="addon">{{ archive_addon_price|floatformat:0 }} ريال</span>
-              </label>
-              <div class="order-item-body" id="addonBody">
-                {% if pending_archive_addon_payment %}
-                  <p class="order-item-note"><i class="fa-solid fa-hourglass-half"></i> يوجد طلب تفعيل/تجديد أرشفة قيد المراجعة.</p>
-                {% else %}
-                  <p class="order-item-note">
-                    تنشئ نسخًا سنوية ثابتة بفهرس Excel وبصمة تحقق، مع مساحة ابتدائية {{ archive_included_storage_gb }}GB. النسخ المحفوظة لا تُحذف عند انتهاء الإضافة.
-                  </p>
-                {% endif %}
+            <!-- 2) Annual archive subscription -->
+            <section class="purchase-section order-item purchase-section--archive {% if pending_archive_addon_payment %}is-locked{% endif %}" id="archiveSubscriptionService">
+              <div class="purchase-section-head">
+                <div class="purchase-number">02</div>
+                <div class="purchase-heading">
+                  <span class="purchase-kicker">خدمة مستقلة</span>
+                  <h3>اشتراك الأرشيف السنوي</h3>
+                  <p>يحفظ نسخًا سنوية ثابتة للمدرسة ولا يغيّر باقة تشغيل المنصة.</p>
+                </div>
+                <label class="service-switch">
+                  <input type="checkbox" name="include_archive_addon" value="1" class="order-toggle"
+                         data-price="{{ archive_addon_price|stringformat:'f'|floatformat:2 }}"
+                         {% if pending_archive_addon_payment %}disabled{% endif %}>
+                  <span class="service-switch-control" aria-hidden="true"></span>
+                  <span class="service-switch-copy">
+                    <strong>{% if archive_addon and archive_addon.is_active %}تجديد الأرشيف{% else %}تفعيل الأرشيف{% endif %}</strong>
+                    <small>{% if pending_archive_addon_payment %}قيد المراجعة{% else %}لمدة سنة{% endif %}</small>
+                  </span>
+                </label>
               </div>
-            </div>
 
-            <!-- 3) زيادة مساحة التخزين -->
-            <div class="order-item {% if not archive_addon or not archive_addon.is_active or pending_archive_storage_payment %}is-locked{% endif %}" id="item-storage">
-              <label class="order-item-head">
-                <input type="checkbox" name="include_archive_storage" value="1" class="order-toggle"
-                       data-target="storageBody"
-                       {% if not archive_addon or not archive_addon.is_active or pending_archive_storage_payment %}disabled{% endif %}>
-                <span class="order-item-title">
-                  <i class="fa-solid fa-hard-drive"></i> زيادة مساحة التخزين
-                </span>
-                <span class="pick-state" aria-hidden="true"></span>
-                <span class="order-item-amount" data-amount-for="storage">—</span>
-              </label>
-              <div class="order-item-body" id="storageBody">
-                {% if not archive_addon or not archive_addon.is_active %}
-                  <p class="order-item-note"><i class="fa-solid fa-lock"></i> تتاح بعد تفعيل إضافة الأرشفة واعتمادها.</p>
-                {% elif pending_archive_storage_payment %}
-                  <p class="order-item-note"><i class="fa-solid fa-hourglass-half"></i> يوجد طلب زيادة مساحة قيد المراجعة.</p>
-                {% else %}
-                  <label class="form-label" for="archiveStorageUnits">المساحة المطلوبة</label>
-                  <select id="archiveStorageUnits" name="archive_storage_option_id" class="form-input">
-                    {% for option in archive_storage_options %}
-                      <option value="{{ option.id }}" data-price="{{ option.price|stringformat:'f'|floatformat:2 }}">{{ option.storage_gb }}GB - {{ option.price|floatformat:0 }} ريال</option>
-                    {% endfor %}
-                  </select>
-                {% endif %}
+              <div class="archive-offer">
+                <div class="archive-offer-price">
+                  <span>السعر السنوي</span>
+                  <strong>{{ archive_addon_price|floatformat:0 }}<small> ريال</small></strong>
+                </div>
+                <div class="archive-offer-feature">
+                  <i class="fa-solid fa-database"></i>
+                  <div><strong>{{ archive_included_storage_gb }}GB مشمولة</strong><span>مساحة ابتدائية للأرشيف</span></div>
+                </div>
+                <div class="archive-offer-feature">
+                  <i class="fa-solid fa-file-zipper"></i>
+                  <div><strong>نسخ سنوية ثابتة</strong><span>بفهرس Excel وبصمة تحقق</span></div>
+                </div>
+                <div class="archive-offer-feature">
+                  <i class="fa-solid fa-lock"></i>
+                  <div><strong>حفظ مستمر</strong><span>النسخ المحفوظة لا تُحذف بانتهاء الإضافة</span></div>
+                </div>
               </div>
-            </div>
+
+              {% if pending_archive_addon_payment %}
+                <div class="service-notice service-notice--pending"><i class="fa-solid fa-hourglass-half"></i> يوجد طلب تفعيل أو تجديد للأرشيف قيد المراجعة.</div>
+              {% elif archive_addon and archive_addon.is_active %}
+                <div class="service-notice service-notice--success"><i class="fa-solid fa-circle-check"></i> الأرشيف مفعّل حتى <b dir="ltr">{{ archive_addon.end_date|date:"Y-m-d"|default:"—" }}</b>، ويمكنك تجديده لسنة إضافية.</div>
+              {% else %}
+                <div class="service-notice"><i class="fa-solid fa-circle-info"></i> هذه الخدمة اختيارية ومستقلة عن اشتراك المدرسة الأساسي.</div>
+              {% endif %}
+            </section>
+
+            <!-- 3) Archive storage expansion -->
+            <section class="purchase-section order-item purchase-section--storage {% if not archive_addon or not archive_addon.is_active or pending_archive_storage_payment or not archive_storage_options %}is-locked{% endif %}" id="archiveStorageService">
+              <div class="purchase-section-head">
+                <div class="purchase-number">03</div>
+                <div class="purchase-heading">
+                  <span class="purchase-kicker">توسعة اختيارية</span>
+                  <h3>زيادة مساحة تخزين الأرشيف</h3>
+                  <p>مساحة إضافية لملفات الأرشيف فقط، وليست زيادة في سعة مستخدمي الباقة.</p>
+                </div>
+                <label class="service-switch">
+                  <input type="checkbox" name="include_archive_storage" value="1" class="order-toggle"
+                         {% if not archive_addon or not archive_addon.is_active or pending_archive_storage_payment or not archive_storage_options %}disabled{% endif %}>
+                  <span class="service-switch-control" aria-hidden="true"></span>
+                  <span class="service-switch-copy">
+                    <strong>إضافة مساحة</strong>
+                    <small>{% if archive_addon and archive_addon.is_active %}إلى الأرشيف{% else %}تتطلب تفعيل الأرشيف{% endif %}</small>
+                  </span>
+                </label>
+              </div>
+
+              <div class="storage-purchase-grid">
+                <div class="storage-live-card">
+                  <div class="storage-live-head"><span>الاستخدام الحالي</span><strong>{{ storage_overview.usage_percent }}%</strong></div>
+                  <div class="storage-live-values"><strong>{{ storage_overview.used_label }}</strong><span>من {{ storage_overview.limit_label }}</span></div>
+                  {% if not storage_overview.is_unlimited %}<div class="archive-progress"><span style="width:{{ storage_overview.usage_percent }}%"></span></div>{% endif %}
+                  <small>المتبقي: {{ storage_overview.remaining_label }}</small>
+                </div>
+
+                <div class="storage-option-card">
+                  {% if not archive_addon or not archive_addon.is_active %}
+                    <div class="service-notice service-notice--locked"><i class="fa-solid fa-lock"></i> فعّل اشتراك الأرشيف وانتظر اعتماده أولًا، ثم ستتاح لك خيارات المساحة.</div>
+                  {% elif pending_archive_storage_payment %}
+                    <div class="service-notice service-notice--pending"><i class="fa-solid fa-hourglass-half"></i> يوجد طلب زيادة مساحة قيد المراجعة.</div>
+                  {% elif not archive_storage_options %}
+                    <div class="service-notice service-notice--locked"><i class="fa-solid fa-circle-info"></i> لا توجد خيارات مساحة منشورة حاليًا.</div>
+                  {% else %}
+                    <label class="form-label" for="archiveStorageUnits">اختر المساحة الإضافية</label>
+                    <select id="archiveStorageUnits" name="archive_storage_option_id" class="form-input storage-select">
+                      {% for option in archive_storage_options %}
+                        <option value="{{ option.id }}" data-price="{{ option.price|stringformat:'f'|floatformat:2 }}">+{{ option.storage_gb }}GB — {{ option.price|floatformat:0 }} ريال</option>
+                      {% endfor %}
+                    </select>
+                    <p class="storage-option-help"><i class="fa-solid fa-circle-check"></i> تُضاف المساحة إلى حد الأرشيف الحالي فور اعتماد الدفعة.</p>
+                  {% endif %}
+                </div>
+              </div>
+            </section>
 
           </div>
 
-          <!-- ===== ملخّص الطلب ===== -->
-          <div class="order-summary">
-            <div class="order-summary-row">
-              <span>الإجمالي المطلوب تحويله</span>
-              <span class="order-total-wrap"><strong id="orderTotal">0.00</strong> ريال</span>
+          <!-- Order summary -->
+          <div class="order-summary premium-order-summary">
+            <div>
+              <span class="summary-kicker">ملخص الطلب</span>
+              <strong>إجمالي الخدمات المحددة</strong>
+              <small>يمكنك اختيار خدمة واحدة أو أكثر من الأقسام أعلاه.</small>
             </div>
+            <span class="order-total-wrap"><strong id="orderTotal">0.00</strong><small>ريال</small></span>
           </div>
 
           <hr class="form-divider">
@@ -1844,7 +2512,15 @@ document.addEventListener('DOMContentLoaded', () => {
     sync(); // الحالة الابتدائية
   });
 
-  planRadios.forEach(r => r.addEventListener('change', recompute));
+  planRadios.forEach(r => r.addEventListener('change', () => {
+    const subscriptionToggle = document.querySelector('input[name="include_subscription"]');
+    if (subscriptionToggle && !subscriptionToggle.disabled) {
+      subscriptionToggle.checked = true;
+      const section = subscriptionToggle.closest('.order-item');
+      if (section) section.classList.add('is-active');
+    }
+    recompute();
+  }));
   if (storageSel) storageSel.addEventListener('change', recompute);
   recompute();
 
@@ -1970,9 +2646,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const anySelected = isOn('include_subscription') || isOn('include_archive_addon') || isOn('include_archive_storage');
       if (!anySelected) {
         e.preventDefault();
-        const items = document.querySelector('.order-items');
+        const items = document.querySelector('.purchase-flow');
         if (items) items.scrollIntoView({ behavior: 'smooth', block: 'center' });
         showToast('اختر عنصرًا واحدًا على الأقل للدفع', 'error');
+        return;
+      }
+      if (isOn('include_subscription') && !document.querySelector('input[name="plan_id"]:checked')) {
+        e.preventDefault();
+        const plans = document.getElementById('schoolSubscriptionPlans');
+        if (plans) plans.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast('اختر باقة لتجديد اشتراك المدرسة', 'error');
         return;
       }
       if (fileInput && !fileInput.value) {

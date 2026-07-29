@@ -25,7 +25,12 @@ logs/
 # Test / Coverage / Type-check
 .pytest_cache/
 pytest-cache-files-*/
+.ruff_cache/
+.tox/
+.nox/
+.hypothesis/
 .coverage
+coverage.xml
 htmlcov/
 .mypy_cache/
 .dmypy.json
@@ -35,10 +40,21 @@ htmlcov/
 .idea/
 *.code-workspace
 *.ipynb_checkpoints/
+*.swp
+*.swo
+*.tmp
+*.bak
+*.orig
+*~
 
 # Node (إن وُجد)
 node_modules/
 *.map
+
+# Python packaging / build outputs
+build/
+dist/
+*.egg-info/
 
 # ---------------------------
 # Django specifics

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
@@ -8,6 +10,7 @@ from reports.models import (
     AuditLog,
     Notification,
     NotificationRecipient,
+    Payment,
     Report,
     School,
     SchoolMembership,
@@ -18,6 +21,7 @@ from reports.cache_utils import invalidate_school, invalidate_user_notifications
 from .middleware import get_current_request
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 try:
     from .realtime_notifications import (
@@ -29,6 +33,111 @@ except Exception:  # pragma: no cover
     push_delta_to_user = None  # type: ignore
     push_force_resync = None  # type: ignore
     push_new_notification_to_teachers = None  # type: ignore
+
+
+@receiver(post_save, sender=School)
+def _telegram_school_registered(sender, instance, created, **kwargs):
+    if kwargs.get("raw") or not created:
+        return
+    try:
+        from .telegram_alerts import build_school_registration_alert, queue_telegram_alert
+
+        queue_telegram_alert(build_school_registration_alert(instance))
+    except Exception:
+        logger.exception("Unable to prepare Telegram school registration alert school=%s", instance.pk)
+
+
+@receiver(pre_save, sender=Payment)
+def _telegram_payment_capture_previous_status(sender, instance, **kwargs):
+    if kwargs.get("raw") or not getattr(instance, "pk", None):
+        return
+    try:
+        from .telegram_alerts import telegram_category_enabled
+
+        if telegram_category_enabled("payments"):
+            instance._telegram_previous_status = (
+                Payment.objects.filter(pk=instance.pk).values_list("status", flat=True).first()
+            )
+    except Exception:
+        instance._telegram_previous_status = None
+
+
+@receiver(post_save, sender=Payment)
+def _telegram_payment_saved(sender, instance, created, **kwargs):
+    if kwargs.get("raw"):
+        return
+    previous_status = getattr(instance, "_telegram_previous_status", None)
+    if not created and previous_status == instance.status:
+        return
+    try:
+        from .telegram_alerts import build_payment_alert, queue_telegram_alert
+
+        queue_telegram_alert(build_payment_alert(instance, created=created))
+    except Exception:
+        logger.exception("Unable to prepare Telegram payment alert payment=%s", instance.pk)
+
+
+@receiver(pre_save, sender=SchoolSubscription)
+def _telegram_subscription_capture_previous_state(sender, instance, **kwargs):
+    if kwargs.get("raw") or not getattr(instance, "pk", None):
+        return
+    try:
+        from .telegram_alerts import telegram_category_enabled
+
+        if not telegram_category_enabled("subscriptions"):
+            return
+        instance._telegram_previous_state = (
+            SchoolSubscription.objects.filter(pk=instance.pk)
+            .values_list(
+                "plan_id",
+                "start_date",
+                "end_date",
+                "is_active",
+                "canceled_at",
+                "cancel_reason",
+            )
+            .first()
+        )
+    except Exception:
+        instance._telegram_previous_state = None
+
+
+@receiver(post_save, sender=SchoolSubscription)
+def _telegram_subscription_saved(sender, instance, created, **kwargs):
+    if kwargs.get("raw"):
+        return
+    current_state = (
+        instance.plan_id,
+        instance.start_date,
+        instance.end_date,
+        instance.is_active,
+        instance.canceled_at,
+        instance.cancel_reason,
+    )
+    previous_state = getattr(instance, "_telegram_previous_state", None)
+    if not created and previous_state == current_state:
+        return
+    try:
+        from .telegram_alerts import build_subscription_alert, queue_telegram_alert
+
+        queue_telegram_alert(build_subscription_alert(instance, created=created))
+    except Exception:
+        logger.exception(
+            "Unable to prepare Telegram subscription alert subscription=%s",
+            instance.pk,
+        )
+
+
+@receiver(post_save, sender=Ticket)
+def _telegram_platform_ticket_created(sender, instance, created, **kwargs):
+    if kwargs.get("raw") or not created or not instance.is_platform:
+        return
+    try:
+        from .telegram_alerts import build_support_ticket_alert, queue_telegram_alert
+
+        queue_telegram_alert(build_support_ticket_alert(instance))
+    except Exception:
+        logger.exception("Unable to prepare Telegram support alert ticket=%s", instance.pk)
 
 
 def _infer_school_for_audit(request, user) -> School | None:

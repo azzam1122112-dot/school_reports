@@ -12,7 +12,7 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="منصة توثيق — إدارة المدرسة تبدأ من صورة واضحة">
   <meta property="og:description" content="لوحة تشغيل واحدة للتقارير والإنجاز والطلبات والتعاميم والأرشيف المدرسي.">
-  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/landing/dashboard-live.webp' %}">
+  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/landing/dashboard-system.png' %}">
   <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
   <link rel="manifest" href="{% static 'manifest.json' %}">
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
@@ -132,8 +132,9 @@
               <span class="browser-dots"><i></i><i></i><i></i></span>
             </div>
             <div class="hero-shot">
-              <img src="{% static 'img/landing/dashboard-live.webp' %}" alt="لوحة مدير المدرسة في منصة توثيق" width="1200" height="675" fetchpriority="high">
+              <img src="{% static 'img/landing/dashboard-system.png' %}" alt="لقطة حقيقية من لوحة مدير المدرسة في منصة توثيق" width="1920" height="799" fetchpriority="high" decoding="async">
             </div>
+            <span class="system-shot-label"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> لقطة حقيقية من النظام · بيانات تجريبية</span>
           </div>
           <div class="float-card float-card-top">
             <span class="float-icon"><i class="fa-solid fa-chart-pie"></i></span>
@@ -259,8 +260,9 @@
         <header class="section-heading reveal">
           <span class="section-kicker">منتج حقيقي، لا رسومات تخيلية</span>
           <h2>شاهد ما سيستخدمه فريق المدرسة فعليًا</h2>
-          <p>لقطات من بيئة المنصة توضح كيف يتحول العمل من متابعة يومية إلى سجل منظم ومخرج رسمي.</p>
         </header>
+
+
 
         <div class="showcase">
           <article class="showcase-card showcase-dashboard reveal">
@@ -269,7 +271,10 @@
               <h3>ابدأ يومك من الأولوية، لا من البحث</h3>
               <p>الإجراءات الأكثر استخدامًا أمامك، والفترة الزمنية قابلة للتغيير، وكل مسار على بُعد خطوة.</p>
             </div>
-            <div class="showcase-image"><img src="{% static 'img/landing/dashboard-live.webp' %}" alt="لوحة مدير المدرسة" width="1200" height="675" loading="lazy"></div>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/dashboard-system.png' %}" data-product-caption="لوحة مدير المدرسة: الأولويات، المؤشرات، والإجراءات السريعة في شاشة واحدة." aria-label="عرض لوحة مدير المدرسة بالحجم الكامل">
+              <img src="{% static 'img/landing/dashboard-system.png' %}" alt="لقطة حقيقية من لوحة مدير المدرسة" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            </button>
           </article>
 
           <article class="showcase-card reveal">
@@ -278,7 +283,10 @@
               <h3>كل طلب يعرف وجهته وحالته</h3>
               <p>بحث وتصفية وإسناد ومتابعة، مع تاريخ يحفظ ما حدث دون رسائل متفرقة.</p>
             </div>
-            <div class="showcase-image"><img src="{% static 'img/landing/tickets-live.webp' %}" alt="إدارة طلبات المدرسة" width="1200" height="675" loading="lazy"></div>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/tickets-system.png' %}" data-product-caption="قائمة الطلبات والتذاكر: بحث، تصفية، مسؤول، أولوية، وحالة متابعة واضحة." aria-label="عرض شاشة طلبات المدرسة بالحجم الكامل">
+              <img src="{% static 'img/landing/tickets-system.png' %}" alt="لقطة حقيقية من إدارة طلبات المدرسة" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            </button>
           </article>
 
           <article class="showcase-card reveal">
@@ -287,7 +295,22 @@
               <h3>من إدخال بسيط إلى وثيقة رسمية</h3>
               <p>هوية المدرسة ومعلومات التقرير والصور في PDF مرتب وجاهز للحفظ والطباعة.</p>
             </div>
-            <div class="showcase-image"><img src="{% static 'img/landing/report-live.webp' %}" alt="تقرير مدرسي رسمي بصيغة PDF" width="1200" height="675" loading="lazy"></div>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/report-system.png' %}" data-product-caption="معاينة التقرير الرسمي: هوية المدرسة وبيانات النشاط في مخرج منظم للطباعة والحفظ." aria-label="عرض التقرير المدرسي بالحجم الكامل">
+              <img src="{% static 'img/landing/report-system.png' %}" alt="لقطة حقيقية من تقرير مدرسي رسمي بصيغة PDF" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            </button>
+          </article>
+
+          <article class="showcase-card reveal">
+            <div class="showcase-copy">
+              <span>04 · الأرشيف</span>
+              <h3>المساحة والنسخ السنوية أمام المدير</h3>
+              <p>استهلاك التخزين، سنوات الأرشيف، وحالة كل نسخة ثابتة في شاشة واحدة سهلة الرجوع.</p>
+            </div>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/archive-system.png' %}" data-product-caption="الأرشيف المدرسي: مساحة التخزين، التصفية حسب السنة، والنسخ السنوية الثابتة." aria-label="عرض شاشة الأرشيف بالحجم الكامل">
+              <img src="{% static 'img/landing/archive-system.png' %}" alt="لقطة حقيقية من أرشيف المدرسة ومساحة التخزين" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            </button>
           </article>
         </div>
       </div>
@@ -501,8 +524,19 @@
 
   <div class="mobile-sticky" aria-label="ابدأ الآن">
     <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ مجانًا</a>
-    <a class="mobile-login" href="{% url 'reports:login' %}" aria-label="تسجيل الدخول"><i class="fa-solid fa-right-to-bracket"></i></a>
+    <a class="mobile-login" href="{% url 'reports:login' %}">
+      <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+      <span>دخول</span>
+    </a>
   </div>
+
+  <dialog class="product-lightbox" id="productLightbox" aria-labelledby="productLightboxCaption">
+    <div class="lightbox-head">
+      <p id="productLightboxCaption"></p>
+      <button class="lightbox-close" id="productLightboxClose" type="button" aria-label="إغلاق الصورة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <img id="productLightboxImage" src="" alt="">
+  </dialog>
 
   <script src="{% static 'js/landing.js' %}" defer></script>
 </body>

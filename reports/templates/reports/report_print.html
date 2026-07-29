@@ -452,28 +452,28 @@
       <div class="images-grid">
         {% if r.image1 %}
         <div class="img-box">
-           <img src="{{ r.image1.url }}" alt="مرفق 1">
+           <img src="{% if for_pdf and PDF_IMAGE1_URL %}{{ PDF_IMAGE1_URL }}{% else %}{{ r.image1.url }}{% endif %}" alt="مرفق 1">
            <div class="img-cap">مرفق (1)</div>
         </div>
         {% endif %}
         
         {% if r.image2 %}
         <div class="img-box">
-           <img src="{{ r.image2.url }}" alt="مرفق 2">
+           <img src="{% if for_pdf and PDF_IMAGE2_URL %}{{ PDF_IMAGE2_URL }}{% else %}{{ r.image2.url }}{% endif %}" alt="مرفق 2">
            <div class="img-cap">مرفق (2)</div>
         </div>
         {% endif %}
         
         {% if r.image3 %}
         <div class="img-box">
-           <img src="{{ r.image3.url }}" alt="مرفق 3">
+           <img src="{% if for_pdf and PDF_IMAGE3_URL %}{{ PDF_IMAGE3_URL }}{% else %}{{ r.image3.url }}{% endif %}" alt="مرفق 3">
            <div class="img-cap">مرفق (3)</div>
         </div>
         {% endif %}
         
         {% if r.image4 %}
         <div class="img-box">
-           <img src="{{ r.image4.url }}" alt="مرفق 4">
+           <img src="{% if for_pdf and PDF_IMAGE4_URL %}{{ PDF_IMAGE4_URL }}{% else %}{{ r.image4.url }}{% endif %}" alt="مرفق 4">
            <div class="img-cap">مرفق (4)</div>
         </div>
         {% endif %}

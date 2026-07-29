@@ -28,6 +28,7 @@ from reports.models import (
     Ticket,
     TicketImage,
 )
+from reports.pdf_report import build_report_print_context
 from reports.services_archive import archive_available_years
 from reports.services_export import build_school_export_zip_file
 
@@ -102,6 +103,50 @@ class SchoolArchiveManagerExperienceTests(TestCase):
                 reverse("reports:school_archive_create"),
                 {"year": "1447-1448"},
             )
+
+    def test_archive_uses_complete_fallback_pdf_when_weasyprint_is_unavailable(self):
+        self.report.idea = "وصف التقرير الذي يجب أن يبقى داخل ملف PDF المؤرشف."
+        self.report.image1 = SimpleUploadedFile(
+            "report.png",
+            bytes.fromhex(
+                "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4"
+                "890000000a49444154789c6360000002000154a24f6f0000000049454e44ae426082"
+            ),
+            content_type="image/png",
+        )
+        self.report.save(update_fields=["idea", "image1"])
+
+        context = build_report_print_context(self.report)
+        self.assertTrue(context["PDF_IMAGE1_URL"].startswith("data:image/png;base64,"))
+
+        with patch(
+            "reports.pdf_report._generate_report_pdf_weasy",
+            side_effect=OSError("native PDF libraries unavailable"),
+        ):
+            package, metadata = build_school_export_zip_file(
+                self.school,
+                academic_year="1447-1448",
+                teacher=self.manager,
+                school_wide=True,
+                request=self.client.request().wsgi_request,
+                return_metadata=True,
+            )
+        try:
+            self.assertEqual(metadata["generated_report_pdf_count"], 1)
+            self.assertEqual(metadata["failed_pdf_count"], 0)
+            self.assertFalse(metadata["is_partial"])
+            with zipfile.ZipFile(package) as zipped:
+                pdf_name = next(
+                    name for name in zipped.namelist() if name.endswith("/التقرير.pdf")
+                )
+                pdf_bytes = zipped.read(pdf_name)
+                self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+                self.assertGreater(len(pdf_bytes), 1000)
+                self.assertTrue(
+                    any(name.endswith("/صورة-1.png") for name in zipped.namelist())
+                )
+        finally:
+            package.close()
 
     def test_manager_archive_page_is_clear_searchable_and_warns_before_expiry(self):
         response = self.client.get(reverse("reports:school_archive"))

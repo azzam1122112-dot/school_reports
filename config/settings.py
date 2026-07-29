@@ -208,6 +208,32 @@ except Exception:
     NOTIFICATIONS_DISPATCH_LOCK_TTL_SECONDS = 3600
 
 
+# ----------------- Telegram operational alerts -----------------
+TELEGRAM_ALERTS_ENABLED = _env_bool("TELEGRAM_ALERTS_ENABLED", False)
+TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
+TELEGRAM_ALERT_CHAT_ID = (os.getenv("TELEGRAM_ALERT_CHAT_ID") or "").strip()
+TELEGRAM_ALERT_CATEGORIES = set(
+    _split_env_list(
+        os.getenv(
+            "TELEGRAM_ALERT_CATEGORIES",
+            "support,subscriptions,registration,payments",
+        )
+    )
+)
+try:
+    TELEGRAM_ALERT_TIMEOUT_SECONDS = float(
+        (os.getenv("TELEGRAM_ALERT_TIMEOUT_SECONDS", "10") or "10").strip()
+    )
+except Exception:
+    TELEGRAM_ALERT_TIMEOUT_SECONDS = 10.0
+try:
+    TELEGRAM_ALERT_DEDUP_TTL_SECONDS = int(
+        (os.getenv("TELEGRAM_ALERT_DEDUP_TTL_SECONDS", "2592000") or "2592000").strip()
+    )
+except Exception:
+    TELEGRAM_ALERT_DEDUP_TTL_SECONDS = 2_592_000
+
+
 # ----------------- Short-TTL DB Load Shedding -----------------
 try:
     NAV_CONTEXT_CACHE_TTL_SECONDS = int(os.getenv("NAV_CONTEXT_CACHE_TTL_SECONDS", "20").strip() or "20")
@@ -556,6 +582,7 @@ CELERY_TASK_QUEUES = [
 ]
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_ROUTES = {
+    "reports.tasks.send_telegram_alert_task": {"queue": "notifications"},
     "reports.tasks.send_notification_task": {"queue": "notifications"},
     "reports.tasks.send_password_change_email_task": {"queue": "notifications"},
     "reports.tasks.process_report_images": {"queue": "images"},
