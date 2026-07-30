@@ -2636,6 +2636,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'js/subscription-checkout.js' %}"></script>
 <script nonce="{{ CSP_NONCE }}">
 (() => {
   function initSubscriptionPage() {
@@ -2644,151 +2645,14 @@
   pageRoot.dataset.subscriptionReady = '1';
 
   /* ── 1. Unified Order: toggles + live total ── */
-  const orderToggles = document.querySelectorAll('.order-toggle');
-  const planRadios   = document.querySelectorAll('input[name="plan_id"]');
-  const storageSel   = document.getElementById('archiveStorageUnits');
-  const orderTotalEl = document.getElementById('orderTotal');
-  const orderEmptyEl = document.getElementById('orderEmptyState');
-  const form          = document.getElementById('paymentForm');
-  const submitBtn     = document.getElementById('submitBtn');
-  const tapSubmitBtn  = document.getElementById('tapSubmitBtn');
-
-  function parsePrice(value) {
-    let normalized = String(value ?? '')
-      .trim()
-      .replace(/\s/g, '')
-      .replace(/٬/g, '')
-      .replace(/٫/g, '.');
-
-    if (normalized.includes(',') && !normalized.includes('.')) {
-      normalized = normalized.replace(',', '.');
-    } else {
-      normalized = normalized.replace(/,/g, '');
-    }
-
-    const number = Number(normalized);
-    return Number.isFinite(number) ? number : 0;
-  }
-
-  function fmt(n) {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(Math.round((n + Number.EPSILON) * 100) / 100);
-  }
-
-  function setItemAmount(key, value) {
-    const el = document.querySelector('[data-amount-for="' + key + '"]');
-    if (el) el.textContent = (value == null) ? '—' : (fmt(value) + ' ريال');
-  }
-
-  function setItemLabel(key, value) {
-    const el = document.querySelector('[data-summary-label="' + key + '"]');
-    if (el && value) el.textContent = value;
-  }
-
-  function setItemVisibility(key, visible) {
-    const row = document.querySelector('[data-summary-for="' + key + '"]');
-    if (row) row.hidden = !visible;
-  }
-
-  function subscriptionAmount() {
-    const r = document.querySelector('input[name="plan_id"]:checked');
-    return r ? parsePrice(r.dataset.price) : 0;
-  }
-  function addonAmount() {
-    const c = document.querySelector('input[name="include_archive_addon"]');
-    return (c && c.dataset.price) ? parsePrice(c.dataset.price) : 0;
-  }
-  function storageAmount() {
-    if (!storageSel) return null;
-    const opt = storageSel.options[storageSel.selectedIndex];
-    return opt ? parsePrice(opt.dataset.price) : 0;
-  }
-
-  function isOn(name) {
-    const c = document.querySelector('input[name="' + name + '"]');
-    return !!(c && c.checked && !c.disabled);
-  }
-
-  function recompute() {
-    const subscriptionSelected = isOn('include_subscription');
-    const addonSelected = isOn('include_archive_addon');
-    const storageSelected = isOn('include_archive_storage');
-    const anySelected = subscriptionSelected || addonSelected || storageSelected;
-    const selectedPlan = document.querySelector('input[name="plan_id"]:checked');
-    const selectedPlanName = selectedPlan
-      ? selectedPlan.closest('.plan-duration-choice')?.querySelector('.duration-copy strong')?.textContent.trim()
-      : '';
-    const selectedStorage = storageSel ? storageSel.options[storageSel.selectedIndex] : null;
-
-    setItemAmount('subscription', subscriptionAmount());
-    setItemAmount('addon', addonAmount());
-    setItemAmount('storage', storageSel ? storageAmount() : null);
-    setItemLabel('subscription', selectedPlanName || 'تجديد اشتراك المدرسة');
-    setItemLabel(
-      'storage',
-      selectedStorage ? ('مساحة الأرشيف ' + selectedStorage.textContent.trim().split('—')[0].trim()) : 'مساحة إضافية للأرشيف'
-    );
-    setItemVisibility('subscription', subscriptionSelected);
-    setItemVisibility('addon', addonSelected);
-    setItemVisibility('storage', storageSelected);
-
-    let total = 0;
-    if (subscriptionSelected) total += subscriptionAmount();
-    if (addonSelected) total += addonAmount();
-    if (storageSelected) total += (storageAmount() || 0);
-
-    if (orderTotalEl) orderTotalEl.textContent = fmt(total);
-    if (orderEmptyEl) orderEmptyEl.hidden = anySelected;
-    if (submitBtn) {
-      submitBtn.disabled = !anySelected;
-      submitBtn.setAttribute('aria-disabled', String(!anySelected));
-      const label = submitBtn.querySelector('span');
-      if (label && !submitBtn.classList.contains('loading')) {
-        label.textContent = anySelected ? 'إرسال إيصال التحويل البنكي' : 'اختر خدمة لإرسال إيصال التحويل';
-      }
-    }
-    if (tapSubmitBtn) {
-      tapSubmitBtn.disabled = !anySelected;
-      tapSubmitBtn.setAttribute('aria-disabled', String(!anySelected));
-      const label = tapSubmitBtn.querySelector('span');
-      if (label && !tapSubmitBtn.classList.contains('loading')) {
-        label.textContent = anySelected ? 'الدفع الآن عبر Tap' : 'اختر خدمة للمتابعة';
-      }
-    }
-  }
-
-  // إظهار/إخفاء جسم كل بند حسب اختياره + تمييزه
-  orderToggles.forEach(t => {
-    const sync = () => {
-      const item = t.closest('.order-item');
-      if (item) item.classList.toggle('is-active', t.checked && !t.disabled);
-      recompute();
-    };
-    t.addEventListener('change', sync);
-    sync(); // الحالة الابتدائية
+  const checkout = window.SubscriptionCheckout?.init(pageRoot);
+  const form = checkout?.form || document.getElementById('paymentForm');
+  const submitBtn = checkout?.receiptSubmit || document.getElementById('submitBtn');
+  const tapSubmitBtn = checkout?.tapSubmit || document.getElementById('tapSubmitBtn');
+  const isOn = checkout?.isOn || ((name) => {
+    const control = document.querySelector('input[name="' + name + '"]');
+    return !!(control && control.checked && !control.disabled);
   });
-
-  planRadios.forEach(r => r.addEventListener('change', () => {
-    const subscriptionToggle = document.querySelector('input[name="include_subscription"]');
-    if (subscriptionToggle && !subscriptionToggle.disabled) {
-      subscriptionToggle.checked = true;
-      subscriptionToggle.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    recompute();
-  }));
-  if (storageSel) {
-    storageSel.addEventListener('change', () => {
-      const storageToggle = document.querySelector('input[name="include_archive_storage"]');
-      if (storageToggle && !storageToggle.disabled) {
-        storageToggle.checked = true;
-        storageToggle.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-      recompute();
-    });
-  }
-  recompute();
 
   /* ── 2. Progress Ring Animation ── */
   const days     = {{ subscription.days_remaining|default:0 }};
