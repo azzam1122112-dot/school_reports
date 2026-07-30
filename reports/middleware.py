@@ -1083,6 +1083,8 @@ class ContentSecurityPolicyMiddleware:
                     ]
                     if nonce_source not in sources:
                         sources.append(nonce_source)
+                    if is_landing_page and sbc_seal_origin not in sources:
+                        sources.append(sbc_seal_origin)
                     parts = [parts[0], *sources]
                 elif directive_name == "frame-src":
                     seen_frame_src = True
@@ -1097,6 +1099,7 @@ class ContentSecurityPolicyMiddleware:
             return "; ".join(directives)
 
         nonce = getattr(request, "csp_nonce", "")
+        seal_script_source = f" {sbc_seal_origin}" if is_landing_page else ""
         frame_src = "frame-src 'self'"
         if is_landing_page:
             frame_src = f"{frame_src} {sbc_seal_origin}"
@@ -1109,8 +1112,8 @@ class ContentSecurityPolicyMiddleware:
             "form-action 'self'",
             "object-src 'none'",
             "frame-ancestors 'none'",
-            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
-            f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net",
+            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net{seal_script_source}",
+            f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net{seal_script_source}",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
             "img-src 'self' data: blob: https:",
