@@ -19,7 +19,9 @@ services:
       - key: DEBUG
         value: "False"
       - key: SITE_URL
-        value: "https://app.tawtheeq-ksa.com"
+        value: "https://tawtheeq-ksa.com"
+      - key: CANONICAL_HOST_REDIRECT
+        value: "True"
       - key: ALLOWED_HOSTS
         value: "app.tawtheeq-ksa.com,tawtheeq-ksa.com,www.tawtheeq-ksa.com,school-7lgm.onrender.com,school-reports.onrender.com"
       - key: CSRF_TRUSTED_ORIGINS
@@ -64,8 +66,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   # ── Worker separation ──────────────────────────────────────────
   # Each queue gets its own worker for isolation.  To rollback to a
@@ -106,8 +110,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: worker
     name: school-worker-notifications
@@ -142,8 +148,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: worker
     name: school-worker-images
@@ -178,8 +186,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: worker
     name: school-worker-periodic
@@ -214,8 +224,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: worker
     name: school-beat
@@ -250,8 +262,10 @@ services:
         sync: false
       - key: R2_PUBLIC_DOMAIN
         sync: false
+      - key: MEDIA_PUBLIC_ACCESS_ENABLED
+        value: "False"
       - key: AWS_QUERYSTRING_AUTH
-        sync: false
+        value: "True"
 
   - type: redis
     name: tawtheeq-redis

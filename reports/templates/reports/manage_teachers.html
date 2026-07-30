@@ -11,35 +11,83 @@
           <i class="fas fa-chalkboard-teacher"></i>
           إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}
         </h1>
-        <p class="admin-subtitle">عرض وإدارة جميع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} في النظام</p>
+        <p class="admin-subtitle">حسابات فريق المدرسة الحالية، مع البحث والتصفية وإدارة حالة كل مستخدم.</p>
       </div>
 
       <div class="header-actions">
-        <form method="get" action="" class="search-form" role="search">
-          <label class="sr-only" for="q">بحث</label>
-          <input
-            id="q"
-            type="search"
-            name="q"
-            value="{{ term }}"
-            placeholder="بحث: الاسم/الجوال/الهوية"
-            autocomplete="off"
-            spellcheck="false"
-          >
-          <button class="btn btn-primary" type="submit">بحث</button>
-        </form>
-
-        <a class="btn btn-outline-primary btn-add" href="{% url 'reports:bulk_import_teachers' %}">
-          <i class="fas fa-file-excel"></i>
-          استيراد جماعي
+        <a class="btn btn-primary btn-add" href="{% url 'reports:bulk_import_teachers' %}">
+          <i class="fas fa-users-plus"></i>
+          إضافة منسوبي المدرسة
         </a>
-
-        <a class="btn btn-primary btn-add" href="{% url 'reports:add_teacher' %}">
+        <a class="btn btn-outline-primary btn-add" href="{% url 'reports:add_teacher' %}">
           <i class="fas fa-plus-circle"></i>
-          إضافة {{ SCHOOL_TEACHER_LABEL|default:"معلم" }} جديد
+          إضافة فردية
         </a>
       </div>
     </div>
+
+    <section class="onboarding-callout" aria-label="طريقة إضافة المستخدمين">
+      <div>
+        <strong>أضف عدة مستخدمين في دقائق</strong>
+        <span>إدخال سريع أو رفع Excel، مع معاينة كاملة قبل الحفظ وكلمة مرور مؤقتة هي رقم الجوال.</span>
+      </div>
+      <div class="capacity-chip">
+        {% if capacity.maximum %}
+          <b>{{ capacity.current }} / {{ capacity.maximum }}</b>
+          <span>متبقٍ {{ capacity.remaining }}</span>
+        {% else %}
+          <b>{{ capacity.current }}</b>
+          <span>مستخدمًا — غير محدود</span>
+        {% endif %}
+      </div>
+    </section>
+
+    <form method="get" action="" class="filters-panel" role="search">
+      <div class="filter-field filter-field--search">
+        <label for="q">بحث بالاسم أو الجوال أو الهوية</label>
+        <input
+          id="q"
+          type="search"
+          name="q"
+          value="{{ term }}"
+          placeholder="مثال: محمد أو 05..."
+          autocomplete="off"
+          spellcheck="false"
+        >
+      </div>
+      <div class="filter-field">
+        <label for="statusFilter">حالة الحساب</label>
+        <select id="statusFilter" name="status">
+          <option value="">الكل</option>
+          <option value="active" {% if status_filter == "active" %}selected{% endif %}>نشط</option>
+          <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>معطل</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="jobTitleFilter">المسمى الوظيفي</label>
+        <select id="jobTitleFilter" name="job_title">
+          <option value="">الكل</option>
+          {% for value, label in job_title_choices %}
+            <option value="{{ value }}" {% if job_title_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="departmentFilter">القسم</label>
+        <select id="departmentFilter" name="department">
+          <option value="">كل الأقسام</option>
+          {% for department in departments %}
+            <option value="{{ department.id }}" {% if department_filter == department.id|stringformat:"s" %}selected{% endif %}>{{ department.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-primary" type="submit"><i class="fas fa-filter"></i> تطبيق</button>
+        {% if term or status_filter or job_title_filter or department_filter %}
+          <a class="btn btn-outline" href="{% url 'reports:manage_teachers' %}">مسح</a>
+        {% endif %}
+      </div>
+    </form>
 
     <div class="admin-card">
       {% if teachers_page and teachers_page.object_list %}
@@ -149,6 +197,7 @@
                       <form
                         method="post"
                         action="{% url 'reports:delete_teacher' pk=t.id %}?next={{ nxt|urlencode }}"
+                        class="teacher-delete-form"
                         style="display:inline"
                       >
                         {% csrf_token %}
@@ -157,7 +206,6 @@
                           class="btn btn-icon btn-delete"
                           title="حذف"
                           aria-label="حذف"
-                          onclick="return confirm('هل أنت متأكد من حذف هذا {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}؟')"
                         >
                           <i class="fas fa-trash-alt"></i>
                         </button>
@@ -173,11 +221,11 @@
 
         <div class="pager" aria-label="التنقل بين الصفحات">
           {% if teachers_page.has_previous %}
-            <a class="btn btn-outline" href="?page={{ teachers_page.previous_page_number }}&q={{ term|urlencode }}">السابق</a>
+            <a class="btn btn-outline" href="?page={{ teachers_page.previous_page_number }}{% if filters_query %}&{{ filters_query }}{% endif %}">السابق</a>
           {% endif %}
           <span class="btn btn-outline">صفحة {{ teachers_page.number }} / {{ teachers_page.paginator.num_pages }}</span>
           {% if teachers_page.has_next %}
-            <a class="btn btn-outline" href="?page={{ teachers_page.next_page_number }}&q={{ term|urlencode }}">التالي</a>
+            <a class="btn btn-outline" href="?page={{ teachers_page.next_page_number }}{% if filters_query %}&{{ filters_query }}{% endif %}">التالي</a>
           {% endif %}
         </div>
 
@@ -186,8 +234,8 @@
           <div class="empty-icon"><i class="fas fa-users-slash"></i></div>
           <h3>لا يوجد {{ SCHOOL_TEACHERS_LABEL|default:"معلمون" }}</h3>
           <p>لم يتم العثور على نتائج{% if term %} لبحثك عن "<strong>{{ term }}</strong>"{% endif %}</p>
-          <a href="{% url 'reports:add_teacher' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> إضافة {{ SCHOOL_TEACHER_LABEL|default:"معلم" }} جديد
+          <a href="{% url 'reports:bulk_import_teachers' %}" class="btn btn-primary">
+            <i class="fas fa-users-plus"></i> إضافة منسوبي المدرسة
           </a>
         </div>
       {% endif %}
@@ -195,7 +243,7 @@
   </div>
 </div>
 
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* =========================================================
      Manage Teachers (scoped) — بدون كسر app.css
      - دعم data-theme للوضع الداكن/الفاتح
@@ -245,6 +293,39 @@
   }
 
   .admin-scope .btn-add{padding:12px 18px;font-weight:900}
+
+  .admin-scope .onboarding-callout{
+    display:flex;align-items:center;justify-content:space-between;gap:18px;
+    margin-bottom:14px;padding:17px 20px;border:1px solid rgba(0,108,53,.2);
+    border-radius:16px;background:linear-gradient(135deg,rgba(0,108,53,.08),rgba(185,151,91,.08));
+  }
+  .admin-scope .onboarding-callout > div:first-child{display:flex;flex-direction:column;gap:4px}
+  .admin-scope .onboarding-callout strong{color:#075e34;font-size:15px;font-weight:950}
+  .admin-scope .onboarding-callout span{color:var(--muted);font-size:13px;font-weight:750}
+  .admin-scope .capacity-chip{
+    min-width:115px;padding:9px 13px;border:1px solid rgba(0,108,53,.16);
+    border-radius:12px;background:var(--card);text-align:center
+  }
+  .admin-scope .capacity-chip b{display:block;color:#006c35;font-size:16px}
+  .admin-scope .capacity-chip span{font-size:11px}
+
+  .admin-scope .filters-panel{
+    display:grid;grid-template-columns:minmax(260px,1.7fr) repeat(3,minmax(145px,1fr)) auto;
+    align-items:end;gap:10px;margin-bottom:14px;padding:14px;border:1px solid var(--line);
+    border-radius:16px;background:var(--card)
+  }
+  .admin-scope .filter-field{display:flex;flex-direction:column;gap:6px}
+  .admin-scope .filter-field label{font-size:12px;font-weight:900;color:var(--muted)}
+  .admin-scope .filter-field input,
+  .admin-scope .filter-field select{
+    width:100%;min-height:43px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:11px;background:var(--card);color:var(--ink);outline:none
+  }
+  .admin-scope .filter-field input:focus,
+  .admin-scope .filter-field select:focus{
+    border-color:#006c35;box-shadow:0 0 0 3px rgba(0,108,53,.1)
+  }
+  .admin-scope .filter-actions{display:flex;gap:7px}
 
   /* Card */
   .admin-scope .admin-card{
@@ -387,6 +468,9 @@
   html[data-theme="dark"] .admin-scope .admin-card{
     box-shadow:0 18px 45px rgba(2,6,23,.35);
   }
+  html[data-theme="dark"] .admin-scope .onboarding-callout strong{color:#7ee2a5}
+  html[data-theme="dark"] .admin-scope .filter-field input,
+  html[data-theme="dark"] .admin-scope .filter-field select{background:rgba(15,22,41,.55)}
   html[data-theme="dark"] .admin-scope .teachers-table th{
     color: rgba(226,232,240,.92);
   }
@@ -449,10 +533,24 @@
     }
     .admin-scope .teacher-info{flex-direction:column;align-items:flex-start;gap:8px}
     .admin-scope .action-buttons{justify-content:flex-end}
+    .admin-scope .filters-panel{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .admin-scope .filter-field--search{grid-column:1/-1}
   }
 
   @media (max-width: 520px){
     .admin-scope .search-form input[type="search"]{min-width:220px;width:100%}
+    .admin-scope .onboarding-callout{align-items:stretch;flex-direction:column}
+    .admin-scope .filters-panel{grid-template-columns:1fr}
+    .admin-scope .filter-field--search{grid-column:auto}
+    .admin-scope .filter-actions .btn{flex:1}
   }
 </style>
+<script nonce="{{ CSP_NONCE }}">
+  document.querySelectorAll(".teacher-delete-form").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      const confirmed = window.confirm("هل أنت متأكد من حذف هذا {{ SCHOOL_TEACHER_LABEL|default:'المعلم'|escapejs }}؟");
+      if (!confirmed) event.preventDefault();
+    });
+  });
+</script>
 {% endblock %}

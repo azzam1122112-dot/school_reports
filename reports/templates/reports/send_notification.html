@@ -765,15 +765,6 @@
                 <div class="errors">{{ form.non_field_errors }}</div>
               {% endif %}
 
-              <div class="actions actions--top">
-                <button class="btn btn-primary" type="submit">
-                  <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
-                </button>
-                <a class="btn" href="{% url 'reports:home' %}">
-                  <i class="fa-solid fa-home"></i> الرجوع للرئيسية
-                </a>
-              </div>
-
               <div class="form-grid">
                 {% for field in form.visible_fields %}
                   {% if field.name == "teachers" or field.name == "target_department" %}
@@ -834,7 +825,7 @@
                 <button class="btn btn-primary" type="submit">
                   <i class="fa-solid fa-paper-plane"></i> إرسال الإشعار
                 </button>
-                <a class="btn" href="{% url 'reports:home' %}">
+                <a class="btn" href="{% if IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}">
                   <i class="fa-solid fa-home"></i> الرجوع للرئيسية
                 </a>
               </div>

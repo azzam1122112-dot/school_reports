@@ -43,7 +43,7 @@
     border-radius: 999px;
     background: linear-gradient(90deg, transparent, var(--royal-gold, #b9975b), #fff, transparent);
   }
-  .addons-scope h1 { margin: 0; font-size: clamp(1.45rem,3vw,2.15rem); font-weight: 950; }
+  .addons-scope h1 { margin: 0; color: #fff !important; font-size: clamp(1.45rem,3vw,2.15rem); font-weight: 950; }
   .addons-scope .hero p { margin: 8px 0 0; line-height: 1.8; font-weight: 850; opacity: .94; }
   .addons-scope .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .addons-scope .hero-actions .btn { min-height: 44px; border-radius: 12px; }
@@ -67,8 +67,8 @@
   .addons-scope .stat { padding: 14px; min-height: 96px; }
   .addons-scope .label { color: var(--ad-muted); font-weight: 900; }
   .addons-scope .value { margin-top: 8px; color: var(--ad-ink); font-size: 1.35rem; font-weight: 950; }
-  .addons-scope .filters { margin-top: 14px; padding: 14px; }
-  .addons-scope .filters form { display: grid; grid-template-columns: 1fr 220px auto auto; gap: 10px; align-items: end; }
+  .addons-scope .filters { display: block; margin-top: 14px; padding: 14px; }
+  .addons-scope .filters form { display: grid; width: 100%; grid-template-columns: minmax(180px,1fr) 220px auto auto; gap: 10px; align-items: end; }
   .addons-scope .filters input,
   .addons-scope .filters select { width: 100%; min-height: 44px; }
   .addons-scope .table-card { margin-top: 14px; overflow: hidden; }

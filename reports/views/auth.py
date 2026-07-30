@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY = "_webauthn_register_challenge"
 WEBAUTHN_AUTH_CHALLENGE_SESSION_KEY = "_webauthn_auth_challenge"
 WEBAUTHN_AUTH_ALLOWED_CREDENTIALS_SESSION_KEY = "_webauthn_auth_allowed_credentials"
+PASSKEY_ENROLL_PROMPT_SESSION_KEY = "passkey_enroll_prompt"
 
 
 def _force_password_change_notice() -> str:
@@ -54,6 +55,26 @@ def _force_password_change_notice() -> str:
 def _passkey_response(ok: bool, *, status: int = 200, **payload: Any) -> JsonResponse:
     payload["ok"] = ok
     return JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
+
+
+def _offer_passkey_enrollment(request: HttpRequest, user: Teacher) -> None:
+    """Show the optional passkey prompt after a successful password login.
+
+    The flag is session-scoped, so choosing "later" suppresses the prompt for
+    the current login only. A future password login may offer it again.
+    """
+    try:
+        has_passkey = WebAuthnCredential.objects.filter(
+            teacher=user,
+            is_active=True,
+        ).exists()
+        if has_passkey:
+            request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
+        else:
+            request.session[PASSKEY_ENROLL_PROMPT_SESSION_KEY] = True
+    except Exception:
+        # Passkey enrollment is an optional enhancement and must never block login.
+        request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
 
 
 def _default_login_redirect_name(user) -> str:
@@ -279,10 +300,16 @@ def _landing_period_key(days: int, is_trial: bool) -> str | None:
 
 def _landing_card_title(capacity: int, is_unlimited: bool) -> str:
     if is_unlimited:
-        return "باقة تشغيل موسعة"
+        return "باقة مخصصة"
     if capacity <= 0:
         return "باقة مخصصة"
-    return f"باقة {capacity} مستخدم"
+    if capacity <= 25:
+        return "الباقة الأساسية"
+    if capacity <= 50:
+        return "الباقة الاحترافية"
+    if capacity <= 100:
+        return "الباقة الموسعة"
+    return "باقة تشغيل موسعة"
 
 
 @ratelimit(key="ip", rate="10/m", method="POST", block=True)
@@ -390,6 +417,7 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                         if force_password_change:
                             messages.warning(request, _force_password_change_notice())
                             return redirect("reports:my_profile")
+                        _offer_passkey_enrollment(request, user)
                         next_url = next_value
                         if getattr(user, "is_superuser", False):
                             default_name = "reports:platform_admin_dashboard"
@@ -482,6 +510,7 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                 messages.warning(request, _force_password_change_notice())
                 return redirect("reports:my_profile")
 
+            _offer_passkey_enrollment(request, user)
             next_url = next_value
             # الوجهة الافتراضية حسب الدور
             if getattr(user, "is_superuser", False):
@@ -583,7 +612,7 @@ def passkey_register_options(request: HttpRequest) -> JsonResponse:
             "authenticatorAttachment": "platform",
             "residentKey": "preferred",
             "requireResidentKey": False,
-            "userVerification": "preferred",
+            "userVerification": "required",
         },
     }
     return _passkey_response(True, publicKey=options)
@@ -608,7 +637,12 @@ def passkey_register_verify(request: HttpRequest) -> JsonResponse:
 
         attestation = cbor2.loads(b64url_decode(response.get("attestationObject") or ""))
         auth_data = bytes(attestation.get("authData") or b"")
-        parsed = parse_authenticator_data(auth_data, rp_id=rp_id_from_request(request), require_attested_credential=True)
+        parsed = parse_authenticator_data(
+            auth_data,
+            rp_id=rp_id_from_request(request),
+            require_attested_credential=True,
+            require_user_verification=True,
+        )
         if not parsed.credential_id or not parsed.public_key_cose:
             raise ValueError("credential_invalid")
 
@@ -632,12 +666,20 @@ def passkey_register_verify(request: HttpRequest) -> JsonResponse:
             transports=transports,
         )
         request.session.pop(WEBAUTHN_REGISTER_CHALLENGE_SESSION_KEY, None)
+        request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
         return _passkey_response(True, message="تم تفعيل الدخول بالبصمة لهذا الجهاز.")
     except IntegrityError:
         return _passkey_response(False, status=409, error="credential_exists", message="هذا الجهاز مفعّل مسبقاً.")
     except Exception:
         logger.exception("Passkey registration failed user_id=%s", getattr(request.user, "id", None))
         return _passkey_response(False, status=400, error="registration_failed", message="تعذر تفعيل الدخول بالبصمة.")
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def passkey_enroll_prompt_dismiss(request: HttpRequest) -> JsonResponse:
+    request.session.pop(PASSKEY_ENROLL_PROMPT_SESSION_KEY, None)
+    return _passkey_response(True)
 
 
 @require_http_methods(["POST"])
@@ -702,7 +744,7 @@ def passkey_login_options(request: HttpRequest) -> JsonResponse:
         "challenge": challenge,
         "rpId": rp_id_from_request(request),
         "timeout": 60000,
-        "userVerification": "preferred",
+        "userVerification": "required",
         "allowCredentials": allow_credentials,
     }
     return _passkey_response(True, publicKey=public_key)
@@ -739,7 +781,11 @@ def passkey_login_verify(request: HttpRequest) -> JsonResponse:
         )
         auth_data_b64 = response.get("authenticatorData") or ""
         auth_data = b64url_decode(auth_data_b64)
-        parsed = parse_authenticator_data(auth_data, rp_id=rp_id_from_request(request))
+        parsed = parse_authenticator_data(
+            auth_data,
+            rp_id=rp_id_from_request(request),
+            require_user_verification=True,
+        )
         verify_signature(
             public_key_cose=bytes(credential.public_key_cose),
             signature_b64=response.get("signature") or "",
@@ -851,6 +897,8 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/my_profile.html", ctx)
 
 
+@never_cache
+@cache_control(no_cache=True, must_revalidate=True, no_store=True, max_age=0)
 @require_http_methods(["GET"])
 def platform_landing(request: HttpRequest) -> HttpResponse:
     """الصفحة الرئيسية العامة للمنصة (تعريف + مميزات + زر دخول).
@@ -893,16 +941,10 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             price_int = int(round(raw_price))
 
         if is_unlimited:
-            capacity_label = "مستخدمون غير محدودين"
+            capacity_label = "معلمون غير محدودين"
             capacity_hint = 999999
-        elif capacity <= 2:
-            capacity_label = f"حتى {capacity} مستخدم"
-            capacity_hint = capacity
-        elif capacity <= 10:
-            capacity_label = f"حتى {capacity} مستخدمين"
-            capacity_hint = capacity
         else:
-            capacity_label = f"حتى {capacity} مستخدم"
+            capacity_label = f"حتى {capacity} معلماً"
             capacity_hint = capacity
 
         return {
@@ -992,6 +1034,25 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         if default_plan is None:
             continue
 
+        for period_key, months in (("6m", 6), ("1y", 12)):
+            period_plan = plans_by_period.get(period_key)
+            if period_plan is None:
+                continue
+            monthly_equivalent = float(period_plan["price_value"]) / months
+            period_plan["monthly_equivalent_display"] = f"{int(round(monthly_equivalent)):,}"
+
+        semiannual_plan = plans_by_period.get("6m")
+        annual_plan = plans_by_period.get("1y")
+        annual_savings = 0
+        annual_discount_percent = 0
+        if semiannual_plan is not None and annual_plan is not None:
+            two_periods_price = float(semiannual_plan["price_value"]) * 2
+            annual_savings = max(0, int(round(two_periods_price - float(annual_plan["price_value"]))))
+            if two_periods_price > 0:
+                annual_discount_percent = int(round((annual_savings / two_periods_price) * 100))
+            annual_plan["savings_display"] = f"{annual_savings:,}"
+            annual_plan["discount_percent"] = annual_discount_percent
+
         card = {
             "capacity_hint": group["capacity_hint"],
             "capacity_label": group["capacity_label"],
@@ -1007,6 +1068,8 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
             "is_featured": False,
             "is_recommended": False,
             "badge": "",
+            "annual_savings": annual_savings,
+            "annual_discount_percent": annual_discount_percent,
         }
         pricing_cards.append(card)
 
@@ -1068,6 +1131,10 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         mark_values = [mark_values[i] for i in sorted(index_set)]
 
     active_mark = min(mark_values, key=lambda v: abs(v - initial_users))
+    annual_discount_max = max(
+        [int(card.get("annual_discount_percent") or 0) for card in pricing_cards],
+        default=0,
+    )
     advisor_marks = [
         {
             "value": v,
@@ -1078,6 +1145,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
     ]
 
     ctx = {
+        "trial_days": trial_days_target,
         "pricing_trial_plan": pricing_trial_plan,
         "pricing_cards": pricing_cards,
         "pricing_plans": pricing_cards,
@@ -1085,7 +1153,12 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         "pricing_initial_period": initial_period,
         "pricing_periods": [
             {"key": "6m", "label": "6 أشهر", "available": available_periods["6m"], "active": initial_period == "6m"},
-            {"key": "1y", "label": "سنة", "available": available_periods["1y"], "active": initial_period == "1y"},
+            {
+                "key": "1y",
+                "label": f"سنة · وفّر حتى {annual_discount_max}%" if annual_discount_max else "سنة",
+                "available": available_periods["1y"],
+                "active": initial_period == "1y",
+            },
         ],
         "pricing_slider": {
             "min": slider_min,

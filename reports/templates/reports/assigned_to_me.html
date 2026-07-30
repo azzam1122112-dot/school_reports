@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}التذاكر المعيّنة لي{% endblock %}
+{% block title %}المهام المعيّنة لي{% endblock %}
 
 {% block content %}
 <style>
@@ -339,7 +339,7 @@
   <!-- 1. Hero Section -->
   <header class="page-hero">
     <div class="hero-content">
-      <h1>التذاكر المعيّنة لي</h1>
+      <h1>المهام المعيّنة لي</h1>
       <p>إدارة ومتابعة جميع التذاكر المسندة إليك لاتخاذ الإجراءات اللازمة.</p>
     </div>
     <div class="hero-icon">
@@ -387,13 +387,14 @@
       <!-- Search -->
       <div class="lx-search">
         <input type="search" name="q" class="lx-input" style="width:100%"
-               placeholder="بحث برقم التذكرة أو العنوان..."
+               aria-label="البحث في المهام المعيّنة"
+               placeholder="بحث برقم الطلب أو العنوان..."
                value="{{ request.GET.q|default:'' }}">
       </div>
 
       <!-- Status Filter -->
       <div>
-        <select name="status" class="lx-select">
+        <select name="status" class="lx-select" aria-label="تصفية المهام حسب الحالة">
           <option value="">-- كل الحالات --</option>
           <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>جديدة</option>
           <option value="in_progress" {% if request.GET.status == "in_progress" %}selected{% endif %}>قيد المعالجة</option>
@@ -404,7 +405,7 @@
 
       <!-- Order Filter -->
       <div>
-        <select name="order" class="lx-select">
+        <select name="order" class="lx-select" aria-label="ترتيب المهام">
           <option value="-created_at" {% if request.GET.order == "-created_at" or not request.GET.order %}selected{% endif %}>الأحدث</option>
           <option value="created_at" {% if request.GET.order == "created_at" %}selected{% endif %}>الأقدم</option>
         </select>
@@ -444,7 +445,7 @@
         <thead>
           <tr>
             <th>#ID</th>
-            <th>عنوان التذكرة</th>
+            <th>عنوان الطلب</th>
             <th>المنشئ</th>
             <th>القسم</th>
             <th>تاريخ الإنشاء</th>

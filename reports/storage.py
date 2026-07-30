@@ -113,14 +113,18 @@ def _use_r2_storage() -> bool:
 
 if _use_r2_storage():
     class PublicRawMediaStorage(S3Boto3Storage):
-        """Public storage for attachments when using R2."""
+        """Compatibility storage name for R2-backed sensitive media.
+
+        Access is private and signed by default through AWS_QUERYSTRING_AUTH.
+        The historical class name is retained because migrations import it.
+        """
 
         def _save(self, name, content):  # type: ignore[override]
             content = _compress_image_file(content)
             return super()._save(name, content)
 else:
     class PublicRawMediaStorage(FileSystemStorage):
-        """Local filesystem storage for attachments."""
+        """Compatibility storage name for local development media."""
 
         def _save(self, name, content):  # type: ignore[override]
             content = _compress_image_file(content)
@@ -152,5 +156,5 @@ else:
 # When R2 is enabled, reuse the same behavior for attachment storage.
 if _use_r2_storage() and S3Boto3Storage is not None:
     class PublicRawMediaStorage(R2MediaStorage):
-        """Public storage for attachments when using R2."""
+        """R2 media storage; private signed URLs are the production default."""
 

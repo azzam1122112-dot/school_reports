@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import ExitStack
 from itertools import islice
 from typing import Iterable, Iterator
 
@@ -18,12 +19,14 @@ from reports.models import (
     Report,
     RequestTicket,
     School,
+    SchoolYearArchive,
     ShareLink,
     TeacherAchievementFile,
     Ticket,
     TicketImage,
     school_has_archive_addon,
 )
+from reports.file_cleanup import suppress_file_cleanup
 
 from .models import SchoolYearResetJob
 
@@ -112,6 +115,16 @@ def _archive_protected_school_ids(school_ids: list[int]) -> set[int]:
         for school in School.objects.filter(id__in=school_ids).select_related("archive_addon"):
             if school_has_archive_addon(school):
                 protected.add(int(school.id))
+        protected.update(
+            int(school_id)
+            for school_id in SchoolYearArchive.objects.filter(
+                school_id__in=school_ids,
+                status__in=[
+                    SchoolYearArchive.Status.READY,
+                    SchoolYearArchive.Status.PARTIAL,
+                ],
+            ).values_list("school_id", flat=True)
+        )
     except Exception:
         return set()
     return protected
@@ -347,7 +360,12 @@ def execute_school_year_reset(
     }
 
     try:
-        with transaction.atomic():
+        # This workflow already has an explicit delete_files switch and its own
+        # deletion report. Suppress automatic lifecycle cleanup here so
+        # --skip-files remains truthful and --delete-files is counted once.
+        with ExitStack() as stack:
+            stack.enter_context(suppress_file_cleanup())
+            stack.enter_context(transaction.atomic())
             if include_options["share_links"] or include_options["reports"] or include_options["achievements"]:
                 share_link_qs = ShareLink.objects.filter(_share_links_q(school_ids, include_options))
                 if protected_ids:

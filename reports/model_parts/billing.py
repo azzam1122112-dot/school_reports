@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import uuid
+
 from .base import *
 from .schools import School
 
@@ -213,6 +216,13 @@ class Payment(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    effects_applied_at = models.DateTimeField(
+        "وقت تطبيق أثر الدفع",
+        null=True,
+        blank=True,
+        editable=False,
+        help_text="يمنع تطبيق التفعيل أو زيادة المساحة أكثر من مرة لنفس عملية الدفع.",
+    )
 
     class Meta:
         verbose_name = "عملية دفع"
@@ -227,7 +237,7 @@ class Payment(models.Model):
 
 
 class SchoolArchiveAddon(models.Model):
-    """استحقاق مستقل لميزة أرشفة التقارير وملفات الإنجاز.
+    """استحقاق مستقل لأرشفة ملفات المدرسة وسجلاتها الإدارية.
 
     هذا الملحق منفصل عن باقة الاشتراك الأساسية، بحيث يمكن تفعيله لأي مدرسة
     بغض النظر عن الخطة الحالية.
@@ -324,3 +334,154 @@ class ArchiveStorageOption(models.Model):
 
     def __str__(self):
         return f"{self.storage_gb}GB - {self.price} ريال"
+
+
+def school_year_archive_upload_to(instance, filename: str) -> str:
+    """Private, collision-resistant path for immutable yearly archive packages."""
+    school_code = slugify(getattr(getattr(instance, "school", None), "code", "") or "school")
+    year = slugify(str(getattr(instance, "academic_year", "") or "year"), allow_unicode=False) or "year"
+    extension = os.path.splitext(filename or "")[1].lower() or ".zip"
+    return f"school-archives/{school_code}/{year}/{uuid.uuid4().hex}{extension}"
+
+
+class SchoolYearArchive(models.Model):
+    """Immutable ZIP snapshot of one school academic year."""
+
+    class Status(models.TextChoices):
+        READY = "ready", "مكتمل"
+        PARTIAL = "partial", "مكتمل مع ملاحظات"
+        FAILED = "failed", "فشل الإنشاء"
+
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="year_archives",
+        verbose_name="المدرسة",
+    )
+    academic_year = models.CharField("السنة الدراسية", max_length=32, db_index=True)
+    version = models.PositiveIntegerField("رقم النسخة", default=1)
+    status = models.CharField(
+        "حالة النسخة",
+        max_length=16,
+        choices=Status.choices,
+        default=Status.READY,
+        db_index=True,
+    )
+    archive_file = models.FileField(
+        "ملف الأرشيف",
+        upload_to=school_year_archive_upload_to,
+        max_length=500,
+        blank=True,
+    )
+    storage_bytes = models.PositiveBigIntegerField("حجم التخزين", default=0)
+    archive_sha256 = models.CharField("بصمة ملف ZIP", max_length=64, blank=True, default="")
+    file_count = models.PositiveIntegerField("عدد الملفات", default=0)
+    missing_file_count = models.PositiveIntegerField("ملفات مفقودة", default=0)
+    failed_pdf_count = models.PositiveIntegerField("ملفات PDF متعذرة", default=0)
+    report_count = models.PositiveIntegerField("عدد التقارير", default=0)
+    achievement_count = models.PositiveIntegerField("عدد ملفات الإنجاز", default=0)
+    ticket_count = models.PositiveIntegerField("عدد التذاكر", default=0)
+    circular_count = models.PositiveIntegerField("عدد التعاميم", default=0)
+    notification_count = models.PositiveIntegerField("عدد الإشعارات", default=0)
+    notes = models.TextField("تقرير الإنشاء", blank=True, default="")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_school_year_archives",
+        verbose_name="أنشأها",
+    )
+    created_at = models.DateTimeField("تاريخ إنشاء النسخة", auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["school", "academic_year", "version"],
+                name="uniq_school_year_archive_version",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["school", "academic_year", "-created_at"],
+                name="reports_sya_school_year_idx",
+            ),
+            models.Index(
+                fields=["school", "status"],
+                name="reports_sya_school_status_idx",
+            ),
+        ]
+        verbose_name = "نسخة أرشيف سنة"
+        verbose_name_plural = "نسخ أرشيف السنوات"
+
+    def __str__(self) -> str:
+        return f"{self.school.name} - {self.academic_year} - نسخة {self.version}"
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            original = type(self).objects.filter(pk=self.pk).values(
+                "school_id",
+                "academic_year",
+                "version",
+                "status",
+                "archive_file",
+                "archive_sha256",
+            ).first()
+            if original:
+                current = {
+                    "school_id": self.school_id,
+                    "academic_year": self.academic_year,
+                    "version": self.version,
+                    "status": self.status,
+                    "archive_file": getattr(self.archive_file, "name", "") or "",
+                    "archive_sha256": self.archive_sha256,
+                }
+                if any(original[field] != value for field, value in current.items()):
+                    raise ValidationError("نسخة الأرشيف ثابتة ولا يمكن تعديل ملفها أو هويتها بعد الحفظ.")
+        return super().save(*args, **kwargs)
+
+    @property
+    def is_downloadable(self) -> bool:
+        return bool(
+            self.status in {self.Status.READY, self.Status.PARTIAL}
+            and getattr(self.archive_file, "name", "")
+        )
+
+    @property
+    def archive_size_mb(self) -> float:
+        return round((self.storage_bytes or 0) / (1024 ** 2), 2)
+
+
+class SchoolYearArchiveDownload(models.Model):
+    """Persistent audit trail for every downloaded yearly archive snapshot."""
+
+    archive = models.ForeignKey(
+        SchoolYearArchive,
+        on_delete=models.CASCADE,
+        related_name="downloads",
+        verbose_name="نسخة الأرشيف",
+    )
+    downloaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="school_archive_downloads",
+        verbose_name="نزّلها",
+    )
+    downloaded_at = models.DateTimeField("وقت التنزيل", auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-downloaded_at", "-id")
+        indexes = [
+            models.Index(
+                fields=["archive", "-downloaded_at"],
+                name="reports_syad_archive_date_idx",
+            )
+        ]
+        verbose_name = "تنزيل نسخة أرشيف"
+        verbose_name_plural = "تنزيلات نسخ الأرشيف"
+
+    def __str__(self) -> str:
+        return f"تنزيل {self.archive_id} بواسطة {self.downloaded_by_id or '—'}"

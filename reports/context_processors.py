@@ -10,10 +10,17 @@ from django.core.cache import cache
 from django.http import HttpRequest
 from django.utils import timezone
 from django.apps import apps
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.urls import reverse
 
-from .models import Ticket, Department, Report, School, school_has_archive_addon
+from .models import (
+    Ticket,
+    Department,
+    Report,
+    School,
+    SchoolYearArchive,
+    school_has_archive_addon,
+)
 from .permissions import effective_user_role_label, get_school_manager_school_ids, is_report_viewer_for_school
 
 # حالات التذاكر
@@ -802,7 +809,19 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
 
         try:
             uid = int(getattr(u, "id", 0) or 0)
-            cache_key = f"navctx:v2:u{uid}:s{sid_for_key}:c{dismissed_sig}"
+            role_version = int(cache.get(f"navctx:role-version:u{uid}", 1) or 1)
+            user_flags = "".join(
+                [
+                    "s" if getattr(u, "is_superuser", False) else "-",
+                    "f" if getattr(u, "is_staff", False) else "-",
+                    "p" if getattr(u, "is_platform_admin", False) else "-",
+                ]
+            )
+            role_id = int(getattr(u, "role_id", 0) or 0)
+            cache_key = (
+                f"navctx:v4:u{uid}:s{sid_for_key}:r{role_id}:"
+                f"f{user_flags}:v{role_version}:c{dismissed_sig}"
+            )
             cached = cache.get(cache_key)
             if isinstance(cached, dict):
                 return cached
@@ -932,7 +951,30 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
 
     # هل المستخدم مشرف تقارير (عرض فقط) ضمن المدرسة النشطة؟
     is_report_viewer = is_report_viewer_for_school(u, active_school) if active_school is not None else False
-    show_archive_link = bool(active_school is not None and school_has_archive_addon(active_school))
+    has_saved_archive = False
+    if active_school is not None:
+        try:
+            has_saved_archive = SchoolYearArchive.objects.filter(
+                school=active_school,
+                status__in=[
+                    SchoolYearArchive.Status.READY,
+                    SchoolYearArchive.Status.PARTIAL,
+                ],
+            ).exists()
+        except Exception:
+            has_saved_archive = False
+    archive_addon_active = bool(
+        active_school is not None
+        and school_has_archive_addon(active_school)
+    )
+    show_archive_link = bool(
+        active_school is not None
+        and (
+            is_school_manager
+            or archive_addon_active
+            or has_saved_archive
+        )
+    )
 
     # روابط لوحة المدير: تظهر لكل من لديه is_staff (مدير/سوبر أدمن) أو مدير مدرسة
     show_admin_link = bool(getattr(u, "is_staff", False)) or any_school_manager
@@ -1021,6 +1063,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SHOW_DEPARTMENT_REPORTS_LINK": show_dept_reports_link,
         "SHOW_SCHOOL_REPORTS_LINK": show_school_reports_link,
         "SHOW_ARCHIVE_LINK": show_archive_link,
+        "ARCHIVE_ADDON_ACTIVE": archive_addon_active,
+        "HAS_SAVED_ARCHIVE": has_saved_archive,
         "DEPARTMENT_REPORTS_URLNAME": dept_reports_urlname,
         "NAV_OFFICER_REPORTS": nav_officer_reports,
         "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,
@@ -1082,3 +1126,14 @@ def csp(request: HttpRequest) -> Dict[str, Any]:
 
 
 __all__.append("csp")
+
+
+def seo(request: HttpRequest) -> Dict[str, str]:
+    """Expose one stable public origin for canonical and social URLs."""
+    site_url = str(getattr(settings, "SITE_URL", "") or "").strip().rstrip("/")
+    if not site_url:
+        site_url = request.build_absolute_uri("/").rstrip("/")
+    return {"SITE_URL": site_url}
+
+
+__all__.append("seo")

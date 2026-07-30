@@ -1,2 +1,9 @@
 User-agent: *
 Allow: /
+Disallow: /admin-panel/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /media/
+Disallow: /ops/
+
+Sitemap: https://tawtheeq-ksa.com/sitemap.xml

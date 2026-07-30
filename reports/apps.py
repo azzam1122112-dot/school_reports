@@ -19,3 +19,12 @@ class ReportsConfig(AppConfig):
             storage_tracking.connect_all()
         except Exception:
             pass
+
+        # Delete replaced/deleted FileField objects from local storage or R2
+        # only after the surrounding database transaction commits.
+        try:
+            from . import file_cleanup
+
+            file_cleanup.connect_all()
+        except Exception:
+            pass

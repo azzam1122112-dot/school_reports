@@ -78,7 +78,8 @@ class Ticket(models.Model):
     attachment = models.FileField(
         "مرفق",
         upload_to=_ticket_attachment_upload_to,
-        storage=PublicRawMediaStorage(),   # عام + raw
+        # Historical storage class name; production access is private/signed.
+        storage=PublicRawMediaStorage(),
         blank=True,
         null=True,
         validators=[
@@ -86,6 +87,11 @@ class Ticket(models.Model):
             validate_attachment_file,
         ],
         help_text=f"يسمح بـ PDF/صور/DOCX حتى {MAX_ATTACHMENT_MB}MB",
+    )
+    storage_bytes = models.PositiveBigIntegerField(
+        "حجم المرفق",
+        default=0,
+        editable=False,
     )
 
     status = models.CharField(

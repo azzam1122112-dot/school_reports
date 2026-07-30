@@ -5,1330 +5,584 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#006c35">
-  <title>منصة توثيق | تشغيل مدرسي فاخر وواضح من لوحة واحدة</title>
-  <meta name="description" content="منصة توثيق تمنح المدرسة لوحة تشغيل واحدة لإدارة التقارير والطلبات والتعاميم وملفات الإنجاز مع مخرجات PDF وروابط مشاركة مضبوطة. ابدأ تجربة مجانية 14 يوم.">
-  <meta name="keywords" content="منصة مدارس, إدارة مدرسية, تقارير مدرسية, ملف إنجاز, نظام مدارس, منصة توثيق, تعاميم, تذاكر صيانة">
-  <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+  <title>منصة توثيق التقارير المدرسية وملفات الإنجاز | توثيق</title>
+  <meta name="description" content="منصة سعودية لإدارة وتوثيق التقارير المدرسية وملفات إنجاز المعلمين والطلبات والتعاميم والأرشيف، مع PDF رسمي ومشاركة آمنة. ابدأ تجربة مجانية.">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <meta name="author" content="منصة توثيق">
+  <meta property="og:locale" content="ar_SA">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="منصة توثيق">
+  <meta property="og:title" content="منصة توثيق التقارير المدرسية وملفات الإنجاز">
+  <meta property="og:description" content="لوحة تشغيل سعودية واحدة للتقارير وملفات الإنجاز والطلبات والتعاميم والأرشيف المدرسي.">
+  <meta property="og:url" content="{{ SITE_URL }}/">
+  <meta property="og:image" content="{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}">
+  <meta property="og:image:width" content="1920">
+  <meta property="og:image:height" content="799">
+  <meta property="og:image:alt" content="لوحة إدارة المدرسة في منصة توثيق">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="منصة توثيق التقارير المدرسية وملفات الإنجاز">
+  <meta name="twitter:description" content="إدارة التقارير والإنجاز والطلبات والتعاميم والأرشيف المدرسي من منصة واحدة.">
+  <meta name="twitter:image" content="{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}">
+  <link rel="canonical" href="{{ SITE_URL }}/">
+  <link rel="alternate" hreflang="ar-SA" href="{{ SITE_URL }}/">
+  <link rel="alternate" hreflang="x-default" href="{{ SITE_URL }}/">
   <link rel="manifest" href="{% static 'manifest.json' %}">
-  <link rel="icon" href="{% static 'img/logo1.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
-
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/brand-mark.svg' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
-
   <link rel="stylesheet" href="{% static 'css/landing.css' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
-  <style>
-    @media (max-width: 980px) {
-      html,
-      body {
-        overflow-x: hidden !important;
+  <noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
+  <script type="application/ld+json" nonce="{{ CSP_NONCE }}">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "{{ SITE_URL }}/#organization",
+        "name": "منصة توثيق",
+        "url": "{{ SITE_URL }}/",
+        "logo": "{{ SITE_URL }}{% static 'img/logo1.png' %}",
+        "areaServed": {"@type": "Country", "name": "Saudi Arabia"}
+      },
+      {
+        "@type": "WebSite",
+        "@id": "{{ SITE_URL }}/#website",
+        "url": "{{ SITE_URL }}/",
+        "name": "منصة توثيق",
+        "inLanguage": "ar-SA",
+        "publisher": {"@id": "{{ SITE_URL }}/#organization"}
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "{{ SITE_URL }}/#software",
+        "name": "منصة توثيق",
+        "url": "{{ SITE_URL }}/",
+        "image": "{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "School Management Software",
+        "operatingSystem": "Web",
+        "inLanguage": "ar-SA",
+        "description": "منصة سعودية لإدارة التوثيق والتقارير وملفات إنجاز المعلمين والطلبات والتعاميم المدرسية.",
+        "audience": {"@type": "EducationalAudience", "educationalRole": "school administrator"},
+        "provider": {"@id": "{{ SITE_URL }}/#organization"},
+        "offers": {
+          "@type": "Offer",
+          "name": "تجربة مجانية",
+          "price": "0",
+          "priceCurrency": "SAR",
+          "url": "{{ SITE_URL }}{% url 'reports:register_school' %}"
+        }
       }
-
-      .hero-grid,
-      .window-body,
-      .portfolio-shell,
-      .pricing-advisor,
-      .results-grid,
-      .show-grid,
-      .live-proof-strip,
-      .process-grid,
-      .faq-grid,
-      .footer-grid,
-      .pillars-grid,
-      .pricing-grid,
-      .decision-grid,
-      .hero-ribbon,
-      .hero-proof,
-      .hero-product-proof,
-      .hero-stats {
-        grid-template-columns: 1fr !important;
-      }
-
-      .hero-stage {
-        max-width: 100% !important;
-      }
-
-      .show-card.featured-shot,
-      .price-card:first-child {
-        grid-column: auto !important;
-      }
-    }
-
-    @media (max-width: 560px) {
-      .container {
-        width: calc(100% - 16px) !important;
-        max-width: 100% !important;
-      }
-
-      .nav {
-        gap: 8px !important;
-      }
-
-      .nav .brand-copy,
-      .nav .mobile-login-btn {
-        display: none !important;
-      }
-
-      .nav-actions {
-        gap: 8px !important;
-      }
-
-      .nav .btn {
-        width: auto !important;
-        min-height: 44px !important;
-        padding: 0 12px !important;
-        font-size: 0.82rem !important;
-        line-height: 1.35 !important;
-        flex: none !important;
-      }
-
-      .nav .menu-btn {
-        width: 44px !important;
-        height: 44px !important;
-        flex: none !important;
-      }
-
-      .hero-product-proof {
-        grid-template-columns: 1fr !important;
-        overflow: hidden;
-      }
-
-      .hero-copy,
-      .hero-copy h1,
-      .hero-copy p,
-      .section-head,
-      .section-head h2,
-      .section-head p {
-        max-width: 100% !important;
-      }
-
-      .hero-grid,
-      .hero-copy,
-      .hero-stage {
-        width: 100% !important;
-        min-width: 0 !important;
-      }
-
-      .hero-copy {
-        justify-items: center !important;
-        text-align: center !important;
-      }
-
-      .hero-copy h1 {
-        width: min(310px, 82vw) !important;
-        max-width: min(310px, 82vw) !important;
-        font-size: 1.28rem !important;
-        line-height: 1.25 !important;
-        text-align: center !important;
-        text-wrap: initial !important;
-        white-space: normal !important;
-        overflow-wrap: break-word !important;
-      }
-
-      .desktop-title {
-        display: none !important;
-      }
-
-      .mobile-title {
-        display: block !important;
-      }
-
-      .hero-copy p {
-        width: min(320px, 84vw) !important;
-        max-width: min(320px, 84vw) !important;
-        text-align: center !important;
-        text-wrap: initial !important;
-      }
-
-      .proof-badges {
-        justify-content: center !important;
-      }
-
-      .proof-badges b {
-        white-space: normal !important;
-      }
-
-      .hero-ribbon,
-      .hero-proof,
-      .hero-stats {
-        justify-items: center !important;
-      }
-
-      .ribbon-card,
-      .proof-tile,
-      .impact-card {
-        width: min(292px, 78vw) !important;
-        max-width: min(292px, 78vw) !important;
-      }
-
-      .ribbon-card p,
-      .proof-tile p,
-      .impact-card p {
-        overflow-wrap: break-word !important;
-      }
-    }
-  </style>
-
-  <!-- تحسينات تحويل/تجربة: سلامة بدون JS + microcopy + شريط CTA للجوال -->
-  <noscript>
-    <style>
-      .reveal, .reveal-scale, .pulse-chip, .hero-glow { opacity: 1 !important; transform: none !important; }
-    </style>
-  </noscript>
-  <style>
-    /* رسائل طمأنة أسفل أزرار الدعوة */
-    .cta-assurance {
-      display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px;
-      color: var(--ink-soft); font-weight: 700; font-size: 0.92rem;
-    }
-    .cta-assurance span { display: inline-flex; align-items: center; gap: 7px; }
-    .cta-assurance i { color: var(--success); }
-
-    /* طمأنة أسفل زر التسعير */
-    .summary-assurance {
-      margin: 12px 0 0; display: flex; align-items: flex-start; gap: 8px;
-      color: var(--ink-soft); font-weight: 700; font-size: 0.88rem; line-height: 1.7;
-    }
-    .summary-assurance i { color: var(--success); margin-top: 3px; flex: 0 0 auto; }
-
-    /* شريط دعوة ثابت للجوال (يرفع التحويل على الميدان) */
-    .sticky-cta {
-      position: fixed; inset-inline: 0; bottom: 0; z-index: 60;
-      display: none; gap: 10px; align-items: center;
-      padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
-      background: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border-top: 1px solid var(--line);
-      box-shadow: 0 -12px 32px rgba(11, 23, 32, 0.14);
-    }
-    .sticky-cta .btn { min-height: 48px; }
-    .sticky-cta .btn-primary { flex: 1; justify-content: center; }
-    .sticky-cta .sticky-login {
-      flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
-      width: 48px; height: 48px; border-radius: var(--radius-md);
-      border: 1px solid var(--line-strong); color: var(--emerald);
-      background: var(--surface-strong); text-decoration: none;
-    }
-    @media (max-width: 820px) {
-      .sticky-cta { display: flex; }
-      body { padding-bottom: 78px; }
-    }
-  </style>
+    ]
+  }
+  </script>
 </head>
 <body>
-  <div class="nav-shell">
-    <div class="container">
-      <nav class="nav" aria-label="التنقل الرئيسي">
-        <a class="brand" href="#top" aria-label="العودة إلى أعلى الصفحة">
-          <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق">
-          <span class="brand-copy">
-            <strong>منصة توثيق</strong>
-            <span>تشغيل مدرسي واضح واحترافي من لوحة واحدة</span>
-          </span>
+  <a class="skip-link" href="#mainContent">انتقل إلى المحتوى</a>
+
+  <header class="site-header" id="top">
+    <div class="shell">
+      <nav class="main-nav" aria-label="التنقل الرئيسي">
+        <a class="brand" href="#top" aria-label="منصة توثيق — الرئيسية">
+          <span class="brand-mark"><img src="{% static 'img/brand-mark.svg' %}" alt="" width="44" height="44"></span>
+          <span class="brand-text"><strong>توثيق</strong><small>للعمل المدرسي</small></span>
         </a>
 
-        <div class="nav-links">
-          <a href="#results">النتائج</a>
-          <a href="#why">لماذا توثيق</a>
-          <a href="#showcase">الواجهات</a>
-          <a href="#portfolio-share">الإنجاز والمشاركة</a>
+        <div class="nav-links" id="navLinks">
+          <a href="#value">لماذا توثيق؟</a>
+          <a href="#features">الحلول</a>
+          <a href="#product">شاهد المنصة</a>
           <a href="#pricing">الباقات</a>
           <a href="#faq">الأسئلة</a>
         </div>
 
         <div class="nav-actions">
-          <a class="btn btn-outline" href="{% url 'reports:login' %}">دخول المستخدمين</a>
-          <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
-          <a class="mobile-login-btn" href="{% url 'reports:login' %}" aria-label="تسجيل الدخول">
-            <i class="fa-solid fa-right-to-bracket"></i>
-            <span>دخول</span>
+          <a class="text-link desktop-login" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+          <a class="button button-primary nav-cta" href="{% url 'reports:register_school' %}">
+            ابدأ مجانًا
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
           </a>
-          <button class="menu-btn" id="menuBtn" aria-label="فتح القائمة" type="button">
-            <i class="fa-solid fa-bars-staggered"></i>
+          <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="فتح القائمة">
+            <i class="fa-solid fa-bars-staggered" aria-hidden="true"></i>
           </button>
         </div>
       </nav>
     </div>
-  </div>
 
-  <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
-    <div class="drawer-panel">
-      <div class="drawer-head">
-        <div class="brand">
-          <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق">
-          <span class="brand-copy">
-            <strong>منصة توثيق</strong>
-            <span>منصة تشغيل مدرسي أدق وأهدأ</span>
-          </span>
+    <div class="mobile-menu" id="mobileMenu" hidden>
+      <div class="mobile-menu-panel">
+        <div class="mobile-menu-head">
+          <span>استكشف توثيق</span>
+          <button id="menuClose" type="button" aria-label="إغلاق القائمة"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <button class="menu-btn" id="closeDrawer" type="button" aria-label="إغلاق القائمة" style="display:inline-flex;">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="drawer-links">
-        <a href="#results">النتائج</a>
-        <a href="#why">لماذا توثيق</a>
-        <a href="#showcase">الواجهات</a>
-        <a href="#portfolio-share">الإنجاز والمشاركة</a>
+        <a href="#value">لماذا توثيق؟</a>
+        <a href="#features">حلول المنصة</a>
+        <a href="#product">شاهد المنصة</a>
         <a href="#pricing">الباقات</a>
         <a href="#faq">الأسئلة الشائعة</a>
+        <div class="mobile-menu-actions">
+          <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
+          <a class="button button-quiet" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+        </div>
       </div>
-
-      <a class="btn btn-primary" href="{% url 'reports:login' %}">دخول المستخدمين</a>
-      <a class="btn btn-outline" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
-      <a class="btn btn-soft" href="{% url 'reports:user_guide' %}">دليل المستخدم</a>
     </div>
-  </div>
+  </header>
 
-  <main id="top">
+  <main id="mainContent">
     <section class="hero">
-      <div class="container hero-grid">
+      <div class="hero-orb hero-orb-one" aria-hidden="true"></div>
+      <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
+      <div class="shell hero-grid">
         <div class="hero-copy reveal">
-          <span class="eyebrow"><i class="fa-solid fa-crown"></i> منصة تشغيل مدرسي جاهزة للإطلاق بثقة</span>
+          <div class="overline"><span></span> منصة تشغيل وتوثيق للمدرسة</div>
           <h1>
-            <span class="desktop-title">
-              اجعل المدرسة تبدو
-              <span class="accent">أكثر تنظيماً واحترافاً</span>
-              من أول تقرير حتى آخر ملف إنجاز
-            </span>
-            <span class="mobile-title">
-              توثيق مدرسي احترافي
-              <span class="accent">من أول تقرير</span>
-              حتى ملف الإنجاز
-            </span>
+            إدارة المدرسة
+            <span>تبدأ من صورة واضحة.</span>
           </h1>
-          <p>
-            توثيق يحول العمل اليومي داخل المدرسة إلى مسار واضح: تقارير مصورة، طلبات، تعاميم، ملفات إنجاز، ومخرجات PDF جاهزة للعرض.
-            الصفحة التي يراها المدير ليست وعداً تسويقياً فقط، بل منتج فعلي يختصر المتابعة ويرفع جودة الصورة الرسمية للمدرسة.
+          <p class="hero-lead">
+            لوحة واحدة تمنح المدير حالة العمل كما هي: ما أُنجز، ما ينتظر الاعتماد، وما يحتاج متابعة. والتقارير والإنجاز والطلبات والتعاميم والأرشيف تعمل في مسار واحد منظم.
           </p>
-
           <div class="hero-actions">
-            <a class="btn btn-primary" href="{% url 'reports:register_school' %}">
-              ابدأ تجربة مجانية 14 يوم
-              <i class="fa-solid fa-arrow-left"></i>
+            <a class="button button-primary button-large" href="{% url 'reports:register_school' %}">
+              ابدأ تجربة مجانية {{ trial_days|default:14 }} يوم
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
-            <a class="btn btn-outline" href="#showcase">
-              شاهد الواجهات الحقيقية
-              <i class="fa-solid fa-desktop"></i>
+            <a class="button button-quiet button-large" href="#product">
+              <i class="fa-regular fa-circle-play" aria-hidden="true"></i>
+              شاهد المنصة
             </a>
           </div>
-
-          <div class="cta-assurance reveal stagger-1" aria-label="ضمانات البدء">
-            <span><i class="fa-solid fa-circle-check"></i> بدون بطاقة ائتمان</span>
-            <span><i class="fa-solid fa-circle-check"></i> تفعيل فوري للمدرسة</span>
-            <span><i class="fa-solid fa-circle-check"></i> إلغاء في أي وقت</span>
+          <div class="assurance" aria-label="مزايا البدء">
+            <span><i class="fa-solid fa-check"></i> دون بطاقة ائتمانية</span>
+            <span><i class="fa-solid fa-check"></i> حساب المدرسة جاهز خلال دقائق</span>
+            <span><i class="fa-solid fa-check"></i> تجربة عربية كاملة على الجوال</span>
           </div>
-
-          <div class="hero-product-proof reveal stagger-1">
+          <div class="hero-quote">
+            <div class="quote-icon"><i class="fa-solid fa-quote-right"></i></div>
             <div>
-              <strong>لقطات حية من بيئة تجريبية آمنة</strong>
-              <span>الصور المستخدمة في الصفحة مأخوذة من صفحات المنصة نفسها بعد تنظيف بيانات العرض، حتى يرى الزائر منتجاً حقيقياً لا رسماً تسويقياً.</span>
+              <strong>ليست مستودع ملفات آخر</strong>
+              <p>كل إجراء له مسؤول وحالة وتاريخ ومخرج يمكن الرجوع إليه.</p>
             </div>
-            <div class="proof-badges" aria-label="إثباتات المنتج">
-              <b><i class="fa-solid fa-gauge-high"></i> لوحة مدير</b>
-              <b><i class="fa-solid fa-list-check"></i> طلبات</b>
-              <b><i class="fa-solid fa-file-pdf"></i> تقرير رسمي</b>
-            </div>
-          </div>
-
-          <div class="hero-ribbon reveal stagger-1">
-            <article class="ribbon-card">
-              <strong><i class="fa-solid fa-sparkles"></i> صورة مؤسسية أرقى</strong>
-              <p>واجهة تعرض المدرسة كجهة منظمة وواثقة في مخرجاتها اليومية.</p>
-            </article>
-            <article class="ribbon-card">
-              <strong><i class="fa-solid fa-layer-group"></i> تجربة عمل متماسكة</strong>
-              <p>التقارير والطلبات والإنجاز داخل نظام واحد بدل التشتت بين أدوات متعددة.</p>
-            </article>
-            <article class="ribbon-card">
-              <strong><i class="fa-solid fa-medal"></i> مخرجات تليق بالعرض</strong>
-              <p>ملفات وتقارير تظهر بمستوى أكثر أناقة أمام الإدارة والجهات الخارجية.</p>
-            </article>
-          </div>
-
-
-          <div class="hero-stats reveal stagger-2">
-            <article class="impact-card">
-              <strong data-count-to="14" data-count-suffix=" يوم">0</strong>
-              <p>تجربة مجانية تساعدك على اختبار النظام قبل قرار الاشتراك.</p>
-            </article>
-            <article class="impact-card">
-              <strong data-count-to="1" data-count-suffix=" لوحة">0</strong>
-              <p>واجهة واحدة تجمع التوثيق والطلبات والتعاميم وملفات الإنجاز.</p>
-            </article>
-            <article class="impact-card">
-              <strong data-count-to="3" data-count-suffix=" مسارات">0</strong>
-              <p>إدارة اليوم التشغيلي، المخرجات الرسمية، والمشاركة الخارجية في نظام واحد.</p>
-            </article>
-            <article class="impact-card">
-              <strong data-count-to="5" data-count-suffix=" مستخدمين كبداية">0</strong>
-              <p>انطلاقة عملية للفريق خلال التجربة قبل التوسع للباقات الأعلى.</p>
-            </article>
           </div>
         </div>
 
-        <div class="hero-stage reveal-scale">
-          <div class="hero-glow" aria-hidden="true"></div>
-          <div class="pulse-chip chip-top"><i class="fa-solid fa-bolt"></i> المدير يرى ما تم وما تأخر وما ينتظر الاعتماد في شاشة واحدة</div>
-
-          <div class="hero-window">
-            <div class="window-head">
-              <div class="window-title">
-                <strong>لوحة تشغيل يومية</strong>
-                <span>تقارير، تعاميم، طلبات، وملفات إنجاز في تدفق واحد واضح</span>
-              </div>
-              <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="hero-product reveal">
+          <div class="product-halo" aria-hidden="true"></div>
+          <div class="browser-frame">
+            <div class="browser-top">
+              <span class="browser-label"><i class="fa-solid fa-lock"></i> app.tawtheeq-ksa.com</span>
+              <span class="browser-dots"><i></i><i></i><i></i></span>
             </div>
-
-            <div class="dashboard-preview">
-              <img src="{% static 'img/landing/dashboard-live.webp' %}" alt="لقطة حية من لوحة مدير المدرسة في منصة توثيق" loading="eager" width="1200" height="675">
-              <div class="overlay-stat top">
-                <strong>لوحة حقيقية من النظام</strong>
-                <span>بيانات تجريبية آمنة تعرض شكل تجربة المدير الفعلية</span>
-              </div>
-              <div class="overlay-stat bottom">
-                <strong>مخرجات رسمية جاهزة</strong>
-                <span>تقارير PDF وروابط مشاركة منضبطة للعرض والمراجعة</span>
-              </div>
+            <div class="hero-shot">
+              <img src="{% static 'img/landing/dashboard-system.png' %}" alt="لقطة حقيقية من لوحة مدير المدرسة في منصة توثيق" width="1920" height="799" fetchpriority="high" decoding="async">
             </div>
-
-            <div class="window-body">
-              <div class="ops-stream">
-                <div class="ops-item">
-                  <i class="fa-solid fa-camera"></i>
-                  <div>
-                    <strong>التقرير المصور وصل وتمت مراجعته</strong>
-                    <span>رفع من الجوال مع وصف وتصنيف وأرشفة داخل المدرسة</span>
-                  </div>
-                  <span class="ops-state">جاهز</span>
-                </div>
-                <div class="ops-item">
-                  <i class="fa-solid fa-ticket"></i>
-                  <div>
-                    <strong>تذكرة صيانة تتحرك ضمن مسار واضح</strong>
-                    <span>إسناد، حالة، ملاحظات، وسجل كامل للعودة عند الحاجة</span>
-                  </div>
-                  <span class="ops-state">متابعة</span>
-                </div>
-                <div class="ops-item">
-                  <i class="fa-solid fa-folder-open"></i>
-                  <div>
-                    <strong>ملف الإنجاز جاهز للطباعة أو المشاركة</strong>
-                    <span>محاور، شواهد، اعتماد، ورابط مؤقت مضبوط الصلاحية</span>
-                  </div>
-                  <span class="ops-state">مؤرشف</span>
-                </div>
-              </div>
-
-              <div class="command-note">
-                <strong>ما الذي يكسبه المدير فعلياً؟</strong>
-                <p>المنصة لا تضيف شاشة جديدة فقط، بل تقلل ضوضاء المتابعة اليومية وتمنح الإدارة مخرجات تبدو أكثر مهنية في كل مراجعة أو زيارة أو طلب اعتماد.</p>
-                <ul>
-                  <li><i class="fa-solid fa-check"></i> وضوح في المسؤولية والحالة الحالية لكل طلب أو تقرير</li>
-                  <li><i class="fa-solid fa-check"></i> جاهزية أسرع للطباعة والمراجعة وإبراز الإنجاز</li>
-                  <li><i class="fa-solid fa-check"></i> مشاركة خارجية أكثر هيبة وأماناً من إرسال ملفات عشوائية</li>
-                </ul>
-              </div>
-            </div>
+            <span class="system-shot-label"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> لقطة حقيقية من النظام · بيانات تجريبية</span>
           </div>
+          <div class="float-card float-card-top">
+            <span class="float-icon"><i class="fa-solid fa-chart-pie"></i></span>
+            <div><strong>اليوم أمامك بوضوح</strong><small>أولوية، حالة، وإجراء تالٍ</small></div>
+          </div>
+          <div class="float-card float-card-bottom">
+            <span class="float-icon gold"><i class="fa-solid fa-file-pdf"></i></span>
+            <div><strong>مخرجات تحمل هوية المدرسة</strong><small>PDF منظم للطباعة والمشاركة</small></div>
+          </div>
+        </div>
+      </div>
 
-          <div class="pulse-chip chip-bottom"><i class="fa-solid fa-mobile-screen-button"></i> تصميم مهيأ للميدان على الجوال بقدر ما هو مهيأ للمكتب</div>
+      <div class="shell">
+        <div class="trust-bar reveal">
+          <div><strong>{{ trial_days|default:14 }}</strong><span>يومًا للتجربة</span></div>
+          <div><i class="fa-solid fa-layer-group"></i><span>ستة مسارات تشغيل في مكان واحد</span></div>
+          <div><i class="fa-solid fa-mobile-screen-button"></i><span>للمدير على المكتب وللمعلم على الجوال</span></div>
+          <div><i class="fa-solid fa-shield-halved"></i><span>صلاحيات واضحة وبيانات معزولة</span></div>
         </div>
       </div>
     </section>
 
-    <section class="section compact" id="results">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-chart-line"></i> نتائج يشعر بها القرار الإداري سريعاً</span>
-          <h2>ما الذي يتغير داخل المدرسة من أول أسبوع استخدام؟</h2>
-          <p>بدلاً من إدارة متعبة تعتمد على الرسائل والتذكير اليدوي، تصبح المتابعة أوضح والمخرجات أكثر جاهزية والخصوصية أكثر انضباطاً.</p>
-        </div>
+    <section class="section problem-section" id="value">
+      <div class="shell">
+        <header class="section-heading reveal">
+          <span class="section-kicker">ما الذي يتغير داخل المدرسة؟</span>
+          <h2>من متابعة مشتتة إلى تشغيل يمكن قياسه والرجوع إليه</h2>
+          <p>توثيق ترتّب العمل القائم ولا تضيف دورة إدارية جديدة؛ النتيجة رؤية أدق للمدير وخطوات أقصر للفريق.</p>
+        </header>
 
-        <div class="results-grid">
-          <article class="result-card featured reveal stagger-1">
-            <i class="fa-solid fa-gauge-high fa-2xl"></i>
-            <h3>صورة يومية واحدة بدلاً من مطاردة التفاصيل بين ملفات وقنوات متعددة</h3>
-            <p>يرى المدير ما تم، وما تأخر، وما يحتاج تدخلاً فورياً، دون أن يطلب تحديثات متناثرة من أكثر من جهة داخل المدرسة.</p>
-            <ul class="result-list">
-              <li><i class="fa-solid fa-check"></i> تقليل وقت المتابعة اليومية وتحويله إلى قرارات أسرع</li>
-              <li><i class="fa-solid fa-check"></i> وضوح المسار الحالي لكل طلب أو تقرير أو ملف إنجاز</li>
-              <li><i class="fa-solid fa-check"></i> سجل قابل للرجوع عند أي مراجعة أو استفسار</li>
-            </ul>
-            <span class="results-note"><i class="fa-solid fa-star"></i> هذه هي الرسالة التي يلتقطها مدير المدرسة فوراً</span>
-          </article>
-
-          <article class="result-card reveal stagger-2">
-            <i class="fa-solid fa-file-circle-check fa-2xl"></i>
-            <h3>مخرجات تبدو بمستوى مهني أعلى</h3>
-            <p>التقرير أو ملف الإنجاز أو التعميم لا يحتاج تجميعاً يدوياً في آخر لحظة، بل يكون محفوظاً وقابلاً للطباعة والإظهار بثقة.</p>
-          </article>
-
-          <article class="result-card reveal stagger-3">
-            <i class="fa-solid fa-link fa-2xl"></i>
-            <h3>مشاركة خارجية منضبطة لا تترك الملفات مبعثرة</h3>
-            <p>بدلاً من إرسال نسخ ثابتة بلا تحكم، تنشئ المدرسة روابط مشاركة مؤقتة تحفظ الخصوصية وتبدو أكثر احترافية أمام الجهات الخارجية.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="why">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-scale-balanced"></i> الفرق بين إدارة مرهقة وإدارة مرتبة</span>
-          <h2>القيمة هنا ليست إضافة تقارير فقط، بل تحويل العمل المدرسي إلى مسار يمكن رؤيته والثقة به</h2>
-          <p>حين تكون المدرسة قادرة على التوثيق والمتابعة والطباعة والمشاركة من منصة واحدة، يصبح القرار الإداري أكثر هدوءاً وثباتاً.</p>
-        </div>
-
-        <div class="decision-grid">
-          <article class="comparison-card bad reveal stagger-1">
-            <small>قبل المنصة</small>
-            <h3>معلومة موزعة، طلبات تتأخر، ومخرجات تحتاج إعادة تجميع كل مرة</h3>
-            <ul class="comparison-list bad">
-              <li><i class="fa-solid fa-xmark"></i> التوثيق موزع بين واتساب وصور ومجلدات منفصلة</li>
-              <li><i class="fa-solid fa-xmark"></i> مسؤولية الطلب أو التقرير تضيع بين المتابعة الشفوية والانتظار</li>
-              <li><i class="fa-solid fa-xmark"></i> ملف الإنجاز أو التقرير الرسمي يحتاج جهد تجميع متكرر</li>
+        <div class="value-grid">
+          <article class="value-card reveal">
+            <span class="card-number">01</span>
+            <div class="value-icon"><i class="fa-solid fa-eye"></i></div>
+            <h3>ابدأ من الأولوية</h3>
+            <p>لوحة المدير تعرض ما يحتاج قرارًا أو اعتمادًا قبل التفاصيل التي يمكن أن تنتظر.</p>
+            <ul>
+              <li>حالة العمل في فترة تختارها</li>
+              <li>إجراءات مباشرة من لوحة واحدة</li>
             </ul>
           </article>
-
-          <article class="comparison-card good reveal stagger-2">
-            <small>بعد توثيق</small>
-            <h3>رحلة واحدة واضحة من الإدخال حتى الاعتماد والطباعة والمشاركة</h3>
-            <ul class="comparison-list good">
-              <li><i class="fa-solid fa-check"></i> كل عنصر محفوظ ضمن سياقه ويمكن الرجوع له بسرعة</li>
-              <li><i class="fa-solid fa-check"></i> الحالة والمسؤولية والصلاحية ظاهرة بوضوح حسب الدور</li>
-              <li><i class="fa-solid fa-check"></i> المخرجات أكثر أناقة وجاهزية عند العرض أو الأرشفة</li>
+          <article class="value-card featured reveal">
+            <span class="card-number">02</span>
+            <div class="value-icon"><i class="fa-solid fa-route"></i></div>
+            <h3>تابع دون مطاردة</h3>
+            <p>من رفع التقرير إلى اعتماد الإنجاز، ومن فتح الطلب إلى إغلاقه؛ المسؤولية والحالة والتاريخ موثقة.</p>
+            <ul>
+              <li>معرفة المسؤول والخطوة التالية</li>
+              <li>سجل زمني واضح لكل إجراء</li>
+            </ul>
+          </article>
+          <article class="value-card reveal">
+            <span class="card-number">03</span>
+            <div class="value-icon"><i class="fa-solid fa-award"></i></div>
+            <h3>قدّم شواهد جاهزة</h3>
+            <p>حوّل العمل اليومي إلى تقارير وملفات إنجاز وأرشيف منظم عند الزيارة أو المراجعة.</p>
+            <ul>
+              <li>PDF موحد بهوية المدرسة</li>
+              <li>مشاركة مؤقتة ومضبوطة</li>
             </ul>
           </article>
         </div>
+      </div>
+    </section>
 
-        <div class="pillars-grid">
-          <article class="trust-card reveal stagger-1">
-            <i class="fa-solid fa-building-shield fa-xl"></i>
-            <h3>عزل واضح لكل مدرسة</h3>
-            <p>البيانات والمستخدمون والمخرجات تعمل ضمن نطاق المدرسة النشطة دون تشويش أو خلط بين الجهات.</p>
+    <section class="section features-section" id="features">
+      <div class="shell">
+        <header class="section-heading section-heading-light reveal">
+          <span class="section-kicker">نظام واحد، لا أدوات متفرقة</span>
+          <h2>كل مسار في مكانه، وكلها تصب في لوحة المدير</h2>
+          <p>واجهات مخصصة لكل دور، مع انتقال واضح من الإدخال إلى المراجعة ثم الحفظ أو المشاركة.</p>
+        </header>
+
+        <div class="feature-grid">
+          <article class="feature-card feature-card-wide reveal">
+            <div class="feature-icon"><i class="fa-solid fa-gauge-high"></i></div>
+            <div>
+              <span class="feature-label">للمدير</span>
+              <h3>لوحة قيادة لا لوحة أرقام</h3>
+              <p>إجراءات سريعة، مؤشرات مفهومة، ومتابعة مباشرة للتقارير والمعلمين والطلبات دون الغرق في التفاصيل.</p>
+            </div>
+            <span class="feature-arrow"><i class="fa-solid fa-arrow-left"></i></span>
           </article>
-          <article class="trust-card reveal stagger-2">
-            <i class="fa-solid fa-users-gear fa-xl"></i>
-            <h3>صلاحيات عملية وليست شكلية</h3>
-            <p>المعلم، المدير، المشرف، والمسؤول يرون فقط ما يلزمهم ليؤدوا دورهم داخل مسار واضح.</p>
+          <article class="feature-card reveal">
+            <div class="feature-icon"><i class="fa-solid fa-camera-retro"></i></div>
+            <span class="feature-label">التقارير</span>
+            <h3>توثيق مصور سريع</h3>
+            <p>يرفع المعلم التقرير من الجوال، ويخرج للمدرسة بصيغة PDF رسمية قابلة للطباعة.</p>
           </article>
-          <article class="trust-card reveal stagger-3">
-            <i class="fa-solid fa-file-pdf fa-xl"></i>
-            <h3>جاهزية فورية للمخرجات</h3>
-            <p>التقارير وملفات الإنجاز لا تُصنع عند الحاجة، بل تبقى جاهزة للطباعة والرجوع طوال العام الدراسي.</p>
+          <article class="feature-card reveal">
+            <div class="feature-icon"><i class="fa-solid fa-folder-open"></i></div>
+            <span class="feature-label">ملف الإنجاز</span>
+            <h3>شواهد منظمة ومعتمدة</h3>
+            <p>محاور وشواهد ومراجعة واعتماد، مع ملف نهائي يختصر وقت الجمع والترتيب.</p>
           </article>
-          <article class="trust-card reveal stagger-4">
-            <i class="fa-solid fa-lock fa-xl"></i>
-            <h3>مشاركة خارجية أكثر أماناً</h3>
-            <p>روابط مؤقتة بمدة صلاحية محددة بدلاً من ملفات مفتوحة لا يمكن التحكم بها بعد إرسالها.</p>
+          <article class="feature-card reveal">
+            <div class="feature-icon"><i class="fa-solid fa-ticket"></i></div>
+            <span class="feature-label">الطلبات</span>
+            <h3>متابعة حتى الإغلاق</h3>
+            <p>إسناد الطلب للقسم والمسؤول، إضافة الملاحظات والمرفقات، ومراقبة الحالة كاملة.</p>
+          </article>
+          <article class="feature-card reveal">
+            <div class="feature-icon"><i class="fa-solid fa-signature"></i></div>
+            <span class="feature-label">التعاميم</span>
+            <h3>وصول وتوقيع موثّق</h3>
+            <p>اعرف من قرأ ومن وقّع، واحتفظ بسجل واضح بدل المتابعة اليدوية المتكررة.</p>
+          </article>
+          <article class="feature-card feature-card-wide reveal">
+            <div class="feature-icon"><i class="fa-solid fa-box-archive"></i></div>
+            <div>
+              <span class="feature-label">الأرشيف</span>
+              <h3>ذاكرة المدرسة محفوظة</h3>
+              <p>نسخ ثابتة للسنوات تضم التقارير والإنجاز والتذاكر والتعاميم، مع بصمة تحقق ومساحة تخزين واضحة.</p>
+            </div>
+            <span class="feature-arrow"><i class="fa-solid fa-arrow-left"></i></span>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="showcase" style="padding-top:88px;">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-desktop"></i> لقطات حقيقية من النظام</span>
-          <h2>اعرض المنتج كما سيستخدمه العميل: لوحة متابعة، طلبات، ومخرج رسمي جاهز للطباعة</h2>
-          <p>الصور التالية مأخوذة من بيئة تجريبية داخل المنصة، لذلك تمنح صفحة الهبوط دليلاً بصرياً مباشراً على أن توثيق منتج جاهز وليس فكرة على الورق.</p>
-        </div>
+    <section class="section product-section" id="product">
+      <div class="shell">
+        <header class="section-heading reveal">
+          <span class="section-kicker">منتج حقيقي، لا رسومات تخيلية</span>
+          <h2>شاهد ما سيستخدمه فريق المدرسة فعليًا</h2>
+        </header>
 
-        <div class="live-proof-strip reveal stagger-1">
-          <article class="live-proof-card">
-            <i class="fa-solid fa-shield-halved"></i>
-            <div>
-              <strong>بيانات عرض آمنة</strong>
-              <span>أسماء وأرقام تجريبية تصلح للنشر دون كشف بيانات مدارس حقيقية.</span>
-            </div>
-          </article>
-          <article class="live-proof-card">
-            <i class="fa-solid fa-window-maximize"></i>
-            <div>
-              <strong>صور من صفحات فعلية</strong>
-              <span>تم التقاطها من لوحة المدير والطلبات ومعاينة التقرير داخل المشروع.</span>
-            </div>
-          </article>
-          <article class="live-proof-card">
-            <i class="fa-solid fa-cloud"></i>
-            <div>
-              <strong>جاهزة للعرض السريع</strong>
-              <span>صور WebP خفيفة ومثبتة الأبعاد حتى تبقى الصفحة سريعة وواضحة.</span>
-            </div>
-          </article>
-        </div>
 
-        <div class="show-grid">
-          <article class="show-card featured-shot reveal stagger-1">
-            <div class="show-frame">
-              <div class="frame-bar">
-                <span class="frame-pill"><i class="fa-solid fa-chart-line"></i> لوحة المدير</span>
-                <span class="frame-pill">نظرة تشغيلية فورية</span>
-              </div>
-              <div class="show-shot">
-                <img src="{% static 'img/landing/dashboard-live.webp' %}" alt="لقطة حية من لوحة مدير المدرسة تعرض الإجراءات والمؤشرات" loading="lazy" width="1200" height="675">
-                <div class="show-shot-stack" aria-hidden="true">
-                  <div class="mini-shot">
-                    <img src="{% static 'img/landing/tickets-live.webp' %}" alt="" loading="lazy" width="1200" height="675">
-                  </div>
-                  <div class="mini-shot">
-                    <img src="{% static 'img/landing/report-live.webp' %}" alt="" loading="lazy" width="1200" height="675">
-                  </div>
-                </div>
-                <div class="shot-caption">
-                  <span>إجراءات المدرسة، التقارير، الطلبات، والإعدادات في واجهة واحدة</span>
-                  <span>Live dashboard</span>
-                </div>
-              </div>
+
+        <div class="showcase">
+          <article class="showcase-card showcase-dashboard reveal">
+            <div class="showcase-copy">
+              <span>01 · لوحة المدير</span>
+              <h3>ابدأ يومك من الأولوية، لا من البحث</h3>
+              <p>الإجراءات الأكثر استخدامًا أمامك، والفترة الزمنية قابلة للتغيير، وكل مسار على بُعد خطوة.</p>
             </div>
-            <div>
-              <h3>لوحة قيادة تمنح المدير إحساس السيطرة من أول زيارة</h3>
-              <p>القيمة التسويقية هنا واضحة: العميل يرى نظاماً قابلاً للتشغيل فوراً، لا صفحة تعريفية تخفي المنتج الحقيقي خلف كلمات عامة.</p>
-            </div>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/dashboard-system.png' %}" data-product-caption="لوحة مدير المدرسة: الأولويات، المؤشرات، والإجراءات السريعة في شاشة واحدة." aria-label="عرض لوحة مدير المدرسة بالحجم الكامل">
+              <img src="{% static 'img/landing/dashboard-system.png' %}" alt="لقطة حقيقية من لوحة مدير المدرسة" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            </button>
           </article>
 
-          <article class="show-card reveal stagger-2">
-            <div class="show-frame">
-              <div class="frame-bar">
-                <span class="frame-pill"><i class="fa-solid fa-ticket"></i> التذاكر والطلبات</span>
-                <span class="frame-pill">مسار تنفيذ</span>
-              </div>
-              <div class="show-shot">
-                <img src="{% static 'img/landing/tickets-live.webp' %}" alt="لقطة حية من صفحة طلبات المدرسة في منصة توثيق" loading="lazy" width="1200" height="675">
-                <div class="shot-caption">
-                  <span>تفاصيل الطلب وتاريخ الحالة واتخاذ الإجراء من نفس الصفحة</span>
-                  <span>Requests</span>
-                </div>
-              </div>
+          <article class="showcase-card reveal">
+            <div class="showcase-copy">
+              <span>02 · الطلبات</span>
+              <h3>كل طلب يعرف وجهته وحالته</h3>
+              <p>بحث وتصفية وإسناد ومتابعة، مع تاريخ يحفظ ما حدث دون رسائل متفرقة.</p>
             </div>
-            <div>
-              <h3>طلبات المدرسة تتحول إلى مسار مرئي لا محادثات متفرقة</h3>
-              <p>هذا الوضوح يهم صاحب القرار لأنه يقلل النسيان، ويثبت الحالة، ويجعل المتابعة اليومية قابلة للقياس والمراجعة.</p>
-            </div>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/tickets-system.png' %}" data-product-caption="قائمة الطلبات والتذاكر: بحث، تصفية، مسؤول، أولوية، وحالة متابعة واضحة." aria-label="عرض شاشة طلبات المدرسة بالحجم الكامل">
+              <img src="{% static 'img/landing/tickets-system.png' %}" alt="لقطة حقيقية من إدارة طلبات المدرسة" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            </button>
           </article>
 
-          <article class="show-card reveal stagger-3">
-            <div class="show-frame">
-              <div class="frame-bar">
-                <span class="frame-pill"><i class="fa-solid fa-file-pdf"></i> المخرج الرسمي</span>
-                <span class="frame-pill">جاهز للطباعة</span>
-              </div>
-              <div class="show-shot">
-                <img src="{% static 'img/landing/report-live.webp' %}" alt="لقطة حية من معاينة تقرير رسمي داخل منصة توثيق" loading="lazy" width="1200" height="675">
-                <div class="shot-caption">
-                  <span>تقرير رسمي قابل للطباعة والحفظ بصيغة PDF</span>
-                  <span>Official output</span>
-                </div>
-              </div>
+          <article class="showcase-card reveal">
+            <div class="showcase-copy">
+              <span>03 · المخرجات</span>
+              <h3>من إدخال بسيط إلى وثيقة رسمية</h3>
+              <p>هوية المدرسة ومعلومات التقرير والصور في PDF مرتب وجاهز للحفظ والطباعة.</p>
             </div>
-            <div>
-              <h3>المخرج النهائي يرفع هيبة التوثيق عند الطباعة أو الأرشفة</h3>
-              <p>نقطة البيع هنا قوية: المنصة لا تحفظ البيانات فقط، بل تمنح المدرسة مخرجات تبدو جاهزة للزيارة والمراجعة والعرض الرسمي.</p>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/report-system.png' %}" data-product-caption="معاينة التقرير الرسمي: هوية المدرسة وبيانات النشاط في مخرج منظم للطباعة والحفظ." aria-label="عرض التقرير المدرسي بالحجم الكامل">
+              <img src="{% static 'img/landing/report-system.png' %}" alt="لقطة حقيقية من تقرير مدرسي رسمي بصيغة PDF" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            </button>
+          </article>
+
+          <article class="showcase-card reveal">
+            <div class="showcase-copy">
+              <span>04 · الأرشيف</span>
+              <h3>المساحة والنسخ السنوية أمام المدير</h3>
+              <p>استهلاك التخزين، سنوات الأرشيف، وحالة كل نسخة ثابتة في شاشة واحدة سهلة الرجوع.</p>
             </div>
+            <button class="showcase-image" type="button" data-product-image="{% static 'img/landing/archive-system.png' %}" data-product-caption="الأرشيف المدرسي: مساحة التخزين، التصفية حسب السنة، والنسخ السنوية الثابتة." aria-label="عرض شاشة الأرشيف بالحجم الكامل">
+              <img src="{% static 'img/landing/archive-system.png' %}" alt="لقطة حقيقية من أرشيف المدرسة ومساحة التخزين" width="1920" height="799" loading="lazy" decoding="async">
+              <span class="image-zoom"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> عرض واضح</span>
+            </button>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="portfolio-share" style="padding-top:88px;">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-folder-open"></i> ملف الإنجاز والمشاركة المؤقتة</span>
-          <h2>ميزة تهم الإدارة والمعلم معاً: إنجاز منظم، مراجعة أسهل، ومشاركة خارجية تبقى تحت السيطرة</h2>
-          <p>حين تكون المدرسة مطالبة بإظهار الشواهد أو رفع الإنجاز أو مشاركة تقرير لجهة خارجية، تظهر قيمة توثيق بشكل واضح ومباشر.</p>
+    <section class="section roles-section">
+      <div class="shell roles-shell">
+        <div class="roles-copy reveal">
+          <span class="section-kicker">تجربة مبنية حسب الدور</span>
+          <h2>رؤية كاملة للمدير، وخطوات قصيرة للفريق</h2>
+          <p>لا يرى المستخدم تعقيد النظام؛ تظهر له الأدوات والمهام التي تخص عمله فقط.</p>
+          <a class="button button-primary" href="{% url 'reports:register_school' %}">جرّب رحلة مدرستك</a>
         </div>
-
-        <div class="portfolio-shell">
-          <article class="portfolio-main reveal stagger-1">
-            <span class="eyebrow" style="background:rgba(255,255,255,0.10);border-color:rgba(255,255,255,0.14);color:#fff;box-shadow:none;">
-              <i class="fa-solid fa-graduation-cap"></i> مسار إنجاز سنوي لا عبء موسمي
-            </span>
-            <h3>ملفات الإنجاز تتحول من تجميع مرهق في نهاية الفصل إلى أرشيف حي يمكن مراجعته واعتماده طوال العام</h3>
-            <p>بدلاً من فقدان الشواهد بين الجوالات والمجلدات، يصبح لكل معلم ملف منظم بمحاور وشواهد وحالة اعتماد ومخرج PDF احترافي. وعندما تحتاج الإدارة أو جهة خارجية إلى الاطلاع، يكون كل شيء جاهزاً للعرض بثقة.</p>
-
-            <div class="portfolio-points">
-              <div class="portfolio-metric">
-                <strong>محاور واضحة</strong>
-                <span>كل شاهد محفوظ داخل سياقه بدلاً من حشره في ملف عام غير منظم.</span>
-              </div>
-              <div class="portfolio-metric">
-                <strong>اعتماد يمكن تتبعه</strong>
-                <span>مسودة، إرسال، مراجعة، اعتماد ضمن دورة عمل مفهومة وقابلة للرجوع.</span>
-              </div>
-              <div class="portfolio-metric">
-                <strong>مشاركة مؤقتة</strong>
-                <span>رابط ينتهي تلقائياً بدلاً من إرسال نسخ بلا سيطرة بعد خروجها من المدرسة.</span>
-              </div>
-            </div>
+        <div class="role-list">
+          <article class="role-row reveal">
+            <span class="role-avatar"><i class="fa-solid fa-user-tie"></i></span>
+            <div><strong>مدير المدرسة</strong><p>لوحة قيادة، إدارة المعلمين، الاعتمادات، الأرشيف والاشتراك.</p></div>
+            <span class="role-result">قيادة ومتابعة</span>
           </article>
+          <article class="role-row reveal">
+            <span class="role-avatar"><i class="fa-solid fa-chalkboard-user"></i></span>
+            <div><strong>المعلم</strong><p>رفع تقرير، بناء ملف إنجاز، متابعة الطلبات والتوقيع على التعاميم.</p></div>
+            <span class="role-result">إنجاز سريع</span>
+          </article>
+          <article class="role-row reveal">
+            <span class="role-avatar"><i class="fa-solid fa-users-gear"></i></span>
+            <div><strong>الفريق الإداري</strong><p>استلام الطلبات، متابعة المهام والتعاميم والعمل ضمن صلاحيات محددة.</p></div>
+            <span class="role-result">مسؤولية واضحة</span>
+          </article>
+        </div>
+      </div>
+    </section>
 
-          <div class="portfolio-side reveal stagger-2">
-            <h3>كيف تظهر القيمة عملياً؟</h3>
-            <p>هذه ليست ميزة تقنية فقط، بل نقطة تسويقية وإدارية مهمة: ما تطلبه المدرسة عند الزيارة أو المراجعة أو العرض الخارجي يصبح جاهزاً من داخل النظام نفسه.</p>
-
-            <div class="flow-grid">
-              <article class="flow-card">
-                <div class="flow-icon"><i class="fa-solid fa-images"></i></div>
-                <div class="flow-copy">
-                  <strong>رفع الشواهد داخل الملف نفسه</strong>
-                  <small>الصور والأدلة لا تضيع بين قنوات مختلفة ولا تنتظر نهاية الفصل.</small>
-                </div>
-                <span class="flow-chip">منظم</span>
-              </article>
-              <article class="flow-card">
-                <div class="flow-icon"><i class="fa-solid fa-file-pdf"></i></div>
-                <div class="flow-copy">
-                  <strong>إخراج PDF جاهز للطباعة</strong>
-                  <small>نسخة أنيقة للعرض أو الأرشفة دون إعادة تنسيق يدوي كل مرة.</small>
-                </div>
-                <span class="flow-chip">احترافي</span>
-              </article>
-              <article class="flow-card">
-                <div class="flow-icon"><i class="fa-solid fa-link"></i></div>
-                <div class="flow-copy">
-                  <strong>رابط مشاركة بمدة صلاحية محددة</strong>
-                  <small>أداة أكثر أماناً وهيبة من إرسال ملفات مبعثرة عبر التطبيقات.</small>
-                </div>
-                <span class="flow-chip">آمن</span>
-              </article>
+    <section class="section security-section" id="security">
+      <div class="shell">
+        <div class="security-panel reveal">
+          <div class="security-intro">
+            <span class="security-shield"><i class="fa-solid fa-shield-halved"></i></span>
+            <div>
+              <span class="section-kicker">الثقة جزء من التصميم</span>
+              <h2>بيانات المدرسة تبقى في نطاقها</h2>
+              <p>بنية متعددة المدارس بصلاحيات واضحة، وروابط مشاركة مؤقتة، وأرشيف موثق يمكن التحقق من سلامته.</p>
             </div>
-
-            <div class="stack-note">
-              الرسالة التسويقية الأقوى هنا: المدرسة لا تحصل على شاشة إضافية، بل على طريقة أهدأ لإثبات الإنجاز وإبرازه عند الحاجة دون ارتباك أو تضحية بالخصوصية.
-            </div>
+          </div>
+          <div class="security-points">
+            <div><i class="fa-solid fa-school-lock"></i><span><strong>عزل المدارس</strong><small>كل مدرسة ضمن نطاق بيانات مستقل</small></span></div>
+            <div><i class="fa-solid fa-user-shield"></i><span><strong>صلاحيات حسب الدور</strong><small>المدير والمعلم يرى ما يخصه</small></span></div>
+            <div><i class="fa-solid fa-link"></i><span><strong>مشاركة منضبطة</strong><small>روابط مؤقتة وقابلة للإيقاف</small></span></div>
+            <div><i class="fa-solid fa-fingerprint"></i><span><strong>أرشيف موثّق</strong><small>نسخ ثابتة مع بصمة SHA-256</small></span></div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section compact" id="process">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-route"></i> رحلة البدء</span>
-          <h2>ثلاث خطوات قصيرة من التسجيل إلى تشغيل المدرسة فعلياً</h2>
-          <p>الصفحة الآن لا تكتفي بالشرح، بل تقرّب للمدير شكل الرحلة العملية حتى يشعر أن البدء واضح وغير مرهق.</p>
-        </div>
+    <section class="section pricing-section" id="pricing">
+      <div class="shell">
+        <header class="section-heading reveal">
+          <span class="section-kicker">تسعير واضح للمدرسة</span>
+          <h2>اختر عدد المعلمين، ثم وفّر مع الاشتراك السنوي</h2>
+          <p>جميع الباقات تشمل أدوات التشغيل والتوثيق الأساسية؛ الاختلاف في سعة المعلمين والمدة فقط.</p>
+        </header>
 
-        <div class="process-grid">
-          <article class="process-card reveal stagger-1">
-            <div class="process-index">1</div>
-            <h3>سجّل المدرسة وافتح التجربة</h3>
-            <p>ابدأ مباشرة من صفحة التسجيل. النظام يهيئ تجربة مجانية لمدة 14 يوم حتى 5 مستخدمين كبداية حقيقية وليست شكلية.</p>
-          </article>
-          <article class="process-card reveal stagger-2">
-            <div class="process-index">2</div>
-            <h3>ابدأ التوثيق والمتابعة من أول يوم</h3>
-            <p>يرفع الفريق التقارير، يفتح الطلبات، ينشر التعاميم، ويجمع ملفات الإنجاز داخل البيئة نفسها دون ازدواجية في المسار.</p>
-          </article>
-          <article class="process-card reveal stagger-3">
-            <div class="process-index">3</div>
-            <h3>فعّل الباقة المناسبة بعد رؤية القيمة</h3>
-            <p>بعد استخدام فعلي، تختار المدرسة الباقة حسب عدد المستخدمين واحتياجها التشغيلي بثقة أكبر وقرار أوضح.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="pricing" style="padding-top:88px;">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-tags"></i> الباقات</span>
-          <h2>باقات مبنية على عدد المستخدمين مع تجربة مجانية كبداية آمنة</h2>
-          <p>أبقينا التسعير واضحاً ومقروءاً: جرّب أولاً، ثم قارن بين السعات والمدة واختر ما يناسب تشغيل المدرسة فعلياً.</p>
-        </div>
-
-        <div class="pricing-shell" data-active-period="{{ pricing_initial_period|default:'6m' }}">
-          {% if pricing_cards or pricing_trial_plan %}
-            <div class="pricing-topline">
-              <span class="pricing-admin-note"><i class="fa-solid fa-sliders"></i> الباقات والأسعار والسعات تُدار من لوحة التحكم مباشرة</span>
-              <span class="pricing-admin-note alt"><i class="fa-solid fa-wand-magic-sparkles"></i> ما يظهر هنا هو نفس ما تم نشره واعتماده في الإدارة</span>
-            </div>
-
-            <div class="pricing-toolbar">
-              {% if pricing_cards %}
-                <div class="pricing-advisor">
-                  <div class="advisor-panel">
-                    <h3>اختر عدد المستخدمين لتحصل على التوصية الأقرب</h3>
-                    <p>المستشار يعتمد على السعات الفعلية المخزنة في قاعدة البيانات، بينما تبقى الباقة التجريبية منفصلة كي ترى الفرق بين التجربة والباقات المدفوعة بوضوح.</p>
-                    <div class="advisor-inputs">
-                      <div class="users-meter">
-                        <label for="usersRange">
-                          <span>عدد المستخدمين المتوقع</span>
-                          <output id="usersOutput" for="usersRange">{{ pricing_slider.initial }}</output>
-                        </label>
-                        <input id="usersRange" type="range" min="{{ pricing_slider.min }}" max="{{ pricing_slider.max }}" step="{{ pricing_slider.step }}" value="{{ pricing_slider.initial }}" aria-label="عدد المستخدمين المتوقع">
-                        <div class="meter-scale">
-                          <span>{{ pricing_slider.min }}</span>
-                          <span>{{ pricing_slider.initial }}</span>
-                          <span>{{ pricing_slider.max }}</span>
-                        </div>
-                      </div>
-                      <div class="advisor-tags" id="advisorTags">
-                        {% for mark in advisor_marks %}
-                          <button type="button" class="advisor-tag{% if mark.active %} active{% endif %}" data-users="{{ mark.value }}">{{ mark.label }}</button>
-                        {% endfor %}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="advisor-summary" id="advisorSummary">
-                    <span class="summary-badge"><i class="fa-solid fa-sparkles"></i> التوصية الحالية</span>
-                    <div class="summary-strip">
-                      <span><i class="fa-solid fa-shield"></i> مبنية على السعات المنشورة</span>
-                      <span><i class="fa-solid fa-bolt"></i> تتبدل حسب عدد المستخدمين</span>
-                    </div>
-                    <div>
-                      <h3 id="summaryPlanTitle">{% if pricing_recommended %}{{ pricing_recommended.name }}{% else %}اختر الباقة المناسبة{% endif %}</h3>
-                      <p id="summaryPlanDesc">{% if pricing_recommended %}{% if pricing_initial_period == '6m' and pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.summary }}{% elif pricing_recommended.period_1y %}{{ pricing_recommended.period_1y.summary }}{% elif pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.summary }}{% endif %}{% endif %}</p>
-                    </div>
-                    <div class="summary-price"><strong id="summaryPlanPrice">{% if pricing_recommended %}{% if pricing_initial_period == '6m' and pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.price_display }}{% elif pricing_recommended.period_1y %}{{ pricing_recommended.period_1y.price_display }}{% elif pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.price_display }}{% endif %}{% endif %}</strong><small>ريال</small></div>
-                    <div class="summary-meta">
-                      <span id="summaryPlanDuration">{% if pricing_recommended %}{% if pricing_initial_period == '6m' and pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.duration_label }}{% elif pricing_recommended.period_1y %}{{ pricing_recommended.period_1y.duration_label }}{% elif pricing_recommended.period_6m %}{{ pricing_recommended.period_6m.duration_label }}{% endif %}{% endif %}</span>
-                      <span id="summaryPlanCapacity">{% if pricing_recommended %}{{ pricing_recommended.capacity_label }}{% endif %}</span>
-                    </div>
-                    <ul class="summary-points" id="summaryPoints">
-                      {% if pricing_recommended %}
-                        {% if pricing_initial_period == '6m' and pricing_recommended.period_6m %}
-                          {% for feature in pricing_recommended.period_6m.features %}
-                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
-                          {% endfor %}
-                        {% elif pricing_recommended.period_1y %}
-                          {% for feature in pricing_recommended.period_1y.features %}
-                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
-                          {% endfor %}
-                        {% elif pricing_recommended.period_6m %}
-                          {% for feature in pricing_recommended.period_6m.features %}
-                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
-                          {% endfor %}
-                        {% endif %}
-                      {% endif %}
-                    </ul>
-                    <a class="btn btn-soft" id="summaryCta" href="{% url 'reports:register_school' %}">{% if pricing_recommended %}{{ pricing_recommended.cta_label }}{% else %}ابدأ الآن{% endif %}</a>
-                    <p class="summary-assurance">
-                      <i class="fa-solid fa-shield-halved"></i>
-                      جرّب 14 يوم مجاناً أولاً — بدون بطاقة ائتمان، والاشتراك يكون بعد قناعة فعلية.
-                    </p>
-                  </div>
-                </div>
+        {% if pricing_cards %}
+          <div class="period-switch reveal" role="group" aria-label="مدة الاشتراك">
+            {% for period in pricing_periods %}
+              {% if period.available %}
+                <button type="button" data-period="{{ period.key }}" class="{% if period.active %}active{% endif %}" aria-pressed="{% if period.active %}true{% else %}false{% endif %}">{{ period.label }}</button>
               {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
 
-              {% if pricing_cards %}
-                <div class="pricing-periods">
-                  <div>
-                    <h3>قارن بين النصف سنوي والسنوي بدون تعقيد</h3>
-                    <p>نُظهر الباقة التجريبية مستقلة دائماً، ثم نقارن بين نفس السعات بحسب المدة التي تفضلها المدرسة.</p>
-                  </div>
-                  <div class="period-toggle" role="tablist" aria-label="مدة الاشتراك">
-                    {% for period in pricing_periods %}
-                      <button type="button" class="period-btn{% if period.active %} active{% endif %}" data-period="{{ period.key }}"{% if not period.available %} disabled aria-disabled="true"{% endif %}>{{ period.label }}</button>
-                    {% endfor %}
-                  </div>
-                </div>
-              {% endif %}
+        <div class="pricing-grid">
+          <article class="price-card trial-card reveal">
+            <div class="price-badge">ابدأ من هنا</div>
+            <div class="price-head">
+              <span class="price-icon"><i class="fa-solid fa-rocket"></i></span>
+              <div><h3>التجربة المجانية</h3><p>اختبر المنصة داخل مدرستك قبل الاشتراك</p></div>
             </div>
-
-            <div class="pricing-grid">
+            <div class="price-value"><strong>0</strong><span>ريال</span></div>
+            <div class="price-duration">{{ pricing_trial_plan.duration_label|default:"لمدة 14 يوم" }}</div>
+            <ul>
               {% if pricing_trial_plan %}
-                <article class="price-card trial" data-plan-kind="trial">
-                  {% if pricing_trial_plan.badge %}
-                    <span class="price-badge">{{ pricing_trial_plan.badge }}</span>
-                  {% endif %}
-                  <div class="price-card-head">
-                    <h3>{{ pricing_trial_plan.name }}</h3>
-                    <div class="price-specs">
-                      <span class="price-spec"><i class="fa-solid fa-flask"></i> {{ pricing_trial_plan.duration_label }}</span>
-                      <span class="price-spec"><i class="fa-solid fa-users"></i> {{ pricing_trial_plan.capacity_label }}</span>
-                    </div>
-                  </div>
-                  <div class="price-value"><strong>{{ pricing_trial_plan.price_display }}</strong><small>ريال</small></div>
-                  <p class="price-meta">{{ pricing_trial_plan.duration_label }} • {{ pricing_trial_plan.capacity_label }}</p>
-                  <div class="price-fit"><i class="fa-solid fa-rocket"></i> {{ pricing_trial_plan.fit_text }}</div>
-                  <ul class="feature-list">
-                    {% for feature in pricing_trial_plan.features %}
-                      <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
-                    {% endfor %}
-                  </ul>
-                  <p class="price-note">تُعرض هذه البطاقة كما تم إعدادها ونشرها من لوحة الإدارة دون تعديل يدوي داخل القالب.</p>
-                  <div class="card-actions">
-                    <a class="btn btn-primary" href="{% url 'reports:register_school' %}">{{ pricing_trial_plan.cta_label }}</a>
-                    <a class="btn btn-outline" href="{% url 'reports:login' %}">تسجيل الدخول</a>
-                  </div>
-                </article>
+                {% for feature in pricing_trial_plan.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}
+              {% else %}
+                <li><i class="fa-solid fa-check"></i>تفعيل مباشر للمدرسة</li>
+                <li><i class="fa-solid fa-check"></i>تجربة التقارير والطلبات والإنجاز</li>
+                <li><i class="fa-solid fa-check"></i>دون بطاقة ائتمانية</li>
               {% endif %}
+            </ul>
+            <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة الآن</a>
+          </article>
 
-              {% for card in pricing_cards %}
-                <article class="price-card{% if card.is_featured %} featured{% endif %}{% if card.is_recommended %} recommended{% endif %}" data-plan-kind="paid" data-capacity="{{ card.capacity_hint }}" data-capacity-label="{{ card.capacity_label }}" data-plan-title="{{ card.name }}" data-cta-label="{{ card.cta_label }}">
-                  {% if card.badge %}
-                    <span class="price-badge">{{ card.badge }}</span>
-                  {% endif %}
-                  <span class="recommended-badge">موصى بها</span>
-                  <div class="price-card-head">
-                    <h3>{{ card.name }}</h3>
-                    <div class="price-specs">
-                      <span class="price-spec"><i class="fa-solid fa-users"></i> {{ card.capacity_label }}</span>
-                      {% if card.period_6m and card.period_1y %}
-                        <span class="price-spec"><i class="fa-solid fa-calendar-days"></i> نصف سنوي وسنوي</span>
-                      {% elif card.period_1y %}
-                        <span class="price-spec"><i class="fa-solid fa-calendar-days"></i> سنوي</span>
-                      {% elif card.period_6m %}
-                        <span class="price-spec"><i class="fa-solid fa-calendar-days"></i> نصف سنوي</span>
-                      {% endif %}
-                    </div>
-                  </div>
-                  <p class="price-meta">{{ card.capacity_label }}</p>
-                  <div class="price-period-panels">
-                    {% if card.period_6m %}
-                      <div class="period-panel {% if pricing_initial_period == '6m' or not card.period_1y %}active{% endif %}" data-period-content="6m" data-price="{{ card.period_6m.price_int }}" data-duration="{{ card.period_6m.duration_label }}" data-summary="{{ card.period_6m.summary }}">
-                        <div class="price-value"><strong>{{ card.period_6m.price_display }}</strong><small>ريال</small></div>
-                        <p class="price-meta">{{ card.period_6m.duration_label }} • {{ card.capacity_label }}</p>
-                        <div class="price-fit"><i class="fa-solid fa-users"></i> {{ card.period_6m.fit_text }}</div>
-                        <ul class="feature-list">
-                          {% for feature in card.period_6m.features %}
-                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
-                          {% endfor %}
-                        </ul>
-                      </div>
-                    {% endif %}
-                    {% if card.period_1y %}
-                      <div class="period-panel {% if pricing_initial_period == '1y' or not card.period_6m %}active{% endif %}" data-period-content="1y" data-price="{{ card.period_1y.price_int }}" data-duration="{{ card.period_1y.duration_label }}" data-summary="{{ card.period_1y.summary }}">
-                        <div class="price-value"><strong>{{ card.period_1y.price_display }}</strong><small>ريال</small></div>
-                        <p class="price-meta">{{ card.period_1y.duration_label }} • {{ card.capacity_label }}</p>
-                        <div class="price-fit"><i class="fa-solid fa-users"></i> {{ card.period_1y.fit_text }}</div>
-                        <ul class="feature-list">
-                          {% for feature in card.period_1y.features %}
-                            <li><i class="fa-solid fa-check"></i><span>{{ feature }}</span></li>
-                          {% endfor %}
-                        </ul>
-                      </div>
-                    {% endif %}
-                  </div>
-                  <p class="price-note">اسم الباقة، شارتها، السعة، الأسعار، والوصف تُسحب مباشرة من الباقة المنشورة في Django admin.</p>
-                  <div class="card-actions">
-                    <a class="btn {% if card.is_featured %}btn-soft{% else %}btn-primary{% endif %}" href="{% url 'reports:register_school' %}">{{ card.cta_label }}</a>
-                    <a class="btn btn-outline" href="{% url 'reports:user_guide' %}">دليل المستخدم</a>
-                  </div>
-                </article>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div class="price-card" style="padding:30px;">
-              <h3>لا توجد باقات فعّالة حالياً</h3>
-              <p>لم يتم تفعيل أي باقة في الإدارة بعد. بمجرد تفعيلها ستظهر هنا تلقائياً بنفس الترتيب.</p>
-              <div class="card-actions">
-                <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
-                <a class="btn btn-outline" href="{% url 'reports:user_guide' %}">دليل المستخدم</a>
+          {% for card in pricing_cards %}
+            <article class="price-card paid-card {% if card.is_featured %}recommended{% endif %} reveal" data-price-card>
+              {% if card.badge %}<div class="price-badge">{{ card.badge }}</div>{% endif %}
+              <div class="price-head">
+                <span class="price-icon"><i class="fa-solid fa-users"></i></span>
+                <div><h3>{{ card.name }}</h3><p>{{ card.fit_text }}</p></div>
               </div>
-            </div>
-          {% endif %}
+              {% if card.period_6m %}
+                <div class="period-content {% if pricing_initial_period == '6m' %}active{% endif %}" data-period-content="6m">
+                  <div class="price-value"><strong>{{ card.period_6m.price_display }}</strong><span>ريال</span></div>
+                  <div class="price-duration">{{ card.period_6m.duration_label }} · {{ card.capacity_label }}</div>
+                  <div class="price-equivalent">ما يعادل {{ card.period_6m.monthly_equivalent_display }} ريال شهريًا</div>
+                  <ul>{% for feature in card.period_6m.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}</ul>
+                </div>
+              {% endif %}
+              {% if card.period_1y %}
+                <div class="period-content {% if pricing_initial_period == '1y' or not card.period_6m %}active{% endif %}" data-period-content="1y">
+                  <div class="price-value"><strong>{{ card.period_1y.price_display }}</strong><span>ريال</span></div>
+                  <div class="price-duration">{{ card.period_1y.duration_label }} · {{ card.capacity_label }}</div>
+                  <div class="price-equivalent">ما يعادل {{ card.period_1y.monthly_equivalent_display }} ريال شهريًا</div>
+                  {% if card.period_1y.savings_display %}
+                    <div class="annual-saving"><i class="fa-solid fa-piggy-bank"></i> وفّر {{ card.period_1y.savings_display }} ريال مقارنة بتجديدين نصف سنويين</div>
+                  {% endif %}
+                  <ul>{% for feature in card.period_1y.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}</ul>
+                </div>
+              {% endif %}
+              <a class="button {% if card.is_featured %}button-primary{% else %}button-quiet{% endif %}" href="{% url 'reports:register_school' %}">ابدأ بالتجربة ثم فعّل</a>
+            </article>
+          {% empty %}
+            <article class="price-card reveal">
+              <div class="price-head"><span class="price-icon"><i class="fa-solid fa-headset"></i></span><div><h3>باقة مدرستك</h3><p>ابدأ مجانًا وسنساعدك في اختيار السعة المناسبة.</p></div></div>
+              <a class="button button-quiet" href="{% url 'reports:register_school' %}">ابدأ الآن</a>
+            </article>
+          {% endfor %}
+        </div>
+        <div class="pricing-disclosures">
+          <p class="pricing-note"><i class="fa-solid fa-circle-info"></i> الأسعار قبل ضريبة القيمة المضافة، وتُضاف عند انطباقها.</p>
+          <p class="pricing-note"><i class="fa-solid fa-box-archive"></i> إضافة الأرشيف السنوية اختيارية: 50GB بسعر 399 ريال، وكل 50GB إضافية بسعر 149 ريال.</p>
         </div>
       </div>
     </section>
 
-    <section class="section compact" id="faq">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow"><i class="fa-solid fa-circle-question"></i> أسئلة تؤثر فعلاً على قرار الاشتراك</span>
-          <h2>إجابات قصيرة وواضحة حتى يفهم مدير المدرسة ما سيكسبه قبل البدء</h2>
-          <p>حرصنا أن تكون الأسئلة هنا مرتبطة بقرار الشراء نفسه: الخصوصية، سهولة البداية، المخرجات، والمشاركة الخارجية.</p>
+    <section class="section faq-section" id="faq">
+      <div class="shell faq-layout">
+        <div class="faq-intro reveal">
+          <span class="section-kicker">أسئلة قبل البدء</span>
+          <h2>إجابات مباشرة تساعدك على القرار</h2>
+          <p>وإذا كان لديك سيناريو خاص بمدرستك، ابدأ التجربة واختبره على المنتج نفسه.</p>
+          <a class="text-link arrow-link" href="{% url 'reports:user_guide' %}">استعرض دليل المستخدم <i class="fa-solid fa-arrow-left"></i></a>
         </div>
-
-        <div class="faq-grid">
-          <article class="faq-item reveal stagger-1">
-            <h3><i class="fa-solid fa-shield"></i> هل بيانات كل مدرسة مستقلة فعلاً؟</h3>
-            <p>نعم. المنصة مبنية على عزل واضح للمدرسة النشطة وصلاحيات المستخدمين داخلها، بحيث تعمل كل مدرسة ضمن نطاقها التشغيلي دون اختلاط في البيانات أو المخرجات.</p>
-          </article>
-          <article class="faq-item reveal stagger-2">
-            <h3><i class="fa-solid fa-rocket"></i> هل أحتاج إلى تنسيق مسبق قبل التجربة؟</h3>
-            <p>لا. تستطيع تسجيل المدرسة وبدء التجربة مباشرة، ثم الدخول بحساب المدرسة ومتابعة الإعداد والاستخدام من داخل المنصة نفسها.</p>
-          </article>
-          <article class="faq-item reveal stagger-3">
-            <h3><i class="fa-solid fa-graduation-cap"></i> هل يلزم تدريب طويل حتى يبدأ الفريق؟</h3>
-            <p>الواجهة مصممة لتكون مباشرة، والمسارات الأساسية واضحة من اليوم الأول: رفع تقرير، متابعة طلب، نشر تعميم، وتجهيز ملف إنجاز.</p>
-          </article>
-          <article class="faq-item reveal stagger-4">
-            <h3><i class="fa-solid fa-file-pdf"></i> هل المخرجات مناسبة للطباعة والعرض الرسمي؟</h3>
-            <p>نعم. أحد أهم أوجه القوة في توثيق هو أن التقارير وملفات الإنجاز تبقى جاهزة للإخراج بصيغة مهنية يمكن تقديمها بثقة عند الحاجة.</p>
-          </article>
+        <div class="faq-list">
+          <details class="reveal">
+            <summary>هل يحتاج المعلم إلى تدريب طويل؟ <i class="fa-solid fa-plus"></i></summary>
+            <p>لا. صُممت رحلة المعلم لتكون قصيرة: يختار المهمة، يدخل البيانات، يرفع الصور، ثم يحفظ أو يرسل للمراجعة.</p>
+          </details>
+          <details class="reveal">
+            <summary>هل تعمل المنصة من الجوال؟ <i class="fa-solid fa-plus"></i></summary>
+            <p>نعم، الصفحات الأساسية مهيأة للجوال، خصوصًا رفع التقارير والشواهد ومتابعة الطلبات والتعاميم.</p>
+          </details>
+          <details class="reveal">
+            <summary>هل بيانات المدارس منفصلة؟ <i class="fa-solid fa-plus"></i></summary>
+            <p>نعم. المدرسة النشطة والصلاحيات تحكمان الوصول، ولا تظهر بيانات مدرسة ضمن نطاق مدرسة أخرى.</p>
+          </details>
+          <details class="reveal">
+            <summary>ماذا يحدث بعد انتهاء التجربة؟ <i class="fa-solid fa-plus"></i></summary>
+            <p>يمكن لمدير المدرسة اختيار الباقة المناسبة ورفع طلب التفعيل من حساب المدرسة وفق الأسعار المنشورة.</p>
+          </details>
+          <details class="reveal">
+            <summary>هل يمكن إخراج التقارير وملفات الإنجاز PDF؟ <i class="fa-solid fa-plus"></i></summary>
+            <p>نعم. توفر المنصة مخرجات PDF منظمة للطباعة والحفظ، مع روابط مشاركة مؤقتة عند الحاجة.</p>
+          </details>
+          <details class="reveal">
+            <summary>هل يوجد أرشيف للسنوات؟ <i class="fa-solid fa-plus"></i></summary>
+            <p>نعم، كإضافة مستقلة تحفظ نسخًا ثابتة من التقارير والإنجاز والتذاكر والتعاميم، مع مساحة واضحة وبصمة تحقق.</p>
+          </details>
         </div>
       </div>
     </section>
 
-    <section class="section" style="padding-top:0;">
-      <div class="container">
-        <div class="final-cta reveal-scale">
-          <div>
-            <span class="eyebrow" style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.18);color:#fff;box-shadow:none;">
-              <i class="fa-solid fa-star"></i> جاهز لتجربة منتج حقيقي لا مجرد صفحة تعريفية؟
-            </span>
-            <h2>ابدأ بتجربة راقية وواضحة، ثم اتخذ قرار الاشتراك على أساس قيمة تراها بنفسك</h2>
-            <p>سجّل مدرستك مجاناً، ابدأ تشغيل الفريق من اليوم الأول، واختبر التقارير وملفات الإنجاز والمخرجات الرسمية داخل بيئة عمل حقيقية. بعدها يصبح قرار الاشتراك مبنياً على أثر واضح لا على وعود عامة.</p>
-            <div class="cta-points">
-              <span><i class="fa-solid fa-check-circle"></i> تجربة مجانية 14 يوم</span>
-              <span><i class="fa-solid fa-check-circle"></i> تسجيل مباشر للمدرسة</span>
-              <span><i class="fa-solid fa-check-circle"></i> مخرجات جاهزة للطباعة والمراجعة</span>
-            </div>
+    <section class="final-cta">
+      <div class="shell">
+        <div class="final-panel reveal">
+          <div class="final-pattern" aria-hidden="true"></div>
+          <div class="final-copy">
+            <span>اختبر المنصة على عمل مدرستك الحقيقي</span>
+            <h2>ابدأ بتقرير واحد، وشاهد كيف تصبح المتابعة أوضح.</h2>
+            <p>تجربة مجانية لمدة {{ trial_days|default:14 }} يوم، دون بطاقة ائتمانية.</p>
           </div>
-
           <div class="final-actions">
-            <a class="btn btn-soft" href="{% url 'reports:register_school' %}">سجّل مدرستك الآن</a>
-            <a class="btn btn-outline" href="{% url 'reports:login' %}">تسجيل الدخول</a>
+            <a class="button button-gold button-large" href="{% url 'reports:register_school' %}">أنشئ حساب المدرسة <i class="fa-solid fa-arrow-left"></i></a>
+            <a class="button button-dark-quiet" href="{% url 'reports:login' %}">لدي حساب بالفعل</a>
           </div>
         </div>
       </div>
     </section>
   </main>
 
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-shell">
-        <div class="footer-top">
-          <div>
-            <span class="footer-kicker"><i class="fa-solid fa-shield-heart"></i> تجربة تشغيل أكثر هدوءاً وأناقة للإدارة المدرسية</span>
-            <h2>توثيق يمنح المدرسة نظاماً يبدو مرتباً في الداخل ويظهر باحتراف في كل مخرج</h2>
-            <p>حل رقمي يجمع التوثيق والطلبات والتعاميم وملفات الإنجاز داخل تجربة واحدة متماسكة، مع مخرجات جاهزة للرجوع والطباعة وإبراز الإنجاز بصورة تليق بالمدرسة.</p>
-          </div>
-          <div class="footer-cta-stack">
-            <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
-            <a class="btn btn-outline" href="{% url 'reports:login' %}">تسجيل الدخول</a>
-          </div>
+  <footer class="site-footer">
+    <div class="shell">
+      <div class="footer-main">
+        <div class="footer-brand">
+          <a class="brand" href="#top">
+            <span class="brand-mark"><img src="{% static 'img/brand-mark.svg' %}" alt="" width="44" height="44"></span>
+            <span class="brand-text"><strong>توثيق</strong><small>للعمل المدرسي</small></span>
+          </a>
+          <p>منصة تشغيل وتوثيق تمنح المدرسة صورة واضحة عن العمل، وسجلًا مهنيًا لما أُنجز.</p>
         </div>
-
-        <div class="footer-grid">
-          <div class="footer-card footer-brand">
-            <div class="brand" style="margin-bottom:14px;">
-              <img src="{% static 'img/logo1.png' %}" alt="شعار منصة توثيق">
-              <span class="brand-copy">
-                <strong style="color:#fff;">منصة توثيق</strong>
-                <span style="color:rgba(255,255,255,0.58);">لوحة تشغيل واحدة للعمل المدرسي اليومي</span>
-              </span>
-            </div>
-            <p>مصممة للمدارس التي تريد أن يبدو عملها أكثر ترتيباً، وقراراتها أوضح، ومخرجاتها أكثر مهنية عند المراجعة أو العرض أو الأرشفة.</p>
-            <div class="footer-metrics">
-              <div class="footer-metric"><strong>14 يوم</strong><span>تجربة مجانية</span></div>
-              <div class="footer-metric"><strong>PDF</strong><span>مخرجات جاهزة</span></div>
-              <div class="footer-metric"><strong>RBAC</strong><span>صلاحيات مضبوطة</span></div>
-            </div>
-          </div>
-
-          <div class="footer-card">
-            <h3>اكتشف المنصة</h3>
-            <ul class="footer-list">
-              <li><i class="fa-solid fa-angle-left"></i><a href="#results">النتائج التشغيلية</a></li>
-              <li><i class="fa-solid fa-angle-left"></i><a href="#why">لماذا توثيق</a></li>
-              <li><i class="fa-solid fa-angle-left"></i><a href="#showcase">لقطات من النظام</a></li>
-              <li><i class="fa-solid fa-angle-left"></i><a href="#portfolio-share">الإنجاز والمشاركة</a></li>
-              <li><i class="fa-solid fa-angle-left"></i><a href="#pricing">الباقات والتوصية</a></li>
-            </ul>
-          </div>
-
-          <div class="footer-card">
-            <h3>ابدأ بسرعة</h3>
-            <ul class="footer-list">
-              <li><i class="fa-solid fa-angle-left"></i><a href="{% url 'reports:register_school' %}">تسجيل مدرسة جديدة</a></li>
-              <li><i class="fa-solid fa-angle-left"></i><a href="{% url 'reports:login' %}">دخول المستخدمين الحاليين</a></li>
-              <li><i class="fa-solid fa-angle-left"></i><a href="{% url 'reports:user_guide' %}">دليل المستخدم</a></li>
-              <li><i class="fa-solid fa-angle-left"></i><a href="#faq">الأسئلة الشائعة</a></li>
-            </ul>
-          </div>
-
-          <div class="footer-card footer-contact">
-            <h3>تواصل مباشر</h3>
-            <div class="contact-item">
-              <i class="fa-solid fa-right-to-bracket"></i>
-              <div>
-                <strong>دخول المستخدمين</strong>
-                <a href="{% url 'reports:login' %}">الانتقال إلى صفحة تسجيل الدخول</a>
-              </div>
-            </div>
-            <div class="contact-item">
-              <i class="fa-solid fa-school"></i>
-              <div>
-                <strong>رحلة البدء</strong>
-                <span>سجّل المدرسة، جرّب المنتج فعلياً، ثم فعّل الباقة الأنسب على أساس استخدام حقيقي.</span>
-              </div>
-            </div>
-            <div class="contact-item">
-              <i class="fa-solid fa-book-open"></i>
-              <div>
-                <strong>دليل المستخدم</strong>
-                <span>إذا أردت فهم المسارات الأساسية قبل البدء، ستجد الدليل داخل المنصة بشكل مباشر وواضح.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="footer-bottom">&copy; {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.</div>
+        <div class="footer-links"><strong>المنصة</strong><a href="#features">الحلول</a><a href="#product">الواجهات</a><a href="#pricing">الباقات</a></div>
+        <div class="footer-links"><strong>المساعدة</strong><a href="{% url 'reports:user_guide' %}">دليل المستخدم</a><a href="{% url 'reports:faq' %}">مركز الأسئلة</a><a href="{% url 'reports:login' %}">تسجيل الدخول</a></div>
+        <div class="footer-links"><strong>الثقة والخصوصية</strong><a href="{% url 'reports:privacy_policy' %}">سياسة الخصوصية</a><a href="#security">حماية بيانات المدرسة</a></div>
+      </div>
+      <div class="footer-bottom">
+        <span>© {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.</span>
+        <span><i class="fa-solid fa-location-dot"></i> المملكة العربية السعودية</span>
       </div>
     </div>
   </footer>
 
-  <div class="mobile-sticky-cta">
-    <a class="btn btn-primary" href="{% url 'reports:login' %}">تسجيل الدخول</a>
-    <a class="btn btn-outline" href="#pricing">عرض الباقات</a>
-  </div>
-
-  <script nonce="{{ CSP_NONCE }}">
-    (function () {
-      const body = document.body;
-      const menuBtn = document.getElementById('menuBtn');
-      const closeDrawer = document.getElementById('closeDrawer');
-      const mobileDrawer = document.getElementById('mobileDrawer');
-      const drawerLinks = mobileDrawer ? mobileDrawer.querySelectorAll('a[href^="#"]') : [];
-      const pricingShell = document.querySelector('.pricing-shell[data-active-period]');
-      const allPriceCards = Array.from(document.querySelectorAll('.price-card[data-plan-kind="paid"][data-capacity]'));
-      const periodButtons = Array.from(document.querySelectorAll('.period-btn[data-period]'));
-      const usersRange = document.getElementById('usersRange');
-      const usersOutput = document.getElementById('usersOutput');
-      const advisorTags = document.querySelectorAll('.advisor-tag');
-      const summaryPlanTitle = document.getElementById('summaryPlanTitle');
-      const summaryPlanDesc = document.getElementById('summaryPlanDesc');
-      const summaryPlanPrice = document.getElementById('summaryPlanPrice');
-      const summaryPlanDuration = document.getElementById('summaryPlanDuration');
-      const summaryPlanCapacity = document.getElementById('summaryPlanCapacity');
-      const summaryPoints = document.getElementById('summaryPoints');
-      const summaryCta = document.getElementById('summaryCta');
-      let activePeriod = pricingShell ? (pricingShell.getAttribute('data-active-period') || '6m') : '6m';
-
-      function openDrawer() {
-        if (!mobileDrawer) return;
-        mobileDrawer.classList.add('open');
-        mobileDrawer.setAttribute('aria-hidden', 'false');
-        body.classList.add('drawer-open');
-      }
-
-      function closeDrawerFn() {
-        if (!mobileDrawer) return;
-        mobileDrawer.classList.remove('open');
-        mobileDrawer.setAttribute('aria-hidden', 'true');
-        body.classList.remove('drawer-open');
-      }
-
-      if (menuBtn) menuBtn.addEventListener('click', openDrawer);
-      if (closeDrawer) closeDrawer.addEventListener('click', closeDrawerFn);
-
-      if (mobileDrawer) {
-        mobileDrawer.addEventListener('click', function (event) {
-          if (event.target === mobileDrawer) closeDrawerFn();
-        });
-      }
-
-      drawerLinks.forEach(function (link) {
-        link.addEventListener('click', closeDrawerFn);
-      });
-
-      document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') closeDrawerFn();
-      });
-
-      function formatSAR(value) {
-        try {
-          return new Intl.NumberFormat('ar-SA').format(value);
-        } catch (error) {
-          return String(value);
-        }
-      }
-
-      function getPeriodSection(card, period) {
-        if (!card) return null;
-        return card.querySelector('[data-period-content="' + period + '"]') || card.querySelector('[data-period-content]');
-      }
-
-      function syncPeriodCards(period) {
-        allPriceCards.forEach(function (card) {
-          const activeSection = getPeriodSection(card, period);
-          const sections = card.querySelectorAll('[data-period-content]');
-          sections.forEach(function (section) {
-            section.classList.toggle('active', section === activeSection);
-          });
-          card.hidden = !activeSection;
-        });
-      }
-
-      function getRecommendedCard(users, period) {
-        if (!allPriceCards.length) return null;
-        let selected = null;
-        allPriceCards.forEach(function (card) {
-          if (card.hidden) return;
-          const capacity = parseInt(card.getAttribute('data-capacity') || '0', 10);
-          if (!capacity) return;
-          if (capacity >= users && !selected) selected = card;
-        });
-        if (selected) return selected;
-        const visibleCards = allPriceCards.filter(function (card) {
-          return !card.hidden && !!getPeriodSection(card, period);
-        });
-        return visibleCards[visibleCards.length - 1] || null;
-      }
-
-      function activateClosestTag(users) {
-        if (!advisorTags.length) return;
-        let closest = null;
-        let diff = Number.POSITIVE_INFINITY;
-        advisorTags.forEach(function (tag) {
-          const value = parseInt(tag.getAttribute('data-users') || '0', 10);
-          const currentDiff = Math.abs(value - users);
-          if (currentDiff < diff) {
-            diff = currentDiff;
-            closest = value;
-          }
-        });
-        advisorTags.forEach(function (tag) {
-          const value = parseInt(tag.getAttribute('data-users') || '0', 10);
-          tag.classList.toggle('active', value === closest);
-        });
-      }
-
-      function renderSummary(card, users, period) {
-        if (!card) return;
-        const activeSection = getPeriodSection(card, period);
-        if (!activeSection) return;
-        const planName = card.getAttribute('data-plan-title') || 'الباقة';
-        const planDesc = activeSection.getAttribute('data-summary') || '';
-        const ctaLabel = card.getAttribute('data-cta-label') || 'ابدأ الآن';
-        const price = activeSection.getAttribute('data-price') || '0';
-        const duration = activeSection.getAttribute('data-duration') || '';
-        const capacityLabel = card.getAttribute('data-capacity-label') || '';
-        let features = Array.from(activeSection.querySelectorAll('.feature-list span')).map(function (item) {
-          return (item.textContent || '').trim();
-        }).filter(Boolean);
-        if (!features.length) {
-          features = Array.from(activeSection.querySelectorAll('.feature-list li')).map(function (item) {
-            return (item.textContent || '').trim();
-          }).filter(Boolean);
-        }
-
-        allPriceCards.forEach(function (item) {
-          item.classList.toggle('recommended', item === card);
-        });
-
-        if (summaryPlanTitle) summaryPlanTitle.textContent = planName;
-        if (summaryPlanDesc) summaryPlanDesc.textContent = planDesc;
-        if (summaryPlanPrice) summaryPlanPrice.textContent = formatSAR(price);
-        if (summaryPlanDuration) summaryPlanDuration.textContent = duration;
-        if (summaryPlanCapacity) summaryPlanCapacity.textContent = capacityLabel;
-        if (summaryCta) summaryCta.textContent = ctaLabel;
-
-        if (summaryPoints) {
-          summaryPoints.innerHTML = features.map(function (feature) {
-            return '<li><i class="fa-solid fa-check"></i><span>' + feature + '</span></li>';
-          }).join('');
-        }
-      }
-
-      function updateAdvisor(users) {
-        if (usersOutput) usersOutput.textContent = String(users);
-        const card = getRecommendedCard(users, activePeriod);
-        renderSummary(card, users, activePeriod);
-        activateClosestTag(users);
-      }
-
-      periodButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
-          if (button.disabled) return;
-          activePeriod = button.getAttribute('data-period') || '6m';
-          if (pricingShell) pricingShell.setAttribute('data-active-period', activePeriod);
-          periodButtons.forEach(function (item) {
-            item.classList.toggle('active', item === button);
-          });
-          syncPeriodCards(activePeriod);
-          const currentUsers = usersRange
-            ? parseInt(usersRange.value || '50', 10)
-            : parseInt((allPriceCards[0] && allPriceCards[0].getAttribute('data-capacity')) || '50', 10);
-          updateAdvisor(currentUsers);
-        });
-      });
-
-      if (usersRange) {
-        usersRange.addEventListener('input', function () {
-          updateAdvisor(parseInt(usersRange.value || '50', 10));
-        });
-      }
-
-      advisorTags.forEach(function (tag) {
-        tag.addEventListener('click', function () {
-          const value = parseInt(tag.getAttribute('data-users') || '50', 10);
-          if (usersRange) usersRange.value = String(value);
-          updateAdvisor(value);
-        });
-      });
-
-      if (allPriceCards.length) {
-        syncPeriodCards(activePeriod);
-        const initialUsers = usersRange
-          ? parseInt(usersRange.value || '50', 10)
-          : parseInt(allPriceCards[0].getAttribute('data-capacity') || '50', 10);
-        updateAdvisor(initialUsers);
-      }
-
-      (function initReveal() {
-        var els = document.querySelectorAll('.reveal, .reveal-scale');
-        if (!els.length) return;
-        if (!('IntersectionObserver' in window)) {
-          els.forEach(function (el) { el.classList.add('visible'); });
-          return;
-        }
-        var observer = new IntersectionObserver(function (entries) {
-          entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('visible');
-              observer.unobserve(entry.target);
-            }
-          });
-        }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
-        els.forEach(function (el) { observer.observe(el); });
-      }());
-
-      (function initCounters() {
-        var counters = document.querySelectorAll('[data-count-to]');
-        if (!counters.length) return;
-        if (!('IntersectionObserver' in window)) {
-          counters.forEach(function (el) {
-            el.textContent = el.getAttribute('data-count-to') + (el.getAttribute('data-count-suffix') || '');
-          });
-          return;
-        }
-        var cObserver = new IntersectionObserver(function (entries) {
-          entries.forEach(function (entry) {
-            if (!entry.isIntersecting) return;
-            var el = entry.target;
-            var target = parseInt(el.getAttribute('data-count-to'), 10);
-            var suffix = el.getAttribute('data-count-suffix') || '';
-            var duration = 1600;
-            var start = performance.now();
-            function tick(now) {
-              var t = Math.min((now - start) / duration, 1);
-              var eased = 1 - Math.pow(1 - t, 3);
-              el.textContent = Math.round(eased * target) + suffix;
-              if (t < 1) requestAnimationFrame(tick);
-            }
-            requestAnimationFrame(tick);
-            cObserver.unobserve(el);
-          });
-        }, { threshold: 0.45 });
-        counters.forEach(function (el) { cObserver.observe(el); });
-      }());
-
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js').catch(function () {});
-        });
-      }
-    }());
-  </script>
-
-  <!-- شريط دعوة ثابت على الجوال -->
-  <div class="sticky-cta" role="region" aria-label="ابدأ الآن">
-    <a class="btn btn-primary" href="{% url 'reports:register_school' %}">ابدأ تجربة مجانية 14 يوم</a>
-    <a class="sticky-login" href="{% url 'reports:login' %}" aria-label="تسجيل الدخول">
-      <i class="fa-solid fa-right-to-bracket"></i>
+  <div class="mobile-sticky" aria-label="ابدأ الآن">
+    <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ مجانًا</a>
+    <a class="mobile-login" href="{% url 'reports:login' %}">
+      <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+      <span>دخول</span>
     </a>
   </div>
+
+  <dialog class="product-lightbox" id="productLightbox" aria-labelledby="productLightboxCaption">
+    <div class="lightbox-head">
+      <p id="productLightboxCaption"></p>
+      <button class="lightbox-close" id="productLightboxClose" type="button" aria-label="إغلاق الصورة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <img id="productLightboxImage" src="" alt="">
+  </dialog>
+
+  <script src="{% static 'js/landing.js' %}" defer></script>
 </body>
 </html>

@@ -146,10 +146,10 @@
                   <a class="btn btn-outline" href="{% url 'reports:school_profile' s.id %}">بروفايل</a>
                   <a class="btn btn-outline" href="{% url 'reports:school_managers_manage' s.id %}">المدراء</a>
                   <a class="btn btn-outline" href="{% url 'reports:school_update' s.id %}">تعديل</a>
-                  <form method="post" action="{% url 'reports:school_delete' s.id %}" data-confirm="سيتم حذف المدرسة «{{ s.name|escapejs }}» وكل بياناتها نهائيًا، هل أنت متأكد؟">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">حذف</button>
-                  </form>
+                  <a class="btn btn-danger" href="{% url 'reports:school_delete' s.id %}">
+                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                    حذف آمن
+                  </a>
                 </div>
               </article>
             {% endwith %}

@@ -84,7 +84,13 @@ class AuthenticatorData:
     public_key_cose: bytes | None = None
 
 
-def parse_authenticator_data(authenticator_data: bytes, *, rp_id: str, require_attested_credential: bool = False) -> AuthenticatorData:
+def parse_authenticator_data(
+    authenticator_data: bytes,
+    *,
+    rp_id: str,
+    require_attested_credential: bool = False,
+    require_user_verification: bool = False,
+) -> AuthenticatorData:
     if len(authenticator_data) < 37:
         raise ValueError("authenticator_data_too_short")
 
@@ -95,6 +101,8 @@ def parse_authenticator_data(authenticator_data: bytes, *, rp_id: str, require_a
     flags = authenticator_data[32]
     if not flags & 0x01:
         raise ValueError("user_presence_required")
+    if require_user_verification and not flags & 0x04:
+        raise ValueError("user_verification_required")
 
     sign_count = int.from_bytes(authenticator_data[33:37], "big")
 

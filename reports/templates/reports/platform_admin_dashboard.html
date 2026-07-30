@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static humanize hijri_tags %}
 
-{% block title %}لوحة مدير النظام | تحديث 2026 Premium{% endblock %}
+{% block title %}مركز تشغيل المنصة | مدير النظام{% endblock %}
 
 {% block head %}
 <!-- Chart.js Library -->
@@ -62,9 +62,9 @@
         margin-bottom: 1.5rem;
     }
     
-    .quick-search {
+    body.not-home .dashboard-container #globalSearch {
         width: 100%;
-        padding: 1rem 1.5rem 1rem 3.5rem;
+        padding: 1rem 3.5rem 1rem 1.5rem;
         border: 2px solid var(--border-color);
         border-radius: var(--radius-lg);
         font-size: 1rem;
@@ -107,6 +107,10 @@
     .search-results.active {
         display: block;
         animation: slideIn 0.3s ease;
+    }
+
+    [hidden] {
+        display: none !important;
     }
     
     .search-result-item {
@@ -292,6 +296,47 @@
         font-weight: 700;
     }
 
+    .dashboard-status {
+        min-height: 1.4rem;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+    }
+
+    .dashboard-status.is-error { color: #b91c1c; }
+    .dashboard-status.is-success { color: #047857; }
+
+    .danger-zone {
+        margin-top: 1rem;
+        padding: 0;
+        overflow: hidden;
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        background: #fffafa;
+    }
+
+    .danger-zone summary {
+        padding: 0.9rem 1rem;
+        color: #991b1b;
+        cursor: pointer;
+        font-weight: 900;
+    }
+
+    .danger-zone-body {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0 1rem 1rem;
+        color: #7f1d1d;
+    }
+
+    .danger-zone-body p {
+        margin: 0;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
     .alert-strip {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -368,7 +413,7 @@
 
     .metrics-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
         gap: 1rem;
     }
 
@@ -379,6 +424,27 @@
         padding: 1.15rem;
         box-shadow: var(--shadow-sm);
         min-width: 0;
+    }
+
+    a.metric-card {
+        color: inherit;
+        text-decoration: none;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    a.metric-card:hover,
+    a.metric-card:focus-visible {
+        transform: translateY(-3px);
+        border-color: rgba(0, 108, 53, 0.38);
+        box-shadow: var(--shadow-md);
+    }
+
+    .metric-hint {
+        display: block;
+        margin-top: 0.75rem;
+        color: var(--primary-color);
+        font-size: 0.72rem;
+        font-weight: 800;
     }
 
     .metric-head {
@@ -513,6 +579,15 @@
         grid-template-columns: minmax(0, 2fr) minmax(320px, 0.9fr);
         gap: 1.25rem;
         align-items: start;
+    }
+
+    .dashboard-layout > *,
+    .main-column,
+    .sidebar-column,
+    .card-panel,
+    .card-body,
+    .table-scroll {
+        min-width: 0;
     }
 
     .stack {
@@ -797,6 +872,7 @@
 
     .table-scroll {
         overflow-x: auto;
+        max-width: 100%;
         -webkit-overflow-scrolling: touch;
     }
 
@@ -935,6 +1011,15 @@
     
     /* Mobile Responsive */
     @media (max-width: 768px) {
+        .danger-zone-body {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .danger-zone-body .btn-modern {
+            justify-content: center;
+        }
+
         .dashboard-container {
             padding: 1rem;
         }
@@ -1092,13 +1177,13 @@
             font-size: 1rem;
         }
         
-        .quick-search {
-            padding: 0.875rem 1rem 0.875rem 3rem;
+        body.not-home .dashboard-container #globalSearch {
+            padding: 0.875rem 3rem 0.875rem 1rem;
             font-size: 0.9rem;
         }
 
         .time-filters {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .welcome-header .actions {
@@ -1124,6 +1209,12 @@
         .export-btn {
             flex: 1 1 calc(50% - 0.375rem);
             justify-content: center;
+        }
+    }
+
+    @media (max-width: 340px) {
+        .time-filters {
+            grid-template-columns: 1fr;
         }
     }
     
@@ -1212,11 +1303,11 @@
                     <p>مؤشرات مختصرة، تنبيهات قابلة للتنفيذ، وإجراءات إدارية مرتبة حسب سير العمل.</p>
                 </div>
                 <div class="hero-actions">
-                    <a href="{% url 'reports:platform_schools_directory' %}" class="btn-modern outline">
-                        <i class="fas fa-search"></i> دليل المدارس
+                    <a href="{% url 'reports:schools_admin_list' %}" class="btn-modern outline">
+                        <i class="fas fa-school"></i> إدارة المدارس
                     </a>
-                    <a href="{% url 'reports:platform_admin_create' %}" class="btn-modern">
-                        <i class="fas fa-plus"></i> إضافة مشرف
+                    <a href="{% url 'reports:school_create' %}" class="btn-modern">
+                        <i class="fas fa-plus"></i> إضافة مدرسة
                     </a>
                 </div>
             </section>
@@ -1227,10 +1318,12 @@
                     <input type="text"
                            class="quick-search"
                            id="globalSearch"
-                           placeholder="بحث عن مدرسة، مستخدم، تذكرة، أو إجراء..."
+                           placeholder="ابحث عن مدرسة، مدير مدرسة، تذكرة أو إجراء..."
                            autocomplete="off"
-                           aria-label="بحث سريع في المنصة">
-                    <div class="search-results" id="searchResults"></div>
+                           aria-label="بحث سريع في المنصة"
+                           aria-controls="searchResults"
+                           aria-expanded="false">
+                    <div class="search-results" id="searchResults" aria-live="polite" aria-label="نتائج البحث"></div>
                 </div>
                 <div class="time-filters" id="timeFilters" aria-label="فترة التحليل">
                     <button class="filter-btn {% if initial_period == 'all' %}active{% endif %}" data-period="all" type="button" aria-pressed="{% if initial_period == 'all' %}true{% else %}false{% endif %}">
@@ -1259,49 +1352,52 @@
                     </a>
                 </div>
                 <div class="control-note">الفلاتر الزمنية تطبق على مؤشرات الفترة والرسوم المرتبطة بها.</div>
+                <div class="dashboard-status" id="dashboardStatus" role="status" aria-live="polite"></div>
             </aside>
         </div>
 
         <div class="alert-strip" aria-label="تنبيهات تشغيلية">
-            <a href="{% url 'reports:platform_payments_list' %}" class="alert-tile {% if pending_payments > 0 %}danger{% endif %}">
+            <a href="{% url 'reports:platform_payments_list' %}" id="pendingPaymentsAlert" class="alert-tile {% if pending_payments > 0 %}danger{% endif %}">
                 <span class="alert-icon bg-rose-light"><i class="fas fa-receipt"></i></span>
                 <span class="alert-body">
-                    <strong>{{ pending_payments }} مدفوعات معلقة</strong>
+                    <strong><span id="pendingPaymentsAlertStat">{{ pending_payments }}</span> مدفوعات معلقة</strong>
                     <span>مراجعة واعتماد طلبات الاشتراك والتجديد.</span>
                 </span>
             </a>
-            <a href="{% url 'reports:platform_tickets_list' %}" class="alert-tile {% if tickets_open > 0 %}warning{% endif %}">
+            <a href="{% url 'reports:platform_tickets_list' %}" id="openTicketsAlert" class="alert-tile {% if tickets_open > 0 %}warning{% endif %}">
                 <span class="alert-icon bg-amber-light"><i class="fas fa-headset"></i></span>
                 <span class="alert-body">
                     <strong><span id="ticketsOpenAlertStat">{{ tickets_open }}</span> تذاكر مفتوحة</strong>
                     <span>طلبات تحتاج متابعة من فريق الدعم.</span>
                 </span>
             </a>
-            <a href="{% url 'reports:platform_subscriptions_list' %}" class="alert-tile {% if subscriptions_expiring_soon > 0 %}info{% endif %}">
+            <a href="{% url 'reports:platform_subscriptions_list' %}" id="expiringSubscriptionsAlert" class="alert-tile {% if subscriptions_expiring_soon > 0 %}info{% endif %}">
                 <span class="alert-icon bg-indigo-light"><i class="fas fa-calendar-alt"></i></span>
                 <span class="alert-body">
-                    <strong>{{ subscriptions_expiring_soon }} اشتراكات قريبة الانتهاء</strong>
+                    <strong><span id="subscriptionsExpiringAlertStat">{{ subscriptions_expiring_soon }}</span> اشتراكات قريبة الانتهاء</strong>
                     <span>خلال الثلاثين يومًا القادمة.</span>
                 </span>
             </a>
         </div>
 
         <section class="metrics-grid" aria-label="مؤشرات المنصة">
-            <article class="metric-card">
+            <a class="metric-card" href="{% url 'reports:schools_admin_list' %}" aria-label="عرض وإدارة المدارس">
                 <div class="metric-head">
                     <span class="metric-icon bg-indigo-light"><i class="fas fa-school"></i></span>
                     <span class="status-badge status-active" id="schoolsActiveBadge">+{{ platform_schools_active }} نشطة</span>
                 </div>
                 <div class="metric-value stat-value" id="schoolsTotalStat">{{ platform_schools_total }}</div>
                 <div class="metric-label">إجمالي المدارس</div>
-            </article>
-            <article class="metric-card">
+                <span class="metric-hint">فتح إدارة المدارس <i class="fas fa-arrow-left"></i></span>
+            </a>
+            <a class="metric-card" href="{% url 'reports:platform_payments_list' %}" aria-label="عرض المالية والمدفوعات">
                 <div class="metric-head">
                     <span class="metric-icon bg-emerald-light"><i class="fas fa-coins"></i></span>
                 </div>
                 <div class="metric-value stat-value" id="revenueStat">{{ total_revenue|floatformat:0|intcomma|stringformat:"s"|add:" ر.س" }}</div>
-                <div class="metric-label" id="revenueStatLabel">المبيعات خلال الفترة</div>
-            </article>
+                <div class="metric-label" id="revenueStatLabel">صافي الإيراد خلال الفترة</div>
+                <span class="metric-hint">فتح العمليات المالية <i class="fas fa-arrow-left"></i></span>
+            </a>
             <article class="metric-card">
                 <div class="metric-head">
                     <span class="metric-icon bg-amber-light"><i class="fas fa-file-alt"></i></span>
@@ -1309,14 +1405,32 @@
                 <div class="metric-value stat-value" id="reportsStat">{{ reports_count }}</div>
                 <div class="metric-label" id="reportsStatLabel">التقارير خلال الفترة</div>
             </article>
-            <article class="metric-card">
+            <a class="metric-card" href="{% url 'reports:platform_tickets_list' %}" aria-label="عرض تذاكر الدعم">
                 <div class="metric-head">
                     <span class="metric-icon bg-rose-light"><i class="fas fa-headset"></i></span>
                     <span class="status-badge status-danger" id="ticketsOpenBadge">{{ tickets_open }} مفتوحة</span>
                 </div>
                 <div class="metric-value stat-value" id="ticketsTotalStat">{{ tickets_total }}</div>
                 <div class="metric-label" id="ticketsStatLabel">تذاكر الدعم خلال الفترة</div>
-            </article>
+                <span class="metric-hint">فتح مركز الدعم <i class="fas fa-arrow-left"></i></span>
+            </a>
+            <a class="metric-card" href="{% url 'reports:platform_subscriptions_list' %}" aria-label="عرض الاشتراكات">
+                <div class="metric-head">
+                    <span class="metric-icon bg-indigo-light"><i class="fas fa-file-contract"></i></span>
+                </div>
+                <div class="metric-value stat-value" id="subscriptionsActiveStat">{{ subscriptions_active }}</div>
+                <div class="metric-label">اشتراكات سارية</div>
+                <span class="metric-hint">فتح الاشتراكات <i class="fas fa-arrow-left"></i></span>
+            </a>
+            <a class="metric-card" href="{% url 'reports:platform_settings' %}#storage-overview" aria-label="عرض حالة التخزين">
+                <div class="metric-head">
+                    <span class="metric-icon bg-amber-light"><i class="fas fa-hard-drive"></i></span>
+                    <span class="status-badge status-warning" id="storageRiskBadge" {% if not storage_near_limit_count %}hidden{% endif %}>{{ storage_near_limit_count }} تحتاج متابعة</span>
+                </div>
+                <div class="metric-value stat-value" id="storageUsedStat">{{ platform_storage_used_bytes|filesizeformat }}</div>
+                <div class="metric-label">إجمالي التخزين المستخدم</div>
+                <span class="metric-hint">إدارة التخزين <i class="fas fa-arrow-left"></i></span>
+            </a>
         </section>
 
         <section class="section-panel" aria-label="الإجراءات التشغيلية">
@@ -1389,13 +1503,18 @@
                             <span class="action-icon bg-emerald-light"><i class="fas fa-calendar-days"></i></span>
                             <span class="action-body"><strong>السنوات الدراسية</strong><span>إدارة السنوات الهجرية المتاحة للمدارس.</span></span>
                         </a>
-                        <a href="{% url 'maintenance:school_year_reset' %}" class="action-card is-danger" data-search-item data-search-title="تهيئة العام الدراسي إعادة ضبط">
-                            <span class="action-icon" style="background:#fee2e2; color:#b91c1c;"><i class="fas fa-rotate"></i></span>
-                            <span class="action-body"><strong>تهيئة العام الدراسي</strong><span>إجراء حساس قبل بداية عام جديد.</span></span>
-                        </a>
                     </div>
                 </div>
             </div>
+            <details class="danger-zone">
+                <summary><i class="fas fa-triangle-exclamation"></i> الإجراءات الحساسة</summary>
+                <div class="danger-zone-body">
+                    <p>تُستخدم عند نهاية العام فقط، وقد تغيّر حالة بيانات عدة مدارس. راجع نطاق العملية قبل المتابعة.</p>
+                    <a href="{% url 'maintenance:school_year_reset' %}" class="btn-modern outline" data-search-item data-search-title="تهيئة العام الدراسي إعادة ضبط">
+                        <i class="fas fa-rotate"></i> تهيئة العام الدراسي
+                    </a>
+                </div>
+            </details>
         </section>
 
     <div class="dashboard-layout">
@@ -1668,6 +1787,26 @@ function formatCurrencyAr(value) {
     return num.toLocaleString('ar-SA', { maximumFractionDigits: 0 }) + ' ر.س';
 }
 
+function formatBytesAr(value) {
+    let bytes = Math.max(0, Number(value || 0));
+    const units = ['بايت', 'KB', 'MB', 'GB', 'TB'];
+    let index = 0;
+    while (bytes >= 1024 && index < units.length - 1) {
+        bytes /= 1024;
+        index += 1;
+    }
+    const digits = index === 0 ? 0 : (bytes < 10 ? 1 : 0);
+    return bytes.toLocaleString('ar-SA', { maximumFractionDigits: digits }) + ' ' + units[index];
+}
+
+function setDashboardStatus(message, state) {
+    const status = document.getElementById('dashboardStatus');
+    if (!status) return;
+    status.textContent = message || '';
+    status.classList.toggle('is-error', state === 'error');
+    status.classList.toggle('is-success', state === 'success');
+}
+
 function setDashboardLoading(isLoading) {
     const root = document.querySelector('.dashboard-container');
     if (!root) return;
@@ -1683,6 +1822,9 @@ function applyKpiData(payload) {
     const ticketsTotalEl = document.getElementById('ticketsTotalStat');
     const ticketsOpenBadgeEl = document.getElementById('ticketsOpenBadge');
     const ticketsOpenAlertEl = document.getElementById('ticketsOpenAlertStat');
+    const subscriptionsActiveEl = document.getElementById('subscriptionsActiveStat');
+    const storageUsedEl = document.getElementById('storageUsedStat');
+    const storageRiskBadgeEl = document.getElementById('storageRiskBadge');
 
     if (schoolsTotalEl) schoolsTotalEl.textContent = formatNumberAr(kpis.schools_total);
     if (schoolsActiveBadgeEl) schoolsActiveBadgeEl.textContent = '+' + formatNumberAr(kpis.schools_active) + ' نشطة';
@@ -1691,6 +1833,21 @@ function applyKpiData(payload) {
     if (ticketsTotalEl) ticketsTotalEl.textContent = formatNumberAr(kpis.tickets_total);
     if (ticketsOpenBadgeEl) ticketsOpenBadgeEl.textContent = formatNumberAr(kpis.tickets_open) + ' مفتوحة';
     if (ticketsOpenAlertEl) ticketsOpenAlertEl.textContent = formatNumberAr(kpis.tickets_open);
+    if (subscriptionsActiveEl) subscriptionsActiveEl.textContent = formatNumberAr(kpis.subscriptions_active);
+    if (storageUsedEl) storageUsedEl.textContent = formatBytesAr(kpis.storage_used_bytes);
+    if (storageRiskBadgeEl) {
+        storageRiskBadgeEl.textContent = formatNumberAr(kpis.storage_near_limit) + ' تحتاج متابعة';
+        storageRiskBadgeEl.hidden = !Number(kpis.storage_near_limit || 0);
+    }
+
+    const operations = (payload && payload.operations) ? payload.operations : {};
+    const pendingPaymentsEl = document.getElementById('pendingPaymentsAlertStat');
+    const expiringSubscriptionsEl = document.getElementById('subscriptionsExpiringAlertStat');
+    if (pendingPaymentsEl) pendingPaymentsEl.textContent = formatNumberAr(operations.pending_payments);
+    if (expiringSubscriptionsEl) expiringSubscriptionsEl.textContent = formatNumberAr(operations.subscriptions_expiring_soon);
+    document.getElementById('pendingPaymentsAlert')?.classList.toggle('danger', Number(operations.pending_payments || 0) > 0);
+    document.getElementById('openTicketsAlert')?.classList.toggle('warning', Number(kpis.tickets_open || 0) > 0);
+    document.getElementById('expiringSubscriptionsAlert')?.classList.toggle('info', Number(operations.subscriptions_expiring_soon || 0) > 0);
 
     const sideDone = document.getElementById('ticketsDoneSideStat');
     const sideOpen = document.getElementById('ticketsOpenSideStat');
@@ -1943,6 +2100,7 @@ async function fetchDashboardPeriod(period, { force = false } = {}) {
         refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
     }
     setDashboardLoading(true);
+    setDashboardStatus(force ? 'جارٍ جلب أحدث البيانات من المصدر…' : 'جارٍ تحديث الفترة…');
 
     try {
         if (dashboardRequestController) dashboardRequestController.abort();
@@ -1951,6 +2109,7 @@ async function fetchDashboardPeriod(period, { force = false } = {}) {
         const url = new URL(PLATFORM_DASHBOARD_API_URL, window.location.origin);
         url.searchParams.set('period', normalized);
         if (force) {
+            url.searchParams.set('refresh', '1');
             url.searchParams.set('_ts', String(Date.now()));
         }
 
@@ -1966,9 +2125,11 @@ async function fetchDashboardPeriod(period, { force = false } = {}) {
 
         const payload = await response.json();
         applyDashboardPayload(payload, { updateUrl: true });
+        setDashboardStatus(force ? 'تم تحديث جميع مؤشرات المنصة بنجاح.' : 'تم تطبيق الفترة المحددة.', 'success');
     } catch (error) {
         if (error && error.name === 'AbortError') return;
         console.error('Dashboard refresh failed:', error);
+        setDashboardStatus('تعذر تحديث البيانات. تحقق من الاتصال ثم أعد المحاولة.', 'error');
     } finally {
         setDashboardLoading(false);
         if (refreshBtn) {
@@ -1987,6 +2148,12 @@ let searchTimeout;
 const searchInput = document.getElementById('globalSearch');
 const searchResults = document.getElementById('searchResults');
 let searchRequestController = null;
+
+function setSearchOpen(open) {
+    if (!searchInput || !searchResults) return;
+    searchResults.classList.toggle('active', !!open);
+    searchInput.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
 
 function escapeHtml(value) {
     return String(value || '')
@@ -2018,7 +2185,7 @@ function buildLocalSearchIndex() {
 function renderSearchResults(items) {
     if (!items.length) {
         searchResults.innerHTML = '<div class="search-result-item" style="padding:1rem; color: var(--text-muted);">لا توجد نتائج مطابقة.</div>';
-        searchResults.classList.add('active');
+        setSearchOpen(true);
         return;
     }
     searchResults.innerHTML = items.slice(0, 8).map((item) => {
@@ -2031,7 +2198,7 @@ function renderSearchResults(items) {
             + '</span>'
             + '</a>';
     }).join('');
-    searchResults.classList.add('active');
+    setSearchOpen(true);
 }
 
 async function fetchRemoteSearch(query) {
@@ -2057,7 +2224,7 @@ if (searchInput && searchResults) {
         clearTimeout(searchTimeout);
         const query = (e.target.value || '').trim().toLowerCase();
         if (query.length < 2) {
-            searchResults.classList.remove('active');
+            setSearchOpen(false);
             searchResults.innerHTML = '';
             return;
         }
@@ -2076,12 +2243,41 @@ if (searchInput && searchResults) {
             }
         }, 180);
     });
+
+    searchInput.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowDown' && searchResults.classList.contains('active')) {
+            const firstResult = searchResults.querySelector('a');
+            if (firstResult) {
+                event.preventDefault();
+                firstResult.focus();
+            }
+        } else if (event.key === 'Escape') {
+            setSearchOpen(false);
+        }
+    });
+
+    searchResults.addEventListener('keydown', function (event) {
+        const links = Array.from(searchResults.querySelectorAll('a'));
+        const index = links.indexOf(document.activeElement);
+        if (event.key === 'ArrowDown' && links.length) {
+            event.preventDefault();
+            links[Math.min(index + 1, links.length - 1)].focus();
+        } else if (event.key === 'ArrowUp' && links.length) {
+            event.preventDefault();
+            if (index <= 0) searchInput.focus();
+            else links[index - 1].focus();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            setSearchOpen(false);
+            searchInput.focus();
+        }
+    });
 }
 
 document.addEventListener('click', function (e) {
     if (!searchInput || !searchResults) return;
     if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-        searchResults.classList.remove('active');
+        setSearchOpen(false);
     }
 });
 

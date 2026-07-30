@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}تأكيد حذف المدرسة | إدارة المنصة{% endblock %}
+
+{% block head %}
+<style>
+  .delete-shell {
+    width: min(820px, calc(100% - 2rem));
+    margin: 2rem auto 3rem;
+  }
+  .delete-card {
+    overflow: hidden;
+    background: var(--card, #fff);
+    border: 1px solid color-mix(in srgb, #dc2626 28%, var(--border, #e5e7eb));
+    border-radius: 22px;
+    box-shadow: 0 18px 50px rgba(127, 29, 29, .10);
+  }
+  .delete-card__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: color-mix(in srgb, #dc2626 7%, var(--card, #fff));
+    border-bottom: 1px solid color-mix(in srgb, #dc2626 18%, var(--border, #e5e7eb));
+  }
+  .delete-card__icon {
+    display: grid;
+    flex: 0 0 52px;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    color: #fff;
+    background: #b91c1c;
+    border-radius: 16px;
+    font-size: 1.25rem;
+  }
+  .delete-card h1 {
+    margin: 0 0 .35rem;
+    color: var(--text, #111827);
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+  }
+  .delete-card p {
+    margin: 0;
+    color: var(--muted, #6b7280);
+    line-height: 1.8;
+  }
+  .delete-card__body {
+    padding: 1.5rem;
+  }
+  .school-identity {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    margin-bottom: 1rem;
+    background: var(--surface-2, #f8fafc);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 14px;
+  }
+  .school-identity strong {
+    display: block;
+    color: var(--text, #111827);
+    font-size: 1.05rem;
+  }
+  .school-identity span {
+    color: var(--muted, #6b7280);
+    font-size: .88rem;
+  }
+  .impact-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+    margin: 1rem 0 1.25rem;
+  }
+  .impact-item {
+    padding: 1rem;
+    text-align: center;
+    background: var(--card, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 14px;
+  }
+  .impact-item strong {
+    display: block;
+    color: #b91c1c;
+    font-size: 1.35rem;
+  }
+  .impact-item span {
+    color: var(--muted, #6b7280);
+    font-size: .85rem;
+  }
+  .warning-box {
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.25rem;
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 14px;
+    line-height: 1.8;
+  }
+  [data-theme="dark"] .warning-box {
+    color: #fecaca;
+    background: rgba(127, 29, 29, .22);
+    border-color: rgba(248, 113, 113, .35);
+  }
+  .confirm-label {
+    display: block;
+    margin-bottom: .5rem;
+    color: var(--text, #111827);
+    font-weight: 800;
+  }
+  .confirm-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: .85rem 1rem;
+    color: var(--text, #111827);
+    background: var(--card, #fff);
+    border: 1px solid var(--border, #d1d5db);
+    border-radius: 12px;
+    font: inherit;
+  }
+  .confirm-input:focus {
+    outline: 3px solid rgba(220, 38, 38, .14);
+    border-color: #dc2626;
+  }
+  .confirm-help {
+    display: block;
+    margin-top: .45rem;
+    color: var(--muted, #6b7280);
+    font-size: .84rem;
+  }
+  .delete-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .75rem;
+    margin-top: 1.4rem;
+  }
+  @media (max-width: 620px) {
+    .delete-shell { margin-top: 1rem; }
+    .delete-card__header,
+    .delete-card__body { padding: 1.1rem; }
+    .school-identity { flex-direction: column; }
+    .impact-grid { grid-template-columns: 1fr; }
+    .delete-actions { flex-direction: column-reverse; }
+    .delete-actions .btn { justify-content: center; width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="delete-shell">
+  <section class="delete-card" aria-labelledby="delete-school-title">
+    <header class="delete-card__header">
+      <span class="delete-card__icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <div>
+        <h1 id="delete-school-title">حذف المدرسة نهائيًا</h1>
+        <p>هذه عملية عالية الخطورة، لذلك يلزم تأكيد اسم المدرسة قبل تنفيذها.</p>
+      </div>
+    </header>
+
+    <div class="delete-card__body">
+      <div class="school-identity">
+        <div>
+          <strong>{{ school.name }}</strong>
+          <span>رمز المدرسة: {{ school.code|default:"غير محدد" }}</span>
+        </div>
+        <span>{% if school.is_active %}مدرسة نشطة{% else %}مدرسة موقوفة{% endif %}</span>
+      </div>
+
+      <div class="impact-grid" aria-label="البيانات المرتبطة التي ستُحذف">
+        <div class="impact-item"><strong>{{ related_counts.members }}</strong><span>عضو مرتبط</span></div>
+        <div class="impact-item"><strong>{{ related_counts.reports }}</strong><span>تقرير</span></div>
+        <div class="impact-item"><strong>{{ related_counts.tickets }}</strong><span>تذكرة دعم</span></div>
+      </div>
+
+      <div class="warning-box" role="alert">
+        <strong>تنبيه:</strong>
+        سيُحذف سجل المدرسة والبيانات التابعة لها. لا يمكن التراجع عن العملية من داخل المنصة.
+      </div>
+
+      <form method="post" action="{% url 'reports:school_delete' school.id %}">
+        {% csrf_token %}
+        <label class="confirm-label" for="confirm_name">
+          اكتب «{{ school.name }}» للتأكيد
+        </label>
+        <input
+          class="confirm-input"
+          id="confirm_name"
+          name="confirm_name"
+          value="{{ confirm_name|default:'' }}"
+          autocomplete="off"
+          required
+          aria-describedby="confirm-name-help"
+        >
+        <small class="confirm-help" id="confirm-name-help">يجب أن يطابق الاسم المكتوب اسم المدرسة تمامًا.</small>
+
+        <div class="delete-actions">
+          <a class="btn btn-outline" href="{% url 'reports:schools_admin_list' %}">
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            إلغاء والعودة
+          </a>
+          <button class="btn btn-danger" type="submit">
+            <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+            حذف المدرسة نهائيًا
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+{% endblock %}

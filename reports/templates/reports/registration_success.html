@@ -1,0 +1,446 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071d15">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <title>تم تجهيز مدرستك | منصة توثيق</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+  <style>
+    :root {
+      --forest: #071d15;
+      --forest-2: #0a3f2b;
+      --green: #0a6946;
+      --green-light: #e6f3ec;
+      --gold: #c5a365;
+      --gold-light: #ecd8ad;
+      --ink: #111a16;
+      --muted: #68736d;
+      --line: #dde4df;
+      --paper: #f8f7f3;
+      --white: #fff;
+      --shadow: 0 30px 90px rgba(4, 28, 19, .2);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 28px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 6%, rgba(197,163,101,.2), transparent 25%),
+        linear-gradient(135deg, #061912, #0b3022);
+      font-family: "Cairo", system-ui, sans-serif;
+      line-height: 1.7;
+    }
+    button, input { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+    :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+    .success-shell {
+      width: min(980px, 100%);
+      margin: 0 auto;
+      overflow: hidden;
+      background: var(--paper);
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+    }
+    .success-head {
+      position: relative;
+      overflow: hidden;
+      padding: 42px 48px 38px;
+      color: var(--white);
+      background: linear-gradient(130deg, #0b4b34, var(--forest));
+      text-align: center;
+    }
+    .success-head::before, .success-head::after {
+      position: absolute;
+      content: "";
+      border: 1px solid rgba(236,216,173,.17);
+      border-radius: 50%;
+    }
+    .success-head::before { width: 250px; height: 250px; inset: -155px -90px auto auto; }
+    .success-head::after { width: 180px; height: 180px; inset: auto auto -120px -70px; }
+    .success-mark {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 17px;
+      color: var(--forest);
+      background: linear-gradient(145deg, #f3e3c0, var(--gold));
+      border: 5px solid rgba(255,255,255,.1);
+      border-radius: 22px;
+      font-size: 1.5rem;
+      place-items: center;
+    }
+    .success-head h1 {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      font-size: clamp(1.75rem, 4vw, 2.65rem);
+      font-weight: 900;
+      line-height: 1.35;
+      letter-spacing: -.035em;
+    }
+    .success-head p {
+      position: relative;
+      z-index: 1;
+      margin: 8px auto 0;
+      color: rgba(255,255,255,.65);
+      font-size: .85rem;
+    }
+    .success-body { padding: 34px 42px 42px; }
+    .receipt-intro {
+      display: flex;
+      margin-block-end: 18px;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 22px;
+    }
+    .receipt-intro h2 { margin: 0 0 4px; font-size: 1.12rem; }
+    .receipt-intro p { margin: 0; color: var(--muted); font-size: .72rem; }
+    .once-badge {
+      display: inline-flex;
+      padding: 6px 10px;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 6px;
+      color: #8a6428;
+      background: #fff7e8;
+      border: 1px solid #f1dfbb;
+      border-radius: 99px;
+      font-size: .64rem;
+      font-weight: 900;
+    }
+    .credentials {
+      display: grid;
+      padding: 20px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .credential {
+      min-width: 0;
+      padding: 15px;
+      background: #f7faf8;
+      border: 1px solid #e3eae6;
+      border-radius: 13px;
+    }
+    .credential-label {
+      display: flex;
+      margin-block-end: 8px;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: .67rem;
+      font-weight: 800;
+    }
+    .credential-row { display: flex; align-items: center; gap: 8px; direction: ltr; }
+    .credential-row input {
+      width: 100%;
+      min-width: 0;
+      padding: 0;
+      color: var(--forest);
+      background: transparent;
+      border: 0;
+      outline: 0;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+    .icon-button {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      flex: 0 0 auto;
+      color: var(--green);
+      background: var(--green-light);
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      place-items: center;
+    }
+    .receipt-actions { display: flex; margin-block-start: 12px; justify-content: flex-end; gap: 8px; }
+    .login-address {
+      display: flex;
+      margin-block-start: 12px;
+      padding: 10px 13px;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      background: rgba(255,255,255,.55);
+      border-radius: 10px;
+      font-size: .67rem;
+    }
+    .login-address a { color: var(--green); font-weight: 900; direction: ltr; }
+    .quiet-button {
+      display: inline-flex;
+      min-height: 40px;
+      padding: 8px 13px;
+      align-items: center;
+      gap: 7px;
+      color: var(--green);
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: .68rem;
+      font-weight: 800;
+    }
+    .trial-summary {
+      display: grid;
+      margin-block-start: 24px;
+      overflow: hidden;
+      background: var(--forest);
+      border-radius: 17px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .trial-summary > div {
+      min-height: 88px;
+      display: flex;
+      padding: 16px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: rgba(255,255,255,.68);
+      border-inline-start: 1px solid rgba(255,255,255,.1);
+      text-align: center;
+      font-size: .68rem;
+    }
+    .trial-summary > div:first-child { border-inline-start: 0; }
+    .trial-summary i { color: var(--gold-light); font-size: 1.08rem; }
+    .trial-summary strong, .trial-summary small { display: block; }
+    .trial-summary strong { color: var(--white); font-size: .78rem; }
+    .trial-summary small { color: rgba(255,255,255,.5); }
+    .next-section { margin-block-start: 27px; }
+    .next-section h2 { margin: 0 0 14px; font-size: 1rem; }
+    .next-steps {
+      display: grid;
+      margin: 0;
+      padding: 0;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      list-style: none;
+    }
+    .next-steps li {
+      padding: 15px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      font-size: .7rem;
+    }
+    .next-steps span {
+      display: grid;
+      width: 27px;
+      height: 27px;
+      margin-block-end: 9px;
+      color: var(--green);
+      background: var(--green-light);
+      border-radius: 9px;
+      font-weight: 900;
+      place-items: center;
+    }
+    .primary-action {
+      display: flex;
+      min-height: 56px;
+      margin-block-start: 27px;
+      padding: 12px 22px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--white);
+      background: var(--green);
+      border-radius: 13px;
+      box-shadow: 0 14px 32px rgba(10,105,70,.2);
+      font-weight: 900;
+    }
+    .security-note {
+      display: flex;
+      margin: 14px 0 0;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: .64rem;
+      text-align: center;
+    }
+    .toast {
+      position: fixed;
+      z-index: 20;
+      inset-block-end: 24px;
+      inset-inline-start: 50%;
+      padding: 10px 16px;
+      color: var(--white);
+      background: var(--forest);
+      border-radius: 11px;
+      box-shadow: var(--shadow);
+      font-size: .74rem;
+      font-weight: 800;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 18px);
+      transition: opacity .2s, transform .2s;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (max-width: 680px) {
+      body { padding: 0; background: var(--paper); }
+      .success-shell { min-height: 100vh; border: 0; border-radius: 0; }
+      .success-head { padding: 34px 20px 30px; }
+      .success-body { padding: 25px 14px 32px; }
+      .receipt-intro { align-items: flex-start; flex-direction: column; gap: 10px; }
+      .credentials, .next-steps { grid-template-columns: 1fr; }
+      .trial-summary { grid-template-columns: 1fr; }
+      .trial-summary > div { min-height: 70px; justify-content: flex-start; border: 0; border-block-start: 1px solid rgba(255,255,255,.1); text-align: right; }
+      .trial-summary > div:first-child { border-block-start: 0; }
+      .receipt-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .quiet-button { justify-content: center; }
+    }
+    @media print {
+      body { padding: 0; color: #000; background: #fff; }
+      .success-shell { box-shadow: none; }
+      .primary-action, .receipt-actions, .security-note, .toast { display: none !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="success-shell">
+    <header class="success-head">
+      <span class="success-mark"><i class="fa-solid fa-check"></i></span>
+      <h1>تم إنشاء مدرسة «{{ receipt.school_name }}»</h1>
+      <p>مرحبًا {{ receipt.manager_name }}، حسابك جاهز والتجربة الكاملة مفعّلة الآن.</p>
+    </header>
+
+    <section class="success-body">
+      <div class="receipt-intro">
+        <div>
+          <h2>بيانات الدخول إلى حساب المدير</h2>
+          <p>احتفظ بها في مكان آمن. أنت مسجّل الدخول حاليًا ويمكنك الانتقال مباشرة إلى لوحة المدرسة.</p>
+        </div>
+        <span class="once-badge"><i class="fa-solid fa-eye-slash"></i> تظهر في هذه الصفحة مرة واحدة</span>
+      </div>
+
+      <div class="credentials" id="credentials">
+        <div class="credential">
+          <span class="credential-label"><i class="fa-solid fa-mobile-screen-button"></i> اسم المستخدم — رقم الجوال</span>
+          <div class="credential-row">
+            <input id="loginPhone" type="text" value="{{ receipt.phone }}" readonly aria-label="رقم الجوال المستخدم للدخول">
+            <button class="icon-button" type="button" data-copy-target="loginPhone" aria-label="نسخ رقم الجوال"><i class="fa-regular fa-copy"></i></button>
+          </div>
+        </div>
+        <div class="credential">
+          <span class="credential-label"><i class="fa-solid fa-key"></i> كلمة المرور</span>
+          <div class="credential-row">
+            <input id="loginPassword" type="text" value="{{ receipt.password }}" readonly aria-label="كلمة المرور">
+            <button class="icon-button" type="button" id="passwordVisibility" aria-label="إخفاء كلمة المرور"><i class="fa-regular fa-eye-slash"></i></button>
+            <button class="icon-button" type="button" data-copy-target="loginPassword" aria-label="نسخ كلمة المرور"><i class="fa-regular fa-copy"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="receipt-actions">
+        <button class="quiet-button" type="button" id="copyCredentials"><i class="fa-regular fa-copy"></i> نسخ بيانات الدخول</button>
+        <button class="quiet-button" type="button" id="printReceipt"><i class="fa-solid fa-print"></i> طباعة الصفحة</button>
+      </div>
+      <div class="login-address">
+        <i class="fa-solid fa-link"></i>
+        <span>للدخول لاحقًا استخدم:</span>
+        <a href="{% url 'reports:login' %}">{{ request.get_host }}{% url 'reports:login' %}</a>
+      </div>
+
+      <div class="trial-summary" aria-label="تفاصيل التجربة">
+        <div><i class="fa-regular fa-calendar-check"></i><span><strong>{{ receipt.trial_days }} يومًا كاملة</strong><small>تنتهي في {{ receipt.trial_end_date }}</small></span></div>
+        <div><i class="fa-solid fa-users"></i><span><strong>حتى {{ receipt.teacher_limit }} معلمين</strong><small>لتجربة العمل الجماعي</small></span></div>
+        <div><i class="fa-solid fa-box-archive"></i><span><strong>أرشيف {{ receipt.archive_storage_gb }}GB</strong><small>مفعّل طوال التجربة</small></span></div>
+      </div>
+
+      <section class="next-section">
+        <h2>ابدأ بهذه الخطوات الثلاث</h2>
+        <ol class="next-steps">
+          <li><span>1</span>راجع بيانات المدرسة وأضف شعارها وهويتها.</li>
+          <li><span>2</span>أضف معلمًا أو اثنين لتجربة التقارير والطلبات.</li>
+          <li><span>3</span>أنشئ أول تقرير وشاهد ملف PDF النهائي.</li>
+        </ol>
+      </section>
+
+      <a class="primary-action" href="{% url 'reports:admin_dashboard' %}">
+        دخول لوحة مدير المدرسة <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <p class="security-note"><i class="fa-solid fa-shield-halved"></i> لأمانك، لن نعرض كلمة المرور بهذه الصورة مرة أخرى بعد مغادرة الصفحة.</p>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">تم النسخ</div>
+
+  <script nonce="{{ CSP_NONCE }}">
+    (function () {
+      var toast = document.getElementById("toast");
+      var toastTimer;
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(function () { toast.classList.remove("show"); }, 1800);
+      }
+
+      function copyText(value, message) {
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(value).then(function () { showToast(message); });
+          return;
+        }
+        var temporary = document.createElement("textarea");
+        temporary.value = value;
+        temporary.style.position = "fixed";
+        temporary.style.opacity = "0";
+        document.body.appendChild(temporary);
+        temporary.select();
+        document.execCommand("copy");
+        temporary.remove();
+        showToast(message);
+      }
+
+      document.querySelectorAll("[data-copy-target]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var input = document.getElementById(button.getAttribute("data-copy-target"));
+          if (input) copyText(input.value, "تم النسخ");
+        });
+      });
+
+      var copyAll = document.getElementById("copyCredentials");
+      copyAll.addEventListener("click", function () {
+        var phone = document.getElementById("loginPhone").value;
+        var password = document.getElementById("loginPassword").value;
+        var loginUrl = window.location.origin + "{% url 'reports:login' %}";
+        copyText("منصة توثيق\nرابط الدخول: " + loginUrl + "\nرقم الجوال: " + phone + "\nكلمة المرور: " + password, "تم نسخ بيانات الدخول");
+      });
+
+      document.getElementById("printReceipt").addEventListener("click", function () {
+        window.print();
+      });
+
+      var visibility = document.getElementById("passwordVisibility");
+      visibility.addEventListener("click", function () {
+        var input = document.getElementById("loginPassword");
+        var hide = input.type === "text";
+        input.type = hide ? "password" : "text";
+        visibility.setAttribute("aria-label", hide ? "إظهار كلمة المرور" : "إخفاء كلمة المرور");
+        visibility.querySelector("i").className = hide ? "fa-regular fa-eye" : "fa-regular fa-eye-slash";
+      });
+    }());
+  </script>
+</body>
+</html>

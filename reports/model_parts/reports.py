@@ -254,7 +254,7 @@ class PlatformSettings(models.Model):
         "سعر باقة زيادة التخزين",
         max_digits=10,
         decimal_places=2,
-        default=99,
+        default=149,
         validators=[MinValueValidator(0)],
         help_text="سعر كل وحدة زيادة مساحة تخزين للأرشيف.",
     )

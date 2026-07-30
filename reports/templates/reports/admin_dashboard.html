@@ -1,1300 +1,1546 @@
-{% extends 'base.html' %}
-{% load static humanize %}
+{% extends "base.html" %}
+{% load humanize %}
 
-{% block title %}لوحة إدارة المدرسة | Premium 2026{% endblock %}
+{% block title %}لوحة إدارة المدرسة | منصة توثيق{% endblock %}
 
 {% block head %}
-<!-- Chart.js Library -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
+<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-    /* Premium School Dashboard 2026 */
-    :root {
-        --primary: #006c35;
-        --secondary: #64748b;
-        --accent: #b9975b;
-        --success: #16845b;
-        --warning: #b9975b;
-        --danger: #ef4444;
-        --surface: #ffffff;
-        --background: #f8fafc;
-        --text: #0f172a;
-        --text-muted: #64748b;
-        --radius: 12px;
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  .manager-page {
+    --manager-ink: #10231a;
+    --manager-muted: #607067;
+    --manager-line: #dfe8e2;
+    --manager-soft: #f3f8f5;
+    --manager-green: #08643b;
+    --manager-green-dark: #06462b;
+    --manager-gold: #b68a42;
+    --manager-danger: #b42318;
+    --manager-warning: #9a6700;
+    max-width: 1440px;
+    margin-inline: auto;
+    padding: 1.25rem;
+    color: var(--manager-ink);
+  }
+
+  [data-theme="dark"] .manager-page {
+    --manager-ink: #eff8f2;
+    --manager-muted: #afc1b5;
+    --manager-line: #2d4637;
+    --manager-soft: #13271c;
+  }
+
+  .manager-page *,
+  .manager-page *::before,
+  .manager-page *::after {
+    box-sizing: border-box;
+  }
+
+  .manager-page a {
+    color: inherit;
+  }
+
+  .manager-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(270px, .7fr);
+    gap: 1.5rem;
+    padding: clamp(1.4rem, 3vw, 2.35rem);
+    border: 1px solid rgba(209, 177, 112, .34);
+    border-radius: 26px;
+    color: #fff;
+    background:
+      radial-gradient(circle at 12% 15%, rgba(222, 194, 135, .22), transparent 30%),
+      linear-gradient(135deg, #087047 0%, #064b31 50%, #04351f 100%);
+    box-shadow: 0 24px 60px -34px rgba(4, 70, 43, .75);
+  }
+
+  .manager-hero::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 290px;
+    height: 290px;
+    inset-inline-end: -85px;
+    bottom: -150px;
+    border: 48px solid rgba(255, 255, 255, .055);
+    border-radius: 50%;
+  }
+
+  .manager-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    width: fit-content;
+    margin-bottom: .7rem;
+    padding: .35rem .7rem;
+    border: 1px solid rgba(255, 255, 255, .24);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .09);
+    color: #f6e7c5;
+    font-size: .78rem;
+    font-weight: 850;
+  }
+
+  .manager-hero h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.65rem, 3.6vw, 2.55rem);
+    line-height: 1.35;
+    letter-spacing: -.025em;
+  }
+
+  .manager-hero__intro {
+    max-width: 720px;
+    margin: .75rem 0 1rem;
+    color: rgba(255, 255, 255, .8);
+    font-size: .98rem;
+    line-height: 1.9;
+  }
+
+  .manager-school-meta,
+  .manager-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+  }
+
+  .manager-school-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    color: rgba(255, 255, 255, .86);
+    font-size: .86rem;
+    font-weight: 750;
+  }
+
+  .manager-hero__actions {
+    margin-top: 1.2rem;
+  }
+
+  .manager-hero__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 42px;
+    padding: .65rem .9rem;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 12px;
+    color: #fff;
+    background: rgba(255, 255, 255, .1);
+    text-decoration: none;
+    font-size: .86rem;
+    font-weight: 850;
+    transition: background .2s ease, transform .2s ease;
+  }
+
+  .manager-hero__button:hover {
+    color: #063b25;
+    background: #fff;
+    transform: translateY(-2px);
+  }
+
+  .manager-hero__button--primary {
+    border-color: #e1c788;
+    color: #143322;
+    background: linear-gradient(135deg, #f6e7c4, #d9b86f);
+  }
+
+  .manager-hero__summary {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.15rem;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 20px;
+    background: rgba(4, 42, 26, .32);
+    backdrop-filter: blur(8px);
+  }
+
+  .manager-hero__summary-label {
+    color: rgba(255, 255, 255, .68);
+    font-size: .82rem;
+    font-weight: 750;
+  }
+
+  .manager-hero__summary-value {
+    margin: .25rem 0;
+    color: #f8e8c5;
+    font-size: clamp(2.15rem, 5vw, 3.5rem);
+    font-weight: 950;
+    line-height: 1.1;
+  }
+
+  .manager-hero__summary small {
+    color: rgba(255, 255, 255, .72);
+    line-height: 1.7;
+  }
+
+  .manager-subscription-alert {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    margin-bottom: 1rem;
+    padding: .85rem 1rem;
+    border: 1px solid #f0cd77;
+    border-radius: 16px;
+    color: #684b00;
+    background: #fff9e8;
+  }
+
+  .manager-subscription-alert.is-critical,
+  .manager-subscription-alert.is-expired {
+    border-color: #f4b4ae;
+    color: #84251d;
+    background: #fff2f0;
+  }
+
+  .manager-subscription-alert__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .manager-subscription-alert strong,
+  .manager-subscription-alert span {
+    display: block;
+  }
+
+  .manager-subscription-alert span {
+    margin-top: .15rem;
+    font-size: .84rem;
+    opacity: .82;
+  }
+
+  .manager-subscription-alert a {
+    flex: 0 0 auto;
+    padding: .55rem .78rem;
+    border-radius: 10px;
+    color: #fff;
+    background: #76551a;
+    text-decoration: none;
+    font-size: .8rem;
+    font-weight: 850;
+  }
+
+  .manager-subscription-alert.is-critical a,
+  .manager-subscription-alert.is-expired a {
+    background: #84251d;
+  }
+
+  .manager-section {
+    margin-top: 1.55rem;
+  }
+
+  .manager-section__head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .85rem;
+  }
+
+  .manager-section__head h2 {
+    margin: 0;
+    color: var(--manager-ink);
+    font-size: 1.15rem;
+    font-weight: 950;
+  }
+
+  .manager-section__head p {
+    margin: .25rem 0 0;
+    color: var(--manager-muted);
+    font-size: .84rem;
+  }
+
+  .manager-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .85rem;
+  }
+
+  .manager-kpi {
+    position: relative;
+    overflow: hidden;
+    min-height: 142px;
+    padding: 1rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 18px;
+    background: var(--surface, #fff);
+    text-decoration: none;
+    box-shadow: 0 12px 30px -26px rgba(10, 70, 42, .55);
+    transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+  }
+
+  .manager-kpi:hover {
+    border-color: rgba(8, 100, 59, .42);
+    transform: translateY(-3px);
+    box-shadow: 0 18px 34px -25px rgba(10, 70, 42, .6);
+  }
+
+  .manager-kpi__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+  }
+
+  .manager-kpi__icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 13px;
+    color: var(--manager-green);
+    background: #e8f5ed;
+  }
+
+  .manager-kpi--attention .manager-kpi__icon {
+    color: var(--manager-warning);
+    background: #fff3cf;
+  }
+
+  .manager-kpi__arrow {
+    color: #99a8a0;
+    font-size: .8rem;
+  }
+
+  .manager-kpi__value {
+    display: block;
+    margin: .8rem 0 .15rem;
+    color: var(--manager-ink);
+    font-size: 1.75rem;
+    font-weight: 950;
+    line-height: 1;
+  }
+
+  .manager-kpi__label {
+    display: block;
+    color: var(--manager-muted);
+    font-size: .82rem;
+    font-weight: 780;
+  }
+
+  .manager-focus {
+    display: grid;
+    grid-template-columns: minmax(220px, .75fr) minmax(0, 2.25fr);
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 20px;
+    background: var(--surface, #fff);
+  }
+
+  .manager-focus__intro {
+    padding: .45rem .55rem;
+  }
+
+  .manager-focus__intro h2 {
+    margin: 0 0 .4rem;
+    color: var(--manager-ink);
+    font-size: 1.08rem;
+  }
+
+  .manager-focus__intro p {
+    margin: 0;
+    color: var(--manager-muted);
+    font-size: .82rem;
+    line-height: 1.75;
+  }
+
+  .manager-focus__items {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .65rem;
+  }
+
+  .manager-focus__item {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    min-height: 72px;
+    padding: .75rem;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: var(--manager-soft);
+    text-decoration: none;
+  }
+
+  .manager-focus__item:hover {
+    border-color: rgba(8, 100, 59, .26);
+  }
+
+  .manager-focus__count {
+    display: grid;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: 11px;
+    color: #fff;
+    background: var(--manager-green);
+    font-weight: 950;
+  }
+
+  .manager-focus__item strong,
+  .manager-focus__item small {
+    display: block;
+  }
+
+  .manager-focus__item strong {
+    color: var(--manager-ink);
+    font-size: .82rem;
+  }
+
+  .manager-focus__item small {
+    margin-top: .15rem;
+    color: var(--manager-muted);
+    font-size: .72rem;
+  }
+
+  .manager-focus__clear {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    min-height: 76px;
+    padding: .9rem 1rem;
+    border: 1px solid rgba(8, 100, 59, .2);
+    border-radius: 15px;
+    color: var(--manager-green);
+    background: rgba(8, 100, 59, .06);
+  }
+
+  .manager-focus__clear i { font-size: 1.35rem; }
+  .manager-focus__clear strong,
+  .manager-focus__clear small { display: block; }
+  .manager-focus__clear small {
+    margin-top: .15rem;
+    color: var(--manager-muted);
+  }
+
+  .manager-setup {
+    display: grid;
+    grid-template-columns: minmax(220px, .55fr) minmax(0, 1.45fr);
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 20px;
+    background: var(--manager-soft);
+  }
+
+  .manager-setup__summary {
+    padding: 1rem;
+    border-radius: 16px;
+    color: #fff;
+    background: linear-gradient(145deg, #0b6840, #06462b);
+  }
+
+  .manager-setup__summary h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.05rem;
+  }
+
+  .manager-setup__summary p {
+    margin: .45rem 0 .9rem;
+    color: rgba(255, 255, 255, .76);
+    font-size: .78rem;
+    line-height: 1.75;
+  }
+
+  .manager-setup__percent {
+    display: flex;
+    align-items: baseline;
+    gap: .35rem;
+  }
+
+  .manager-setup__percent strong {
+    color: #f6e7c4;
+    font-size: 2rem;
+    font-weight: 950;
+  }
+
+  .manager-setup__track {
+    height: 7px;
+    margin-top: .65rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .18);
+  }
+
+  .manager-setup__track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #f0d596;
+  }
+
+  .manager-setup__steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .65rem;
+  }
+
+  .manager-setup__step {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .75rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 14px;
+    background: var(--surface, #fff);
+    text-decoration: none;
+  }
+
+  .manager-setup__step:hover {
+    border-color: rgba(8, 100, 59, .42);
+    background: rgba(8, 100, 59, .055);
+  }
+
+  .manager-setup__state {
+    display: grid;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--manager-warning);
+    background: #fff3cd;
+  }
+
+  .manager-setup__step.is-complete .manager-setup__state {
+    color: var(--manager-green);
+    background: #dff3e7;
+  }
+
+  .manager-setup__step strong,
+  .manager-setup__step small { display: block; }
+  .manager-setup__step strong {
+    color: var(--manager-ink);
+    font-size: .79rem;
+  }
+  .manager-setup__step small {
+    margin-top: .12rem;
+    color: var(--manager-muted);
+    font-size: .68rem;
+    line-height: 1.55;
+  }
+
+  .manager-period-context {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin-top: .4rem;
+    padding: .3rem .6rem;
+    border-radius: 999px;
+    color: var(--manager-green);
+    background: rgba(8, 100, 59, .08);
+    font-size: .72rem;
+    font-weight: 850;
+  }
+
+  .manager-primary-actions {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .75rem;
+  }
+
+  .manager-primary-action {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 132px;
+    padding: 1rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 17px;
+    background: var(--surface, #fff);
+    text-decoration: none;
+    transition: background .2s ease, border-color .2s ease, transform .2s ease;
+  }
+
+  .manager-primary-action:hover {
+    border-color: rgba(8, 100, 59, .38);
+    background: var(--manager-soft);
+    transform: translateY(-3px);
+  }
+
+  .manager-primary-action i {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    margin-bottom: .65rem;
+    place-items: center;
+    border-radius: 12px;
+    color: var(--manager-green);
+    background: #e8f5ed;
+  }
+
+  .manager-primary-action strong {
+    color: var(--manager-ink);
+    font-size: .86rem;
+  }
+
+  .manager-primary-action small {
+    margin-top: .2rem;
+    color: var(--manager-muted);
+    font-size: .72rem;
+    line-height: 1.55;
+  }
+
+  .manager-workspaces {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .9rem;
+  }
+
+  .manager-workspace {
+    padding: 1rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 20px;
+    background: var(--surface, #fff);
+  }
+
+  .manager-workspace__head {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    margin-bottom: .75rem;
+    padding-bottom: .75rem;
+    border-bottom: 1px solid var(--manager-line);
+  }
+
+  .manager-workspace__head i {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 12px;
+    color: var(--manager-green);
+    background: #e8f5ed;
+  }
+
+  .manager-workspace__head h3,
+  .manager-workspace__head p {
+    margin: 0;
+  }
+
+  .manager-workspace__head h3 {
+    color: var(--manager-ink);
+    font-size: .95rem;
+  }
+
+  .manager-workspace__head p {
+    margin-top: .15rem;
+    color: var(--manager-muted);
+    font-size: .72rem;
+  }
+
+  .manager-workspace__links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .45rem;
+  }
+
+  .manager-workspace__link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .6rem;
+    min-height: 46px;
+    padding: .65rem .7rem;
+    border-radius: 11px;
+    color: var(--manager-ink);
+    background: var(--manager-soft);
+    text-decoration: none;
+    font-size: .78rem;
+    font-weight: 800;
+  }
+
+  .manager-workspace__link:hover {
+    color: var(--manager-green);
+    background: #e8f5ed;
+  }
+
+  [data-theme="dark"] .manager-workspace__link:hover,
+  [data-theme="dark"] .manager-primary-action i,
+  [data-theme="dark"] .manager-workspace__head i,
+  [data-theme="dark"] .manager-kpi__icon {
+    background: #183b28;
+  }
+
+  .manager-workspace__link--locked {
+    border: 1px dashed #d1aa5f;
+    color: #76551a;
+    background: #fff9e9;
+  }
+
+  .manager-workspace__link .manager-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    color: #956d24;
+    font-size: .68rem;
+  }
+
+  .manager-analytics {
+    padding: 1rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 22px;
+    background: var(--surface, #fff);
+  }
+
+  .manager-analytics__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .manager-periods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    padding: .25rem;
+    border-radius: 12px;
+    background: var(--manager-soft);
+  }
+
+  .manager-period {
+    min-height: 36px;
+    padding: .45rem .72rem;
+    border: 0;
+    border-radius: 9px;
+    color: var(--manager-muted);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: .75rem;
+    font-weight: 850;
+  }
+
+  .manager-period.is-active {
+    color: #fff;
+    background: var(--manager-green);
+  }
+
+  .manager-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    min-height: 38px;
+    padding: .45rem .72rem;
+    border: 1px solid var(--manager-line);
+    border-radius: 10px;
+    color: var(--manager-ink);
+    background: var(--surface, #fff);
+    cursor: pointer;
+    font: inherit;
+    font-size: .76rem;
+    font-weight: 850;
+  }
+
+  .manager-refresh:disabled {
+    cursor: progress;
+    opacity: .58;
+  }
+
+  .manager-analytics__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr);
+    gap: .9rem;
+  }
+
+  .manager-chart,
+  .manager-insight {
+    border: 1px solid var(--manager-line);
+    border-radius: 16px;
+    background: var(--manager-soft);
+  }
+
+  .manager-chart {
+    min-height: 330px;
+    padding: .9rem;
+  }
+
+  .manager-chart h3,
+  .manager-insight h3 {
+    margin: 0 0 .75rem;
+    color: var(--manager-ink);
+    font-size: .86rem;
+  }
+
+  .manager-chart__canvas {
+    position: relative;
+    height: 260px;
+  }
+
+  .manager-insights {
+    display: grid;
+    gap: .75rem;
+  }
+
+  .manager-insight {
+    padding: .9rem;
+  }
+
+  .manager-insight__number {
+    color: var(--manager-green);
+    font-size: 1.75rem;
+    font-weight: 950;
+  }
+
+  .manager-insight p {
+    margin: .35rem 0 0;
+    color: var(--manager-muted);
+    font-size: .75rem;
+    line-height: 1.7;
+  }
+
+  .manager-progress {
+    height: 8px;
+    margin-top: .65rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--manager-line);
+  }
+
+  .manager-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--manager-green), #19a064);
+  }
+
+  .manager-activity-list {
+    display: grid;
+    gap: .45rem;
+  }
+
+  .manager-activity {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .6rem;
+    border-radius: 12px;
+    background: var(--manager-soft);
+    text-decoration: none;
+    transition: background .18s ease, transform .18s ease;
+  }
+
+  .manager-activity:hover {
+    background: rgba(8, 100, 59, .08);
+    transform: translateX(-2px);
+  }
+
+  .manager-activity__icon {
+    display: grid;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 10px;
+    color: var(--manager-green);
+    background: #e3f2e8;
+  }
+
+  .manager-activity strong,
+  .manager-activity small {
+    display: block;
+  }
+
+  .manager-activity strong {
+    color: var(--manager-ink);
+    font-size: .75rem;
+  }
+
+  .manager-activity small {
+    margin-top: .1rem;
+    color: var(--manager-muted);
+    font-size: .68rem;
+  }
+
+  .manager-chart-fallback {
+    display: grid;
+    height: 100%;
+    place-items: center;
+    padding: 1rem;
+    color: var(--manager-muted);
+    text-align: center;
+    font-size: .78rem;
+  }
+
+  .manager-live-status {
+    color: var(--manager-muted);
+    font-size: .72rem;
+  }
+
+  @media (max-width: 1100px) {
+    .manager-kpis,
+    .manager-focus__items {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    [data-theme="dark"] {
-        --surface: #1e293b;
-        --background: #0f172a;
-        --text: #f1f5f9;
-        --text-muted: #94a3b8;
-        --secondary: #94a3b8;
+    .manager-primary-actions {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-    
-    /* Animations */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes slideIn {
-        from { transform: translateX(-20px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.8; }
-    }
-    
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
+  }
+
+  @media (max-width: 820px) {
+    .manager-page {
+      padding: .8rem;
     }
 
-    .school-dash {
-        padding: 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
-        animation: fadeIn 0.5s ease;
+    .manager-hero,
+    .manager-focus,
+    .manager-setup,
+    .manager-analytics__grid {
+      grid-template-columns: 1fr;
     }
 
-    /* Subscription Warning Banner */
-    .warning-banner {
-        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-        border: 2px solid #fca5a5;
-        border-radius: var(--radius);
-        padding: 1.25rem 1.5rem;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        box-shadow: var(--shadow-md);
-        animation: slideIn 0.5s ease;
-    }
-    
-    .warning-banner.critical {
-        background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
-        border-color: #ef4444;
-        animation: pulse 2s infinite;
-    }
-    
-    .warning-banner.warning {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        border-color: #b9975b;
-    }
-    
-    .warning-banner.expired {
-        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-        border-color: #9ca3af;
-    }
-    
-    .warning-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        font-size: 1.5rem;
-        background: white;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .warning-content {
-        flex: 1;
-    }
-    
-    .warning-content h3 {
-        margin: 0 0 0.25rem 0;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #7f1d1d;
-    }
-    
-    .warning-content p {
-        margin: 0;
-        font-size: 0.9rem;
-        color: #991b1b;
-        opacity: 0.9;
+    .manager-workspaces {
+      grid-template-columns: 1fr;
     }
 
-    /* Hero Section */
-    .hero-card {
-        background: linear-gradient(135deg, var(--primary) 0%, #00542a 100%);
-        color: white;
-        border-radius: 16px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 20px 25px -5px rgba(0, 108, 53, 0.3);
-        position: relative;
-        overflow: hidden;
-        animation: fadeIn 0.6s ease;
+    .manager-hero__summary {
+      min-height: 128px;
     }
-    
-    .hero-card::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -10%;
-        width: 400px;
-        height: 400px;
-        background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
-        border-radius: 50%;
-        pointer-events: none;
-    }
-    
-    .hero-card::after {
-        content: '';
-        position: absolute;
-        bottom: -30%;
-        left: -5%;
-        width: 300px;
-        height: 300px;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        border-radius: 50%;
-        pointer-events: none;
+  }
+
+  @media (max-width: 580px) {
+    .manager-kpis,
+    .manager-focus__items,
+    .manager-primary-actions,
+    .manager-workspace__links,
+    .manager-setup__steps {
+      grid-template-columns: 1fr;
     }
 
-    .hero-content {
-        position: relative;
-        z-index: 1;
-    }
-    
-    .hero-content h1 {
-        font-size: 1.875rem;
-        font-weight: 800;
-        margin-bottom: 0.75rem;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .school-meta {
-        display: flex;
-        gap: 1.5rem;
-        font-size: 0.95rem;
-        opacity: 0.95;
-        margin-bottom: 1rem;
-        flex-wrap: wrap;
-    }
-    
-    .school-meta span {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .hero-stats {
-        display: flex;
-        gap: 2rem;
-        background: rgba(255,255,255,0.15);
-        padding: 1.25rem 1.75rem;
-        border-radius: var(--radius);
-        backdrop-filter: blur(10px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        position: relative;
-        z-index: 1;
-    }
-    
-    .h-stat { 
-        text-align: center;
-        transition: transform 0.3s;
-    }
-    
-    .h-stat:hover {
-        transform: scale(1.1);
-    }
-    
-    .h-stat-val { 
-        font-size: 2rem; 
-        font-weight: 800; 
-        display: block;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .h-stat-lbl { 
-        font-size: 0.85rem; 
-        opacity: 0.9;
-        font-weight: 500;
+    .manager-kpi,
+    .manager-primary-action {
+      min-height: 110px;
     }
 
-    .dashboard-toolbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        margin: -0.75rem 0 1.75rem;
-        padding: 0.75rem;
-        border: 1px solid rgba(0, 108, 53, 0.12);
-        border-radius: var(--radius);
-        background: rgba(255, 255, 255, 0.82);
-        box-shadow: var(--shadow-sm);
-        flex-wrap: wrap;
+    .manager-focus__item {
+      min-height: 64px;
     }
 
-    .period-filters {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
+    .manager-section__head,
+    .manager-analytics__toolbar,
+    .manager-subscription-alert {
+      align-items: stretch;
+      flex-direction: column;
     }
 
-    .period-btn {
-        border: 0;
-        background: transparent;
-        color: var(--text-muted);
-        border-radius: 10px;
-        padding: 0.55rem 0.95rem;
-        font-weight: 800;
-        cursor: pointer;
-        transition: all 0.2s ease;
+    .manager-subscription-alert a {
+      text-align: center;
     }
 
-    .period-btn:hover {
-        background: rgba(0, 108, 53, 0.08);
-        color: var(--primary);
+    .manager-periods {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
     }
+  }
 
-    .period-btn.active {
-        background: var(--primary);
-        color: #fff;
-        box-shadow: var(--shadow-md);
+  @media (prefers-reduced-motion: reduce) {
+    .manager-page *,
+    .manager-page *::before,
+    .manager-page *::after {
+      scroll-behavior: auto !important;
+      transition-duration: .01ms !important;
     }
-
-    .toolbar-meta {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        color: var(--text-muted);
-        font-size: 0.85rem;
-        font-weight: 700;
-        flex-wrap: wrap;
-    }
-
-    .school-dash.is-loading {
-        opacity: 0.74;
-        transition: opacity 0.2s ease;
-    }
-
-    /* Action Grid */
-    .action-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2.5rem;
-    }
-
-    .action-card {
-        background: var(--surface);
-        padding: 1.5rem;
-        border-radius: var(--radius);
-        text-align: center;
-        border: 1px solid rgba(0,0,0,0.05);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        text-decoration: none;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.75rem;
-        position: relative;
-        overflow: hidden;
-        box-shadow: var(--shadow-sm);
-        animation: fadeIn 0.5s ease backwards;
-    }
-    
-    .action-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 60px;
-        height: 60px;
-        background: linear-gradient(135deg, rgba(0, 108, 53, 0.05), transparent);
-        border-radius: 0 0 0 100%;
-    }
-    
-    .action-card:nth-child(1) { animation-delay: 0.05s; }
-    .action-card:nth-child(2) { animation-delay: 0.1s; }
-    .action-card:nth-child(3) { animation-delay: 0.15s; }
-    .action-card:nth-child(4) { animation-delay: 0.2s; }
-    .action-card:nth-child(5) { animation-delay: 0.25s; }
-    .action-card:nth-child(6) { animation-delay: 0.3s; }
-    
-    .action-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-lg);
-        border-color: var(--primary);
-    }
-
-    .action-icon {
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #eff6ff, #dbeafe);
-        color: var(--primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.35rem;
-        transition: transform 0.3s;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .action-card:hover .action-icon {
-        transform: scale(1.1) rotate(5deg);
-    }
-
-    /* بطاقة ميزة غير مفعّلة (تتطلب اشتراك الأرشفة) */
-    .action-card.is-locked {
-        cursor: not-allowed;
-        filter: grayscale(.7);
-        opacity: .6;
-    }
-    .action-card.is-locked:hover {
-        transform: none;
-        box-shadow: var(--shadow);
-        border-color: var(--border);
-    }
-    .action-card.is-locked:hover .action-icon { transform: none; }
-    .action-card .lock-badge {
-        position: absolute;
-        top: 10px;
-        inset-inline-start: 10px;
-        width: 26px; height: 26px;
-        border-radius: 50%;
-        display: grid; place-items: center;
-        background: #64748b; color: #fff; font-size: .78rem;
-        z-index: 2;
-    }
-    .action-card .lock-hint {
-        font-size: .72rem;
-        font-weight: 800;
-        color: #b45309;
-        margin-top: 2px;
-    }
-
-    .action-title {
-        color: var(--text);
-        font-weight: 600;
-        font-size: 0.95rem;
-        position: relative;
-        z-index: 1;
-    }
-
-    /* Content Grid */
-    .content-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 2rem;
-    }
-    
-    @media (max-width: 1024px) {
-        .content-grid { grid-template-columns: 1fr; }
-    }
-
-    /* Panel Styles */
-    .panel {
-        background: var(--surface);
-        border-radius: var(--radius);
-        padding: 1.5rem;
-        box-shadow: var(--shadow-sm);
-        margin-bottom: 2rem;
-        border: 1px solid rgba(0,0,0,0.05);
-        transition: box-shadow 0.3s;
-    }
-    
-    .panel:hover {
-        box-shadow: var(--shadow-md);
-    }
-    
-    .panel-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid rgba(0,0,0,0.05);
-    }
-    
-    .panel-title { 
-        font-size: 1.15rem; 
-        font-weight: 700; 
-        color: var(--text); 
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    /* List items */
-    .list-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.875rem 0;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-        transition: background 0.2s;
-    }
-    
-    .list-item:hover {
-        background: rgba(0, 108, 53, 0.02);
-        margin: 0 -0.5rem;
-        padding: 0.875rem 0.5rem;
-        border-radius: 6px;
-    }
-    
-    .list-item:last-child { border: none; }
-    
-    /* Chart Containers */
-    .chart-container {
-        position: relative;
-        height: 300px;
-        margin: 1rem 0;
-    }
-    
-    /* Activity Timeline */
-    .activity-item {
-        display: flex;
-        gap: 1rem;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 0.75rem;
-        transition: background 0.2s;
-        animation: slideIn 0.4s ease backwards;
-    }
-    
-    .activity-item:hover {
-        background: rgba(0, 108, 53, 0.03);
-    }
-    
-    .activity-item:nth-child(1) { animation-delay: 0.1s; }
-    .activity-item:nth-child(2) { animation-delay: 0.2s; }
-    .activity-item:nth-child(3) { animation-delay: 0.3s; }
-    
-    .activity-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        font-size: 1rem;
-    }
-    
-    .activity-icon.primary { background: #dbeafe; color: #00542a; }
-    .activity-icon.warning { background: #fef3c7; color: #92400e; }
-    .activity-icon.success { background: #d1fae5; color: #065f46; }
-    
-    .activity-content {
-        flex: 1;
-    }
-    
-    .activity-content h4 {
-        margin: 0 0 0.25rem 0;
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--text);
-    }
-    
-    .activity-content p {
-        margin: 0;
-        font-size: 0.85rem;
-        color: var(--text-muted);
-    }
-    
-    .activity-time {
-        font-size: 0.75rem;
-        color: #9ca3af;
-        margin-top: 0.25rem;
-    }
-
-    /* Mobile Responsive */
-    @media(max-width:992px) {
-        .school-dash { padding: 1rem; }
-        .hero-card { 
-            flex-direction: column; 
-            text-align: center; 
-            gap: 1.5rem; 
-            padding: 1.5rem;
-        }
-        .hero-stats { 
-            width: 100%; 
-            justify-content: space-around;
-            gap: 1rem;
-            padding: 1rem;
-        }
-        .hero-content h1 { font-size: 1.5rem; }
-        .h-stat-val { font-size: 1.5rem; }
-        .action-grid {
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        }
-        .content-grid { grid-template-columns: 1fr; }
-        .dashboard-toolbar { align-items: stretch; }
-        .dashboard-toolbar,
-        .period-filters,
-        .toolbar-meta { width: 100%; }
-        .period-btn { flex: 1 1 calc(50% - 0.5rem); }
-    }
-    
-    @media (max-width: 640px) {
-        .school-meta { flex-direction: column; gap: 0.75rem; }
-        .hero-stats { flex-direction: column; gap: 0.75rem; }
-        .action-grid {
-            grid-template-columns: 1fr 1fr;
-        }
-    }
-    
-    /* Badge Styles */
-    .badge {
-        padding: 0.35rem 0.875rem;
-        border-radius: 9999px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-    
-    .badge-success { background: #d1fae5; color: #065f46; }
-    .badge-warning { background: #fef3c7; color: #92400e; }
-    .badge-danger { background: #fee2e2; color: #b91c1c; }
-    .badge-info { background: #dbeafe; color: #00542a; }
-
-    /* ============================================================
-       👑 ROYAL OVERLAY 2026 — هوية فخمة (زمرّدي + ذهبي)
-       طبقة تحسين بصرية فوق التصميم القائم دون المساس بالبيانات/الرسوم.
-       ============================================================ */
-    :root{
-        --royal-green:#0a5c33;
-        --royal-green-deep:#063d22;
-        --royal-gold:#d4b16d;
-        --royal-gold-soft:#e6cf9a;
-        --royal-gold-deep:#b9975b;
-    }
-
-    .school-dash{ position:relative; }
-
-    /* —— الهيرو الملكي —— */
-    .school-dash .hero-card{
-        background:
-            radial-gradient(120% 140% at 90% -10%, rgba(212,177,109,.22) 0%, transparent 45%),
-            linear-gradient(135deg, #0b6238 0%, #074426 55%, #052e1a 100%) !important;
-        border:1px solid rgba(212,177,109,.42) !important;
-        border-radius:24px !important;
-        box-shadow:0 26px 60px -22px rgba(5,46,26,.75), inset 0 1px 0 rgba(255,255,255,.06) !important;
-    }
-    /* شريط ذهبي علوي رفيع */
-    .school-dash .hero-card{ padding-top:2.25rem !important; }
-    .school-dash .hero-card > .hero-content::before{
-        content:"";
-        position:absolute; top:-1.35rem; right:0; left:0;
-        height:4px; border-radius:999px;
-        background:linear-gradient(90deg, transparent, var(--royal-gold) 18%, var(--royal-gold-soft) 50%, var(--royal-gold) 82%, transparent);
-        opacity:.9;
-    }
-    /* زخرفة تاج خفيفة في الزاوية */
-    .school-dash .hero-card > .hero-content::after{
-        content:"\f521"; /* fa-crown */
-        font-family:"Font Awesome 6 Free"; font-weight:900;
-        position:absolute; top:-.2rem; left:-.2rem;
-        font-size:2.4rem; color:rgba(212,177,109,.16);
-        pointer-events:none;
-    }
-    .school-dash .hero-content h1{
-        font-weight:950 !important; letter-spacing:-.5px;
-        font-size:2rem !important;
-        background:linear-gradient(90deg,#ffffff 0%, #fbf3df 60%, var(--royal-gold-soft) 100%);
-        -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-        text-shadow:none !important;
-    }
-    .school-dash .school-meta span{
-        background:rgba(212,177,109,.12);
-        border:1px solid rgba(212,177,109,.28);
-        padding:.32rem .7rem; border-radius:999px;
-        font-weight:800; backdrop-filter:blur(4px);
-    }
-    .school-dash .school-meta span i{ color:var(--royal-gold-soft); }
-
-    /* بطاقة الإحصائيات الذهبية */
-    .school-dash .hero-stats{
-        background:rgba(8,40,24,.42) !important;
-        border:1px solid rgba(212,177,109,.40) !important;
-        border-radius:18px !important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 12px 30px -16px rgba(0,0,0,.6) !important;
-    }
-    .school-dash .h-stat-val{
-        background:linear-gradient(180deg,#ffffff, var(--royal-gold-soft));
-        -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-        font-weight:950 !important;
-    }
-    .school-dash .h-stat + .h-stat{ position:relative; }
-    .school-dash .h-stat + .h-stat::before{
-        content:""; position:absolute; right:-1rem; top:15%; height:70%; width:1px;
-        background:linear-gradient(180deg, transparent, rgba(212,177,109,.5), transparent);
-    }
-    .school-dash .h-stat-lbl{ color:#e8f5ee; opacity:.85; }
-
-    /* زر إعدادات/تبديل داخل الهيرو */
-    .school-dash .hero-content .btn{
-        border:1px solid rgba(212,177,109,.5) !important;
-        background:rgba(212,177,109,.16) !important;
-        color:#fdf6e6 !important; font-weight:800;
-    }
-    .school-dash .hero-content .btn:hover{
-        background:var(--royal-gold) !important; color:#063d22 !important;
-        border-color:var(--royal-gold) !important;
-    }
-    .royal-hero-actions{ display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
-
-    /* فاصل ذهبي قبل الإجراءات */
-    .royal-section-title{
-        display:flex; align-items:center; gap:.85rem;
-        margin:0 0 1.1rem; color:var(--text);
-        font-weight:950; font-size:1.15rem;
-    }
-    .royal-section-title::before{
-        content:"\f521"; font-family:"Font Awesome 6 Free"; font-weight:900;
-        color:var(--royal-gold-deep); font-size:1.05rem;
-    }
-    .royal-section-title::after{
-        content:""; flex:1; height:2px; border-radius:999px;
-        background:linear-gradient(90deg, rgba(185,151,91,.55), rgba(185,151,91,.06));
-    }
-    [data-theme="dark"] .royal-section-title{ color:#f1f5f9; }
-
-    /* —— بطاقات الإجراءات الملكية —— */
-    .school-dash .action-card{
-        border:1px solid rgba(185,151,91,.20) !important;
-        border-radius:18px !important;
-        background:
-            linear-gradient(180deg, rgba(212,177,109,.05), transparent 40%),
-            var(--surface) !important;
-        box-shadow:0 10px 26px -18px rgba(10,92,51,.45) !important;
-    }
-    .school-dash .action-card::before{
-        background:linear-gradient(135deg, rgba(212,177,109,.30), transparent 70%) !important;
-        width:74px !important; height:74px !important;
-    }
-    .school-dash .action-card::after{
-        content:""; position:absolute; inset:0; border-radius:18px; padding:1px;
-        background:linear-gradient(135deg, rgba(212,177,109,.0), rgba(212,177,109,.0));
-        -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite:xor; mask-composite:exclude;
-        transition:background .3s ease; pointer-events:none;
-    }
-    .school-dash .action-card:hover{
-        transform:translateY(-6px) !important;
-        border-color:rgba(185,151,91,.55) !important;
-        box-shadow:0 22px 40px -20px rgba(10,92,51,.55) !important;
-    }
-    .school-dash .action-card:hover::after{
-        background:linear-gradient(135deg, var(--royal-gold), rgba(212,177,109,.15));
-    }
-    .school-dash .action-card:hover .action-title{ color:var(--royal-green); }
-    [data-theme="dark"] .school-dash .action-card:hover .action-title{ color:var(--royal-gold-soft); }
-    .school-dash .action-card:hover .action-icon{
-        box-shadow:0 0 0 4px rgba(212,177,109,.22);
-    }
-    .school-dash .action-title{ font-weight:800 !important; }
-
-    /* أزرار الفترة بلمسة ذهبية */
-    .school-dash .period-btn.active{
-        background:linear-gradient(135deg, var(--royal-green), #074426) !important;
-        box-shadow:0 8px 18px -8px rgba(10,92,51,.6) !important;
-    }
-
-    @media (max-width: 640px){
-        .school-dash .hero-content h1{ font-size:1.55rem !important; }
-    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="school-dash">
-    
-    {% if active_school %}
-    
-    <!-- Subscription Warning Banner -->
-    {% if subscription_warning %}
-        {% if subscription_warning == 'critical' %}
-        <div class="warning-banner critical">
-            <div class="warning-icon" style="color: #ef4444;">
-                <i class="fas fa-exclamation-triangle fa-shake"></i>
-            </div>
-            <div class="warning-content">
-                <h3>⚠️ تنبيه حرج: اشتراكك على وشك الانتهاء!</h3>
-                <p>
-                    <strong>{{ days_remaining }}</strong> يوم فقط متبقي على انتهاء الاشتراك. 
-                    يرجى التجديد فوراً لتجنب انقطاع الخدمة.
-                </p>
-            </div>
-            <a href="{% url 'reports:my_subscription' %}" class="btn btn-sm" style="background: #ef4444; color: white; white-space: nowrap;">
-                تجديد الآن <i class="fas fa-arrow-left"></i>
-            </a>
-        </div>
-        {% elif subscription_warning == 'warning' %}
-        <div class="warning-banner warning">
-            <div class="warning-icon" style="color: #b9975b;">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="warning-content">
-                <h3>⏰ تنبيه: اشتراكك سينتهي قريباً</h3>
-                <p>
-                    متبقي <strong>{{ days_remaining }}</strong> يوم على انتهاء الاشتراك. 
-                    ننصح بالتجديد مبكراً.
-                </p>
-            </div>
-            <a href="{% url 'reports:my_subscription' %}" class="btn btn-sm" style="background: #b9975b; color: white; white-space: nowrap;">
-                عرض التفاصيل
-            </a>
-        </div>
-        {% elif subscription_warning == 'expired' %}
-        <div class="warning-banner expired">
-            <div class="warning-icon" style="color: #6b7280;">
-                <i class="fas fa-ban"></i>
-            </div>
-            <div class="warning-content">
-                <h3>❌ انتهى الاشتراك</h3>
-                <p>اشتراك المدرسة غير نشط. يرجى التجديد للوصول إلى كامل المزايا.</p>
-            </div>
-            <a href="{% url 'reports:my_subscription' %}" class="btn btn-sm" style="background: #6b7280; color: white; white-space: nowrap;">
-                تجديد الاشتراك
-            </a>
-        </div>
-        {% endif %}
-    {% endif %}
-    
-    <!-- Hero Card -->
-    <div class="hero-card">
-        <div class="hero-content">
-            <h1>{{ active_school.name }}</h1>
-            <div class="school-meta">
-                <span><i class="fas fa-calendar-alt"></i> السنة: {{ active_school.current_academic_year|default:"الحالية" }}</span>
-                <span><i class="fas fa-users"></i> إجمالي {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}: {{ teachers_count }}</span>
-                <span><i class="fas fa-building"></i> {{ active_school.get_stage_display }}</span>
-            </div>
-            <div class="royal-hero-actions">
-                <a href="{% url 'reports:school_settings' %}" class="btn btn-sm">
-                    <i class="fas fa-cog"></i> إعدادات المدرسة
-                </a>
-                {% if USER_SCHOOLS|length > 1 %}
-                <a href="{% url 'reports:select_school' %}" class="btn btn-sm">
-                    <i class="fas fa-arrow-right-arrow-left"></i> تبديل المدرسة
-                </a>
-                {% endif %}
-            </div>
-        </div>
-        <div class="hero-stats">
-            <div class="h-stat">
-                <span class="h-stat-val" id="schoolReportsCount">{{ reports_count }}</span>
-                <span class="h-stat-lbl">تقرير</span>
-            </div>
-            <div class="h-stat">
-                <span class="h-stat-val" id="schoolTicketsTotal">{{ tickets_total }}</span>
-                <span class="h-stat-lbl">طلب</span>
-            </div>
-            <div class="h-stat">
-                <span class="h-stat-val" id="schoolTicketsOpen">{{ tickets_open|default:0 }}</span>
-                <span class="h-stat-lbl">قيد المعالجة</span>
-            </div>
-        </div>
-    </div>
-    {% else %}
-    <!-- No School Selected -->
-    <div class="hero-card" style="background: var(--secondary);">
-        <div class="hero-content">
-            <h1>لم يتم اختيار مدرسة</h1>
-            <p>اختر مدرسة للبدء في إدارة العمليات.</p>
-            <a href="{% url 'reports:select_school' %}" class="btn btn-light" style="margin-top:0.5rem">
-                <i class="fas fa-school"></i> اختيار مدرسة
-            </a>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if active_school %}
-    <div class="dashboard-toolbar" aria-label="تحديث بيانات لوحة المدرسة">
-        <div class="period-filters" role="group" aria-label="الفترة">
-            <button type="button" class="period-btn {% if initial_period == 'all' %}active{% endif %}" data-school-period="all" aria-pressed="{% if initial_period == 'all' %}true{% else %}false{% endif %}">الكل</button>
-            <button type="button" class="period-btn {% if initial_period == 'year' %}active{% endif %}" data-school-period="year" aria-pressed="{% if initial_period == 'year' %}true{% else %}false{% endif %}">هذا العام</button>
-            <button type="button" class="period-btn {% if initial_period == 'quarter' %}active{% endif %}" data-school-period="quarter" aria-pressed="{% if initial_period == 'quarter' %}true{% else %}false{% endif %}">هذا الربع</button>
-            <button type="button" class="period-btn {% if initial_period == 'month' %}active{% endif %}" data-school-period="month" aria-pressed="{% if initial_period == 'month' %}true{% else %}false{% endif %}">هذا الشهر</button>
-        </div>
-        <div class="toolbar-meta">
-            <span>الفترة: <strong id="schoolActivePeriodLabel">الكل</strong></span>
-            <span id="schoolDashboardUpdated">آخر تحديث: الآن</span>
-            <button type="button" class="btn btn-sm btn-outline" id="refreshSchoolDashboard">
-                <i class="fas fa-sync-alt"></i> تحديث
-            </button>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Quick Actions Grid -->
-    <h2 class="royal-section-title">الإجراءات السريعة</h2>
-    <div class="action-grid">
-        <a href="{% url 'reports:add_teacher' %}" class="action-card">
-            <div class="action-icon"><i class="fas fa-user-plus"></i></div>
-            <span class="action-title">إضافة معلم</span>
-        </a>
-        <a href="{% url 'reports:manage_teachers' %}" class="action-card">
-            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-chalkboard-teacher"></i></div>
-            <span class="action-title">إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</span>
-        </a>
-        <a href="{% url 'reports:departments_list' %}" class="action-card">
-            <div class="action-icon" style="color:#b9975b; background:linear-gradient(135deg, #f3e8ff, #e9d5ff)"><i class="fas fa-building"></i></div>
-            <span class="action-title">الأقسام</span>
-        </a>
-        <a href="{% url 'reports:admin_reports' %}" class="action-card">
-            <div class="action-icon" style="color:#16845b; background:linear-gradient(135deg, #d1fae5, #a7f3d0)"><i class="fas fa-file-contract"></i></div>
-            <span class="action-title">تقارير المدرسة</span>
-        </a>
-        <a href="{% url 'reports:request_create' %}" class="action-card">
-            <div class="action-icon" style="color:#b9975b; background:linear-gradient(135deg, #fef3c7, #fde68a)"><i class="fas fa-plus-circle"></i></div>
-            <span class="action-title">طلب جديد</span>
-        </a>
-        <a href="{% url 'reports:manager_school_tickets' %}" class="action-card">
-            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-inbox"></i></div>
-            <span class="action-title">طلبات المدرسة</span>
-        </a>
-        <a href="{% url 'reports:my_subscription' %}" class="action-card">
-            <div class="action-icon" style="color:#ef4444; background:linear-gradient(135deg, #fee2e2, #fecaca)"><i class="fas fa-star"></i></div>
-            <span class="action-title">اشتراك المدرسة</span>
-        </a>
-        <a href="{% url 'reports:reporttypes_list' %}" class="action-card">
-            <div class="action-icon" style="color:#0f8f87; background:linear-gradient(135deg, #e0e7ff, #c7d2fe)"><i class="fas fa-list-alt"></i></div>
-            <span class="action-title">أنواع التقارير</span>
-        </a>
-        <a href="{% url 'reports:report_templates_list' %}" class="action-card">
-            <div class="action-icon" style="color:#0f8f87; background:linear-gradient(135deg, #dcfce7, #bbf7d0)"><i class="fas fa-layer-group"></i></div>
-            <span class="action-title">قوالب التقارير</span>
-        </a>
-        {% if SHOW_ARCHIVE_LINK %}
-        <a href="{% url 'reports:school_archive' %}" class="action-card">
-            <div class="action-icon" style="color:#0a5c33; background:linear-gradient(135deg, #e9f3ec, #cbe6d6)"><i class="fas fa-box-archive"></i></div>
-            <span class="action-title">أرشيف السنوات</span>
-        </a>
-        <a href="{% url 'reports:school_data_export' %}" class="action-card">
-            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #dbeafe, #bfdbfe)"><i class="fas fa-file-export"></i></div>
-            <span class="action-title">تصدير بيانات المدرسة</span>
-        </a>
+<main class="manager-page" id="managerDashboard">
+  {% if subscription_warning %}
+    <div class="manager-subscription-alert {% if subscription_warning == 'critical' %}is-critical{% elif subscription_warning == 'expired' %}is-expired{% endif %}" role="status">
+      <i class="fa-solid {% if subscription_warning == 'expired' %}fa-circle-xmark{% else %}fa-triangle-exclamation{% endif %}" aria-hidden="true"></i>
+      <div class="manager-subscription-alert__content">
+        {% if subscription_warning == "expired" %}
+          <strong>اشتراك المدرسة غير نشط</strong>
+          <span>يمكنك مراجعة الاشتراك وتجديده لاستعادة جميع مزايا المدرسة.</span>
+        {% elif subscription_warning == "critical" %}
+          <strong>متبقي {{ days_remaining }} أيام على انتهاء الاشتراك</strong>
+          <span>جدّد مبكرًا حتى يستمر عمل الفريق دون انقطاع.</span>
         {% else %}
-        <div class="action-card is-locked" aria-disabled="true" title="تتطلب اشتراك الأرشفة">
-            <span class="lock-badge"><i class="fas fa-lock"></i></span>
-            <div class="action-icon" style="color:#0a5c33; background:linear-gradient(135deg, #e9f3ec, #cbe6d6)"><i class="fas fa-box-archive"></i></div>
-            <span class="action-title">أرشيف السنوات</span>
-            <span class="lock-hint">تتطلب اشتراك الأرشفة</span>
-        </div>
-        <div class="action-card is-locked" aria-disabled="true" title="تتطلب اشتراك الأرشفة">
-            <span class="lock-badge"><i class="fas fa-lock"></i></span>
-            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #dbeafe, #bfdbfe)"><i class="fas fa-file-export"></i></div>
-            <span class="action-title">تصدير بيانات المدرسة</span>
-            <span class="lock-hint">تتطلب اشتراك الأرشفة</span>
-        </div>
+          <strong>موعد التجديد يقترب</strong>
+          <span>متبقي {{ days_remaining }} يومًا على انتهاء اشتراك المدرسة.</span>
         {% endif %}
-        <a href="{% url 'reports:notifications_sent' %}" class="action-card">
-            <div class="action-icon" style="color:#0072bc; background:linear-gradient(135deg, #e0f2fe, #bae6fd)"><i class="fas fa-bell"></i></div>
-            <span class="action-title">الإشعارات</span>
-        </a>
-        <a href="{% url 'reports:circulars_sent' %}" class="action-card">
-            <div class="action-icon" style="color:#006c35; background:linear-gradient(135deg, #dbeafe, #bfdbfe)"><i class="fas fa-clipboard-check"></i></div>
-            <span class="action-title">التعاميم</span>
-        </a>
-        <a href="{% url 'reports:notifications_create' %}" class="action-card">
-            <div class="action-icon" style="color:#b9975b; background:linear-gradient(135deg, #fff7ed, #fed7aa)"><i class="fas fa-bell"></i></div>
-            <span class="action-title">إرسال إشعار</span>
-        </a>
-        <a href="{% url 'reports:circulars_create' %}" class="action-card">
-            <div class="action-icon" style="color:#006c35; background:linear-gradient(135deg, #eff6ff, #dbeafe)"><i class="fas fa-bullhorn"></i></div>
-            <span class="action-title">إرسال تعميم</span>
-        </a>
-        <a href="{% url 'reports:my_support_tickets' %}" class="action-card">
-            <div class="action-icon" style="color:#e11d48; background:linear-gradient(135deg, #ffe4e6, #fecdd3)"><i class="fas fa-headset"></i></div>
-            <span class="action-title">تذاكر الدعم الفني</span>
-        </a>
-        <a href="{% url 'reports:achievement_school_files' %}" class="action-card">
-            <div class="action-icon" style="color:#14b8a6; background:linear-gradient(135deg, #ccfbf1, #99f6e4)"><i class="fas fa-award"></i></div>
-            <span class="action-title">ملفات الإنجاز</span>
-        </a>
+      </div>
+      <a href="{% url 'reports:my_subscription' %}">إدارة الاشتراك</a>
     </div>
+  {% endif %}
 
-    {% if active_school %}
-    <!-- Content Grid: Charts & Stats -->
-    <div class="content-grid">
-        <!-- Main Content -->
-        <div class="main-content">
-            
-            <!-- Reports Activity Chart -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h3 class="panel-title">
-                        <i class="fas fa-chart-line" style="color: var(--primary);"></i>
-                        نشاط التقارير الأسبوعي
-                    </h3>
-                </div>
-                <div class="chart-container">
-                    <canvas id="reportsChart"></canvas>
-                </div>
-            </div>
-            
-            <!-- Reports by Category -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h3 class="panel-title">
-                        <i class="fas fa-chart-pie" style="color: var(--accent);"></i>
-                        توزيع التقارير حسب التصنيف
-                    </h3>
-                </div>
-                <div class="chart-container">
-                    <canvas id="deptChart"></canvas>
-                </div>
-            </div>
-
+  {% if active_school %}
+    <section class="manager-hero" aria-labelledby="managerDashboardTitle">
+      <div>
+        <div class="manager-eyebrow">
+          <i class="fa-solid fa-compass" aria-hidden="true"></i>
+          مركز إدارة المدرسة
         </div>
-
-        <!-- Sidebar -->
-        <div class="sidebar-content">
-            
-            <!-- System Status -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h3 class="panel-title">
-                        <i class="fas fa-tachometer-alt" style="color: var(--success);"></i>
-                        حالة النظام
-                    </h3>
-                </div>
-                <div class="list-item">
-                    <span><i class="fas fa-users" style="color: var(--primary);"></i> عدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</span>
-                    <strong id="schoolTeachersCountSide" style="font-size: 1.1rem; color: var(--primary);">{{ teachers_count }}</strong>
-                </div>
-                <div class="list-item">
-                    <span><i class="fas fa-file-alt" style="color: var(--accent);"></i> أنواع التقارير</span>
-                    <strong id="schoolReportTypesCountSide" style="font-size: 1.1rem; color: var(--accent);">{{ reporttypes_count }}</strong>
-                </div>
-                <div class="list-item">
-                    <span><i class="fas fa-chart-line" style="color: var(--success);"></i> إحصائية الطلبات</span>
-                    <span class="badge badge-success"><i class="fas fa-check-circle"></i> ممتازة</span>
-                </div>
-            </div>
-            
-            <!-- Teachers by Department -->
-            {% if teachers_labels %}
-            <div class="panel">
-                <div class="panel-header">
-                    <h3 class="panel-title">
-                        <i class="fas fa-users-cog" style="color: var(--warning);"></i>
-                        {{ SCHOOL_TEACHERS_LABEL|default:"المعلمون" }} حسب القسم
-                    </h3>
-                </div>
-                <div class="chart-container" style="height: 250px;">
-                    <canvas id="teachersChart"></canvas>
-                </div>
-            </div>
-            {% endif %}
-            
-            <!-- Recent Activity -->
-            {% if recent_activities %}
-            <div class="panel">
-                <div class="panel-header">
-                    <h3 class="panel-title">
-                        <i class="fas fa-history" style="color: var(--text-muted);"></i>
-                        آخر الأنشطة
-                    </h3>
-                </div>
-                {% for activity in recent_activities %}
-                <div class="activity-item">
-                    <div class="activity-icon {{ activity.color }}">
-                        <i class="fas {{ activity.icon }}"></i>
-                    </div>
-                    <div class="activity-content">
-                        <h4>{{ activity.title }}</h4>
-                        <p>{{ activity.description }}</p>
-                        <span class="activity-time">{{ activity.time|timesince }}</span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            
-            <!-- Support Panel -->
-            <div class="panel" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 1px solid #cbd5e1;">
-                <div class="panel-header" style="border-color:rgba(0,0,0,0.1)">
-                    <h3 class="panel-title">
-                        <i class="fas fa-life-ring" style="color: var(--danger);"></i>
-                        الدعم الفني
-                    </h3>
-                </div>
-                <p style="font-size:0.9rem; color:var(--text); margin-bottom:1rem; line-height: 1.6;">
-                    هل تواجه مشكلة؟ يمكنك فتح تذكرة دعم فني للمنصة ونحن سنساعدك.
-                </p>
-                <a href="{% url 'reports:support_ticket_create' %}" class="btn btn-sm" style="width:100%; background: var(--danger); color: white;">
-                    <i class="fas fa-headset"></i> تواصل مع الدعم
-                </a>
-            </div>
-
+        <h1 id="managerDashboardTitle">{{ active_school.name }}</h1>
+        <p class="manager-hero__intro">
+          نظرة واحدة على ما يحتاج متابعتك اليوم، ثم وصول مباشر إلى مهام الفريق والتقارير والتواصل.
+        </p>
+        <div class="manager-school-meta" aria-label="معلومات المدرسة">
+          <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ active_school.current_academic_year|default:"السنة الحالية" }}</span>
+          <span><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> {{ active_school.get_stage_display }}</span>
+          <span><i class="fa-solid fa-users" aria-hidden="true"></i> {{ teachers_count|intcomma }} {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"معلمين" }}</span>
         </div>
-    </div>
+        <div class="manager-hero__actions">
+          <a class="manager-hero__button manager-hero__button--primary" href="{% url 'reports:admin_reports' %}">
+            <i class="fa-solid fa-file-shield" aria-hidden="true"></i>
+            مراجعة تقارير المدرسة
+          </a>
+          <a class="manager-hero__button" href="{% url 'reports:school_settings' %}">
+            <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+            إعدادات المدرسة
+          </a>
+          {% if USER_SCHOOLS|length > 1 %}
+            <a class="manager-hero__button" href="{% url 'reports:select_school' %}">
+              <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i>
+              تبديل المدرسة
+            </a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="manager-hero__summary" aria-label="ملخص المتابعة">
+        <span class="manager-hero__summary-label">عناصر تحتاج متابعة</span>
+        <strong class="manager-hero__summary-value" id="managerAttentionTotal">
+          {{ tickets_open|add:pending_achievement_files|add:NAV_ASSIGNED_TO_ME|intcomma }}
+        </strong>
+        <small>طلبات مفتوحة وملفات إنجاز بانتظار الاعتماد ومهام معيّنة لك.</small>
+      </div>
+    </section>
+  {% else %}
+    <section class="manager-hero" aria-labelledby="managerDashboardTitle">
+      <div>
+        <div class="manager-eyebrow">إعداد مساحة العمل</div>
+        <h1 id="managerDashboardTitle">اختر مدرسة للبدء</h1>
+        <p class="manager-hero__intro">يجب تحديد المدرسة النشطة قبل إدارة التقارير والفريق والطلبات.</p>
+        <a class="manager-hero__button manager-hero__button--primary" href="{% url 'reports:select_school' %}">اختيار مدرسة</a>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if active_school %}
+    <section class="manager-section" aria-labelledby="overviewTitle">
+      <div class="manager-section__head">
+        <div>
+          <h2 id="overviewTitle">نظرة سريعة</h2>
+          <p>المؤشرات التالية تقودك مباشرة إلى التفاصيل.</p>
+          <span class="manager-period-context">
+            <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+            التحليلات: <span id="managerPeriodLabel">{{ selected_period_label }}</span>
+          </span>
+        </div>
+      </div>
+      <div class="manager-kpis">
+        <a class="manager-kpi manager-kpi--attention" href="{% url 'reports:manager_school_tickets' %}">
+          <span class="manager-kpi__top">
+            <span class="manager-kpi__icon"><i class="fa-solid fa-inbox" aria-hidden="true"></i></span>
+            <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
+          </span>
+          <strong class="manager-kpi__value" id="schoolTicketsOpen">{{ tickets_open|intcomma }}</strong>
+          <span class="manager-kpi__label">طلبات مدرسة قيد المتابعة</span>
+        </a>
+        <a class="manager-kpi manager-kpi--attention" href="{% url 'reports:achievement_school_files' %}">
+          <span class="manager-kpi__top">
+            <span class="manager-kpi__icon"><i class="fa-solid fa-award" aria-hidden="true"></i></span>
+            <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
+          </span>
+          <strong class="manager-kpi__value">{{ pending_achievement_files|intcomma }}</strong>
+          <span class="manager-kpi__label">ملفات إنجاز بانتظار الاعتماد</span>
+        </a>
+        <a class="manager-kpi" href="{% url 'reports:admin_reports' %}">
+          <span class="manager-kpi__top">
+            <span class="manager-kpi__icon"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span>
+            <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
+          </span>
+          <strong class="manager-kpi__value" id="schoolReportsCount">{{ reports_count|intcomma }}</strong>
+          <span class="manager-kpi__label">تقريرًا ضمن الفترة المحددة</span>
+        </a>
+        <a class="manager-kpi" href="{% url 'reports:manage_teachers' %}">
+          <span class="manager-kpi__top">
+            <span class="manager-kpi__icon"><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
+            <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
+          </span>
+          <strong class="manager-kpi__value" id="schoolTeachersCount">{{ teachers_count|intcomma }}</strong>
+          <span class="manager-kpi__label">{{ SCHOOL_TEACHERS_LABEL|default:"المعلمون" }} النشطون في المدرسة</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="manager-section manager-focus" aria-labelledby="todayFocusTitle">
+      <div class="manager-focus__intro">
+        <h2 id="todayFocusTitle">متابعة اليوم</h2>
+        <p>ابدأ بالعناصر التي تنتظر منك قراءة أو قرارًا، ثم انتقل إلى بقية الأعمال.</p>
+      </div>
+      <div class="manager-focus__items">
+        {% if tickets_open or pending_achievement_files or NAV_ASSIGNED_TO_ME or NAV_NOTIFICATIONS_UNREAD or NAV_SIGNATURES_PENDING %}
+          {% if tickets_open %}
+            <a class="manager-focus__item" href="{% url 'reports:manager_school_tickets' %}?status=attention">
+              <span class="manager-focus__count">{{ tickets_open }}</span>
+              <span><strong>طلبات المدرسة المفتوحة</strong><small>تنتظر المتابعة أو الإسناد</small></span>
+            </a>
+          {% endif %}
+          {% if pending_achievement_files %}
+            <a class="manager-focus__item" href="{% url 'reports:achievement_school_files' %}?status=submitted">
+              <span class="manager-focus__count">{{ pending_achievement_files }}</span>
+              <span><strong>اعتمادات الإنجاز</strong><small>ملفات مرسلة للمراجعة</small></span>
+            </a>
+          {% endif %}
+          {% if NAV_ASSIGNED_TO_ME %}
+            <a class="manager-focus__item" href="{% url 'reports:assigned_to_me' %}">
+              <span class="manager-focus__count">{{ NAV_ASSIGNED_TO_ME }}</span>
+              <span><strong>مهام معيّنة لي</strong><small>طلبات تحتاج إجراءك</small></span>
+            </a>
+          {% endif %}
+          {% if NAV_NOTIFICATIONS_UNREAD %}
+            <a class="manager-focus__item" href="{% url 'reports:my_notifications' %}">
+              <span class="manager-focus__count">{{ NAV_NOTIFICATIONS_UNREAD }}</span>
+              <span><strong>إشعارات غير مقروءة</strong><small>آخر المستجدات</small></span>
+            </a>
+          {% endif %}
+          {% if NAV_SIGNATURES_PENDING %}
+            <a class="manager-focus__item" href="{% url 'reports:my_circulars' %}">
+              <span class="manager-focus__count">{{ NAV_SIGNATURES_PENDING }}</span>
+              <span><strong>توقيعات مطلوبة مني</strong><small>تعاميم بانتظار الإقرار</small></span>
+            </a>
+          {% endif %}
+        {% else %}
+          <div class="manager-focus__clear">
+            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+            <span>
+              <strong>لا توجد عناصر معلّقة الآن</strong>
+              <small>جميع الطلبات والاعتمادات والإشعارات الحالية تمت متابعتها.</small>
+            </span>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if setup_percent < 100 %}
+    <section class="manager-section manager-setup" aria-labelledby="setupTitle">
+      <div class="manager-setup__summary">
+        <h2 id="setupTitle">جاهزية مساحة المدرسة</h2>
+        <p>أربع خطوات أساسية تجعل تجربة الفريق واضحة وتقلل الأخطاء عند إنشاء التقارير.</p>
+        <div class="manager-setup__percent">
+          <strong>{{ setup_percent }}%</strong>
+          <span>{{ setup_completed }} من {{ setup_total }}</span>
+        </div>
+        <div class="manager-setup__track" aria-label="نسبة اكتمال الإعداد">
+          <span style="width:{{ setup_percent }}%"></span>
+        </div>
+      </div>
+      <div class="manager-setup__steps">
+        {% for step in setup_steps %}
+          <a class="manager-setup__step {% if step.complete %}is-complete{% endif %}" href="{{ step.url }}">
+            <span class="manager-setup__state">
+              <i class="fa-solid {% if step.complete %}fa-check{% else %}fa-arrow-left{% endif %}" aria-hidden="true"></i>
+            </span>
+            <span>
+              <strong>{{ step.title }}</strong>
+              <small>{% if step.complete %}مكتمل ويمكن مراجعته عند الحاجة.{% else %}{{ step.description }}{% endif %}</small>
+            </span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
     {% endif %}
 
-</div>
+    <section class="manager-section" aria-labelledby="quickActionsTitle">
+      <div class="manager-section__head">
+        <div>
+          <h2 id="quickActionsTitle">ابدأ مهمة</h2>
+          <p>الإجراءات الأكثر استخدامًا في عمل مدير المدرسة.</p>
+        </div>
+      </div>
+      <div class="manager-primary-actions">
+        <a class="manager-primary-action" href="{% url 'reports:admin_reports' %}">
+          <i class="fa-solid fa-file-circle-check" aria-hidden="true"></i>
+          <strong>مراجعة التقارير</strong>
+          <small>عرض تقارير المدرسة والبحث فيها.</small>
+        </a>
+        <a class="manager-primary-action" href="{% url 'reports:bulk_import_teachers' %}">
+          <i class="fa-solid fa-users-viewfinder" aria-hidden="true"></i>
+          <strong>إضافة منسوبي المدرسة</strong>
+          <small>إضافة سريعة أو Excel مع مراجعة قبل الحفظ.</small>
+        </a>
+        <a class="manager-primary-action" href="{% url 'reports:notifications_create' %}">
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+          <strong>إرسال إشعار</strong>
+          <small>رسالة سريعة لمعلم أو قسم.</small>
+        </a>
+        <a class="manager-primary-action" href="{% url 'reports:circulars_create' %}">
+          <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
+          <strong>إصدار تعميم</strong>
+          <small>تعميم رسمي يتطلب الاطلاع والتوقيع.</small>
+        </a>
+        <a class="manager-primary-action" href="{% url 'reports:manager_school_tickets' %}">
+          <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+          <strong>متابعة طلبات المدرسة</strong>
+          <small>الطلبات الداخلية وحالات معالجتها.</small>
+        </a>
+      </div>
+    </section>
+
+    <section class="manager-section" aria-labelledby="workspacesTitle">
+      <div class="manager-section__head">
+        <div>
+          <h2 id="workspacesTitle">مساحات العمل</h2>
+          <p>جميع أدوات الإدارة مرتبة حسب المهمة، وليست قائمة واحدة طويلة.</p>
+        </div>
+      </div>
+      <div class="manager-workspaces">
+        <article class="manager-workspace">
+          <header class="manager-workspace__head">
+            <i class="fa-solid fa-people-roof" aria-hidden="true"></i>
+            <div><h3>فريق المدرسة</h3><p>الحسابات والأقسام وتنظيم الفريق.</p></div>
+          </header>
+          <div class="manager-workspace__links">
+            <a class="manager-workspace__link" href="{% url 'reports:manage_teachers' %}"><span>إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:bulk_import_teachers' %}"><span>إضافة منسوبي المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:departments_list' %}"><span>الأقسام والصلاحيات</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:school_settings' %}"><span>بيانات المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
+          </div>
+        </article>
+
+        <article class="manager-workspace">
+          <header class="manager-workspace__head">
+            <i class="fa-solid fa-folder-tree" aria-hidden="true"></i>
+            <div><h3>التقارير والتوثيق</h3><p>الأنواع والقوالب والملفات والمخرجات.</p></div>
+          </header>
+          <div class="manager-workspace__links">
+            <a class="manager-workspace__link" href="{% url 'reports:reporttypes_list' %}"><span>أنواع التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:report_templates_list' %}"><span>قوالب التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:achievement_school_files' %}"><span>ملفات الإنجاز</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link {% if not ARCHIVE_ADDON_ACTIVE and not HAS_SAVED_ARCHIVE %}manager-workspace__link--locked{% endif %}" href="{% url 'reports:school_archive' %}">
+              <span>أرشيف السنوات</span>
+              {% if ARCHIVE_ADDON_ACTIVE or HAS_SAVED_ARCHIVE %}
+                <i class="fa-solid fa-arrow-left"></i>
+              {% else %}
+                <span class="manager-lock"><i class="fa-solid fa-lock"></i> تعرّف وفعّل</span>
+              {% endif %}
+            </a>
+            {% if ARCHIVE_ADDON_ACTIVE %}
+              <a class="manager-workspace__link" href="{% url 'reports:school_data_export' %}"><span>تصدير بيانات المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
+            {% else %}
+              <a class="manager-workspace__link manager-workspace__link--locked" href="{% url 'reports:my_subscription' %}#archiveOrder" aria-label="تفعيل تصدير بيانات المدرسة من صفحة الاشتراك">
+                <span>تصدير البيانات</span><span class="manager-lock"><i class="fa-solid fa-lock"></i> يتطلب الأرشفة</span>
+              </a>
+            {% endif %}
+          </div>
+        </article>
+
+        <article class="manager-workspace">
+          <header class="manager-workspace__head">
+            <i class="fa-solid fa-comments" aria-hidden="true"></i>
+            <div><h3>التواصل والمتابعة</h3><p>الإشعارات والتعاميم والطلبات دون خلطها بالدعم.</p></div>
+          </header>
+          <div class="manager-workspace__links">
+            <a class="manager-workspace__link" href="{% url 'reports:notifications_sent' %}"><span>سجل الإشعارات</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:circulars_sent' %}"><span>سجل التعاميم</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:assigned_to_me' %}"><span>المهام المعيّنة لي</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:request_create' %}"><span>إنشاء طلب داخلي</span><i class="fa-solid fa-arrow-left"></i></a>
+          </div>
+        </article>
+
+        <article class="manager-workspace">
+          <header class="manager-workspace__head">
+            <i class="fa-solid fa-gear" aria-hidden="true"></i>
+            <div><h3>الاشتراك والدعم</h3><p>إدارة خدمة المدرسة والتواصل مع فريق المنصة.</p></div>
+          </header>
+          <div class="manager-workspace__links">
+            <a class="manager-workspace__link" href="{% url 'reports:school_audit_logs' %}"><span>سجل عمليات المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:my_subscription' %}"><span>اشتراك المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:my_support_tickets' %}"><span>طلبات دعم المنصة</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:support_ticket_create' %}"><span>فتح طلب دعم</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:my_profile' %}"><span>حسابي والأمان</span><i class="fa-solid fa-arrow-left"></i></a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="manager-section manager-analytics" aria-labelledby="analyticsTitle">
+      <div class="manager-analytics__toolbar">
+        <div>
+          <div class="manager-section__head" style="margin:0">
+            <div>
+              <h2 id="analyticsTitle">أداء المدرسة</h2>
+              <p>غيّر الفترة لمقارنة النشاط، دون مغادرة الصفحة.</p>
+            </div>
+          </div>
+          <span class="manager-live-status" id="schoolDashboardStatus" aria-live="polite">آخر تحديث: الآن</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
+          <div class="manager-periods" role="group" aria-label="الفترة الزمنية">
+            <button class="manager-period {% if initial_period == 'all' %}is-active{% endif %}" type="button" data-school-period="all" aria-pressed="{% if initial_period == 'all' %}true{% else %}false{% endif %}">الكل</button>
+            <button class="manager-period {% if initial_period == 'year' %}is-active{% endif %}" type="button" data-school-period="year" aria-pressed="{% if initial_period == 'year' %}true{% else %}false{% endif %}">هذا العام</button>
+            <button class="manager-period {% if initial_period == 'quarter' %}is-active{% endif %}" type="button" data-school-period="quarter" aria-pressed="{% if initial_period == 'quarter' %}true{% else %}false{% endif %}">هذا الربع</button>
+            <button class="manager-period {% if initial_period == 'month' %}is-active{% endif %}" type="button" data-school-period="month" aria-pressed="{% if initial_period == 'month' %}true{% else %}false{% endif %}">هذا الشهر</button>
+          </div>
+          <button class="manager-refresh" id="refreshSchoolDashboard" type="button">
+            <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+            تحديث
+          </button>
+        </div>
+      </div>
+
+      <div class="manager-analytics__grid">
+        <div class="manager-chart">
+          <h3>نشاط التقارير أسبوعيًا</h3>
+          <div class="manager-chart__canvas" id="reportsChartBox">
+            <canvas id="reportsChart" role="img" aria-label="رسم يوضح عدد تقارير المدرسة أسبوعيًا"></canvas>
+          </div>
+        </div>
+        <div class="manager-insights">
+          <article class="manager-insight">
+            <h3>إنجاز طلبات المدرسة</h3>
+            <strong class="manager-insight__number" id="ticketCompletionRate">{{ ticket_completion_rate }}%</strong>
+            <div class="manager-progress" aria-hidden="true"><span id="ticketCompletionProgress" style="width:{{ ticket_completion_rate }}%"></span></div>
+            <p><span id="schoolTicketsDone">{{ tickets_done|intcomma }}</span> طلبات مكتملة من أصل <span id="schoolTicketsTotal">{{ tickets_total|intcomma }}</span>.</p>
+          </article>
+          <article class="manager-insight">
+            <h3>توزيع التقارير حسب النوع</h3>
+            <div class="manager-chart__canvas" id="categoriesChartBox" style="height:210px">
+              <canvas id="categoriesChart" role="img" aria-label="رسم يوضح توزيع تقارير المدرسة حسب النوع"></canvas>
+            </div>
+          </article>
+          {% if recent_activities %}
+            <article class="manager-insight">
+              <h3>آخر النشاطات</h3>
+              <div class="manager-activity-list">
+                {% for activity in recent_activities|slice:":4" %}
+                  <a class="manager-activity" href="{{ activity.url }}">
+                    <span class="manager-activity__icon"><i class="fa-solid {{ activity.icon }}" aria-hidden="true"></i></span>
+                    <span>
+                      <strong>{{ activity.title }} — {{ activity.description }}</strong>
+                      <small>منذ {{ activity.time|timesince }}</small>
+                    </span>
+                  </a>
+                {% endfor %}
+              </div>
+            </article>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+</main>
 
 {% if active_school %}
-{{ dashboard_period_payload|json_script:"schoolDashboardPayload" }}
-<!-- JavaScript for Charts -->
-<script>
-(function () {
-    const payloadEl = document.getElementById('schoolDashboardPayload');
-    let dashboardPayload = {};
+  {{ dashboard_period_payload|json_script:"schoolDashboardPayload" }}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if active_school %}
+<script nonce="{{ CSP_NONCE }}">
+  (function () {
+    "use strict";
+
+    const root = document.getElementById("managerDashboard");
+    const payloadElement = document.getElementById("schoolDashboardPayload");
+    const refreshButton = document.getElementById("refreshSchoolDashboard");
+    const statusElement = document.getElementById("schoolDashboardStatus");
+    const apiUrl = "{% url 'reports:api_admin_dashboard_data' %}";
+    let currentPeriod = "{{ initial_period|default:'all' }}";
+    let requestController = null;
+    let reportsChart = null;
+    let categoriesChart = null;
+    let payload = {};
+
     try {
-        dashboardPayload = payloadEl ? JSON.parse(payloadEl.textContent || '{}') : {};
+      payload = JSON.parse(payloadElement ? payloadElement.textContent : "{}");
+      currentPeriod = payload.period || currentPeriod;
     } catch (error) {
-        dashboardPayload = {};
+      payload = {};
     }
 
-    const PERIOD_LABELS = {
-        all: 'الكل',
-        year: 'هذا العام',
-        quarter: 'هذا الربع',
-        month: 'هذا الشهر',
-    };
-    const SCHOOL_DASHBOARD_API_URL = "{% url 'reports:api_admin_dashboard_data' %}";
-    let currentPeriod = dashboardPayload.period || '{{ initial_period|default:"all" }}';
-    let requestController = null;
-
-    const colors = {
-        primary: '#006c35',
-        secondary: '#64748b',
-        accent: '#b9975b',
-        success: '#16845b',
-        warning: '#b9975b',
-        danger: '#ef4444',
-    };
-
     function formatNumber(value) {
-        return Number(value || 0).toLocaleString('ar-SA');
+      return Number(value || 0).toLocaleString("ar-SA");
     }
 
     function setText(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value;
+      const element = document.getElementById(id);
+      if (element) element.textContent = value;
     }
 
-    function setLoading(isLoading) {
-        const root = document.querySelector('.school-dash');
-        if (root) root.classList.toggle('is-loading', !!isLoading);
+    function showChartFallback(boxId, text) {
+      const box = document.getElementById(boxId);
+      if (!box || box.querySelector(".manager-chart-fallback")) return;
+      box.innerHTML = "";
+      const message = document.createElement("div");
+      message.className = "manager-chart-fallback";
+      message.textContent = text;
+      box.appendChild(message);
+    }
+
+    function chartColors() {
+      return {
+        green: "#08643b",
+        greenSoft: "rgba(8, 100, 59, .13)",
+        gold: "#b68a42",
+        grid: "rgba(100, 120, 108, .13)",
+        text: getComputedStyle(root).getPropertyValue("--manager-muted").trim() || "#607067"
+      };
+    }
+
+    function renderCharts(nextPayload) {
+      const charts = nextPayload.charts || {};
+      if (typeof window.Chart === "undefined") {
+        showChartFallback("reportsChartBox", "تعذر تحميل الرسم الآن. الأرقام والروابط ما زالت متاحة.");
+        showChartFallback("categoriesChartBox", "لا تتوفر بيانات الرسم حاليًا.");
+        return;
+      }
+
+      const colors = chartColors();
+      const reportsCanvas = document.getElementById("reportsChart");
+      const categoriesCanvas = document.getElementById("categoriesChart");
+
+      if (reportsChart) reportsChart.destroy();
+      if (categoriesChart) categoriesChart.destroy();
+
+      if (reportsCanvas) {
+        const reportData = charts.reports || {labels: [], data: []};
+        reportsChart = new Chart(reportsCanvas, {
+          type: "line",
+          data: {
+            labels: reportData.labels || [],
+            datasets: [{
+              label: "التقارير",
+              data: reportData.data || [],
+              borderColor: colors.green,
+              backgroundColor: colors.greenSoft,
+              borderWidth: 3,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              fill: true,
+              tension: .35
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {intersect: false, mode: "index"},
+            plugins: {legend: {display: false}},
+            scales: {
+              x: {grid: {display: false}, ticks: {color: colors.text}},
+              y: {beginAtZero: true, ticks: {precision: 0, color: colors.text}, grid: {color: colors.grid}}
+            }
+          }
+        });
+      }
+
+      if (categoriesCanvas) {
+        const categoryData = charts.categories || {labels: [], data: []};
+        categoriesChart = new Chart(categoriesCanvas, {
+          type: "doughnut",
+          data: {
+            labels: categoryData.labels || [],
+            datasets: [{
+              data: categoryData.data || [],
+              backgroundColor: ["#08643b", "#b68a42", "#2f80b7", "#6f5aa8", "#cf6f3c", "#5b8170"],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "66%",
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {boxWidth: 10, usePointStyle: true, color: colors.text, font: {family: "Cairo"}}
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function applyPayload(nextPayload) {
+      const kpis = nextPayload.kpis || {};
+      setText("schoolReportsCount", formatNumber(kpis.reports_count));
+      setText("schoolTeachersCount", formatNumber(kpis.teachers_count));
+      setText("schoolTicketsOpen", formatNumber(kpis.tickets_open));
+      setText("schoolTicketsDone", formatNumber(kpis.tickets_done));
+      setText("schoolTicketsTotal", formatNumber(kpis.tickets_total));
+      setText("managerPeriodLabel", nextPayload.period_label || "الكل");
+
+      const total = Number(kpis.tickets_total || 0);
+      const done = Number(kpis.tickets_done || 0);
+      const completion = total ? Math.round((done / total) * 100) : 0;
+      setText("ticketCompletionRate", completion + "%");
+      const progress = document.getElementById("ticketCompletionProgress");
+      if (progress) progress.style.width = completion + "%";
+
+      renderCharts(nextPayload);
+      const generated = nextPayload.generated_at || "الآن";
+      if (statusElement) statusElement.textContent = "آخر تحديث: " + generated;
     }
 
     function markPeriod(period) {
-        document.querySelectorAll('.period-btn[data-school-period]').forEach((btn) => {
-            const active = btn.getAttribute('data-school-period') === period;
-            btn.classList.toggle('active', active);
-            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      document.querySelectorAll("[data-school-period]").forEach(function (button) {
+        const active = button.dataset.schoolPeriod === period;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+
+    async function loadPeriod(period, force) {
+      if (requestController) requestController.abort();
+      requestController = new AbortController();
+      currentPeriod = period || "all";
+      markPeriod(currentPeriod);
+      root.setAttribute("aria-busy", "true");
+      if (refreshButton) refreshButton.disabled = true;
+      if (statusElement) statusElement.textContent = "جارٍ تحديث البيانات…";
+
+      const url = new URL(apiUrl, window.location.origin);
+      url.searchParams.set("period", currentPeriod);
+      if (force) url.searchParams.set("_ts", String(Date.now()));
+
+      try {
+        const response = await fetch(url.toString(), {
+          headers: {"Accept": "application/json", "X-Requested-With": "XMLHttpRequest"},
+          signal: requestController.signal
         });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        payload = await response.json();
+        applyPayload(payload);
+        window.history.replaceState({}, "", "?period=" + encodeURIComponent(currentPeriod));
+      } catch (error) {
+        if (error && error.name === "AbortError") return;
+        if (statusElement) statusElement.textContent = "تعذر التحديث. أعد المحاولة.";
+      } finally {
+        root.removeAttribute("aria-busy");
+        if (refreshButton) refreshButton.disabled = false;
+      }
     }
 
-    function syncMeta(payload) {
-        const period = payload.period || currentPeriod || 'all';
-        const label = payload.period_label || PERIOD_LABELS[period] || 'الكل';
-        setText('schoolActivePeriodLabel', label);
-        setText('schoolDashboardUpdated', payload.generated_at ? ('آخر تحديث: ' + payload.generated_at) : 'آخر تحديث: الآن');
-        markPeriod(period);
-    }
-
-    function applyKpis(payload) {
-        const kpis = payload.kpis || {};
-        setText('schoolReportsCount', formatNumber(kpis.reports_count));
-        setText('schoolTicketsTotal', formatNumber(kpis.tickets_total));
-        setText('schoolTicketsOpen', formatNumber(kpis.tickets_open));
-        setText('schoolTeachersCountSide', formatNumber(kpis.teachers_count));
-        setText('schoolReportTypesCountSide', formatNumber(kpis.reporttypes_count));
-    }
-
-    function missingChartsNotice() {
-        document.querySelectorAll('.chart-container').forEach((box) => {
-            if (box.querySelector('.chart-fallback')) return;
-            const notice = document.createElement('div');
-            notice.className = 'chart-fallback muted';
-            notice.style.cssText = 'display:grid;place-items:center;height:100%;font-weight:800;text-align:center;padding:1rem;';
-            notice.textContent = 'تعذر تحميل الرسوم البيانية حالياً، لكن بيانات اللوحة محدثة.';
-            box.appendChild(notice);
-        });
-    }
-
-    if (typeof Chart === 'undefined') {
-        missingChartsNotice();
-        applyKpis(dashboardPayload);
-        syncMeta(dashboardPayload);
-        return;
-    }
-
-    Chart.defaults.font.family = 'Cairo, sans-serif';
-    Chart.defaults.color = '#64748b';
-
-    const charts = dashboardPayload.charts || {};
-    const reportsChart = new Chart(document.getElementById('reportsChart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: (charts.reports && charts.reports.labels) || [],
-            datasets: [{
-                label: 'عدد التقارير',
-                data: (charts.reports && charts.reports.data) || [],
-                borderColor: colors.primary,
-                backgroundColor: 'rgba(0, 108, 53, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 5,
-                pointHoverRadius: 8,
-                pointBackgroundColor: colors.primary,
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { stepSize: 1 } },
-                x: { grid: { display: false } }
-            }
-        }
+    document.querySelectorAll("[data-school-period]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        loadPeriod(button.dataset.schoolPeriod || "all", false);
+      });
     });
 
-    const deptChart = new Chart(document.getElementById('deptChart').getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: (charts.categories && charts.categories.labels) || [],
-            datasets: [{
-                data: (charts.categories && charts.categories.data) || [],
-                backgroundColor: [colors.primary, colors.accent, colors.success, colors.warning, colors.danger, colors.secondary],
-                borderWidth: 3,
-                borderColor: '#fff',
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 15, font: { size: 11 } } } },
-            cutout: '65%'
-        }
-    });
-
-    const teachersCanvas = document.getElementById('teachersChart');
-    const teachersChart = teachersCanvas ? new Chart(teachersCanvas.getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: (charts.teachers && charts.teachers.labels) || [],
-            datasets: [{
-                label: 'عدد {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}',
-                data: (charts.teachers && charts.teachers.data) || [],
-                backgroundColor: 'rgba(185, 151, 91, 0.82)',
-                borderColor: colors.warning,
-                borderWidth: 2,
-                borderRadius: 6,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { stepSize: 1 } },
-                x: { grid: { display: false } }
-            }
-        }
-    }) : null;
-
-    function applyCharts(payload) {
-        const nextCharts = payload.charts || {};
-        const reports = nextCharts.reports || { labels: [], data: [] };
-        const categories = nextCharts.categories || { labels: [], data: [] };
-        const teachers = nextCharts.teachers || { labels: [], data: [] };
-
-        reportsChart.data.labels = reports.labels || [];
-        reportsChart.data.datasets[0].data = reports.data || [];
-        reportsChart.update();
-
-        deptChart.data.labels = categories.labels || [];
-        deptChart.data.datasets[0].data = categories.data || [];
-        deptChart.update();
-
-        if (teachersChart) {
-            teachersChart.data.labels = teachers.labels || [];
-            teachersChart.data.datasets[0].data = teachers.data || [];
-            teachersChart.update();
-        }
+    if (refreshButton) {
+      refreshButton.addEventListener("click", function () {
+        loadPeriod(currentPeriod, true);
+      });
     }
 
-    function applyPayload(payload, updateUrl) {
-        dashboardPayload = payload || {};
-        currentPeriod = dashboardPayload.period || currentPeriod || 'all';
-        applyKpis(dashboardPayload);
-        applyCharts(dashboardPayload);
-        syncMeta(dashboardPayload);
-        if (updateUrl) {
-            const url = new URL(window.location.href);
-            url.searchParams.set('period', currentPeriod);
-            history.replaceState({}, '', url.toString());
-        }
-    }
-
-    async function fetchPeriod(period, force) {
-        const normalized = PERIOD_LABELS[period] ? period : 'all';
-        const refreshBtn = document.getElementById('refreshSchoolDashboard');
-        if (refreshBtn) {
-            refreshBtn.disabled = true;
-            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
-        }
-        setLoading(true);
-        try {
-            if (requestController) requestController.abort();
-            requestController = new AbortController();
-            const url = new URL(SCHOOL_DASHBOARD_API_URL, window.location.origin);
-            url.searchParams.set('period', normalized);
-            if (force) url.searchParams.set('_ts', String(Date.now()));
-
-            const response = await fetch(url.toString(), {
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                signal: requestController.signal,
-            });
-            if (!response.ok) throw new Error('HTTP ' + response.status);
-            applyPayload(await response.json(), true);
-        } catch (error) {
-            if (!error || error.name !== 'AbortError') {
-                console.error('School dashboard refresh failed:', error);
-            }
-        } finally {
-            setLoading(false);
-            if (refreshBtn) {
-                refreshBtn.disabled = false;
-                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحديث';
-            }
-        }
-    }
-
-    document.querySelectorAll('.period-btn[data-school-period]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const period = button.getAttribute('data-school-period') || 'all';
-            if (period !== currentPeriod) fetchPeriod(period, false);
-        });
-    });
-
-    const refreshBtn = document.getElementById('refreshSchoolDashboard');
-    if (refreshBtn) refreshBtn.addEventListener('click', () => fetchPeriod(currentPeriod || 'all', true));
-
-    applyPayload(dashboardPayload, false);
-}());
+    applyPayload(payload);
+    markPeriod(currentPeriod);
+  }());
 </script>
 {% endif %}
-
 {% endblock %}

@@ -32,6 +32,15 @@ def _split_env_list(val: str) -> list[str]:
     return [x.strip() for x in (val or "").split(",") if x.strip()]
 
 
+def _media_querystring_auth_enabled(
+    *,
+    public_access_enabled: bool,
+    requested_querystring_auth: bool,
+) -> bool:
+    """Never allow unsigned media URLs unless public access is explicit."""
+    return (not public_access_enabled) or bool(requested_querystring_auth)
+
+
 # ----------------- Environment -----------------
 ENV = os.getenv("ENV", "development").strip().lower()
 
@@ -160,6 +169,11 @@ try:
 except Exception:
     SHARE_LINK_DEFAULT_DAYS = 7
 
+# Public security contact exposed by /.well-known/security.txt.
+SECURITY_CONTACT_EMAIL = (
+    os.getenv("SECURITY_CONTACT_EMAIL") or "support@tawtheeq-ksa.com"
+).strip()
+
 
 # ----------------- Notifications: Local fallback (no broker) -----------------
 NOTIFICATIONS_LOCAL_FALLBACK_ENABLED = _env_bool("NOTIFICATIONS_LOCAL_FALLBACK_ENABLED", True)
@@ -192,6 +206,32 @@ try:
     )
 except Exception:
     NOTIFICATIONS_DISPATCH_LOCK_TTL_SECONDS = 3600
+
+
+# ----------------- Telegram operational alerts -----------------
+TELEGRAM_ALERTS_ENABLED = _env_bool("TELEGRAM_ALERTS_ENABLED", False)
+TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
+TELEGRAM_ALERT_CHAT_ID = (os.getenv("TELEGRAM_ALERT_CHAT_ID") or "").strip()
+TELEGRAM_ALERT_CATEGORIES = set(
+    _split_env_list(
+        os.getenv(
+            "TELEGRAM_ALERT_CATEGORIES",
+            "support,subscriptions,registration,payments",
+        )
+    )
+)
+try:
+    TELEGRAM_ALERT_TIMEOUT_SECONDS = float(
+        (os.getenv("TELEGRAM_ALERT_TIMEOUT_SECONDS", "10") or "10").strip()
+    )
+except Exception:
+    TELEGRAM_ALERT_TIMEOUT_SECONDS = 10.0
+try:
+    TELEGRAM_ALERT_DEDUP_TTL_SECONDS = int(
+        (os.getenv("TELEGRAM_ALERT_DEDUP_TTL_SECONDS", "2592000") or "2592000").strip()
+    )
+except Exception:
+    TELEGRAM_ALERT_DEDUP_TTL_SECONDS = 2_592_000
 
 
 # ----------------- Short-TTL DB Load Shedding -----------------
@@ -267,12 +307,14 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "reports.middleware.CanonicalHostMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "reports.middleware_single_session.EnforceSingleSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "reports.middleware.AuditLogMiddleware",
     "reports.middleware.MaintenanceModeMiddleware",
+    "reports.middleware.SearchEngineIndexingMiddleware",
     "reports.middleware.IdleLogoutMiddleware",
     "reports.middleware.ActiveSchoolGuardMiddleware",
     "reports.middleware.SubscriptionMiddleware",
@@ -301,6 +343,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "reports.context_processors.nav_context",
                 "reports.context_processors.csp",
+                "reports.context_processors.seo",
             ],
         },
     },
@@ -542,6 +585,7 @@ CELERY_TASK_QUEUES = [
 ]
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_ROUTES = {
+    "reports.tasks.send_telegram_alert_task": {"queue": "notifications"},
     "reports.tasks.send_notification_task": {"queue": "notifications"},
     "reports.tasks.send_password_change_email_task": {"queue": "notifications"},
     "reports.tasks.process_report_images": {"queue": "images"},
@@ -687,6 +731,10 @@ DATA_UPLOAD_MAX_NUMBER_FILES = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FILES", "20
 
 
 # ----------------- Cloudflare R2 (conditional) -----------------
+# Uploaded school files are private by default. Direct public media URLs must be
+# enabled explicitly because reports, tickets, circulars, achievement evidence,
+# and payment receipts may contain sensitive data.
+MEDIA_PUBLIC_ACCESS_ENABLED = _env_bool("MEDIA_PUBLIC_ACCESS_ENABLED", False)
 R2_PUBLIC_DOMAIN = (os.getenv("R2_PUBLIC_DOMAIN") or "").strip()
 if R2_PUBLIC_DOMAIN:
     try:
@@ -712,7 +760,12 @@ if _use_r2:
     AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")
     AWS_DEFAULT_ACL = None
 
-    AWS_QUERYSTRING_AUTH = _env_bool("AWS_QUERYSTRING_AUTH", not bool(R2_PUBLIC_DOMAIN))
+    # Private is the safe default. When public media is disabled, ignore any
+    # stale AWS_QUERYSTRING_AUTH=0 value and always issue expiring signed URLs.
+    AWS_QUERYSTRING_AUTH = _media_querystring_auth_enabled(
+        public_access_enabled=MEDIA_PUBLIC_ACCESS_ENABLED,
+        requested_querystring_auth=_env_bool("AWS_QUERYSTRING_AUTH", False),
+    )
     AWS_QUERYSTRING_EXPIRE = int(os.getenv("AWS_QUERYSTRING_EXPIRE", "86400"))
     AWS_S3_FILE_OVERWRITE = _env_bool("AWS_S3_FILE_OVERWRITE", True)
 
@@ -720,7 +773,7 @@ if _use_r2:
         "CacheControl": os.getenv("AWS_S3_CACHE_CONTROL", "max-age=31536000"),
     }
 
-    if R2_PUBLIC_DOMAIN and not AWS_QUERYSTRING_AUTH:
+    if MEDIA_PUBLIC_ACCESS_ENABLED and R2_PUBLIC_DOMAIN and not AWS_QUERYSTRING_AUTH:
         AWS_S3_CUSTOM_DOMAIN = R2_PUBLIC_DOMAIN
 
 
@@ -825,4 +878,19 @@ DEPARTMENT_HEAD_ROLE_SLUG = "department_head"
 
 SITE_URL = (os.getenv("SITE_URL") or "").strip()
 if not SITE_URL:
-    SITE_URL = "https://app.tawtheeq-ksa.com" if ENV == "production" else "http://127.0.0.1:8000"
+    SITE_URL = "https://tawtheeq-ksa.com" if ENV == "production" else "http://127.0.0.1:8000"
+SITE_URL = SITE_URL.rstrip("/")
+CANONICAL_HOST_REDIRECT = _env_bool(
+    "CANONICAL_HOST_REDIRECT",
+    ENV == "production",
+)
+
+# Self-service school trial. The free plan exposes the complete product journey
+# while keeping teacher count and archive storage deliberately small.
+TRIAL_DAYS = max(1, int(os.getenv("TRIAL_DAYS", "14") or "14"))
+TRIAL_PLAN_NAME = (os.getenv("TRIAL_PLAN_NAME") or "تجربة مجانية").strip()
+TRIAL_MAX_TEACHERS = max(1, int(os.getenv("TRIAL_MAX_TEACHERS", "5") or "5"))
+TRIAL_ARCHIVE_STORAGE_GB = max(
+    1,
+    int(os.getenv("TRIAL_ARCHIVE_STORAGE_GB", "1") or "1"),
+)

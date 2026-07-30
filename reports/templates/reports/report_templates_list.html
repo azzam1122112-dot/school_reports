@@ -17,7 +17,7 @@
   .smart-header .breadcrumbs { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; opacity: 0.93; }
   .smart-header .breadcrumbs a { color: #fff; text-decoration: underline dotted; margin: 0 4px; transition: color .18s; }
   .smart-header .breadcrumbs a:hover { color: #d4b16d; }
-  .smart-header .title { font-size: 2.1rem; font-weight: 900; margin-bottom: 6px; letter-spacing: -1px; display: flex; align-items: center; gap: 10px; }
+  .smart-header .title { font-size: 2.1rem; font-weight: 900; margin: 0 0 6px; letter-spacing: -1px; display: flex; align-items: center; gap: 10px; }
   .smart-header .desc { font-size: 1.08rem; font-weight: 500; opacity: 0.96; margin-bottom: 0; max-width: 760px; }
   .smart-header .dashboard-btn {
     position: absolute; left: 36px; top: 32px; background: #fff; color: #006c35; border-radius: 999px;
@@ -95,18 +95,18 @@
 {% block content %}
 <div class="smart-card" dir="rtl">
   <div class="smart-header">
-    <a href="{% url 'reports:admin_dashboard' %}" class="dashboard-btn" title="عودة إلى لوحة المدير">
-      <i class="fa-solid fa-arrow-right-to-bracket"></i> لوحة المدير
+    <a href="{% url 'reports:admin_dashboard' %}" class="dashboard-btn" title="عودة إلى لوحة المدرسة">
+      <i class="fa-solid fa-arrow-right-to-bracket"></i> لوحة المدرسة
     </a>
     <div class="breadcrumbs">
-      <a href="{% url 'reports:admin_dashboard' %}"><i class="fa-solid fa-gauge-high"></i> لوحة المدير</a>
+      <a href="{% url 'reports:admin_dashboard' %}"><i class="fa-solid fa-gauge-high"></i> لوحة المدرسة</a>
       <span>›</span>
       <span><i class="fa-solid fa-layer-group"></i> قوالب التقارير</span>
     </div>
-    <div class="title">
+    <h1 class="title">
       <span class="icon"><i class="fa-solid fa-layer-group"></i></span>
       قوالب التقارير الجاهزة
-    </div>
+    </h1>
     <div class="desc">
       جهّز قوالب للتقارير المتكرّرة (مثل الإذاعة الصباحية والاصطفاف) ليختارها المعلّم بنقرة واحدة فتُعبّأ
       التفاصيل والعنوان والنوع تلقائيًا — توفيرًا للوقت وتوحيدًا لصياغة التقارير.

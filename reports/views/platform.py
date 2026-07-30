@@ -230,11 +230,16 @@ def platform_school_tickets(request: HttpRequest) -> HttpResponse:
     )
 
     status = (request.GET.get("status") or "").strip()
+    valid_statuses = {value for value, _label in Ticket.Status.choices}
     q = (request.GET.get("q") or "").strip()
     mine = request.GET.get("mine") == "1"
 
-    if status:
+    if status == "attention":
+        qs = qs.filter(status__in=[Ticket.Status.OPEN, Ticket.Status.IN_PROGRESS])
+    elif status in valid_statuses:
         qs = qs.filter(status=status)
+    else:
+        status = ""
     if mine:
         qs = qs.filter(Q(assignee=request.user) | Q(recipients=request.user)).distinct()
     if q:
@@ -247,6 +252,9 @@ def platform_school_tickets(request: HttpRequest) -> HttpResponse:
         "q": q,
         "mine": mine,
         "status_choices": Ticket.Status.choices,
+        "page_title": f"طلبات {active_school.name}",
+        "page_heading": f"طلبات المدرسة: {active_school.name}",
+        "page_subtitle": "عرض رقابي لطلبات المدرسة الداخلية وحالاتها دون تعديل بيانات المدرسة.",
     }
     return render(request, "reports/tickets_inbox.html", ctx)
 
@@ -275,11 +283,16 @@ def manager_school_tickets(request: HttpRequest) -> HttpResponse:
     )
 
     status = (request.GET.get("status") or "").strip()
+    valid_statuses = {value for value, _label in Ticket.Status.choices}
     q = (request.GET.get("q") or "").strip()
     mine = request.GET.get("mine") == "1"
 
-    if status:
+    if status == "attention":
+        qs = qs.filter(status__in=[Ticket.Status.OPEN, Ticket.Status.IN_PROGRESS])
+    elif status in valid_statuses:
         qs = qs.filter(status=status)
+    else:
+        status = ""
     if mine:
         qs = qs.filter(Q(assignee=request.user) | Q(recipients=request.user)).distinct()
     if q:
@@ -292,9 +305,9 @@ def manager_school_tickets(request: HttpRequest) -> HttpResponse:
         "q": q,
         "mine": mine,
         "status_choices": Ticket.Status.choices,
-        "page_title": "طلبات المدرسة",
-        "page_heading": "📌 طلبات المدرسة",
-        "page_subtitle": "استعرض جميع الطلبات التابعة للمدرسة، ويمكنك إضافة ملاحظات وتغيير الحالة من داخل الطلب.",
+        "page_title": "طلبات المدرسة الداخلية",
+        "page_heading": "طلبات المدرسة الداخلية",
+        "page_subtitle": "طلبات العمل داخل المدرسة؛ راجع المسؤول والحالة والملاحظات من مكان واحد.",
     }
     return render(request, "reports/tickets_inbox.html", ctx)
 

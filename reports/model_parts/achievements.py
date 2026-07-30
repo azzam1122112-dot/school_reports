@@ -53,7 +53,7 @@ class TeacherAchievementFile(models.Model):
 
     # Snapshot بيانات عامة (تظهر في PDF)
     teacher_name = models.CharField("اسم المعلّم", max_length=150, blank=True, default="")
-    teacher_phone = models.CharField("رقم الجوال", max_length=20, blank=True, default="")
+    teacher_phone = models.CharField("رقم الجوال", max_length=64, blank=True, default="")
     school_name = models.CharField("اسم المدرسة", max_length=200, blank=True, default="")
     school_stage = models.CharField("المرحلة", max_length=32, blank=True, default="")
 

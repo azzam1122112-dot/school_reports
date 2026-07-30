@@ -73,7 +73,11 @@ def register(model, *, fields, school_id_getter):
 
     @receiver(pre_save, sender=model, weak=False)
     def _pre_save(sender, instance, **kwargs):
+        if kwargs.get("raw"):
+            return
+
         old_bytes = 0
+        old_school_id = None
         files_changed = instance.pk is None  # جديد = نحسب دائمًا
         if instance.pk is not None:
             try:
@@ -82,12 +86,17 @@ def register(model, *, fields, school_id_getter):
                 old = None
             if old is not None:
                 old_bytes = int(getattr(old, "storage_bytes", 0) or 0)
+                try:
+                    old_school_id = school_id_getter(old)
+                except Exception:
+                    old_school_id = None
                 # هل تغيّر أي ملف؟ مقارنة بالاسم فقط (بلا قراءة حجم/شبكة)
                 files_changed = any(
                     _name_of(getattr(instance, f, None)) != _name_of(getattr(old, f, None))
                     for f in fields
                 )
         instance._st_old_bytes = old_bytes
+        instance._st_old_school_id = old_school_id
         if files_changed:
             new_bytes = _compute_record_bytes(instance, fields)
             instance.storage_bytes = new_bytes
@@ -98,14 +107,22 @@ def register(model, *, fields, school_id_getter):
 
     @receiver(post_save, sender=model, weak=False)
     def _post_save(sender, instance, **kwargs):
-        delta = int(getattr(instance, "_st_delta", 0) or 0)
-        if delta == 0:
+        if kwargs.get("raw"):
             return
+
+        delta = int(getattr(instance, "_st_delta", 0) or 0)
         try:
-            sid = school_id_getter(instance)
+            new_school_id = school_id_getter(instance)
         except Exception:
-            sid = None
-        _apply_school_delta(sid, delta)
+            new_school_id = None
+        old_school_id = getattr(instance, "_st_old_school_id", None)
+        if old_school_id != new_school_id:
+            old_bytes = int(getattr(instance, "_st_old_bytes", 0) or 0)
+            new_bytes = int(getattr(instance, "storage_bytes", 0) or 0)
+            _apply_school_delta(old_school_id, -old_bytes)
+            _apply_school_delta(new_school_id, new_bytes)
+            return
+        _apply_school_delta(new_school_id, delta)
 
     @receiver(pre_delete, sender=model, weak=False)
     def _pre_delete(sender, instance, **kwargs):
@@ -146,8 +163,12 @@ def connect_all():
     from .models import (
         AchievementEvidenceImage,
         AchievementEvidenceReport,
+        Notification,
         Report,
+        SchoolYearArchive,
         TeacherAchievementFile,
+        Ticket,
+        TicketImage,
     )
 
     register(Report, fields=["image1", "image2", "image3", "image4"],
@@ -159,3 +180,11 @@ def connect_all():
     register(AchievementEvidenceReport,
              fields=["archived_image1", "archived_image2", "archived_image3", "archived_image4"],
              school_id_getter=_evidence_section_school_id)
+    register(SchoolYearArchive, fields=["archive_file"],
+             school_id_getter=lambda i: getattr(i, "school_id", None))
+    register(Ticket, fields=["attachment"],
+             school_id_getter=lambda i: getattr(i, "school_id", None))
+    register(TicketImage, fields=["image"],
+             school_id_getter=lambda i: getattr(getattr(i, "ticket", None), "school_id", None))
+    register(Notification, fields=["attachment"],
+             school_id_getter=lambda i: getattr(i, "school_id", None))

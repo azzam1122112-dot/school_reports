@@ -1,11 +1,12 @@
 # config/urls.py
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, reverse
 from django.conf import settings
 from django.conf.urls.static import static as serve_static
 from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.http import HttpResponse
+from django.utils.html import escape
 from django.views.decorators.cache import cache_control
 from django.views.generic.base import RedirectView
 
@@ -36,35 +37,41 @@ def service_worker(request):
     return response
 
 
-def robots_txt(_request):
-    try:
-        content = None
-        try:
-            with staticfiles_storage.open("robots.txt") as fp:
-                content = fp.read()
-        except Exception:
-            content = None
+def _public_site_url(request):
+    configured = str(getattr(settings, "SITE_URL", "") or "").strip().rstrip("/")
+    return configured or request.build_absolute_uri("/").rstrip("/")
 
-        if content is None:
-            return HttpResponse("User-agent: *\nDisallow:\n", content_type="text/plain")
 
-        if isinstance(content, bytes):
-            content = content.decode("utf-8", errors="ignore")
-        response = HttpResponse(content, content_type="text/plain")
-        response["Cache-Control"] = "public, max-age=3600"
-        return response
-    except Exception:
-        response = HttpResponse("User-agent: *\nDisallow:\n", content_type="text/plain")
-        response["Cache-Control"] = "public, max-age=3600"
-        return response
+def robots_txt(request):
+    base = _public_site_url(request)
+    content = "\n".join([
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin-panel/",
+        "Disallow: /api/",
+        "Disallow: /dashboard/",
+        "Disallow: /media/",
+        "Disallow: /ops/",
+        f"Sitemap: {base}{reverse('sitemap_xml')}",
+        "",
+    ])
+    response = HttpResponse(content, content_type="text/plain; charset=utf-8")
+    response["Cache-Control"] = "public, max-age=3600"
+    return response
 
 
 def security_txt(request):
     base = request.build_absolute_uri("/").rstrip("/")
+    contact_email = (
+        str(getattr(settings, "SECURITY_CONTACT_EMAIL", "support@tawtheeq-ksa.com"))
+        .replace("\r", "")
+        .replace("\n", "")
+        .strip()
+    )
     content = "\n".join([
-        "Contact: mailto:support@example.com",
+        f"Contact: mailto:{contact_email}",
         f"Canonical: {base}/.well-known/security.txt",
-        f"Policy: {base}/privacy-policy/",
+        f"Policy: {request.build_absolute_uri(reverse('reports:privacy_policy'))}",
         "Preferred-Languages: ar, en",
         "",
     ])
@@ -74,19 +81,25 @@ def security_txt(request):
 
 
 def sitemap_xml(request):
-    base = request.build_absolute_uri("/").rstrip("/")
-    urls = [
-        f"{base}/",
-        f"{base}/login/",
-        f"{base}/user-guide/",
-        f"{base}/privacy-policy/",
-        f"{base}/faq/",
-    ]
+    routes = (
+        ("reports:landing", "weekly", "1.0"),
+        ("reports:faq", "monthly", "0.8"),
+        ("reports:user_guide", "monthly", "0.8"),
+        ("reports:privacy_policy", "yearly", "0.3"),
+    )
+    base = _public_site_url(request)
     body = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for url in urls:
-        body.append(f"  <url><loc>{url}</loc></url>")
+    for route_name, changefreq, priority in routes:
+        url = escape(f"{base}{reverse(route_name)}")
+        body.extend([
+            "  <url>",
+            f"    <loc>{url}</loc>",
+            f"    <changefreq>{changefreq}</changefreq>",
+            f"    <priority>{priority}</priority>",
+            "  </url>",
+        ])
     body.append("</urlset>")
-    response = HttpResponse("\n".join(body), content_type="application/xml")
+    response = HttpResponse("\n".join(body), content_type="application/xml; charset=utf-8")
     response["Cache-Control"] = "public, max-age=3600"
     return response
 

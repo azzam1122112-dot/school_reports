@@ -13,9 +13,13 @@ from django.core.management.base import BaseCommand
 from reports.models import (
     AchievementEvidenceImage,
     AchievementEvidenceReport,
+    Notification,
     Report,
     School,
+    SchoolYearArchive,
     TeacherAchievementFile,
+    Ticket,
+    TicketImage,
 )
 from reports.services_archive import _file_size, recompute_school_storage
 
@@ -25,6 +29,10 @@ _MODELS = [
     (TeacherAchievementFile, ["pdf_file"]),
     (AchievementEvidenceImage, ["image"]),
     (AchievementEvidenceReport, ["archived_image1", "archived_image2", "archived_image3", "archived_image4"]),
+    (Ticket, ["attachment"]),
+    (TicketImage, ["image"]),
+    (Notification, ["attachment"]),
+    (SchoolYearArchive, ["archive_file"]),
 ]
 
 

@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.contrib import messages
 
 import secrets
+from urllib.parse import urlsplit
 
 from .permissions import is_report_viewer_for_school
 
@@ -132,6 +133,33 @@ class AuditLogMiddleware:
         return response
 
 
+class CanonicalHostMiddleware:
+    """Permanently consolidate legacy public hosts onto ``SITE_URL``."""
+
+    EXEMPT_PATHS = {"/healthz/"}
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if bool(getattr(settings, "CANONICAL_HOST_REDIRECT", False)):
+            site_url = str(getattr(settings, "SITE_URL", "") or "").rstrip("/")
+            canonical_host = (urlsplit(site_url).hostname or "").lower()
+            request_host = request.get_host().split(":", 1)[0].lower()
+            if (
+                canonical_host
+                and request_host != canonical_host
+                and request.path_info not in self.EXEMPT_PATHS
+                and request.method in {"GET", "HEAD"}
+            ):
+                from django.http import HttpResponsePermanentRedirect
+
+                return HttpResponsePermanentRedirect(
+                    f"{site_url}{request.get_full_path()}"
+                )
+        return self.get_response(request)
+
+
 class MaintenanceModeMiddleware:
     """Show a site-wide maintenance screen while keeping superuser access."""
 
@@ -254,6 +282,46 @@ class MaintenanceModeMiddleware:
             status=503,
         )
         response["Retry-After"] = "300"
+        return response
+
+
+class SearchEngineIndexingMiddleware:
+    """Keep account, school, and shared-document pages out of search results.
+
+    Only the deliberate public marketing/help pages are indexable.  Using an
+    HTTP header also protects standalone templates and downloadable documents
+    that do not inherit the application's base template.
+    """
+
+    INDEXABLE_VIEWS = {
+        "reports:landing",
+        "reports:faq",
+        "reports:privacy_policy",
+        "reports:user_guide",
+    }
+    INDEXABLE_PATHS = {
+        "/robots.txt",
+        "/sitemap.xml",
+        "/.well-known/security.txt",
+    }
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        path = getattr(request, "path_info", "") or ""
+
+        if path.startswith("/static/") or path in self.INDEXABLE_PATHS:
+            return response
+
+        match = getattr(request, "resolver_match", None)
+        view_name = getattr(match, "view_name", "") if match is not None else ""
+        if view_name not in self.INDEXABLE_VIEWS:
+            response.headers.setdefault(
+                "X-Robots-Tag",
+                "noindex, nofollow, noarchive",
+            )
         return response
 
 
@@ -577,10 +645,15 @@ class SubscriptionMiddleware:
             allowed_paths |= {
                 reverse('reports:my_subscription'),
                 reverse('reports:payment_create'),
+                reverse('reports:school_archive'),
+                reverse('reports:school_archive_create'),
             }
 
         # السماح بهذه المسارات دائمًا لتجنب حلقات redirect
-        if request.path in allowed_paths:
+        archive_download_prefix = reverse("reports:school_archive").rstrip("/") + "/download/"
+        if request.path in allowed_paths or (
+            is_manager and request.path.startswith(archive_download_prefix)
+        ):
             return self.get_response(request)
 
         # 5) فحص انتهاء الاشتراك/غيابه
@@ -797,6 +870,7 @@ class PlatformAdminAccessMiddleware:
             "reports:achievement_file_print",
             "reports:achievement_file_pdf",
             "reports:school_archive",
+            "reports:school_archive_download",
 
             # lightweight badge endpoint (optional; avoids noisy 403 logs)
             "reports:unread_notifications_count",
@@ -897,6 +971,9 @@ class ReportViewerAccessMiddleware:
             messages.error(request, "هذا الحساب للعرض فقط ولا يملك صلاحية تنفيذ عمليات.")
             return redirect("reports:school_reports_readonly")
 
+        if full_name == "reports:school_archive_download":
+            return self.get_response(request)
+
         # مسارات مسموحة (قراءة فقط)
         allowed_paths = set()
         try:
@@ -954,10 +1031,11 @@ class ContentSecurityPolicyMiddleware:
     """Adds a Content Security Policy header in production.
 
     Notes:
-    - This project uses inline <style>/<script> in templates, so we must allow
-      'unsafe-inline' unless we migrate to nonces/hashes.
+    - Inline scripts use a per-request nonce; a regression test enforces this.
+    - Inline styles still require ``unsafe-inline`` until the remaining template
+      styles are moved to static stylesheets.
     - External fonts/icons are loaded via Google Fonts + cdnjs.
-    - Media assets may be served from HTTPS URLs (depending on storage/CDN).
+    - Media assets may be served from signed HTTPS URLs.
     """
 
     def __init__(self, get_response):
@@ -980,10 +1058,33 @@ class ContentSecurityPolicyMiddleware:
         # If you provide a custom policy, you may include "{nonce}" placeholder.
         custom = (getattr(settings, "CONTENT_SECURITY_POLICY", "") or "").strip()
         if custom:
-            try:
-                return custom.format(nonce=getattr(request, "csp_nonce", ""))
-            except Exception:
-                return custom
+            nonce = getattr(request, "csp_nonce", "")
+            policy = custom.replace("{nonce}", nonce)
+            nonce_source = f"'nonce-{nonce}'"
+            directives = []
+            script_directives = {"script-src", "script-src-elem"}
+            seen_script_directives: set[str] = set()
+
+            for raw_directive in policy.split(";"):
+                parts = raw_directive.strip().split()
+                if not parts:
+                    continue
+                directive_name = parts[0].lower()
+                if directive_name in script_directives:
+                    seen_script_directives.add(directive_name)
+                    sources = [
+                        source
+                        for source in parts[1:]
+                        if source != "'none'"
+                    ]
+                    if nonce_source not in sources:
+                        sources.append(nonce_source)
+                    parts = [parts[0], *sources]
+                directives.append(" ".join(parts))
+
+            for directive_name in script_directives - seen_script_directives:
+                directives.append(f"{directive_name} 'self' {nonce_source}")
+            return "; ".join(directives)
 
         nonce = getattr(request, "csp_nonce", "")
 

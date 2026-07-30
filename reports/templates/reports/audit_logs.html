@@ -109,6 +109,13 @@
     border-color: rgba(0,108,53,.35);
   }
 
+  /* Keep the ISO filter format readable instead of Chromium's reversed RTL date segments. */
+  .audit-date-input{
+    direction:ltr;
+    text-align:left;
+    font-variant-numeric:tabular-nums;
+  }
+
   .filter-actions{
     display:flex;
     gap:8px;
@@ -301,14 +308,14 @@
   <div class="audit-hero">
     <div class="audit-hd">
       <div>
-        <h2 class="audit-title">
+        <h1 class="audit-title">
           <i class="fa-solid fa-clock-rotate-left" style="opacity:.9"></i>
           {% if is_platform %}
             سجل النظام
           {% else %}
             سجل العمليات: {% if active_school %}{{ active_school.name }}{% else %}المدرسة{% endif %}
           {% endif %}
-        </h2>
+        </h1>
         <div class="audit-hint">
           {% if is_platform %}مراقبة كافة العمليات في المنصة{% else %}مراقبة كافة التغييرات في المدرسة{% endif %}
         </div>
@@ -318,7 +325,7 @@
         <a class="btn btn-ghost" href="{% if is_platform %}{% url 'reports:platform_admin_dashboard' %}{% else %}{% url 'reports:admin_dashboard' %}{% endif %}">
           <i class="fa-solid fa-arrow-right"></i> عودة
         </a>
-        <a class="btn btn-ghost" href="{% if is_platform %}{% url 'reports:platform_audit_logs' %}{% else %}#{% endif %}">
+        <a class="btn btn-ghost" href="{% if is_platform %}{% url 'reports:platform_audit_logs' %}{% else %}{% url 'reports:school_audit_logs' %}{% endif %}">
           <i class="fa-solid fa-rotate-right"></i> تحديث
         </a>
       </div>
@@ -349,19 +356,39 @@
 
         <div class="ig">
           <label>من تاريخ</label>
-          <input type="date" name="start_date" value="{{ q_start }}" class="inp">
+          <input
+            type="text"
+            name="start_date"
+            value="{{ q_start }}"
+            class="inp audit-date-input"
+            dir="ltr"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="YYYY-MM-DD"
+            pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
+          >
         </div>
 
         <div class="ig">
           <label>إلى تاريخ</label>
-          <input type="date" name="end_date" value="{{ q_end }}" class="inp">
+          <input
+            type="text"
+            name="end_date"
+            value="{{ q_end }}"
+            class="inp audit-date-input"
+            dir="ltr"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="YYYY-MM-DD"
+            pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
+          >
         </div>
 
         <div class="filter-actions">
           <button type="submit" class="btn btn-primary">
             <i class="fa-solid fa-filter"></i> تصفية
           </button>
-          <a href="{% if is_platform %}{% url 'reports:platform_audit_logs' %}{% else %}#{% endif %}" class="btn">
+          <a href="{% if is_platform %}{% url 'reports:platform_audit_logs' %}{% else %}{% url 'reports:school_audit_logs' %}{% endif %}" class="btn">
             <i class="fa-solid fa-eraser"></i> مسح
           </a>
         </div>

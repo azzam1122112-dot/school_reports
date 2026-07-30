@@ -4,7 +4,7 @@
 {% block title %}{{ page_title|default:"إضافة معلم جديد" }}{% endblock %}
 
 {% block head %}
-<style>
+<style nonce="{{ CSP_NONCE }}">
   /* ✅ Scoped styles: لا نلمس :root نهائيًا حتى ما نكسر هوية المنصة */
   .teacher-page{max-width:980px;margin:0 auto;padding:clamp(10px,2.2vw,18px)}
   .teacher-page .teacher-shell{
@@ -139,6 +139,10 @@
     color:#991b1b;
     font-weight:900;
   }
+  .teacher-page .new-account-note{
+    background:#eef8f2;color:#075c32;border-color:#b8dfc8
+  }
+  .teacher-page .new-account-note a{font-weight:950;color:inherit}
   html[data-theme="dark"] .teacher-page .nferr{
     background: rgba(239,68,68,.10);
     border-color: rgba(239,68,68,.22);
@@ -201,10 +205,10 @@
     <div class="teacher-head">
       <div class="teacher-head-top">
         <div>
-          <h2 class="teacher-title">
+          <h1 class="teacher-title">
             <i class="fas fa-user-plus" aria-hidden="true"></i>
             {{ page_title|default:"إضافة"|add:" "|add:SCHOOL_TEACHER_LABEL|add:" جديد" }}
-          </h2>
+          </h1>
           <p class="teacher-sub">{{ page_subtitle|default:"أضف بيانات "|add:SCHOOL_TEACHER_LABEL|add:" بدقة — يمكن تعديلها لاحقًا" }}</p>
         </div>
         <div class="teacher-chip">
@@ -215,6 +219,15 @@
     </div>
 
     <div class="teacher-body">
+      {% if not form.instance.pk and not form.password %}
+        <div class="nferr new-account-note" role="note">
+          <strong>دخول المستخدم الجديد:</strong>
+          ستكون كلمة المرور المؤقتة هي رقم الجوال، وسيطلب النظام تغييرها عند أول تسجيل دخول.
+          لإضافة عدة مستخدمين دفعة واحدة استخدم
+          <a href="{% url 'reports:bulk_import_teachers' %}">الإضافة السريعة أو Excel</a>.
+        </div>
+      {% endif %}
+
       {% if form.non_field_errors %}
         <div class="nferr" role="alert">
           {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
@@ -255,26 +268,25 @@
             <div class="hint">05XXXXXXXX — يستخدم لتسجيل الدخول</div>
           </div>
 
-          <!-- كلمة المرور -->
-          <div class="group">
-            <label class="label" for="{{ form.password.id_for_label }}">
-              <i class="fas fa-key" aria-hidden="true"></i> كلمة المرور
-            </label>
-            <div class="pw-wrap">
-              {{ form.password }}
-              <span class="pw-ico" aria-hidden="true"><i class="fas fa-lock"></i></span>
-              <button type="button" class="pw-toggle" id="togglePassword" aria-label="إظهار كلمة المرور">
-                <i class="fa-regular fa-eye" aria-hidden="true"></i>
-              </button>
+          {% if form.password %}
+            <!-- كلمة المرور في النماذج الإدارية الخاصة فقط -->
+            <div class="group">
+              <label class="label" for="{{ form.password.id_for_label }}">
+                <i class="fas fa-key" aria-hidden="true"></i> كلمة المرور
+              </label>
+              <div class="pw-wrap">
+                {{ form.password }}
+                <span class="pw-ico" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                <button type="button" class="pw-toggle" id="togglePassword" aria-label="إظهار كلمة المرور">
+                  <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                </button>
+              </div>
+              {% for e in form.password.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+              {% if form.instance.pk %}
+                <div class="hint">اتركها فارغة إذا لا تريد تغيير كلمة المرور</div>
+              {% endif %}
             </div>
-            {% for e in form.password.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-
-            {% if form.instance.pk %}
-              <div class="hint">اتركها فارغة إذا لا تريد تغيير كلمة المرور</div>
-            {% else %}
-              <div class="hint">اختر كلمة مرور قوية (8 أحرف فأكثر) — يمكن تغييرها لاحقًا</div>
-            {% endif %}
-          </div>
+          {% endif %}
 
           <!-- الدور (اختياري إذا كان موجودًا في الفورم) -->
           {% if form.job_title %}
@@ -310,6 +322,13 @@
             <i class="fas fa-save" aria-hidden="true"></i>
             {{ save_label|default:"حفظ"|add:" "|add:SCHOOL_TEACHER_LABEL }}
           </button>
+
+          {% if not form.instance.pk and not form.password %}
+            <button type="submit" class="btn" name="save_and_add_another" value="1">
+              <i class="fas fa-user-plus" aria-hidden="true"></i>
+              حفظ وإضافة مستخدم آخر
+            </button>
+          {% endif %}
 
           {% if back_href %}
             <a href="{{ back_href }}" class="btn">

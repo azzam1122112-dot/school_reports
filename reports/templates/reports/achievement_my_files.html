@@ -388,16 +388,17 @@
                 <i class="fa-solid fa-share-nodes"></i>
               </a>
 
-              <button class="af-btn" type="button" 
+              <button class="af-btn af-edit-year" type="button"
                       data-url="{% url 'reports:achievement_file_update_year' f.pk %}"
-                      onclick="openYearModal(this, '{{ f.academic_year }}')" 
-                      title="تعديل">
+                      data-year="{{ f.academic_year }}"
+                      title="تعديل السنة الدراسية"
+                      aria-label="تعديل السنة الدراسية لملف {{ f.academic_year }}">
                 <i class="fa-solid fa-pen"></i>
               </button>
 
-              <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" onsubmit="return confirm('هل أنت متأكد من حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه.');" style="display:inline;">
+              <form action="{% url 'reports:achievement_file_delete' f.pk %}" method="post" class="af-delete-form" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit" class="af-btn af-btn-danger" title="حذف">
+                <button type="submit" class="af-btn af-btn-danger" title="حذف الملف" aria-label="حذف ملف {{ f.academic_year }}">
                    <i class="fa-solid fa-trash"></i>
                 </button>
               </form>
@@ -416,15 +417,15 @@
 </div>
 
 <!-- Modal تعديل السنة -->
-<dialog id="yearModal" style="padding:0;border:none;border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);width:min(400px, 90vw);background:var(--card);color:var(--ink)">
+<dialog id="yearModal" aria-labelledby="yearModalTitle" style="padding:0;border:none;border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);width:min(400px, 90vw);background:var(--card);color:var(--ink)">
   <form id="yearForm" method="post">
     {% csrf_token %}
     <div style="padding:18px;border-bottom:1px solid var(--line);">
-      <h3 style="margin:0;font-weight:900">تعديل السنة الدراسية</h3>
+      <h3 id="yearModalTitle" style="margin:0;font-weight:900">تعديل السنة الدراسية</h3>
     </div>
     <div style="padding:18px;">
-      <label class="af-label">السنة الجديدة (هجري)</label>
-      <select name="academic_year" required class="input" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;font-weight:700">
+      <label class="af-label" for="yearModalAcademicYear">السنة الجديدة (هجري)</label>
+      <select id="yearModalAcademicYear" name="academic_year" required class="input" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;font-weight:700">
         {% for val, label in create_form.fields.academic_year.choices %}
           <option value="{{ val }}">{{ label }}</option>
         {% endfor %}
@@ -434,24 +435,41 @@
       </div>
     </div>
     <div style="padding:18px;background:var(--bg);display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--line)">
-      <button type="button" class="af-btn" onclick="document.getElementById('yearModal').close()">إلغاء</button>
+      <button type="button" class="af-btn" id="yearModalCancel">إلغاء</button>
       <button type="submit" class="af-btn af-btn-primary">حفظ التغييرات</button>
     </div>
   </form>
 </dialog>
 
-<script>
-  function openYearModal(btn, currentYear) {
+<script nonce="{{ CSP_NONCE }}">
+  document.addEventListener('DOMContentLoaded', function () {
     var modal = document.getElementById('yearModal');
     var form = document.getElementById('yearForm');
-    var select = form.querySelector('select[name="academic_year"]');
-    
-    // Set Action URL
-    form.action = btn.dataset.url;
-    // Set Current Value
-    select.value = currentYear;
-    
-    modal.showModal();
-  }
+    var select = form ? form.querySelector('select[name="academic_year"]') : null;
+    var cancelButton = document.getElementById('yearModalCancel');
+
+    document.querySelectorAll('.af-edit-year').forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (!modal || !form || !select) return;
+        form.action = button.dataset.url;
+        select.value = button.dataset.year;
+        modal.showModal();
+      });
+    });
+
+    document.querySelectorAll('.af-delete-form').forEach(function (deleteForm) {
+      deleteForm.addEventListener('submit', function (event) {
+        if (!window.confirm('هل أنت متأكد من حذف هذا الملف نهائيًا؟ لن يمكنك استرجاعه.')) {
+          event.preventDefault();
+        }
+      });
+    });
+
+    if (cancelButton && modal) {
+      cancelButton.addEventListener('click', function () {
+        modal.close();
+      });
+    }
+  });
 </script>
 {% endblock %}

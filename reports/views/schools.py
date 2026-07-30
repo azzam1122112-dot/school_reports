@@ -93,25 +93,32 @@ def _build_school_dashboard_payload(active_school: Optional[School], period: str
     start_at = _dashboard_period_start(period)
     now = timezone.now()
 
-    teachers_qs = Teacher.objects.all()
+    teachers_qs = Teacher.objects.filter(is_active=True)
     if active_school is not None:
         teachers_qs = teachers_qs.filter(
             school_memberships__school=active_school,
             school_memberships__is_active=True,
+            school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
         ).distinct()
 
     reports_qs = _filter_by_school(Report.objects.all(), active_school)
-    tickets_qs = _filter_by_school(Ticket.objects.filter(is_platform=False), active_school)
+    all_school_tickets_qs = _filter_by_school(
+        Ticket.objects.filter(is_platform=False),
+        active_school,
+    )
+    tickets_qs = all_school_tickets_qs
     if start_at is not None:
         reports_qs = reports_qs.filter(created_at__gte=start_at)
         tickets_qs = tickets_qs.filter(created_at__gte=start_at)
 
     ticket_agg = tickets_qs.aggregate(
         total=Count("id"),
-        open=Count("id", filter=Q(status__in=["open", "in_progress"])),
         done=Count("id", filter=Q(status="done")),
         rejected=Count("id", filter=Q(status="rejected")),
     )
+    actionable_tickets_open = all_school_tickets_qs.filter(
+        status__in=[Ticket.Status.OPEN, Ticket.Status.IN_PROGRESS],
+    ).count()
 
     chart_start = start_at or (now - timedelta(weeks=8))
     reports_by_week = (
@@ -161,7 +168,8 @@ def _build_school_dashboard_payload(active_school: Optional[School], period: str
             "teachers_count": int(teachers_qs.count()),
             "reporttypes_count": int(reporttypes_count or 0),
             "tickets_total": int(ticket_agg.get("total") or 0),
-            "tickets_open": int(ticket_agg.get("open") or 0),
+            # عناصر المتابعة يجب ألا تختفي عند تغيير فترة التحليلات.
+            "tickets_open": int(actionable_tickets_open),
             "tickets_done": int(ticket_agg.get("done") or 0),
             "tickets_rejected": int(ticket_agg.get("rejected") or 0),
         },
@@ -564,8 +572,8 @@ class _SchoolAdminForm(forms.ModelForm):
         return candidate
 
 
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
 @require_http_methods(["GET", "POST"])
 def school_create(request: HttpRequest) -> HttpResponse:
     form = _SchoolAdminForm(request.POST or None)
@@ -578,8 +586,8 @@ def school_create(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/school_form.html", {"form": form, "mode": "create"})
 
 
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
 @require_http_methods(["GET", "POST"])
 def school_update(request: HttpRequest, pk: int) -> HttpResponse:
     school = get_object_or_404(School, pk=pk)
@@ -593,29 +601,80 @@ def school_update(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "reports/school_form.html", {"form": form, "mode": "edit", "school": school})
 
 
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
-@require_http_methods(["POST"])
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
+@require_http_methods(["GET", "POST"])
 def school_delete(request: HttpRequest, pk: int) -> HttpResponse:
     school = get_object_or_404(School, pk=pk)
     name = school.name
+    code = school.code
+
+    if request.method == "GET":
+        related_counts = {
+            "members": SchoolMembership.objects.filter(school=school).count(),
+            "reports": Report.objects.filter(school=school).count(),
+            "tickets": Ticket.objects.filter(school=school).count(),
+        }
+        return render(
+            request,
+            "reports/school_delete_confirm.html",
+            {"school": school, "related_counts": related_counts},
+        )
+
+    confirm_name = (request.POST.get("confirm_name") or "").strip()
+    if confirm_name != name:
+        messages.error(request, "اكتب اسم المدرسة كما هو لتأكيد الحذف النهائي.")
+        related_counts = {
+            "members": SchoolMembership.objects.filter(school=school).count(),
+            "reports": Report.objects.filter(school=school).count(),
+            "tickets": Ticket.objects.filter(school=school).count(),
+        }
+        return render(
+            request,
+            "reports/school_delete_confirm.html",
+            {"school": school, "related_counts": related_counts, "confirm_name": confirm_name},
+            status=400,
+        )
+
     from ..middleware import set_audit_logging_suppressed
 
+    school_id = school.pk
     try:
         set_audit_logging_suppressed(True)
         school.delete()
-        messages.success(request, f"🗑️ تم حذف المدرسة «{name}» وكل بياناتها المرتبطة.")
     except Exception:
         logger.exception("school_delete failed")
         messages.error(request, "تعذّر حذف المدرسة. ربما توجد قيود على البيانات المرتبطة.")
+        return redirect("reports:schools_admin_list")
     finally:
         set_audit_logging_suppressed(False)
+
+    try:
+        AuditLog.objects.create(
+            school=None,
+            teacher=request.user,
+            action=AuditLog.Action.DELETE,
+            model_name="School",
+            object_id=school_id,
+            object_repr=name[:255],
+            changes={
+                "school_name": name,
+                "school_code": code,
+                "deletion_scope": "school_and_related_data",
+            },
+            ip_address=request.META.get("REMOTE_ADDR"),
+            user_agent=(request.META.get("HTTP_USER_AGENT") or "")[:500],
+        )
+    except Exception:
+        logger.exception("school deletion audit creation failed for school_id=%s", school_id)
+
+    messages.success(request, f"تم حذف المدرسة «{name}» وكل بياناتها المرتبطة.")
     return redirect("reports:schools_admin_list")
 
 
 # ---- لوحة إدارة المدارس ومدراء المدارس (للسوبر أدمن) ----
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
 @require_http_methods(["GET"])
 def schools_admin_list(request: HttpRequest) -> HttpResponse:
     q = _clean_query_value(request.GET.get("q"))
@@ -745,8 +804,8 @@ def school_profile(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "reports/school_profile.html", context)
 
 
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
 @require_http_methods(["GET", "POST"])
 def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
     school = get_object_or_404(School, pk=pk)
@@ -833,9 +892,7 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
 @require_http_methods(["GET"])
 
 def admin_dashboard(request: HttpRequest) -> HttpResponse:
-    """لوحة تحكم مدير المدرسة - تحديث Premium 2026"""
-    from django.core.cache import cache
-    from django.db.models.functions import TruncWeek, TruncMonth
+    """لوحة عمل مدير المدرسة."""
     import json
     
     # إذا لم يكن هناك مدرسة مختارة نوجّه لاختيار مدرسة أولاً
@@ -848,47 +905,7 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             messages.error(request, "ليست لديك صلاحية كمدير على هذه المدرسة.")
             return redirect("reports:select_school")
 
-    # محاولة جلب البيانات من الكاش
-    cache_key = f"admin_stats_v2_{active_school.id if active_school else 'global'}"
-    try:
-        stats = cache.get(cache_key)
-    except Exception:
-        stats = None
-
-    if not stats:
-        # عدد المعلّمين داخل المدرسة النشطة فقط (عزل حسب المدرسة)
-        teachers_qs = Teacher.objects.all()
-        if active_school is not None:
-            teachers_qs = teachers_qs.filter(
-                school_memberships__school=active_school,
-                school_memberships__is_active=True,
-            ).distinct()
-
-        # تجميع عدادات التذاكر في استعلام واحد بدل 4 استعلامات منفصلة
-        ticket_base = _filter_by_school(Ticket.objects.filter(is_platform=False), active_school)
-        ticket_agg = ticket_base.aggregate(
-            total=Count("id"),
-            open=Count("id", filter=Q(status__in=["open", "in_progress"])),
-            done=Count("id", filter=Q(status="done")),
-            rejected=Count("id", filter=Q(status="rejected")),
-        )
-
-        stats = {
-            "reports_count": _filter_by_school(Report.objects.all(), active_school).count(),
-            "teachers_count": teachers_qs.count(),
-            "tickets_total": ticket_agg["total"],
-            "tickets_open": ticket_agg["open"],
-            "tickets_done": ticket_agg["done"],
-            "tickets_rejected": ticket_agg["rejected"],
-        }
-        # تخزين في الكاش لمدة 5 دقائق
-        try:
-            cache.set(cache_key, stats, 300)
-        except Exception:
-            pass
-
     ctx = {
-        **stats,
         "has_dept_model": Department is not None,
         "active_school": active_school,
     }
@@ -914,100 +931,30 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         "reporttypes_count": reporttypes_count,
     })
     
-    # إضافة بيانات الرسوم البيانية والتحليلات المتقدمة
+    # بيانات الاشتراك والأنشطة الحديثة فقط. إحصاءات اللوحة والرسوم تُبنى
+    # لاحقًا من مصدر واحد (_build_school_dashboard_payload) لتجنب مضاعفة
+    # الاستعلامات في الطلب نفسه.
     if active_school:
-        charts_cache_key = f"admin_charts_v2_{active_school.id}"
-        try:
-            charts = cache.get(charts_cache_key)
-        except Exception:
-            charts = None
-
         now = timezone.now()
-        
-        if not charts:
-            # تقارير آخر 8 أسابيع
-            eight_weeks_ago = now - timedelta(weeks=8)
-            reports_by_week = _filter_by_school(
-                Report.objects.filter(created_at__gte=eight_weeks_ago), 
-                active_school
-            ).annotate(
-                week=TruncWeek('created_at')
-            ).values('week').annotate(
-                count=Count('id')
-            ).order_by('week')
-            
-            reports_labels = []
-            reports_data = []
-            for item in reports_by_week:
-                if item['week']:
-                    # عرض تاريخ بداية الأسبوع (أوضح من التاريخ الكامل)
-                    week_label = item['week'].strftime('%d/%m')
-                    reports_labels.append(week_label)
-                    reports_data.append(item['count'])
-            
-            # تقارير حسب التصنيف/النوع
-            reports_by_category = _filter_by_school(
-                Report.objects.all(), 
-                active_school
-            ).values('category__name').annotate(
-                count=Count('id')
-            ).order_by('-count')[:6]
-            
-            dept_labels = []
-            dept_data = []
-            for item in reports_by_category:
-                category_name = item['category__name'] or 'غير محدد'
-                dept_labels.append(category_name)
-                dept_data.append(item['count'])
-            
-            # معلمين حسب القسم
-            if Department is not None:
-                teachers_by_dept_qs = Department.objects.filter(
-                    school=active_school
-                ).annotate(
-                    teacher_count=Count('memberships__teacher', distinct=True)
-                ).order_by('-teacher_count')[:6]
-                
-                teachers_labels = []
-                teachers_data = []
-                for dept in teachers_by_dept_qs:
-                    teachers_labels.append(dept.name)
-                    teachers_data.append(dept.teacher_count)
-            else:
-                teachers_labels = []
-                teachers_data = []
-            
-            charts = {
-                "reports_labels": json.dumps(reports_labels),
-                "reports_data": json.dumps(reports_data),
-                "dept_labels": json.dumps(dept_labels),
-                "dept_data": json.dumps(dept_data),
-                "teachers_labels": json.dumps(teachers_labels),
-                "teachers_data": json.dumps(teachers_data),
-            }
-            
-            try:
-                cache.set(charts_cache_key, charts, 600)  # 10 دقائق
-            except Exception:
-                pass
-        
-        ctx.update(charts)
-        
+
         # بيانات الاشتراك والتنبيهات
         subscription_warning = None
         try:
             from ..models import SchoolSubscription
-            active_subscription = SchoolSubscription.objects.filter(
-                school=active_school,
-                is_active=True
-            ).first()
+            active_subscription = (
+                SchoolSubscription.objects.filter(school=active_school)
+                .select_related("plan")
+                .first()
+            )
             
             if active_subscription:
                 days_remaining = (active_subscription.end_date - now.date()).days
                 ctx['subscription'] = active_subscription
                 ctx['days_remaining'] = days_remaining
                 
-                if days_remaining <= 7:
+                if active_subscription.is_expired:
+                    subscription_warning = 'expired'
+                elif days_remaining <= 7:
                     subscription_warning = 'critical'
                 elif days_remaining <= 30:
                     subscription_warning = 'warning'
@@ -1036,6 +983,7 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
                     'title': 'تقرير جديد',
                     'description': f"{teacher_name} - {category_name}",
                     'time': report.created_at,
+                    'url': reverse("reports:report_print", args=[report.pk]),
                 })
             
             recent_tickets = _filter_by_school(
@@ -1052,6 +1000,7 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
                     'title': 'طلب جديد',
                     'description': (ticket_title[:50] if ticket_title else 'طلب بدون عنوان'),
                     'time': ticket.created_at,
+                    'url': reverse("reports:ticket_detail", args=[ticket.pk]),
                 })
             
             recent_activities.sort(key=lambda x: x['time'], reverse=True)
@@ -1079,10 +1028,80 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     # Let the rendered dashboard and the JSON refresh use the same payload.
     payload_kpis = dashboard_payload["kpis"]
     payload_charts = dashboard_payload["charts"]
+    tickets_total = int(payload_kpis.get("tickets_total") or 0)
+    tickets_done = int(payload_kpis.get("tickets_done") or 0)
+    ticket_completion_rate = round((tickets_done / tickets_total) * 100) if tickets_total else 0
+
+    pending_achievement_files = 0
+    departments_count = 0
+    if active_school is not None:
+        try:
+            from ..models import TeacherAchievementFile
+
+            pending_achievement_files = TeacherAchievementFile.objects.filter(
+                school=active_school,
+                status=TeacherAchievementFile.Status.SUBMITTED,
+            ).count()
+        except Exception:
+            pending_achievement_files = 0
+        if Department is not None:
+            try:
+                departments_count = Department.objects.filter(
+                    school=active_school,
+                    is_active=True,
+                ).count()
+            except Exception:
+                departments_count = 0
+
+    setup_steps = []
+    if active_school is not None:
+        profile_ready = bool(
+            (active_school.current_academic_year or "").strip()
+            and (active_school.city or "").strip()
+            and (active_school.phone or "").strip()
+        )
+        setup_steps = [
+            {
+                "title": "بيانات المدرسة والسنة الحالية",
+                "description": "أكمل المدينة والجوال والسنة الدراسية ليظهر التصنيف صحيحًا.",
+                "complete": profile_ready,
+                "url": reverse("reports:school_settings"),
+            },
+            {
+                "title": "فريق المدرسة",
+                "description": "أضف أول مستخدم ليبدأ الفريق في إنشاء التقارير.",
+                "complete": bool(payload_kpis.get("teachers_count")),
+                "url": reverse("reports:bulk_import_teachers"),
+            },
+            {
+                "title": "الأقسام",
+                "description": "أنشئ الأقسام لتنظيم الفريق والصلاحيات.",
+                "complete": bool(departments_count),
+                "url": reverse("reports:departments_list"),
+            },
+            {
+                "title": "أنواع التقارير",
+                "description": "حدد الأنواع التي سيستخدمها الفريق في التوثيق.",
+                "complete": bool(reporttypes_count),
+                "url": reverse("reports:reporttypes_list"),
+            },
+        ]
+    setup_completed = sum(1 for step in setup_steps if step["complete"])
+    setup_total = len(setup_steps)
+    setup_percent = round((setup_completed / setup_total) * 100) if setup_total else 100
+
     ctx.update(
         {
             **payload_kpis,
             "initial_period": selected_period,
+            "selected_period_label": dashboard_payload["period_label"],
+            "ticket_completion_rate": ticket_completion_rate,
+            "pending_achievement_files": pending_achievement_files,
+            "departments_count": departments_count,
+            "setup_steps": setup_steps,
+            "setup_completed": setup_completed,
+            "setup_total": setup_total,
+            "setup_percent": setup_percent,
             "dashboard_period_payload": json.dumps(dashboard_payload, ensure_ascii=False),
             "reports_labels": json.dumps(payload_charts["reports"]["labels"], ensure_ascii=False),
             "reports_data": json.dumps(payload_charts["reports"]["data"]),
@@ -1132,6 +1151,7 @@ def admin_dashboard_data(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff, login_url="reports:login")
 @role_required({"manager"})
+@require_http_methods(["GET"])
 def school_audit_logs(request: HttpRequest) -> HttpResponse:
     """عرض سجل العمليات الخاص بالمدرسة للمدير."""
     active_school = _get_active_school(request)

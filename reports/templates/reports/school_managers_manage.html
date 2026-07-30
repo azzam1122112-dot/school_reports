@@ -318,7 +318,7 @@
 
           // Hook (اختياري): تعطيل المدراء الحاليين إن مرّرت manager_ids من الـview
           // مثال:
-          // <script>window.managerIds = {{ manager_ids_json|safe }};</script>
+          // window.managerIds can be populated from manager_ids_json when needed.
           // const isManager = (window.managerIds || []).includes(String(opt.value));
           // if (isManager) { o.disabled = true; o.textContent = opt.text + ' (مدير حالياً)'; }
 

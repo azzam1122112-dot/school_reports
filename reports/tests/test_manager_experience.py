@@ -1,0 +1,345 @@
+import re
+from datetime import timedelta
+from pathlib import Path
+
+from django.conf import settings
+from django.test import TestCase, override_settings
+from django.urls import reverse
+from django.utils import timezone
+
+from reports.forms import NotificationCreateForm
+from reports.models import (
+    ReportType,
+    School,
+    SchoolMembership,
+    SchoolSubscription,
+    SubscriptionPlan,
+    Teacher,
+    TeacherAchievementFile,
+    Ticket,
+)
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class ManagerExperienceTests(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(
+            name="مدرسة تجربة المدير",
+            code="manager-experience",
+            current_academic_year="1447-1448",
+        )
+        plan = SubscriptionPlan.objects.create(
+            name="خطة تجربة المدير",
+            price=0,
+            days_duration=30,
+            max_teachers=0,
+        )
+        SchoolSubscription.objects.create(school=self.school, plan=plan)
+        self.manager = Teacher.objects.create_user(
+            phone="500090001",
+            name="مدير تجربة المستخدم",
+            password="manager-pass",
+            is_staff=True,
+        )
+        self.manager_membership = SchoolMembership.objects.create(
+            school=self.school,
+            teacher=self.manager,
+            role_type=SchoolMembership.RoleType.MANAGER,
+        )
+        self.teacher = Teacher.objects.create_user(
+            phone="500090002",
+            name="معلم تجربة المستخدم",
+            password="teacher-pass",
+        )
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        self.report_type = ReportType.objects.create(
+            school=self.school,
+            code="manager-ux",
+            name="تقارير تجربة المدير",
+        )
+
+    def _login_manager(self):
+        self.client.force_login(self.manager)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+    def test_manager_has_one_clear_home_destination(self):
+        self._login_manager()
+
+        response = self.client.get(reverse("reports:home"))
+
+        self.assertRedirects(
+            response,
+            reverse("reports:admin_dashboard"),
+            fetch_redirect_response=False,
+        )
+
+    def test_dashboard_prioritizes_actionable_manager_work(self):
+        Ticket.objects.create(
+            school=self.school,
+            creator=self.teacher,
+            title="طلب يحتاج متابعة",
+            body="تفاصيل الطلب",
+            status=Ticket.Status.OPEN,
+            is_platform=False,
+        )
+        TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1447-1448",
+            status=TeacherAchievementFile.Status.SUBMITTED,
+        )
+        self._login_manager()
+
+        response = self.client.get(reverse("reports:admin_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "متابعة اليوم")
+        self.assertContains(response, "ابدأ مهمة")
+        self.assertContains(response, "مساحات العمل")
+        self.assertContains(response, "طلبات مدرسة قيد المتابعة")
+        self.assertContains(response, "ملفات إنجاز بانتظار الاعتماد")
+        self.assertContains(response, "إدارة طلبات المدرسة", count=0)
+        self.assertNotContains(response, "Premium 2026")
+        self.assertNotContains(response, "إحصائية الطلبات")
+        self.assertEqual(response.context["pending_achievement_files"], 1)
+        self.assertContains(
+            response,
+            reverse("reports:manager_school_tickets") + "?status=attention",
+        )
+        self.assertContains(
+            response,
+            reverse("reports:ticket_detail", args=[Ticket.objects.get().pk]),
+        )
+
+    def test_dashboard_counts_teachers_without_counting_manager_and_guides_setup(self):
+        self._login_manager()
+
+        response = self.client.get(reverse("reports:admin_dashboard"))
+
+        self.assertEqual(response.context["teachers_count"], 1)
+        self.assertEqual(response.context["setup_completed"], 2)
+        self.assertEqual(response.context["setup_total"], 4)
+        self.assertEqual(response.context["setup_percent"], 50)
+        self.assertContains(response, "جاهزية مساحة المدرسة")
+        self.assertContains(response, "بيانات المدرسة والسنة الحالية")
+        self.assertContains(response, "الأقسام")
+
+    def test_dashboard_period_never_hides_old_open_actionable_ticket(self):
+        ticket = Ticket.objects.create(
+            school=self.school,
+            creator=self.teacher,
+            title="طلب قديم ما زال مفتوحًا",
+            body="يجب أن يبقى ظاهرًا في المتابعة",
+            status=Ticket.Status.OPEN,
+            is_platform=False,
+        )
+        Ticket.objects.filter(pk=ticket.pk).update(
+            created_at=timezone.now() - timedelta(days=90),
+        )
+        self._login_manager()
+
+        response = self.client.get(
+            reverse("reports:api_admin_dashboard_data"),
+            {"period": "month"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["kpis"]["tickets_open"], 1)
+        self.assertEqual(payload["kpis"]["tickets_total"], 0)
+
+    def test_attention_filter_and_ticket_pagination_keep_manager_context(self):
+        tickets = [
+            Ticket(
+                school=self.school,
+                creator=self.teacher,
+                title=f"طلب متابعة {index}",
+                body="تفاصيل",
+                status=(
+                    Ticket.Status.IN_PROGRESS
+                    if index == 0
+                    else Ticket.Status.OPEN
+                ),
+                is_platform=False,
+            )
+            for index in range(26)
+        ]
+        tickets.append(
+            Ticket(
+                school=self.school,
+                creator=self.teacher,
+                title="طلب مكتمل",
+                body="لا يجب أن يظهر",
+                status=Ticket.Status.DONE,
+                is_platform=False,
+            )
+        )
+        Ticket.objects.bulk_create(tickets)
+        self._login_manager()
+
+        first_page = self.client.get(
+            reverse("reports:manager_school_tickets"),
+            {"status": "attention"},
+        )
+        second_page = self.client.get(
+            reverse("reports:manager_school_tickets"),
+            {"status": "attention", "page": 2},
+        )
+
+        self.assertEqual(first_page.context["tickets"].paginator.count, 26)
+        self.assertNotContains(first_page, "طلب مكتمل")
+        self.assertContains(first_page, "?page=2&status=attention")
+        self.assertEqual(len(second_page.context["tickets"].object_list), 1)
+
+    def test_dashboard_archive_actions_explain_inactive_addon(self):
+        self._login_manager()
+
+        response = self.client.get(reverse("reports:admin_dashboard"))
+
+        self.assertContains(response, reverse("reports:school_archive"))
+        self.assertContains(
+            response,
+            reverse("reports:my_subscription") + "#archiveOrder",
+        )
+        self.assertNotContains(response, reverse("reports:school_data_export"))
+
+    def test_school_audit_log_is_reachable_and_has_working_clear_links(self):
+        self._login_manager()
+
+        response = self.client.get(
+            reverse("reports:school_audit_logs"),
+            {"action": "login"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "سجل العمليات")
+        self.assertGreaterEqual(
+            response.content.decode("utf-8").count(
+                reverse("reports:school_audit_logs")
+            ),
+            2,
+        )
+
+    def test_achievement_review_filters_by_status_and_excludes_manager(self):
+        TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1447-1448",
+            status=TeacherAchievementFile.Status.SUBMITTED,
+        )
+        second_teacher = Teacher.objects.create_user(
+            phone="500090003",
+            name="معلم بلا ملف",
+            password="teacher-pass",
+        )
+        SchoolMembership.objects.create(
+            school=self.school,
+            teacher=second_teacher,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        self._login_manager()
+
+        submitted = self.client.get(
+            reverse("reports:achievement_school_files"),
+            {"year": "1447-1448", "status": "submitted"},
+        )
+        missing = self.client.get(
+            reverse("reports:achievement_school_files"),
+            {"year": "1447-1448", "status": "missing"},
+        )
+
+        self.assertEqual([row["teacher"] for row in submitted.context["rows"]], [self.teacher])
+        self.assertEqual(
+            [row["teacher"] for row in missing.context["rows"]],
+            [second_teacher],
+        )
+
+    def test_manager_navigation_includes_school_reports_on_mobile_and_desktop(self):
+        self._login_manager()
+
+        response = self.client.get(reverse("reports:manage_teachers"))
+        school_reports_url = reverse("reports:admin_reports")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertGreaterEqual(
+            response.content.decode("utf-8").count(school_reports_url),
+            3,
+        )
+        self.assertContains(response, "لوحة المدرسة")
+        self.assertNotContains(response, "لوحة المدير")
+        self.assertContains(response, "فريق المدرسة")
+        self.assertContains(response, "التواصل")
+
+    def test_manager_notification_recipients_are_active_teachers_not_manager(self):
+        form = NotificationCreateForm(
+            user=self.manager,
+            active_school=self.school,
+            mode="notification",
+        )
+
+        self.assertEqual(
+            set(form.fields["teachers"].queryset.values_list("id", flat=True)),
+            {self.teacher.id},
+        )
+
+    def test_circular_copy_and_required_fields_match_behavior(self):
+        form = NotificationCreateForm(
+            data={
+                "message": "نص بلا عنوان",
+                "teachers": [str(self.teacher.id)],
+            },
+            user=self.manager,
+            active_school=self.school,
+            mode="circular",
+        )
+
+        self.assertEqual(form.fields["title"].label, "عنوان التعميم")
+        self.assertEqual(form.fields["message"].label, "نص التعميم")
+        self.assertTrue(form.fields["title"].required)
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+
+    def test_manager_core_templates_do_not_use_csp_blocked_inline_handlers(self):
+        template_names = [
+            "admin_dashboard.html",
+            "manage_teachers.html",
+            "bulk_import_teachers.html",
+            "admin_reports.html",
+            "tickets_inbox.html",
+            "send_notification.html",
+            "send_circular.html",
+            "achievement_school_files.html",
+            "school_settings.html",
+            "school_archive.html",
+            "audit_logs.html",
+        ]
+        templates_dir = Path(settings.BASE_DIR) / "reports" / "templates" / "reports"
+        inline_handler = re.compile(
+            r"\son(?:click|change|submit|input|keydown|keyup|load|error|blur)\s*=",
+            re.IGNORECASE,
+        )
+
+        for template_name in template_names:
+            source = (templates_dir / template_name).read_text(encoding="utf-8")
+            self.assertIsNone(
+                inline_handler.search(source),
+                f"{template_name} contains a CSP-blocked inline event handler",
+            )
+
+    def test_navigation_cache_is_invalidated_when_membership_role_changes(self):
+        self._login_manager()
+        manager_response = self.client.get(reverse("reports:my_profile"))
+        self.assertTrue(manager_response.context["IS_SCHOOL_MANAGER"])
+
+        self.manager_membership.role_type = SchoolMembership.RoleType.TEACHER
+        self.manager_membership.save(update_fields=["role_type"])
+
+        teacher_response = self.client.get(reverse("reports:my_profile"))
+        self.assertFalse(teacher_response.context["IS_SCHOOL_MANAGER"])
+        self.assertFalse(teacher_response.context["SHOW_SCHOOL_REPORTS_LINK"])

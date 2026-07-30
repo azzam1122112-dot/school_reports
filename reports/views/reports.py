@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 
 from django.contrib.auth.decorators import user_passes_test
 from django.conf import settings
@@ -290,7 +291,7 @@ def school_reports_readonly(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def school_archive(request: HttpRequest) -> HttpResponse:
-    """أرشيف مدفوع مستقل للتقارير وملفات الإنجاز حسب السنة الدراسية."""
+    """Manager-friendly archive workspace: live content plus immutable snapshots."""
     active_school = _get_active_school(request)
     if active_school is None:
         messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
@@ -301,17 +302,19 @@ def school_archive(request: HttpRequest) -> HttpResponse:
     is_platform = bool(is_platform_admin(request.user) and platform_can_access_school(request.user, active_school))
     is_superuser = bool(getattr(request.user, "is_superuser", False))
     school_wide = bool(is_superuser or is_manager or is_viewer or is_platform)
-
-    if not school_archive_enabled(active_school):
-        return render(
-            request,
-            "reports/school_archive.html",
-            {
-                "archive_enabled": False,
-                "current_school": active_school,
-                "school_wide": school_wide,
-            },
-        )
+    can_manage_archive = bool(is_superuser or is_manager)
+    archive_enabled = school_archive_enabled(active_school)
+    archive_addon = SchoolArchiveAddon.objects.filter(school=active_school).first()
+    saved_archives_qs = SchoolYearArchive.objects.filter(
+        school=active_school,
+        status__in=[
+            SchoolYearArchive.Status.READY,
+            SchoolYearArchive.Status.PARTIAL,
+        ],
+    )
+    if not school_wide:
+        saved_archives_qs = SchoolYearArchive.objects.none()
+    has_saved_archives = saved_archives_qs.exists()
 
     years = archive_available_years(
         school=active_school,
@@ -322,11 +325,24 @@ def school_archive(request: HttpRequest) -> HttpResponse:
     if selected_year not in years:
         selected_year = years[0] if years else ""
 
+    search = _clean_query_value(request.GET.get("q"))
+    teacher_filter = (request.GET.get("teacher") or "").strip()
+    category_filter = (request.GET.get("category") or "").strip()
+    teacher_id = int(teacher_filter) if school_wide and teacher_filter.isdigit() else None
+    category_id = int(category_filter) if school_wide and category_filter.isdigit() else None
     payload = archive_payload(
         school=active_school,
         selected_year=selected_year,
         teacher=request.user,
         school_wide=school_wide,
+        search=search,
+        teacher_id=teacher_id,
+        category_id=category_id,
+    )
+    administrative_stats = (
+        school_administrative_archive_stats(active_school)
+        if school_wide
+        else {"tickets": 0, "circulars": 0, "notifications": 0}
     )
 
     reports_page = svc_paginate(payload["reports_qs"], per_page=15, page=request.GET.get("reports_page", 1))
@@ -336,8 +352,6 @@ def school_archive(request: HttpRequest) -> HttpResponse:
         page=request.GET.get("files_page", 1),
     )
 
-    # ملحق الأرشفة + مزامنة استهلاك التخزين لعرض شريط المساحة للمدير.
-    archive_addon = SchoolArchiveAddon.objects.filter(school=active_school).first()
     if archive_addon is not None:
         try:
             sync_school_archive_storage_usage(active_school)
@@ -347,13 +361,67 @@ def school_archive(request: HttpRequest) -> HttpResponse:
         except Exception:
             pass
 
+    archive_versions_qs = (
+        saved_archives_qs.filter(academic_year=selected_year)
+        .select_related("created_by")
+        .annotate(download_count=Count("downloads"))
+        .order_by("-version", "-created_at")
+        if selected_year
+        else SchoolYearArchive.objects.none()
+    )
+    latest_archive = archive_versions_qs.first()
+    archive_versions = svc_paginate(
+        archive_versions_qs,
+        per_page=8,
+        page=request.GET.get("archive_page", 1),
+    )
+    pending_archive_payment = (
+        Payment.objects.filter(
+            school=active_school,
+            purpose=Payment.Purpose.ARCHIVE_ADDON,
+            status=Payment.Status.PENDING,
+        )
+        .order_by("-created_at")
+        .first()
+        if can_manage_archive
+        else None
+    )
+    platform_settings = PlatformSettings.get_solo()
+    archive_price = getattr(platform_settings, "archive_addon_annual_price", 0) or 0
+    included_storage = getattr(platform_settings, "archive_included_storage_gb", 0) or 0
+    teacher_options = (
+        Teacher.objects.filter(
+            school_memberships__school=active_school,
+            school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+            school_memberships__is_active=True,
+        )
+        .distinct()
+        .order_by("name", "id")
+        if school_wide
+        else Teacher.objects.none()
+    )
+    category_options = (
+        ReportType.objects.filter(Q(school=active_school) | Q(school__isnull=True))
+        .distinct()
+        .order_by("name", "id")
+        if school_wide and ReportType is not None
+        else []
+    )
+
     return render(
         request,
         "reports/school_archive.html",
         {
-            "archive_enabled": True,
+            "archive_enabled": archive_enabled,
+            "archive_access_available": bool(archive_enabled or has_saved_archives),
+            "has_saved_archives": has_saved_archives,
+            "can_manage_archive": can_manage_archive,
+            "can_create_archive": bool(can_manage_archive and archive_enabled),
             "current_school": active_school,
             "archive_addon": archive_addon,
+            "pending_archive_payment": pending_archive_payment,
+            "archive_price": archive_price,
+            "archive_included_storage_gb": included_storage,
             "current_academic_year": (getattr(active_school, "current_academic_year", "") or "").strip(),
             "school_wide": school_wide,
             "years": years,
@@ -363,18 +431,203 @@ def school_archive(request: HttpRequest) -> HttpResponse:
             "achievement_files": achievement_files_page,
             "report_stats": payload["report_stats"],
             "achievement_stats": payload["achievement_stats"],
+            "administrative_stats": administrative_stats,
+            "storage_overview": school_storage_overview(active_school),
             "unclassified_year": UNCLASSIFIED_YEAR,
             "archived_at": timezone.localtime(),
+            "archive_versions": archive_versions,
+            "latest_archive": latest_archive,
+            "search": search,
+            "teacher_filter": teacher_filter,
+            "category_filter": category_filter,
+            "teacher_options": teacher_options,
+            "category_options": category_options,
             "qs": _clean_query_params(request.GET),
         },
     )
 
 
 @login_required(login_url="reports:login")
-@ratelimit(key="user", rate="6/h", method="GET", block=True)
+@role_required({"manager"})
+@ratelimit(key="user", rate="12/h", method="POST", block=True)
+@require_http_methods(["POST"])
+def school_archive_create(request: HttpRequest) -> HttpResponse:
+    """Create and persist an immutable versioned ZIP snapshot for one year."""
+    from django.core.files import File
+    from ..services_export import build_school_export_zip_file, archive_zip_filename
+
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
+        return redirect("reports:select_school")
+    if not school_archive_enabled(active_school):
+        messages.error(request, "يلزم تفعيل أو تجديد إضافة الأرشفة قبل إنشاء نسخة جديدة.")
+        return redirect("reports:school_archive")
+
+    years = archive_available_years(school=active_school, teacher=request.user, school_wide=True)
+    selected_year = (request.POST.get("year") or "").strip()
+    if selected_year not in years:
+        messages.error(request, "السنة المطلوبة غير متاحة أو لا تحتوي على بيانات.")
+        return redirect("reports:school_archive")
+
+    payload = archive_payload(
+        school=active_school,
+        selected_year=selected_year,
+        teacher=request.user,
+        school_wide=True,
+    )
+    administrative_stats = school_administrative_archive_stats(active_school)
+    source_count = (
+        payload["report_stats"]["total"]
+        + payload["achievement_stats"]["total"]
+        + administrative_stats["tickets"]
+        + administrative_stats["circulars"]
+        + administrative_stats["notifications"]
+    )
+    if source_count <= 0:
+        messages.error(request, "لا يمكن إنشاء نسخة فارغة؛ لا توجد بيانات حية لهذه السنة.")
+        return redirect(f"{reverse('reports:school_archive')}?year={selected_year}")
+
+    zip_file = None
+    archive = None
+    try:
+        zip_file, metadata = build_school_export_zip_file(
+            active_school,
+            academic_year=selected_year,
+            teacher=request.user,
+            school_wide=True,
+            request=request,
+            return_metadata=True,
+        )
+
+        class _ArchiveUpload:
+            name = "school-year-archive.zip"
+            size = metadata["archive_size_bytes"]
+
+        capacity_error = archive_storage_capacity_error(active_school, [_ArchiveUpload()])
+        if capacity_error:
+            messages.error(request, capacity_error)
+            return redirect(f"{reverse('reports:school_archive')}?year={selected_year}")
+
+        with transaction.atomic():
+            School.objects.select_for_update().get(pk=active_school.pk)
+            latest_version = (
+                SchoolYearArchive.objects.filter(
+                    school=active_school,
+                    academic_year=selected_year,
+                )
+                .order_by("-version")
+                .values_list("version", flat=True)
+                .first()
+                or 0
+            )
+            archive = SchoolYearArchive(
+                school=active_school,
+                academic_year=selected_year,
+                version=int(latest_version) + 1,
+                status=(
+                    SchoolYearArchive.Status.PARTIAL
+                    if metadata["is_partial"]
+                    else SchoolYearArchive.Status.READY
+                ),
+                archive_sha256=metadata["archive_sha256"],
+                file_count=metadata["file_count"],
+                missing_file_count=metadata["missing_file_count"],
+                failed_pdf_count=metadata["failed_pdf_count"],
+                report_count=metadata["report_count"],
+                achievement_count=metadata["achievement_count"],
+                ticket_count=metadata["ticket_count"],
+                circular_count=metadata["circular_count"],
+                notification_count=metadata["notification_count"],
+                notes=metadata["notes"],
+                created_by=request.user,
+            )
+            filename = archive_zip_filename(active_school, selected_year)
+            archive.archive_file.save(filename, File(zip_file), save=False)
+            archive.save()
+        sync_school_archive_storage_usage(active_school)
+    except Exception:
+        if archive is not None and getattr(archive.archive_file, "name", ""):
+            try:
+                persisted = bool(
+                    archive.pk
+                    and SchoolYearArchive.objects.filter(pk=archive.pk).exists()
+                )
+                if not persisted:
+                    archive.archive_file.delete(save=False)
+            except Exception:
+                pass
+        logger.exception(
+            "school_archive_create failed school_id=%s year=%s",
+            getattr(active_school, "id", None),
+            selected_year,
+        )
+        messages.error(request, "تعذر إنشاء النسخة المحفوظة. لم تُسجل نسخة ناقصة؛ حاول مرة أخرى.")
+        return redirect(f"{reverse('reports:school_archive')}?year={selected_year}")
+    finally:
+        try:
+            if zip_file is not None:
+                zip_file.close()
+        except Exception:
+            pass
+
+    if archive.status == SchoolYearArchive.Status.PARTIAL:
+        messages.warning(
+            request,
+            "تم حفظ النسخة مع ملاحظات اكتمال. راجع عدد الملفات المتعذرة قبل اعتمادها.",
+        )
+    else:
+        messages.success(request, f"تم حفظ نسخة موثقة رقم {archive.version} لهذه السنة بنجاح.")
+    return redirect(
+        f"{reverse('reports:school_archive')}?year={selected_year}&snapshot={archive.pk}"
+    )
+
+
+@login_required(login_url="reports:login")
+@ratelimit(key="user", rate="30/h", method="GET", block=True)
+@require_http_methods(["GET"])
+def school_archive_download(request: HttpRequest, pk: int) -> HttpResponse:
+    """Download a persisted immutable snapshot and record an audit event."""
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
+        return redirect("reports:select_school")
+    allowed_school_wide = bool(
+        getattr(request.user, "is_superuser", False)
+        or is_school_manager(request.user, active_school=active_school)
+        or _is_report_viewer(request.user, active_school)
+        or (
+            is_platform_admin(request.user)
+            and platform_can_access_school(request.user, active_school)
+        )
+    )
+    if not allowed_school_wide:
+        messages.error(request, "لا تملك صلاحية تنزيل نسخ أرشيف المدرسة.")
+        return redirect("reports:school_archive")
+
+    archive = get_object_or_404(SchoolYearArchive, pk=pk, school=active_school)
+    if not archive.is_downloadable:
+        messages.error(request, "هذه النسخة غير مكتملة ولا يوجد ملف صالح لتنزيله.")
+        return redirect(f"{reverse('reports:school_archive')}?year={archive.academic_year}")
+    SchoolYearArchiveDownload.objects.create(
+        archive=archive,
+        downloaded_by=request.user,
+    )
+    archive.archive_file.open("rb")
+    safe_year = re.sub(r"[^0-9A-Za-z\-]+", "-", archive.academic_year).strip("-") or "year"
+    return FileResponse(
+        archive.archive_file,
+        as_attachment=True,
+        filename=f"archive-{active_school.code}-{safe_year}-v{archive.version}.zip",
+        content_type="application/zip",
+    )
+
+
+@login_required(login_url="reports:login")
+@ratelimit(key="user", rate="20/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def school_archive_export(request: HttpRequest) -> HttpResponse:
-    """تنزيل أرشيف سنة دراسية محددة كحزمة ZIP (ملفات + تحقّق سلامة)."""
+    """Compatibility one-time export; managers should use persisted snapshots."""
     from django.http import FileResponse
     from ..services_export import build_school_export_zip_file, archive_zip_filename
 

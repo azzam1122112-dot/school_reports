@@ -16,10 +16,44 @@ from django.db.models import Count, Q
 from django.utils import timezone
 
 from .storage import _compress_image_file
+from .telegram_alerts import TelegramDeliveryError, deliver_telegram_alert
 
 logger = logging.getLogger(__name__)
 
 from core import opmetrics
+
+
+@shared_task(
+    bind=True,
+    ignore_result=True,
+    autoretry_for=(TelegramDeliveryError,),
+    retry_backoff=True,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": 4},
+)
+def send_telegram_alert_task(self, payload: dict[str, str]) -> str:
+    """Deliver a safe operational alert without blocking the user request."""
+    return deliver_telegram_alert(payload)
+
+
+@shared_task(
+    bind=True,
+    ignore_result=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": 5},
+)
+def delete_orphaned_storage_file_task(
+    self,
+    model_label: str,
+    field_name: str,
+    file_name: str,
+) -> bool:
+    """Retry deletion of an unreferenced local/R2 object after transient errors."""
+    from .file_cleanup import delete_file_if_unreferenced
+
+    return delete_file_if_unreferenced(model_label, field_name, file_name)
 
 
 def _periodic_lock(lock_name: str, ttl: int = 600) -> bool:

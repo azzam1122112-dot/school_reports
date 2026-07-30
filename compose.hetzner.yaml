@@ -1,0 +1,175 @@
+name: school-reports
+
+x-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app: &app
+  image: ${APP_IMAGE:-school-reports:local}
+  restart: unless-stopped
+  env_file:
+    - ${ENV_FILE:-deploy/hetzner/env.production}
+  logging: *default-logging
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  networks:
+    - backend
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ${ENV_FILE:-deploy/hetzner/env.production}
+    logging: *default-logging
+    mem_limit: 768m
+    shm_size: 128m
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - backend
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    env_file:
+      - ${ENV_FILE:-deploy/hetzner/env.production}
+    logging: *default-logging
+    mem_limit: 256m
+    command: >-
+      sh -c 'exec redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory "$${REDIS_MAXMEMORY:-192mb}"
+      --maxmemory-policy noeviction
+      --requirepass "$${REDIS_PASSWORD}"'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - backend
+
+  migrate:
+    <<: *app
+    restart: "no"
+    mem_limit: 768m
+    command: >-
+      sh -c "python manage.py migrate --noinput &&
+      python manage.py collectstatic --noinput"
+    volumes:
+      - static-data:/app/staticfiles
+
+  web:
+    <<: *app
+    mem_limit: 768m
+    cpus: 1.00
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: >-
+      gunicorn config.asgi:application
+      --bind 0.0.0.0:8000
+      -k uvicorn.workers.UvicornWorker
+      --workers ${WEB_CONCURRENCY:-1}
+      --threads ${GUNICORN_THREADS:-2}
+      --timeout ${GUNICORN_TIMEOUT:-120}
+      --keep-alive ${GUNICORN_KEEPALIVE:-5}
+      --max-requests ${GUNICORN_MAX_REQUESTS:-800}
+      --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-80}
+      --access-logfile -
+      --error-logfile -
+    ports:
+      - "127.0.0.1:${LOCAL_HTTP_PORT:-18000}:8000"
+    volumes:
+      - static-data:/app/staticfiles:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          request = urllib.request.Request(
+          "http://127.0.0.1:8000/healthz/",
+          headers={"Host": "tawtheeq-ksa.com", "X-Forwarded-Proto": "https"});
+          urllib.request.urlopen(request, timeout=8).read()
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    networks:
+      backend:
+      edge:
+        aliases:
+          - school-reports-web
+
+  worker-core:
+    <<: *app
+    mem_limit: 512m
+    cpus: 0.75
+    networks:
+      - backend
+      - edge
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: >-
+      celery -A config worker
+      --loglevel=info
+      --concurrency=${CELERY_CORE_CONCURRENCY:-1}
+      --prefetch-multiplier=1
+      --max-tasks-per-child=100
+      -Q default,notifications
+
+  worker-media:
+    <<: *app
+    mem_limit: 640m
+    cpus: 1.00
+    networks:
+      - backend
+      - edge
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: >-
+      celery -A config worker
+      --loglevel=info
+      --concurrency=${CELERY_MEDIA_CONCURRENCY:-1}
+      --prefetch-multiplier=1
+      --max-tasks-per-child=50
+      -Q images,periodic
+
+  beat:
+    <<: *app
+    mem_limit: 160m
+    cpus: 0.20
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: celery -A config beat --loglevel=info
+
+networks:
+  backend:
+    internal: true
+  edge:
+    external: true
+    name: school-platform-edge
+
+volumes:
+  postgres-data:
+  redis-data:
+  static-data:

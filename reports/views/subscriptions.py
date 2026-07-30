@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Subscription, payment, plan management & footer content pages."""
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from urllib.parse import urlencode
 
 from ._helpers import *
@@ -15,7 +15,7 @@ from ._helpers import (
 ARCHIVE_ADDON_ANNUAL_PRICE = Decimal("399.00")
 ARCHIVE_ADDON_INCLUDED_STORAGE_GB = 50
 ARCHIVE_STORAGE_BLOCK_GB = 50
-ARCHIVE_STORAGE_BLOCK_PRICE = Decimal("99.00")
+ARCHIVE_STORAGE_BLOCK_PRICE = Decimal("149.00")
 
 
 def _archive_pricing():
@@ -52,6 +52,111 @@ def _archive_storage_options(active_only: bool = True):
     if active_only:
         qs = qs.filter(is_active=True)
     return list(qs)
+
+
+def _renewal_plan_catalog(current_plan_id: int | None = None) -> list[dict]:
+    """Return customer-facing renewal plans grouped by school capacity.
+
+    Trial and inactive plans must never be offered as renewal choices.  The
+    catalogue keeps every published paid duration visible inside its capacity
+    group so the school can compare all available choices without opening a
+    collapsed control first.
+    """
+    plans = list(
+        SubscriptionPlan.objects.filter(
+            is_active=True,
+            price__gt=0,
+        ).order_by(
+            "max_teachers",
+            "days_duration",
+            "price",
+            "id",
+        )
+    )
+    groups: dict[int, dict] = {}
+
+    for plan in plans:
+        capacity = int(plan.max_teachers or 0)
+        group = groups.setdefault(
+            capacity,
+            {
+                "capacity": capacity,
+                "capacity_label": (
+                    "عدد مستخدمين غير محدود"
+                    if capacity <= 0
+                    else f"حتى {capacity} مستخدم"
+                ),
+                "is_recommended": capacity == 50,
+                "options": [],
+                "features": [],
+            },
+        )
+
+        days = int(plan.days_duration or 0)
+        if 160 <= days <= 210:
+            duration_label = "6 أشهر"
+            months = 6
+        elif 330 <= days <= 400:
+            duration_label = "سنة"
+            months = 12
+        else:
+            duration_label = f"{days} يوم"
+            months = None
+
+        features = [
+            line.strip().lstrip("-*•▪●‣").strip()
+            for line in (plan.description or "").replace("\r", "").split("\n")
+            if line.strip()
+        ][:3]
+        if not group["features"] and features:
+            group["features"] = features
+
+        monthly_equivalent = None
+        if months:
+            monthly_equivalent = (plan.price / Decimal(months)).quantize(
+                Decimal("1"),
+                rounding=ROUND_HALF_UP,
+            )
+
+        group["options"].append(
+            {
+                "plan": plan,
+                "duration_label": duration_label,
+                "monthly_equivalent": monthly_equivalent,
+                "is_current": plan.id == current_plan_id,
+                "annual_savings": None,
+            }
+        )
+
+    for group in groups.values():
+        semiannual = next(
+            (
+                option
+                for option in group["options"]
+                if 160 <= int(option["plan"].days_duration or 0) <= 210
+            ),
+            None,
+        )
+        annual = next(
+            (
+                option
+                for option in group["options"]
+                if 330 <= int(option["plan"].days_duration or 0) <= 400
+            ),
+            None,
+        )
+        if semiannual and annual:
+            savings = (semiannual["plan"].price * 2) - annual["plan"].price
+            if savings > 0:
+                annual["annual_savings"] = savings
+
+    return sorted(
+        groups.values(),
+        key=lambda group: (
+            1 if group["capacity"] <= 0 else 0,
+            group["capacity"] if group["capacity"] > 0 else 999999,
+        ),
+    )
 
 
 def _payment_purpose_label(payment: Payment) -> str:
@@ -149,6 +254,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     import json
     
     now = timezone.now()
+    force_refresh = (request.GET.get("refresh") or "").strip() == "1"
 
     period_labels = {
         "all": "الكل",
@@ -177,8 +283,8 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     pending_payments = Payment.objects.filter(status=Payment.Status.PENDING).count()
 
     # البيانات الإحصائية (كاش 5 دقائق)
-    stats_cache_key = "platform_stats_v3"
-    stats = cache.get(stats_cache_key)
+    stats_cache_key = "platform_stats_v4"
+    stats = None if force_refresh else cache.get(stats_cache_key)
     
     if not stats:
         # ملاحظة: عدّادات التقارير والتذاكر (إجمالي/منجز/مرفوض) تُعرض حسب الفترة المختارة،
@@ -188,8 +294,25 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         # تحسين الاستعلامات باستخدام aggregate
         school_stats = School.objects.aggregate(
             total=Count('id'),
-            active=Count('id', filter=Q(is_active=True))
+            active=Count('id', filter=Q(is_active=True)),
+            storage_used=Sum("storage_used_bytes"),
         )
+
+        # ملخص تشغيلي للتخزين دون أي اتصالات شبكية مع R2.
+        # الحد الفعلي يأتي من إضافة الأرشيف النشطة، وإلا من الحد المجاني العام.
+        platform_settings = PlatformSettings.get_solo()
+        free_limit_bytes = max(0, int(getattr(platform_settings, "free_storage_mb", 0) or 0)) * 1024 * 1024
+        storage_near_limit_count = 0
+        for school in School.objects.only("id", "storage_used_bytes").select_related("archive_addon").iterator():
+            limit_bytes = free_limit_bytes
+            try:
+                addon = school.archive_addon
+                if addon.is_active:
+                    limit_bytes = max(0, int(addon.storage_limit_gb or 0)) * 1024 * 1024 * 1024
+            except SchoolArchiveAddon.DoesNotExist:
+                pass
+            if limit_bytes > 0 and int(school.storage_used_bytes or 0) >= int(limit_bytes * 0.8):
+                storage_near_limit_count += 1
         
         platform_managers_count = (
             Teacher.objects.filter(
@@ -216,6 +339,8 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
             "teachers_count": teachers_count,
             "platform_schools_total": school_stats['total'],
             "platform_schools_active": school_stats['active'],
+            "platform_storage_used_bytes": int(school_stats["storage_used"] or 0),
+            "storage_near_limit_count": storage_near_limit_count,
             "platform_managers_count": platform_managers_count,
             "has_reporttype": has_reporttype,
             "reporttypes_count": reporttypes_count,
@@ -230,7 +355,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     # ملاحظة: إجمالي الإيرادات يُعرض حسب الفترة المختارة (kpis.total_revenue)، لذا لا نحسب
     # نسخة "كل الوقت" هنا (كانت تُحسب ثم تُتجاوز).
     financial_cache_key = "platform_financial_v3"
-    financial = cache.get(financial_cache_key)
+    financial = None if force_refresh else cache.get(financial_cache_key)
 
     if not financial:
         subscriptions_active = SchoolSubscription.objects.filter(is_active=True, end_date__gte=now.date()).count()
@@ -265,7 +390,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
 
     # بيانات الرسوم الثابتة (غير مرتبطة بفترة الفلتر) - كاش 10 دقائق
     charts_cache_key = "platform_charts_v2"
-    charts = cache.get(charts_cache_key)
+    charts = None if force_refresh else cache.get(charts_cache_key)
     
     if not charts:
         # توزيع المدارس حسب المرحلة
@@ -301,9 +426,9 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         except Exception:
             pass
 
-    def _build_period_payload(period: str) -> dict:
-        cache_key = f"platform_dashboard_period_payload_v1:{period}"
-        cached_payload = cache.get(cache_key)
+    def _build_period_payload(period: str, *, force: bool = False) -> dict:
+        cache_key = f"platform_dashboard_period_payload_v2:{period}"
+        cached_payload = None if force else cache.get(cache_key)
         if cached_payload:
             return cached_payload
 
@@ -315,7 +440,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         schools_qs = School.objects.all()
 
         if start_at is not None:
-            payments_qs = payments_qs.filter(created_at__gte=start_at)
+            payments_qs = payments_qs.filter(payment_date__gte=start_at.date())
             reports_qs = reports_qs.filter(created_at__gte=start_at)
             tickets_qs = tickets_qs.filter(created_at__gte=start_at)
             schools_qs = schools_qs.filter(created_at__gte=start_at)
@@ -333,7 +458,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
 
         revenue_rows = (
             payments_qs
-            .annotate(month=TruncMonth("created_at"))
+            .annotate(month=TruncMonth("payment_date"))
             .values("month")
             .annotate(total=Sum("amount"))
             .order_by("month")
@@ -372,12 +497,19 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
                 "schools_total": int(stats.get("platform_schools_total", 0)),
                 "schools_active": int(stats.get("platform_schools_active", 0)),
                 "schools_created_in_period": int(schools_count_period),
+                "subscriptions_active": int(financial.get("subscriptions_active", 0)),
+                "storage_used_bytes": int(stats.get("platform_storage_used_bytes", 0)),
+                "storage_near_limit": int(stats.get("storage_near_limit_count", 0)),
                 "total_revenue": float(total_revenue_period),
                 "reports_count": int(reports_count_period),
                 "tickets_total": int(tickets_agg.get("total") or 0),
                 "tickets_open": int(tickets_agg.get("open") or 0),
                 "tickets_done": int(tickets_agg.get("done") or 0),
                 "tickets_rejected": int(tickets_agg.get("rejected") or 0),
+            },
+            "operations": {
+                "pending_payments": int(pending_payments),
+                "subscriptions_expiring_soon": int(financial.get("subscriptions_expiring_soon", 0)),
             },
             "charts": {
                 "revenue": {
@@ -436,7 +568,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         pass
     
     selected_period = _normalize_period(request.GET.get("period"))
-    period_payload = _build_period_payload(selected_period)
+    period_payload = _build_period_payload(selected_period, force=force_refresh)
 
     wants_json = (
         request.GET.get("format") == "json"
@@ -1078,8 +1210,98 @@ def platform_subscription_delete(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_plans_list(request: HttpRequest) -> HttpResponse:
-    plans = SubscriptionPlan.objects.all().order_by('price')
-    return render(request, "reports/platform_plans.html", {"plans": plans})
+    plans = list(
+        SubscriptionPlan.objects.all().order_by(
+            "-is_active",
+            "max_teachers",
+            "days_duration",
+            "price",
+            "id",
+        )
+    )
+    paired_plans = {}
+
+    for plan in plans:
+        if plan.price <= 0:
+            plan.period_key = "trial"
+            plan.period_label = "تجربة مجانية"
+            months = None
+        elif plan.days_duration >= 300:
+            plan.period_key = "annual"
+            plan.period_label = "سنة"
+            months = 12
+        elif plan.days_duration >= 45:
+            plan.period_key = "semiannual"
+            plan.period_label = "6 أشهر"
+            months = 6
+        else:
+            plan.period_key = "custom"
+            plan.period_label = f"{plan.days_duration} يوم"
+            months = None
+
+        plan.monthly_equivalent = None
+        if months:
+            plan.monthly_equivalent = (plan.price / Decimal(months)).quantize(
+                Decimal("1"),
+                rounding=ROUND_HALF_UP,
+            )
+
+        plan.feature_lines = [
+            line.strip().lstrip("-*•▪●‣").strip()
+            for line in (plan.description or "").replace("\r", "").split("\n")
+            if line.strip()
+        ][:4]
+        plan.is_recommended = bool(plan.price > 0 and plan.max_teachers == 50)
+        plan.annual_savings = None
+        plan.annual_discount_percent = None
+        paired_plans[(plan.max_teachers, plan.period_key)] = plan
+
+    for plan in plans:
+        if plan.period_key != "annual":
+            continue
+        semiannual = paired_plans.get((plan.max_teachers, "semiannual"))
+        if semiannual is None:
+            continue
+        comparison_price = semiannual.price * 2
+        savings = max(Decimal("0"), comparison_price - plan.price)
+        plan.annual_savings = savings
+        if comparison_price > 0:
+            plan.annual_discount_percent = int(
+                ((savings / comparison_price) * 100).quantize(
+                    Decimal("1"),
+                    rounding=ROUND_HALF_UP,
+                )
+            )
+
+    active_plans = [plan for plan in plans if plan.is_active]
+    paid_plans = [plan for plan in active_plans if plan.price > 0]
+    annual_discounts = [
+        plan.annual_discount_percent
+        for plan in active_plans
+        if plan.annual_discount_percent is not None
+    ]
+    capacities = {
+        plan.max_teachers
+        for plan in paid_plans
+        if plan.max_teachers > 0
+    }
+    stats = {
+        "active_count": len(active_plans),
+        "paid_count": len(paid_plans),
+        "semiannual_count": sum(plan.period_key == "semiannual" for plan in paid_plans),
+        "annual_count": sum(plan.period_key == "annual" for plan in paid_plans),
+        "capacity_count": len(capacities),
+        "annual_discount_max": max(annual_discounts, default=0),
+    }
+
+    return render(
+        request,
+        "reports/platform_plans.html",
+        {
+            "plans": plans,
+            "stats": stats,
+        },
+    )
 
 
 @login_required(login_url="reports:login")
@@ -1292,6 +1514,35 @@ def _apply_payment_effects(payment, today, pricing):
     يعيد (level, message) حيث level ∈ {"success", "warning"}.
     يرمي ``_ApprovalError`` إذا تعذّر تطبيق الأثر (يستوجب التراجع).
     """
+    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    if payment.effects_applied_at is not None:
+        return ("warning", "سبق تطبيق أثر عملية الدفع هذه؛ لم يُكرّر التفعيل أو زيادة المساحة.")
+
+    def applied(level, message):
+        payment.effects_applied_at = timezone.now()
+        payment.save(update_fields=["effects_applied_at", "updated_at"])
+        try:
+            from ..utils import create_system_notification
+
+            manager_ids = list(
+                SchoolMembership.objects.filter(
+                    school=payment.school,
+                    role_type=SchoolMembership.RoleType.MANAGER,
+                    is_active=True,
+                ).values_list("teacher_id", flat=True)
+            )
+            if manager_ids:
+                create_system_notification(
+                    title="تم اعتماد طلب المدرسة",
+                    message=message,
+                    school=payment.school,
+                    teacher_ids=manager_ids,
+                    is_important=True,
+                )
+        except Exception:
+            logger.exception("Failed to notify school managers after payment approval")
+        return (level, message)
+
     purpose = getattr(payment, "purpose", Payment.Purpose.SUBSCRIPTION)
 
     if purpose == Payment.Purpose.ARCHIVE_ADDON:
@@ -1321,7 +1572,7 @@ def _apply_payment_effects(payment, today, pricing):
                     "storage_limit_gb", "paid_amount", "updated_at",
                 ]
             )
-        return ("success", "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
+        return applied("success", "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
 
     if purpose == Payment.Purpose.ARCHIVE_STORAGE:
         try:
@@ -1336,7 +1587,7 @@ def _apply_payment_effects(payment, today, pricing):
         addon.storage_limit_gb = int(addon.storage_limit_gb or 0) + added_gb
         addon.paid_amount = (addon.paid_amount or 0) + payment.amount
         addon.save(update_fields=["storage_limit_gb", "paid_amount", "updated_at"])
-        return ("success", f"تمت زيادة مساحة أرشيف المدرسة بمقدار {added_gb}GB.")
+        return applied("success", f"تمت زيادة مساحة أرشيف المدرسة بمقدار {added_gb}GB.")
 
     # ── الاشتراك ──
     plan_to_apply = payment.requested_plan
@@ -1367,7 +1618,7 @@ def _apply_payment_effects(payment, today, pricing):
         payment.subscription = subscription
         payment.save(update_fields=["subscription"])
 
-    return (level, msg)
+    return applied(level, msg)
 
 
 @login_required(login_url="reports:login")
@@ -1603,13 +1854,27 @@ def my_subscription(request):
 
     # تظهر آخر 4 عمليات فقط
     payments = Payment.objects.filter(school=membership.school).order_by('-created_at')[:4]
+    renewal_catalog = _renewal_plan_catalog(
+        subscription.plan_id if subscription else None
+    )
+    renewal_plans = [
+        option["plan"]
+        for group in renewal_catalog
+        for option in group["options"]
+    ]
+    current_plan_ids = {plan.id for plan in renewal_plans}
+    default_renewal_plan_id = (
+        subscription.plan_id
+        if subscription and subscription.plan_id in current_plan_ids
+        else (renewal_plans[0].id if renewal_plans else None)
+    )
     
     context = {
         "subscription": subscription,
         "school": membership.school,
-        # ✅ أظهر كل الخطط (حتى لو غير نشطة) حتى لا تبدو "مفقودة".
-        # سيتم تعطيل غير النشطة في القالب.
-        "plans": SubscriptionPlan.objects.all().order_by("days_duration", "price"),
+        "plans": renewal_plans,
+        "renewal_catalog": renewal_catalog,
+        "default_renewal_plan_id": default_renewal_plan_id,
         "payments": payments,
         "archive_addon": archive_addon,
         "archive_addon_price": pricing["addon_price"],
@@ -1617,8 +1882,16 @@ def my_subscription(request):
         "archive_storage_block_gb": pricing["storage_block_gb"],
         "archive_storage_block_price": pricing["storage_block_price"],
         "archive_storage_options": _archive_storage_options(active_only=True),
+        "storage_overview": school_storage_overview(membership.school),
         "pending_archive_addon_payment": pending_archive_addon_payment,
         "pending_archive_storage_payment": pending_archive_storage_payment,
+        "has_saved_archives": SchoolYearArchive.objects.filter(
+            school=membership.school,
+            status__in=[
+                SchoolYearArchive.Status.READY,
+                SchoolYearArchive.Status.PARTIAL,
+            ],
+        ).exists(),
     }
     return render(request, 'reports/my_subscription.html', context)
 
@@ -1699,8 +1972,20 @@ def _create_unified_payment(request, membership, subscription):
         requested_plan = None
         plan_id = request.POST.get("plan_id")
         if plan_id:
-            requested_plan = SubscriptionPlan.objects.filter(pk=plan_id).first()
-        if not requested_plan and subscription:
+            requested_plan = SubscriptionPlan.objects.filter(
+                pk=plan_id,
+                is_active=True,
+                price__gt=0,
+            ).first()
+            if requested_plan is None:
+                messages.error(request, "الباقة المختارة غير متاحة للتجديد.")
+                return redirect("reports:my_subscription")
+        if (
+            not requested_plan
+            and subscription
+            and subscription.plan.is_active
+            and subscription.plan.price > 0
+        ):
             requested_plan = subscription.plan
         if not requested_plan:
             messages.error(request, "يرجى اختيار باقة للاشتراك/التجديد.")
@@ -1937,13 +2222,22 @@ def payment_create(request):
 
         # 1. محاولة أخذ الباقة من اختيار المستخدم
         if plan_id:
-            try:
-                requested_plan = SubscriptionPlan.objects.get(pk=plan_id)
-            except SubscriptionPlan.DoesNotExist:
-                pass
+            requested_plan = SubscriptionPlan.objects.filter(
+                pk=plan_id,
+                is_active=True,
+                price__gt=0,
+            ).first()
+            if requested_plan is None:
+                messages.error(request, "الباقة المختارة غير متاحة للتجديد.")
+                return redirect("reports:my_subscription")
         
         # 2. إذا لم يختر، نأخذ الباقة الحالية
-        if not requested_plan and subscription:
+        if (
+            not requested_plan
+            and subscription
+            and subscription.plan.is_active
+            and subscription.plan.price > 0
+        ):
             requested_plan = subscription.plan
 
         # التحقق النهائي

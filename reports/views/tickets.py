@@ -141,6 +141,14 @@ def request_create(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = TicketCreateForm(request.POST, request.FILES, user=request.user, active_school=active_school)
         if form.is_valid():
+            capacity_error = archive_storage_capacity_error(
+                active_school,
+                getattr(form, "_compressed_images", []),
+            )
+            if capacity_error:
+                form.add_error("images", capacity_error)
+                messages.error(request, capacity_error)
+                return render(request, "reports/request_create.html", {"form": form})
             ticket: Ticket = form.save(commit=True, user=request.user)  # يحفظ التذكرة والصور
             if hasattr(ticket, "school") and active_school is not None:
                 ticket.school = active_school
@@ -173,6 +181,19 @@ def support_ticket_create(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = SupportTicketForm(request.POST, request.FILES)
         if form.is_valid():
+            attachment = form.cleaned_data.get("attachment")
+            capacity_error = archive_storage_capacity_error(
+                active_school,
+                [attachment] if attachment else [],
+            )
+            if capacity_error:
+                form.add_error("attachment", capacity_error)
+                messages.error(request, capacity_error)
+                return render(
+                    request,
+                    "reports/support_ticket_create.html",
+                    {"form": form},
+                )
             ticket = form.save(commit=False, user=request.user)
             if active_school:
                 ticket.school = active_school
@@ -663,7 +684,9 @@ def tickets_inbox(request: HttpRequest) -> HttpResponse:
     q = (request.GET.get("q") or "").strip()
     mine = request.GET.get("mine") == "1"
 
-    if status in valid_statuses:
+    if status == "attention":
+        qs = qs.filter(status__in=[Ticket.Status.OPEN, Ticket.Status.IN_PROGRESS])
+    elif status in valid_statuses:
         qs = qs.filter(status=status)
     else:
         status = ""

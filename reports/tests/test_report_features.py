@@ -5,11 +5,14 @@ from django.urls import reverse
 
 from datetime import date
 
+from django.utils import timezone
+
 from reports.models import (
     Report,
     ReportTemplate,
     ReportType,
     School,
+    SchoolArchiveAddon,
     SchoolMembership,
     SchoolSubscription,
     SubscriptionPlan,
@@ -26,6 +29,12 @@ class _BaseSchoolFixture(TestCase):
         plan = SubscriptionPlan.objects.create(name="Plan", price=0, days_duration=30, max_teachers=0)
         SchoolSubscription.objects.create(school=self.school, plan=plan)
         SchoolSubscription.objects.create(school=self.other_school, plan=plan)
+        SchoolArchiveAddon.objects.create(
+            school=self.school,
+            is_enabled=True,
+            start_date=timezone.localdate(),
+            storage_limit_gb=10,
+        )
 
         self.manager = Teacher.objects.create_user(
             phone="500000001", name="مدير المدرسة", password="pass", is_staff=True

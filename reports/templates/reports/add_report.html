@@ -1006,7 +1006,7 @@
                </div>
 
                <div class="ar-field" style="margin:0">
-                 <label>اليوم</label>
+                 <label for="{{ form.day_name.id_for_label }}">اليوم</label>
                  {{ form.day_name }}
                </div>
 
@@ -1016,7 +1016,7 @@
                </div>
                
                <div class="ar-field" data-group="teacher_name" style="margin:0">
-                 <label><i class="fa-solid fa-user"></i> المنفذ</label>
+                 <label for="id_teacher_name"><i class="fa-solid fa-user"></i> المنفذ</label>
                  <input type="text" id="id_teacher_name" name="teacher_name" 
                         value="{{ request.user.name|default:'' }}" readonly aria-readonly="true">
                </div>
@@ -1045,11 +1045,11 @@
             
             <div class="ar-img-grid">
                {% for i in "1234" %}
-               <div class="ar-drop-zone">
+               <label class="ar-drop-zone" for="id_image{{ i }}">
                   <i class="fa-solid fa-camera"></i>
                   <span style="font-size:0.8rem; font-weight:700; color:var(--ar-text-soft)">صورة {{ i }}</span>
-                  <input type="file" name="image{{ i }}" id="id_image{{ i }}" accept="image/*">
-               </div>
+                  <input type="file" name="image{{ i }}" id="id_image{{ i }}" accept="image/*" aria-label="إرفاق الصورة {{ i }}">
+               </label>
                {% endfor %}
             </div>
             

@@ -597,19 +597,6 @@ class TeacherCreateForm(forms.ModelForm):
     - يضبط Teacher.role إلى "teacher" (إن وُجد) للتوافق مع الواجهات التراثية.
     """
 
-    password = forms.CharField(
-        label="كلمة المرور",
-        required=True,
-        strip=False,
-        widget=forms.PasswordInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "كلمة المرور للحساب الجديد",
-                "autocomplete": "new-password",
-            }
-        ),
-    )
-
     phone = forms.CharField(
         label="رقم الجوال",
         min_length=10,
@@ -676,8 +663,9 @@ class TeacherCreateForm(forms.ModelForm):
 
     def save(self, commit: bool = True):
         instance: Teacher = super().save(commit=False)
-        pwd = (self.cleaned_data.get("password") or "").strip()
-        instance.set_password(pwd)
+        # كلمة المرور المؤقتة هي رقم الجوال لتسهيل الدخول الأول، ويجبر
+        # النظام المستخدم على تغييرها فور تسجيل الدخول للمرة الأولى.
+        instance.set_password(self.cleaned_data["phone"])
 
         if commit:
             instance.save()
@@ -1186,6 +1174,10 @@ class TicketCreateForm(forms.ModelForm):
     class Meta:
         model = Ticket
         fields = ["department", "recipients", "title", "body"]
+        labels = {
+            "title": "عنوان الطلب",
+            "body": "تفاصيل الطلب",
+        }
         widgets = {
             "title": forms.TextInput(attrs={
                 "class": "input", "placeholder": "عنوان الطلب", "maxlength": "255", "autocomplete": "off"
@@ -1300,6 +1292,8 @@ class TicketCreateForm(forms.ModelForm):
         # تعيين المُنشئ لأول مرة
         if user is not None and not obj.pk:
             obj.creator = user
+        if self.active_school is not None and hasattr(obj, "school_id"):
+            obj.school = self.active_school
 
         # حالة افتراضية إن وُجدت في الموديل
         if not getattr(obj, "status", None):
@@ -1736,6 +1730,11 @@ class NotificationCreateForm(forms.Form):
         self.mode = mode if mode in {"notification", "circular"} else "notification"
         is_circular = self.mode == "circular"
 
+        if is_circular:
+            self.fields["title"].required = True
+            self.fields["title"].label = "عنوان التعميم"
+            self.fields["message"].label = "نص التعميم"
+
         # المرفقات للتعاميم فقط
         if not is_circular:
             self.fields.pop("attachment", None)
@@ -1899,7 +1898,19 @@ class NotificationCreateForm(forms.Form):
         if active_school is not None:
             qs = qs.filter(
                 school_memberships__school=active_school,
-            ).distinct()
+                school_memberships__is_active=True,
+            )
+            if is_manager:
+                # واجهة مدير المدرسة موجهة لمنسوبي المدرسة من المعلمين، فلا
+                # نعرض حساب المدير نفسه أو حسابات إدارة المنصة كأنها معلمون.
+                qs = qs.filter(
+                    school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
+                ).exclude(
+                    pk=getattr(user, "pk", None),
+                ).exclude(
+                    is_platform_admin=True,
+                )
+            qs = qs.distinct()
 
         # للمشرف العام: لو اختار "مدرسة معيّنة" في الطلب، نقيّد القائمة بهذه المدرسة
         if is_superuser:
@@ -2450,10 +2461,16 @@ class SubscriptionPlanForm(forms.ModelForm):
         model = SubscriptionPlan
         fields = ["name", "description", "price", "days_duration", "max_teachers", "is_active"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "اسم الخطة (مثلاً: باقة سنوية)"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "وصف مميزات الخطة..."}),
-            "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
-            "days_duration": forms.NumberInput(attrs={"class": "form-control"}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "مثال: الاحترافية | سنوية"}),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 5,
+                    "placeholder": "اكتب كل ميزة في سطر مستقل؛ تظهر أول ثلاث ميزات في صفحة الأسعار.",
+                }
+            ),
+            "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": 0}),
+            "days_duration": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
             "max_teachers": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
@@ -2465,6 +2482,31 @@ class SubscriptionPlanForm(forms.ModelForm):
             "max_teachers": "حد المعلمين",
             "is_active": "نشط؟",
         }
+        help_texts = {
+            "description": "اكتب ثلاث جمل قصيرة، كل جملة في سطر مستقل، لتظهر كمميزات واضحة في بطاقة السعر.",
+            "price": "السعر قبل ضريبة القيمة المضافة. استخدم 0 للتجربة المجانية فقط.",
+            "days_duration": "14 للتجربة، 180 لستة أشهر، و365 للسنة.",
+            "max_teachers": "لا يشمل مدير المدرسة. القيمة 0 تعني سعة غير محدودة.",
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        days = cleaned_data.get("days_duration")
+        max_teachers = cleaned_data.get("max_teachers")
+
+        if days and max_teachers is not None:
+            duplicate = SubscriptionPlan.objects.filter(
+                days_duration=days,
+                max_teachers=max_teachers,
+            )
+            if self.instance.pk:
+                duplicate = duplicate.exclude(pk=self.instance.pk)
+            if duplicate.exists():
+                self.add_error(
+                    None,
+                    "توجد باقة أخرى بنفس المدة وحد المعلمين. عدّل الباقة الحالية بدل إنشاء نسخة مكررة.",
+                )
+        return cleaned_data
 
 
 class SchoolSubscriptionForm(forms.ModelForm):

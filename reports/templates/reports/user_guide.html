@@ -9,6 +9,15 @@
 
   <title>دليل المستخدم | منصة توثيق</title>
   <meta name="description" content="دليل المستخدم الشامل لمنصة توثيق — شرح التقارير وملف الإنجاز والتذاكر والإشعارات والتعاميم والمشاركة والطباعة.">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+  <link rel="canonical" href="{{ SITE_URL }}{% url 'reports:user_guide' %}">
+  <meta property="og:locale" content="ar_SA">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="منصة توثيق">
+  <meta property="og:title" content="دليل استخدام منصة توثيق للتقارير المدرسية">
+  <meta property="og:description" content="شرح استخدام التقارير وملفات الإنجاز والطلبات والتعاميم والمشاركة والطباعة في منصة توثيق.">
+  <meta property="og:url" content="{{ SITE_URL }}{% url 'reports:user_guide' %}">
+  <meta name="twitter:card" content="summary">
 
   <link rel="manifest" href="{% static 'manifest.json' %}">
   <link rel="icon" href="{% static 'img/logo1.png' %}">
@@ -572,7 +581,7 @@
     <i class="fa-solid fa-arrow-up"></i>
   </button>
 
-  <script>
+<script nonce="{{ CSP_NONCE }}">
     // Register Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {

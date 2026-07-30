@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpangocairo-1.0-0 \
     libgdk-pixbuf-xlib-2.0-0 \
     libffi-dev \
+    fonts-dejavu-core \
     shared-mime-info \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

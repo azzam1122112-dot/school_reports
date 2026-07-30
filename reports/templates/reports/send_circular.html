@@ -714,7 +714,7 @@
           <span>إرسال تعميم رسمي</span>
         </h1>
         <div class="header-subtitle">
-          إصدار وثيقة رسمية للمعلمين (أو الإداريين) تتطلب التوقيع والإقرار
+          إصدار وثيقة رسمية لمنسوبي المدرسة تتطلب الاطلاع والتوقيع
         </div>
       </div>
       <div class="header-actions">
@@ -784,7 +784,7 @@
                     <div class="form-group">
                         <label class="form-label" for="{{ form.attachment.id_for_label }}">{{ form.attachment.label }}</label>
                         {{ form.attachment }}
-                        <div class="form-hint">يسمح بـ PDF / صور (Max 5MB)</div>
+                        <div class="form-hint">يسمح بملف PDF أو صورة، بحد أقصى 5 ميجابايت.</div>
                         {% if form.attachment.errors %}<div class="error-list">{{ form.attachment.errors }}</div>{% endif %}
                         <div id="attachPreview" class="attach-preview" style="display:none" aria-live="polite"></div>
                     </div>
@@ -890,7 +890,7 @@
                     <i class="fa-solid fa-paper-plane"></i>
                     <span>اعتماد ونشر التعميم</span>
                   </button>
-                  <a href="{% url 'reports:home' %}" class="btn-cancel">إلغاء الأمر</a>
+                  <a href="{% if IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}" class="btn-cancel">إلغاء والعودة</a>
                 </div>
 
               </form>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    body { color:#17231c; font-family:Tahoma, Arial, sans-serif; font-size:12px; line-height:1.8; }
+    header { border-bottom:3px solid #087443; margin-bottom:18px; padding-bottom:12px; }
+    h1 { color:#075d39; font-size:23px; margin:0 0 5px; }
+    h2 { color:#075d39; font-size:15px; margin:20px 0 8px; }
+    .muted { color:#66736b; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:7px 18px; }
+    .item { border-bottom:1px solid #dfe8e2; padding:5px 0; }
+    .label { color:#607067; font-weight:bold; }
+    .body { background:#f5faf7; border:1px solid #d7e7dc; border-radius:8px; padding:12px; white-space:pre-wrap; }
+    table { border-collapse:collapse; width:100%; }
+    th, td { border:1px solid #cfdcd3; padding:6px; text-align:right; vertical-align:top; }
+    th { background:#eaf5ee; color:#075d39; }
+    footer { border-top:1px solid #dfe8e2; color:#66736b; font-size:10px; margin-top:24px; padding-top:8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      {% if record_kind == "ticket" %}سجل الطلب / التذكرة رقم {{ record.id }}
+      {% elif record_kind == "circular" %}سجل التعميم رقم {{ record.id }}
+      {% else %}سجل الإشعار رقم {{ record.id }}{% endif %}
+    </h1>
+    <div class="muted">{{ school.name|default:"المدرسة" }} · نسخة توثيقية ضمن أرشيف المدرسة</div>
+  </header>
+
+  {% if record_kind == "ticket" %}
+    <div class="grid">
+      <div class="item"><span class="label">العنوان:</span> {{ record.title|default:"—" }}</div>
+      <div class="item"><span class="label">الحالة:</span> {{ record.get_status_display }}</div>
+      <div class="item"><span class="label">المرسل:</span> {{ record.creator.name|default:"—" }}</div>
+      <div class="item"><span class="label">المسؤول الرئيسي:</span> {{ record.assignee.name|default:"—" }}</div>
+      <div class="item"><span class="label">القسم:</span> {{ record.department.name|default:"—" }}</div>
+      <div class="item"><span class="label">تاريخ الإنشاء:</span> {{ record.created_at|date:"Y-m-d H:i" }}</div>
+    </div>
+    <h2>تفاصيل الطلب</h2>
+    <div class="body">{{ record.body|default:"لا توجد تفاصيل." }}</div>
+    <h2>المستلمون</h2>
+    <div>{% for recipient in recipients %}{{ recipient.name }}{% if not forloop.last %}، {% endif %}{% empty %}—{% endfor %}</div>
+    <h2>سجل الملاحظات</h2>
+    <table>
+      <thead><tr><th>التاريخ</th><th>الكاتب</th><th>الملاحظة</th></tr></thead>
+      <tbody>
+        {% for note in notes %}
+          <tr><td>{{ note.created_at|date:"Y-m-d H:i" }}</td><td>{{ note.author.name|default:"—" }}</td><td>{{ note.body }}</td></tr>
+        {% empty %}<tr><td colspan="3">لا توجد ملاحظات.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="grid">
+      <div class="item"><span class="label">العنوان:</span> {{ record.title|default:"—" }}</div>
+      <div class="item"><span class="label">المرسل:</span> {{ record.created_by.name|default:"—" }}</div>
+      <div class="item"><span class="label">تاريخ الإرسال:</span> {{ record.created_at|date:"Y-m-d H:i" }}</div>
+      <div class="item"><span class="label">عدد المستلمين:</span> {{ recipient_rows|length }}</div>
+      <div class="item"><span class="label">تمت القراءة:</span> {{ read_count }}</div>
+      {% if record_kind == "circular" %}<div class="item"><span class="label">تم التوقيع:</span> {{ signed_count }} من {{ recipient_rows|length }}</div>{% endif %}
+    </div>
+    <h2>النص</h2>
+    <div class="body">{{ record.message|default:"—" }}</div>
+    {% if record_kind == "circular" %}
+      <h2>نص الإقرار</h2>
+      <div class="body">{{ record.signature_ack_text }}</div>
+    {% endif %}
+    <h2>المستلمون وحالة الاستلام{% if record_kind == "circular" %} والتوقيع{% endif %}</h2>
+    <table>
+      <thead><tr><th>المستلم</th><th>القراءة</th>{% if record_kind == "circular" %}<th>التوقيع</th><th>وقت التوقيع</th>{% endif %}</tr></thead>
+      <tbody>
+        {% for row in recipient_rows %}
+          <tr>
+            <td>{{ row.teacher.name|default:"—" }}</td>
+            <td>{% if row.is_read %}تمت{% else %}لم تتم{% endif %}</td>
+            {% if record_kind == "circular" %}<td>{% if row.is_signed %}تم{% else %}لم يتم{% endif %}</td><td>{{ row.signed_at|date:"Y-m-d H:i"|default:"—" }}</td>{% endif %}
+          </tr>
+        {% empty %}<tr><td colspan="4">لا يوجد مستلمون.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <footer>أنشئ هذا السجل آليًا في {{ generated_at|date:"Y-m-d H:i" }}. المرفقات الأصلية والصور — إن وجدت — تحفظ بجانب ملف PDF داخل الحزمة.</footer>
+</body>
+</html>

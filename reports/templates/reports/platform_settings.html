@@ -40,7 +40,7 @@
     border-radius: 999px;
     background: linear-gradient(90deg, transparent, var(--royal-gold, #b9975b), #fff, transparent);
   }
-  .platform-settings-scope h1 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 950; }
+  .platform-settings-scope h1 { margin: 0; color: #fff !important; font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 950; }
   .platform-settings-scope .hero p { margin: 8px 0 0; line-height: 1.8; font-weight: 850; opacity: .94; }
   .platform-settings-scope .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .platform-settings-scope .hero-actions .btn { min-height: 44px; border-radius: 12px; }
@@ -509,7 +509,7 @@
         </template>
       </section>
 
-      <section class="preview" aria-label="معاينة الأسعار والحدود الحالية">
+      <section class="preview" id="storage-overview" aria-label="معاينة الأسعار والحدود الحالية">
         <div class="metric">
           <span>الأرشفة السنوية</span>
           <strong>{{ settings_obj.archive_addon_annual_price|floatformat:0|intcomma }} ريال</strong>
