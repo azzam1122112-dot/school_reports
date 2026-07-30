@@ -351,6 +351,7 @@ button { font: inherit; }
 
 @media (max-width: 560px) {
   body { padding-bottom: 72px; }
+  iframe.sbc-seal-frame { bottom: 78px !important; }
   .shell { width: calc(100% - 24px); }
   .brand-mark { width: 40px; height: 40px; border-radius: 12px; }
   .brand-text strong { font-size: 1rem; }

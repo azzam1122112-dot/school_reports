@@ -66,6 +66,48 @@ class School(models.Model):
         default=0,
         help_text="إجمالي تزايدي لحجم ملفات المدرسة (تقارير + ملفات إنجاز + شواهد). يُحدّث تلقائيًا.",
     )
+    marketing_source = models.CharField(
+        "مصدر التسجيل التسويقي",
+        max_length=120,
+        blank=True,
+        default="",
+    )
+    marketing_medium = models.CharField(
+        "وسيط الحملة",
+        max_length=120,
+        blank=True,
+        default="",
+    )
+    marketing_campaign = models.CharField(
+        "اسم الحملة",
+        max_length=200,
+        blank=True,
+        default="",
+    )
+    marketing_content = models.CharField(
+        "محتوى الإعلان",
+        max_length=200,
+        blank=True,
+        default="",
+    )
+    marketing_term = models.CharField(
+        "الكلمة التسويقية",
+        max_length=200,
+        blank=True,
+        default="",
+    )
+    marketing_click_id = models.CharField(
+        "معرف نقرة الإعلان",
+        max_length=255,
+        blank=True,
+        default="",
+    )
+    marketing_referrer = models.CharField(
+        "نطاق الإحالة",
+        max_length=255,
+        blank=True,
+        default="",
+    )
     created_at = models.DateTimeField("أُنشئت في", auto_now_add=True)
     updated_at = models.DateTimeField("تم التحديث في", auto_now=True)
 

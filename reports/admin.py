@@ -321,10 +321,29 @@ class TicketNoteAdmin(admin.ModelAdmin):
 # =========================
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "current_academic_year", "is_active", "created_at")
-    list_filter = ("is_active", "created_at")
-    search_fields = ("name", "code")
+    list_display = (
+        "name",
+        "code",
+        "marketing_source",
+        "marketing_campaign",
+        "current_academic_year",
+        "is_active",
+        "created_at",
+    )
+    list_filter = ("is_active", "marketing_source", "marketing_medium", "created_at")
+    search_fields = ("name", "code", "marketing_campaign", "marketing_click_id")
     prepopulated_fields = {"code": ("name",)}
+    readonly_fields = (
+        "marketing_source",
+        "marketing_medium",
+        "marketing_campaign",
+        "marketing_content",
+        "marketing_term",
+        "marketing_click_id",
+        "marketing_referrer",
+        "created_at",
+        "updated_at",
+    )
 
     # عرض سجل العمليات الخاصة بهذه المدرسة داخل صفحة المدرسة في Django Admin
     inlines = ()
@@ -791,4 +810,3 @@ class AuditLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # فقط السوبر يوزر يمكنه الحذف (اختياري)
         return request.user.is_superuser
-
