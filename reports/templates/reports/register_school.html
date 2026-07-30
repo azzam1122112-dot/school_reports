@@ -293,6 +293,9 @@
       font-size: .64rem;
     }
     .error-list { margin-block-start: 5px; color: var(--danger); font-size: .68rem; }
+    .policy-consent { display: flex; align-items: flex-start; gap: 10px; margin: 16px 2px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fbf9; color: var(--muted); font-size: .72rem; line-height: 1.8; }
+    .policy-consent input { width: 18px; height: 18px; margin-top: 4px; accent-color: var(--green); }
+    .policy-consent a { color: var(--green); font-weight: 900; text-decoration: underline; text-underline-offset: 3px; }
     .submit-row {
       display: flex;
       margin-block-start: 20px;
@@ -459,6 +462,17 @@
             </div>
           </div>
         </section>
+
+        <div class="policy-consent">
+          {{ form.accept_policies }}
+          <label for="id_accept_policies">
+            أوافق على
+            <a href="{% url 'reports:terms_conditions' %}" target="_blank" rel="noopener">الشروط والأحكام</a>،
+            <a href="{% url 'reports:privacy_policy' %}" target="_blank" rel="noopener">سياسة الخصوصية</a>،
+            و<a href="{% url 'reports:refund_policy' %}" target="_blank" rel="noopener">سياسة الإلغاء والاسترجاع</a>.
+            {% if form.accept_policies.errors %}<span class="error-list">{{ form.accept_policies.errors|striptags }}</span>{% endif %}
+          </label>
+        </div>
 
         <div class="submit-row">
           <button class="submit-button" type="submit" id="submitButton">

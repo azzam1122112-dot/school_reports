@@ -32,6 +32,7 @@ from .models import (
     SchoolYearArchiveDownload,
     ArchiveStorageOption,
     Payment,
+    CustomerComplaint,
     AuditLog,
 )
 
@@ -320,10 +321,29 @@ class TicketNoteAdmin(admin.ModelAdmin):
 # =========================
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "current_academic_year", "is_active", "created_at")
-    list_filter = ("is_active", "created_at")
-    search_fields = ("name", "code")
+    list_display = (
+        "name",
+        "code",
+        "marketing_source",
+        "marketing_campaign",
+        "current_academic_year",
+        "is_active",
+        "created_at",
+    )
+    list_filter = ("is_active", "marketing_source", "marketing_medium", "created_at")
+    search_fields = ("name", "code", "marketing_campaign", "marketing_click_id")
     prepopulated_fields = {"code": ("name",)}
+    readonly_fields = (
+        "marketing_source",
+        "marketing_medium",
+        "marketing_campaign",
+        "marketing_content",
+        "marketing_term",
+        "marketing_click_id",
+        "marketing_referrer",
+        "created_at",
+        "updated_at",
+    )
 
     # عرض سجل العمليات الخاصة بهذه المدرسة داخل صفحة المدرسة في Django Admin
     inlines = ()
@@ -692,6 +712,32 @@ class PaymentAdmin(admin.ModelAdmin):
     readonly_fields = ("effects_applied_at", "created_at")
 
 
+@admin.register(CustomerComplaint)
+class CustomerComplaintAdmin(admin.ModelAdmin):
+    list_display = ("reference", "subject", "name", "status", "created_at", "updated_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("name", "email", "phone", "order_reference", "subject", "message")
+    readonly_fields = (
+        "name",
+        "email",
+        "phone",
+        "order_reference",
+        "subject",
+        "message",
+        "created_at",
+        "updated_at",
+    )
+    date_hierarchy = "created_at"
+
+    def save_model(self, request, obj, form, change):
+        if change and obj.status == CustomerComplaint.Status.RESOLVED and not obj.resolved_at:
+            obj.resolved_at = timezone.now()
+        super().save_model(request, obj, form, change)
+
+    def has_add_permission(self, request):
+        return False
+
+
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
     list_display = ("timestamp", "teacher", "action", "model_name", "object_repr", "school", "ip_address")
@@ -764,4 +810,3 @@ class AuditLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # فقط السوبر يوزر يمكنه الحذف (اختياري)
         return request.user.is_superuser
-

@@ -1,0 +1,51 @@
+{% extends "reports/legal_base.html" %}
+
+{% block title %}سياسة الشكاوى والمقترحات | منصة توثيق{% endblock %}
+{% block seo_meta %}
+<meta name="description" content="قنوات تقديم الشكاوى والمقترحات لمنصة توثيق، مدد الرد والمعالجة، ونموذج شكوى إلكتروني مباشر.">
+<link rel="canonical" href="{{ SITE_URL }}{% url 'reports:complaints_policy' %}">
+{% endblock %}
+{% block legal_title %}سياسة الشكاوى والمقترحات{% endblock %}
+{% block legal_intro %}نستقبل الشكاوى بالعربية عبر نموذج الموقع والبريد والجوال، ونمنح كل شكوى إلكترونية رقم متابعة واضحًا.{% endblock %}
+{% block complaints_current %}aria-current="page"{% endblock %}
+
+{% block legal_content %}
+<section class="legal-card">
+  <h2>قنوات الاستقبال ومدد الخدمة</h2>
+  <ul>
+    <li>نموذج الشكوى الإلكتروني أدناه، وهو متاح دون تسجيل دخول.</li>
+    <li>البريد الإلكتروني: <a href="mailto:{{ BUSINESS.support_email }}">{{ BUSINESS.support_email }}</a>.</li>
+    <li>الجوال/واتساب: <a href="tel:{{ BUSINESS.support_phone }}" dir="ltr">{{ BUSINESS.support_phone }}</a>.</li>
+  </ul>
+  <p>نؤكد الاستلام خلال يومي عمل، ونستهدف معالجة الشكوى خلال سبعة أيام عمل. إذا كانت الحالة معقدة، نبلغ العميل بسبب التمديد والموعد المتوقع. تحفظ تفاصيل الشكوى للمتابعة وتحسين الخدمة وفق سياسة الخصوصية.</p>
+</section>
+
+<section class="legal-card" id="complaint-form">
+  <h2>تقديم شكوى إلكترونية</h2>
+  {% if submitted_reference %}<p class="legal-success">تم استلام الشكوى. رقم المتابعة: <span dir="ltr">{{ submitted_reference }}</span></p>{% endif %}
+  <form method="post" class="legal-form" novalidate>
+    {% csrf_token %}
+    <div class="legal-honeypot">{{ complaint_form.website.label_tag }}{{ complaint_form.website }}</div>
+    {% if complaint_form.non_field_errors %}<div class="legal-errors legal-field--full">{{ complaint_form.non_field_errors }}</div>{% endif %}
+    {% for field in complaint_form %}
+      {% if field.name != "website" %}
+      <div class="legal-field {% if field.name == 'message' or field.name == 'subject' %}legal-field--full{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.errors %}<div class="legal-errors">{{ field.errors|striptags }}</div>{% endif %}
+      </div>
+      {% endif %}
+    {% endfor %}
+    <div class="legal-field legal-field--full">
+      <button class="legal-submit" type="submit">إرسال الشكوى</button>
+      <small>بإرسال النموذج توافق على معالجة البيانات لغرض متابعة الشكوى وفق سياسة الخصوصية.</small>
+    </div>
+  </form>
+</section>
+
+<section class="legal-card">
+  <h2>التصعيد</h2>
+  <p>إذا لم تُحل الشكوى عبر قنواتنا، يحق للعميل تقديم بلاغ إلى وزارة التجارة عبر الرقم 1900 أو تطبيق «بلاغ تجاري»، أو اللجوء إلى الجهة المختصة، دون أن يؤثر ذلك في أي حق نظامي.</p>
+</section>
+{% endblock %}
+

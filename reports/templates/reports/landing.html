@@ -97,6 +97,7 @@
           <a href="#features">الحلول</a>
           <a href="#product">شاهد المنصة</a>
           <a href="#pricing">الباقات</a>
+          <a href="#business">بيانات المتجر</a>
           <a href="#faq">الأسئلة</a>
         </div>
 
@@ -123,6 +124,7 @@
         <a href="#features">حلول المنصة</a>
         <a href="#product">شاهد المنصة</a>
         <a href="#pricing">الباقات</a>
+        <a href="#business">بيانات المتجر</a>
         <a href="#faq">الأسئلة الشائعة</a>
         <div class="mobile-menu-actions">
           <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
@@ -414,7 +416,7 @@
     <section class="section pricing-section" id="pricing">
       <div class="shell">
         <header class="section-heading reveal">
-          <span class="section-kicker">تسعير واضح للمدرسة</span>
+          <span class="section-kicker">المنتجات والخدمات والأسعار</span>
           <h2>اختر عدد المعلمين، ثم وفّر مع الاشتراك السنوي</h2>
           <p>جميع الباقات تشمل أدوات التشغيل والتوثيق الأساسية؛ الاختلاف في سعة المعلمين والمدة فقط.</p>
         </header>
@@ -489,6 +491,30 @@
           <p class="pricing-note"><i class="fa-solid fa-circle-info"></i> الأسعار قبل ضريبة القيمة المضافة، وتُضاف عند انطباقها.</p>
           <p class="pricing-note"><i class="fa-solid fa-box-archive"></i> إضافة الأرشيف السنوية اختيارية: 50GB بسعر 399 ريال، وكل 50GB إضافية بسعر 149 ريال.</p>
         </div>
+
+        <div class="service-catalog reveal" aria-label="تفاصيل المنتجات والخدمات">
+          <article>
+            <i class="fa-solid fa-layer-group"></i>
+            <div><strong>اشتراك منصة توثيق</strong><p>التقارير، ملفات الإنجاز، الطلبات، التعاميم، PDF والمشاركة الآمنة.</p></div>
+            <span>الأسعار حسب السعة والمدة أعلاه</span>
+          </article>
+          <article>
+            <i class="fa-solid fa-box-archive"></i>
+            <div><strong>الأرشيف السنوي</strong><p>نسخة ثابتة من بيانات السنة مع 50GB وبصمة تحقق.</p></div>
+            <span>399 ريال / سنة</span>
+          </article>
+          <article>
+            <i class="fa-solid fa-hard-drive"></i>
+            <div><strong>سعة أرشيف إضافية</strong><p>كتلة تخزين إضافية تضاف إلى خدمة الأرشيف.</p></div>
+            <span>149 ريال / 50GB</span>
+          </article>
+          <article>
+            <i class="fa-solid fa-headset"></i>
+            <div><strong>الدعم الفني والإعداد</strong><p>الدعم الفني مشمول في الباقات، والجلسة المجانية بحسب وصف الباقة.</p></div>
+            <span>مشمول دون رسوم إضافية</span>
+          </article>
+        </div>
+        <p class="catalog-contract-note">السعر النهائي شامل الضريبة وأي تكلفة إضافية — إن وجدت — يظهر قبل تأكيد الطلب. الخدمة رقمية ولا توجد رسوم شحن.</p>
       </div>
     </section>
 
@@ -529,6 +555,30 @@
       </div>
     </section>
 
+    <section class="section business-section" id="business">
+      <div class="shell business-panel reveal">
+        <div class="business-copy">
+          <span class="section-kicker">هوية مقدم الخدمة</span>
+          <h2>بيانات المتجر ووسائل التواصل</h2>
+          <p>للتواصل المباشر، متابعة الاشتراك، أو ممارسة أي حق متعلق بالخدمة أو البيانات.</p>
+        </div>
+        <dl class="business-grid">
+          <div><dt>الاسم التجاري</dt><dd>{{ BUSINESS.legal_name|default:"منصة توثيق" }}</dd></div>
+          {% if BUSINESS.commercial_registration %}<div><dt>السجل التجاري</dt><dd dir="ltr">{{ BUSINESS.commercial_registration }}</dd></div>{% endif %}
+          {% if BUSINESS.freelance_document_number %}<div><dt>وثيقة العمل الحر</dt><dd dir="ltr">{{ BUSINESS.freelance_document_number }}</dd></div>{% endif %}
+          {% if BUSINESS.freelance_activity %}<div><dt>نشاط الوثيقة</dt><dd>{{ BUSINESS.freelance_activity }}</dd></div>{% endif %}
+          {% if BUSINESS.freelance_document_expiry %}<div><dt>صلاحية الوثيقة</dt><dd dir="ltr">حتى {{ BUSINESS.freelance_document_expiry }}</dd></div>{% endif %}
+          {% if BUSINESS.freelance_document_number and BUSINESS.freelance_document_url %}<div><dt>التحقق من الوثيقة</dt><dd><a href="{{ BUSINESS.freelance_document_url }}" rel="noopener">خدمة التحقق الرسمية</a></dd></div>{% endif %}
+          {% if BUSINESS.tax_number %}<div><dt>الرقم الضريبي</dt><dd dir="ltr">{{ BUSINESS.tax_number }}</dd></div>{% endif %}
+          {% if BUSINESS.licenses %}<div><dt>التراخيص</dt><dd>{{ BUSINESS.licenses }}</dd></div>{% endif %}
+          <div><dt>العنوان</dt><dd>{{ BUSINESS.address }}</dd></div>
+          <div><dt>البريد الإلكتروني</dt><dd><a href="mailto:{{ BUSINESS.support_email }}">{{ BUSINESS.support_email }}</a></dd></div>
+          <div><dt>خدمة العملاء</dt><dd><a href="tel:{{ BUSINESS.support_phone }}" dir="ltr">{{ BUSINESS.support_phone }}</a></dd></div>
+          {% if BUSINESS.verification_url %}<div><dt>توثيق المتجر</dt><dd><a href="{{ BUSINESS.verification_url }}" rel="noopener">التحقق عبر المركز السعودي للأعمال</a></dd></div>{% endif %}
+        </dl>
+      </div>
+    </section>
+
     <section class="final-cta">
       <div class="shell">
         <div class="final-panel reveal">
@@ -559,11 +609,11 @@
         </div>
         <div class="footer-links"><strong>المنصة</strong><a href="#features">الحلول</a><a href="#product">الواجهات</a><a href="#pricing">الباقات</a></div>
         <div class="footer-links"><strong>المساعدة</strong><a href="{% url 'reports:user_guide' %}">دليل المستخدم</a><a href="{% url 'reports:faq' %}">مركز الأسئلة</a><a href="{% url 'reports:login' %}">تسجيل الدخول</a></div>
-        <div class="footer-links"><strong>الثقة والخصوصية</strong><a href="{% url 'reports:privacy_policy' %}">سياسة الخصوصية</a><a href="#security">حماية بيانات المدرسة</a></div>
+        <div class="footer-links"><strong>السياسات</strong><a href="{% url 'reports:terms_conditions' %}">الشروط والأحكام</a><a href="{% url 'reports:privacy_policy' %}">سياسة الخصوصية</a><a href="{% url 'reports:refund_policy' %}">الإلغاء والاسترجاع</a><a href="{% url 'reports:service_delivery_policy' %}">تقديم الخدمة</a><a href="{% url 'reports:complaints_policy' %}">الشكاوى والمقترحات</a></div>
       </div>
       <div class="footer-bottom">
         <span>© {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.</span>
-        <span><i class="fa-solid fa-location-dot"></i> المملكة العربية السعودية</span>
+        <span><i class="fa-solid fa-location-dot"></i> {{ BUSINESS.address }}</span>
       </div>
     </div>
   </footer>

@@ -1128,12 +1128,52 @@ def csp(request: HttpRequest) -> Dict[str, Any]:
 __all__.append("csp")
 
 
-def seo(request: HttpRequest) -> Dict[str, str]:
-    """Expose one stable public origin for canonical and social URLs."""
+def seo(request: HttpRequest) -> Dict[str, Any]:
+    """Expose canonical URLs and the public business identity."""
     site_url = str(getattr(settings, "SITE_URL", "") or "").strip().rstrip("/")
     if not site_url:
         site_url = request.build_absolute_uri("/").rstrip("/")
-    return {"SITE_URL": site_url}
+    business = {
+        "legal_name": str(getattr(settings, "BUSINESS_LEGAL_NAME", "") or "").strip(),
+        "commercial_registration": str(
+            getattr(settings, "BUSINESS_COMMERCIAL_REGISTRATION", "") or ""
+        ).strip(),
+        "freelance_document_number": str(
+            getattr(settings, "BUSINESS_FREELANCE_DOCUMENT_NUMBER", "") or ""
+        ).strip(),
+        "freelance_activity": str(
+            getattr(settings, "BUSINESS_FREELANCE_ACTIVITY", "") or ""
+        ).strip(),
+        "freelance_document_expiry": str(
+            getattr(settings, "BUSINESS_FREELANCE_DOCUMENT_EXPIRY", "") or ""
+        ).strip(),
+        "freelance_document_url": str(
+            getattr(settings, "BUSINESS_FREELANCE_DOCUMENT_URL", "") or ""
+        ).strip(),
+        "tax_number": str(getattr(settings, "BUSINESS_TAX_NUMBER", "") or "").strip(),
+        "licenses": str(getattr(settings, "BUSINESS_LICENSES", "") or "").strip(),
+        "verification_url": str(
+            getattr(settings, "BUSINESS_VERIFICATION_URL", "") or ""
+        ).strip(),
+        "address": str(getattr(settings, "BUSINESS_ADDRESS", "") or "").strip(),
+        "support_email": str(
+            getattr(settings, "BUSINESS_SUPPORT_EMAIL", "") or ""
+        ).strip(),
+        "support_phone": str(
+            getattr(settings, "BUSINESS_SUPPORT_PHONE", "") or ""
+        ).strip(),
+    }
+    business["disclosure_complete"] = bool(
+        business["legal_name"]
+        and (
+            business["commercial_registration"]
+            or business["freelance_document_number"]
+        )
+        and business["address"]
+        and business["support_email"]
+        and business["support_phone"]
+    )
+    return {"SITE_URL": site_url, "BUSINESS": business}
 
 
 __all__.append("seo")

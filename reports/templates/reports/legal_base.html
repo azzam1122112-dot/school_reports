@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block robots %}index,follow,max-snippet:-1{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/legal.css' %}">{% endblock %}
+
+{% block content %}
+<main class="legal-page">
+  <header class="legal-hero">
+    <p class="legal-hero__eyebrow">سياسات منصة توثيق</p>
+    <h1>{% block legal_title %}{% endblock %}</h1>
+    <p>{% block legal_intro %}{% endblock %}</p>
+    <span class="legal-updated">آخر تحديث: 30 يوليو 2026م</span>
+  </header>
+
+  <nav class="legal-nav" aria-label="سياسات المتجر الإلكتروني">
+    <a href="{% url 'reports:terms_conditions' %}" {% block terms_current %}{% endblock %}>الشروط والأحكام</a>
+    <a href="{% url 'reports:privacy_policy' %}" {% block privacy_current %}{% endblock %}>الخصوصية</a>
+    <a href="{% url 'reports:refund_policy' %}" {% block refund_current %}{% endblock %}>الإلغاء والاسترجاع</a>
+    <a href="{% url 'reports:service_delivery_policy' %}" {% block delivery_current %}{% endblock %}>تقديم الخدمة</a>
+    <a href="{% url 'reports:complaints_policy' %}" {% block complaints_current %}{% endblock %}>الشكاوى والمقترحات</a>
+  </nav>
+
+  <div class="legal-layout">
+    <div class="legal-content">{% block legal_content %}{% endblock %}</div>
+    <aside class="legal-aside" aria-label="بيانات مقدم الخدمة">
+      <section class="legal-aside__card">
+        <h2>خدمة العملاء</h2>
+        {% if BUSINESS.support_email %}<a href="mailto:{{ BUSINESS.support_email }}">{{ BUSINESS.support_email }}</a>{% endif %}
+        {% if BUSINESS.support_phone %}<a href="tel:{{ BUSINESS.support_phone }}" dir="ltr">{{ BUSINESS.support_phone }}</a>{% endif %}
+        <a href="{% url 'reports:complaints_policy' %}#complaint-form">تقديم شكوى إلكترونية</a>
+      </section>
+      <section class="legal-aside__card">
+        <h2>بيانات مقدم الخدمة</h2>
+        <p><strong>{{ BUSINESS.legal_name|default:"منصة توثيق" }}</strong><br>{{ BUSINESS.address }}</p>
+        {% if BUSINESS.commercial_registration %}<p>السجل التجاري: <span dir="ltr">{{ BUSINESS.commercial_registration }}</span></p>{% endif %}
+        {% if BUSINESS.freelance_document_number %}
+          <p>وثيقة العمل الحر: <span dir="ltr">{{ BUSINESS.freelance_document_number }}</span></p>
+          {% if BUSINESS.freelance_activity %}<p>نشاط الوثيقة: {{ BUSINESS.freelance_activity }}</p>{% endif %}
+          {% if BUSINESS.freelance_document_expiry %}<p>سارية حتى: <span dir="ltr">{{ BUSINESS.freelance_document_expiry }}</span></p>{% endif %}
+          {% if BUSINESS.freelance_document_url %}<a href="{{ BUSINESS.freelance_document_url }}" rel="noopener">التحقق من وثيقة العمل الحر</a>{% endif %}
+        {% endif %}
+        {% if BUSINESS.tax_number %}<p>الرقم الضريبي: <span dir="ltr">{{ BUSINESS.tax_number }}</span></p>{% endif %}
+        {% if BUSINESS.verification_url %}<a href="{{ BUSINESS.verification_url }}" rel="noopener">التحقق عبر المركز السعودي للأعمال</a>{% endif %}
+      </section>
+    </aside>
+  </div>
+</main>
+{% endblock %}

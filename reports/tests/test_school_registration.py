@@ -30,6 +30,7 @@ class SchoolRegistrationFlowTests(TestCase):
             "manager_phone": "+966 55 123 4567",
             "password": "FreeTrial#2026",
             "password_confirm": "FreeTrial#2026",
+            "accept_policies": "on",
         }
         payload.update(overrides)
         return payload
@@ -108,3 +109,32 @@ class SchoolRegistrationFlowTests(TestCase):
         self.assertFalse(School.objects.exists())
         self.assertFalse(Teacher.objects.exists())
         self.assertFalse(SubscriptionPlan.objects.exists())
+
+    def test_registration_preserves_first_touch_marketing_attribution(self):
+        self.client.get(
+            reverse("reports:register_school"),
+            {
+                "utm_source": "meta",
+                "utm_medium": "paid_social",
+                "utm_campaign": "schools_launch",
+                "utm_content": "principal_video",
+                "utm_term": "school_reports",
+                "fbclid": "test-click-id",
+            },
+            HTTP_REFERER="https://www.facebook.com/campaign/example",
+        )
+
+        response = self.client.post(
+            reverse("reports:register_school"),
+            self.registration_payload(manager_phone="0559876543"),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        school = School.objects.get(name="مدرسة التجربة المتكاملة")
+        self.assertEqual(school.marketing_source, "meta")
+        self.assertEqual(school.marketing_medium, "paid_social")
+        self.assertEqual(school.marketing_campaign, "schools_launch")
+        self.assertEqual(school.marketing_content, "principal_video")
+        self.assertEqual(school.marketing_term, "school_reports")
+        self.assertEqual(school.marketing_click_id, "fbclid:test-click-id")
+        self.assertEqual(school.marketing_referrer, "www.facebook.com")

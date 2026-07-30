@@ -309,4 +309,12 @@ urlpatterns = [
     # =========================
     path("faq/", views.faq, name="faq"),
     path("privacy/", views.privacy_policy, name="privacy_policy"),
+    path("terms/", views.terms_conditions, name="terms_conditions"),
+    path("refund-policy/", views.refund_policy, name="refund_policy"),
+    path(
+        "service-delivery/",
+        views.service_delivery_policy,
+        name="service_delivery_policy",
+    ),
+    path("complaints/", views.complaints_policy, name="complaints_policy"),
 ]

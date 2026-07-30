@@ -297,6 +297,10 @@ class SearchEngineIndexingMiddleware:
         "reports:landing",
         "reports:faq",
         "reports:privacy_policy",
+        "reports:terms_conditions",
+        "reports:refund_policy",
+        "reports:service_delivery_policy",
+        "reports:complaints_policy",
         "reports:user_guide",
     }
     INDEXABLE_PATHS = {
