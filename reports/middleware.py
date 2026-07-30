@@ -1054,6 +1054,9 @@ class ContentSecurityPolicyMiddleware:
         return ""
 
     def _policy_for_request(self, request) -> str:
+        sbc_seal_origin = "https://eauthenticate.saudibusiness.gov.sa"
+        is_landing_page = getattr(request, "path", "") == "/"
+
         # Allow override via env/settings for emergency tweaks.
         # If you provide a custom policy, you may include "{nonce}" placeholder.
         custom = (getattr(settings, "CONTENT_SECURITY_POLICY", "") or "").strip()
@@ -1064,6 +1067,7 @@ class ContentSecurityPolicyMiddleware:
             directives = []
             script_directives = {"script-src", "script-src-elem"}
             seen_script_directives: set[str] = set()
+            seen_frame_src = False
 
             for raw_directive in policy.split(";"):
                 parts = raw_directive.strip().split()
@@ -1080,13 +1084,22 @@ class ContentSecurityPolicyMiddleware:
                     if nonce_source not in sources:
                         sources.append(nonce_source)
                     parts = [parts[0], *sources]
+                elif directive_name == "frame-src":
+                    seen_frame_src = True
+                    if is_landing_page and sbc_seal_origin not in parts[1:]:
+                        parts.append(sbc_seal_origin)
                 directives.append(" ".join(parts))
 
             for directive_name in script_directives - seen_script_directives:
                 directives.append(f"{directive_name} 'self' {nonce_source}")
+            if is_landing_page and not seen_frame_src:
+                directives.append(f"frame-src 'self' {sbc_seal_origin}")
             return "; ".join(directives)
 
         nonce = getattr(request, "csp_nonce", "")
+        frame_src = "frame-src 'self'"
+        if is_landing_page:
+            frame_src = f"{frame_src} {sbc_seal_origin}"
 
         # Default policy: safe baseline with current template constraints.
         # NOTE: style-src keeps 'unsafe-inline' because templates use inline style="...".
@@ -1102,6 +1115,7 @@ class ContentSecurityPolicyMiddleware:
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
             "img-src 'self' data: blob: https:",
             "connect-src 'self'",
+            frame_src,
             "upgrade-insecure-requests",
         ]
         return "; ".join(base)
