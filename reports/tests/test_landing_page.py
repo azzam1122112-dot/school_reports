@@ -106,6 +106,24 @@ class LandingPageTests(TestCase):
             ),
             response.headers["Content-Security-Policy"],
         )
+        self.assertIn(
+            (
+                "script-src 'self' "
+                f"'nonce-{response.context['CSP_NONCE']}' "
+                "https://cdn.jsdelivr.net "
+                "https://eauthenticate.saudibusiness.gov.sa"
+            ),
+            response.headers["Content-Security-Policy"],
+        )
+        self.assertIn(
+            (
+                "script-src-elem 'self' "
+                f"'nonce-{response.context['CSP_NONCE']}' "
+                "https://cdn.jsdelivr.net "
+                "https://eauthenticate.saudibusiness.gov.sa"
+            ),
+            response.headers["Content-Security-Policy"],
+        )
 
     def test_private_pages_send_noindex_header(self):
         response = self.client.get(reverse("reports:login"))
