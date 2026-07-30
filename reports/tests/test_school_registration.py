@@ -30,6 +30,7 @@ class SchoolRegistrationFlowTests(TestCase):
             "manager_phone": "+966 55 123 4567",
             "password": "FreeTrial#2026",
             "password_confirm": "FreeTrial#2026",
+            "accept_policies": "on",
         }
         payload.update(overrides)
         return payload

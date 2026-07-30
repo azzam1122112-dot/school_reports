@@ -40,6 +40,10 @@ class PublicMetadataTests(SimpleTestCase):
             "reports:landing",
             "reports:user_guide",
             "reports:privacy_policy",
+            "reports:terms_conditions",
+            "reports:refund_policy",
+            "reports:service_delivery_policy",
+            "reports:complaints_policy",
             "reports:faq",
         ):
             self.assertIn(
