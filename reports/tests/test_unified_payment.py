@@ -201,6 +201,10 @@ class UnifiedPaymentTests(TestCase):
             response,
             'id="submitBtn" disabled aria-disabled="true"',
         )
+        self.assertContains(
+            response,
+            'src="/static/js/subscription-checkout.js"',
+        )
         self.assertContains(response, "document.readyState === 'loading'")
         self.assertContains(response, "initSubscriptionPage()")
 
