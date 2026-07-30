@@ -19,7 +19,9 @@ services:
       - key: DEBUG
         value: "False"
       - key: SITE_URL
-        value: "https://app.tawtheeq-ksa.com"
+        value: "https://tawtheeq-ksa.com"
+      - key: CANONICAL_HOST_REDIRECT
+        value: "True"
       - key: ALLOWED_HOSTS
         value: "app.tawtheeq-ksa.com,tawtheeq-ksa.com,www.tawtheeq-ksa.com,school-7lgm.onrender.com,school-reports.onrender.com"
       - key: CSRF_TRUSTED_ORIGINS

@@ -1,7 +1,62 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}الأسئلة الشائعة{% endblock %}
+{% block title %}الأسئلة الشائعة عن التقارير المدرسية | منصة توثيق{% endblock %}
+{% block robots %}index,follow,max-image-preview:large,max-snippet:-1{% endblock %}
+{% block seo_meta %}
+<meta name="description" content="إجابات عن منصة توثيق للتقارير المدرسية وملفات الإنجاز والطلبات والتعاميم، وآلية الاستخدام والطباعة والصلاحيات وحماية بيانات المدرسة.">
+<link rel="canonical" href="{{ SITE_URL }}{% url 'reports:faq' %}">
+<meta property="og:locale" content="ar_SA">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="منصة توثيق">
+<meta property="og:title" content="الأسئلة الشائعة | منصة توثيق">
+<meta property="og:description" content="إجابات واضحة عن التقارير المدرسية وملفات الإنجاز والطلبات والتعاميم في منصة توثيق.">
+<meta property="og:url" content="{{ SITE_URL }}{% url 'reports:faq' %}">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json" nonce="{{ CSP_NONCE }}">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "@id": "{{ SITE_URL }}{% url 'reports:faq' %}#faq",
+  "url": "{{ SITE_URL }}{% url 'reports:faq' %}",
+  "inLanguage": "ar-SA",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "ما هي منصة توثيق؟",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "منصة ويب عربية لإدارة التقارير المدرسية والطلبات الداخلية وملفات إنجاز المعلمين والتعاميم في مكان واحد."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "هل المنصة مناسبة لأكثر من مدرسة؟",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "نعم، تدعم منصة توثيق مدرسة واحدة أو عدة مدارس مع عزل البيانات والصلاحيات والكادر بين المدارس."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "هل يمكن استخراج التقارير وملفات الإنجاز بصيغة PDF؟",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "نعم، تنشئ المنصة تقارير وملفات إنجاز PDF منظمة وجاهزة للطباعة والمشاركة."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "هل تحمي المنصة بيانات المدرسة؟",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "تعزل المنصة بيانات كل مدرسة وتطبق صلاحيات حسب الدور وسجل تدقيق للعمليات الحساسة."
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
 
 {% block head %}
 <style>

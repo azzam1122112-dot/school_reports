@@ -1,7 +1,19 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}سياسة الخصوصية{% endblock %}
+{% block title %}سياسة الخصوصية وحماية بيانات المدارس | منصة توثيق{% endblock %}
+{% block robots %}index,follow,max-snippet:-1{% endblock %}
+{% block seo_meta %}
+<meta name="description" content="سياسة الخصوصية في منصة توثيق وكيفية جمع بيانات المدارس والمستخدمين واستخدامها وحمايتها وإدارة الصلاحيات والاحتفاظ بالبيانات.">
+<link rel="canonical" href="{{ SITE_URL }}{% url 'reports:privacy_policy' %}">
+<meta property="og:locale" content="ar_SA">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="منصة توثيق">
+<meta property="og:title" content="سياسة الخصوصية وحماية البيانات | منصة توثيق">
+<meta property="og:description" content="تعرف على ضوابط الخصوصية وحماية بيانات المدارس والمستخدمين في منصة توثيق.">
+<meta property="og:url" content="{{ SITE_URL }}{% url 'reports:privacy_policy' %}">
+<meta name="twitter:card" content="summary">
+{% endblock %}
 
 {% block head %}
 <style>

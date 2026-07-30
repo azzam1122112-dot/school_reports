@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 
 from django.test import TestCase, override_settings
@@ -8,7 +9,11 @@ from django.urls import reverse
 from reports.models import SubscriptionPlan
 
 
-@override_settings(ALLOWED_HOSTS=["testserver"], TRIAL_DAYS=21)
+@override_settings(
+    ALLOWED_HOSTS=["testserver"],
+    TRIAL_DAYS=21,
+    SITE_URL="https://tawtheeq.example",
+)
 class LandingPageTests(TestCase):
     def test_landing_explains_the_product_and_has_a_clear_primary_action(self):
         response = self.client.get(reverse("reports:landing"))
@@ -45,6 +50,61 @@ class LandingPageTests(TestCase):
         self.assertIn('src="/static/js/landing.js"', html)
         self.assertNotIn("var periodButtons", html)
         self.assertIn("no-store", response.headers["Cache-Control"])
+
+    def test_landing_exposes_complete_canonical_and_social_metadata(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+
+        self.assertContains(
+            response,
+            '<link rel="canonical" href="https://tawtheeq.example/">',
+            html=True,
+        )
+        self.assertIn(
+            '<meta name="robots" content="index,follow,max-image-preview:large',
+            html,
+        )
+        self.assertIn('property="og:url" content="https://tawtheeq.example/"', html)
+        self.assertIn('name="twitter:card" content="summary_large_image"', html)
+        self.assertIn('"@type": "SoftwareApplication"', html)
+        self.assertIn('"@type": "WebSite"', html)
+        self.assertNotIn("X-Robots-Tag", response.headers)
+        schemas = re.findall(
+            r'<script type="application/ld\+json"[^>]*>(.*?)</script>',
+            html,
+            flags=re.DOTALL,
+        )
+        self.assertEqual(len(schemas), 1)
+        self.assertIsInstance(json.loads(schemas[0]), dict)
+
+    def test_private_pages_send_noindex_header(self):
+        response = self.client.get(reverse("reports:login"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get("X-Robots-Tag"),
+            "noindex, nofollow, noarchive",
+        )
+
+    def test_public_content_pages_remain_indexable(self):
+        for route_name in (
+            "reports:faq",
+            "reports:privacy_policy",
+            "reports:user_guide",
+        ):
+            response = self.client.get(reverse(route_name))
+            self.assertEqual(response.status_code, 200)
+            self.assertNotIn("X-Robots-Tag", response.headers)
+            self.assertContains(response, "https://tawtheeq.example")
+
+        faq_response = self.client.get(reverse("reports:faq"))
+        faq_schema = re.search(
+            r'<script type="application/ld\+json"[^>]*>(.*?)</script>',
+            faq_response.content.decode("utf-8"),
+            flags=re.DOTALL,
+        )
+        self.assertIsNotNone(faq_schema)
+        self.assertEqual(json.loads(faq_schema.group(1))["@type"], "FAQPage")
 
     def test_active_plans_drive_the_pricing_cards_and_period_switch(self):
         SubscriptionPlan.objects.create(

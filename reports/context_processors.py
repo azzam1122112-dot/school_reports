@@ -1126,3 +1126,14 @@ def csp(request: HttpRequest) -> Dict[str, Any]:
 
 
 __all__.append("csp")
+
+
+def seo(request: HttpRequest) -> Dict[str, str]:
+    """Expose one stable public origin for canonical and social URLs."""
+    site_url = str(getattr(settings, "SITE_URL", "") or "").strip().rstrip("/")
+    if not site_url:
+        site_url = request.build_absolute_uri("/").rstrip("/")
+    return {"SITE_URL": site_url}
+
+
+__all__.append("seo")

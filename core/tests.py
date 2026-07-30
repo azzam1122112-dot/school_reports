@@ -28,23 +28,57 @@ class HealthzTests(TestCase):
 @override_settings(
     ALLOWED_HOSTS=["testserver"],
     SECURITY_CONTACT_EMAIL="security@example.test",
+    SITE_URL="https://canonical.example.test",
 )
 class PublicMetadataTests(SimpleTestCase):
-    def test_sitemap_uses_real_named_routes(self):
+    def test_sitemap_uses_canonical_host_and_only_indexable_routes(self):
         response = self.client.get("/sitemap.xml")
 
         self.assertEqual(response.status_code, 200)
         body = response.content.decode("utf-8")
         for route_name in (
             "reports:landing",
-            "reports:login",
             "reports:user_guide",
             "reports:privacy_policy",
             "reports:faq",
         ):
-            self.assertIn(f"http://testserver{reverse(route_name)}", body)
+            self.assertIn(
+                f"https://canonical.example.test{reverse(route_name)}",
+                body,
+            )
+        self.assertNotIn(reverse("reports:login"), body)
+        self.assertIn("<changefreq>weekly</changefreq>", body)
+        self.assertIn("<priority>1.0</priority>", body)
         self.assertNotIn("/user-guide/", body)
         self.assertNotIn("/privacy-policy/", body)
+
+    def test_robots_advertises_sitemap_and_blocks_non_content_endpoints(self):
+        response = self.client.get("/robots.txt")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode("utf-8")
+        self.assertIn("Allow: /", body)
+        self.assertIn("Disallow: /api/", body)
+        self.assertIn(
+            "Sitemap: https://canonical.example.test/sitemap.xml",
+            body,
+        )
+
+    @override_settings(
+        CANONICAL_HOST_REDIRECT=True,
+        ALLOWED_HOSTS=["legacy.example.test", "canonical.example.test"],
+    )
+    def test_legacy_host_permanently_redirects_to_canonical_origin(self):
+        response = self.client.get(
+            "/faq/?source=legacy",
+            HTTP_HOST="legacy.example.test",
+        )
+
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(
+            response.headers["Location"],
+            "https://canonical.example.test/faq/?source=legacy",
+        )
 
     def test_security_txt_uses_configured_contact_and_privacy_route(self):
         response = self.client.get("/.well-known/security.txt")
@@ -76,6 +110,38 @@ class ContentSecurityPolicyTemplateTests(SimpleTestCase):
                     )
 
         self.assertEqual(missing_nonce, [], msg=f"Inline scripts missing CSP nonce: {missing_nonce}")
+
+    @override_settings(
+        ALLOWED_HOSTS=["testserver"],
+        CSP_ENABLED=True,
+        CSP_REPORT_ONLY=False,
+        CONTENT_SECURITY_POLICY=(
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "script-src-elem 'none'; "
+            "style-src 'self' 'unsafe-inline'"
+        ),
+    )
+    def test_custom_csp_is_hardened_with_the_rendered_nonce(self):
+        response = self.client.get(reverse("reports:login"))
+
+        self.assertEqual(response.status_code, 200)
+        policy = response.headers["Content-Security-Policy"]
+        header_nonce_match = re.search(r"'nonce-([^']+)'", policy)
+        html_nonce_match = re.search(
+            rb'<script[^>]+\bnonce="([^"]+)"',
+            response.content,
+        )
+        self.assertIsNotNone(header_nonce_match)
+        self.assertIsNotNone(html_nonce_match)
+        header_nonce = header_nonce_match.group(1)
+        self.assertEqual(header_nonce.encode(), html_nonce_match.group(1))
+        self.assertIn(f"script-src 'self' 'nonce-{header_nonce}'", policy)
+        self.assertIn(
+            f"script-src-elem 'nonce-{header_nonce}'",
+            policy,
+        )
+        self.assertNotIn("script-src-elem 'none'", policy)
 
 
 class PrivateMediaSettingsTests(SimpleTestCase):

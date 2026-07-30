@@ -193,6 +193,16 @@ class UnifiedPaymentTests(TestCase):
         self.assertContains(response, 'id="archiveSubscriptionService"')
         self.assertContains(response, 'id="archiveStorageService"')
         self.assertContains(response, "زيادة مساحة تخزين الأرشيف")
+        self.assertContains(response, 'id="orderEmptyState"')
+        self.assertContains(response, 'data-summary-for="subscription"')
+        self.assertContains(response, 'data-summary-for="addon"')
+        self.assertContains(response, 'data-summary-for="storage"')
+        self.assertContains(
+            response,
+            'id="submitBtn" disabled aria-disabled="true"',
+        )
+        self.assertContains(response, "document.readyState === 'loading'")
+        self.assertContains(response, "initSubscriptionPage()")
 
         offered_ids = {
             option["plan"].id

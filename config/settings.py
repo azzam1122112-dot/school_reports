@@ -307,12 +307,14 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "reports.middleware.CanonicalHostMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "reports.middleware_single_session.EnforceSingleSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "reports.middleware.AuditLogMiddleware",
     "reports.middleware.MaintenanceModeMiddleware",
+    "reports.middleware.SearchEngineIndexingMiddleware",
     "reports.middleware.IdleLogoutMiddleware",
     "reports.middleware.ActiveSchoolGuardMiddleware",
     "reports.middleware.SubscriptionMiddleware",
@@ -341,6 +343,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "reports.context_processors.nav_context",
                 "reports.context_processors.csp",
+                "reports.context_processors.seo",
             ],
         },
     },
@@ -876,6 +879,11 @@ DEPARTMENT_HEAD_ROLE_SLUG = "department_head"
 SITE_URL = (os.getenv("SITE_URL") or "").strip()
 if not SITE_URL:
     SITE_URL = "https://tawtheeq-ksa.com" if ENV == "production" else "http://127.0.0.1:8000"
+SITE_URL = SITE_URL.rstrip("/")
+CANONICAL_HOST_REDIRECT = _env_bool(
+    "CANONICAL_HOST_REDIRECT",
+    ENV == "production",
+)
 
 # Self-service school trial. The free plan exposes the complete product journey
 # while keeping teacher count and archive storage deliberately small.

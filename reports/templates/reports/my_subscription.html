@@ -168,7 +168,7 @@
   /* ===== LAYOUT ===== */
   .dashboard-grid {
     display: grid;
-    grid-template-columns: 360px 1fr;
+    grid-template-columns: minmax(285px, 315px) minmax(0, 1fr);
     gap: 1.75rem;
     align-items: start;
     padding-top: 2rem;
@@ -884,7 +884,7 @@
   /* ===== SUBMIT BUTTON ===== */
   .btn-submit {
     width: 100%;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: linear-gradient(135deg, #074426 0%, #087442 72%, #b9975b 120%);
     color: white;
     border: none;
     padding: 1.2rem;
@@ -903,10 +903,18 @@
 
   .btn-submit:hover {
     transform: translateY(-3px);
-    box-shadow: 0 20px 40px -8px rgba(79,70,229,.45);
+    box-shadow: 0 20px 40px -10px rgba(0,108,53,.46);
   }
 
   .btn-submit:active { transform: translateY(-1px); }
+
+  .btn-submit:disabled {
+    color: #829087;
+    background: #e8eeea;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
 
   .btn-submit.loading {
     opacity: .8;
@@ -1569,12 +1577,13 @@
 
   .renewal-catalog {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
   }
 
   .plan-family {
     position: relative;
+    min-width: 0;
     padding: 1.05rem;
     border: 1px solid #e3e9e6;
     border-radius: 19px;
@@ -1662,6 +1671,22 @@
     border-color: var(--primary);
     background: #f0f8f4;
     box-shadow: 0 0 0 3px rgba(0,108,53,.08);
+  }
+
+  .purchase-section.order-item:not(.is-active) .plan-family {
+    opacity: .72;
+  }
+
+  .purchase-section.order-item:not(.is-active) .plan-duration-choice > input:checked + .plan-duration-card {
+    border-color: #e5e9e7;
+    background: #fbfcfc;
+    box-shadow: none;
+  }
+
+  .purchase-section.order-item:not(.is-active) .plan-duration-choice > input:checked + .plan-duration-card .choice-check {
+    color: transparent;
+    border-color: #cbd7d1;
+    background: #fff;
   }
 
   .choice-check {
@@ -1850,32 +1875,83 @@
   .service-empty-state span { color: var(--text-3); font-size: .7rem; font-weight: 700; }
 
   .premium-order-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+    align-items: stretch;
+    gap: 1.25rem;
     margin-top: 1.35rem;
-    padding: 1.15rem 1.3rem;
+    padding: 1.25rem 1.35rem;
     border-color: rgba(185,151,91,.45);
-    background: linear-gradient(135deg, #fffaf0, #f4faf6);
+    background:
+      radial-gradient(circle at 8% 0%, rgba(185,151,91,.12), transparent 34%),
+      linear-gradient(135deg, #fffdf8, #f3faf6);
+    box-shadow: 0 14px 34px -30px rgba(42,74,57,.65);
   }
 
-  .premium-order-summary > div {
+  .summary-copy {
     display: flex;
     flex-direction: column;
-    gap: .08rem;
+    gap: .12rem;
   }
 
   .summary-kicker { color: #96703a; font-size: .63rem; font-weight: 900; }
-  .premium-order-summary > div > strong { color: var(--text-h); font-size: .9rem; }
-  .premium-order-summary > div > small { color: var(--text-3); font-size: .65rem; font-weight: 700; }
+  .summary-copy > strong { color: var(--text-h); font-size: .95rem; }
+  .summary-copy > small { color: var(--text-3); font-size: .68rem; font-weight: 700; line-height: 1.65; }
+
+  .summary-line-items {
+    display: grid;
+    gap: .45rem;
+    margin-top: .85rem;
+    padding-top: .75rem;
+    border-top: 1px dashed rgba(112,133,121,.28);
+  }
+
+  .summary-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    color: var(--text-2);
+    font-size: .72rem;
+    font-weight: 800;
+  }
+
+  .summary-line[hidden] { display: none; }
+  .summary-line strong { color: var(--text-h); font-size: .74rem; }
+
+  .summary-empty {
+    margin: .8rem 0 0;
+    padding: .62rem .75rem;
+    border-radius: 11px;
+    color: #6f7e75;
+    background: rgba(255,255,255,.62);
+    font-size: .68rem;
+    font-weight: 750;
+  }
+
+  .summary-empty[hidden] { display: none; }
+
+  .summary-total-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 190px;
+    padding-inline-start: 1.25rem;
+    border-inline-start: 1px solid rgba(112,133,121,.2);
+  }
+
+  .summary-total-label {
+    color: #96703a;
+    font-size: .65rem;
+    font-weight: 900;
+  }
 
   .premium-order-summary .order-total-wrap {
     display: flex;
     align-items: baseline;
     gap: .35rem;
-    min-width: 150px;
-    justify-content: flex-end;
+    justify-content: flex-start;
     color: var(--primary);
   }
 
@@ -1887,7 +1963,19 @@
 
   .premium-order-summary .order-total-wrap small { font-size: .74rem; font-weight: 900; }
 
+  .summary-total-note {
+    margin-top: .18rem;
+    color: var(--text-3);
+    font-size: .6rem;
+    font-weight: 700;
+  }
+
   /* ===== RESPONSIVE ===== */
+  @media (max-width: 1220px) {
+    .renewal-catalog { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .plan-family:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  }
+
   @media (max-width: 1050px) {
     .archive-offer { grid-template-columns: repeat(2, 1fr); }
   }
@@ -1912,8 +2000,13 @@
     .renewal-catalog,
     .archive-offer,
     .storage-purchase-grid { grid-template-columns: 1fr; }
-    .premium-order-summary { align-items: flex-start; flex-direction: column; }
-    .premium-order-summary .order-total-wrap { width: 100%; justify-content: flex-start; }
+    .premium-order-summary { grid-template-columns: 1fr; }
+    .summary-total-panel {
+      align-items: flex-start;
+      padding: .85rem 0 0;
+      border-inline-start: 0;
+      border-top: 1px solid rgba(112,133,121,.2);
+    }
     .plan-family-head { padding-inline-end: 0; padding-top: 1.6rem; }
     .plan-family:not(.plan-family--recommended) .plan-family-head { padding-top: 0; }
   }
@@ -2214,13 +2307,34 @@
           </div>
 
           <!-- Order summary -->
-          <div class="order-summary premium-order-summary">
-            <div>
+          <div class="order-summary premium-order-summary" aria-live="polite">
+            <div class="summary-copy">
               <span class="summary-kicker">ملخص الطلب</span>
               <strong>إجمالي الخدمات المحددة</strong>
-              <small>يمكنك اختيار خدمة واحدة أو أكثر من الأقسام أعلاه.</small>
+              <small>راجع تفاصيل الخدمات قبل التحويل ورفع الإيصال.</small>
+
+              <div class="summary-line-items" id="orderSummaryItems">
+                <div class="summary-line" data-summary-for="subscription" hidden>
+                  <span data-summary-label="subscription">تجديد اشتراك المدرسة</span>
+                  <strong data-amount-for="subscription">0.00 ريال</strong>
+                </div>
+                <div class="summary-line" data-summary-for="addon" hidden>
+                  <span data-summary-label="addon">اشتراك الأرشيف السنوي</span>
+                  <strong data-amount-for="addon">0.00 ريال</strong>
+                </div>
+                <div class="summary-line" data-summary-for="storage" hidden>
+                  <span data-summary-label="storage">مساحة إضافية للأرشيف</span>
+                  <strong data-amount-for="storage">0.00 ريال</strong>
+                </div>
+              </div>
+
+              <p class="summary-empty" id="orderEmptyState">لم تختر أي خدمة بعد. فعّل الخدمة التي تريد إضافتها إلى الطلب.</p>
             </div>
-            <span class="order-total-wrap"><strong id="orderTotal">0.00</strong><small>ريال</small></span>
+            <div class="summary-total-panel">
+              <span class="summary-total-label">مجموع الطلب</span>
+              <span class="order-total-wrap"><strong id="orderTotal">0.00</strong><small>ريال</small></span>
+              <small class="summary-total-note">المبلغ المطلوب تحويله بإيصال واحد</small>
+            </div>
           </div>
 
           <hr class="form-divider">
@@ -2310,9 +2424,9 @@
             </button>
           </div>
 
-          <button type="submit" class="btn-submit" id="submitBtn">
+          <button type="submit" class="btn-submit" id="submitBtn" disabled aria-disabled="true">
             <i class="fa-solid fa-paper-plane"></i>
-            <span>تأكيد وإرسال الطلب</span>
+            <span>اختر خدمة للمتابعة</span>
           </button>
         </form>
       </div>
@@ -2453,33 +2567,72 @@
 
 {% block scripts %}
 <script nonce="{{ CSP_NONCE }}">
-document.addEventListener('DOMContentLoaded', () => {
+(() => {
+  function initSubscriptionPage() {
+  const pageRoot = document.getElementById('archiveOrder');
+  if (!pageRoot || pageRoot.dataset.subscriptionReady === '1') return;
+  pageRoot.dataset.subscriptionReady = '1';
 
   /* ── 1. Unified Order: toggles + live total ── */
   const orderToggles = document.querySelectorAll('.order-toggle');
   const planRadios   = document.querySelectorAll('input[name="plan_id"]');
   const storageSel   = document.getElementById('archiveStorageUnits');
   const orderTotalEl = document.getElementById('orderTotal');
+  const orderEmptyEl = document.getElementById('orderEmptyState');
+  const form          = document.getElementById('paymentForm');
+  const submitBtn     = document.getElementById('submitBtn');
 
-  function fmt(n) { return (Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2); }
+  function parsePrice(value) {
+    let normalized = String(value ?? '')
+      .trim()
+      .replace(/\s/g, '')
+      .replace(/٬/g, '')
+      .replace(/٫/g, '.');
+
+    if (normalized.includes(',') && !normalized.includes('.')) {
+      normalized = normalized.replace(',', '.');
+    } else {
+      normalized = normalized.replace(/,/g, '');
+    }
+
+    const number = Number(normalized);
+    return Number.isFinite(number) ? number : 0;
+  }
+
+  function fmt(n) {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Math.round((n + Number.EPSILON) * 100) / 100);
+  }
 
   function setItemAmount(key, value) {
     const el = document.querySelector('[data-amount-for="' + key + '"]');
     if (el) el.textContent = (value == null) ? '—' : (fmt(value) + ' ريال');
   }
 
+  function setItemLabel(key, value) {
+    const el = document.querySelector('[data-summary-label="' + key + '"]');
+    if (el && value) el.textContent = value;
+  }
+
+  function setItemVisibility(key, visible) {
+    const row = document.querySelector('[data-summary-for="' + key + '"]');
+    if (row) row.hidden = !visible;
+  }
+
   function subscriptionAmount() {
     const r = document.querySelector('input[name="plan_id"]:checked');
-    return r ? (parseFloat(r.dataset.price) || 0) : 0;
+    return r ? parsePrice(r.dataset.price) : 0;
   }
   function addonAmount() {
     const c = document.querySelector('input[name="include_archive_addon"]');
-    return (c && c.dataset.price) ? (parseFloat(c.dataset.price) || 0) : 0;
+    return (c && c.dataset.price) ? parsePrice(c.dataset.price) : 0;
   }
   function storageAmount() {
     if (!storageSel) return null;
     const opt = storageSel.options[storageSel.selectedIndex];
-    return opt ? (parseFloat(opt.dataset.price) || 0) : 0;
+    return opt ? parsePrice(opt.dataset.price) : 0;
   }
 
   function isOn(name) {
@@ -2488,17 +2641,43 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function recompute() {
-    // أظهر سعر كل بند (إرشاديًا)، واحسب الإجمالي للبنود المختارة فقط
+    const subscriptionSelected = isOn('include_subscription');
+    const addonSelected = isOn('include_archive_addon');
+    const storageSelected = isOn('include_archive_storage');
+    const anySelected = subscriptionSelected || addonSelected || storageSelected;
+    const selectedPlan = document.querySelector('input[name="plan_id"]:checked');
+    const selectedPlanName = selectedPlan
+      ? selectedPlan.closest('.plan-duration-choice')?.querySelector('.duration-copy strong')?.textContent.trim()
+      : '';
+    const selectedStorage = storageSel ? storageSel.options[storageSel.selectedIndex] : null;
+
     setItemAmount('subscription', subscriptionAmount());
     setItemAmount('addon', addonAmount());
     setItemAmount('storage', storageSel ? storageAmount() : null);
+    setItemLabel('subscription', selectedPlanName || 'تجديد اشتراك المدرسة');
+    setItemLabel(
+      'storage',
+      selectedStorage ? ('مساحة الأرشيف ' + selectedStorage.textContent.trim().split('—')[0].trim()) : 'مساحة إضافية للأرشيف'
+    );
+    setItemVisibility('subscription', subscriptionSelected);
+    setItemVisibility('addon', addonSelected);
+    setItemVisibility('storage', storageSelected);
 
     let total = 0;
-    if (isOn('include_subscription')) total += subscriptionAmount();
-    if (isOn('include_archive_addon')) total += addonAmount();
-    if (isOn('include_archive_storage')) total += (storageAmount() || 0);
+    if (subscriptionSelected) total += subscriptionAmount();
+    if (addonSelected) total += addonAmount();
+    if (storageSelected) total += (storageAmount() || 0);
 
     if (orderTotalEl) orderTotalEl.textContent = fmt(total);
+    if (orderEmptyEl) orderEmptyEl.hidden = anySelected;
+    if (submitBtn) {
+      submitBtn.disabled = !anySelected;
+      submitBtn.setAttribute('aria-disabled', String(!anySelected));
+      const label = submitBtn.querySelector('span');
+      if (label && !submitBtn.classList.contains('loading')) {
+        label.textContent = anySelected ? 'تأكيد وإرسال الطلب' : 'اختر خدمة للمتابعة';
+      }
+    }
   }
 
   // إظهار/إخفاء جسم كل بند حسب اختياره + تمييزه
@@ -2516,12 +2695,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const subscriptionToggle = document.querySelector('input[name="include_subscription"]');
     if (subscriptionToggle && !subscriptionToggle.disabled) {
       subscriptionToggle.checked = true;
-      const section = subscriptionToggle.closest('.order-item');
-      if (section) section.classList.add('is-active');
+      subscriptionToggle.dispatchEvent(new Event('change', { bubbles: true }));
     }
     recompute();
   }));
-  if (storageSel) storageSel.addEventListener('change', recompute);
+  if (storageSel) {
+    storageSel.addEventListener('change', () => {
+      const storageToggle = document.querySelector('input[name="include_archive_storage"]');
+      if (storageToggle && !storageToggle.disabled) {
+        storageToggle.checked = true;
+        storageToggle.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      recompute();
+    });
+  }
   recompute();
 
   /* ── 2. Progress Ring Animation ── */
@@ -2637,9 +2824,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ── 4. Form Validation ── */
-  const form      = document.getElementById('paymentForm');
-  const submitBtn = document.getElementById('submitBtn');
-
   if (form) {
     form.addEventListener('submit', function (e) {
       // يجب اختيار عنصر واحد على الأقل
@@ -2681,6 +2865,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── 5. Toast Helper ── */
   const toastContainer = document.getElementById('toastContainer');
   function showToast(msg, type = 'success') {
+    if (!toastContainer) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     const icon = type === 'success'
@@ -2695,6 +2880,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   window._showToast = showToast; // expose globally
 
-});
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSubscriptionPage, { once: true });
+  } else {
+    initSubscriptionPage();
+  }
+})();
 </script>
 {% endblock %}

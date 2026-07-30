@@ -86,6 +86,54 @@ class TeacherOnboardingTests(TestCase):
         self.assertContains(response, "إضافة سريعة")
         self.assertContains(response, "رفع ملف Excel")
         self.assertEqual(len(re.findall(r"<h1\b", html, re.IGNORECASE)), 1)
+        self.assertContains(response, "static/js/teacher-onboarding.js")
+        self.assertNotIn(
+            "document.getElementById('addQuickRow')",
+            html,
+        )
+
+    def test_add_row_has_a_server_fallback_that_preserves_entered_values(self):
+        response = self.client.post(
+            reverse("reports:bulk_import_teachers"),
+            {
+                "action": "add_quick_row",
+                "name": ["معلم محفوظ", "", ""],
+                "phone": ["0553332211", "", ""],
+                "national_id": ["", "", ""],
+                "job_title": ["teacher", "teacher", "teacher"],
+                "department": [str(self.department.pk), "", ""],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["quick_rows"]), 4)
+        self.assertEqual(response.context["quick_rows"][0]["name"], "معلم محفوظ")
+        self.assertEqual(response.context["quick_rows"][0]["phone"], "0553332211")
+        self.assertContains(response, 'value="معلم محفوظ"')
+        self.assertContains(response, 'value="0553332211"')
+        self.assertNotIn(PREVIEW_SESSION_KEY, self.client.session)
+
+    def test_remove_row_has_a_server_fallback_that_preserves_other_rows(self):
+        response = self.client.post(
+            reverse("reports:bulk_import_teachers"),
+            {
+                "action": "quick_preview",
+                "remove_row": "1",
+                "name": ["الأول", "الثاني", "الثالث"],
+                "phone": ["0551111111", "0552222222", "0553333333"],
+                "national_id": ["", "", ""],
+                "job_title": ["teacher", "teacher", "teacher"],
+                "department": ["", "", ""],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [row["name"] for row in response.context["quick_rows"]],
+            ["الأول", "الثالث"],
+        )
+        self.assertNotContains(response, 'value="الثاني"')
+        self.assertNotIn(PREVIEW_SESSION_KEY, self.client.session)
 
     def test_individual_form_uses_phone_as_temporary_password(self):
         form = TeacherCreateForm(

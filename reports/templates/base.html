@@ -17,7 +17,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="توثيق">
 
-  <title>{% block title %}نظام التقارير{% endblock %}</title>
+  <title>{% block title %}منصة توثيق لإدارة العمل المدرسي{% endblock %}</title>
+  <meta name="robots" content="{% block robots %}noindex,nofollow,noarchive{% endblock %}">
+  {% block seo_meta %}{% endblock %}
 
   <!-- Inject user auth state for JS -->
   <script nonce="{{ CSP_NONCE }}">

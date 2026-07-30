@@ -561,16 +561,67 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
         messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
         return redirect("reports:my_subscription")
 
+    def posted_quick_rows() -> list[dict[str, str]]:
+        fields = {
+            "name": request.POST.getlist("name"),
+            "phone": request.POST.getlist("phone"),
+            "national_id": request.POST.getlist("national_id"),
+            "job_title": request.POST.getlist("job_title"),
+            "department_id": request.POST.getlist("department"),
+        }
+        count = max((len(values) for values in fields.values()), default=0)
+        return [
+            {
+                field: values[index] if index < len(values) else ""
+                for field, values in fields.items()
+            }
+            for index in range(count)
+        ]
+
+    quick_rows: list[dict[str, Any]] | None = None
     if request.method == "POST":
         action = (request.POST.get("action") or "").strip()
+        remove_row = (request.POST.get("remove_row") or "").strip()
 
-        if action == "cancel":
+        if action == "add_quick_row":
+            quick_rows = posted_quick_rows()
+            if len(quick_rows) >= 2000:
+                messages.error(request, "وصلت إلى الحد الأقصى وهو 2000 صف.")
+            else:
+                quick_rows.append(
+                    {
+                        "name": "",
+                        "phone": "",
+                        "national_id": "",
+                        "job_title": SchoolMembership.JobTitle.TEACHER,
+                        "department_id": "",
+                    }
+                )
+
+        elif remove_row:
+            quick_rows = posted_quick_rows()
+            try:
+                remove_index = int(remove_row)
+            except (TypeError, ValueError):
+                remove_index = -1
+            if len(quick_rows) > 1 and 0 <= remove_index < len(quick_rows):
+                quick_rows.pop(remove_index)
+            elif quick_rows:
+                quick_rows[0] = {
+                    "name": "",
+                    "phone": "",
+                    "national_id": "",
+                    "job_title": SchoolMembership.JobTitle.TEACHER,
+                    "department_id": "",
+                }
+
+        elif action == "cancel":
             clear_preview(request)
             request.session.pop(RESULT_SESSION_KEY, None)
             messages.info(request, "تم إلغاء العملية دون حفظ أي بيانات.")
             return redirect("reports:bulk_import_teachers")
 
-        if action == "quick_preview":
+        elif action == "quick_preview":
             try:
                 rows = rows_from_quick_post(request.POST)
                 if not rows:
@@ -648,6 +699,20 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
         school=active_school,
         is_active=True,
     ).order_by("name", "id")
+    if quick_rows is None:
+        if preview and preview.get("source") == "quick":
+            quick_rows = list(preview.get("rows") or [])
+        else:
+            quick_rows = [
+                {
+                    "name": "",
+                    "phone": "",
+                    "national_id": "",
+                    "job_title": SchoolMembership.JobTitle.TEACHER,
+                    "department_id": "",
+                }
+                for _ in range(3)
+            ]
     return render(
         request,
         "reports/bulk_import_teachers.html",
@@ -658,6 +723,7 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
             "departments": departments,
             "job_title_choices": SchoolMembership.JobTitle.choices,
             "active_mode": (request.GET.get("mode") or "quick").strip(),
+            "quick_rows": quick_rows,
         },
     )
 
