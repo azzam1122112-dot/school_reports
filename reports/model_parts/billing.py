@@ -135,10 +135,6 @@ class SchoolSubscription(models.Model):
 
 
 class Payment(models.Model):
-    class Method(models.TextChoices):
-        BANK_TRANSFER = "bank_transfer", "تحويل بنكي"
-        TAP = "tap", "Tap"
-
     class Status(models.TextChoices):
         PENDING = "pending", "قيد المراجعة"
         APPROVED = "approved", "مقبول"
@@ -193,45 +189,6 @@ class Payment(models.Model):
         default="",
         db_index=True,
         help_text="يربط عمليات الدفع التي أُنشئت معًا ضمن طلب موحّد واحد (إيصال واحد).",
-    )
-    payment_method = models.CharField(
-        "طريقة الدفع",
-        max_length=20,
-        choices=Method.choices,
-        default=Method.BANK_TRANSFER,
-        db_index=True,
-    )
-    transaction_id = models.CharField(
-        "رقم عملية بوابة الدفع",
-        max_length=160,
-        blank=True,
-        default="",
-        db_index=True,
-    )
-    gateway_status = models.CharField(
-        "حالة بوابة الدفع",
-        max_length=32,
-        blank=True,
-        default="",
-        db_index=True,
-    )
-    gateway_response_code = models.CharField(
-        "رمز رد بوابة الدفع",
-        max_length=32,
-        blank=True,
-        default="",
-    )
-    gateway_message = models.CharField(
-        "رسالة بوابة الدفع",
-        max_length=255,
-        blank=True,
-        default="",
-    )
-    gateway_completed_at = models.DateTimeField(
-        "وقت اكتمال عملية البوابة",
-        null=True,
-        blank=True,
-        editable=False,
     )
     receipt_image = models.ImageField(
         "صورة الإيصال",

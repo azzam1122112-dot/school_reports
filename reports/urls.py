@@ -276,9 +276,6 @@ urlpatterns = [
     path("subscription/my/", views.my_subscription, name="my_subscription"),
     path("subscription/history/", views.subscription_history, name="subscription_history"),
     path("subscription/payment/create/", views.payment_create, name="payment_create"),
-    path("subscription/payment/tap/create/", views.tap_payment_create, name="tap_payment_create"),
-    path("subscription/payment/tap/return/", views.tap_payment_return, name="tap_payment_return"),
-    path("subscription/payment/tap/webhook/", views.tap_payment_webhook, name="tap_payment_webhook"),
 
     # =========================
     # إدارة المنصة (Custom Views)

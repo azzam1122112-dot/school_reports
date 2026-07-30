@@ -44,7 +44,6 @@
     const orderTotal = form.querySelector("#orderTotal");
     const orderEmptyState = form.querySelector("#orderEmptyState");
     const receiptSubmit = form.querySelector("#submitBtn");
-    const tapSubmit = form.querySelector("#tapSubmitBtn");
 
     function input(name) {
       return form.querySelector(`input[name="${name}"]`);
@@ -150,12 +149,6 @@
         "إرسال إيصال التحويل البنكي",
         "اختر خدمة لإرسال إيصال التحويل",
       );
-      setSubmitState(
-        tapSubmit,
-        anySelected,
-        "الدفع الآن عبر Tap",
-        "اختر خدمة للمتابعة",
-      );
     }
 
     orderToggles.forEach((toggle) => {
@@ -204,7 +197,6 @@
       isOn,
       recompute,
       receiptSubmit,
-      tapSubmit,
     };
     Object.defineProperty(pageRoot, "__subscriptionCheckout", {
       configurable: false,

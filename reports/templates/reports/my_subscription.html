@@ -922,50 +922,6 @@
     transform: none;
   }
 
-  .tap-checkout-box {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(240px, .65fr);
-    align-items: center;
-    gap: 1rem;
-    margin-top: 1rem;
-    padding: 1rem;
-    border: 1px solid rgba(0,108,53,.18);
-    border-radius: var(--radius-md);
-    background: linear-gradient(135deg, #f4fbf7, #fff);
-  }
-
-  .tap-checkout-copy {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    color: var(--text-2);
-    font-size: .8rem;
-    line-height: 1.7;
-  }
-
-  .tap-checkout-copy > i {
-    display: grid;
-    place-items: center;
-    width: 42px;
-    height: 42px;
-    flex: 0 0 auto;
-    border-radius: 13px;
-    color: #fff;
-    background: #101915;
-  }
-
-  .tap-checkout-copy strong {
-    display: block;
-    color: var(--text-h);
-    font-size: .92rem;
-  }
-
-  .tap-submit {
-    padding: .95rem 1rem;
-    font-size: .96rem;
-    background: linear-gradient(135deg, #101915, #006c35);
-  }
-
   /* ===== ARCHIVE ADDON ===== */
   .archive-card {
     margin-bottom: 1.75rem;
@@ -2025,7 +1981,6 @@
   }
 
   @media (max-width: 600px) {
-    .tap-checkout-box { grid-template-columns: 1fr; }
     .sub-container { padding: 1.5rem 1rem 3rem; }
     .glass-card { padding: 1.5rem; }
     .plans-grid { grid-template-columns: 1fr 1fr; }
@@ -2378,34 +2333,9 @@
             <div class="summary-total-panel">
               <span class="summary-total-label">مجموع الطلب</span>
               <span class="order-total-wrap"><strong id="orderTotal">0.00</strong><small>ريال</small></span>
-              <small class="summary-total-note">المبلغ المطلوب دفعه للخدمات المحددة</small>
+              <small class="summary-total-note">المبلغ المطلوب تحويله بإيصال واحد</small>
             </div>
           </div>
-
-          {% if tap_enabled %}
-            <div class="tap-checkout-box">
-              <div class="tap-checkout-copy">
-                <i class="fa-solid fa-shield-halved"></i>
-                <div>
-                  <strong>دفع إلكتروني آمن عبر Tap</strong>
-                  ستنتقل إلى صفحة Tap لإتمام الدفع بالوسائل المتاحة، ثم تُفعّل الخدمات تلقائيًا بعد نجاح العملية.
-                </div>
-              </div>
-              <button
-                type="submit"
-                class="btn-submit tap-submit"
-                id="tapSubmitBtn"
-                formaction="{% url 'reports:tap_payment_create' %}"
-                formmethod="post"
-                formnovalidate
-                disabled
-                aria-disabled="true"
-              >
-                <i class="fa-solid fa-credit-card"></i>
-                <span>الدفع الآن عبر Tap</span>
-              </button>
-            </div>
-          {% endif %}
 
           <hr class="form-divider">
 
@@ -2413,8 +2343,8 @@
           <div class="section-header">
             <div class="section-icon"><i class="fa-regular fa-credit-card"></i></div>
             <div class="section-header-text">
-              <h2>{% if tap_enabled %}أو استخدم التحويل البنكي{% else %}بيانات التحويل البنكي{% endif %}</h2>
-              <p>حوّل الإجمالي أعلاه إلى الحساب التالي ثم ارفع الإيصال للمراجعة اليدوية</p>
+              <h2>بيانات التحويل البنكي</h2>
+              <p>حوّل الإجمالي أعلاه إلى الحساب التالي ثم ارفع الإيصال</p>
             </div>
           </div>
 
@@ -2648,7 +2578,6 @@
   const checkout = window.SubscriptionCheckout?.init(pageRoot);
   const form = checkout?.form || document.getElementById('paymentForm');
   const submitBtn = checkout?.receiptSubmit || document.getElementById('submitBtn');
-  const tapSubmitBtn = checkout?.tapSubmit || document.getElementById('tapSubmitBtn');
   const isOn = checkout?.isOn || ((name) => {
     const control = document.querySelector('input[name="' + name + '"]');
     return !!(control && control.checked && !control.disabled);
@@ -2769,7 +2698,6 @@
   /* ── 4. Form Validation ── */
   if (form) {
     form.addEventListener('submit', function (e) {
-      const isTapSubmission = !!(e.submitter && e.submitter.id === 'tapSubmitBtn');
       // يجب اختيار عنصر واحد على الأقل
       const anySelected = isOn('include_subscription') || isOn('include_archive_addon') || isOn('include_archive_storage');
       if (!anySelected) {
@@ -2786,7 +2714,7 @@
         showToast('اختر باقة لتجديد اشتراك المدرسة', 'error');
         return;
       }
-      if (!isTapSubmission && fileInput && !fileInput.value) {
+      if (fileInput && !fileInput.value) {
         e.preventDefault();
         if (dropArea) {
           dropArea.style.borderColor = '#ef4444';
@@ -2797,12 +2725,11 @@
         return;
       }
       // Loading state
-      const activeSubmit = isTapSubmission ? tapSubmitBtn : submitBtn;
-      if (activeSubmit) {
-        activeSubmit.classList.add('loading');
-        const lbl = activeSubmit.querySelector('span');
+      if (submitBtn) {
+        submitBtn.classList.add('loading');
+        const lbl = submitBtn.querySelector('span');
         if (lbl) lbl.textContent = 'جارٍ الإرسال...';
-        activeSubmit.disabled = true;
+        submitBtn.disabled = true;
       }
     });
   }

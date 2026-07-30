@@ -246,8 +246,6 @@ class MaintenanceModeMiddleware:
             "reports:login",
             "reports:platform_login",
             "reports:logout",
-            "reports:tap_payment_return",
-            "reports:tap_payment_webhook",
             "reports:platform_admin_dashboard",
             "reports:api_platform_dashboard_data",
             "reports:api_platform_dashboard_search",
@@ -599,8 +597,6 @@ class SubscriptionMiddleware:
         base_allowed = {
             reverse('reports:logout'),
             reverse('reports:subscription_expired'),
-            reverse('reports:tap_payment_return'),
-            reverse('reports:tap_payment_webhook'),
             # السماح بالتبديل حتى لا يعلق المستخدم على مدرسة منتهية
             reverse('reports:switch_school'),
         }
@@ -649,7 +645,6 @@ class SubscriptionMiddleware:
             allowed_paths |= {
                 reverse('reports:my_subscription'),
                 reverse('reports:payment_create'),
-                reverse('reports:tap_payment_create'),
                 reverse('reports:school_archive'),
                 reverse('reports:school_archive_create'),
             }
@@ -741,9 +736,6 @@ class ForcePasswordChangeMiddleware:
             "reports:subscription_expired",
             "reports:my_subscription",
             "reports:payment_create",
-            "reports:tap_payment_create",
-            "reports:tap_payment_return",
-            "reports:tap_payment_webhook",
             "reports:switch_school",
             "service_worker",
         }
