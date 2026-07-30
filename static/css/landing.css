@@ -246,6 +246,23 @@ button { font: inherit; }
 .pricing-disclosures { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px 18px; margin-top: 22px; }
 .pricing-note { margin: 0; color: var(--muted); text-align: center; font-size: .72rem; }
 .pricing-note i { margin-left: 5px; color: var(--green-700); }
+.service-catalog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 28px; }
+.service-catalog article { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 13px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+.service-catalog article > i { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 11px; color: var(--green-800); background: var(--green-100); }
+.service-catalog strong { display: block; color: var(--green-950); font-size: .82rem; }
+.service-catalog p { margin: 3px 0 0; color: var(--muted); font-size: .7rem; }
+.service-catalog article > span { color: var(--green-800); font-size: .72rem; font-weight: 900; text-align: left; }
+.catalog-contract-note { margin: 14px 0 0; color: var(--muted); text-align: center; font-size: .7rem; }
+
+.business-section { padding-top: 20px; background: var(--paper); }
+.business-panel { display: grid; grid-template-columns: .7fr 1.3fr; gap: 45px; padding: 38px; border: 1px solid var(--line); border-radius: 22px; background: var(--white); box-shadow: var(--shadow-soft); }
+.business-copy h2 { margin: 8px 0 10px; color: var(--green-950); font-size: 1.65rem; }
+.business-copy p { margin: 0; color: var(--muted); font-size: .8rem; }
+.business-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.business-grid div { padding: 13px 15px; border-radius: 12px; background: var(--green-50); }
+.business-grid dt { color: var(--muted); font-size: .65rem; font-weight: 800; }
+.business-grid dd { margin: 3px 0 0; color: var(--green-950); font-size: .76rem; font-weight: 900; overflow-wrap: anywhere; }
+.business-grid a { color: var(--green-800); text-decoration: underline; text-underline-offset: 3px; }
 
 .faq-layout { display: grid; grid-template-columns: .7fr 1.3fr; gap: 80px; }
 .faq-intro { position: sticky; top: 120px; align-self: start; }
@@ -325,7 +342,7 @@ button { font: inherit; }
   .showcase { grid-template-columns: 1fr; }
   .showcase-dashboard { grid-column: auto; display: block; }
   .showcase-dashboard .showcase-image { width: calc(100% - 36px); margin: 0 18px 18px; padding: 0; }
-  .roles-shell, .faq-layout { grid-template-columns: 1fr; }
+  .roles-shell, .faq-layout, .business-panel { grid-template-columns: 1fr; }
   .faq-intro { position: static; }
   .security-panel { padding: 34px 25px; }
   .footer-main { grid-template-columns: repeat(2, 1fr); }
@@ -368,6 +385,10 @@ button { font: inherit; }
   .security-points { grid-template-columns: 1fr; }
   .period-switch { width: 100%; }
   .period-switch button { flex: 1; min-width: 0; }
+  .service-catalog, .business-grid { grid-template-columns: 1fr; }
+  .service-catalog article { grid-template-columns: auto 1fr; }
+  .service-catalog article > span { grid-column: 2; text-align: right; }
+  .business-panel { padding: 25px 20px; }
   .final-panel { padding: 34px 23px; }
   .final-actions { display: grid; }
   .footer-main { grid-template-columns: 1fr 1fr; gap: 36px 22px; padding-top: 50px; }

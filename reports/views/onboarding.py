@@ -125,6 +125,11 @@ class SchoolRegistrationForm(forms.Form):
             }
         ),
     )
+    accept_policies = forms.BooleanField(
+        label="أوافق على الشروط والأحكام وسياسة الخصوصية وسياسة الإلغاء والاسترجاع",
+        required=True,
+        error_messages={"required": "يلزم الاطلاع على السياسات والموافقة عليها قبل إنشاء الحساب."},
+    )
 
     def clean_manager_phone(self):
         raw_phone = (self.cleaned_data.get("manager_phone") or "").strip()

@@ -32,6 +32,7 @@ from .models import (
     SchoolYearArchiveDownload,
     ArchiveStorageOption,
     Payment,
+    CustomerComplaint,
     AuditLog,
 )
 
@@ -690,6 +691,32 @@ class PaymentAdmin(admin.ModelAdmin):
     autocomplete_fields = ("school", "requested_plan")
     date_hierarchy = "created_at"
     readonly_fields = ("effects_applied_at", "created_at")
+
+
+@admin.register(CustomerComplaint)
+class CustomerComplaintAdmin(admin.ModelAdmin):
+    list_display = ("reference", "subject", "name", "status", "created_at", "updated_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("name", "email", "phone", "order_reference", "subject", "message")
+    readonly_fields = (
+        "name",
+        "email",
+        "phone",
+        "order_reference",
+        "subject",
+        "message",
+        "created_at",
+        "updated_at",
+    )
+    date_hierarchy = "created_at"
+
+    def save_model(self, request, obj, form, change):
+        if change and obj.status == CustomerComplaint.Status.RESOLVED and not obj.resolved_at:
+            obj.resolved_at = timezone.now()
+        super().save_model(request, obj, form, change)
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(AuditLog)

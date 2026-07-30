@@ -5,6 +5,7 @@ from .achievements import *
 from .tickets import *
 from .notifications import *
 from .billing import *
+from .customer_care import *
 from .audit import *
 
 # Import last so model signal receivers are registered after all models exist.

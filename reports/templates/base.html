@@ -1386,6 +1386,10 @@
               <li><a href="{% url 'reports:support_ticket_create' %}"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
             {% endif %}
             <li><a href="{% url 'reports:privacy_policy' %}"><i class="fa-solid fa-chevron-left"></i> سياسة الخصوصية</a></li>
+            <li><a href="{% url 'reports:terms_conditions' %}"><i class="fa-solid fa-chevron-left"></i> الشروط والأحكام</a></li>
+            <li><a href="{% url 'reports:refund_policy' %}"><i class="fa-solid fa-chevron-left"></i> الإلغاء والاسترجاع</a></li>
+            <li><a href="{% url 'reports:service_delivery_policy' %}"><i class="fa-solid fa-chevron-left"></i> تقديم الخدمة</a></li>
+            <li><a href="{% url 'reports:complaints_policy' %}"><i class="fa-solid fa-chevron-left"></i> الشكاوى والمقترحات</a></li>
           </ul>
         </div>
 
@@ -1395,15 +1399,15 @@
           <div class="footer-contact">
             <div class="footer-contact-item">
               <i class="fa-solid fa-envelope"></i>
-              <span>xmansx1122@gmail.com</span>
+              <span>{{ BUSINESS.support_email }}</span>
             </div>
             <div class="footer-contact-item">
               <i class="fa-brands fa-whatsapp"></i>
-              <span>+966 537720207</span>
+              <span dir="ltr">{{ BUSINESS.support_phone }}</span>
             </div>
             <div class="footer-contact-item">
               <i class="fa-solid fa-location-dot"></i>
-              <span>الرياض، المملكة العربية السعودية</span>
+              <span>{{ BUSINESS.address }}</span>
             </div>
           </div>
         </div>

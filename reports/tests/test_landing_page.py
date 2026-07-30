@@ -45,7 +45,10 @@ class LandingPageTests(TestCase):
         self.assertIn('aria-controls="mobileMenu"', html)
         self.assertIn('aria-expanded="false"', html)
         self.assertIn('id="security"', html)
-        self.assertNotIn('href="/terms/', html)
+        self.assertIn(f'href="{reverse("reports:terms_conditions")}"', html)
+        self.assertIn(f'href="{reverse("reports:refund_policy")}"', html)
+        self.assertIn("المنتجات والخدمات والأسعار", html)
+        self.assertIn("هوية مقدم الخدمة", html)
         self.assertIn('<span>دخول</span>', html)
         self.assertIn('src="/static/js/landing.js"', html)
         self.assertNotIn("var periodButtons", html)
@@ -90,6 +93,10 @@ class LandingPageTests(TestCase):
         for route_name in (
             "reports:faq",
             "reports:privacy_policy",
+            "reports:terms_conditions",
+            "reports:refund_policy",
+            "reports:service_delivery_policy",
+            "reports:complaints_policy",
             "reports:user_guide",
         ):
             response = self.client.get(reverse(route_name))

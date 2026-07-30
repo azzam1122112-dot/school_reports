@@ -86,6 +86,10 @@ def sitemap_xml(request):
         ("reports:faq", "monthly", "0.8"),
         ("reports:user_guide", "monthly", "0.8"),
         ("reports:privacy_policy", "yearly", "0.3"),
+        ("reports:terms_conditions", "yearly", "0.3"),
+        ("reports:refund_policy", "yearly", "0.3"),
+        ("reports:service_delivery_policy", "yearly", "0.3"),
+        ("reports:complaints_policy", "yearly", "0.4"),
     )
     base = _public_site_url(request)
     body = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
