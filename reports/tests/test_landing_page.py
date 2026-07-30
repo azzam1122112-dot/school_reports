@@ -77,6 +77,36 @@ class LandingPageTests(TestCase):
         self.assertEqual(len(schemas), 1)
         self.assertIsInstance(json.loads(schemas[0]), dict)
 
+    @override_settings(CSP_ENABLED=True, CSP_REPORT_ONLY=False)
+    def test_landing_embeds_official_sbc_verification_seal(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+
+        self.assertContains(
+            response,
+            (
+                '<div class="sbc-verify-seal" '
+                'data-token="SUdjMEt0WXNwNW5IREVVeUNxajRkUT09" '
+                'data-position="bottom-left"></div>'
+            ),
+            html=True,
+        )
+        self.assertRegex(
+            html,
+            (
+                r'<script\s+nonce="[^"]+"\s+'
+                r'src="https://eauthenticate\.saudibusiness\.gov\.sa/'
+                r'EAuthSealApi/seal\.js"\s+async></script>'
+            ),
+        )
+        self.assertIn(
+            (
+                "frame-src 'self' "
+                "https://eauthenticate.saudibusiness.gov.sa"
+            ),
+            response.headers["Content-Security-Policy"],
+        )
+
     def test_private_pages_send_noindex_header(self):
         response = self.client.get(reverse("reports:login"))
 
