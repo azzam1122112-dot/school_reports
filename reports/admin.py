@@ -678,28 +678,18 @@ class PaymentAdmin(admin.ModelAdmin):
         "id",
         "school",
         "purpose",
-        "payment_method",
         "requested_plan",
         "amount",
         "status",
-        "gateway_status",
         "effects_applied_at",
         "payment_date",
         "created_at",
     )
-    list_filter = ("payment_method", "purpose", "status", "gateway_status", "payment_date", "created_at")
-    search_fields = ("school__name", "notes", "transaction_id")
+    list_filter = ("purpose", "status", "payment_date", "created_at")
+    search_fields = ("school__name", "notes")
     autocomplete_fields = ("school", "requested_plan")
     date_hierarchy = "created_at"
-    readonly_fields = (
-        "transaction_id",
-        "gateway_status",
-        "gateway_response_code",
-        "gateway_message",
-        "gateway_completed_at",
-        "effects_applied_at",
-        "created_at",
-    )
+    readonly_fields = ("effects_applied_at", "created_at")
 
 
 @admin.register(AuditLog)

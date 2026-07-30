@@ -885,25 +885,6 @@ CANONICAL_HOST_REDIRECT = _env_bool(
     ENV == "production",
 )
 
-# Tap Payments hosted checkout. Keep the secret key in the runtime environment
-# only; it must never be exposed to templates or browser-side JavaScript.
-TAP_SECRET_KEY = (os.getenv("TAP_SECRET_KEY") or "").strip()
-TAP_MERCHANT_ID = (os.getenv("TAP_MERCHANT_ID") or "").strip()
-TAP_ENABLED = _env_bool("TAP_ENABLED", False) and bool(TAP_SECRET_KEY and TAP_MERCHANT_ID)
-TAP_API_BASE_URL = (
-    os.getenv("TAP_API_BASE_URL") or "https://api.tap.company/v2"
-).strip().rstrip("/")
-TAP_CURRENCY = (os.getenv("TAP_CURRENCY") or "SAR").strip().upper()
-TAP_SOURCE_ID = (os.getenv("TAP_SOURCE_ID") or "src_all").strip()
-TAP_CONNECT_TIMEOUT_SECONDS = max(
-    1,
-    int(os.getenv("TAP_CONNECT_TIMEOUT_SECONDS", "5") or "5"),
-)
-TAP_READ_TIMEOUT_SECONDS = max(
-    1,
-    int(os.getenv("TAP_READ_TIMEOUT_SECONDS", "20") or "20"),
-)
-
 # Self-service school trial. The free plan exposes the complete product journey
 # while keeping teacher count and archive storage deliberately small.
 TRIAL_DAYS = max(1, int(os.getenv("TRIAL_DAYS", "14") or "14"))
