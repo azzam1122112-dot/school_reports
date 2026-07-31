@@ -639,7 +639,7 @@
   {% endif %}
 </main>
 
-<script>
+<script nonce="{{ CSP_NONCE }}">
 (function () {
   const picker = document.getElementById('schoolPicker');
   if (!picker) return;
