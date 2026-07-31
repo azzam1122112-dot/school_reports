@@ -1,324 +1,433 @@
-{% load static %}
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
   <title>{{ title }}</title>
   <style>
     @page {
       size: A4;
-      margin: 26mm 16mm 18mm 16mm;
-      @top-center {
-        content: element(page-header);
-      }
-      @bottom-center {
-        content: element(page-footer);
-      }
+      margin: 24mm 15mm 18mm;
+      @top-center { content: element(page-header); }
+      @bottom-center { content: element(page-footer); }
     }
 
-    html, body {
-      padding: 0;
+    * { box-sizing: border-box; }
+
+    html,
+    body {
       margin: 0;
+      padding: 0;
     }
 
     body {
-      font-family: "Noto Naskh Arabic", "Amiri", "Segoe UI", Tahoma, Arial, sans-serif;
       direction: rtl;
-      color: #1f2937;
-      line-height: 1.8;
-      font-size: 11.3pt;
+      color: #17271f;
       background: #fff;
+      font-family: "Noto Naskh Arabic", "Amiri", "Segoe UI", Tahoma, Arial, sans-serif;
+      font-size: 10.2pt;
+      line-height: 1.72;
     }
 
-    .header {
+    .pdf-header {
       position: running(page-header);
       display: table;
       width: 100%;
-      border-bottom: 1px solid #d1d5db;
-      padding-bottom: 6mm;
+      padding-bottom: 4mm;
+      border-bottom: .35mm solid #d8e5dd;
     }
 
-    .header-content {
-      display: table-row;
-    }
-
-    .brand {
+    .pdf-header__brand,
+    .pdf-header__title {
       display: table-cell;
       vertical-align: middle;
+    }
+
+    .pdf-header__brand {
       text-align: right;
     }
 
-    .brand img {
-      height: 12mm;
-      width: auto;
+    .pdf-header__brand img {
+      width: 11mm;
+      height: 11mm;
+      margin-left: 3mm;
       vertical-align: middle;
-      margin-left: 4mm;
     }
 
-    .brand-text {
+    .pdf-header__brand span {
       display: inline-block;
       vertical-align: middle;
     }
 
-    .brand-name {
-      font-size: 13.5pt;
-      font-weight: 800;
-      margin: 0;
-      color: #111827;
+    .pdf-header__brand strong,
+    .pdf-header__brand small {
+      display: block;
+      line-height: 1.35;
     }
 
-    .brand-subtitle {
+    .pdf-header__brand strong {
+      color: #073d2b;
+      font-size: 12pt;
+    }
+
+    .pdf-header__brand small {
+      color: #62756b;
+      font-size: 7.6pt;
+    }
+
+    .pdf-header__title {
+      color: #8a692f;
       font-size: 9pt;
-      margin: 1.2mm 0 0;
-      color: #4b5563;
-      font-weight: 500;
-    }
-
-    .header-title {
-      display: table-cell;
-      vertical-align: middle;
+      font-weight: 700;
       text-align: left;
     }
 
-    .header-title-text {
+    .pdf-footer {
+      position: running(page-footer);
+      display: table;
+      width: 100%;
+      padding-top: 2.5mm;
+      border-top: .3mm solid #d8e5dd;
+      color: #708078;
+      font-size: 7.4pt;
+    }
+
+    .pdf-footer > span {
+      display: table-cell;
+    }
+
+    .pdf-footer > span:last-child {
+      text-align: left;
+    }
+
+    .page-number::before { content: counter(page); }
+    .page-count::before { content: counter(pages); }
+
+    .pdf-cover {
+      display: table;
+      width: 100%;
+      height: 214mm;
+      page-break-after: always;
+      text-align: center;
+    }
+
+    .pdf-cover__inner {
+      display: table-cell;
+      vertical-align: middle;
+    }
+
+    .pdf-cover img {
+      width: 32mm;
+      height: 32mm;
+      margin-bottom: 8mm;
+    }
+
+    .pdf-cover__eyebrow {
+      display: inline-block;
+      margin-bottom: 5mm;
+      padding: 1.8mm 4mm;
+      border: .3mm solid #d7bd8a;
+      border-radius: 10mm;
+      color: #8a692f;
+      background: #fdf8ef;
+      font-size: 8.5pt;
+      font-weight: 700;
+    }
+
+    .pdf-cover h1 {
       margin: 0;
+      color: #073d2b;
+      font-size: 28pt;
+      line-height: 1.35;
+    }
+
+    .pdf-cover p {
+      max-width: 135mm;
+      margin: 5mm auto 0;
+      color: #5a7064;
+      font-size: 11pt;
+      line-height: 1.85;
+    }
+
+    .pdf-cover__meta {
+      margin-top: 18mm;
+      color: #8a692f;
+      font-size: 8pt;
       font-weight: 700;
-      font-size: 11.5pt;
-      color: #00542a;
     }
 
-    .header-date {
-      margin: 1.5mm 0 0;
-      font-size: 8.7pt;
-      color: #6b7280;
+    .guide-topic {
+      page-break-before: always;
     }
 
-    main {
-      padding: 0;
+    .guide-topic:first-child {
+      page-break-before: auto;
     }
 
-    .guide-body {
-      margin-top: 2mm;
+    .topic-heading {
+      margin-bottom: 6mm;
+      padding-bottom: 4mm;
+      border-bottom: .4mm solid #dce8e1;
     }
 
-    h1 {
-      font-size: 18pt;
-      font-weight: 800;
-      color: #073b2a;
-      margin: 0 0 5mm;
-      line-height: 1.45;
-      border-bottom: 1.2px solid #d1d5db;
-      padding-bottom: 2.5mm;
-      page-break-after: avoid;
-    }
-
-    h2 {
-      font-size: 15pt;
+    .topic-kicker {
+      display: inline-block;
+      margin-bottom: 2mm;
+      padding: 1mm 3mm;
+      border-radius: 8mm;
+      color: #0b6b45;
+      background: #f0faf4;
+      font-size: 7.8pt;
       font-weight: 700;
-      color: #00542a;
-      margin: 8mm 0 3mm;
-      border-bottom: 1px solid #e5e7eb;
-      padding-bottom: 2mm;
-      page-break-after: avoid;
+    }
+
+    .topic-heading h2 {
+      margin: 0 0 1.5mm;
+      color: #073d2b;
+      font-size: 19pt;
+      line-height: 1.4;
+    }
+
+    .topic-heading p {
+      margin: 0;
+      color: #587064;
+      font-size: 9.5pt;
     }
 
     h3 {
-      font-size: 12.5pt;
-      font-weight: 600;
-      color: #334155;
-      margin: 5mm 0 2mm;
-      page-break-after: avoid;
-    }
-
-    h4 {
-      font-size: 11.6pt;
-      font-weight: 600;
-      color: #475569;
-      margin: 4mm 0 1.6mm;
-      page-break-after: avoid;
+      color: #073d2b;
+      font-size: 11pt;
     }
 
     p {
-      margin: 1.5mm 0 2.6mm;
-      color: #1f2937;
-      text-align: justify;
-      orphans: 3;
-      widows: 3;
+      color: #4f665a;
     }
 
-    ul, ol {
-      margin: 1.5mm 0 2.5mm;
-      padding-right: 6mm;
-      color: #374151;
+    i,
+    .screen-preview__bar {
+      display: none;
     }
 
-    li {
-      margin: 1.2mm 0;
-      line-height: 1.8;
-    }
-
-    ul li::marker {
-      color: #b9975b;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 4mm 0;
-      page-break-inside: avoid;
-    }
-
-    th {
-      background: #eef2ff;
-      color: #073b2a;
-      border: 1px solid #dbeafe;
-      padding: 2.2mm 2.8mm;
-      font-weight: 700;
-      text-align: right;
-      font-size: 10.6pt;
-    }
-
-    td {
-      border: 1px solid #e5e7eb;
-      padding: 2.2mm 2.8mm;
-      vertical-align: top;
-      color: #374151;
-    }
-
-    code {
-      font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
-      font-size: 9.4pt;
-      background: #f3f4f6;
-      padding: 0.4mm 1.4mm;
-      border-radius: 2px;
-      color: #111827;
-      direction: ltr;
-      unicode-bidi: isolate;
-    }
-
-    pre {
-      background: #f8fafc;
-      color: #0f172a;
-      padding: 3mm;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      overflow-wrap: anywhere;
-      line-height: 1.6;
-      page-break-inside: avoid;
-    }
-
-    pre code {
-      background: none;
-      border: none;
-      color: inherit;
-      padding: 0;
-    }
-
-    a {
-      color: #00542a;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    blockquote {
-      background: #fffbeb;
-      border-right: 3px solid #b9975b;
-      padding: 2.5mm 3mm;
-      margin: 3mm 0;
-      color: #78350f;
-      page-break-inside: avoid;
-    }
-
-    strong, b {
-      color: #0f172a;
-      font-weight: 700;
-    }
-
-    em, i {
-      color: #334155;
-    }
-
-    .footer {
-      position: running(page-footer);
-      border-top: 1px solid #d1d5db;
-      padding-top: 3mm;
-      font-size: 8.8pt;
-      color: #6b7280;
-    }
-
-    .footer-content {
+    .journey-grid,
+    .compare-grid,
+    .feature-row,
+    .safety-grid,
+    .decision-grid {
       display: table;
       width: 100%;
+      table-layout: fixed;
+      border-spacing: 2.5mm;
+      margin: 0 -2.5mm;
     }
 
-    .footer-left {
+    .journey-card,
+    .compare-card,
+    .feature-row article,
+    .safety-grid article,
+    .decision-grid article {
       display: table-cell;
-      text-align: right;
-      vertical-align: middle;
+      padding: 4mm;
+      border: .3mm solid #dce8e1;
+      border-radius: 4mm;
+      background: #f7faf8;
+      vertical-align: top;
     }
 
-    .footer-right {
-      display: table-cell;
-      text-align: left;
-      vertical-align: middle;
-      font-weight: 600;
-      color: #374151;
+    .journey-number {
+      display: block;
+      color: #a47d38;
+      font-size: 14pt;
+      font-weight: 800;
     }
 
-    .page-number::before {
-      content: counter(page);
+    .journey-card h3,
+    .compare-card h3,
+    .safety-grid h3 {
+      margin: 2mm 0 1mm;
     }
 
-    .page-count::before {
-      content: counter(pages);
+    .journey-card p,
+    .compare-card p,
+    .feature-row p,
+    .safety-grid p {
+      margin: 0;
+      font-size: 8.5pt;
     }
 
-    img, table, pre, blockquote {
+    .guide-steps {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: guide-step;
+    }
+
+    .guide-steps > li {
+      position: relative;
+      margin-bottom: 3mm;
+      padding: 3.4mm 12mm 3.4mm 4mm;
+      border: .3mm solid #dce8e1;
+      border-radius: 3.5mm;
+      background: #fff;
+      counter-increment: guide-step;
       page-break-inside: avoid;
     }
 
-    h1, h2, h3, h4 {
-      page-break-after: avoid;
+    .guide-steps > li::before {
+      position: absolute;
+      top: 3.3mm;
+      right: 3.5mm;
+      display: block;
+      width: 6.8mm;
+      height: 6.8mm;
+      border-radius: 2mm;
+      color: #fff;
+      content: counter(guide-step);
+      background: #0b6b45;
+      font-size: 8.5pt;
+      font-weight: 800;
+      line-height: 6.8mm;
+      text-align: center;
     }
 
-    p + ul, p + ol, h2 + ul, h2 + ol, h3 + ul, h3 + ol {
-      page-break-before: avoid;
+    .guide-steps strong {
+      display: block;
+      color: #073d2b;
+      font-size: 9.5pt;
+    }
+
+    .guide-steps p {
+      margin: .7mm 0 0;
+      font-size: 8.5pt;
+    }
+
+    .guide-callout {
+      margin-top: 4mm;
+      padding: 3.5mm 4mm;
+      border: .3mm solid #cfe2d7;
+      border-radius: 3.5mm;
+      background: #f0faf4;
+      page-break-inside: avoid;
+    }
+
+    .guide-callout strong {
+      color: #073d2b;
+    }
+
+    .guide-callout p {
+      margin: .5mm 0 0;
+      font-size: 8.5pt;
+    }
+
+    .visual-split,
+    .visual-split--reverse {
+      display: block;
+    }
+
+    .screen-preview {
+      margin: 5mm 0;
+      overflow: hidden;
+      border: .3mm solid #cfded6;
+      border-radius: 4mm;
+      page-break-inside: avoid;
+    }
+
+    .screen-preview img {
+      display: block;
+      width: 100%;
+      max-height: 92mm;
+      object-fit: cover;
+      object-position: top;
+    }
+
+    .screen-preview figcaption {
+      padding: 2.5mm 3mm;
+      color: #587064;
+      background: #f7faf8;
+      font-size: 7.8pt;
+    }
+
+    .decision-label {
+      color: #8a692f;
+      font-size: 8pt;
+      font-weight: 800;
+    }
+
+    .decision-grid h3 {
+      margin: 1mm 0 2mm;
+    }
+
+    .decision-grid ul {
+      margin: 0;
+      padding-right: 5mm;
+      color: #4f665a;
+      font-size: 8.5pt;
+    }
+
+    .status-flow {
+      padding: 4mm;
+      border: .3mm solid #dce8e1;
+      border-radius: 4mm;
+      background: #f7faf8;
+      text-align: center;
+    }
+
+    .status-flow span {
+      display: inline-block;
+      margin: 1mm;
+      padding: 2mm 3mm;
+      border: .3mm solid #dce8e1;
+      border-radius: 3mm;
+      color: #073d2b;
+      background: #fff;
+      font-size: 8pt;
+      font-weight: 700;
+    }
+
+    .help-list details {
+      display: block;
+      margin-bottom: 3mm;
+      padding: 3mm 4mm;
+      border: .3mm solid #dce8e1;
+      border-radius: 3.5mm;
+      page-break-inside: avoid;
+    }
+
+    .help-list summary {
+      display: block;
+      color: #073d2b;
+      font-weight: 800;
+    }
+
+    .help-list details p {
+      display: block !important;
+      margin: 1mm 0 0;
+      font-size: 8.5pt;
     }
   </style>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
 </head>
 <body>
-  <div class="header">
-    <div class="header-content">
-      <div class="brand">
-        <img src="{{ logo_url }}" alt="Logo" />
-        <div class="brand-text">
-          <p class="brand-name">منصة توثيق</p>
-          <p class="brand-subtitle">نظام إدارة التقارير والإنجازات</p>
-        </div>
-      </div>
-      <div class="header-title">
-        <p class="header-title-text">دليل المستخدم الشامل</p>
-        <p class="header-date">الإصدار 2026</p>
-      </div>
+  <div class="pdf-header">
+    <div class="pdf-header__brand">
+      <img src="{{ logo_url }}" alt="">
+      <span><strong>منصة توثيق</strong><small>دليل الاستخدام المبسط</small></span>
     </div>
+    <div class="pdf-header__title">خطوات واضحة لإنجاز العمل بثقة</div>
   </div>
 
-  <main>
-    <div class="guide-body">{{ guide_html|safe }}</div>
-  </main>
-
-  <div class="footer">
-    <div class="footer-content">
-      <div class="footer-left">
-        <div>منصة توثيق © 2026 — جميع الحقوق محفوظة</div>
-        <div>تم التوليد تلقائيًا من النظام</div>
-      </div>
-      <div class="footer-right">
-        صفحة <span class="page-number"></span> من <span class="page-count"></span>
-      </div>
-    </div>
+  <div class="pdf-footer">
+    <span>منصة توثيق © 2026</span>
+    <span>صفحة <b class="page-number"></b> من <b class="page-count"></b></span>
   </div>
+
+  <section class="pdf-cover">
+    <div class="pdf-cover__inner">
+      <img src="{{ logo_url }}" alt="">
+      <div><span class="pdf-cover__eyebrow">دليل بسيط، خطوة بخطوة</span></div>
+      <h1>دليل استخدام منصة توثيق</h1>
+      <p>شرح واضح ومبسط يساعد المعلم ومدير المدرسة ومشرف المنصة على إنجاز المهام اليومية دون مصطلحات تقنية.</p>
+      <div class="pdf-cover__meta">الإصدار 2026</div>
+    </div>
+  </section>
+
+  <main>{{ guide_html|safe }}</main>
 </body>
 </html>

@@ -1,0 +1,260 @@
+from __future__ import annotations
+
+import json
+from unittest.mock import patch
+
+from django.test import Client, RequestFactory, TestCase, override_settings
+from django.urls import reverse
+
+from reports.mansour_assistant import _sanitise_answer_text, select_knowledge
+from reports.models import (
+    School,
+    SchoolMembership,
+    SchoolSubscription,
+    SubscriptionPlan,
+    Teacher,
+)
+from reports.views.mansour import _resolve_audience
+
+
+class _FakeOpenAIResponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+    def read(self):
+        return json.dumps(
+            {
+                "output": [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": "نعم، يمكنك بدء تجربة مجانية ثم اختيار الباقة المناسبة.",
+                            }
+                        ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+
+
+@override_settings(
+    ALLOWED_HOSTS=["testserver"],
+    OPENAI_API_KEY="test-secret-key",
+    MANSOUR_ASSISTANT_ENABLED=True,
+    MANSOUR_ASSISTANT_MODEL="gpt-5-nano",
+)
+class MansourAssistantTests(TestCase):
+    def setUp(self):
+        SubscriptionPlan.objects.create(
+            name="باقة المدرسة",
+            price=650,
+            days_duration=180,
+            max_teachers=50,
+        )
+
+    def test_landing_includes_accessible_mansour_widget(self):
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="mansourLauncher"')
+        self.assertContains(response, 'id="mansourPanel"')
+        self.assertContains(response, "منصور")
+        self.assertContains(response, 'data-mansour-audience="teacher"')
+        self.assertContains(response, 'data-mansour-audience="manager"')
+        self.assertContains(response, 'data-mansour-audience="supervisor"')
+        self.assertContains(response, "اختر دورك")
+        self.assertContains(response, reverse("reports:mansour_assistant_reply"))
+        self.assertContains(response, "css/mansour-assistant.css")
+        self.assertContains(response, "js/mansour-assistant.js")
+
+    @patch("reports.mansour_assistant.urlopen", return_value=_FakeOpenAIResponse())
+    def test_endpoint_calls_responses_api_server_side(self, mocked_urlopen):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps(
+                {
+                    "question": "كيف أشترك؟",
+                    "history": [{"role": "assistant", "content": "أهلًا بك"}],
+                    "audience": "manager",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertIn("تجربة مجانية", response.json()["answer"])
+
+        request = mocked_urlopen.call_args.args[0]
+        request_body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(request_body["model"], "gpt-5-nano")
+        self.assertEqual(request_body["reasoning"], {"effort": "minimal"})
+        self.assertEqual(request_body["max_output_tokens"], 350)
+        self.assertFalse(request_body["store"])
+        self.assertIn("باقة المدرسة", request_body["instructions"])
+        self.assertIn("650", request_body["instructions"])
+        self.assertIn("الفئة: مدير مدرسة", request_body["instructions"])
+        self.assertIn("إدارة فريق المدرسة", request_body["instructions"])
+        self.assertNotIn("test-secret-key", request.data.decode("utf-8"))
+        self.assertEqual(response.json()["audience"], "manager")
+        self.assertEqual(response.json()["audience_label"], "مدير مدرسة")
+
+    def test_retrieval_is_scoped_to_the_selected_role(self):
+        manager_items = select_knowledge(
+            "كيف أرسل تعميمًا إلى قسمين؟",
+            audience="manager",
+        )
+        teacher_items = select_knowledge(
+            "كيف أتعامل مع التعميم؟",
+            audience="teacher",
+        )
+
+        manager_slugs = {item.slug for item in manager_items}
+        teacher_slugs = {item.slug for item in teacher_items}
+        self.assertIn("manager-communication", manager_slugs)
+        self.assertNotIn("manager-communication", teacher_slugs)
+        self.assertIn("teacher-circulars", teacher_slugs)
+
+    def test_generated_links_are_removed_from_answer_text(self):
+        answer = _sanitise_answer_text(
+            "راجع الدليل: /guide/#teacher-report\n"
+            "أو [صفحة الاشتراك](/subscription/my/#archiveOrder)، "
+            "ولا تستخدم https://example.com/private."
+        )
+
+        self.assertNotIn("/guide/", answer)
+        self.assertNotIn("/subscription/", answer)
+        self.assertNotIn("https://", answer)
+        self.assertNotIn(":  (", answer)
+        self.assertIn("صفحة الاشتراك", answer)
+
+    def test_authenticated_manager_role_overrides_client_claim(self):
+        school = School.objects.create(name="مدرسة منصور", code="mansour-school")
+        manager = Teacher.objects.create_user(
+            phone="500009901",
+            name="مدير منصور",
+            password="test-pass",
+        )
+        SchoolMembership.objects.create(
+            school=school,
+            teacher=manager,
+            role_type=SchoolMembership.RoleType.MANAGER,
+        )
+        request = RequestFactory().post("/assistant/mansour/")
+        request.user = manager
+        request.session = {"active_school_id": school.id}
+        request.active_school = school
+
+        self.assertEqual(_resolve_audience(request, "teacher"), "manager")
+
+    def test_server_distinguishes_teacher_and_both_supervisor_types(self):
+        school = School.objects.create(name="مدرسة الأدوار", code="mansour-roles")
+        SchoolSubscription.objects.create(
+            school=school,
+            plan=SubscriptionPlan.objects.get(name="باقة المدرسة"),
+        )
+        teacher = Teacher.objects.create_user(
+            phone="500009902",
+            name="معلم منصور",
+            password="test-pass",
+        )
+        report_supervisor = Teacher.objects.create_user(
+            phone="500009903",
+            name="مشرف تقارير منصور",
+            password="test-pass",
+        )
+        platform_supervisor = Teacher.objects.create_user(
+            phone="500009904",
+            name="مشرف منصة منصور",
+            password="test-pass",
+            is_platform_admin=True,
+        )
+        SchoolMembership.objects.create(
+            school=school,
+            teacher=teacher,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        SchoolMembership.objects.create(
+            school=school,
+            teacher=report_supervisor,
+            role_type=SchoolMembership.RoleType.REPORT_VIEWER,
+        )
+
+        def resolved_for(user):
+            request = RequestFactory().post("/assistant/mansour/")
+            request.user = user
+            request.session = {"active_school_id": school.id}
+            request.active_school = school
+            return _resolve_audience(request, "manager")
+
+        self.assertEqual(resolved_for(teacher), "teacher")
+        self.assertEqual(resolved_for(report_supervisor), "report_supervisor")
+        self.assertEqual(resolved_for(platform_supervisor), "platform_supervisor")
+
+    @patch("reports.mansour_assistant.urlopen", return_value=_FakeOpenAIResponse())
+    def test_anonymous_user_cannot_claim_an_internal_supervisor_role(self, mocked_urlopen):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps(
+                {
+                    "question": "ما صلاحياتي؟",
+                    "audience": "platform_supervisor",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["audience"], "general")
+        request = mocked_urlopen.call_args.args[0]
+        request_body = json.loads(request.data.decode("utf-8"))
+        self.assertIn("الفئة: زائر", request_body["instructions"])
+
+    @patch("reports.mansour_assistant.urlopen", return_value=_FakeOpenAIResponse())
+    def test_public_endpoint_does_not_depend_on_a_csrf_cookie(self, _mocked_urlopen):
+        csrf_client = Client(enforce_csrf_checks=True)
+
+        response = csrf_client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "كيف أشترك؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertIn("no-store", response.headers["Cache-Control"])
+
+    def test_endpoint_rejects_invalid_and_long_questions_without_api_call(self):
+        invalid = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data="not-json",
+            content_type="application/json",
+        )
+        too_long = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "س" * 501}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(invalid.status_code, 400)
+        self.assertEqual(too_long.status_code, 400)
+        self.assertFalse(too_long.json()["ok"])
+
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=False)
+    def test_endpoint_fails_safely_when_assistant_is_not_configured(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "كيف أشترك؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(response.json()["ok"])
+        self.assertNotIn("OPENAI", response.content.decode("utf-8"))

@@ -9,13 +9,8 @@
 
   <!-- Favicon (مهم لتفادي طلب /favicon.ico الافتراضي) -->
   <link rel="icon" href="{% static 'img/logo1.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
 
-  <!-- PWA -->
-  <link rel="manifest" href="{% static 'manifest.json' %}">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="توثيق">
+  {% include "reports/partials/pwa_install_head.html" %}
 
   <title>{% block title %}منصة توثيق لإدارة العمل المدرسي{% endblock %}</title>
   <meta name="robots" content="{% block robots %}noindex,nofollow,noarchive{% endblock %}">
@@ -40,8 +35,8 @@
   </script>
 
   <!-- Performance -->
-  <link rel="preload" href="{% static 'css/app.css' %}" as="style">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+  <link rel="preload" href="{% static 'css/app.css' %}?v=20260731.3" as="style">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260731.3" />
 
   <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -282,11 +277,18 @@
     }
     .avatar:hover { transform: scale(1.05) rotate(3deg); box-shadow: 0 0 0 3px var(--bg-sub); }
     
-    .userbox .menu {
-      position: absolute;
-      top: 120%;
-      left: 0; /* RTL adjusted */
+    #userMenu.menu {
+      position: fixed;
+      top: 0;
+      right: auto;
+      left: 0;
+      width: max-content;
       min-width: 220px;
+      max-width: min(320px, calc(100vw - 24px));
+      max-height: calc(100dvh - 24px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
       background: var(--surface);
       border: 1px solid var(--border-light);
       border-radius: var(--r-lg);
@@ -294,12 +296,16 @@
       padding: 8px;
       opacity: 0;
       visibility: hidden;
+      pointer-events: none;
       transform: translateY(10px);
       transition: all 0.2s var(--ease-out);
-      z-index: 1001;
+      z-index: 10000;
     }
-    .userbox .menu[aria-expanded="true"], .userbox:focus-within .menu, .userbox:hover .menu {
-      opacity: 1; visibility: visible; transform: translateY(0);
+    #userMenu.menu.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0);
     }
     
     .mi {
@@ -760,7 +766,7 @@
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/v4-shims.min.css' %}">
 
-  <link rel="stylesheet" href="{% static 'css/mobile-professional.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/mobile-professional.css' %}?v=20260731.3" />
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}" />
 
   {% block head %}{% endblock %}
@@ -923,8 +929,8 @@
             <button class="avatar" id="userAvatar" type="button" aria-haspopup="menu" aria-expanded="false" title="{{ display_name }}">
               {{ display_name|slice:":1" }}
             </button>
-            <div class="menu" id="userMenu" role="menu" aria-label="قائمة المستخدم">
-              <div class="mi" tabindex="0" style="cursor:default">
+            <div class="menu" id="userMenu" role="menu" aria-labelledby="userAvatar" aria-hidden="true">
+              <div class="mi menu-profile" role="presentation" style="cursor:default">
                 <div>
                   <div style="font-weight:950">{{ display_name }}</div>
                   <div class="meta">مرحباً 👋</div>
@@ -1030,7 +1036,7 @@
   </header>
 
   <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
-  <aside class="drawer" id="mobileDrawer" aria-hidden="true" aria-labelledby="drawerTitle">
+  <aside class="drawer" id="mobileDrawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="drawerTitle" inert>
     <div class="drawer-head">
       <div id="drawerTitle" class="drawer-title">القائمة</div>
       <button class="btn btn-sm" id="drawerClose" aria-label="إغلاق">إغلاق</button>
@@ -1723,6 +1729,7 @@
       if(!drawer || !overlay || !hamburger) return;
 
       const open = ()=>{
+        drawer.removeAttribute('inert');
         drawer.classList.add('open');
         overlay.classList.add('show');
         overlay.setAttribute('aria-hidden', 'false');
@@ -1736,12 +1743,14 @@
       };
 
       const close = ()=>{
+        if(!drawer.classList.contains('open')) return;
         drawer.classList.remove('open');
         overlay.classList.remove('show');
         overlay.setAttribute('aria-hidden', 'true');
         hamburger.classList.remove('active');
         hamburger.setAttribute('aria-expanded','false');
         drawer.setAttribute('aria-hidden','true');
+        drawer.setAttribute('inert', '');
         window.__lockScroll(false);
         window.__trapFocus(drawer, false);
         hamburger.focus();
@@ -1750,7 +1759,7 @@
       hamburger.addEventListener('click', ()=> drawer.classList.contains('open') ? close() : open());
       if(closeBtn) closeBtn.addEventListener('click', close);
       overlay.addEventListener('click', (e)=>{ if(e.target === overlay) close(); });
-      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && drawer.classList.contains('open')) close(); });
 
       drawer.addEventListener('click', (e)=>{
         const a = e.target.closest('a');
@@ -1764,17 +1773,107 @@
       const menu = document.getElementById('userMenu');
       if(!avatar || !menu) return;
 
-      const close = ()=>{ menu.classList.remove('open'); avatar.setAttribute('aria-expanded','false'); };
+      // Move the popover outside the sticky header so no parent can clip it.
+      document.body.appendChild(menu);
 
-      avatar.addEventListener('click', ()=>{
-        const isOpen = menu.classList.toggle('open');
-        avatar.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      const items = ()=> Array.from(menu.querySelectorAll('[role="menuitem"]'));
+      const positionMenu = ()=>{
+        const viewport = window.visualViewport;
+        const viewportLeft = viewport ? viewport.offsetLeft : 0;
+        const viewportTop = viewport ? viewport.offsetTop : 0;
+        const viewportWidth = viewport ? viewport.width : document.documentElement.clientWidth;
+        const viewportHeight = viewport ? viewport.height : document.documentElement.clientHeight;
+        const edgeGap = 12;
+        const triggerRect = avatar.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        const preferredLeft = triggerRect.right - menuRect.width;
+        const maxLeft = viewportLeft + viewportWidth - menuRect.width - edgeGap;
+        const left = Math.max(
+          viewportLeft + edgeGap,
+          Math.min(preferredLeft, maxLeft)
+        );
+        const preferredTop = triggerRect.bottom + 10;
+        const maxTop = viewportTop + viewportHeight - menuRect.height - edgeGap;
+        const top = Math.max(
+          viewportTop + edgeGap,
+          Math.min(preferredTop, maxTop)
+        );
+
+        menu.style.left = `${Math.round(left)}px`;
+        menu.style.right = 'auto';
+        menu.style.top = `${Math.round(top)}px`;
+      };
+      const open = (focusFirst = false)=>{
+        menu.classList.add('open');
+        menu.setAttribute('aria-hidden','false');
+        avatar.setAttribute('aria-expanded','true');
+        positionMenu();
+        window.requestAnimationFrame(positionMenu);
+        if(focusFirst){
+          const first = items()[0];
+          if(first) first.focus();
+        }
+      };
+      const close = (returnFocus = false)=>{
+        if(!menu.classList.contains('open')) return;
+        menu.classList.remove('open');
+        menu.setAttribute('aria-hidden','true');
+        avatar.setAttribute('aria-expanded','false');
+        if(returnFocus) avatar.focus();
+      };
+
+      avatar.addEventListener('click', (event)=>{
+        event.stopPropagation();
+        menu.classList.contains('open') ? close() : open(true);
+      });
+
+      avatar.addEventListener('keydown', (event)=>{
+        if(event.key === 'ArrowDown'){
+          event.preventDefault();
+          open(true);
+        }
+      });
+
+      menu.addEventListener('keydown', (event)=>{
+        const menuItems = items();
+        if(!menuItems.length) return;
+        const current = menuItems.indexOf(document.activeElement);
+        let next = current;
+        if(event.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % menuItems.length;
+        else if(event.key === 'ArrowUp') next = current < 0 ? menuItems.length - 1 : (current - 1 + menuItems.length) % menuItems.length;
+        else if(event.key === 'Home') next = 0;
+        else if(event.key === 'End') next = menuItems.length - 1;
+        else if(event.key === 'Escape'){
+          event.preventDefault();
+          close(true);
+          return;
+        }else{
+          return;
+        }
+        event.preventDefault();
+        menuItems[next].focus();
+      });
+
+      menu.addEventListener('click', (event)=>{
+        if(event.target.closest('[role="menuitem"]')) close();
       });
 
       document.addEventListener('click', (e)=>{
         if(!e.target.closest('#userMenu') && !e.target.closest('#userAvatar')) close();
       });
-      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
+      document.addEventListener('keydown', (e)=>{
+        if(e.key === 'Escape' && menu.classList.contains('open')) close(true);
+      });
+
+      const repositionIfOpen = ()=>{
+        if(menu.classList.contains('open')) positionMenu();
+      };
+      window.addEventListener('resize', repositionIfOpen, {passive:true});
+      window.addEventListener('scroll', repositionIfOpen, {passive:true});
+      if(window.visualViewport){
+        window.visualViewport.addEventListener('resize', repositionIfOpen, {passive:true});
+        window.visualViewport.addEventListener('scroll', repositionIfOpen, {passive:true});
+      }
     })();
 
     // ===== To top =====
@@ -1848,80 +1947,9 @@
     })();
   </script>
 
-  <!-- PWA Install Banner -->
-  <div id="pwaInstallBanner" class="pwa-banner" role="region" aria-label="تثبيت التطبيق">
-    <div class="pwa-card">
-      <div class="pwa-text">
-        <p class="pwa-title">ثبت منصة توثيق على جهازك</p>
-        <p id="pwaInstallHint" class="pwa-sub">يمكنك تثبيت التطبيق للوصول السريع والعمل بشكل أفضل.</p>
-      </div>
-      <div class="pwa-actions">
-        <button id="pwaInstallBtn" class="pwa-btn" type="button" style="display:none">تثبيت</button>
-        <button id="pwaInstallClose" class="pwa-close" type="button" aria-label="إغلاق">
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
-  </div>
+  {% include "reports/partials/pwa_install.html" %}
 
   <script nonce="{{ CSP_NONCE }}">
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      });
-    }
-
-    // PWA Install Prompt + iOS guidance
-    (function(){
-      const banner = document.getElementById('pwaInstallBanner');
-      const btn = document.getElementById('pwaInstallBtn');
-      const closeBtn = document.getElementById('pwaInstallClose');
-      const hint = document.getElementById('pwaInstallHint');
-      if (!banner || !btn || !closeBtn || !hint) return;
-
-      const dismissedKey = 'pwa_install_dismissed_v1';
-      const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      const isSafari = isIOS && /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
-      const iosStandalone = Boolean(window.navigator.standalone);
-
-      try { if (localStorage.getItem(dismissedKey) === '1') return; } catch (e) {}
-      if (isStandalone || iosStandalone) return;
-
-      function openBanner(){ banner.classList.add('open'); }
-      function closeBanner(){
-        banner.classList.remove('open');
-        try{ localStorage.setItem(dismissedKey, '1'); }catch(e){}
-      }
-
-      closeBtn.addEventListener('click', closeBanner);
-
-      let deferredPrompt = null;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        btn.style.display = '';
-        hint.textContent = 'اضغط تثبيت لإضافة التطبيق للشاشة الرئيسية.';
-        openBanner();
-      });
-
-      btn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        try { await deferredPrompt.userChoice; }
-        finally { deferredPrompt = null; closeBanner(); }
-      });
-
-      window.addEventListener('appinstalled', closeBanner);
-
-      if (isSafari) {
-        hint.textContent = 'على iPhone: من زر المشاركة ثم "إضافة إلى الشاشة الرئيسية".';
-        btn.style.display = 'none';
-        openBanner();
-      }
-    })();
-
     {% if request.user.is_authenticated %}
     var __srTabId = 'tab-fallback';
     try {

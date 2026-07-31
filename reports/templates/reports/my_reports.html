@@ -526,7 +526,12 @@
 
     /* Adjust Filters */
     .mr-filters { padding: 16px; gap: 12px; }
-    .mr-field { min-width: 100%; }
+    .mr-field,
+    .mr-field.grow {
+      width: 100%;
+      min-width: 0;
+    }
+    .mr-input { width: 100%; min-width: 0; }
     .mr-actions { width: 100%; }
     .mr-actions .btn { flex: 1; }
 
@@ -791,8 +796,10 @@
       padding: 20px 16px;
     }
 
-    .mr-field {
-      min-width: 100%;
+    .mr-field,
+    .mr-field.grow {
+      width: 100%;
+      min-width: 0;
     }
 
     .mr-actions {

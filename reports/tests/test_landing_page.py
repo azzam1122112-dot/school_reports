@@ -44,6 +44,15 @@ class LandingPageTests(TestCase):
         self.assertIn('href="#mainContent"', html)
         self.assertIn('aria-controls="mobileMenu"', html)
         self.assertIn('aria-expanded="false"', html)
+        self.assertIn(
+            'id="mobileMenu" role="dialog" aria-modal="true"',
+            html,
+        )
+        self.assertLess(
+            html.index("</header>"),
+            html.index('id="mobileMenu"'),
+            "The fixed mobile menu must stay outside the blurred sticky header.",
+        )
         self.assertIn('id="security"', html)
         self.assertIn(f'href="{reverse("reports:terms_conditions")}"', html)
         self.assertIn(f'href="{reverse("reports:refund_policy")}"', html)
@@ -79,6 +88,47 @@ class LandingPageTests(TestCase):
         )
         self.assertEqual(len(schemas), 1)
         self.assertIsInstance(json.loads(schemas[0]), dict)
+
+    @override_settings(CSP_ENABLED=True, CSP_REPORT_ONLY=False)
+    def test_landing_embeds_official_sbc_verification_seal(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+        seal_origin = "https://eauthenticate.saudibusiness.gov.sa"
+
+        self.assertContains(response, 'class="sbc-verify-seal"')
+        self.assertContains(
+            response,
+            'data-token="SUdjMEt0WXNwNW5IREVVeUNxajRkUT09"',
+        )
+        self.assertContains(response, 'data-position="bottom-right"')
+        self.assertRegex(
+            html,
+            (
+                r'<script\s+nonce="[^"]+"\s+'
+                r'src="https://eauthenticate\.saudibusiness\.gov\.sa/'
+                r'EAuthSealApi/seal\.js"\s+async\s*></script>'
+            ),
+        )
+
+        policy = response.headers["Content-Security-Policy"]
+        self.assertIn(seal_origin, policy)
+        self.assertIn(f"frame-src 'self' {seal_origin}", policy)
+        self.assertIn(
+            (
+                "script-src 'self' "
+                f"'nonce-{response.context['CSP_NONCE']}' "
+                f"https://cdn.jsdelivr.net {seal_origin}"
+            ),
+            policy,
+        )
+        self.assertIn(
+            (
+                "script-src-elem 'self' "
+                f"'nonce-{response.context['CSP_NONCE']}' "
+                f"https://cdn.jsdelivr.net {seal_origin}"
+            ),
+            policy,
+        )
 
     def test_private_pages_send_noindex_header(self):
         response = self.client.get(reverse("reports:login"))

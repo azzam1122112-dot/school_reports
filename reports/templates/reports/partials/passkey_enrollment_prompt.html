@@ -196,9 +196,37 @@
   }
 
   @media (max-width: 520px) {
-    .passkey-prompt__top { padding: 24px 20px 21px; }
-    .passkey-prompt__body { padding: 21px 19px 22px; }
+    .passkey-prompt {
+      width: calc(100vw - 16px);
+      max-height: calc(100dvh - 16px);
+      border-radius: 18px;
+    }
+    .passkey-prompt__top {
+      min-height: 112px;
+      padding: 18px 18px 16px;
+    }
+    .passkey-prompt__icon {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 9px;
+      border-radius: 13px;
+      font-size: 1.2rem;
+    }
+    .passkey-prompt__title { max-width: calc(100% - 48px); font-size: 1.08rem; }
+    .passkey-prompt__close {
+      inset-inline-start: 12px;
+      top: 12px;
+      width: 44px;
+      height: 44px;
+    }
+    .passkey-prompt__body { padding: 16px 15px 17px; }
+    .passkey-prompt__lead { font-size: .9rem; line-height: 1.7; }
+    .passkey-prompt__benefits { margin: 12px 0; gap: 6px; }
+    .passkey-prompt__benefits li { font-size: .78rem; line-height: 1.55; }
+    .passkey-prompt__privacy { padding: 9px 10px; font-size: .7rem; }
+    .passkey-prompt__actions { margin-top: 12px; }
     .passkey-prompt__actions { grid-template-columns: 1fr; }
+    .passkey-prompt__button { min-height: 48px; }
     .passkey-prompt__button--secondary { order: 2; }
   }
 
@@ -391,7 +419,9 @@
       var notificationObserver = new MutationObserver(function () {
         if (homeNotification.hidden) {
           notificationObserver.disconnect();
-          showPrompt();
+          /* Avoid stacking two blocking dialogs back-to-back on phones.
+             The session flag remains, so the prompt can appear on the next page. */
+          if (!window.matchMedia('(max-width: 520px)').matches) showPrompt();
         }
       });
       notificationObserver.observe(homeNotification, {

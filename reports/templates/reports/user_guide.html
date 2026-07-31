@@ -1,625 +1,252 @@
 {% load static %}
 <!doctype html>
-<html lang="ar" dir="rtl" class="scroll-smooth">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#006c35">
-  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#073d2b">
 
-  <title>دليل المستخدم | منصة توثيق</title>
-  <meta name="description" content="دليل المستخدم الشامل لمنصة توثيق — شرح التقارير وملف الإنجاز والتذاكر والإشعارات والتعاميم والمشاركة والطباعة.">
+  <title>دليل استخدام منصة توثيق | شرح مبسط للمعلم ومدير المدرسة</title>
+  <meta name="description" content="دليل مبسط ومصور لاستخدام منصة توثيق: التقارير، ملف الإنجاز، الطلبات، التعاميم، إدارة المعلمين ومتابعة المدرسة.">
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
   <link rel="canonical" href="{{ SITE_URL }}{% url 'reports:user_guide' %}">
+
   <meta property="og:locale" content="ar_SA">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="منصة توثيق">
-  <meta property="og:title" content="دليل استخدام منصة توثيق للتقارير المدرسية">
-  <meta property="og:description" content="شرح استخدام التقارير وملفات الإنجاز والطلبات والتعاميم والمشاركة والطباعة في منصة توثيق.">
+  <meta property="og:title" content="دليل استخدام منصة توثيق">
+  <meta property="og:description" content="خطوات واضحة ومبسطة تساعد المعلم ومدير المدرسة على إنجاز العمل بثقة.">
   <meta property="og:url" content="{{ SITE_URL }}{% url 'reports:user_guide' %}">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:image" content="{{ SITE_URL }}{% static 'img/landing/dashboard-system.png' %}">
+  <meta name="twitter:card" content="summary_large_image">
 
-  <link rel="manifest" href="{% static 'manifest.json' %}">
-  <link rel="icon" href="{% static 'img/logo1.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
-
+  <link rel="icon" href="{% static 'img/brand-mark.svg' %}" type="image/svg+xml">
+  {% include "reports/partials/pwa_install_head.html" %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/user-guide.css' %}?v=20260731.2">
 
-  <style>
-    :root {
-      --brand-primary: #00542a;
-      --brand-secondary: #b9975b;
-      --brand-accent: #db2777;
-      --brand-gold: #b9975b;
-      --surface: #ffffff;
-      --bg-body: #f8fafc;
-      --text-main: #0f172a;
-      --text-secondary: #475569;
-      --border: #e2e8f0;
-      --shadow-sm: 0 2px 8px rgba(0, 84, 42, 0.08);
-      --shadow-md: 0 8px 24px rgba(185, 151, 91, 0.12);
-      --shadow-lg: 0 16px 48px rgba(0, 84, 42, 0.18);
-      --shadow-xl: 0 24px 64px rgba(185, 151, 91, 0.25);
-      --container: 1140px;
-      --radius: 24px;
-      --nav-height: 80px;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes shimmer {
-      0% { background-position: -1000px 0; }
-      100% { background-position: 1000px 0; }
-    }
-
-    html { 
-      scroll-behavior: smooth; 
-      font-size: 16px; 
-    }
-    
-    body {
-      margin: 0;
-      font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #fce7f3 100%);
-      background-attachment: fixed;
-      color: var(--text-main);
-      line-height: 1.8;
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-image:
-        radial-gradient(circle at 20% 30%, rgba(0, 84, 42, 0.12) 0%, transparent 50%),
-        radial-gradient(circle at 80% 70%, rgba(185, 151, 91, 0.12) 0%, transparent 50%),
-        radial-gradient(circle at 40% 80%, rgba(219, 39, 119, 0.08) 0%, transparent 40%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; }
-    a { color: inherit; text-decoration: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-
-    .container { width: 94%; max-width: var(--container); margin: 0 auto; position: relative; z-index: 1; }
-    .flex { display: flex; }
-    .items-center { align-items: center; }
-    .justify-between { justify-content: space-between; }
-    .gap-2 { gap: 14px; }
-
-    /* === Navbar فخم === */
-    .navbar {
-      height: var(--nav-height);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: rgba(255, 255, 255, 0.75);
-      backdrop-filter: blur(20px) saturate(180%);
-      border-bottom: 1px solid rgba(185, 151, 91, 0.1);
-      box-shadow: 0 4px 24px rgba(0, 84, 42, 0.08);
-    }
-
-    .navbar::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .navbar:hover::after {
-      opacity: 1;
-    }
-
-    .logo {
-      font-size: 1.25rem;
-      font-weight: 900;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      color: var(--text-main);
-      position: relative;
-    }
-    
-    .logo img { 
-      height: 46px; 
-      width: auto; 
-      filter: drop-shadow(0 4px 12px rgba(0, 84, 42, 0.2));
-      transition: transform 0.3s ease;
-    }
-
-    .logo:hover img {
-      transform: scale(1.05) rotate(-2deg);
-    }
-
-    .logo span {
-      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    /* === أزرار فخمة === */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 14px 24px;
-      border-radius: 16px;
-      font-weight: 700;
-      font-size: 0.95rem;
-      border: 2px solid transparent;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-      transition: left 0.5s ease;
-    }
-
-    .btn:hover::before {
-      left: 100%;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-      color: white;
-      box-shadow: 0 8px 24px rgba(0, 84, 42, 0.3);
-    }
-    
-    .btn-primary:hover { 
-      transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(185, 151, 91, 0.4);
-    }
-
-    .btn-outline {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(10px);
-      border-color: rgba(185, 151, 91, 0.2);
-      color: var(--text-main);
-      box-shadow: var(--shadow-sm);
-    }
-    
-    .btn-outline:hover { 
-      border-color: var(--brand-secondary);
-      background: linear-gradient(135deg, rgba(0, 84, 42, 0.05), rgba(185, 151, 91, 0.05));
-      color: var(--brand-secondary);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-
-    /* === Hero فخم === */
-    .hero { 
-      padding: 64px 0 48px;
-      animation: fadeInUp 0.6s ease-out;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(20px) saturate(180%);
-      border: 2px solid rgba(185, 151, 91, 0.1);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 6px;
-      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
-    }
-
-    .hero-inner { 
-      padding: 48px 42px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      background: linear-gradient(135deg, rgba(0, 84, 42, 0.02), rgba(185, 151, 91, 0.02));
-    }
-
-    .title { 
-      font-size: 2.75rem;
-      font-weight: 900;
-      letter-spacing: -1px;
-      margin: 0;
-      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      line-height: 1.2;
-      animation: fadeInUp 0.8s ease-out 0.2s both;
-    }
-
-    .subtitle { 
-      margin: 0;
-      color: var(--text-secondary);
-      font-weight: 600;
-      font-size: 1.15rem;
-      line-height: 1.7;
-      animation: fadeInUp 0.8s ease-out 0.3s both;
-    }
-
-    .actions { 
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      animation: fadeInUp 0.8s ease-out 0.4s both;
-    }
-
-    /* === محتوى الدليل === */
-    .doc { 
-      padding: 48px 42px;
-      background: white;
-    }
-
-    .doc :is(h1,h2,h3,h4) { 
-      color: var(--text-main);
-      margin: 36px 0 16px;
-      line-height: 1.3;
-      font-weight: 800;
-    }
-
-    .doc h1 { 
-      font-size: 2.25rem;
-      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      border-bottom: 3px solid rgba(185, 151, 91, 0.2);
-      padding-bottom: 12px;
-      margin-top: 48px;
-    }
-
-    .doc h2 { 
-      font-size: 1.75rem;
-      color: var(--brand-primary);
-      padding-right: 20px;
-      border-right: 5px solid var(--brand-secondary);
-      background: linear-gradient(90deg, rgba(185, 151, 91, 0.06), transparent);
-      padding: 16px 20px;
-      border-radius: 0 12px 12px 0;
-      margin-top: 40px;
-    }
-
-    .doc h3 { 
-      font-size: 1.4rem;
-      color: var(--brand-secondary);
-      padding-right: 16px;
-      border-right: 4px solid var(--brand-accent);
-    }
-
-    .doc h4 {
-      font-size: 1.15rem;
-      color: var(--text-secondary);
-    }
-
-    .doc p { 
-      margin: 14px 0;
-      color: var(--text-secondary);
-      font-weight: 500;
-      line-height: 1.9;
-    }
-
-    .doc ul, .doc ol { 
-      margin: 16px 0;
-      padding-right: 28px;
-    }
-
-    .doc li { 
-      margin: 10px 0;
-      color: var(--text-secondary);
-      font-weight: 500;
-      line-height: 1.8;
-      position: relative;
-    }
-
-    .doc ul li::marker {
-      color: var(--brand-secondary);
-      font-size: 1.2em;
-    }
-
-    .doc a { 
-      color: var(--brand-secondary);
-      font-weight: 700;
-      border-bottom: 2px solid transparent;
-      transition: all 0.2s ease;
-    }
-    
-    .doc a:hover { 
-      color: var(--brand-primary);
-      border-bottom-color: var(--brand-primary);
-    }
-
-    .doc hr { 
-      border: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), transparent);
-      margin: 36px 0;
-      border-radius: 1px;
-    }
-
-    .doc code {
-      font-family: 'Courier New', ui-monospace, monospace;
-      background: linear-gradient(135deg, rgba(219, 39, 119, 0.08), rgba(185, 151, 91, 0.08));
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-weight: 600;
-      color: var(--brand-accent);
-      border: 1px solid rgba(219, 39, 119, 0.15);
-      font-size: 0.9em;
-    }
-
-    .doc pre {
-      background: linear-gradient(135deg, #1e293b, #334155);
-      color: #e2e8f0;
-      padding: 24px;
-      border-radius: 16px;
-      overflow-x: auto;
-      box-shadow: 0 8px 32px rgba(30, 41, 59, 0.4);
-      border: 1px solid rgba(185, 151, 91, 0.2);
-      position: relative;
-    }
-
-    .doc pre::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-accent));
-    }
-
-    .doc pre code { 
-      background: transparent;
-      padding: 0;
-      color: #22d3ee;
-      border: none;
-      font-size: 0.95em;
-    }
-
-    /* === جداول فخمة === */
-    .doc table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      margin: 24px 0;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: var(--shadow-md);
-      background: white;
-    }
-
-    .doc thead { 
-      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-    }
-
-    .doc th {
-      padding: 16px 18px;
-      color: white;
-      font-weight: 700;
-      text-align: right;
-      font-size: 1.05rem;
-      border: none;
-    }
-
-    .doc td {
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-
-    .doc tbody tr {
-      transition: all 0.2s ease;
-    }
-
-    .doc tbody tr:nth-child(even) {
-      background: rgba(185, 151, 91, 0.02);
-    }
-
-    .doc tbody tr:hover {
-      background: linear-gradient(90deg, rgba(0, 84, 42, 0.05), rgba(185, 151, 91, 0.05));
-      transform: scale(1.01);
-    }
-
-    .doc tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    /* === عناصر إضافية === */
-    .doc blockquote {
-      background: linear-gradient(135deg, #fef3c7, #fde68a);
-      border-right: 5px solid var(--brand-gold);
-      padding: 20px 24px;
-      margin: 24px 0;
-      border-radius: 0 12px 12px 0;
-      color: #78350f;
-      font-style: italic;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .doc strong, .doc b {
-      color: var(--brand-primary);
-      font-weight: 800;
-    }
-
-    .doc em, .doc i {
-      color: var(--brand-secondary);
-    }
-
-    /* === Scroll to top === */
-    #scrollTop {
-      position: fixed;
-      bottom: 32px;
-      left: 32px;
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-lg);
-      cursor: pointer;
-      opacity: 0;
-      transform: translateY(100px);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 999;
-    }
-
-    #scrollTop.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    #scrollTop:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-xl);
-    }
-
-    @media (max-width: 768px) {
-      .title { font-size: 2rem; }
-      .subtitle { font-size: 1rem; }
-      .doc { padding: 28px 24px; }
-      .hero-inner { padding: 32px 24px; }
-      .doc h1 { font-size: 1.75rem; }
-      .doc h2 { font-size: 1.4rem; }
-      .doc h3 { font-size: 1.2rem; }
-      #scrollTop { bottom: 20px; left: 20px; width: 48px; height: 48px; }
-    }
-  </style>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
+  <script type="application/ld+json" nonce="{{ CSP_NONCE }}">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "دليل استخدام منصة توثيق",
+    "description": "دليل مبسط لاستخدام منصة توثيق للمعلم ومدير المدرسة.",
+    "inLanguage": "ar-SA",
+    "url": "{{ SITE_URL }}{% url 'reports:user_guide' %}"
+  }
+  </script>
 </head>
-
 <body>
-  <nav class="navbar" aria-label="القائمة الرئيسية">
-    <div class="container flex items-center justify-between" style="height: var(--nav-height);">
-      <a href="{% url 'reports:landing' %}" class="logo">
-        <img src="{% static 'img/logo1.png' %}" alt="Logo">
-        <span>منصة توثيق</span>
+  <a class="skip-link" href="#guideContent">انتقل إلى الدليل</a>
+
+  <header class="guide-header" id="pageTop">
+    <div class="guide-shell guide-header__inner">
+      <a class="guide-brand" href="{% url 'reports:landing' %}" aria-label="منصة توثيق — الصفحة الرئيسية">
+        <img src="{% static 'img/brand-mark.svg' %}" alt="" width="44" height="44">
+        <span><strong>توثيق</strong><small>دليل الاستخدام</small></span>
       </a>
-      <div class="flex items-center gap-2">
-        <a href="{% url 'reports:landing' %}" class="btn btn-outline">
-          <i class="fa-solid fa-house"></i>
-          الرئيسية
-        </a>
-        <a href="{% url 'reports:login' %}" class="btn btn-primary">
-          <i class="fa-solid fa-right-to-bracket"></i>
-          تسجيل الدخول
-        </a>
-      </div>
-    </div>
-  </nav>
 
-  <header class="hero">
-    <div class="container">
-      <div class="card">
-        <div class="hero-inner">
-          <h1 class="title">دليل المستخدم الشامل</h1>
-          <p class="subtitle">شرح عملي مطابق لشاشات النظام: التقارير، ملف الإنجاز، التذاكر، الإشعارات والتعاميم، المشاركة والطباعة.</p>
-          <div class="actions">
-
-            <a href="{{ download_pdf_url }}" class="btn btn-outline">
-              <i class="fa-solid fa-file-pdf"></i>
-              تنزيل الدليل (PDF)
-            </a>
-          </div>
-        </div>
-        <main class="doc" id="content">
-          {{ guide_html|safe }}
-        </main>
-      </div>
+      <nav class="guide-header__actions" aria-label="روابط الدليل">
+        <button
+          type="button"
+          class="guide-menu-toggle"
+          id="guideMenuToggle"
+          aria-controls="guideSidebar"
+          aria-expanded="false"
+        >
+          <i class="fa-solid fa-bars" aria-hidden="true"></i>
+          <span>فهرس الدليل</span>
+        </button>
+        <a href="{% url 'reports:landing' %}" class="header-link">
+          <i class="fa-solid fa-house" aria-hidden="true"></i>
+          <span>الرئيسية</span>
+        </a>
+        <a href="{{ download_pdf_url }}" class="header-link header-link--pdf">
+          <i class="fa-regular fa-file-pdf" aria-hidden="true"></i>
+          <span>نسخة PDF</span>
+        </a>
+        <a href="{% url 'reports:login' %}" class="header-login">
+          <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
+          <span>تسجيل الدخول</span>
+        </a>
+      </nav>
     </div>
   </header>
 
-  <!-- زر الصعود للأعلى -->
-  <button id="scrollTop" aria-label="العودة للأعلى">
-    <i class="fa-solid fa-arrow-up"></i>
+  <div class="guide-drawer-overlay" id="guideDrawerOverlay" aria-hidden="true"></div>
+
+  <main id="guideContent">
+    <section class="guide-hero">
+      <div class="guide-hero__glow guide-hero__glow--one" aria-hidden="true"></div>
+      <div class="guide-hero__glow guide-hero__glow--two" aria-hidden="true"></div>
+      <div class="guide-shell guide-hero__grid">
+        <div class="guide-hero__copy">
+          <span class="hero-badge"><i class="fa-solid fa-book-open" aria-hidden="true"></i> دليل بسيط، خطوة بخطوة</span>
+          <h1>أنجز عملك في توثيق<br><span>بوضوح وثقة.</span></h1>
+          <p>اختر دورك، وابحث عن المهمة التي تريدها، ثم اتبع خطوات قصيرة وواضحة دون أي مصطلحات تقنية.</p>
+
+          <form class="guide-search" role="search" id="guideSearchForm">
+            <label for="guideSearch">ما المهمة التي تريد تنفيذها؟</label>
+            <div class="guide-search__control">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input id="guideSearch" type="search" placeholder="مثال: إضافة تقرير، توقيع تعميم، إضافة معلم…" autocomplete="off">
+              <button type="button" id="guideSearchClear" aria-label="مسح البحث" hidden>
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="guide-search__status" id="guideSearchStatus" aria-live="polite"></p>
+          </form>
+        </div>
+
+        <div class="guide-hero__panel" aria-label="مميزات الدليل">
+          <div class="hero-panel__mark">
+            <img src="{% static 'img/brand-mark.svg' %}" alt="" width="72" height="72">
+          </div>
+          <strong>هذا الدليل صُمم لك</strong>
+          <ul>
+            <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> شرح حسب دورك في المدرسة</li>
+            <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> خطوات قصيرة مع أمثلة واضحة</li>
+            <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> تجربة مريحة على الجوال</li>
+          </ul>
+          <div class="hero-panel__hint">
+            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+            ابدأ باختيار دورك
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="role-picker" aria-labelledby="rolePickerTitle">
+      <div class="guide-shell">
+        <div class="section-intro section-intro--center">
+          <span>دليل يناسب مهمتك</span>
+          <h2 id="rolePickerTitle">ما دورك في المنصة؟</h2>
+          <p>سنُظهر لك الشرح الأقرب لعملك، ويمكنك تغيير الاختيار في أي وقت.</p>
+        </div>
+
+        <div class="role-tabs" role="group" aria-label="تصفية الدليل حسب الدور">
+          <button type="button" class="role-tab is-active" data-guide-filter="all" aria-pressed="true">
+            <span class="role-tab__icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>
+            <span><strong>الدليل كاملًا</strong><small>كل الموضوعات</small></span>
+          </button>
+          <button type="button" class="role-tab" data-guide-filter="teacher" aria-pressed="false">
+            <span class="role-tab__icon"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i></span>
+            <span><strong>أنا معلم</strong><small>التقارير والإنجاز والطلبات</small></span>
+          </button>
+          <button type="button" class="role-tab" data-guide-filter="manager" aria-pressed="false">
+            <span class="role-tab__icon"><i class="fa-solid fa-user-tie" aria-hidden="true"></i></span>
+            <span><strong>أنا مدير مدرسة</strong><small>الفريق والمتابعة والتواصل</small></span>
+          </button>
+          <button type="button" class="role-tab" data-guide-filter="supervisor" aria-pressed="false">
+            <span class="role-tab__icon"><i class="fa-solid fa-building-shield" aria-hidden="true"></i></span>
+            <span><strong>أنا مشرف منصة</strong><small>متابعة المدارس</small></span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div class="guide-shell guide-layout">
+      <aside class="guide-sidebar" id="guideSidebar" aria-label="فهرس الدليل" aria-hidden="false">
+        <div class="guide-sidebar__card">
+          <div class="guide-mobile-drawer-head">
+            <div>
+              <span>فهرس الدليل</span>
+              <small>اختر المهمة التي تريدها</small>
+            </div>
+            <button type="button" id="guideDrawerClose" aria-label="إغلاق فهرس الدليل">
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="sidebar-title">
+            <span><i class="fa-solid fa-list-ul" aria-hidden="true"></i> في هذا الدليل</span>
+            <small>اضغط للانتقال</small>
+          </div>
+          <nav class="guide-index">
+            <a href="#start" data-index-role="all"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i> ابدأ من هنا</a>
+            <div class="index-group" data-index-role="teacher">
+              <span>للمعلم</span>
+              <a href="#teacher-home">مساحة العمل</a>
+              <a href="#teacher-report">إنشاء تقرير</a>
+              <a href="#teacher-achievement">ملف الإنجاز</a>
+              <a href="#teacher-circulars">التعاميم</a>
+              <a href="#teacher-requests">الطلبات</a>
+            </div>
+            <div class="index-group" data-index-role="manager">
+              <span>لمدير المدرسة</span>
+              <a href="#manager-dashboard">لوحة المدير</a>
+              <a href="#manager-teachers">إدارة المعلمين</a>
+              <a href="#manager-reports">تقارير المدرسة</a>
+              <a href="#manager-communication">التواصل</a>
+              <a href="#manager-requests">متابعة الطلبات</a>
+              <a href="#manager-subscription">الاشتراك</a>
+            </div>
+            <div class="index-group" data-index-role="supervisor">
+              <span>لمشرف المنصة</span>
+              <a href="#supervisor">متابعة المدارس</a>
+            </div>
+            <div class="index-group" data-index-role="all">
+              <span>للجميع</span>
+              <a href="#switch-school">تبديل المدرسة</a>
+              <a href="#account-security">الحساب والأمان</a>
+              <a href="#help">مساعدة سريعة</a>
+            </div>
+          </nav>
+          <a href="{{ download_pdf_url }}" class="sidebar-download">
+            <i class="fa-regular fa-file-pdf" aria-hidden="true"></i>
+            <span><strong>احتفظ بنسخة</strong><small>تنزيل الدليل PDF</small></span>
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          </a>
+        </div>
+      </aside>
+
+      <div class="guide-main">
+        <div class="guide-results-empty" id="guideResultsEmpty" hidden>
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <h2>لم نجد هذه المهمة</h2>
+          <p>جرّب كلمة أقصر مثل «تقرير» أو «معلم» أو «تعميم».</p>
+          <button type="button" id="guideEmptyReset">عرض الدليل كاملًا</button>
+        </div>
+
+        {% include "reports/partials/user_guide_content.html" %}
+      </div>
+    </div>
+
+    <section class="guide-bottom-cta">
+      <div class="guide-shell guide-bottom-cta__inner">
+        <div>
+          <span>جاهز للبدء؟</span>
+          <h2>انتقل إلى حسابك وابدأ الإنجاز.</h2>
+        </div>
+        <a href="{% url 'reports:login' %}" class="guide-button guide-button--gold">
+          تسجيل الدخول
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="guide-footer">
+    <div class="guide-shell guide-footer__inner">
+      <a class="guide-brand guide-brand--footer" href="{% url 'reports:landing' %}">
+        <img src="{% static 'img/brand-mark.svg' %}" alt="" width="40" height="40">
+        <span><strong>توثيق</strong><small>للعمل المدرسي</small></span>
+      </a>
+      <p>دليل واضح يساعدك على إنجاز عملك بثقة.</p>
+      <div>
+        <a href="{% url 'reports:faq' %}">الأسئلة الشائعة</a>
+        <a href="{% url 'reports:privacy_policy' %}">الخصوصية</a>
+      </div>
+    </div>
+  </footer>
+
+  <button class="back-to-top" id="guideBackToTop" type="button" aria-label="العودة إلى أعلى الصفحة">
+    <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
   </button>
 
-<script nonce="{{ CSP_NONCE }}">
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js').catch(function(err) {});
-      });
-    }
-
-    // Scroll to top button
-    const scrollTopBtn = document.getElementById('scrollTop');
-    
-    window.addEventListener('scroll', function() {
-      if (window.scrollY > 400) {
-        scrollTopBtn.classList.add('visible');
-      } else {
-        scrollTopBtn.classList.remove('visible');
-      }
-    });
-
-    scrollTopBtn.addEventListener('click', function() {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
-
-    // تحسين تجربة القراءة
-    document.querySelectorAll('.doc a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
-      });
-    });
-  </script>
+  {% include "reports/partials/pwa_install.html" %}
+  <script src="{% static 'js/user-guide.js' %}?v=20260731.2" defer></script>
 </body>
 </html>

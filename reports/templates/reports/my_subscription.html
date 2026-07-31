@@ -175,7 +175,16 @@
   }
 
   @media (max-width: 960px) {
-    .dashboard-grid { grid-template-columns: 1fr; }
+    .dashboard-grid {
+      grid-template-columns: minmax(0, 1fr);
+      min-width: 0;
+    }
+    .dashboard-grid > *,
+    .status-sidebar,
+    .stat-row {
+      min-width: 0;
+      max-width: 100%;
+    }
     .page-hero { border-radius: var(--radius-lg); padding: 2rem 1.75rem 3rem; }
     .hero-title { font-size: 1.75rem; }
   }
@@ -1981,9 +1990,19 @@
   }
 
   @media (max-width: 600px) {
-    .sub-container { padding: 1.5rem 1rem 3rem; }
-    .glass-card { padding: 1.5rem; }
-    .plans-grid { grid-template-columns: 1fr 1fr; }
+    .sub-container {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      padding: 1rem .75rem 3rem;
+      overflow: hidden;
+    }
+    .dashboard-grid { width: 100%; min-width: 0; gap: 1rem; }
+    .glass-card { width: 100%; min-width: 0; padding: 1rem; }
+    .status-sidebar { overflow: hidden; }
+    .stat-row { grid-template-columns: minmax(0, 1fr); }
+    .progress-ring { width: 164px; height: 164px; }
+    .plans-grid { grid-template-columns: minmax(0, 1fr); }
     .archive-summary,
     .archive-actions { grid-template-columns: 1fr; }
     .steps-guide { gap: 0; }
@@ -2003,6 +2022,7 @@
     .premium-order-summary { grid-template-columns: 1fr; }
     .summary-total-panel {
       align-items: flex-start;
+      min-width: 0;
       padding: .85rem 0 0;
       border-inline-start: 0;
       border-top: 1px solid rgba(112,133,121,.2);

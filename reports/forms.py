@@ -8,7 +8,7 @@ import os
 import logging
 
 from django import forms
-from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm, SetPasswordForm
 from django.contrib.auth.password_validation import (
     CommonPasswordValidator,
     MinimumLengthValidator,
@@ -129,11 +129,27 @@ class MyProfilePhoneForm(forms.ModelForm):
 class MyPasswordChangeForm(PasswordChangeForm):
     """نموذج تغيير كلمة المرور مع تحسين شكل الحقول."""
 
+    email = forms.EmailField(
+        label="البريد الإلكتروني",
+        required=False,
+        widget=forms.EmailInput(
+            attrs={
+                "autocomplete": "email",
+                "inputmode": "email",
+                "dir": "ltr",
+                "placeholder": "name@example.com",
+            }
+        ),
+    )
+
     # حد أدنى مبسّط للطول (بلا قيود "رقمية/شائعة/تشابه").
     SIMPLE_MIN_LENGTH = 6
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, require_email: bool = False, **kwargs):
+        self.require_email = require_email
         super().__init__(*args, **kwargs)
+        self.fields["email"].required = require_email
+        self.fields["email"].initial = (getattr(self.user, "email", "") or "").strip()
         self.password_requirements = self._build_password_requirements()
         # تبسيط: نتجاوز ما يضبطه المُدقّق الافتراضي ونعتمد حدًّا بسيطًا.
         self.password_min_length = self.SIMPLE_MIN_LENGTH
@@ -142,6 +158,8 @@ class MyPasswordChangeForm(PasswordChangeForm):
                 f.widget.attrs.setdefault("class", "form-control")
                 if name == "old_password":
                     f.widget.attrs.setdefault("autocomplete", "current-password")
+                elif name == "email":
+                    f.widget.attrs.setdefault("autocomplete", "email")
                 else:
                     f.widget.attrs.setdefault("autocomplete", "new-password")
             except Exception:
@@ -150,6 +168,22 @@ class MyPasswordChangeForm(PasswordChangeForm):
         self.fields["old_password"].widget.attrs.setdefault("placeholder", "أدخل كلمة المرور الحالية")
         self.fields["new_password1"].widget.attrs.setdefault("placeholder", "أدخل كلمة مرور جديدة قوية")
         self.fields["new_password2"].widget.attrs.setdefault("placeholder", "أعد إدخال كلمة المرور الجديدة")
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if self.require_email and not email:
+            raise forms.ValidationError("البريد الإلكتروني مطلوب لاستعادة كلمة المرور لاحقًا.")
+
+        if email:
+            existing = Teacher.objects.filter(email__iexact=email).exclude(pk=self.user.pk)
+            if existing.exists():
+                raise forms.ValidationError("هذا البريد الإلكتروني مستخدم في حساب آخر.")
+        return email
+
+    def save(self, commit=True):
+        if self.require_email:
+            self.user.email = self.cleaned_data["email"]
+        return super().save(commit=commit)
 
     def _build_password_requirements(self) -> list[dict[str, str]]:
         requirements: list[dict[str, str]] = []
@@ -218,6 +252,62 @@ class MyPasswordChangeForm(PasswordChangeForm):
                 f"كلمة المرور يجب أن تكون {self.password_min_length} أحرف على الأقل."
             )
         return password2
+
+
+class AccountPasswordResetForm(PasswordResetForm):
+    """Public password-recovery form without exposing account existence."""
+
+    email = forms.EmailField(
+        label="البريد الإلكتروني",
+        max_length=254,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "recovery-input",
+                "autocomplete": "email",
+                "inputmode": "email",
+                "dir": "ltr",
+                "placeholder": "name@example.com",
+                "autofocus": True,
+            }
+        ),
+    )
+
+    def clean_email(self):
+        return (self.cleaned_data.get("email") or "").strip().lower()
+
+    def get_users(self, email):
+        users = list(super().get_users(email))
+        if len(users) == 1:
+            yield users[0]
+        elif len(users) > 1:
+            logger.warning(
+                "Password reset suppressed for a non-unique email match count=%s",
+                len(users),
+            )
+
+
+class AccountSetPasswordForm(SetPasswordForm):
+    """Style the one-time reset form while retaining Django validators."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["new_password1"].label = "كلمة المرور الجديدة"
+        self.fields["new_password2"].label = "تأكيد كلمة المرور الجديدة"
+        self.fields["new_password1"].widget.attrs.update(
+            {
+                "class": "recovery-input",
+                "autocomplete": "new-password",
+                "placeholder": "أدخل كلمة مرور جديدة",
+                "autofocus": True,
+            }
+        )
+        self.fields["new_password2"].widget.attrs.update(
+            {
+                "class": "recovery-input",
+                "autocomplete": "new-password",
+                "placeholder": "أعد إدخال كلمة المرور الجديدة",
+            }
+        )
 
 
 def _validate_academic_year_hijri(value: str) -> str:
@@ -1649,6 +1739,15 @@ class ReportTemplateForm(forms.ModelForm):
 # ==============================
 # 📌 إنشاء إشعار
 # ==============================
+class FlexibleModelMultipleChoiceField(forms.ModelMultipleChoiceField):
+    """Accept legacy single values while exposing a real multi-select field."""
+
+    def clean(self, value):
+        if value not in self.empty_values and not isinstance(value, (list, tuple)):
+            value = [value]
+        return super().clean(value)
+
+
 class NotificationCreateForm(forms.Form):
     title = forms.CharField(max_length=120, required=False, label="عنوان (اختياري)")
     message = forms.CharField(widget=forms.Textarea(attrs={"rows":5}), label="نص الإشعار")
@@ -1705,11 +1804,12 @@ class NotificationCreateForm(forms.Form):
         label="المدرسة المستهدفة",
         help_text="اختر المدرسة التي سيتم إرسال الإشعار لمستخدميها.",
     )
-    target_department = forms.ModelChoiceField(
+    target_department = FlexibleModelMultipleChoiceField(
         queryset=Department.objects.none(),
         required=False,
-        label="إرسال إلى قسم كامل",
-        help_text="اختر قسماً لإرسال الإشعار لجميع منسوبيه. إذا اخترت مستلمين من القائمة أدناه فسيتم الإرسال لهم فقط (حتى لو كان القسم محدداً).",
+        label="اختر قسمًا أو أكثر",
+        help_text="سيُضاف جميع أعضاء الأقسام المختارة إلى المستلمين، ويمكنك إضافة أفراد من القائمة أدناه.",
+        widget=forms.CheckboxSelectMultiple(),
     )
     teachers = forms.ModelMultipleChoiceField(
         queryset=Teacher.objects.none(),
@@ -1793,9 +1893,11 @@ class NotificationCreateForm(forms.Form):
             else:
                 self.fields.pop("target_department", None)
 
-        # في وضع التعميم: لا علاقة للأقسام بالتوجيه حسب متطلبات المنتج
+        # في وضع التعميم: الأقسام متاحة لمدير المدرسة فقط. أما مدير النظام
+        # ومشرف المنصة فيوجهان التعميم إلى مدراء المدارس لا إلى أقسامها.
         if is_circular:
-            self.fields.pop("target_department", None)
+            if not is_manager:
+                self.fields.pop("target_department", None)
 
             # التعميم دائمًا يتطلب توقيعًا (والـ view يفرضه كذلك)
             if "requires_signature" in self.fields:
@@ -1961,20 +2063,37 @@ class NotificationCreateForm(forms.Form):
         # التعميمات داخل المدرسة: مدير المدرسة يجب أن يحدد مستلمين صراحةً.
         if is_circular and not is_superuser and not is_platform:
             selected_teachers = cleaned.get("teachers")
-            if not selected_teachers:
+            target_departments = cleaned.get("target_department")
+            if not selected_teachers and not target_departments:
                 self.add_error("teachers", "لا يمكن إرسال التعميم والمستلمون = 0. يرجى تحديد المستلمين أولاً.")
+            if target_departments and not selected_teachers:
+                dept_recipients_qs = Teacher.objects.filter(
+                    is_active=True,
+                    dept_memberships__department__in=target_departments,
+                )
+                active_school = getattr(self, "active_school", None)
+                if active_school is not None:
+                    dept_recipients_qs = dept_recipients_qs.filter(
+                        school_memberships__school=active_school,
+                        school_memberships__is_active=True,
+                    )
+                if not dept_recipients_qs.distinct().exists():
+                    self.add_error(
+                        "target_department",
+                        "الأقسام المحددة لا تحتوي على مستلمين نشطين حاليًا. يرجى اختيار مستلمين يدويًا.",
+                    )
 
         # للإشعارات العادية (داخل المدرسة): لا نسمح بالإرسال بدون تحديد مستلمين.
         # يمكن التحديد إما عبر اختيار معلمين بشكل مباشر أو اختيار قسم كامل.
         if not is_circular and not (is_superuser or is_platform):
             selected_teachers = cleaned.get("teachers")
-            target_department = cleaned.get("target_department")
-            if not selected_teachers and not target_department:
+            target_departments = cleaned.get("target_department")
+            if not selected_teachers and not target_departments:
                 raise ValidationError("يرجى تحديد المستلمين (اختيار معلم/معلمة أو قسم) قبل إرسال الإشعار.")
-            if target_department and not selected_teachers:
+            if target_departments and not selected_teachers:
                 dept_recipients_qs = Teacher.objects.filter(
                     is_active=True,
-                    dept_memberships__department=target_department,
+                    dept_memberships__department__in=target_departments,
                 )
                 active_school = getattr(self, "active_school", None)
                 if active_school is not None:
@@ -2046,14 +2165,16 @@ class NotificationCreateForm(forms.Form):
         if selected_teachers:
             teacher_ids_set.update([t.pk for t in selected_teachers])
             
-        # 2. توجيه حسب القسم (للإشعارات فقط)
-        target_dept = cleaned.get("target_department")
-        # ملاحظة: اختيار القسم في الواجهة غالباً يُستخدم لتصفية القائمة.
-        # لذلك لا نرسل للقسم بالكامل إذا اختار المستخدم معلمين بشكل يدوي.
-        if target_dept and not bool(requires_signature) and not selected_teachers:
+        # 2. توجيه حسب القسم (للإشعارات، ولتعاميم مدير المدرسة)
+        target_departments = cleaned.get("target_department")
+        # الأقسام والأفراد مصدران متكاملان للمستلمين؛ تزيل المجموعة أي تكرار.
+        if target_departments and (
+            not bool(requires_signature)
+            or not (is_superuser or is_platform)
+        ):
             from .models import DepartmentMembership
             dept_teachers = DepartmentMembership.objects.filter(
-                department=target_dept,
+                department__in=target_departments,
                 teacher__is_active=True,
             )
             if school_for_notification is not None:

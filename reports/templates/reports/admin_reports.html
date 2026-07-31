@@ -988,24 +988,24 @@
     <div class="repdash-card repdash-filters">
       <form method="get" class="repdash-filters-grid">
         <div class="repdash-field">
-          <label>من تاريخ</label>
-          <input type="date" name="start_date" value="{{ start_date }}" class="repdash-control">
+          <label for="reportStartDate">من تاريخ</label>
+          <input id="reportStartDate" type="date" name="start_date" value="{{ start_date }}" class="repdash-control">
         </div>
 
         <div class="repdash-field">
-          <label>إلى تاريخ</label>
-          <input type="date" name="end_date" value="{{ end_date }}" class="repdash-control">
+          <label for="reportEndDate">إلى تاريخ</label>
+          <input id="reportEndDate" type="date" name="end_date" value="{{ end_date }}" class="repdash-control">
         </div>
 
         <div class="repdash-field">
-          <label>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
-          <input type="text" name="teacher_name" value="{{ teacher_name }}" placeholder="بحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}..." class="repdash-control">
+          <label for="reportTeacherName">{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
+          <input id="reportTeacherName" type="text" name="teacher_name" value="{{ teacher_name }}" placeholder="بحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}..." class="repdash-control">
         </div>
 
         {% if categories %}
           <div class="repdash-field">
-            <label>التصنيف</label>
-            <select name="category" class="repdash-control">
+            <label for="reportCategory">التصنيف</label>
+            <select id="reportCategory" name="category" class="repdash-control">
               <option value="">الكل</option>
               {% for val, label in categories %}
                 <option value="{{ val }}" {% if category == val %}selected{% endif %}>{{ label }}</option>

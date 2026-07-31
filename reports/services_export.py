@@ -8,11 +8,14 @@
 """
 from __future__ import annotations
 
+import json
 from io import BytesIO
 
 from django.utils import timezone
 
 from .models import (
+    AchievementEvidenceImage,
+    AchievementEvidenceReport,
     Department,
     DepartmentMembership,
     Notification,
@@ -303,7 +306,7 @@ def build_year_archive_index_bytes(
     """Build the Excel index promised inside every yearly archive package."""
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
-    from .services_archive import UNCLASSIFIED_YEAR
+    from .services_archive import UNCLASSIFIED_YEAR, archive_year_label
 
     reports = _reports_qs(
         school,
@@ -323,18 +326,69 @@ def build_year_archive_index_bytes(
     )
 
     workbook = Workbook()
-    report_sheet = workbook.active
-    report_sheet.title = "التقارير"
+    summary_sheet = workbook.active
+    summary_sheet.title = "ملخص النسخة"
+    report_sheet = workbook.create_sheet("التقارير")
     achievement_sheet = workbook.create_sheet("ملفات الإنجاز")
-    sheets = [report_sheet, achievement_sheet]
+    evidence_sheet = workbook.create_sheet("شواهد الإنجاز")
+    sheets = [summary_sheet, report_sheet, achievement_sheet, evidence_sheet]
     ticket_sheet = None
     notification_sheet = None
+    team_sheet = None
+    department_sheet = None
     if school_wide:
         ticket_sheet = workbook.create_sheet("الطلبات والتذاكر")
         notification_sheet = workbook.create_sheet("التعاميم والإشعارات")
-        sheets.extend([ticket_sheet, notification_sheet])
+        team_sheet = workbook.create_sheet("فريق المدرسة")
+        department_sheet = workbook.create_sheet("الأقسام")
+        sheets.extend([ticket_sheet, notification_sheet, team_sheet, department_sheet])
     for sheet in sheets:
         sheet.sheet_view.rightToLeft = True
+
+    summary_sheet.append(["البيان", "القيمة"])
+    summary_rows = [
+        ("اسم المدرسة", getattr(school, "name", "") or ""),
+        ("رمز المدرسة", getattr(school, "code", "") or ""),
+        ("السنة المحددة", archive_year_label(academic_year)),
+        ("نطاق النسخة", "أرشيف مستندات وسجلات المدرسة"),
+        (
+            "ملاحظة السجلات الإدارية",
+            "الطلبات والتعاميم والإشعارات تحفظ بحالتها الكاملة لحظة إنشاء النسخة؛ لأنها غير مرتبطة بسنة دراسية.",
+        ),
+        ("تاريخ إنشاء الفهرس", timezone.localtime().isoformat()),
+        ("عدد التقارير", reports.count()),
+        ("عدد ملفات الإنجاز", achievements.count()),
+    ]
+    if school_wide:
+        summary_rows.extend(
+            [
+                ("عدد الطلبات والتذاكر", _tickets_qs(school).count()),
+                (
+                    "عدد التعاميم",
+                    Notification.objects.filter(
+                        school=school,
+                        requires_signature=True,
+                    ).count(),
+                ),
+                (
+                    "عدد الإشعارات",
+                    Notification.objects.filter(
+                        school=school,
+                        requires_signature=False,
+                    ).count(),
+                ),
+                (
+                    "منها إشعارات آلية",
+                    Notification.objects.filter(
+                        school=school,
+                        requires_signature=False,
+                        created_by__isnull=True,
+                    ).count(),
+                ),
+            ]
+        )
+    for label, value in summary_rows:
+        summary_sheet.append([label, value])
 
     report_sheet.append(["المعرف", "العنوان", "المعلم", "التاريخ", "التصنيف", "السنة الدراسية"])
     for report in reports.iterator():
@@ -362,31 +416,192 @@ def build_year_archive_index_bytes(
             ]
         )
 
+    evidence_sheet.append(
+        [
+            "معرف ملف الإنجاز",
+            "المعلم",
+            "المحور",
+            "نوع الشاهد",
+            "معرف السجل",
+            "اسم الملف",
+            "تاريخ التجميد",
+            "بيانات التقرير المجمدة",
+        ]
+    )
+    evidence_images = (
+        AchievementEvidenceImage.objects.filter(
+            section__file__school=school,
+            section__file__academic_year=academic_year,
+        )
+        .select_related("section", "section__file", "section__file__teacher")
+        .order_by("section__file_id", "section__code", "id")
+    )
+    evidence_reports = (
+        AchievementEvidenceReport.objects.filter(
+            section__file__school=school,
+            section__file__academic_year=academic_year,
+        )
+        .select_related("section", "section__file", "section__file__teacher", "report")
+        .order_by("section__file_id", "section__code", "id")
+    )
+    if not school_wide and teacher is not None:
+        evidence_images = evidence_images.filter(section__file__teacher=teacher)
+        evidence_reports = evidence_reports.filter(section__file__teacher=teacher)
+    if academic_year == UNCLASSIFIED_YEAR:
+        evidence_images = evidence_images.none()
+        evidence_reports = evidence_reports.none()
+    for evidence in evidence_images.iterator():
+        achievement_file = evidence.section.file
+        evidence_sheet.append(
+            [
+                achievement_file.id,
+                achievement_file.teacher_name or achievement_file.teacher.name,
+                evidence.section.title or str(evidence.section.code),
+                "صورة شاهد",
+                evidence.id,
+                getattr(evidence.image, "name", "") or "",
+                "",
+                "",
+            ]
+        )
+    for evidence in evidence_reports.iterator():
+        achievement_file = evidence.section.file
+        archived_names = [
+            getattr(field, "name", "") or ""
+            for field in (
+                evidence.archived_image1,
+                evidence.archived_image2,
+                evidence.archived_image3,
+                evidence.archived_image4,
+            )
+            if getattr(field, "name", "")
+        ]
+        evidence_sheet.append(
+            [
+                achievement_file.id,
+                achievement_file.teacher_name or achievement_file.teacher.name,
+                evidence.section.title or str(evidence.section.code),
+                "تقرير شاهد مجمد",
+                evidence.report_id or evidence.id,
+                "، ".join(archived_names),
+                evidence.frozen_at.isoformat() if evidence.frozen_at else "",
+                json.dumps(evidence.frozen_data or {}, ensure_ascii=False, default=str),
+            ]
+        )
+
     if ticket_sheet is not None:
-        ticket_sheet.append(["المعرف", "العنوان", "المرسل", "القسم", "الحالة", "تاريخ الإنشاء"])
+        ticket_sheet.append(
+            [
+                "المعرف",
+                "العنوان",
+                "التفاصيل",
+                "المرسل",
+                "المسؤول الرئيسي",
+                "المستلمون",
+                "القسم",
+                "الحالة",
+                "تاريخ الإنشاء",
+                "آخر تحديث",
+                "نوع الطلب",
+                "مرفق",
+                "عدد الصور",
+                "عدد الملاحظات",
+            ]
+        )
         for ticket in _tickets_qs(school).iterator(chunk_size=100):
             ticket_sheet.append(
                 [
                     ticket.pk,
                     ticket.title,
+                    ticket.body or "",
                     getattr(ticket.creator, "name", ""),
+                    getattr(ticket.assignee, "name", ""),
+                    "، ".join(recipient.name for recipient in ticket.recipients.all()),
                     getattr(ticket.department, "name", ""),
                     ticket.get_status_display(),
                     ticket.created_at.isoformat() if ticket.created_at else "",
+                    ticket.updated_at.isoformat() if ticket.updated_at else "",
+                    "دعم فني للمنصة" if ticket.is_platform else "طلب مدرسي",
+                    "نعم" if getattr(ticket.attachment, "name", "") else "لا",
+                    ticket.images.count(),
+                    ticket.notes.count(),
                 ]
             )
 
     if notification_sheet is not None:
-        notification_sheet.append(["المعرف", "النوع", "العنوان", "المرسل", "تاريخ الإنشاء", "المستلمون"])
+        notification_sheet.append(
+            [
+                "المعرف",
+                "النوع",
+                "العنوان",
+                "النص",
+                "المرسل",
+                "مصدر السجل",
+                "تاريخ الإنشاء",
+                "مهم",
+                "انتهاء العرض",
+                "بث عام",
+                "آخر موعد للتوقيع",
+                "المستلمون",
+                "تمت القراءة",
+                "تم التوقيع",
+                "مرفق",
+            ]
+        )
         for notification in _notifications_qs(school).iterator(chunk_size=100):
+            recipient_rows = list(notification.recipients.all())
             notification_sheet.append(
                 [
                     notification.pk,
                     "تعميم" if notification.requires_signature else "إشعار",
                     notification.title,
-                    getattr(notification.created_by, "name", ""),
+                    notification.message or "",
+                    getattr(notification.created_by, "name", "") or "النظام",
+                    "آلي" if notification.created_by_id is None else "مستخدم",
                     notification.created_at.isoformat() if notification.created_at else "",
-                    notification.recipients.count(),
+                    "نعم" if notification.is_important else "لا",
+                    notification.expires_at.isoformat() if notification.expires_at else "",
+                    "نعم" if notification.is_broadcast else "لا",
+                    (
+                        notification.signature_deadline_at.isoformat()
+                        if notification.signature_deadline_at
+                        else ""
+                    ),
+                    len(recipient_rows),
+                    sum(1 for row in recipient_rows if row.is_read),
+                    sum(1 for row in recipient_rows if row.is_signed),
+                    "نعم" if getattr(notification.attachment, "name", "") else "لا",
+                ]
+            )
+
+    if team_sheet is not None:
+        team_sheet.append(["الاسم", "الجوال", "الدور", "المسمى الوظيفي", "الحالة"])
+        memberships = (
+            SchoolMembership.objects.filter(school=school)
+            .select_related("teacher")
+            .order_by("role_type", "teacher__name", "id")
+        )
+        for membership in memberships.iterator():
+            team_sheet.append(
+                [
+                    getattr(membership.teacher, "name", "") or "",
+                    getattr(membership.teacher, "phone", "") or "",
+                    membership.get_role_type_display(),
+                    membership.get_job_title_display(),
+                    "نشط" if membership.is_active else "موقوف",
+                ]
+            )
+
+    if department_sheet is not None:
+        department_sheet.append(["اسم القسم", "الدور الظاهر", "الحالة", "عدد الأعضاء"])
+        departments = Department.objects.filter(school=school).order_by("name", "id")
+        for department in departments.iterator():
+            department_sheet.append(
+                [
+                    department.name or "",
+                    department.role_label or "",
+                    "نشط" if department.is_active else "موقوف",
+                    DepartmentMembership.objects.filter(department=department).count(),
                 ]
             )
 
@@ -396,7 +611,23 @@ def build_year_archive_index_bytes(
             cell.fill = PatternFill("solid", fgColor=_HEADER_FILL)
             cell.alignment = Alignment(horizontal="center")
         sheet.freeze_panes = "A2"
-        for column, width in {"A": 12, "B": 34, "C": 28, "D": 18, "E": 24, "F": 20}.items():
+        for column, width in {
+            "A": 16,
+            "B": 34,
+            "C": 34,
+            "D": 28,
+            "E": 24,
+            "F": 24,
+            "G": 20,
+            "H": 18,
+            "I": 22,
+            "J": 22,
+            "K": 20,
+            "L": 18,
+            "M": 18,
+            "N": 18,
+            "O": 18,
+        }.items():
             sheet.column_dimensions[column].width = width
 
     buffer = BytesIO()
@@ -556,7 +787,7 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
     - ``academic_year``: قصر النطاق على سنة محددة (أو السنتينل UNCLASSIFIED لغير المصنّفة).
     - ``teacher`` + ``school_wide=False``: قصر النطاق على ملفات معلّم واحد.
     """
-    from .models import AchievementEvidenceImage
+    from .models import AchievementEvidenceImage, AchievementEvidenceReport
     from .services_archive import UNCLASSIFIED_YEAR
 
     scope_teacher = teacher if not school_wide else None
@@ -612,6 +843,47 @@ def _file_fields_for_school(school, *, academic_year=None, teacher=None, school_
             tname, year, section = "معلم", "بدون-سنة", "قسم"
         base = os.path.basename(name) or f"شاهد-{ev.id}.jpg"
         yield f"ملفات-الإنجاز/شواهد/{tname} - {year}/{section}/{base}", field
+
+    # 4) الصور المجمدة لتقارير الشواهد. هذه نسخ مستقلة عن صور التقرير
+    # الأصلي ويجب حفظها حتى يبقى ملف الإنجاز صالحًا بعد حذف التقرير الحي.
+    evidence_reports = (
+        AchievementEvidenceReport.objects.filter(section__file__school=school)
+        .select_related("section", "section__file", "section__file__teacher", "report")
+    )
+    if scope_teacher is not None:
+        evidence_reports = evidence_reports.filter(section__file__teacher=scope_teacher)
+    if academic_year:
+        evidence_reports = evidence_reports.filter(section__file__academic_year=academic_year)
+    for evidence_report in evidence_reports.iterator():
+        section_obj = evidence_report.section
+        achievement_file = section_obj.file
+        teacher_name = _safe_segment(
+            getattr(achievement_file.teacher, "name", "") or "معلم"
+        )
+        year = _safe_segment(achievement_file.academic_year or "بدون-سنة")
+        section_name = _safe_segment(
+            section_obj.title or str(section_obj.code) or "قسم"
+        )
+        report_id = evidence_report.report_id or evidence_report.id
+        report_folder = f"تقرير-شاهد-{report_id}"
+        for index, field in enumerate(
+            (
+                evidence_report.archived_image1,
+                evidence_report.archived_image2,
+                evidence_report.archived_image3,
+                evidence_report.archived_image4,
+            ),
+            start=1,
+        ):
+            name = getattr(field, "name", "") or ""
+            if not name:
+                continue
+            extension = os.path.splitext(name)[1].lower() or ".jpg"
+            yield (
+                f"ملفات-الإنجاز/شواهد/{teacher_name} - {year}/"
+                f"{section_name}/{report_folder}/صورة-مؤرشفة-{index}{extension}",
+                field,
+            )
 
     # السجلات الإدارية لا تحمل سنة دراسية؛ يضيفها أرشيف السنة صراحةً
     # بوصفها "الحالة حتى لحظة إنشاء النسخة". وهنا نضيفها للتصدير الكامل.

@@ -1,5 +1,5 @@
 // Bump cache version to force refresh after deployments
-const CACHE_NAME = 'tawtheeq-v6';
+const CACHE_NAME = 'tawtheeq-v7';
 
 // Avoid pre-caching '/' because it can be a redirect (login/dashboard) and can
 // cause stale HTML that references removed hashed assets after deployments.

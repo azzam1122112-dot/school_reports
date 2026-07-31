@@ -31,6 +31,7 @@
   .ar-alert i{margin-top:4px}.ar-alert--warn{border-color:#e8c978;background:rgba(185,151,91,.08);color:#705318}
   .ar-alert--danger{border-color:#efb4b4;background:rgba(220,38,38,.06);color:#a21f1f}
   .ar-alert--success{border-color:#abd8bc;background:rgba(0,108,53,.06);color:#075e34}
+  .ar-alert--info{border-color:#afd3df;background:rgba(14,116,144,.055);color:#155e75}
   .ar-upsell{display:grid;grid-template-columns:1fr auto;align-items:center;gap:20px;padding:24px;background:linear-gradient(135deg,rgba(0,108,53,.07),rgba(185,151,91,.09))}
   .ar-upsell h2{margin:0;font-size:1.25rem}.ar-upsell p{margin:7px 0 0;color:var(--ar-muted);line-height:1.8;font-weight:750}
   .ar-price{text-align:center}.ar-price strong{display:block;color:var(--ar-green);font-size:1.55rem}.ar-price span{color:var(--ar-muted);font-size:.78rem;font-weight:850}
@@ -57,7 +58,11 @@
 
   .ar-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
   .ar-kpi{padding:14px;border:1px solid var(--ar-line);border-radius:14px;background:var(--ar-card)}
-  .ar-kpi span,.ar-kpi strong{display:block}.ar-kpi span{color:var(--ar-muted);font-size:.77rem;font-weight:850}.ar-kpi strong{margin-top:5px;font-size:1.28rem}
+  .ar-kpi span,.ar-kpi strong,.ar-kpi small{display:block}.ar-kpi span{color:var(--ar-muted);font-size:.77rem;font-weight:850}.ar-kpi strong{margin-top:5px;font-size:1.28rem}
+  .ar-kpi small{margin-top:3px;color:var(--ar-muted);font-size:.7rem;font-weight:800}
+  .ar-readiness{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:12px;padding:17px;border:1px solid rgba(0,108,53,.22);border-radius:16px;background:linear-gradient(135deg,rgba(0,108,53,.065),rgba(185,151,91,.055))}
+  .ar-readiness strong,.ar-readiness span{display:block}.ar-readiness strong{font-size:1rem}.ar-readiness span{margin-top:4px;color:var(--ar-muted);font-size:.82rem;font-weight:800}
+  .ar-readiness-count{min-width:120px;text-align:center;color:var(--ar-green)}.ar-readiness-count b{display:block;font-size:1.65rem}.ar-readiness-count small{font-weight:900}
 
   .ar-section{overflow:hidden}.ar-section-head{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:18px;border-bottom:1px solid var(--ar-line)}
   .ar-section-head h2{margin:0;display:flex;align-items:center;gap:9px;font-size:1.15rem}.ar-section-head p{margin:5px 0 0;color:var(--ar-muted);font-size:.84rem;font-weight:750}
@@ -74,17 +79,26 @@
   .ar-badge--warn{background:rgba(185,151,91,.15);color:#765719}.ar-version-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
   .ar-version-meta span{padding:5px 8px;border-radius:9px;background:rgba(100,116,139,.07);color:var(--ar-muted);font-size:.75rem;font-weight:850}
   .ar-hash{margin-top:10px;color:var(--ar-muted);font:700 .72rem/1.6 monospace;direction:ltr;text-align:left;overflow-wrap:anywhere}
+  .ar-completion{margin-top:10px;border:1px solid var(--ar-line);border-radius:10px;background:rgba(100,116,139,.035)}
+  .ar-completion summary{padding:9px 11px;cursor:pointer;color:var(--ar-green);font-size:.78rem;font-weight:950}
+  .ar-completion pre{margin:0;padding:11px;border-top:1px solid var(--ar-line);white-space:pre-wrap;color:var(--ar-muted);font-family:inherit;font-size:.74rem;font-weight:750;line-height:1.8}
 
   .ar-grid{display:grid;grid-template-columns:1.25fr .9fr;gap:14px}
+  .ar-record-grid{display:grid;grid-template-columns:1fr;gap:14px}
+  .ar-record-section{padding:0;border:1px solid var(--ar-line);border-radius:14px;overflow:hidden}
+  .ar-record-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;background:rgba(0,108,53,.035)}
+  .ar-record-title h3{margin:0;font-size:1rem}.ar-record-title span{color:var(--ar-muted);font-size:.75rem;font-weight:900}
   .ar-table-wrap{overflow-x:auto}.ar-table{width:100%;border-collapse:collapse;min-width:620px}
   .ar-table th,.ar-table td{padding:12px 13px;border-bottom:1px solid var(--ar-line);text-align:right;vertical-align:middle}
   .ar-table th{background:rgba(0,108,53,.055);color:var(--ar-green);font-size:.78rem;font-weight:950}
   .ar-table td{font-size:.86rem}.ar-name{font-weight:950}.ar-meta{margin-top:3px;color:var(--ar-muted);font-size:.76rem;font-weight:750}
+  .ar-source{display:inline-flex;padding:3px 7px;border-radius:999px;background:rgba(100,116,139,.1);color:var(--ar-muted);font-size:.7rem;font-weight:900}
+  .ar-source--system{background:rgba(14,116,144,.1);color:#0e7490}
   .ar-empty{padding:34px 18px;text-align:center;color:var(--ar-muted);font-weight:800}.ar-empty i{display:block;margin-bottom:8px;font-size:2rem;color:var(--ar-gold)}
   .ar-pagination{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;border-top:1px solid var(--ar-line);font-size:.8rem;font-weight:850}
 
   html[data-theme="dark"] .archive-page{--ar-line:#30483a;--ar-card:#14251b}
-  html[data-theme="dark"] .ar-alert--warn{color:#e9d092}html[data-theme="dark"] .ar-alert--danger{color:#f4aaaa}html[data-theme="dark"] .ar-alert--success{color:#8be0ac}
+  html[data-theme="dark"] .ar-alert--warn{color:#e9d092}html[data-theme="dark"] .ar-alert--danger{color:#f4aaaa}html[data-theme="dark"] .ar-alert--success{color:#8be0ac}html[data-theme="dark"] .ar-alert--info{color:#9bd8e8}
   @media(max-width:980px){.ar-filter{grid-template-columns:repeat(2,1fr)}.ar-filter .ar-actions{grid-column:1/-1}.ar-grid{grid-template-columns:1fr}}
   @media(max-width:720px){.ar-hero,.ar-upsell{grid-template-columns:1fr;flex-direction:column;align-items:flex-start}.ar-status{width:100%}.ar-kpis,.ar-versions{grid-template-columns:1fr 1fr}.ar-storage-breakdown{grid-template-columns:1fr 1fr}}
   @media(max-width:520px){.archive-page{padding:10px 8px 70px}.ar-hero{padding:21px 17px}.ar-filter,.ar-kpis,.ar-versions{grid-template-columns:1fr}.ar-filter .ar-actions{grid-column:auto}.ar-actions .ar-btn{width:100%}}
@@ -97,7 +111,7 @@
     <div>
       <span class="ar-kicker"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> ذاكرة المدرسة الموثقة</span>
       <h1 class="ar-title">أرشيف السنوات</h1>
-      <p class="ar-subtitle">احفظ نسخة ZIP ثابتة تضم PDF لكل تقرير وملف إنجاز وطلب وتعميم وإشعار، مع المرفقات الأصلية وفهرس Excel وبصمة SHA-256 وسجل تنزيل.</p>
+      <p class="ar-subtitle">احفظ نسخة ZIP ثابتة تضم PDF لكل تقرير وملف إنجاز وطلب وتعميم وإشعار، مع المرفقات الأصلية وفهرس Excel لهيكل المدرسة وبصمة SHA-256 وسجل تنزيل.</p>
     </div>
     <div class="ar-status">
       {% if archive_enabled %}
@@ -115,6 +129,14 @@
       {% endif %}
     </div>
   </header>
+
+  <div class="ar-alert ar-alert--info">
+    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+    <div>
+      <strong>نطاق الأرشيف واضح ومحدد.</strong><br>
+      يحفظ مستندات المدرسة وسجلاتها التشغيلية وفريق المدرسة والأقسام في الفهرس. لا يُعد نسخة احتياطية لبيانات الدخول أو إعدادات الحساب أو الفوترة.
+    </div>
+  </div>
 
   {% if can_manage_archive and not archive_enabled %}
     {% if pending_archive_payment %}
@@ -195,8 +217,9 @@
           </select>
         </div>
         <div class="ar-field">
-          <label for="archiveSearch">اسم التقرير أو المعلم أو الجوال</label>
-          <input id="archiveSearch" type="search" name="q" value="{{ search }}" placeholder="ابحث داخل السنة">
+          <label for="archiveSearch">بحث في جميع سجلات المدرسة</label>
+          <input id="archiveSearch" type="search" name="q" value="{{ search }}" placeholder="تقرير، معلم، جوال، طلب، تعميم أو إشعار">
+          <small class="ar-meta">اسم التقرير أو المعلم أو الجوال، أو نص الطلب والتعميم والإشعار.</small>
         </div>
         {% if school_wide %}
           <div class="ar-field">
@@ -228,14 +251,31 @@
         {% if school_wide %}
           <div class="ar-kpi"><span>التذاكر حتى الآن</span><strong>{{ administrative_stats.tickets }}</strong></div>
           <div class="ar-kpi"><span>التعاميم حتى الآن</span><strong>{{ administrative_stats.circulars }}</strong></div>
-          <div class="ar-kpi"><span>الإشعارات حتى الآن</span><strong>{{ administrative_stats.notifications }}</strong></div>
+          <div class="ar-kpi">
+            <span>إشعارات المدرسة حتى الآن</span>
+            <strong>{{ administrative_stats.notifications }}</strong>
+            <small>{{ administrative_stats.user_notifications }} من مستخدمين · {{ administrative_stats.system_notifications }} آلي</small>
+          </div>
         {% endif %}
       </div>
 
       {% if school_wide %}
+        <div class="ar-readiness" aria-label="جاهزية النسخة الحالية">
+          <div>
+            <strong><i class="fa-solid fa-list-check" aria-hidden="true"></i> محتوى النسخة قبل الحفظ</strong>
+            <span>
+              {{ snapshot_report_stats.total }} تقرير ·
+              {{ snapshot_achievement_stats.total }} ملف إنجاز ·
+              {{ administrative_stats.tickets }} طلب ·
+              {{ administrative_stats.circulars }} تعميم ·
+              {{ administrative_stats.notifications }} إشعار
+            </span>
+          </div>
+          <div class="ar-readiness-count"><b>{{ snapshot_total_records }}</b><small>سجل إجمالي</small></div>
+        </div>
         <div class="ar-alert ar-alert--success">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-          <div><strong>ماذا تحفظ نسخة السنة؟</strong><br>التقارير وملفات الإنجاز تُرشّح بحسب السنة المختارة. أما التذاكر والتعاميم والإشعارات فلا تحمل سنة دراسية في النظام؛ لذلك تحفظ النسخة جميع سجلاتها وحالاتها ومرفقاتها كما هي لحظة الإنشاء.</div>
+          <div><strong>ماذا تحفظ نسخة السنة؟</strong><br>التقارير وملفات الإنجاز تُرشّح بحسب السنة المختارة. أما التذاكر والتعاميم والإشعارات فلا تحمل سنة دراسية في النظام؛ لذلك تحفظ النسخة جميع سجلاتها وحالاتها ومرفقاتها كما هي لحظة الإنشاء، بما في ذلك حالات القراءة والتوقيع. الإشعارات الآلية موضحة باسم «النظام» داخل الفهرس.</div>
         </div>
       {% endif %}
 
@@ -248,13 +288,13 @@
             {% if can_create_archive %}
               <div class="ar-snapshot-action">
                 <h3>حفظ إصدار جديد من الحالة الحالية</h3>
-                <p>سيُنشأ ZIP مستقل يحتوي PDF لكل سجل، والمرفقات والصور الأصلية، وفهرس Excel وبصمات التحقق. لا تُستبدل النسخ السابقة، وتُحتسب النسخة الجديدة من مساحة التخزين.</p>
+                <p>سيُنشأ ZIP مستقل يحتوي PDF لكل سجل، والمرفقات والصور الأصلية، وفهرس Excel تفصيليًا يشمل فريق المدرسة والأقسام، وبصمات التحقق. لا تُستبدل النسخ السابقة، وتُحتسب النسخة الجديدة من مساحة التخزين.</p>
                 <form method="post" action="{% url 'reports:school_archive_create' %}" class="archive-create-form">
                   {% csrf_token %}
                   <input type="hidden" name="year" value="{{ selected_year }}">
                   <div class="ar-actions">
-                    <button class="ar-btn ar-btn--gold archive-create-button" type="submit" {% if not report_stats.total and not achievement_stats.total and not administrative_stats.tickets and not administrative_stats.circulars and not administrative_stats.notifications %}disabled{% endif %}>
-                      <i class="fa-solid fa-camera" aria-hidden="true"></i> إنشاء نسخة ثابتة الآن
+                    <button class="ar-btn ar-btn--gold archive-create-button" type="submit" {% if not snapshot_total_records %}disabled title="لا توجد سجلات قابلة للأرشفة"{% endif %}>
+                      <i class="fa-solid fa-camera" aria-hidden="true"></i> إنشاء نسخة ثابتة الآن ({{ snapshot_total_records }} سجل)
                     </button>
                   </div>
                 </form>
@@ -277,6 +317,12 @@
                       {% if version.failed_pdf_count %}<span>{{ version.failed_pdf_count }} PDF متعذر</span>{% endif %}
                     </div>
                     <div class="ar-hash" title="بصمة SHA-256">{{ version.archive_sha256 }}</div>
+                    {% if version.notes %}
+                      <details class="ar-completion">
+                        <summary>عرض تقرير اكتمال هذه النسخة</summary>
+                        <pre>{{ version.notes }}</pre>
+                      </details>
+                    {% endif %}
                     <div class="ar-actions">
                       <a class="ar-btn ar-btn--primary" href="{% url 'reports:school_archive_download' version.pk %}"><i class="fa-solid fa-download" aria-hidden="true"></i> تنزيل هذه النسخة</a>
                     </div>
@@ -334,8 +380,89 @@
           </div>
         </div>
       </section>
+
+      {% if school_wide %}
+        <section class="ar-section" aria-labelledby="administrativeContentTitle">
+          <header class="ar-section-head">
+            <div>
+              <h2 id="administrativeContentTitle"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> السجلات المدرسية حتى لحظة إنشاء النسخة</h2>
+              <p>معاينة تفصيلية للطلبات والتعاميم والإشعارات التي ستدخل الحزمة، وتشمل إشعارات النظام الآلية.</p>
+            </div>
+            {% if search %}<span class="ar-source">{{ administrative_matches.total }} نتيجة إدارية مطابقة</span>{% endif %}
+          </header>
+          <div class="ar-section-body">
+            <div class="ar-record-grid">
+              <section class="ar-record-section" aria-labelledby="archiveTicketsTitle">
+                <div class="ar-record-title"><h3 id="archiveTicketsTitle">الطلبات والتذاكر</h3><span>{{ administrative_stats.tickets }} سجل</span></div>
+                <div class="ar-table-wrap">
+                  <table class="ar-table">
+                    <thead><tr><th>الطلب</th><th>المرسل والقسم</th><th>الحالة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+                    <tbody>
+                      {% for ticket in tickets %}
+                        <tr>
+                          <td><div class="ar-name">{{ ticket.title|default:"طلب بدون عنوان" }}</div><div class="ar-meta">{{ ticket.body|default:"لا توجد تفاصيل"|truncatechars:90 }}</div></td>
+                          <td><div>{{ ticket.creator.name|default:"—" }}</div><div class="ar-meta">{{ ticket.department.name|default:"بدون قسم" }}</div></td>
+                          <td>{{ ticket.get_status_display }}</td>
+                          <td>{{ ticket.created_at|date:"Y-m-d H:i" }}</td>
+                          <td><a class="ar-btn" href="{% url 'reports:ticket_detail' ticket.pk %}">فتح السجل</a></td>
+                        </tr>
+                      {% empty %}<tr><td colspan="5"><div class="ar-empty">لا توجد طلبات أو تذاكر مطابقة.</div></td></tr>{% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% if tickets.paginator.num_pages > 1 %}<nav class="ar-pagination">{% if tickets.has_previous %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&tickets_page={{ tickets.previous_page_number }}">السابق</a>{% endif %}<span>{{ tickets.number }} / {{ tickets.paginator.num_pages }}</span>{% if tickets.has_next %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&tickets_page={{ tickets.next_page_number }}">التالي</a>{% endif %}</nav>{% endif %}
+              </section>
+
+              <section class="ar-record-section" aria-labelledby="archiveCircularsTitle">
+                <div class="ar-record-title"><h3 id="archiveCircularsTitle">التعاميم</h3><span>{{ administrative_stats.circulars }} سجل</span></div>
+                <div class="ar-table-wrap">
+                  <table class="ar-table">
+                    <thead><tr><th>التعميم</th><th>المرسل</th><th>المستلمون</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+                    <tbody>
+                      {% for circular in circulars %}
+                        <tr>
+                          <td><div class="ar-name">{{ circular.title|default:"تعميم بدون عنوان" }}</div><div class="ar-meta">{{ circular.message|truncatechars:90 }}</div></td>
+                          <td>{{ circular.created_by.name|default:"النظام" }}</td>
+                          <td>{{ circular.recipients.count }}</td>
+                          <td>{{ circular.created_at|date:"Y-m-d H:i" }}</td>
+                          <td><a class="ar-btn" href="{% url 'reports:notification_detail' circular.pk %}">فتح السجل</a></td>
+                        </tr>
+                      {% empty %}<tr><td colspan="5"><div class="ar-empty">لا توجد تعاميم مطابقة.</div></td></tr>{% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% if circulars.paginator.num_pages > 1 %}<nav class="ar-pagination">{% if circulars.has_previous %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&circulars_page={{ circulars.previous_page_number }}">السابق</a>{% endif %}<span>{{ circulars.number }} / {{ circulars.paginator.num_pages }}</span>{% if circulars.has_next %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&circulars_page={{ circulars.next_page_number }}">التالي</a>{% endif %}</nav>{% endif %}
+              </section>
+
+              <section class="ar-record-section" aria-labelledby="archiveNotificationsTitle">
+                <div class="ar-record-title">
+                  <h3 id="archiveNotificationsTitle">إشعارات المدرسة</h3>
+                  <span>{{ administrative_stats.notifications }} سجل · {{ administrative_stats.system_notifications }} آلي</span>
+                </div>
+                <div class="ar-table-wrap">
+                  <table class="ar-table">
+                    <thead><tr><th>الإشعار</th><th>المصدر</th><th>المستلمون</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+                    <tbody>
+                      {% for notification in archive_notifications %}
+                        <tr>
+                          <td><div class="ar-name">{{ notification.title|default:"إشعار بدون عنوان" }}</div><div class="ar-meta">{{ notification.message|truncatechars:90 }}</div></td>
+                          <td>{% if notification.created_by_id %}<span class="ar-source">{{ notification.created_by.name }}</span>{% else %}<span class="ar-source ar-source--system">النظام — آلي</span>{% endif %}</td>
+                          <td>{{ notification.recipients.count }}</td>
+                          <td>{{ notification.created_at|date:"Y-m-d H:i" }}</td>
+                          <td><a class="ar-btn" href="{% url 'reports:notification_detail' notification.pk %}">فتح السجل</a></td>
+                        </tr>
+                      {% empty %}<tr><td colspan="5"><div class="ar-empty">لا توجد إشعارات مطابقة.</div></td></tr>{% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% if archive_notifications.paginator.num_pages > 1 %}<nav class="ar-pagination">{% if archive_notifications.has_previous %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&notifications_page={{ archive_notifications.previous_page_number }}">السابق</a>{% endif %}<span>{{ archive_notifications.number }} / {{ archive_notifications.paginator.num_pages }}</span>{% if archive_notifications.has_next %}<a class="ar-btn" href="?year={{ selected_year|urlencode }}&q={{ search|urlencode }}&teacher={{ teacher_filter|urlencode }}&category={{ category_filter|urlencode }}&notifications_page={{ archive_notifications.next_page_number }}">التالي</a>{% endif %}</nav>{% endif %}
+              </section>
+            </div>
+          </div>
+        </section>
+      {% endif %}
     {% else %}
-      <div class="ar-empty"><i class="fa-solid fa-box-open" aria-hidden="true"></i>لا توجد تقارير أو ملفات إنجاز مصنفة بسنة حتى الآن.</div>
+      <div class="ar-empty"><i class="fa-solid fa-box-open" aria-hidden="true"></i>لا توجد سجلات قابلة للأرشفة أو سنة دراسية محددة حتى الآن.</div>
     {% endif %}
   {% elif not can_manage_archive %}
     <div class="ar-alert ar-alert--warn"><i class="fa-solid fa-lock" aria-hidden="true"></i><div>ميزة الأرشفة غير مفعلة لهذه المدرسة.</div></div>

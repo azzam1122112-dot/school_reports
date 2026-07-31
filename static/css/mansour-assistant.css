@@ -1,0 +1,366 @@
+.mansour-launcher {
+  position: fixed;
+  z-index: 96;
+  left: 24px;
+  bottom: 24px;
+  min-height: 62px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 9px;
+  border: 1px solid rgba(255, 255, 255, .45);
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, #087443, #005c30);
+  box-shadow: 0 16px 40px rgba(0, 69, 38, .28);
+  cursor: pointer;
+  font: 800 .92rem/1.3 "Cairo", sans-serif;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.mansour-launcher:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 19px 46px rgba(0, 69, 38, .34);
+}
+
+.mansour-launcher:focus-visible,
+.mansour-panel button:focus-visible,
+.mansour-panel textarea:focus-visible,
+.mansour-quick-action:focus-visible,
+.mansour-role-option:focus-visible {
+  outline: 3px solid rgba(197, 163, 101, .45);
+  outline-offset: 2px;
+}
+
+.mansour-launcher-avatar,
+.mansour-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .82);
+  background: linear-gradient(145deg, #fff8e8, #d8bd82);
+  box-shadow:
+    0 4px 12px rgba(0, 36, 20, .2),
+    inset 0 0 0 1px rgba(7, 63, 40, .1);
+}
+
+.mansour-launcher-avatar img,
+.mansour-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.mansour-launcher-avatar {
+  width: 46px;
+  height: 46px;
+}
+
+.mansour-panel[hidden] { display: none; }
+
+.mansour-panel {
+  position: fixed;
+  z-index: 120;
+  left: 24px;
+  bottom: 92px;
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(650px, calc(100dvh - 126px));
+  display: grid;
+  grid-template-rows: auto auto minmax(150px, 1fr) auto;
+  overflow: hidden;
+  direction: rtl;
+  border: 1px solid rgba(3, 77, 44, .15);
+  border-radius: 22px;
+  color: #17251f;
+  background: #fff;
+  box-shadow: 0 26px 74px rgba(2, 45, 26, .25);
+  font-family: "Cairo", sans-serif;
+}
+
+.mansour-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 15px 16px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(197, 163, 101, .24), transparent 32%),
+    linear-gradient(135deg, #073f2a, #075d38);
+}
+
+.mansour-avatar {
+  width: 49px;
+  height: 49px;
+}
+
+.mansour-identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.mansour-identity strong,
+.mansour-identity small { display: block; }
+.mansour-identity strong { font-size: .98rem; }
+.mansour-identity small { margin-top: 2px; color: rgba(255, 255, 255, .78); font-size: .73rem; }
+
+.mansour-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #72df9e;
+  box-shadow: 0 0 0 3px rgba(114, 223, 158, .14);
+}
+
+.mansour-close {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255, 255, 255, .12);
+  cursor: pointer;
+}
+
+.mansour-audience {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid #e2ebe6;
+  background: #fff;
+}
+
+.mansour-audience > p:first-child {
+  margin: 0 0 9px;
+  color: #43554c;
+  font-size: .72rem;
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.mansour-role-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.mansour-role-option {
+  min-width: 0;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  place-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border: 1px solid #d8e5de;
+  border-radius: 12px;
+  color: #345046;
+  background: #f9fbfa;
+  cursor: pointer;
+  font: 800 .68rem/1.35 "Cairo", sans-serif;
+  transition: border-color .16s ease, background-color .16s ease, color .16s ease, transform .16s ease;
+}
+
+.mansour-role-option i {
+  color: #7a9186;
+  font-size: .9rem;
+}
+
+.mansour-role-option:hover {
+  transform: translateY(-1px);
+  border-color: #9bc4ac;
+  background: #f3f9f5;
+}
+
+.mansour-role-option.is-selected,
+.mansour-role-option[aria-pressed="true"] {
+  border-color: #087443;
+  color: #075d38;
+  background: #eaf7ef;
+  box-shadow: inset 0 0 0 1px rgba(8, 116, 67, .08);
+}
+
+.mansour-role-option.is-selected i,
+.mansour-role-option[aria-pressed="true"] i {
+  color: #087443;
+}
+
+.mansour-role-option:disabled {
+  opacity: .62;
+  cursor: wait;
+}
+
+.mansour-audience-status {
+  margin: 7px 1px 0;
+  color: #7b8982;
+  font-size: .64rem;
+  font-weight: 750;
+}
+
+.mansour-audience-status.is-selected {
+  color: #087443;
+}
+
+.mansour-conversation {
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #f7faf8;
+}
+
+.mansour-message {
+  width: fit-content;
+  max-width: 88%;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 15px 15px 4px 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: .84rem;
+  line-height: 1.75;
+}
+
+.mansour-message.assistant {
+  margin-left: auto;
+  border: 1px solid #e0e9e4;
+  border-radius: 15px 15px 15px 4px;
+  background: #fff;
+}
+
+.mansour-message.user {
+  margin-right: auto;
+  color: #fff;
+  background: #087443;
+}
+
+.mansour-message.pending { color: #5d6b64; }
+
+.mansour-message.role-confirmation {
+  border-color: #cfe5d8;
+  color: #075d38;
+  background: #f0f9f4;
+}
+
+.mansour-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 90%;
+  margin: -3px 0 13px auto;
+}
+
+.mansour-sources a {
+  padding: 5px 9px;
+  border: 1px solid #dce8e1;
+  border-radius: 999px;
+  color: #075d38;
+  background: #fff;
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.mansour-quick-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mansour-quick-actions::-webkit-scrollbar { display: none; }
+
+.mansour-quick-action {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid #cfe2d7;
+  border-radius: 999px;
+  color: #075d38;
+  background: #fff;
+  cursor: pointer;
+  font: 700 .72rem/1.4 "Cairo", sans-serif;
+}
+
+.mansour-form {
+  padding: 12px;
+  border-top: 1px solid #e6ece8;
+  background: #fff;
+}
+
+.mansour-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.mansour-form textarea {
+  min-height: 45px;
+  max-height: 110px;
+  flex: 1;
+  resize: none;
+  padding: 10px 12px;
+  border: 1px solid #cfdbd4;
+  border-radius: 13px;
+  color: #17251f;
+  background: #fff;
+  font: 500 .82rem/1.55 "Cairo", sans-serif;
+}
+
+.mansour-form textarea:disabled {
+  color: #839188;
+  background: #f4f7f5;
+  cursor: not-allowed;
+}
+
+.mansour-send {
+  width: 45px;
+  height: 45px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 13px;
+  color: #fff;
+  background: #087443;
+  cursor: pointer;
+}
+
+.mansour-send:disabled { opacity: .55; cursor: wait; }
+
+.mansour-disclaimer {
+  margin: 7px 2px 0;
+  color: #718079;
+  font-size: .65rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .mansour-launcher {
+    left: 12px;
+    bottom: 82px;
+    min-width: 54px;
+    min-height: 54px;
+    padding: 7px;
+  }
+
+  .mansour-launcher-label { display: none; }
+
+  .mansour-panel {
+    left: 10px;
+    bottom: 78px;
+    width: calc(100vw - 20px);
+    max-height: min(650px, calc(100dvh - 92px));
+    border-radius: 19px;
+  }
+
+  .mansour-role-option {
+    min-height: 46px;
+    padding-inline: 6px;
+    font-size: .64rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mansour-launcher { transition: none; }
+}

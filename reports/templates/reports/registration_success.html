@@ -9,6 +9,7 @@
   <meta name="referrer" content="no-referrer">
   <title>تم تجهيز مدرستك | منصة توثيق</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
+  {% include "reports/partials/pwa_install_head.html" %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -442,5 +443,6 @@
       });
     }());
   </script>
+  {% include "reports/partials/pwa_install.html" %}
 </body>
 </html>

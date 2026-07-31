@@ -154,12 +154,98 @@ def school_storage_breakdown(school: School | None) -> dict:
 def school_administrative_archive_stats(school: School | None) -> dict:
     """School-wide records included as-of snapshot time (they have no academic-year field)."""
     if school is None:
-        return {"tickets": 0, "circulars": 0, "notifications": 0}
+        return {
+            "tickets": 0,
+            "circulars": 0,
+            "notifications": 0,
+            "system_notifications": 0,
+            "user_notifications": 0,
+            "total": 0,
+        }
     notifications = Notification.objects.filter(school=school)
-    return {
+    values = {
         "tickets": Ticket.objects.filter(school=school).count(),
         "circulars": notifications.filter(requires_signature=True).count(),
         "notifications": notifications.filter(requires_signature=False).count(),
+        "system_notifications": notifications.filter(
+            requires_signature=False,
+            created_by__isnull=True,
+        ).count(),
+        "user_notifications": notifications.filter(
+            requires_signature=False,
+            created_by__isnull=False,
+        ).count(),
+    }
+    values["total"] = values["tickets"] + values["circulars"] + values["notifications"]
+    return values
+
+
+def school_administrative_archive_payload(
+    school: School | None,
+    *,
+    search: str = "",
+) -> dict:
+    """Detailed school-wide administrative records shown before snapshot creation.
+
+    Administrative records currently have no academic-year field, so the same
+    as-of list is included in every school-wide yearly snapshot.
+    """
+    if school is None:
+        return {
+            "tickets_qs": Ticket.objects.none(),
+            "circulars_qs": Notification.objects.none(),
+            "notifications_qs": Notification.objects.none(),
+            "matches": {"tickets": 0, "circulars": 0, "notifications": 0, "total": 0},
+        }
+
+    tickets_qs = (
+        Ticket.objects.filter(school=school)
+        .select_related("creator", "assignee", "department")
+        .prefetch_related("recipients")
+        .order_by("-created_at", "-id")
+    )
+    notification_base = (
+        Notification.objects.filter(school=school)
+        .select_related("created_by")
+        .prefetch_related("recipients__teacher")
+        .order_by("-created_at", "-id")
+    )
+    circulars_qs = notification_base.filter(requires_signature=True)
+    notifications_qs = notification_base.filter(requires_signature=False)
+
+    search = (search or "").strip()
+    if search:
+        tickets_qs = tickets_qs.filter(
+            Q(title__icontains=search)
+            | Q(body__icontains=search)
+            | Q(creator__name__icontains=search)
+            | Q(creator__phone__icontains=search)
+            | Q(assignee__name__icontains=search)
+            | Q(department__name__icontains=search)
+            | Q(recipients__name__icontains=search)
+        ).distinct()
+        notification_filter = (
+            Q(title__icontains=search)
+            | Q(message__icontains=search)
+            | Q(created_by__name__icontains=search)
+            | Q(created_by__phone__icontains=search)
+            | Q(recipients__teacher__name__icontains=search)
+            | Q(recipients__teacher__phone__icontains=search)
+        )
+        circulars_qs = circulars_qs.filter(notification_filter).distinct()
+        notifications_qs = notifications_qs.filter(notification_filter).distinct()
+
+    matches = {
+        "tickets": tickets_qs.count(),
+        "circulars": circulars_qs.count(),
+        "notifications": notifications_qs.count(),
+    }
+    matches["total"] = matches["tickets"] + matches["circulars"] + matches["notifications"]
+    return {
+        "tickets_qs": tickets_qs,
+        "circulars_qs": circulars_qs,
+        "notifications_qs": notifications_qs,
+        "matches": matches,
     }
 
 

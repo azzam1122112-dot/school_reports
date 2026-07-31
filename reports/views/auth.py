@@ -8,9 +8,13 @@ from typing import Any
 
 import cbor2
 from django.conf import settings
+from django.contrib.auth import views as auth_views
 from django.db import IntegrityError
 from django.db.models import Q
+from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
 
 from ._helpers import *
 from ._helpers import (
@@ -34,6 +38,7 @@ from ..middleware import (
     is_force_password_change_required,
 )
 from ..models import WebAuthnCredential
+from ..forms import AccountPasswordResetForm, AccountSetPasswordForm
 from core import opmetrics
 
 
@@ -47,7 +52,7 @@ PASSKEY_ENROLL_PROMPT_SESSION_KEY = "passkey_enroll_prompt"
 
 def _force_password_change_notice() -> str:
     return (
-        "لحماية حسابك وبيانات المدرسة، يلزم تغيير كلمة المرور الحالية الآن "
+        "لحماية حسابك وبيانات المدرسة، أضف بريدك الإلكتروني وغيّر كلمة المرور الحالية الآن "
         "لأنها ما زالت مطابقة لرقم الجوال."
     )
 
@@ -55,6 +60,32 @@ def _force_password_change_notice() -> str:
 def _passkey_response(ok: bool, *, status: int = 200, **payload: Any) -> JsonResponse:
     payload["ok"] = ok
     return JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
+
+
+@method_decorator(
+    ratelimit(key="ip", rate="5/10m", method="POST", block=True),
+    name="dispatch",
+)
+class AccountPasswordResetView(auth_views.PasswordResetView):
+    template_name = "reports/password_reset_form.html"
+    email_template_name = "reports/emails/password_reset_email.txt"
+    subject_template_name = "reports/emails/password_reset_subject.txt"
+    form_class = AccountPasswordResetForm
+    success_url = reverse_lazy("reports:password_reset_done")
+
+
+class AccountPasswordResetDoneView(auth_views.PasswordResetDoneView):
+    template_name = "reports/password_reset_done.html"
+
+
+class AccountPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    template_name = "reports/password_reset_confirm.html"
+    form_class = AccountSetPasswordForm
+    success_url = reverse_lazy("reports:password_reset_complete")
+
+
+class AccountPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
+    template_name = "reports/password_reset_complete.html"
 
 
 def _offer_passkey_enrollment(request: HttpRequest, user: Teacher) -> None:
@@ -830,7 +861,7 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     - متاح لكل المستخدمين.
     - حساب (مشرف تقارير - عرض فقط) لا يدخلها عادةً، ويُسمح له بها فقط عند إجباره على تغيير كلمة المرور.
     - يعرض الاسم + المدارس المسندة.
-    - يسمح بتغيير رقم الجوال + تغيير كلمة المرور.
+    - يسمح بتغيير رقم الجوال + تغيير كلمة المرور، ويطلب البريد الإلكتروني عند الدخول الأول.
     """
 
     active_school = _get_active_school(request)
@@ -846,7 +877,11 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     )
 
     phone_form = MyProfilePhoneForm(instance=request.user, prefix="phone")
-    pwd_form = MyPasswordChangeForm(request.user, prefix="pwd")
+    pwd_form = MyPasswordChangeForm(
+        request.user,
+        prefix="pwd",
+        require_email=force_password_change,
+    )
 
     if request.method == "POST":
         if "update_phone" in request.POST:
@@ -862,7 +897,12 @@ def my_profile(request: HttpRequest) -> HttpResponse:
                 except IntegrityError:
                     messages.error(request, "تعذر تحديث رقم الجوال (قد يكون مستخدمًا بالفعل).")
         elif "update_password" in request.POST:
-            pwd_form = MyPasswordChangeForm(request.user, request.POST, prefix="pwd")
+            pwd_form = MyPasswordChangeForm(
+                request.user,
+                request.POST,
+                prefix="pwd",
+                require_email=force_password_change,
+            )
             if pwd_form.is_valid():
                 user = pwd_form.save()
                 update_session_auth_hash(request, user)
@@ -883,7 +923,10 @@ def my_profile(request: HttpRequest) -> HttpResponse:
                 except Exception:
                     pass
 
-                messages.success(request, "تم تحديث كلمة المرور بنجاح.")
+                if force_password_change:
+                    messages.success(request, "تم حفظ البريد الإلكتروني وتحديث كلمة المرور بنجاح.")
+                else:
+                    messages.success(request, "تم تحديث كلمة المرور بنجاح.")
                 return redirect("reports:my_profile")
 
     ctx = {

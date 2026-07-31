@@ -912,7 +912,7 @@
           <i class="fa-solid fa-user" aria-hidden="true"></i>
           <span>حسابي</span>
         </h1>
-        <p class="profile-subtitle">تحديث رقم الجوال وكلمة المرور، وعرض المدارس المسندة لك.</p>
+        <p class="profile-subtitle">إدارة بيانات التواصل وكلمة المرور، وعرض المدارس المسندة لك.</p>
       </div>
     </header>
 
@@ -926,9 +926,10 @@
           <h2 class="profile-security-title">خطوة سريعة لحماية حسابك</h2>
           <p class="profile-security-text">
             كلمة المرور الحالية ما زالت مطابقة لرقم الجوال، وهذا يجعل الوصول إلى الحساب أسهل من اللازم.
-            غيّرها الآن إلى كلمة خاصة بك حتى تبقى بياناتك وبيانات المدرسة أكثر أمانًا.
+            أضف بريدك الإلكتروني وغيّر كلمة المرور الآن حتى يبقى حسابك أكثر أمانًا وتتمكن من استعادته لاحقًا.
           </p>
           <ul class="profile-security-points">
+            <li>أدخل بريدًا إلكترونيًا يمكنك الوصول إليه لاستعادة كلمة المرور لاحقًا.</li>
             <li>اكتب رقم الجوال الحالي في خانة كلمة المرور القديمة.</li>
             <li>اختر كلمة مرور جديدة لا يعرفها غيرك.</li>
             <li>بعد الحفظ سيعود الحساب للعمل بشكل طبيعي.</li>
@@ -959,6 +960,12 @@
             <span class="profile-info-label">رقم الجوال</span>
             <span class="profile-info-value">{{ request.user.phone|default:"-" }}</span>
           </div>
+          {% if request.user.email %}
+            <div class="profile-info-row">
+              <span class="profile-info-label">البريد الإلكتروني</span>
+              <span class="profile-info-value" dir="ltr">{{ request.user.email }}</span>
+            </div>
+          {% endif %}
         </div>
 
         <div class="profile-divider"></div>
@@ -1048,6 +1055,32 @@
             </div>
           {% endif %}
 
+          {% if force_password_change %}
+            <div class="profile-form-group">
+              <label class="profile-form-label" for="{{ pwd_form.email.id_for_label }}">
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                <span>{{ pwd_form.email.label }}</span>
+              </label>
+              <input
+                type="email"
+                name="{{ pwd_form.email.html_name }}"
+                id="{{ pwd_form.email.id_for_label }}"
+                value="{{ pwd_form.email.value|default:'' }}"
+                class="profile-form-input"
+                autocomplete="email"
+                inputmode="email"
+                dir="ltr"
+                placeholder="name@example.com"
+                autofocus
+                required
+              >
+              <div class="profile-form-hint">سنستخدمه لاحقًا لمساعدتك في استعادة كلمة المرور وتأمين الحساب.</div>
+              {% if pwd_form.email.errors %}
+                <div class="profile-form-error">{{ pwd_form.email.errors|striptags }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+
           <div class="profile-form-group">
             <label class="profile-form-label" for="{{ pwd_form.old_password.id_for_label }}">
               <i class="fa-solid fa-lock" aria-hidden="true"></i>
@@ -1061,7 +1094,6 @@
                 class="profile-form-input"
                 autocomplete="current-password"
                 placeholder="أدخل كلمة المرور الحالية"
-                {% if force_password_change %}autofocus{% endif %}
                 {% if pwd_form.old_password.field.required %}required{% endif %}
               >
               <button

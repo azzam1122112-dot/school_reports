@@ -8,6 +8,7 @@
   <!-- إعادة محاولة تلقائية: تعود المنصة للمستخدم فور انتهاء الصيانة دون أي إجراء منه -->
   <meta http-equiv="refresh" content="60">
   <title>الموقع تحت الصيانة والتطوير</title>
+  {% include "reports/partials/pwa_install_head.html" %}
   <style>
     :root {
       --brand: #006c35;
@@ -410,5 +411,6 @@
       <p class="auto-note">إذا انتهت الصيانة، سينقلك هذا الزر مباشرة إلى المنصة.</p>
     </aside>
   </main>
+  {% include "reports/partials/pwa_install.html" %}
 </body>
 </html>

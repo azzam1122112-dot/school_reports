@@ -1,0 +1,38 @@
+{% load static %}
+<section
+  class="pwa-install"
+  id="pwaInstallPrompt"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="pwaInstallTitle"
+  aria-describedby="pwaInstallDescription"
+  aria-hidden="true"
+  hidden
+>
+  <div class="pwa-install__card">
+    <button class="pwa-install__close" id="pwaInstallClose" type="button" aria-label="إغلاق رسالة التثبيت">
+      <span aria-hidden="true">×</span>
+    </button>
+
+    <div class="pwa-install__heading">
+      <img src="{% static 'img/logo1.png' %}" alt="" width="54" height="54">
+      <div>
+        <p class="pwa-install__eyebrow">وصول أسرع من جوالك</p>
+        <h2 id="pwaInstallTitle">ثبّت منصة توثيق</h2>
+      </div>
+    </div>
+
+    <p class="pwa-install__description" id="pwaInstallDescription">
+      أضف توثيق إلى الشاشة الرئيسية وافتحه مثل أي تطبيق.
+    </p>
+
+    <ol class="pwa-install__steps" id="pwaInstallSteps" hidden></ol>
+
+    <div class="pwa-install__actions">
+      <button class="pwa-install__primary" id="pwaInstallAction" type="button">
+        تثبيت على الجوال
+      </button>
+      <button class="pwa-install__later" id="pwaInstallLater" type="button">لاحقًا</button>
+    </div>
+  </div>
+</section>

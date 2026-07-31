@@ -7,12 +7,18 @@ from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.template.loader import render_to_string
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from openpyxl import load_workbook
 
 from maintenance.services import collect_reset_summary
 from reports.models import (
+    AchievementEvidenceReport,
+    AchievementSection,
+    Department,
+    DepartmentMembership,
     Payment,
     Notification,
     NotificationRecipient,
@@ -25,12 +31,17 @@ from reports.models import (
     SchoolYearArchiveDownload,
     SubscriptionPlan,
     Teacher,
+    TeacherAchievementFile,
     Ticket,
     TicketImage,
+    TicketNote,
 )
 from reports.pdf_report import build_report_print_context
 from reports.services_archive import archive_available_years
-from reports.services_export import build_school_export_zip_file
+from reports.services_export import (
+    build_school_export_zip_file,
+    build_year_archive_index_bytes,
+)
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
@@ -472,6 +483,289 @@ class SchoolArchiveManagerExperienceTests(TestCase):
         )
         self.assertContains(page, "التذاكر حتى الآن")
         self.assertContains(page, "جميع سجلاتها وحالاتها ومرفقاتها")
+
+    def test_manager_archive_previews_and_searches_all_administrative_records(self):
+        Ticket.objects.create(
+            school=self.school,
+            creator=self.teacher,
+            title="طلب صيانة جهاز العرض",
+            body="فحص الجهاز قبل بداية الحصة.",
+        )
+        Notification.objects.create(
+            school=self.school,
+            created_by=None,
+            title="تنبيه آلي للأرشيف",
+            message="تنبيه أنشأه النظام تلقائيًا.",
+        )
+        Notification.objects.create(
+            school=self.school,
+            created_by=self.manager,
+            title="إشعار جدول الاختبارات",
+            message="اعتماد الجدول النهائي.",
+        )
+        expected_notifications = Notification.objects.filter(
+            school=self.school,
+            requires_signature=False,
+        ).count()
+        expected_system_notifications = Notification.objects.filter(
+            school=self.school,
+            requires_signature=False,
+            created_by__isnull=True,
+        ).count()
+        expected_snapshot_total = (
+            Report.objects.filter(school=self.school, academic_year="1447-1448").count()
+            + Ticket.objects.filter(school=self.school).count()
+            + expected_notifications
+        )
+
+        response = self.client.get(
+            reverse("reports:school_archive"),
+            {"year": "1447-1448", "q": "آلي"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "بحث في جميع سجلات المدرسة")
+        self.assertContains(response, "السجلات المدرسية حتى لحظة إنشاء النسخة")
+        self.assertContains(response, "تنبيه آلي للأرشيف")
+        self.assertContains(response, "النظام — آلي")
+        self.assertContains(
+            response,
+            f"{expected_notifications} سجل · {expected_system_notifications} آلي",
+        )
+        self.assertContains(
+            response,
+            f"إنشاء نسخة ثابتة الآن ({expected_snapshot_total} سجل)",
+        )
+        self.assertEqual(
+            response.context["administrative_stats"]["notifications"],
+            expected_notifications,
+        )
+        self.assertEqual(
+            response.context["administrative_stats"]["system_notifications"],
+            expected_system_notifications,
+        )
+        self.assertEqual(response.context["administrative_matches"]["notifications"], 1)
+        self.assertEqual(response.context["snapshot_total_records"], expected_snapshot_total)
+
+    def test_year_index_contains_school_directory_and_complete_record_metadata(self):
+        department = Department.objects.create(
+            school=self.school,
+            name="قسم الجودة",
+            slug="quality",
+            role_label="مسؤول الجودة",
+        )
+        DepartmentMembership.objects.create(
+            department=department,
+            teacher=self.teacher,
+        )
+        achievement_file = TeacherAchievementFile.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            academic_year="1447-1448",
+        )
+        achievement_section = AchievementSection.objects.create(
+            file=achievement_file,
+            code=AchievementSection.Code.SECTION_1,
+        )
+        frozen_evidence = AchievementEvidenceReport.objects.create(
+            section=achievement_section,
+            report=self.report,
+            frozen_at=timezone.now(),
+            frozen_data={"title": "تقرير شاهد مجمد"},
+            archived_image1=SimpleUploadedFile(
+                "frozen-report.png",
+                bytes.fromhex(
+                    "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4"
+                    "890000000a49444154789c6360000002000154a24f6f0000000049454e44ae426082"
+                ),
+                content_type="image/png",
+            ),
+        )
+        ticket = Ticket.objects.create(
+            school=self.school,
+            creator=self.teacher,
+            assignee=self.manager,
+            department=department,
+            title="طلب توثيق زيارة",
+            body="توثيق كامل لزيارة فريق الجودة.",
+        )
+        TicketNote.objects.create(
+            ticket=ticket,
+            author=self.manager,
+            body="ملاحظة داخلية للتدقيق.",
+            is_public=False,
+        )
+        circular = Notification.objects.create(
+            school=self.school,
+            created_by=self.manager,
+            title="تعميم الجودة",
+            message="الالتزام بخطة الجودة.",
+            requires_signature=True,
+            is_important=True,
+            is_broadcast=True,
+            signature_deadline_at=timezone.now() + timedelta(days=3),
+        )
+        NotificationRecipient.objects.create(
+            notification=circular,
+            teacher=self.teacher,
+            is_read=True,
+            read_at=timezone.now(),
+            is_signed=True,
+            signed_at=timezone.now(),
+        )
+
+        index_bytes = build_year_archive_index_bytes(
+            self.school,
+            "1447-1448",
+            teacher=self.manager,
+            school_wide=True,
+        )
+        workbook = load_workbook(BytesIO(index_bytes), read_only=True, data_only=True)
+        self.addCleanup(workbook.close)
+
+        self.assertTrue(
+            {
+                "ملخص النسخة",
+                "التقارير",
+                "ملفات الإنجاز",
+                "شواهد الإنجاز",
+                "الطلبات والتذاكر",
+                "التعاميم والإشعارات",
+                "فريق المدرسة",
+                "الأقسام",
+            }.issubset(set(workbook.sheetnames))
+        )
+        team_rows = list(workbook["فريق المدرسة"].iter_rows(values_only=True))
+        self.assertTrue(any(row[0] == self.manager.name and row[1] == self.manager.phone for row in team_rows[1:]))
+        department_rows = list(workbook["الأقسام"].iter_rows(values_only=True))
+        self.assertTrue(any(row[0] == "قسم الجودة" and row[3] == 1 for row in department_rows[1:]))
+        evidence_rows = list(workbook["شواهد الإنجاز"].iter_rows(values_only=True))
+        self.assertTrue(
+            any(
+                row[3] == "تقرير شاهد مجمد"
+                and row[4] == frozen_evidence.report_id
+                and "تقرير شاهد مجمد" in (row[7] or "")
+                for row in evidence_rows[1:]
+            )
+        )
+
+        ticket_rows = list(workbook["الطلبات والتذاكر"].iter_rows(values_only=True))
+        ticket_headers = list(ticket_rows[0])
+        ticket_record = dict(zip(ticket_headers, next(row for row in ticket_rows[1:] if row[0] == ticket.id)))
+        self.assertEqual(ticket_record["التفاصيل"], ticket.body)
+        self.assertEqual(ticket_record["المسؤول الرئيسي"], self.manager.name)
+        self.assertEqual(ticket_record["عدد الملاحظات"], 1)
+
+        notification_rows = list(workbook["التعاميم والإشعارات"].iter_rows(values_only=True))
+        notification_headers = list(notification_rows[0])
+        notification_record = dict(
+            zip(
+                notification_headers,
+                next(row for row in notification_rows[1:] if row[0] == circular.id),
+            )
+        )
+        self.assertEqual(notification_record["النص"], circular.message)
+        self.assertEqual(notification_record["مهم"], "نعم")
+        self.assertEqual(notification_record["تمت القراءة"], 1)
+        self.assertEqual(notification_record["تم التوقيع"], 1)
+
+        with (
+            patch(
+                "reports.pdf_report.generate_report_pdf",
+                return_value=(b"%PDF-report", "report.pdf"),
+            ),
+            patch(
+                "reports.pdf_achievement.generate_achievement_pdf",
+                return_value=(b"%PDF-achievement", "achievement.pdf"),
+            ),
+            patch(
+                "reports.pdf_archive_records.generate_ticket_archive_pdf",
+                return_value=b"%PDF-ticket",
+            ),
+            patch(
+                "reports.pdf_archive_records.generate_notification_archive_pdf",
+                return_value=b"%PDF-notification",
+            ),
+        ):
+            package, _metadata = build_school_export_zip_file(
+                self.school,
+                academic_year="1447-1448",
+                teacher=self.manager,
+                school_wide=True,
+                return_metadata=True,
+            )
+        try:
+            with zipfile.ZipFile(package) as zipped:
+                self.assertTrue(
+                    any(
+                        name.endswith("/صورة-مؤرشفة-1.png")
+                        for name in zipped.namelist()
+                    )
+                )
+        finally:
+            package.close()
+
+    def test_archive_record_pdf_template_shows_audit_metadata(self):
+        ticket = Ticket.objects.create(
+            school=self.school,
+            creator=self.teacher,
+            title="طلب تدقيق",
+            body="تفاصيل طلب التدقيق.",
+        )
+        note = TicketNote.objects.create(
+            ticket=ticket,
+            author=self.manager,
+            body="ملاحظة داخلية.",
+            is_public=False,
+        )
+        ticket_html = render_to_string(
+            "reports/archive_record_pdf.html",
+            {
+                "record_kind": "ticket",
+                "record": ticket,
+                "school": self.school,
+                "recipients": [],
+                "notes": [note],
+                "generated_at": timezone.now(),
+            },
+        )
+        self.assertIn("آخر تحديث", ticket_html)
+        self.assertIn("داخلية", ticket_html)
+        self.assertIn("عدد الصور", ticket_html)
+
+        circular = Notification.objects.create(
+            school=self.school,
+            created_by=None,
+            title="تعميم آلي",
+            message="نص التعميم الآلي.",
+            requires_signature=True,
+            is_important=True,
+            signature_deadline_at=timezone.now() + timedelta(days=2),
+        )
+        recipient = NotificationRecipient.objects.create(
+            notification=circular,
+            teacher=self.teacher,
+            is_read=True,
+            read_at=timezone.now(),
+            signature_attempt_count=2,
+            signature_last_attempt_at=timezone.now(),
+        )
+        circular_html = render_to_string(
+            "reports/archive_record_pdf.html",
+            {
+                "record_kind": "circular",
+                "record": circular,
+                "school": self.school,
+                "recipient_rows": [recipient],
+                "signed_count": 0,
+                "read_count": 1,
+                "generated_at": timezone.now(),
+            },
+        )
+        self.assertIn("إشعار آلي من النظام", circular_html)
+        self.assertIn("وقت القراءة", circular_html)
+        self.assertIn("محاولات التوقيع", circular_html)
+        self.assertIn(">2<", circular_html)
 
     def test_inactive_archive_page_has_direct_activation_cta_and_price(self):
         self.addon.is_enabled = False

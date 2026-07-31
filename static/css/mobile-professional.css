@@ -6,6 +6,8 @@
     --m-font-base: 14px;
     --m-font-sm: 12px;
     --m-font-lg: 15px;
+    --m-control-font: 16px;
+    --m-tap: 44px;
     --m-radius: 12px;
     --m-radius-sm: 9px;
     --m-gap: 10px;
@@ -77,10 +79,7 @@
   body.not-home .box,
   body.not-home .tile,
   body.not-home .kpi-card,
-  body.not-home .stat-card,
-  body.not-home article,
-  body.not-home section[class*="card"],
-  body.not-home div[class*="card"] {
+  body.not-home .stat-card {
     border-radius: var(--m-radius) !important;
     padding: var(--m-pad) !important;
     margin-bottom: var(--m-gap) !important;
@@ -119,8 +118,8 @@
   body.not-home input[type="submit"],
   body.not-home input[type="button"],
   body.not-home .button {
-    min-height: 38px;
-    padding: 8px 12px;
+    min-height: var(--m-tap);
+    padding: 10px 13px;
     border-radius: var(--m-radius-sm) !important;
     font-size: var(--m-font-base) !important;
     line-height: 1.25;
@@ -128,18 +127,18 @@
 
   body.not-home .btn-sm,
   body.not-home .button-sm {
-    min-height: 34px;
-    padding: 6px 10px;
+    min-height: 40px;
+    padding: 8px 11px;
     font-size: var(--m-font-sm) !important;
   }
 
   body.not-home input:not([type="checkbox"]):not([type="radio"]),
   body.not-home select,
   body.not-home textarea {
-    min-height: 38px;
-    padding: 8px 10px;
+    min-height: var(--m-tap);
+    padding: 10px 11px;
     border-radius: var(--m-radius-sm);
-    font-size: var(--m-font-base) !important;
+    font-size: var(--m-control-font) !important;
   }
 
   body.not-home textarea {
@@ -175,7 +174,9 @@
 
   body.not-home table {
     font-size: 12px !important;
-    min-width: 520px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   body.not-home th,
@@ -192,6 +193,14 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: var(--m-radius-sm);
+  }
+
+  body.not-home .table-wrap table,
+  body.not-home .table-responsive table,
+  body.not-home .table-container table,
+  body.not-home [class*="table-wrap"] table,
+  body.not-home [class*="table-container"] table {
+    min-width: 520px;
   }
 
   body.not-home .grid,
@@ -247,12 +256,185 @@
     border-radius: var(--m-radius) !important;
     font-size: var(--m-font-sm) !important;
   }
+
+  /* Mobile shell: keep the right-side menu, brand and account in view. */
+  .page .site-header {
+    overflow: visible;
+  }
+
+  .page .site-header .container.hdr {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding-inline: 12px !important;
+    gap: 8px;
+  }
+
+  .page .hamburger {
+    display: flex !important;
+    width: var(--m-tap, 44px);
+    height: var(--m-tap, 44px);
+    min-width: var(--m-tap, 44px);
+    flex: 0 0 var(--m-tap, 44px);
+    position: relative;
+    z-index: 2;
+  }
+
+  .page .hdr-brand {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 auto;
+    justify-content: center;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .page .hdr-brand img {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+  }
+
+  .page .hdr-brand-txt {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .page .hdr-actions {
+    min-width: 0;
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+
+  .page .avatar,
+  .page .hdr-actions .tab {
+    min-height: var(--m-tap, 44px);
+  }
+
+  .page .avatar {
+    width: var(--m-tap, 44px);
+    height: var(--m-tap, 44px);
+    flex: 0 0 var(--m-tap, 44px);
+  }
+
+  /* The mobile drawer is always anchored to the right in RTL. */
+  .page .drawer {
+    top: 0;
+    right: 0 !important;
+    left: auto !important;
+    bottom: 0;
+    width: min(360px, 92vw);
+    max-width: 92vw;
+    max-height: 100dvh;
+    border-right: 0;
+    border-left: 1px solid var(--line-2);
+    border-radius: 0 !important;
+    overflow: hidden auto;
+    overscroll-behavior: contain;
+    transform: translateX(105%) !important;
+    visibility: hidden;
+  }
+
+  html[dir="rtl"] .page .drawer.open,
+  .page .drawer.open {
+    right: 0 !important;
+    left: auto !important;
+    transform: translateX(0) !important;
+    visibility: visible;
+  }
+
+  .page .drawer-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    min-height: 64px;
+    padding: 10px 12px;
+    background: var(--card);
+    backdrop-filter: blur(16px);
+  }
+
+  .page .drawer-nav {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .page .drawer-nav a {
+    min-height: 48px;
+    padding: 11px 13px;
+    font-size: 14px;
+  }
+
+  .page .drawer-actions .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .page #userMenu.menu {
+    right: auto !important;
+    left: 0 !important;
+    width: min(300px, calc(100vw - 24px));
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+  }
+
+  .page .passkey-prompt__button {
+    min-height: 48px !important;
+    font-size: 14px !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .page .drawer {
+    top: 0;
+    right: 0 !important;
+    left: auto !important;
+    bottom: 0;
+    width: min(360px, 90vw);
+    max-width: 90vw;
+    max-height: 100dvh;
+    border-radius: 0 !important;
+    overflow: hidden auto;
+    overscroll-behavior: contain;
+    transform: translateX(105%) !important;
+    visibility: hidden;
+  }
+
+  html[dir="rtl"] .page .drawer.open,
+  .page .drawer.open {
+    right: 0 !important;
+    left: auto !important;
+    transform: translateX(0) !important;
+    visibility: visible;
+  }
+
+  .page .drawer-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    min-height: 64px;
+    background: var(--card);
+    backdrop-filter: blur(16px);
+  }
+
+  .page .drawer-nav a {
+    min-height: 46px;
+  }
+
+  .page #userMenu.menu {
+    right: auto !important;
+    left: 0 !important;
+    width: min(300px, calc(100vw - 32px));
+    min-width: 0;
+    max-width: calc(100vw - 32px);
+  }
 }
 
 @media (max-width: 480px) {
   body.not-home {
-    --m-font-base: 13px;
-    --m-font-sm: 11px;
+    --m-font-base: 14px;
+    --m-font-sm: 12px;
     --m-pad: 10px;
     --m-gap: 8px;
   }
@@ -267,12 +449,32 @@
   body.not-home input[type="submit"],
   body.not-home input[type="button"],
   body.not-home .button {
-    min-height: 36px;
-    padding: 7px 10px;
+    min-height: 44px;
+    padding: 9px 11px;
   }
 
   body.not-home .icon-btn {
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .page .site-header .container.hdr {
+    padding-inline: 8px !important;
+    gap: 6px;
+  }
+
+  .page .hdr-brand-txt {
+    display: none;
+  }
+
+  .page .hdr-brand img {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+
+  .page .hdr-actions .tab {
+    padding-inline: 9px !important;
+    font-size: 13px !important;
   }
 }

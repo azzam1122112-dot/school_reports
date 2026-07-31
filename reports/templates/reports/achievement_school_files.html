@@ -335,20 +335,20 @@
       <!-- Filter Form -->
       <form id="filterForm" method="get" style="flex: 2; display: flex; gap: 1.5rem; flex-wrap: wrap;">
           <div class="control-group">
-              <label class="control-label">السنة الدراسية</label>
+              <label class="control-label" id="achievementYearLabel">السنة الدراسية</label>
               {% if year_choices %}
-                <select name="year" id="achievementYearSelect" class="glass-input">
+                <select name="year" id="achievementYearSelect" class="glass-input" aria-labelledby="achievementYearLabel">
                   {% for y in year_choices %}
                     <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} هـ</option>
                   {% endfor %}
                 </select>
               {% else %}
-                <input name="year" id="achievementYearInput" class="glass-input" value="{{ year }}" placeholder="1447-1448">
+                <input name="year" id="achievementYearInput" class="glass-input" value="{{ year }}" placeholder="1447-1448" aria-labelledby="achievementYearLabel">
               {% endif %}
           </div>
 
           <div class="control-group">
-              <label class="control-label">بحث عن {{ SCHOOL_TEACHER_LABEL|default:"معلم" }}</label>
+              <label class="control-label" for="searchInput">بحث عن {{ SCHOOL_TEACHER_LABEL|default:"معلم" }}</label>
               <div style="position: relative;">
                   <input type="search" id="searchInput" name="q" value="{{ q }}" class="glass-input" placeholder="اكتب اسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }} للبحث السريع..." style="padding-inline-start: 44px;">
                   <i class="fa-solid fa-search" style="position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: var(--text-muted);"></i>
@@ -356,7 +356,7 @@
           </div>
 
           <div class="control-group">
-              <label class="control-label">حالة الملف</label>
+              <label class="control-label" for="achievementStatusSelect">حالة الملف</label>
               <select name="status" id="achievementStatusSelect" class="glass-input">
                 <option value="">جميع الحالات</option>
                 <option value="missing" {% if status == "missing" %}selected{% endif %}>لم ينشئ ملفًا</option>

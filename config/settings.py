@@ -174,6 +174,34 @@ SECURITY_CONTACT_EMAIL = (
     os.getenv("SECURITY_CONTACT_EMAIL") or "support@tawtheeq-ksa.com"
 ).strip()
 
+# ----------------- Mansour public AI assistant -----------------
+# The secret is server-side only. The widget remains visible without it and
+# reports a safe temporary-unavailable message until production is configured.
+OPENAI_API_KEY = (os.getenv("OPENAI_API_KEY") or "").strip()
+MANSOUR_ASSISTANT_ENABLED = _env_bool(
+    "MANSOUR_ASSISTANT_ENABLED",
+    bool(OPENAI_API_KEY),
+)
+MANSOUR_ASSISTANT_MODEL = (
+    os.getenv("MANSOUR_ASSISTANT_MODEL") or "gpt-5-nano"
+).strip()
+
+try:
+    MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = max(
+        100,
+        min(600, int(os.getenv("MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS", "350"))),
+    )
+except (TypeError, ValueError):
+    MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = 350
+
+try:
+    MANSOUR_ASSISTANT_TIMEOUT_SECONDS = max(
+        5.0,
+        min(30.0, float(os.getenv("MANSOUR_ASSISTANT_TIMEOUT_SECONDS", "20"))),
+    )
+except (TypeError, ValueError):
+    MANSOUR_ASSISTANT_TIMEOUT_SECONDS = 20.0
+
 
 # ----------------- Notifications: Local fallback (no broker) -----------------
 NOTIFICATIONS_LOCAL_FALLBACK_ENABLED = _env_bool("NOTIFICATIONS_LOCAL_FALLBACK_ENABLED", True)
@@ -674,6 +702,20 @@ EMAIL_HOST_PASSWORD = (os.getenv("EMAIL_HOST_PASSWORD") or "").strip()
 EMAIL_USE_TLS = _env_bool("EMAIL_USE_TLS", False)
 EMAIL_USE_SSL = _env_bool("EMAIL_USE_SSL", False)
 DEFAULT_FROM_EMAIL = (os.getenv("DEFAULT_FROM_EMAIL") or "no-reply@tawtheeq-ksa.com").strip()
+try:
+    EMAIL_TIMEOUT = max(
+        3,
+        int((os.getenv("EMAIL_TIMEOUT", "15") or "15").strip()),
+    )
+except (TypeError, ValueError):
+    EMAIL_TIMEOUT = 15
+try:
+    PASSWORD_RESET_TIMEOUT = max(
+        300,
+        int((os.getenv("PASSWORD_RESET_TIMEOUT", "3600") or "3600").strip()),
+    )
+except (TypeError, ValueError):
+    PASSWORD_RESET_TIMEOUT = 3600
 
 try:
     from celery.schedules import crontab

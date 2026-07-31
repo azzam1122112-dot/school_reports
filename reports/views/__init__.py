@@ -19,5 +19,6 @@ from .reporttypes import *       # noqa: F401,F403
 from .report_templates import *  # noqa: F401,F403
 from .exports import *           # noqa: F401,F403
 from .api import *               # noqa: F401,F403
+from .mansour import *           # noqa: F401,F403
 from .onboarding import *       # noqa: F401,F403
 from .legal import *            # noqa: F401,F403

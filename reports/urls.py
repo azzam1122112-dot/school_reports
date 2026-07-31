@@ -9,10 +9,23 @@ urlpatterns = [
     # الدخول والخروج
     # =========================
     path("", views.platform_landing, name="landing"),
+    path("assistant/mansour/", views.mansour_assistant_reply, name="mansour_assistant_reply"),
     path("guide/", views.user_guide, name="user_guide"),
     path("guide/download/", views.user_guide_download, name="user_guide_download"),
     path("guide/download/pdf/", views.user_guide_download_pdf, name="user_guide_download_pdf"),
     path("login/", views.login_view, name="login"),
+    path("password-reset/", views.AccountPasswordResetView.as_view(), name="password_reset"),
+    path("password-reset/done/", views.AccountPasswordResetDoneView.as_view(), name="password_reset_done"),
+    path(
+        "password-reset/confirm/<uidb64>/<token>/",
+        views.AccountPasswordResetConfirmView.as_view(),
+        name="password_reset_confirm",
+    ),
+    path(
+        "password-reset/complete/",
+        views.AccountPasswordResetCompleteView.as_view(),
+        name="password_reset_complete",
+    ),
     path("platform-login/", views.login_view, {"admin_only": True}, name="platform_login"),
     path("login/passkey/options/", views.passkey_login_options, name="passkey_login_options"),
     path("login/passkey/verify/", views.passkey_login_verify, name="passkey_login_verify"),

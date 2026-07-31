@@ -215,8 +215,12 @@ def api_notification_teachers(request: HttpRequest) -> HttpResponse:
     form = NotificationCreateForm(data=data, user=request.user, active_school=active_school, mode=mode)
     teachers_qs = form.fields["teachers"].queryset
 
-    dept_val = (data.get("target_department") or "").strip()
-    if dept_val:
+    dept_values = [
+        str(value).strip()
+        for value in data.getlist("target_department")
+        if str(value).strip()
+    ]
+    if dept_values:
         selected_school = active_school
         if getattr(request.user, "is_superuser", False):
             selected_school = None
@@ -227,18 +231,22 @@ def api_notification_teachers(request: HttpRequest) -> HttpResponse:
                 except (TypeError, ValueError):
                     selected_school = None
 
-        dept_obj, dept_code, _dept_label = _resolve_department_by_code_or_pk(dept_val, selected_school)
-        if dept_obj is None and selected_school is None:
-            dept_obj, dept_code, _dept_label = _resolve_department_by_code_or_pk(dept_val, None)
+        department_member_ids = set()
+        for dept_val in dept_values:
+            dept_obj, dept_code, _dept_label = _resolve_department_by_code_or_pk(dept_val, selected_school)
+            if dept_obj is None and selected_school is None:
+                dept_obj, dept_code, _dept_label = _resolve_department_by_code_or_pk(dept_val, None)
 
-        dept_school = selected_school
-        try:
-            if dept_obj is not None and hasattr(dept_obj, "school"):
-                dept_school = getattr(dept_obj, "school", None)
-        except Exception:
-            pass
+            dept_school = selected_school
+            try:
+                if dept_obj is not None and hasattr(dept_obj, "school"):
+                    dept_school = getattr(dept_obj, "school", None)
+            except Exception:
+                pass
 
-        dept_members_qs = _members_for_department(dept_code, dept_school)
-        teachers_qs = teachers_qs.filter(pk__in=dept_members_qs.values("pk"))
+            department_member_ids.update(
+                _members_for_department(dept_code, dept_school).values_list("pk", flat=True)
+            )
+        teachers_qs = teachers_qs.filter(pk__in=department_member_ids)
 
     return JsonResponse({"results": list(teachers_qs.values("id", "name"))})

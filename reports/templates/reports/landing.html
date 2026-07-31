@@ -27,14 +27,14 @@
   <link rel="canonical" href="{{ SITE_URL }}/">
   <link rel="alternate" hreflang="ar-SA" href="{{ SITE_URL }}/">
   <link rel="alternate" hreflang="x-default" href="{{ SITE_URL }}/">
-  <link rel="manifest" href="{% static 'manifest.json' %}">
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand-mark.svg' %}">
-  <link rel="apple-touch-icon" href="{% static 'img/brand-mark.svg' %}">
+  {% include "reports/partials/pwa_install_head.html" %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
-  <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+  <link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260731.2">
+  <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260731.2">
   <noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
   <script type="application/ld+json" nonce="{{ CSP_NONCE }}">
   {
@@ -113,26 +113,26 @@
         </div>
       </nav>
     </div>
+  </header>
 
-    <div class="mobile-menu" id="mobileMenu" hidden>
-      <div class="mobile-menu-panel">
-        <div class="mobile-menu-head">
-          <span>استكشف توثيق</span>
-          <button id="menuClose" type="button" aria-label="إغلاق القائمة"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <a href="#value">لماذا توثيق؟</a>
-        <a href="#features">حلول المنصة</a>
-        <a href="#product">شاهد المنصة</a>
-        <a href="#pricing">الباقات</a>
-        <a href="#business">بيانات المتجر</a>
-        <a href="#faq">الأسئلة الشائعة</a>
-        <div class="mobile-menu-actions">
-          <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
-          <a class="button button-quiet" href="{% url 'reports:login' %}">تسجيل الدخول</a>
-        </div>
+  <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="قائمة التنقل" hidden>
+    <div class="mobile-menu-panel">
+      <div class="mobile-menu-head">
+        <span>استكشف توثيق</span>
+        <button id="menuClose" type="button" aria-label="إغلاق القائمة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <a href="#value">لماذا توثيق؟</a>
+      <a href="#features">حلول المنصة</a>
+      <a href="#product">شاهد المنصة</a>
+      <a href="#pricing">الباقات</a>
+      <a href="#business">بيانات المتجر</a>
+      <a href="#faq">الأسئلة الشائعة</a>
+      <div class="mobile-menu-actions">
+        <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
+        <a class="button button-quiet" href="{% url 'reports:login' %}">تسجيل الدخول</a>
       </div>
     </div>
-  </header>
+  </div>
 
   <main id="mainContent">
     <section class="hero">
@@ -634,6 +634,20 @@
     <img id="productLightboxImage" src="" alt="">
   </dialog>
 
+  {% include "reports/partials/mansour_assistant.html" %}
+
+  <div
+    class="sbc-verify-seal"
+    data-token="SUdjMEt0WXNwNW5IREVVeUNxajRkUT09"
+    data-position="bottom-right"
+  ></div>
+  <script
+    nonce="{{ CSP_NONCE }}"
+    src="https://eauthenticate.saudibusiness.gov.sa/EAuthSealApi/seal.js"
+    async
+  ></script>
+  {% include "reports/partials/pwa_install.html" %}
   <script src="{% static 'js/landing.js' %}" defer></script>
+  <script src="{% static 'js/mansour-assistant.js' %}?v=20260731.2" defer></script>
 </body>
 </html>

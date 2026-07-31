@@ -339,10 +339,42 @@ def school_archive(request: HttpRequest) -> HttpResponse:
         teacher_id=teacher_id,
         category_id=category_id,
     )
+    snapshot_payload = (
+        archive_payload(
+            school=active_school,
+            selected_year=selected_year,
+            teacher=request.user,
+            school_wide=True,
+        )
+        if school_wide
+        else payload
+    )
     administrative_stats = (
         school_administrative_archive_stats(active_school)
         if school_wide
-        else {"tickets": 0, "circulars": 0, "notifications": 0}
+        else {
+            "tickets": 0,
+            "circulars": 0,
+            "notifications": 0,
+            "system_notifications": 0,
+            "user_notifications": 0,
+            "total": 0,
+        }
+    )
+    administrative_payload = (
+        school_administrative_archive_payload(active_school, search=search)
+        if school_wide
+        else {
+            "tickets_qs": Ticket.objects.none(),
+            "circulars_qs": Notification.objects.none(),
+            "notifications_qs": Notification.objects.none(),
+            "matches": {"tickets": 0, "circulars": 0, "notifications": 0, "total": 0},
+        }
+    )
+    snapshot_total_records = (
+        snapshot_payload["report_stats"]["total"]
+        + snapshot_payload["achievement_stats"]["total"]
+        + administrative_stats["total"]
     )
 
     reports_page = svc_paginate(payload["reports_qs"], per_page=15, page=request.GET.get("reports_page", 1))
@@ -350,6 +382,21 @@ def school_archive(request: HttpRequest) -> HttpResponse:
         payload["achievement_files_qs"],
         per_page=20,
         page=request.GET.get("files_page", 1),
+    )
+    tickets_page = svc_paginate(
+        administrative_payload["tickets_qs"],
+        per_page=10,
+        page=request.GET.get("tickets_page", 1),
+    )
+    circulars_page = svc_paginate(
+        administrative_payload["circulars_qs"],
+        per_page=10,
+        page=request.GET.get("circulars_page", 1),
+    )
+    notifications_page = svc_paginate(
+        administrative_payload["notifications_qs"],
+        per_page=10,
+        page=request.GET.get("notifications_page", 1),
     )
 
     if archive_addon is not None:
@@ -431,7 +478,14 @@ def school_archive(request: HttpRequest) -> HttpResponse:
             "achievement_files": achievement_files_page,
             "report_stats": payload["report_stats"],
             "achievement_stats": payload["achievement_stats"],
+            "snapshot_report_stats": snapshot_payload["report_stats"],
+            "snapshot_achievement_stats": snapshot_payload["achievement_stats"],
+            "snapshot_total_records": snapshot_total_records,
             "administrative_stats": administrative_stats,
+            "administrative_matches": administrative_payload["matches"],
+            "tickets": tickets_page,
+            "circulars": circulars_page,
+            "archive_notifications": notifications_page,
             "storage_overview": school_storage_overview(active_school),
             "unclassified_year": UNCLASSIFIED_YEAR,
             "archived_at": timezone.localtime(),

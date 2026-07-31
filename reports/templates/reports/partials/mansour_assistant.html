@@ -1,0 +1,85 @@
+{% load static %}
+<aside
+  class="mansour-assistant"
+  id="mansourAssistant"
+  data-endpoint="{% url 'reports:mansour_assistant_reply' %}"
+  data-audience=""
+  aria-label="المساعد الذكي منصور"
+>
+  <button
+    class="mansour-launcher"
+    id="mansourLauncher"
+    type="button"
+    aria-controls="mansourPanel"
+    aria-expanded="false"
+  >
+    <span class="mansour-launcher-label">اسأل منصور</span>
+    <span class="mansour-launcher-avatar" aria-hidden="true">
+      <img src="{% static 'img/mansour-avatar-v2.png' %}?v=20260731.1" alt="">
+    </span>
+  </button>
+
+  <section
+    class="mansour-panel"
+    id="mansourPanel"
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="mansourTitle"
+    hidden
+  >
+    <header class="mansour-head">
+      <span class="mansour-avatar" aria-hidden="true">
+        <img src="{% static 'img/mansour-avatar-v2.png' %}?v=20260731.1" alt="">
+      </span>
+      <div class="mansour-identity">
+        <strong id="mansourTitle">منصور</strong>
+        <small><span class="mansour-status-dot" aria-hidden="true"></span>مساعد توثيق الذكي</small>
+      </div>
+      <button class="mansour-close" id="mansourClose" type="button" aria-label="إغلاق المساعد">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="mansour-audience" aria-labelledby="mansourAudiencePrompt">
+      <p id="mansourAudiencePrompt">حتى أساعدك بالخطوات والصلاحيات الصحيحة، اختر دورك:</p>
+      <div class="mansour-role-options" role="group" aria-label="اختر دورك في منصة توثيق">
+        <button type="button" class="mansour-role-option" data-mansour-audience="teacher" aria-pressed="false">
+          <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
+          <span>معلم</span>
+        </button>
+        <button type="button" class="mansour-role-option" data-mansour-audience="manager" aria-pressed="false">
+          <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
+          <span>مدير مدرسة</span>
+        </button>
+        <button type="button" class="mansour-role-option" data-mansour-audience="supervisor" aria-pressed="false">
+          <i class="fa-solid fa-building-shield" aria-hidden="true"></i>
+          <span>مشرف</span>
+        </button>
+      </div>
+      <p class="mansour-audience-status" id="mansourAudienceStatus" aria-live="polite">لم يتم تحديد الدور بعد</p>
+    </div>
+
+    <div class="mansour-conversation" id="mansourConversation" aria-live="polite" aria-relevant="additions">
+      <p class="mansour-message assistant">أهلًا بك، أنا منصور. اختر دورك وسأشرح لك منصة توثيق حسب المهام والصلاحيات المناسبة لك.</p>
+      <div class="mansour-quick-actions" aria-label="أسئلة مقترحة"></div>
+    </div>
+
+    <form class="mansour-form" id="mansourForm">
+      <div class="mansour-input-row">
+        <textarea
+          id="mansourInput"
+          rows="1"
+          maxlength="500"
+          autocomplete="off"
+          placeholder="اختر دورك أولًا…"
+          aria-label="اكتب استفسارك لمنصور"
+          disabled
+        ></textarea>
+        <button class="mansour-send" id="mansourSend" type="submit" aria-label="إرسال الاستفسار">
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+        </button>
+      </div>
+      <p class="mansour-disclaimer">مساعد آلي للمعلومات العامة. لا ترسل بيانات شخصية أو مدرسية حساسة.</p>
+    </form>
+  </section>
+</aside>

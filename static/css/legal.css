@@ -71,7 +71,25 @@
 @media (max-width: 560px) {
   .legal-page { width: min(100% - 20px, 1040px); padding-top: 20px; }
   .legal-form, .business-disclosure, .legal-aside { grid-template-columns: 1fr; }
-  .legal-nav { overflow-x: auto; flex-wrap: nowrap; }
-  .legal-nav a { white-space: nowrap; }
+  .legal-nav {
+    overflow: visible;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 9px;
+  }
+  .legal-nav a {
+    min-height: 44px;
+    flex: 1 1 120px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: normal;
+    text-align: center;
+  }
+  .legal-field input,
+  .legal-field textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .legal-submit { min-height: 44px; }
 }
-

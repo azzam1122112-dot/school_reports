@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#006c35">
   <meta name="description" content="{% if admin_login %}دخول مدير النظام لمنصة توثيق{% else %}تسجيل الدخول لمنصة توثيق{% endif %}">
   <title>{% if admin_login %}دخول مدير النظام{% else %}تسجيل الدخول{% endif %} | منصة توثيق</title>
+  {% include "reports/partials/pwa_install_head.html" %}
 
   <!-- Typography & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -193,7 +194,11 @@
       color: var(--muted);
       cursor: pointer;
       font-size: 1rem;
-      padding: 4px;
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      padding: 0;
       border-radius: 4px;
     }
     .password-toggle:hover { color: var(--ink); background: #f1f5f9; }
@@ -282,6 +287,13 @@
       transition: color 0.2s;
     }
     .link:hover { color: var(--brand); text-decoration: underline; }
+    .form-footer .link {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding-inline: 10px;
+    }
 
     /* Messages/Toasts */
     .messages-area {
@@ -321,9 +333,18 @@
       .card-body { padding: 0; }
       body { background: #fff; } /* Simplify on mobile */
       body::before { display: none; }
+      body { min-height: 100dvh; overflow-y: auto; }
+      .auth-wrapper {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: max(18px, env(safe-area-inset-top)) 18px calc(30px + env(safe-area-inset-bottom));
+      }
       
       .brand-title { font-size: 1.7rem; }
       .logo-circle { width: 70px; height: 70px; }
+      .brand-area { margin-bottom: 24px; }
+      .form-footer { margin-top: 14px; }
       
       .brand-stripe { display: none; }
     }
@@ -420,7 +441,7 @@
           <div class="passkey-status" id="passkeyStatus" role="status" aria-live="polite"></div>
 
           <div class="form-footer">
-             <a href="#" class="link" onclick="alert('يرجى التواصل مع إدارة المدرسة / إدارة المنصة لاستعادة كلمة المرور.');return false;">
+             <a href="{% url 'reports:password_reset' %}" class="link">
                هل نسيت كلمة المرور؟
              </a>
           </div>
@@ -574,5 +595,6 @@
     })();
   </script>
 
+  {% include "reports/partials/pwa_install.html" %}
 </body>
 </html>
