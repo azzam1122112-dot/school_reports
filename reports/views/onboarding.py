@@ -25,6 +25,10 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 from django_ratelimit.decorators import ratelimit
 
+from ..marketing_attribution import (
+    capture_marketing_attribution,
+    school_marketing_fields,
+)
 from ..models import (
     School,
     SchoolArchiveAddon,
@@ -196,6 +200,8 @@ def register_school(request):
     if request.user.is_authenticated:
         return redirect("reports:home")
 
+    capture_marketing_attribution(request)
+
     if request.method == "POST":
         form = SchoolRegistrationForm(request.POST)
         if form.is_valid():
@@ -215,6 +221,7 @@ def register_school(request):
                                     gender=form.cleaned_data["gender"],
                                     city=form.cleaned_data.get("city") or "",
                                     is_active=True,
+                                    **school_marketing_fields(request),
                                 )
                             break
                         except IntegrityError:

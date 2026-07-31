@@ -802,6 +802,7 @@
             <a class="tab {% if active == 'platform_subscriptions_list' or active == 'platform_subscription_detail' or active == 'platform_subscription_add' %}is-active{% endif %}" href="{% url 'reports:platform_subscriptions_list' %}">الاشتراكات</a>
             <a class="tab {% if active == 'platform_payments_list' or active == 'platform_payment_detail' %}is-active{% endif %}" href="{% url 'reports:platform_payments_list' %}">المالية</a>
             <a class="tab {% if active == 'platform_tickets_list' %}is-active{% endif %}" href="{% url 'reports:platform_tickets_list' %}">الدعم</a>
+            <a class="tab {% if active == 'platform_complaints_list' or active == 'platform_complaint_detail' %}is-active{% endif %}" href="{% url 'reports:platform_complaints_list' %}">الشكاوى</a>
             <a class="tab {% if active == 'platform_settings' or active == 'platform_archive_addons_list' or active == 'platform_plans_list' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">الإعدادات</a>
           {% elif IS_REPORT_VIEWER %}
             <a class="tab {% if active == 'school_reports_readonly' %}is-active{% endif %}" href="{% url 'reports:school_reports_readonly' %}">التقارير</a>
@@ -1109,6 +1110,10 @@
             <span>الدعم الفني</span>
             <i class="fa-solid fa-headset"></i>
           </a>
+          <a class="{% if active == 'platform_complaints_list' or active == 'platform_complaint_detail' %}is-active{% endif %}" href="{% url 'reports:platform_complaints_list' %}">
+            <span>شكاوى العملاء</span>
+            <i class="fa-solid fa-comments"></i>
+          </a>
           <a class="{% if active == 'platform_archive_addons_list' %}is-active{% endif %}" href="{% url 'reports:platform_archive_addons_list' %}">
             <span>التخزين والأرشيف</span>
             <i class="fa-solid fa-box-archive"></i>
@@ -1361,6 +1366,7 @@
                 <li><a href="{% url 'reports:schools_admin_list' %}"><i class="fa-solid fa-chevron-left"></i> المدارس</a></li>
                 <li><a href="{% url 'reports:platform_payments_list' %}"><i class="fa-solid fa-chevron-left"></i> المالية</a></li>
                 <li><a href="{% url 'reports:platform_tickets_list' %}"><i class="fa-solid fa-chevron-left"></i> الدعم الفني</a></li>
+                <li><a href="{% url 'reports:platform_complaints_list' %}"><i class="fa-solid fa-chevron-left"></i> شكاوى العملاء</a></li>
               {% elif IS_REPORT_VIEWER %}
                 <li><a href="{% url 'reports:school_reports_readonly' %}"><i class="fa-solid fa-chevron-left"></i> التقارير</a></li>
                 <li><a href="{% url 'reports:achievement_school_files' %}"><i class="fa-solid fa-chevron-left"></i> ملفات الإنجاز</a></li>
@@ -1397,25 +1403,6 @@
             <li><a href="{% url 'reports:service_delivery_policy' %}"><i class="fa-solid fa-chevron-left"></i> تقديم الخدمة</a></li>
             <li><a href="{% url 'reports:complaints_policy' %}"><i class="fa-solid fa-chevron-left"></i> الشكاوى والمقترحات</a></li>
           </ul>
-        </div>
-
-        {# Contact #}
-        <div class="footer-col">
-          <h4><i class="fa-solid fa-phone"></i> تواصل معنا</h4>
-          <div class="footer-contact">
-            <div class="footer-contact-item">
-              <i class="fa-solid fa-envelope"></i>
-              <span>{{ BUSINESS.support_email }}</span>
-            </div>
-            <div class="footer-contact-item">
-              <i class="fa-brands fa-whatsapp"></i>
-              <span dir="ltr">{{ BUSINESS.support_phone }}</span>
-            </div>
-            <div class="footer-contact-item">
-              <i class="fa-solid fa-location-dot"></i>
-              <span>{{ BUSINESS.address }}</span>
-            </div>
-          </div>
         </div>
 
       </div>

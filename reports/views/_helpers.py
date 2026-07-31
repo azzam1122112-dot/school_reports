@@ -199,6 +199,7 @@ from ..models import (
     ArchiveStorageOption,
     Payment,
     AuditLog,
+    CustomerComplaint,
     school_has_archive_addon,
     TeacherAchievementFile,
     AchievementSection,

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}شكاوى العملاء | مركز تشغيل المنصة{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/platform-complaints.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="complaints-shell" dir="rtl">
+  <header class="complaints-hero">
+    <div>
+      <h1><i class="fa-solid fa-comments"></i> شكاوى العملاء</h1>
+      <p>متابعة الشكاوى الواردة من النموذج العام وتوثيق إجراءات المعالجة.</p>
+    </div>
+    <a class="complaints-back" href="{% url 'reports:platform_admin_dashboard' %}">
+      العودة لمركز التشغيل <i class="fa-solid fa-arrow-left"></i>
+    </a>
+  </header>
+
+  <section class="complaints-kpis" aria-label="ملخص حالات الشكاوى">
+    <article class="complaints-kpi"><strong>{{ tab_counts.new|default:0 }}</strong><span>جديدة وتحتاج إجراء</span></article>
+    <article class="complaints-kpi"><strong>{{ tab_counts.in_progress|default:0 }}</strong><span>قيد المعالجة</span></article>
+    <article class="complaints-kpi"><strong>{{ tab_counts.resolved|default:0 }}</strong><span>تمت معالجتها</span></article>
+    <article class="complaints-kpi"><strong>{{ tab_counts.all|default:0 }}</strong><span>إجمالي الشكاوى</span></article>
+  </section>
+
+  <section class="complaints-controls" aria-label="البحث والتصفية">
+    <nav class="complaints-tabs" aria-label="حالات الشكاوى">
+      <a class="complaints-tab {% if current_status == 'all' %}is-active{% endif %}" href="?status=all&q={{ search_query|urlencode }}">الكل <b>{{ tab_counts.all|default:0 }}</b></a>
+      <a class="complaints-tab {% if current_status == 'new' %}is-active{% endif %}" href="?status=new&q={{ search_query|urlencode }}">جديدة <b>{{ tab_counts.new|default:0 }}</b></a>
+      <a class="complaints-tab {% if current_status == 'in_progress' %}is-active{% endif %}" href="?status=in_progress&q={{ search_query|urlencode }}">قيد المعالجة <b>{{ tab_counts.in_progress|default:0 }}</b></a>
+      <a class="complaints-tab {% if current_status == 'resolved' %}is-active{% endif %}" href="?status=resolved&q={{ search_query|urlencode }}">تمت المعالجة <b>{{ tab_counts.resolved|default:0 }}</b></a>
+      <a class="complaints-tab {% if current_status == 'closed' %}is-active{% endif %}" href="?status=closed&q={{ search_query|urlencode }}">مغلقة <b>{{ tab_counts.closed|default:0 }}</b></a>
+    </nav>
+    <form class="complaints-search" method="get">
+      <input type="hidden" name="status" value="{{ current_status }}">
+      <input type="search" name="q" value="{{ search_query }}" placeholder="الاسم، البريد، الجوال، المرجع أو الموضوع..." aria-label="البحث في الشكاوى">
+      <button class="complaint-action" type="submit"><i class="fa-solid fa-magnifying-glass"></i> بحث</button>
+    </form>
+  </section>
+
+  <section class="complaints-card">
+    <div class="complaints-table-wrap">
+      <table class="complaints-table">
+        <thead>
+          <tr>
+            <th>رقم المتابعة</th>
+            <th>الموضوع</th>
+            <th>العميل</th>
+            <th>مرجع الطلب</th>
+            <th>تاريخ الاستلام</th>
+            <th>الحالة</th>
+            <th>الإجراء</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for complaint in complaints %}
+          <tr>
+            <td><span class="complaint-reference">{{ complaint.reference }}</span></td>
+            <td><strong>{{ complaint.subject }}</strong><span class="complaint-muted">آخر تحديث: {{ complaint.updated_at|date:"Y-m-d H:i" }}</span></td>
+            <td><strong>{{ complaint.name }}</strong><span class="complaint-muted" dir="ltr">{{ complaint.email }}</span></td>
+            <td><span dir="ltr">{{ complaint.order_reference|default:"—" }}</span></td>
+            <td>{{ complaint.created_at|date:"Y-m-d H:i" }}</td>
+            <td><span class="complaint-badge {{ complaint.status }}">{{ complaint.get_status_display }}</span></td>
+            <td><a class="complaint-action" href="{% url 'reports:platform_complaint_detail' complaint.pk %}"><i class="fa-solid fa-eye"></i> عرض ومتابعة</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7"><div class="complaints-empty"><i class="fa-regular fa-circle-check fa-2x"></i><h2>لا توجد شكاوى مطابقة</h2><p>ستظهر الشكاوى المرسلة من النموذج العام هنا تلقائياً.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "reports/_pagination.html" %}
+  </section>
+</div>
+{% endblock %}

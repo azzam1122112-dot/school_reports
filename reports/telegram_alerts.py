@@ -115,6 +115,28 @@ def build_support_ticket_alert(ticket) -> TelegramAlert:
     )
 
 
+def build_customer_complaint_alert(complaint) -> TelegramAlert:
+    text = "\n".join(
+        [
+            "🔴 <b>شكوى عميل جديدة</b>",
+            f"🔖 رقم المتابعة: <code>{_safe(complaint.reference)}</code>",
+            f"📌 الحالة: {_safe(complaint.get_status_display())}",
+            f"🕒 الوقت: {_event_time(complaint.created_at)}",
+            "",
+            "#شكاوى",
+        ]
+    )
+    return TelegramAlert(
+        event_key=f"complaints:customer:{complaint.pk}:created",
+        category="complaints",
+        text=text,
+        action_url=_admin_url(
+            "reports:platform_complaint_detail",
+            args=[complaint.pk],
+        ),
+    )
+
+
 def build_payment_alert(payment, *, created: bool) -> TelegramAlert:
     batch_ref = (getattr(payment, "batch_ref", "") or "").strip()
     operation_ref = f"دفعة موحدة {batch_ref}" if batch_ref else f"#{payment.pk}"

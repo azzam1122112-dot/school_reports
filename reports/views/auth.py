@@ -37,6 +37,7 @@ from ..middleware import (
     clear_force_password_change_flag,
     is_force_password_change_required,
 )
+from ..marketing_attribution import capture_marketing_attribution
 from ..models import WebAuthnCredential
 from ..forms import AccountPasswordResetForm, AccountSetPasswordForm
 from core import opmetrics
@@ -958,6 +959,8 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
         if _is_staff(request.user):
             return redirect("reports:admin_dashboard")
         return redirect("reports:home")
+
+    capture_marketing_attribution(request)
 
     plans_qs = SubscriptionPlan.objects.filter(is_active=True).order_by("price", "max_teachers", "days_duration", "id")
     source_plans = list(plans_qs)

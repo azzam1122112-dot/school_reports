@@ -281,6 +281,12 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     # ملاحظة: عدّاد التذاكر المفتوحة يأتي من payload الفترة (kpis.tickets_open) أدناه،
     # لذا لا نحسبه هنا تفاديًا لاستعلام مهدور.
     pending_payments = Payment.objects.filter(status=Payment.Status.PENDING).count()
+    complaints_pending = CustomerComplaint.objects.filter(
+        status__in=(
+            CustomerComplaint.Status.NEW,
+            CustomerComplaint.Status.IN_PROGRESS,
+        )
+    ).count()
 
     # البيانات الإحصائية (كاش 5 دقائق)
     stats_cache_key = "platform_stats_v4"
@@ -569,6 +575,9 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     
     selected_period = _normalize_period(request.GET.get("period"))
     period_payload = _build_period_payload(selected_period, force=force_refresh)
+    period_payload.setdefault("operations", {})["complaints_pending"] = int(
+        complaints_pending
+    )
 
     wants_json = (
         request.GET.get("format") == "json"
@@ -584,6 +593,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         **financial,
         **charts,
         "pending_payments": pending_payments,
+        "complaints_pending": complaints_pending,
         "tickets_open": int(period_payload["kpis"]["tickets_open"]),
         "recent_activities": recent_activities,
         "initial_period": selected_period,

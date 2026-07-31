@@ -37,3 +37,17 @@ class CustomerComplaintForm(forms.ModelForm):
             raise forms.ValidationError("تعذّر إرسال النموذج.")
         return value
 
+class CustomerComplaintUpdateForm(forms.ModelForm):
+    class Meta:
+        model = CustomerComplaint
+        fields = ("status", "internal_notes")
+        widgets = {
+            "status": forms.Select(attrs={"class": "complaint-select"}),
+            "internal_notes": forms.Textarea(
+                attrs={
+                    "class": "complaint-textarea",
+                    "rows": 7,
+                    "placeholder": "سجّل ما تم اتخاذه، ونتيجة التواصل، والخطوة التالية...",
+                }
+            ),
+        }

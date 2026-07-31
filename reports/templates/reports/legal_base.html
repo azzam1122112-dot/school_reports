@@ -23,27 +23,6 @@
 
   <div class="legal-layout">
     <div class="legal-content">{% block legal_content %}{% endblock %}</div>
-    <aside class="legal-aside" aria-label="بيانات مقدم الخدمة">
-      <section class="legal-aside__card">
-        <h2>خدمة العملاء</h2>
-        {% if BUSINESS.support_email %}<a href="mailto:{{ BUSINESS.support_email }}">{{ BUSINESS.support_email }}</a>{% endif %}
-        {% if BUSINESS.support_phone %}<a href="tel:{{ BUSINESS.support_phone }}" dir="ltr">{{ BUSINESS.support_phone }}</a>{% endif %}
-        <a href="{% url 'reports:complaints_policy' %}#complaint-form">تقديم شكوى إلكترونية</a>
-      </section>
-      <section class="legal-aside__card">
-        <h2>بيانات مقدم الخدمة</h2>
-        <p><strong>{{ BUSINESS.legal_name|default:"منصة توثيق" }}</strong><br>{{ BUSINESS.address }}</p>
-        {% if BUSINESS.commercial_registration %}<p>السجل التجاري: <span dir="ltr">{{ BUSINESS.commercial_registration }}</span></p>{% endif %}
-        {% if BUSINESS.freelance_document_number %}
-          <p>وثيقة العمل الحر: <span dir="ltr">{{ BUSINESS.freelance_document_number }}</span></p>
-          {% if BUSINESS.freelance_activity %}<p>نشاط الوثيقة: {{ BUSINESS.freelance_activity }}</p>{% endif %}
-          {% if BUSINESS.freelance_document_expiry %}<p>سارية حتى: <span dir="ltr">{{ BUSINESS.freelance_document_expiry }}</span></p>{% endif %}
-          {% if BUSINESS.freelance_document_url %}<a href="{{ BUSINESS.freelance_document_url }}" rel="noopener">التحقق من وثيقة العمل الحر</a>{% endif %}
-        {% endif %}
-        {% if BUSINESS.tax_number %}<p>الرقم الضريبي: <span dir="ltr">{{ BUSINESS.tax_number }}</span></p>{% endif %}
-        {% if BUSINESS.verification_url %}<a href="{{ BUSINESS.verification_url }}" rel="noopener">التحقق عبر المركز السعودي للأعمال</a>{% endif %}
-      </section>
-    </aside>
   </div>
 </main>
 {% endblock %}
