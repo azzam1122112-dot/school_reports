@@ -119,9 +119,8 @@ class SchoolYearResetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "ابحث باسم المدرسة أو الكود أو المدينة")
         self.assertContains(response, reverse("maintenance:school_year_reset_school_search"))
-        nonce = response.context["CSP_NONCE"]
-        self.assertTrue(nonce)
-        self.assertContains(response, f'<script nonce="{nonce}">')
+        self.assertContains(response, "/static/maintenance/school_year_reset.js")
+        self.assertNotContains(response, "const picker = document.getElementById")
 
     def test_school_search_endpoint_lists_schools_for_superuser_only(self):
         self.client.force_login(self.superuser)
