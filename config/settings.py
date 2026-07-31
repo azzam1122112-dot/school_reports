@@ -881,40 +881,30 @@ if not SITE_URL:
     SITE_URL = "https://tawtheeq-ksa.com" if ENV == "production" else "http://127.0.0.1:8000"
 SITE_URL = SITE_URL.rstrip("/")
 
-# Public business disclosures used by the storefront and legal pages.  The
-# registration/tax values intentionally have no fallback: publishing an
-# invented identifier would be worse than leaving it unconfigured.
-BUSINESS_LEGAL_NAME = (
-    os.getenv("BUSINESS_LEGAL_NAME") or "منصور محمد بن حامد الغامدي"
-).strip()
+# Optional business settings retained for internal configuration. Public
+# templates do not render these values.
+BUSINESS_LEGAL_NAME = (os.getenv("BUSINESS_LEGAL_NAME") or "").strip()
 BUSINESS_COMMERCIAL_REGISTRATION = (
     os.getenv("BUSINESS_COMMERCIAL_REGISTRATION") or ""
 ).strip()
 BUSINESS_FREELANCE_DOCUMENT_NUMBER = (
-    os.getenv("BUSINESS_FREELANCE_DOCUMENT_NUMBER") or "FL-719915135"
+    os.getenv("BUSINESS_FREELANCE_DOCUMENT_NUMBER") or ""
 ).strip()
 BUSINESS_FREELANCE_ACTIVITY = (
-    os.getenv("BUSINESS_FREELANCE_ACTIVITY") or "برمجة وتطوير المواقع الالكترونية"
+    os.getenv("BUSINESS_FREELANCE_ACTIVITY") or ""
 ).strip()
 BUSINESS_FREELANCE_DOCUMENT_EXPIRY = (
-    os.getenv("BUSINESS_FREELANCE_DOCUMENT_EXPIRY") or "2027-06-26"
+    os.getenv("BUSINESS_FREELANCE_DOCUMENT_EXPIRY") or ""
 ).strip()
 BUSINESS_FREELANCE_DOCUMENT_URL = (
-    os.getenv("BUSINESS_FREELANCE_DOCUMENT_URL")
-    or "https://freelance.sa/certificate-validation"
+    os.getenv("BUSINESS_FREELANCE_DOCUMENT_URL") or ""
 ).strip()
 BUSINESS_TAX_NUMBER = (os.getenv("BUSINESS_TAX_NUMBER") or "").strip()
 BUSINESS_LICENSES = (os.getenv("BUSINESS_LICENSES") or "").strip()
 BUSINESS_VERIFICATION_URL = (os.getenv("BUSINESS_VERIFICATION_URL") or "").strip()
-BUSINESS_ADDRESS = (
-    os.getenv("BUSINESS_ADDRESS") or "الرياض، المملكة العربية السعودية"
-).strip()
-BUSINESS_SUPPORT_EMAIL = (
-    os.getenv("BUSINESS_SUPPORT_EMAIL") or "xmansx1122@gmail.com"
-).strip()
-BUSINESS_SUPPORT_PHONE = (
-    os.getenv("BUSINESS_SUPPORT_PHONE") or "+966537720207"
-).strip()
+BUSINESS_ADDRESS = (os.getenv("BUSINESS_ADDRESS") or "").strip()
+BUSINESS_SUPPORT_EMAIL = (os.getenv("BUSINESS_SUPPORT_EMAIL") or "").strip()
+BUSINESS_SUPPORT_PHONE = (os.getenv("BUSINESS_SUPPORT_PHONE") or "").strip()
 CANONICAL_HOST_REDIRECT = _env_bool(
     "CANONICAL_HOST_REDIRECT",
     ENV == "production",
