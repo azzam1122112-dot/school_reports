@@ -216,7 +216,7 @@ TELEGRAM_ALERT_CATEGORIES = set(
     _split_env_list(
         os.getenv(
             "TELEGRAM_ALERT_CATEGORIES",
-            "support,subscriptions,registration,payments",
+            "support,subscriptions,registration,payments,complaints",
         )
     )
 )
