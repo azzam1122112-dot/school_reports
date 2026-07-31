@@ -299,6 +299,16 @@ urlpatterns = [
     path("platform/payments/", views.platform_payments_list, name="platform_payments_list"),
     path("platform/payments/<int:pk>/", views.platform_payment_detail, name="platform_payment_detail"),
     path("platform/tickets/", views.platform_tickets_list, name="platform_tickets_list"),
+    path(
+        "platform/complaints/",
+        views.platform_complaints_list,
+        name="platform_complaints_list",
+    ),
+    path(
+        "platform/complaints/<int:pk>/",
+        views.platform_complaint_detail,
+        name="platform_complaint_detail",
+    ),
     path("platform/archive-addons/", views.platform_archive_addons_list, name="platform_archive_addons_list"),
     path("platform/archive-addons/add/", views.platform_archive_addon_form, name="platform_archive_addon_add"),
     path("platform/archive-addons/<int:pk>/edit/", views.platform_archive_addon_form, name="platform_archive_addon_edit"),

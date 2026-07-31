@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ complaint.reference }} | شكاوى العملاء{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/platform-complaints.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="complaints-shell" dir="rtl">
+  <header class="complaints-hero">
+    <div>
+      <span class="complaint-reference" style="color:#fff">{{ complaint.reference }}</span>
+      <h1>{{ complaint.subject }}</h1>
+      <p>استُلمت في {{ complaint.created_at|date:"Y-m-d H:i" }} · آخر تحديث {{ complaint.updated_at|date:"Y-m-d H:i" }}</p>
+    </div>
+    <a class="complaints-back" href="{% url 'reports:platform_complaints_list' %}">
+      العودة إلى الشكاوى <i class="fa-solid fa-arrow-left"></i>
+    </a>
+  </header>
+
+  <div class="complaint-detail-grid">
+    <div>
+      <section class="complaints-card">
+        <h2><i class="fa-solid fa-user"></i> بيانات العميل والطلب</h2>
+        <div class="complaint-meta-grid">
+          <div class="complaint-meta"><span>الاسم</span><strong>{{ complaint.name }}</strong></div>
+          <div class="complaint-meta"><span>البريد الإلكتروني</span><strong dir="ltr">{{ complaint.email }}</strong></div>
+          <div class="complaint-meta"><span>رقم الجوال</span><strong dir="ltr">{{ complaint.phone|default:"—" }}</strong></div>
+          <div class="complaint-meta"><span>مرجع الطلب أو الاشتراك</span><strong dir="ltr">{{ complaint.order_reference|default:"—" }}</strong></div>
+        </div>
+      </section>
+
+      <section class="complaints-card">
+        <h2><i class="fa-solid fa-align-right"></i> تفاصيل الشكوى</h2>
+        <div class="complaint-message">{{ complaint.message }}</div>
+      </section>
+
+      <section class="complaints-card">
+        <h2><i class="fa-solid fa-clock-rotate-left"></i> سجل الإجراءات</h2>
+        <div class="complaint-timeline">
+          {% for event in activity %}
+          <article class="complaint-event">
+            <strong>{{ event.from_status }} ← {{ event.to_status }}</strong>
+            <span>بواسطة {{ event.actor }} · {{ event.timestamp|date:"Y-m-d H:i" }}</span>
+            {% if event.notes_updated %}<span><i class="fa-solid fa-note-sticky"></i> تم تحديث ملاحظات المعالجة</span>{% endif %}
+          </article>
+          {% empty %}
+          <div class="complaints-empty"><p>لم تُسجل إجراءات إدارية على الشكوى بعد.</p></div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <aside>
+      <section class="complaints-card">
+        <h2><i class="fa-solid fa-list-check"></i> معالجة الشكوى</h2>
+        <p><span class="complaint-badge {{ complaint.status }}">{{ complaint.get_status_display }}</span></p>
+        <form method="post">
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="complaint-errors">{{ form.non_field_errors }}</div>{% endif %}
+          <div class="complaint-field">
+            {{ form.status.label_tag }}
+            {{ form.status }}
+            {% if form.status.errors %}<div class="complaint-errors">{{ form.status.errors }}</div>{% endif %}
+          </div>
+          <div class="complaint-field">
+            {{ form.internal_notes.label_tag }}
+            {{ form.internal_notes }}
+            {% if form.internal_notes.errors %}<div class="complaint-errors">{{ form.internal_notes.errors }}</div>{% endif %}
+          </div>
+          <button class="complaint-action" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ الإجراء</button>
+        </form>
+      </section>
+
+      <section class="complaints-card">
+        <h2><i class="fa-solid fa-calendar-check"></i> التواريخ</h2>
+        <div class="complaint-meta"><span>الاستلام</span><strong>{{ complaint.created_at|date:"Y-m-d H:i" }}</strong></div>
+        <div class="complaint-meta" style="margin-top:.6rem"><span>آخر تحديث</span><strong>{{ complaint.updated_at|date:"Y-m-d H:i" }}</strong></div>
+        <div class="complaint-meta" style="margin-top:.6rem"><span>المعالجة/الإغلاق</span><strong>{{ complaint.resolved_at|date:"Y-m-d H:i"|default:"—" }}</strong></div>
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}

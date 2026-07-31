@@ -339,7 +339,7 @@
 
     .alert-strip {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 0.85rem;
     }
 
@@ -1371,6 +1371,13 @@
                     <span>طلبات تحتاج متابعة من فريق الدعم.</span>
                 </span>
             </a>
+            <a href="{% url 'reports:platform_complaints_list' %}" id="complaintsPendingAlert" class="alert-tile {% if complaints_pending > 0 %}danger{% endif %}">
+                <span class="alert-icon bg-rose-light"><i class="fas fa-comments"></i></span>
+                <span class="alert-body">
+                    <strong><span id="complaintsPendingAlertStat">{{ complaints_pending }}</span> شكاوى تحتاج متابعة</strong>
+                    <span>شكاوى جديدة أو قيد المعالجة.</span>
+                </span>
+            </a>
             <a href="{% url 'reports:platform_subscriptions_list' %}" id="expiringSubscriptionsAlert" class="alert-tile {% if subscriptions_expiring_soon > 0 %}info{% endif %}">
                 <span class="alert-icon bg-indigo-light"><i class="fas fa-calendar-alt"></i></span>
                 <span class="alert-body">
@@ -1486,6 +1493,11 @@
                         <a href="{% url 'reports:platform_tickets_list' %}" class="action-card" data-search-item data-search-title="تذاكر الدعم الفني الدعم">
                             <span class="action-icon bg-rose-light"><i class="fas fa-headset"></i></span>
                             <span class="action-body"><strong>تذاكر الدعم الفني</strong><span>متابعة طلبات المنصة.</span></span>
+                        </a>
+                        <a href="{% url 'reports:platform_complaints_list' %}" class="action-card {% if complaints_pending > 0 %}is-warning{% endif %}" data-search-item data-search-title="شكاوى العملاء المقترحات المتابعة">
+                            <span class="action-icon bg-amber-light"><i class="fas fa-comments"></i></span>
+                            <span class="action-body"><strong>شكاوى العملاء</strong><span>متابعة الحالات وتوثيق الإجراءات.</span></span>
+                            {% if complaints_pending > 0 %}<span class="action-badge">{{ complaints_pending }}</span>{% endif %}
                         </a>
                         <a href="{% url 'reports:platform_school_notify' %}" class="action-card" data-search-item data-search-title="إرسال إشعار للمدرسة تنبيه">
                             <span class="action-icon bg-rose-light"><i class="fas fa-bullhorn"></i></span>
@@ -1842,10 +1854,13 @@ function applyKpiData(payload) {
 
     const operations = (payload && payload.operations) ? payload.operations : {};
     const pendingPaymentsEl = document.getElementById('pendingPaymentsAlertStat');
+    const complaintsPendingEl = document.getElementById('complaintsPendingAlertStat');
     const expiringSubscriptionsEl = document.getElementById('subscriptionsExpiringAlertStat');
     if (pendingPaymentsEl) pendingPaymentsEl.textContent = formatNumberAr(operations.pending_payments);
+    if (complaintsPendingEl) complaintsPendingEl.textContent = formatNumberAr(operations.complaints_pending);
     if (expiringSubscriptionsEl) expiringSubscriptionsEl.textContent = formatNumberAr(operations.subscriptions_expiring_soon);
     document.getElementById('pendingPaymentsAlert')?.classList.toggle('danger', Number(operations.pending_payments || 0) > 0);
+    document.getElementById('complaintsPendingAlert')?.classList.toggle('danger', Number(operations.complaints_pending || 0) > 0);
     document.getElementById('openTicketsAlert')?.classList.toggle('warning', Number(kpis.tickets_open || 0) > 0);
     document.getElementById('expiringSubscriptionsAlert')?.classList.toggle('info', Number(operations.subscriptions_expiring_soon || 0) > 0);
 
