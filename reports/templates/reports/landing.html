@@ -97,7 +97,6 @@
           <a href="#features">الحلول</a>
           <a href="#product">شاهد المنصة</a>
           <a href="#pricing">الباقات</a>
-          <a href="#business">بيانات المتجر</a>
           <a href="#faq">الأسئلة</a>
         </div>
 
@@ -124,7 +123,6 @@
         <a href="#features">حلول المنصة</a>
         <a href="#product">شاهد المنصة</a>
         <a href="#pricing">الباقات</a>
-        <a href="#business">بيانات المتجر</a>
         <a href="#faq">الأسئلة الشائعة</a>
         <div class="mobile-menu-actions">
           <a class="button button-primary" href="{% url 'reports:register_school' %}">ابدأ التجربة المجانية</a>
@@ -555,30 +553,6 @@
       </div>
     </section>
 
-    <section class="section business-section" id="business">
-      <div class="shell business-panel reveal">
-        <div class="business-copy">
-          <span class="section-kicker">هوية مقدم الخدمة</span>
-          <h2>بيانات المتجر ووسائل التواصل</h2>
-          <p>للتواصل المباشر، متابعة الاشتراك، أو ممارسة أي حق متعلق بالخدمة أو البيانات.</p>
-        </div>
-        <dl class="business-grid">
-          <div><dt>الاسم التجاري</dt><dd>{{ BUSINESS.legal_name|default:"منصة توثيق" }}</dd></div>
-          {% if BUSINESS.commercial_registration %}<div><dt>السجل التجاري</dt><dd dir="ltr">{{ BUSINESS.commercial_registration }}</dd></div>{% endif %}
-          {% if BUSINESS.freelance_document_number %}<div><dt>وثيقة العمل الحر</dt><dd dir="ltr">{{ BUSINESS.freelance_document_number }}</dd></div>{% endif %}
-          {% if BUSINESS.freelance_activity %}<div><dt>نشاط الوثيقة</dt><dd>{{ BUSINESS.freelance_activity }}</dd></div>{% endif %}
-          {% if BUSINESS.freelance_document_expiry %}<div><dt>صلاحية الوثيقة</dt><dd dir="ltr">حتى {{ BUSINESS.freelance_document_expiry }}</dd></div>{% endif %}
-          {% if BUSINESS.freelance_document_number and BUSINESS.freelance_document_url %}<div><dt>التحقق من الوثيقة</dt><dd><a href="{{ BUSINESS.freelance_document_url }}" rel="noopener">خدمة التحقق الرسمية</a></dd></div>{% endif %}
-          {% if BUSINESS.tax_number %}<div><dt>الرقم الضريبي</dt><dd dir="ltr">{{ BUSINESS.tax_number }}</dd></div>{% endif %}
-          {% if BUSINESS.licenses %}<div><dt>التراخيص</dt><dd>{{ BUSINESS.licenses }}</dd></div>{% endif %}
-          <div><dt>العنوان</dt><dd>{{ BUSINESS.address }}</dd></div>
-          <div><dt>البريد الإلكتروني</dt><dd><a href="mailto:{{ BUSINESS.support_email }}">{{ BUSINESS.support_email }}</a></dd></div>
-          <div><dt>خدمة العملاء</dt><dd><a href="tel:{{ BUSINESS.support_phone }}" dir="ltr">{{ BUSINESS.support_phone }}</a></dd></div>
-          {% if BUSINESS.verification_url %}<div><dt>توثيق المتجر</dt><dd><a href="{{ BUSINESS.verification_url }}" rel="noopener">التحقق عبر المركز السعودي للأعمال</a></dd></div>{% endif %}
-        </dl>
-      </div>
-    </section>
-
     <section class="final-cta">
       <div class="shell">
         <div class="final-panel reveal">
@@ -613,7 +587,6 @@
       </div>
       <div class="footer-bottom">
         <span>© {% now "Y" %} منصة توثيق. جميع الحقوق محفوظة.</span>
-        <span><i class="fa-solid fa-location-dot"></i> {{ BUSINESS.address }}</span>
       </div>
     </div>
   </footer>

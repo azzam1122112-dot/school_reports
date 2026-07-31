@@ -6,7 +6,7 @@
 <link rel="canonical" href="{{ SITE_URL }}{% url 'reports:complaints_policy' %}">
 {% endblock %}
 {% block legal_title %}سياسة الشكاوى والمقترحات{% endblock %}
-{% block legal_intro %}نستقبل الشكاوى بالعربية عبر نموذج الموقع والبريد والجوال، ونمنح كل شكوى إلكترونية رقم متابعة واضحًا.{% endblock %}
+{% block legal_intro %}نستقبل الشكاوى بالعربية عبر نموذج الموقع، ونمنح كل شكوى إلكترونية رقم متابعة واضحًا.{% endblock %}
 {% block complaints_current %}aria-current="page"{% endblock %}
 
 {% block legal_content %}
@@ -14,8 +14,6 @@
   <h2>قنوات الاستقبال ومدد الخدمة</h2>
   <ul>
     <li>نموذج الشكوى الإلكتروني أدناه، وهو متاح دون تسجيل دخول.</li>
-    <li>البريد الإلكتروني: <a href="mailto:{{ BUSINESS.support_email }}">{{ BUSINESS.support_email }}</a>.</li>
-    <li>الجوال/واتساب: <a href="tel:{{ BUSINESS.support_phone }}" dir="ltr">{{ BUSINESS.support_phone }}</a>.</li>
   </ul>
   <p>نؤكد الاستلام خلال يومي عمل، ونستهدف معالجة الشكوى خلال سبعة أيام عمل. إذا كانت الحالة معقدة، نبلغ العميل بسبب التمديد والموعد المتوقع. تحفظ تفاصيل الشكوى للمتابعة وتحسين الخدمة وفق سياسة الخصوصية.</p>
 </section>
@@ -48,4 +46,3 @@
   <p>إذا لم تُحل الشكوى عبر قنواتنا، يحق للعميل تقديم بلاغ إلى وزارة التجارة عبر الرقم 1900 أو تطبيق «بلاغ تجاري»، أو اللجوء إلى الجهة المختصة، دون أن يؤثر ذلك في أي حق نظامي.</p>
 </section>
 {% endblock %}
-

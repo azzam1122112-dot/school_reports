@@ -16,7 +16,7 @@ from reports.models import CustomerComplaint
     BUSINESS_SUPPORT_PHONE="+966500000000",
 )
 class LegalPagesTests(TestCase):
-    def test_legal_pages_are_public_and_show_business_contact(self):
+    def test_legal_pages_are_public_without_business_identity_or_contact(self):
         routes = (
             "reports:terms_conditions",
             "reports:privacy_policy",
@@ -28,16 +28,17 @@ class LegalPagesTests(TestCase):
             response = self.client.get(reverse(route_name))
             self.assertEqual(response.status_code, 200)
             self.assertNotIn("X-Robots-Tag", response.headers)
-            self.assertContains(response, "شركة توثيق الاختبارية")
-            self.assertContains(response, "care@example.test")
-            self.assertContains(response, "1010123456")
+            self.assertNotContains(response, "شركة توثيق الاختبارية")
+            self.assertNotContains(response, "care@example.test")
+            self.assertNotContains(response, "1010123456")
 
-    def test_landing_discloses_business_identity_and_policy_links(self):
+    def test_landing_keeps_policy_links_without_business_identity(self):
         response = self.client.get(reverse("reports:landing"))
 
-        self.assertContains(response, "شركة توثيق الاختبارية")
-        self.assertContains(response, "1010123456")
-        self.assertContains(response, "310123456700003")
+        self.assertNotContains(response, "شركة توثيق الاختبارية")
+        self.assertNotContains(response, "1010123456")
+        self.assertNotContains(response, "310123456700003")
+        self.assertNotContains(response, "هوية مقدم الخدمة")
         self.assertContains(response, reverse("reports:terms_conditions"))
         self.assertContains(response, reverse("reports:refund_policy"))
         self.assertContains(response, reverse("reports:complaints_policy"))
@@ -81,12 +82,12 @@ class LegalPagesTests(TestCase):
     BUSINESS_SUPPORT_PHONE="+966500000000",
 )
 class FreelanceBusinessDisclosureTests(TestCase):
-    def test_freelance_document_replaces_commercial_registration(self):
+    def test_freelance_document_is_not_rendered_publicly(self):
         response = self.client.get(reverse("reports:landing"))
 
-        self.assertContains(response, "وثيقة العمل الحر")
-        self.assertContains(response, "FL-12345678")
-        self.assertContains(response, "تطوير المواقع والتطبيقات")
-        self.assertContains(response, "2027-06-26")
-        self.assertContains(response, "https://freelance.example.test/verify")
+        self.assertNotContains(response, "وثيقة العمل الحر")
+        self.assertNotContains(response, "FL-12345678")
+        self.assertNotContains(response, "تطوير المواقع والتطبيقات")
+        self.assertNotContains(response, "2027-06-26")
+        self.assertNotContains(response, "https://freelance.example.test/verify")
         self.assertNotContains(response, "السجل التجاري")
