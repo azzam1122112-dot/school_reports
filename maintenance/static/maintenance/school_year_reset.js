@@ -15,6 +15,8 @@
   const targetAll = document.getElementById('targetAll');
   const targetSpecific = document.getElementById('targetSpecific');
   const resetForm = document.getElementById('resetForm');
+  const selectedDataCount = document.getElementById('selectedDataCount');
+  const dataOptionInputs = Array.from(resetForm.querySelectorAll('.data-grid .data-card input[type="checkbox"]'));
 
   const selected = new Map();
   let visibleRows = [];
@@ -129,6 +131,14 @@
     loadSchools({append: false});
   }
 
+  function syncDataSelectionCount() {
+    if (!selectedDataCount) return;
+    const checkedCount = dataOptionInputs.filter(function (input) { return input.checked; }).length;
+    selectedDataCount.textContent = checkedCount
+      ? checkedCount + ' من ' + dataOptionInputs.length + ' محددة للحذف'
+      : 'لم تحدد بيانات تشغيلية للحذف';
+  }
+
   resultsEl.addEventListener('change', function (event) {
     const input = event.target;
     if (!input || input.type !== 'checkbox') return;
@@ -179,6 +189,9 @@
   }
   targetAll.addEventListener('change', syncMode);
   targetSpecific.addEventListener('change', syncMode);
+  dataOptionInputs.forEach(function (input) {
+    input.addEventListener('change', syncDataSelectionCount);
+  });
 
   resetForm.addEventListener('submit', function (event) {
     if (targetSpecific.checked && selected.size === 0) {
@@ -190,5 +203,6 @@
 
   renderSelected();
   syncMode();
+  syncDataSelectionCount();
   resetSearch();
 })();
