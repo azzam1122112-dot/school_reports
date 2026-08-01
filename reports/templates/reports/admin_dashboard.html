@@ -1257,6 +1257,18 @@
             <i class="fa-solid fa-gear" aria-hidden="true"></i>
             <div><h3>الاشتراك والدعم</h3><p>إدارة خدمة المدرسة والتواصل مع فريق المنصة.</p></div>
           </header>
+          <div style="padding:.85rem;border:1px solid rgba(15,23,42,.1);border-radius:14px;margin-bottom:.85rem;background:rgba(148,163,184,.06)">
+            <form method="post" action="{% url 'reports:admin_dashboard' %}" style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;justify-content:space-between">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="toggle_weekly_summary_email">
+              <label style="display:flex;gap:.5rem;align-items:center;cursor:pointer;margin:0">
+                <input type="checkbox" name="weekly_summary_email_enabled" value="1" {% if weekly_summary_email_enabled %}checked{% endif %}>
+                <span>استقبال الملخص الأسبوعي على البريد الإلكتروني</span>
+              </label>
+              <button type="submit" class="manager-refresh" style="height:auto;padding:.45rem .9rem">حفظ</button>
+            </form>
+            <small style="display:block;margin-top:.45rem;color:#64748b">يصل الملخص الأسبوعي يوم الخميس بعد الساعة 4:00 مساءً.</small>
+          </div>
           <div class="manager-workspace__links">
             <a class="manager-workspace__link" href="{% url 'reports:school_audit_logs' %}"><span>سجل عمليات المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:my_subscription' %}"><span>اشتراك المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>

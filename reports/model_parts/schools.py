@@ -595,6 +595,11 @@ class SchoolMembership(models.Model):
         default=JobTitle.TEACHER,
         help_text="للعرض فقط داخل المدرسة (بنفس الصلاحيات).",
     )
+    weekly_summary_email_enabled = models.BooleanField(
+        "استقبال الملخص الأسبوعي على الإيميل",
+        default=True,
+        help_text="خاص بمدير المدرسة: عند إيقافه لن تُرسل رسائل الملخص الأسبوعي لهذا المدير.",
+    )
     is_active = models.BooleanField("نشط؟", default=True)
     created_at = models.DateTimeField("أُنشئ في", auto_now_add=True)
 

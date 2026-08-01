@@ -894,7 +894,7 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(_is_staff, login_url="reports:login")
 @role_required({"manager"})
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "POST"])
 
 def admin_dashboard(request: HttpRequest) -> HttpResponse:
     """لوحة عمل مدير المدرسة."""
@@ -914,6 +914,30 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         "has_dept_model": Department is not None,
         "active_school": active_school,
     }
+
+    manager_membership = None
+    if active_school is not None:
+        manager_membership = SchoolMembership.objects.filter(
+            school=active_school,
+            teacher=request.user,
+            role_type=SchoolMembership.RoleType.MANAGER,
+            is_active=True,
+        ).only("id", "weekly_summary_email_enabled").first()
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+        if action == "toggle_weekly_summary_email":
+            if manager_membership is None:
+                messages.error(request, "لا يمكن حفظ إعداد الملخص الأسبوعي لهذه المدرسة.")
+                return redirect("reports:admin_dashboard")
+
+            email_pref_enabled = request.POST.get("weekly_summary_email_enabled") == "1"
+            SchoolMembership.objects.filter(pk=manager_membership.pk).update(
+                weekly_summary_email_enabled=email_pref_enabled,
+            )
+            manager_membership.weekly_summary_email_enabled = email_pref_enabled
+            messages.success(request, "تم تحديث تفضيل استلام الملخص الأسبوعي بنجاح.")
+            return redirect("reports:admin_dashboard")
 
     has_reporttype = False
     reporttypes_count = 0
@@ -1098,6 +1122,9 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     ctx.update(
         {
             **payload_kpis,
+            "weekly_summary_email_enabled": bool(
+                getattr(manager_membership, "weekly_summary_email_enabled", True)
+            ),
             "initial_period": selected_period,
             "selected_period_label": dashboard_payload["period_label"],
             "ticket_completion_rate": ticket_completion_rate,

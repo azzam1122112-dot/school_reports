@@ -10,9 +10,10 @@ from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache as django_cache
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.core.validators import validate_email
 from django.db.models import Count, Q
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .storage import _compress_image_file
@@ -446,6 +447,38 @@ def _build_weekly_message(
     )
 
 
+def _build_weekly_email_html(
+    *,
+    manager_name: str,
+    school_name: str,
+    period_text: str,
+    reports_count: int,
+    open_tickets_count: int,
+    closed_tickets_count: int,
+    details_url: str,
+) -> str:
+    site_url = (getattr(settings, "SITE_URL", "") or "").strip().rstrip("/")
+    static_url = (getattr(settings, "STATIC_URL", "/static/") or "/static/").strip()
+    if not static_url.startswith("/"):
+        static_url = f"/{static_url}"
+    logo_url = f"{site_url}{static_url.rstrip('/')}/img/logo1.png" if site_url else ""
+
+    return render_to_string(
+        "reports/emails/weekly_manager_summary.html",
+        {
+            "platform_name": "منصة توثيق",
+            "manager_name": manager_name or "مدير المدرسة",
+            "school_name": school_name,
+            "period_text": period_text,
+            "reports_count": int(reports_count),
+            "open_tickets_count": int(open_tickets_count),
+            "closed_tickets_count": int(closed_tickets_count),
+            "details_url": details_url,
+            "logo_url": logo_url,
+        },
+    )
+
+
 def _weekly_summary_window(reference_dt=None):
     """Return the weekly reporting window: Sunday 00:00 -> Thursday 16:00 (exclusive)."""
     tz = timezone.get_current_timezone()
@@ -607,14 +640,25 @@ def _daily_summary_for_school(school_id: int) -> dict:
     manager_memberships = (
         SchoolMembership.objects.select_related("teacher")
         .filter(school=school, role_type="manager", is_active=True, teacher__is_active=True)
-        .only("teacher__id", "teacher__name", "teacher__phone", "teacher__email")
+        .only(
+            "teacher__id",
+            "teacher__name",
+            "teacher__phone",
+            "teacher__email",
+            "weekly_summary_email_enabled",
+        )
     )
-    manager_by_id: dict[int, object] = {}
+    manager_by_id: dict[int, dict[str, object]] = {}
     for membership in manager_memberships:
         manager = getattr(membership, "teacher", None)
         mid = int(getattr(manager, "id", 0) or 0)
         if manager is not None and mid and mid not in manager_by_id:
-            manager_by_id[mid] = manager
+            manager_by_id[mid] = {
+                "teacher": manager,
+                "weekly_summary_email_enabled": bool(
+                    getattr(membership, "weekly_summary_email_enabled", True)
+                ),
+            }
 
     managers = list(manager_by_id.values())
     if not managers:
@@ -655,20 +699,36 @@ def _daily_summary_for_school(school_id: int) -> dict:
             inapp_recipient_ids.update(manager_ids)
             result["inapp_sent"] += len(manager_ids)
 
-    for manager in managers:
+    for manager_item in managers:
+        manager = manager_item.get("teacher")
         mid = int(getattr(manager, "id", 0) or 0)
         if not mid:
             continue
         manager_email = (getattr(manager, "email", "") or "").strip()
         manager_phone = (getattr(manager, "phone", "") or "").strip()
+        email_pref_enabled = bool(manager_item.get("weekly_summary_email_enabled", True))
 
-        if email_enabled and _is_valid_email(manager_email):
+        if email_enabled and email_pref_enabled and _is_valid_email(manager_email):
             try:
-                send_mail(
-                    subject=subject, message=message_text,
-                    from_email=from_email, recipient_list=[manager_email],
-                    fail_silently=False,
+                email = EmailMultiAlternatives(
+                    subject=subject,
+                    body=message_text,
+                    from_email=from_email,
+                    to=[manager_email],
                 )
+                email.attach_alternative(
+                    _build_weekly_email_html(
+                        manager_name=(getattr(manager, "name", "") or "").strip(),
+                        school_name=getattr(school, "name", "") or "المدرسة",
+                        period_text=period_text,
+                        reports_count=reports_count,
+                        open_tickets_count=ticket_agg["open"],
+                        closed_tickets_count=ticket_agg["closed"],
+                        details_url=details_url,
+                    ),
+                    "text/html",
+                )
+                email.send(fail_silently=False)
                 result["emails_sent"] += 1
             except Exception:
                 logger.exception("Daily summary email failed school=%s manager=%s", school_id, mid)
@@ -745,7 +805,7 @@ def send_daily_manager_summary_task() -> dict:
             logger.exception("Failed to dispatch weekly summary for school=%s", sid)
 
     summary["schools_processed"] = dispatched
-        logger.info("Weekly manager summary dispatched %d/%d school subtasks", dispatched, len(school_ids))
+    logger.info("Weekly manager summary dispatched %d/%d school subtasks", dispatched, len(school_ids))
     opmetrics.timing("celery.periodic.daily_manager_summary", (_time.monotonic() - _t0) * 1000)
     return summary
 

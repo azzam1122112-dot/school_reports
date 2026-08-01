@@ -130,6 +130,39 @@ class ManagerExperienceTests(TestCase):
         self.assertContains(response, "بيانات المدرسة والسنة الحالية")
         self.assertContains(response, "الأقسام")
 
+    def test_manager_can_toggle_weekly_summary_email_preference_from_dashboard(self):
+        self._login_manager()
+
+        response = self.client.get(reverse("reports:admin_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "استقبال الملخص الأسبوعي على البريد الإلكتروني")
+        self.assertContains(response, 'name="weekly_summary_email_enabled"')
+        self.assertContains(response, "checked")
+
+        post_disable = self.client.post(
+            reverse("reports:admin_dashboard"),
+            {"action": "toggle_weekly_summary_email"},
+            follow=True,
+        )
+
+        self.assertEqual(post_disable.status_code, 200)
+        self.manager_membership.refresh_from_db()
+        self.assertFalse(self.manager_membership.weekly_summary_email_enabled)
+
+        post_enable = self.client.post(
+            reverse("reports:admin_dashboard"),
+            {
+                "action": "toggle_weekly_summary_email",
+                "weekly_summary_email_enabled": "1",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(post_enable.status_code, 200)
+        self.manager_membership.refresh_from_db()
+        self.assertTrue(self.manager_membership.weekly_summary_email_enabled)
+
     def test_dashboard_period_never_hides_old_open_actionable_ticket(self):
         ticket = Ticket.objects.create(
             school=self.school,

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ platform_name }} | الملخص الأسبوعي</title>
+</head>
+<body style="margin:0;padding:0;background:#eef3ef;color:#17342a;font-family:Tahoma,Arial,sans-serif;direction:rtl;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">ملخص {{ school_name }} الأسبوعي: {{ reports_count }} تقريرًا و{{ open_tickets_count }} بلاغًا مفتوحًا.</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#eef3ef;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+        <table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #dce7df;border-radius:8px;overflow:hidden;box-shadow:0 16px 40px rgba(20,55,43,.10);">
+          <tr>
+            <td style="padding:30px 34px;background:#006c35;border-bottom:5px solid #b9975b;text-align:right;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td valign="middle" style="text-align:right;">
+                    <div style="font-size:13px;line-height:1.7;color:#dcefe4;">نظام التقارير المدرسية</div>
+                    <div style="font-size:27px;line-height:1.45;font-weight:800;color:#ffffff;">{{ platform_name }}</div>
+                  </td>
+                  <td width="92" valign="middle" style="text-align:left;">
+                    {% if logo_url %}<img src="{{ logo_url }}" width="76" alt="شعار {{ platform_name }}" style="display:block;width:76px;max-width:76px;height:auto;margin-right:auto;padding:6px;background:#ffffff;border:1px solid #e7d7b6;border-radius:6px;">{% endif %}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:34px 34px 14px;text-align:right;">
+              <div style="font-size:14px;line-height:1.8;color:#60756c;">مرحبًا {{ manager_name }}،</div>
+              <div style="margin-top:8px;font-size:14px;line-height:1.8;font-weight:700;color:#9a762f;">الملخص الأسبوعي للمدرسة</div>
+              <h1 style="margin:3px 0 8px;font-size:25px;line-height:1.55;color:#17342a;font-weight:800;letter-spacing:0;">{{ school_name }}</h1>
+              <div style="font-size:13px;line-height:1.8;color:#718078;">فترة الملخص: <span dir="ltr" style="color:#39564b;font-weight:700;">{{ period_text }}</span></div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 26px 8px;">
+              <table role="presentation" width="100%" cellspacing="8" cellpadding="0" border="0" style="width:100%;table-layout:fixed;">
+                <tr>
+                  <td width="33.33%" style="padding:20px 8px;text-align:center;background:#f1f8f4;border:1px solid #d4e8dc;border-radius:6px;">
+                    <div style="font-size:30px;line-height:1.2;font-weight:800;color:#006c35;">{{ reports_count }}</div>
+                    <div style="margin-top:8px;font-size:12px;line-height:1.5;color:#526a60;">التقارير المنجزة</div>
+                  </td>
+                  <td width="33.33%" style="padding:20px 8px;text-align:center;background:#fff8e9;border:1px solid #ecd9ae;border-radius:6px;">
+                    <div style="font-size:30px;line-height:1.2;font-weight:800;color:#9a762f;">{{ open_tickets_count }}</div>
+                    <div style="margin-top:8px;font-size:12px;line-height:1.5;color:#6d6042;">البلاغات المفتوحة</div>
+                  </td>
+                  <td width="33.33%" style="padding:20px 8px;text-align:center;background:#f4f6f5;border:1px solid #dfe5e2;border-radius:6px;">
+                    <div style="font-size:30px;line-height:1.2;font-weight:800;color:#39564b;">{{ closed_tickets_count }}</div>
+                    <div style="margin-top:8px;font-size:12px;line-height:1.5;color:#526a60;">البلاغات المغلقة</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:26px 34px 38px;">
+              <a href="{{ details_url }}" style="display:inline-block;padding:13px 30px;background:#006c35;color:#ffffff;text-decoration:none;font-size:14px;line-height:1.5;font-weight:700;border-radius:5px;border-bottom:3px solid #004f27;">عرض تفاصيل المدرسة</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 30px;background:#f7faf8;border-top:1px solid #e2ebe5;text-align:center;font-size:11px;line-height:1.8;color:#718078;">
+              أُرسل هذا الملخص آليًا من {{ platform_name }} لمساعدتك في متابعة أداء المدرسة.<br>
+              <span style="color:#9a762f;">توثيق أدق، متابعة أوضح.</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
