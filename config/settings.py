@@ -612,20 +612,26 @@ AUDIT_LOG_CLEANUP_ENABLED = _env_bool("AUDIT_LOG_CLEANUP_ENABLED", True)
 # ----------------- Daily Manager Report -----------------
 DAILY_MANAGER_REPORT_ENABLED = _env_bool("DAILY_MANAGER_REPORT_ENABLED", True)
 DAILY_MANAGER_REPORT_INAPP_ENABLED = _env_bool("DAILY_MANAGER_REPORT_INAPP_ENABLED", True)
-DAILY_MANAGER_REPORT_EMAIL_ENABLED = _env_bool("DAILY_MANAGER_REPORT_EMAIL_ENABLED", False)
+DAILY_MANAGER_REPORT_EMAIL_ENABLED = _env_bool("DAILY_MANAGER_REPORT_EMAIL_ENABLED", True)
 DAILY_MANAGER_REPORT_WHATSAPP_ENABLED = _env_bool("DAILY_MANAGER_REPORT_WHATSAPP_ENABLED", False)
 
 try:
-    DAILY_MANAGER_REPORT_HOUR = int((os.getenv("DAILY_MANAGER_REPORT_HOUR", "14") or "14").strip())
+    DAILY_MANAGER_REPORT_HOUR = int((os.getenv("DAILY_MANAGER_REPORT_HOUR", "16") or "16").strip())
 except Exception:
-    DAILY_MANAGER_REPORT_HOUR = 14
+    DAILY_MANAGER_REPORT_HOUR = 16
 DAILY_MANAGER_REPORT_HOUR = max(0, min(23, DAILY_MANAGER_REPORT_HOUR))
 
 try:
-    DAILY_MANAGER_REPORT_MINUTE = int((os.getenv("DAILY_MANAGER_REPORT_MINUTE", "0") or "0").strip())
+    DAILY_MANAGER_REPORT_MINUTE = int((os.getenv("DAILY_MANAGER_REPORT_MINUTE", "5") or "5").strip())
 except Exception:
-    DAILY_MANAGER_REPORT_MINUTE = 0
+    DAILY_MANAGER_REPORT_MINUTE = 5
 DAILY_MANAGER_REPORT_MINUTE = max(0, min(59, DAILY_MANAGER_REPORT_MINUTE))
+
+DAILY_MANAGER_REPORT_DAY_OF_WEEK = (os.getenv("DAILY_MANAGER_REPORT_DAY_OF_WEEK", "thu") or "thu").strip().lower()
+if DAILY_MANAGER_REPORT_DAY_OF_WEEK in {"thursday", "thur", "khamis"}:
+    DAILY_MANAGER_REPORT_DAY_OF_WEEK = "thu"
+if DAILY_MANAGER_REPORT_DAY_OF_WEEK in {"*", "all", "daily"}:
+    DAILY_MANAGER_REPORT_DAY_OF_WEEK = "*"
 
 DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL = (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_URL") or "").strip()
 DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_TOKEN = (os.getenv("DAILY_MANAGER_REPORT_WHATSAPP_WEBHOOK_TOKEN") or "").strip()
@@ -712,7 +718,11 @@ if crontab is not None:
     if DAILY_MANAGER_REPORT_ENABLED:
         CELERY_BEAT_SCHEDULE["send-daily-manager-summary"] = {
             "task": "reports.tasks.send_daily_manager_summary_task",
-            "schedule": crontab(minute=DAILY_MANAGER_REPORT_MINUTE, hour=DAILY_MANAGER_REPORT_HOUR),
+            "schedule": crontab(
+                minute=DAILY_MANAGER_REPORT_MINUTE,
+                hour=DAILY_MANAGER_REPORT_HOUR,
+                day_of_week=DAILY_MANAGER_REPORT_DAY_OF_WEEK,
+            ),
         }
 
     if SUBSCRIPTION_EXPIRY_REMINDER_ENABLED:

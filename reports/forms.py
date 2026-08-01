@@ -999,10 +999,23 @@ class ManagerCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self._require_email = bool(kwargs.pop("require_email", False))
         super().__init__(*args, **kwargs)
+
+        if self._require_email:
+            self.fields["email"].required = True
+            self.fields["email"].widget.attrs["required"] = "required"
+            self.fields["email"].help_text = "إجباري لمدير المدرسة لاستقبال الملخص الأسبوعي."
+
         if self.instance and self.instance.pk:
             self.fields["password"].required = False
             self.fields["password"].widget.attrs["placeholder"] = "اتركها فارغة للإبقاء على الحالية"
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip()
+        if self._require_email and not email:
+            raise ValidationError("البريد الإلكتروني إلزامي لمدير المدرسة.")
+        return email
 
     def save(self, commit=True):
         instance = super().save(commit=False)

@@ -109,6 +109,18 @@ class SchoolRegistrationForm(forms.Form):
             }
         ),
     )
+    manager_email = forms.EmailField(
+        label="البريد الإلكتروني لمدير المدرسة",
+        required=True,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "dir": "ltr",
+                "placeholder": "manager@school.edu.sa",
+                "autocomplete": "email",
+            }
+        ),
+    )
     password = forms.CharField(
         label="كلمة المرور", min_length=8,
         widget=forms.PasswordInput(
@@ -233,6 +245,7 @@ def register_school(request):
                     manager = Teacher.objects.create_user(
                         phone=form.cleaned_data["manager_phone"],
                         name=form.cleaned_data["manager_name"],
+                        email=form.cleaned_data["manager_email"],
                         password=form.cleaned_data["password"],
                     )
 

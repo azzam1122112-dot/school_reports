@@ -823,6 +823,11 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect("reports:school_managers_manage", pk=school.pk)
 
         if action == "add":
+            manager_email = (getattr(teacher, "email", "") or "").strip()
+            if not manager_email:
+                messages.error(request, "لا يمكن تعيين مدير مدرسة بدون بريد إلكتروني. حدّث بيانات المستخدم أولاً.")
+                return redirect("reports:school_managers_manage", pk=school.pk)
+
             # لا نسمح بأكثر من مدير نشط واحد لكل مدرسة
             other_manager_exists = SchoolMembership.objects.filter(
                 school=school,
@@ -1356,7 +1361,7 @@ def school_manager_create(request: HttpRequest) -> HttpResponse:
     schools = School.objects.filter(is_active=True).order_by("name")
     initial_school_id = request.GET.get("school_id")
 
-    form = ManagerCreateForm(request.POST or None)
+    form = ManagerCreateForm(request.POST or None, require_email=True)
     selected_ids = request.POST.getlist("schools") if request.method == "POST" else ([] if not initial_school_id else [initial_school_id])
 
     if request.method == "POST":
@@ -1522,7 +1527,7 @@ def school_manager_update(request: HttpRequest, pk: int) -> HttpResponse:
     schools = School.objects.filter(is_active=True).order_by("name")
 
     if request.method == "POST":
-        form = ManagerCreateForm(request.POST or None, instance=manager)
+        form = ManagerCreateForm(request.POST or None, instance=manager, require_email=True)
         selected_ids = request.POST.getlist("schools")
         if not selected_ids:
             messages.error(request, "يجب ربط المدير بمدرسة واحدة على الأقل.")
@@ -1571,7 +1576,7 @@ def school_manager_update(request: HttpRequest, pk: int) -> HttpResponse:
             is_active=True,
         ).values_list("school_id", flat=True)
         selected_ids = [str(i) for i in existing_ids]
-        form = ManagerCreateForm(instance=manager)
+        form = ManagerCreateForm(instance=manager, require_email=True)
 
     context = {
         "form": form,

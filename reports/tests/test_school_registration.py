@@ -28,6 +28,7 @@ class SchoolRegistrationFlowTests(TestCase):
             "city": "الرياض",
             "manager_name": "مدير المدرسة",
             "manager_phone": "+966 55 123 4567",
+            "manager_email": "manager@example.edu.sa",
             "password": "FreeTrial#2026",
             "password_confirm": "FreeTrial#2026",
             "accept_policies": "on",
@@ -66,6 +67,7 @@ class SchoolRegistrationFlowTests(TestCase):
         self.assertEqual(membership.role_type, SchoolMembership.RoleType.MANAGER)
         self.assertTrue(membership.is_active)
         self.assertTrue(manager.check_password("FreeTrial#2026"))
+        self.assertEqual(manager.email, "manager@example.edu.sa")
         self.assertNotIn("FreeTrial#2026", manager.password)
         self.assertEqual(subscription.plan.price, 0)
         self.assertTrue(subscription.plan.is_active)
@@ -109,6 +111,17 @@ class SchoolRegistrationFlowTests(TestCase):
         self.assertFalse(School.objects.exists())
         self.assertFalse(Teacher.objects.exists())
         self.assertFalse(SubscriptionPlan.objects.exists())
+
+    def test_missing_manager_email_rejects_registration(self):
+        response = self.client.post(
+            reverse("reports:register_school"),
+            self.registration_payload(manager_email=""),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "هذا الحقل مطلوب")
+        self.assertFalse(School.objects.exists())
+        self.assertFalse(Teacher.objects.exists())
 
     def test_registration_preserves_first_touch_marketing_attribution(self):
         self.client.get(

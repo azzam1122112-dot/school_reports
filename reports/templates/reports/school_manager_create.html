@@ -253,9 +253,9 @@
               </div>
 
               <div>
-                <label for="{{ form.email.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">البريد الإلكتروني (اختياري)</label>
+                <label for="{{ form.email.id_for_label }}" style="display:block;font-weight:950;margin-bottom:6px;color:var(--ink)">البريد الإلكتروني <span style="color:#dc2626">*</span></label>
                 {{ form.email }}
-                <div class="hint">يُستخدم لاستقبال التقرير اليومي تلقائيًا.</div>
+                <div class="hint">إجباري لاستقبال الملخص الأسبوعي (من الأحد حتى الخميس 4:00 م).</div>
                 {% for e in form.email.errors %}<div class="field-error">• {{ e }}</div>{% endfor %}
               </div>
 

@@ -427,23 +427,42 @@ def _build_school_details_url(school_id: int) -> str:
     return path
 
 
-def _build_daily_message(
+def _build_weekly_message(
     school_name: str,
-    report_date_text: str,
+    period_text: str,
     reports_count: int,
     open_tickets_count: int,
     closed_tickets_count: int,
     details_url: str,
 ) -> str:
     return (
-        f"تقرير اليوم - {school_name}\n\n"
-        f"تاريخ التقرير: {report_date_text}\n"
+        f"الملخص الأسبوعي - {school_name}\n\n"
+        f"فترة التقرير: {period_text}\n"
         f"عدد التقارير: {int(reports_count)}\n"
         f"البلاغات المفتوحة: {int(open_tickets_count)}\n"
         f"البلاغات المغلقة: {int(closed_tickets_count)}\n\n"
         "عرض التفاصيل:\n"
         f"{details_url}"
     )
+
+
+def _weekly_summary_window(reference_dt=None):
+    """Return the weekly reporting window: Sunday 00:00 -> Thursday 16:00 (exclusive)."""
+    tz = timezone.get_current_timezone()
+    now_local = timezone.localtime(reference_dt or timezone.now(), tz)
+
+    # Python weekday: Monday=0 ... Sunday=6, Thursday=3
+    days_since_thursday = (now_local.weekday() - 3) % 7
+    thursday_date = (now_local - timedelta(days=days_since_thursday)).date()
+    end_dt = timezone.make_aware(datetime.combine(thursday_date, dt_time(hour=16, minute=0)), tz)
+
+    # If run before this week's Thursday 16:00, use the previous week's window.
+    if now_local < end_dt:
+        end_dt -= timedelta(days=7)
+
+    start_date = (end_dt - timedelta(days=4)).date()  # Sunday
+    start_dt = timezone.make_aware(datetime.combine(start_date, dt_time.min), tz)
+    return start_dt, end_dt
 
 
 def _post_json(url: str, payload: dict, timeout_seconds: float = 10.0, token: str = "") -> bool:
@@ -554,7 +573,7 @@ def _send_inapp_notification(
 
 @shared_task(ignore_result=True, soft_time_limit=60, time_limit=120)
 def _daily_summary_for_school(school_id: int) -> dict:
-    """Process daily manager summary for a single school (fan-out subtask)."""
+    """Process weekly manager summary for a single school (fan-out subtask)."""
     School = apps.get_model("reports", "School")
     SchoolMembership = apps.get_model("reports", "SchoolMembership")
     Report = apps.get_model("reports", "Report")
@@ -565,11 +584,8 @@ def _daily_summary_for_school(school_id: int) -> dict:
     whatsapp_enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_WHATSAPP_ENABLED", False))
     from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
 
-    today = timezone.localdate()
-    tz = timezone.get_current_timezone()
-    day_start = timezone.make_aware(datetime.combine(today, dt_time.min), tz)
-    day_end = day_start + timedelta(days=1)
-    report_date_text = today.strftime("%Y-%m-%d")
+    week_start, week_end = _weekly_summary_window()
+    period_text = f"{week_start.strftime('%Y-%m-%d')} إلى {week_end.strftime('%Y-%m-%d %H:%M')}"
     open_ticket_statuses = ("open", "in_progress")
     closed_ticket_statuses = ("done", "rejected")
 
@@ -605,24 +621,28 @@ def _daily_summary_for_school(school_id: int) -> dict:
         return result
 
     reports_count = Report.objects.filter(
-        school=school, created_at__gte=day_start, created_at__lt=day_end,
+        school=school, created_at__gte=week_start, created_at__lt=week_end,
     ).count()
 
-    ticket_agg = Ticket.objects.filter(school=school).aggregate(
+    ticket_agg = Ticket.objects.filter(
+        school=school,
+        created_at__gte=week_start,
+        created_at__lt=week_end,
+    ).aggregate(
         open=Count("id", filter=Q(status__in=open_ticket_statuses)),
         closed=Count("id", filter=Q(status__in=closed_ticket_statuses)),
     )
 
     details_url = _build_school_details_url(school.id)
-    message_text = _build_daily_message(
+    message_text = _build_weekly_message(
         school_name=getattr(school, "name", "") or "المدرسة",
-        report_date_text=report_date_text,
+        period_text=period_text,
         reports_count=reports_count,
         open_tickets_count=ticket_agg["open"],
         closed_tickets_count=ticket_agg["closed"],
         details_url=details_url,
     )
-    subject = f"تقرير اليوم - {getattr(school, 'name', '') or 'المدرسة'}"
+    subject = f"الملخص الأسبوعي - {getattr(school, 'name', '') or 'المدرسة'}"
 
     manager_ids = list(manager_by_id.keys())
     inapp_recipient_ids: set[int] = set()
@@ -661,7 +681,7 @@ def _daily_summary_for_school(school_id: int) -> dict:
                 reports_count=reports_count,
                 open_tickets_count=ticket_agg["open"],
                 closed_tickets_count=ticket_agg["closed"],
-                report_date_text=report_date_text,
+                report_date_text=period_text,
             )
             if ok:
                 result["whatsapp_sent"] += 1
@@ -673,7 +693,7 @@ def _daily_summary_for_school(school_id: int) -> dict:
 @shared_task(ignore_result=True, soft_time_limit=300, time_limit=600)
 def send_daily_manager_summary_task() -> dict:
     """
-    Daily summary dispatcher — fans out to one subtask per active school.
+    Weekly summary dispatcher — fans out to one subtask per active school.
 
     Channels:
     - In-app notification (internal)
@@ -686,7 +706,7 @@ def send_daily_manager_summary_task() -> dict:
     enabled = bool(getattr(settings, "DAILY_MANAGER_REPORT_ENABLED", True))
 
     if not _periodic_lock("daily_manager_summary", ttl=600):
-        logger.info("Daily manager summary task skipped: another instance is running.")
+        logger.info("Weekly manager summary task skipped: another instance is running.")
         return {"enabled": enabled, "skipped": "lock"}
 
     summary = {
@@ -704,7 +724,7 @@ def send_daily_manager_summary_task() -> dict:
     }
 
     if not enabled:
-        logger.info("Daily manager summary task skipped: feature disabled.")
+        logger.info("Weekly manager summary task skipped: feature disabled.")
         return summary
 
     School = apps.get_model("reports", "School")
@@ -722,10 +742,10 @@ def send_daily_manager_summary_task() -> dict:
             _daily_summary_for_school.delay(sid)
             dispatched += 1
         except Exception:
-            logger.exception("Failed to dispatch daily summary for school=%s", sid)
+            logger.exception("Failed to dispatch weekly summary for school=%s", sid)
 
     summary["schools_processed"] = dispatched
-    logger.info("Daily manager summary dispatched %d/%d school subtasks", dispatched, len(school_ids))
+        logger.info("Weekly manager summary dispatched %d/%d school subtasks", dispatched, len(school_ids))
     opmetrics.timing("celery.periodic.daily_manager_summary", (_time.monotonic() - _t0) * 1000)
     return summary
 

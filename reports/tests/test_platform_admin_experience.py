@@ -202,3 +202,20 @@ class PlatformAdminExperienceTests(TestCase):
                     saved = json.loads(file_path.read_text(encoding="utf-8"))
                     self.assertEqual(saved["knowledge_items"][0]["slug"], "sample")
                     reload_mock.assert_called_once()
+
+    def test_school_manager_creation_requires_email(self):
+        response = self.client.post(
+            reverse("reports:school_manager_create"),
+            data={
+                "name": "مدير بدون بريد",
+                "phone": "0551234511",
+                "email": "",
+                "password": "ManagerPass#2026",
+                "is_active": "on",
+                "schools": [str(self.school.id)],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "هذا الحقل مطلوب")
+        self.assertFalse(Teacher.objects.filter(phone="0551234511").exists())
