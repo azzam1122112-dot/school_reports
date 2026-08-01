@@ -8,10 +8,50 @@ from __future__ import annotations
 import os
 import time
 import logging
+from urllib.parse import urlencode
 
+from django.contrib import messages
 from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.csrf import csrf_failure as django_csrf_failure
 
 logger = logging.getLogger(__name__)
+
+
+def csrf_failure(request, reason=""):
+    """Refresh stale login forms without weakening CSRF checks elsewhere."""
+    login_paths = {
+        reverse("reports:login"),
+        reverse("reports:platform_login"),
+    }
+    if request.path not in login_paths:
+        return django_csrf_failure(request, reason=reason)
+
+    next_value = str(request.POST.get("next") or "").strip()
+    if next_value and not url_has_allowed_host_and_scheme(
+        next_value,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_value = ""
+
+    logger.info(
+        "Stale login CSRF token refreshed path=%s trace_id=%s",
+        request.path,
+        getattr(request, "trace_id", None),
+    )
+    messages.error(
+        request,
+        "انتهت صلاحية صفحة الدخول. حدّثنا الصفحة برمز أمان جديد؛ أدخل بياناتك مرة أخرى.",
+    )
+    target = request.path
+    if next_value:
+        target = f"{target}?{urlencode({'next': next_value})}"
+    response = redirect(target)
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 def _env_bool(name: str, default: bool = False) -> bool:

@@ -134,6 +134,7 @@ def _default_csrf_trusted_origins() -> list[str]:
 
 _csrf_env = (os.getenv("CSRF_TRUSTED_ORIGINS") or "").strip()
 CSRF_TRUSTED_ORIGINS = _split_env_list(_csrf_env) if _csrf_env else _default_csrf_trusted_origins()
+CSRF_FAILURE_VIEW = "core.views.csrf_failure"
 
 
 # ----------------- Share Links (public, no-account) -----------------
