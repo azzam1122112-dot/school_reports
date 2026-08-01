@@ -445,7 +445,7 @@ class _SchoolSettingsForm(forms.ModelForm):
         # السنة الحالية: قائمة منسدلة بدل الإدخال اليدوي
         self.fields["current_academic_year"] = forms.ChoiceField(
             label="السنة الدراسية الحالية (هجري)",
-            required=False,
+            required=True,
             choices=[("", "— اختر السنة —")] + choices,
             widget=forms.Select(),
         )

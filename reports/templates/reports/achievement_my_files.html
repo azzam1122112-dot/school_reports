@@ -331,6 +331,7 @@
             <div class="af-err">{{ create_form.non_field_errors }}</div>
             {% endif %}
 
+            {% if create_form.fields.academic_year.choices %}
             <div class="af-row">
             <div class="af-field">
                 <label class="af-label" for="{{ create_form.academic_year.id_for_label }}">اختر السنة الدراسية</label>
@@ -350,6 +351,13 @@
                 </button>
             </div>
             </div>
+            {% else %}
+            <div class="af-empty" style="padding:20px;">
+              <i class="fa-solid fa-calendar-xmark"></i>
+              <b>لم تُحدد السنة الدراسية الحالية</b>
+              <p>يرجى من مدير المدرسة تحديدها من إعدادات المدرسة أولًا.</p>
+            </div>
+            {% endif %}
         </form>
       </div>
 

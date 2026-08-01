@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from reports.forms import TicketCreateForm
 from reports.models import (
+    AcademicYear,
     Department,
     DepartmentMembership,
     School,
@@ -16,6 +17,7 @@ from reports.models import (
     SchoolSubscription,
     SubscriptionPlan,
     Teacher,
+    TeacherAchievementFile,
 )
 
 
@@ -50,6 +52,57 @@ class TeacherExperienceTests(TestCase):
         session = self.client.session
         session["active_school_id"] = self.school.id
         session.save()
+
+    def test_achievement_creation_uses_only_school_current_academic_year(self):
+        AcademicYear.objects.update(is_active=False)
+        AcademicYear.objects.update_or_create(value="1447-1448", defaults={"is_active": True})
+        AcademicYear.objects.update_or_create(value="1448-1449", defaults={"is_active": True})
+        TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1446-1447",
+        )
+        self._login_teacher()
+
+        response = self.client.get(reverse("reports:achievement_my_files"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            list(response.context["create_form"].fields["academic_year"].choices),
+            [("1447-1448", "1447-1448 هـ")],
+        )
+
+    def test_achievement_creation_waits_for_manager_to_select_current_year(self):
+        self.school.current_academic_year = ""
+        self.school.save(update_fields=["current_academic_year"])
+        self._login_teacher()
+
+        response = self.client.get(reverse("reports:achievement_my_files"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            list(response.context["create_form"].fields["academic_year"].choices),
+            [],
+        )
+        self.assertContains(response, "لم تُحدد السنة الدراسية الحالية")
+        self.assertContains(response, "مدير المدرسة")
+
+    def test_teacher_cannot_move_achievement_file_outside_school_current_year(self):
+        achievement_file = TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1446-1447",
+        )
+        self._login_teacher()
+
+        response = self.client.post(
+            reverse("reports:achievement_file_update_year", args=[achievement_file.pk]),
+            {"academic_year": "1448-1449"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        achievement_file.refresh_from_db()
+        self.assertEqual(achievement_file.academic_year, "1446-1447")
 
     def test_home_prioritizes_daily_teacher_work_without_repeated_legacy_sections(self):
         self._login_teacher()

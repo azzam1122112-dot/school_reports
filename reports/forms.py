@@ -2912,10 +2912,10 @@ class AchievementCreateYearForm(forms.Form):
 
         # إذا تم تمرير سنوات مسموحة (من إعدادات المدرسة) نستخدمها فقط
         # وإلا نستخدم القائمة الافتراضية
-        if allowed_years and len(allowed_years) > 0:
+        if allowed_years is not None:
             base_set = set([_norm(y) for y in allowed_years])
-            # لا نقوم بتوليد سنوات مستقبلية تلقائيًا إذا حدد المدير القائمة
-            all_years = base_set.union(existing)
+            # القائمة المحددة للإنشاء لا تختلط بالسنوات التاريخية للملفات السابقة.
+            all_years = base_set
         else:
             all_years = set([_norm(y) for y in self.BASE_HIJRI_YEARS] + existing)
             # توليد سنوات مستقبلية تلقائيًا في الحالة الافتراضية

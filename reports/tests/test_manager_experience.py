@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from reports.forms import NotificationCreateForm
 from reports.models import (
+    AcademicYear,
     ReportType,
     School,
     SchoolMembership,
@@ -67,6 +68,39 @@ class ManagerExperienceTests(TestCase):
         session = self.client.session
         session["active_school_id"] = self.school.id
         session.save()
+
+    def test_manager_selects_current_year_and_achievement_view_defaults_to_it(self):
+        AcademicYear.objects.update(is_active=False)
+        AcademicYear.objects.update_or_create(value="1447-1448", defaults={"is_active": True})
+        AcademicYear.objects.update_or_create(value="1448-1449", defaults={"is_active": True})
+        TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1446-1447",
+        )
+        self._login_manager()
+
+        settings_response = self.client.get(reverse("reports:school_settings"))
+        year_field = settings_response.context["form"].fields["current_academic_year"]
+        self.assertEqual(
+            [value for value, _label in year_field.choices],
+            ["", "1447-1448", "1448-1449"],
+        )
+
+        update_response = self.client.post(
+            reverse("reports:school_settings"),
+            {"current_academic_year": "1448-1449", "share_link_default_days": 7},
+        )
+        self.assertEqual(update_response.status_code, 302)
+        self.school.refresh_from_db()
+        self.assertEqual(self.school.current_academic_year, "1448-1449")
+
+        files_response = self.client.get(reverse("reports:achievement_school_files"))
+        self.assertEqual(files_response.context["year"], "1448-1449")
+        self.assertEqual(
+            files_response.context["year_choices"],
+            ["1446-1447", "1448-1449"],
+        )
 
     def test_manager_has_one_clear_home_destination(self):
         self._login_manager()

@@ -123,14 +123,9 @@ def achievement_my_files(request: HttpRequest) -> HttpResponse:
         .distinct()
     )
     
-    # السنوات المسموحة: المصدر المركزي (يديره مدير النظام) أولًا، ثم إعدادات المدرسة كتراجع
-    from ..models import AcademicYear
-
-    allowed = list(
-        AcademicYear.objects.filter(is_active=True).order_by("-value").values_list("value", flat=True)
-    )
-    if not allowed and active_school:
-        allowed = list(active_school.allowed_academic_years or [])
+    # سنة المدرسة الحالية هي الخيار الوحيد لإنشاء ملف جديد.
+    current_year = (getattr(active_school, "current_academic_year", "") or "").strip()
+    allowed = [current_year] if current_year else []
 
     create_form = AchievementCreateYearForm(
         request.POST or None, 
@@ -195,10 +190,11 @@ def achievement_file_update_year(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, "لا تملك صلاحية تعديل ملف إنجاز من مدرسة أخرى.")
         return redirect("reports:achievement_my_files")
 
-    # نموذج بسيط للتحقق من السنة (نستخدم نفس فورم الإنشاء للتحقق مع تمرير القيمة المرسلة كخيار مقبول)
-    # هذا يسمح بقبول أي سنة صحيحة (هيئة + تتابع) حتى لو لم تكن في القائمة الافتراضية
-    submitted_year = request.POST.get("academic_year", "")
-    form = AchievementCreateYearForm(request.POST, year_choices=[submitted_year]) 
+    current_year = (getattr(file.school, "current_academic_year", "") or "").strip()
+    form = AchievementCreateYearForm(
+        request.POST,
+        allowed_years=[current_year] if current_year else [],
+    )
     
     if form.is_valid():
         new_year = form.cleaned_data["academic_year"]
@@ -255,14 +251,13 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
         .values_list("academic_year", flat=True)
         .distinct()
     )
-    # نفس منطق الاختيارات في نموذج الإنشاء (بدون إدخال يدوي)
-    tmp_form = AchievementCreateYearForm(year_choices=existing_years)
-    year_choices = [c[0] for c in tmp_form.fields["academic_year"].choices]
+    current_year = (getattr(active_school, "current_academic_year", "") or "").strip()
+    year_choices = sorted(set(existing_years) | ({current_year} if current_year else set()))
 
     if not year and year_choices:
-        year = year_choices[0]
+        year = current_year if current_year in year_choices else year_choices[-1]
     if year and year_choices and year not in year_choices:
-        year = year_choices[0]
+        year = current_year if current_year in year_choices else year_choices[-1]
 
     base_url = reverse("reports:achievement_school_files")
 
