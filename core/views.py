@@ -99,7 +99,7 @@ def healthz(request):
     status_code = 200 if healthy else 503
     return JsonResponse({
         "status": "ok" if healthy else "error",
-        "instance": os.getenv("RENDER_INSTANCE_ID", os.getenv("HOSTNAME", "local")),
+        "instance": os.getenv("HOSTNAME", "local"),
         "checks": checks,
     }, status=status_code)
 

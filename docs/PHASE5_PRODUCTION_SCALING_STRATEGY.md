@@ -11,7 +11,7 @@
 - **تقليل استعلامات الـ middleware بمقدار ~1 استعلام/طلب** عبر مشاركة كائن `SchoolMembership` بين `ActiveSchoolGuardMiddleware` و `SubscriptionMiddleware`.
 - **إضافة `AnonRateThrottle` (30/min)** لحماية API endpoints من الوصول المجهول المفرط.
 - **إضافة مؤشرات السعة** إلى أمر `op_diagnostics` (عدد المعلمين النشطين، التقارير، الإشعارات، AuditLog).
-- **توثيق scaling notes** في `settings.py` (DB, Redis, Celery) و `render.yaml`.
+- **توثيق scaling notes** في `settings.py` (DB, Redis, Celery) و `compose.hetzner.yaml`.
 - **إنشاء نموذج سعة تفصيلي** مع milestones النمو.
 
 ### ما تحسّن في الجاهزية:
@@ -34,7 +34,7 @@
 |-------|-------------|-------|
 | `reports/middleware.py` | تعديل | مشاركة membership بين Guard و Subscription middleware (-1 DB query/request) |
 | `config/settings.py` | تعديل | scaling notes (DB/Redis/Celery) + AnonRateThrottle |
-| `render.yaml` | تعديل | scaling notes وتوثيق مسار التوسع |
+| `compose.hetzner.yaml` | تعديل | scaling notes وتوثيق مسار التوسع |
 | `reports/management/commands/op_diagnostics.py` | تعديل | إضافة capacity indicators |
 | `docs/PHASE5_PRODUCTION_SCALING_STRATEGY.md` | **جديد** | التقرير النهائي |
 
@@ -97,14 +97,14 @@
 | WebSocket | ✅ Redis channel layer | يدعم عدة ASGI instances |
 | Health check | ✅ `/healthz/` يفحص DB + Cache + Channels | جاهز لـ load balancer |
 | Local state | ⚠️ `_thread_locals` في middleware | آمن (thread-local, ليس process state) |
-| Startup | ⚠️ `migrate + collectstatic` في Procfile | يعمل مرة عند deploy — لكن يجب ضمان idempotency |
+| Startup | ⚠️ `migrate + collectstatic` عبر خدمة `migrate` في compose.hetzner.yaml | يعمل مرة عند deploy — لكن يجب ضمان idempotency |
 
 ### ما يمنع التوسع:
-1. **عامل ويب واحد على Render** — يحتاج زيادة `numInstances` عند >300 متزامن.
+1. **عامل ويب واحد حاليًا** — يحتاج إضافة نسخة ويب ثانية عند >300 متزامن.
 2. **`post_migrate` signal** ينشئ departments لكل المدارس — O(N) عند كل deploy. آمن لكن بطيء عند 1000+ مدرسة.
 
 ### توصيات:
-- عند 500 مدرسة: أضف web instance ثانية في Render.
+- عند 500 مدرسة: أضف web instance ثانية في Hetzner عبر توسيع خدمة الويب.
 - عند 1000 مدرسة: 3+ web instances مع load balancing.
 - لا تغييرات في الكود مطلوبة — البنية جاهزة.
 
@@ -303,7 +303,7 @@ python check_live_perf.py --base-url http://localhost:8000 \
 | Audit log cleanup didn't run | `cleanup_audit_logs_task` | خلال يوم |
 
 ### قنوات التنبيه المقترحة:
-- **Render health checks** — مدمجة (تستخدم `/healthz/`).
+- **Health checks** — مدمجة (تستخدم `/healthz/`).
 - **UptimeRobot / BetterStack** — مراقبة خارجية لـ uptime.
 - **Cloudflare analytics** — error rates, response times.
 - هذه **توصيات** — لم تُنفذ كأدوات.
@@ -362,9 +362,9 @@ python check_live_perf.py --base-url http://localhost:8000 \
 | البند | الحالة | ملاحظات |
 |-------|--------|---------|
 | Health check | ✅ `/healthz/` | يفحص DB + Cache + Channels |
-| Zero-downtime deploy | ✅ Render يدعم rolling deploy | بشرط health check pass |
+| Zero-downtime deploy | ✅ عبر تحديث تدريجي للخدمات | بشرط health check pass |
 | Startup sequence | ⚠️ `migrate + collectstatic` أولاً | يعمل — لكن migrations طويلة تؤخر startup |
-| Rollback | ✅ Render يدعم redeploy to previous commit | يدوي عبر Dashboard |
+| Rollback | ✅ بالرجوع إلى صورة Docker السابقة | يدوي عبر الخادم |
 | Config rollback | ⚠️ Environment variables لا تُحفظ في git | يحتاج توثيق داخلي |
 | Beat singleton | ✅ Instance واحد | لا يمكن تكراره |
 | Migration safety | ⚠️ بعض migrations قد تقفل جداول كبيرة | يحتاج مراجعة قبل deploy |
@@ -373,7 +373,7 @@ python check_live_perf.py --base-url http://localhost:8000 \
 1. **`GUNICORN_MAX_REQUESTS=2000`** — يعيد تشغيل workers دوريًا لمنع memory leaks. جيد.
 2. **`CELERY_MAX_TASKS_PER_CHILD=200`** — يعيد تشغيل worker processes. جيد.
 3. **`CONN_MAX_AGE=600`** — يبقي اتصالات DB مفتوحة 10 دقائق. جيد مع instance واحد، يحتاج pooler مع عدة instances.
-4. **Secret regeneration**: Render يُولّد `SECRET_KEY` تلقائيًا — لكن تغييره يبطل كل الجلسات. يجب عدم تغييره.
+4. **Secret rotation**: تغيير `SECRET_KEY` يبطل كل الجلسات. يجب إدارة التدوير بخطة صريحة.
 
 ---
 

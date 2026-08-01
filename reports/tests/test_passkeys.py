@@ -227,13 +227,13 @@ class PasskeyRpIdTests(TestCase):
             self.assertEqual(self._rp_id("www.tawtheeq-ksa.com"), "tawtheeq-ksa.com")
             self.assertEqual(self._rp_id("tawtheeq-ksa.com"), "tawtheeq-ksa.com")
 
-    @override_settings(ALLOWED_HOSTS=["school-7lgm.onrender.com"])
+    @override_settings(ALLOWED_HOSTS=["example-unrelated-host.com"])
     def test_configured_rp_id_ignored_for_unrelated_host(self):
         import os
         from unittest import mock
 
         with mock.patch.dict(os.environ, {"WEBAUTHN_RP_ID": "tawtheeq-ksa.com"}):
-            self.assertEqual(self._rp_id("school-7lgm.onrender.com"), "school-7lgm.onrender.com")
+            self.assertEqual(self._rp_id("example-unrelated-host.com"), "example-unrelated-host.com")
 
     @override_settings(ALLOWED_HOSTS=["testserver"])
     def test_falls_back_to_host_without_config(self):

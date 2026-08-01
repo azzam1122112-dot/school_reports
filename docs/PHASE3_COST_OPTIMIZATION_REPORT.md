@@ -230,7 +230,7 @@ ticket_agg = Ticket.objects.filter(school=school).aggregate(
 | ✅ | CPU per request أقل (~100ms bcrypt eliminated) |
 | ✅ | Log volume أقل (WS INFO→DEBUG + hour-based dedup) |
 | ✅ | التغييرات سهلة المراجعة في git diff |
-| ✅ | لا يوجد تأثير على الـ deployment (Render/Cloudflare) |
+| ✅ | لا يوجد تأثير على مسار النشر السحابي (Hetzner/Cloudflare) |
 
 ---
 

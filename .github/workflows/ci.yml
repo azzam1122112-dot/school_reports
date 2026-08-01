@@ -49,7 +49,7 @@ jobs:
         run: |
           ruff check .
           python -m compileall -q config core reports maintenance manage.py
-          python -c "import yaml; yaml.safe_load(open('render.yaml')); yaml.safe_load(open('.github/workflows/ci.yml'))"
+          python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
 
       - name: Django checks and migration drift
         run: |

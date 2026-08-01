@@ -57,7 +57,7 @@ WeasyPrint يحتاج مكتبات Pango/GObject الأصلية. صورة Docker
 - Cloudflare R2 للوسائط.
 - Gunicorn مع Uvicorn worker لتطبيق ASGI.
 
-راجع `.env.example` و`render.yaml` لقائمة المتغيرات كاملة.
+راجع `.env.example` و`deploy/hetzner/env.production.example` لقائمة المتغيرات كاملة.
 
 ## الأمان
 

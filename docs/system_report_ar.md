@@ -150,7 +150,7 @@
 
 ### 8.2 البنية
 - `Dockerfile` وتهيئة إنتاج (Gunicorn + collectstatic + migrate).
-- Render/Procfile موجودان لدعم نشر سحابي.
+- النشر السحابي المعتمد يتم عبر Docker Compose على Hetzner.
 
 ---
 

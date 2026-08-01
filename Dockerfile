@@ -35,7 +35,7 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . /app/
 
-# Expose port (Render sets PORT automatically)
+# Expose application port
 EXPOSE 10000
 
 # Run service based on SERVICE_TYPE or START_CMD override

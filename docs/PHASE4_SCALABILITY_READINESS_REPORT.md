@@ -20,8 +20,8 @@
 | `core/views.py` | **ملف جديد** — نقطتا فحص: `/healthz/` و `/ops/metrics/` |
 | `core/opmetrics.py` | إضافة دالة `timing()` لقياس مدة المهام |
 | `config/urls.py` | إضافة مسارات healthz و ops_metrics |
-| `Procfile` | إضافة `-Q default,notifications,images,periodic` للعامل |
-| `render.yaml` | إضافة `healthCheckPath` وتحديث أمر العامل |
+| `compose.hetzner.yaml` | إضافة عمال Celery متعددة الطوابير |
+| `compose.hetzner.yaml` | ضبط فصل خدمات الويب والعمال مع health checks |
 
 ---
 
@@ -98,7 +98,7 @@
 | البند | الحالة |
 |-------|--------|
 | `SECRET_KEY` في production | ✅ مطلوب من البيئة، يرفض التشغيل بدونه |
-| `DEBUG=False` في production | ✅ يُكتشف تلقائياً عبر `RENDER` env |
+| `DEBUG=False` في production | ✅ مضبوط عبر `ENV=production` |
 | `SECURE_SSL_REDIRECT` | ✅ مفعّل في production |
 | `SESSION_COOKIE_SECURE/HTTPONLY` | ✅ مفعّل |
 | `CSRF_COOKIE_SECURE/HTTPONLY/SAMESITE` | ✅ مفعّل |

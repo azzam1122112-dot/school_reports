@@ -44,10 +44,6 @@ def _media_querystring_auth_enabled(
 # ----------------- Environment -----------------
 ENV = os.getenv("ENV", "development").strip().lower()
 
-# كشف تلقائي لـ Render (الأقوى من ENV اليدوي)
-if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):
-    ENV = "production"
-
 # يمكنك أيضًا فرض DEBUG عبر DEBUG=1
 DEBUG = (ENV != "production") if os.getenv("DEBUG") is None else _env_bool("DEBUG", False)
 
@@ -83,22 +79,10 @@ def _default_allowed_hosts() -> list[str]:
 
     # Known deployed domains (backwards compatible)
     hosts += [
-        "school-7lgm.onrender.com",
-        "school-reports.onrender.com",
         "app.tawtheeq-ksa.com",
         "tawtheeq-ksa.com",
         "www.tawtheeq-ksa.com",
     ]
-
-    # Render external URL (preferred)
-    render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip()
-    if render_url:
-        try:
-            parts = urlsplit(render_url)
-            if parts.netloc:
-                hosts.append(parts.netloc)
-        except Exception:
-            pass
 
     # De-dupe
     seen = set()
@@ -119,8 +103,6 @@ def _default_csrf_trusted_origins() -> list[str]:
 
     # Static known origins (backwards compatible)
     origins += [
-        "https://school-7lgm.onrender.com",
-        "https://school-reports.onrender.com",
         "https://app.tawtheeq-ksa.com",
         "https://tawtheeq-ksa.com",
         "https://www.tawtheeq-ksa.com",
@@ -139,15 +121,6 @@ def _default_csrf_trusted_origins() -> list[str]:
         # Local/dev convenience
         if h in {"localhost", "127.0.0.1", "[::1]"}:
             origins.append(f"http://{h}")
-
-    render_url = (os.getenv("RENDER_EXTERNAL_URL") or "").strip()
-    if render_url:
-        try:
-            parts = urlsplit(render_url)
-            if parts.scheme and parts.netloc:
-                origins.append(f"{parts.scheme}://{parts.netloc}")
-        except Exception:
-            pass
 
     # De-dupe
     seen = set()
@@ -391,7 +364,6 @@ ASGI_APPLICATION = "config.asgi.application"
 
 
 # ----------------- Redis URLs (Broker/Cache/Channels) -----------------
-# Render: استخدم REDIS_URL من Key Value الداخلي
 REDIS_URL = os.getenv("REDIS_URL", "").strip()
 
 # Celery broker: يفضل نفس REDIS_URL إن ما عندك غيره
@@ -491,7 +463,7 @@ else:
 # ── Scaling notes ───────────────────────────────────────────────
 # Current: single PostgreSQL, CONN_MAX_AGE=600, 3 web workers × 2 threads
 # = up to 6 persistent connections per web dyno.
-# At 500+ schools: consider PgBouncer or Render's managed connection pooling.
+# At 500+ schools: consider PgBouncer or another managed connection pooling layer.
 # At 1000+ schools: evaluate read replica for nav_context / dashboard queries.
 # Hot tables: NotificationRecipient, AuditLog, Report (see docs/PHASE5 report).
 #
@@ -506,7 +478,6 @@ else:
 #   - Set CONN_MAX_AGE=0 (let PgBouncer manage pooling, not Django)
 #   - Or keep CONN_MAX_AGE=600 if using session mode (not recommended)
 #   - Point DATABASE_URL to PgBouncer host:port instead of Postgres directly
-#   - Render managed pooling: enable from dashboard, uses internal proxy
 # Rollback: revert DATABASE_URL to direct Postgres endpoint, restore CONN_MAX_AGE
 # ────────────────────────────────────────────────────────────────
 DB_SSL = _env_bool("DB_SSL", False)
@@ -558,7 +529,7 @@ else:
         }
 
 
-# خلف Proxy (Render) حافظ على HTTPS + اسم المضيف الأصلي
+# خلف Proxy في الإنتاج: حافظ على HTTPS + اسم المضيف الأصلي
 if ENV == "production":
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     USE_X_FORWARDED_HOST = True
