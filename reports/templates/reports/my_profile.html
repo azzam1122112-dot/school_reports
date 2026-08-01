@@ -1447,6 +1447,16 @@
         statusBox.style.display = text ? 'block' : 'none';
       }
 
+      function registrationErrorMessage(error) {
+        if (error && error.name === 'InvalidStateError') {
+          return 'يوجد مفتاح مرور سابق لهذا الحساب في مدير كلمات مرور Google. احذفه من إعدادات مفاتيح المرور ثم أعد المحاولة.';
+        }
+        if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+          return 'لم يكتمل التفعيل. افتح tawtheeq-ksa.com مباشرة في Chrome وتأكد من تفعيل قفل الشاشة، ثم أعد المحاولة.';
+        }
+        return error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.';
+      }
+
       function b64ToBuffer(value) {
         const base64 = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
         const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
@@ -1519,7 +1529,7 @@
           showStatus(verified.message || 'تم تفعيل الدخول بالبصمة لهذا الجهاز.', false);
           setTimeout(() => window.location.reload(), 900);
         } catch (error) {
-          showStatus(error && error.message ? error.message : 'تعذر تفعيل الدخول بالبصمة.', true);
+          showStatus(registrationErrorMessage(error), true);
         } finally {
           button.disabled = false;
         }

@@ -50,6 +50,17 @@ class PasskeyEndpointTests(TestCase):
             payload["publicKey"]["authenticatorSelection"]["userVerification"],
             "required",
         )
+        self.assertEqual(
+            payload["publicKey"]["authenticatorSelection"]["residentKey"],
+            "required",
+        )
+        self.assertTrue(
+            payload["publicKey"]["authenticatorSelection"]["requireResidentKey"],
+        )
+        self.assertNotIn(
+            "authenticatorAttachment",
+            payload["publicKey"]["authenticatorSelection"],
+        )
 
     def test_password_login_offers_optional_passkey_enrollment(self):
         user = Teacher.objects.create_user(

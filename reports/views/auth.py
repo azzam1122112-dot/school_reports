@@ -641,9 +641,8 @@ def passkey_register_options(request: HttpRequest) -> JsonResponse:
         "attestation": "none",
         "excludeCredentials": existing,
         "authenticatorSelection": {
-            "authenticatorAttachment": "platform",
-            "residentKey": "preferred",
-            "requireResidentKey": False,
+            "residentKey": "required",
+            "requireResidentKey": True,
             "userVerification": "required",
         },
     }
