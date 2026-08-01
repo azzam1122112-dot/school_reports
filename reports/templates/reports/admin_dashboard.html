@@ -1215,7 +1215,7 @@
         <article class="manager-workspace">
           <header class="manager-workspace__head">
             <i class="fa-solid fa-folder-tree" aria-hidden="true"></i>
-            <div><h3>التقارير والتوثيق</h3><p>الأنواع والقوالب والملفات والمخرجات.</p></div>
+            <div><h3>التقارير والتوثيق</h3><p>أرشفة كل سنة داخل المنصة أو تنزيل نسخة كاملة للاحتفاظ الخارجي.</p></div>
           </header>
           <div class="manager-workspace__links">
             <a class="manager-workspace__link" href="{% url 'reports:reporttypes_list' %}"><span>أنواع التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
@@ -1230,10 +1230,10 @@
               {% endif %}
             </a>
             {% if ARCHIVE_ADDON_ACTIVE %}
-              <a class="manager-workspace__link" href="{% url 'reports:school_data_export' %}"><span>تصدير بيانات المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
+              <a class="manager-workspace__link" href="{% url 'reports:school_data_export' %}"><span>تنزيل نسخة كاملة</span><i class="fa-solid fa-arrow-left"></i></a>
             {% else %}
-              <a class="manager-workspace__link manager-workspace__link--locked" href="{% url 'reports:my_subscription' %}#archiveOrder" aria-label="تفعيل تصدير بيانات المدرسة من صفحة الاشتراك">
-                <span>تصدير البيانات</span><span class="manager-lock"><i class="fa-solid fa-lock"></i> يتطلب الأرشفة</span>
+              <a class="manager-workspace__link manager-workspace__link--locked" href="{% url 'reports:my_subscription' %}#archiveOrder" aria-label="تفعيل تنزيل نسخة كاملة من صفحة الاشتراك">
+                <span>تنزيل نسخة كاملة</span><span class="manager-lock"><i class="fa-solid fa-lock"></i> يتطلب الأرشفة</span>
               </a>
             {% endif %}
           </div>

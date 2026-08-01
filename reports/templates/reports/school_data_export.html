@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}تصدير بيانات المدرسة{% endblock %}
+{% block title %}تنزيل نسخة كاملة من بيانات المدرسة{% endblock %}
 {% block head %}
 <style>
   body { background: linear-gradient(120deg, #e0e7ff 0%, #f0fdfa 100%); min-height: 100vh; }
@@ -35,6 +35,11 @@
   .exp-info { background: linear-gradient(135deg,#eff6ff,#f0fdf4); border: 1.5px solid #bbf7d0; border-radius: 18px; padding: 18px 22px; margin-bottom: 24px; }
   .exp-info h3 { margin: 0 0 10px; color: #006c35; font-size: 1.1rem; font-weight: 900; display:flex; align-items:center; gap:8px; }
   .exp-info ul { margin: 0; padding-inline-start: 22px; color: #334155; font-weight: 700; line-height: 2; }
+  .exp-scope { display:flex; gap:12px; align-items:flex-start; background:#fff7ed; border:1.5px solid #fed7aa; padding:16px 18px; margin-bottom:20px; color:#7c2d12; }
+  .exp-scope i { margin-top:4px; color:#c2410c; }
+  .exp-scope strong { display:block; margin-bottom:4px; }
+  .exp-scope p { margin:0; line-height:1.7; }
+  .exp-scope a { color:#0a5c33; font-weight:900; }
   .exp-note { color: #64748b; font-size: .95rem; font-weight: 600; margin-top: 8px; }
   .exp-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
   .smart-btn {
@@ -93,20 +98,27 @@
     <div class="breadcrumbs">
       <a href="{% url 'reports:admin_dashboard' %}"><i class="fa-solid fa-gauge-high"></i> لوحة المدرسة</a>
       <span>›</span>
-      <span><i class="fa-solid fa-file-export"></i> تصدير بيانات المدرسة</span>
+      <span><i class="fa-solid fa-download"></i> تنزيل نسخة كاملة</span>
     </div>
     <h1 class="title">
-      <span class="icon"><i class="fa-solid fa-file-export"></i></span>
-      تصدير بيانات المدرسة
+      <span class="icon"><i class="fa-solid fa-download"></i></span>
+      تنزيل نسخة كاملة من بيانات المدرسة
     </h1>
     <div class="desc">
-      احصل على نسخة احتياطية كاملة لبيانات «{{ active_school.name }}» في أرشيف ZIP يضمّ الملفات الفعلية
+      نزّل بيانات «{{ active_school.name }}» لكل السنوات في حزمة ZIP تضمّ الملفات الفعلية
       (صور التقارير، ملفات الإنجاز PDF، الشواهد، مرفقات الطلبات والتعاميم) مع فهرس Excel وملف تحقّق سلامة.
-      بياناتك ملكك دائمًا.
     </div>
   </div>
 
   <div class="exp-body">
+    <div class="exp-scope" role="note">
+      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+      <div>
+        <strong>هذه نسخة فورية للاحتفاظ خارج المنصة.</strong>
+        <p>تشمل كل السنوات ولا تُحفظ كنسخة سنوية داخل المنصة. لحفظ سنة ثابتة والرجوع إليها لاحقًا استخدم <a href="{% url 'reports:school_archive' %}">أرشيف السنوات</a>.</p>
+      </div>
+    </div>
+
     <div class="exp-stats">
       <div class="exp-stat">
         <div class="n">{{ counts.reports }}</div>

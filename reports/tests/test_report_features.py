@@ -131,7 +131,9 @@ class SchoolDataExportTests(_BaseSchoolFixture):
         self._login(self.manager)
         response = self.client.get(reverse("reports:school_data_export"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "تصدير بيانات المدرسة")
+        self.assertContains(response, "تنزيل نسخة كاملة من بيانات المدرسة")
+        self.assertContains(response, "تشمل كل السنوات ولا تُحفظ كنسخة سنوية داخل المنصة")
+        self.assertContains(response, reverse("reports:school_archive"))
         self.assertContains(response, "أرشيف الملفات")
         self.assertContains(response, reverse("reports:school_data_export_zip"))
 
