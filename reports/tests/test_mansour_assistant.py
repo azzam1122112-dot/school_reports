@@ -81,6 +81,33 @@ class _FakeWeakComplaintOpenAIResponse:
         ).encode("utf-8")
 
 
+class _FakeSupportOpenAIResponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+    def read(self):
+        return json.dumps(
+            {
+                "output": [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": "حدّث الصفحة ثم أعد تسجيل الدخول، وتأكد من استقرار الاتصال قبل المحاولة مرة أخرى.",
+                            }
+                        ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+
+
 @override_settings(
     ALLOWED_HOSTS=["testserver"],
     OPENAI_API_KEY="test-secret-key",
@@ -325,6 +352,51 @@ class MansourAssistantTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(expected, response.json()["answer"])
                 self.assertIn(second_expected, response.json()["answer"])
+
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_unknown_problem_offers_manager_support_ticket(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps(
+                {"question": "تظهر لي مشكلة غير معتادة في إحدى الصفحات ولا أجد لها حلًا"}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("لم أجد حلًا موثقًا", payload["answer"])
+        self.assertIn("يمكن لمدير المدرسة", payload["answer"])
+        self.assertIn(
+            {"title": "فتح تذكرة دعم فني (مدير المدرسة)", "url": "/support/new/"},
+            payload["sources"],
+        )
+
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_known_upload_problem_does_not_offer_ticket_before_troubleshooting(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "لا أستطيع رفع صورة في التقرير وتظهر رسالة خطأ"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("جرّب هذه الخطوات", payload["answer"])
+        self.assertNotIn("/support/new/", [source["url"] for source in payload["sources"]])
+
+    @patch("reports.mansour_assistant.urlopen", return_value=_FakeSupportOpenAIResponse())
+    def test_valid_model_support_answer_does_not_offer_ticket(self, _mocked_urlopen):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "تظهر مشكلة غير معتادة عند فتح الصفحة"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("حدّث الصفحة", payload["answer"])
+        self.assertNotIn("/support/new/", [source["url"] for source in payload["sources"]])
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_out_of_scope_and_prompt_injection_are_declined(self):

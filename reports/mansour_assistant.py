@@ -480,17 +480,29 @@ def _offline_sources_for_intent(
     return [{"title": item.title, "url": item.url} for item in selected[:3]]
 
 
+def _is_known_support_problem(question: str) -> bool:
+    text = _normalise_arabic(question)
+    return any(marker in text for marker in ("رفع صوره", "رفع ملف", "ارفاق صوره", "ارفاق ملف"))
+
+
 def _sources_for_answer(
     intent: str,
     *,
     selected: list[KnowledgeItem],
     question: str = "",
+    offer_ticket: bool = False,
 ) -> list[dict[str, str]]:
     """Prefer customer-journey links for known intents; otherwise keep retrieval sources."""
     if intent == INTENT_OUT_OF_SCOPE:
         return []
 
     normalised_question = _normalise_arabic(question)
+    if offer_ticket and intent == INTENT_SUPPORT and not _is_known_support_problem(question):
+        return [
+            {"title": "المساعدة وحل المشكلات", "url": "/guide/#help"},
+            {"title": "فتح تذكرة دعم فني (مدير المدرسة)", "url": "/support/new/"},
+        ]
+
     if (
         intent == INTENT_GENERAL
         and any(marker in normalised_question for marker in ("معلم", "معلمين", "فريق"))
@@ -569,21 +581,23 @@ def _offline_customer_reply(
         )
 
     if intent == INTENT_SUPPORT:
-        normalised_question = _normalise_arabic(question)
-        if any(marker in normalised_question for marker in ("رفع صوره", "رفع ملف", "ارفاق صوره", "ارفاق ملف")):
+        if _is_known_support_problem(question):
             return (
                 "جرّب هذه الخطوات لرفع الملف أو الصورة:\n"
                 "1) ارفع ملفًا واحدًا بصيغة شائعة وتأكد أن حجمه ضمن الحد الظاهر في الصفحة.\n"
                 "2) تأكد من استقرار الاتصال، ثم أعد اختيار الملف والمحاولة.\n"
                 "3) إذا استمر الخطأ، أرسل للدعم نص رسالة الخطأ ونوع الجهاز والمتصفح بعد إخفاء أي بيانات حساسة."
             )
+        ticket_guidance = (
+            "يمكنك فتح تذكرة دعم فني الآن من الرابط الظاهر أدناه."
+            if audience == AUDIENCE_MANAGER
+            else "يمكن لمدير المدرسة تسجيل الدخول وفتح تذكرة دعم فني من الرابط الظاهر أدناه."
+        )
         return (
-            "مفهوم، خلّنا نحلها خطوة بخطوة.\n"
-            "أرسل لي الآن:\n"
-            "1) اسم الصفحة أو الميزة التي لا تعمل\n"
-            "2) رسالة الخطأ إن ظهرت\n"
-            "3) نوع الجهاز والمتصفح\n"
-            "وبناءً على التفاصيل أعطيك خطوات معالجة دقيقة، وإذا لزم نصعّدها للدعم الفني."
+            "لم أجد حلًا موثقًا يطابق هذه المشكلة، لذلك الأفضل أن يراجعها فريق الدعم. "
+            f"{ticket_guidance}\n"
+            "أرفق اسم الصفحة، ورسالة الخطأ، ووقت حدوث المشكلة، ونوع الجهاز والمتصفح، "
+            "بعد إخفاء أي بيانات شخصية أو حساسة."
         )
 
     normalised_question = _normalise_arabic(question)
@@ -890,7 +904,12 @@ def ask_mansour(
             plans=plans or [],
             audience=audience,
         )
-        fallback_sources = _sources_for_answer(intent, selected=selected, question=retrieval_question)
+        fallback_sources = _sources_for_answer(
+            intent,
+            selected=selected,
+            question=retrieval_question,
+            offer_ticket=True,
+        )
         return fallback_answer[:1800], fallback_sources
 
     messages.append({"role": "user", "content": question})
@@ -929,6 +948,7 @@ def ask_mansour(
             intent,
             selected=selected,
             question=retrieval_question,
+            offer_ticket=True,
         )
     except (URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
         logger.warning("Mansour OpenAI request failed: %s; using local fallback.", exc.__class__.__name__)
@@ -943,9 +963,11 @@ def ask_mansour(
             intent,
             selected=selected,
             question=retrieval_question,
+            offer_ticket=True,
         )
 
     answer = _sanitise_answer_text(_extract_output_text(response_payload))
+    used_fallback = False
     if _looks_low_quality(answer):
         retry_body = {
             **body,
@@ -973,6 +995,7 @@ def ask_mansour(
             plans=plans or [],
             audience=audience,
         )
+        used_fallback = True
 
     if not answer:
         fallback_answer = _offline_customer_reply(
@@ -986,7 +1009,13 @@ def ask_mansour(
             intent,
             selected=selected,
             question=retrieval_question,
+            offer_ticket=True,
         )
 
-    sources = _sources_for_answer(intent, selected=selected, question=retrieval_question)
+    sources = _sources_for_answer(
+        intent,
+        selected=selected,
+        question=retrieval_question,
+        offer_ticket=used_fallback,
+    )
     return answer[:1800], sources
