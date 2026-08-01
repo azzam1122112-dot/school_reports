@@ -41,8 +41,12 @@ from core import opmetrics
 logger = logging.getLogger(__name__)
 
 
-def _report_ai_template_context(user) -> dict[str, int]:
+def _report_ai_template_context(user) -> dict[str, int | bool]:
     return {
+        "report_ai_enabled": bool(
+            getattr(settings, "REPORT_AI_ENABLED", False)
+            and getattr(settings, "OPENAI_API_KEY", "")
+        ),
         "report_ai_daily_limit": REPORT_AI_DAILY_LIMIT,
         "report_ai_daily_remaining": report_ai_daily_remaining(user.pk),
     }

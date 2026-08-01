@@ -119,6 +119,30 @@ class ReportAIImprovementTests(TestCase):
                 self.assertContains(response, "css/report-ai-improver.css")
                 self.assertContains(response, "js/report-ai-improver.js")
 
+    @override_settings(REPORT_AI_ENABLED=False)
+    def test_report_forms_hide_ai_controls_when_service_is_disabled(self):
+        self._login()
+        report = Report.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            title="برنامج توعوي",
+            report_date=date(2026, 8, 1),
+            beneficiaries_count=35,
+            idea="تم تنفيذ برنامج توعوي للطلاب.",
+            category=self.category,
+        )
+
+        for url in (
+            reverse("reports:add_report"),
+            reverse("reports:edit_my_report", args=[report.pk]),
+        ):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertNotContains(response, "تحسين الصياغة بالذكاء الاصطناعي")
+                self.assertNotContains(response, "css/report-ai-improver.css")
+                self.assertNotContains(response, "js/report-ai-improver.js")
+
     def test_improvement_endpoint_requires_login(self):
         response = self.client.post(
             reverse("reports:improve_report_text"),
