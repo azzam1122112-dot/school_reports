@@ -165,15 +165,38 @@ class MansourAssistantTests(TestCase):
         self.assertContains(response, "css/mansour-assistant.css")
         self.assertContains(response, "js/mansour-assistant.js")
 
-    def test_system_prompt_enforces_customer_service_persona(self):
+    def test_system_prompt_enforces_multi_domain_platform_agent(self):
         prompt = _instructions(
             select_knowledge("كيف أضيف تقرير جديد؟", audience="teacher"),
             [],
             audience="teacher",
         )
 
-        self.assertIn("ممثل خدمة العملاء", prompt)
-        self.assertIn("تصرّف كممثل خدمة عملاء فقط", prompt)
+        self.assertIn("وكيل منصة ذكي", prompt)
+        self.assertIn("التسويق", prompt)
+        self.assertIn("الدعم الفني", prompt)
+        self.assertNotIn("تصرّف كممثل خدمة عملاء فقط", prompt)
+
+    def test_knowledge_matrix_covers_platform_marketing_and_support(self):
+        cases = (
+            ("لماذا تختار مدرستي منصة توثيق؟", "general", "marketing-value"),
+            ("كم الحد الأقصى لصور التقرير والمرفقات؟", "teacher", "attachment-limits"),
+            ("لماذا خرج حسابي بعد الدخول من جهاز آخر؟", "teacher", "session-security"),
+            ("هل رابط مشاركة التقرير دائم؟", "teacher", "sharing-links"),
+            ("ما حالات تذكرة الدعم وكيف أتابعها؟", "manager", "support-ticket-lifecycle"),
+            ("هل تعمل المنصة على الجوال وما المتصفحات المناسبة؟", "general", "device-compatibility"),
+            ("كيف تساعد سجلات العمليات في الحوكمة؟", "manager", "audit-and-governance"),
+            ("نسيت كلمة المرور ولم يصل رابط الاستعادة", "teacher", "password-reset-flow"),
+            ("لا يتم حفظ التقرير والصورة لا ترفع", "teacher", "save-and-upload-troubleshooting"),
+            ("لا أرى مدرستي ولا تظهر لي الصفحة المطلوبة", "teacher", "active-school-and-permissions"),
+            ("الإشعارات لا تتحدث والصفحة قديمة", "teacher", "notifications-and-refresh"),
+            ("دفعت لكن الاشتراك لم يتفعل", "manager", "payment-activation-troubleshooting"),
+        )
+
+        for question, audience, expected_slug in cases:
+            with self.subTest(question=question):
+                selected = select_knowledge(question, audience=audience)
+                self.assertIn(expected_slug, {item.slug for item in selected})
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_endpoint_uses_local_fallback_when_key_missing(self):

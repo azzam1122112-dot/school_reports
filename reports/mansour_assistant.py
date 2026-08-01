@@ -128,6 +128,7 @@ def reload_mansour_knowledge_runtime() -> None:
 def _normalise_arabic(value: str) -> str:
     value = str(value or "").lower()
     value = re.sub(r"[\u064b-\u065f\u0670\u0640]", "", value)
+    value = re.sub(r"[\u0600-\u0605\u061b\u061f\u066a-\u066d\u06d4]", " ", value)
     value = value.translate(
         str.maketrans(
             {
@@ -150,6 +151,10 @@ def _stem_arabic_token(token: str) -> str:
     for prefix in ("وال", "بال", "كال", "فال", "لل", "ال"):
         if value.startswith(prefix) and len(value) - len(prefix) >= 3:
             value = value[len(prefix) :]
+            break
+    for prefix in ("ب", "ك", "ف", "ل", "و"):
+        if value.startswith(prefix) and len(value) - 1 >= 4:
+            value = value[1:]
             break
     for suffix in ("يات", "ات", "ون", "ين", "ان"):
         if value.endswith(suffix) and len(value) - len(suffix) >= 3:
@@ -253,6 +258,10 @@ def select_knowledge(
         for phrase in (*item.topics, item.title):
             normalised_phrase = _normalise_arabic(phrase)
             if len(normalised_phrase) >= 3 and normalised_phrase in normalised_question:
+                score += 9
+                continue
+            phrase_tokens = _tokens(phrase)
+            if phrase_tokens and phrase_tokens.issubset(question_tokens):
                 score += 9
         if score > 0:
             score += item.priority
@@ -761,16 +770,18 @@ def _instructions(
     audience_label = AUDIENCE_LABELS[audience]
     role_guidance = ROLE_GUIDANCE[audience]
     return f"""
-أنت «منصور»، ممثل خدمة العملاء لمنصة توثيق السعودية.
+أنت «منصور»، وكيل منصة ذكي ومتخصص في منصة توثيق السعودية.
 
 سياق المستخدم الحالي:
 - الفئة: {audience_label}.
 - توجيه الدور: {role_guidance}
 
 قواعد ملزمة:
-- تصرّف كممثل خدمة عملاء فقط: شرح، توجيه، توضيح خطوات، وسياسات الاستخدام داخل المنصة.
-- لا تتصرف كخبير تقني عام، ولا كاستشاري أعمال، ولا كمدرب، ولا ككاتب محتوى تسويقي.
-- إذا كان الطلب خارج نطاق خدمة العملاء للمنصة، اعتذر باختصار وأعد التوجيه إلى الدعم المختص داخل المنصة.
+- غطِّ أربعة مجالات داخل المنصة: شرح المنتج والتسويق الاستشاري، خدمة العملاء، الدعم الفني، وإرشاد الاستخدام حسب الدور.
+- في التسويق، اربط حاجة المدرسة بالمزايا الموثقة وقدّم توصية عملية دون مبالغة أو وعود بنتائج غير مضمونة.
+- في الدعم الفني، شخّص من وصف المستخدم، واقترح الخطوات الموثقة فقط، ثم وجّه إلى تذكرة الدعم إذا لم يوجد حل مؤكد أو استمرت المشكلة.
+- لا تتصرف كخبير تقني عام خارج المنصة، ولا تقدّم استشارات لا تخص منصة توثيق.
+- إذا كان الطلب خارج نطاق المنصة، اعتذر باختصار وأعد التوجيه إلى الموضوعات التي تستطيع خدمتها.
 - أجب بالعربية الواضحة وبأسلوب سعودي مهني ودود، في فقرة قصيرة أو نقاط قليلة.
 - اجعل الرد الافتراضي بين 60 و120 كلمة، وبحد أقصى 4 خطوات قصيرة عند الحاجة.
 - لا تكتب عناوين شكلية مثل «ملخص سريع» أو «نصائح عملية»؛ ابدأ بالجواب نفسه.
