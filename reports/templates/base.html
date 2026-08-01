@@ -324,6 +324,9 @@
     .mi:hover i { color: var(--accent); }
     .mi .meta { font-size: 0.8rem; color: var(--text-muted); font-weight: normal; }
 
+    .drawer-overlay { z-index: 1100 !important; }
+    .drawer { z-index: 1200 !important; }
+
     /* --- TOAST MESSAGES (Luxury) --- */
     .messages {
       position: fixed;
@@ -783,7 +786,7 @@
   <header class="site-header" id="siteHeader">
     <div class="container hdr">
 
-      <button class="hamburger" id="hamburger" aria-label="فتح القائمة" aria-controls="mobileDrawer" aria-expanded="false">
+      <button class="hamburger" id="hamburger" type="button" aria-label="فتح القائمة" aria-controls="mobileDrawer" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
 
@@ -929,9 +932,11 @@
 
           <div class="userbox">
             {% firstof request.user.name request.user.phone request.user.national_id "حسابي" as display_name %}
-            <button class="avatar" id="userAvatar" type="button" aria-haspopup="menu" aria-expanded="false" title="{{ display_name }}">
+            <button class="avatar" id="userAvatar" type="button" aria-haspopup="dialog" aria-controls="mobileDrawer" aria-expanded="false" title="فتح القائمة - {{ display_name }}">
               {{ display_name|slice:":1" }}
             </button>
+            {% comment %}Legacy account popover replaced by the unified drawer below.{% endcomment %}
+            {% comment %}
             <div class="menu" id="userMenu" role="menu" aria-labelledby="userAvatar" aria-hidden="true">
               <div class="mi menu-profile" role="presentation" style="cursor:default">
                 <div>
@@ -1084,6 +1089,7 @@
                 }, 0);
               })();
             </script>
+            {% endcomment %}
           </div>
 
         {% else %}
@@ -1097,7 +1103,7 @@
   <aside class="drawer" id="mobileDrawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="drawerTitle" inert>
     <div class="drawer-head">
       <div id="drawerTitle" class="drawer-title">القائمة</div>
-      <button class="btn btn-sm" id="drawerClose" aria-label="إغلاق">إغلاق</button>
+      <button class="btn btn-sm" id="drawerClose" type="button" aria-label="إغلاق">إغلاق</button>
     </div>
 
     {% if request.user.is_authenticated and not IS_REPORT_VIEWER %}
@@ -1371,51 +1377,6 @@
     </nav>
     {% endwith %}
   </aside>
-
-  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-    (function(){
-      window.setTimeout(()=>{
-        if(window.__drawerScriptReady) return;
-
-        const drawer = document.getElementById('mobileDrawer');
-        const overlay = document.getElementById('drawerOverlay');
-        const hamburger = document.getElementById('hamburger');
-        const closeBtn = document.getElementById('drawerClose');
-        if(!drawer || !overlay || !hamburger) return;
-
-        const open = ()=>{
-          drawer.classList.add('open');
-          overlay.classList.add('show');
-          overlay.setAttribute('aria-hidden', 'false');
-          drawer.setAttribute('aria-hidden', 'false');
-          hamburger.setAttribute('aria-expanded', 'true');
-          drawer.removeAttribute('inert');
-        };
-
-        const close = ()=>{
-          drawer.classList.remove('open');
-          overlay.classList.remove('show');
-          overlay.setAttribute('aria-hidden', 'true');
-          drawer.setAttribute('aria-hidden', 'true');
-          hamburger.setAttribute('aria-expanded', 'false');
-          drawer.setAttribute('inert', '');
-        };
-
-        const toggle = (event)=>{
-          if(event){
-            event.preventDefault();
-            event.stopPropagation();
-          }
-          drawer.classList.contains('open') ? close() : open();
-        };
-
-        hamburger.addEventListener('click', toggle);
-        overlay.addEventListener('click', (event)=>{ if(event.target === overlay) close(); });
-        if(closeBtn) closeBtn.addEventListener('click', close);
-        document.addEventListener('keydown', (event)=>{ if(event.key === 'Escape') close(); });
-      }, 0);
-    })();
-  </script>
 
   {% if messages %}
     <div class="messages" id="messages-container" aria-live="polite" aria-atomic="true">
@@ -1818,21 +1779,27 @@
 
     // ===== Drawer =====
     (function(){
+      if(window.__drawerScriptReady) return;
+
       const drawer    = document.getElementById('mobileDrawer');
       const overlay   = document.getElementById('drawerOverlay');
       const hamburger = document.getElementById('hamburger');
+      const avatar    = document.getElementById('userAvatar');
       const closeBtn  = document.getElementById('drawerClose');
       if(!drawer || !overlay || !hamburger) return;
 
       window.__drawerScriptReady = true;
+      let lastTrigger = hamburger;
 
-      const open = ()=>{
+      const open = (trigger = hamburger)=>{
+        lastTrigger = trigger;
         drawer.removeAttribute('inert');
         drawer.classList.add('open');
         overlay.classList.add('show');
         overlay.setAttribute('aria-hidden', 'false');
         hamburger.classList.add('active');
         hamburger.setAttribute('aria-expanded','true');
+        if(avatar) avatar.setAttribute('aria-expanded','true');
         drawer.setAttribute('aria-hidden','false');
         window.__lockScroll(true);
         window.__trapFocus(drawer, true);
@@ -1847,14 +1814,24 @@
         overlay.setAttribute('aria-hidden', 'true');
         hamburger.classList.remove('active');
         hamburger.setAttribute('aria-expanded','false');
+        if(avatar) avatar.setAttribute('aria-expanded','false');
         drawer.setAttribute('aria-hidden','true');
         drawer.setAttribute('inert', '');
         window.__lockScroll(false);
         window.__trapFocus(drawer, false);
-        hamburger.focus();
+        if(lastTrigger) lastTrigger.focus();
       };
 
-      hamburger.addEventListener('click', ()=> drawer.classList.contains('open') ? close() : open());
+      const toggle = (trigger, event)=>{
+        if(event){
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        drawer.classList.contains('open') ? close() : open(trigger);
+      };
+
+      hamburger.addEventListener('pointerup', (e)=>{ if(e.button === 0) toggle(hamburger, e); });
+      hamburger.addEventListener('click', (e)=> toggle(hamburger, e));
       if(closeBtn) closeBtn.addEventListener('click', close);
       overlay.addEventListener('click', (e)=>{ if(e.target === overlay) close(); });
       document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && drawer.classList.contains('open')) close(); });
