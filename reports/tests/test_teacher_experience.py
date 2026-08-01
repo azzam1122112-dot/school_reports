@@ -191,6 +191,34 @@ class TeacherExperienceTests(TestCase):
         self.assertIn('data-members-url="/api/department-members/"', html)
         self.assertIn("/static/js/request-create-recipients.js", html)
 
+    def test_department_members_api_returns_department_teachers(self):
+        self._login_teacher()
+
+        department = Department.objects.create(
+            school=self.school,
+            name="الإدارة",
+            slug="admin-office",
+        )
+        DepartmentMembership.objects.create(
+            department=department,
+            teacher=self.teacher,
+            role_type=DepartmentMembership.TEACHER,
+        )
+
+        response = self.client.get(
+            reverse("reports:api_department_members"),
+            {"department": department.slug},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("results", payload)
+        self.assertTrue(
+            any(item.get("id") == self.teacher.id for item in payload["results"]),
+            "Expected the current teacher to appear in recipients API results",
+        )
+
     def test_teacher_core_templates_do_not_use_csp_blocked_inline_handlers(self):
         template_names = [
             "home.html",
@@ -227,3 +255,7 @@ class TeacherExperienceTests(TestCase):
                 source,
                 f"{template_name} must bypass Rocket Loader to preserve its CSP nonce",
             )
+
+            add_report_source = (templates_dir / "add_report.html").read_text(encoding="utf-8")
+            self.assertIn('d.addEventListener("input", syncDateFields);', add_report_source)
+            self.assertIn('d.addEventListener("change", syncDateFields);', add_report_source)
