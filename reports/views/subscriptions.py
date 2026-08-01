@@ -378,6 +378,15 @@ def platform_mansour_content(request: HttpRequest) -> HttpResponse:
                     temp_path = MANSOUR_KNOWLEDGE_CONTENT_PATH.with_suffix(".json.tmp")
                     temp_path.write_text(pretty + "\n", encoding="utf-8")
                     temp_path.replace(MANSOUR_KNOWLEDGE_CONTENT_PATH)
+                    try:
+                        from ..mansour_assistant import reload_mansour_knowledge_runtime
+
+                        reload_mansour_knowledge_runtime()
+                    except Exception:
+                        messages.warning(
+                            request,
+                            "تم حفظ المحتوى، لكن لم يتم تحديث جلسة المساعد تلقائيًا. قد تحتاج لإعادة تحميل الخدمة.",
+                        )
                     messages.success(request, "تم تحديث محتوى منصور بنجاح.")
                     return redirect("reports:platform_mansour_content")
         messages.error(request, "تعذر حفظ المحتوى. تحقق من صيغة JSON.")

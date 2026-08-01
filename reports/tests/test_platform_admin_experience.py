@@ -190,13 +190,15 @@ class PlatformAdminExperienceTests(TestCase):
             file_path.write_text("{}", encoding="utf-8")
 
             with patch("reports.views.subscriptions.MANSOUR_KNOWLEDGE_CONTENT_PATH", file_path):
-                response = self.client.post(
-                    reverse("reports:platform_mansour_content"),
-                    data={"content": json.dumps(payload, ensure_ascii=False)},
-                )
+                with patch("reports.mansour_assistant.reload_mansour_knowledge_runtime") as reload_mock:
+                    response = self.client.post(
+                        reverse("reports:platform_mansour_content"),
+                        data={"content": json.dumps(payload, ensure_ascii=False)},
+                    )
 
-                self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.url, reverse("reports:platform_mansour_content"))
+                    self.assertEqual(response.status_code, 302)
+                    self.assertEqual(response.url, reverse("reports:platform_mansour_content"))
 
-                saved = json.loads(file_path.read_text(encoding="utf-8"))
-                self.assertEqual(saved["knowledge_items"][0]["slug"], "sample")
+                    saved = json.loads(file_path.read_text(encoding="utf-8"))
+                    self.assertEqual(saved["knowledge_items"][0]["slug"], "sample")
+                    reload_mock.assert_called_once()

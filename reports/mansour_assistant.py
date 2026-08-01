@@ -92,6 +92,29 @@ class MansourAssistantError(RuntimeError):
 PUBLIC_KNOWLEDGE = KNOWLEDGE_ITEMS
 
 
+def reload_mansour_knowledge_runtime() -> None:
+    """Reload Mansour knowledge payload and rebind module-level references.
+
+    This allows platform content edits to apply immediately without restarting
+    the web process.
+    """
+    from importlib import reload
+
+    from . import mansour_knowledge as knowledge_module
+
+    refreshed = reload(knowledge_module)
+
+    global KNOWLEDGE_ITEMS
+    global ROLE_DEFAULT_SLUGS
+    global ROLE_GUIDANCE
+    global PUBLIC_KNOWLEDGE
+
+    KNOWLEDGE_ITEMS = refreshed.KNOWLEDGE_ITEMS
+    ROLE_DEFAULT_SLUGS = refreshed.ROLE_DEFAULT_SLUGS
+    ROLE_GUIDANCE = refreshed.ROLE_GUIDANCE
+    PUBLIC_KNOWLEDGE = KNOWLEDGE_ITEMS
+
+
 def _normalise_arabic(value: str) -> str:
     value = str(value or "").lower()
     value = re.sub(r"[\u064b-\u065f\u0670\u0640]", "", value)
@@ -401,11 +424,11 @@ def _offline_customer_reply(
 
     if intent == INTENT_REGISTRATION:
         return (
-            "ممتاز، بداية التسجيل تكون كالتالي:\n"
+            "أكيد، خطوات التسجيل الصحيحة هي:\n"
             "1) افتح صفحة التسجيل وأنشئ حساب المدرسة\n"
             "2) فعّل الدخول برقم الجوال أو الهوية وكلمة المرور\n"
             "3) بعد الدخول اختر المدرسة النشطة وابدأ إضافة الفريق\n"
-            "إذا رغبت، أشرح لك الخطوات بالتفصيل حسب حالتك الحالية."
+            "إذا واجهت أي خطوة متوقفة، اكتب لي أين توقفت وسأعطيك المعالجة مباشرة."
         )
 
     if intent == INTENT_THANKS:
@@ -414,8 +437,9 @@ def _offline_customer_reply(
     primary = selected[0] if selected else None
     if primary:
         return (
-            f"أفضل بداية في سؤالك الحالي هي: {primary.title}. "
-            f"{primary.text} إذا رغبت، اكتب المطلوب بشكل أدق وسأقدّم لك خطوات عملية مختصرة."
+            f"الخطوة الصحيحة في حالتك: {primary.title}. "
+            f"{primary.text} "
+            "إذا أردت، اذكر ما تريد تنفيذه الآن وسأعطيك خطوات قصيرة ومباشرة."
         )
 
     return (
