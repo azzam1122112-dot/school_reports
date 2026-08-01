@@ -52,11 +52,12 @@ class PasskeyEndpointTests(TestCase):
         )
         self.assertEqual(
             payload["publicKey"]["authenticatorSelection"]["residentKey"],
-            "required",
+            "preferred",
         )
-        self.assertTrue(
+        self.assertFalse(
             payload["publicKey"]["authenticatorSelection"]["requireResidentKey"],
         )
+        self.assertEqual(payload["publicKey"]["timeout"], 120000)
         self.assertNotIn(
             "authenticatorAttachment",
             payload["publicKey"]["authenticatorSelection"],
@@ -82,6 +83,9 @@ class PasskeyEndpointTests(TestCase):
         self.assertContains(profile_response, "تفعيل الآن")
         self.assertContains(profile_response, "ليس الآن")
         self.assertContains(profile_response, "لا تُرسل إلى المنصة")
+        self.assertContains(profile_response, "isUserVerifyingPlatformAuthenticatorAvailable")
+        self.assertContains(profile_response, "InvalidStateError")
+        self.assertContains(profile_response, "NotSupportedError")
 
     def test_password_login_does_not_prompt_user_with_active_passkey(self):
         response = self.client.post(
@@ -148,8 +152,14 @@ class PasskeyEndpointTests(TestCase):
         self.assertTrue(payload["ok"])
         self.assertIn("challenge", payload["publicKey"])
         self.assertEqual(payload["publicKey"]["rpId"], "testserver")
+        self.assertEqual(payload["publicKey"]["timeout"], 120000)
         self.assertEqual(payload["publicKey"]["userVerification"], "required")
         self.assertEqual(payload["publicKey"]["allowCredentials"][0]["id"], b64url_encode(self.credential_id))
+
+        login_response = self.client.get(reverse("reports:login"))
+        self.assertContains(login_response, "isUserVerifyingPlatformAuthenticatorAvailable")
+        self.assertContains(login_response, "NotSupportedError")
+        self.assertContains(login_response, "NotAllowedError")
 
     def test_login_options_require_identifier(self):
         response = self.client.post(

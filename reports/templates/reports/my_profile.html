@@ -1433,9 +1433,9 @@
       const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
       if (!button || !statusBox) return;
 
-      if (!window.PublicKeyCredential || !navigator.credentials) {
+      if (!window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) {
         button.disabled = true;
-        statusBox.textContent = 'هذا المتصفح لا يدعم الدخول بالبصمة. جرّب Chrome أو Safari أو Edge على جهاز يدعم قفل الشاشة.';
+        statusBox.textContent = 'تفعيل البصمة يحتاج اتصالًا آمنًا ومتصفحًا حديثًا. افتح المنصة مباشرة في Chrome أو Safari أو Edge.';
         statusBox.classList.add('is-error');
         statusBox.style.display = 'block';
         return;
@@ -1450,6 +1450,12 @@
       function registrationErrorMessage(error) {
         if (error && error.name === 'InvalidStateError') {
           return 'يوجد مفتاح مرور سابق لهذا الحساب في مدير كلمات مرور Google. احذفه من إعدادات مفاتيح المرور ثم أعد المحاولة.';
+        }
+        if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
+          return 'هذا الجهاز أو المتصفح لا يدعم إنشاء مفتاح مرور. حدّث Chrome أو Safari واستخدم قفل الشاشة، أو تابع بكلمة المرور.';
+        }
+        if (error && error.name === 'SecurityError') {
+          return 'تعذر التحقق من نطاق المنصة. افتح https://tawtheeq-ksa.com مباشرة في Chrome أو Safari ثم أعد المحاولة.';
         }
         if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
           return 'لم يكتمل التفعيل. افتح tawtheeq-ksa.com مباشرة في Chrome وتأكد من تفعيل قفل الشاشة، ثم أعد المحاولة.';
@@ -1521,10 +1527,17 @@
         try {
           button.disabled = true;
           showStatus('سيطلب المتصفح بصمة الجهاز أو قفل الشاشة لإكمال التفعيل...', false);
+          if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+            const authenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            if (!authenticatorAvailable) {
+              throw new DOMException('User verification unavailable', 'NotSupportedError');
+            }
+          }
           const options = await postJSON(button.dataset.optionsUrl, {});
           const credential = await navigator.credentials.create({
             publicKey: prepareCreationOptions(options.publicKey),
           });
+          if (!credential) throw new DOMException('Credential creation returned no result', 'NotAllowedError');
           const verified = await postJSON(button.dataset.verifyUrl, credentialToJSON(credential));
           showStatus(verified.message || 'تم تفعيل الدخول بالبصمة لهذا الجهاز.', false);
           setTimeout(() => window.location.reload(), 900);

@@ -637,12 +637,12 @@ def passkey_register_options(request: HttpRequest) -> JsonResponse:
             {"type": "public-key", "alg": -7},
             {"type": "public-key", "alg": -257},
         ],
-        "timeout": 60000,
+        "timeout": 120000,
         "attestation": "none",
         "excludeCredentials": existing,
         "authenticatorSelection": {
-            "residentKey": "required",
-            "requireResidentKey": True,
+            "residentKey": "preferred",
+            "requireResidentKey": False,
             "userVerification": "required",
         },
     }
@@ -774,7 +774,7 @@ def passkey_login_options(request: HttpRequest) -> JsonResponse:
     public_key = {
         "challenge": challenge,
         "rpId": rp_id_from_request(request),
-        "timeout": 60000,
+        "timeout": 120000,
         "userVerification": "required",
         "allowCredentials": allow_credentials,
     }

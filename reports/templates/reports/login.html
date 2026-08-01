@@ -499,7 +499,7 @@
       const identifier = document.getElementById('identifier');
       const nextInput = document.querySelector('input[name="next"]');
       const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-      if (!passkeyBtn || !statusBox || !window.PublicKeyCredential || !navigator.credentials) return;
+      if (!passkeyBtn || !statusBox || !window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) return;
 
       passkeyBtn.style.display = 'flex';
 
@@ -507,6 +507,19 @@
         statusBox.textContent = text;
         statusBox.classList.toggle('is-error', !!isError);
         statusBox.style.display = text ? 'block' : 'none';
+      }
+
+      function passkeyErrorMessage(error) {
+        if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
+          return 'هذا الجهاز أو المتصفح لا يدعم الدخول بمفتاح المرور. حدّث Chrome أو Safari واستخدم قفل الشاشة.';
+        }
+        if (error && error.name === 'SecurityError') {
+          return 'افتح https://tawtheeq-ksa.com مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+        }
+        if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+          return 'لم يكتمل الدخول. تأكد من قفل الشاشة وافتح المنصة مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+        }
+        return error && error.message ? error.message : 'تعذر تسجيل الدخول بالبصمة.';
       }
 
       function b64ToBuffer(value) {
@@ -578,16 +591,23 @@
         try {
           passkeyBtn.disabled = true;
           showStatus('افتح نافذة البصمة أو قفل الجهاز لإكمال الدخول...', false);
+          if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+            const authenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            if (!authenticatorAvailable) {
+              throw new DOMException('User verification unavailable', 'NotSupportedError');
+            }
+          }
           const options = await postJSON(passkeyBtn.dataset.optionsUrl, {
             identifier: identifierValue,
           });
           const credential = await navigator.credentials.get({
             publicKey: prepareRequestOptions(options.publicKey),
           });
+          if (!credential) throw new DOMException('Credential request returned no result', 'NotAllowedError');
           const verified = await postJSON(passkeyBtn.dataset.verifyUrl, credentialToJSON(credential));
           window.location.href = verified.redirect || '/';
         } catch (error) {
-          showStatus(error && error.message ? error.message : 'تعذر تسجيل الدخول بالبصمة.', true);
+          showStatus(passkeyErrorMessage(error), true);
         } finally {
           passkeyBtn.disabled = false;
         }

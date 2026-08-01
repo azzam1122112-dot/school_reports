@@ -357,6 +357,12 @@
       if (error && error.name === 'InvalidStateError') {
         return 'يوجد مفتاح مرور سابق لهذا الحساب في مدير كلمات مرور Google. احذفه من إعدادات مفاتيح المرور ثم أعد المحاولة.';
       }
+      if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
+        return 'هذا الجهاز أو المتصفح لا يدعم إنشاء مفتاح مرور. حدّث Chrome أو Safari واستخدم قفل الشاشة، أو تابع بكلمة المرور.';
+      }
+      if (error && error.name === 'SecurityError') {
+        return 'تعذر التحقق من نطاق المنصة. افتح https://tawtheeq-ksa.com مباشرة في Chrome أو Safari ثم أعد المحاولة.';
+      }
       if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
         return 'لم يكتمل التفعيل. افتح tawtheeq-ksa.com مباشرة في Chrome وتأكد من تفعيل قفل الشاشة، ثم أعد المحاولة.';
       }
@@ -397,10 +403,20 @@
         activateButton.disabled = true;
         laterButton.disabled = true;
         showStatus('سيطلب جهازك البصمة أو قفل الشاشة لإكمال التفعيل...', false);
+        if (!window.isSecureContext) {
+          throw new DOMException('Secure context required', 'SecurityError');
+        }
+        if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+          var authenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          if (!authenticatorAvailable) {
+            throw new DOMException('User verification unavailable', 'NotSupportedError');
+          }
+        }
         var options = await postJSON(prompt.dataset.optionsUrl, {});
         var credential = await navigator.credentials.create({
           publicKey: prepareOptions(options.publicKey)
         });
+        if (!credential) throw new DOMException('Credential creation returned no result', 'NotAllowedError');
         var verified = await postJSON(prompt.dataset.verifyUrl, credentialPayload(credential));
         showStatus(verified.message || 'تم تفعيل الدخول بالبصمة بنجاح.', false);
         setTimeout(function () { window.location.reload(); }, 900);
