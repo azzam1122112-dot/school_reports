@@ -44,26 +44,6 @@
     return message;
   }
 
-  function addSources(sources) {
-    if (!conversation || !Array.isArray(sources) || !sources.length) return;
-    var wrap = document.createElement("div");
-    wrap.className = "mansour-sources";
-    wrap.setAttribute("aria-label", "مصادر الإجابة");
-
-    sources.slice(0, 4).forEach(function (source) {
-      if (!source || typeof source.url !== "string" || source.url.charAt(0) !== "/") return;
-      var link = document.createElement("a");
-      link.href = source.url;
-      link.textContent = source.title || "اعرف المزيد";
-      wrap.appendChild(link);
-    });
-
-    if (wrap.childNodes.length) {
-      conversation.appendChild(wrap);
-      scrollToLatest();
-    }
-  }
-
   function setSending(sending) {
     isSending = sending;
     if (sendButton) sendButton.disabled = sending;
@@ -113,7 +93,6 @@
       .then(function (data) {
         if (pending) pending.remove();
         addMessage(data.answer, "assistant");
-        addSources(data.sources);
         history.push({ role: "assistant", content: data.answer });
         history = history.slice(-6);
       })

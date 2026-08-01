@@ -1018,7 +1018,7 @@
                </div>
 
                <div class="ar-field" style="margin:0">
-                 <label for="{{ form.beneficiaries_count.id_for_label }}"><i class="fa-solid fa-users"></i> المستفيدين <span class="ar-required-mark">مطلوب</span></label>
+                 <label for="{{ form.beneficiaries_count.id_for_label }}"><i class="fa-solid fa-users"></i> العدد <span class="ar-required-mark">مطلوب</span></label>
                   {{ form.beneficiaries_count }}
                </div>
                
@@ -1103,7 +1103,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   /* Logic preserved and compacted */
   function todayYYYYMMDD(){
     var t = new Date(); t.setHours(0,0,0,0);
@@ -1146,9 +1146,9 @@
          var days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
          day.value = days[dt.getDay()];
        };
-       d.addEventListener("change", function(){
+       var syncDateFields = function(){
          if(err) err.style.display="none";
-         var dt = parseDateInput(this.value);
+         var dt = parseDateInput(d.value);
          var now = parseDateInput(todayYYYYMMDD());
          if(dt && dt.getTime() > now.getTime()){
             if(err) err.style.display="flex";
@@ -1158,8 +1158,10 @@
             applyDay();
             applyHijri();
          }
-       });
-       d.dispatchEvent(new Event('change'));
+       };
+       d.addEventListener("input", syncDateFields);
+       d.addEventListener("change", syncDateFields);
+       syncDateFields();
     }
   })();
 
@@ -1523,7 +1525,7 @@
   })();
 </script>
 
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   /* ===== قوالب التقارير الجاهزة ===== */
   (function(){
     var data = [];
@@ -1569,7 +1571,7 @@
   })();
 </script>
 
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   /* ===== حفظ تلقائي للمسودّة ===== */
   (function(){
     var FIELDS = ["id_category","id_title","id_report_date","id_beneficiaries_count","id_idea"];

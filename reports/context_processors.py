@@ -1120,7 +1120,15 @@ def csp(request: HttpRequest) -> Dict[str, Any]:
     The nonce is attached to the request by ContentSecurityPolicyMiddleware.
     """
     try:
-        return {"CSP_NONCE": getattr(request, "csp_nonce", "")}
+        nonce = getattr(request, "csp_nonce", "") or ""
+        if not nonce:
+            # Fallback safety: ensure templates always receive a nonce value
+            # even if middleware ordering or an upstream wrapper skipped setting it.
+            import secrets
+
+            nonce = secrets.token_urlsafe(16)
+            request.csp_nonce = nonce
+        return {"CSP_NONCE": nonce}
     except Exception:
         return {"CSP_NONCE": ""}
 

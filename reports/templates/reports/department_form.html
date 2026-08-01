@@ -243,7 +243,7 @@
 {% endblock content %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   // إضافة صنف .smart-input لمدخلات النص (دون مدخلات الاختيار/المخفية)
   (function(){
     var form = document.getElementById('deptForm');

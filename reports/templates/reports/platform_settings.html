@@ -549,7 +549,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 /* وضع الصيانة: تغذية بصرية فورية + تأكيد قبل إيقاف الموقع */
 (function () {
   const box = document.getElementById("maintenanceBox");
@@ -589,7 +589,7 @@
   }
 })();
 </script>
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 document.addEventListener("DOMContentLoaded", function () {
   const addBtn = document.getElementById("addStorageOptionBtn");
   const list = document.getElementById("storageOptionsList");

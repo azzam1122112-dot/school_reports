@@ -496,7 +496,7 @@
     </section>
   </main>
 
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     (function () {
       document.querySelectorAll("[data-password-toggle]").forEach(function (button) {
         button.addEventListener("click", function () {

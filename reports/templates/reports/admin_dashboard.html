@@ -4,7 +4,7 @@
 {% block title %}لوحة إدارة المدرسة | منصة توثيق{% endblock %}
 
 {% block head %}
-<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" data-cfasync="false"></script>
 <style>
   .manager-page {
     --manager-ink: #10231a;
@@ -1342,7 +1342,7 @@
 
 {% block scripts %}
 {% if active_school %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function () {
     "use strict";
 

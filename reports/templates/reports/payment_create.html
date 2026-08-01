@@ -246,7 +246,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 (function(){
   const fileInput = document.getElementById('id_receipt');
   const box = document.getElementById('previewBox');

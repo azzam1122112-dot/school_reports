@@ -284,7 +284,7 @@
 
 {% block scripts %}
 {{ block.super }}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     const input = document.getElementById('managerSearch');
     const select = document.getElementById('managerSelect');

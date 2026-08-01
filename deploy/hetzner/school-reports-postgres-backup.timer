@@ -1,0 +1,11 @@
+[Unit]
+Description=Run encrypted PostgreSQL backup daily
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 UTC
+RandomizedDelaySec=30m
+Persistent=true
+Unit=school-reports-postgres-backup.service
+
+[Install]
+WantedBy=timers.target

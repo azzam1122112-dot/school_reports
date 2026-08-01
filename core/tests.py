@@ -115,6 +115,25 @@ class ContentSecurityPolicyTemplateTests(SimpleTestCase):
 
         self.assertEqual(missing_nonce, [], msg=f"Inline scripts missing CSP nonce: {missing_nonce}")
 
+    def test_inline_template_scripts_bypass_rocket_loader(self):
+        templates_dir = settings.BASE_DIR / "reports" / "templates"
+        missing_bypass = []
+
+        for template_path in templates_dir.rglob("*.html"):
+            text = template_path.read_text(encoding="utf-8")
+            for match in self.INLINE_SCRIPT_TAG_RE.finditer(text):
+                if 'data-cfasync="false"' not in match.group(0):
+                    line = text.count("\n", 0, match.start()) + 1
+                    missing_bypass.append(
+                        f"{template_path.relative_to(settings.BASE_DIR)}:{line}"
+                    )
+
+        self.assertEqual(
+            missing_bypass,
+            [],
+            msg=f"Inline scripts exposed to Rocket Loader: {missing_bypass}",
+        )
+
     @override_settings(
         ALLOWED_HOSTS=["testserver"],
         CSP_ENABLED=True,

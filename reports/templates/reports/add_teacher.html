@@ -349,7 +349,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.addEventListener("DOMContentLoaded", function () {
     const national = document.getElementById('{{ form.national_id.id_for_label }}') || document.getElementById('id_national_id');
     const phone = document.getElementById('{{ form.phone.id_for_label }}') || document.getElementById('id_phone');

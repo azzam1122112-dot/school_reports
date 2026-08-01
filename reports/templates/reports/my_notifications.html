@@ -751,7 +751,7 @@
 
 {% block scripts %}
 {{ block.super }}
-<script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
+<script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %} data-cfasync="false">
 document.addEventListener('DOMContentLoaded', function(){
   const $  = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));

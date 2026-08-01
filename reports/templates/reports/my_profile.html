@@ -1269,7 +1269,7 @@
 
 {% block scripts %}
   {{ block.super }}
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     (function () {
       const form = document.querySelector('[data-password-form]');
       if (!form) return;
@@ -1426,7 +1426,7 @@
       updateRules();
     })();
   </script>
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     (function () {
       const button = document.getElementById('registerPasskeyBtn');
       const statusBox = document.getElementById('profilePasskeyStatus');

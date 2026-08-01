@@ -489,7 +489,7 @@
 
 {% block scripts %}
 {{ block.super }}
-<script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %}>
+<script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %} data-cfasync="false">
 (function(){
   const search = document.getElementById('cdSearch');
   const onlyUnsigned = document.getElementById('cdOnlyUnsigned');

@@ -451,7 +451,7 @@
 
 {% block scripts %}
 {{ block.super }}
-<script nonce="{{ CSP_NONCE|default:'' }}">
+<script nonce="{{ CSP_NONCE|default:'' }}" data-cfasync="false">
   (function(){
     var form = document.getElementById('teacherEditForm');
     if(!form) return;

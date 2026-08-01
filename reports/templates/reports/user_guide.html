@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/user-guide.css' %}?v=20260731.2">
 
-  <script type="application/ld+json" nonce="{{ CSP_NONCE }}">
+  <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
   {
     "@context": "https://schema.org",
     "@type": "HowTo",
@@ -247,6 +247,6 @@
   </button>
 
   {% include "reports/partials/pwa_install.html" %}
-  <script src="{% static 'js/user-guide.js' %}?v=20260731.2" defer></script>
+  <script src="{% static 'js/user-guide.js' %}?v=20260731.2" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
 </body>
 </html>

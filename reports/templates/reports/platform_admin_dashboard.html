@@ -5,7 +5,7 @@
 
 {% block head %}
 <!-- Chart.js Library -->
-<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script nonce="{{ CSP_NONCE }}" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" data-cfasync="false"></script>
 
 <style>
     /* 2026 Premium Modern Dashboard Styling */
@@ -1737,7 +1737,7 @@
 {{ dashboard_period_payload|json_script:"dashboardPeriodPayload" }}
 
 <!-- JavaScript للرسوم البيانية والتفاعلية -->
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 if (typeof Chart === 'undefined') {
     window.Chart = function () {
         return {

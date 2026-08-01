@@ -514,7 +514,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     document.querySelectorAll(".plan-delete-form").forEach(function (form) {
         form.addEventListener("submit", function (event) {
             const planName = form.dataset.planName || "هذه الباقة";

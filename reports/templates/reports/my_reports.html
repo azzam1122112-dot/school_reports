@@ -1250,7 +1250,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     // ===== Delete confirm (بدون inline confirm في الفورم) =====
     document.querySelectorAll('.mr-del-form').forEach(function(f){

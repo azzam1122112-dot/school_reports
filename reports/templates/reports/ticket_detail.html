@@ -603,7 +603,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.addEventListener('DOMContentLoaded', () => {
     const triggers = document.querySelectorAll('.lightbox-trigger');
     const lightbox = document.getElementById('lightbox');

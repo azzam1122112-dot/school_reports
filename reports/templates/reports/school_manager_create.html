@@ -356,7 +356,7 @@
 
 {% block scripts %}
 {{ block.super }}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 (function(){
   const search = document.getElementById('managerSchoolsSearch');
   const list = document.getElementById('schoolsList');

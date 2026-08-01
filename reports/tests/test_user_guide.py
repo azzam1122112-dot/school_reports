@@ -104,31 +104,21 @@ class MobileNavigationRegressionTests(TestCase):
         self.assertIn("transform: translateX(105%) !important;", mobile_css)
         self.assertIn("transform: translateX(0) !important;", mobile_css)
 
-    def test_account_menu_is_viewport_safe_and_controlled_by_javascript(self):
+    def test_account_avatar_uses_the_shared_navigation_drawer(self):
         template = self._source("reports/templates/base.html")
-        mobile_css = self._source("static/css/mobile-professional.css")
 
-        self.assertIn('id="userMenu"', template)
-        self.assertIn('aria-hidden="true"', template)
-        self.assertIn("#userMenu.menu.open", template)
-        self.assertNotIn(".userbox:focus-within .menu", template)
-        self.assertNotIn(".userbox:hover .menu", template)
-        self.assertIn("document.body.appendChild(menu)", template)
-        self.assertIn("const positionMenu = ()=>", template)
-        self.assertIn("window.visualViewport", template)
-        self.assertIn("event.preventDefault();", template)
-        self.assertIn("event.stopPropagation();", template)
-        self.assertIn("ignoreNextOutsidePointer", template)
-        self.assertIn("suppressClickToggleUntil", template)
-        self.assertIn("window.__userMenuScriptReady = true;", template)
-        self.assertIn("if(window.__userMenuScriptReady) return;", template)
-        self.assertIn("window.__userMenuInlineToggle", template)
-        self.assertIn("positionInlineMenu", template)
-        self.assertIn("avatar.addEventListener('pointerup', toggleFromAvatar);", template)
-        self.assertIn("document.addEventListener('pointerdown'", template)
-        self.assertIn("right: auto !important;", mobile_css)
-        self.assertIn("left: 0 !important;", mobile_css)
-        self.assertIn("max-width: calc(100vw - 24px);", mobile_css)
+        self.assertIn('id="userAvatar" type="button" aria-haspopup="dialog" aria-controls="mobileDrawer"', template)
+        self.assertIn("Legacy account popover replaced by the unified drawer", template)
+        self.assertIn("e.target.closest('#hamburger, #userAvatar')", template)
+        self.assertIn("toggle(trigger, e);", template)
+        self.assertIn("if(avatar) avatar.setAttribute('aria-expanded','true');", template)
+        self.assertIn("if(avatar) avatar.setAttribute('aria-expanded','false');", template)
+
+    def test_shared_drawer_ignores_click_after_pointerup(self):
+        template = self._source("reports/templates/base.html")
+
+        self.assertIn("if(event.type === 'click' && nowMs < suppressClickUntil) return;", template)
+        self.assertIn("if(event.type === 'pointerup') suppressClickUntil = nowMs + 450;", template)
 
     def test_guide_uses_an_accessible_right_mobile_drawer(self):
         guide_css = self._source("static/css/user-guide.css")

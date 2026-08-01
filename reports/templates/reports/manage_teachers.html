@@ -545,7 +545,7 @@
     .admin-scope .filter-actions .btn{flex:1}
   }
 </style>
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.querySelectorAll(".teacher-delete-form").forEach(function (form) {
     form.addEventListener("submit", function (event) {
       const confirmed = window.confirm("هل أنت متأكد من حذف هذا {{ SCHOOL_TEACHER_LABEL|default:'المعلم'|escapejs }}؟");

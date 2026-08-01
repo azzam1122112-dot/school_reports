@@ -13,7 +13,7 @@
 <meta property="og:description" content="إجابات واضحة عن التقارير المدرسية وملفات الإنجاز والطلبات والتعاميم في منصة توثيق.">
 <meta property="og:url" content="{{ SITE_URL }}{% url 'reports:faq' %}">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json" nonce="{{ CSP_NONCE }}">
+<script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
 {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -519,7 +519,7 @@
 
 </div>
 
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   function toggleFAQ(element) {
     const item = element.closest('.faq-item');
     const isActive = item.classList.contains('active');

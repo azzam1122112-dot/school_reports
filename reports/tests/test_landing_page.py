@@ -105,9 +105,9 @@ class LandingPageTests(TestCase):
         self.assertRegex(
             html,
             (
-                r'<script\s+nonce="[^"]+"\s+'
+                r'<script\b[^>]*\bnonce="[^"]+"[^>]*'
                 r'src="https://eauthenticate\.saudibusiness\.gov\.sa/'
-                r'EAuthSealApi/seal\.js"\s+async\s*></script>'
+                r'EAuthSealApi/seal\.js"[^>]*\basync\b[^>]*></script>'
             ),
         )
 

@@ -867,7 +867,7 @@
             {% if SHOW_ADMIN_DASHBOARD_LINK and not IS_SCHOOL_MANAGER %}
               <a class="tab {% if active == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'reports:admin_dashboard' %}">لوحة المدرسة</a>
             {% endif %}
-            {% if SHOW_ARCHIVE_LINK %}
+            {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
               <a class="tab {% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">الأرشيف</a>
             {% endif %}
           {% endif %}
@@ -1210,7 +1210,7 @@
             <span>ملفات الإنجاز</span>
             <i class="fa-solid fa-file-lines"></i>
           </a>
-          {% if SHOW_ARCHIVE_LINK %}
+          {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
             <a class="{% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">
               <span>الأرشيف</span>
               <i class="fa-solid fa-box-archive"></i>

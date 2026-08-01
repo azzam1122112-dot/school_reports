@@ -185,7 +185,7 @@ class MansourAssistantTests(TestCase):
         self.assertIn("باقة المدرسة", request_body["instructions"])
         self.assertIn("650", request_body["instructions"])
         self.assertIn("الفئة: مدير مدرسة", request_body["instructions"])
-        self.assertIn("إدارة فريق المدرسة", request_body["instructions"])
+        self.assertIn("guide/#manager-communication", request_body["instructions"])
         self.assertNotIn("test-secret-key", request.data.decode("utf-8"))
         self.assertEqual(response.json()["audience"], "manager")
         self.assertEqual(response.json()["audience_label"], "مدير مدرسة")

@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260731.2">
   <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260731.2">
   <noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
-  <script type="application/ld+json" nonce="{{ CSP_NONCE }}">
+  <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
   {
     "@context": "https://schema.org",
     "@graph": [
@@ -618,9 +618,9 @@
     nonce="{{ CSP_NONCE }}"
     src="https://eauthenticate.saudibusiness.gov.sa/EAuthSealApi/seal.js"
     async
-  ></script>
+   data-cfasync="false"></script>
   {% include "reports/partials/pwa_install.html" %}
-  <script src="{% static 'js/landing.js' %}" defer></script>
-  <script src="{% static 'js/mansour-assistant.js' %}?v=20260731.2" defer></script>
+  <script src="{% static 'js/landing.js' %}" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  <script src="{% static 'js/mansour-assistant.js' %}?v=20260731.2" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
 </body>
 </html>

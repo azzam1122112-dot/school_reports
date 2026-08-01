@@ -604,5 +604,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'js/teacher-onboarding.js' %}" defer></script>
+<script src="{% static 'js/teacher-onboarding.js' %}" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
 {% endblock %}

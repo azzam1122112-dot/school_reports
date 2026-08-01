@@ -483,7 +483,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ CSP_NONCE }}">
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   document.addEventListener("DOMContentLoaded", function () {
     // تحسين إدخال الجوال (بدون تعديل Widgets في الفورم)
     var phone = document.getElementById("{{ form.phone.id_for_label }}") || document.getElementById("id_phone");

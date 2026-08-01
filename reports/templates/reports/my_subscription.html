@@ -2586,8 +2586,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'js/subscription-checkout.js' %}"></script>
-<script nonce="{{ CSP_NONCE }}">
+<script src="{% static 'js/subscription-checkout.js' %}" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 (() => {
   function initSubscriptionPage() {
   const pageRoot = document.getElementById('archiveOrder');
