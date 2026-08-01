@@ -42,6 +42,7 @@ INTENT_PRICING = "pricing"
 INTENT_REGISTRATION = "registration"
 INTENT_COMPLAINT = "complaint"
 INTENT_SUPPORT = "support"
+INTENT_PRIVACY = "privacy"
 INTENT_THANKS = "thanks"
 INTENT_GENERAL = "general"
 
@@ -289,6 +290,19 @@ def _detect_customer_intent(question: str) -> str:
     if any(marker in text for marker in complaint_markers):
         return INTENT_COMPLAINT
 
+    privacy_markers = (
+        "خصوصيه",
+        "بيانات الطلاب",
+        "بيانات المدرسه",
+        "حمايه البيانات",
+        "من يطلع",
+        "مين يطلع",
+        "من يشوف",
+        "مين يشوف",
+    )
+    if any(marker in text for marker in privacy_markers):
+        return INTENT_PRIVACY
+
     pricing_markers = (
         "سعر",
         "اسعار",
@@ -352,6 +366,11 @@ def _offline_sources_for_intent(
         ]
     if intent == INTENT_SUPPORT:
         return [{"title": "المساعدة وحل المشكلات", "url": "/guide/#help"}]
+    if intent == INTENT_PRIVACY:
+        return [
+            {"title": "الخصوصية وعزل بيانات المدارس", "url": "/privacy/"},
+            {"title": "الحساب والأمان", "url": "/guide/#account-security"},
+        ]
     if intent == INTENT_REGISTRATION:
         return [
             {"title": "التجربة والتسجيل", "url": "/register/"},
@@ -427,6 +446,14 @@ def _offline_customer_reply(
             "2) رسالة الخطأ إن ظهرت\n"
             "3) نوع الجهاز والمتصفح\n"
             "وبناءً على التفاصيل أعطيك خطوات معالجة دقيقة، وإذا لزم نصعّدها للدعم الفني."
+        )
+
+    if intent == INTENT_PRIVACY:
+        return (
+            "نعم، البيانات التي تُدخلها المدرسة تُحفظ ضمن حسابها لتقديم الخدمة، "
+            "ولا تكون متاحة لجميع المستخدمين. الوصول إليها يعتمد على عضوية المستخدم "
+            "في المدرسة وصلاحيات دوره، وبيانات كل مدرسة معزولة عن المدارس الأخرى. "
+            "ولا ترسل أسماء الطلاب أو كلمات المرور أو رموز التحقق أو الملفات الحساسة إلى المساعد الذكي."
         )
 
     if intent == INTENT_PRICING:

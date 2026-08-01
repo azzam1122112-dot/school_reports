@@ -288,6 +288,23 @@ class MansourAssistantTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["answer"].count("0 ريال لمدة 14 يوم"), 1)
 
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_privacy_reply_directly_explains_storage_and_access(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "هل تحفظ المنصة بيانات الطلاب ومن يطلع عليها؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("تُحفظ ضمن حسابها", payload["answer"])
+        self.assertIn("صلاحيات دوره", payload["answer"])
+        self.assertEqual(
+            [source["url"] for source in payload["sources"]],
+            ["/privacy/", "/guide/#account-security"],
+        )
+
     def test_generated_links_are_removed_from_answer_text(self):
         answer = _sanitise_answer_text(
             "راجع الدليل: /guide/#teacher-report\n"
