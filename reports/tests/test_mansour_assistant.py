@@ -466,6 +466,14 @@ class MansourAssistantTests(TestCase):
             ["/login/", "/guide/#account-security"],
         )
 
+    def test_passkey_knowledge_is_retrieved_for_the_model(self):
+        selected = select_knowledge("كيف أسجل الدخول بمفتاح المرور؟", audience="teacher")
+        selected_by_slug = {item.slug: item for item in selected}
+
+        self.assertIn("account-security", selected_by_slug)
+        self.assertIn("الملف الشخصي", selected_by_slug["account-security"].text)
+        self.assertIn("Face ID", _instructions(selected, [], audience="teacher"))
+
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_known_upload_problem_does_not_offer_ticket_before_troubleshooting(self):
         response = self.client.post(
