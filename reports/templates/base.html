@@ -1790,6 +1790,7 @@
 
       window.__drawerScriptReady = true;
       let lastTrigger = hamburger;
+      let suppressClickUntil = 0;
 
       const open = (trigger = hamburger)=>{
         lastTrigger = trigger;
@@ -1824,14 +1825,28 @@
 
       const toggle = (trigger, event)=>{
         if(event){
+          if(event.type === 'pointerup' && event.button !== 0) return;
           event.preventDefault();
           event.stopPropagation();
+
+          const nowMs = Date.now();
+          if(event.type === 'click' && nowMs < suppressClickUntil) return;
+          if(event.type === 'pointerup') suppressClickUntil = nowMs + 450;
         }
         drawer.classList.contains('open') ? close() : open(trigger);
       };
 
-      hamburger.addEventListener('pointerup', (e)=>{ if(e.button === 0) toggle(hamburger, e); });
-      hamburger.addEventListener('click', (e)=> toggle(hamburger, e));
+      // Delegated handlers survive any dynamic header re-render that swaps nodes.
+      document.addEventListener('pointerup', (e)=>{
+        const trigger = e.target && e.target.closest ? e.target.closest('#hamburger, #userAvatar') : null;
+        if(!trigger) return;
+        toggle(trigger, e);
+      }, true);
+      document.addEventListener('click', (e)=>{
+        const trigger = e.target && e.target.closest ? e.target.closest('#hamburger, #userAvatar') : null;
+        if(!trigger) return;
+        toggle(trigger, e);
+      }, true);
       if(closeBtn) closeBtn.addEventListener('click', close);
       overlay.addEventListener('click', (e)=>{ if(e.target === overlay) close(); });
       document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && drawer.classList.contains('open')) close(); });
@@ -2111,7 +2126,7 @@
     })();
   </script>
   {% if request.user.is_authenticated %}
-  <script src="{% static 'js/notifications-ws-manager.js' %}" defer></script>
+  <script src="{% static 'js/notifications-ws-manager.js' %}" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
   {% endif %}
 
   {% comment %}
