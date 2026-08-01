@@ -161,19 +161,19 @@ MANSOUR_ASSISTANT_MODEL = (
 ).strip()
 
 _mansour_reasoning_effort = (
-    os.getenv("MANSOUR_ASSISTANT_REASONING_EFFORT") or "medium"
+    os.getenv("MANSOUR_ASSISTANT_REASONING_EFFORT") or "minimal"
 ).strip().lower()
 if _mansour_reasoning_effort not in {"minimal", "low", "medium", "high"}:
-    _mansour_reasoning_effort = "medium"
+    _mansour_reasoning_effort = "minimal"
 MANSOUR_ASSISTANT_REASONING_EFFORT = _mansour_reasoning_effort
 
 try:
     MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = max(
         100,
-        min(900, int(os.getenv("MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS", "500"))),
+        min(900, int(os.getenv("MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS", "700"))),
     )
 except (TypeError, ValueError):
-    MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = 500
+    MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS = 700
 
 try:
     MANSOUR_ASSISTANT_TIMEOUT_SECONDS = max(

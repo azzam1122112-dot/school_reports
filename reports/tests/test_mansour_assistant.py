@@ -12,6 +12,7 @@ from reports.mansour_assistant import (
     INTENT_GENERAL,
     _fails_customer_service_guard,
     _instructions,
+    _looks_low_quality,
     _offline_customer_reply,
     _sanitise_answer_text,
     infer_public_audience,
@@ -478,6 +479,13 @@ class MansourAssistantTests(TestCase):
         answer = "الخطوة الصحيحة في حالتك: ابدأ من الإعدادات."
 
         self.assertTrue(_fails_customer_service_guard(answer, intent=INTENT_GENERAL))
+
+    def test_verbose_model_answer_is_rewritten_not_replaced_by_template(self):
+        useful_lines = [f"خطوة مفيدة {index}" for index in range(15)]
+        answer = "\n".join(useful_lines)
+
+        self.assertTrue(_looks_low_quality(answer))
+        self.assertFalse(_fails_customer_service_guard(answer, intent=INTENT_GENERAL))
 
     def test_authenticated_manager_role_overrides_client_claim(self):
         school = School.objects.create(name="مدرسة منصور", code="mansour-school")
