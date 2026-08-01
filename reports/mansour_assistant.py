@@ -27,6 +27,16 @@ MAX_HISTORY_MESSAGE_LENGTH = 500
 MAX_SELECTED_KNOWLEDGE = 6
 MIN_ANSWER_LENGTH = 40
 
+GREETING_TOKENS = (
+    "السلام",
+    "السلام عليكم",
+    "مرحبا",
+    "هلا",
+    "اهلا",
+    "صباح الخير",
+    "مساء الخير",
+)
+
 ARABIC_STOP_WORDS = frozenset(
     {
         "انا",
@@ -210,6 +220,56 @@ def _pricing_context(plans: list[dict[str, Any]]) -> str:
     return "الباقات النشطة حاليًا:\n" + "\n".join(rows)
 
 
+def _offline_customer_reply(
+    question: str,
+    *,
+    audience: str,
+    selected: list[KnowledgeItem],
+    plans: list[dict[str, Any]],
+) -> str:
+    """Provide a deterministic customer-service fallback when AI is unavailable."""
+    normalised_question = _normalise_arabic(question)
+    audience_label = AUDIENCE_LABELS.get(audience, AUDIENCE_LABELS[AUDIENCE_GENERAL])
+
+    if any(token in normalised_question for token in GREETING_TOKENS):
+        return (
+            "وعليكم السلام، حياك الله. "
+            "أنا منصور ممثل خدمة العملاء في توثيق، وأقدر أساعدك في التسجيل، التجربة، الباقات، "
+            "وإعداد المدرسة خطوة بخطوة."
+        )
+
+    if any(token in normalised_question for token in ("سعر", "اسعار", "أسعار", "باقة", "باقات", "اشتراك")):
+        if plans:
+            top_plans = []
+            for plan in plans[:3]:
+                name = str(plan.get("name") or "باقة").strip()
+                price = str(plan.get("price") or "-").strip()
+                days = int(plan.get("days_duration") or 0)
+                top_plans.append(f"{name}: {price} ريال لمدة {days} يوم")
+            plans_text = "، ".join(top_plans)
+            return (
+                f"لخدمتك. للفئة الحالية ({audience_label}) يمكنك البدء بالتجربة المجانية أولًا، "
+                f"ثم اختيار الباقة المناسبة. أمثلة من الباقات النشطة: {plans_text}. "
+                "السعر النهائي يظهر قبل تأكيد الطلب."
+            )
+        return (
+            "يمكنك البدء بالتجربة المجانية ثم مراجعة قسم الباقات في الصفحة الرئيسية، "
+            "والسعر النهائي يظهر قبل تأكيد الطلب."
+        )
+
+    primary = selected[0] if selected else None
+    if primary:
+        return (
+            f"لفئتك الحالية ({audience_label}) أفضل نقطة بداية هي: {primary.title}. "
+            f"{primary.text} إذا رغبت، اكتب سؤالك بصيغة أدق وسأعطيك خطوات عملية أقصر."
+        )
+
+    return (
+        "لفهم سؤالك بشكل أدق، اكتب المطلوب باختصار (مثل: التسجيل، إضافة معلم، إنشاء تقرير، أو الاشتراك)، "
+        "وسأعطيك الخطوات المناسبة لفئتك داخل توثيق."
+    )
+
+
 def _instructions(
     knowledge: list[KnowledgeItem],
     plans: list[dict[str, Any]],
@@ -365,15 +425,20 @@ def ask_mansour(
     if len(question) > MAX_QUESTION_LENGTH:
         raise MansourAssistantError("اختصر الاستفسار إلى 500 حرف أو أقل.")
 
+    audience = normalise_audience(audience)
+    selected = select_knowledge(question, audience=audience)
     api_key = str(getattr(settings, "OPENAI_API_KEY", "") or "").strip()
     enabled = bool(getattr(settings, "MANSOUR_ASSISTANT_ENABLED", False))
     if not enabled or not api_key:
-        raise MansourAssistantError(
-            "المساعد غير متاح مؤقتًا. يمكنك مراجعة دليل المستخدم أو التواصل مع الدعم."
+        fallback_answer = _offline_customer_reply(
+            question,
+            audience=audience,
+            selected=selected,
+            plans=plans or [],
         )
+        fallback_sources = [{"title": item.title, "url": item.url} for item in selected[:3]]
+        return fallback_answer[:1800], fallback_sources
 
-    audience = normalise_audience(audience)
-    selected = select_knowledge(question, audience=audience)
     messages = sanitise_history(history)
     messages.append({"role": "user", "content": question})
     timeout_seconds = float(getattr(settings, "MANSOUR_ASSISTANT_TIMEOUT_SECONDS", 20))

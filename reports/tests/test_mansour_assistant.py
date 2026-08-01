@@ -85,6 +85,24 @@ class MansourAssistantTests(TestCase):
         self.assertIn("ممثل خدمة العملاء", prompt)
         self.assertIn("تصرّف كممثل خدمة عملاء فقط", prompt)
 
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_endpoint_uses_local_fallback_when_key_missing(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps(
+                {
+                    "question": "السلام عليكم",
+                    "history": [],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertIn("ممثل خدمة العملاء", payload["answer"])
+
     @patch("reports.mansour_assistant.urlopen", return_value=_FakeOpenAIResponse())
     def test_endpoint_calls_responses_api_server_side(self, mocked_urlopen):
         response = self.client.post(
@@ -265,13 +283,14 @@ class MansourAssistantTests(TestCase):
         self.assertFalse(too_long.json()["ok"])
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=False)
-    def test_endpoint_fails_safely_when_assistant_is_not_configured(self):
+    def test_endpoint_uses_local_fallback_when_assistant_is_not_configured(self):
         response = self.client.post(
             reverse("reports:mansour_assistant_reply"),
             data=json.dumps({"question": "كيف أشترك؟"}),
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 503)
-        self.assertFalse(response.json()["ok"])
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertIn("لفئتك الحالية", response.json()["answer"])
         self.assertNotIn("OPENAI", response.content.decode("utf-8"))
