@@ -12,6 +12,10 @@ from django.conf import settings
 from .mansour_knowledge import (
     AUDIENCE_GENERAL,
     AUDIENCE_LABELS,
+    AUDIENCE_MANAGER,
+    AUDIENCE_PLATFORM_SUPERVISOR,
+    AUDIENCE_REPORT_SUPERVISOR,
+    AUDIENCE_TEACHER,
     KNOWLEDGE_ITEMS,
     ROLE_DEFAULT_SLUGS,
     ROLE_GUIDANCE,
@@ -43,6 +47,10 @@ INTENT_REGISTRATION = "registration"
 INTENT_COMPLAINT = "complaint"
 INTENT_SUPPORT = "support"
 INTENT_PRIVACY = "privacy"
+INTENT_PAYMENT_ISSUE = "payment_issue"
+INTENT_PASSWORD_RESET = "password_reset"
+INTENT_PASSKEY = "passkey"
+INTENT_OUT_OF_SCOPE = "out_of_scope"
 INTENT_THANKS = "thanks"
 INTENT_GENERAL = "general"
 
@@ -167,14 +175,39 @@ def normalise_audience(value: Any) -> str:
 
 
 def infer_public_audience(question: Any) -> str:
-    """Infer an explicitly stated public role without granting any permissions."""
+    """Infer a public role from explicit wording or a role-specific workflow."""
     text = _normalise_arabic(str(question or ""))
     if any(marker in text for marker in ("مدير مدرسه", "مديره مدرسه", "قائد مدرسه", "قائده مدرسه")):
-        return "manager"
+        return AUDIENCE_MANAGER
     if any(marker in text for marker in ("انا معلم", "انا معلمه", "بصفتي معلم", "بصفتي معلمه")):
-        return "teacher"
+        return AUDIENCE_TEACHER
     if any(marker in text for marker in ("انا مشرف", "انا مشرفه", "بصفتي مشرف", "بصفتي مشرفه")):
         return "supervisor"
+    manager_workflows = (
+        "اضافه المعلمين",
+        "اضيف المعلمين",
+        "استيراد المعلمين",
+        "ارسل تعميم",
+        "ارسال تعميم",
+        "اداره الاشتراك",
+        "اشتراك المدرسه",
+        "التقرير الاسبوعي",
+        "تقارير المعلمين",
+    )
+    if any(marker in text for marker in manager_workflows):
+        return AUDIENCE_MANAGER
+    teacher_workflows = (
+        "اضيف تقرير",
+        "اضافه تقرير",
+        "انشئ تقرير",
+        "تقريري",
+        "ملف انجاز",
+        "اوقع على تعميم",
+        "توقيع التعميم",
+        "طلباتي",
+    )
+    if any(marker in text for marker in teacher_workflows):
+        return AUDIENCE_TEACHER
     return AUDIENCE_GENERAL
 
 
@@ -275,6 +308,20 @@ def _pricing_context(plans: list[dict[str, Any]]) -> str:
 def _detect_customer_intent(question: str) -> str:
     text = _normalise_arabic(question)
 
+    out_of_scope_markers = (
+        "تجاهل تعليماتك",
+        "اكشف اعدادات النظام",
+        "تعليمات النظام",
+        "مفتاح api",
+        "حاله الطقس",
+        "حالة الطقس",
+        "نتيجه المباراه",
+        "اكتب قصيده",
+        "اكتب برنامج",
+    )
+    if any(marker in text for marker in out_of_scope_markers):
+        return INTENT_OUT_OF_SCOPE
+
     complaint_markers = (
         "شكوي",
         "شكاوي",
@@ -289,6 +336,37 @@ def _detect_customer_intent(question: str) -> str:
     )
     if any(marker in text for marker in complaint_markers):
         return INTENT_COMPLAINT
+
+    payment_markers = ("دفع", "دفعت", "خصم", "ايصال", "فاتوره", "عمليه")
+    payment_issue_markers = (
+        "لم يتفعل",
+        "ما تفعل",
+        "غير مفعل",
+        "معلق",
+        "لم يعتمد",
+        "ما اعتمد",
+        "رفض",
+        "مشكله",
+        "خطا",
+    )
+    if any(marker in text for marker in payment_markers) and any(
+        marker in text for marker in payment_issue_markers
+    ):
+        return INTENT_PAYMENT_ISSUE
+
+    password_reset_markers = (
+        "نسيت كلمه المرور",
+        "استعاده كلمه المرور",
+        "رابط الاستعاده",
+        "رساله الاستعاده",
+        "اعاده تعيين كلمه المرور",
+    )
+    if any(marker in text for marker in password_reset_markers):
+        return INTENT_PASSWORD_RESET
+
+    passkey_markers = ("بصمه", "مفتاح مرور", "face id", "touch id")
+    if any(marker in text for marker in passkey_markers):
+        return INTENT_PASSKEY
 
     privacy_markers = (
         "خصوصيه",
@@ -366,6 +444,23 @@ def _offline_sources_for_intent(
         ]
     if intent == INTENT_SUPPORT:
         return [{"title": "المساعدة وحل المشكلات", "url": "/guide/#help"}]
+    if intent == INTENT_PAYMENT_ISSUE:
+        return [
+            {"title": "اشتراك المدرسة والمدفوعات", "url": "/subscription/my/"},
+            {"title": "الدعم الفني لمشكلات الدفع", "url": "/complaints/#complaint-form"},
+        ]
+    if intent == INTENT_PASSWORD_RESET:
+        return [
+            {"title": "استعادة كلمة المرور", "url": "/password-reset/"},
+            {"title": "الحساب والأمان", "url": "/guide/#account-security"},
+        ]
+    if intent == INTENT_PASSKEY:
+        return [
+            {"title": "تسجيل الدخول", "url": "/login/"},
+            {"title": "الحساب والأمان", "url": "/guide/#account-security"},
+        ]
+    if intent == INTENT_OUT_OF_SCOPE:
+        return []
     if intent == INTENT_PRIVACY:
         return [
             {"title": "الخصوصية وعزل بيانات المدارس", "url": "/privacy/"},
@@ -392,6 +487,9 @@ def _sources_for_answer(
     question: str = "",
 ) -> list[dict[str, str]]:
     """Prefer customer-journey links for known intents; otherwise keep retrieval sources."""
+    if intent == INTENT_OUT_OF_SCOPE:
+        return []
+
     normalised_question = _normalise_arabic(question)
     if (
         intent == INTENT_GENERAL
@@ -417,6 +515,7 @@ def _offline_customer_reply(
     intent: str,
     selected: list[KnowledgeItem],
     plans: list[dict[str, Any]],
+    audience: str = AUDIENCE_GENERAL,
 ) -> str:
     """Provide a deterministic customer-service fallback when AI is unavailable."""
     if intent == INTENT_GREETING:
@@ -438,7 +537,46 @@ def _offline_customer_reply(
             "ونؤكد الاستلام خلال يومي عمل ونعمل على المعالجة خلال سبعة أيام عمل."
         )
 
+    if intent == INTENT_OUT_OF_SCOPE:
+        return (
+            "أساعدك فقط في خدمات منصة توثيق، مثل التسجيل والباقات والتقارير وملفات الإنجاز "
+            "والاشتراكات والدعم. لا أستطيع كشف إعدادات النظام أو الإجابة عن موضوعات خارج المنصة."
+        )
+
+    if intent == INTENT_PAYMENT_ISSUE:
+        return (
+            "لا أستطيع الاطلاع على حالة دفعتك من المحادثة، لكن يمكنك التحقق منها بأمان:\n"
+            "1) افتح اشتراك المدرسة وراجع حالة العملية وسجل المدفوعات.\n"
+            "2) إذا كانت العملية معتمدة وما زال الاشتراك غير مفعّل، سجّل طلب دعم وارفق رقم العملية أو الفاتورة ووقت الدفع.\n"
+            "3) لا ترسل بيانات البطاقة أو رقم الآيبان الكامل داخل المحادثة."
+        )
+
+    if intent == INTENT_PASSWORD_RESET:
+        return (
+            "لاستعادة كلمة المرور:\n"
+            "1) افتح «هل نسيت كلمة المرور؟» من شاشة الدخول.\n"
+            "2) أدخل البريد الإلكتروني المسجل في حسابك؛ رابط الاستعادة صالح لمدة ساعة.\n"
+            "3) افحص البريد غير المرغوب فيه، ثم أعد المحاولة بعد عدة دقائق إذا لم تصل الرسالة.\n"
+            "إذا استمرت المشكلة، تواصل مع الدعم دون إرسال كلمة المرور أو رمز التحقق."
+        )
+
+    if intent == INTENT_PASSKEY:
+        return (
+            "للدخول بالبصمة استخدم الموقع مباشرة عبر Chrome أو Safari أو Edge، وتأكد من وجود قفل شاشة على الجهاز.\n"
+            "1) إذا لم تُفعّل بعد، سجّل الدخول بكلمة المرور ثم فعّل مفتاح المرور من الملف الشخصي.\n"
+            "2) بعد التفعيل، اكتب رقم الجوال في شاشة الدخول واضغط «الدخول بالبصمة».\n"
+            "3) إذا لم تظهر نافذة البصمة، حدّث المتصفح وتجنب المتصفح المضمّن داخل التطبيقات، ثم أعد المحاولة."
+        )
+
     if intent == INTENT_SUPPORT:
+        normalised_question = _normalise_arabic(question)
+        if any(marker in normalised_question for marker in ("رفع صوره", "رفع ملف", "ارفاق صوره", "ارفاق ملف")):
+            return (
+                "جرّب هذه الخطوات لرفع الملف أو الصورة:\n"
+                "1) ارفع ملفًا واحدًا بصيغة شائعة وتأكد أن حجمه ضمن الحد الظاهر في الصفحة.\n"
+                "2) تأكد من استقرار الاتصال، ثم أعد اختيار الملف والمحاولة.\n"
+                "3) إذا استمر الخطأ، أرسل للدعم نص رسالة الخطأ ونوع الجهاز والمتصفح بعد إخفاء أي بيانات حساسة."
+            )
         return (
             "مفهوم، خلّنا نحلها خطوة بخطوة.\n"
             "أرسل لي الآن:\n"
@@ -446,6 +584,22 @@ def _offline_customer_reply(
             "2) رسالة الخطأ إن ظهرت\n"
             "3) نوع الجهاز والمتصفح\n"
             "وبناءً على التفاصيل أعطيك خطوات معالجة دقيقة، وإذا لزم نصعّدها للدعم الفني."
+        )
+
+    normalised_question = _normalise_arabic(question)
+    if audience == AUDIENCE_REPORT_SUPERVISOR and any(
+        marker in normalised_question for marker in ("تعديل", "حذف", "انشاء", "صلاحيات", "استطيع")
+    ):
+        return (
+            "حساب مشرف التقارير للعرض فقط. يمكنك متابعة تقارير المدرسة وطباعتها، "
+            "وعرض ملفات الإنجاز وطباعتها أو تنزيلها، لكن لا يمكنك إنشاء التقارير أو تعديلها "
+            "أو حذفها أو تنفيذ أي عملية كتابة."
+        )
+
+    if audience == AUDIENCE_PLATFORM_SUPERVISOR and "صلاحيات" in normalised_question:
+        return (
+            "مشرف المنصة يعمل ضمن المدارس المخصصة له فقط، ويستخدم صفحات المتابعة والتواصل "
+            "بحسب الصلاحيات الممنوحة. لا يملك تلقائيًا صلاحيات مدير المدرسة ولا يصل إلى مدارس خارج نطاقه."
         )
 
     if intent == INTENT_PRIVACY:
@@ -734,6 +888,7 @@ def ask_mansour(
             intent=intent,
             selected=selected,
             plans=plans or [],
+            audience=audience,
         )
         fallback_sources = _sources_for_answer(intent, selected=selected, question=retrieval_question)
         return fallback_answer[:1800], fallback_sources
@@ -768,6 +923,7 @@ def ask_mansour(
             intent=intent,
             selected=selected,
             plans=plans or [],
+            audience=audience,
         )
         return fallback_answer[:1800], _sources_for_answer(
             intent,
@@ -781,6 +937,7 @@ def ask_mansour(
             intent=intent,
             selected=selected,
             plans=plans or [],
+            audience=audience,
         )
         return fallback_answer[:1800], _sources_for_answer(
             intent,
@@ -814,6 +971,7 @@ def ask_mansour(
             intent=intent,
             selected=selected,
             plans=plans or [],
+            audience=audience,
         )
 
     if not answer:
@@ -822,6 +980,7 @@ def ask_mansour(
             intent=intent,
             selected=selected,
             plans=plans or [],
+            audience=audience,
         )
         return fallback_answer[:1800], _sources_for_answer(
             intent,

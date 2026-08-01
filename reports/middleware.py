@@ -974,6 +974,10 @@ class ReportViewerAccessMiddleware:
         if bool(getattr(request, "force_password_change_required", False)) and full_name == "reports:my_profile":
             return self.get_response(request)
 
+        # سؤال المساعد عملية استشارية لا تغيّر بيانات المدرسة.
+        if full_name == "reports:mansour_assistant_reply":
+            return self.get_response(request)
+
         # منع أي عمليات كتابة تمامًا
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
             if self._wants_json(request):

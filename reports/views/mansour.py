@@ -74,8 +74,17 @@ def _resolve_audience(request: HttpRequest, requested_audience, question="", his
 @csrf_exempt
 @never_cache
 @require_POST
-@ratelimit(key="ip", rate="10/m", method="POST", block=True)
+@ratelimit(key="ip", rate="10/m", method="POST", block=False)
 def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
+    if getattr(request, "limited", False):
+        return _json_response(
+            {
+                "ok": False,
+                "message": "وصلت إلى الحد المؤقت للأسئلة. انتظر دقيقة ثم حاول مرة أخرى.",
+            },
+            status=429,
+        )
+
     if request.content_type != "application/json":
         return _json_response(
             {"ok": False, "message": "صيغة الطلب غير صحيحة."},
