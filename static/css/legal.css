@@ -34,6 +34,32 @@
 
 .legal-layout { display: block; }
 .legal-content { display: grid; gap: 18px; }
+.business-disclosure--legal {
+  margin: -14px 0 24px;
+  border: 1px solid #dce8e1;
+  border-radius: 14px;
+  color: #52655c;
+  background: #f8fbf9;
+}
+.business-disclosure--legal summary {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  color: #315846;
+  font-size: .78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.business-disclosure--legal summary small { color: #81948a; font-size: .65rem; font-weight: 600; }
+.business-disclosure--legal .business-disclosure__body { padding: 2px 14px 15px; border-top: 1px solid #e5eee9; }
+.business-disclosure--legal dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 22px; margin: 14px 0; }
+.business-disclosure--legal dl div { min-width: 0; }
+.business-disclosure--legal dt { margin-bottom: 3px; color: #789087; font-size: .67rem; }
+.business-disclosure--legal dd { margin: 0; overflow-wrap: anywhere; color: #294c3d; font-size: .78rem; }
+.business-disclosure--legal a { color: #176540; text-underline-offset: 3px; }
+.business-disclosure--legal .business-disclosure__links { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: .72rem; }
 .legal-card { padding: clamp(22px, 4vw, 34px); border: 1px solid #dfe9e3; border-radius: 18px; background: #fff; box-shadow: 0 8px 28px rgba(12, 61, 41, .04); }
 .legal-card h2 { margin: 0 0 16px; color: #123d2c; font-size: 1.25rem; }
 .legal-card h3 { margin: 22px 0 9px; color: #1c4d39; font-size: 1rem; }
@@ -56,6 +82,7 @@
 @media (max-width: 560px) {
   .legal-page { width: min(100% - 20px, 1040px); padding-top: 20px; }
   .legal-form { grid-template-columns: 1fr; }
+  .business-disclosure--legal dl { grid-template-columns: 1fr; }
   .legal-nav {
     overflow: visible;
     flex-wrap: wrap;

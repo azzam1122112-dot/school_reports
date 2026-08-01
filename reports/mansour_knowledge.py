@@ -73,6 +73,7 @@ class KnowledgeItem:
     audiences: frozenset[str] = frozenset()
     keywords: str = ""
     priority: int = 0
+    next_action: str = ""
 
 
 _FALLBACK_KNOWLEDGE_ITEMS = (
@@ -496,6 +497,7 @@ def _coerce_knowledge_items(payload: Any) -> tuple[KnowledgeItem, ...]:
                 audiences=audiences,
                 keywords=str(row.get("keywords") or "").strip(),
                 priority=priority,
+                next_action=str(row.get("next_action") or "").strip(),
             )
         )
 

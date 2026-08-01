@@ -161,6 +161,23 @@
         gap: 1rem;
     }
 
+    .plans-section-heading {
+        margin: 1.6rem 0 .85rem;
+    }
+
+    .plans-section-heading h2 {
+        margin: 0 0 .25rem;
+        color: var(--plans-green-deep);
+        font-size: 1.15rem;
+        font-weight: 900;
+    }
+
+    .plans-section-heading p {
+        margin: 0;
+        color: #71807b;
+        font-size: .86rem;
+    }
+
     .plan-card {
         position: relative;
         display: flex;
@@ -426,54 +443,46 @@
         <span class="pricing-policy__icon"><i class="fas fa-balance-scale"></i></span>
         <div>
             <h2>سياسة التسعير المعتمدة</h2>
-            <p>جميع الباقات المدفوعة تشمل الوظائف الأساسية نفسها، ويختلف السعر حسب عدد المعلمين ومدة الاشتراك. الباقة السنوية تمنح وفراً مباشراً، وجميع الأسعار المعروضة قبل ضريبة القيمة المضافة.</p>
+            <p>جميع الباقات المدفوعة تشمل الوظائف الأساسية نفسها، ويختلف السعر حسب عدد المعلمين ومدة الاشتراك. الباقة السنوية تمنح وفراً مباشراً، والأسعار المعروضة هي المبالغ النهائية المطلوبة حاليًا دون ضريبة قيمة مضافة.</p>
         </div>
     </section>
 
-    {% if plans %}
-        <section class="plans-grid" aria-label="قائمة الباقات">
-            {% for plan in plans %}
-                <article class="plan-card{% if plan.is_recommended %} plan-card--recommended{% endif %}{% if not plan.is_active %} plan-card--inactive{% endif %}">
+    {% if renewal_catalog %}
+        <div class="plans-section-heading">
+            <h2>الباقات المنشورة للعملاء</h2>
+            <p>هذه هي الباقات نفسها الظاهرة في الصفحة الرئيسية وصفحة إدارة الاشتراك، بنفس الترتيب والأسعار.</p>
+        </div>
+        <section class="plans-grid" aria-label="الباقات المنشورة للعملاء">
+            {% for group in renewal_catalog %}
+              {% for option in group.options %}
+                {% with plan=option.plan %}
+                <article class="plan-card{% if group.is_recommended %} plan-card--recommended{% endif %}">
                     <div class="plan-card__badges">
-                        <span class="plan-badge{% if plan.period_key == 'annual' %} plan-badge--gold{% endif %}">{{ plan.period_label }}</span>
-                        {% if plan.is_recommended %}<span class="plan-badge plan-badge--gold">الأكثر طلباً</span>{% endif %}
-                        {% if not plan.is_active %}<span class="plan-badge plan-badge--muted">غير نشطة</span>{% endif %}
+                        <span class="plan-badge{% if option.duration_label == 'سنة' %} plan-badge--gold{% endif %}">{{ option.duration_label }}</span>
+                        <span class="plan-badge">{{ group.capacity_label }}</span>
+                        {% if group.is_recommended %}<span class="plan-badge plan-badge--gold">الأكثر طلباً</span>{% endif %}
                     </div>
 
                     <h3>{{ plan.name }}</h3>
-                    <p class="plan-card__capacity">
-                        {% if plan.max_teachers > 0 %}
-                            حتى {{ plan.max_teachers }} معلماً
-                        {% else %}
-                            عدد معلمين مخصص
-                        {% endif %}
-                    </p>
+                    <p class="plan-card__capacity">{{ group.capacity_label }}</p>
 
                     <div class="plan-card__price">
-                        {% if plan.price > 0 %}
-                            <strong class="plan-card__amount">{{ plan.price|floatformat:0 }}</strong>
-                            <span class="plan-card__currency">ريال / {{ plan.period_label }}</span>
-                        {% else %}
-                            <strong class="plan-card__amount">مجاناً</strong>
-                        {% endif %}
+                        <strong class="plan-card__amount">{{ plan.price|floatformat:0 }}</strong>
+                        <span class="plan-card__currency">ريال / {{ option.duration_label }}</span>
                     </div>
                     <div class="plan-card__equivalent">
-                        {% if plan.monthly_equivalent %}
-                            ما يعادل {{ plan.monthly_equivalent|floatformat:0 }} ريال شهرياً
-                        {% else %}
-                            تجربة كاملة دون التزام مالي
-                        {% endif %}
+                        {% if option.monthly_equivalent %}ما يعادل {{ option.monthly_equivalent|floatformat:0 }} ريال شهرياً{% endif %}
                     </div>
 
-                    {% if plan.annual_savings %}
+                    {% if option.annual_savings %}
                         <div class="plan-card__saving">
                             <i class="fas fa-piggy-bank ms-1"></i>
-                            وفّر {{ plan.annual_savings|floatformat:0 }} ريال سنوياً ({{ plan.annual_discount_percent }}%)
+                            وفّر {{ option.annual_savings|floatformat:0 }} ريال سنوياً
                         </div>
                     {% endif %}
 
                     <ul class="plan-card__features">
-                        {% for feature in plan.feature_lines %}
+                        {% for feature in group.features %}
                             <li><i class="fas fa-check-circle"></i><span>{{ feature }}</span></li>
                         {% empty %}
                             <li><i class="fas fa-check-circle"></i><span>إدارة التقارير والتوثيق المدرسي</span></li>
@@ -492,6 +501,8 @@
                         </form>
                     </div>
                 </article>
+                {% endwith %}
+              {% endfor %}
             {% endfor %}
         </section>
     {% else %}
@@ -503,11 +514,43 @@
         </section>
     {% endif %}
 
+    {% if other_plans %}
+        <div class="plans-section-heading">
+            <h2>باقات إدارية أخرى</h2>
+            <p>التجربة المجانية والباقات غير المنشورة للعملاء.</p>
+        </div>
+        <section class="plans-grid" aria-label="الباقات الإدارية الأخرى">
+            {% for plan in other_plans %}
+                <article class="plan-card{% if not plan.is_active %} plan-card--inactive{% endif %}">
+                    <div class="plan-card__badges">
+                        <span class="plan-badge">{{ plan.period_label }}</span>
+                        {% if not plan.is_active %}<span class="plan-badge plan-badge--muted">غير نشطة</span>{% endif %}
+                    </div>
+                    <h3>{{ plan.name }}</h3>
+                    <p class="plan-card__capacity">{% if plan.max_teachers > 0 %}حتى {{ plan.max_teachers }} مستخدم{% else %}عدد مستخدمين غير محدود{% endif %}</p>
+                    <div class="plan-card__price">
+                        {% if plan.price > 0 %}<strong class="plan-card__amount">{{ plan.price|floatformat:0 }}</strong><span class="plan-card__currency">ريال</span>{% else %}<strong class="plan-card__amount">مجاناً</strong>{% endif %}
+                    </div>
+                    <ul class="plan-card__features">
+                        {% for feature in plan.feature_lines %}<li><i class="fas fa-check-circle"></i><span>{{ feature }}</span></li>{% endfor %}
+                    </ul>
+                    <div class="plan-card__footer">
+                        <a class="btn btn-outline-primary" href="{% url 'reports:platform_plan_edit' plan.pk %}"><i class="fas fa-pen ms-1"></i> تعديل</a>
+                        <form method="post" action="{% url 'reports:platform_plan_delete' plan.pk %}" class="plan-delete-form" data-plan-name="{{ plan.name }}">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger w-100" type="submit"><i class="fas fa-trash ms-1"></i> حذف</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+    {% endif %}
+
     <aside class="archive-note">
         <i class="fas fa-archive"></i>
         <div>
             <strong>الأرشفة طويلة المدى: 399 ريال سنوياً وتشمل 50 جيجابايت</strong>
-            <span>يمكن إضافة كل 50 جيجابايت إضافية مقابل 149 ريالاً سنوياً. الأسعار قبل ضريبة القيمة المضافة.</span>
+            <span>يمكن إضافة كل 50 جيجابايت إضافية مقابل 149 ريالاً سنوياً. لا تُضاف ضريبة القيمة المضافة حاليًا.</span>
         </div>
     </aside>
 </div>

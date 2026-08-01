@@ -59,6 +59,29 @@ logger.info("Current Environment: %s", ENV)
 logger.info("DEBUG: %s", DEBUG)
 
 
+# ----------------- Error monitoring -----------------
+SENTRY_DSN = (os.getenv("SENTRY_DSN") or "").strip()
+SENTRY_RELEASE = (os.getenv("SENTRY_RELEASE") or "").strip() or None
+try:
+    SENTRY_TRACES_SAMPLE_RATE = min(
+        1.0,
+        max(0.0, float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05") or "0.05")),
+    )
+except (TypeError, ValueError):
+    SENTRY_TRACES_SAMPLE_RATE = 0.05
+
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=ENV,
+        release=SENTRY_RELEASE,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        send_default_pii=False,
+    )
+
+
 # ----------------- SECRET_KEY -----------------
 SECRET_KEY = (os.getenv("SECRET_KEY") or "").strip()
 
@@ -182,6 +205,28 @@ try:
     )
 except (TypeError, ValueError):
     MANSOUR_ASSISTANT_TIMEOUT_SECONDS = 20.0
+
+# ----------------- AI report writing assistant -----------------
+REPORT_AI_ENABLED = _env_bool("REPORT_AI_ENABLED", bool(OPENAI_API_KEY))
+REPORT_AI_MODEL = (
+    os.getenv("REPORT_AI_MODEL") or MANSOUR_ASSISTANT_MODEL
+).strip()
+
+try:
+    REPORT_AI_MAX_OUTPUT_TOKENS = max(
+        200,
+        min(1400, int(os.getenv("REPORT_AI_MAX_OUTPUT_TOKENS", "700"))),
+    )
+except (TypeError, ValueError):
+    REPORT_AI_MAX_OUTPUT_TOKENS = 700
+
+try:
+    REPORT_AI_TIMEOUT_SECONDS = max(
+        5.0,
+        min(35.0, float(os.getenv("REPORT_AI_TIMEOUT_SECONDS", "25"))),
+    )
+except (TypeError, ValueError):
+    REPORT_AI_TIMEOUT_SECONDS = 25.0
 
 
 # ----------------- Notifications: Local fallback (no broker) -----------------
@@ -307,6 +352,11 @@ _use_r2 = bool(R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY and R2_BUCKET_NAME and 
 if _use_r2 and "storages" not in INSTALLED_APPS:
     INSTALLED_APPS.append("storages")
 
+if ENV == "production" and PRODUCTION_STRICT_MODE and not _use_r2:
+    raise ImproperlyConfigured(
+        "Private S3/R2 media storage is required in production. Local container media is not durable."
+    )
+
 
 # ----------------- Middleware -----------------
 MIDDLEWARE = [
@@ -402,6 +452,17 @@ if ENV == "production" and PRODUCTION_STRICT_MODE:
         raise ImproperlyConfigured("DATABASE_URL is required in production when PRODUCTION_STRICT_MODE is enabled.")
     if not REDIS_URL:
         raise ImproperlyConfigured("REDIS_URL is required in production when PRODUCTION_STRICT_MODE is enabled.")
+
+
+# django-ratelimit normally reads REMOTE_ADDR, which is the reverse proxy in
+# this deployment. Resolve X-Real-IP only when the direct peer is trusted.
+TRUSTED_PROXY_CIDRS = _split_env_list(
+    os.getenv(
+        "TRUSTED_PROXY_CIDRS",
+        "127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+    )
+)
+RATELIMIT_IP_META_KEY = "core.client_ip.client_ip_for_ratelimit"
 
 
 # ----------------- Caching -----------------
@@ -702,6 +763,16 @@ try:
 except (TypeError, ValueError):
     PASSWORD_RESET_TIMEOUT = 3600
 
+if ENV == "production" and PRODUCTION_STRICT_MODE:
+    if EMAIL_BACKEND != "django.core.mail.backends.smtp.EmailBackend":
+        raise ImproperlyConfigured("The SMTP email backend is required in production.")
+    if not EMAIL_HOST or EMAIL_HOST.lower() in {"localhost", "127.0.0.1"}:
+        raise ImproperlyConfigured("EMAIL_HOST must point to the production SMTP provider.")
+    if EMAIL_USE_TLS and EMAIL_USE_SSL:
+        raise ImproperlyConfigured("EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled.")
+    if "@" not in DEFAULT_FROM_EMAIL:
+        raise ImproperlyConfigured("DEFAULT_FROM_EMAIL must be a valid sender address.")
+
 try:
     from celery.schedules import crontab
 except Exception:  # pragma: no cover
@@ -744,8 +815,19 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 if ENV == "production":
-    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    STORAGES["staticfiles"] = {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    }
     WHITENOISE_MAX_AGE = 60 * 60 * 24 * 365
 
 
@@ -766,6 +848,9 @@ DATA_UPLOAD_MAX_NUMBER_FILES = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FILES", "20
 # enabled explicitly because reports, tickets, circulars, achievement evidence,
 # and payment receipts may contain sensitive data.
 MEDIA_PUBLIC_ACCESS_ENABLED = _env_bool("MEDIA_PUBLIC_ACCESS_ENABLED", False)
+if ENV == "production" and PRODUCTION_STRICT_MODE and MEDIA_PUBLIC_ACCESS_ENABLED:
+    raise ImproperlyConfigured("MEDIA_PUBLIC_ACCESS_ENABLED must remain False for private school files.")
+
 R2_PUBLIC_DOMAIN = (os.getenv("R2_PUBLIC_DOMAIN") or "").strip()
 if R2_PUBLIC_DOMAIN:
     try:
@@ -779,7 +864,9 @@ if R2_PUBLIC_DOMAIN:
         R2_PUBLIC_DOMAIN = R2_PUBLIC_DOMAIN.split("/", 1)[0]
 
 if _use_r2:
-    DEFAULT_FILE_STORAGE = "reports.storage.R2MediaStorage"
+    STORAGES["default"] = {
+        "BACKEND": "reports.storage.R2MediaStorage",
+    }
 
     AWS_ACCESS_KEY_ID = R2_ACCESS_KEY_ID
     AWS_SECRET_ACCESS_KEY = R2_SECRET_ACCESS_KEY
@@ -912,8 +999,8 @@ if not SITE_URL:
     SITE_URL = "https://tawtheeq-ksa.com" if ENV == "production" else "http://127.0.0.1:8000"
 SITE_URL = SITE_URL.rstrip("/")
 
-# Optional business settings retained for internal configuration. Public
-# templates do not render these values.
+# Public business disclosure shown in a collapsed, low-prominence section on
+# the landing and legal pages. Never place a national ID or personal photo here.
 BUSINESS_LEGAL_NAME = (os.getenv("BUSINESS_LEGAL_NAME") or "").strip()
 BUSINESS_COMMERCIAL_REGISTRATION = (
     os.getenv("BUSINESS_COMMERCIAL_REGISTRATION") or ""
@@ -936,6 +1023,40 @@ BUSINESS_VERIFICATION_URL = (os.getenv("BUSINESS_VERIFICATION_URL") or "").strip
 BUSINESS_ADDRESS = (os.getenv("BUSINESS_ADDRESS") or "").strip()
 BUSINESS_SUPPORT_EMAIL = (os.getenv("BUSINESS_SUPPORT_EMAIL") or "").strip()
 BUSINESS_SUPPORT_PHONE = (os.getenv("BUSINESS_SUPPORT_PHONE") or "").strip()
+
+if ENV == "production" and PRODUCTION_STRICT_MODE:
+    _business_disclosure_missing = [
+        name
+        for name, value in (
+            ("BUSINESS_LEGAL_NAME", BUSINESS_LEGAL_NAME),
+            ("BUSINESS_ADDRESS", BUSINESS_ADDRESS),
+            ("BUSINESS_SUPPORT_EMAIL", BUSINESS_SUPPORT_EMAIL),
+            ("BUSINESS_SUPPORT_PHONE", BUSINESS_SUPPORT_PHONE),
+        )
+        if not value
+    ]
+    if not (BUSINESS_COMMERCIAL_REGISTRATION or BUSINESS_FREELANCE_DOCUMENT_NUMBER):
+        _business_disclosure_missing.append(
+            "BUSINESS_COMMERCIAL_REGISTRATION or BUSINESS_FREELANCE_DOCUMENT_NUMBER"
+        )
+    if _business_disclosure_missing:
+        raise ImproperlyConfigured(
+            "Public business disclosure is incomplete in production: "
+            + ", ".join(_business_disclosure_missing)
+        )
+
+# ----------------- Tamara payments -----------------
+# Keep disabled until Sandbox credentials and the notification webhook are configured.
+TAMARA_ENABLED = _env_bool("TAMARA_ENABLED", False)
+TAMARA_ENVIRONMENT = (os.getenv("TAMARA_ENVIRONMENT") or "sandbox").strip().lower()
+TAMARA_API_TOKEN = (os.getenv("TAMARA_API_TOKEN") or "").strip()
+TAMARA_NOTIFICATION_TOKEN = (os.getenv("TAMARA_NOTIFICATION_TOKEN") or "").strip()
+TAMARA_API_BASE_URL = (
+    os.getenv("TAMARA_API_BASE_URL")
+    or ("https://api.tamara.co" if TAMARA_ENVIRONMENT == "production" else "https://api-sandbox.tamara.co")
+).strip().rstrip("/")
+TAMARA_INSTALMENTS = int(os.getenv("TAMARA_INSTALMENTS", "4"))
+TAMARA_REQUEST_TIMEOUT = int(os.getenv("TAMARA_REQUEST_TIMEOUT", "15"))
 CANONICAL_HOST_REDIRECT = _env_bool(
     "CANONICAL_HOST_REDIRECT",
     ENV == "production",

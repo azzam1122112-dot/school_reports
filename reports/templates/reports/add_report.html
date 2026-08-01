@@ -4,6 +4,7 @@
 {% block title %}إضافة تقرير جديد{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260801.2">
 <style>
   /* 
     ═══════════════════════════════════════════════════════════
@@ -1039,6 +1040,7 @@
                 </label>
                {{ form.idea }}
                {% if form.idea.errors %}<div class="ar-error-msg">{{ form.idea.errors.0 }}</div>{% endif %}
+               {% include "reports/partials/report_ai_improver.html" with target_id=form.idea.id_for_label %}
             </div>
 
           </div>
@@ -1103,6 +1105,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'js/report-ai-improver.js' %}?v=20260801.2" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   /* Logic preserved and compacted */
   function todayYYYYMMDD(){

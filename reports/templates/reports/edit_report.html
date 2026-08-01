@@ -4,6 +4,7 @@
 {% block title %}✏️ تعديل التقرير #{{ report.id }}{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/report-ai-improver.css' %}?v=20260801.2">
 <style>
   /* =========================================================
      Report Edit (page-only polish)
@@ -555,6 +556,7 @@
               {% if form.idea.errors %}
                 <div class="msg err">{% for e in form.idea.errors %}• {{ e }}<br>{% endfor %}</div>
               {% endif %}
+              {% include "reports/partials/report_ai_improver.html" with target_id=form.idea.id_for_label %}
             </div>
 
             <div class="row">
@@ -750,6 +752,7 @@
 
 {% block scripts %}
 {{ block.super }}
+<script src="{% static 'js/report-ai-improver.js' %}?v=20260801.2" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   // إضافة class control لمدخلات Django
   (function(){

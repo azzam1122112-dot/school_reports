@@ -29,6 +29,7 @@
           <tr>
             <th>التاريخ</th>
             <th>الباقة</th>
+            <th>طريقة الدفع</th>
             <th>المبلغ</th>
             <th>الحالة</th>
             <th>ملاحظات</th>
@@ -39,6 +40,7 @@
           <tr>
             <td><span dir="ltr" style="font-weight:900">{{ payment.created_at|date:"Y-m-d" }}</span></td>
             <td>{{ payment.requested_plan.name|default:"-" }}</td>
+            <td>{% if payment.payment_method == 'tamara' %}تمارا{% else %}تحويل بنكي{% endif %}</td>
             <td style="font-weight:950">
                 {% if payment.amount < 0 %}
                 <span class="royal-status danger" dir="ltr">{{ payment.amount }} SAR</span>
@@ -55,6 +57,10 @@
                  <span class="royal-status"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
                {% elif payment.status == 'rejected' %}
                  <span class="royal-status danger"><i class="fa-solid fa-xmark" aria-hidden="true"></i> مرفوض</span>
+               {% elif payment.payment_method == 'tamara' and payment.gateway_status == 'new' %}
+                 <span class="royal-status warn"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال الدفع</span>
+               {% elif payment.payment_method == 'tamara' %}
+                 <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تأكيد تمارا</span>
                {% else %}
                  <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> قيد المراجعة</span>
                {% endif %}
@@ -65,7 +71,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="5" class="royal-empty">
+            <td colspan="6" class="royal-empty">
               لا توجد عمليات سابقة.
             </td>
           </tr>

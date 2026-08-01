@@ -59,6 +59,13 @@ WeasyPrint يحتاج مكتبات Pango/GObject الأصلية. صورة Docker
 
 راجع `.env.example` و`deploy/hetzner/env.production.example` لقائمة المتغيرات كاملة.
 
+### تمارا
+
+تكامل تمارا معطّل افتراضيًا. ابدأ ببيئة `sandbox`، وضع `TAMARA_API_TOKEN`
+و`TAMARA_NOTIFICATION_TOKEN` في ملف البيئة الفعلي فقط، ثم سجّل Webhook من نوع
+Order على `/payments/tamara/webhook/` لكل أحداث الطلب. لا تنتقل إلى
+`TAMARA_ENVIRONMENT=production` قبل اجتياز قائمة اختبار الإطلاق لدى تمارا.
+
 ## الأمان
 
 - لا ترفع `.env` أو قاعدة SQLite أو مجلد `media`.

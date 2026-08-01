@@ -44,6 +44,7 @@
     const orderTotal = form.querySelector("#orderTotal");
     const orderEmptyState = form.querySelector("#orderEmptyState");
     const receiptSubmit = form.querySelector("#submitBtn");
+    const tamaraSubmit = form.querySelector("#tamaraSubmit");
 
     function input(name) {
       return form.querySelector(`input[name="${name}"]`);
@@ -149,6 +150,12 @@
         "إرسال إيصال التحويل البنكي",
         "اختر خدمة لإرسال إيصال التحويل",
       );
+      setSubmitState(
+        tamaraSubmit,
+        anySelected,
+        "المتابعة والدفع عبر تمارا",
+        "اختر خدمة للدفع عبر تمارا",
+      );
     }
 
     orderToggles.forEach((toggle) => {
@@ -197,6 +204,7 @@
       isOn,
       recompute,
       receiptSubmit,
+      tamaraSubmit,
     };
     Object.defineProperty(pageRoot, "__subscriptionCheckout", {
       configurable: false,

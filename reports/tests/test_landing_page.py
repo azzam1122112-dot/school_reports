@@ -64,6 +64,36 @@ class LandingPageTests(TestCase):
         self.assertNotIn("var periodButtons", html)
         self.assertIn("no-store", response.headers["Cache-Control"])
 
+    def test_landing_shows_compact_payment_methods_in_the_footer(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "اختر وسيلة الدفع الأنسب لمدرستك")
+        self.assertNotContains(response, 'class="payment-options reveal"')
+        self.assertContains(response, 'class="footer-payments"')
+        self.assertContains(response, 'aria-label="وسائل الدفع المدعومة"')
+        self.assertNotContains(response, "img/moyasar-icon-official.png")
+        self.assertNotContains(response, 'aria-label="يونيون باي"')
+        self.assertNotContains(response, "UnionPay")
+        self.assertContains(response, "img/tamara-wordmark-gradient-ar.png")
+        self.assertContains(response, 'alt="تمارا"')
+        for payment_label in (
+            "مدى",
+            "فيزا",
+            "ماستركارد",
+            "أمريكان إكسبريس",
+            "Apple Pay",
+            "Google Pay",
+            "Samsung Pay",
+            "STC Pay",
+            "تمارا",
+        ):
+            self.assertContains(response, f'aria-label="{payment_label}"')
+        self.assertContains(response, "تظهر الوسائل المفعّلة والمتاحة عند إتمام الدفع")
+        self.assertGreater(html.index('class="footer-payments"'), html.index("<footer"))
+        self.assertLess(html.index('class="footer-payments"'), html.index('class="footer-bottom"'))
+
     def test_landing_exposes_complete_canonical_and_social_metadata(self):
         response = self.client.get(reverse("reports:landing"))
         html = response.content.decode("utf-8")

@@ -1132,6 +1132,18 @@
   .tbl-badge-neutral  { background: rgba(100,116,139,.1); color: #475569; }
   .tbl-badge-refund   { background: rgba(239,68,68,.08);  color: #b91c1c; }
 
+  .tamara-cancel-form { margin-top: .55rem; }
+  .tamara-cancel-button {
+    border: 0;
+    background: transparent;
+    color: #b91c1c;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .tamara-cancel-button:hover { text-decoration: underline; }
+
   .notes-cell {
     max-width: 260px;
     white-space: normal;
@@ -1972,6 +1984,45 @@
 
   .premium-order-summary .order-total-wrap small { font-size: .74rem; font-weight: 900; }
 
+  .tamara-checkout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    margin: 1.1rem 0 1.5rem;
+    padding: 1.15rem;
+    border: 1px solid #d8ccff;
+    border-radius: 18px;
+    background: #f8f6ff;
+  }
+  .tamara-checkout h3 { margin: 0 0 .3rem; color: #24164f; font-size: 1rem; font-weight: 900; }
+  .tamara-checkout p { margin: 0; color: #62577e; font-size: .82rem; font-weight: 700; line-height: 1.7; }
+  .tamara-fields { display: grid; grid-template-columns: minmax(150px, .65fr) minmax(220px, 1.35fr); gap: .75rem; margin-top: .9rem; }
+  .tamara-fields label { display: grid; gap: .35rem; color: #40365a; font-size: .76rem; font-weight: 900; }
+  .tamara-fields input { min-height: 44px; border: 1px solid #d8ccff; border-radius: 11px; background: #fff; padding: .65rem .75rem; color: #24164f; }
+  .tamara-submit {
+    min-width: 210px;
+    min-height: 50px;
+    border: 0;
+    border-radius: 13px;
+    padding: .75rem 1rem;
+    color: #fff;
+    background: #5b35d5;
+    font-weight: 900;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+  }
+  .tamara-submit:disabled { cursor: not-allowed; opacity: .48; }
+  .tamara-sandbox { display: inline-flex; margin-inline-start: .35rem; padding: .15rem .4rem; border-radius: 6px; background: #eadfff; color: #5b35d5; font-size: .65rem; font-weight: 900; }
+
+  @media (max-width: 720px) {
+    .tamara-checkout, .tamara-fields { grid-template-columns: 1fr; }
+    .tamara-submit { width: 100%; min-width: 0; }
+  }
+
   .summary-total-note {
     margin-top: .18rem;
     color: var(--text-3);
@@ -2133,7 +2184,7 @@
           <div>
             <span class="checkout-eyebrow"><i class="fa-solid fa-gem"></i> خدمات المدرسة</span>
             <h2>اختر ما تحتاجه بوضوح</h2>
-            <p>تجديد المنصة، والأرشيف السنوي، ومساحة الأرشيف خدمات مستقلة. اختر أي خدمة مؤهلة، ثم ارفع إيصالًا واحدًا للإجمالي.</p>
+            <p>تجديد المنصة، والأرشيف السنوي، ومساحة الأرشيف خدمات مستقلة. اختر الخدمات المؤهلة ثم ادفع عبر تمارا أو التحويل البنكي.</p>
           </div>
           <div class="checkout-security">
             <i class="fa-solid fa-shield-halved"></i>
@@ -2331,7 +2382,7 @@
             <div class="summary-copy">
               <span class="summary-kicker">ملخص الطلب</span>
               <strong>إجمالي الخدمات المحددة</strong>
-              <small>راجع تفاصيل الخدمات قبل التحويل ورفع الإيصال.</small>
+              <small>راجع تفاصيل الخدمات قبل اختيار طريقة الدفع.</small>
 
               <div class="summary-line-items" id="orderSummaryItems">
                 <div class="summary-line" data-summary-for="subscription" hidden>
@@ -2353,9 +2404,31 @@
             <div class="summary-total-panel">
               <span class="summary-total-label">مجموع الطلب</span>
               <span class="order-total-wrap"><strong id="orderTotal">0.00</strong><small>ريال</small></span>
-              <small class="summary-total-note">المبلغ المطلوب تحويله بإيصال واحد</small>
+              <small class="summary-total-note">المبلغ الإجمالي للخدمات المحددة</small>
             </div>
           </div>
+
+          {% if tamara_enabled %}
+          <section class="tamara-checkout" aria-label="الدفع عبر تمارا">
+            <div>
+              <h3><i class="fa-solid fa-wallet"></i> قسّم دفعتك مع تمارا{% if tamara_environment != 'production' %}<span class="tamara-sandbox">بيئة اختبار</span>{% endif %}</h3>
+              <p>ستنتقل إلى صفحة تمارا الآمنة، ويُفعّل طلبك تلقائيًا بعد تأكيد التحصيل.</p>
+              <div class="tamara-fields">
+                <label>المدينة
+                  <input type="text" name="tamara_city" value="{{ school.city|default:'' }}" maxlength="120" autocomplete="address-level2">
+                </label>
+                <label>عنوان المدرسة أو عنوان الفوترة
+                  <input type="text" name="tamara_address" maxlength="255" autocomplete="street-address" placeholder="الحي، الشارع، رقم المبنى">
+                </label>
+              </div>
+            </div>
+            <button type="submit" id="tamaraSubmit" class="tamara-submit" data-payment-method="tamara"
+                    formaction="{% url 'reports:tamara_checkout_create' %}" formmethod="post" formnovalidate disabled aria-disabled="true">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              <span>اختر خدمة للدفع عبر تمارا</span>
+            </button>
+          </section>
+          {% endif %}
 
           <hr class="form-divider">
 
@@ -2444,7 +2517,7 @@
             </button>
           </div>
 
-          <button type="submit" class="btn-submit" id="submitBtn" disabled aria-disabled="true">
+          <button type="submit" class="btn-submit" id="submitBtn" disabled aria-disabled="true" data-payment-method="bank_transfer">
             <i class="fa-solid fa-paper-plane"></i>
             <span>اختر خدمة لإرسال إيصال التحويل</span>
           </button>
@@ -2538,6 +2611,7 @@
                   {% else %}
                     {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
                   {% endif %}
+                  <small style="display:block;color:var(--text-3);margin-top:.25rem;">{% if payment.payment_method == 'tamara' %}تمارا{% else %}تحويل بنكي{% endif %}</small>
                 </td>
                 <td>
                   {% if payment.amount < 0 %}
@@ -2555,6 +2629,16 @@
                     <span class="tbl-badge tbl-badge-neutral"><i class="fa-solid fa-ban"></i> ملغي</span>
                   {% elif payment.status == 'rejected' %}
                     <span class="tbl-badge tbl-badge-danger"><i class="fa-solid fa-xmark"></i> مرفوض</span>
+                  {% elif payment.payment_method == 'tamara' %}
+                    {% if payment.gateway_status == 'new' %}
+                      <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-wallet"></i> بانتظار إكمال الدفع</span>
+                      <form method="post" action="{% url 'reports:tamara_checkout_cancel' payment.id %}" class="tamara-cancel-form">
+                        {% csrf_token %}
+                        <button type="submit" class="tamara-cancel-button">إلغاء الطلب غير المدفوع</button>
+                      </form>
+                    {% else %}
+                      <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock"></i> بانتظار تأكيد تمارا</span>
+                    {% endif %}
                   {% else %}
                     <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock"></i> قيد المراجعة</span>
                   {% endif %}
@@ -2598,6 +2682,7 @@
   const checkout = window.SubscriptionCheckout?.init(pageRoot);
   const form = checkout?.form || document.getElementById('paymentForm');
   const submitBtn = checkout?.receiptSubmit || document.getElementById('submitBtn');
+  const tamaraSubmit = checkout?.tamaraSubmit || document.getElementById('tamaraSubmit');
   const isOn = checkout?.isOn || ((name) => {
     const control = document.querySelector('input[name="' + name + '"]');
     return !!(control && control.checked && !control.disabled);
@@ -2718,6 +2803,7 @@
   /* ── 4. Form Validation ── */
   if (form) {
     form.addEventListener('submit', function (e) {
+      const isTamara = e.submitter?.dataset.paymentMethod === 'tamara';
       // يجب اختيار عنصر واحد على الأقل
       const anySelected = isOn('include_subscription') || isOn('include_archive_addon') || isOn('include_archive_storage');
       if (!anySelected) {
@@ -2734,7 +2820,16 @@
         showToast('اختر باقة لتجديد اشتراك المدرسة', 'error');
         return;
       }
-      if (fileInput && !fileInput.value) {
+      if (isTamara) {
+        const city = form.querySelector('input[name="tamara_city"]');
+        const address = form.querySelector('input[name="tamara_address"]');
+        if (!city?.value.trim() || !address?.value.trim()) {
+          e.preventDefault();
+          (address || city)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          showToast('أدخل المدينة والعنوان لإكمال الدفع عبر تمارا', 'error');
+          return;
+        }
+      } else if (fileInput && !fileInput.value) {
         e.preventDefault();
         if (dropArea) {
           dropArea.style.borderColor = '#ef4444';
@@ -2745,11 +2840,12 @@
         return;
       }
       // Loading state
-      if (submitBtn) {
-        submitBtn.classList.add('loading');
-        const lbl = submitBtn.querySelector('span');
+      const activeSubmit = isTamara ? tamaraSubmit : submitBtn;
+      if (activeSubmit) {
+        activeSubmit.classList.add('loading');
+        const lbl = activeSubmit.querySelector('span');
         if (lbl) lbl.textContent = 'جارٍ الإرسال...';
-        submitBtn.disabled = true;
+        activeSubmit.disabled = true;
       }
     });
   }

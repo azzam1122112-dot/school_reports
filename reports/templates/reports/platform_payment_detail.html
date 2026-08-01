@@ -338,6 +338,22 @@
         </div>
 
         <div class="row">
+          <span class="label">طريقة الدفع</span>
+          <span class="value">{% if payment.payment_method == 'tamara' %}تمارا{% else %}تحويل بنكي{% endif %}</span>
+        </div>
+
+        {% if payment.payment_method == 'tamara' %}
+        <div class="row">
+          <span class="label">حالة تمارا</span>
+          <span class="value">{{ payment.gateway_status|default:"بانتظار التأكيد" }}</span>
+        </div>
+        <div class="row">
+          <span class="label">رقم طلب تمارا</span>
+          <span class="value" dir="ltr">{{ payment.gateway_order_id }}</span>
+        </div>
+        {% endif %}
+
+        <div class="row">
           <span class="label">نوع العملية</span>
           <span class="value">
             {% if payment.purpose == 'archive_addon' %}
@@ -362,7 +378,9 @@
       </div>
 
       <div class="decision-note">
-        {% if payment.status == 'pending' %}
+        {% if payment.status == 'pending' and payment.payment_method == 'tamara' %}
+          الطلب بانتظار تأكيد التحصيل من تمارا، ولا يمكن اعتماده يدويًا.
+        {% elif payment.status == 'pending' %}
           {% if payment.purpose == 'archive_addon' %}
             راجع الإيصال والمبلغ ثم اعتمد العملية لتفعيل أو تجديد إضافة الأرشفة للمدرسة تلقائيًا.
           {% elif payment.purpose == 'archive_storage' %}
@@ -392,6 +410,8 @@
           <img src="{{ payment.receipt_image.url }}" class="img-preview" alt="إيصال الدفع" loading="lazy" decoding="async">
         </a>
         <div class="help">اضغط على الصورة لفتحها بحجم كامل.</div>
+      {% elif payment.payment_method == 'tamara' %}
+        <div class="help" style="padding:14px;text-align:center;font-weight:900">الدفع إلكتروني عبر تمارا ولا يتطلب صورة إيصال.</div>
       {% else %}
         <div class="help" style="padding:14px;text-align:center;font-weight:900">لا توجد صورة مرفقة</div>
       {% endif %}
@@ -436,7 +456,7 @@
             <span>إجمالي الطلب</span>
             <strong>{{ batch_total|floatformat:0|intcomma }} ريال</strong>
           </div>
-          {% if batch_has_pending %}
+          {% if batch_has_pending and payment.payment_method != 'tamara' %}
             <form method="post" class="batch-approve-form">
               {% csrf_token %}
               <input type="hidden" name="action" value="approve_batch">
@@ -445,6 +465,8 @@
               </button>
               <div class="help">يعتمد كل البنود قيد المراجعة دفعة واحدة ويفعّلها تلقائيًا بالترتيب الصحيح.</div>
             </form>
+          {% elif batch_has_pending %}
+            <div class="help"><i class="fa-solid fa-clock"></i> سيُعتمد الطلب تلقائيًا بعد تأكيد التحصيل من تمارا.</div>
           {% else %}
             <div class="help"><i class="fa-solid fa-check"></i> تمت معالجة جميع بنود هذا الطلب.</div>
           {% endif %}
@@ -458,11 +480,13 @@
           <label for="id_status">تحديث الحالة{% if batch_payments %} (لهذا البند فقط){% endif %}</label>
           <select id="id_status" name="status" class="select" required>
             <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>قيد المراجعة</option>
+            {% if payment.payment_method != 'tamara' or payment.status == 'approved' %}
             <option value="approved" {% if payment.status == 'approved' %}selected{% endif %}>قبول الدفع</option>
+            {% endif %}
             <option value="rejected" {% if payment.status == 'rejected' %}selected{% endif %}>رفض الدفع</option>
             <option value="cancelled" {% if payment.status == 'cancelled' %}selected{% endif %}>إلغاء العملية</option>
           </select>
-          <div class="help">اختر الحالة ثم احفظ. يفضّل كتابة سبب الرفض عند الرفض.</div>
+          <div class="help">{% if payment.payment_method == 'tamara' and payment.status == 'pending' %}يتم القبول تلقائيًا من تمارا؛ يمكنك رفض الطلب أو إلغاءه عند الحاجة.{% else %}اختر الحالة ثم احفظ. يفضّل كتابة سبب الرفض عند الرفض.{% endif %}</div>
         </div>
 
         <div>

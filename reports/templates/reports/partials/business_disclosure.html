@@ -1,0 +1,71 @@
+{% if BUSINESS.disclosure_complete %}
+<details class="business-disclosure business-disclosure--{{ disclosure_variant|default:'legal' }}">
+  <summary>
+    <span>بيانات مقدم الخدمة</span>
+    <small>إفصاح قانوني</small>
+  </summary>
+  <div class="business-disclosure__body">
+    <dl>
+      <div>
+        <dt>الاسم القانوني</dt>
+        <dd>{{ BUSINESS.legal_name }}</dd>
+      </div>
+      {% if BUSINESS.commercial_registration %}
+      <div>
+        <dt>السجل التجاري</dt>
+        <dd dir="ltr">{{ BUSINESS.commercial_registration }}</dd>
+      </div>
+      {% elif BUSINESS.freelance_document_number %}
+      <div>
+        <dt>وثيقة العمل الحر</dt>
+        <dd dir="ltr">{{ BUSINESS.freelance_document_number }}</dd>
+      </div>
+      {% endif %}
+      {% if BUSINESS.freelance_activity %}
+      <div>
+        <dt>النشاط</dt>
+        <dd>{{ BUSINESS.freelance_activity }}</dd>
+      </div>
+      {% endif %}
+      {% if BUSINESS.freelance_document_expiry %}
+      <div>
+        <dt>صلاحية الوثيقة حتى</dt>
+        <dd dir="ltr">{{ BUSINESS.freelance_document_expiry }}</dd>
+      </div>
+      {% endif %}
+      <div>
+        <dt>المقر</dt>
+        <dd>{{ BUSINESS.address }}</dd>
+      </div>
+      <div>
+        <dt>التواصل</dt>
+        <dd>
+          <a href="mailto:{{ BUSINESS.support_email }}" dir="ltr">{{ BUSINESS.support_email }}</a>
+          <span aria-hidden="true">·</span>
+          <a href="tel:{{ BUSINESS.support_phone }}" dir="ltr">{{ BUSINESS.support_phone }}</a>
+        </dd>
+      </div>
+      {% if BUSINESS.tax_number %}
+      <div>
+        <dt>الرقم الضريبي</dt>
+        <dd dir="ltr">{{ BUSINESS.tax_number }}</dd>
+      </div>
+      {% endif %}
+      {% if BUSINESS.licenses %}
+      <div>
+        <dt>التراخيص</dt>
+        <dd>{{ BUSINESS.licenses }}</dd>
+      </div>
+      {% endif %}
+    </dl>
+    <div class="business-disclosure__links">
+      {% if BUSINESS.freelance_document_url %}
+      <a href="{{ BUSINESS.freelance_document_url }}" target="_blank" rel="noopener noreferrer">التحقق من وثيقة العمل الحر</a>
+      {% endif %}
+      {% if BUSINESS.verification_url %}
+      <a href="{{ BUSINESS.verification_url }}" target="_blank" rel="noopener noreferrer">التحقق من المتجر</a>
+      {% endif %}
+    </div>
+  </div>
+</details>
+{% endif %}

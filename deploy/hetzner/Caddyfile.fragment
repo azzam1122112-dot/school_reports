@@ -1,7 +1,9 @@
 tawtheeq-ksa.com {
 	encode zstd gzip
 
-	reverse_proxy school-reports-web:8000
+	reverse_proxy school-reports-web:8000 {
+		header_up X-Real-IP {remote_host}
+	}
 
 	header {
 		-Server

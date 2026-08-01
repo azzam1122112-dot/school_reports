@@ -1,0 +1,51 @@
+<div
+  class="report-ai-improver"
+  data-report-ai-improver
+  data-endpoint="{% url 'reports:improve_report_text' %}"
+  data-target-id="{{ target_id|default:'id_idea' }}"
+  data-daily-limit="{{ report_ai_daily_limit|default:3 }}"
+  data-remaining="{{ report_ai_daily_remaining|default:3 }}"
+>
+  <div class="report-ai-quota" data-report-ai-quota>
+    <span class="report-ai-quota-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span>
+    <div class="report-ai-quota-copy">
+      <strong>3 تحسينات احترافية كل يوم</strong>
+      <span>المتبقي اليوم: <b data-report-ai-remaining>{{ report_ai_daily_remaining|default:3 }}</b> من {{ report_ai_daily_limit|default:3 }}</span>
+    </div>
+    <div class="report-ai-quota-dots" aria-hidden="true">
+      <i data-quota-dot class="{% if report_ai_daily_remaining|default:3 >= 1 %}is-available{% endif %}"></i>
+      <i data-quota-dot class="{% if report_ai_daily_remaining|default:3 >= 2 %}is-available{% endif %}"></i>
+      <i data-quota-dot class="{% if report_ai_daily_remaining|default:3 >= 3 %}is-available{% endif %}"></i>
+    </div>
+  </div>
+
+  <div class="report-ai-actions">
+    <button type="button" class="report-ai-trigger" data-report-ai-trigger>
+      <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+      تحسين الصياغة بالذكاء الاصطناعي
+    </button>
+    <button type="button" class="report-ai-undo" data-report-ai-undo hidden>
+      <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+      التراجع عن التحسين
+    </button>
+  </div>
+
+  <p class="report-ai-note">
+    يُحتسب التحسين الناجح فقط. يحسّن اللغة والترتيب دون اختراع معلومات، ولا تُدرج بيانات طلاب حساسة.
+  </p>
+  <p class="report-ai-status" data-report-ai-status role="status" aria-live="polite"></p>
+
+  <section class="report-ai-preview" data-report-ai-preview hidden aria-label="معاينة النص المحسن">
+    <div class="report-ai-preview-head">
+      <strong><i class="fa-solid fa-sparkles" aria-hidden="true"></i> النص المقترح</strong>
+      <span>لن يتغير التقرير حتى تعتمد النص</span>
+    </div>
+    <div class="report-ai-preview-text" data-report-ai-output></div>
+    <div class="report-ai-preview-actions">
+      <button type="button" class="report-ai-accept" data-report-ai-accept>
+        <i class="fa-solid fa-check" aria-hidden="true"></i> اعتماد التحسين
+      </button>
+      <button type="button" class="report-ai-cancel" data-report-ai-cancel>إلغاء</button>
+    </div>
+  </section>
+</div>

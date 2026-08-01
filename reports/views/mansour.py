@@ -74,13 +74,13 @@ def _resolve_audience(request: HttpRequest, requested_audience, question="", his
 @csrf_exempt
 @never_cache
 @require_POST
-@ratelimit(key="ip", rate="10/m", method="POST", block=False)
+@ratelimit(key="ip", rate="50/d", method="POST", block=False)
 def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
     if getattr(request, "limited", False):
         return _json_response(
             {
                 "ok": False,
-                "message": "وصلت إلى الحد المؤقت للأسئلة. انتظر دقيقة ثم حاول مرة أخرى.",
+                "message": "وصلت إلى الحد اليومي البالغ 50 سؤالًا. يمكنك استخدام منصور مجددًا غدًا.",
             },
             status=429,
         )
@@ -134,6 +134,11 @@ def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
             history=payload.get("history"),
             plans=serialised_plans,
             audience=audience,
+            page_context=(
+                payload.get("page_context")
+                if getattr(request.user, "is_authenticated", False)
+                else None
+            ),
         )
     except MansourAssistantError as exc:
         status = (

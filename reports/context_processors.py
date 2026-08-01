@@ -803,7 +803,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         try:
             dismissed_keys = [k for k in (request.COOKIES or {}).keys() if k.startswith("notif_dismissed_")]
             dismissed_keys.sort()
-            dismissed_sig = hashlib.sha1("|".join(dismissed_keys).encode("utf-8")).hexdigest()[:12]
+            dismissed_sig = hashlib.sha256("|".join(dismissed_keys).encode("utf-8")).hexdigest()[:12]
         except Exception:
             dismissed_sig = "nocookies"
 

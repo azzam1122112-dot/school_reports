@@ -46,6 +46,7 @@ urlpatterns = [
     # التقارير (للمعلّم)
     # =========================
     path("reports/add/", views.add_report, name="add_report"),
+    path("reports/ai/improve/", views.improve_report_text, name="improve_report_text"),
     path("reports/my/", views.my_reports, name="my_reports"),
     path("reports/<int:pk>/edit/", views.edit_my_report, name="edit_my_report"),
     path("reports/<int:pk>/delete/", views.delete_my_report, name="delete_my_report"),
@@ -295,6 +296,14 @@ urlpatterns = [
     path("subscription/my/", views.my_subscription, name="my_subscription"),
     path("subscription/history/", views.subscription_history, name="subscription_history"),
     path("subscription/payment/create/", views.payment_create, name="payment_create"),
+    path("subscription/payment/tamara/", views.tamara_checkout_create, name="tamara_checkout_create"),
+    path(
+        "subscription/payment/tamara/<int:payment_id>/cancel/",
+        views.tamara_checkout_cancel,
+        name="tamara_checkout_cancel",
+    ),
+    path("subscription/payment/tamara/return/<str:result>/", views.tamara_return, name="tamara_return"),
+    path("payments/tamara/webhook/", views.tamara_webhook, name="tamara_webhook"),
 
     # =========================
     # إدارة المنصة (Custom Views)

@@ -95,8 +95,18 @@ class PlatformBillingPagesTests(TestCase):
         self.assertContains(response, "ما يعادل")
         self.assertContains(response, "وفّر 199 ريال")
         self.assertContains(response, "399 ريال سنوياً")
+        self.assertContains(response, "الباقات المنشورة للعملاء")
+        self.assertContains(response, "هذه هي الباقات نفسها الظاهرة في الصفحة الرئيسية")
         self.assertEqual(response.context["stats"]["active_count"], 7)
         self.assertEqual(response.context["stats"]["capacity_count"], 3)
+        self.assertEqual(len(response.context["renewal_catalog"]), 3)
+        self.assertEqual(
+            [len(group["options"]) for group in response.context["renewal_catalog"]],
+            [2, 2, 2],
+        )
+        self.assertEqual(len(response.context["other_plans"]), 2)
+        self.assertTrue(any(plan.price == 0 for plan in response.context["other_plans"]))
+        self.assertTrue(any(not plan.is_active for plan in response.context["other_plans"]))
 
     def test_platform_detail_pages_render_decision_blocks(self):
         subscription_response = self.client.get(

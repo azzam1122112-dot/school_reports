@@ -285,6 +285,43 @@ button { font: inherit; }
 .footer-links { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; font-size: .76rem; }
 .footer-links strong { margin-bottom: 5px; color: var(--white); font-size: .82rem; }
 .footer-links a:hover { color: #edcf92; }
+.business-disclosure--footer { border-top: 1px solid rgba(255,255,255,.1); }
+.business-disclosure--footer summary { min-height: 44px; display: flex; align-items: center; gap: 9px; width: fit-content; padding: 10px 0; color: rgba(255,255,255,.68); font-size: .7rem; font-weight: 800; cursor: pointer; }
+.business-disclosure--footer summary small { color: rgba(255,255,255,.36); font-size: .59rem; font-weight: 500; }
+.business-disclosure--footer .business-disclosure__body { padding: 2px 0 18px; }
+.business-disclosure--footer dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 28px; margin: 8px 0 12px; }
+.business-disclosure--footer dl div { min-width: 0; }
+.business-disclosure--footer dt { margin-bottom: 2px; color: rgba(255,255,255,.35); font-size: .58rem; }
+.business-disclosure--footer dd { margin: 0; overflow-wrap: anywhere; color: rgba(255,255,255,.7); font-size: .68rem; }
+.business-disclosure--footer a { color: rgba(255,255,255,.76); text-decoration-color: rgba(255,255,255,.25); text-underline-offset: 3px; }
+.business-disclosure--footer .business-disclosure__links { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: .64rem; }
+.footer-payments { display: grid; grid-template-columns: minmax(180px, auto) minmax(0, 1fr); align-items: center; gap: 28px; padding: 20px 0; border-top: 1px solid rgba(255,255,255,.1); }
+.footer-payments-copy { display: grid; gap: 3px; min-width: 0; }
+.footer-payments-copy strong { display: flex; align-items: center; gap: 7px; color: var(--white); font-size: .78rem; }
+.footer-payments-copy strong i { color: #e5ca94; }
+.footer-payments-copy small { color: rgba(255,255,255,.48); font-size: .61rem; line-height: 1.6; }
+.payment-marks { display: flex; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; flex-wrap: wrap; }
+.payment-mark { height: 32px; min-width: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex: 0 0 auto; padding: 4px 9px; overflow: hidden; border: 1px solid rgba(255,255,255,.18); border-radius: 6px; color: #17251f; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.12); font-family: Arial, sans-serif; font-size: .69rem; font-weight: 800; line-height: 1; white-space: nowrap; }
+.payment-mark img { display: block; max-width: 100%; height: auto; object-fit: contain; }
+.payment-mark--mada { gap: 2px; color: #097d75; font-family: "Cairo", sans-serif; }
+.payment-mark--mada b { font-size: .85rem; }
+.payment-mark--mada small { color: #4b8581; font-size: .45rem; }
+.payment-mark--visa { color: #17357e; font-size: .9rem; font-style: italic; letter-spacing: -.04em; }
+.payment-mark--mastercard { min-width: 68px; display: grid; grid-template-columns: 30px 1fr; gap: 2px; padding-inline: 6px; }
+.payment-mark--mastercard i { position: relative; width: 29px; height: 17px; display: block; }
+.payment-mark--mastercard i::before,
+.payment-mark--mastercard i::after { content: ""; position: absolute; top: 0; width: 17px; height: 17px; border-radius: 50%; }
+.payment-mark--mastercard i::before { right: 0; background: #eb001b; }
+.payment-mark--mastercard i::after { left: 0; background: rgba(247,158,27,.92); }
+.payment-mark--mastercard small { color: #222; font-size: .45rem; font-weight: 700; }
+.payment-mark--amex { min-width: 56px; padding-inline: 5px; color: #fff; background: #1976a3; font-size: .45rem; line-height: .9; text-align: center; }
+.payment-mark--apple { color: #080808; font-size: .78rem; }
+.payment-mark--apple i { font-size: 1rem; }
+.payment-mark--google b { color: #4285f4; font-size: .9rem; }
+.payment-mark--samsung { color: #1428a0; font-size: .51rem; }
+.payment-mark--stc { color: #4f008c; font-size: .76rem; }
+.payment-mark--tamara { min-width: 86px; padding-inline: 7px; }
+.payment-mark--tamara img { width: 72px; max-height: 23px; }
 .footer-bottom { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid rgba(255,255,255,.1); font-size: .69rem; }
 .mobile-sticky { display: none; }
 
@@ -383,6 +420,9 @@ button { font: inherit; }
   .final-panel { padding: 34px 23px; }
   .final-actions { display: grid; }
   .footer-main { grid-template-columns: 1fr 1fr; gap: 36px 22px; padding-top: 50px; }
+  .business-disclosure--footer dl { grid-template-columns: 1fr; }
+  .footer-payments { grid-template-columns: 1fr; gap: 13px; }
+  .payment-marks { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; padding: 2px 0 9px; scrollbar-width: thin; }
   .footer-links { gap: 2px; }
   .footer-links a,
   .arrow-link,

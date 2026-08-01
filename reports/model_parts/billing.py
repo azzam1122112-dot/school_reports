@@ -135,6 +135,10 @@ class SchoolSubscription(models.Model):
 
 
 class Payment(models.Model):
+    class Method(models.TextChoices):
+        BANK_TRANSFER = "bank_transfer", "تحويل بنكي"
+        TAMARA = "tamara", "تمارا"
+
     class Status(models.TextChoices):
         PENDING = "pending", "قيد المراجعة"
         APPROVED = "approved", "مقبول"
@@ -170,6 +174,45 @@ class Payment(models.Model):
         verbose_name="الاشتراك المرتبط"
     )
     amount = models.DecimalField("المبلغ", max_digits=10, decimal_places=2)
+    payment_method = models.CharField(
+        "طريقة الدفع",
+        max_length=20,
+        choices=Method.choices,
+        default=Method.BANK_TRANSFER,
+        db_index=True,
+    )
+    gateway_order_id = models.CharField(
+        "رقم طلب بوابة الدفع",
+        max_length=160,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+    gateway_checkout_id = models.CharField(
+        "رقم جلسة بوابة الدفع",
+        max_length=160,
+        blank=True,
+        default="",
+    )
+    gateway_status = models.CharField(
+        "حالة بوابة الدفع",
+        max_length=32,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+    gateway_capture_id = models.CharField(
+        "رقم تحصيل بوابة الدفع",
+        max_length=160,
+        blank=True,
+        default="",
+    )
+    gateway_completed_at = models.DateTimeField(
+        "وقت اكتمال عملية البوابة",
+        null=True,
+        blank=True,
+        editable=False,
+    )
     purpose = models.CharField(
         "نوع العملية",
         max_length=32,

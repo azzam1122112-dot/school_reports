@@ -45,7 +45,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.cache import cache_control, never_cache
+from django.views.decorators.cache import cache_control, cache_page, never_cache
 from django.db.models.deletion import ProtectedError
 
 from django.templatetags.static import static
@@ -88,6 +88,8 @@ def user_guide_download(request: HttpRequest) -> HttpResponse:
     )
 
 
+@cache_page(60 * 60)
+@ratelimit(key="ip", rate="20/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def user_guide_download_pdf(request: HttpRequest) -> HttpResponse:
     """Download the user guide as a PDF (includes platform logo)."""

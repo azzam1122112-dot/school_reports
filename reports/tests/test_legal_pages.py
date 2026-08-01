@@ -16,7 +16,7 @@ from reports.models import CustomerComplaint
     BUSINESS_SUPPORT_PHONE="+966500000000",
 )
 class LegalPagesTests(TestCase):
-    def test_legal_pages_are_public_without_business_identity_or_contact(self):
+    def test_legal_pages_show_business_identity_in_collapsed_disclosure(self):
         routes = (
             "reports:terms_conditions",
             "reports:privacy_policy",
@@ -28,20 +28,33 @@ class LegalPagesTests(TestCase):
             response = self.client.get(reverse(route_name))
             self.assertEqual(response.status_code, 200)
             self.assertNotIn("X-Robots-Tag", response.headers)
-            self.assertNotContains(response, "شركة توثيق الاختبارية")
-            self.assertNotContains(response, "care@example.test")
-            self.assertNotContains(response, "1010123456")
+            self.assertContains(response, 'class="business-disclosure business-disclosure--legal"')
+            self.assertContains(response, "بيانات مقدم الخدمة")
+            self.assertContains(response, "شركة توثيق الاختبارية")
+            self.assertContains(response, "care@example.test")
+            self.assertContains(response, "1010123456")
+            self.assertContains(response, "310123456700003")
 
-    def test_landing_keeps_policy_links_without_business_identity(self):
+    def test_landing_shows_low_prominence_business_disclosure(self):
         response = self.client.get(reverse("reports:landing"))
 
-        self.assertNotContains(response, "شركة توثيق الاختبارية")
-        self.assertNotContains(response, "1010123456")
-        self.assertNotContains(response, "310123456700003")
-        self.assertNotContains(response, "هوية مقدم الخدمة")
+        self.assertContains(response, 'class="business-disclosure business-disclosure--footer"')
+        self.assertContains(response, "شركة توثيق الاختبارية")
+        self.assertContains(response, "1010123456")
+        self.assertContains(response, "310123456700003")
+        self.assertContains(response, "care@example.test")
+        self.assertNotContains(response, '<details class="business-disclosure business-disclosure--footer" open')
         self.assertContains(response, reverse("reports:terms_conditions"))
         self.assertContains(response, reverse("reports:refund_policy"))
         self.assertContains(response, reverse("reports:complaints_policy"))
+
+    def test_privacy_policy_discloses_ai_processing_and_contact_channel(self):
+        response = self.client.get(reverse("reports:privacy_policy"))
+
+        self.assertContains(response, "OpenAI")
+        self.assertContains(response, "مدة تصل إلى 30 يومًا")
+        self.assertContains(response, "care@example.test")
+        self.assertContains(response, "عدم إدخال أرقام الهوية")
 
     def test_public_complaint_form_creates_trackable_record(self):
         response = self.client.post(
@@ -78,16 +91,37 @@ class LegalPagesTests(TestCase):
     BUSINESS_FREELANCE_ACTIVITY="تطوير المواقع والتطبيقات",
     BUSINESS_FREELANCE_DOCUMENT_EXPIRY="2027-06-26",
     BUSINESS_FREELANCE_DOCUMENT_URL="https://freelance.example.test/verify",
+    BUSINESS_ADDRESS="الرياض، المملكة العربية السعودية",
+    BUSINESS_TAX_NUMBER="",
     BUSINESS_SUPPORT_EMAIL="care@example.test",
     BUSINESS_SUPPORT_PHONE="+966500000000",
 )
 class FreelanceBusinessDisclosureTests(TestCase):
-    def test_freelance_document_is_not_rendered_publicly(self):
+    def test_freelance_document_is_rendered_without_tax_or_cr_labels(self):
         response = self.client.get(reverse("reports:landing"))
 
-        self.assertNotContains(response, "وثيقة العمل الحر")
-        self.assertNotContains(response, "FL-12345678")
-        self.assertNotContains(response, "تطوير المواقع والتطبيقات")
-        self.assertNotContains(response, "2027-06-26")
-        self.assertNotContains(response, "https://freelance.example.test/verify")
+        self.assertContains(response, "وثيقة العمل الحر")
+        self.assertContains(response, "FL-12345678")
+        self.assertContains(response, "تطوير المواقع والتطبيقات")
+        self.assertContains(response, "2027-06-26")
+        self.assertContains(response, "https://freelance.example.test/verify")
         self.assertNotContains(response, "السجل التجاري")
+        self.assertNotContains(response, "الرقم الضريبي")
+
+
+@override_settings(
+    ALLOWED_HOSTS=["testserver"],
+    BUSINESS_LEGAL_NAME="بيانات ناقصة",
+    BUSINESS_COMMERCIAL_REGISTRATION="",
+    BUSINESS_FREELANCE_DOCUMENT_NUMBER="FL-00000000",
+    BUSINESS_ADDRESS="الرياض",
+    BUSINESS_SUPPORT_EMAIL="",
+    BUSINESS_SUPPORT_PHONE="",
+)
+class IncompleteBusinessDisclosureTests(TestCase):
+    def test_incomplete_identity_is_not_partially_rendered(self):
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertNotContains(response, "بيانات ناقصة")
+        self.assertNotContains(response, "FL-00000000")
+        self.assertNotContains(response, "بيانات مقدم الخدمة")

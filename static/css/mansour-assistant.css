@@ -18,6 +18,23 @@
   transition: transform .18s ease, box-shadow .18s ease;
 }
 
+.mansour-launcher-copy {
+  display: grid;
+  gap: 1px;
+  text-align: right;
+}
+
+.mansour-launcher-copy strong {
+  font-size: .9rem;
+  line-height: 1.35;
+}
+
+.mansour-launcher-copy small {
+  color: rgba(255, 255, 255, .72);
+  font-size: .62rem;
+  font-weight: 650;
+}
+
 .mansour-launcher:hover {
   transform: translateY(-2px);
   box-shadow: 0 19px 46px rgba(0, 69, 38, .34);
@@ -26,8 +43,7 @@
 .mansour-launcher:focus-visible,
 .mansour-panel button:focus-visible,
 .mansour-panel textarea:focus-visible,
-.mansour-quick-action:focus-visible,
-.mansour-role-option:focus-visible {
+.mansour-quick-action:focus-visible {
   outline: 3px solid rgba(197, 163, 101, .45);
   outline-offset: 2px;
 }
@@ -67,10 +83,10 @@
   z-index: 120;
   left: 24px;
   bottom: 92px;
-  width: min(390px, calc(100vw - 32px));
-  max-height: min(650px, calc(100dvh - 126px));
+  width: min(410px, calc(100vw - 32px));
+  max-height: min(700px, calc(100dvh - 126px));
   display: grid;
-  grid-template-rows: auto minmax(150px, 1fr) auto;
+  grid-template-rows: auto minmax(190px, 1fr) auto auto;
   overflow: hidden;
   direction: rtl;
   border: 1px solid rgba(3, 77, 44, .15);
@@ -79,6 +95,12 @@
   background: #fff;
   box-shadow: 0 26px 74px rgba(2, 45, 26, .25);
   font-family: "Cairo", sans-serif;
+  animation: mansour-panel-in .2s ease-out both;
+}
+
+@keyframes mansour-panel-in {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .mansour-head {
@@ -117,91 +139,30 @@
   box-shadow: 0 0 0 3px rgba(114, 223, 158, .14);
 }
 
-.mansour-close {
+.mansour-close,
+.mansour-reset {
   width: 38px;
   height: 38px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
   border: 0;
   border-radius: 50%;
   color: #fff;
   background: rgba(255, 255, 255, .12);
   cursor: pointer;
+  transition: background-color .16s ease, transform .16s ease;
 }
 
-.mansour-audience {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid #e2ebe6;
-  background: #fff;
-}
-
-.mansour-audience > p:first-child {
-  margin: 0 0 9px;
-  color: #43554c;
-  font-size: .72rem;
-  font-weight: 750;
-  line-height: 1.55;
-}
-
-.mansour-role-options {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
-}
-
-.mansour-role-option {
-  min-width: 0;
-  min-height: 50px;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  place-items: center;
-  gap: 6px;
-  padding: 7px 8px;
-  border: 1px solid #d8e5de;
-  border-radius: 12px;
-  color: #345046;
-  background: #f9fbfa;
-  cursor: pointer;
-  font: 800 .68rem/1.35 "Cairo", sans-serif;
-  transition: border-color .16s ease, background-color .16s ease, color .16s ease, transform .16s ease;
-}
-
-.mansour-role-option i {
-  color: #7a9186;
-  font-size: .9rem;
-}
-
-.mansour-role-option:hover {
+.mansour-close:hover,
+.mansour-reset:hover {
+  background: rgba(255, 255, 255, .2);
   transform: translateY(-1px);
-  border-color: #9bc4ac;
-  background: #f3f9f5;
 }
 
-.mansour-role-option.is-selected,
-.mansour-role-option[aria-pressed="true"] {
-  border-color: #087443;
-  color: #075d38;
-  background: #eaf7ef;
-  box-shadow: inset 0 0 0 1px rgba(8, 116, 67, .08);
-}
-
-.mansour-role-option.is-selected i,
-.mansour-role-option[aria-pressed="true"] i {
-  color: #087443;
-}
-
-.mansour-role-option:disabled {
-  opacity: .62;
+.mansour-reset:disabled {
+  opacity: .5;
   cursor: wait;
-}
-
-.mansour-audience-status {
-  margin: 7px 1px 0;
-  color: #7b8982;
-  font-size: .64rem;
-  font-weight: 750;
-}
-
-.mansour-audience-status.is-selected {
-  color: #087443;
 }
 
 .mansour-conversation {
@@ -209,7 +170,11 @@
   padding: 16px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: #f7faf8;
+  background:
+    radial-gradient(circle at 100% 0, rgba(8, 116, 67, .045), transparent 34%),
+    #f7faf8;
+  scrollbar-color: #b8c9c0 transparent;
+  scrollbar-width: thin;
 }
 
 .mansour-message {
@@ -239,6 +204,27 @@
 
 .mansour-message.pending { color: #5d6b64; }
 
+.mansour-message.pending::after {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 5px;
+  margin-right: 7px;
+  background: radial-gradient(circle, #087443 2px, transparent 2.5px) 0 0 / 6px 5px;
+  animation: mansour-thinking .9s ease-in-out infinite alternate;
+}
+
+@keyframes mansour-thinking {
+  from { opacity: .35; transform: translateY(1px); }
+  to { opacity: 1; transform: translateY(-1px); }
+}
+
+.mansour-message.error {
+  border-color: #f0d4ce;
+  color: #7b3025;
+  background: #fff9f7;
+}
+
 .mansour-message.role-confirmation {
   border-color: #cfe5d8;
   color: #075d38;
@@ -253,6 +239,13 @@
   margin: -3px 0 13px auto;
 }
 
+.mansour-sources-label {
+  flex: 0 0 100%;
+  color: #708078;
+  font-size: .63rem;
+  font-weight: 750;
+}
+
 .mansour-sources a {
   padding: 5px 9px;
   border: 1px solid #dce8e1;
@@ -261,13 +254,23 @@
   background: #fff;
   font-size: .7rem;
   font-weight: 700;
+  text-decoration: none;
+  transition: border-color .16s ease, background-color .16s ease;
+}
+
+.mansour-sources a:hover {
+  border-color: #93bda5;
+  background: #f1f8f4;
 }
 
 .mansour-quick-actions {
   display: flex;
   gap: 7px;
-  margin-top: 12px;
+  margin: 0;
+  padding: 9px 12px 10px;
   overflow-x: auto;
+  border-top: 1px solid #e2ebe6;
+  background: #f7faf8;
   scrollbar-width: none;
 }
 
@@ -282,6 +285,31 @@
   background: #fff;
   cursor: pointer;
   font: 700 .72rem/1.4 "Cairo", sans-serif;
+  white-space: nowrap;
+  transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
+}
+
+.mansour-quick-action:hover {
+  transform: translateY(-1px);
+  border-color: #8dbba1;
+  background: #f2f9f5;
+}
+
+.mansour-quick-action:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.mansour-retry {
+  display: block;
+  margin: -3px 0 13px auto;
+  padding: 7px 11px;
+  border: 1px solid #e0b8ae;
+  border-radius: 999px;
+  color: #7b3025;
+  background: #fff;
+  cursor: pointer;
+  font: 750 .7rem/1.4 "Cairo", sans-serif;
 }
 
 .mansour-form {
@@ -328,11 +356,31 @@
 
 .mansour-send:disabled { opacity: .55; cursor: wait; }
 
+.mansour-composer-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 2px 0;
+  color: #829087;
+  font-size: .59rem;
+  line-height: 1.4;
+}
+
+.mansour-composer-meta .is-near-limit {
+  color: #9b4a3c;
+  font-weight: 800;
+}
+
 .mansour-disclaimer {
-  margin: 7px 2px 0;
+  margin: 5px 2px 0;
   color: #718079;
   font-size: .65rem;
   line-height: 1.5;
+}
+
+.mansour-disclaimer i {
+  margin-left: 3px;
+  color: #087443;
 }
 
 @media (max-width: 760px) {
@@ -344,23 +392,25 @@
     padding: 7px;
   }
 
-  .mansour-launcher-label { display: none; }
+  .mansour-launcher-copy { display: none; }
 
   .mansour-panel {
     left: 10px;
     bottom: 78px;
     width: calc(100vw - 20px);
-    max-height: min(650px, calc(100dvh - 92px));
+    max-height: min(680px, calc(100dvh - 92px));
     border-radius: 19px;
   }
 
-  .mansour-role-option {
-    min-height: 46px;
-    padding-inline: 6px;
-    font-size: .64rem;
-  }
+}
+
+@media (max-width: 380px) {
+  .mansour-composer-meta span:first-child { display: none; }
+  .mansour-composer-meta { justify-content: flex-end; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mansour-launcher { transition: none; }
+  .mansour-launcher,
+  .mansour-panel,
+  .mansour-message.pending::after { animation: none; transition: none; }
 }

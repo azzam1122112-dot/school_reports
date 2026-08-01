@@ -37,6 +37,9 @@
   <!-- Performance -->
   <link rel="preload" href="{% static 'css/app.css' %}?v=20260731.3" as="style">
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260731.3" />
+  {% if request.user.is_authenticated %}
+  <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.3" />
+  {% endif %}
 
   <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1408,6 +1411,10 @@
     {% block content %}{% endblock %}
   </main>
 
+  {% if request.user.is_authenticated %}
+    {% include "reports/partials/mansour_assistant.html" with mansour_internal=True %}
+  {% endif %}
+
   <footer class="site-footer" aria-label="تذييل النظام">
     <div class="container">
       <div class="footer-grid">
@@ -2127,6 +2134,7 @@
   </script>
   {% if request.user.is_authenticated %}
   <script src="{% static 'js/notifications-ws-manager.js' %}" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  <script src="{% static 'js/mansour-assistant.js' %}?v=20260801.3" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
   {% endif %}
 
   {% comment %}

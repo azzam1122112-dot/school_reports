@@ -490,6 +490,7 @@
               <th style="text-align:right">رقم العملية</th>
               <th style="text-align:right">التاريخ</th>
               <th style="text-align:right">المبلغ</th>
+              <th style="text-align:right">طريقة الدفع</th>
               <th style="text-align:right">الحالة</th>
               <th style="text-align:right">الخطة</th>
               <th style="text-align:right">الإجراء</th>
@@ -501,6 +502,7 @@
                 <td data-label="رقم العملية" style="text-align:right">#{{ payment.id }}</td>
                 <td data-label="التاريخ" style="text-align:right">{{ payment.payment_date|hijri }} هـ</td>
                 <td data-label="المبلغ" style="text-align:right">{{ payment.amount|floatformat:0|intcomma }} ريال</td>
+                <td data-label="طريقة الدفع" style="text-align:right">{% if payment.payment_method == 'tamara' %}تمارا{% else %}تحويل بنكي{% endif %}</td>
                 <td data-label="الحالة" style="text-align:right">
                   {% if payment.status == 'approved' %}
                     <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> مقبول</span>
@@ -508,6 +510,8 @@
                     <span class="badge danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> مرفوض</span>
                   {% elif payment.status == 'cancelled' %}
                     <span class="badge warning"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
+                  {% elif payment.payment_method == 'tamara' %}
+                    <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تمارا</span>
                   {% else %}
                     <span class="badge warning"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> قيد المراجعة</span>
                   {% endif %}
@@ -522,7 +526,7 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="6" style="text-align:center; padding: 2rem;" class="muted">
+                <td colspan="7" style="text-align:center; padding: 2rem;" class="muted">
                   لا توجد عمليات مالية مرتبطة بهذا الاشتراك حتى الآن.
                 </td>
               </tr>

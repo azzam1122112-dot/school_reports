@@ -842,6 +842,7 @@ class PlatformAdminAccessMiddleware:
             "reports:login",
             "reports:logout",
             "reports:my_profile",
+            "reports:mansour_assistant_reply",
 
             # platform admin (scoped only)
             "reports:platform_schools_directory",
@@ -1070,6 +1071,8 @@ class ContentSecurityPolicyMiddleware:
 
     def _policy_for_request(self, request) -> str:
         sbc_seal_origin = "https://eauthenticate.saudibusiness.gov.sa"
+        tamara_checkout_origin = "https://checkout.tamara.co"
+        tamara_enabled = bool(getattr(settings, "TAMARA_ENABLED", False))
         is_landing_page = getattr(request, "path", "") == "/"
 
         # Allow override via env/settings for emergency tweaks.
@@ -1083,6 +1086,7 @@ class ContentSecurityPolicyMiddleware:
             script_directives = {"script-src", "script-src-elem"}
             seen_script_directives: set[str] = set()
             seen_frame_src = False
+            seen_form_action = False
 
             for raw_directive in policy.split(";"):
                 parts = raw_directive.strip().split()
@@ -1105,6 +1109,10 @@ class ContentSecurityPolicyMiddleware:
                     seen_frame_src = True
                     if is_landing_page and sbc_seal_origin not in parts[1:]:
                         parts.append(sbc_seal_origin)
+                elif directive_name == "form-action":
+                    seen_form_action = True
+                    if tamara_enabled and tamara_checkout_origin not in parts[1:]:
+                        parts.append(tamara_checkout_origin)
                 directives.append(" ".join(parts))
 
             for directive_name in script_directives - seen_script_directives:
@@ -1114,20 +1122,25 @@ class ContentSecurityPolicyMiddleware:
                 directives.append(f"{directive_name} {' '.join(sources)}")
             if is_landing_page and not seen_frame_src:
                 directives.append(f"frame-src 'self' {sbc_seal_origin}")
+            if tamara_enabled and not seen_form_action:
+                directives.append(f"form-action 'self' {tamara_checkout_origin}")
             return "; ".join(directives)
 
         nonce = getattr(request, "csp_nonce", "")
         seal_script_source = f" {sbc_seal_origin}" if is_landing_page else ""
         frame_src = "frame-src 'self'"
+        form_action = "form-action 'self'"
         if is_landing_page:
             frame_src = f"{frame_src} {sbc_seal_origin}"
+        if tamara_enabled:
+            form_action = f"{form_action} {tamara_checkout_origin}"
 
         # Default policy: safe baseline with current template constraints.
         # NOTE: style-src keeps 'unsafe-inline' because templates use inline style="...".
         base = [
             "default-src 'self'",
             "base-uri 'self'",
-            "form-action 'self'",
+            form_action,
             "object-src 'none'",
             "frame-ancestors 'none'",
             f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net{seal_script_source}",
@@ -1140,6 +1153,23 @@ class ContentSecurityPolicyMiddleware:
             "upgrade-insecure-requests",
         ]
         return "; ".join(base)
+
+    @staticmethod
+    def _admin_policy() -> str:
+        """CSP compatible with Django admin's remaining inline assets."""
+        return "; ".join([
+            "default-src 'self'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "object-src 'none'",
+            "frame-ancestors 'none'",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline'",
+            "font-src 'self' data:",
+            "img-src 'self' data:",
+            "connect-src 'self'",
+            "upgrade-insecure-requests",
+        ])
 
     def __call__(self, request):
         # Generate per-request nonce early (so templates can use it)
@@ -1160,13 +1190,6 @@ class ContentSecurityPolicyMiddleware:
         except Exception:
             pass
 
-        # Do not enforce strict CSP on Django admin (it uses inline scripts without our nonce)
-        try:
-            if request.path.startswith("/admin-panel/"):
-                return response
-        except Exception:
-            pass
-
         header_name = "Content-Security-Policy"
         try:
             if bool(getattr(settings, "CSP_REPORT_ONLY", False)):
@@ -1176,6 +1199,10 @@ class ContentSecurityPolicyMiddleware:
 
         # Don't override if already set by upstream/proxy
         if header_name not in response:
-            response[header_name] = self._policy_for_request(request)
+            try:
+                is_admin = request.path.startswith("/admin-panel/")
+            except Exception:
+                is_admin = False
+            response[header_name] = self._admin_policy() if is_admin else self._policy_for_request(request)
 
         return response

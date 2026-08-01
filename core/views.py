@@ -6,7 +6,6 @@ and returning simple JSON/text responses.
 from __future__ import annotations
 
 import os
-import time
 import logging
 from urllib.parse import urlencode
 
@@ -15,6 +14,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.cache import never_cache
 from django.views.csrf import csrf_failure as django_csrf_failure
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,7 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return default
 
 
+@never_cache
 def healthz(request):
     """Minimal health/readiness probe for load balancers and uptime monitors.
 
@@ -79,30 +80,28 @@ def healthz(request):
     # ── Database ──
     try:
         from django.db import connection
-        t0 = time.monotonic()
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
-        db_ms = round((time.monotonic() - t0) * 1000, 1)
-        checks["db"] = f"ok ({db_ms}ms)"
+        checks["db"] = "ok"
     except Exception as exc:
-        checks["db"] = f"error: {exc}"
+        logger.warning("Health check database probe failed (%s)", type(exc).__name__)
+        checks["db"] = "error"
         healthy = False
 
     # ── Cache (Redis) ──
     try:
         from django.core.cache import cache
-        t0 = time.monotonic()
         cache.set("_healthz", 1, timeout=10)
         val = cache.get("_healthz")
-        cache_ms = round((time.monotonic() - t0) * 1000, 1)
         if val == 1:
-            checks["cache"] = f"ok ({cache_ms}ms)"
+            checks["cache"] = "ok"
         else:
-            checks["cache"] = "error: read-back mismatch"
+            checks["cache"] = "error"
             healthy = False
     except Exception as exc:
-        checks["cache"] = f"error: {exc}"
+        logger.warning("Health check cache probe failed (%s)", type(exc).__name__)
+        checks["cache"] = "error"
         healthy = False
 
     # ── Channel Layer (optional, best-effort) ──
@@ -120,34 +119,39 @@ def healthz(request):
                     await layer.send("_healthz_probe", {"type": "healthz"})
                     await layer.receive("_healthz_probe")
 
-                t0 = time.monotonic()
                 loop = asyncio.new_event_loop()
                 try:
                     loop.run_until_complete(asyncio.wait_for(_probe(), timeout=2.0))
                 finally:
                     loop.close()
-                ch_ms = round((time.monotonic() - t0) * 1000, 1)
-                checks["channels"] = f"ok ({ch_ms}ms)"
+                checks["channels"] = "ok"
             else:
-                checks["channels"] = "not configured"
+                checks["channels"] = "not_configured"
         except Exception as exc:
             # Channel layer failure is non-critical (WebSocket only)
-            checks["channels"] = f"degraded: {exc}"
+            logger.warning("Health check channel-layer probe failed (%s)", type(exc).__name__)
+            checks["channels"] = "degraded"
     else:
         checks["channels"] = "skipped"
 
     status_code = 200 if healthy else 503
-    return JsonResponse({
+    response = JsonResponse({
         "status": "ok" if healthy else "error",
-        "instance": os.getenv("HOSTNAME", "local"),
         "checks": checks,
     }, status=status_code)
+    response["Cache-Control"] = "no-store"
+    return response
 
 
+@never_cache
 def ops_metrics(request):
-    """Return current opmetrics counters plus infrastructure stats. Staff/admin only."""
+    """Return current opmetrics counters plus infrastructure stats. Superuser only."""
     user = getattr(request, "user", None)
-    if not (user and getattr(user, "is_authenticated", False) and (getattr(user, "is_superuser", False) or getattr(user, "is_staff", False))):
+    if not (
+        user
+        and getattr(user, "is_authenticated", False)
+        and getattr(user, "is_superuser", False)
+    ):
         return JsonResponse({"detail": "forbidden"}, status=403)
 
     from core import opmetrics as _opm
@@ -217,8 +221,10 @@ def ops_metrics(request):
     except Exception:
         pass
 
-    return JsonResponse({
+    response = JsonResponse({
         "bucket": _opm._now_bucket(),
         "metrics": data,
         "infra": infra,
     })
+    response["Cache-Control"] = "no-store"
+    return response

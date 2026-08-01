@@ -9,6 +9,13 @@ x-logging: &default-logging
 x-app: &app
   image: ${APP_IMAGE:-school-reports:local}
   restart: unless-stopped
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  tmpfs:
+    - /tmp:size=128m,mode=1777
   env_file:
     - ${ENV_FILE:-deploy/hetzner/env.production}
   logging: *default-logging
@@ -24,6 +31,8 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ${ENV_FILE:-deploy/hetzner/env.production}
     logging: *default-logging
@@ -42,6 +51,8 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ${ENV_FILE:-deploy/hetzner/env.production}
     logging: *default-logging

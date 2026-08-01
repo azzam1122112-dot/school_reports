@@ -3,12 +3,26 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import re
 
 from django.contrib.auth.decorators import user_passes_test
 from django.conf import settings
 from django.core.cache import cache
+from django.http import JsonResponse
+from django.views.decorators.cache import never_cache
+
+from ..report_ai import (
+    REPORT_AI_DAILY_LIMIT,
+    ReportAIError,
+    ReportAIUnavailable,
+    improve_report_text as improve_report_text_with_ai,
+    release_report_ai_daily_slot,
+    report_ai_daily_remaining,
+    reserve_report_ai_daily_slot,
+    validate_report_text,
+)
 
 from ._helpers import *
 from ._helpers import (
@@ -25,6 +39,13 @@ from core import opmetrics
 
 
 logger = logging.getLogger(__name__)
+
+
+def _report_ai_template_context(user) -> dict[str, int]:
+    return {
+        "report_ai_daily_limit": REPORT_AI_DAILY_LIMIT,
+        "report_ai_daily_remaining": report_ai_daily_remaining(user.pk),
+    }
 
 
 def _notify_report_created(report, active_school):
@@ -94,7 +115,11 @@ def add_report(request: HttpRequest) -> HttpResponse:
                 return render(
                     request,
                     "reports/add_report.html",
-                    {"form": form, "report_templates_json": report_templates_json},
+                    {
+                        "form": form,
+                        "report_templates_json": report_templates_json,
+                        **_report_ai_template_context(request.user),
+                    },
                 )
 
             report = form.save(commit=False)
@@ -142,8 +167,116 @@ def add_report(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "reports/add_report.html",
-        {"form": form, "report_templates_json": report_templates_json},
+        {
+            "form": form,
+            "report_templates_json": report_templates_json,
+            **_report_ai_template_context(request.user),
+        },
     )
+
+
+@login_required(login_url="reports:login")
+@never_cache
+@require_http_methods(["POST"])
+def improve_report_text(request: HttpRequest) -> JsonResponse:
+    """Improve one report description without reading or changing saved reports."""
+    if request.content_type != "application/json":
+        return JsonResponse(
+            {"ok": False, "message": "صيغة الطلب غير صحيحة."},
+            status=415,
+            json_dumps_params={"ensure_ascii": False},
+        )
+    if len(request.body) > 30000:
+        return JsonResponse(
+            {"ok": False, "message": "النص أطول من الحد المسموح."},
+            status=413,
+            json_dumps_params={"ensure_ascii": False},
+        )
+
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        payload = None
+    if not isinstance(payload, dict):
+        return JsonResponse(
+            {"ok": False, "message": "تعذر قراءة نص التقرير."},
+            status=400,
+            json_dumps_params={"ensure_ascii": False},
+        )
+
+    try:
+        original_text = validate_report_text(payload.get("text"))
+    except ReportAIError as exc:
+        response = JsonResponse(
+            {"ok": False, "message": str(exc)},
+            status=400,
+            json_dumps_params={"ensure_ascii": False},
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+
+    try:
+        remaining = reserve_report_ai_daily_slot(request.user.pk)
+    except ReportAIUnavailable as exc:
+        response = JsonResponse(
+            {"ok": False, "message": str(exc)},
+            status=503,
+            json_dumps_params={"ensure_ascii": False},
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+    if remaining is None:
+        response = JsonResponse(
+            {
+                "ok": False,
+                "message": "استخدمت تحسيناتك الثلاثة المتاحة اليوم. يعود الرصيد تلقائيًا غدًا.",
+                "remaining": 0,
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            status=429,
+            json_dumps_params={"ensure_ascii": False},
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+
+    try:
+        improved_text = improve_report_text_with_ai(original_text)
+    except ReportAIUnavailable as exc:
+        release_report_ai_daily_slot(request.user.pk)
+        response = JsonResponse(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": report_ai_daily_remaining(request.user.pk),
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            status=503,
+            json_dumps_params={"ensure_ascii": False},
+        )
+    except ReportAIError as exc:
+        release_report_ai_daily_slot(request.user.pk)
+        response = JsonResponse(
+            {
+                "ok": False,
+                "message": str(exc),
+                "remaining": report_ai_daily_remaining(request.user.pk),
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            status=400,
+            json_dumps_params={"ensure_ascii": False},
+        )
+    else:
+        response = JsonResponse(
+            {
+                "ok": True,
+                "improved_text": improved_text,
+                "remaining": remaining,
+                "daily_limit": REPORT_AI_DAILY_LIMIT,
+            },
+            json_dumps_params={"ensure_ascii": False},
+        )
+    response["Cache-Control"] = "no-store"
+    return response
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
@@ -165,7 +298,7 @@ def my_reports(request: HttpRequest) -> HttpResponse:
         try:
             sid = int(getattr(active_school, "id", 0) or 0)
             key_basis = f"u={int(request.user.id)}|s={sid}|sd={start_date}|ed={end_date}|q={q}"
-            key_hash = hashlib.sha1(key_basis.encode("utf-8")).hexdigest()
+            key_hash = hashlib.sha256(key_basis.encode("utf-8")).hexdigest()
             cache_key = f"reports:my-stats:v1:{key_hash}"
             stats = cache.get(cache_key)
             if stats is None:
@@ -1734,6 +1867,7 @@ def share_report_image(request: HttpRequest, token: str, slot: int) -> HttpRespo
         raise
 
 
+@ratelimit(key="ip", rate="30/h", method="GET", block=True)
 @require_http_methods(["GET"])
 def share_achievement_pdf(request: HttpRequest, token: str) -> HttpResponse:
     link = _valid_sharelink_or_404(token, kind=ShareLink.Kind.ACHIEVEMENT)
@@ -1852,7 +1986,15 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
             )
             if capacity_error:
                 messages.error(request, capacity_error)
-                return render(request, "reports/edit_report.html", {"form": form, "report": r})
+                return render(
+                    request,
+                    "reports/edit_report.html",
+                    {
+                        "form": form,
+                        "report": r,
+                        **_report_ai_template_context(request.user),
+                    },
+                )
 
             form.save()
             sync_school_archive_storage_usage(report_school)
@@ -1868,7 +2010,15 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
     else:
         form = ReportForm(instance=r, active_school=form_school)
 
-    return render(request, "reports/edit_report.html", {"form": form, "report": r})
+    return render(
+        request,
+        "reports/edit_report.html",
+        {
+            "form": form,
+            "report": r,
+            **_report_ai_template_context(request.user),
+        },
+    )
 
 @login_required(login_url="reports:login")
 @require_http_methods(["POST"])
