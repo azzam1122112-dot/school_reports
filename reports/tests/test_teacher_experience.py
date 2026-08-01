@@ -4,12 +4,14 @@ from pathlib import Path
 from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from reports.forms import TicketCreateForm
 from reports.models import (
     Department,
     DepartmentMembership,
     School,
+    SchoolArchiveAddon,
     SchoolMembership,
     SchoolSubscription,
     SubscriptionPlan,
@@ -84,6 +86,21 @@ class TeacherExperienceTests(TestCase):
         self.assertNotIn(reverse("reports:support_ticket_create"), html)
         self.assertNotIn(reverse("reports:school_archive"), html)
 
+    def test_regular_teacher_never_sees_archive_nav_even_if_archive_addon_is_active(self):
+        SchoolArchiveAddon.objects.create(
+            school=self.school,
+            is_enabled=True,
+            start_date=timezone.localdate(),
+            paid_amount=399,
+        )
+        self._login_teacher()
+
+        response = self.client.get(reverse("reports:home"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(reverse("reports:school_archive"), html)
+
     def test_department_officer_navigation_adds_tasks_and_department_reports(self):
         department = Department.objects.create(
             school=self.school,
@@ -153,6 +170,27 @@ class TeacherExperienceTests(TestCase):
         self.assertEqual(form.fields["title"].label, "عنوان الطلب")
         self.assertEqual(form.fields["body"].label, "تفاصيل الطلب")
 
+    def test_request_create_wires_external_recipients_loader(self):
+        self._login_teacher()
+
+        department = Department.objects.create(
+            school=self.school,
+            name="الإدارة",
+            slug="admin-office",
+        )
+        DepartmentMembership.objects.create(
+            department=department,
+            teacher=self.teacher,
+            role_type=DepartmentMembership.TEACHER,
+        )
+
+        response = self.client.get(reverse("reports:request_create"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('data-members-url="/api/department-members/"', html)
+        self.assertIn("/static/js/request-create-recipients.js", html)
+
     def test_teacher_core_templates_do_not_use_csp_blocked_inline_handlers(self):
         template_names = [
             "home.html",
@@ -177,4 +215,15 @@ class TeacherExperienceTests(TestCase):
             self.assertIsNone(
                 inline_handler.search(source),
                 f"{template_name} contains a CSP-blocked inline event handler",
+            )
+
+        for template_name in (
+            "achievement_my_files.html",
+            "partials/passkey_enrollment_prompt.html",
+        ):
+            source = (templates_dir / template_name).read_text(encoding="utf-8")
+            self.assertIn(
+                'nonce="{{ CSP_NONCE }}" data-cfasync="false"',
+                source,
+                f"{template_name} must bypass Rocket Loader to preserve its CSP nonce",
             )
