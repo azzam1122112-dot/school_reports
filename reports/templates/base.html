@@ -17,11 +17,11 @@
   {% block seo_meta %}{% endblock %}
 
   <!-- Inject user auth state for JS -->
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     window.USER_IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
   </script>
   <!-- Theme: apply BEFORE CSS to avoid flash -->
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     (function(){
       try{
         var m = document.cookie.match(/(?:^|; )theme=([^;]+)/);
@@ -1029,7 +1029,7 @@
 
               <a href="{% url 'reports:logout' %}" class="mi" role="menuitem">تسجيل الخروج</a>
             </div>
-            <script>
+            <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
               (function(){
                 window.setTimeout(()=>{
                   if(window.__userMenuScriptReady) return;
@@ -1372,6 +1372,51 @@
     {% endwith %}
   </aside>
 
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+    (function(){
+      window.setTimeout(()=>{
+        if(window.__drawerScriptReady) return;
+
+        const drawer = document.getElementById('mobileDrawer');
+        const overlay = document.getElementById('drawerOverlay');
+        const hamburger = document.getElementById('hamburger');
+        const closeBtn = document.getElementById('drawerClose');
+        if(!drawer || !overlay || !hamburger) return;
+
+        const open = ()=>{
+          drawer.classList.add('open');
+          overlay.classList.add('show');
+          overlay.setAttribute('aria-hidden', 'false');
+          drawer.setAttribute('aria-hidden', 'false');
+          hamburger.setAttribute('aria-expanded', 'true');
+          drawer.removeAttribute('inert');
+        };
+
+        const close = ()=>{
+          drawer.classList.remove('open');
+          overlay.classList.remove('show');
+          overlay.setAttribute('aria-hidden', 'true');
+          drawer.setAttribute('aria-hidden', 'true');
+          hamburger.setAttribute('aria-expanded', 'false');
+          drawer.setAttribute('inert', '');
+        };
+
+        const toggle = (event)=>{
+          if(event){
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          drawer.classList.contains('open') ? close() : open();
+        };
+
+        hamburger.addEventListener('click', toggle);
+        overlay.addEventListener('click', (event)=>{ if(event.target === overlay) close(); });
+        if(closeBtn) closeBtn.addEventListener('click', close);
+        document.addEventListener('keydown', (event)=>{ if(event.key === 'Escape') close(); });
+      }, 0);
+    })();
+  </script>
+
   {% if messages %}
     <div class="messages" id="messages-container" aria-live="polite" aria-atomic="true">
       {% for message in messages %}
@@ -1638,7 +1683,7 @@
     {% endif %}
   {% endif %}
 
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     // ===== Cookies (SameSite=Lax + Secure on https) =====
     (function(){
       window.getCookie = function(name){
@@ -1778,6 +1823,8 @@
       const hamburger = document.getElementById('hamburger');
       const closeBtn  = document.getElementById('drawerClose');
       if(!drawer || !overlay || !hamburger) return;
+
+      window.__drawerScriptReady = true;
 
       const open = ()=>{
         drawer.removeAttribute('inert');
@@ -2026,7 +2073,7 @@
 
   {% include "reports/partials/pwa_install.html" %}
 
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
     {% if request.user.is_authenticated %}
     var __srTabId = 'tab-fallback';
     try {
@@ -2173,7 +2220,7 @@
     @media (prefers-reduced-motion: reduce){ .rc-dialog,.rc-backdrop{ animation:none; } .rc-btn:hover{ transform:none; } }
   </style>
 
-  <script nonce="{{ CSP_NONCE }}">
+  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   (function(){
     var overlay = document.getElementById('rcOverlay');
     if(!overlay) return;
