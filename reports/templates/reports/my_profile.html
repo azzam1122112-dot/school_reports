@@ -1228,7 +1228,11 @@
         </h2>
         <div class="profile-passkey-panel">
           <p class="profile-passkey-copy">
-            فعّل هذا الخيار على جهازك الحالي، وبعدها يمكنك تسجيل الدخول من شاشة الدخول باستخدام بصمة الجهاز أو Face ID أو قفل الشاشة.
+            {% if passkey_credentials %}
+              الدخول بالبصمة مفعّل لحسابك. يمكنك استخدام بصمة الجهاز أو Face ID أو قفل الشاشة، أو إضافة مفتاح مرور لجهاز آخر.
+            {% else %}
+              فعّل هذا الخيار على جهازك الحالي، وبعدها يمكنك تسجيل الدخول من شاشة الدخول باستخدام بصمة الجهاز أو Face ID أو قفل الشاشة.
+            {% endif %}
           </p>
           {% if force_password_change %}
             <div class="profile-locked-box">تفعيل البصمة متاح بعد تغيير كلمة المرور الحالية أولاً.</div>
@@ -1241,7 +1245,7 @@
               data-verify-url="{% url 'reports:passkey_register_verify' %}"
             >
               <i class="fa-solid fa-fingerprint" aria-hidden="true"></i>
-              <span>تفعيل البصمة لهذا الجهاز</span>
+              <span>{% if passkey_credentials %}إضافة مفتاح مرور لجهاز آخر{% else %}تفعيل البصمة لهذا الجهاز{% endif %}</span>
             </button>
             <div class="profile-passkey-status" id="profilePasskeyStatus" role="status" aria-live="polite"></div>
           {% endif %}
@@ -1447,9 +1451,11 @@
         statusBox.style.display = text ? 'block' : 'none';
       }
 
-      function registrationErrorMessage(error) {
+      function registrationErrorMessage(error, hasKnownCredential) {
         if (error && error.name === 'InvalidStateError') {
-          return 'يوجد مفتاح مرور سابق لهذا الحساب في مدير كلمات مرور Google. احذفه من إعدادات مفاتيح المرور ثم أعد المحاولة.';
+          return hasKnownCredential
+            ? 'الدخول بالبصمة مفعّل بالفعل لهذا الحساب على جهازك.'
+            : 'يوجد مفتاح مرور غير مكتمل لهذا الحساب في مدير كلمات مرور Google. احذفه من إعدادات مفاتيح المرور ثم أعد المحاولة.';
         }
         if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
           return 'هذا الجهاز أو المتصفح لا يدعم إنشاء مفتاح مرور. حدّث Chrome أو Safari واستخدم قفل الشاشة، أو تابع بكلمة المرور.';
@@ -1524,6 +1530,7 @@
       }
 
       button.addEventListener('click', async function () {
+        let options = null;
         try {
           button.disabled = true;
           showStatus('سيطلب المتصفح بصمة الجهاز أو قفل الشاشة لإكمال التفعيل...', false);
@@ -1533,7 +1540,7 @@
               throw new DOMException('User verification unavailable', 'NotSupportedError');
             }
           }
-          const options = await postJSON(button.dataset.optionsUrl, {});
+          options = await postJSON(button.dataset.optionsUrl, {});
           const credential = await navigator.credentials.create({
             publicKey: prepareCreationOptions(options.publicKey),
           });
@@ -1542,9 +1549,17 @@
           showStatus(verified.message || 'تم تفعيل الدخول بالبصمة لهذا الجهاز.', false);
           setTimeout(() => window.location.reload(), 900);
         } catch (error) {
-          showStatus(registrationErrorMessage(error), true);
+          const hasKnownCredential = !!(options && options.publicKey && options.publicKey.excludeCredentials && options.publicKey.excludeCredentials.length);
+          if (error && error.name === 'InvalidStateError' && hasKnownCredential) {
+            showStatus(registrationErrorMessage(error, true), false);
+            button.disabled = true;
+            const label = button.querySelector('span');
+            if (label) label.textContent = 'البصمة مفعّلة بالفعل';
+            return;
+          }
+          showStatus(registrationErrorMessage(error, hasKnownCredential), true);
         } finally {
-          button.disabled = false;
+          if (button.textContent.indexOf('مفعّلة بالفعل') === -1) button.disabled = false;
         }
       });
     })();

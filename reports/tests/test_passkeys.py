@@ -97,6 +97,13 @@ class PasskeyEndpointTests(TestCase):
         self.assertNotIn(PASSKEY_ENROLL_PROMPT_SESSION_KEY, self.client.session)
         profile_response = self.client.get(reverse("reports:my_profile"))
         self.assertNotContains(profile_response, 'id="passkeyEnrollmentPrompt"')
+        self.assertContains(profile_response, "الدخول بالبصمة مفعّل لحسابك")
+        self.assertContains(profile_response, "إضافة مفتاح مرور لجهاز آخر")
+        self.assertContains(profile_response, "البصمة مفعّلة بالفعل")
+        self.assertNotContains(
+            profile_response,
+            "يوجد مفتاح مرور سابق لهذا الحساب في مدير كلمات مرور Google",
+        )
 
     def test_password_change_requirement_takes_priority_over_passkey_prompt(self):
         user = Teacher.objects.create_user(

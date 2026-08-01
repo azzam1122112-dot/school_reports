@@ -353,9 +353,11 @@
       statusBox.classList.toggle('is-error', !!isError);
     }
 
-    function registrationErrorMessage(error) {
+    function registrationErrorMessage(error, hasKnownCredential) {
       if (error && error.name === 'InvalidStateError') {
-        return 'يوجد مفتاح مرور سابق لهذا الحساب في مدير كلمات مرور Google. احذفه من إعدادات مفاتيح المرور ثم أعد المحاولة.';
+        return hasKnownCredential
+          ? 'الدخول بالبصمة مفعّل بالفعل لهذا الحساب على جهازك.'
+          : 'يوجد مفتاح مرور غير مكتمل لهذا الحساب في مدير كلمات مرور Google. احذفه من إعدادات مفاتيح المرور ثم أعد المحاولة.';
       }
       if (error && (error.name === 'NotSupportedError' || error.name === 'ConstraintError')) {
         return 'هذا الجهاز أو المتصفح لا يدعم إنشاء مفتاح مرور. حدّث Chrome أو Safari واستخدم قفل الشاشة، أو تابع بكلمة المرور.';
@@ -399,6 +401,7 @@
     });
 
     activateButton.addEventListener('click', async function () {
+      var options = null;
       try {
         activateButton.disabled = true;
         laterButton.disabled = true;
@@ -412,7 +415,7 @@
             throw new DOMException('User verification unavailable', 'NotSupportedError');
           }
         }
-        var options = await postJSON(prompt.dataset.optionsUrl, {});
+        options = await postJSON(prompt.dataset.optionsUrl, {});
         var credential = await navigator.credentials.create({
           publicKey: prepareOptions(options.publicKey)
         });
@@ -421,7 +424,14 @@
         showStatus(verified.message || 'تم تفعيل الدخول بالبصمة بنجاح.', false);
         setTimeout(function () { window.location.reload(); }, 900);
       } catch (error) {
-        showStatus(registrationErrorMessage(error), true);
+        var hasKnownCredential = !!(options && options.publicKey && options.publicKey.excludeCredentials && options.publicKey.excludeCredentials.length);
+        if (error && error.name === 'InvalidStateError' && hasKnownCredential) {
+          showStatus(registrationErrorMessage(error, true), false);
+          activateButton.textContent = 'البصمة مفعّلة بالفعل';
+          laterButton.disabled = false;
+          return;
+        }
+        showStatus(registrationErrorMessage(error, hasKnownCredential), true);
         activateButton.disabled = false;
         laterButton.disabled = false;
       }
