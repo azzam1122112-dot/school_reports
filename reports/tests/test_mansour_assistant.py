@@ -412,6 +412,7 @@ class MansourAssistantTests(TestCase):
             ("دفعت قيمة الاشتراك ولم يتفعل حتى الآن", "رقم العملية", "بيانات البطاقة"),
             ("نسيت كلمة المرور ولا يصلني رابط الاستعادة", "البريد الإلكتروني المسجل", "صالح لمدة ساعة"),
             ("البصمة لا تعمل في جوالي", "قفل شاشة", "الدخول بالبصمة"),
+            ("خرج حسابي بعد أن دخلت من جهاز آخر", "الجلسة الواحدة", "لا يحذف الحساب"),
             ("لا أستطيع رفع صورة في التقرير وتظهر رسالة خطأ", "ملفًا واحدًا", "نوع الجهاز والمتصفح"),
         )
 
@@ -425,6 +426,16 @@ class MansourAssistantTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(expected, response.json()["answer"])
                 self.assertIn(second_expected, response.json()["answer"])
+
+        session_response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "خرج حسابي بعد أن دخلت من جهاز آخر"}),
+            content_type="application/json",
+        )
+        self.assertEqual(
+            [source["url"] for source in session_response.json()["sources"]],
+            ["/guide/#account-security"],
+        )
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_unknown_problem_offers_manager_support_ticket(self):
@@ -605,7 +616,7 @@ class MansourAssistantTests(TestCase):
         self.assertTrue(_fails_customer_service_guard(answer, intent=INTENT_GENERAL))
 
     def test_verbose_model_answer_is_rewritten_not_replaced_by_template(self):
-        useful_lines = [f"خطوة مفيدة {index}" for index in range(15)]
+        useful_lines = [f"خطوة مفيدة {index}" for index in range(9)]
         answer = "\n".join(useful_lines)
 
         self.assertTrue(_looks_low_quality(answer))

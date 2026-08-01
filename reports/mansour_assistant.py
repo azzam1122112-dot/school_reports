@@ -51,6 +51,7 @@ INTENT_PAYMENT_ISSUE = "payment_issue"
 INTENT_REFUND = "refund"
 INTENT_PASSWORD_RESET = "password_reset"
 INTENT_PASSKEY = "passkey"
+INTENT_SESSION_SECURITY = "session_security"
 INTENT_OUT_OF_SCOPE = "out_of_scope"
 INTENT_THANKS = "thanks"
 INTENT_GENERAL = "general"
@@ -389,6 +390,17 @@ def _detect_customer_intent(question: str) -> str:
     if any(marker in text for marker in passkey_markers):
         return INTENT_PASSKEY
 
+    session_markers = (
+        "خرج حسابي",
+        "تسجيل الخروج",
+        "انتهت الجلسه",
+        "انتهاء الجلسه",
+        "جهاز اخر",
+        "متصفح اخر",
+    )
+    if any(marker in text for marker in session_markers):
+        return INTENT_SESSION_SECURITY
+
     privacy_markers = (
         "خصوصيه",
         "بيانات الطلاب",
@@ -482,6 +494,8 @@ def _offline_sources_for_intent(
             {"title": "تسجيل الدخول", "url": "/login/"},
             {"title": "الحساب والأمان", "url": "/guide/#account-security"},
         ]
+    if intent == INTENT_SESSION_SECURITY:
+        return [{"title": "الحساب والأمان", "url": "/guide/#account-security"}]
     if intent == INTENT_OUT_OF_SCOPE:
         return []
     if intent == INTENT_PRIVACY:
@@ -619,6 +633,13 @@ def _offline_customer_reply(
             "1) إذا لم تُفعّل بعد، سجّل الدخول بكلمة المرور ثم فعّل مفتاح المرور من الملف الشخصي.\n"
             "2) بعد التفعيل، اكتب رقم الجوال في شاشة الدخول واضغط «الدخول بالبصمة».\n"
             "3) إذا لم تظهر نافذة البصمة، حدّث المتصفح وتجنب المتصفح المضمّن داخل التطبيقات، ثم أعد المحاولة."
+        )
+
+    if intent == INTENT_SESSION_SECURITY:
+        return (
+            "قد تنتهي جلستك السابقة عند تسجيل الدخول من جهاز أو متصفح آخر بسبب سياسة الجلسة الواحدة، "
+            "وهذا لا يحذف الحساب أو البيانات المحفوظة. إذا لم تكن أنت من سجّل الدخول، غيّر كلمة المرور "
+            "فورًا وتواصل مع الدعم، ولا ترسل كلمة المرور أو رمز التحقق لأي شخص."
         )
 
     if intent == INTENT_SUPPORT:
@@ -786,6 +807,7 @@ def _instructions(
 - اجعل الرد الافتراضي بين 60 و120 كلمة، وبحد أقصى 4 خطوات قصيرة عند الحاجة.
 - لا تكتب عناوين شكلية مثل «ملخص سريع» أو «نصائح عملية»؛ ابدأ بالجواب نفسه.
 - أجب عن المطلوب تحديدًا ولا تسرد كل المعلومات المسترجعة.
+- لا تكرر الإرشاد بصيغتين، ولا تستخدم قوائم متداخلة، ولا تضف مثالًا لعملية أو ميزة لم تذكرها المعرفة نصًا.
 - خصص الخطوات للفئة الحالية، ولا تنسب للمستخدم أي صلاحية تخالف توجيه الدور.
 - أجب فقط عن منصة توثيق اعتمادًا على المعرفة المسترجعة أدناه.
 - أعطِ إجابة عملية مباشرة، واستخدم خطوات مرقمة فقط إذا كان السؤال إجرائيًا.
@@ -888,7 +910,7 @@ def _looks_low_quality(value: str) -> bool:
     unique_lines = set(lines)
     if lines and (len(unique_lines) / len(lines)) < 0.55:
         return True
-    if len(lines) > 10 or len(text) > 1200:
+    if len(lines) > 8 or len(text) > 900:
         return True
 
     return False
