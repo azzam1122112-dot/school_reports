@@ -296,6 +296,49 @@
     background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important;
     box-shadow:0 10px 22px -12px rgba(10,92,51,.6) !important;
   }
+
+  /* Focused portfolio workspace */
+  .af-wrap { max-width: 1120px; margin: 0 auto; padding: 32px 24px 56px; }
+  .af-wrap * { letter-spacing: 0; }
+  .af-wrap .af-card { border: 0 !important; box-shadow: none !important; background: transparent; overflow: visible; }
+  .af-wrap .af-head {
+    min-height: 148px;
+    border-radius: 8px !important;
+    padding: 30px 34px !important;
+    background:
+      linear-gradient(115deg, rgba(181,138,70,.2), transparent 38%),
+      linear-gradient(135deg,#075b36,#043d25) !important;
+  }
+  .af-wrap .af-head::before { display: none; }
+  .af-wrap .af-head::after { width: 5px; height: 100%; right: auto; left: 0; background: #b58a46; }
+  .af-title-group h1 { font-size: 1.75rem; letter-spacing: 0; }
+  .af-head-mark { width: 52px; height: 52px; border-radius: 6px; display: grid; place-items: center; font-size: 1.4rem; color: #f6e6c8; background: rgba(255,255,255,.1); border: 1px solid rgba(246,230,200,.35); }
+  .af-body { padding: 24px 0 0; }
+  .af-create-area { border-radius: 8px; padding: 22px; background: #f5f8f6 !important; border-color: #d9e3dd !important; }
+  .af-create-title { display: flex; align-items: center; gap: 10px; margin: 0 0 5px; font-size: 1.1rem; color: var(--text-main); font-weight: 850; }
+  .af-create-title i { color: #9a7135; }
+  .af-create-copy { margin: 0 0 18px; color: var(--text-secondary); font-size: .9rem; }
+  .af-field select, .af-field input, .af-btn { border-radius: 6px; min-height: 44px; }
+  .af-list-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin: 30px 0 12px; }
+  .af-list-head h2 { margin: 0; font-size: 1.2rem; color: var(--text-main); }
+  .af-list-head span { color: var(--text-secondary); font-size: .9rem; }
+  .af-list { gap: 12px; margin-top: 0; }
+  .af-item { border-radius: 8px; padding: 20px; border-inline-start: 4px solid #b58a46; box-shadow: 0 12px 25px -26px rgba(7,91,54,.85); }
+  .af-item:hover { transform: translateY(-2px); box-shadow: 0 18px 32px -27px rgba(7,91,54,.85); }
+  .af-icon-box { width: 52px; height: 52px; border-radius: 6px; background: #edf7f1; }
+  .af-info h3 { font-size: 1.08rem; }
+  .af-status { border-radius: 5px; }
+  .af-empty { border-radius: 8px; background: #f7f9f8; }
+  @media (max-width: 768px) {
+    .af-wrap { padding: 18px 14px 40px; }
+    .af-wrap .af-head { min-height: 132px; padding: 24px 20px !important; flex-direction: row; text-align: right; }
+    .af-body { padding-top: 18px; }
+    .af-create-area { padding: 18px; }
+    .af-item { align-items: stretch; text-align: right; }
+    .af-meta { flex-direction: row; text-align: right; }
+    .af-actions-group { justify-content: stretch; }
+    .af-actions-group .af-btn { flex: 1 1 44px; padding-inline: 14px; }
+  }
 </style>
 {% endblock %}
 
@@ -308,8 +351,7 @@
         <p>إدارة ملفات الإنجاز السنوية الخاصة بك</p>
       </div>
       <div>
-        <!-- Optional Header Action or Icon -->
-        <div style="width:50px; height:50px; background:var(--brand-light); color:var(--brand); border-radius:14px; display:grid; place-items:center; font-size:1.4rem;">
+        <div class="af-head-mark" aria-hidden="true">
             <i class="fa-solid fa-briefcase"></i>
         </div>
       </div>
@@ -319,10 +361,11 @@
       
       <!-- New File Section -->
       <div class="af-create-area">
-        <h3 style="margin:0 0 16px; font-size:1.1rem; color:var(--text-main); font-weight:800;">
-            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent); margin-left:8px;"></i>
+        <h2 class="af-create-title">
+            <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i>
             إنشاء ملف جديد
-        </h3>
+        </h2>
+        <p class="af-create-copy">يُنشأ الملف للسنة الحالية التي اعتمدها مدير المدرسة.</p>
         <form method="post" novalidate>
             {% csrf_token %}
             <input type="hidden" name="action" value="create" />
@@ -361,8 +404,9 @@
         </form>
       </div>
 
-      <div style="margin-bottom:24px;">
-        <h3 style="font-size:1.2rem; font-weight:800; color:var(--text-main);">سجل الملفات</h3>
+      <div class="af-list-head">
+        <h2>سجل ملفات الإنجاز</h2>
+        <span>{{ files|length }} ملف</span>
       </div>
 
       <div class="af-list" aria-label="ملفات الإنجاز">
