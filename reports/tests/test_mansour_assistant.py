@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from unittest.mock import patch
+from urllib.error import URLError
 
 from django.conf import settings
 from django.test import Client, RequestFactory, TestCase, override_settings
@@ -102,6 +103,27 @@ class MansourAssistantTests(TestCase):
         payload = response.json()
         self.assertTrue(payload["ok"])
         self.assertIn("ممثل خدمة العملاء", payload["answer"])
+
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_complaint_intent_returns_professional_fallback(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps(
+                {
+                    "question": "ارغب بتقديم شكوى",
+                    "history": [],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertIn("نعتذر", payload["answer"])
+        self.assertIn("رقم متابعة", payload["answer"])
+        self.assertTrue(payload["sources"])
+        self.assertEqual(payload["sources"][0]["url"], "/complaints/#complaint-form")
 
     @patch("reports.mansour_assistant.urlopen", return_value=_FakeOpenAIResponse())
     def test_endpoint_calls_responses_api_server_side(self, mocked_urlopen):
@@ -292,5 +314,18 @@ class MansourAssistantTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["ok"])
-        self.assertIn("لفئتك الحالية", response.json()["answer"])
+        self.assertIn("التجربة المجانية", response.json()["answer"])
         self.assertNotIn("OPENAI", response.content.decode("utf-8"))
+
+    @patch("reports.mansour_assistant.urlopen", side_effect=URLError("down"))
+    def test_endpoint_falls_back_when_openai_is_temporarily_unreachable(self, _mocked_urlopen):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "كيف اسجل في المنصة؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertIn("التسجيل", payload["answer"])
