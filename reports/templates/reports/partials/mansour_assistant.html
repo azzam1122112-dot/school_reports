@@ -40,28 +40,8 @@
       </button>
     </header>
 
-    <div class="mansour-audience" aria-labelledby="mansourAudiencePrompt">
-      <p id="mansourAudiencePrompt">حتى أساعدك بالخطوات والصلاحيات الصحيحة، اختر دورك:</p>
-      <div class="mansour-role-options" role="group" aria-label="اختر دورك في منصة توثيق">
-        <button type="button" class="mansour-role-option" data-mansour-audience="teacher" aria-pressed="false">
-          <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
-          <span>معلم</span>
-        </button>
-        <button type="button" class="mansour-role-option" data-mansour-audience="manager" aria-pressed="false">
-          <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
-          <span>مدير مدرسة</span>
-        </button>
-        <button type="button" class="mansour-role-option" data-mansour-audience="supervisor" aria-pressed="false">
-          <i class="fa-solid fa-building-shield" aria-hidden="true"></i>
-          <span>مشرف</span>
-        </button>
-      </div>
-      <p class="mansour-audience-status" id="mansourAudienceStatus" aria-live="polite">لم يتم تحديد الدور بعد</p>
-    </div>
-
     <div class="mansour-conversation" id="mansourConversation" aria-live="polite" aria-relevant="additions">
-      <p class="mansour-message assistant">أهلًا بك، أنا منصور. اختر دورك وسأشرح لك منصة توثيق حسب المهام والصلاحيات المناسبة لك.</p>
-      <div class="mansour-quick-actions" aria-label="أسئلة مقترحة"></div>
+      <p class="mansour-message assistant">أهلًا بك، أنا منصور ممثل خدمة العملاء في توثيق. اسألني عن التجربة، التسجيل، الباقات، وإعداد المدرسة خطوة بخطوة.</p>
     </div>
 
     <form class="mansour-form" id="mansourForm">
@@ -71,9 +51,8 @@
           rows="1"
           maxlength="500"
           autocomplete="off"
-          placeholder="اختر دورك أولًا…"
+          placeholder="اكتب سؤالك هنا…"
           aria-label="اكتب استفسارك لمنصور"
-          disabled
         ></textarea>
         <button class="mansour-send" id="mansourSend" type="submit" aria-label="إرسال الاستفسار">
           <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>

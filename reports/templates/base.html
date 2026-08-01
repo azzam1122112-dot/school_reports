@@ -294,6 +294,7 @@
       border-radius: var(--r-lg);
       box-shadow: var(--shadow-xl);
       padding: 8px;
+      display: none;
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
@@ -302,6 +303,7 @@
       z-index: 10000;
     }
     #userMenu.menu.open {
+      display: block;
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
@@ -1770,6 +1772,7 @@
       // Move the popover outside the sticky header so no parent can clip it.
       document.body.appendChild(menu);
 
+      let ignoreNextOutsidePointer = false;
       const items = ()=> Array.from(menu.querySelectorAll('[role="menuitem"]'));
       const positionMenu = ()=>{
         const viewport = window.visualViewport;
@@ -1798,6 +1801,8 @@
         menu.style.top = `${Math.round(top)}px`;
       };
       const open = (focusFirst = false)=>{
+        if(menu.classList.contains('open')) return;
+        menu.style.display = 'block';
         menu.classList.add('open');
         menu.setAttribute('aria-hidden','false');
         avatar.setAttribute('aria-expanded','true');
@@ -1813,12 +1818,20 @@
         menu.classList.remove('open');
         menu.setAttribute('aria-hidden','true');
         avatar.setAttribute('aria-expanded','false');
+        menu.style.display = 'none';
         if(returnFocus) avatar.focus();
       };
 
       avatar.addEventListener('click', (event)=>{
+        event.preventDefault();
         event.stopPropagation();
-        menu.classList.contains('open') ? close() : open(true);
+        if(menu.classList.contains('open')){
+          close();
+        }else{
+          ignoreNextOutsidePointer = true;
+          open(true);
+          window.setTimeout(()=>{ ignoreNextOutsidePointer = false; }, 0);
+        }
       });
 
       avatar.addEventListener('keydown', (event)=>{
@@ -1852,7 +1865,11 @@
         if(event.target.closest('[role="menuitem"]')) close();
       });
 
-      document.addEventListener('click', (e)=>{
+      document.addEventListener('pointerdown', (e)=>{
+        if(ignoreNextOutsidePointer){
+          ignoreNextOutsidePointer = false;
+          return;
+        }
         if(!e.target.closest('#userMenu') && !e.target.closest('#userAvatar')) close();
       });
       document.addEventListener('keydown', (e)=>{
