@@ -12,6 +12,7 @@
   var input = document.getElementById("mansourInput");
   var sendButton = document.getElementById("mansourSend");
   var endpoint = root.getAttribute("data-endpoint");
+  var audience = root.getAttribute("data-audience") || "";
   var history = [];
   var isSending = false;
 
@@ -42,6 +43,29 @@
     conversation.appendChild(message);
     scrollToLatest();
     return message;
+  }
+
+  function addSources(sources) {
+    if (!conversation || !Array.isArray(sources) || !sources.length) return;
+    var container = document.createElement("div");
+    container.className = "mansour-sources";
+    sources.slice(0, 3).forEach(function (source) {
+      if (!source || !source.title || !source.url) return;
+      try {
+        var url = new URL(source.url, window.location.origin);
+        if (url.origin !== window.location.origin) return;
+        var link = document.createElement("a");
+        link.href = url.pathname + url.search + url.hash;
+        link.textContent = source.title;
+        container.appendChild(link);
+      } catch (error) {
+        return;
+      }
+    });
+    if (container.children.length) {
+      conversation.appendChild(container);
+      scrollToLatest();
+    }
   }
 
   function setSending(sending) {
@@ -77,7 +101,8 @@
       },
       body: JSON.stringify({
         question: question,
-        history: historyForRequest
+        history: historyForRequest,
+        audience: audience
       })
     })
       .then(function (response) {
@@ -93,6 +118,8 @@
       .then(function (data) {
         if (pending) pending.remove();
         addMessage(data.answer, "assistant");
+        addSources(data.sources);
+        audience = data.audience || audience;
         history.push({ role: "assistant", content: data.answer });
         history = history.slice(-6);
       })

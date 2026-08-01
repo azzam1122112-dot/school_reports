@@ -8,7 +8,14 @@ from django.conf import settings
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
-from reports.mansour_assistant import _instructions, _sanitise_answer_text, select_knowledge
+from reports.mansour_assistant import (
+    INTENT_GENERAL,
+    _fails_customer_service_guard,
+    _instructions,
+    _offline_customer_reply,
+    _sanitise_answer_text,
+    select_knowledge,
+)
 from reports.models import (
     School,
     SchoolMembership,
@@ -78,6 +85,7 @@ class _FakeWeakComplaintOpenAIResponse:
     OPENAI_API_KEY="test-secret-key",
     MANSOUR_ASSISTANT_ENABLED=True,
     MANSOUR_ASSISTANT_MODEL="gpt-5-nano",
+    RATELIMIT_ENABLE=False,
 )
 class MansourAssistantTests(TestCase):
     def setUp(self):
@@ -220,6 +228,64 @@ class MansourAssistantTests(TestCase):
         self.assertNotIn("manager-communication", teacher_slugs)
         self.assertIn("teacher-circulars", teacher_slugs)
 
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_visitor_stated_manager_role_gets_manager_workflow(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps(
+                {"question": "أنا مدير مدرسة وأريد إضافة المعلمين وإرسال تعميم، من أين أبدأ؟"}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["audience"], "manager")
+        self.assertIn("إدارة المعلمين والأقسام", payload["answer"])
+        self.assertIn("الإشعارات والتعاميم", payload["answer"])
+        self.assertNotIn("خطوات التسجيل", payload["answer"])
+
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_follow_up_reuses_previous_question_for_retrieval(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps(
+                {
+                    "question": "ما فهمت، اشرحها لي باختصار",
+                    "history": [
+                        {
+                            "role": "user",
+                            "content": "أنا مدير مدرسة، كيف أضيف المعلمين إلى فريق المدرسة؟",
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["audience"], "manager")
+        self.assertIn("إدارة المعلمين والأقسام", response.json()["answer"])
+        self.assertNotIn("التعريف بمنصة توثيق", response.json()["answer"])
+
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_pricing_reply_deduplicates_equivalent_free_trials(self):
+        SubscriptionPlan.objects.create(
+            name="تجربة مجانية",
+            price=0,
+            days_duration=14,
+            max_teachers=5,
+        )
+
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "كم سعر الاشتراك وهل توجد تجربة مجانية؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["answer"].count("0 ريال لمدة 14 يوم"), 1)
+
     def test_generated_links_are_removed_from_answer_text(self):
         answer = _sanitise_answer_text(
             "راجع الدليل: /guide/#teacher-report\n"
@@ -232,6 +298,23 @@ class MansourAssistantTests(TestCase):
         self.assertNotIn("https://", answer)
         self.assertNotIn(":  (", answer)
         self.assertIn("صفحة الاشتراك", answer)
+
+    def test_offline_general_reply_does_not_start_with_stale_phrase(self):
+        selected = select_knowledge("كيف أرسل تعميمًا؟", audience="manager")
+
+        answer = _offline_customer_reply(
+            "كيف أرسل تعميمًا؟",
+            intent=INTENT_GENERAL,
+            selected=selected,
+            plans=[],
+        )
+
+        self.assertNotIn("الخطوة الصحيحة في حالتك", answer)
+
+    def test_quality_guard_rejects_stale_opening_phrase(self):
+        answer = "الخطوة الصحيحة في حالتك: ابدأ من الإعدادات."
+
+        self.assertTrue(_fails_customer_service_guard(answer, intent=INTENT_GENERAL))
 
     def test_authenticated_manager_role_overrides_client_claim(self):
         school = School.objects.create(name="مدرسة منصور", code="mansour-school")

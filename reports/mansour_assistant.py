@@ -165,6 +165,18 @@ def normalise_audience(value: Any) -> str:
     return audience if audience in AUDIENCE_LABELS else AUDIENCE_GENERAL
 
 
+def infer_public_audience(question: Any) -> str:
+    """Infer an explicitly stated public role without granting any permissions."""
+    text = _normalise_arabic(str(question or ""))
+    if any(marker in text for marker in ("مدير مدرسه", "مديره مدرسه", "قائد مدرسه", "قائده مدرسه")):
+        return "manager"
+    if any(marker in text for marker in ("انا معلم", "انا معلمه", "بصفتي معلم", "بصفتي معلمه")):
+        return "teacher"
+    if any(marker in text for marker in ("انا مشرف", "انا مشرفه", "بصفتي مشرف", "بصفتي مشرفه")):
+        return "supervisor"
+    return AUDIENCE_GENERAL
+
+
 def _knowledge_allowed(item: KnowledgeItem, audience: str) -> bool:
     if not item.audiences:
         return True
@@ -298,8 +310,6 @@ def _detect_customer_intent(question: str) -> str:
         "دخول",
         "تجربة",
         "تجربه",
-        "ابدأ",
-        "ابدا",
     )
     if any(marker in text for marker in registration_markers):
         return INTENT_REGISTRATION
@@ -434,11 +444,25 @@ def _offline_customer_reply(
     if intent == INTENT_THANKS:
         return "العفو، في خدمتك دائمًا. إذا رغبت أكمل معك الآن في أي خطوة داخل توثيق."
 
+    normalised_question = _normalise_arabic(question)
+    selected_by_slug = {item.slug: item for item in selected}
+    if (
+        any(marker in normalised_question for marker in ("معلم", "معلمين", "فريق"))
+        and any(marker in normalised_question for marker in ("تعميم", "اشعار", "تنبيه"))
+        and "manager-team" in selected_by_slug
+        and "manager-communication" in selected_by_slug
+    ):
+        return (
+            "ابدأ بإعداد فريق المدرسة، ثم أرسل التعميم:\n"
+            "1) من إدارة المعلمين والأقسام أضف المعلمين أو استوردهم، وراجع أرقام الجوال والأقسام قبل الحفظ.\n"
+            "2) من الإشعارات والتعاميم اختر تعميمًا، وحدد المعلمين أو الأقسام المستهدفة، ثم راجع عدد المستلمين قبل الإرسال.\n"
+            "3) بعد الإرسال تابع الاطلاع والتوقيعات من صفحة المحتوى المرسل."
+        )
+
     primary = selected[0] if selected else None
     if primary:
         return (
-            f"الخطوة الصحيحة في حالتك: {primary.title}. "
-            f"{primary.text} "
+            f"{primary.title}: {primary.text} "
             "إذا أردت، اذكر ما تريد تنفيذه الآن وسأعطيك خطوات قصيرة ومباشرة."
         )
 
@@ -458,6 +482,8 @@ def _fails_customer_service_guard(answer: str, *, intent: str) -> bool:
 
     # Avoid stale fallback phrasing that feels technical to end users.
     if "لفئتك الحالية" in text:
+        return True
+    if "الخطوة الصحيحة في حالتك" in text:
         return True
 
     # Complaint requests must include clear complaint-handling guidance.
@@ -629,13 +655,33 @@ def ask_mansour(
         raise MansourAssistantError("اختصر الاستفسار إلى 500 حرف أو أقل.")
 
     audience = normalise_audience(audience)
-    selected = select_knowledge(question, audience=audience)
-    intent = _detect_customer_intent(question)
+    messages = sanitise_history(history)
+    retrieval_question = question
+    normalised_question = _normalise_arabic(question)
+    follow_up_markers = ("ما فهمت", "لم افهم", "وضح", "اشرحها", "اختصر", "باختصار", "ثم ماذا", "وبعدين")
+    if any(marker in normalised_question for marker in follow_up_markers):
+        previous_user_message = next(
+            (message["content"] for message in reversed(messages) if message["role"] == "user"),
+            "",
+        )
+        if previous_user_message:
+            retrieval_question = f"{previous_user_message} {question}"
+
+    if audience == "manager":
+        retrieval_question = re.sub(
+            r"(?:أنا|انا|بصفتي)\s+(?:مدير(?:ة)?\s+مدرسة|قائد(?:ة)?\s+مدرسة)",
+            " ",
+            retrieval_question,
+            flags=re.IGNORECASE,
+        ).strip()
+
+    selected = select_knowledge(retrieval_question, audience=audience)
+    intent = _detect_customer_intent(retrieval_question)
     api_key = str(getattr(settings, "OPENAI_API_KEY", "") or "").strip()
     enabled = bool(getattr(settings, "MANSOUR_ASSISTANT_ENABLED", False))
     if not enabled or not api_key:
         fallback_answer = _offline_customer_reply(
-            question,
+            retrieval_question,
             intent=intent,
             selected=selected,
             plans=plans or [],
@@ -643,7 +689,6 @@ def ask_mansour(
         fallback_sources = _sources_for_answer(intent, selected=selected)
         return fallback_answer[:1800], fallback_sources
 
-    messages = sanitise_history(history)
     messages.append({"role": "user", "content": question})
     timeout_seconds = float(getattr(settings, "MANSOUR_ASSISTANT_TIMEOUT_SECONDS", 20))
     reasoning_effort = str(
@@ -670,7 +715,7 @@ def ask_mansour(
     except HTTPError as exc:
         logger.warning("Mansour OpenAI request failed with HTTP %s; using local fallback.", exc.code)
         fallback_answer = _offline_customer_reply(
-            question,
+            retrieval_question,
             intent=intent,
             selected=selected,
             plans=plans or [],
@@ -679,7 +724,7 @@ def ask_mansour(
     except (URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
         logger.warning("Mansour OpenAI request failed: %s; using local fallback.", exc.__class__.__name__)
         fallback_answer = _offline_customer_reply(
-            question,
+            retrieval_question,
             intent=intent,
             selected=selected,
             plans=plans or [],

@@ -12,6 +12,7 @@ from django_ratelimit.decorators import ratelimit
 from ..mansour_assistant import (
     MansourAssistantError,
     ask_mansour,
+    infer_public_audience,
     normalise_audience,
 )
 from ..mansour_knowledge import (
@@ -40,12 +41,24 @@ def _json_response(payload: dict, *, status: int = 200) -> JsonResponse:
     )
 
 
-def _resolve_audience(request: HttpRequest, requested_audience) -> str:
+def _resolve_audience(request: HttpRequest, requested_audience, question="", history=None) -> str:
     """Resolve trusted account roles server-side; visitors may select a public role."""
     user = getattr(request, "user", None)
     if not getattr(user, "is_authenticated", False):
         audience = normalise_audience(requested_audience)
-        return audience if audience in PUBLIC_AUDIENCES else AUDIENCE_GENERAL
+        if audience in PUBLIC_AUDIENCES and audience != AUDIENCE_GENERAL:
+            return audience
+        inferred = infer_public_audience(question)
+        if inferred != AUDIENCE_GENERAL:
+            return inferred
+        if isinstance(history, list):
+            for message in reversed(history[-6:]):
+                if not isinstance(message, dict) or message.get("role") != "user":
+                    continue
+                inferred = infer_public_audience(message.get("content"))
+                if inferred != AUDIENCE_GENERAL:
+                    return inferred
+        return AUDIENCE_GENERAL
 
     if getattr(user, "is_superuser", False) or is_platform_admin(user):
         return AUDIENCE_PLATFORM_SUPERVISOR
@@ -88,14 +101,23 @@ def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
         .order_by("price", "max_teachers", "days_duration", "id")
         .values("name", "price", "days_duration", "max_teachers")
     )
-    serialised_plans = [
-        {
-            **plan,
-            "price": f"{plan['price']:.2f}".rstrip("0").rstrip("."),
-        }
-        for plan in plans
-    ]
-    audience = _resolve_audience(request, payload.get("audience"))
+    serialised_plans = []
+    seen_free_trials = set()
+    for plan in plans:
+        price = f"{plan['price']:.2f}".rstrip("0").rstrip(".")
+        if price == "0":
+            free_trial_key = (plan["days_duration"], plan["max_teachers"])
+            if free_trial_key in seen_free_trials:
+                continue
+            seen_free_trials.add(free_trial_key)
+        serialised_plans.append({**plan, "price": price})
+
+    audience = _resolve_audience(
+        request,
+        payload.get("audience"),
+        payload.get("question"),
+        payload.get("history"),
+    )
 
     try:
         answer, sources = ask_mansour(
