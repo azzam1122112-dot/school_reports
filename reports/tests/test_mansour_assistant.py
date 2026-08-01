@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
-from reports.mansour_assistant import _sanitise_answer_text, select_knowledge
+from reports.mansour_assistant import _instructions, _sanitise_answer_text, select_knowledge
 from reports.models import (
     School,
     SchoolMembership,
@@ -74,6 +75,16 @@ class MansourAssistantTests(TestCase):
         self.assertContains(response, "css/mansour-assistant.css")
         self.assertContains(response, "js/mansour-assistant.js")
 
+    def test_system_prompt_enforces_customer_service_persona(self):
+        prompt = _instructions(
+            select_knowledge("كيف أضيف تقرير جديد؟", audience="teacher"),
+            [],
+            audience="teacher",
+        )
+
+        self.assertIn("ممثل خدمة العملاء", prompt)
+        self.assertIn("تصرّف كممثل خدمة عملاء فقط", prompt)
+
     @patch("reports.mansour_assistant.urlopen", return_value=_FakeOpenAIResponse())
     def test_endpoint_calls_responses_api_server_side(self, mocked_urlopen):
         response = self.client.post(
@@ -95,8 +106,14 @@ class MansourAssistantTests(TestCase):
         request = mocked_urlopen.call_args.args[0]
         request_body = json.loads(request.data.decode("utf-8"))
         self.assertEqual(request_body["model"], "gpt-5-nano")
-        self.assertEqual(request_body["reasoning"], {"effort": "minimal"})
-        self.assertEqual(request_body["max_output_tokens"], 350)
+        self.assertEqual(
+            request_body["reasoning"],
+            {"effort": settings.MANSOUR_ASSISTANT_REASONING_EFFORT},
+        )
+        self.assertEqual(
+            request_body["max_output_tokens"],
+            settings.MANSOUR_ASSISTANT_MAX_OUTPUT_TOKENS,
+        )
         self.assertFalse(request_body["store"])
         self.assertIn("باقة المدرسة", request_body["instructions"])
         self.assertIn("650", request_body["instructions"])

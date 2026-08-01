@@ -295,6 +295,7 @@ urlpatterns = [
     # =========================
     path("platform/subscriptions/", views.platform_subscriptions_list, name="platform_subscriptions_list"),
     path("platform/settings/", views.platform_settings, name="platform_settings"),
+    path("platform/mansour-content/", views.platform_mansour_content, name="platform_mansour_content"),
     path("platform/academic-years/", views.platform_academic_years, name="platform_academic_years"),
     path("platform/subscriptions/add/", views.platform_subscription_form, name="platform_subscription_add"),
     path("platform/subscriptions/<int:pk>/", views.platform_subscription_detail, name="platform_subscription_detail"),

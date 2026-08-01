@@ -1,5 +1,9 @@
 from datetime import timedelta
 from decimal import Decimal
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.core.cache import cache
 from django.test import TestCase, override_settings
@@ -141,3 +145,58 @@ class PlatformAdminExperienceTests(TestCase):
             f"{reverse('reports:platform_login')}?next={reverse('reports:schools_admin_list')}",
             fetch_redirect_response=False,
         )
+
+    def test_platform_can_open_mansour_content_editor_page(self):
+        response = self.client.get(reverse("reports:platform_mansour_content"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "محرر محتوى منصور")
+        self.assertContains(response, "حفظ المحتوى")
+
+    def test_platform_can_save_mansour_content_json(self):
+        payload = {
+            "role_guidance": {
+                "general": "توجيه عام",
+                "teacher": "توجيه معلم",
+                "manager": "توجيه مدير",
+                "supervisor": "توجيه مشرف",
+                "report_supervisor": "توجيه مشرف تقارير",
+                "platform_supervisor": "توجيه مشرف منصة",
+            },
+            "role_default_slugs": {
+                "general": ["sample"],
+                "teacher": ["sample"],
+                "manager": ["sample"],
+                "supervisor": ["sample"],
+                "report_supervisor": ["sample"],
+                "platform_supervisor": ["sample"],
+            },
+            "knowledge_items": [
+                {
+                    "slug": "sample",
+                    "title": "عنوان",
+                    "url": "/guide/#sample",
+                    "text": "نص المعرفة",
+                    "topics": ["موضوع"],
+                    "audiences": ["teacher"],
+                    "keywords": "كلمات",
+                    "priority": 3,
+                }
+            ],
+        }
+
+        with TemporaryDirectory() as temp_dir:
+            file_path = Path(temp_dir) / "mansour_knowledge_content.json"
+            file_path.write_text("{}", encoding="utf-8")
+
+            with patch("reports.views.subscriptions.MANSOUR_KNOWLEDGE_CONTENT_PATH", file_path):
+                response = self.client.post(
+                    reverse("reports:platform_mansour_content"),
+                    data={"content": json.dumps(payload, ensure_ascii=False)},
+                )
+
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response.url, reverse("reports:platform_mansour_content"))
+
+                saved = json.loads(file_path.read_text(encoding="utf-8"))
+                self.assertEqual(saved["knowledge_items"][0]["slug"], "sample")

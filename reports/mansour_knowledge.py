@@ -1,6 +1,13 @@
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+
+logger = logging.getLogger(__name__)
 
 
 AUDIENCE_GENERAL = "general"
@@ -28,7 +35,7 @@ AUDIENCE_LABELS = {
     AUDIENCE_PLATFORM_SUPERVISOR: "مشرف منصة",
 }
 
-ROLE_GUIDANCE = {
+_FALLBACK_ROLE_GUIDANCE = {
     AUDIENCE_GENERAL: (
         "المستخدم لم يحدد دوره بعد. أجب عن المعلومات المشتركة فقط، وإذا اختلفت "
         "الخطوات حسب الصلاحية فاطلب منه تحديد ما إذا كان معلمًا أو مدير مدرسة أو مشرفًا."
@@ -68,7 +75,7 @@ class KnowledgeItem:
     priority: int = 0
 
 
-KNOWLEDGE_ITEMS = (
+_FALLBACK_KNOWLEDGE_ITEMS = (
     KnowledgeItem(
         slug="getting-started",
         title="البدء وتسجيل الدخول",
@@ -389,7 +396,7 @@ KNOWLEDGE_ITEMS = (
 )
 
 
-ROLE_DEFAULT_SLUGS = {
+_FALLBACK_ROLE_DEFAULT_SLUGS = {
     AUDIENCE_GENERAL: (
         "getting-started",
         "trial-and-registration",
@@ -427,3 +434,109 @@ ROLE_DEFAULT_SLUGS = {
         "support-and-troubleshooting",
     ),
 }
+
+
+_KNOWLEDGE_CONTENT_PATH = Path(__file__).with_name("mansour_knowledge_content.json")
+
+
+def _load_content_payload() -> dict[str, Any]:
+    try:
+        raw = _KNOWLEDGE_CONTENT_PATH.read_text(encoding="utf-8")
+        payload = json.loads(raw)
+        if isinstance(payload, dict):
+            return payload
+    except Exception as exc:
+        logger.warning("Mansour knowledge file load failed: %s", exc.__class__.__name__)
+    return {}
+
+
+def _coerce_knowledge_items(payload: Any) -> tuple[KnowledgeItem, ...]:
+    if not isinstance(payload, list):
+        return _FALLBACK_KNOWLEDGE_ITEMS
+
+    items: list[KnowledgeItem] = []
+    for row in payload:
+        if not isinstance(row, dict):
+            continue
+        slug = str(row.get("slug") or "").strip()
+        title = str(row.get("title") or "").strip()
+        url = str(row.get("url") or "").strip()
+        text = str(row.get("text") or "").strip()
+        if not (slug and title and text):
+            continue
+
+        raw_topics = row.get("topics")
+        if isinstance(raw_topics, list):
+            topics = tuple(str(item).strip() for item in raw_topics if str(item).strip())
+        else:
+            topics = ()
+
+        raw_audiences = row.get("audiences")
+        if isinstance(raw_audiences, list):
+            audiences = frozenset(
+                value
+                for value in (str(item).strip() for item in raw_audiences)
+                if value in AUDIENCE_LABELS
+            )
+        else:
+            audiences = frozenset()
+
+        try:
+            priority = int(row.get("priority", 0))
+        except (TypeError, ValueError):
+            priority = 0
+
+        items.append(
+            KnowledgeItem(
+                slug=slug,
+                title=title,
+                url=url,
+                text=text,
+                topics=topics,
+                audiences=audiences,
+                keywords=str(row.get("keywords") or "").strip(),
+                priority=priority,
+            )
+        )
+
+    return tuple(items) if items else _FALLBACK_KNOWLEDGE_ITEMS
+
+
+def _coerce_role_guidance(payload: Any) -> dict[str, str]:
+    if not isinstance(payload, dict):
+        return _FALLBACK_ROLE_GUIDANCE
+
+    resolved = dict(_FALLBACK_ROLE_GUIDANCE)
+    for audience in AUDIENCE_LABELS:
+        value = payload.get(audience)
+        if isinstance(value, str) and value.strip():
+            resolved[audience] = value.strip()
+    return resolved
+
+
+def _coerce_role_defaults(payload: Any, available_slugs: set[str]) -> dict[str, tuple[str, ...]]:
+    if not isinstance(payload, dict):
+        return _FALLBACK_ROLE_DEFAULT_SLUGS
+
+    resolved: dict[str, tuple[str, ...]] = dict(_FALLBACK_ROLE_DEFAULT_SLUGS)
+    for audience in AUDIENCE_LABELS:
+        raw_items = payload.get(audience)
+        if not isinstance(raw_items, list):
+            continue
+        selected = tuple(
+            slug
+            for slug in (str(item).strip() for item in raw_items)
+            if slug and slug in available_slugs
+        )
+        if selected:
+            resolved[audience] = selected
+    return resolved
+
+
+_content_payload = _load_content_payload()
+KNOWLEDGE_ITEMS = _coerce_knowledge_items(_content_payload.get("knowledge_items"))
+ROLE_GUIDANCE = _coerce_role_guidance(_content_payload.get("role_guidance"))
+ROLE_DEFAULT_SLUGS = _coerce_role_defaults(
+    _content_payload.get("role_default_slugs"),
+    {item.slug for item in KNOWLEDGE_ITEMS},
+)

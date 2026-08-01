@@ -3,6 +3,8 @@
 """Subscription, payment, plan management & footer content pages."""
 
 from decimal import Decimal, ROUND_HALF_UP
+import json
+from pathlib import Path
 from urllib.parse import urlencode
 
 from ._helpers import *
@@ -11,11 +13,101 @@ from ._helpers import (
     _school_manager_label, _get_active_school,
     _clean_query_value, _clean_query_params, _parse_date_safe,
 )
+from ..mansour_knowledge import AUDIENCE_LABELS
 
 ARCHIVE_ADDON_ANNUAL_PRICE = Decimal("399.00")
 ARCHIVE_ADDON_INCLUDED_STORAGE_GB = 50
 ARCHIVE_STORAGE_BLOCK_GB = 50
 ARCHIVE_STORAGE_BLOCK_PRICE = Decimal("149.00")
+MANSOUR_KNOWLEDGE_CONTENT_PATH = Path(__file__).resolve().parents[1] / "mansour_knowledge_content.json"
+
+
+def _validate_mansour_knowledge_payload(payload: dict) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(payload, dict):
+        return ["صيغة الملف غير صحيحة: يجب أن يكون JSON Object."]
+
+    required_sections = ("role_guidance", "role_default_slugs", "knowledge_items")
+    for section in required_sections:
+        if section not in payload:
+            errors.append(f"القسم '{section}' مفقود.")
+
+    role_guidance = payload.get("role_guidance")
+    if not isinstance(role_guidance, dict):
+        errors.append("القسم role_guidance يجب أن يكون Object.")
+
+    role_default_slugs = payload.get("role_default_slugs")
+    if not isinstance(role_default_slugs, dict):
+        errors.append("القسم role_default_slugs يجب أن يكون Object.")
+
+    knowledge_items = payload.get("knowledge_items")
+    if not isinstance(knowledge_items, list) or not knowledge_items:
+        errors.append("القسم knowledge_items يجب أن يكون قائمة غير فارغة.")
+
+    if errors:
+        return errors
+
+    known_audiences = set(AUDIENCE_LABELS.keys())
+    for audience in known_audiences:
+        value = role_guidance.get(audience)
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"role_guidance.{audience} يجب أن يكون نصًا غير فارغ.")
+
+    slugs: set[str] = set()
+    for idx, item in enumerate(knowledge_items, start=1):
+        if not isinstance(item, dict):
+            errors.append(f"knowledge_items[{idx}] يجب أن يكون Object.")
+            continue
+
+        slug = str(item.get("slug") or "").strip()
+        title = str(item.get("title") or "").strip()
+        text = str(item.get("text") or "").strip()
+        url = str(item.get("url") or "").strip()
+        topics = item.get("topics")
+        audiences = item.get("audiences")
+
+        if not slug:
+            errors.append(f"knowledge_items[{idx}].slug مطلوب.")
+        elif slug in slugs:
+            errors.append(f"slug مكرر: {slug}")
+        else:
+            slugs.add(slug)
+
+        if not title:
+            errors.append(f"knowledge_items[{idx}].title مطلوب.")
+        if not text:
+            errors.append(f"knowledge_items[{idx}].text مطلوب.")
+        if not url:
+            errors.append(f"knowledge_items[{idx}].url مطلوب.")
+        if not isinstance(topics, list):
+            errors.append(f"knowledge_items[{idx}].topics يجب أن تكون قائمة.")
+
+        if audiences is not None and not isinstance(audiences, list):
+            errors.append(f"knowledge_items[{idx}].audiences يجب أن تكون قائمة.")
+        elif isinstance(audiences, list):
+            for audience in audiences:
+                audience_value = str(audience).strip()
+                if audience_value and audience_value not in known_audiences:
+                    errors.append(
+                        f"knowledge_items[{idx}].audiences يحتوي قيمة غير معروفة: {audience_value}"
+                    )
+
+    if isinstance(role_default_slugs, dict) and slugs:
+        for audience, selected_slugs in role_default_slugs.items():
+            if audience not in known_audiences:
+                errors.append(f"role_default_slugs يحتوي فئة غير معروفة: {audience}")
+                continue
+            if not isinstance(selected_slugs, list):
+                errors.append(f"role_default_slugs.{audience} يجب أن تكون قائمة.")
+                continue
+            for slug in selected_slugs:
+                slug_value = str(slug).strip()
+                if slug_value and slug_value not in slugs:
+                    errors.append(
+                        f"role_default_slugs.{audience} يحتوي slug غير موجود: {slug_value}"
+                    )
+
+    return errors
 
 
 def _archive_pricing():
@@ -240,6 +332,68 @@ def platform_settings(request: HttpRequest) -> HttpResponse:
             "storage_options_formset": storage_options_formset,
             "platform_storage_used_bytes": platform_storage_used_bytes,
             "schools_count": schools_count,
+        },
+    )
+
+
+@login_required(login_url="reports:platform_login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
+@require_http_methods(["GET", "POST"])
+def platform_mansour_content(request: HttpRequest) -> HttpResponse:
+    """Edit Mansour assistant knowledge content JSON from platform admin dashboard."""
+
+    class MansourContentForm(forms.Form):
+        content = forms.CharField(
+            label="محتوى قاعدة معرفة منصور (JSON)",
+            widget=forms.Textarea(
+                attrs={
+                    "rows": 30,
+                    "dir": "ltr",
+                    "spellcheck": "false",
+                    "class": "form-control",
+                }
+            ),
+        )
+
+    def _read_content() -> str:
+        try:
+            return MANSOUR_KNOWLEDGE_CONTENT_PATH.read_text(encoding="utf-8")
+        except Exception:
+            return "{}"
+
+    if request.method == "POST":
+        form = MansourContentForm(request.POST)
+        if form.is_valid():
+            raw = form.cleaned_data["content"]
+            try:
+                payload = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                form.add_error("content", f"صيغة JSON غير صحيحة عند السطر {exc.lineno}.")
+            else:
+                validation_errors = _validate_mansour_knowledge_payload(payload)
+                if validation_errors:
+                    form.add_error("content", "\n".join(validation_errors))
+                else:
+                    pretty = json.dumps(payload, ensure_ascii=False, indent=2)
+                    temp_path = MANSOUR_KNOWLEDGE_CONTENT_PATH.with_suffix(".json.tmp")
+                    temp_path.write_text(pretty + "\n", encoding="utf-8")
+                    temp_path.replace(MANSOUR_KNOWLEDGE_CONTENT_PATH)
+                    messages.success(request, "تم تحديث محتوى منصور بنجاح.")
+                    return redirect("reports:platform_mansour_content")
+        messages.error(request, "تعذر حفظ المحتوى. تحقق من صيغة JSON.")
+    else:
+        form = MansourContentForm(initial={"content": _read_content()})
+
+    stats = {
+        "characters": len(form["content"].value() or ""),
+    }
+    return render(
+        request,
+        "reports/platform_mansour_content.html",
+        {
+            "form": form,
+            "content_path": str(MANSOUR_KNOWLEDGE_CONTENT_PATH),
+            "stats": stats,
         },
     )
 

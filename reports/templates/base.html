@@ -803,7 +803,7 @@
             <a class="tab {% if active == 'platform_payments_list' or active == 'platform_payment_detail' %}is-active{% endif %}" href="{% url 'reports:platform_payments_list' %}">المالية</a>
             <a class="tab {% if active == 'platform_tickets_list' %}is-active{% endif %}" href="{% url 'reports:platform_tickets_list' %}">الدعم</a>
             <a class="tab {% if active == 'platform_complaints_list' or active == 'platform_complaint_detail' %}is-active{% endif %}" href="{% url 'reports:platform_complaints_list' %}">الشكاوى</a>
-            <a class="tab {% if active == 'platform_settings' or active == 'platform_archive_addons_list' or active == 'platform_plans_list' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">الإعدادات</a>
+            <a class="tab {% if active == 'platform_settings' or active == 'platform_archive_addons_list' or active == 'platform_plans_list' or active == 'platform_mansour_content' %}is-active{% endif %}" href="{% url 'reports:platform_settings' %}">الإعدادات</a>
           {% elif IS_REPORT_VIEWER %}
             <a class="tab {% if active == 'school_reports_readonly' %}is-active{% endif %}" href="{% url 'reports:school_reports_readonly' %}">التقارير</a>
             <a class="tab {% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
@@ -1278,6 +1278,13 @@
           <a class="{% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">
             <span>الأرشيف</span>
             <i class="fa-solid fa-box-archive"></i>
+          </a>
+        {% endif %}
+
+        {% if request.user.is_superuser %}
+          <a class="{% if active == 'platform_mansour_content' %}is-active{% endif %}" href="{% url 'reports:platform_mansour_content' %}">
+            <span>محتوى منصور</span>
+            <i class="fa-solid fa-robot"></i>
           </a>
         {% endif %}
 
