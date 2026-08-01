@@ -82,6 +82,31 @@ class _FakeWeakComplaintOpenAIResponse:
         ).encode("utf-8")
 
 
+class _FakeTextOpenAIResponse:
+    def __init__(self, text: str):
+        self.text = text
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+    def read(self):
+        return json.dumps(
+            {
+                "output": [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [{"type": "output_text", "text": self.text}],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+
+
 class _FakeSupportOpenAIResponse:
     def __enter__(self):
         return self
@@ -240,6 +265,30 @@ class MansourAssistantTests(TestCase):
         self.assertTrue(payload["ok"])
         self.assertIn("رقم متابعة", payload["answer"])
         self.assertEqual(payload["sources"][0]["url"], "/complaints/#complaint-form")
+
+    @override_settings(MANSOUR_ASSISTANT_REASONING_EFFORT="medium")
+    @patch("reports.mansour_assistant.urlopen")
+    def test_verbose_model_answer_is_rewritten_with_minimal_reasoning(self, mocked_urlopen):
+        verbose_answer = "\n".join(f"معلومة مفيدة {index}" for index in range(15))
+        concise_answer = "لباقة 40 معلمًا، اختر الاحترافية لأنها تستوعب حتى 50 معلمًا."
+        mocked_urlopen.side_effect = [
+            _FakeTextOpenAIResponse(verbose_answer),
+            _FakeTextOpenAIResponse(concise_answer),
+        ]
+
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "ما الباقة المناسبة لمدرسة فيها 40 معلماً؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["answer"], concise_answer)
+        self.assertEqual(mocked_urlopen.call_count, 2)
+        first_body = json.loads(mocked_urlopen.call_args_list[0].args[0].data.decode("utf-8"))
+        retry_body = json.loads(mocked_urlopen.call_args_list[1].args[0].data.decode("utf-8"))
+        self.assertEqual(first_body["reasoning"], {"effort": "medium"})
+        self.assertEqual(retry_body["reasoning"], {"effort": "minimal"})
 
     def test_retrieval_is_scoped_to_the_selected_role(self):
         manager_items = select_knowledge(

@@ -985,7 +985,7 @@ def ask_mansour(
                 plans or [],
                 audience=audience,
             ),
-            "reasoning": {"effort": "high"},
+            "reasoning": {"effort": "minimal"},
         }
         try:
             retry_payload = _call_openai_response(retry_body, api_key, timeout_seconds)
