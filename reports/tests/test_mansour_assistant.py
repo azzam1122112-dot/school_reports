@@ -255,7 +255,7 @@ class MansourAssistantTests(TestCase):
                     "history": [
                         {
                             "role": "user",
-                            "content": "أنا مدير مدرسة، كيف أضيف المعلمين إلى فريق المدرسة؟",
+                            "content": "أنا مدير مدرسة وأريد إضافة المعلمين وإرسال تعميم، من أين أبدأ؟",
                         }
                     ],
                 }
@@ -267,6 +267,8 @@ class MansourAssistantTests(TestCase):
         self.assertEqual(response.json()["audience"], "manager")
         self.assertIn("إدارة المعلمين والأقسام", response.json()["answer"])
         self.assertNotIn("التعريف بمنصة توثيق", response.json()["answer"])
+        self.assertIn("باختصار", response.json()["answer"])
+        self.assertEqual(len(response.json()["sources"]), 2)
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_pricing_reply_deduplicates_equivalent_free_trials(self):

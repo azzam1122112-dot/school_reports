@@ -370,8 +370,24 @@ def _sources_for_answer(
     intent: str,
     *,
     selected: list[KnowledgeItem],
+    question: str = "",
 ) -> list[dict[str, str]]:
     """Prefer customer-journey links for known intents; otherwise keep retrieval sources."""
+    normalised_question = _normalise_arabic(question)
+    if (
+        intent == INTENT_GENERAL
+        and any(marker in normalised_question for marker in ("معلم", "معلمين", "فريق"))
+        and any(marker in normalised_question for marker in ("تعميم", "اشعار", "تنبيه"))
+    ):
+        selected_by_slug = {item.slug: item for item in selected}
+        workflow_sources = [
+            selected_by_slug[slug]
+            for slug in ("manager-team", "manager-communication")
+            if slug in selected_by_slug
+        ]
+        if workflow_sources:
+            return [{"title": item.title, "url": item.url} for item in workflow_sources]
+
     mapped = _offline_sources_for_intent(intent, selected=selected)
     return mapped if mapped else [{"title": item.title, "url": item.url} for item in selected[:3]]
 
@@ -452,6 +468,12 @@ def _offline_customer_reply(
         and "manager-team" in selected_by_slug
         and "manager-communication" in selected_by_slug
     ):
+        if any(marker in normalised_question for marker in ("ما فهمت", "لم افهم", "باختصار", "اختصر")):
+            return (
+                "باختصار:\n"
+                "1) أضف المعلمين وحدد أقسامهم من إدارة المعلمين والأقسام.\n"
+                "2) أنشئ التعميم، اختر المعلمين أو الأقسام المستهدفة، ثم أرسله وتابع الاطلاع والتوقيع."
+            )
         return (
             "ابدأ بإعداد فريق المدرسة، ثم أرسل التعميم:\n"
             "1) من إدارة المعلمين والأقسام أضف المعلمين أو استوردهم، وراجع أرقام الجوال والأقسام قبل الحفظ.\n"
@@ -686,7 +708,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
         )
-        fallback_sources = _sources_for_answer(intent, selected=selected)
+        fallback_sources = _sources_for_answer(intent, selected=selected, question=retrieval_question)
         return fallback_answer[:1800], fallback_sources
 
     messages.append({"role": "user", "content": question})
@@ -720,7 +742,11 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
         )
-        return fallback_answer[:1800], _sources_for_answer(intent, selected=selected)
+        return fallback_answer[:1800], _sources_for_answer(
+            intent,
+            selected=selected,
+            question=retrieval_question,
+        )
     except (URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
         logger.warning("Mansour OpenAI request failed: %s; using local fallback.", exc.__class__.__name__)
         fallback_answer = _offline_customer_reply(
@@ -729,7 +755,11 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
         )
-        return fallback_answer[:1800], _sources_for_answer(intent, selected=selected)
+        return fallback_answer[:1800], _sources_for_answer(
+            intent,
+            selected=selected,
+            question=retrieval_question,
+        )
 
     answer = _sanitise_answer_text(_extract_output_text(response_payload))
     if _looks_low_quality(answer):
@@ -753,7 +783,7 @@ def ask_mansour(
 
     if _fails_customer_service_guard(answer, intent=intent):
         answer = _offline_customer_reply(
-            question,
+            retrieval_question,
             intent=intent,
             selected=selected,
             plans=plans or [],
@@ -761,12 +791,16 @@ def ask_mansour(
 
     if not answer:
         fallback_answer = _offline_customer_reply(
-            question,
+            retrieval_question,
             intent=intent,
             selected=selected,
             plans=plans or [],
         )
-        return fallback_answer[:1800], _sources_for_answer(intent, selected=selected)
+        return fallback_answer[:1800], _sources_for_answer(
+            intent,
+            selected=selected,
+            question=retrieval_question,
+        )
 
-    sources = _sources_for_answer(intent, selected=selected)
+    sources = _sources_for_answer(intent, selected=selected, question=retrieval_question)
     return answer[:1800], sources
