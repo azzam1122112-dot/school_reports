@@ -960,12 +960,10 @@
             <span class="profile-info-label">رقم الجوال</span>
             <span class="profile-info-value">{{ request.user.phone|default:"-" }}</span>
           </div>
-          {% if request.user.email %}
-            <div class="profile-info-row">
-              <span class="profile-info-label">البريد الإلكتروني</span>
-              <span class="profile-info-value" dir="ltr">{{ request.user.email }}</span>
-            </div>
-          {% endif %}
+          <div class="profile-info-row">
+            <span class="profile-info-label">البريد الإلكتروني</span>
+            <span class="profile-info-value" dir="ltr">{{ request.user.email|default:"-" }}</span>
+          </div>
         </div>
 
         <div class="profile-divider"></div>
@@ -1010,6 +1008,38 @@
           </div>
           <div class="profile-divider"></div>
         {% else %}
+          <!-- Email Update Form -->
+          <form method="post" class="profile-form" novalidate>
+            {% csrf_token %}
+            <div class="profile-form-group">
+              <label class="profile-form-label" for="{{ email_form.email.id_for_label }}">
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                <span>{{ email_form.email.label }}</span>
+              </label>
+              <input
+                type="email"
+                name="{{ email_form.email.html_name }}"
+                id="{{ email_form.email.id_for_label }}"
+                value="{{ email_form.email.value|default:'' }}"
+                class="profile-form-input"
+                autocomplete="email"
+                inputmode="email"
+                dir="ltr"
+                placeholder="name@example.com"
+              >
+              <div class="profile-form-hint">يمكنك تركه فارغًا، أو حفظ بريد صالح لاستعادة كلمة المرور لاحقًا.</div>
+              {% if email_form.email.errors %}
+                <div class="profile-form-error">{{ email_form.email.errors|striptags }}</div>
+              {% endif %}
+            </div>
+            <button type="submit" name="update_email" class="profile-btn profile-btn-primary">
+              <i class="fa-solid fa-envelope-circle-check" aria-hidden="true"></i>
+              <span>تحديث البريد الإلكتروني</span>
+            </button>
+          </form>
+
+          <div class="profile-divider"></div>
+
           <!-- Phone Update Form -->
           <form method="post" class="profile-form" novalidate>
             {% csrf_token %}

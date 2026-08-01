@@ -45,6 +45,14 @@ INTENT_SUPPORT = "support"
 INTENT_THANKS = "thanks"
 INTENT_GENERAL = "general"
 
+_COMPLAINT_QUALITY_MARKERS = (
+    "شكوى",
+    "رقم متابعة",
+    "يومي عمل",
+    "سبعة أيام عمل",
+    "الشكاوى",
+)
+
 ARABIC_STOP_WORDS = frozenset(
     {
         "انا",
@@ -325,6 +333,16 @@ def _offline_sources_for_intent(
     return [{"title": item.title, "url": item.url} for item in selected[:3]]
 
 
+def _sources_for_answer(
+    intent: str,
+    *,
+    selected: list[KnowledgeItem],
+) -> list[dict[str, str]]:
+    """Prefer customer-journey links for known intents; otherwise keep retrieval sources."""
+    mapped = _offline_sources_for_intent(intent, selected=selected)
+    return mapped if mapped else [{"title": item.title, "url": item.url} for item in selected[:3]]
+
+
 def _offline_customer_reply(
     question: str,
     *,
@@ -404,6 +422,30 @@ def _offline_customer_reply(
         "لخدمتك بشكل أدق، اكتب المطلوب باختصار (مثل: التسجيل، إضافة معلم، إنشاء تقرير، أو الشكاوى)، "
         "وسأعطيك الخطوات المناسبة مباشرة."
     )
+
+
+def _fails_customer_service_guard(answer: str, *, intent: str) -> bool:
+    """Reject answers that look valid textually but weak as customer-service guidance."""
+    text = str(answer or "").strip()
+    if not text:
+        return True
+
+    normalised = _normalise_arabic(text)
+
+    # Avoid stale fallback phrasing that feels technical to end users.
+    if "لفئتك الحالية" in text:
+        return True
+
+    # Complaint requests must include clear complaint-handling guidance.
+    if intent == INTENT_COMPLAINT and not any(marker in normalised for marker in _COMPLAINT_QUALITY_MARKERS):
+        return True
+
+    # Prevent very verbose monologues in customer-service mode.
+    non_empty_lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(non_empty_lines) > 12:
+        return True
+
+    return False
 
 
 def _instructions(
@@ -574,7 +616,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
         )
-        fallback_sources = _offline_sources_for_intent(intent, selected=selected)
+        fallback_sources = _sources_for_answer(intent, selected=selected)
         return fallback_answer[:1800], fallback_sources
 
     messages = sanitise_history(history)
@@ -609,7 +651,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
         )
-        return fallback_answer[:1800], _offline_sources_for_intent(intent, selected=selected)
+        return fallback_answer[:1800], _sources_for_answer(intent, selected=selected)
     except (URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
         logger.warning("Mansour OpenAI request failed: %s; using local fallback.", exc.__class__.__name__)
         fallback_answer = _offline_customer_reply(
@@ -618,7 +660,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
         )
-        return fallback_answer[:1800], _offline_sources_for_intent(intent, selected=selected)
+        return fallback_answer[:1800], _sources_for_answer(intent, selected=selected)
 
     answer = _sanitise_answer_text(_extract_output_text(response_payload))
     if _looks_low_quality(answer):
@@ -640,6 +682,14 @@ def ask_mansour(
         except Exception:
             logger.info("Mansour quality retry failed; returning first response.")
 
+    if _fails_customer_service_guard(answer, intent=intent):
+        answer = _offline_customer_reply(
+            question,
+            intent=intent,
+            selected=selected,
+            plans=plans or [],
+        )
+
     if not answer:
         fallback_answer = _offline_customer_reply(
             question,
@@ -647,7 +697,7 @@ def ask_mansour(
             selected=selected,
             plans=plans or [],
         )
-        return fallback_answer[:1800], _offline_sources_for_intent(intent, selected=selected)
+        return fallback_answer[:1800], _sources_for_answer(intent, selected=selected)
 
-    sources = [{"title": item.title, "url": item.url} for item in selected[:3]]
+    sources = _sources_for_answer(intent, selected=selected)
     return answer[:1800], sources

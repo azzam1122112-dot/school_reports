@@ -126,6 +126,41 @@ class MyProfilePhoneForm(forms.ModelForm):
         return phone
 
 
+class MyProfileEmailForm(forms.ModelForm):
+    """تحديث البريد الإلكتروني للمستخدم الحالي مع التحقق من التفرد."""
+
+    email = forms.EmailField(
+        label="البريد الإلكتروني",
+        required=False,
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "name@example.com",
+                "autocomplete": "email",
+                "inputmode": "email",
+                "dir": "ltr",
+            }
+        ),
+    )
+
+    class Meta:
+        model = Teacher
+        fields = ["email"]
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            return ""
+
+        qs = Teacher.objects.filter(email__iexact=email)
+        if getattr(self.instance, "pk", None):
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("هذا البريد الإلكتروني مستخدم في حساب آخر.")
+
+        return email
+
+
 class MyPasswordChangeForm(PasswordChangeForm):
     """نموذج تغيير كلمة المرور مع تحسين شكل الحقول."""
 

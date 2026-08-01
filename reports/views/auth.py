@@ -878,6 +878,7 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     )
 
     phone_form = MyProfilePhoneForm(instance=request.user, prefix="phone")
+    email_form = MyProfileEmailForm(instance=request.user, prefix="email")
     pwd_form = MyPasswordChangeForm(
         request.user,
         prefix="pwd",
@@ -885,7 +886,13 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     )
 
     if request.method == "POST":
-        if "update_phone" in request.POST:
+        if "update_email" in request.POST:
+            email_form = MyProfileEmailForm(request.POST, instance=request.user, prefix="email")
+            if email_form.is_valid():
+                email_form.save()
+                messages.success(request, "تم تحديث البريد الإلكتروني بنجاح.")
+                return redirect("reports:my_profile")
+        elif "update_phone" in request.POST:
             if force_password_change:
                 messages.info(request, "لتأمين الحساب أولاً، غيّر كلمة المرور ثم سيصبح تحديث رقم الجوال متاحًا مباشرة.")
                 return redirect("reports:my_profile")
@@ -934,6 +941,7 @@ def my_profile(request: HttpRequest) -> HttpResponse:
         "active_school": active_school,
         "memberships": memberships,
         "phone_form": phone_form,
+        "email_form": email_form,
         "pwd_form": pwd_form,
         "force_password_change": force_password_change,
         "passkey_credentials": WebAuthnCredential.objects.filter(teacher=request.user, is_active=True).order_by("-created_at"),

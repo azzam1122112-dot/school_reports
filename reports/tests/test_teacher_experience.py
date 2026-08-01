@@ -82,6 +82,7 @@ class TeacherExperienceTests(TestCase):
         self.assertGreaterEqual(html.count(reverse("reports:achievement_my_files")), 3)
         self.assertNotIn(reverse("reports:assigned_to_me"), html)
         self.assertNotIn(reverse("reports:support_ticket_create"), html)
+        self.assertNotIn(reverse("reports:school_archive"), html)
 
     def test_department_officer_navigation_adds_tasks_and_department_reports(self):
         department = Department.objects.create(

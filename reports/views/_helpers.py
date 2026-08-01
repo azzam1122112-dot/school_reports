@@ -150,6 +150,7 @@ from ..forms import (
     ReportForm,
     TeacherCreateForm,
     TeacherEditForm,
+    MyProfileEmailForm,
     MyProfilePhoneForm,
     MyPasswordChangeForm,
     TicketActionForm,

@@ -74,3 +74,62 @@ class ForcedPasswordChangeTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.email, "")
         self.assertTrue(self.user.check_password(self.user.phone))
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class ProfileEmailUpdateTests(TestCase):
+    def setUp(self):
+        self.user = Teacher.objects.create_user(
+            phone="0557000011",
+            name="مستخدم الملف الشخصي",
+            password="safe-password",
+            email="",
+        )
+        self.client.force_login(self.user)
+
+    def test_profile_shows_email_row_even_when_blank(self):
+        response = self.client.get(reverse("reports:my_profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "البريد الإلكتروني")
+        self.assertContains(response, 'name="email-email"')
+
+    def test_user_can_update_email_from_profile(self):
+        response = self.client.post(
+            reverse("reports:my_profile"),
+            {
+                "update_email": "1",
+                "email-email": "USER.NEW@example.com",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("reports:my_profile"),
+            fetch_redirect_response=False,
+        )
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "user.new@example.com")
+
+    def test_profile_email_update_rejects_duplicate_email(self):
+        Teacher.objects.create_user(
+            phone="0557000012",
+            name="مستخدم آخر",
+            password="safe-password",
+            email="existing@example.com",
+        )
+
+        response = self.client.post(
+            reverse("reports:my_profile"),
+            {
+                "update_email": "1",
+                "email-email": "EXISTING@example.com",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["email_form"],
+            "email",
+            "هذا البريد الإلكتروني مستخدم في حساب آخر.",
+        )

@@ -46,6 +46,33 @@ class _FakeOpenAIResponse:
         ).encode("utf-8")
 
 
+class _FakeWeakComplaintOpenAIResponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+    def read(self):
+        return json.dumps(
+            {
+                "output": [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": "أفضل بداية في سؤالك الحالي هي تسجيل الدخول من الصفحة الرئيسية.",
+                            }
+                        ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+
+
 @override_settings(
     ALLOWED_HOSTS=["testserver"],
     OPENAI_API_KEY="test-secret-key",
@@ -162,6 +189,20 @@ class MansourAssistantTests(TestCase):
         self.assertNotIn("test-secret-key", request.data.decode("utf-8"))
         self.assertEqual(response.json()["audience"], "manager")
         self.assertEqual(response.json()["audience_label"], "مدير مدرسة")
+
+    @patch("reports.mansour_assistant.urlopen", return_value=_FakeWeakComplaintOpenAIResponse())
+    def test_complaint_intent_quality_guard_rewrites_weak_model_answer(self, _mocked_urlopen):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "أرغب بتقديم شكوى", "history": []}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertIn("رقم متابعة", payload["answer"])
+        self.assertEqual(payload["sources"][0]["url"], "/complaints/#complaint-form")
 
     def test_retrieval_is_scoped_to_the_selected_role(self):
         manager_items = select_knowledge(

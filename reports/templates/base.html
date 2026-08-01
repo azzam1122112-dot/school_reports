@@ -809,7 +809,7 @@
           {% elif IS_REPORT_VIEWER %}
             <a class="tab {% if active == 'school_reports_readonly' %}is-active{% endif %}" href="{% url 'reports:school_reports_readonly' %}">التقارير</a>
             <a class="tab {% if active == 'achievement_school_files' or active == 'achievement_school_teachers' or active == 'achievement_file_detail' %}is-active{% endif %}" href="{% url 'reports:achievement_school_files' %}">ملفات الإنجاز</a>
-            {% if SHOW_ARCHIVE_LINK %}
+            {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
               <a class="tab {% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">الأرشيف</a>
             {% endif %}
           {% elif request.user.is_platform_admin and not request.user.is_superuser %}
@@ -1002,7 +1002,7 @@
                     <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                     ملفات الإنجاز
                   </a>
-                  {% if SHOW_ARCHIVE_LINK %}
+                  {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
                     <a href="{% url 'reports:school_archive' %}" class="mi" role="menuitem">
                       <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
                       الأرشيف
@@ -1013,7 +1013,7 @@
                     <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
                     ملف الإنجاز
                   </a>
-                  {% if SHOW_ARCHIVE_LINK %}
+                  {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
                     <a href="{% url 'reports:school_archive' %}" class="mi" role="menuitem">
                       <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
                       الأرشيف
@@ -1029,6 +1029,61 @@
 
               <a href="{% url 'reports:logout' %}" class="mi" role="menuitem">تسجيل الخروج</a>
             </div>
+            <script>
+              (function(){
+                window.setTimeout(()=>{
+                  if(window.__userMenuScriptReady) return;
+
+                  const avatar = document.getElementById('userAvatar');
+                  const menu = document.getElementById('userMenu');
+                  if(!avatar || !menu || window.__userMenuInlineToggle) return;
+
+                  let suppressClickUntil = 0;
+
+                  const positionInlineMenu = ()=>{
+                    const triggerRect = avatar.getBoundingClientRect();
+                    const menuWidth = menu.offsetWidth || 220;
+                    const left = Math.max(12, Math.min(triggerRect.right - menuWidth, window.innerWidth - menuWidth - 12));
+                    const top = Math.max(12, triggerRect.bottom + 8);
+                    menu.style.left = `${Math.round(left)}px`;
+                    menu.style.top = `${Math.round(top)}px`;
+                    menu.style.right = 'auto';
+                  };
+
+                  const setOpen = (open)=>{
+                    menu.classList.toggle('open', open);
+                    menu.style.display = open ? 'block' : 'none';
+                    menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+                    avatar.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    if(open) positionInlineMenu();
+                  };
+
+                  window.__userMenuInlineToggle = (event)=>{
+                    if(event && event.type === 'pointerup' && event.button !== 0) return false;
+                    if(event){
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }
+
+                    const nowMs = Date.now();
+                    if(event && event.type === 'click' && nowMs < suppressClickUntil) return false;
+                    if(event && event.type === 'pointerup') suppressClickUntil = nowMs + 450;
+
+                    setOpen(!menu.classList.contains('open'));
+                    return false;
+                  };
+
+                  avatar.addEventListener('pointerup', window.__userMenuInlineToggle);
+                  avatar.addEventListener('click', window.__userMenuInlineToggle);
+                  document.addEventListener('click', (event)=>{
+                    if(!event.target.closest('#userMenu') && !event.target.closest('#userAvatar')) setOpen(false);
+                  });
+                  window.addEventListener('resize', ()=>{
+                    if(menu.classList.contains('open')) positionInlineMenu();
+                  }, {passive:true});
+                }, 0);
+              })();
+            </script>
           </div>
 
         {% else %}
@@ -1276,7 +1331,7 @@
           </a>
         {% endif %}
 
-        {% if SHOW_ARCHIVE_LINK %}
+        {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
           <a class="{% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">
             <span>الأرشيف</span>
             <i class="fa-solid fa-box-archive"></i>
@@ -1769,10 +1824,13 @@
       const menu = document.getElementById('userMenu');
       if(!avatar || !menu) return;
 
+      window.__userMenuScriptReady = true;
+
       // Move the popover outside the sticky header so no parent can clip it.
       document.body.appendChild(menu);
 
       let ignoreNextOutsidePointer = false;
+      let suppressClickToggleUntil = 0;
       const items = ()=> Array.from(menu.querySelectorAll('[role="menuitem"]'));
       const positionMenu = ()=>{
         const viewport = window.visualViewport;
@@ -1822,9 +1880,15 @@
         if(returnFocus) avatar.focus();
       };
 
-      avatar.addEventListener('click', (event)=>{
+      const toggleFromAvatar = (event)=>{
+        if(event.type === 'pointerup' && event.button !== 0) return;
         event.preventDefault();
         event.stopPropagation();
+
+        const nowMs = Date.now();
+        if(event.type === 'click' && nowMs < suppressClickToggleUntil) return;
+        if(event.type === 'pointerup') suppressClickToggleUntil = nowMs + 450;
+
         if(menu.classList.contains('open')){
           close();
         }else{
@@ -1832,7 +1896,9 @@
           open(true);
           window.setTimeout(()=>{ ignoreNextOutsidePointer = false; }, 0);
         }
-      });
+      };
+      avatar.addEventListener('pointerup', toggleFromAvatar);
+      avatar.addEventListener('click', toggleFromAvatar);
 
       avatar.addEventListener('keydown', (event)=>{
         if(event.key === 'ArrowDown'){
