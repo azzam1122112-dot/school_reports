@@ -931,7 +931,8 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
                 messages.error(request, "لا يمكن حفظ إعداد الملخص الأسبوعي لهذه المدرسة.")
                 return redirect("reports:admin_dashboard")
 
-            email_pref_enabled = request.POST.get("weekly_summary_email_enabled") == "1"
+            raw_pref_value = (request.POST.get("weekly_summary_email_enabled") or "").strip().lower()
+            email_pref_enabled = raw_pref_value in {"1", "true", "on", "yes"}
             SchoolMembership.objects.filter(pk=manager_membership.pk).update(
                 weekly_summary_email_enabled=email_pref_enabled,
             )

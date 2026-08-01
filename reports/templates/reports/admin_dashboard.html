@@ -1261,13 +1261,18 @@
             <form method="post" action="{% url 'reports:admin_dashboard' %}" style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;justify-content:space-between">
               {% csrf_token %}
               <input type="hidden" name="action" value="toggle_weekly_summary_email">
-              <label style="display:flex;gap:.5rem;align-items:center;cursor:pointer;margin:0">
-                <input type="checkbox" name="weekly_summary_email_enabled" value="1" {% if weekly_summary_email_enabled %}checked{% endif %}>
-                <span>استقبال الملخص الأسبوعي على البريد الإلكتروني</span>
-              </label>
-              <button type="submit" class="manager-refresh" style="height:auto;padding:.45rem .9rem">حفظ</button>
+              <div style="display:grid;gap:.35rem">
+                <strong style="font-size:1rem;color:#1f2937">استقبال الملخص الأسبوعي على البريد الإلكتروني</strong>
+                <small style="color:#64748b">يصل الملخص الأسبوعي يوم الخميس بعد الساعة 4:00 مساءً.</small>
+                <small style="color:{% if weekly_summary_email_enabled %}#0f766e{% else %}#92400e{% endif %};font-weight:700">
+                  الحالة الحالية: {% if weekly_summary_email_enabled %}مفعّل{% else %}موقّف{% endif %}
+                </small>
+              </div>
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                <button type="submit" name="weekly_summary_email_enabled" value="1" class="manager-refresh" style="height:auto;padding:.45rem .9rem;{% if weekly_summary_email_enabled %}border-color:#0f766e;color:#0f766e;background:#ecfdf5{% endif %}">تفعيل</button>
+                <button type="submit" name="weekly_summary_email_enabled" value="0" class="manager-refresh" style="height:auto;padding:.45rem .9rem;{% if not weekly_summary_email_enabled %}border-color:#92400e;color:#92400e;background:#fff7ed{% endif %}">إيقاف</button>
+              </div>
             </form>
-            <small style="display:block;margin-top:.45rem;color:#64748b">يصل الملخص الأسبوعي يوم الخميس بعد الساعة 4:00 مساءً.</small>
           </div>
           <div class="manager-workspace__links">
             <a class="manager-workspace__link" href="{% url 'reports:school_audit_logs' %}"><span>سجل عمليات المدرسة</span><i class="fa-solid fa-arrow-left"></i></a>
