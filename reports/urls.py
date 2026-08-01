@@ -84,6 +84,12 @@ urlpatterns = [
     path("achievement/<int:pk>/pdf/", views.achievement_file_pdf, name="achievement_file_pdf"),
     path("achievement/<int:pk>/report-picker/", views.achievement_report_picker, name="achievement_report_picker"),
 
+    # ملف الأداء القيادي لمدير/مديرة المدرسة
+    path("leadership-portfolio/", views.leadership_portfolio_list, name="leadership_portfolio_list"),
+    path("leadership-portfolio/<int:pk>/", views.leadership_portfolio_detail, name="leadership_portfolio_detail"),
+    path("leadership-portfolio/<int:pk>/print/", views.leadership_portfolio_print, name="leadership_portfolio_print"),
+    path("leadership-portfolio/<int:pk>/pdf/", views.leadership_portfolio_pdf, name="leadership_portfolio_pdf"),
+
     # مشاركة ملف الإنجاز (اختياري للمعلم)
     path("achievement/<int:pk>/share/", views.achievement_share_manage, name="achievement_share_manage"),
 

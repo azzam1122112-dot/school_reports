@@ -167,6 +167,8 @@ from ..forms import (
     AchievementSectionNotesForm,
     AchievementEvidenceUploadForm,
     AchievementManagerNotesForm,
+    LeadershipPortfolioForm,
+    LeadershipPortfolioSectionForm,
     PlatformAdminCreateForm,
     PlatformSchoolNotificationForm,
     PrivateCommentForm,
@@ -206,6 +208,9 @@ from ..models import (
     AchievementSection,
     AchievementEvidenceImage,
     AchievementEvidenceReport,
+    SchoolLeadershipPortfolio,
+    LeadershipPortfolioSection,
+    LeadershipEvidenceImage,
     TeacherPrivateComment,
 )
 

@@ -50,6 +50,8 @@ from .models import (
     TeacherAchievementFile,
     AchievementSection,
     AchievementEvidenceImage,
+    SchoolLeadershipPortfolio,
+    LeadershipPortfolioSection,
 )
 
 logger = logging.getLogger(__name__)
@@ -2998,6 +3000,36 @@ class AchievementManagerNotesForm(forms.ModelForm):
                     "class": "textarea",
                     "rows": 4,
                     "placeholder": "اكتب شكرًا/تحفيزًا عند الاعتماد، أو سبب الرفض عند الإرجاع…",
+                }
+            )
+        }
+
+
+class LeadershipPortfolioForm(forms.ModelForm):
+    class Meta:
+        model = SchoolLeadershipPortfolio
+        fields = [
+            "leadership_vision",
+            "executive_summary",
+            "notable_achievements",
+            "improvement_priorities",
+        ]
+        widgets = {
+            field: forms.Textarea(attrs={"class": "lp-textarea", "rows": 4})
+            for field in fields
+        }
+
+
+class LeadershipPortfolioSectionForm(forms.ModelForm):
+    class Meta:
+        model = LeadershipPortfolioSection
+        fields = ["notes", "is_completed"]
+        widgets = {
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "lp-textarea",
+                    "rows": 5,
+                    "placeholder": "صف الممارسة والنتيجة، ثم أرفق الشواهد الداعمة.",
                 }
             )
         }

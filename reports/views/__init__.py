@@ -10,6 +10,7 @@ from .platform import *          # noqa: F401,F403
 from .home import *              # noqa: F401,F403
 from .reports import *           # noqa: F401,F403
 from .achievements import *      # noqa: F401,F403
+from .leadership import *        # noqa: F401,F403
 from .teachers import *          # noqa: F401,F403
 from .tickets import *           # noqa: F401,F403
 from .schools import *           # noqa: F401,F403

@@ -158,11 +158,29 @@ def _evidence_section_school_id(instance):
         return None
 
 
+def _leadership_evidence_school_id(instance):
+    """يحلّ المدرسة لشواهد الملف القيادي عبر المحور ثم الملف."""
+    section_id = getattr(instance, "section_id", None)
+    if not section_id:
+        return None
+    try:
+        from .models import LeadershipPortfolioSection
+
+        return (
+            LeadershipPortfolioSection.objects.filter(pk=section_id)
+            .values_list("portfolio__school_id", flat=True)
+            .first()
+        )
+    except Exception:
+        return None
+
+
 def connect_all():
     """يُستدعى من apps.ready() لربط جميع النماذج ذات الملفات."""
     from .models import (
         AchievementEvidenceImage,
         AchievementEvidenceReport,
+        LeadershipEvidenceImage,
         Notification,
         Report,
         SchoolYearArchive,
@@ -180,6 +198,8 @@ def connect_all():
     register(AchievementEvidenceReport,
              fields=["archived_image1", "archived_image2", "archived_image3", "archived_image4"],
              school_id_getter=_evidence_section_school_id)
+    register(LeadershipEvidenceImage, fields=["image"],
+             school_id_getter=_leadership_evidence_school_id)
     register(SchoolYearArchive, fields=["archive_file"],
              school_id_getter=lambda i: getattr(i, "school_id", None))
     register(Ticket, fields=["attachment"],

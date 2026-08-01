@@ -1221,6 +1221,7 @@
             <a class="manager-workspace__link" href="{% url 'reports:reporttypes_list' %}"><span>أنواع التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:report_templates_list' %}"><span>قوالب التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:achievement_school_files' %}"><span>ملفات الإنجاز</span><i class="fa-solid fa-arrow-left"></i></a>
+            <a class="manager-workspace__link" href="{% url 'reports:leadership_portfolio_list' %}"><span>ملف الأداء القيادي</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link {% if not ARCHIVE_ADDON_ACTIVE and not HAS_SAVED_ARCHIVE %}manager-workspace__link--locked{% endif %}" href="{% url 'reports:school_archive' %}">
               <span>أرشيف السنوات</span>
               {% if ARCHIVE_ADDON_ACTIVE or HAS_SAVED_ARCHIVE %}

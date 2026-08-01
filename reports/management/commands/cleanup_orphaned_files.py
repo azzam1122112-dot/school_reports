@@ -16,6 +16,7 @@ from reports.file_cleanup import (
 
 SAFE_PREFIXES = (
     "achievements",
+    "leadership",
     "notifications",
     "payments/receipts",
     "reports",

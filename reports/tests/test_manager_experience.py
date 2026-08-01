@@ -17,6 +17,9 @@ from reports.models import (
     SubscriptionPlan,
     Teacher,
     TeacherAchievementFile,
+    SchoolLeadershipPortfolio,
+    LeadershipPortfolioSection,
+    LeadershipEvidenceImage,
     Ticket,
 )
 
@@ -112,6 +115,115 @@ class ManagerExperienceTests(TestCase):
             reverse("reports:admin_dashboard"),
             fetch_redirect_response=False,
         )
+
+    def test_manager_creates_school_leadership_portfolio_with_eight_sections(self):
+        self._login_manager()
+
+        list_response = self.client.get(reverse("reports:leadership_portfolio_list"))
+        self.assertEqual(list_response.status_code, 200)
+        self.assertContains(list_response, self.school.name)
+
+        response = self.client.post(reverse("reports:leadership_portfolio_list"))
+
+        portfolio = SchoolLeadershipPortfolio.objects.get(
+            school=self.school,
+            academic_year="1447-1448",
+        )
+        self.assertRedirects(
+            response,
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(portfolio.manager, self.manager)
+        self.assertEqual(portfolio.school_name, self.school.name)
+        self.assertEqual(portfolio.sections.count(), 8)
+        self.assertEqual(
+            set(portfolio.sections.values_list("code", flat=True)),
+            set(LeadershipPortfolioSection.Code.values),
+        )
+        completed_section = portfolio.sections.first()
+        completed_section.is_completed = True
+        completed_section.save(update_fields=["is_completed", "updated_at"])
+        LeadershipEvidenceImage.objects.create(
+            section=completed_section,
+            image="leadership/evidence/first.png",
+        )
+        LeadershipEvidenceImage.objects.create(
+            section=completed_section,
+            image="leadership/evidence/second.png",
+        )
+        summary = self.client.get(reverse("reports:leadership_portfolio_list"))
+        summary_portfolio = summary.context["portfolios"].get(pk=portfolio.pk)
+        self.assertEqual(summary_portfolio.completed_count, 1)
+        self.assertEqual(summary_portfolio.evidence_count, 2)
+        detail_response = self.client.get(
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk])
+        )
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(detail_response, self.school.name)
+
+    def test_teacher_cannot_access_leadership_portfolio(self):
+        portfolio = SchoolLeadershipPortfolio.objects.create(
+            school=self.school,
+            manager=self.manager,
+            academic_year="1447-1448",
+        )
+        self.client.force_login(self.teacher)
+        session = self.client.session
+        session["active_school_id"] = self.school.id
+        session.save()
+
+        self.assertEqual(
+            self.client.get(reverse("reports:leadership_portfolio_list")).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("reports:leadership_portfolio_detail", args=[portfolio.pk])
+            ).status_code,
+            404,
+        )
+
+    def test_manager_cannot_access_another_school_leadership_portfolio(self):
+        other_school = School.objects.create(
+            name="مدرسة أخرى",
+            code="other-leadership-school",
+            current_academic_year="1447-1448",
+        )
+        portfolio = SchoolLeadershipPortfolio.objects.create(
+            school=other_school,
+            manager=self.manager,
+            academic_year="1447-1448",
+        )
+        self._login_manager()
+
+        response = self.client.get(
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_leadership_portfolio_print_keeps_school_identity(self):
+        self.school.gender = "girls"
+        self.school.save(update_fields=["gender"])
+        portfolio = SchoolLeadershipPortfolio.objects.create(
+            school=self.school,
+            manager=self.manager,
+            academic_year="1447-1448",
+        )
+        self._login_manager()
+        self.client.post(reverse("reports:leadership_portfolio_list"))
+
+        response = self.client.get(
+            reverse("reports:leadership_portfolio_print", args=[portfolio.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ملف الأداء القيادي")
+        self.assertContains(response, self.school.name)
+        self.assertContains(response, "منصة توثيق")
+        self.assertContains(response, "مديرة المدرسة")
+        self.assertEqual(response.content.decode("utf-8").count('class="page'), 12)
 
     def test_dashboard_prioritizes_actionable_manager_work(self):
         Ticket.objects.create(

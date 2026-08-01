@@ -290,4 +290,128 @@ class AchievementEvidenceReport(models.Model):
     def is_frozen(self) -> bool:
         return bool(self.frozen_at)
 
+
+class SchoolLeadershipPortfolio(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "قيد الإعداد"
+        COMPLETED = "completed", "مكتمل"
+
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="leadership_portfolios",
+        verbose_name="المدرسة",
+    )
+    manager = models.ForeignKey(
+        Teacher,
+        on_delete=models.PROTECT,
+        related_name="leadership_portfolios",
+        verbose_name="مدير المدرسة",
+    )
+    academic_year = models.CharField("السنة الدراسية (هجري)", max_length=9, db_index=True)
+    status = models.CharField(
+        "الحالة",
+        max_length=12,
+        choices=Status.choices,
+        default=Status.DRAFT,
+        db_index=True,
+    )
+    manager_name = models.CharField("اسم المدير", max_length=150, blank=True, default="")
+    school_name = models.CharField("اسم المدرسة", max_length=200, blank=True, default="")
+    leadership_vision = models.TextField("الرؤية القيادية", blank=True, default="")
+    executive_summary = models.TextField("الملخص التنفيذي", blank=True, default="")
+    notable_achievements = models.TextField("أبرز المنجزات", blank=True, default="")
+    improvement_priorities = models.TextField("أولويات التحسين", blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "ملف الأداء القيادي"
+        verbose_name_plural = "ملفات الأداء القيادي"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["school", "academic_year"],
+                name="uniq_school_leadership_portfolio_per_year",
+            )
+        ]
+        ordering = ["-academic_year", "-id"]
+
+    def clean(self):
+        self.academic_year = _normalize_academic_year_hijri(self.academic_year)
+        _validate_academic_year_hijri(self.academic_year)
+        return super().clean()
+
+    def save(self, *args, **kwargs):
+        self.academic_year = _normalize_academic_year_hijri(self.academic_year)
+        if self.manager_id:
+            self.manager_name = self.manager_name or getattr(self.manager, "name", "") or ""
+        if self.school_id:
+            self.school_name = self.school_name or getattr(self.school, "name", "") or ""
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.school_name or self.school_id} - {self.academic_year}"
+
+
+class LeadershipPortfolioSection(models.Model):
+    class Code(models.IntegerChoices):
+        PLANNING = 1, "التخطيط والتشغيل المدرسي"
+        LEARNING_OUTCOMES = 2, "تحسين نواتج التعلم"
+        PEOPLE_LEADERSHIP = 3, "قيادة الكادر والتنمية المهنية"
+        SCHOOL_ENVIRONMENT = 4, "البيئة المدرسية والانضباط والسلامة"
+        GOVERNANCE = 5, "الحوكمة واللجان وإدارة الموارد"
+        COMMUNITY = 6, "الشراكة الأسرية والمجتمعية"
+        DIGITAL_TRANSFORMATION = 7, "التحول الرقمي والابتكار"
+        INITIATIVES = 8, "المبادرات والمنجزات النوعية"
+
+    portfolio = models.ForeignKey(
+        SchoolLeadershipPortfolio,
+        on_delete=models.CASCADE,
+        related_name="sections",
+        verbose_name="ملف الأداء القيادي",
+    )
+    code = models.PositiveSmallIntegerField("المحور", choices=Code.choices)
+    notes = models.TextField("وصف الممارسات والشواهد", blank=True, default="")
+    is_completed = models.BooleanField("مكتمل", default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "محور أداء قيادي"
+        verbose_name_plural = "محاور الأداء القيادي"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["portfolio", "code"],
+                name="uniq_leadership_section_per_portfolio",
+            )
+        ]
+        ordering = ["code", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.portfolio_id} - {self.get_code_display()}"
+
+
+class LeadershipEvidenceImage(models.Model):
+    section = models.ForeignKey(
+        LeadershipPortfolioSection,
+        on_delete=models.CASCADE,
+        related_name="evidence_images",
+        verbose_name="المحور",
+    )
+    image = models.ImageField(
+        "صورة الشاهد",
+        upload_to=_leadership_evidence_upload_to,
+        validators=[validate_image_file],
+    )
+    caption = models.CharField("وصف الشاهد", max_length=180, blank=True, default="")
+    storage_bytes = models.PositiveBigIntegerField(default=0, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "شاهد أداء قيادي"
+        verbose_name_plural = "شواهد الأداء القيادي"
+        ordering = ["id"]
+
+    def __str__(self) -> str:
+        return f"Leadership evidence #{self.pk}"
+
 __all__ = [name for name in globals() if not name.startswith("__")]
