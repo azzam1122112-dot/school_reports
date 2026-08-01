@@ -104,6 +104,45 @@ class TeacherExperienceTests(TestCase):
         achievement_file.refresh_from_db()
         self.assertEqual(achievement_file.academic_year, "1446-1447")
 
+    def test_achievement_print_has_structured_tawtheeq_portfolio_sections(self):
+        achievement_file = TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1447-1448",
+        )
+        self._login_teacher()
+
+        response = self.client.get(
+            reverse("reports:achievement_file_print", args=[achievement_file.pk])
+        )
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ملف الإنجاز المهني")
+        self.assertContains(response, "محتويات الملف")
+        self.assertContains(response, "الفصل الأول")
+        self.assertContains(response, "شواهد الأداء المهني")
+        self.assertContains(response, "منصة توثيق")
+        self.assertEqual(html.count('class="page page-break criterion-page"'), 11)
+
+    def test_achievement_print_uses_feminine_role_for_girls_school(self):
+        self.school.gender = "girls"
+        self.school.save(update_fields=["gender"])
+        achievement_file = TeacherAchievementFile.objects.create(
+            teacher=self.teacher,
+            school=self.school,
+            academic_year="1447-1448",
+        )
+        self._login_teacher()
+
+        response = self.client.get(
+            reverse("reports:achievement_file_print", args=[achievement_file.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ملف الإنجاز المهني")
+        self.assertContains(response, "للمعلمة")
+
     def test_home_prioritizes_daily_teacher_work_without_repeated_legacy_sections(self):
         self._login_teacher()
 
