@@ -48,6 +48,7 @@ INTENT_COMPLAINT = "complaint"
 INTENT_SUPPORT = "support"
 INTENT_PRIVACY = "privacy"
 INTENT_PAYMENT_ISSUE = "payment_issue"
+INTENT_REFUND = "refund"
 INTENT_PASSWORD_RESET = "password_reset"
 INTENT_PASSKEY = "passkey"
 INTENT_OUT_OF_SCOPE = "out_of_scope"
@@ -337,6 +338,17 @@ def _detect_customer_intent(question: str) -> str:
     if any(marker in text for marker in complaint_markers):
         return INTENT_COMPLAINT
 
+    refund_markers = (
+        "استرداد",
+        "استرد مبلغ",
+        "استرجاع مبلغ",
+        "استرجع مبلغ",
+        "ارجاع مبلغ",
+        "اعاده مبلغ",
+    )
+    if any(marker in text for marker in refund_markers):
+        return INTENT_REFUND
+
     payment_markers = ("دفع", "دفعت", "خصم", "ايصال", "فاتوره", "عمليه")
     payment_issue_markers = (
         "لم يتفعل",
@@ -364,7 +376,7 @@ def _detect_customer_intent(question: str) -> str:
     if any(marker in text for marker in password_reset_markers):
         return INTENT_PASSWORD_RESET
 
-    passkey_markers = ("بصمه", "مفتاح مرور", "face id", "touch id")
+    passkey_markers = ("بصمه", "مفتاح مرور", "مفتاح المرور", "face id", "touch id")
     if any(marker in text for marker in passkey_markers):
         return INTENT_PASSKEY
 
@@ -449,6 +461,8 @@ def _offline_sources_for_intent(
             {"title": "اشتراك المدرسة والمدفوعات", "url": "/subscription/my/"},
             {"title": "الدعم الفني لمشكلات الدفع", "url": "/complaints/#complaint-form"},
         ]
+    if intent == INTENT_REFUND:
+        return [{"title": "طلب دعم بشأن المدفوعات", "url": "/complaints/#complaint-form"}]
     if intent == INTENT_PASSWORD_RESET:
         return [
             {"title": "استعادة كلمة المرور", "url": "/password-reset/"},
@@ -483,6 +497,17 @@ def _offline_sources_for_intent(
 def _is_known_support_problem(question: str) -> bool:
     text = _normalise_arabic(question)
     return any(marker in text for marker in ("رفع صوره", "رفع ملف", "ارفاق صوره", "ارفاق ملف"))
+
+
+def _requires_documented_support(question: str) -> bool:
+    text = str(question or "")
+    normalised = _normalise_arabic(text)
+    has_unknown_error_code = bool(re.search(r"\b[A-Za-z]{2,}[-_ ]?\d{2,}\b", text))
+    explicitly_unresolved = any(
+        marker in normalised
+        for marker in ("لا اجد لها حل", "لم اجد لها حل", "لا يوجد لها حل")
+    )
+    return has_unknown_error_code or explicitly_unresolved
 
 
 def _sources_for_answer(
@@ -561,6 +586,13 @@ def _offline_customer_reply(
             "1) افتح اشتراك المدرسة وراجع حالة العملية وسجل المدفوعات.\n"
             "2) إذا كانت العملية معتمدة وما زال الاشتراك غير مفعّل، سجّل طلب دعم وارفق رقم العملية أو الفاتورة ووقت الدفع.\n"
             "3) لا ترسل بيانات البطاقة أو رقم الآيبان الكامل داخل المحادثة."
+        )
+
+    if intent == INTENT_REFUND:
+        return (
+            "لا توجد في المعلومات المنشورة لدي سياسة موثقة تسمح لي بتأكيد استحقاق الاسترداد أو خطواته، "
+            "لذلك لن أخمّن إجراءً غير موجود. افتح طلبًا رسميًا بشأن الدفعة، واذكر رقم العملية وتاريخها "
+            "واسم الباقة وسبب الطلب، دون إرسال بيانات البطاقة أو رقم الآيبان الكامل."
         )
 
     if intent == INTENT_PASSWORD_RESET:
@@ -902,6 +934,25 @@ def ask_mansour(
 
     selected = select_knowledge(retrieval_question, audience=audience)
     intent = _detect_customer_intent(retrieval_question)
+
+    requires_documented_answer = intent == INTENT_REFUND or (
+        intent == INTENT_SUPPORT and _requires_documented_support(retrieval_question)
+    )
+    if requires_documented_answer:
+        fallback_answer = _offline_customer_reply(
+            retrieval_question,
+            intent=intent,
+            selected=selected,
+            plans=plans or [],
+            audience=audience,
+        )
+        return fallback_answer[:1800], _sources_for_answer(
+            intent,
+            selected=selected,
+            question=retrieval_question,
+            offer_ticket=True,
+        )
+
     api_key = str(getattr(settings, "OPENAI_API_KEY", "") or "").strip()
     enabled = bool(getattr(settings, "MANSOUR_ASSISTANT_ENABLED", False))
     if not enabled or not api_key:

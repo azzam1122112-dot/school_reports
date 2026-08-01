@@ -422,6 +422,50 @@ class MansourAssistantTests(TestCase):
             payload["sources"],
         )
 
+    @patch("reports.mansour_assistant.urlopen")
+    def test_undocumented_error_code_opens_ticket_without_model_guessing(self, mocked_urlopen):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "يظهر الخطأ ZX-91 عند اعتماد التقرير"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("لم أجد حلًا موثقًا", payload["answer"])
+        self.assertIn("/support/new/", [source["url"] for source in payload["sources"]])
+        mocked_urlopen.assert_not_called()
+
+    @patch("reports.mansour_assistant.urlopen")
+    def test_refund_request_does_not_invent_an_undocumented_workflow(self, mocked_urlopen):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "كيف أسترد مبلغ الاشتراك؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("لن أخمّن", payload["answer"])
+        self.assertEqual(payload["sources"][0]["url"], "/complaints/#complaint-form")
+        mocked_urlopen.assert_not_called()
+
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_passkey_phrase_uses_the_account_security_flow(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "كيف أسجل الدخول بمفتاح المرور؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("الدخول بالبصمة", payload["answer"])
+        self.assertEqual(
+            [source["url"] for source in payload["sources"]],
+            ["/login/", "/guide/#account-security"],
+        )
+
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_known_upload_problem_does_not_offer_ticket_before_troubleshooting(self):
         response = self.client.post(
