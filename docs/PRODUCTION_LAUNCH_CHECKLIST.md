@@ -31,4 +31,16 @@ docker compose --env-file deploy/hetzner/env.production -f compose.hetzner.yaml 
 
 ## الدفع
 
+### تمارا
+
+- اجتياز طلب كامل في Sandbox: إنشاء الطلب، `order_approved`، الاعتماد، التحصيل، ثم `order_captured`.
+- تسجيل Webhook من نوع Order على `https://tawtheeq-ksa.com/payments/tamara/webhook/` لأحداث `order_approved` و`order_authorised` و`order_captured` و`order_refunded` و`order_canceled` و`order_declined` و`order_expired`.
+- وضع `TAMARA_API_TOKEN` و`TAMARA_NOTIFICATION_TOKEN` في ملف بيئة الخادم فقط، ثم ضبط `TAMARA_ENVIRONMENT=production` و`TAMARA_ENABLED=True` بعد اعتماد الإطلاق من تمارا.
+- تنفيذ عملية إنتاج منخفضة القيمة مصرح بها، ثم التحقق من أن الدفع أصبح `approved` وحالة البوابة `fully_captured` وأن `effects_applied_at` غير فارغ والباقة والتواريخ مفعلة للمدرسة.
+- إعادة إرسال Webhook نفسه والتأكد من عدم تمديد الاشتراك أو تطبيق أي أثر مرتين، ثم اختبار الاسترجاع والتسوية.
+
+لا يكفي وصول العميل إلى صفحة النجاح؛ التفعيل يعتمد حصريًا على Webhook موثّق وتحصيل كامل من تمارا.
+
+### ميسر
+
 ربط ميسر مؤجل إلى يوم الربط المتفق عليه. لا يُفعّل استقبال دفعات حقيقية قبل اختبار الإنشاء، الرجوع، webhook، التوقيع، منع التكرار، الاسترداد، وتسوية المبلغ في بيئة مزود الدفع.

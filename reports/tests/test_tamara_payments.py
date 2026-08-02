@@ -3,11 +3,13 @@ import hashlib
 import hmac
 import json
 import time
+from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from reports.models import (
     Payment,
@@ -249,6 +251,150 @@ class TamaraPaymentTests(TestCase):
         self.assertIsNotNone(archive_payment.effects_applied_at)
         self.assertEqual(addon.end_date, first_end_date)
         self.assertEqual(addon.paid_amount, Decimal("399.00"))
+
+    @override_settings(TAMARA_ENABLED=True, TAMARA_NOTIFICATION_TOKEN="notification-secret")
+    def test_captured_subscription_reactivates_school_and_applies_requested_plan(self):
+        replacement_plan = SubscriptionPlan.objects.create(
+            name="باقة نصف سنوية",
+            price=Decimal("800.00"),
+            days_duration=180,
+            max_teachers=25,
+        )
+        self.subscription.is_active = False
+        self.subscription.end_date = timezone.localdate() - timedelta(days=5)
+        self.subscription.canceled_at = timezone.now()
+        self.subscription.cancel_reason = "إلغاء سابق"
+        self.subscription.save(
+            update_fields=["is_active", "end_date", "canceled_at", "cancel_reason", "updated_at"]
+        )
+        order_id = "77777777-7777-7777-7777-777777777777"
+        payment = Payment.objects.create(
+            school=self.school,
+            subscription=self.subscription,
+            requested_plan=replacement_plan,
+            purpose=Payment.Purpose.SUBSCRIPTION,
+            amount=replacement_plan.price,
+            payment_method=Payment.Method.TAMARA,
+            gateway_order_id=order_id,
+            gateway_status="authorised",
+            batch_ref="reactivate",
+            created_by=self.manager,
+        )
+        payload = {
+            "order_id": order_id,
+            "order_reference_id": "TWQ-REACTIVATE",
+            "event_type": "order_captured",
+            "data": {
+                "capture_id": "capture-reactivate",
+                "captured_amount": {"amount": 800, "currency": "SAR"},
+            },
+        }
+        self.client.logout()
+
+        response = self.client.post(
+            reverse("reports:tamara_webhook"),
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {_notification_token('notification-secret')}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.subscription.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertTrue(self.subscription.is_active)
+        self.assertEqual(self.subscription.plan, replacement_plan)
+        self.assertEqual(self.subscription.start_date, timezone.localdate())
+        self.assertEqual(
+            self.subscription.end_date,
+            timezone.localdate() + timedelta(days=replacement_plan.days_duration - 1),
+        )
+        self.assertIsNone(self.subscription.canceled_at)
+        self.assertEqual(self.subscription.cancel_reason, "")
+        self.assertEqual(payment.status, Payment.Status.APPROVED)
+        self.assertIsNotNone(payment.effects_applied_at)
+
+    @override_settings(TAMARA_ENABLED=True, TAMARA_NOTIFICATION_TOKEN="notification-secret")
+    def test_captured_subscription_creates_missing_school_subscription(self):
+        self.subscription.delete()
+        order_id = "88888888-8888-8888-8888-888888888888"
+        payment = Payment.objects.create(
+            school=self.school,
+            subscription=None,
+            requested_plan=self.plan,
+            purpose=Payment.Purpose.SUBSCRIPTION,
+            amount=self.plan.price,
+            payment_method=Payment.Method.TAMARA,
+            gateway_order_id=order_id,
+            gateway_status="authorised",
+            batch_ref="create-sub",
+            created_by=self.manager,
+        )
+        payload = {
+            "order_id": order_id,
+            "order_reference_id": "TWQ-CREATE-SUB",
+            "event_type": "order_captured",
+            "data": {
+                "capture_id": "capture-create-sub",
+                "captured_amount": {"amount": 1200, "currency": "SAR"},
+            },
+        }
+        self.client.logout()
+
+        response = self.client.post(
+            reverse("reports:tamara_webhook"),
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {_notification_token('notification-secret')}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        subscription = SchoolSubscription.objects.get(school=self.school)
+        payment.refresh_from_db()
+        self.assertTrue(subscription.is_active)
+        self.assertEqual(subscription.plan, self.plan)
+        self.assertEqual(payment.subscription, subscription)
+        self.assertEqual(payment.status, Payment.Status.APPROVED)
+        self.assertIsNotNone(payment.effects_applied_at)
+
+    @override_settings(TAMARA_ENABLED=True, TAMARA_NOTIFICATION_TOKEN="notification-secret")
+    def test_captured_subscription_without_plan_is_not_silently_approved(self):
+        self.subscription.delete()
+        order_id = "99999999-9999-9999-9999-999999999999"
+        payment = Payment.objects.create(
+            school=self.school,
+            subscription=None,
+            requested_plan=None,
+            purpose=Payment.Purpose.SUBSCRIPTION,
+            amount=Decimal("1200.00"),
+            payment_method=Payment.Method.TAMARA,
+            gateway_order_id=order_id,
+            gateway_status="authorised",
+            batch_ref="missing-plan",
+            created_by=self.manager,
+        )
+        payload = {
+            "order_id": order_id,
+            "order_reference_id": "TWQ-MISSING-PLAN",
+            "event_type": "order_captured",
+            "data": {
+                "capture_id": "capture-missing-plan",
+                "captured_amount": {"amount": 1200, "currency": "SAR"},
+            },
+        }
+        self.client.logout()
+
+        response = self.client.post(
+            reverse("reports:tamara_webhook"),
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {_notification_token('notification-secret')}",
+        )
+
+        self.assertEqual(response.status_code, 502)
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        self.assertIsNone(payment.effects_applied_at)
+        self.assertFalse(SchoolSubscription.objects.filter(school=self.school).exists())
 
     @override_settings(TAMARA_ENABLED=True, TAMARA_NOTIFICATION_TOKEN="notification-secret")
     def test_capture_amount_mismatch_does_not_fulfil_order(self):

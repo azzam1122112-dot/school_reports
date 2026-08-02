@@ -1799,25 +1799,38 @@ def _apply_payment_effects(payment, today, pricing):
     level, msg = "success", "تم تجديد/تفعيل اشتراك المدرسة تلقائياً."
 
     if subscription is None:
-        if plan_to_apply is not None:
-            subscription = SchoolSubscription(
-                school=payment.school,
-                plan=plan_to_apply,
-                start_date=today,
-                end_date=today,
-                is_active=True,
+        if plan_to_apply is None:
+            raise _ApprovalError(
+                "لا يمكن اعتماد دفع الاشتراك قبل ربطه بباقة؛ لم يُفعّل الاشتراك."
             )
-            subscription.save()
-        else:
-            level, msg = ("warning", "تم اعتماد الدفع، لكن لا توجد باقة مطلوبة لتفعيل الاشتراك تلقائياً.")
+        subscription = SchoolSubscription(
+            school=payment.school,
+            plan=plan_to_apply,
+            start_date=today,
+            end_date=today,
+            is_active=True,
+        )
+        subscription.save()
     else:
         if plan_to_apply is not None:
             subscription.plan = plan_to_apply
         subscription.is_active = True
+        subscription.canceled_at = None
+        subscription.cancel_reason = ""
         days = int(getattr(subscription.plan, "days_duration", 0) or 0)
         subscription.start_date = today
         subscription.end_date = today if days <= 0 else today + timedelta(days=days - 1)
-        subscription.save(update_fields=["plan", "start_date", "end_date", "is_active", "updated_at"])
+        subscription.save(
+            update_fields=[
+                "plan",
+                "start_date",
+                "end_date",
+                "is_active",
+                "canceled_at",
+                "cancel_reason",
+                "updated_at",
+            ]
+        )
 
     if subscription is not None and payment.subscription_id != subscription.id:
         payment.subscription = subscription
