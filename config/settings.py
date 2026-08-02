@@ -1086,7 +1086,7 @@ CANONICAL_HOST_REDIRECT = _env_bool(
 # Self-service school trial. The free plan exposes the complete product journey
 # while keeping teacher count and archive storage deliberately small.
 TRIAL_DAYS = max(1, int(os.getenv("TRIAL_DAYS", "30") or "30"))
-TRIAL_PLAN_NAME = (os.getenv("TRIAL_PLAN_NAME") or "تجربة مجانية").strip()
+TRIAL_PLAN_NAME = (os.getenv("TRIAL_PLAN_NAME") or "التجربة المجانية").strip()
 TRIAL_MAX_TEACHERS = max(1, int(os.getenv("TRIAL_MAX_TEACHERS", "5") or "5"))
 TRIAL_ARCHIVE_STORAGE_GB = max(
     1,

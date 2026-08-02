@@ -41,7 +41,7 @@ from ..models import (
 
 # ── Trial settings (configurable via env / settings.py) ─────────────
 TRIAL_DAYS = int(getattr(settings, "TRIAL_DAYS", 30))
-TRIAL_PLAN_NAME = getattr(settings, "TRIAL_PLAN_NAME", "تجربة مجانية")
+TRIAL_PLAN_NAME = getattr(settings, "TRIAL_PLAN_NAME", "التجربة المجانية")
 TRIAL_MAX_TEACHERS = int(getattr(settings, "TRIAL_MAX_TEACHERS", 5))
 TRIAL_ARCHIVE_STORAGE_GB = int(getattr(settings, "TRIAL_ARCHIVE_STORAGE_GB", 1))
 REGISTRATION_RECEIPT_SESSION_KEY = "school_registration_receipt"
