@@ -522,9 +522,28 @@ def school_archive(request: HttpRequest) -> HttpResponse:
             "matches": {"tickets": 0, "circulars": 0, "notifications": 0, "total": 0},
         }
     )
+    leadership_portfolios = (
+        SchoolLeadershipPortfolio.objects.filter(
+            school=active_school,
+            academic_year=selected_year,
+        )
+        .select_related("manager")
+        .annotate(
+            completed_count=Count(
+                "sections",
+                filter=Q(sections__is_completed=True),
+                distinct=True,
+            ),
+            evidence_count=Count("sections__evidence_images", distinct=True),
+        )
+        if school_wide and selected_year and selected_year != UNCLASSIFIED_YEAR
+        else SchoolLeadershipPortfolio.objects.none()
+    )
+    leadership_count = leadership_portfolios.count()
     snapshot_total_records = (
         snapshot_payload["report_stats"]["total"]
         + snapshot_payload["achievement_stats"]["total"]
+        + leadership_count
         + administrative_stats["total"]
     )
 
@@ -631,6 +650,8 @@ def school_archive(request: HttpRequest) -> HttpResponse:
             "achievement_stats": payload["achievement_stats"],
             "snapshot_report_stats": snapshot_payload["report_stats"],
             "snapshot_achievement_stats": snapshot_payload["achievement_stats"],
+            "leadership_portfolios": leadership_portfolios,
+            "leadership_count": leadership_count,
             "snapshot_total_records": snapshot_total_records,
             "administrative_stats": administrative_stats,
             "administrative_matches": administrative_payload["matches"],
@@ -685,6 +706,10 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
     source_count = (
         payload["report_stats"]["total"]
         + payload["achievement_stats"]["total"]
+        + SchoolLeadershipPortfolio.objects.filter(
+            school=active_school,
+            academic_year=selected_year,
+        ).count()
         + administrative_stats["tickets"]
         + administrative_stats["circulars"]
         + administrative_stats["notifications"]
@@ -741,6 +766,7 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
                 failed_pdf_count=metadata["failed_pdf_count"],
                 report_count=metadata["report_count"],
                 achievement_count=metadata["achievement_count"],
+                leadership_count=metadata["leadership_count"],
                 ticket_count=metadata["ticket_count"],
                 circular_count=metadata["circular_count"],
                 notification_count=metadata["notification_count"],

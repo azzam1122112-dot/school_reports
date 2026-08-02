@@ -135,6 +135,8 @@ class SchoolDataExportTests(_BaseSchoolFixture):
         self.assertContains(response, "تشمل كل السنوات ولا تُحفظ كنسخة سنوية داخل المنصة")
         self.assertContains(response, reverse("reports:school_archive"))
         self.assertContains(response, "أرشيف الملفات")
+        self.assertContains(response, "منصة توثيق · القيادة المدرسية")
+        self.assertContains(response, "ملف الأداء القيادي")
         self.assertContains(response, reverse("reports:school_data_export_zip"))
 
     def test_teacher_cannot_access_export(self):

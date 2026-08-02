@@ -423,6 +423,7 @@ class SchoolYearArchive(models.Model):
     failed_pdf_count = models.PositiveIntegerField("ملفات PDF متعذرة", default=0)
     report_count = models.PositiveIntegerField("عدد التقارير", default=0)
     achievement_count = models.PositiveIntegerField("عدد ملفات الإنجاز", default=0)
+    leadership_count = models.PositiveIntegerField("عدد ملفات الأداء القيادي", default=0)
     ticket_count = models.PositiveIntegerField("عدد التذاكر", default=0)
     circular_count = models.PositiveIntegerField("عدد التعاميم", default=0)
     notification_count = models.PositiveIntegerField("عدد الإشعارات", default=0)

@@ -23,9 +23,12 @@ from reports.models import (
     Notification,
     NotificationRecipient,
     Report,
+    LeadershipEvidenceImage,
+    LeadershipPortfolioSection,
     School,
     SchoolArchiveAddon,
     SchoolMembership,
+    SchoolLeadershipPortfolio,
     SchoolSubscription,
     SchoolYearArchive,
     SchoolYearArchiveDownload,
@@ -37,8 +40,13 @@ from reports.models import (
     TicketNote,
 )
 from reports.pdf_report import build_report_print_context
-from reports.services_archive import archive_available_years
+from reports.services_archive import (
+    archive_available_years,
+    calculate_school_archive_storage_bytes,
+    school_storage_breakdown,
+)
 from reports.services_export import (
+    build_school_export_bytes,
     build_school_export_zip_file,
     build_year_archive_index_bytes,
 )
@@ -106,9 +114,15 @@ class SchoolArchiveManagerExperienceTests(TestCase):
         session.save()
 
     def _create_snapshot(self):
-        with patch(
-            "reports.pdf_report.generate_report_pdf",
-            return_value=(b"%PDF-archive-report", "report.pdf"),
+        with (
+            patch(
+                "reports.pdf_report.generate_report_pdf",
+                return_value=(b"%PDF-archive-report", "report.pdf"),
+            ),
+            patch(
+                "reports.pdf_leadership.generate_leadership_portfolio_pdf",
+                return_value=b"%PDF-leadership",
+            ),
         ):
             return self.client.post(
                 reverse("reports:school_archive_create"),
@@ -211,6 +225,121 @@ class SchoolArchiveManagerExperienceTests(TestCase):
             ).count(),
             1,
         )
+
+    def test_archive_and_full_download_include_leadership_portfolio_and_evidence(self):
+        portfolio = SchoolLeadershipPortfolio.objects.create(
+            school=self.school,
+            manager=self.manager,
+            academic_year="1447-1448",
+            leadership_vision="رؤية قيادة مدرسية موثقة",
+            executive_summary="ملخص أثر القيادة",
+        )
+        section = LeadershipPortfolioSection.objects.create(
+            portfolio=portfolio,
+            code=LeadershipPortfolioSection.Code.PLANNING,
+            notes="ممارسات التخطيط والتشغيل",
+            is_completed=True,
+        )
+        evidence = LeadershipEvidenceImage.objects.create(
+            section=section,
+            caption="شاهد الخطة التشغيلية",
+            image=SimpleUploadedFile(
+                "leadership.png",
+                bytes.fromhex(
+                    "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4"
+                    "890000000a49444154789c6360000002000154a24f6f0000000049454e44ae426082"
+                ),
+                content_type="image/png",
+            ),
+        )
+        self.assertGreater(calculate_school_archive_storage_bytes(self.school), 0)
+        self.assertGreater(school_storage_breakdown(self.school)["leadership"], 0)
+
+        index_bytes = build_year_archive_index_bytes(
+            self.school,
+            "1447-1448",
+            teacher=self.manager,
+            school_wide=True,
+        )
+        workbook = load_workbook(BytesIO(index_bytes), read_only=True, data_only=True)
+        try:
+            self.assertIn("الأداء القيادي", workbook.sheetnames)
+            self.assertIn("شواهد الأداء القيادي", workbook.sheetnames)
+            leadership_rows = list(workbook["الأداء القيادي"].iter_rows(values_only=True))
+            self.assertTrue(
+                any(
+                    row[0] == portfolio.id
+                    and row[2] == "1447-1448"
+                    and row[4] == 1
+                    and row[5] == 1
+                    for row in leadership_rows[1:]
+                )
+            )
+        finally:
+            workbook.close()
+
+        response = self._create_snapshot()
+        self.assertEqual(response.status_code, 302)
+        archive = SchoolYearArchive.objects.get()
+        self.assertEqual(archive.leadership_count, 1)
+        archive.archive_file.open("rb")
+        try:
+            with zipfile.ZipFile(BytesIO(archive.archive_file.read())) as zipped:
+                names = set(zipped.namelist())
+                self.assertIn(
+                    "منصة توثيق · القيادة المدرسية/1447-1448/ملف الأداء القيادي.pdf",
+                    names,
+                )
+                self.assertTrue(
+                    any(
+                        name.startswith(
+                            "منصة توثيق · القيادة المدرسية/1447-1448/شواهد/"
+                        )
+                        and name.endswith(f"-{evidence.id}.png")
+                        for name in names
+                    )
+                )
+                manifest = zipped.read("الفهرس-والتحقق.txt").decode("utf-8")
+                self.assertIn("ملفات الأداء القيادي في النطاق: 1", manifest)
+        finally:
+            archive.archive_file.close()
+
+        with (
+            patch(
+                "reports.pdf_report.generate_report_pdf",
+                return_value=(b"%PDF-report", "report.pdf"),
+            ),
+            patch(
+                "reports.pdf_leadership.generate_leadership_portfolio_pdf",
+                return_value=b"%PDF-leadership-full",
+            ),
+        ):
+            full_package, metadata = build_school_export_zip_file(
+                self.school,
+                school_wide=True,
+                return_metadata=True,
+            )
+        try:
+            self.assertEqual(metadata["leadership_count"], 1)
+            self.assertEqual(metadata["generated_leadership_pdf_count"], 1)
+            with zipfile.ZipFile(full_package) as zipped:
+                self.assertIn(
+                    "منصة توثيق · القيادة المدرسية/1447-1448/ملف الأداء القيادي.pdf",
+                    zipped.namelist(),
+                )
+        finally:
+            full_package.close()
+
+        full_workbook = load_workbook(
+            BytesIO(build_school_export_bytes(self.school)),
+            read_only=True,
+            data_only=True,
+        )
+        try:
+            self.assertIn("الأداء القيادي", full_workbook.sheetnames)
+            self.assertIn("شواهد الأداء القيادي", full_workbook.sheetnames)
+        finally:
+            full_workbook.close()
 
     def test_each_snapshot_is_a_new_immutable_version(self):
         self._create_snapshot()

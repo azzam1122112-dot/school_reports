@@ -7,11 +7,13 @@ from django.db.models import Count, Q, Sum
 from .models import (
     AchievementEvidenceImage,
     AchievementEvidenceReport,
+    LeadershipEvidenceImage,
     Notification,
     Report,
     School,
     SchoolArchiveAddon,
     SchoolYearArchive,
+    SchoolLeadershipPortfolio,
     TeacherAchievementFile,
     Ticket,
     TicketImage,
@@ -99,6 +101,11 @@ def calculate_school_archive_storage_bytes(school: School | None) -> int:
         total += _file_size(evidence.archived_image3)
         total += _file_size(evidence.archived_image4)
 
+    for evidence in LeadershipEvidenceImage.objects.filter(
+        section__portfolio__school=school
+    ).only("image"):
+        total += _file_size(evidence.image)
+
     for year_archive in SchoolYearArchive.objects.filter(school=school).only("archive_file"):
         total += _file_size(year_archive.archive_file)
 
@@ -120,6 +127,7 @@ def school_storage_breakdown(school: School | None) -> dict:
         return {
             "reports": 0,
             "achievements": 0,
+            "leadership": 0,
             "tickets": 0,
             "circulars": 0,
             "notifications": 0,
@@ -138,6 +146,9 @@ def school_storage_breakdown(school: School | None) -> dict:
             _sum(TeacherAchievementFile.objects.filter(school=school))
             + _sum(AchievementEvidenceImage.objects.filter(section__file__school=school))
             + _sum(AchievementEvidenceReport.objects.filter(section__file__school=school))
+        ),
+        "leadership": _sum(
+            LeadershipEvidenceImage.objects.filter(section__portfolio__school=school)
         ),
         "tickets": (
             _sum(Ticket.objects.filter(school=school))
@@ -420,6 +431,7 @@ def archive_available_years(*, school: School, teacher=None, school_wide: bool =
 
     reports_qs = Report.objects.filter(school=school)
     achievements_qs = TeacherAchievementFile.objects.filter(school=school)
+    leadership_qs = SchoolLeadershipPortfolio.objects.filter(school=school)
     if not school_wide and teacher is not None:
         reports_qs = reports_qs.filter(teacher=teacher)
         achievements_qs = achievements_qs.filter(teacher=teacher)
@@ -427,6 +439,7 @@ def archive_available_years(*, school: School, teacher=None, school_wide: bool =
     years.update(reports_qs.exclude(academic_year="").values_list("academic_year", flat=True).distinct())
     years.update(achievements_qs.values_list("academic_year", flat=True).distinct())
     if school_wide:
+        years.update(leadership_qs.values_list("academic_year", flat=True).distinct())
         years.update(
             SchoolYearArchive.objects.filter(school=school)
             .exclude(academic_year="")
