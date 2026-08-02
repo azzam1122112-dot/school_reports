@@ -2800,12 +2800,18 @@ class PlatformSettingsForm(forms.ModelForm):
         fields = [
             "maintenance_mode_enabled",
             "maintenance_message",
+            "mansour_public_enabled",
+            "report_ai_enabled",
+            "internal_ai_help_enabled",
             "archive_addon_annual_price",
             "archive_included_storage_gb",
             "free_storage_mb",
         ]
         widgets = {
             "maintenance_mode_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "mansour_public_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "report_ai_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "internal_ai_help_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "maintenance_message": forms.Textarea(
                 attrs={
                     "class": "form-control",
@@ -2820,6 +2826,9 @@ class PlatformSettingsForm(forms.ModelForm):
         labels = {
             "maintenance_mode_enabled": "تفعيل وضع الصيانة والتطوير",
             "maintenance_message": "رسالة تظهر للمستخدمين",
+            "mansour_public_enabled": "المساعد منصور",
+            "report_ai_enabled": "تحسين التقارير",
+            "internal_ai_help_enabled": "المساعدة داخل النظام",
             "archive_addon_annual_price": "سعر الأرشفة السنوي",
             "archive_included_storage_gb": "المساحة المضمنة مع الأرشفة (GB)",
             "free_storage_mb": "حد التخزين المجاني لكل مدرسة غير مشتركة (ميجابايت)",

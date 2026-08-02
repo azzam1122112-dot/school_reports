@@ -5,6 +5,7 @@ from unittest.mock import patch
 from urllib.error import URLError
 
 from django.conf import settings
+from django.core.cache import cache
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
@@ -21,6 +22,7 @@ from reports.mansour_assistant import (
     select_knowledge,
 )
 from reports.models import (
+    PlatformSettings,
     School,
     SchoolMembership,
     SchoolSubscription,
@@ -145,12 +147,16 @@ class _FakeSupportOpenAIResponse:
 )
 class MansourAssistantTests(TestCase):
     def setUp(self):
+        cache.clear()
         SubscriptionPlan.objects.create(
             name="باقة المدرسة",
             price=650,
             days_duration=180,
             max_teachers=50,
         )
+
+    def tearDown(self):
+        cache.clear()
 
     def test_landing_includes_accessible_mansour_widget(self):
         response = self.client.get(reverse("reports:landing"))
@@ -168,6 +174,24 @@ class MansourAssistantTests(TestCase):
         self.assertContains(response, reverse("reports:mansour_assistant_reply"))
         self.assertContains(response, "css/mansour-assistant.css")
         self.assertContains(response, "js/mansour-assistant.js")
+
+    def test_platform_switch_hides_and_blocks_public_mansour(self):
+        platform_settings = PlatformSettings.get_solo()
+        platform_settings.mansour_public_enabled = False
+        platform_settings.save(update_fields=["mansour_public_enabled", "updated_at"])
+
+        page = self.client.get(reverse("reports:landing"))
+        api_response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "كيف أبدأ؟"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, 'id="mansourLauncher"')
+        self.assertNotContains(page, "js/mansour-assistant.js")
+        self.assertEqual(api_response.status_code, 404)
+        self.assertFalse(api_response.json()["ok"])
 
     def test_authenticated_teacher_sees_internal_assistant_on_system_pages(self):
         school = School.objects.create(name="مدرسة المساعد الداخلي", code="internal-assistant")
@@ -199,6 +223,50 @@ class MansourAssistantTests(TestCase):
         self.assertContains(response, "اشرح هذه الصفحة")
         self.assertContains(response, "css/mansour-assistant.css")
         self.assertContains(response, "js/mansour-assistant.js")
+
+    def test_platform_switch_hides_and_blocks_internal_help_only(self):
+        school = School.objects.create(name="مدرسة تعطيل المساعدة", code="hidden-internal-assistant")
+        SchoolSubscription.objects.create(
+            school=school,
+            plan=SubscriptionPlan.objects.get(name="باقة المدرسة"),
+        )
+        teacher = Teacher.objects.create_user(
+            phone="500009908",
+            name="معلم بدون مساعدة داخلية",
+            password="test-pass",
+        )
+        SchoolMembership.objects.create(
+            school=school,
+            teacher=teacher,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        platform_settings = PlatformSettings.get_solo()
+        platform_settings.mansour_public_enabled = True
+        platform_settings.internal_ai_help_enabled = False
+        platform_settings.save(
+            update_fields=[
+                "mansour_public_enabled",
+                "internal_ai_help_enabled",
+                "updated_at",
+            ]
+        )
+        self.client.force_login(teacher)
+        session = self.client.session
+        session["active_school_id"] = school.id
+        session.save()
+
+        page = self.client.get(reverse("reports:home"))
+        api_response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "اشرح هذه الصفحة"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, 'id="mansourAssistant"')
+        self.assertNotContains(page, "js/mansour-assistant.js")
+        self.assertEqual(api_response.status_code, 404)
+        self.assertFalse(api_response.json()["ok"])
 
     def test_page_context_sanitiser_removes_queries_and_rejects_external_paths(self):
         safe = sanitise_page_context(

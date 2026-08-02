@@ -34,7 +34,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/landing.css' %}?v=20260802.1">
-  <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.2">
+  {% if AI_MANSOUR_PUBLIC_ENABLED %}
+    <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.2">
+  {% endif %}
   <noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
   <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
   {
@@ -627,7 +629,9 @@
     <img id="productLightboxImage" src="" alt="">
   </dialog>
 
-  {% include "reports/partials/mansour_assistant.html" %}
+  {% if AI_MANSOUR_PUBLIC_ENABLED %}
+    {% include "reports/partials/mansour_assistant.html" %}
+  {% endif %}
 
   <div
     class="sbc-verify-seal"
@@ -641,6 +645,8 @@
    data-cfasync="false"></script>
   {% include "reports/partials/pwa_install.html" %}
   <script src="{% static 'js/landing.js' %}" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
-  <script src="{% static 'js/mansour-assistant.js' %}?v=20260801.2" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  {% if AI_MANSOUR_PUBLIC_ENABLED %}
+    <script src="{% static 'js/mansour-assistant.js' %}?v=20260801.2" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  {% endif %}
 </body>
 </html>

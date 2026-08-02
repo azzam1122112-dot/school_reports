@@ -12,6 +12,7 @@ from reports.report_ai import REPORT_AI_DAILY_LIMIT, report_ai_daily_remaining
 from reports.models import (
     Report,
     ReportType,
+    PlatformSettings,
     School,
     SchoolMembership,
     SchoolSubscription,
@@ -142,6 +143,28 @@ class ReportAIImprovementTests(TestCase):
                 self.assertNotContains(response, "تحسين الصياغة بالذكاء الاصطناعي")
                 self.assertNotContains(response, "css/report-ai-improver.css")
                 self.assertNotContains(response, "js/report-ai-improver.js")
+
+    @patch("reports.report_ai.urlopen")
+    def test_platform_switch_hides_and_blocks_report_improvement(self, mocked_urlopen):
+        self._login()
+        platform_settings = PlatformSettings.get_solo()
+        platform_settings.report_ai_enabled = False
+        platform_settings.save(update_fields=["report_ai_enabled", "updated_at"])
+
+        page = self.client.get(reverse("reports:add_report"))
+        api_response = self.client.post(
+            reverse("reports:improve_report_text"),
+            data=json.dumps({"text": "هذا نص تقرير مكتمل يحتاج إلى تحسين الصياغة اللغوية."}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, "تحسين الصياغة بالذكاء الاصطناعي")
+        self.assertNotContains(page, "js/report-ai-improver.js")
+        self.assertEqual(api_response.status_code, 404)
+        self.assertFalse(api_response.json()["ok"])
+        self.assertEqual(report_ai_daily_remaining(self.teacher.pk), REPORT_AI_DAILY_LIMIT)
+        mocked_urlopen.assert_not_called()
 
     def test_improvement_endpoint_requires_login(self):
         response = self.client.post(

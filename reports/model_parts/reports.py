@@ -278,6 +278,24 @@ class PlatformSettings(models.Model):
         default="",
         help_text="رسالة اختيارية تظهر للمستخدمين في شاشة الصيانة.",
     )
+    mansour_public_enabled = models.BooleanField(
+        "إظهار المساعد منصور",
+        default=True,
+        db_index=True,
+        help_text="إظهار منصور للزوار في الصفحة العامة والسماح باستخدامه.",
+    )
+    report_ai_enabled = models.BooleanField(
+        "إظهار تحسين التقارير",
+        default=True,
+        db_index=True,
+        help_text="إظهار أداة تحسين صياغة التقرير والسماح باستدعائها.",
+    )
+    internal_ai_help_enabled = models.BooleanField(
+        "إظهار المساعدة داخل النظام",
+        default=True,
+        db_index=True,
+        help_text="إظهار أداة المساعدة العائمة داخل الصفحات بعد تسجيل الدخول.",
+    )
 
     updated_by = models.ForeignKey(
         Teacher,
@@ -310,6 +328,12 @@ class PlatformSettings(models.Model):
             from django.core.cache import cache
 
             cache.delete("platform_maintenance_state_v1")
+        except Exception:
+            pass
+        try:
+            from ..ai_features import clear_platform_ai_feature_cache
+
+            clear_platform_ai_feature_cache()
         except Exception:
             pass
         return result

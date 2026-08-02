@@ -38,7 +38,9 @@
   <link rel="preload" href="{% static 'css/app.css' %}?v=20260731.3" as="style">
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260731.3" />
   {% if request.user.is_authenticated %}
-  <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.3" />
+  {% if request.user.is_authenticated and AI_INTERNAL_HELP_ENABLED %}
+    <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.3" />
+  {% endif %}
   {% endif %}
 
   <!-- Font -->
@@ -1411,7 +1413,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  {% if request.user.is_authenticated %}
+  {% if request.user.is_authenticated and AI_INTERNAL_HELP_ENABLED %}
     {% include "reports/partials/mansour_assistant.html" with mansour_internal=True %}
   {% endif %}
 
@@ -2134,7 +2136,9 @@
   </script>
   {% if request.user.is_authenticated %}
   <script src="{% static 'js/notifications-ws-manager.js' %}" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
-  <script src="{% static 'js/mansour-assistant.js' %}?v=20260801.3" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  {% if request.user.is_authenticated and AI_INTERNAL_HELP_ENABLED %}
+    <script src="{% static 'js/mansour-assistant.js' %}?v=20260801.3" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+  {% endif %}
   {% endif %}
 
   {% comment %}

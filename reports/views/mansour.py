@@ -25,6 +25,11 @@ from ..mansour_knowledge import (
     PUBLIC_AUDIENCES,
 )
 from ..models import SubscriptionPlan
+from ..ai_features import (
+    FEATURE_INTERNAL_HELP,
+    FEATURE_MANSOUR_PUBLIC,
+    platform_ai_toggle_enabled,
+)
 from ..permissions import (
     is_platform_admin,
     is_report_viewer_for_school,
@@ -76,6 +81,18 @@ def _resolve_audience(request: HttpRequest, requested_audience, question="", his
 @require_POST
 @ratelimit(key="ip", rate="50/d", method="POST", block=False)
 def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
+    user = getattr(request, "user", None)
+    feature = (
+        FEATURE_INTERNAL_HELP
+        if getattr(user, "is_authenticated", False)
+        else FEATURE_MANSOUR_PUBLIC
+    )
+    if not platform_ai_toggle_enabled(feature):
+        return _json_response(
+            {"ok": False, "message": "المساعد غير متاح حالياً."},
+            status=404,
+        )
+
     if getattr(request, "limited", False):
         return _json_response(
             {

@@ -589,6 +589,9 @@ class PlatformSettingsAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "maintenance_mode_enabled",
+        "mansour_public_enabled",
+        "report_ai_enabled",
+        "internal_ai_help_enabled",
         "share_link_default_days",
         "archive_addon_annual_price",
         "archive_included_storage_gb",
@@ -599,6 +602,9 @@ class PlatformSettingsAdmin(admin.ModelAdmin):
     fields = (
         "maintenance_mode_enabled",
         "maintenance_message",
+        "mansour_public_enabled",
+        "report_ai_enabled",
+        "internal_ai_help_enabled",
         "share_link_default_days",
         "archive_addon_annual_price",
         "archive_included_storage_gb",

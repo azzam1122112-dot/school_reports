@@ -10,7 +10,14 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from reports.models import AuditLog, Payment, School, Teacher
+from reports.models import (
+    ArchiveStorageOption,
+    AuditLog,
+    Payment,
+    PlatformSettings,
+    School,
+    Teacher,
+)
 
 
 @override_settings(
@@ -152,6 +159,44 @@ class PlatformAdminExperienceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "محرر محتوى منصور")
         self.assertContains(response, "حفظ المحتوى")
+
+    def test_platform_settings_can_control_ai_feature_visibility_independently(self):
+        page = self.client.get(reverse("reports:platform_settings"))
+
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "ظهور ميزات الذكاء الاصطناعي")
+        self.assertContains(page, "المساعد منصور")
+        self.assertContains(page, "تحسين التقارير")
+        self.assertContains(page, "المساعدة داخل النظام")
+
+        settings_obj = PlatformSettings.get_solo()
+        option = ArchiveStorageOption.objects.order_by("id").first()
+        self.assertIsNotNone(option)
+        response = self.client.post(
+            reverse("reports:platform_settings"),
+            data={
+                "maintenance_message": settings_obj.maintenance_message,
+                "report_ai_enabled": "on",
+                "archive_addon_annual_price": str(settings_obj.archive_addon_annual_price),
+                "archive_included_storage_gb": str(settings_obj.archive_included_storage_gb),
+                "free_storage_mb": str(settings_obj.free_storage_mb),
+                "storage_options-TOTAL_FORMS": "1",
+                "storage_options-INITIAL_FORMS": "1",
+                "storage_options-MIN_NUM_FORMS": "0",
+                "storage_options-MAX_NUM_FORMS": "1000",
+                "storage_options-0-id": str(option.pk),
+                "storage_options-0-storage_gb": str(option.storage_gb),
+                "storage_options-0-price": str(option.price),
+                "storage_options-0-sort_order": str(option.sort_order),
+                "storage_options-0-is_active": "on",
+            },
+        )
+
+        self.assertRedirects(response, reverse("reports:platform_settings"))
+        settings_obj.refresh_from_db()
+        self.assertFalse(settings_obj.mansour_public_enabled)
+        self.assertTrue(settings_obj.report_ai_enabled)
+        self.assertFalse(settings_obj.internal_ai_help_enabled)
 
     def test_platform_can_save_mansour_content_json(self):
         payload = {

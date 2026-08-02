@@ -36,6 +36,10 @@ from ._helpers import (
 
 from ..utils import _resolve_department_for_category, _build_head_decision
 from core import opmetrics
+from ..ai_features import (
+    FEATURE_REPORT_IMPROVEMENT,
+    platform_ai_toggle_enabled,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +48,8 @@ logger = logging.getLogger(__name__)
 def _report_ai_template_context(user) -> dict[str, int | bool]:
     return {
         "report_ai_enabled": bool(
-            getattr(settings, "REPORT_AI_ENABLED", False)
+            platform_ai_toggle_enabled(FEATURE_REPORT_IMPROVEMENT)
+            and getattr(settings, "REPORT_AI_ENABLED", False)
             and getattr(settings, "OPENAI_API_KEY", "")
         ),
         "report_ai_daily_limit": REPORT_AI_DAILY_LIMIT,
@@ -184,6 +189,15 @@ def add_report(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["POST"])
 def improve_report_text(request: HttpRequest) -> JsonResponse:
     """Improve one report description without reading or changing saved reports."""
+    if not platform_ai_toggle_enabled(FEATURE_REPORT_IMPROVEMENT):
+        response = JsonResponse(
+            {"ok": False, "message": "ميزة تحسين التقارير غير متاحة حالياً."},
+            status=404,
+            json_dumps_params={"ensure_ascii": False},
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+
     if request.content_type != "application/json":
         return JsonResponse(
             {"ok": False, "message": "صيغة الطلب غير صحيحة."},
