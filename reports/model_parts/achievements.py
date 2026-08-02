@@ -414,4 +414,38 @@ class LeadershipEvidenceImage(models.Model):
     def __str__(self) -> str:
         return f"Leadership evidence #{self.pk}"
 
+
+class LeadershipEvidenceReport(models.Model):
+    """A school manager report used as evidence in a leadership section."""
+
+    section = models.ForeignKey(
+        LeadershipPortfolioSection,
+        on_delete=models.CASCADE,
+        related_name="evidence_reports",
+        verbose_name="المحور",
+        db_index=True,
+    )
+    report = models.ForeignKey(
+        Report,
+        on_delete=models.CASCADE,
+        related_name="leadership_evidences",
+        verbose_name="التقرير",
+        db_index=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "تقرير شاهد أداء قيادي"
+        verbose_name_plural = "تقارير شواهد الأداء القيادي"
+        ordering = ["id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["section", "report"],
+                name="uniq_leadership_section_report_evidence",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.section_id} - report:{self.report_id}"
+
 __all__ = [name for name in globals() if not name.startswith("__")]

@@ -213,6 +213,7 @@ from ..models import (
     SchoolLeadershipPortfolio,
     LeadershipPortfolioSection,
     LeadershipEvidenceImage,
+    LeadershipEvidenceReport,
     TeacherPrivateComment,
 )
 

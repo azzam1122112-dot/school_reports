@@ -76,6 +76,8 @@ class OfficialReportPrintDesignTests(TestCase):
         self.assertIn("وثيقة تقرير مدرسي", template)
         self.assertIn("الوصف التنفيذي", template)
         self.assertIn("الاعتمادات والتوقيعات", template)
+        self.assertIn('class="approval-block"', template)
+        self.assertIn("page--dense-evidence", template)
         self.assertIn("REP-{{ r.id }}", template)
         self.assertNotIn("css/app.css", template)
         self.assertNotIn("css/royal-theme.css", template)
@@ -84,6 +86,8 @@ class OfficialReportPrintDesignTests(TestCase):
         self.assertIn("counter(page)", styles)
         self.assertIn("counter(pages)", styles)
         self.assertIn("break-inside: avoid", styles)
+        self.assertIn(".page--dense-evidence .img-box img", styles)
+        self.assertIn("object-fit: contain", styles)
 
     def test_pdf_context_uses_gendered_labels_and_counts_evidence(self):
         for index in range(1, 5):
@@ -115,7 +119,7 @@ class OfficialReportPrintDesignTests(TestCase):
         self.assertEqual(self._pdf_page_count(pdf_bytes), 1)
         self.assertGreater(len(pdf_bytes), 10_000)
 
-    def test_fallback_pdf_keeps_four_images_and_signatures_within_two_pages(self):
+    def test_fallback_pdf_keeps_four_images_and_signatures_on_one_page(self):
         for index in range(1, 5):
             setattr(
                 self.report,
@@ -132,5 +136,5 @@ class OfficialReportPrintDesignTests(TestCase):
         pdf_bytes = _generate_report_pdf_fallback(self.report, context=context)
 
         self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
-        self.assertLessEqual(self._pdf_page_count(pdf_bytes), 2)
+        self.assertEqual(self._pdf_page_count(pdf_bytes), 1)
         self.assertGreater(len(pdf_bytes), 10_000)

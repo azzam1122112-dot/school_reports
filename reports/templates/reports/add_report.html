@@ -905,6 +905,14 @@
 
     <form id="report-form" method="POST" enctype="multipart/form-data" autocomplete="off" novalidate>
       {% csrf_token %}
+      {% if leadership_section %}
+        <input type="hidden" name="leadership_section" value="{{ leadership_section.pk }}">
+        <div style="margin-bottom:20px;padding:15px 18px;border:1px solid #d4b16d;border-right:5px solid #0b6238;border-radius:12px;background:#fffaf0;color:#184c35;font-weight:800;line-height:1.8">
+          <i class="fa-solid fa-crown" aria-hidden="true"></i>
+          سيُضاف هذا التقرير تلقائيًا إلى ملف الأداء القيادي ضمن محور
+          «{{ leadership_section.get_code_display }}» بعد الحفظ.
+        </div>
+      {% endif %}
 
       <style>
         .tpl-picker{background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1.5px solid #bbf7d0;border-radius:20px;padding:16px 20px;margin-bottom:22px;}

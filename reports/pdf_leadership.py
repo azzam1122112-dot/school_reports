@@ -3,11 +3,18 @@ from __future__ import annotations
 from django.conf import settings
 from django.template.loader import render_to_string
 
-from .models import LeadershipEvidenceImage, LeadershipPortfolioSection
+from .models import (
+    LeadershipEvidenceImage,
+    LeadershipEvidenceReport,
+    LeadershipPortfolioSection,
+)
 
 
 def build_leadership_print_context(portfolio) -> dict:
-    sections = portfolio.sections.prefetch_related("evidence_images").order_by("code", "id")
+    sections = portfolio.sections.prefetch_related(
+        "evidence_images",
+        "evidence_reports__report__category",
+    ).order_by("code", "id")
     completed = sections.filter(is_completed=True).count()
     total = len(LeadershipPortfolioSection.Code.choices)
     return {
@@ -18,6 +25,9 @@ def build_leadership_print_context(portfolio) -> dict:
         "total_sections": total,
         "completion_percent": int((completed / total) * 100),
         "evidence_count": LeadershipEvidenceImage.objects.filter(
+            section__portfolio=portfolio
+        ).count(),
+        "report_evidence_count": LeadershipEvidenceReport.objects.filter(
             section__portfolio=portfolio
         ).count(),
         "manager_label": (

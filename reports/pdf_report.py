@@ -450,29 +450,27 @@ def _generate_report_pdf_fallback(report, *, context: dict | None = None) -> byt
             images.append((index, data))
 
     def prepared_image_reader(data):
-        source = Image.open(BytesIO(data))
+        original = BytesIO(data)
+        source = Image.open(original)
+        orientation = source.getexif().get(274, 1)
+        if orientation in (None, 1):
+            original.seek(0)
+            return ImageReader(original)
+
+        # Correct camera orientation only when needed. PNG keeps the decoded pixels
+        # lossless instead of applying another lossy JPEG compression pass.
         source = ImageOps.exif_transpose(source)
-        source.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
-        if source.mode not in ("RGB", "L"):
-            canvas_image = Image.new("RGB", source.size, "white")
-            if "A" in source.getbands():
-                canvas_image.paste(source, mask=source.getchannel("A"))
-            else:
-                canvas_image.paste(source.convert("RGB"))
-            source = canvas_image
-        elif source.mode != "RGB":
-            source = source.convert("RGB")
-        optimized = BytesIO()
-        source.save(optimized, format="JPEG", quality=88, optimize=True)
-        optimized.seek(0)
-        return ImageReader(optimized)
+        corrected = BytesIO()
+        source.save(corrected, format="PNG", optimize=True)
+        corrected.seek(0)
+        return ImageReader(corrected)
 
     if images:
         gap = 10
-        box_height = 130
-        row_height = box_height + 12
         rows = (len(images) + 1) // 2
-        signature_reserve = 116
+        box_height = 88 if rows >= 2 else 126
+        row_height = box_height + 9
+        signature_reserve = 105
         first_row_reserve = signature_reserve if rows == 1 else 0
         if y - (29 + row_height + first_row_reserve) < bottom_margin:
             new_page()

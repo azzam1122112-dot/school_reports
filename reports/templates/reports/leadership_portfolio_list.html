@@ -34,7 +34,7 @@
     {% for item in portfolios %}
       <article class="lp-item">
         <div class="lp-item__top"><div><div class="lp-year">{{ item.academic_year }} هـ</div><div>{{ item.manager_name }}</div></div><span class="lp-status">{{ item.get_status_display }}</span></div>
-        <div class="lp-stats"><div><strong>{{ item.completed_count }}/8</strong>محاور مكتملة</div><div><strong>{{ item.evidence_count }}</strong>شواهد موثقة</div></div>
+        <div class="lp-stats"><div><strong>{{ item.completed_count }}/8</strong>محاور مكتملة</div><div><strong>{{ item.report_evidence_count }}</strong>تقارير موثقة</div><div><strong>{{ item.evidence_count }}</strong>صور شواهد</div></div>
         <a class="lp-btn" href="{% url 'reports:leadership_portfolio_detail' item.pk %}"><i class="fa-solid fa-arrow-left"></i> فتح مساحة العمل</a>
       </article>
     {% empty %}

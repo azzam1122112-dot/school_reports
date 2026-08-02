@@ -1163,6 +1163,11 @@
         </div>
       </div>
       <div class="manager-primary-actions">
+        <a class="manager-primary-action" href="{% url 'reports:add_report' %}">
+          <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i>
+          <strong>إنشاء تقرير</strong>
+          <small>وثّق عملك واستخدمه لاحقًا في ملف الأداء القيادي.</small>
+        </a>
         <a class="manager-primary-action" href="{% url 'reports:admin_reports' %}">
           <i class="fa-solid fa-file-circle-check" aria-hidden="true"></i>
           <strong>مراجعة التقارير</strong>
@@ -1218,6 +1223,7 @@
             <div><h3>التقارير والتوثيق</h3><p>أرشفة كل سنة داخل المنصة أو تنزيل نسخة كاملة للاحتفاظ الخارجي.</p></div>
           </header>
           <div class="manager-workspace__links">
+            <a class="manager-workspace__link" href="{% url 'reports:my_reports' %}"><span>تقاريري</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:reporttypes_list' %}"><span>أنواع التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:report_templates_list' %}"><span>قوالب التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:achievement_school_files' %}"><span>ملفات الإنجاز</span><i class="fa-solid fa-arrow-left"></i></a>

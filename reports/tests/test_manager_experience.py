@@ -10,6 +10,7 @@ from django.utils import timezone
 from reports.forms import NotificationCreateForm
 from reports.models import (
     AcademicYear,
+    Report,
     ReportType,
     School,
     SchoolMembership,
@@ -20,6 +21,7 @@ from reports.models import (
     SchoolLeadershipPortfolio,
     LeadershipPortfolioSection,
     LeadershipEvidenceImage,
+    LeadershipEvidenceReport,
     Ticket,
 )
 
@@ -161,6 +163,85 @@ class ManagerExperienceTests(TestCase):
         )
         self.assertEqual(detail_response.status_code, 200)
         self.assertContains(detail_response, self.school.name)
+
+    def test_manager_creates_report_and_adds_it_to_leadership_section(self):
+        self._login_manager()
+        self.client.post(reverse("reports:leadership_portfolio_list"))
+        portfolio = SchoolLeadershipPortfolio.objects.get(school=self.school)
+        section = portfolio.sections.get(
+            code=LeadershipPortfolioSection.Code.PLANNING
+        )
+
+        create_page = self.client.get(
+            f"{reverse('reports:add_report')}?leadership_section={section.pk}"
+        )
+        self.assertEqual(create_page.status_code, 200)
+        self.assertContains(create_page, "سيُضاف هذا التقرير تلقائيًا")
+        self.assertContains(create_page, section.get_code_display())
+
+        response = self.client.post(
+            reverse("reports:add_report"),
+            {
+                "leadership_section": section.pk,
+                "title": "اجتماع إعداد الخطة التشغيلية",
+                "report_date": "2026-08-01",
+                "beneficiaries_count": 12,
+                "idea": "تم إعداد الخطة ومؤشرات المتابعة مع فريق المدرسة.",
+                "category": self.report_type.code,
+            },
+        )
+
+        report = Report.objects.get(title="اجتماع إعداد الخطة التشغيلية")
+        self.assertRedirects(
+            response,
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(report.teacher, self.manager)
+        self.assertEqual(report.school, self.school)
+        self.assertTrue(
+            LeadershipEvidenceReport.objects.filter(
+                section=section,
+                report=report,
+            ).exists()
+        )
+
+        detail = self.client.get(
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk])
+        )
+        self.assertContains(detail, report.title)
+        printed = self.client.get(
+            reverse("reports:leadership_portfolio_print", args=[portfolio.pk])
+        )
+        self.assertContains(printed, "التقارير القيادية الموثقة")
+        self.assertContains(printed, report.title)
+
+    def test_manager_cannot_link_another_users_report_to_leadership_file(self):
+        self._login_manager()
+        self.client.post(reverse("reports:leadership_portfolio_list"))
+        portfolio = SchoolLeadershipPortfolio.objects.get(school=self.school)
+        section = portfolio.sections.first()
+        teacher_report = Report.objects.create(
+            school=self.school,
+            teacher=self.teacher,
+            teacher_name=self.teacher.name,
+            title="تقرير معلم",
+            report_date=timezone.localdate(),
+            academic_year=portfolio.academic_year,
+            category=self.report_type,
+        )
+
+        response = self.client.post(
+            reverse("reports:leadership_portfolio_detail", args=[portfolio.pk]),
+            {
+                "action": "add_report_evidence",
+                "section_id": section.pk,
+                "report_id": teacher_report.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(LeadershipEvidenceReport.objects.exists())
 
     def test_teacher_cannot_access_leadership_portfolio(self):
         portfolio = SchoolLeadershipPortfolio.objects.create(

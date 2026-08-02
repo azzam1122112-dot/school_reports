@@ -14,8 +14,13 @@ def _ensure_leadership_sections(portfolio: SchoolLeadershipPortfolio) -> None:
     )
 
 
-def _leadership_context(portfolio: SchoolLeadershipPortfolio) -> dict:
-    sections = portfolio.sections.prefetch_related("evidence_images").order_by("code", "id")
+def _leadership_context(
+    portfolio: SchoolLeadershipPortfolio, *, report_owner: Teacher | None = None
+) -> dict:
+    sections = portfolio.sections.prefetch_related(
+        "evidence_images",
+        "evidence_reports__report__category",
+    ).order_by("code", "id")
     completed = sections.filter(is_completed=True).count()
     total = len(LeadershipPortfolioSection.Code.choices)
     return {
@@ -27,6 +32,20 @@ def _leadership_context(portfolio: SchoolLeadershipPortfolio) -> dict:
         "total_sections": total,
         "completion_percent": int((completed / total) * 100),
         "evidence_count": LeadershipEvidenceImage.objects.filter(section__portfolio=portfolio).count(),
+        "report_evidence_count": LeadershipEvidenceReport.objects.filter(
+            section__portfolio=portfolio
+        ).count(),
+        "available_reports": (
+            Report.objects.filter(
+                school=portfolio.school,
+                teacher=report_owner,
+                academic_year=portfolio.academic_year,
+            )
+            .select_related("category")
+            .order_by("-report_date", "-id")[:100]
+            if report_owner is not None
+            else Report.objects.none()
+        ),
         "manager_label": "مديرة المدرسة" if portfolio.school.gender == "girls" else "مدير المدرسة",
     }
 
@@ -77,6 +96,7 @@ def leadership_portfolio_list(request: HttpRequest) -> HttpResponse:
             distinct=True,
         ),
         evidence_count=Count("sections__evidence_images", distinct=True),
+        report_evidence_count=Count("sections__evidence_reports", distinct=True),
     )
     return render(
         request,
@@ -155,6 +175,36 @@ def leadership_portfolio_detail(request: HttpRequest, pk: int) -> HttpResponse:
             evidence.delete()
             sync_school_archive_storage_usage(portfolio.school)
             messages.success(request, "تم حذف الشاهد.")
+        elif action == "add_report_evidence":
+            section = get_object_or_404(
+                LeadershipPortfolioSection,
+                pk=request.POST.get("section_id"),
+                portfolio=portfolio,
+            )
+            report = get_object_or_404(
+                Report,
+                pk=request.POST.get("report_id"),
+                school=portfolio.school,
+                teacher=request.user,
+                academic_year=portfolio.academic_year,
+            )
+            _evidence, created = LeadershipEvidenceReport.objects.get_or_create(
+                section=section,
+                report=report,
+            )
+            if created:
+                messages.success(request, "تمت إضافة التقرير كشاهد في المحور.")
+            else:
+                messages.info(request, "التقرير مضاف إلى هذا المحور مسبقًا.")
+        elif action == "remove_report_evidence":
+            evidence = get_object_or_404(
+                LeadershipEvidenceReport,
+                pk=request.POST.get("evidence_id"),
+                section__portfolio=portfolio,
+                report__teacher=request.user,
+            )
+            evidence.delete()
+            messages.success(request, "تمت إزالة التقرير من المحور دون حذف التقرير.")
         elif action == "set_status":
             value = request.POST.get("status")
             if value in SchoolLeadershipPortfolio.Status.values:
@@ -163,7 +213,11 @@ def leadership_portfolio_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 messages.success(request, "تم تحديث حالة الملف.")
         return redirect("reports:leadership_portfolio_detail", pk=portfolio.pk)
 
-    return render(request, "reports/leadership_portfolio_detail.html", _leadership_context(portfolio))
+    return render(
+        request,
+        "reports/leadership_portfolio_detail.html",
+        _leadership_context(portfolio, report_owner=request.user),
+    )
 
 
 @login_required(login_url="reports:login")

@@ -45,6 +45,25 @@ from ..ai_features import (
 logger = logging.getLogger(__name__)
 
 
+def _leadership_section_for_new_report(request, active_school):
+    """Resolve an optional leadership destination without trusting form input."""
+    raw_section_id = request.POST.get("leadership_section") or request.GET.get(
+        "leadership_section"
+    )
+    if not raw_section_id:
+        return None
+    if active_school is None or not is_school_manager(
+        request.user, active_school=active_school
+    ):
+        raise Http404
+    return get_object_or_404(
+        LeadershipPortfolioSection.objects.select_related("portfolio"),
+        pk=raw_section_id,
+        portfolio__school=active_school,
+        portfolio__academic_year=(active_school.current_academic_year or "").strip(),
+    )
+
+
 def _report_ai_template_context(user) -> dict[str, int | bool]:
     return {
         "report_ai_enabled": bool(
@@ -112,6 +131,7 @@ def add_report(request: HttpRequest) -> HttpResponse:
     from .report_templates import active_templates_for_school
 
     active_school = _get_active_school(request)
+    leadership_section = _leadership_section_for_new_report(request, active_school)
     report_templates_json = _json.dumps(
         active_templates_for_school(active_school), ensure_ascii=False
     )
@@ -127,6 +147,7 @@ def add_report(request: HttpRequest) -> HttpResponse:
                     {
                         "form": form,
                         "report_templates_json": report_templates_json,
+                        "leadership_section": leadership_section,
                         **_report_ai_template_context(request.user),
                     },
                 )
@@ -145,6 +166,11 @@ def add_report(request: HttpRequest) -> HttpResponse:
                 report.teacher_name = teacher_name_final
 
             report.save()
+            if leadership_section is not None:
+                LeadershipEvidenceReport.objects.get_or_create(
+                    section=leadership_section,
+                    report=report,
+                )
             sync_school_archive_storage_usage(getattr(report, "school", active_school))
 
             # إشعار مدير المدرسة ورئيس القسم بتقرير جديد
@@ -159,6 +185,15 @@ def add_report(request: HttpRequest) -> HttpResponse:
             )
             opmetrics.increment("report.create.success")
 
+            if leadership_section is not None:
+                messages.success(
+                    request,
+                    "تم إنشاء التقرير وإضافته إلى محور الأداء القيادي ✅",
+                )
+                return redirect(
+                    "reports:leadership_portfolio_detail",
+                    pk=leadership_section.portfolio_id,
+                )
             messages.success(request, "تم إضافة التقرير بنجاح ✅")
             return redirect("reports:my_reports")
         logger.warning(
@@ -179,6 +214,7 @@ def add_report(request: HttpRequest) -> HttpResponse:
         {
             "form": form,
             "report_templates_json": report_templates_json,
+            "leadership_section": leadership_section,
             **_report_ai_template_context(request.user),
         },
     )

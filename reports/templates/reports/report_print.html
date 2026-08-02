@@ -401,7 +401,7 @@
     </button>
   </div>
 
-  <div class="page">
+  <div class="page{% if r.image3 or r.image4 %} page--dense-evidence{% endif %}">
     <header class="header">
       <div class="hdr-block hdr-right">
         <div>المملكة العربية السعودية</div>
@@ -496,10 +496,11 @@
     ============================================
     {% endcomment %}
     <div class="signature-spacer"></div>
-    <div class="approval-heading">
-      <strong>الاعتمادات والتوقيعات</strong>
-      <small>يعتمد التقرير بعد مراجعة محتواه وشواهده</small>
-    </div>
+    <section class="approval-block">
+      <div class="approval-heading">
+        <strong>الاعتمادات والتوقيعات</strong>
+        <small>يعتمد التقرير بعد مراجعة محتواه وشواهده</small>
+      </div>
 
     {% comment %}
     ============================================
@@ -509,64 +510,65 @@
     ============================================
     {% endcomment %}
     {% firstof r.teacher_display_name r.teacher_name r.teacher.name as executor_name %}
-    {% if head_decision and not head_decision.no_render %}
-      {# مرتبط بقسم → ثلاثة تواقيع #}
-      <div class="signatures three-sigs">
-        <div class="sig">
-          <h4>{{ executor_label|default:"المنفّذ" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+      {% if head_decision and not head_decision.no_render %}
+        {# مرتبط بقسم → ثلاثة تواقيع #}
+        <div class="signatures three-sigs">
+          <div class="sig">
+            <h4>{{ executor_label|default:"المنفّذ" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+            </div>
           </div>
-        </div>
 
-        <div class="sig">
-          <h4>{{ SCHOOL_HEAD_OF_DEPARTMENT_LABEL|default:"رئيس القسم" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if head_decision.single %}
-              {{ head_decision.name }}
-            {% elif head_decision.multi_dept %}
-              {{ head_decision.dept_name }}
-            {% else %}
-              ........................
-            {% endif %}
+          <div class="sig">
+            <h4>{{ SCHOOL_HEAD_OF_DEPARTMENT_LABEL|default:"رئيس القسم" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if head_decision.single %}
+                {{ head_decision.name }}
+              {% elif head_decision.multi_dept %}
+                {{ head_decision.dept_name }}
+              {% else %}
+                ........................
+              {% endif %}
+            </div>
           </div>
-        </div>
 
-        <div class="sig">
-          <h4>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+          <div class="sig">
+            <h4>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+            </div>
           </div>
         </div>
-      </div>
-    {% else %}
-      {# غير مرتبط بقسم → توقيعان: المنفّذ + المدير #}
-      <div class="signatures two-sigs">
-        <div class="sig">
-          <h4>{{ executor_label|default:"المنفّذ" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+      {% else %}
+        {# غير مرتبط بقسم → توقيعان: المنفّذ + المدير #}
+        <div class="signatures two-sigs">
+          <div class="sig">
+            <h4>{{ executor_label|default:"المنفّذ" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if executor_name %}{{ executor_name }}{% else %}........................{% endif %}
+            </div>
           </div>
-        </div>
 
-        <div class="sig">
-          <h4>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h4>
-          <div class="sig-space"></div>
-          <div class="sig-line">
-            <span class="sig-label">الاسم:</span>
-            {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+          <div class="sig">
+            <h4>{{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</h4>
+            <div class="sig-space"></div>
+            <div class="sig-line">
+              <span class="sig-label">الاسم:</span>
+              {% if SCHOOL_PRINCIPAL %}{{ SCHOOL_PRINCIPAL }}{% else %}........................{% endif %}
+            </div>
           </div>
         </div>
-      </div>
-    {% endif %}
+      {% endif %}
+    </section>
 
     {% if show_comments %}
       <section class="section report-comments no-print">
