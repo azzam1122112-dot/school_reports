@@ -5,6 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#006c35">
+  <meta name="color-scheme" content="light dark">
+  {% include "reports/partials/theme_bootstrap.html" %}
   <meta name="description" content="{% if admin_login %}دخول مدير النظام لمنصة توثيق{% else %}تسجيل الدخول لمنصة توثيق{% endif %}">
   <title>{% if admin_login %}دخول مدير النظام{% else %}تسجيل الدخول{% endif %} | منصة توثيق</title>
   {% include "reports/partials/pwa_install_head.html" %}
@@ -351,6 +353,8 @@
   </style>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260802.1">
+  <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>
 

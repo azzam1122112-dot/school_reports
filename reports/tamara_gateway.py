@@ -123,8 +123,8 @@ def build_checkout_payload(
         digits = digits[3:]
     if digits.startswith("0"):
         digits = digits[1:]
-    if not digits or not customer_email.strip() or not city.strip() or not address.strip():
-        raise TamaraGatewayError("Customer phone, email, city, and address are required for Tamara checkout.")
+    if not digits or not customer_email.strip():
+        raise TamaraGatewayError("Customer phone and email are required for Tamara checkout.")
 
     tamara_items = []
     total = Decimal("0")
@@ -152,15 +152,7 @@ def build_checkout_payload(
         "email": customer_email.strip()[:128],
     }
 
-    shipping_address = {
-        "first_name": first_name[:50],
-        "last_name": last_name[:50],
-        "line1": address.strip()[:255],
-        "city": city.strip()[:120],
-        "country_code": "SA",
-        "phone_number": digits,
-    }
-    return {
+    payload = {
         "order_reference_id": order_reference,
         "order_number": order_reference,
         "total_amount": _amount(total),
@@ -172,8 +164,6 @@ def build_checkout_payload(
         "instalments": int(getattr(settings, "TAMARA_INSTALMENTS", 4) or 4),
         "items": tamara_items,
         "consumer": consumer,
-        "shipping_address": shipping_address,
-        "billing_address": shipping_address,
         "risk_assessment": risk_assessment,
         "merchant_url": {
             "success": success_url,
@@ -185,6 +175,19 @@ def build_checkout_payload(
         "locale": "ar_SA",
         "additional_data": {"delivery_method": "Digital delivery"},
     }
+    # Tawtheeq provides digital educational services, so Tamara does not require
+    # a shipping address. Include billing details only when the customer supplied
+    # a complete address; partial/blank optional fields should not block checkout.
+    if city.strip() and address.strip():
+        payload["billing_address"] = {
+            "first_name": first_name[:50],
+            "last_name": last_name[:50],
+            "line1": address.strip()[:255],
+            "city": city.strip()[:120],
+            "country_code": "SA",
+            "phone_number": digits,
+        }
+    return payload
 
 
 def authorise_order(order_id: str) -> dict[str, Any]:

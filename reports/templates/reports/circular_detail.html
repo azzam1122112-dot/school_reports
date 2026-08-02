@@ -1,544 +1,144 @@
-
-{# reports/templates/reports/circular_detail.html #}
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}تفاصيل التعميم{% endblock %}
+{% block title %}سجل التعميم — {{ n.title|default:"تعميم رسمي" }}{% endblock %}
 
 {% block head %}
-<style>
-  :root {
-    --c-primary: #0f8f87; 
-    --c-primary-dark: #006c35;
-    --c-primary-light: #eff6ff;
-    --c-success: #16845b;
-    --c-danger: #ef4444;
-    --c-warn: #b9975b;
-    --c-text-main: #0f172a;
-    --c-text-muted: #64748b;
-    --c-bg: #f8fafc;
-    --c-card-bg: #ffffff;
-    --c-border: #e2e8f0;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-elegant: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --font-heading: 'Cairo', system-ui, sans-serif;
-  }
-
-  body {
-    background-color: var(--c-bg);
-    color: var(--c-text-main);
-    font-family: var(--font-heading);
-  }
-
-  /* Page Wrapper */
-  .circular-page {
-    min-height: 100vh;
-    padding: 2rem 1rem;
-    background-image: 
-        radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, transparent 50%), 
-        radial-gradient(at 50% 0%, hsla(225,39%,30%,0) 0, transparent 50%), 
-        radial-gradient(at 100% 0%, hsla(339,49%,30%,0) 0, transparent 50%);
-  }
-
-  .circular-container {
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-
-  /* Header Styles */
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding: 0 0.5rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .header-content h1 {
-    font-size: 2rem;
-    font-weight: 800;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: linear-gradient(135deg, var(--c-primary-dark), #006c35);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .header-subtitle {
-    margin-top: 0.5rem;
-    color: var(--c-text-muted);
-    font-size: 1rem;
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .header-actions { display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; }
-
-  .btn-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1.25rem;
-    border-radius: 99px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    border: 1px solid var(--c-border);
-    background: white;
-    color: var(--c-text-main);
-    box-shadow: var(--shadow-sm);
-  }
-  .btn-action:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
-  
-  .btn-action.primary {
-    background: linear-gradient(135deg, var(--c-primary), var(--c-primary-dark));
-    color: white;
-    border: none;
-  }
-  .btn-action.primary:hover {
-     box-shadow: 0 10px 15px -3px rgba(0, 108, 53, 0.3);
-  }
-
-  /* Pills */
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 99px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    background: white;
-    border: 1px solid var(--c-border);
-    color: var(--c-text-muted);
-  }
-  .pill.blue { background: var(--c-primary-light); color: var(--c-primary-dark); border-color: transparent; }
-  .pill.red { background: #fef2f2; color: #ef4444; border-color: transparent; }
-  .pill.amber { background: #fffbeb; color: #d97706; border-color: transparent; }
-  .pill.link { cursor: pointer; text-decoration: none; }
-  .pill.link:hover { border-color: var(--c-primary); }
-
-  /* Grid Layout */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1fr 400px; /* 1fr document, 400px sidebar */
-    gap: 2rem;
-    align-items: start;
-  }
-  @media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr; } }
-
-  /* 3D Document View (The Paper) */
-  .paper-col {
-     perspective: 2000px;
-  }
-  
-  .doc-paper {
-    background: white;
-    min-height: 700px;
-    padding: 4rem;
-    border-radius: 2px;
-    position: relative;
-    /* Realistic Paper Shadow */
-    box-shadow: 
-      0 1px 1px rgba(0,0,0,0.15), 
-      0 10px 0 -5px #eee, 
-      0 10px 1px -4px rgba(0,0,0,0.15), 
-      0 20px 0 -10px #eee, 
-      0 20px 1px -9px rgba(0,0,0,0.15),
-      0 10px 40px rgba(0,0,0,0.1);
-    
-    border: 1px solid #f0f0f0;
-    /* Initial slight tilt for presentation */
-    transform: rotateY(-1deg);
-    transition: transform 0.5s ease;
-  }
-  .doc-paper:hover { transform: rotateY(0deg); }
-
-  .doc-content {
-    font-family: 'Amiri', serif; 
-    font-size: 1.25rem;
-    line-height: 2;
-    color: #1e293b;
-    white-space: pre-wrap;
-  }
-  
-  .doc-meta-box {
-    margin-top: 3rem;
-    padding: 1.5rem;
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1;
-    border-radius: 0.75rem;
-    font-size: 0.95rem;
-  }
-
-  /* Right Column Cards */
-  .app-card {
-    background: var(--c-card-bg);
-    border-radius: 1.25rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--c-border);
-    overflow: hidden;
-    margin-bottom: 2rem;
-  }
-  .app-card-header {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--c-border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(to right, #fff, #f8fafc);
-  }
-  .app-card-header h3 { font-size: 1.1rem; font-weight: 700; margin: 0; display: flex; gap: 0.5rem; align-items: center; }
-  
-  /* Stats Grid */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--c-border);
-    border-bottom: 1px solid var(--c-border);
-  }
-  .stat-item {
-    background: white;
-    padding: 1rem;
-    text-align: center;
-  }
-  .stat-val { font-size: 1.5rem; font-weight: 800; color: var(--c-text-main); line-height: 1; }
-  .stat-lbl { font-size: 0.75rem; color: var(--c-text-muted); margin-top: 0.25rem; font-weight: 600; }
-  
-  /* Filters */
-  .filter-bar {
-    padding: 1rem;
-    background: #f8fafc;
-    border-bottom: 1px solid var(--c-border);
-    display: flex;
-    gap: 0.5rem;
-    flex-direction: column;
-  }
-  .search-input {
-    width: 100%; padding: 0.6rem 1rem; border: 1px solid var(--c-border); border-radius: 0.5rem;
-    font-family: inherit; font-size: 0.9rem;
-  }
-  .search-input:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px var(--c-primary-light); }
-  
-  .filter-toggle {
-    display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--c-text-main);
-    cursor: pointer; user-select: none;
-  }
-
-  /* Recipients Table */
-  .table-container {
-    max-height: 600px;
-    overflow-y: auto;
-  }
-  .clean-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-  .clean-table th {
-    position: sticky; top: 0; background: #f8fafc;
-    padding: 0.85rem 1rem; text-align: right;
-    font-size: 0.8rem; color: var(--c-text-muted); font-weight: 700;
-    border-bottom: 1px solid var(--c-border);
-    z-index: 10;
-  }
-  .clean-table td {
-    padding: 0.85rem 1rem; border-bottom: 1px solid var(--c-border);
-    font-size: 0.9rem; color: var(--c-text-main);
-  }
-  .clean-table tr:hover td { background: var(--c-primary-light); }
-
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; }
-  .status-dot.green { background: var(--c-success); box-shadow: 0 0 0 2px #dcfce7; }
-  .status-dot.red { background: var(--c-danger); box-shadow: 0 0 0 2px #fee2e2; }
-  .status-dot.gray { background: #cbd5e1; }
-
-  @media (max-width: 1100px) {
-    .doc-paper { padding: 2.5rem 2rem; }
-  }
-
-  @media (max-width: 768px) {
-    .circular-page { padding: 1rem 0.75rem; }
-
-    .page-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-    .header-content h1 { font-size: 1.4rem; gap: 0.5rem; }
-    .header-subtitle { flex-wrap: wrap; gap: 0.5rem; font-size: 0.85rem; }
-
-    .header-actions { width: 100%; }
-    .btn-action { flex: 1; justify-content: center; font-size: 0.85rem; padding: 0.55rem 0.9rem; }
-
-    .doc-paper {
-      padding: 1.5rem 1rem;
-      min-height: unset;
-      transform: none !important;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .doc-paper:hover { transform: none; }
-    .doc-content { font-size: 1rem; line-height: 1.85; }
-
-    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .clean-table { min-width: 380px; }
-    .clean-table th,
-    .clean-table td { padding: 0.65rem 0.75rem; font-size: 0.82rem; }
-
-    .app-card-header h3 { font-size: 0.95rem; }
-    .stat-val { font-size: 1.25rem; }
-    .filter-bar { padding: 0.75rem; }
-  }
-
-  @media (max-width: 480px) {
-    .header-content h1 { font-size: 1.2rem; }
-    .doc-paper { padding: 1.25rem 0.875rem; }
-    .app-card-header { padding: 0.75rem 1rem; }
-  }
-
-  /* 👑 ROYAL OVERLAY — تفاصيل التعميم */
-  .circular-page .page-header{
-    position:relative; overflow:hidden;
-    background:
-      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
-      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
-    border:1px solid rgba(212,177,109,.42) !important;
-    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
-    padding:24px 22px !important; color:#fff !important;
-  }
-  .circular-page .page-header::after{
-    content:""; position:absolute; top:0; right:0; left:0; height:4px;
-    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
-  }
-  .circular-page .page-header h1{
-    color:#fff !important;
-    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-    font-weight:950 !important;
-  }
-  .circular-page .page-header h1 i{ -webkit-text-fill-color:#e6cf9a !important; color:#e6cf9a !important; }
-  .circular-page .header-subtitle{ color:rgba(255,255,255,.85) !important; font-weight:800 !important; }
-  .circular-page .btn-primary{ background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important; }
-</style>
+  <link rel="stylesheet" href="{% static 'css/circulars-official.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="circular-page" dir="rtl">
-  <div class="circular-container">
-
-    <!-- Header -->
-    <header class="page-header">
-      <div class="header-content">
-        <h1>
-           <i class="fa-solid fa-envelope-open-text" style="color:var(--c-primary)"></i>
-           تفاصيل التعميم
-        </h1>
-        <div class="header-subtitle">
-           <span>{{ n.title|default:"بدون عنوان" }}</span>
-           {% if n.is_important %}
-             <span class="pill red"><i class="fa-solid fa-fire"></i> هام</span>
-           {% endif %}
-           {% if n.is_broadcast %}
-             <span class="pill blue"><i class="fa-solid fa-bullhorn"></i> للجميع</span>
-           {% endif %}
-           <span class="pill"><i class="fa-regular fa-clock"></i> {{ n.created_at|date:"Y-m-d H:i" }}</span>
-        </div>
+<main class="cir-shell" dir="rtl">
+  <div class="cir-container">
+    <header class="cir-hero">
+      <div class="cir-hero__main">
+        <div class="cir-hero__eyebrow"><i class="fa-solid fa-building-columns"></i> سجل التعاميم الصادرة</div>
+        <h1>{{ n.title|default:"تعميم رسمي" }}</h1>
+        <p>متابعة موحّدة لحالة الاطلاع والتوقيع، مع تقرير رسمي قابل للطباعة والحفظ.</p>
       </div>
-      
-      <div class="header-actions">
-         <a href="{% url 'reports:circulars_sent' %}" class="btn-action">
-           <i class="fa-solid fa-arrow-right"></i> رجوع
-         </a>
-         <a href="{% url 'reports:notification_signatures_print' n.pk %}" class="btn-action primary">
-           <i class="fa-solid fa-print"></i> طباعة التواقيع
-         </a>
-  
+      <div class="cir-hero__actions">
+        <a href="{% url 'reports:circulars_sent' %}" class="cir-btn cir-btn--hero"><i class="fa-solid fa-arrow-right"></i> رجوع</a>
+        <a href="{% url 'reports:notification_signatures_csv' n.pk %}" class="cir-btn cir-btn--hero"><i class="fa-solid fa-file-csv"></i> تصدير CSV</a>
+        <a href="{% url 'reports:notification_signatures_print' n.pk %}" target="_blank" rel="noopener" class="cir-btn cir-btn--hero"><i class="fa-solid fa-print"></i> التقرير الرسمي</a>
       </div>
     </header>
 
-    <div class="main-grid">
-      
-      <!-- Left Column: The Document (Paper) -->
-      <div class="paper-col">
-         <div class="doc-paper">
-            {% if n.attachment %}
-            <div style="position:absolute; top:2rem; left:2rem;">
-               <a href="{{ n.attachment.url }}" target="_blank" class="pill link blue">
-                 <i class="fa-solid fa-paperclip"></i> تحميل المرفق
-               </a>
-            </div>
-            {% endif %}
+    <div class="cir-admin-layout">
+      <article class="cir-document cir-admin-document" aria-labelledby="adminCircularTitle">
+        <header class="cir-document__masthead">
+          <div class="cir-document__identity">
+            <div>المملكة العربية السعودية</div>
+            <div>وزارة التعليم</div>
+            <div>{% firstof SCHOOL_NAME "المدرسة" %}</div>
+          </div>
+          <img class="cir-document__logo" src="{% static 'img/logo1.png' %}" alt="شعار توثيق">
+          <div class="cir-document__reference">
+            <div>الرقم: CIR-{{ n.id|stringformat:"05d" }}</div>
+            <div>التاريخ: {{ n.created_at|date:"Y/m/d" }}</div>
+            <div>المستلمون: {{ signature_stats.total }}</div>
+          </div>
+        </header>
 
-            <h2 style="font-family:'Cairo',sans-serif; margin-bottom:2rem; font-size:1.75rem;">{{ n.title }}</h2>
-
-            <div class="doc-content">{% if body %}{{ body|linebreaksbr }}{% else %}<span style="color:var(--c-text-muted); font-style:italic">لا يوجد محتوى نصي (فقط مرفق أو عنوان)</span>{% endif %}</div>
-
-            {% if n.signature_deadline_at or n.signature_ack_text %}
-              <div class="doc-meta-box">
-                 {% if n.signature_deadline_at %}
-                   <div style="margin-bottom:1rem; display:flex; gap:0.5rem; align-items:center;">
-                      <i class="fa-regular fa-calendar-xmark text-red"></i>
-                      <strong>آخر موعد للتوقيع:</strong>
-                      <span style="color:var(--c-danger)">{{ n.signature_deadline_at|date:"Y-m-d H:i" }}</span>
-                   </div>
-                 {% endif %}
-
-                 {% if n.signature_ack_text %}
-                   <div style="font-weight:700; margin-bottom:0.5rem">نص الإقرار:</div>
-                   <div style="color:var(--c-text-muted); line-height:1.6">{{ n.signature_ack_text|linebreaksbr }}</div>
-                 {% endif %}
-              </div>
-            {% endif %}
-         </div>
-      </div>
-
-      <!-- Right Column: Stats & Recipients -->
-      <div class="sidebar-col">
-        
-        <!-- Stats Card -->
-        {% if signature_stats %}
-        <div class="app-card">
-           <div class="app-card-header">
-              <h3><i class="fa-solid fa-chart-pie" style="color:var(--c-primary)"></i> الإحصائيات</h3>
-           </div>
-           <div class="stats-grid">
-              <div class="stat-item">
-                 <div class="stat-val">{{ signature_stats.total }}</div>
-                 <div class="stat-lbl">الكل</div>
-              </div>
-              <div class="stat-item">
-                 <div class="stat-val" style="color:var(--c-success)">{{ signature_stats.signed }}</div>
-                 <div class="stat-lbl">وقّع</div>
-              </div>
-              <div class="stat-item">
-                 <div class="stat-val" style="color:var(--c-danger)">{{ signature_stats.unsigned }}</div>
-                 <div class="stat-lbl">لم يوقّع</div>
-              </div>
-           </div>
-           <div style="padding:1rem; text-align:center;">
-             <div style="width:100%; height:6px; background:#f1f5f9; border-radius:99px; overflow:hidden; margin-bottom:0.5rem">
-                <!-- Simple progress bar logic if we had percentages, but ignoring for now -->
-                <div style="width:0%; background:var(--c-primary); height:100%"></div> 
-             </div>
-             <small class="text-muted">متابعة حية لحالة التواقيع</small>
-           </div>
+        <div class="cir-document__type">تعميم إداري صادر</div>
+        <h2 class="cir-document__title" id="adminCircularTitle">{{ n.title|default:"تعميم رسمي" }}</h2>
+        <div class="cir-document__body">
+          {% if body %}{{ body|linebreaksbr }}{% else %}<p>يرجى الاطلاع على المرفق المعتمد لهذا التعميم.</p>{% endif %}
         </div>
+
+        {% if n.signature_ack_text or n.signature_deadline_at %}
+          <aside class="cir-document__footnote">
+            {% if n.signature_ack_text %}<strong>نص الإقرار:</strong> {{ n.signature_ack_text|linebreaksbr }}{% endif %}
+            {% if n.signature_deadline_at %}<br><strong>آخر موعد للتوقيع:</strong> {{ n.signature_deadline_at|date:"Y/m/d — H:i" }}{% endif %}
+          </aside>
         {% endif %}
 
-        <!-- Recipients List -->
-        <div class="app-card">
-           <div class="app-card-header">
-              <h3><i class="fa-solid fa-users"></i> المستلمين <span class="pill" id="cdTotal">{{ recipients|length }}</span></h3>
-           </div>
-           
-           <div class="filter-bar">
-              <input type="search" id="cdSearch" class="search-input" placeholder="بحث بالاسم أو الدور...">
-              <label class="filter-toggle">
-                 <input type="checkbox" id="cdOnlyUnsigned" style="accent-color:var(--c-primary)">
-                 إظهار غير الموقّعين فقط
-              </label>
-           </div>
+        <footer class="cir-document__issued">
+          <span>أصدره: {% firstof n.created_by.name n.created_by.phone "إدارة المدرسة" %}</span>
+          <span>وقت الإصدار: {{ n.created_at|date:"Y/m/d — H:i" }}</span>
+        </footer>
+      </article>
 
-           <div class="table-container">
-             <table class="clean-table">
-                <thead>
-                   <tr>
-                      <th>الاسم</th>
-                      <th>الحالة</th>
-                      <th>التوقيع</th>
-                   </tr>
-                </thead>
-                <tbody id="cdRows">
-                   {% for r in recipients %}
-                    <tr data-name="{{ r.name|default:'' }}" data-role="{{ r.role|default:'' }}" data-signed="{% if r.signed %}1{% else %}0{% endif %}">
-                       <td>
-                          <div style="font-weight:700">{{ r.name }}</div>
-                          <div style="font-size:0.75rem; color:var(--c-text-muted)">{{ r.role }}</div>
-                       </td>
-                       <td>
-                          {% if r.read %}
-                            <span class="status-dot green" title="تمت القراءة: {{ r.read_at }}"></span>
-                          {% else %}
-                            <span class="status-dot gray" title="لم يتم الفتح"></span>
-                          {% endif %}
-                       </td>
-                       <td>
-                          {% if r.signed %}
-                            <span class="badge success"><i class="fa-solid fa-check"></i></span>
-                          {% else %}
-                             <span class="badge failure"><i class="fa-solid fa-xmark"></i></span>
-                          {% endif %}
-                       </td>
-                    </tr>
-                   {% empty %}
-                     <tr><td colspan="3" style="text-align:center; padding:2rem">لا يوجد مستلمون</td></tr>
-                   {% endfor %}
-                </tbody>
-             </table>
-           </div>
-           <div style="padding:0.5rem 1rem; border-top:1px solid var(--c-border); font-size:0.8rem; color:var(--c-text-muted); text-align:center" id="cdVisible">
-             جاري التحميل...
-           </div>
-        </div>
+      <aside class="cir-side" aria-label="متابعة مستلمي التعميم">
+        <section class="cir-panel">
+          <h2 class="cir-panel__head"><i class="fa-solid fa-chart-line"></i> ملخص التنفيذ</h2>
+          <div class="cir-stats">
+            <div class="cir-stat"><strong>{{ signature_stats.total }}</strong><span>مستلم</span></div>
+            <div class="cir-stat"><strong style="color:var(--cir-success)">{{ signature_stats.signed }}</strong><span>موقّع</span></div>
+            <div class="cir-stat"><strong style="color:var(--cir-danger)">{{ signature_stats.unsigned }}</strong><span>معلّق</span></div>
+          </div>
+          <div class="cir-progress">
+            <div class="cir-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ signature_stats.signed_percentage|default:0 }}">
+              <div class="cir-progress__bar" style="width:{{ signature_stats.signed_percentage|default:0 }}%"></div>
+            </div>
+            <div class="cir-progress__label"><span>نسبة اكتمال التوقيع</span><strong>{{ signature_stats.signed_percentage|default:0 }}%</strong></div>
+          </div>
+        </section>
 
-      </div>
+        {% if n.attachment %}
+        <section class="cir-panel">
+          <h2 class="cir-panel__head"><i class="fa-solid fa-paperclip"></i> المرفق المعتمد</h2>
+          <div class="cir-panel__body"><a href="{{ n.attachment.url }}" target="_blank" rel="noopener" class="cir-btn cir-attachment"><i class="fa-solid fa-file-arrow-down"></i> فتح المرفق أو تنزيله</a></div>
+        </section>
+        {% endif %}
 
+        <section class="cir-panel">
+          <h2 class="cir-panel__head"><i class="fa-solid fa-users"></i> سجل المستلمين <span class="cir-status cir-status--signed" id="recipientCount">{{ recipients|length }}</span></h2>
+          <div class="cir-search">
+            <input class="cir-input" type="search" id="recipientSearch" placeholder="ابحث بالاسم أو الدور…" autocomplete="off">
+            <label class="cir-check" for="onlyUnsigned" style="margin-top:.55rem;width:100%">
+              <input type="checkbox" id="onlyUnsigned"> غير الموقّعين فقط
+            </label>
+          </div>
+          <div class="cir-table-wrap">
+            <table class="cir-table">
+              <thead><tr><th>المستلم</th><th>الاطلاع</th><th>التوقيع</th></tr></thead>
+              <tbody id="recipientRows">
+                {% for recipient in recipients %}
+                <tr data-name="{{ recipient.name|default:'' }}" data-role="{{ recipient.role|default:'' }}" data-signed="{% if recipient.signed %}1{% else %}0{% endif %}">
+                  <td><div class="cir-person"><strong>{{ recipient.name }}</strong><span>{{ recipient.role }}</span></div></td>
+                  <td>{% if recipient.read %}<span class="cir-status cir-status--signed" title="{{ recipient.read_at }}">تم</span>{% else %}<span class="cir-status cir-status--closed">لم يفتح</span>{% endif %}</td>
+                  <td>{% if recipient.signed %}<span class="cir-status cir-status--signed" title="{{ recipient.signed_at }}">موقّع</span>{% else %}<span class="cir-status cir-status--pending">معلّق</span>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" style="text-align:center;padding:2rem">لا يوجد مستلمون لهذا التعميم.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="cir-table-foot" id="visibleRecipients" aria-live="polite">{{ recipients|length }} مستلم</div>
+        </section>
+      </aside>
     </div>
   </div>
-</div>
+</main>
 {% endblock %}
 
 {% block scripts %}
 {{ block.super }}
-<script{% if CSP_NONCE %} nonce="{{ CSP_NONCE }}"{% endif %} data-cfasync="false">
-(function(){
-  const search = document.getElementById('cdSearch');
-  const onlyUnsigned = document.getElementById('cdOnlyUnsigned');
-  const rowsWrap = document.getElementById('cdRows');
-  const visiblePill = document.getElementById('cdVisible');
-  const shownCountPill = document.getElementById('cdShownCount');
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+(function () {
+  const search = document.getElementById('recipientSearch');
+  const unsigned = document.getElementById('onlyUnsigned');
+  const rows = document.getElementById('recipientRows');
+  const visible = document.getElementById('visibleRecipients');
+  if (!rows) return;
 
-  if(!rowsWrap) return;
-
-  function norm(s){
-    return String(s || '').toLowerCase().trim();
-  }
-
-  function apply(){
-    const q = norm(search ? search.value : '');
-    const onlyU = !!(onlyUnsigned && onlyUnsigned.checked);
-
-    const rows = Array.from(rowsWrap.querySelectorAll('tr[data-signed]'));
-    let visible = 0;
-
-    rows.forEach(tr => {
-      const name = norm(tr.getAttribute('data-name'));
-      const role = norm(tr.getAttribute('data-role'));
-      const signed = (tr.getAttribute('data-signed') || '0') === '1';
-
-      const passSigned = !onlyU || !signed;
-      const passQuery = !q || name.includes(q) || role.includes(q);
-
-      const ok = passSigned && passQuery;
-      tr.style.display = ok ? '' : 'none';
-      if(ok) visible++;
+  function normalize(value) { return String(value || '').trim().toLowerCase(); }
+  function filterRows() {
+    const query = normalize(search && search.value);
+    const onlyUnsigned = Boolean(unsigned && unsigned.checked);
+    let count = 0;
+    rows.querySelectorAll('tr[data-signed]').forEach((row) => {
+      const matchesText = !query || normalize(row.dataset.name).includes(query) || normalize(row.dataset.role).includes(query);
+      const matchesStatus = !onlyUnsigned || row.dataset.signed !== '1';
+      row.hidden = !(matchesText && matchesStatus);
+      if (!row.hidden) count += 1;
     });
-
-    if(visiblePill){
-      visiblePill.style.display = '';
-      visiblePill.textContent = 'المعروض: ' + String(visible);
-    }
-    if(shownCountPill && onlyU){
-      shownCountPill.textContent = String(visible) + ' بانتظار التوقيع';
-    }
+    if (visible) visible.textContent = count + ' مستلم معروض';
   }
-
-  if(search){
-    search.addEventListener('input', apply);
-  }
-  if(onlyUnsigned){
-    onlyUnsigned.addEventListener('change', apply);
-  }
-  apply();
+  if (search) search.addEventListener('input', filterRows);
+  if (unsigned) unsigned.addEventListener('change', filterRows);
+  filterRows();
 })();
 </script>
 {% endblock %}

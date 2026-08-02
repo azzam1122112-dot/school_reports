@@ -1986,40 +1986,161 @@
 
   .tamara-checkout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 1rem;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) minmax(215px, .32fr);
+    gap: 1.25rem;
+    align-items: stretch;
+    position: relative;
+    overflow: hidden;
     margin: 1.1rem 0 1.5rem;
-    padding: 1.15rem;
-    border: 1px solid #d8ccff;
-    border-radius: 18px;
-    background: #f8f6ff;
+    padding: 1.35rem;
+    border: 1px solid rgba(91,53,213,.2);
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 8% 0%, rgba(255,180,133,.18), transparent 34%),
+      linear-gradient(145deg, #fff 0%, #fbf9ff 58%, #f2edff 100%);
+    box-shadow: 0 16px 40px rgba(66,41,120,.1);
   }
-  .tamara-checkout h3 { margin: 0 0 .3rem; color: #24164f; font-size: 1rem; font-weight: 900; }
-  .tamara-checkout p { margin: 0; color: #62577e; font-size: .82rem; font-weight: 700; line-height: 1.7; }
-  .tamara-fields { display: grid; grid-template-columns: minmax(150px, .65fr) minmax(220px, 1.35fr); gap: .75rem; margin-top: .9rem; }
+  .tamara-checkout::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block: 0;
+    width: 5px;
+    background: linear-gradient(180deg, #ff9569 0%, #cb68c8 54%, #739fe8 100%);
+  }
+  .tamara-content { min-width: 0; }
+  .tamara-brand-row { display: flex; align-items: center; gap: .65rem; margin-bottom: .7rem; }
+  .tamara-logo-frame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 112px;
+    min-height: 42px;
+    padding: .28rem .55rem;
+    border: 1px solid rgba(91,53,213,.12);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 5px 15px rgba(66,41,120,.08);
+  }
+  .tamara-logo-frame img { display: block; width: 94px; height: auto; }
+  .tamara-installment-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .35rem .62rem;
+    border-radius: 999px;
+    color: #4b2aba;
+    background: #eee8ff;
+    font-size: .69rem;
+    font-weight: 950;
+  }
+  .tamara-checkout h3 { margin: 0 0 .25rem; color: #24164f; font-size: 1.05rem; font-weight: 950; }
+  .tamara-checkout p { margin: 0; color: #62577e; font-size: .8rem; font-weight: 700; line-height: 1.7; }
+  .tamara-installment-summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-top: .95rem;
+    padding: .7rem .85rem;
+    border: 1px solid rgba(91,53,213,.13);
+    border-radius: 12px;
+    background: rgba(255,255,255,.82);
+    color: #51456b;
+    font-size: .74rem;
+    font-weight: 850;
+  }
+  .tamara-installment-summary strong { color: #24164f; font-size: 1.05rem; font-weight: 950; }
+  .tamara-installments {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .48rem;
+    margin-top: .55rem;
+  }
+  .tamara-installment {
+    display: grid;
+    gap: .12rem;
+    min-width: 0;
+    padding: .58rem .42rem;
+    border: 1px solid rgba(91,53,213,.12);
+    border-radius: 11px;
+    text-align: center;
+    background: rgba(255,255,255,.7);
+  }
+  .tamara-installment span { color: #8469d8; font-size: .62rem; font-weight: 950; }
+  .tamara-installment strong { color: #2d2150; font-size: .73rem; font-weight: 950; white-space: nowrap; }
+  .tamara-installment small { color: #7a718e; font-size: .58rem; font-weight: 750; white-space: nowrap; }
+  .tamara-billing-details { margin-top: .75rem; border-top: 1px dashed rgba(91,53,213,.2); padding-top: .65rem; }
+  .tamara-billing-details summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    color: #4a3d69;
+    font-size: .72rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .tamara-billing-details summary span { display: inline-flex; align-items: center; gap: .4rem; }
+  .tamara-billing-details summary small { padding: .18rem .45rem; border-radius: 999px; background: #eee8ff; color: #6548bc; font-size: .58rem; }
+  .tamara-billing-note { margin-top: .5rem !important; font-size: .68rem !important; }
+  .tamara-fields { display: grid; grid-template-columns: minmax(150px, .65fr) minmax(220px, 1.35fr); gap: .75rem; margin-top: .65rem; }
   .tamara-fields label { display: grid; gap: .35rem; color: #40365a; font-size: .76rem; font-weight: 900; }
   .tamara-fields input { min-height: 44px; border: 1px solid #d8ccff; border-radius: 11px; background: #fff; padding: .65rem .75rem; color: #24164f; }
+  .tamara-action {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: .6rem;
+    padding-inline-start: 1.1rem;
+    border-inline-start: 1px solid rgba(91,53,213,.14);
+  }
   .tamara-submit {
-    min-width: 210px;
-    min-height: 50px;
+    width: 100%;
+    min-height: 52px;
     border: 0;
-    border-radius: 13px;
+    border-radius: 14px;
     padding: .75rem 1rem;
     color: #fff;
-    background: #5b35d5;
-    font-weight: 900;
+    background: linear-gradient(135deg, #6943dc 0%, #4d29be 100%);
+    box-shadow: 0 10px 24px rgba(91,53,213,.24);
+    font-weight: 950;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: .55rem;
   }
-  .tamara-submit:disabled { cursor: not-allowed; opacity: .48; }
+  .tamara-submit:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 13px 28px rgba(91,53,213,.3); }
+  .tamara-submit:disabled { cursor: not-allowed; opacity: .48; box-shadow: none; }
+  .tamara-action-note { display: flex; align-items: center; justify-content: center; gap: .35rem; color: #756b89; font-size: .65rem; font-weight: 750; text-align: center; }
   .tamara-sandbox { display: inline-flex; margin-inline-start: .35rem; padding: .15rem .4rem; border-radius: 6px; background: #eadfff; color: #5b35d5; font-size: .65rem; font-weight: 900; }
+
+  html[data-theme="dark"] .tamara-checkout {
+    border-color: rgba(174,151,255,.28);
+    background:
+      radial-gradient(circle at 8% 0%, rgba(255,149,105,.12), transparent 34%),
+      linear-gradient(145deg, #211b30 0%, #1b1727 58%, #251d3d 100%);
+    box-shadow: 0 18px 40px rgba(0,0,0,.25);
+  }
+  html[data-theme="dark"] .tamara-checkout h3,
+  html[data-theme="dark"] .tamara-installment-summary strong,
+  html[data-theme="dark"] .tamara-installment strong { color: #f5f0ff; }
+  html[data-theme="dark"] .tamara-checkout p,
+  html[data-theme="dark"] .tamara-installment-summary,
+  html[data-theme="dark"] .tamara-billing-details summary { color: #cfc4e7; }
+  html[data-theme="dark"] .tamara-installment-summary,
+  html[data-theme="dark"] .tamara-installment { background: rgba(16,12,25,.52); border-color: rgba(174,151,255,.2); }
+  html[data-theme="dark"] .tamara-installment small,
+  html[data-theme="dark"] .tamara-action-note { color: #b8aecb; }
+  html[data-theme="dark"] .tamara-fields label { color: #ddd3ef; }
+  html[data-theme="dark"] .tamara-fields input { border-color: rgba(174,151,255,.28); background: #17131f; color: #fff; }
 
   @media (max-width: 720px) {
     .tamara-checkout, .tamara-fields { grid-template-columns: 1fr; }
+    .tamara-checkout { padding: 1.05rem; }
+    .tamara-action { padding: .9rem 0 0; border-inline-start: 0; border-top: 1px solid rgba(91,53,213,.14); }
     .tamara-submit { width: 100%; min-width: 0; }
   }
 
@@ -2410,23 +2531,52 @@
 
           {% if tamara_enabled %}
           <section class="tamara-checkout" aria-label="الدفع عبر تمارا">
-            <div>
-              <h3><i class="fa-solid fa-wallet"></i> قسّم دفعتك مع تمارا{% if tamara_environment != 'production' %}<span class="tamara-sandbox">بيئة اختبار</span>{% endif %}</h3>
-              <p>ستنتقل إلى صفحة تمارا الآمنة، ويُفعّل طلبك تلقائيًا بعد تأكيد التحصيل.</p>
-              <div class="tamara-fields">
-                <label>المدينة
-                  <input type="text" name="tamara_city" value="{{ school.city|default:'' }}" maxlength="120" autocomplete="address-level2">
-                </label>
-                <label>عنوان المدرسة أو عنوان الفوترة
-                  <input type="text" name="tamara_address" maxlength="255" autocomplete="street-address" placeholder="الحي، الشارع، رقم المبنى">
-                </label>
+            <div class="tamara-content">
+              <div class="tamara-brand-row">
+                <span class="tamara-logo-frame">
+                  <img src="{% static 'img/tamara-wordmark-gradient-ar.png' %}" alt="تمارا" width="94" height="31">
+                </span>
+                <span class="tamara-installment-badge"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> 4 دفعات</span>
+                {% if tamara_environment != 'production' %}<span class="tamara-sandbox">بيئة اختبار</span>{% endif %}
               </div>
+              <h3>قسّم قيمة طلبك إلى أربع دفعات متساوية</h3>
+              <p>اختر خدماتك، ثم أكمل الدفع بأمان في صفحة تمارا.</p>
+
+              <div class="tamara-installment-summary" aria-live="polite">
+                <span>قيمة كل دفعة</span>
+                <strong><span id="tamaraInstallmentAmount">0.00</span> ريال</strong>
+              </div>
+              <div class="tamara-installments" aria-label="تقسيم المبلغ على أربع دفعات">
+                <div class="tamara-installment"><span>01</span><strong data-tamara-installment-amount>0.00 ر.س</strong><small>الدفعة الأولى</small></div>
+                <div class="tamara-installment"><span>02</span><strong data-tamara-installment-amount>0.00 ر.س</strong><small>الدفعة الثانية</small></div>
+                <div class="tamara-installment"><span>03</span><strong data-tamara-installment-amount>0.00 ر.س</strong><small>الدفعة الثالثة</small></div>
+                <div class="tamara-installment"><span>04</span><strong data-tamara-installment-amount>0.00 ر.س</strong><small>الدفعة الرابعة</small></div>
+              </div>
+
+              <details class="tamara-billing-details">
+                <summary>
+                  <span><i class="fa-regular fa-map" aria-hidden="true"></i> إضافة عنوان فوترة</span>
+                  <small>اختياري</small>
+                </summary>
+                <p class="tamara-billing-note">لأن الخدمة رقمية، يمكنك المتابعة دون عنوان. أضفه فقط إذا رغبت في تضمينه ببيانات الطلب.</p>
+                <div class="tamara-fields">
+                  <label>المدينة
+                    <input type="text" name="tamara_city" value="{{ school.city|default:'' }}" maxlength="120" autocomplete="address-level2">
+                  </label>
+                  <label>عنوان الفوترة
+                    <input type="text" name="tamara_address" maxlength="255" autocomplete="street-address" placeholder="الحي، الشارع، رقم المبنى">
+                  </label>
+                </div>
+              </details>
             </div>
-            <button type="submit" id="tamaraSubmit" class="tamara-submit" data-payment-method="tamara"
-                    formaction="{% url 'reports:tamara_checkout_create' %}" formmethod="post" formnovalidate disabled aria-disabled="true">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i>
-              <span>اختر خدمة للدفع عبر تمارا</span>
-            </button>
+            <div class="tamara-action">
+              <button type="submit" id="tamaraSubmit" class="tamara-submit" data-payment-method="tamara"
+                      formaction="{% url 'reports:tamara_checkout_create' %}" formmethod="post" formnovalidate disabled aria-disabled="true">
+                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                <span>اختر خدمة للدفع عبر تمارا</span>
+              </button>
+              <small class="tamara-action-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> الدفع يتم في صفحة تمارا الآمنة</small>
+            </div>
           </section>
           {% endif %}
 
@@ -2820,16 +2970,7 @@
         showToast('اختر باقة لتجديد اشتراك المدرسة', 'error');
         return;
       }
-      if (isTamara) {
-        const city = form.querySelector('input[name="tamara_city"]');
-        const address = form.querySelector('input[name="tamara_address"]');
-        if (!city?.value.trim() || !address?.value.trim()) {
-          e.preventDefault();
-          (address || city)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          showToast('أدخل المدينة والعنوان لإكمال الدفع عبر تمارا', 'error');
-          return;
-        }
-      } else if (fileInput && !fileInput.value) {
+      if (!isTamara && fileInput && !fileInput.value) {
         e.preventDefault();
         if (dropArea) {
           dropArea.style.borderColor = '#ef4444';

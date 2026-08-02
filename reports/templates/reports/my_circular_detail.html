@@ -1,624 +1,198 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}تفاصيل التعميم{% endblock %}
+{% block title %}{{ n.title|default:"التعميم الرسمي" }}{% endblock %}
 
 {% block head %}
-<style>
-  :root {
-    --c-primary: #006c35;
-    --c-primary-dark: #00542a;
-    --c-primary-light: #eff6ff;
-    --c-danger: #dc2626;
-    --c-danger-soft: #fef2f2;
-    --c-success: #16a34a;
-    --c-success-soft: #f0fdf4;
-    --c-text: #0f172a;
-    --c-text-muted: #64748b;
-    --c-bg: #f8fafc;
-    --c-card: #ffffff;
-    --c-border: #e2e8f0;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --radius: 1rem;
-  }
-
-  /* Dark Mode Support */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --c-bg: #0f172a;
-      --c-card: #1e293b;
-      --c-text: #f8fafc;
-      --c-text-muted: #94a3b8;
-      --c-border: #334155;
-    }
-  }
-
-  .cv-scope {
-    font-family: system-ui, -apple-system, sans-serif;
-    color: var(--c-text);
-    line-height: 1.6;
-    padding: 1.5rem;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  /* Header Section */
-  .cv-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-  .cv-title {
-    font-size: 1.8rem;
-    font-weight: 800;
-    margin: 0;
-    line-height: 1.2;
-  }
-  .cv-subtitle {
-    color: var(--c-text-muted);
-    font-size: 0.95rem;
-    margin-top: 0.5rem;
-  }
-  .cv-back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1rem;
-    background: var(--c-card);
-    border: 1px solid var(--c-border);
-    border-radius: 0.75rem;
-    color: var(--c-text);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-  }
-  .cv-back-btn:hover {
-    background: var(--c-bg);
-    transform: translateX(2px);
-  }
-
-  /* Alert Banners */
-  .cv-alert {
-    padding: 1rem 1.25rem;
-    border-radius: var(--radius);
-    margin-bottom: 2rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    font-weight: 600;
-    border: 1px solid transparent;
-  }
-  .cv-alert.required {
-    background: var(--c-danger-soft);
-    color: var(--c-danger);
-    border-color: #fecaca;
-  }
-  .cv-alert.success {
-    background: var(--c-success-soft);
-    color: var(--c-success);
-    border-color: #bbf7d0;
-  }
-  .cv-alert-icon {
-    font-size: 1.4rem;
-  }
-
-  /* Main Card */
-  .cv-card {
-    background: var(--c-card);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--c-border);
-    overflow: hidden;
-    margin-bottom: 2rem;
-  }
-
-  .cv-card-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--c-border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-    background: linear-gradient(to bottom, var(--c-card), var(--c-bg));
-  }
-  
-  .cv-meta-group {
-    display: flex;
-    gap: 1.5rem;
-    color: var(--c-text-muted);
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-  .cv-meta-item {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
-  .cv-body {
-    padding: 2rem 1.5rem;
-    line-height: 2;
-    font-size: 1.05rem;
-    color: var(--c-text);
-  }
-  
-  .cv-attachments {
-    padding: 1rem 1.5rem;
-    background: var(--c-bg);
-    border-top: 1px solid var(--c-border);
-  }
-  .cv-attach-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.8rem 1.25rem;
-    background: var(--c-card);
-    border: 1px solid var(--c-border);
-    border-radius: 0.75rem;
-    text-decoration: none;
-    color: var(--c-primary);
-    font-weight: 600;
-    font-size: 0.95rem;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s;
-  }
-  .cv-attach-link:hover {
-    border-color: var(--c-primary);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-  }
-
-  /* Signature Form Section */
-  .cv-sig-section {
-    background: var(--c-card);
-    border: 1px solid var(--c-primary-dark);
-    border-radius: var(--radius);
-    box-shadow: 0 0 0 4px var(--c-primary-light);
-    overflow: hidden;
-    animation: slideUp 0.5s ease-out;
-  }
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .cv-sig-header {
-    background: var(--c-primary);
-    color: white;
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .cv-sig-title {
-    font-weight: 800;
-    font-size: 1.1rem;
-    margin: 0;
-  }
-
-  .cv-sig-body {
-    padding: 1.5rem;
-  }
-
-  .cv-ack-text {
-    background: var(--c-bg);
-    padding: 1rem;
-    border-radius: 0.75rem;
-    border-left: 4px solid var(--c-primary);
-    margin-bottom: 1.5rem;
-    font-size: 0.95rem;
-    color: var(--c-text);
-  }
-
-  /* Form Elements */
-  .cv-form-group {
-    margin-bottom: 1.5rem;
-  }
-  .cv-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
-    color: var(--c-text);
-  }
-  .cv-input {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    font-size: 1.1rem;
-    border: 2px solid var(--c-border);
-    border-radius: 0.75rem;
-    background: var(--c-card);
-    color: var(--c-text);
-    transition: border-color 0.2s;
-    font-family: inherit;
-  }
-  .cv-input:focus {
-    outline: none;
-    border-color: var(--c-primary);
-  }
-  .cv-input-hint {
-    font-size: 0.85rem;
-    color: var(--c-text-muted);
-    margin-top: 0.4rem;
-  }
-  .cv-input-error {
-    color: var(--c-danger);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-top: 0.4rem;
-    display: none;
-  }
-
-  /* Switch Toggle */
-  .cv-switch {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    cursor: pointer;
-    padding: 1rem;
-    background: var(--c-bg);
-    border-radius: 0.75rem;
-    border: 2px solid transparent;
-    transition: all 0.2s;
-  }
-  .cv-switch:hover {
-    background: var(--c-primary-light);
-  }
-  .cv-switch:has(input:checked) {
-    background: var(--c-primary-light);
-    border-color: var(--c-primary);
-  }
-  
-  .cv-toggle {
-    position: relative;
-    width: 52px;
-    height: 30px;
-    background: var(--c-text-muted);
-    border-radius: 99px;
-    transition: 0.3s;
-    flex-shrink: 0;
-  }
-  .cv-toggle::before {
-    content: '';
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    top: 3px;
-    left: 3px; /* RTL aware later */
-    background: white;
-    transition: 0.3s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  }
-  
-  /* LTR/RTL Handling for Toggle */
-  [dir="rtl"] .cv-toggle::before {
-    left: auto;
-    right: 3px;
-  }
-  
-  input:checked + .cv-toggle {
-    background: var(--c-primary);
-  }
-  input:checked + .cv-toggle::before {
-    transform: translateX(22px); 
-  }
-  [dir="rtl"] input:checked + .cv-toggle::before {
-    transform: translateX(-22px); 
-  }
-
-  .cv-btn-submit {
-    width: 100%;
-    padding: 1rem;
-    background: var(--c-primary);
-    color: white;
-    border: none;
-    border-radius: 0.75rem;
-    font-size: 1.1rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s;
-    opacity: 0.5;
-    pointer-events: none;
-  }
-  
-  .cv-btn-submit.active {
-    opacity: 1;
-    pointer-events: auto;
-    box-shadow: 0 4px 12px rgba(0,108,53,0.3);
-  }
-  .cv-btn-submit.active:hover {
-    background: var(--c-primary-dark);
-    transform: translateY(-2px);
-  }
-  
-  /* Mobile Responsive */
-  @media (max-width: 768px) {
-    .cv-scope { padding: 1rem; overflow-x: hidden; }
-    .cv-title { font-size: 1.4rem; }
-    .cv-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-    .cv-card-header { flex-direction: column; align-items: flex-start; }
-    .cv-card-header, .cv-body { padding: 1.25rem; }
-    .cv-meta-group { flex-direction: column; gap: 0.5rem; }
-    .cv-body { font-size: 0.97rem; line-height: 1.85; }
-    .cv-sig-header { flex-direction: column; text-align: center; }
-    .cv-sig-body { padding: 1.25rem; }
-    .cv-ack-text { padding: 0.875rem; font-size: 0.9rem; }
-    .cv-attach-link { width: 100%; justify-content: center; }
-  }
-
-  @media (max-width: 480px) {
-    .cv-scope { padding: 0.75rem; }
-    .cv-title { font-size: 1.25rem; }
-    .cv-alert { padding: 0.875rem 1rem; font-size: 0.92rem; }
-    .cv-btn-submit { font-size: 1rem; padding: 0.9rem; }
-  }
-
-  /* 👑 ROYAL OVERLAY — تفاصيل تعميمي */
-  .cv-scope .cv-header{
-    position:relative; overflow:hidden;
-    background:
-      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
-      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
-    border:1px solid rgba(212,177,109,.42) !important;
-    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
-    padding:24px 22px !important; color:#fff !important;
-  }
-  .cv-scope .cv-header::after{
-    content:""; position:absolute; top:0; right:0; left:0; height:4px;
-    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
-  }
-  .cv-scope .cv-title{
-    color:#fff !important;
-    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-    font-weight:950 !important;
-  }
-  .cv-scope .cv-subtitle{ color:rgba(255,255,255,.82) !important; font-weight:800 !important; }
-  .cv-scope .cv-back-btn{
-    background:rgba(212,177,109,.16) !important; color:#fdf6e6 !important; border:1px solid rgba(212,177,109,.5) !important;
-  }
-  .cv-scope .cv-back-btn:hover{ background:#d4b16d !important; color:#063d22 !important; }
-  .cv-scope .cv-btn-submit, .cv-scope .btn-primary{
-    background:linear-gradient(135deg,#0a5c33,#074426) !important; border:none !important;
-    box-shadow:0 12px 26px -12px rgba(10,92,51,.6) !important;
-  }
-</style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'css/circulars-official.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="cv-scope" dir="rtl">
-  
-  <!-- Header with Back Button -->
-  <header class="cv-header">
-    <div>
-      <h1 class="cv-title">تفاصيل التعميم</h1>
-      <div class="cv-subtitle">رقم التعميم: #{{ r.pk }}</div>
-    </div>
-    <a href="{% url 'reports:my_circulars' %}" class="cv-back-btn">
-      <i class="fa-solid fa-arrow-right"></i>
-      العودة للقائمة
-    </a>
-  </header>
-
-  <!-- Status Banner -->
-  {% if not r.is_signed %}
-    <div class="cv-alert required" role="alert">
-      <i class="fa-solid fa-circle-exclamation cv-alert-icon"></i>
-      <div>
-        <div>إجراء مطلوب: توقيع التعميم</div>
-        <div style="font-weight:400;font-size:0.9rem;margin-top:2px">نرجو الاطلاع على المحتوى أدناه واعتماد التوقيع.</div>
+<main class="cir-shell circular-view-page" dir="rtl">
+  <div class="cir-container">
+    <header class="cir-hero cir-no-print">
+      <div class="cir-hero__main">
+        <div class="cir-hero__eyebrow"><i class="fa-solid fa-file-shield"></i> وثيقة إدارية رسمية</div>
+        <h1>الاطلاع على التعميم</h1>
+        <p>اقرأ الوثيقة ومرفقاتها بعناية، ثم اعتمد إقرار الاطلاع من لوحة التوقيع الإلكتروني.</p>
       </div>
-    </div>
-  {% else %}
-    <div class="cv-alert success" role="alert">
-      <i class="fa-solid fa-circle-check cv-alert-icon"></i>
-      <div>
-        <div>تم التوقيع بنجاح</div>
-        <div style="font-weight:400;font-size:0.9rem;margin-top:2px">
-          تم التوقيع بتاريخ {{ r.signed_at|date:"Y-m-d" }} الساعة {{ r.signed_at|date:"H:i a" }}
-        </div>
-      </div>
-    </div>
-  {% endif %}
-
-  <!-- Circular Content Card -->
-  <article class="cv-card">
-    <div class="cv-card-header">
-      <div>
-        <h2 style="margin:0;font-size:1.3rem;font-weight:800;color:var(--c-primary-dark)">
-          {{ n.title|default:"بدون عنوان" }}
-        </h2>
-      </div>
-      <div class="cv-meta-group">
-        <div class="cv-meta-item">
-          <i class="fa-regular fa-calendar"></i>
-          {{ r.created_at|date:"Y/m/d" }}
-        </div>
-        <div class="cv-meta-item">
-          <i class="fa-regular fa-user"></i>
-          {% firstof n.created_by.name n.created_by.phone "الإدارة" %}{% if n.created_by %} — {{ n.created_by.display_role_label }}{% endif %}
-        </div>
-      </div>
-    </div>
-
-    <div class="cv-body">
-      {% if body %}
-        {{ body|linebreaksbr }}
-      {% else %}
-        <p style="color:var(--c-text-muted);font-style:italic">لا يوجد محتوى نصي.</p>
-      {% endif %}
-    </div>
-
-    {% if n.attachment %}
-      <div class="cv-attachments">
-        <a href="{{ n.attachment.url }}" target="_blank" class="cv-attach-link">
-          <i class="fa-solid fa-file-pdf fa-lg"></i>
-          <span>فتح المرفق / تحميل</span>
+      <div class="cir-hero__actions">
+        <a href="{% url 'reports:my_circulars' %}" class="cir-btn cir-btn--hero">
+          <i class="fa-solid fa-arrow-right"></i> رجوع
         </a>
+        <button type="button" class="cir-btn cir-btn--hero" id="printCircular">
+          <i class="fa-solid fa-print"></i> طباعة التعميم
+        </button>
       </div>
-    {% endif %}
-  </article>
+    </header>
 
-  <!-- Signature Section -->
-  {% if not r.is_signed %}
-    {% if signing_closed %}
-    <section class="cv-sig-section" aria-labelledby="sig-heading">
-      <div class="cv-sig-header" style="color:#b91c1c">
-        <i class="fa-solid fa-lock fa-lg"></i>
-        <h3 id="sig-heading" class="cv-sig-title">انتهى موعد التوقيع</h3>
-      </div>
-      <div class="cv-sig-body">
-        <div class="cv-ack-text" style="border-color:#fecaca;background:#fef2f2;color:#991b1b">
-          <i class="fa-solid fa-circle-exclamation" style="margin-left:8px"></i>
-          انتهى آخر موعد للتوقيع على هذا التعميم
-          {% if n.signature_deadline_at %} بتاريخ {{ n.signature_deadline_at|date:"Y-m-d H:i" }}{% endif %}،
-          ولم يعد بالإمكان اعتماد التوقيع. يمكنك الاطلاع على المحتوى أعلاه فقط.
-        </div>
-      </div>
-    </section>
-    {% else %}
-    <section class="cv-sig-section" aria-labelledby="sig-heading">
-      <div class="cv-sig-header">
-        <i class="fa-solid fa-pen-nib fa-lg"></i>
-        <h3 id="sig-heading" class="cv-sig-title">اعتماد التوقيع الإلكتروني</h3>
-      </div>
+    <div class="cir-document-layout">
+      <article class="cir-document cir-printable" aria-labelledby="circularTitle">
+        <header class="cir-document__masthead">
+          <div class="cir-document__identity">
+            <div>المملكة العربية السعودية</div>
+            <div>وزارة التعليم</div>
+            <div>{% firstof SCHOOL_NAME "المدرسة" %}</div>
+          </div>
+          <img class="cir-document__logo" src="{% static 'img/logo1.png' %}" alt="شعار توثيق">
+          <div class="cir-document__reference">
+            <div>الرقم: CIR-{{ n.id|stringformat:"05d" }}</div>
+            <div>التاريخ: {{ n.created_at|date:"Y/m/d" }}</div>
+            <div>الحالة: {% if r.is_signed %}موقّع إلكترونيًا{% else %}بانتظار التوقيع{% endif %}</div>
+          </div>
+        </header>
 
-      <div class="cv-sig-body">
-        <div class="cv-ack-text">
-          <i class="fa-solid fa-quote-right" style="color:var(--c-primary);margin-left:8px"></i>
-          {% if n.signature_ack_text %}
-            {{ n.signature_ack_text|linebreaksbr }}
+        <div class="cir-document__type">تعميم إداري</div>
+        <h2 class="cir-document__title" id="circularTitle">{{ n.title|default:"تعميم رسمي" }}</h2>
+
+        <div class="cir-document__body">
+          {% if body %}
+            {{ body|linebreaksbr }}
           {% else %}
-            أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه وأتعهد بالالتزام به.
+            <p>يرجى الاطلاع على المرفق المعتمد لهذا التعميم.</p>
           {% endif %}
         </div>
 
-        <form id="sigForm" method="post" action="{% url 'reports:circular_sign' r.pk %}" novalidate>
-          {% csrf_token %}
-          
-          <div class="cv-form-group">
-            <label class="cv-label" for="sig_phone">رقم الجوال لتأكيد الهوية</label>
-            <input 
-              type="tel" 
-              id="sig_phone" 
-              name="phone" 
-              class="cv-input" 
-              placeholder="05xxxxxxxx" 
-              maxlength="10" 
-              inputmode="numeric" 
-              required
-            >
-            <div class="cv-input-hint">يجب أن يطابق الرقم المسجل في النظام</div>
-            <div id="sig_phone_error" class="cv-input-error"></div>
+        {% if n.signature_ack_text or n.signature_deadline_at %}
+        <aside class="cir-document__footnote">
+          {% if n.signature_ack_text %}
+            <strong>إقرار الاطلاع:</strong> {{ n.signature_ack_text|linebreaksbr }}
+          {% else %}
+            <strong>إقرار الاطلاع:</strong> أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه.
+          {% endif %}
+          {% if n.signature_deadline_at %}
+            <br><strong>آخر موعد للتوقيع:</strong> {{ n.signature_deadline_at|date:"Y/m/d — H:i" }}
+          {% endif %}
+        </aside>
+        {% endif %}
+
+        <footer class="cir-document__issued">
+          <span>جهة الإصدار: {% firstof sender_name "إدارة المدرسة" %}{% if sender_role_label %} — {{ sender_role_label }}{% endif %}</span>
+          {% if r.is_signed %}
+            <span><i class="fa-solid fa-circle-check"></i> اعتمد إلكترونيًا في {{ r.signed_at|date:"Y/m/d — H:i" }}</span>
+          {% else %}
+            <span>نسخة إلكترونية بانتظار إقرار المستلم</span>
+          {% endif %}
+        </footer>
+      </article>
+
+      <aside class="cir-side cir-no-print" aria-label="بيانات وإجراءات التعميم">
+        {% if r.is_signed %}
+          <div class="cir-notice cir-notice--success">
+            <i class="fa-solid fa-circle-check fa-lg"></i>
+            <div><strong>اكتمل توقيعك</strong><br>سُجّل إقرارك بتاريخ {{ r.signed_at|date:"Y/m/d" }} عند {{ r.signed_at|date:"H:i" }}.</div>
           </div>
-
-          <div class="cv-form-group">
-            <label class="cv-switch" for="sig_ack">
-              <input type="checkbox" id="sig_ack" name="ack" style="position:absolute;opacity:0;pointer-events:none" required>
-              <div class="cv-toggle"></div>
-              <span style="font-weight:700;font-size:0.95rem">أوافق على الإقرار أعلاه</span>
-            </label>
+        {% elif signing_closed %}
+          <div class="cir-notice cir-notice--danger">
+            <i class="fa-solid fa-lock fa-lg"></i>
+            <div><strong>أُغلق التوقيع</strong><br>انتهت المهلة المحددة، ويمكنك الاستمرار في الاطلاع والطباعة فقط.</div>
           </div>
+        {% else %}
+          <div class="cir-notice cir-notice--danger">
+            <i class="fa-solid fa-circle-exclamation fa-lg"></i>
+            <div><strong>إجراء مطلوب</strong><br>هذا التعميم يتطلب توقيعك الإلكتروني بعد إتمام الاطلاع.</div>
+          </div>
+        {% endif %}
 
-          <button type="submit" id="sigSubmit" class="cv-btn-submit">
-            <span>توقيع واعتماد</span>
-            <i class="fa-solid fa-check"></i>
-          </button>
-        </form>
-      </div>
-    </section>
-    {% endif %}
-  {% endif %}
+        <section class="cir-panel">
+          <h3 class="cir-panel__head"><i class="fa-solid fa-circle-info"></i> بيانات الوثيقة</h3>
+          <div class="cir-panel__body">
+            <dl class="cir-info-list">
+              <div class="cir-info-row"><dt>الرقم المرجعي</dt><dd>CIR-{{ n.id|stringformat:"05d" }}</dd></div>
+              <div class="cir-info-row"><dt>جهة الإصدار</dt><dd>{% firstof sender_name "إدارة المدرسة" %}{% if sender_role_label %} — {{ sender_role_label }}{% endif %}</dd></div>
+              <div class="cir-info-row"><dt>تاريخ الإصدار</dt><dd>{{ n.created_at|date:"Y/m/d — H:i" }}</dd></div>
+              {% if n.signature_deadline_at %}<div class="cir-info-row"><dt>مهلة التوقيع</dt><dd>{{ n.signature_deadline_at|date:"Y/m/d — H:i" }}</dd></div>{% endif %}
+            </dl>
+          </div>
+        </section>
 
-</div>
+        {% if n.attachment %}
+        <section class="cir-panel">
+          <h3 class="cir-panel__head"><i class="fa-solid fa-paperclip"></i> المرفق المعتمد</h3>
+          <div class="cir-panel__body">
+            <a href="{{ n.attachment.url }}" target="_blank" rel="noopener" class="cir-btn cir-attachment">
+              <i class="fa-solid fa-file-arrow-down"></i> فتح المرفق أو تنزيله
+            </a>
+          </div>
+        </section>
+        {% endif %}
+
+        {% if not r.is_signed and not signing_closed %}
+        <section class="cir-panel cir-signature" aria-labelledby="signatureTitle">
+          <h3 class="cir-panel__head" id="signatureTitle"><i class="fa-solid fa-pen-nib"></i> التوقيع الإلكتروني</h3>
+          <div class="cir-panel__body">
+            <div class="cir-signature__declaration">
+              {% if n.signature_ack_text %}{{ n.signature_ack_text|linebreaksbr }}{% else %}أقرّ بأنني اطلعت على التعميم وفهمت ما ورد فيه وأتعهد بالالتزام بمضمونه.{% endif %}
+            </div>
+
+            <form id="sigForm" method="post" action="{% url 'reports:circular_sign' r.pk %}" novalidate>
+              {% csrf_token %}
+              <div class="cir-field">
+                <label for="sig_phone">رقم الجوال المسجل</label>
+                <input class="cir-input" type="tel" id="sig_phone" name="phone" placeholder="05xxxxxxxx" maxlength="10" inputmode="numeric" autocomplete="tel" aria-describedby="sigPhoneHint sigPhoneError" required>
+                <small id="sigPhoneHint">يُستخدم لمطابقة هوية صاحب الحساب قبل الاعتماد.</small>
+                <div class="cir-field-error" id="sigPhoneError" role="alert"></div>
+              </div>
+
+              <label class="cir-ack" for="sig_ack">
+                <input type="checkbox" id="sig_ack" name="ack" required>
+                <span>قرأت التعميم ومرفقاته، وأوافق على إقرار الاطلاع الموضح أعلاه.</span>
+              </label>
+
+              <button type="submit" id="sigSubmit" class="cir-btn cir-btn--primary cir-sign-submit">
+                <i class="fa-solid fa-fingerprint"></i> اعتماد التوقيع نهائيًا
+              </button>
+            </form>
+          </div>
+        </section>
+        {% endif %}
+      </aside>
+    </div>
+  </div>
+</main>
 
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-  document.addEventListener('DOMContentLoaded', () => {
-    const phoneInput = document.getElementById('sig_phone');
-    const ackInput = document.getElementById('sig_ack');
-    const submitBtn = document.getElementById('sigSubmit');
-    const phoneError = document.getElementById('sig_phone_error');
-    const form = document.getElementById('sigForm');
+(function () {
+  const printButton = document.getElementById('printCircular');
+  if (printButton) printButton.addEventListener('click', () => window.print());
 
-    if(!form) return;
+  const form = document.getElementById('sigForm');
+  if (!form) return;
 
-    // Helpers
-    const normalizePhone = (val) => {
-      let nums = val.replace(/\D/g, '');
-      if(nums.startsWith('9665')) nums = '0' + nums.slice(3);
-      if(nums.length > 10) nums = nums.slice(0, 10);
-      return nums;
-    };
-    
-    const isValidPhone = (val) => /^05\d{8}$/.test(val);
+  const phone = document.getElementById('sig_phone');
+  const ack = document.getElementById('sig_ack');
+  const submit = document.getElementById('sigSubmit');
+  const error = document.getElementById('sigPhoneError');
 
-    // Validation Logic
-    const updateUI = () => {
-      const rawVal = phoneInput.value;
-      const cleanVal = normalizePhone(rawVal);
-      
-      // Update input value if changed by normalization (only if longer to avoid fighting deletion)
-      if (rawVal !== cleanVal && rawVal.length > 0) {
-        // Only force update if it filters characters, to avoid cursor jumps on simple typing
-        if (cleanVal.length < rawVal.length || rawVal.startsWith('966')) {
-           phoneInput.value = cleanVal;
-        }
-      }
+  function normalize(value) {
+    let digits = String(value || '').replace(/\D/g, '');
+    if (digits.startsWith('9665')) digits = '0' + digits.slice(3);
+    return digits.slice(0, 10);
+  }
 
-      const isPhoneValid = isValidPhone(cleanVal);
-      const isAck = ackInput.checked;
+  function validate() {
+    const normalized = normalize(phone.value);
+    if (phone.value !== normalized) phone.value = normalized;
+    const valid = /^05\d{8}$/.test(normalized);
+    error.style.display = normalized && !valid ? 'block' : 'none';
+    error.textContent = normalized && !valid ? 'أدخل رقم جوال سعوديًا صحيحًا يبدأ بـ 05.' : '';
+    submit.classList.toggle('is-ready', valid && ack.checked);
+    submit.disabled = !(valid && ack.checked);
+  }
 
-      // Show/Hide Phone Error
-      if (cleanVal.length >= 2 && !cleanVal.startsWith('05')) {
-        phoneError.textContent = 'يجب أن يبدأ الرقم بـ 05';
-        phoneError.style.display = 'block';
-      } else if (cleanVal.length === 10 && !isPhoneValid) {
-         phoneError.textContent = 'صيغة الرقم غير صحيحة';
-         phoneError.style.display = 'block';
-      } else {
-        phoneError.style.display = 'none';
-      }
+  phone.addEventListener('input', validate);
+  ack.addEventListener('change', validate);
+  validate();
 
-      // Toggle Submit
-      if (isPhoneValid && isAck) {
-        submitBtn.classList.add('active');
-      } else {
-        submitBtn.classList.remove('active');
-      }
-    };
-
-    phoneInput.addEventListener('input', updateUI);
-    ackInput.addEventListener('change', updateUI);
-
-    // Initial check
-    updateUI();
-
-    // Confirm Submission
-    form.addEventListener('submit', (e) => {
-      if (!submitBtn.classList.contains('active')) {
-        e.preventDefault();
-        return;
-      }
-      
-      const confirmed = confirm('هل أنت متأكد من اعتماد التوقيع؟ لا يمكن التراجع بعد الاعتماد.');
-      if (!confirmed) {
-        e.preventDefault();
-      } else {
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التوقيع...';
-        submitBtn.style.opacity = '0.7';
-      }
-    });
+  form.addEventListener('submit', function (event) {
+    if (submit.disabled) { event.preventDefault(); return; }
+    if (!window.confirm('سيتم اعتماد إقرارك وتسجيل وقت التوقيع، ولا يمكن التراجع عنه. هل تريد المتابعة؟')) {
+      event.preventDefault();
+      return;
+    }
+    submit.disabled = true;
+    submit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ اعتماد التوقيع…';
   });
+})();
 </script>
 {% endblock %}

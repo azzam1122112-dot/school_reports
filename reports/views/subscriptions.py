@@ -2588,9 +2588,6 @@ def tamara_checkout_create(request):
 
     city = (request.POST.get("tamara_city") or membership.school.city or "").strip()
     address = (request.POST.get("tamara_address") or "").strip()
-    if not city or not address:
-        messages.error(request, "أدخل المدينة والعنوان لإكمال الدفع عبر تمارا.")
-        return redirect("reports:my_subscription")
 
     batch_ref = uuid.uuid4().hex[:16]
     order_reference = f"TWQ-{batch_ref.upper()}"

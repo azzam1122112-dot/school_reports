@@ -273,6 +273,7 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
     recipients = []
     sig_total = 0
     sig_signed = 0
+    sig_read = 0
     if NotificationRecipient is not None:
         # اكتشف اسم FK للإشعار
         notif_fk = None
@@ -322,6 +323,8 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
                     sig_total += 1
                     if signed:
                         sig_signed += 1
+                    if is_read:
+                        sig_read += 1
 
                 recipients.append({
                     "name": str(name),
@@ -351,6 +354,10 @@ def notification_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "total": int(sig_total),
             "signed": int(sig_signed),
             "unsigned": int(max(sig_total - sig_signed, 0)),
+            "read": int(sig_read),
+            "unread": int(max(sig_total - sig_read, 0)),
+            "signed_percentage": int(round((sig_signed / sig_total) * 100)) if sig_total else 0,
+            "read_percentage": int(round((sig_read / sig_total) * 100)) if sig_total else 0,
         },
     }
     template_name = "reports/circular_detail.html" if bool(getattr(n, "requires_signature", False)) else "reports/notification_detail.html"
@@ -550,7 +557,12 @@ def notification_signatures_print(request: HttpRequest, pk: int) -> HttpResponse
     ctx = {
         "n": n,
         "rows": rows,
-        "stats": {"total": total, "signed": signed, "unsigned": max(total - signed, 0)},
+        "stats": {
+            "total": total,
+            "signed": signed,
+            "unsigned": max(total - signed, 0),
+            "signed_percentage": int(round((signed / total) * 100)) if total else 0,
+        },
     }
     return render(request, "reports/notification_signatures_print.html", ctx)
 
@@ -807,7 +819,7 @@ def my_circulars(request: HttpRequest) -> HttpResponse:
     try:
         qs = (
             NotificationRecipient.objects
-            .select_related("notification")
+            .select_related("notification", "notification__created_by")
             .filter(teacher=request.user)
             .order_by("-created_at", "-id")
         )

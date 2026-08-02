@@ -4,671 +4,79 @@
 {% block title %}التعاميم الواردة{% endblock %}
 
 {% block head %}
-<style>
-  /* ========== Premium 2026 Design System - My Circulars Template ========== */
-  
-  :root {
-    /* Primary Colors */
-    --circ-primary: #006c35;
-    --circ-primary-dark: #00542a;
-    --circ-primary-light: #0f8f87;
-    --circ-gradient: linear-gradient(135deg, #006c35 0%, #00542a 100%);
-    
-    /* Status Colors */
-    --circ-success: #16845b;
-    --circ-success-dark: #16845b;
-    --circ-danger: #ef4444;
-    --circ-danger-dark: #dc2626;
-    --circ-warning: #b9975b;
-    --circ-warning-dark: #d97706;
-    --circ-info: #06b6d4;
-    --circ-info-dark: #0891b2;
-    
-    /* Neutral Colors */
-    --circ-text: #1f2937;
-    --circ-text-light: #6b7280;
-    --circ-border: #e5e7eb;
-    --circ-bg: #ffffff;
-    --circ-bg-secondary: #f9fafb;
-    --circ-bg-hover: #f3f4f6;
-    
-    /* Shadow System */
-    --circ-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --circ-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --circ-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --circ-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    
-    /* Border Radius */
-    --circ-radius-sm: 8px;
-    --circ-radius-md: 12px;
-    --circ-radius-lg: 16px;
-    --circ-radius-xl: 24px;
-    --circ-radius-full: 9999px;
-    
-    /* Transitions */
-    --circ-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  /* Dark Mode Support */
-  html[data-theme="dark"] {
-    --circ-text: #f9fafb;
-    --circ-text-light: #d1d5db;
-    --circ-border: #374151;
-    --circ-bg: #1f2937;
-    --circ-bg-secondary: #111827;
-    --circ-bg-hover: #374151;
-  }
-  
-  /* ========== Layout Container ========== */
-  
-  .circulars-scope {
-    min-height: 100vh;
-    background: var(--circ-bg-secondary);
-    padding: 2rem;
-  }
-  
-  .circulars-container {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  
-  /* ========== Page Header ========== */
-  
-  .circulars-header {
-    background: var(--circ-gradient);
-    border-radius: var(--circ-radius-xl);
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--circ-shadow-lg);
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .circulars-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="1.5" fill="rgba(255,255,255,0.1)"/></svg>');
-    pointer-events: none;
-  }
-  
-  .circulars-header-content {
-    position: relative;
-    z-index: 1;
-  }
-  
-  .circulars-title-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.5rem;
-  }
-  
-  .circulars-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: white;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  
-  .circulars-title i {
-    font-size: 1.75rem;
-  }
-  
-  .circulars-pending-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: var(--circ-radius-full);
-    font-size: 0.875rem;
-    font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
-  }
-  
-  .circulars-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-  
-  /* ========== Toggle Switch ========== */
-  
-  .circulars-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    padding: 0.75rem 1.25rem;
-    border-radius: var(--circ-radius-full);
-    color: white;
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--circ-transition);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    user-select: none;
-  }
-  
-  .circulars-toggle:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.4);
-  }
-  
-  .circulars-toggle input[type="checkbox"] {
-    width: 44px;
-    height: 24px;
-    position: relative;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: var(--circ-radius-full);
-    cursor: pointer;
-    transition: var(--circ-transition);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-  }
-  
-  .circulars-toggle input[type="checkbox"]::before {
-    content: '';
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    top: 50%;
-    left: 2px;
-    transform: translateY(-50%);
-    background: white;
-    transition: var(--circ-transition);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-  
-  .circulars-toggle input[type="checkbox"]:checked {
-    background: var(--circ-success);
-    border-color: var(--circ-success);
-  }
-  
-  .circulars-toggle input[type="checkbox"]:checked::before {
-    left: calc(100% - 20px);
-  }
-  
-  /* ========== Mark All Button ========== */
-  
-  .circulars-mark-all-form {
-    margin: 0;
-  }
-  
-  .circulars-mark-all-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.95);
-    color: var(--circ-primary);
-    padding: 0.75rem 1.5rem;
-    border-radius: var(--circ-radius-full);
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: var(--circ-transition);
-    box-shadow: var(--circ-shadow-md);
-  }
-  
-  .circulars-mark-all-btn:hover {
-    background: white;
-    transform: translateY(-2px);
-    box-shadow: var(--circ-shadow-lg);
-  }
-  
-  .circulars-mark-all-btn:active {
-    transform: translateY(0);
-  }
-  
-  /* ========== Circular Cards ========== */
-  
-  .circulars-grid {
-    display: grid;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
-  
-  .circular-card {
-    background: var(--circ-bg);
-    border-radius: var(--circ-radius-lg);
-    padding: 1.5rem;
-    box-shadow: var(--circ-shadow-md);
-    border: 2px solid transparent;
-    border-right: 4px solid var(--circ-primary);
-    transition: var(--circ-transition);
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .circular-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--circ-gradient);
-    opacity: 0;
-    transition: var(--circ-transition);
-  }
-  
-  .circular-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--circ-shadow-xl);
-    border-color: var(--circ-primary-light);
-  }
-  
-  .circular-card:hover::before {
-    opacity: 1;
-  }
-  
-  .circular-card.read {
-    opacity: 0.85;
-    border-right-color: var(--circ-border);
-  }
-  
-  .circular-card.read:hover {
-    opacity: 1;
-  }
-  
-  /* ========== Card Header ========== */
-  
-  .circular-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-  
-  .circular-card-title-section {
-    flex: 1;
-    min-width: 0;
-  }
-  
-  .circular-card-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--circ-text);
-    margin: 0 0 0.5rem 0;
-    line-height: 1.4;
-  }
-  
-  .circular-card-time {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--circ-text-light);
-  }
-  
-  /* ========== Status Badges ========== */
-  
-  .circular-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: var(--circ-radius-full);
-    font-size: 0.875rem;
-    font-weight: 600;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  
-  .circular-status-badge.signed {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(22, 132, 91, 0.15) 100%);
-    color: var(--circ-success-dark);
-    border: 2px solid rgba(16, 185, 129, 0.3);
-  }
-  
-  .circular-status-badge.unsigned {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.15) 100%);
-    color: var(--circ-danger-dark);
-    border: 2px solid rgba(239, 68, 68, 0.3);
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  /* ========== Card Body ========== */
-  
-  .circular-card-body {
-    color: var(--circ-text-light);
-    line-height: 1.6;
-    margin-bottom: 1.25rem;
-    font-size: 0.9375rem;
-  }
-  
-  /* ========== Card Actions ========== */
-  
-  .circular-card-actions {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-  
-  .circular-open-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--circ-gradient);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: var(--circ-radius-md);
-    font-weight: 600;
-    text-decoration: none;
-    transition: var(--circ-transition);
-    box-shadow: var(--circ-shadow-md);
-  }
-  
-  .circular-open-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--circ-shadow-lg);
-    color: white;
-  }
-  
-  .circular-open-btn:active {
-    transform: translateY(0);
-  }
-  
-  /* ========== Pagination ========== */
-  
-  .circulars-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    background: var(--circ-bg);
-    padding: 1.5rem;
-    border-radius: var(--circ-radius-lg);
-    box-shadow: var(--circ-shadow-md);
-  }
-  
-  .circulars-pagination a {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: var(--circ-radius-md);
-    font-weight: 600;
-    text-decoration: none;
-    color: var(--circ-primary);
-    background: var(--circ-bg-secondary);
-    border: 2px solid var(--circ-border);
-    transition: var(--circ-transition);
-  }
-  
-  .circulars-pagination a:hover {
-    background: var(--circ-gradient);
-    color: white;
-    border-color: transparent;
-    transform: translateY(-2px);
-    box-shadow: var(--circ-shadow-md);
-  }
-  
-  .circulars-page-info {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: var(--circ-radius-md);
-    font-weight: 600;
-    background: linear-gradient(135deg, rgba(0, 108, 53, 0.1) 0%, rgba(0, 84, 42, 0.15) 100%);
-    color: var(--circ-primary-dark);
-    border: 2px solid rgba(0, 108, 53, 0.3);
-  }
-  
-  /* ========== Empty State ========== */
-  
-  .circulars-empty {
-    background: var(--circ-bg);
-    border-radius: var(--circ-radius-xl);
-    padding: 4rem 2rem;
-    text-align: center;
-    box-shadow: var(--circ-shadow-md);
-  }
-  
-  .circulars-empty-icon {
-    font-size: 4rem;
-    color: var(--circ-text-light);
-    opacity: 0.6;
-    margin-bottom: 1.5rem;
-  }
-  
-  .circulars-empty-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--circ-text);
-    margin: 0 0 0.5rem 0;
-  }
-  
-  .circulars-empty-text {
-    font-size: 1rem;
-    color: var(--circ-text-light);
-    margin: 0;
-  }
-  
-  /* ========== Responsive Design ========== */
-  
-  @media (max-width: 768px) {
-    .circulars-scope {
-      padding: 1rem;
-    }
-    
-    .circulars-header {
-      padding: 1.5rem;
-      border-radius: var(--circ-radius-lg);
-    }
-    
-    .circulars-title {
-      font-size: 1.5rem;
-    }
-    
-    .circulars-title i {
-      font-size: 1.25rem;
-    }
-    
-    .circulars-header-actions {
-      width: 100%;
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .circulars-toggle {
-      justify-content: space-between;
-    }
-    
-    .circulars-mark-all-btn {
-      width: 100%;
-      justify-content: center;
-    }
-    
-    .circular-card {
-      padding: 1.25rem;
-    }
-    
-    .circular-card-header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    
-    .circular-status-badge {
-      align-self: flex-start;
-    }
-    
-    .circulars-pagination {
-      flex-wrap: wrap;
-    }
-    
-    .circulars-empty {
-      padding: 3rem 1.5rem;
-    }
-    
-    .circulars-empty-icon {
-      font-size: 3rem;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .circulars-title {
-      font-size: 1.25rem;
-    }
-    
-    .circulars-pending-badge {
-      font-size: 0.8125rem;
-      padding: 0.4rem 0.8rem;
-    }
-    
-    .circular-card-title {
-      font-size: 1rem;
-    }
-    
-    .circulars-pagination a,
-    .circulars-page-info {
-      padding: 0.625rem 1rem;
-      font-size: 0.875rem;
-    }
-  }
-  
-  /* ========== Animation Support ========== */
-  
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-
-  /* 👑 ROYAL OVERLAY — تعاميمي */
-  .circulars-scope .circulars-header{
-    position:relative; overflow:hidden;
-    background:
-      radial-gradient(120% 150% at 92% -20%, rgba(212,177,109,.22), transparent 48%),
-      linear-gradient(135deg,#0b6238 0%, #074426 55%, #052e1a 100%) !important;
-    border:1px solid rgba(212,177,109,.42) !important;
-    border-radius:22px !important; box-shadow:0 24px 56px -26px rgba(5,46,26,.7) !important;
-    padding:24px 22px !important; color:#fff !important;
-  }
-  .circulars-scope .circulars-header::after{
-    content:""; position:absolute; top:0; right:0; left:0; height:4px;
-    background:linear-gradient(90deg, transparent, #d4b16d 18%, #e6cf9a 50%, #d4b16d 82%, transparent);
-  }
-  .circulars-scope .circulars-title{
-    color:#fff !important;
-    background:linear-gradient(90deg,#fff,#e6cf9a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-    font-weight:950 !important;
-  }
-  .circulars-scope .circulars-title i{ -webkit-text-fill-color:#e6cf9a !important; color:#e6cf9a !important; }
-  .circulars-scope .circulars-pending-badge{
-    background:rgba(212,177,109,.2) !important; border:1px solid rgba(212,177,109,.5) !important; color:#fdf6e6 !important;
-  }
-  .circulars-scope .circular-card,
-  .circulars-scope .circulars-item,
-  .circulars-scope .notif-card{
-    border:1px solid rgba(185,151,91,.20) !important;
-    box-shadow:0 12px 30px -22px rgba(10,92,51,.38) !important;
-  }
-</style>
+  <link rel="stylesheet" href="{% static 'css/circulars-official.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="circulars-scope" dir="rtl">
-  <div class="circulars-container">
-
-    <!-- Page Header -->
-    <header class="circulars-header">
-      <div class="circulars-header-content">
-        <div class="circulars-title-row">
-          <h1 class="circulars-title">
-            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-            <span>التعاميم الواردة</span>
-          </h1>
-
-          {% if NAV_SIGNATURES_PENDING %}
-            <span class="circulars-pending-badge">
-              <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
-              <span>{{ NAV_SIGNATURES_PENDING }} بانتظار التوقيع</span>
-            </span>
-          {% endif %}
-        </div>
-
-        <div class="circulars-header-actions">
-          <label class="circulars-toggle" for="onlyUnsigned" title="إظهار التعاميم التي لم يتم توقيعها بعد">
-            <input type="checkbox" id="onlyUnsigned">
-            <span>إظهار غير الموقّعة فقط</span>
-          </label>
-
-          <form class="circulars-mark-all-form" method="post" action="{% url 'reports:circulars_mark_all_read' %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{% url 'reports:my_circulars' %}">
-            <button class="circulars-mark-all-btn" type="submit" id="markAllBtn">
-              <i class="fa-solid fa-check-double" aria-hidden="true"></i>
-              <span>تحديد الكل كمقروء</span>
-            </button>
-          </form>
-        </div>
+<main class="cir-shell" dir="rtl">
+  <div class="cir-container">
+    <header class="cir-hero">
+      <div class="cir-hero__main">
+        <div class="cir-hero__eyebrow"><i class="fa-solid fa-landmark"></i> السجل الإداري الإلكتروني</div>
+        <h1>التعاميم الواردة</h1>
+        <p>اطّلع على التعاميم الرسمية الصادرة إليك، وتابع حالة القراءة والتوقيع من سجل واحد موثّق.</p>
       </div>
+      {% if NAV_SIGNATURES_PENDING %}
+        <div class="cir-hero__actions">
+          <span class="cir-status cir-status--pending">
+            <i class="fa-solid fa-pen-nib"></i>
+            {{ NAV_SIGNATURES_PENDING }} بانتظار توقيعك
+          </span>
+        </div>
+      {% endif %}
     </header>
 
-    <!-- Circulars Grid -->
     {% if page_obj and page_obj.object_list %}
-      <section class="circulars-grid" id="cards">
+      <section class="cir-toolbar" aria-label="أدوات التعاميم">
+        <div class="cir-toolbar__group">
+          <label class="cir-check" for="onlyUnsigned">
+            <input type="checkbox" id="onlyUnsigned">
+            <span>إظهار ما ينتظر توقيعي فقط</span>
+          </label>
+          <span class="cir-count" id="visibleCirculars" aria-live="polite"></span>
+        </div>
+        <form method="post" action="{% url 'reports:circulars_mark_all_read' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'reports:my_circulars' %}">
+          <button class="cir-btn" type="submit">
+            <i class="fa-solid fa-check-double"></i>
+            تحديد الكل كمقروء
+          </button>
+        </form>
+      </section>
+
+      <section class="cir-inbox" id="circularCards" aria-label="قائمة التعاميم">
         {% for r in page_obj %}
           {% with n=r.notification %}
-          <article class="circular-card {% if r.is_read %}read{% endif %}"
-                   data-signed="{% if r.is_signed %}1{% else %}0{% endif %}">
-            <div class="circular-card-header">
-              <div class="circular-card-title-section">
-                <h2 class="circular-card-title">
-                  {{ n.title|default:"تعميم" }}
-                </h2>
-                <time class="circular-card-time" datetime="{{ r.created_at|date:'c' }}">
-                  <i class="fa-regular fa-clock" aria-hidden="true"></i>
-                  <span>{{ r.created_at|date:"Y-m-d H:i" }}</span>
-                </time>
+          <article class="cir-inbox-card{% if r.is_signed %} is-signed{% endif %}" data-signed="{% if r.is_signed %}1{% else %}0{% endif %}">
+            <div class="cir-inbox-card__seal" aria-hidden="true">
+              <i class="fa-solid {% if r.is_signed %}fa-file-circle-check{% else %}fa-file-signature{% endif %}"></i>
+            </div>
+
+            <div>
+              <h2 class="cir-inbox-card__title">{{ n.title|default:"تعميم رسمي" }}</h2>
+              <p class="cir-inbox-card__excerpt">
+                {{ n.message|default:n.body|default:n.content|default:n.text|default:n.details|default:""|truncatechars:155 }}
+              </p>
+              <div class="cir-meta">
+                <span><i class="fa-regular fa-calendar"></i> {{ r.created_at|date:"Y/m/d — H:i" }}</span>
+                <span><i class="fa-regular fa-user"></i> {% firstof n.created_by.name n.created_by.phone "إدارة المدرسة" %}</span>
+                {% if n.signature_deadline_at %}
+                  <span><i class="fa-regular fa-clock"></i> آخر توقيع: {{ n.signature_deadline_at|date:"Y/m/d — H:i" }}</span>
+                {% endif %}
+                {% if n.is_important %}<span><i class="fa-solid fa-circle-exclamation"></i> هام</span>{% endif %}
               </div>
+            </div>
 
+            <div class="cir-inbox-card__action">
               {% if r.is_signed %}
-                <span class="circular-status-badge signed">
-                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-                  <span>تم التوقيع</span>
-                </span>
+                <span class="cir-status cir-status--signed"><i class="fa-solid fa-shield-halved"></i> مكتمل</span>
               {% else %}
-                <span class="circular-status-badge unsigned">
-                  <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                  <span>يتطلب توقيع</span>
-                </span>
+                <span class="cir-status cir-status--pending"><i class="fa-solid fa-pen-nib"></i> توقيع مطلوب</span>
               {% endif %}
-            </div>
-
-            <div class="circular-card-body">
-              {{ n.message|default:n.body|default:n.content|default:n.text|default:n.details|default:""|truncatechars:180 }}
-            </div>
-
-            <div class="circular-card-actions">
-              <a class="circular-open-btn" href="{% url 'reports:my_circular_detail' r.pk %}">
-                <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
-                <span>فتح التعميم</span>
+              <a class="cir-btn cir-btn--primary" href="{% url 'reports:my_circular_detail' r.pk %}">
+                <span>{% if r.is_signed %}عرض الوثيقة{% else %}اطلاع وتوقيع{% endif %}</span>
+                <i class="fa-solid fa-arrow-left"></i>
               </a>
             </div>
           </article>
@@ -676,71 +84,51 @@
         {% endfor %}
       </section>
 
-      <!-- Pagination -->
-      <div class="circulars-pagination">
+      {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="cir-pagination" aria-label="صفحات التعاميم">
         {% if page_obj.has_previous %}
-          <a href="?page={{ page_obj.previous_page_number }}">
-            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-            <span>السابق</span>
-          </a>
+          <a class="cir-btn" href="?page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-arrow-right"></i> السابق</a>
         {% endif %}
-        <span class="circulars-page-info">
-          <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
-          <span>صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
-        </span>
+        <span class="cir-pagination__label">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-          <a href="?page={{ page_obj.next_page_number }}">
-            <span>التالي</span>
-            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-          </a>
+          <a class="cir-btn" href="?page={{ page_obj.next_page_number }}">التالي <i class="fa-solid fa-arrow-left"></i></a>
         {% endif %}
-      </div>
+      </nav>
+      {% endif %}
     {% else %}
-      <!-- Empty State -->
-      <div class="circulars-empty">
-        <div class="circulars-empty-icon">
-          <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
-        </div>
-        <h2 class="circulars-empty-title">لا توجد تعاميم</h2>
-        <p class="circulars-empty-text">ستظهر التعاميم التي تتطلب توقيعاً هنا.</p>
-      </div>
+      <section class="cir-empty">
+        <div class="cir-empty__icon"><i class="fa-regular fa-folder-open"></i></div>
+        <h2>لا توجد تعاميم واردة</h2>
+        <p>ستظهر هنا التعاميم الرسمية التي تصدرها إدارة المدرسة وتتطلب اطلاعك أو توقيعك.</p>
+      </section>
     {% endif %}
-
   </div>
-</div>
+</main>
 
-<!-- Filter Script -->
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-(function(){
-  const onlyUnsigned = document.getElementById('onlyUnsigned');
-  const cards = document.getElementById('cards');
-  if(!onlyUnsigned || !cards) return;
+(function () {
+  const filter = document.getElementById('onlyUnsigned');
+  const list = document.getElementById('circularCards');
+  const count = document.getElementById('visibleCirculars');
+  if (!filter || !list) return;
 
-  // Load saved filter state from localStorage
-  const savedState = localStorage.getItem('circulars_filter_unsigned');
-  if(savedState === 'true') {
-    onlyUnsigned.checked = true;
-  }
+  filter.checked = sessionStorage.getItem('circulars_only_unsigned') === 'true';
 
-  function apply(){
-    const onlyU = !!onlyUnsigned.checked;
-    const items = cards.querySelectorAll('.circular-card');
-    
-    // Save state to localStorage
-    localStorage.setItem('circulars_filter_unsigned', onlyU);
-    
-    items.forEach(el => {
-      const signed = (el.getAttribute('data-signed') || '0') === '1';
-      if(onlyU && signed){ 
-        el.style.display = 'none'; 
-      } else { 
-        el.style.display = ''; 
-      }
+  function applyFilter() {
+    const onlyUnsigned = filter.checked;
+    let visible = 0;
+    list.querySelectorAll('.cir-inbox-card').forEach((card) => {
+      const signed = card.dataset.signed === '1';
+      const show = !onlyUnsigned || !signed;
+      card.hidden = !show;
+      if (show) visible += 1;
     });
+    sessionStorage.setItem('circulars_only_unsigned', String(onlyUnsigned));
+    if (count) count.textContent = visible + ' تعميم معروض';
   }
 
-  onlyUnsigned.addEventListener('change', apply);
-  apply(); // Apply on page load
+  filter.addEventListener('change', applyFilter);
+  applyFilter();
 })();
 </script>
 {% endblock %}

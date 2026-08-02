@@ -384,8 +384,9 @@
     }
     .report-footer div { color: var(--muted); }
   </style>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}">
+  <style>
+    {% include "reports/partials/report_print_official_styles.html" %}
+  </style>
 </head>
 <body>
 
@@ -406,6 +407,7 @@
         <div>المملكة العربية السعودية</div>
         <div>وزارة التعليم</div>
         <div>{% firstof SCHOOL_NAME "المدرسة" %}</div>
+        {% if SCHOOL_STAGE %}<div>{{ SCHOOL_STAGE }}</div>{% endif %}
        </div>
 
       <div class="hdr-center">
@@ -419,12 +421,19 @@
       <div class="hdr-block hdr-left">
         <div>التاريخ: {{ r.report_date|hijri }} هـ</div>
         {% if r.day_name %}<div>اليوم: {{ r.day_name }}</div>{% endif %}
-        <div>رقم التقرير: {{ r.id }}</div>
+        <div>مرجع الوثيقة: REP-{{ r.id }}</div>
       </div>
     </header>
 
-    <div class="title">تقرير </div>
-    <div class="subtitle">عنوان التقـرير: {% firstof r.title "—" %}</div>
+    <section class="report-identity" aria-labelledby="reportTitle">
+      <div class="identity-kicker">وثيقة تقرير مدرسي</div>
+      <h1 id="reportTitle">{% firstof r.title "تقرير مدرسي" %}</h1>
+      <div class="identity-tags">
+        <span>رقم التقرير: <b>{{ r.id }}</b></span>
+        <span>تاريخ التنفيذ: <b>{{ r.report_date|hijri }} هـ</b></span>
+        {% if r.academic_year %}<span>العام الدراسي: <b>{{ r.academic_year }} هـ</b></span>{% endif %}
+      </div>
+    </section>
 
     <table class="meta-table">
       <tr>
@@ -442,13 +451,13 @@
     </table>
 
     <section class="section">
-      <div class="section-h">أولاً:الـوصـف </div>
+      <div class="section-h"><span class="section-index">01</span><span>الوصف التنفيذي</span></div>
       <div class="section-body">{{ r.idea|default:"—" }}</div>
     </section>
     
     {% if r.image1 or r.image2 or r.image3 or r.image4 %}
-    <section class="section" style="border:1px solid var(--line);">
-      <div class="section-h">ثانياً: المرفقات والشواهد</div>
+    <section class="section evidence-section">
+      <div class="section-h"><span class="section-index">02</span><span>المرفقات والشواهد</span></div>
       <div class="images-grid">
         {% if r.image1 %}
         <div class="img-box">
@@ -487,6 +496,10 @@
     ============================================
     {% endcomment %}
     <div class="signature-spacer"></div>
+    <div class="approval-heading">
+      <strong>الاعتمادات والتوقيعات</strong>
+      <small>يعتمد التقرير بعد مراجعة محتواه وشواهده</small>
+    </div>
 
     {% comment %}
     ============================================
@@ -556,8 +569,8 @@
     {% endif %}
 
     {% if show_comments %}
-      <section class="section no-print" style="border:1px solid var(--line);">
-        <div class="section-h">ملاحظات وتعليقات خاصة</div>
+      <section class="section report-comments no-print">
+        <div class="section-h"><span class="section-index">03</span><span>ملاحظات وتعليقات خاصة</span></div>
 
         <div style="color:var(--muted);font-weight:800;margin:-2px 0 10px;">
           لا تظهر في الطباعة أو المشاركة.
@@ -625,8 +638,9 @@
     {% endif %}
 
     <div class="report-footer">
-      <div>تم إصدار التقرير إلكترونيًا — {% now "Y/m/d H:i" %}</div>
-      <div>منصة توثيق التقارير المدرسية</div>
+      <div>تم الإصدار إلكترونيًا: {% now "Y/m/d H:i" %}</div>
+      <div class="footer-brand">منصة توثيق التقارير المدرسية</div>
+      <div class="footer-ref">REP-{{ r.id }}</div>
     </div>
 
   </div>
@@ -654,47 +668,9 @@
       {% endif %}
     }
 
-    // ===== التحجيم التلقائي ليُطبع التقرير في صفحة A4 واحدة قدر الإمكان =====
-    // يقيس ارتفاع المحتوى مقارنةً بالمساحة القابلة للطباعة، وإن تجاوزها يُصغّر
-    // عبر zoom دون النزول تحت 65% حفاظًا على الوضوح.
-    var MIN_FIT_SCALE = 0.65;
-
-    function pxPerMm() {
-      var ruler = document.createElement('div');
-      ruler.style.cssText = 'position:absolute;visibility:hidden;height:100mm;width:0;top:0;left:0;';
-      document.body.appendChild(ruler);
-      var v = ruler.getBoundingClientRect().height / 100;
-      ruler.remove();
-      return v || 3.7795; // 96dpi fallback
-    }
-
-    function fitToOnePage() {
-      var page = document.querySelector('.page');
-      if (!page) return;
-      page.style.zoom = '1';
-      // المساحة القابلة للطباعة داخل A4 مع هوامش @page (14mm أعلى/أسفل)
-      var printableMm = 297 - 14 - 14;
-      var target = pxPerMm() * printableMm;
-      var h = page.scrollHeight;
-      if (h > target + 2) {
-        var scale = Math.max(target / h, MIN_FIT_SCALE);
-        page.style.zoom = String(scale);
-      }
-    }
-
-    function resetFit() {
-      var page = document.querySelector('.page');
-      if (page) page.style.zoom = '1';
-    }
-
-    // قبل الطباعة (Ctrl+P أو من المتصفح)
-    window.addEventListener('beforeprint', fitToOnePage);
-    window.addEventListener('afterprint', resetFit);
-
     // ربط أزرار شريط الأدوات (متوافق مع CSP بدل onclick)
     var _btnPrint = document.getElementById('btnPrint');
     if (_btnPrint) _btnPrint.addEventListener('click', function(){
-      fitToOnePage();                 // لمتصفحات لا تطلق beforeprint (Safari)
       setTimeout(function(){ window.print(); }, 30);
     });
     var _btnBack = document.getElementById('btnBack');
@@ -710,7 +686,6 @@
 
     // Auto print if ?print=true (optional)
     if(window.location.search.includes('print=true')){
-      fitToOnePage();
       setTimeout(function(){ window.print(); }, 60);
     }
   </script>

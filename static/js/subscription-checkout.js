@@ -45,6 +45,13 @@
     const orderEmptyState = form.querySelector("#orderEmptyState");
     const receiptSubmit = form.querySelector("#submitBtn");
     const tamaraSubmit = form.querySelector("#tamaraSubmit");
+    const tamaraCheckout = form.querySelector(".tamara-checkout");
+    const tamaraInstallmentAmount = form.querySelector(
+      "#tamaraInstallmentAmount",
+    );
+    const tamaraInstallmentAmounts = form.querySelectorAll(
+      "[data-tamara-installment-amount]",
+    );
 
     function input(name) {
       return form.querySelector(`input[name="${name}"]`);
@@ -143,6 +150,17 @@
       if (storageSelected) total += storageAmount() || 0;
 
       if (orderTotal) orderTotal.textContent = formatAmount(total);
+      const installment = total / 4;
+      const formattedInstallment = formatAmount(installment);
+      if (tamaraInstallmentAmount) {
+        tamaraInstallmentAmount.textContent = formattedInstallment;
+      }
+      tamaraInstallmentAmounts.forEach((element) => {
+        element.textContent = `${formattedInstallment} ر.س`;
+      });
+      if (tamaraCheckout) {
+        tamaraCheckout.classList.toggle("is-ready", anySelected);
+      }
       if (orderEmptyState) orderEmptyState.hidden = anySelected;
       setSubmitState(
         receiptSubmit,

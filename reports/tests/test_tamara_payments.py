@@ -83,6 +83,10 @@ class TamaraPaymentTests(TestCase):
         response = self.client.get(reverse("reports:my_subscription"))
 
         self.assertContains(response, 'id="tamaraSubmit"')
+        self.assertContains(response, 'id="tamaraInstallmentAmount"')
+        self.assertContains(response, "img/tamara-wordmark-gradient-ar.png")
+        self.assertContains(response, "إضافة عنوان فوترة")
+        self.assertContains(response, "اختياري")
         self.assertContains(response, "بيئة اختبار")
 
     @override_settings(TAMARA_ENABLED=True, TAMARA_API_TOKEN="sandbox-token")
@@ -119,11 +123,41 @@ class TamaraPaymentTests(TestCase):
         self.assertEqual(sent_payload["risk_assessment"]["total_order_count"], 0)
         self.assertEqual(sent_payload["risk_assessment"]["education"]["purchase_type"], "Subscription")
         self.assertFalse(sent_payload["is_mobile"])
+        self.assertNotIn("shipping_address", sent_payload)
+        self.assertEqual(sent_payload["billing_address"]["city"], "الرياض")
         eligibility_mock.assert_called_once_with(
             amount=Decimal("1200.00"),
             phone=self.manager.phone,
             email=self.manager.email,
         )
+
+    @override_settings(TAMARA_ENABLED=True, TAMARA_API_TOKEN="sandbox-token")
+    @patch("reports.views.subscriptions.is_customer_eligible", return_value=True)
+    @patch("reports.views.subscriptions.create_checkout")
+    def test_checkout_accepts_missing_optional_billing_address(
+        self, create_checkout_mock, eligibility_mock
+    ):
+        create_checkout_mock.return_value = {
+            "order_id": "11111111-1111-1111-1111-111111111111",
+            "checkout_id": "22222222-2222-2222-2222-222222222222",
+            "status": "new",
+            "checkout_url": "https://checkout.tamara.co/checkout/example",
+        }
+        payload = self._checkout_payload()
+        payload.pop("tamara_city")
+        payload.pop("tamara_address")
+
+        response = self.client.post(reverse("reports:tamara_checkout_create"), payload)
+
+        self.assertRedirects(
+            response,
+            "https://checkout.tamara.co/checkout/example",
+            fetch_redirect_response=False,
+        )
+        sent_payload = create_checkout_mock.call_args.args[0]
+        self.assertNotIn("shipping_address", sent_payload)
+        self.assertNotIn("billing_address", sent_payload)
+        eligibility_mock.assert_called_once()
 
     @override_settings(TAMARA_ENABLED=True, TAMARA_API_TOKEN="sandbox-token")
     @patch("reports.views.subscriptions.is_customer_eligible", return_value=False)

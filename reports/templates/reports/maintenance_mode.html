@@ -5,6 +5,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#006c35">
+  <meta name="color-scheme" content="light dark">
+  {% include "reports/partials/theme_bootstrap.html" %}
   <!-- إعادة محاولة تلقائية: تعود المنصة للمستخدم فور انتهاء الصيانة دون أي إجراء منه -->
   <meta http-equiv="refresh" content="60">
   <title>الموقع تحت الصيانة والتطوير</title>
@@ -364,6 +367,8 @@
       .retry-btn { transition: none !important; }
     }
   </style>
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260802.1">
+  <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>
   <main class="maintenance-shell" aria-labelledby="maintenance-title">

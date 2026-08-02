@@ -21,18 +21,7 @@
     window.USER_IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
   </script>
   <!-- Theme: apply BEFORE CSS to avoid flash -->
-  <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-    (function(){
-      try{
-        var m = document.cookie.match(/(?:^|; )theme=([^;]+)/);
-        var theme = m ? decodeURIComponent(m[1]) : '';
-        if(theme === 'dark' || theme === 'light'){
-          document.documentElement.setAttribute('data-theme', theme);
-          document.documentElement.style.colorScheme = theme;
-        }
-      }catch(e){}
-    })();
-  </script>
+  {% include "reports/partials/theme_bootstrap.html" %}
 
   <!-- Performance -->
   <link rel="preload" href="{% static 'css/app.css' %}?v=20260731.3" as="style">
@@ -777,9 +766,11 @@
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/v4-shims.min.css' %}">
 
   <link rel="stylesheet" href="{% static 'css/mobile-professional.css' %}?v=20260731.3" />
-  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}?v=20260802.1" />
 
   {% block head %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260802.1" />
+  <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 
 <body class="page {% if request.resolver_match and request.resolver_match.url_name == 'home' %}is-home{% else %}not-home{% endif %}">
@@ -1702,43 +1693,6 @@
         };
         container.addEventListener('keydown', container[key]);
       };
-    })();
-
-    // ===== Theme (data-theme) =====
-    (function(){
-      const root = document.documentElement;
-      const btns = document.querySelectorAll('.theme-toggle');
-
-      const apply = (theme)=>{
-        root.setAttribute('data-theme', theme);
-        window.setCookie('theme', theme, 365);
-        btns.forEach(btn => {
-          const icon = btn.querySelector('i');
-          if(icon){
-            icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-          }
-        });
-      };
-
-      const saved = window.getCookie('theme');
-      if(saved === 'dark' || saved === 'light'){
-        apply(saved);
-      }else{
-        if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
-          root.setAttribute('data-theme', 'dark');
-          btns.forEach(btn => {
-            const icon = btn.querySelector('i');
-            if(icon) icon.className = 'fa-solid fa-sun';
-          });
-        }
-      }
-
-      btns.forEach(btn => {
-        btn.addEventListener('click', ()=>{
-          const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-          apply(current === 'dark' ? 'light' : 'dark');
-        });
-      });
     })();
 
     // ===== Progress + Header shadow =====
