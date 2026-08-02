@@ -1078,6 +1078,33 @@ TAMARA_API_BASE_URL = (
 ).strip().rstrip("/")
 TAMARA_INSTALMENTS = int(os.getenv("TAMARA_INSTALMENTS", "4"))
 TAMARA_REQUEST_TIMEOUT = int(os.getenv("TAMARA_REQUEST_TIMEOUT", "15"))
+
+# ----------------- Moyasar payments -----------------
+# Keep test mode isolated from strict production. The secret key is server-only;
+# checkout is hosted by Moyasar and the returned invoice is verified server-side.
+MOYASAR_ENABLED = _env_bool("MOYASAR_ENABLED", False)
+MOYASAR_ENVIRONMENT = (os.getenv("MOYASAR_ENVIRONMENT") or "test").strip().lower()
+MOYASAR_SECRET_KEY = (os.getenv("MOYASAR_SECRET_KEY") or "").strip()
+if MOYASAR_ENVIRONMENT not in {"test", "live"}:
+    raise ImproperlyConfigured("MOYASAR_ENVIRONMENT must be either test or live.")
+if MOYASAR_ENABLED:
+    if not MOYASAR_SECRET_KEY:
+        raise ImproperlyConfigured(
+            "Moyasar is enabled but MOYASAR_SECRET_KEY is missing."
+        )
+    expected_prefix = "sk_live_" if MOYASAR_ENVIRONMENT == "live" else "sk_test_"
+    if not MOYASAR_SECRET_KEY.startswith(expected_prefix):
+        raise ImproperlyConfigured(
+            "MOYASAR_SECRET_KEY does not match MOYASAR_ENVIRONMENT."
+        )
+    if ENV == "production" and PRODUCTION_STRICT_MODE and MOYASAR_ENVIRONMENT != "live":
+        raise ImproperlyConfigured(
+            "MOYASAR_ENVIRONMENT must be live when Moyasar is enabled in strict production mode."
+        )
+MOYASAR_API_BASE_URL = (
+    os.getenv("MOYASAR_API_BASE_URL") or "https://api.moyasar.com/v1"
+).strip().rstrip("/")
+MOYASAR_REQUEST_TIMEOUT = int(os.getenv("MOYASAR_REQUEST_TIMEOUT", "15"))
 CANONICAL_HOST_REDIRECT = _env_bool(
     "CANONICAL_HOST_REDIRECT",
     ENV == "production",

@@ -6,7 +6,7 @@ from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 import json
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 import uuid
 
 from django.core.exceptions import ImproperlyConfigured
@@ -19,6 +19,12 @@ from ._helpers import (
     _clean_query_value, _clean_query_params, _parse_date_safe,
 )
 from ..mansour_knowledge import AUDIENCE_LABELS
+from ..moyasar_gateway import (
+    MoyasarGatewayError,
+    create_invoice as create_moyasar_invoice,
+    fetch_invoice as fetch_moyasar_invoice,
+    is_enabled as moyasar_is_enabled,
+)
 from ..tamara_gateway import (
     TamaraGatewayError,
     authorise_order,
@@ -1861,10 +1867,17 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
         today = timezone.localdate()
         pricing = _archive_pricing()
 
-        if payment.payment_method == Payment.Method.TAMARA and payment.gateway_status != "fully_captured":
+        gateway_unsettled = (
+            payment.payment_method == Payment.Method.TAMARA
+            and payment.gateway_status != "fully_captured"
+        ) or (
+            payment.payment_method == Payment.Method.MOYASAR
+            and payment.gateway_status != "paid"
+        )
+        if gateway_unsettled:
             requested_status = (request.POST.get("status") or "").strip()
             if action == "approve_batch" or requested_status == Payment.Status.APPROVED:
-                messages.error(request, "لا يمكن اعتماد دفعة تمارا يدويًا قبل تأكيد التحصيل من البوابة.")
+                messages.error(request, "لا يمكن اعتماد دفعة إلكترونية يدويًا قبل تأكيد التحصيل من البوابة.")
                 return redirect("reports:platform_payment_detail", pk=pk)
 
         # ===== (أ) اعتماد الطلب الموحّد كاملاً بضغطة واحدة =====
@@ -2111,6 +2124,8 @@ def my_subscription(request):
         "pending_archive_storage_payment": pending_archive_storage_payment,
         "tamara_enabled": tamara_is_enabled(),
         "tamara_environment": str(getattr(settings, "TAMARA_ENVIRONMENT", "sandbox") or "sandbox"),
+        "moyasar_enabled": moyasar_is_enabled(),
+        "moyasar_environment": str(getattr(settings, "MOYASAR_ENVIRONMENT", "test") or "test"),
         "has_saved_archives": SchoolYearArchive.objects.filter(
             school=membership.school,
             status__in=[
@@ -2521,6 +2536,229 @@ def _manager_payment_membership(request):
         if membership:
             return membership
     return memberships.first()
+
+
+def _complete_moyasar_invoice(batch_ref: str, invoice: dict) -> None:
+    invoice_id = str(invoice.get("id") or "").strip()
+    invoice_status = str(invoice.get("status") or "").strip().lower()
+    currency = str(invoice.get("currency") or "").strip().upper()
+    metadata = invoice.get("metadata") if isinstance(invoice.get("metadata"), dict) else {}
+    if invoice_status != "paid":
+        raise _ApprovalError("فاتورة ميّسر لم تصل إلى حالة مدفوعة.")
+    if currency != "SAR":
+        raise _ApprovalError("عملة فاتورة ميّسر لا تطابق عملة الطلب.")
+    if str(metadata.get("batch_ref") or "") != batch_ref:
+        raise _ApprovalError("مرجع فاتورة ميّسر لا يطابق الطلب المحلي.")
+
+    payment_attempts = invoice.get("payments") if isinstance(invoice.get("payments"), list) else []
+    paid_attempt = next(
+        (
+            attempt
+            for attempt in payment_attempts
+            if isinstance(attempt, dict)
+            and str(attempt.get("status") or "").lower() in {"paid", "captured"}
+        ),
+        {},
+    )
+    gateway_payment_id = str(paid_attempt.get("id") or "")[:160]
+
+    pricing = _archive_pricing()
+    today = timezone.localdate()
+    with transaction.atomic():
+        payments = list(
+            Payment.objects.select_for_update()
+            .filter(payment_method=Payment.Method.MOYASAR, batch_ref=batch_ref)
+            .order_by("id")
+        )
+        if not payments or not invoice_id:
+            raise _ApprovalError("طلب ميّسر غير معروف.")
+        if any(payment.gateway_order_id != invoice_id for payment in payments):
+            raise _ApprovalError("رقم فاتورة ميّسر لا يطابق الطلب المحلي.")
+
+        expected_halalas = int(
+            (
+                sum((payment.amount for payment in payments), Decimal("0"))
+                * Decimal("100")
+            ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
+        try:
+            invoice_amount = int(invoice.get("amount"))
+        except (TypeError, ValueError) as exc:
+            raise _ApprovalError("مبلغ فاتورة ميّسر غير صالح.") from exc
+        if invoice_amount != expected_halalas:
+            raise _ApprovalError("مبلغ فاتورة ميّسر لا يطابق مبلغ الطلب.")
+
+        payments.sort(key=lambda payment: _PURPOSE_APPLY_ORDER.get(payment.purpose, 99))
+        for payment in payments:
+            if payment.status == Payment.Status.APPROVED and payment.effects_applied_at:
+                continue
+            payment.status = Payment.Status.APPROVED
+            payment.gateway_status = "paid"
+            payment.gateway_capture_id = gateway_payment_id
+            payment.gateway_completed_at = payment.gateway_completed_at or timezone.now()
+            payment.save(
+                update_fields=[
+                    "status",
+                    "gateway_status",
+                    "gateway_capture_id",
+                    "gateway_completed_at",
+                    "updated_at",
+                ]
+            )
+            _apply_payment_effects(payment, today, pricing)
+
+
+def _sync_moyasar_batch(batch_ref: str) -> str:
+    payment = (
+        Payment.objects.filter(
+            payment_method=Payment.Method.MOYASAR,
+            batch_ref=batch_ref,
+        )
+        .order_by("id")
+        .first()
+    )
+    if not payment or not payment.gateway_order_id:
+        raise _ApprovalError("طلب ميّسر غير معروف.")
+    invoice = fetch_moyasar_invoice(payment.gateway_order_id)
+    invoice_status = str(invoice.get("status") or "").strip().lower()
+    if invoice_status == "paid":
+        _complete_moyasar_invoice(batch_ref, invoice)
+    elif invoice_status in {"failed", "canceled", "expired", "voided"}:
+        local_status = (
+            Payment.Status.REJECTED
+            if invoice_status == "failed"
+            else Payment.Status.CANCELLED
+        )
+        Payment.objects.filter(
+            payment_method=Payment.Method.MOYASAR,
+            batch_ref=batch_ref,
+            status=Payment.Status.PENDING,
+        ).update(status=local_status, gateway_status=invoice_status)
+    else:
+        Payment.objects.filter(
+            payment_method=Payment.Method.MOYASAR,
+            batch_ref=batch_ref,
+            status=Payment.Status.PENDING,
+        ).update(gateway_status=invoice_status[:32])
+    return invoice_status
+
+
+@login_required(login_url="reports:login")
+@ratelimit(key="user", rate="5/m", method="POST", block=True)
+@require_http_methods(["POST"])
+def moyasar_checkout_create(request):
+    if not moyasar_is_enabled():
+        messages.error(request, "الدفع عبر ميّسر غير متاح حاليًا.")
+        return redirect("reports:my_subscription")
+
+    membership = _manager_payment_membership(request)
+    if not membership:
+        messages.error(request, "هذه الخدمة مخصصة لمدير المدرسة.")
+        return redirect("reports:home")
+
+    subscription = (
+        SchoolSubscription.objects.filter(school=membership.school)
+        .select_related("plan")
+        .first()
+    )
+    try:
+        items, warnings = _build_unified_payment_items(request, membership, subscription)
+    except _PaymentSelectionError as exc:
+        messages.error(request, str(exc))
+        return redirect("reports:my_subscription")
+
+    batch_ref = uuid.uuid4().hex[:16]
+    total = sum((Decimal(str(item["amount"])) for item in items), Decimal("0"))
+    labels = "، ".join(item["label"] for item in items)
+    callback_url = request.build_absolute_uri(
+        reverse("reports:moyasar_callback", args=[batch_ref])
+    )
+    success_url = request.build_absolute_uri(
+        reverse("reports:moyasar_return", args=[batch_ref])
+    )
+    back_url = request.build_absolute_uri(reverse("reports:my_subscription"))
+    try:
+        invoice = create_moyasar_invoice(
+            amount=total,
+            description=f"خدمات منصة توثيق: {labels}",
+            callback_url=callback_url,
+            success_url=success_url,
+            back_url=back_url,
+            metadata={
+                "batch_ref": batch_ref,
+                "school_id": str(membership.school_id),
+            },
+        )
+    except (MoyasarGatewayError, ImproperlyConfigured):
+        logger.exception("Moyasar invoice creation failed")
+        messages.error(request, "تعذّر بدء الدفع عبر ميّسر. حاول مجددًا أو استخدم طريقة أخرى.")
+        return redirect("reports:my_subscription")
+
+    checkout_url = str(invoice.get("url") or "").strip()
+    parsed_checkout_url = urlparse(checkout_url)
+    checkout_host = (parsed_checkout_url.hostname or "").lower()
+    if parsed_checkout_url.scheme != "https" or checkout_host != "checkout.moyasar.com":
+        logger.error("Moyasar returned an unsafe checkout URL")
+        messages.error(request, "تعذّر التحقق من رابط الدفع عبر ميّسر.")
+        return redirect("reports:my_subscription")
+
+    invoice_id = str(invoice.get("id") or "").strip()
+    gateway_status = str(invoice.get("status") or "initiated")[:32]
+    note = f"[فاتورة ميّسر {batch_ref.upper()}] {labels} — الإجمالي {total} ريال."
+    with transaction.atomic():
+        for item in items:
+            Payment.objects.create(
+                school=membership.school,
+                subscription=subscription,
+                requested_plan=item.get("requested_plan"),
+                purpose=item["purpose"],
+                amount=item["amount"],
+                archive_storage_gb=item.get("archive_storage_gb", 0),
+                notes=note,
+                batch_ref=batch_ref,
+                payment_method=Payment.Method.MOYASAR,
+                gateway_order_id=invoice_id,
+                gateway_checkout_id=invoice_id,
+                gateway_status=gateway_status,
+                created_by=request.user,
+            )
+
+    if warnings:
+        messages.warning(request, "لم تُضف بعض العناصر: " + " ، ".join(warnings))
+    return redirect(checkout_url)
+
+
+@require_http_methods(["GET"])
+def moyasar_return(request, batch_ref: str):
+    if not moyasar_is_enabled():
+        messages.error(request, "الدفع عبر ميّسر غير متاح حاليًا.")
+        return redirect("reports:my_subscription")
+    try:
+        invoice_status = _sync_moyasar_batch(batch_ref)
+    except (MoyasarGatewayError, ImproperlyConfigured, _ApprovalError):
+        logger.exception("Moyasar return verification failed for batch %s", batch_ref)
+        messages.error(request, "تعذّر التحقق من نتيجة الدفع عبر ميّسر. سيُعاد التحقق تلقائيًا.")
+    else:
+        if invoice_status == "paid":
+            messages.success(request, "تم تأكيد الدفع عبر ميّسر وتفعيل الخدمات المختارة.")
+        elif invoice_status in {"failed", "canceled", "expired", "voided"}:
+            messages.error(request, "لم تكتمل فاتورة ميّسر. يمكنك إنشاء طلب جديد.")
+        else:
+            messages.info(request, "فاتورة ميّسر ما زالت بانتظار إكمال الدفع.")
+    return redirect("reports:my_subscription")
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def moyasar_callback(request, batch_ref: str):
+    if not moyasar_is_enabled():
+        return JsonResponse({"detail": "Moyasar is disabled."}, status=404)
+    try:
+        invoice_status = _sync_moyasar_batch(batch_ref)
+    except (MoyasarGatewayError, ImproperlyConfigured, _ApprovalError):
+        logger.exception("Moyasar callback verification failed for batch %s", batch_ref)
+        return JsonResponse({"detail": "Could not verify invoice."}, status=502)
+    return JsonResponse({"ok": True, "status": invoice_status})
 
 
 def _tamara_risk_assessment(school, items):

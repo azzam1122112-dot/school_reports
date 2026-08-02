@@ -296,6 +296,17 @@ urlpatterns = [
     path("subscription/my/", views.my_subscription, name="my_subscription"),
     path("subscription/history/", views.subscription_history, name="subscription_history"),
     path("subscription/payment/create/", views.payment_create, name="payment_create"),
+    path("subscription/payment/moyasar/", views.moyasar_checkout_create, name="moyasar_checkout_create"),
+    path(
+        "subscription/payment/moyasar/return/<str:batch_ref>/",
+        views.moyasar_return,
+        name="moyasar_return",
+    ),
+    path(
+        "payments/moyasar/callback/<str:batch_ref>/",
+        views.moyasar_callback,
+        name="moyasar_callback",
+    ),
     path("subscription/payment/tamara/", views.tamara_checkout_create, name="tamara_checkout_create"),
     path(
         "subscription/payment/tamara/<int:payment_id>/cancel/",

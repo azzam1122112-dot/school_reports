@@ -502,7 +502,7 @@
                 <td data-label="رقم العملية" style="text-align:right">#{{ payment.id }}</td>
                 <td data-label="التاريخ" style="text-align:right">{{ payment.payment_date|hijri }} هـ</td>
                 <td data-label="المبلغ" style="text-align:right">{{ payment.amount|floatformat:0|intcomma }} ريال</td>
-                <td data-label="طريقة الدفع" style="text-align:right">{% if payment.payment_method == 'tamara' %}تمارا{% else %}تحويل بنكي{% endif %}</td>
+                <td data-label="طريقة الدفع" style="text-align:right">{{ payment.get_payment_method_display }}</td>
                 <td data-label="الحالة" style="text-align:right">
                   {% if payment.status == 'approved' %}
                     <span class="badge success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> مقبول</span>
@@ -512,6 +512,8 @@
                     <span class="badge warning"><i class="fa-solid fa-ban" aria-hidden="true"></i> ملغي</span>
                   {% elif payment.payment_method == 'tamara' %}
                     <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تمارا</span>
+                  {% elif payment.payment_method == 'moyasar' %}
+                    <span class="badge warning"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار ميّسر</span>
                   {% else %}
                     <span class="badge warning"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> قيد المراجعة</span>
                   {% endif %}

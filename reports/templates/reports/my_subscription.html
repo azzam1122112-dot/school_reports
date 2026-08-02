@@ -2305,7 +2305,7 @@
           <div>
             <span class="checkout-eyebrow"><i class="fa-solid fa-gem"></i> خدمات المدرسة</span>
             <h2>اختر ما تحتاجه بوضوح</h2>
-            <p>تجديد المنصة، والأرشيف السنوي، ومساحة الأرشيف خدمات مستقلة. اختر الخدمات المؤهلة ثم ادفع عبر تمارا أو التحويل البنكي.</p>
+            <p>تجديد المنصة، والأرشيف السنوي، ومساحة الأرشيف خدمات مستقلة. اختر الخدمات المؤهلة ثم ادفع عبر ميّسر أو تمارا أو التحويل البنكي.</p>
           </div>
           <div class="checkout-security">
             <i class="fa-solid fa-shield-halved"></i>
@@ -2528,6 +2528,28 @@
               <small class="summary-total-note">المبلغ الإجمالي للخدمات المحددة</small>
             </div>
           </div>
+
+          {% if moyasar_enabled %}
+          <section class="tamara-checkout moyasar-checkout" aria-label="الدفع عبر ميّسر">
+            <div class="tamara-content">
+              <div class="tamara-brand-row">
+                <span class="tamara-logo-frame" style="font-size:1.2rem;font-weight:950;color:#111827;">ميّسر</span>
+                <span class="tamara-installment-badge"><i class="fa-solid fa-credit-card" aria-hidden="true"></i> مدى والبطاقات</span>
+                {% if moyasar_environment != 'live' %}<span class="tamara-sandbox">بيئة اختبار</span>{% endif %}
+              </div>
+              <h3>ادفع إلكترونيًا في صفحة ميّسر الآمنة</h3>
+              <p>يُنشأ المبلغ من أسعار المنصة، ولا تُفعّل الخدمات إلا بعد تحقق الخادم من حالة الفاتورة ومبلغها.</p>
+            </div>
+            <div class="tamara-action">
+              <button type="submit" id="moyasarSubmit" class="tamara-submit" data-payment-method="moyasar"
+                      formaction="{% url 'reports:moyasar_checkout_create' %}" formmethod="post" formnovalidate disabled aria-disabled="true">
+                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                <span>اختر خدمة للدفع عبر ميّسر</span>
+              </button>
+              <small class="tamara-action-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> لا تُحفظ بيانات البطاقة في منصة توثيق</small>
+            </div>
+          </section>
+          {% endif %}
 
           {% if tamara_enabled %}
           <section class="tamara-checkout" aria-label="الدفع عبر تمارا">
@@ -2761,7 +2783,7 @@
                   {% else %}
                     {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
                   {% endif %}
-                  <small style="display:block;color:var(--text-3);margin-top:.25rem;">{% if payment.payment_method == 'tamara' %}تمارا{% else %}تحويل بنكي{% endif %}</small>
+                  <small style="display:block;color:var(--text-3);margin-top:.25rem;">{{ payment.get_payment_method_display }}</small>
                 </td>
                 <td>
                   {% if payment.amount < 0 %}
@@ -2789,6 +2811,8 @@
                     {% else %}
                       <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock"></i> بانتظار تأكيد تمارا</span>
                     {% endif %}
+                  {% elif payment.payment_method == 'moyasar' %}
+                    <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-wallet"></i> بانتظار إكمال دفع ميّسر</span>
                   {% else %}
                     <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock"></i> قيد المراجعة</span>
                   {% endif %}
@@ -2833,6 +2857,7 @@
   const form = checkout?.form || document.getElementById('paymentForm');
   const submitBtn = checkout?.receiptSubmit || document.getElementById('submitBtn');
   const tamaraSubmit = checkout?.tamaraSubmit || document.getElementById('tamaraSubmit');
+  const moyasarSubmit = checkout?.moyasarSubmit || document.getElementById('moyasarSubmit');
   const isOn = checkout?.isOn || ((name) => {
     const control = document.querySelector('input[name="' + name + '"]');
     return !!(control && control.checked && !control.disabled);
@@ -2953,7 +2978,8 @@
   /* ── 4. Form Validation ── */
   if (form) {
     form.addEventListener('submit', function (e) {
-      const isTamara = e.submitter?.dataset.paymentMethod === 'tamara';
+      const paymentMethod = e.submitter?.dataset.paymentMethod || 'bank_transfer';
+      const isElectronic = paymentMethod === 'tamara' || paymentMethod === 'moyasar';
       // يجب اختيار عنصر واحد على الأقل
       const anySelected = isOn('include_subscription') || isOn('include_archive_addon') || isOn('include_archive_storage');
       if (!anySelected) {
@@ -2970,7 +2996,7 @@
         showToast('اختر باقة لتجديد اشتراك المدرسة', 'error');
         return;
       }
-      if (!isTamara && fileInput && !fileInput.value) {
+      if (!isElectronic && fileInput && !fileInput.value) {
         e.preventDefault();
         if (dropArea) {
           dropArea.style.borderColor = '#ef4444';
@@ -2981,7 +3007,11 @@
         return;
       }
       // Loading state
-      const activeSubmit = isTamara ? tamaraSubmit : submitBtn;
+      const activeSubmit = paymentMethod === 'tamara'
+        ? tamaraSubmit
+        : paymentMethod === 'moyasar'
+          ? moyasarSubmit
+          : submitBtn;
       if (activeSubmit) {
         activeSubmit.classList.add('loading');
         const lbl = activeSubmit.querySelector('span');

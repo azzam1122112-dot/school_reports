@@ -40,7 +40,7 @@
           <tr>
             <td><span dir="ltr" style="font-weight:900">{{ payment.created_at|date:"Y-m-d" }}</span></td>
             <td>{{ payment.requested_plan.name|default:"-" }}</td>
-            <td>{% if payment.payment_method == 'tamara' %}تمارا{% else %}تحويل بنكي{% endif %}</td>
+            <td>{{ payment.get_payment_method_display }}</td>
             <td style="font-weight:950">
                 {% if payment.amount < 0 %}
                 <span class="royal-status danger" dir="ltr">{{ payment.amount }} SAR</span>
@@ -61,6 +61,8 @@
                  <span class="royal-status warn"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال الدفع</span>
                {% elif payment.payment_method == 'tamara' %}
                  <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> بانتظار تأكيد تمارا</span>
+               {% elif payment.payment_method == 'moyasar' %}
+                 <span class="royal-status warn"><i class="fa-solid fa-wallet" aria-hidden="true"></i> بانتظار إكمال دفع ميّسر</span>
                {% else %}
                  <span class="royal-status warn"><i class="fa-solid fa-clock" aria-hidden="true"></i> قيد المراجعة</span>
                {% endif %}

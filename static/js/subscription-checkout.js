@@ -45,6 +45,7 @@
     const orderEmptyState = form.querySelector("#orderEmptyState");
     const receiptSubmit = form.querySelector("#submitBtn");
     const tamaraSubmit = form.querySelector("#tamaraSubmit");
+    const moyasarSubmit = form.querySelector("#moyasarSubmit");
     const tamaraCheckout = form.querySelector(".tamara-checkout");
     const tamaraInstallmentAmount = form.querySelector(
       "#tamaraInstallmentAmount",
@@ -174,6 +175,12 @@
         "المتابعة والدفع عبر تمارا",
         "اختر خدمة للدفع عبر تمارا",
       );
+      setSubmitState(
+        moyasarSubmit,
+        anySelected,
+        "المتابعة والدفع عبر ميّسر",
+        "اختر خدمة للدفع عبر ميّسر",
+      );
     }
 
     orderToggles.forEach((toggle) => {
@@ -223,6 +230,7 @@
       recompute,
       receiptSubmit,
       tamaraSubmit,
+      moyasarSubmit,
     };
     Object.defineProperty(pageRoot, "__subscriptionCheckout", {
       configurable: false,

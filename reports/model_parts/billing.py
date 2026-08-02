@@ -138,6 +138,7 @@ class Payment(models.Model):
     class Method(models.TextChoices):
         BANK_TRANSFER = "bank_transfer", "تحويل بنكي"
         TAMARA = "tamara", "تمارا"
+        MOYASAR = "moyasar", "ميّسر"
 
     class Status(models.TextChoices):
         PENDING = "pending", "قيد المراجعة"

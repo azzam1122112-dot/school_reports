@@ -402,7 +402,7 @@
                 {% else %}
                   {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
                 {% endif %}
-                <div class="subline">{% if payment.payment_method == 'tamara' %}تمارا{% else %}تحويل بنكي{% endif %}</div>
+                <div class="subline">{{ payment.get_payment_method_display }}</div>
                 {% if payment.batch_ref %}
                   <div class="subline">
                     <span class="badge batch" title="جزء من طلب دفع موحّد بإيصال واحد">
@@ -421,6 +421,8 @@
                   <span class="badge success"><i class="fa-solid fa-circle-check"></i> مقبول</span>
                 {% elif payment.status == 'pending' and payment.payment_method == 'tamara' %}
                   <span class="badge warning"><i class="fa-solid fa-clock"></i> بانتظار تمارا</span>
+                {% elif payment.status == 'pending' and payment.payment_method == 'moyasar' %}
+                  <span class="badge warning"><i class="fa-solid fa-clock"></i> بانتظار ميّسر</span>
                 {% elif payment.status == 'pending' %}
                   <span class="badge warning"><i class="fa-solid fa-hourglass-half"></i> قيد المراجعة</span>
                 {% elif payment.status == 'rejected' %}
