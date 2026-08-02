@@ -5,6 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#006c35">
+  <meta name="color-scheme" content="light dark">
+  {% include "reports/partials/theme_bootstrap.html" %}
   <meta name="domain-verification" content="044a91f3309b001cf46a66e8ee43e60ad827a8f7dadc1ba694212035d9f099a5">
   <title>منصة توثيق التقارير المدرسية وملفات الإنجاز | توثيق</title>
   <meta name="description" content="منصة سعودية لإدارة وتوثيق التقارير المدرسية وملفات إنجاز المعلمين والطلبات والتعاميم والأرشيف، مع PDF رسمي ومشاركة آمنة. ابدأ تجربة مجانية.">
@@ -37,6 +39,8 @@
   {% if AI_MANSOUR_PUBLIC_ENABLED %}
     <link rel="stylesheet" href="{% static 'css/mansour-assistant.css' %}?v=20260801.2">
   {% endif %}
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260802.1">
+  <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
   <noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
   <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
   {
@@ -150,7 +154,7 @@
           </p>
           <div class="hero-actions">
             <a class="button button-primary button-large" href="{% url 'reports:register_school' %}">
-              ابدأ تجربة مجانية {{ trial_days|default:14 }} يوم
+              ابدأ تجربة مجانية {{ trial_days|default:30 }} يوم
               <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
             <a class="button button-quiet button-large" href="#product">
@@ -197,7 +201,7 @@
 
       <div class="shell">
         <div class="trust-bar reveal">
-          <div><strong>{{ trial_days|default:14 }}</strong><span>يومًا للتجربة</span></div>
+          <div><strong>{{ trial_days|default:30 }}</strong><span>يومًا للتجربة</span></div>
           <div><i class="fa-solid fa-layer-group"></i><span>ستة مسارات تشغيل في مكان واحد</span></div>
           <div><i class="fa-solid fa-mobile-screen-button"></i><span>للمدير على المكتب وللمعلم على الجوال</span></div>
           <div><i class="fa-solid fa-shield-halved"></i><span>صلاحيات واضحة وبيانات معزولة</span></div>
@@ -439,7 +443,7 @@
               <div><h3>التجربة المجانية</h3><p>اختبر المنصة داخل مدرستك قبل الاشتراك</p></div>
             </div>
             <div class="price-value"><strong>0</strong><span>ريال</span></div>
-            <div class="price-duration">{{ pricing_trial_plan.duration_label|default:"لمدة 14 يوم" }}</div>
+            <div class="price-duration">{{ pricing_trial_plan.duration_label|default:"لمدة 30 يوم" }}</div>
             <ul>
               {% if pricing_trial_plan %}
                 {% for feature in pricing_trial_plan.features %}<li><i class="fa-solid fa-check"></i>{{ feature }}</li>{% endfor %}
@@ -488,8 +492,8 @@
           {% endfor %}
         </div>
         <div class="pricing-disclosures">
-          <p class="pricing-note"><i class="fa-solid fa-circle-info"></i> الأسعار المعروضة هي المبالغ النهائية المطلوبة حاليًا، ولا تُضاف إليها ضريبة القيمة المضافة.</p>
-          <p class="pricing-note"><i class="fa-solid fa-box-archive"></i> إضافة الأرشيف السنوية اختيارية: 50GB بسعر 399 ريال، وكل 50GB إضافية بسعر 149 ريال.</p>
+          <p class="pricing-note"><i class="fa-solid fa-circle-info"></i> الأسعار نهائية، ولا توجد ضريبة قيمة مضافة أو رسوم خفية.</p>
+          <p class="pricing-note"><i class="fa-solid fa-box-archive"></i> احفظ سجل كل سنة دراسية في الأرشيف السنوي: 50GB بسعر 399 ريال، وكل 50GB إضافية بسعر 149 ريال.</p>
         </div>
 
         <div class="service-catalog reveal" aria-label="تفاصيل المنتجات والخدمات">
@@ -498,9 +502,9 @@
             <div><strong>اشتراك منصة توثيق</strong><p>التقارير، ملفات الإنجاز، الطلبات، التعاميم، PDF والمشاركة الآمنة.</p></div>
             <span>الأسعار حسب السعة والمدة أعلاه</span>
           </article>
-          <article>
+          <article class="archive-service-card">
             <i class="fa-solid fa-box-archive"></i>
-            <div><strong>الأرشيف السنوي</strong><p>نسخة ثابتة من بيانات السنة مع 50GB وبصمة تحقق.</p></div>
+            <div><strong>لا تفقد سجل سنة دراسية</strong><p>أرشيف سنوي مستقل يجمع بيانات السنة وملفاتها في نسخة ثابتة قابلة للتنزيل، مع فهرس Excel وبصمة تحقق، وتبقى النسخ المحفوظة بعد انتهاء الإضافة.</p></div>
             <span>399 ريال / سنة</span>
           </article>
           <article>
@@ -549,7 +553,7 @@
           </details>
           <details class="reveal">
             <summary>هل يوجد أرشيف للسنوات؟ <i class="fa-solid fa-plus"></i></summary>
-            <p>نعم، كإضافة مستقلة تحفظ نسخًا ثابتة من التقارير والإنجاز والتذاكر والتعاميم، مع مساحة واضحة وبصمة تحقق.</p>
+            <p>نعم. الأرشيف إضافة سنوية مستقلة تحفظ التقارير والإنجاز والطلبات والتعاميم والإشعارات وملفاتها في نسخة ثابتة قابلة للتنزيل، مع فهرس Excel وبصمة تحقق. وتبقى النسخ التي حفظتها متاحة بعد انتهاء الإضافة.</p>
           </details>
         </div>
       </div>
@@ -562,7 +566,7 @@
           <div class="final-copy">
             <span>اختبر المنصة على عمل مدرستك الحقيقي</span>
             <h2>ابدأ بتقرير واحد، وشاهد كيف تصبح المتابعة أوضح.</h2>
-            <p>تجربة مجانية لمدة {{ trial_days|default:14 }} يوم، دون بطاقة ائتمانية.</p>
+            <p>تجربة مجانية لمدة {{ trial_days|default:30 }} يوم، دون بطاقة ائتمانية.</p>
           </div>
           <div class="final-actions">
             <a class="button button-gold button-large" href="{% url 'reports:register_school' %}">أنشئ حساب المدرسة <i class="fa-solid fa-arrow-left"></i></a>

@@ -553,7 +553,7 @@ class MansourAssistantTests(TestCase):
         SubscriptionPlan.objects.create(
             name="تجربة مجانية",
             price=0,
-            days_duration=14,
+            days_duration=30,
             max_teachers=5,
         )
 
@@ -564,7 +564,7 @@ class MansourAssistantTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["answer"].count("0 ريال لمدة 14 يوم"), 1)
+        self.assertEqual(response.json()["answer"].count("0 ريال لمدة 30 يوم"), 1)
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_privacy_reply_directly_explains_storage_and_access(self):

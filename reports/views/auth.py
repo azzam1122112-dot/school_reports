@@ -971,7 +971,7 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
 
     plans_qs = SubscriptionPlan.objects.filter(is_active=True).order_by("price", "max_teachers", "days_duration", "id")
     source_plans = list(plans_qs)
-    trial_days_target = int(getattr(settings, "TRIAL_DAYS", 14) or 14)
+    trial_days_target = int(getattr(settings, "TRIAL_DAYS", 30) or 30)
 
     def serialize_plan(plan: SubscriptionPlan, *, is_trial: bool) -> dict[str, Any]:
         raw_price = float(getattr(plan, "price", 0) or 0)

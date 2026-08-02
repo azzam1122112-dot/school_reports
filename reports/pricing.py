@@ -7,17 +7,17 @@ DEFAULT_SUBSCRIPTION_PLANS = (
     {
         "name": "التجربة المجانية",
         "price": Decimal("0.00"),
-        "days_duration": 14,
+        "days_duration": 30,
         "max_teachers": 5,
         "description": (
-            "تجربة حقيقية للمنصة داخل المدرسة\n"
+            "تجربة حقيقية لمدة 30 يومًا داخل المدرسة\n"
             "جميع أدوات التقارير والإنجاز والطلبات\n"
             "بدء مباشر دون بطاقة ائتمانية"
         ),
     },
     {
         "name": "الأساسية | 6 أشهر",
-        "price": Decimal("499.00"),
+        "price": Decimal("699.00"),
         "days_duration": 180,
         "max_teachers": 25,
         "description": (
@@ -28,7 +28,7 @@ DEFAULT_SUBSCRIPTION_PLANS = (
     },
     {
         "name": "الأساسية | سنوية",
-        "price": Decimal("849.00"),
+        "price": Decimal("1099.00"),
         "days_duration": 365,
         "max_teachers": 25,
         "description": (
@@ -39,29 +39,29 @@ DEFAULT_SUBSCRIPTION_PLANS = (
     },
     {
         "name": "الاحترافية | 6 أشهر",
-        "price": Decimal("649.00"),
+        "price": Decimal("999.00"),
         "days_duration": 180,
         "max_teachers": 50,
         "description": (
             "الأنسب لغالبية المدارس حتى 50 معلماً\n"
-            "التقارير والإنجاز والطلبات والتعاميم والأرشفة\n"
+            "التقارير والإنجاز والطلبات والتعاميم والتوقيعات\n"
             "PDF ومشاركة آمنة ودعم فني"
         ),
     },
     {
         "name": "الاحترافية | سنوية",
-        "price": Decimal("1099.00"),
+        "price": Decimal("1599.00"),
         "days_duration": 365,
         "max_teachers": 50,
         "description": (
             "أفضل قيمة لتشغيل المدرسة حتى 50 معلماً\n"
             "جميع أدوات التشغيل والتوثيق دون تجزئة\n"
-            "جلسة إعداد مجانية وتوفير 199 ريالاً"
+            "جلسة إعداد مجانية وتوفير 399 ريالاً"
         ),
     },
     {
         "name": "الموسعة | 6 أشهر",
-        "price": Decimal("899.00"),
+        "price": Decimal("1499.00"),
         "days_duration": 180,
         "max_teachers": 100,
         "description": (
@@ -72,13 +72,13 @@ DEFAULT_SUBSCRIPTION_PLANS = (
     },
     {
         "name": "الموسعة | سنوية",
-        "price": Decimal("1499.00"),
+        "price": Decimal("2399.00"),
         "days_duration": 365,
         "max_teachers": 100,
         "description": (
             "تشغيل سنوي موسع حتى 100 معلم\n"
             "جميع الأدوات والصلاحيات ومسارات الاعتماد\n"
-            "جلسة إعداد مجانية وتوفير 299 ريالاً"
+            "جلسة إعداد مجانية وتوفير 599 ريالاً"
         ),
     },
 )

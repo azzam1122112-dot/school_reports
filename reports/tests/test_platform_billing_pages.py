@@ -93,7 +93,7 @@ class PlatformBillingPagesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "سياسة التسعير المعتمدة")
         self.assertContains(response, "ما يعادل")
-        self.assertContains(response, "وفّر 199 ريال")
+        self.assertContains(response, "وفّر 399 ريال")
         self.assertContains(response, "399 ريال سنوياً")
         self.assertContains(response, "الباقات المنشورة للعملاء")
         self.assertContains(response, "هذه هي الباقات نفسها الظاهرة في الصفحة الرئيسية")

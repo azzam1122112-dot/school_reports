@@ -14,13 +14,13 @@ class DefaultPricingCommandTests(TestCase):
         call_command("sync_default_pricing", stdout=output)
 
         expected = {
-            (14, 5): Decimal("0"),
-            (180, 25): Decimal("499"),
-            (365, 25): Decimal("849"),
-            (180, 50): Decimal("649"),
-            (365, 50): Decimal("1099"),
-            (180, 100): Decimal("899"),
-            (365, 100): Decimal("1499"),
+            (30, 5): Decimal("0"),
+            (180, 25): Decimal("699"),
+            (365, 25): Decimal("1099"),
+            (180, 50): Decimal("999"),
+            (365, 50): Decimal("1599"),
+            (180, 100): Decimal("1499"),
+            (365, 100): Decimal("2399"),
         }
         actual = {
             (plan.days_duration, plan.max_teachers): plan.price

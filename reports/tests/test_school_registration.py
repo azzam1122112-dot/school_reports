@@ -18,6 +18,7 @@ from reports.models import (
 @override_settings(
     ALLOWED_HOSTS=["testserver"],
     RATELIMIT_ENABLE=False,
+    TRIAL_DAYS=30,
 )
 class SchoolRegistrationFlowTests(TestCase):
     def registration_payload(self, **overrides):
@@ -72,6 +73,7 @@ class SchoolRegistrationFlowTests(TestCase):
         self.assertEqual(subscription.plan.price, 0)
         self.assertTrue(subscription.plan.is_active)
         self.assertEqual(subscription.plan.max_teachers, 5)
+        self.assertEqual(subscription.plan.days_duration, 30)
         self.assertEqual(
             subscription.end_date,
             subscription.start_date + timedelta(days=subscription.plan.days_duration - 1),
