@@ -80,6 +80,47 @@ class MoyasarPaymentTests(TestCase):
 
     @override_settings(
         MOYASAR_ENABLED=True,
+        MOYASAR_ENVIRONMENT="live",
+        MOYASAR_SECRET_KEY="sk_live_example",
+    )
+    def test_checkout_exposes_mobile_summary_legal_terms_and_accessible_fields(self):
+        Payment.objects.create(
+            school=self.school,
+            subscription=self.subscription,
+            requested_plan=self.plan,
+            purpose=Payment.Purpose.SUBSCRIPTION,
+            amount=self.plan.price,
+            payment_method=Payment.Method.MOYASAR,
+            created_by=self.manager,
+        )
+        response = self.client.get(reverse("reports:my_subscription"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="mobileCheckoutBar"')
+        self.assertContains(response, 'id="mobileSelectedCount"')
+        self.assertContains(response, 'id="mobileOrderTotal"')
+        self.assertContains(response, 'id="mobileCheckoutContinue"')
+        self.assertContains(response, 'for="bankTransferNotes"')
+        self.assertContains(response, 'id="bankTransferNotes"')
+        self.assertContains(response, 'data-label="التاريخ"')
+        self.assertContains(response, 'data-label="العملية"')
+        self.assertContains(response, 'data-label="المبلغ"')
+        self.assertContains(response, 'data-label="الحالة"')
+        self.assertContains(response, 'data-label="ملاحظات"')
+        self.assertContains(response, "لا توجد ضريبة قيمة مضافة أو رسوم خفية")
+        self.assertContains(response, reverse("reports:terms_conditions"))
+        self.assertContains(response, reverse("reports:refund_policy"))
+        for asset in (
+            "img/payment/mada.svg",
+            "img/payment/visa.svg",
+            "img/payment/mastercard.svg",
+            "img/payment/apple-pay.svg",
+            "img/payment/samsung-pay.svg",
+        ):
+            self.assertContains(response, asset)
+
+    @override_settings(
+        MOYASAR_ENABLED=True,
         MOYASAR_ENVIRONMENT="test",
         MOYASAR_SECRET_KEY="sk_test_example",
     )

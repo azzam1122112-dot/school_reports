@@ -40,6 +40,7 @@
 
     const orderToggles = form.querySelectorAll(".order-toggle");
     const planRadios = form.querySelectorAll('input[name="plan_id"]');
+    const planChoices = form.querySelectorAll(".plan-duration-choice");
     const storageSelect = form.querySelector("#archiveStorageUnits");
     const orderTotal = form.querySelector("#orderTotal");
     const orderEmptyState = form.querySelector("#orderEmptyState");
@@ -54,6 +55,13 @@
     );
     const tamaraInstallmentAmounts = form.querySelectorAll(
       "[data-tamara-installment-amount]",
+    );
+    const mobileSelectedCount = document.querySelector(
+      "#mobileSelectedCount",
+    );
+    const mobileOrderTotal = document.querySelector("#mobileOrderTotal");
+    const mobileCheckoutContinue = document.querySelector(
+      "#mobileCheckoutContinue",
     );
 
     function input(name) {
@@ -152,7 +160,25 @@
       if (addonSelected) total += addonAmount();
       if (storageSelected) total += storageAmount() || 0;
 
+      const selectedCount = [
+        subscriptionSelected,
+        addonSelected,
+        storageSelected,
+      ].filter(Boolean).length;
+
       if (orderTotal) orderTotal.textContent = formatAmount(total);
+      if (mobileOrderTotal) mobileOrderTotal.textContent = formatAmount(total);
+      if (mobileSelectedCount) {
+        mobileSelectedCount.textContent = `${selectedCount} ${
+          selectedCount === 1 ? "خدمة" : "خدمات"
+        }`;
+      }
+      setSubmitState(
+        mobileCheckoutContinue,
+        anySelected,
+        "متابعة للدفع",
+        "اختر خدمة أولًا",
+      );
       const installment = total / 4;
       const formattedInstallment = formatAmount(installment);
       if (tamaraInstallmentAmount) {
@@ -217,15 +243,27 @@
       sync();
     });
 
+    function activateSubscription() {
+      const subscriptionToggle = input("include_subscription");
+      if (subscriptionToggle && !subscriptionToggle.disabled) {
+        subscriptionToggle.checked = true;
+        subscriptionToggle.dispatchEvent(
+          new Event("change", { bubbles: true }),
+        );
+      }
+    }
+
+    // Listen on the visible card, not only the radio. A checked default radio
+    // does not emit `change` when its card is clicked again.
+    planChoices.forEach((choice) => {
+      choice.addEventListener("click", () => {
+        activateSubscription();
+        recompute();
+      });
+    });
+
     planRadios.forEach((radio) => {
       radio.addEventListener("change", () => {
-        const subscriptionToggle = input("include_subscription");
-        if (subscriptionToggle && !subscriptionToggle.disabled) {
-          subscriptionToggle.checked = true;
-          subscriptionToggle.dispatchEvent(
-            new Event("change", { bubbles: true }),
-          );
-        }
         recompute();
       });
     });
@@ -240,6 +278,20 @@
           );
         }
         recompute();
+      });
+    }
+
+    if (mobileCheckoutContinue) {
+      mobileCheckoutContinue.addEventListener("click", () => {
+        if (mobileCheckoutContinue.disabled) return;
+        const selectedMethod = form.querySelector(
+          "[data-payment-choice].is-selected",
+        )?.dataset.paymentChoice;
+        const target =
+          (selectedMethod &&
+            form.querySelector(`[data-payment-panel="${selectedMethod}"]`)) ||
+          form.querySelector(".payment-method-heading");
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
     }
 
