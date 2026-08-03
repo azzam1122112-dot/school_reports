@@ -1984,6 +1984,180 @@
 
   .premium-order-summary .order-total-wrap small { font-size: .74rem; font-weight: 900; }
 
+  /* ===== PAYMENT METHOD PICKER ===== */
+  .payment-method-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1.65rem 0 .85rem;
+  }
+
+  .payment-method-heading h3 {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    margin: 0 0 .2rem;
+    color: var(--text-h);
+    font-size: 1.05rem;
+    font-weight: 950;
+  }
+
+  .payment-method-heading h3 i { color: var(--primary); }
+  .payment-method-heading p { margin: 0; color: var(--text-3); font-size: .72rem; font-weight: 750; }
+
+  .payment-method-step {
+    flex: 0 0 auto;
+    padding: .34rem .65rem;
+    border: 1px solid rgba(0,108,53,.16);
+    border-radius: 999px;
+    color: var(--primary);
+    background: rgba(0,108,53,.06);
+    font-size: .66rem;
+    font-weight: 900;
+  }
+
+  .payment-method-picker {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+    margin-bottom: .85rem;
+  }
+
+  .payment-method-choice {
+    position: relative;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .7rem;
+    min-height: 104px;
+    padding: .85rem;
+    border: 1.5px solid #dfe6e2;
+    border-radius: 17px;
+    color: var(--text-1);
+    text-align: start;
+    background: #fff;
+    box-shadow: 0 8px 22px -22px rgba(15,23,42,.65);
+    cursor: pointer;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease, background .2s ease;
+  }
+
+  .payment-method-choice:hover {
+    border-color: rgba(0,108,53,.35);
+    transform: translateY(-1px);
+  }
+
+  .payment-method-choice:focus-visible {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(0,108,53,.13);
+  }
+
+  .payment-method-choice.is-selected {
+    border-color: var(--primary);
+    background: linear-gradient(145deg, #fff, #f2faf6);
+    box-shadow: 0 0 0 3px rgba(0,108,53,.07), 0 16px 28px -25px rgba(0,108,53,.72);
+  }
+
+  .payment-method-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #dce8e1;
+    border-radius: 13px;
+    color: var(--primary);
+    background: #eff8f3;
+    font-size: 1.05rem;
+  }
+
+  .payment-method-copy { display: grid; min-width: 0; gap: .12rem; }
+  .payment-method-copy strong { color: var(--text-h); font-size: .8rem; font-weight: 950; }
+  .payment-method-copy small { color: var(--text-3); font-size: .62rem; font-weight: 750; line-height: 1.5; }
+
+  .payment-method-status {
+    display: grid;
+    place-items: center;
+    width: 23px;
+    height: 23px;
+    border: 1px solid #d8e1dc;
+    border-radius: 50%;
+    color: transparent;
+    background: #fff;
+    font-size: .65rem;
+  }
+
+  .payment-method-choice.is-selected .payment-method-status {
+    border-color: var(--primary);
+    color: #fff;
+    background: var(--primary);
+  }
+
+  .payment-method-brands {
+    grid-column: 2 / -1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .3rem;
+    min-height: 20px;
+    pointer-events: none;
+  }
+
+  .payment-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    min-height: 28px;
+    padding: .22rem .48rem;
+    border: 1px solid #e1e6e4;
+    border-radius: 7px;
+    color: #172033;
+    background: #fff;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 3px 10px rgba(15,23,42,.07);
+    font-size: .66rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .payment-mark--mada { gap: .14rem; color: #087c74; font-family: "Cairo", Arial, sans-serif; }
+  .payment-mark--mada b { font-size: .78rem; }
+  .payment-mark--mada small { color: #4b8581; font-size: .42rem; }
+  .payment-mark--visa { color: #17357e; font-size: .82rem; font-style: italic; letter-spacing: -.04em; }
+  .payment-mark--mastercard { display: grid; grid-template-columns: 25px auto; gap: .16rem; min-width: 65px; color: #3a3a3a; }
+  .payment-mark--mastercard i { position: relative; display: block; width: 25px; height: 14px; }
+  .payment-mark--mastercard i::before,
+  .payment-mark--mastercard i::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+  }
+  .payment-mark--mastercard i::before { right: 0; background: #eb001b; }
+  .payment-mark--mastercard i::after { left: 0; background: rgba(247,158,27,.94); }
+  .payment-mark--mastercard small { color: #222; font-size: .43rem; font-weight: 750; }
+  .payment-mark--apple { gap: .2rem; color: #080808; font-size: .7rem; }
+  .payment-mark--apple i { font-size: .9rem; }
+  .payment-mark--samsung { color: #1428a0; font-size: .48rem; letter-spacing: -.01em; }
+  .payment-method-tamara-logo { display: block; width: 64px; height: auto; }
+  .payment-method-bank-brand { color: #0d6f3f; font-family: Arial, sans-serif; font-size: .6rem; font-weight: 900; }
+  .payment-method-brands--panel { grid-column: auto; margin-top: .8rem; }
+
+  .payment-method-hint {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: 0 0 1rem;
+    color: #64748b;
+    font-size: .66rem;
+    font-weight: 750;
+  }
+  .payment-method-hint i { color: var(--primary); }
+  .payment-method-panel[hidden] { display: none !important; }
+
   .tamara-checkout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(215px, .32fr);
@@ -2117,6 +2291,34 @@
   .tamara-action-note { display: flex; align-items: center; justify-content: center; gap: .35rem; color: #756b89; font-size: .65rem; font-weight: 750; text-align: center; }
   .tamara-sandbox { display: inline-flex; margin-inline-start: .35rem; padding: .15rem .4rem; border-radius: 6px; background: #eadfff; color: #5b35d5; font-size: .65rem; font-weight: 900; }
 
+  .moyasar-checkout {
+    border-color: rgba(0,108,53,.22);
+    background:
+      radial-gradient(circle at 8% 0%, rgba(185,151,91,.16), transparent 34%),
+      linear-gradient(145deg, #fff 0%, #f8fcfa 58%, #eef8f2 100%);
+    box-shadow: 0 16px 40px rgba(0,78,40,.09);
+  }
+  .moyasar-checkout::before { background: linear-gradient(180deg, #006c35, #b9975b); }
+  .moyasar-checkout h3 { color: #103b2a; }
+  .moyasar-checkout p { color: #526b60; }
+  .moyasar-checkout .tamara-logo-frame { width: auto; min-width: 54px; border-color: rgba(0,108,53,.14); color: #006c35; }
+  .moyasar-checkout .tamara-installment-badge { color: #075c33; background: #e7f5ed; }
+  .moyasar-checkout .tamara-submit { background: linear-gradient(135deg, #087a43, #005b2c); box-shadow: 0 10px 24px rgba(0,108,53,.22); }
+  .moyasar-checkout .tamara-submit:not(:disabled):hover { box-shadow: 0 13px 28px rgba(0,108,53,.28); }
+  .moyasar-checkout .tamara-action { border-inline-start-color: rgba(0,108,53,.14); }
+  .moyasar-checkout .tamara-action-note { color: #60746a; }
+
+  .bank-transfer-panel {
+    margin: 1.1rem 0 1.5rem;
+    padding: 1.35rem;
+    border: 1px solid rgba(16,132,91,.2);
+    border-radius: 22px;
+    background: linear-gradient(145deg, #fff, #f8fbf9);
+    box-shadow: 0 16px 40px rgba(15,23,42,.06);
+  }
+
+  .bank-transfer-panel > .section-header:first-child { margin-top: 0; }
+
   html[data-theme="dark"] .tamara-checkout {
     border-color: rgba(174,151,255,.28);
     background:
@@ -2137,11 +2339,37 @@
   html[data-theme="dark"] .tamara-fields label { color: #ddd3ef; }
   html[data-theme="dark"] .tamara-fields input { border-color: rgba(174,151,255,.28); background: #17131f; color: #fff; }
 
+  html[data-theme="dark"] .payment-method-choice {
+    border-color: rgba(148,163,184,.2);
+    color: var(--text-1);
+    background: rgba(15,23,42,.7);
+  }
+  html[data-theme="dark"] .payment-method-choice.is-selected {
+    border-color: #2aa86a;
+    background: linear-gradient(145deg, rgba(16,45,33,.94), rgba(12,38,28,.88));
+  }
+  html[data-theme="dark"] .payment-method-icon { border-color: rgba(73,177,121,.22); background: rgba(0,108,53,.18); }
+  html[data-theme="dark"] .payment-method-status { border-color: rgba(148,163,184,.3); background: #101827; }
+  html[data-theme="dark"] .payment-mark { border-color: rgba(148,163,184,.2); }
+  html[data-theme="dark"] .moyasar-checkout {
+    border-color: rgba(73,177,121,.28);
+    background: linear-gradient(145deg, #14231c, #101d17);
+  }
+  html[data-theme="dark"] .moyasar-checkout h3 { color: #edf8f1; }
+  html[data-theme="dark"] .moyasar-checkout p,
+  html[data-theme="dark"] .moyasar-checkout .tamara-action-note { color: #b8c9c0; }
+  html[data-theme="dark"] .bank-transfer-panel { border-color: rgba(73,177,121,.22); background: linear-gradient(145deg, #15211b, #101a15); }
+
   @media (max-width: 720px) {
     .tamara-checkout, .tamara-fields { grid-template-columns: 1fr; }
     .tamara-checkout { padding: 1.05rem; }
     .tamara-action { padding: .9rem 0 0; border-inline-start: 0; border-top: 1px solid rgba(91,53,213,.14); }
     .tamara-submit { width: 100%; min-width: 0; }
+  }
+
+  @media (max-width: 900px) {
+    .payment-method-picker { grid-template-columns: 1fr; }
+    .payment-method-choice { min-height: 92px; }
   }
 
   .summary-total-note {
@@ -2199,6 +2427,11 @@
       border-inline-start: 0;
       border-top: 1px solid rgba(112,133,121,.2);
     }
+    .payment-method-heading { align-items: flex-start; }
+    .payment-method-step { display: none; }
+    .payment-method-choice { grid-template-columns: 38px minmax(0,1fr) auto; padding: .75rem; }
+    .payment-method-icon { width: 38px; height: 38px; }
+    .bank-transfer-panel { padding: 1rem; }
     .plan-family-head { padding-inline-end: 0; padding-top: 1.6rem; }
     .plan-family:not(.plan-family--recommended) .plan-family-head { padding-top: 0; }
   }
@@ -2305,7 +2538,7 @@
           <div>
             <span class="checkout-eyebrow"><i class="fa-solid fa-gem"></i> خدمات المدرسة</span>
             <h2>اختر ما تحتاجه بوضوح</h2>
-            <p>تجديد المنصة، والأرشيف السنوي، ومساحة الأرشيف خدمات مستقلة. اختر الخدمات المؤهلة ثم ادفع عبر ميّسر أو تمارا أو التحويل البنكي.</p>
+            <p>تجديد المنصة، والأرشيف السنوي، ومساحة الأرشيف خدمات مستقلة. اختر الخدمات المؤهلة ثم اختر الدفع الإلكتروني أو تمارا أو التحويل البنكي.</p>
           </div>
           <div class="checkout-security">
             <i class="fa-solid fa-shield-halved"></i>
@@ -2529,30 +2762,96 @@
             </div>
           </div>
 
+          <div class="payment-method-heading">
+            <div>
+              <h3><i class="fa-solid fa-wallet" aria-hidden="true"></i> اختر طريقة الدفع</h3>
+              <p>اختر الوسيلة الأنسب لك، وستظهر تفاصيلها فقط لتبقى الخطوات واضحة.</p>
+            </div>
+            <span class="payment-method-step">الخطوة الأخيرة</span>
+          </div>
+
+          <div class="payment-method-picker" role="group" aria-label="طرق الدفع المتاحة">
+            {% if moyasar_enabled %}
+            <button type="button" class="payment-method-choice is-selected" data-payment-choice="moyasar"
+                    aria-pressed="true" aria-controls="paymentPanelMoyasar">
+              <span class="payment-method-icon"><i class="fa-solid fa-credit-card" aria-hidden="true"></i></span>
+              <span class="payment-method-copy">
+                <strong>الدفع الإلكتروني</strong>
+                <small>مدى والبطاقات والمحافظ الرقمية</small>
+              </span>
+              <span class="payment-method-status"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+              <span class="payment-method-brands" aria-label="مدى وفيزا وماستركارد">
+                <span class="payment-mark payment-mark--mada"><b>مدى</b><small>mada</small></span>
+                <span class="payment-mark payment-mark--visa">VISA</span>
+                <span class="payment-mark payment-mark--mastercard"><i aria-hidden="true"></i><small>mastercard</small></span>
+              </span>
+            </button>
+            {% endif %}
+
+            {% if tamara_enabled %}
+            <button type="button" class="payment-method-choice{% if not moyasar_enabled %} is-selected{% endif %}" data-payment-choice="tamara"
+                    aria-pressed="{% if moyasar_enabled %}false{% else %}true{% endif %}" aria-controls="paymentPanelTamara">
+              <span class="payment-method-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>
+              <span class="payment-method-copy">
+                <strong>قسّمها مع تمارا</strong>
+                <small>أربع دفعات متساوية دون تعقيد</small>
+              </span>
+              <span class="payment-method-status"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+              <span class="payment-method-brands">
+                <img class="payment-method-tamara-logo" src="{% static 'img/tamara-wordmark-gradient-ar.png' %}" alt="تمارا" width="64" height="21">
+                <span class="payment-mark">4 دفعات</span>
+              </span>
+            </button>
+            {% endif %}
+
+            <button type="button" class="payment-method-choice{% if not moyasar_enabled and not tamara_enabled %} is-selected{% endif %}" data-payment-choice="bank_transfer"
+                    aria-pressed="{% if moyasar_enabled or tamara_enabled %}false{% else %}true{% endif %}" aria-controls="paymentPanelBank">
+              <span class="payment-method-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span>
+              <span class="payment-method-copy">
+                <strong>تحويل بنكي</strong>
+                <small>حوّل المبلغ ثم أرفق الإيصال</small>
+              </span>
+              <span class="payment-method-status"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+              <span class="payment-method-brands">
+                <span class="payment-mark payment-method-bank-brand">مصرف الراجحي</span>
+                <span class="payment-mark">IBAN</span>
+              </span>
+            </button>
+          </div>
+
+          <p class="payment-method-hint"><i class="fa-solid fa-lock" aria-hidden="true"></i> جميع وسائل الدفع محمية، ولا تحفظ منصة توثيق بيانات بطاقتك البنكية.</p>
+
           {% if moyasar_enabled %}
-          <section class="tamara-checkout moyasar-checkout" aria-label="الدفع عبر ميّسر">
+          <section class="tamara-checkout moyasar-checkout payment-method-panel" id="paymentPanelMoyasar" data-payment-panel="moyasar" aria-label="الدفع الإلكتروني">
             <div class="tamara-content">
               <div class="tamara-brand-row">
-                <span class="tamara-logo-frame" style="font-size:1.2rem;font-weight:950;color:#111827;">ميّسر</span>
-                <span class="tamara-installment-badge"><i class="fa-solid fa-credit-card" aria-hidden="true"></i> مدى والبطاقات</span>
+                <span class="tamara-logo-frame"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+                <span class="tamara-installment-badge"><i class="fa-solid fa-bolt" aria-hidden="true"></i> تأكيد فوري</span>
                 {% if moyasar_environment != 'live' %}<span class="tamara-sandbox">بيئة اختبار</span>{% endif %}
               </div>
-              <h3>ادفع إلكترونيًا في صفحة ميّسر الآمنة</h3>
-              <p>يُنشأ المبلغ من أسعار المنصة، ولا تُفعّل الخدمات إلا بعد تحقق الخادم من حالة الفاتورة ومبلغها.</p>
+              <h3>الدفع الإلكتروني</h3>
+              <p>ادفع بأمان باستخدام مدى أو فيزا أو ماستركارد. ستنتقل إلى صفحة دفع مشفّرة لإتمام العملية، ثم تعود إلى منصة توثيق تلقائيًا.</p>
+              <div class="payment-method-brands payment-method-brands--panel" aria-label="وسائل الدفع الإلكتروني المدعومة">
+                <span class="payment-mark payment-mark--mada"><b>مدى</b><small>mada</small></span>
+                <span class="payment-mark payment-mark--visa">VISA</span>
+                <span class="payment-mark payment-mark--mastercard"><i aria-hidden="true"></i><small>mastercard</small></span>
+                <span class="payment-mark payment-mark--apple" aria-label="Apple Pay"><i class="fa-brands fa-apple" aria-hidden="true"></i> Pay</span>
+                <span class="payment-mark payment-mark--samsung" aria-label="Samsung Pay">SAMSUNG Pay</span>
+              </div>
             </div>
             <div class="tamara-action">
               <button type="submit" id="moyasarSubmit" class="tamara-submit" data-payment-method="moyasar"
                       formaction="{% url 'reports:moyasar_checkout_create' %}" formmethod="post" formnovalidate disabled aria-disabled="true">
                 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                <span>اختر خدمة للدفع عبر ميّسر</span>
+                <span>اختر خدمة للمتابعة</span>
               </button>
-              <small class="tamara-action-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> لا تُحفظ بيانات البطاقة في منصة توثيق</small>
+              <small class="tamara-action-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> ستكمل الدفع في صفحة إلكترونية آمنة</small>
             </div>
           </section>
           {% endif %}
 
           {% if tamara_enabled %}
-          <section class="tamara-checkout" aria-label="الدفع عبر تمارا">
+          <section class="tamara-checkout payment-method-panel" id="paymentPanelTamara" data-payment-panel="tamara" aria-label="الدفع عبر تمارا"{% if moyasar_enabled %} hidden{% endif %}>
             <div class="tamara-content">
               <div class="tamara-brand-row">
                 <span class="tamara-logo-frame">
@@ -2602,8 +2901,7 @@
           </section>
           {% endif %}
 
-          <hr class="form-divider">
-
+          <section class="bank-transfer-panel payment-method-panel" id="paymentPanelBank" data-payment-panel="bank_transfer" aria-label="التحويل البنكي"{% if moyasar_enabled or tamara_enabled %} hidden{% endif %}>
           <!-- ===== بيانات التحويل البنكي ===== -->
           <div class="section-header">
             <div class="section-icon"><i class="fa-regular fa-credit-card"></i></div>
@@ -2693,6 +2991,7 @@
             <i class="fa-solid fa-paper-plane"></i>
             <span>اختر خدمة لإرسال إيصال التحويل</span>
           </button>
+          </section>
         </form>
       </div>
 
@@ -2783,7 +3082,9 @@
                   {% else %}
                     {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
                   {% endif %}
-                  <small style="display:block;color:var(--text-3);margin-top:.25rem;">{{ payment.get_payment_method_display }}</small>
+                  <small style="display:block;color:var(--text-3);margin-top:.25rem;">
+                    {% if payment.payment_method == 'moyasar' %}الدفع الإلكتروني{% else %}{{ payment.get_payment_method_display }}{% endif %}
+                  </small>
                 </td>
                 <td>
                   {% if payment.amount < 0 %}
@@ -2812,7 +3113,7 @@
                       <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock"></i> بانتظار تأكيد تمارا</span>
                     {% endif %}
                   {% elif payment.payment_method == 'moyasar' %}
-                    <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-wallet"></i> بانتظار إكمال دفع ميّسر</span>
+                    <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-wallet"></i> بانتظار إكمال الدفع الإلكتروني</span>
                   {% else %}
                     <span class="tbl-badge tbl-badge-warning"><i class="fa-solid fa-clock"></i> قيد المراجعة</span>
                   {% endif %}

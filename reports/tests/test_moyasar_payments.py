@@ -70,6 +70,11 @@ class MoyasarPaymentTests(TestCase):
         response = self.client.get(reverse("reports:my_subscription"))
 
         self.assertContains(response, 'id="moyasarSubmit"')
+        self.assertContains(response, 'data-payment-choice="moyasar"')
+        self.assertContains(response, "الدفع الإلكتروني")
+        self.assertContains(response, "Apple Pay")
+        self.assertContains(response, "Samsung Pay")
+        self.assertNotContains(response, "الدفع عبر ميّسر")
         self.assertContains(response, "بيئة اختبار")
         self.assertNotContains(response, 'id="tamaraSubmit"')
 
@@ -95,7 +100,7 @@ class MoyasarPaymentTests(TestCase):
 
         self.assertRedirects(
             response,
-            "https://checkout.moyasar.com/invoices/example",
+            "https://checkout.moyasar.com/invoices/example?lang=ar",
             fetch_redirect_response=False,
         )
         payment = Payment.objects.get(school=self.school)

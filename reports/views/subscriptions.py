@@ -6,7 +6,7 @@ from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 import json
 from pathlib import Path
-from urllib.parse import urlencode, urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse
 import uuid
 
 from django.core.exceptions import ImproperlyConfigured
@@ -2648,7 +2648,7 @@ def _sync_moyasar_batch(batch_ref: str) -> str:
 @require_http_methods(["POST"])
 def moyasar_checkout_create(request):
     if not moyasar_is_enabled():
-        messages.error(request, "الدفع عبر ميّسر غير متاح حاليًا.")
+        messages.error(request, "الدفع الإلكتروني غير متاح حاليًا.")
         return redirect("reports:my_subscription")
 
     membership = _manager_payment_membership(request)
@@ -2691,7 +2691,7 @@ def moyasar_checkout_create(request):
         )
     except (MoyasarGatewayError, ImproperlyConfigured):
         logger.exception("Moyasar invoice creation failed")
-        messages.error(request, "تعذّر بدء الدفع عبر ميّسر. حاول مجددًا أو استخدم طريقة أخرى.")
+        messages.error(request, "تعذّر بدء الدفع الإلكتروني. حاول مجددًا أو استخدم طريقة أخرى.")
         return redirect("reports:my_subscription")
 
     checkout_url = str(invoice.get("url") or "").strip()
@@ -2699,12 +2699,16 @@ def moyasar_checkout_create(request):
     checkout_host = (parsed_checkout_url.hostname or "").lower()
     if parsed_checkout_url.scheme != "https" or checkout_host != "checkout.moyasar.com":
         logger.error("Moyasar returned an unsafe checkout URL")
-        messages.error(request, "تعذّر التحقق من رابط الدفع عبر ميّسر.")
+        messages.error(request, "تعذّر التحقق من رابط الدفع الإلكتروني.")
         return redirect("reports:my_subscription")
+
+    checkout_query = dict(parse_qsl(parsed_checkout_url.query, keep_blank_values=True))
+    checkout_query["lang"] = "ar"
+    checkout_url = parsed_checkout_url._replace(query=urlencode(checkout_query)).geturl()
 
     invoice_id = str(invoice.get("id") or "").strip()
     gateway_status = str(invoice.get("status") or "initiated")[:32]
-    note = f"[فاتورة ميّسر {batch_ref.upper()}] {labels} — الإجمالي {total} ريال."
+    note = f"[فاتورة دفع إلكتروني {batch_ref.upper()}] {labels} — الإجمالي {total} ريال."
     with transaction.atomic():
         for item in items:
             Payment.objects.create(
@@ -2731,20 +2735,20 @@ def moyasar_checkout_create(request):
 @require_http_methods(["GET"])
 def moyasar_return(request, batch_ref: str):
     if not moyasar_is_enabled():
-        messages.error(request, "الدفع عبر ميّسر غير متاح حاليًا.")
+        messages.error(request, "الدفع الإلكتروني غير متاح حاليًا.")
         return redirect("reports:my_subscription")
     try:
         invoice_status = _sync_moyasar_batch(batch_ref)
     except (MoyasarGatewayError, ImproperlyConfigured, _ApprovalError):
         logger.exception("Moyasar return verification failed for batch %s", batch_ref)
-        messages.error(request, "تعذّر التحقق من نتيجة الدفع عبر ميّسر. سيُعاد التحقق تلقائيًا.")
+        messages.error(request, "تعذّر التحقق من نتيجة الدفع الإلكتروني. سيُعاد التحقق تلقائيًا.")
     else:
         if invoice_status == "paid":
-            messages.success(request, "تم تأكيد الدفع عبر ميّسر وتفعيل الخدمات المختارة.")
+            messages.success(request, "تم تأكيد الدفع الإلكتروني وتفعيل الخدمات المختارة.")
         elif invoice_status in {"failed", "canceled", "expired", "voided"}:
-            messages.error(request, "لم تكتمل فاتورة ميّسر. يمكنك إنشاء طلب جديد.")
+            messages.error(request, "لم تكتمل عملية الدفع الإلكتروني. يمكنك إنشاء طلب جديد.")
         else:
-            messages.info(request, "فاتورة ميّسر ما زالت بانتظار إكمال الدفع.")
+            messages.info(request, "عملية الدفع الإلكتروني ما زالت بانتظار الإكمال.")
     return redirect("reports:my_subscription")
 
 

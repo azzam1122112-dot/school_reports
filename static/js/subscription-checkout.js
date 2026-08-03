@@ -46,7 +46,9 @@
     const receiptSubmit = form.querySelector("#submitBtn");
     const tamaraSubmit = form.querySelector("#tamaraSubmit");
     const moyasarSubmit = form.querySelector("#moyasarSubmit");
-    const tamaraCheckout = form.querySelector(".tamara-checkout");
+    const paymentChoices = form.querySelectorAll("[data-payment-choice]");
+    const paymentPanels = form.querySelectorAll("[data-payment-panel]");
+    const tamaraCheckout = form.querySelector('[data-payment-panel="tamara"]');
     const tamaraInstallmentAmount = form.querySelector(
       "#tamaraInstallmentAmount",
     );
@@ -178,10 +180,27 @@
       setSubmitState(
         moyasarSubmit,
         anySelected,
-        "المتابعة والدفع عبر ميّسر",
-        "اختر خدمة للدفع عبر ميّسر",
+        "المتابعة للدفع الإلكتروني",
+        "اختر خدمة للمتابعة",
       );
     }
+
+    function selectPaymentMethod(method) {
+      paymentChoices.forEach((choice) => {
+        const selected = choice.dataset.paymentChoice === method;
+        choice.classList.toggle("is-selected", selected);
+        choice.setAttribute("aria-pressed", String(selected));
+      });
+      paymentPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.paymentPanel !== method;
+      });
+    }
+
+    paymentChoices.forEach((choice) => {
+      choice.addEventListener("click", () => {
+        selectPaymentMethod(choice.dataset.paymentChoice || "bank_transfer");
+      });
+    });
 
     orderToggles.forEach((toggle) => {
       const sync = () => {
@@ -231,6 +250,7 @@
       receiptSubmit,
       tamaraSubmit,
       moyasarSubmit,
+      selectPaymentMethod,
     };
     Object.defineProperty(pageRoot, "__subscriptionCheckout", {
       configurable: false,
