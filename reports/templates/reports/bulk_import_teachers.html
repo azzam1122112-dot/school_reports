@@ -462,7 +462,7 @@
         <div class="ob-card-head">
           <div>
             <h2 class="ob-card-title" id="fileModeTitle">رفع ملف المستخدمين</h2>
-            <p class="ob-card-copy">نزّل القالب الفارغ، املأ ورقة «المعلمون»، ثم ارفع الملف لمراجعته قبل الحفظ.</p>
+            <p class="ob-card-copy">نزّل القالب الفارغ، املأ ورقة «{{ SCHOOL_TEACHERS_LABEL|default:"المعلمون" }}»، ثم ارفع الملف لمراجعته قبل الحفظ.</p>
           </div>
           <a class="ob-btn ob-btn-gold" href="{% url 'reports:bulk_import_teachers_template' %}">
             <i class="fa-solid fa-download" aria-hidden="true"></i> تنزيل القالب الآمن
@@ -509,7 +509,7 @@
         <div class="ob-card-head">
           <div>
             <h2 class="ob-card-title" id="quickModeTitle">أدخل عدة مستخدمين مرة واحدة</h2>
-            <p class="ob-card-copy">يكفي الاسم ورقم الجوال. المسمى الافتراضي «معلم»، ويمكن إضافة الهوية والقسم عند الحاجة.</p>
+            <p class="ob-card-copy">يكفي الاسم ورقم الجوال. المسمى الافتراضي «{{ SCHOOL_TEACHER_INDEFINITE_LABEL|default:"معلم" }}»، ويمكن إضافة الهوية والقسم عند الحاجة.</p>
           </div>
           <a class="ob-btn ob-btn-secondary" href="{% url 'reports:add_teacher' %}">إضافة فردية</a>
         </div>

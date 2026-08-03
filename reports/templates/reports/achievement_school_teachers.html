@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}ملفات الإنجاز - اعتماد المدير{% endblock %}
+{% block title %}ملفات الإنجاز - اعتماد {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}{% endblock %}
 
 {% block head %}
 <style>
@@ -308,7 +308,7 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="4" class="aa-muted">لا يوجد معلمون في هذه المدرسة.</td>
+                <td colspan="4" class="aa-muted">لا توجد حسابات للكادر التعليمي في هذه المدرسة.</td>
               </tr>
             {% endfor %}
           </tbody>

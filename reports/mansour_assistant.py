@@ -190,7 +190,7 @@ def _page_context_preferred_slug(value: Any, *, audience: str) -> str:
             (("/reports/admin/",), "manager-reports"),
             (("/achievement/school/", "/leadership-portfolio/"), "manager-achievement"),
             (("/staff/teachers/", "/staff/departments/"), "manager-team"),
-            (("/staff/report-types/", "/staff/report-templates/"), "manager-report-types"),
+            (("/staff/report-types/",), "manager-report-types"),
             (("/staff/my-school/",), "manager-settings"),
             (("/archive/",), "manager-archive"),
             (("/subscription/", "/payments/"), "manager-subscription"),

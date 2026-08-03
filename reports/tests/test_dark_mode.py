@@ -7,6 +7,24 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 
+def contrast_ratio(foreground: str, background: str) -> float:
+    def relative_luminance(color: str) -> float:
+        channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [
+            value / 12.92
+            if value <= 0.04045
+            else ((value + 0.055) / 1.055) ** 2.4
+            for value in channels
+        ]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    lighter, darker = sorted(
+        (relative_luminance(foreground), relative_luminance(background)),
+        reverse=True,
+    )
+    return (lighter + 0.05) / (darker + 0.05)
+
+
 @override_settings(ALLOWED_HOSTS=["testserver"], SITE_URL="https://tawtheeq.example")
 class DarkModeExperienceTests(TestCase):
     @staticmethod
@@ -87,3 +105,65 @@ class DarkModeExperienceTests(TestCase):
                 source = self._source(print_template)
                 self.assertNotIn("theme-manager.js", source)
                 self.assertNotIn("dark-mode.css", source)
+
+    def test_dark_styles_cover_shared_and_legacy_component_families(self):
+        css = self._source("static/css/dark-mode.css")
+
+        for selector in (
+            '.hdr-nav .tab.is-active',
+            '.btn-outline',
+            '.badge.success',
+            '.faq-cta',
+            '.legal-card',
+            '.pwa-install__card',
+            '.mansour-panel',
+            '.smart-card',
+            '.add-report-page',
+            '.req-scope',
+            '.manager-subscription-alert',
+            '.af-card',
+            '.lp-work',
+            '.plan-content',
+            '.plans-page',
+            '.sup-header',
+            '.ay-card',
+            '.exp-stat',
+        ):
+            with self.subTest(selector=selector):
+                self.assertIn(f'html[data-theme="dark"] {selector}', css)
+
+    def test_dark_palette_text_contrast_meets_wcag_aa(self):
+        palette_pairs = {
+            "body": ("#edf6f1", "#061512"),
+            "muted": ("#abc0b6", "#0d241d"),
+            "placeholder": ("#8fa79c", "#102920"),
+            "secondary-action": ("#d9f4e5", "#102920"),
+            "success": ("#9ce8bd", "#0d241d"),
+            "warning": ("#f0d69d", "#0d241d"),
+            "danger": ("#ffc5c8", "#0d241d"),
+            "info": ("#bae6fd", "#0d241d"),
+        }
+
+        for role, (foreground, background) in palette_pairs.items():
+            with self.subTest(role=role):
+                self.assertGreaterEqual(
+                    contrast_ratio(foreground, background),
+                    4.5,
+                )
+
+    def test_dark_stylesheet_cache_version_is_consistent(self):
+        expected_version = "dark-mode.css' %}?v=20260803.1"
+        templates = (
+            "reports/templates/base.html",
+            "reports/templates/reports/landing.html",
+            "reports/templates/reports/login.html",
+            "reports/templates/reports/register_school.html",
+            "reports/templates/reports/registration_success.html",
+            "reports/templates/reports/maintenance_mode.html",
+            "reports/templates/reports/password_reset_base.html",
+            "reports/templates/reports/user_guide.html",
+        )
+
+        for template_path in templates:
+            with self.subTest(template_path=template_path):
+                self.assertIn(expected_version, self._source(template_path))

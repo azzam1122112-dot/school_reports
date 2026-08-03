@@ -931,14 +931,14 @@
                         {% if form.target_department %}
                         <div class="recipient-step">
                           <span class="recipient-step-number">2</span>
-                          <span>أضف معلمين أفرادًا، سواء كانوا داخل الأقسام المختارة أو خارجها.</span>
+                          <span>أضف حسابات فردية، سواء كانت داخل الأقسام المختارة أو خارجها.</span>
                         </div>
                         {% endif %}
                         
                         <div class="teacher-selector">
                            <div class="teacher-tools">
                               <input type="search" id="teacherSearch" class="teacher-search" placeholder="ابحث باسم {{ SCHOOL_TEACHER_LABEL|default:'المعلم' }}...">
-                              <button type="button" id="selectAllTeachers" class="btn-link" style="color:var(--c-primary); font-size:0.85rem" title="اختيار جميع المعلمين">
+                              <button type="button" id="selectAllTeachers" class="btn-link" style="color:var(--c-primary); font-size:0.85rem" title="اختيار جميع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}">
                                 <i class="fa-solid fa-check-double" style="margin-inline-end:4px"></i>الكل
                               </button>
                               <button type="button" id="clearAllTeachers" class="btn-link" style="color:#ef4444; font-size:0.85rem" title="إلغاء تحديد الكل">
@@ -947,7 +947,7 @@
                            </div>
                            <p style="font-size:0.8rem;color:#64748b;margin:0 0 0.6rem;padding:0 0.25rem">
                              <i class="fa-solid fa-circle-info" style="color:var(--c-primary);margin-inline-end:4px"></i>
-                             اضغط على اسم المعلم لتحديده، أو اضغط "<strong>الكل</strong>" لتحديد الجميع دفعةً واحدة.
+                             اضغط على اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} لتحديده، أو اضغط "<strong>الكل</strong>" لتحديد الجميع دفعةً واحدة.
                            </p>
                            
                            <div class="teacher-list-container" id="teacherList">
@@ -960,7 +960,7 @@
                          </div>
                          <div id="recipientGuardMsg" class="recipient-alert" role="alert" aria-live="polite">
                            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
-                           <span>قبل الإرسال، حدّد معلمًا واحدًا أو قسمًا واحدًا على الأقل.</span>
+                           <span>قبل الإرسال، حدّد حسابًا واحدًا أو قسمًا واحدًا على الأقل.</span>
                          </div>
                          {% if form.teachers.errors %}<div class="error-list">{{ form.teachers.errors }}</div>{% endif %}
                      </div>

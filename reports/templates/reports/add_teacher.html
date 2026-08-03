@@ -1,7 +1,7 @@
 {# reports/templates/reports/teacher_form.html (or your file name) #}
 {% extends "base.html" %}
 
-{% block title %}{{ page_title|default:"إضافة معلم جديد" }}{% endblock %}
+{% block title %}{{ page_title|default:"إضافة حساب جديد" }}{% endblock %}
 
 {% block head %}
 <style nonce="{{ CSP_NONCE }}">
@@ -245,7 +245,7 @@
             </label>
             {{ form.name }}
             {% for e in form.name.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
-            <div class="hint">الاسم الكامل لـ{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} كما سيظهر في النظام</div>
+            <div class="hint">الاسم الكامل {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }} كما سيظهر في النظام</div>
           </div>
 
           <!-- الهوية -->

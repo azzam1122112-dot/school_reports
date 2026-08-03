@@ -23,6 +23,7 @@ from ..report_ai import (
     reserve_report_ai_daily_slot,
     validate_report_text,
 )
+from ..gender_labels import school_gender_labels, school_gender_template_context
 
 from ._helpers import *
 from ._helpers import (
@@ -110,9 +111,10 @@ def _notify_report_created(report, active_school):
 
         teacher_name = getattr(report.teacher, "name", "") if report.teacher else ""
         category_name = getattr(report.category, "name", "") if getattr(report, "category", None) else ""
+        added_verb = "أضافت" if school_gender_labels(school)["is_girls"] else "أضاف"
         create_system_notification(
             title=f"📝 تقرير جديد: {report.title[:80]}",
-            message=f"أضاف {teacher_name} تقريراً جديداً ({category_name}).",
+            message=f"{added_verb} {teacher_name} تقريراً جديداً ({category_name}).",
             school=school,
             teacher_ids=list(recipients),
         )
@@ -127,14 +129,8 @@ def _notify_report_created(report, active_school):
 @ratelimit(key="user", rate="30/h", method="POST", block=True)
 @require_http_methods(["GET", "POST"])
 def add_report(request: HttpRequest) -> HttpResponse:
-    import json as _json
-    from .report_templates import active_templates_for_school
-
     active_school = _get_active_school(request)
     leadership_section = _leadership_section_for_new_report(request, active_school)
-    report_templates_json = _json.dumps(
-        active_templates_for_school(active_school), ensure_ascii=False
-    )
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, active_school=active_school)
         if form.is_valid():
@@ -146,7 +142,6 @@ def add_report(request: HttpRequest) -> HttpResponse:
                     "reports/add_report.html",
                     {
                         "form": form,
-                        "report_templates_json": report_templates_json,
                         "leadership_section": leadership_section,
                         **_report_ai_template_context(request.user),
                     },
@@ -213,7 +208,6 @@ def add_report(request: HttpRequest) -> HttpResponse:
         "reports/add_report.html",
         {
             "form": form,
-            "report_templates_json": report_templates_json,
             "leadership_section": leadership_section,
             **_report_ai_template_context(request.user),
         },
@@ -1492,12 +1486,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
             school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
 
         # مسمّى المنفّذ حسب نوع المدرسة (بنين/بنات)
-        try:
-            _gender = (getattr(school_scope, "gender", "") or "").strip().lower()
-            _girls_val = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-            executor_label = "المنفّذة" if _gender == _girls_val else "المنفّذ"
-        except Exception:
-            executor_label = "المنفّذ"
+        executor_label = school_gender_labels(school_scope)["executor"]
 
         # إعدادات المدرسة (الاسم + المرحلة + الشعار)
         school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
@@ -1542,6 +1531,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
                 "head_decision": head_decision,
                 "SCHOOL_PRINCIPAL": school_principal,
                 "executor_label": executor_label,
+                **school_gender_template_context(school_scope),
                 "SCHOOL_NAME": school_name,
                 "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,
@@ -1827,12 +1817,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
             moe_logo_url = static("img/UntiTtled-1.png")
 
         # مسمّى المنفّذ حسب نوع المدرسة (بنين/بنات)
-        try:
-            _gender = (getattr(school_scope, "gender", "") or "").strip().lower()
-            _girls_val = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-            executor_label = "المنفّذة" if _gender == _girls_val else "المنفّذ"
-        except Exception:
-            executor_label = "المنفّذ"
+        executor_label = school_gender_labels(school_scope)["executor"]
 
         return render(
             request,
@@ -1842,6 +1827,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
                 "head_decision": head_decision,
                 "SCHOOL_PRINCIPAL": school_principal,
                 "executor_label": executor_label,
+                **school_gender_template_context(school_scope),
                 "SCHOOL_NAME": school_name,
                 "SCHOOL_STAGE": school_stage,
                 "SCHOOL_LOGO_URL": school_logo_url,

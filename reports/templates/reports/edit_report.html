@@ -461,6 +461,18 @@
     border: 1px solid var(--er-line);
     background: var(--er-line2);
   }
+  .er-scope .er-section-builder{padding:18px;border:1px solid var(--er-line);border-radius:16px;background:linear-gradient(135deg,rgba(0,108,53,.06),rgba(185,151,91,.08));}
+  .er-scope .er-section-builder h3{margin:0;color:var(--er-green);font-weight:950;}
+  .er-scope .er-section-builder p{margin:5px 0 14px;color:var(--er-muted);font-weight:750;}
+  .er-scope .er-section-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;}
+  .er-scope .er-section-option{position:relative;display:flex;align-items:center;gap:8px;padding:11px;border:1px solid var(--er-line);border-radius:13px;background:var(--er-card);cursor:pointer;font-weight:900;transition:.18s ease;}
+  .er-scope .er-section-option input{position:absolute;opacity:0;pointer-events:none;}
+  .er-scope .er-section-option i{color:var(--er-green);}
+  .er-scope .er-section-option.is-selected{border-color:var(--er-green);background:rgba(0,108,53,.09);box-shadow:0 5px 16px -12px var(--er-green);}
+  .er-scope [data-section-field]{padding:16px;border:1px solid var(--er-line);border-right:4px solid var(--er-green);border-radius:14px;background:var(--er-line2);}
+  .er-scope [data-section-field][hidden]{display:none !important;}
+  @media(max-width:720px){.er-scope .er-section-options{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media(max-width:480px){.er-scope .er-section-options{grid-template-columns:1fr;}}
 </style>
 {% endblock %}
 
@@ -493,6 +505,7 @@
 
         <form method="post" enctype="multipart/form-data" autocomplete="off" novalidate id="editReportForm">
           {% csrf_token %}
+          {{ form.section_selection_enabled }}
 
           <div class="grid">
             <div class="row">
@@ -544,16 +557,27 @@
               {% endif %}
             </div>
 
-            <div class="row">
-              <label for="{{ form.beneficiaries_count.id_for_label }}">عدد المستفيدين</label>
-              {{ form.beneficiaries_count }}
-              {% if form.beneficiaries_count.errors %}
-                <div class="msg err">{% for e in form.beneficiaries_count.errors %}• {{ e }}<br>{% endfor %}</div>
-              {% endif %}
+            <div class="row er-section-builder">
+              <h3><i class="fa-solid fa-list-check"></i> البنود الظاهرة في التقرير</h3>
+              <p>فعّل البنود التي تريد ظهورها في النسخة النهائية، ثم حدّث محتواها أدناه.</p>
+              <div class="er-section-options">
+                <label class="er-section-option" data-section-option="goal">{{ form.show_goal }}<i class="fa-solid fa-bullseye"></i><span>الهدف</span></label>
+                <label class="er-section-option" data-section-option="details">{{ form.show_details }}<i class="fa-solid fa-align-right"></i><span>تفاصيل التقرير</span></label>
+                <label class="er-section-option" data-section-option="implementation">{{ form.show_implementation }}<i class="fa-solid fa-gears"></i><span>آلية التنفيذ</span></label>
+                <label class="er-section-option" data-section-option="results">{{ form.show_results }}<i class="fa-solid fa-chart-line"></i><span>النتائج</span></label>
+                <label class="er-section-option" data-section-option="recommendations">{{ form.show_recommendations }}<i class="fa-solid fa-lightbulb"></i><span>التوصيات</span></label>
+                <label class="er-section-option" data-section-option="beneficiaries">{{ form.show_beneficiaries }}<i class="fa-solid fa-users"></i><span>عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين" }}</span></label>
+              </div>
             </div>
 
-            <div class="row">
-              <label for="{{ form.idea.id_for_label }}">الوصف / فكرة التقرير</label>
+            <div class="row" data-section-field="goal">
+              <label for="{{ form.goal.id_for_label }}">الهدف</label>
+              {{ form.goal }}
+              {% if form.goal.errors %}<div class="msg err">{% for e in form.goal.errors %}• {{ e }}<br>{% endfor %}</div>{% endif %}
+            </div>
+
+            <div class="row" data-section-field="details">
+              <label for="{{ form.idea.id_for_label }}">تفاصيل التقرير</label>
               {{ form.idea }}
               {% if form.idea.errors %}
                 <div class="msg err">{% for e in form.idea.errors %}• {{ e }}<br>{% endfor %}</div>
@@ -561,6 +585,30 @@
               {% if report_ai_enabled %}
                 {% include "reports/partials/report_ai_improver.html" with target_id=form.idea.id_for_label %}
               {% endif %}
+            </div>
+
+            <div class="row" data-section-field="implementation">
+              <label for="{{ form.implementation_method.id_for_label }}">آلية التنفيذ</label>
+              {{ form.implementation_method }}
+              {% if form.implementation_method.errors %}<div class="msg err">{% for e in form.implementation_method.errors %}• {{ e }}<br>{% endfor %}</div>{% endif %}
+            </div>
+
+            <div class="row" data-section-field="results">
+              <label for="{{ form.results.id_for_label }}">النتائج</label>
+              {{ form.results }}
+              {% if form.results.errors %}<div class="msg err">{% for e in form.results.errors %}• {{ e }}<br>{% endfor %}</div>{% endif %}
+            </div>
+
+            <div class="row" data-section-field="recommendations">
+              <label for="{{ form.recommendations.id_for_label }}">التوصيات</label>
+              {{ form.recommendations }}
+              {% if form.recommendations.errors %}<div class="msg err">{% for e in form.recommendations.errors %}• {{ e }}<br>{% endfor %}</div>{% endif %}
+            </div>
+
+            <div class="row" data-section-field="beneficiaries">
+              <label for="{{ form.beneficiaries_count.id_for_label }}">عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين" }}</label>
+              {{ form.beneficiaries_count }}
+              {% if form.beneficiaries_count.errors %}<div class="msg err">{% for e in form.beneficiaries_count.errors %}• {{ e }}<br>{% endfor %}</div>{% endif %}
             </div>
 
             <div class="row">
@@ -767,6 +815,31 @@
     const sel = 'input[type=text], input[type=number], input[type=date], input[type=email], input[type=tel], input[type=search], textarea, select';
     form.querySelectorAll(sel).forEach(el=>{
       if(!el.classList.contains('control')) el.classList.add('control');
+    });
+  })();
+
+  // مزامنة اختيار البنود مع حقولها
+  (function(){
+    const sections = [
+      {key:'goal', toggle:'id_show_goal'},
+      {key:'details', toggle:'id_show_details'},
+      {key:'implementation', toggle:'id_show_implementation'},
+      {key:'results', toggle:'id_show_results'},
+      {key:'recommendations', toggle:'id_show_recommendations'},
+      {key:'beneficiaries', toggle:'id_show_beneficiaries'}
+    ];
+    sections.forEach(section => {
+      const checkbox = document.getElementById(section.toggle);
+      const option = document.querySelector(`[data-section-option="${section.key}"]`);
+      const field = document.querySelector(`[data-section-field="${section.key}"]`);
+      if(!checkbox) return;
+      const sync = () => {
+        const selected = checkbox.checked;
+        if(option) option.classList.toggle('is-selected', selected);
+        if(field) field.hidden = !selected;
+      };
+      checkbox.addEventListener('change', sync);
+      sync();
     });
   })();
 

@@ -319,6 +319,7 @@ class TeacherExperienceTests(TestCase):
             "request_create.html",
             "my_requests.html",
             "assigned_to_me.html",
+            "ticket_print.html",
             "my_notifications.html",
             "my_circulars.html",
             "achievement_my_files.html",
@@ -340,6 +341,7 @@ class TeacherExperienceTests(TestCase):
         for template_name in (
             "achievement_my_files.html",
             "partials/passkey_enrollment_prompt.html",
+            "ticket_print.html",
         ):
             source = (templates_dir / template_name).read_text(encoding="utf-8")
             self.assertIn(

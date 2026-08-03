@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}مساحة عمل المعلم{% endblock %}
+{% block title %}مساحة عمل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}{% endblock %}
 
 {% block head %}
 <style nonce="{{ CSP_NONCE }}">
@@ -584,9 +584,9 @@
     <div class="th-hero-main">
       <div class="th-eyebrow">
         <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
-        مساحة عمل المعلم
+        مساحة عمل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
       </div>
-      <h1 class="th-title" id="teacherHomeTitle">مرحبًا، {{ request.user.name|default:"معلمنا" }}</h1>
+      <h1 class="th-title" id="teacherHomeTitle">مرحبًا، {{ request.user.name|default:SCHOOL_TEACHER_LABEL }}</h1>
       <p class="th-lead">وثّق عملك، تابع طلباتك، واحتفظ بإنجازاتك من مكان واحد واضح.</p>
       <div class="th-hero-actions">
         <a href="{% url 'reports:add_report' %}" class="th-btn th-btn-primary">
@@ -656,7 +656,7 @@
                   <span class="th-item-meta">
                     <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ report.report_date|date:"Y-m-d" }}</span>
                     {% if report.day_name %}<span>{{ report.day_name }}</span>{% endif %}
-                    <span>{{ report.beneficiaries_count|default:"0" }} مستفيد</span>
+                    <span>{{ report.beneficiaries_count|default:"0" }} {{ SCHOOL_BENEFICIARY_INDEFINITE_LABEL|default:"مستفيد" }}</span>
                   </span>
                 </span>
                 <i class="fa-solid fa-chevron-left th-item-arrow" aria-hidden="true"></i>

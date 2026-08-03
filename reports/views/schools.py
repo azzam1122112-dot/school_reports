@@ -12,6 +12,7 @@ from ._helpers import (
     _model_has_field, _get_active_school, _user_manager_schools,
     _clean_query_params, _clean_query_value, _parse_date_safe,
 )
+from ..gender_labels import school_gender_labels
 
 
 # ========= دعم الأقسام =========
@@ -432,6 +433,7 @@ class _SchoolSettingsForm(forms.ModelForm):
             "gender",
             "city",
             "phone",
+            "email",
             "current_academic_year",
             "share_link_default_days",
         ]
@@ -467,6 +469,9 @@ class _SchoolSettingsForm(forms.ModelForm):
         if int(end) != int(start) + 1:
             raise forms.ValidationError("السنة الحالية يجب أن تكون بفارق سنة واحدة، مثل 1447-1448")
         return value
+
+    def clean_email(self):
+        return (self.cleaned_data.get("email") or "").strip().lower()
 
 
 @login_required(login_url="reports:login")
@@ -809,23 +814,24 @@ def school_profile(request: HttpRequest, pk: int) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
     school = get_object_or_404(School, pk=pk)
+    labels = school_gender_labels(school)
 
     if request.method == "POST":
         action = request.POST.get("action")
         teacher_id = request.POST.get("teacher_id")
         if not teacher_id:
-            messages.error(request, "الرجاء اختيار معلّم.")
+            messages.error(request, f"الرجاء اختيار {labels['teacher']}.")
             return redirect("reports:school_managers_manage", pk=school.pk)
         try:
             teacher = Teacher.objects.get(pk=teacher_id)
         except Teacher.DoesNotExist:
-            messages.error(request, "المعلّم غير موجود.")
+            messages.error(request, f"{labels['teacher']} غير موجودة." if labels["is_girls"] else f"{labels['teacher']} غير موجود.")
             return redirect("reports:school_managers_manage", pk=school.pk)
 
         if action == "add":
             manager_email = (getattr(teacher, "email", "") or "").strip()
             if not manager_email:
-                messages.error(request, "لا يمكن تعيين مدير مدرسة بدون بريد إلكتروني. حدّث بيانات المستخدم أولاً.")
+                messages.error(request, f"لا يمكن تعيين {labels['manager']} بدون بريد إلكتروني. حدّث بيانات المستخدم أولاً.")
                 return redirect("reports:school_managers_manage", pk=school.pk)
 
             # لا نسمح بأكثر من مدير نشط واحد لكل مدرسة
@@ -835,7 +841,7 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
                 is_active=True,
             ).exclude(teacher=teacher).exists()
             if other_manager_exists:
-                messages.error(request, "لا يمكن تعيين أكثر من مدير نشط لنفس المدرسة. قم بإلغاء تعيين المدير الحالي أولاً.")
+                messages.error(request, "لا يمكن تعيين أكثر من حساب إدارة نشط للمدرسة نفسها. ألغِ تعيين الحساب الحالي أولاً.")
                 return redirect("reports:school_managers_manage", pk=school.pk)
 
             SchoolMembership.objects.update_or_create(
@@ -844,7 +850,7 @@ def school_managers_manage(request: HttpRequest, pk: int) -> HttpResponse:
                 role_type=SchoolMembership.RoleType.MANAGER,
                 defaults={"is_active": True},
             )
-            messages.success(request, f"تم تعيين {teacher.name} مديراً للمدرسة.")
+            messages.success(request, f"تم تعيين {teacher.name} بصفة {labels['manager']}.")
         elif action == "remove":
             SchoolMembership.objects.filter(
                 school=school,
@@ -1832,7 +1838,8 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
             )
         teacher = allowed_teachers.filter(pk=teacher_id).first()
         if not teacher:
-            messages.error(request, "المعلّم غير موجود.")
+            labels = school_gender_labels(active_school)
+            messages.error(request, f"{labels['teacher']} غير موجودة." if labels["is_girls"] else f"{labels['teacher']} غير موجود.")
             return redirect("reports:department_members", code=dept_code)
 
         if Department is not None and obj:
@@ -1844,7 +1851,8 @@ def department_members(request: HttpRequest, code: str | int) -> HttpResponse:
                         if ok:
                             messages.success(request, f"تم تكليف {teacher.name} في قسم «{dept_label}».")
                         else:
-                            messages.error(request, "تعذّر إسناد المعلّم — تحقّق من بنية DepartmentMembership.")
+                            labels = school_gender_labels(active_school)
+                            messages.error(request, f"تعذّر إسناد {labels['teacher']} — تحقّق من بنية DepartmentMembership.")
                     elif action == "set_officer":
                         ok = _dept_set_officer(obj, teacher)
                         if ok:

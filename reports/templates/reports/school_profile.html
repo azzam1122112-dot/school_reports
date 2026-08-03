@@ -283,7 +283,7 @@
 
         <div class="schoolp-cardish">
           <div class="schoolp-block-title">
-            <span>أمثلة معلمين</span>
+            <span>أمثلة {{ SCHOOL_TEACHERS_INDEFINITE_LABEL|default:"معلمين" }}</span>
             <small>بحد أقصى 20</small>
           </div>
           {% if teachers %}
@@ -293,7 +293,7 @@
               {% endfor %}
             </ul>
           {% else %}
-            <div class="schoolp-muted">لا يوجد معلمين لعرضهم.</div>
+            <div class="schoolp-muted">لا توجد حسابات للكادر التعليمي لعرضها.</div>
           {% endif %}
         </div>
       </div>

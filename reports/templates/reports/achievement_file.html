@@ -941,7 +941,7 @@
       </nav>
       
       {% if file.manager_notes %}
-        <div class="af-note">ملاحظات المدير: {{ file.manager_notes|linebreaksbr }}</div>
+        <div class="af-note">ملاحظات {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}: {{ file.manager_notes|linebreaksbr }}</div>
       {% endif %}
 
       <!-- Private Comments -->
@@ -1075,7 +1075,7 @@
         <form class="af-form" method="post" autocomplete="off" class="af-card" style="padding:24px; box-shadow:none; border:2px dashed var(--brand); background:var(--brand-light);">
           {% csrf_token %}
           <div>
-            <label class="af-label">ملاحظات المدير</label>
+            <label class="af-label">ملاحظات {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</label>
             {{ manager_notes_form.manager_notes }}
           </div>
           <div class="af-actions" style="margin-top:16px">

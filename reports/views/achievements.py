@@ -8,6 +8,7 @@ from ._helpers import (
     _model_has_field, _get_active_school, _school_teachers_obj_label,
     _is_report_viewer, _user_manager_schools,
 )
+from ..gender_labels import school_gender_labels, school_gender_template_context
 
 
 def _notify_achievement_submitted(ach_file, active_school):
@@ -28,9 +29,10 @@ def _notify_achievement_submitted(ach_file, active_school):
         if not manager_ids:
             return
         teacher_name = getattr(ach_file.teacher, "name", "") if ach_file.teacher else ""
+        sent_verb = "أرسلت" if school_gender_labels(school)["is_girls"] else "أرسل"
         create_system_notification(
             title="📂 ملف إنجاز جديد للاعتماد",
-            message=f"أرسل {teacher_name} ملف إنجاز للسنة {ach_file.academic_year} للاعتماد.",
+            message=f"{sent_verb} {teacher_name} ملف إنجاز للسنة {ach_file.academic_year} للاعتماد.",
             school=school,
             teacher_ids=manager_ids,
         )
@@ -269,7 +271,8 @@ def achievement_school_files(request: HttpRequest) -> HttpResponse:
 
     # إنشاء ملف إنجاز من صفحة المدرسة غير مسموح: المعلّم هو من ينشئ ملفه من (ملف الإنجاز)
     if request.method == "POST" and (request.POST.get("action") == "create"):
-        messages.error(request, "إنشاء ملف الإنجاز متاح للمعلّم فقط.")
+        teacher_label = school_gender_labels(active_school)["teacher"]
+        messages.error(request, f"إنشاء ملف الإنجاز متاح لـ{teacher_label} فقط.")
         return _redirect_with_year(year)
 
     # Search Logic
@@ -359,6 +362,7 @@ def achievement_school_teachers(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
     active_school = _get_active_school(request)
+    labels = school_gender_labels(active_school)
     ach_file = get_object_or_404(TeacherAchievementFile, pk=pk)
     user = request.user
 
@@ -453,7 +457,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
                                 created_by=user,
                             )
                             NotificationRecipient.objects.create(notification=n, teacher=ach_file.teacher)
-                        messages.success(request, "تم إرسال التعليق الخاص للمعلّم ✅")
+                        messages.success(request, f"تم إرسال التعليق الخاص لـ{labels['teacher']} ✅")
                         return redirect("reports:achievement_file_detail", pk=ach_file.pk)
                     except Exception:
                         logger.exception("Failed to create private achievement comment")
@@ -697,7 +701,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             # إشعار المعلم بإرجاع ملف الإنجاز
             _notify_achievement_decided(ach_file, "returned", active_school)
 
-            messages.success(request, "تم إرجاع الملف للمعلّم مع الملاحظات ✅")
+            messages.success(request, f"تم إرجاع الملف لـ{labels['teacher']} مع الملاحظات ✅")
             return redirect("reports:achievement_file_detail", pk=ach_file.pk)
 
         messages.error(request, "تعذر تنفيذ العملية.")
@@ -908,6 +912,7 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
             "sections": sections,
             "has_evidence_reports": has_evidence_reports,
             "theme": {"brand": primary},
+            **school_gender_template_context(school),
             "now": timezone.localtime(timezone.now()),
             "school_logo_url": school_logo_url,
             "ministry_logo_src": ministry_logo_src,

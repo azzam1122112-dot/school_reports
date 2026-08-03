@@ -22,6 +22,7 @@ from .models import (
     school_has_archive_addon,
 )
 from .permissions import effective_user_role_label, get_school_manager_school_ids, is_report_viewer_for_school
+from .gender_labels import school_gender_labels, school_gender_template_context
 
 # حالات التذاكر
 OPEN_STATES = {"open", "new"}
@@ -649,19 +650,17 @@ def _reverse_any(names: Iterable[str]) -> Optional[str]:
 
 
 def _school_role_labels(active_school: Optional[School]) -> Dict[str, str]:
-    """مسميات الدور حسب نوع المدرسة (بنين/بنات)."""
-    gender = (getattr(active_school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    is_girls = gender == girls_value
+    """Compatibility wrapper around the canonical gender-aware labels."""
+    labels = school_gender_labels(active_school)
     return {
-        "manager": "مديرة المدرسة" if is_girls else "مدير المدرسة",
-        "teacher": "المعلمة" if is_girls else "المعلم",
-        "teachers": "المعلمات" if is_girls else "المعلمون",
-        "teachers_obj": "المعلمات" if is_girls else "المعلمين",
-        "head": "رئيسة" if is_girls else "رئيس",
-        "head_of_department": "رئيسة القسم" if is_girls else "رئيس القسم",
-        "admin_staff": "موظفة إدارية" if is_girls else "موظف إداري",
-        "lab_tech": "محضرة مختبر" if is_girls else "محضر مختبر",
+        "manager": str(labels["manager"]),
+        "teacher": str(labels["teacher"]),
+        "teachers": str(labels["teachers"]),
+        "teachers_obj": str(labels["teachers_object"]),
+        "head": str(labels["head"]),
+        "head_of_department": str(labels["head_of_department"]),
+        "admin_staff": str(labels["admin_staff"]),
+        "lab_tech": str(labels["lab_tech"]),
     }
 
 
@@ -774,12 +773,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "SCHOOL_NAME": None,
             "SCHOOL_LOGO_URL": None,
             "USER_ROLE_LABEL": None,
-            "SCHOOL_MANAGER_LABEL": "مدير المدرسة",
-            "SCHOOL_TEACHER_LABEL": "المعلم",
-            "SCHOOL_TEACHERS_LABEL": "المعلمون",
-            "SCHOOL_TEACHERS_OBJ_LABEL": "المعلمين",
-            "SCHOOL_HEAD_LABEL": "رئيس",
-            "SCHOOL_HEAD_OF_DEPARTMENT_LABEL": "رئيس القسم",
+            **school_gender_template_context(None),
         }
 
     # -----------------------------
@@ -839,15 +833,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         except Exception:
             active_school = None
 
-    role_labels = _school_role_labels(active_school)
-    school_manager_label = role_labels["manager"]
-    school_teacher_label = role_labels["teacher"]
-    school_teachers_label = role_labels["teachers"]
-    school_teachers_obj_label = role_labels["teachers_obj"]
-    school_head_label = role_labels["head"]
-    school_head_of_department_label = role_labels["head_of_department"]
-    school_admin_staff_label = role_labels["admin_staff"]
-    school_lab_tech_label = role_labels["lab_tech"]
+    gender_context = school_gender_template_context(active_school)
 
     try:
         ticket_base = Ticket.objects.filter(status__in=UNRESOLVED_STATES)
@@ -1080,14 +1066,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "SCHOOL_LOGO_URL": school_logo,
         "USER_SCHOOLS": user_schools,
         "USER_ROLE_LABEL": user_role_label,
-        "SCHOOL_MANAGER_LABEL": school_manager_label,
-        "SCHOOL_TEACHER_LABEL": school_teacher_label,
-        "SCHOOL_TEACHERS_LABEL": school_teachers_label,
-        "SCHOOL_TEACHERS_OBJ_LABEL": school_teachers_obj_label,
-        "SCHOOL_HEAD_LABEL": school_head_label,
-        "SCHOOL_HEAD_OF_DEPARTMENT_LABEL": school_head_of_department_label,
-        "SCHOOL_ADMIN_STAFF_LABEL": school_admin_staff_label,
-        "SCHOOL_LAB_TECH_LABEL": school_lab_tech_label,
+        **gender_context,
     }
 
     if cache_key and ttl > 0:

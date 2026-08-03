@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.template.loader import render_to_string
 
+from .gender_labels import school_gender_template_context
 from .models import (
     LeadershipEvidenceImage,
     LeadershipEvidenceReport,
@@ -30,9 +31,8 @@ def build_leadership_print_context(portfolio) -> dict:
         "report_evidence_count": LeadershipEvidenceReport.objects.filter(
             section__portfolio=portfolio
         ).count(),
-        "manager_label": (
-            "مديرة المدرسة" if portfolio.school.gender == "girls" else "مدير المدرسة"
-        ),
+        **school_gender_template_context(portfolio.school),
+        "manager_label": school_gender_template_context(portfolio.school)["SCHOOL_MANAGER_LABEL"],
     }
 
 

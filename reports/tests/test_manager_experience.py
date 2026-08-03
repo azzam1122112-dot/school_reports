@@ -107,6 +107,38 @@ class ManagerExperienceTests(TestCase):
             ["1446-1447", "1448-1449"],
         )
 
+    def test_manager_can_update_school_email_and_invalid_email_is_rejected(self):
+        self._login_manager()
+
+        settings_response = self.client.get(reverse("reports:school_settings"))
+        self.assertIn("email", settings_response.context["form"].fields)
+        self.assertContains(settings_response, 'type="email"')
+
+        update_response = self.client.post(
+            reverse("reports:school_settings"),
+            {
+                "email": "School.Contact@Example.COM",
+                "current_academic_year": "1447-1448",
+                "share_link_default_days": 7,
+            },
+        )
+        self.assertEqual(update_response.status_code, 302)
+        self.school.refresh_from_db()
+        self.assertEqual(self.school.email, "school.contact@example.com")
+
+        invalid_response = self.client.post(
+            reverse("reports:school_settings"),
+            {
+                "email": "invalid-email",
+                "current_academic_year": "1447-1448",
+                "share_link_default_days": 7,
+            },
+        )
+        self.assertEqual(invalid_response.status_code, 200)
+        self.assertIn("email", invalid_response.context["form"].errors)
+        self.school.refresh_from_db()
+        self.assertEqual(self.school.email, "school.contact@example.com")
+
     def test_manager_has_one_clear_home_destination(self):
         self._login_manager()
 

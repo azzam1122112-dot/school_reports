@@ -1045,7 +1045,7 @@
               <th>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</th>
               <th>العنوان</th>
               <th>التصنيف</th>
-              <th>المستفيدون</th>
+              <th>{{ SCHOOL_BENEFICIARIES_LABEL|default:"المستفيدون" }}</th>
               <th>الإجراءات</th>
             </tr>
           </thead>
@@ -1185,7 +1185,7 @@
           </div>
 
           <div class="rd-row">
-            <span class="k">المستفيدون</span>
+            <span class="k">{{ SCHOOL_BENEFICIARIES_LABEL|default:"المستفيدون" }}</span>
             <span class="v">{{ r.beneficiaries_count|default:"0" }}</span>
           </div>
 

@@ -365,7 +365,7 @@
             <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i>
             إنشاء ملف جديد
         </h2>
-        <p class="af-create-copy">يُنشأ الملف للسنة الحالية التي اعتمدها مدير المدرسة.</p>
+        <p class="af-create-copy">يُنشأ الملف للسنة الحالية المعتمدة من {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}.</p>
         <form method="post" novalidate>
             {% csrf_token %}
             <input type="hidden" name="action" value="create" />
@@ -398,7 +398,7 @@
             <div class="af-empty" style="padding:20px;">
               <i class="fa-solid fa-calendar-xmark"></i>
               <b>لم تُحدد السنة الدراسية الحالية</b>
-              <p>يرجى من مدير المدرسة تحديدها من إعدادات المدرسة أولًا.</p>
+              <p>يرجى من {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }} تحديدها من إعدادات المدرسة أولًا.</p>
             </div>
             {% endif %}
         </form>

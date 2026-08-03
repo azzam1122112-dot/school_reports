@@ -1,5 +1,3 @@
-import json
-
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -9,7 +7,6 @@ from django.utils import timezone
 
 from reports.models import (
     Report,
-    ReportTemplate,
     ReportType,
     School,
     SchoolArchiveAddon,
@@ -55,75 +52,6 @@ class _BaseSchoolFixture(TestCase):
         session = self.client.session
         session["active_school_id"] = self.school.id
         session.save()
-
-
-class ReportTemplateTests(_BaseSchoolFixture):
-    def test_manager_can_create_template(self):
-        self._login(self.manager)
-        response = self.client.post(
-            reverse("reports:report_template_create"),
-            data={
-                "name": "إذاعة صباحية",
-                "category": self.category.id,
-                "title": "الإذاعة الصباحية",
-                "idea": "تفاصيل جاهزة",
-                "beneficiaries_count": "120",
-                "order": "0",
-                "is_active": "on",
-            },
-        )
-        self.assertEqual(response.status_code, 302)
-        tpl = ReportTemplate.objects.get(name="إذاعة صباحية")
-        self.assertEqual(tpl.school_id, self.school.id)
-        self.assertEqual(tpl.created_by_id, self.manager.id)
-        self.assertEqual(tpl.beneficiaries_count, 120)
-
-    def test_templates_list_renders_for_manager(self):
-        ReportTemplate.objects.create(school=self.school, name="قالب", title="عنوان")
-        self._login(self.manager)
-        response = self.client.get(reverse("reports:report_templates_list"))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "قالب")
-
-    def test_teacher_cannot_manage_templates(self):
-        self._login(self.teacher)
-        response = self.client.get(reverse("reports:report_templates_list"))
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(ReportTemplate.objects.count(), 0)
-
-    def test_manager_cannot_edit_other_school_template(self):
-        foreign = ReportTemplate.objects.create(school=self.other_school, name="خارجي")
-        self._login(self.manager)
-        response = self.client.get(reverse("reports:report_template_update", args=[foreign.id]))
-        self.assertEqual(response.status_code, 404)
-
-    def test_delete_template(self):
-        tpl = ReportTemplate.objects.create(school=self.school, name="للحذف")
-        self._login(self.manager)
-        response = self.client.post(reverse("reports:report_template_delete", args=[tpl.id]))
-        self.assertEqual(response.status_code, 302)
-        self.assertFalse(ReportTemplate.objects.filter(id=tpl.id).exists())
-
-    def test_api_returns_active_school_templates_only(self):
-        ReportTemplate.objects.create(school=self.school, name="نشط", category=self.category, is_active=True)
-        ReportTemplate.objects.create(school=self.school, name="موقوف", is_active=False)
-        ReportTemplate.objects.create(school=self.other_school, name="مدرسة أخرى", is_active=True)
-
-        self._login(self.teacher)
-        response = self.client.get(reverse("reports:api_report_templates"))
-        self.assertEqual(response.status_code, 200)
-        payload = json.loads(response.content)
-        names = {t["name"] for t in payload["templates"]}
-        self.assertEqual(names, {"نشط"})
-        self.assertEqual(payload["templates"][0]["category_code"], "radio")
-
-    def test_add_report_page_embeds_templates(self):
-        ReportTemplate.objects.create(school=self.school, name="قالب الإذاعة", category=self.category, title="ع")
-        self._login(self.teacher)
-        response = self.client.get(reverse("reports:add_report"))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "قوالب جاهزة")
-        self.assertContains(response, "قالب الإذاعة")
 
 
 class SchoolDataExportTests(_BaseSchoolFixture):

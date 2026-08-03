@@ -181,7 +181,7 @@
     {% with current_slug=form.instance.slug %}
       {% if current_slug == "manager" %}
         <div class="smart-note ok">
-          <strong>قسم المدير الدائم</strong> — هذا القسم محجوز ويتمتع بصلاحيات المدير. لا يمكن تغيير اسمه.
+          <strong>قسم {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }} الدائم</strong> — هذا القسم محجوز ويتمتع بصلاحيات {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}. لا يمكن تغيير اسمه.
         </div>
       {% elif current_slug == "teachers" %}
         <div class="smart-note warn">
@@ -255,7 +255,7 @@
   })();
 
   // خرائط المنصة للأسماء → slug (الكود يُولّد تلقائيًا ويُخزَّن في حقل مخفي)
-  var ALIASES = {"الإدارة":"manager","الادارة":"manager","مدير":"manager","المعلمين":"teachers","معلمين":"teachers","النشاط":"activity","التطوع":"volunteer","الشؤون المدرسية":"affairs","الشؤون الإدارية":"admin","الشؤون الادارية":"admin"};
+  var ALIASES = {"الإدارة":"manager","الادارة":"manager","مدير":"manager","مديرة":"manager","المعلمين":"teachers","المعلمات":"teachers","معلمين":"teachers","معلمات":"teachers","النشاط":"activity","التطوع":"volunteer","الشؤون المدرسية":"affairs","الشؤون الإدارية":"admin","الشؤون الادارية":"admin"};
   function normArabicDigits(s){return (s || '').replace(/[٠-٩]/g, function(d){return String("٠١٢٣٤٥٦٧٨٩".indexOf(d));});}
   function translitArabic(s){var map = {'ا':'a','أ':'a','إ':'i','آ':'a','ء':'','ؤ':'w','ئ':'y','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'h','و':'w','ي':'y','ى':'a','ﻻ':'la','لا':'la'};return (s || '').replace(/[ً-ٟ]/g,'').split('').map(function(ch){return (map[ch] !== undefined) ? map[ch] : ch;}).join('');}
   function slugifyAscii(s){s = (s || '').trim();if(ALIASES[s]) return ALIASES[s];s = normArabicDigits(s);s = translitArabic(s);try{ s = s.normalize('NFKD'); }catch(e){}s = s.replace(/[ً-ٟ]/g,'');s = s.replace(/[\s_]+/g,'-');s = s.replace(/[^a-zA-Z0-9-]/g,'');s = s.toLowerCase().replace(/-+/g,'-').replace(/^-+|-+$/g,'');return s;}

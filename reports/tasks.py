@@ -467,7 +467,7 @@ def _build_weekly_email_html(
         "reports/emails/weekly_manager_summary.html",
         {
             "platform_name": "منصة توثيق",
-            "manager_name": manager_name or "مدير المدرسة",
+            "manager_name": manager_name or "إدارة المدرسة",
             "school_name": school_name,
             "period_text": period_text,
             "reports_count": int(reports_count),

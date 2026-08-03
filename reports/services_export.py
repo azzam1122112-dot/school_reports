@@ -13,6 +13,7 @@ from io import BytesIO
 
 from django.utils import timezone
 
+from .gender_labels import school_gender_labels
 from .models import (
     AchievementEvidenceImage,
     AchievementEvidenceReport,
@@ -67,6 +68,7 @@ def build_school_export_workbook(school):
     from openpyxl.utils import get_column_letter
 
     wb = Workbook()
+    labels = school_gender_labels(school)
     wb.properties.creator = "توثيق - منصة تقارير المدارس"
 
     header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
@@ -131,7 +133,7 @@ def build_school_export_workbook(school):
         ("عدد التذاكر والطلبات", counts["tickets"]),
         ("عدد التعاميم", counts["circulars"]),
         ("عدد الإشعارات", counts["notifications"]),
-        ("عدد المعلمين", counts["teachers"]),
+        (f"عدد {labels['teachers_object']}", counts["teachers"]),
         ("عدد الأقسام", counts["departments"]),
         ("تاريخ التصدير", timezone.localtime().strftime("%Y-%m-%d %H:%M")),
     ]
@@ -170,7 +172,7 @@ def build_school_export_workbook(school):
         )
     _write_table(
         ws_reports,
-        ["#", "العنوان", "النوع", "المنفّذ", "التاريخ", "السنة", "المستفيدون", "عدد الصور", "التفاصيل"],
+        ["#", "العنوان", "النوع", labels["executor"], "التاريخ", "السنة", labels["beneficiaries"], "عدد الصور", "التفاصيل"],
         report_rows,
     )
 
@@ -195,7 +197,7 @@ def build_school_export_workbook(school):
         )
     _write_table(
         ws_ach,
-        ["#", "المعلم", "السنة الدراسية", "الحالة", "تاريخ الإنشاء"],
+        ["#", labels["teacher"], "السنة الدراسية", "الحالة", "تاريخ الإنشاء"],
         ach_rows,
     )
 
@@ -224,7 +226,7 @@ def build_school_export_workbook(school):
         ws_leadership,
         [
             "#",
-            "قائد المدرسة",
+            labels["leader"],
             "السنة الدراسية",
             "الحالة",
             "المحاور المكتملة",
@@ -307,7 +309,7 @@ def build_school_export_workbook(school):
     )
 
     # ---------------- ورقة المعلمين ----------------
-    ws_teachers = wb.create_sheet("المعلمون")
+    ws_teachers = wb.create_sheet(str(labels["teachers"]))
     _style_sheet_rtl(ws_teachers)
     teacher_rows = []
     memberships = (
@@ -316,12 +318,24 @@ def build_school_export_workbook(school):
         .order_by("role_type", "teacher__name")
     )
     for m in memberships.iterator():
+        role_label = m.get_role_type_display()
+        if m.role_type == SchoolMembership.RoleType.MANAGER:
+            role_label = labels["manager"]
+        elif m.role_type == SchoolMembership.RoleType.TEACHER:
+            role_label = labels["teacher_indefinite"]
+        job_label = m.get_job_title_display()
+        if m.job_title == SchoolMembership.JobTitle.TEACHER:
+            job_label = labels["teacher_indefinite"]
+        elif m.job_title == SchoolMembership.JobTitle.ADMIN_STAFF:
+            job_label = labels["admin_staff"]
+        elif m.job_title == SchoolMembership.JobTitle.LAB_TECH:
+            job_label = labels["lab_tech"]
         teacher_rows.append(
             [
                 getattr(m.teacher, "name", "") or "—",
                 getattr(m.teacher, "phone", "") or "—",
-                m.get_role_type_display() if hasattr(m, "get_role_type_display") else "",
-                m.get_job_title_display() if hasattr(m, "get_job_title_display") else "",
+                role_label,
+                job_label,
                 "نشط" if m.is_active else "موقوف",
             ]
         )
@@ -372,6 +386,8 @@ def build_year_archive_index_bytes(
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
     from .services_archive import UNCLASSIFIED_YEAR, archive_year_label
+
+    labels = school_gender_labels(school)
 
     reports = _reports_qs(
         school,
@@ -474,7 +490,7 @@ def build_year_archive_index_bytes(
     for label, value in summary_rows:
         summary_sheet.append([label, value])
 
-    report_sheet.append(["المعرف", "العنوان", "المعلم", "التاريخ", "التصنيف", "السنة الدراسية"])
+    report_sheet.append(["المعرف", "العنوان", labels["teacher"], "التاريخ", "التصنيف", "السنة الدراسية"])
     for report in reports.iterator():
         report_sheet.append(
             [
@@ -488,7 +504,7 @@ def build_year_archive_index_bytes(
             ]
         )
 
-    achievement_sheet.append(["المعرف", "المعلم", "السنة الدراسية", "الحالة"])
+    achievement_sheet.append(["المعرف", labels["teacher"], "السنة الدراسية", "الحالة"])
     for achievement in achievements.iterator():
         achievement_sheet.append(
             [
@@ -503,7 +519,7 @@ def build_year_archive_index_bytes(
     evidence_sheet.append(
         [
             "معرف ملف الإنجاز",
-            "المعلم",
+            labels["teacher"],
             "المحور",
             "نوع الشاهد",
             "معرف السجل",
@@ -577,7 +593,7 @@ def build_year_archive_index_bytes(
         leadership_sheet.append(
             [
                 "المعرف",
-                "قائد المدرسة",
+                labels["leader"],
                 "السنة الدراسية",
                 "الحالة",
                 "المحاور المكتملة",
@@ -712,12 +728,24 @@ def build_year_archive_index_bytes(
             .order_by("role_type", "teacher__name", "id")
         )
         for membership in memberships.iterator():
+            role_label = membership.get_role_type_display()
+            if membership.role_type == SchoolMembership.RoleType.MANAGER:
+                role_label = labels["manager"]
+            elif membership.role_type == SchoolMembership.RoleType.TEACHER:
+                role_label = labels["teacher_indefinite"]
+            job_label = membership.get_job_title_display()
+            if membership.job_title == SchoolMembership.JobTitle.TEACHER:
+                job_label = labels["teacher_indefinite"]
+            elif membership.job_title == SchoolMembership.JobTitle.ADMIN_STAFF:
+                job_label = labels["admin_staff"]
+            elif membership.job_title == SchoolMembership.JobTitle.LAB_TECH:
+                job_label = labels["lab_tech"]
             team_sheet.append(
                 [
                     getattr(membership.teacher, "name", "") or "",
                     getattr(membership.teacher, "phone", "") or "",
-                    membership.get_role_type_display(),
-                    membership.get_job_title_display(),
+                    role_label,
+                    job_label,
                     "نشط" if membership.is_active else "موقوف",
                 ]
             )

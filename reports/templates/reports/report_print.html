@@ -4,6 +4,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>تقرير: {% firstof r.title "بدون عنوان" %}</title>
   
   {% if not for_pdf %}
@@ -166,8 +167,15 @@
 
     @media (max-width: 600px) {
       .toolbar { padding: 10px 12px; gap: 8px; }
-      .toolbar .tb-title { width: 100%; margin: 0 0 2px; justify-content: center; }
+      .toolbar .tb-title {
+        width: 100%;
+        margin: 0 0 2px;
+        justify-content: center;
+        white-space: normal;
+        text-align: center;
+      }
       .toolbar .btn { flex: 1; }
+      .page { overflow-wrap: anywhere; }
     }
 
     /* Official header */
@@ -407,7 +415,6 @@
         <div>المملكة العربية السعودية</div>
         <div>وزارة التعليم</div>
         <div>{% firstof SCHOOL_NAME "المدرسة" %}</div>
-        {% if SCHOOL_STAGE %}<div>{{ SCHOOL_STAGE }}</div>{% endif %}
        </div>
 
       <div class="hdr-center">
@@ -419,45 +426,70 @@
       </div>
 
       <div class="hdr-block hdr-left">
-        <div>التاريخ: {{ r.report_date|hijri }} هـ</div>
-        {% if r.day_name %}<div>اليوم: {{ r.day_name }}</div>{% endif %}
-        <div>مرجع الوثيقة: REP-{{ r.id }}</div>
+        {% if r.academic_year %}
+          <div class="hdr-academic-label">العام الدراسي</div>
+          <div class="hdr-academic-year">{{ r.academic_year }} هـ</div>
+        {% endif %}
       </div>
     </header>
 
     <section class="report-identity" aria-labelledby="reportTitle">
-      <div class="identity-kicker">وثيقة تقرير مدرسي</div>
       <h1 id="reportTitle">{% firstof r.title "تقرير مدرسي" %}</h1>
       <div class="identity-tags">
-        <span>رقم التقرير: <b>{{ r.id }}</b></span>
-        <span>تاريخ التنفيذ: <b>{{ r.report_date|hijri }} هـ</b></span>
-        {% if r.academic_year %}<span>العام الدراسي: <b>{{ r.academic_year }} هـ</b></span>{% endif %}
+        <span><i class="fa-solid fa-hashtag" aria-hidden="true"></i> رقم التقرير: <b>REP-{{ r.id }}</b></span>
+        <span><i class="fa-regular fa-calendar-check" aria-hidden="true"></i> تاريخ التنفيذ: <b>{% if r.day_name %}{{ r.day_name }} - {% endif %}{{ r.report_date|hijri }} هـ</b></span>
       </div>
     </section>
 
-    <table class="meta-table">
+    <table class="meta-table meta-table--compact">
       <tr>
         <th>التصنيف</th>
-        <td>{% if r.category %}{{ r.category.name }}{% else %}عام{% endif %}</td>
-        <th>تاريخ التنفيذ</th>
-        <td>{{ r.report_date|hijri }} هـ</td>
-      </tr>
-      <tr>
-        <th>المنفذ</th>
-        <td>{% firstof r.teacher_display_name r.teacher_name r.teacher.name "—" %}</td>
-        <th>عدد المستفيدين</th>
-        <td>{% if r.beneficiaries_count %}{{ r.beneficiaries_count }}{% else %}—{% endif %}</td>
+        <td{% if not r.show_beneficiaries %} colspan="3"{% endif %}>{% if r.category %}{{ r.category.name }}{% else %}عام{% endif %}</td>
+        {% if r.show_beneficiaries %}
+          <th>عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين" }}</th>
+          <td>{{ r.beneficiaries_count|default_if_none:"—" }}</td>
+        {% endif %}
       </tr>
     </table>
 
-    <section class="section">
-      <div class="section-h"><span class="section-index">01</span><span>الوصف التنفيذي</span></div>
-      <div class="section-body">{{ r.idea|default:"—" }}</div>
-    </section>
+    {% if r.show_goal %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>الهدف</span></div>
+        <div class="section-body">{{ r.goal|default:"—" }}</div>
+      </section>
+    {% endif %}
+
+    {% if r.show_details %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>تفاصيل التقرير</span></div>
+        <div class="section-body">{{ r.idea|default:"—" }}</div>
+      </section>
+    {% endif %}
+
+    {% if r.show_implementation %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>آلية التنفيذ</span></div>
+        <div class="section-body">{{ r.implementation_method|default:"—" }}</div>
+      </section>
+    {% endif %}
+
+    {% if r.show_results %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>النتائج</span></div>
+        <div class="section-body">{{ r.results|default:"—" }}</div>
+      </section>
+    {% endif %}
+
+    {% if r.show_recommendations %}
+      <section class="section print-section">
+        <div class="section-h"><span class="section-index"></span><span>التوصيات</span></div>
+        <div class="section-body">{{ r.recommendations|default:"—" }}</div>
+      </section>
+    {% endif %}
     
     {% if r.image1 or r.image2 or r.image3 or r.image4 %}
-    <section class="section evidence-section">
-      <div class="section-h"><span class="section-index">02</span><span>المرفقات والشواهد</span></div>
+    <section class="section evidence-section print-section">
+      <div class="section-h"><span class="section-index"></span><span>المرفقات والشواهد</span></div>
       <div class="images-grid">
         {% if r.image1 %}
         <div class="img-box">
@@ -499,7 +531,6 @@
     <section class="approval-block">
       <div class="approval-heading">
         <strong>الاعتمادات والتوقيعات</strong>
-        <small>يعتمد التقرير بعد مراجعة محتواه وشواهده</small>
       </div>
 
     {% comment %}
@@ -572,7 +603,7 @@
 
     {% if show_comments %}
       <section class="section report-comments no-print">
-        <div class="section-h"><span class="section-index">03</span><span>ملاحظات وتعليقات خاصة</span></div>
+        <div class="section-h"><span>ملاحظات وتعليقات خاصة</span></div>
 
         <div style="color:var(--muted);font-weight:800;margin:-2px 0 10px;">
           لا تظهر في الطباعة أو المشاركة.
@@ -626,7 +657,7 @@
           <form method="post" style="margin-top:12px;">
             {% csrf_token %}
             <input type="hidden" name="action" value="private_comment_create" />
-            <div style="font-weight:900;margin-bottom:6px;">إضافة تعليق خاص للمعلم</div>
+            <div style="font-weight:900;margin-bottom:6px;">إضافة تعليق خاص {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }}</div>
             <div>{{ comment_form.body }}</div>
             {% if comment_form.body.errors %}
               <div style="color:#b91c1c;font-weight:900;margin-top:6px;">{{ comment_form.body.errors.0 }}</div>
@@ -641,8 +672,7 @@
 
     <div class="report-footer">
       <div>تم الإصدار إلكترونيًا: {% now "Y/m/d H:i" %}</div>
-      <div class="footer-brand">منصة توثيق التقارير المدرسية</div>
-      <div class="footer-ref">REP-{{ r.id }}</div>
+      <div class="footer-brand">منصة توثيقة</div>
     </div>
 
   </div>

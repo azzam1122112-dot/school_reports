@@ -134,7 +134,7 @@
       </div>
       <div class="exp-stat">
         <div class="n">{{ counts.teachers }}</div>
-        <div class="l"><i class="fa-solid fa-chalkboard-user"></i> معلم</div>
+        <div class="l"><i class="fa-solid fa-chalkboard-user"></i> {{ SCHOOL_TEACHER_INDEFINITE_LABEL|default:"معلم" }}</div>
       </div>
       <div class="exp-stat">
         <div class="n">{{ counts.files }}</div>
@@ -146,8 +146,8 @@
       <h3><i class="fa-solid fa-folder-tree"></i> يحتوي الأرشيف (ZIP) على</h3>
       <ul>
         <li><strong>التقارير/</strong> — لكل تقرير مجلد باسمه يضمّ ملف <strong>التقرير.pdf</strong> الرسمي + صوره الأصلية (يُولَّد PDF تلقائيًا عند التصدير).</li>
-        <li><strong>ملفات-الإنجاز/</strong> — ملف PDF لكل معلم حسب السنة (يُولَّد تلقائيًا عند التصدير إن لم يكن جاهزًا).</li>
-        <li><strong>ملفات-الإنجاز/شواهد/</strong> — صور الشواهد منظّمة حسب المعلم والقسم.</li>
+        <li><strong>ملفات-الإنجاز/</strong> — ملف PDF لكل {{ SCHOOL_TEACHER_INDEFINITE_LABEL|default:"معلم" }} حسب السنة (يُولَّد تلقائيًا عند التصدير إن لم يكن جاهزًا).</li>
+        <li><strong>ملفات-الإنجاز/شواهد/</strong> — صور الشواهد منظّمة حسب {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} والقسم.</li>
         <li><strong>منصة توثيق · القيادة المدرسية/</strong> — ملف الأداء القيادي PDF لكل سنة مع الشواهد الأصلية مرتبة حسب المحور.</li>
         <li><strong>الطلبات-والتذاكر/</strong> — مرفقات الطلبات والتذاكر (PDF/صور/مستندات).</li>
         <li><strong>التعاميم/</strong> و<strong>الإشعارات/</strong> — مرفقات التعاميم والإشعارات.</li>

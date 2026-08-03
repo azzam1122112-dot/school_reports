@@ -39,7 +39,7 @@
 
 <section class="guide-topic" id="teacher-home" data-guide-role="teacher" data-guide-title="المعلم الصفحة الرئيسية تقاريري ملف الإنجاز الإشعارات التعاميم الطلبات">
   <div class="topic-heading">
-    <span class="topic-kicker"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i> للمعلم</span>
+    <span class="topic-kicker"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i> دليل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</span>
     <h2>مساحة عملك اليومية</h2>
     <p>تجمع الصفحة الرئيسية أهم ما تحتاجه: آخر التقارير، ملف الإنجاز، التعاميم، الإشعارات والطلبات.</p>
   </div>
@@ -85,7 +85,7 @@
         <li>
           <div>
             <strong>اكتب البيانات الأساسية</strong>
-            <p>أدخل عنوان النشاط وتاريخه ونوعه وعدد المستفيدين، ثم اكتب وصفًا مختصرًا للفكرة.</p>
+            <p>أدخل عنوان النشاط وتاريخه ونوعه وعدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين" }}، ثم اكتب وصفًا مختصرًا للفكرة.</p>
           </div>
         </li>
         <li>
@@ -214,8 +214,8 @@
 
 <section class="guide-topic guide-topic--visual" id="manager-dashboard" data-guide-role="manager" data-guide-title="مدير المدرسة لوحة المدير المؤشرات المتابعة التقارير المعلمين الطلبات">
   <div class="topic-heading">
-    <span class="topic-kicker"><i class="fa-solid fa-user-tie" aria-hidden="true"></i> لمدير المدرسة</span>
-    <h2>ابدأ يومك من لوحة المدير</h2>
+    <span class="topic-kicker"><i class="fa-solid fa-user-tie" aria-hidden="true"></i> دليل {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</span>
+    <h2>ابدأ يومك من لوحة {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</h2>
     <p>تعطيك اللوحة صورة سريعة عن العمل داخل المدرسة وما يحتاج إلى متابعة.</p>
   </div>
 
@@ -239,7 +239,7 @@
     <article>
       <i class="fa-solid fa-arrow-pointer" aria-hidden="true"></i>
       <strong>الوصول السريع</strong>
-      <p>انتقل مباشرة إلى التقارير أو المعلمين أو الطلبات.</p>
+      <p>انتقل مباشرة إلى التقارير أو {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} أو الطلبات.</p>
     </article>
   </div>
 </section>
@@ -247,21 +247,21 @@
 <section class="guide-topic" id="manager-teachers" data-guide-role="manager" data-guide-title="إدارة المعلمين إضافة معلم استيراد تعديل إزالة قسم">
   <div class="topic-heading">
     <span class="topic-kicker"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> فريق المدرسة</span>
-    <h2>أضف المعلمين ونظّم الأقسام</h2>
+    <h2>أضف {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} ونظّم الأقسام</h2>
     <p>حافظ على قائمة فريقك محدثة حتى تصل التقارير والتعاميم إلى الأشخاص الصحيحين.</p>
   </div>
 
   <ol class="guide-steps">
     <li>
       <div>
-        <strong>افتح «إدارة المعلمين»</strong>
-        <p>ستظهر قائمة المعلمين المرتبطين بالمدرسة مع حالة كل حساب.</p>
+        <strong>افتح «إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}»</strong>
+        <p>ستظهر حسابات فريق المدرسة مع حالة كل حساب.</p>
       </div>
     </li>
     <li>
       <div>
-        <strong>أضف معلمًا جديدًا</strong>
-        <p>اكتب رقم الجوال والبيانات المطلوبة. إذا كان للمعلم حساب سابق فسيُربط بمدرستك دون إنشاء حساب مكرر.</p>
+        <strong>أضف حساب {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</strong>
+        <p>اكتب رقم الجوال والبيانات المطلوبة. إذا كان {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }} حساب سابق فسيُربط بمدرستك دون إنشاء حساب مكرر.</p>
       </div>
     </li>
     <li>
@@ -298,7 +298,7 @@
     <li>
       <div>
         <strong>حدد ما تبحث عنه</strong>
-        <p>استخدم اسم المعلم أو نوع التقرير أو الفترة الزمنية لتقليل النتائج.</p>
+        <p>استخدم اسم {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} أو نوع التقرير أو الفترة الزمنية لتقليل النتائج.</p>
       </div>
     </li>
     <li>
@@ -320,14 +320,14 @@
   <div class="topic-heading">
     <span class="topic-kicker"><i class="fa-solid fa-crown" aria-hidden="true"></i> الأداء القيادي</span>
     <h2>حوّل تقريرك إلى شاهد قيادي</h2>
-    <p>يستطيع مدير المدرسة إنشاء تقاريره بنفسه، ثم تنظيمها كشواهد داخل محاور ملف الأداء القيادي.</p>
+    <p>يمكن {{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }} إنشاء التقارير وتنظيمها كشواهد داخل محاور ملف الأداء القيادي.</p>
   </div>
 
   <ol class="guide-steps guide-steps--compact">
     <li>
       <div>
         <strong>افتح ملف الأداء القيادي</strong>
-        <p>من لوحة المدير انتقل إلى «ملف الأداء القيادي»، ثم أنشئ أو افتح ملف السنة الحالية.</p>
+        <p>من لوحة {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }} انتقل إلى «ملف الأداء القيادي»، ثم أنشئ أو افتح ملف السنة الحالية.</p>
       </div>
     </li>
     <li>
@@ -436,7 +436,7 @@
     </article>
     <article>
       <i class="fa-solid fa-users" aria-hidden="true"></i>
-      <strong>سعة المعلمين</strong>
+      <strong>سعة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</strong>
       <p>تعرف على العدد المستخدم والمتبقي ضمن باقتك الحالية.</p>
     </article>
     <article>
@@ -451,7 +451,7 @@
   <div class="topic-heading">
     <span class="topic-kicker"><i class="fa-solid fa-eye" aria-hidden="true"></i> لمشرف التقارير</span>
     <h2>راجع تقارير المدرسة بصلاحية عرض فقط</h2>
-    <p>مشرف التقارير دور مدرسي مستقل عن مدير المدرسة، ومهمته المتابعة دون تعديل بيانات المدرسة.</p>
+    <p>مشرف التقارير دور مدرسي مستقل عن {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}، ومهمته المتابعة دون تعديل بيانات المدرسة.</p>
   </div>
 
   <div class="compare-grid">
@@ -463,7 +463,7 @@
     <article class="compare-card">
       <i class="fa-solid fa-lock" aria-hidden="true"></i>
       <h3>حدود الصلاحية</h3>
-      <p>لا يدير المعلمين أو الاشتراك والأرشيف، ولا يحذف البيانات أو يرسل تعاميم بصفته مديرًا.</p>
+      <p>لا يدير {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} أو الاشتراك والأرشيف، ولا يحذف البيانات أو يرسل تعاميم بصفة إدارة المدرسة.</p>
     </article>
   </div>
 
@@ -471,7 +471,7 @@
     <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
     <div>
       <strong>هل تحتاج إجراءً إداريًا؟</strong>
-      <p>تواصل مع مدير المدرسة؛ اختلاف الصلاحيات مقصود لحماية بيانات المدرسة ومسؤولياتها.</p>
+      <p>تواصل مع {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}؛ اختلاف الصلاحيات مقصود لحماية بيانات المدرسة ومسؤولياتها.</p>
     </div>
   </div>
 </section>
@@ -570,7 +570,7 @@
   <div class="help-list">
     <details>
       <summary><span>لا أرى المدرسة أو الصفحة المطلوبة</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
-      <p>تأكد أنك اخترت المدرسة الصحيحة. إذا استمرت المشكلة فقد لا تكون الصلاحية مضافة إلى حسابك؛ تواصل مع مدير المدرسة.</p>
+      <p>تأكد أنك اخترت المدرسة الصحيحة. إذا استمرت المشكلة فقد لا تكون الصلاحية مضافة إلى حسابك؛ تواصل مع {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}.</p>
     </details>
     <details>
       <summary><span>لم يتم حفظ النموذج</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>

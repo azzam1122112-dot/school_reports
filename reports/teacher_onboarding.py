@@ -12,6 +12,7 @@ import openpyxl
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
 
+from .gender_labels import school_gender_labels
 from .models import (
     Department,
     DepartmentMembership,
@@ -69,13 +70,13 @@ def normalize_job_title(value: Any) -> str | None:
 
 
 def job_title_label(value: str, school: School) -> str:
-    is_girls = getattr(school, "gender", "") == getattr(School.Gender, "GIRLS", "girls")
+    gender_labels = school_gender_labels(school)
     labels = {
-        SchoolMembership.JobTitle.TEACHER: "معلمة" if is_girls else "معلم",
-        SchoolMembership.JobTitle.ADMIN_STAFF: "موظفة إدارية" if is_girls else "موظف إداري",
-        SchoolMembership.JobTitle.LAB_TECH: "محضرة مختبر" if is_girls else "محضر مختبر",
+        SchoolMembership.JobTitle.TEACHER: gender_labels["teacher_indefinite"],
+        SchoolMembership.JobTitle.ADMIN_STAFF: gender_labels["admin_staff"],
+        SchoolMembership.JobTitle.LAB_TECH: gender_labels["lab_tech"],
     }
-    return labels.get(value, "معلم")
+    return str(labels.get(value, gender_labels["teacher_indefinite"]))
 
 
 def available_departments(school: School):

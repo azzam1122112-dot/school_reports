@@ -99,10 +99,10 @@
     <section class="sm-hero">
       <div>
         <h1 class="sm-title">مدراء المدارس</h1>
-        <p class="sm-sub">إدارة حسابات مدراء المدارس والمدارس المرتبطة بكل مدير، مع بحث سريع مناسب للأعداد الكبيرة.</p>
+        <p class="sm-sub">إدارة حسابات مسؤولي المدارس والمدارس المرتبطة بكل حساب، مع بحث سريع مناسب للأعداد الكبيرة.</p>
       </div>
       <div class="sm-actions">
-        <a class="btn btn-primary" href="{% url 'reports:school_manager_create' %}"><i class="fa-solid fa-plus"></i> إنشاء مدير</a>
+        <a class="btn btn-primary" href="{% url 'reports:school_manager_create' %}"><i class="fa-solid fa-plus"></i> إنشاء حساب إدارة</a>
         <a class="btn btn-outline" href="{% url 'reports:schools_admin_list' %}">إدارة المدارس</a>
         <a class="btn btn-outline" href="{% url 'reports:manage_teachers' %}">قائمة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلّمين" }}</a>
       </div>
@@ -112,14 +112,14 @@
       <form method="get" class="sm-searchbar">
         <div>
           <label class="sm-label" for="managerSearch">بحث</label>
-          <input id="managerSearch" class="sm-input" type="search" name="q" value="{{ q }}" placeholder="اسم المدير / الجوال / البريد / المدرسة / المدينة..." autocomplete="off" spellcheck="false">
-          <p class="sm-hint">يعرض النظام 24 مديراً في كل صفحة للحفاظ على سرعة الصفحة.</p>
+          <input id="managerSearch" class="sm-input" type="search" name="q" value="{{ q }}" placeholder="اسم المسؤول / الجوال / البريد / المدرسة / المدينة..." autocomplete="off" spellcheck="false">
+          <p class="sm-hint">يعرض النظام 24 حسابًا في كل صفحة للحفاظ على سرعة الصفحة.</p>
         </div>
         <button type="submit" class="sm-btn"><i class="fa-solid fa-magnifying-glass"></i> بحث</button>
         {% if q %}
           <a href="{% url 'reports:school_managers_list' %}" class="sm-btn secondary">مسح</a>
         {% else %}
-          <div class="sm-count"><i class="fa-solid fa-user-tie"></i> {{ total_managers_count }} مدير</div>
+          <div class="sm-count"><i class="fa-solid fa-user-tie"></i> {{ total_managers_count }} حساب إدارة</div>
         {% endif %}
       </form>
 
@@ -162,8 +162,8 @@
                 </div>
 
                 <div class="sm-card-actions">
-                  <a class="btn btn-outline" href="{% url 'reports:school_manager_update' m.id %}">تعديل المدير</a>
-                  <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" data-confirm="{% if m.is_active %}هل أنت متأكد من تعطيل هذا المدير؟{% else %}هل أنت متأكد من إعادة تفعيل هذا المدير؟{% endif %}">
+                  <a class="btn btn-outline" href="{% url 'reports:school_manager_update' m.id %}">تعديل الحساب</a>
+                  <form method="post" action="{% url 'reports:school_manager_delete' m.id %}" data-confirm="{% if m.is_active %}هل أنت متأكد من تعطيل هذا الحساب؟{% else %}هل أنت متأكد من إعادة تفعيل هذا الحساب؟{% endif %}">
                     {% csrf_token %}
                     {% if m.is_active %}
                       <button type="submit" class="btn btn-danger">تعطيل</button>
@@ -196,7 +196,7 @@
         {% endif %}
       {% else %}
         <div class="sm-empty">
-          {% if q %}لا توجد نتائج مطابقة لهذا البحث.{% else %}لا يوجد أي مدير مدرسة بعد.{% endif %}
+          {% if q %}لا توجد نتائج مطابقة لهذا البحث.{% else %}لا توجد حسابات لإدارة المدارس بعد.{% endif %}
         </div>
       {% endif %}
     </section>

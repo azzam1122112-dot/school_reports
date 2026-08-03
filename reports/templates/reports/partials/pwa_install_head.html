@@ -1,9 +1,37 @@
 {% load static %}
-<link rel="manifest" href="{% static 'manifest.json' %}">
+<link rel="manifest" href="{% static 'manifest.json' %}?v=20260803.1">
+<meta name="application-name" content="توثيق">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="توثيق">
-<link rel="apple-touch-icon" sizes="512x512" href="{% static 'img/logo1.png' %}">
-<link rel="stylesheet" href="{% static 'css/pwa-install.css' %}?v=20260731.1">
-<script src="{% static 'js/pwa-install.js' %}?v=20260731.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>
+<link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/pwa/apple-touch-icon-180.png' %}">
+
+{# iOS/iPadOS startup images: portrait and landscape, matched to the exact device canvas. #}
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-375x812-3x-portrait.png' %}" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-375x812-3x-landscape.png' %}" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-390x844-3x-portrait.png' %}" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-390x844-3x-landscape.png' %}" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-393x852-3x-portrait.png' %}" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-393x852-3x-landscape.png' %}" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-402x874-3x-portrait.png' %}" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-402x874-3x-landscape.png' %}" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-414x896-2x-portrait.png' %}" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-414x896-2x-landscape.png' %}" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-414x896-3x-portrait.png' %}" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-414x896-3x-landscape.png' %}" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-430x932-3x-portrait.png' %}" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-430x932-3x-landscape.png' %}" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-440x956-3x-portrait.png' %}" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-iphone-440x956-3x-landscape.png' %}" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-768x1024-2x-portrait.png' %}" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-768x1024-2x-landscape.png' %}" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-820x1180-2x-portrait.png' %}" media="(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-820x1180-2x-landscape.png' %}" media="(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-834x1194-2x-portrait.png' %}" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-834x1194-2x-landscape.png' %}" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-1024x1366-2x-portrait.png' %}" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="{% static 'img/pwa/splash-ipad-1024x1366-2x-landscape.png' %}" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+
+<link rel="stylesheet" href="{% static 'css/pwa-install.css' %}?v=20260803.1">
+<script src="{% static 'js/pwa-install.js' %}?v=20260803.1" nonce="{{ CSP_NONCE }}" data-cfasync="false" defer></script>

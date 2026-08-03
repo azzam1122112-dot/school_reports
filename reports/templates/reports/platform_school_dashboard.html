@@ -86,6 +86,22 @@
     .btn-sup.primary:hover {
         background: #1e293b;
     }
+    .card-caption { color:#64748b; font-size:0.9rem; }
+    .big-num--status { font-size:1.5rem; }
+    .status-text--cancelled { color:#ef4444; }
+    .status-text--expired { color:#b9975b; }
+    .status-text--active { color:#16845b; }
+    .status-text--inactive { color:#64748b; }
+    .supervisor-note {
+        margin-top:3rem;
+        padding:2rem;
+        color:#92400e;
+        background:#fffbeb;
+        border:1px solid #fcd34d;
+        border-radius:12px;
+    }
+    .supervisor-note h4 { margin:0 0 0.5rem; font-weight:700; }
+    .supervisor-note p { margin:0; font-size:0.95rem; }
 </style>
 {% endblock %}
 
@@ -107,31 +123,31 @@
         <div class="card-sup">
             <h3>التقارير</h3>
             <div class="big-num">{{ school.reports.count }}</div>
-            <p style="color:#64748b; font-size:0.9rem">إجمالي التقارير المرفوعة</p>
+            <p class="card-caption">إجمالي التقارير المرفوعة</p>
         </div>
         <div class="card-sup">
             <h3>{{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</h3>
             <div class="big-num">{{ school.memberships.count }}</div>
-            <p style="color:#64748b; font-size:0.9rem">أعضاء الهيئة التعليمية</p>
+            <p class="card-caption">أعضاء الهيئة التعليمية</p>
         </div>
         <div class="card-sup">
             <h3>حالة الاشتراك</h3>
-            <div class="big-num" style="font-size:1.5rem;">
+            <div class="big-num big-num--status">
                 {% if subscription %}
                     {% if subscription.is_cancelled %}
-                        <span style="color:#ef4444;">ملغي</span>
+                        <span class="status-text--cancelled">ملغي</span>
                     {% elif subscription.is_expired %}
-                        <span style="color:#b9975b;">منتهي</span>
+                        <span class="status-text--expired">منتهي</span>
                     {% elif subscription.is_active %}
-                        <span style="color:#16845b;">نشط</span>
+                        <span class="status-text--active">نشط</span>
                     {% else %}
-                        <span style="color:#64748b;">غير نشط</span>
+                        <span class="status-text--inactive">غير نشط</span>
                     {% endif %}
                 {% else %}
-                    <span style="color:#64748b;">غير مشترك</span>
+                    <span class="status-text--inactive">غير مشترك</span>
                 {% endif %}
             </div>
-            <p style="color:#64748b; font-size:0.9rem">
+            <p class="card-caption">
                 ينتهي: {% if subscription and subscription.end_date %}{{ subscription.end_date|date:"Y-m-d" }}{% else %}-{% endif %}
             </p>
         </div>
@@ -160,9 +176,9 @@
     </div>
 
     <!-- Alert Section -->
-    <div style="margin-top:3rem; padding: 2rem; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px; color: #92400e;">
-        <h4 style="margin:0 0 0.5rem 0; font-weight:700"><i class="fas fa-info-circle"></i> ملاحظات المشرف</h4>
-        <p style="margin:0; font-size:0.95rem;">
+    <div class="supervisor-note">
+        <h4><i class="fas fa-info-circle"></i> ملاحظات المشرف</h4>
+        <p>
             تأكد من متابعة مؤشرات الأداء بشكل دوري. في حال انخفاض عدد التقارير عن المعدل الطبيعي، يرجى التواصل مع إدارة المدرسة.
         </p>
     </div>

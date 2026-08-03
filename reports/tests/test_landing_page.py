@@ -194,6 +194,28 @@ class LandingPageTests(TestCase):
         self.assertIsNotNone(faq_schema)
         self.assertEqual(json.loads(faq_schema.group(1))["@type"], "FAQPage")
 
+    def test_faq_interactions_are_csp_safe_and_keyboard_accessible(self):
+        response = self.client.get(reverse("reports:faq"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotRegex(html, r"\son(?:click|keyup)=")
+        self.assertEqual(
+            html.count(
+                'class="faq-question" role="button" tabindex="0" '
+                'aria-expanded="false"'
+            ),
+            22,
+        )
+        self.assertIn(
+            "question.addEventListener('click', () => toggleFAQ(question))",
+            html,
+        )
+        self.assertIn(
+            "document.getElementById('faqSearch').addEventListener('input', searchFAQ)",
+            html,
+        )
+
     def test_active_plans_drive_the_pricing_cards_and_period_switch(self):
         SubscriptionPlan.objects.create(
             name="تجربة المدرسة",

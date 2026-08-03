@@ -178,15 +178,6 @@ urlpatterns = [
     path("staff/report-types/<int:pk>/delete/", views.reporttype_delete, name="reporttype_delete"),
 
     # =========================
-    # قوالب التقارير الجاهزة (مدير المدرسة)
-    # =========================
-    path("staff/report-templates/", views.report_templates_list, name="report_templates_list"),
-    path("staff/report-templates/add/", views.report_template_create, name="report_template_create"),
-    path("staff/report-templates/<int:pk>/edit/", views.report_template_update, name="report_template_update"),
-    path("staff/report-templates/<int:pk>/delete/", views.report_template_delete, name="report_template_delete"),
-    path("api/report-templates/", views.api_report_templates, name="api_report_templates"),
-
-    # =========================
     # تصدير بيانات المدرسة (مدير المدرسة)
     # =========================
     path("staff/export/", views.school_data_export, name="school_data_export"),

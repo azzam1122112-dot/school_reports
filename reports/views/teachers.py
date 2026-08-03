@@ -8,6 +8,7 @@ from ._helpers import (
     _get_active_school, _user_manager_schools,
 )
 from ..permissions import effective_user_role_label, is_school_manager
+from ..gender_labels import school_gender_labels
 
 
 def _decorate_manage_teacher_rows(teachers, *, active_school: Optional[School]) -> None:
@@ -193,6 +194,7 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
+    labels = school_gender_labels(active_school)
     if active_school is None:
         messages.error(request, "فضلاً اختر مدرسة أولاً.")
         return redirect("reports:select_school")
@@ -384,7 +386,7 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
             expected_new = len([p for p in phones_unique if p not in existing_phones_in_school])
             if max_teachers > 0 and (current_count + expected_new) > max_teachers:
                 remaining = max_teachers - current_count
-                messages.error(request, f"لا يمكن استيراد {expected_new} معلّم جديد. الحد المتبقي في باقتك هو {remaining}.")
+                messages.error(request, f"لا يمكن استيراد {expected_new} حسابات جديدة. الحد المتبقي في باقتك هو {remaining}.")
                 return render(request, "reports/bulk_import_teachers.html")
 
             created_count = 0
@@ -510,9 +512,9 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                             pass
 
             if created_count > 0:
-                messages.success(request, f"✅ تم إنشاء {created_count} معلّم جديد.")
+                messages.success(request, f"✅ تم إنشاء {created_count} من حسابات {labels['teachers_object']}.")
             if updated_count > 0:
-                messages.info(request, f"تم تحديث بيانات {updated_count} معلّم موجود.")
+                messages.info(request, f"تم تحديث بيانات {updated_count} من حسابات {labels['teachers_object']}.")
             if reactivated_count > 0:
                 messages.info(request, f"تم تفعيل {reactivated_count} عضوية موجودة سابقاً.")
             if errors:
@@ -839,9 +841,12 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
     from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
     from openpyxl.worksheet.datavalidation import DataValidation
 
+    active_school = _get_active_school(request)
+    labels = school_gender_labels(active_school)
+    sample_name = "نورة أحمد الغامدي" if labels["is_girls"] else "محمد أحمد الغامدي"
     wb = Workbook()
     ws = wb.active
-    ws.title = "المعلمون"
+    ws.title = str(labels["teachers"])
     ws.sheet_view.rightToLeft = True
 
     headers = ["الاسم الكامل", "رقم الجوال", "رقم الهوية", "المسمى الوظيفي", "القسم"]
@@ -869,7 +874,7 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
 
     job_validation = DataValidation(
         type="list",
-        formula1='"معلم,موظف إداري,محضر مختبر"',
+        formula1=f'"{labels["teacher_indefinite"]},{labels["admin_staff"]},{labels["lab_tech"]}"',
         allow_blank=True,
     )
     job_validation.error = "اختر مسمى وظيفيًا من القائمة."
@@ -881,12 +886,12 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
     instructions.sheet_view.rightToLeft = True
     instruction_rows = [
         ["الحقل", "هل هو مطلوب؟", "مثال", "ملاحظة"],
-        ["الاسم الكامل", "مطلوب", "محمد أحمد الغامدي", "يظهر بهذا الشكل داخل النظام."],
+        ["الاسم الكامل", "مطلوب", sample_name, "يظهر بهذا الشكل داخل النظام."],
         ["رقم الجوال", "مطلوب", "0551234567", "اسم الدخول وكلمة المرور المؤقتة."],
         ["رقم الهوية", "اختياري", "1012345678", "10 أرقام عند إدخاله."],
-        ["المسمى الوظيفي", "اختياري", "معلم", "معلم أو موظف إداري أو محضر مختبر."],
+        ["المسمى الوظيفي", "اختياري", labels["teacher_indefinite"], f"{labels['teacher_indefinite']} أو {labels['admin_staff']} أو {labels['lab_tech']}."],
         ["القسم", "اختياري", "النشاط الطلابي", "اكتب اسم القسم كما يظهر في النظام."],
-        ["تنبيه", "", "", "لا تنسخ صفوف الأمثلة إلى ورقة المعلمين."],
+        ["تنبيه", "", "", f"لا تنسخ صفوف الأمثلة إلى ورقة {labels['teachers']}."],
     ]
     for row in instruction_rows:
         instructions.append(row)
@@ -900,7 +905,6 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
     for column, width in {"A": 24, "B": 17, "C": 28, "D": 55}.items():
         instructions.column_dimensions[column].width = width
 
-    active_school = _get_active_school(request)
     if active_school is not None:
         department_names = list(
             Department.objects.filter(
@@ -932,6 +936,7 @@ def bulk_import_teachers_template(request: HttpRequest) -> HttpResponse:
 def add_teacher(request: HttpRequest) -> HttpResponse:
     # كل معلم جديد يُربط تلقائياً بالمدرسة النشطة لهذا المدير
     active_school = _get_active_school(request)
+    labels = school_gender_labels(active_school)
     if School.objects.filter(is_active=True).exists():
         if active_school is None:
             messages.error(request, "فضلاً اختر مدرسة أولاً.")
@@ -993,7 +998,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                             role_type=SchoolMembership.RoleType.TEACHER,
                         ).count()
                         if current_count >= max_teachers:
-                            messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} معلّم لهذه المدرسة حسب الباقة.")
+                            messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.")
                             return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
                 except Exception:
                     pass
@@ -1036,7 +1041,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                         role_type=SchoolMembership.RoleType.TEACHER,
                     ).count()
                     if current_count >= max_teachers:
-                        messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} معلّم لهذه المدرسة حسب الباقة.")
+                        messages.error(request, f"لا يمكن إضافة أكثر من {max_teachers} من حسابات {labels['teachers_object']} لهذه المدرسة حسب الباقة.")
                         return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
         except Exception:
             # في حال خطأ غير متوقع، نكمل المسار الطبيعي (وسيمنعنا model validation عند الحفظ)
@@ -1082,6 +1087,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
     active_school = _get_active_school(request)
+    labels = school_gender_labels(active_school)
     teacher = get_object_or_404(Teacher, pk=pk)
 
     # لا يُسمح للمدير بتعديل معلّم غير مرتبط بمدرسته
@@ -1093,7 +1099,7 @@ def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
             is_active=True,
         ).exists()
         if not has_membership:
-            messages.error(request, "لا يمكنك تعديل هذا المعلّم لأنه غير مرتبط بمدرستك.")
+            messages.error(request, f"لا يمكنك تعديل بيانات {labels['teacher']} لأنها غير مرتبطة بمدرستك.")
             return redirect("reports:manage_teachers")
     if request.method == "POST":
         # تعديل بيانات المعلّم فقط — التكاليف تتم من صفحة أعضاء القسم
@@ -1120,6 +1126,7 @@ def edit_teacher(request: HttpRequest, pk: int) -> HttpResponse:
 @require_http_methods(["POST"])
 def delete_teacher(request: HttpRequest, pk: int) -> HttpResponse:
     active_school = _get_active_school(request)
+    labels = school_gender_labels(active_school)
     teacher = get_object_or_404(Teacher, pk=pk)
 
     # لا يُسمح للمدير بحذف معلّم غير مرتبط بمدرسته
@@ -1131,7 +1138,7 @@ def delete_teacher(request: HttpRequest, pk: int) -> HttpResponse:
             is_active=True,
         ).exists()
         if not has_membership:
-            messages.error(request, "لا يمكنك حذف هذا المعلّم لأنه غير مرتبط بمدرستك.")
+            messages.error(request, f"لا يمكنك حذف {labels['teacher']} لأنها غير مرتبطة بمدرستك.")
             return redirect("reports:manage_teachers")
     try:
         with transaction.atomic():

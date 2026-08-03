@@ -36,6 +36,7 @@ body {
 }
 
 .page {
+  counter-reset: report-section;
   width: 210mm;
   max-width: calc(100% - 24px);
   min-height: 297mm;
@@ -71,6 +72,17 @@ body {
 }
 .hdr-block > div:first-child { color: var(--report-green-dark); font-weight: 900; }
 .hdr-left { direction: rtl; text-align: left; }
+.hdr-academic-label {
+  color: var(--report-green-dark);
+  font-size: 8.5pt;
+  font-weight: 800;
+}
+.hdr-academic-year {
+  color: var(--report-ink);
+  font-size: 11pt;
+  font-weight: 900;
+  letter-spacing: .2px;
+}
 .hdr-center { display: grid; place-items: center; }
 .logo {
   width: auto;
@@ -123,7 +135,16 @@ body {
   font-size: 8.5pt;
   font-weight: 700;
 }
-.identity-tags span { display: inline-flex; align-items: center; gap: 1mm; }
+.identity-tags span {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2mm;
+  padding: 1.2mm 2.3mm;
+  border: 1px solid rgba(0, 108, 53, .14);
+  border-radius: 999px;
+  background: rgba(237, 246, 241, .72);
+}
+.identity-tags i { color: var(--report-green); font-size: 7.5pt; }
 .identity-tags b { color: var(--report-ink); font-weight: 900; }
 
 .meta-table {
@@ -158,6 +179,8 @@ body {
 }
 .meta-table th:not(:first-child),
 .meta-table td:not(:first-child) { border-right: 1px solid var(--report-line); }
+.meta-table--compact th,
+.meta-table--compact td { border-bottom: 0; }
 
 .section {
   margin: 0 0 4mm;
@@ -188,6 +211,10 @@ body {
   font-family: Arial, sans-serif;
   font-size: 7.5pt;
   font-weight: 800;
+}
+.print-section .section-index::before {
+  counter-increment: report-section;
+  content: counter(report-section, decimal-leading-zero);
 }
 .section-body {
   min-height: 20mm;
@@ -311,7 +338,7 @@ body {
   size: A4;
   margin: 8mm 10mm 12mm;
   @bottom-center {
-    content: "منصة توثيق التقارير المدرسية  |  صفحة " counter(page) " من " counter(pages);
+    content: "منصة توثيقة  |  صفحة " counter(page) " من " counter(pages);
     padding-top: 2mm;
     border-top: .35mm solid #d6e0da;
     color: #64736c;

@@ -29,6 +29,9 @@
     #fff;
   box-shadow: 0 26px 80px rgba(3, 30, 18, .28);
   animation: pwa-install-rise .24s ease both;
+  max-height: calc(100dvh - 28px - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .pwa-install__close {
@@ -91,6 +94,27 @@
   line-height: 1.8;
 }
 
+.pwa-install__benefits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.pwa-install__benefits span {
+  display: grid;
+  min-height: 36px;
+  place-items: center;
+  padding: 6px 4px;
+  border: 1px solid rgba(10, 106, 69, .13);
+  border-radius: 11px;
+  color: #315b49;
+  background: rgba(238, 247, 242, .85);
+  font-size: .67rem;
+  font-weight: 900;
+  text-align: center;
+}
+
 .pwa-install__steps {
   margin: 14px 0 0;
   padding: 12px 34px 12px 12px;
@@ -130,6 +154,15 @@
   color: #fff;
   background: linear-gradient(135deg, #0a6a45, #073d2b);
   box-shadow: 0 10px 24px rgba(7, 61, 43, .18);
+}
+
+.pwa-install__primary:hover {
+  background: linear-gradient(135deg, #0b7a4e, #052f21);
+}
+
+.pwa-install button:focus-visible {
+  outline: 3px solid rgba(185, 151, 91, .58);
+  outline-offset: 3px;
 }
 
 .pwa-install__later {
@@ -178,6 +211,14 @@
 
   .pwa-install__actions {
     grid-template-columns: 1fr;
+  }
+
+  .pwa-install__benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .pwa-install__benefits span {
+    min-height: 32px;
   }
 }
 

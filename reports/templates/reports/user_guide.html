@@ -8,7 +8,7 @@
   <meta name="color-scheme" content="light dark">
   {% include "reports/partials/theme_bootstrap.html" %}
 
-  <title>دليل استخدام منصة توثيق | شرح مبسط للمعلم ومدير المدرسة</title>
+  <title>دليل استخدام منصة توثيق | شرح مبسط {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }} و{{ SCHOOL_MANAGER_DATIVE_LABEL|default:"لمدير المدرسة" }}</title>
   <meta name="description" content="دليل مبسط ومصور لاستخدام منصة توثيق: التقارير، ملف الإنجاز، الطلبات، التعاميم، إدارة المعلمين ومتابعة المدرسة.">
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
   <link rel="canonical" href="{{ SITE_URL }}{% url 'reports:user_guide' %}">
@@ -29,7 +29,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/user-guide.css' %}?v=20260731.2">
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260802.1">
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260803.1">
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 
   <script type="application/ld+json" nonce="{{ CSP_NONCE }}" data-cfasync="false">
@@ -171,7 +171,7 @@
           <nav class="guide-index">
             <a href="#start" data-index-role="all"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i> ابدأ من هنا</a>
             <div class="index-group" data-index-role="teacher">
-              <span>للمعلم</span>
+              <span>دليل {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</span>
               <a href="#teacher-home">مساحة العمل</a>
               <a href="#teacher-report">إنشاء تقرير</a>
               <a href="#teacher-achievement">ملف الإنجاز</a>
@@ -179,9 +179,9 @@
               <a href="#teacher-requests">الطلبات</a>
             </div>
             <div class="index-group" data-index-role="manager">
-              <span>لمدير المدرسة</span>
-              <a href="#manager-dashboard">لوحة المدير</a>
-              <a href="#manager-teachers">إدارة المعلمين</a>
+              <span>دليل {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</span>
+              <a href="#manager-dashboard">لوحة {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</a>
+              <a href="#manager-teachers">إدارة {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</a>
               <a href="#manager-reports">تقارير المدرسة</a>
               <a href="#manager-leadership">الأداء القيادي</a>
               <a href="#manager-communication">التواصل</a>

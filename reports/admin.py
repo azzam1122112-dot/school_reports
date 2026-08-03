@@ -15,7 +15,6 @@ from .models import (
     WebAuthnCredential,
     Department,
     ReportType,
-    ReportTemplate,
     AcademicYear,
     Report,
     Ticket,
@@ -172,16 +171,6 @@ class AcademicYearAdmin(admin.ModelAdmin):
     list_editable = ("is_active", "order")
     search_fields = ("value",)
     ordering = ("-value",)
-
-
-@admin.register(ReportTemplate)
-class ReportTemplateAdmin(admin.ModelAdmin):
-    list_display = ("name", "school", "category", "is_active", "order", "updated_at")
-    list_filter = ("is_active", "school")
-    search_fields = ("name", "title", "idea")
-    list_editable = ("is_active", "order")
-    autocomplete_fields = ("category",)
-    ordering = ("school", "order", "name")
 
 
 @admin.register(Department)

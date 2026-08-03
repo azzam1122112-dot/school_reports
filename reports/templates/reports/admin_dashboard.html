@@ -991,7 +991,7 @@
         <div class="manager-school-meta" aria-label="معلومات المدرسة">
           <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ active_school.current_academic_year|default:"السنة الحالية" }}</span>
           <span><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> {{ active_school.get_stage_display }}</span>
-          <span><i class="fa-solid fa-users" aria-hidden="true"></i> {{ teachers_count|intcomma }} {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"معلمين" }}</span>
+          <span><i class="fa-solid fa-users" aria-hidden="true"></i> {{ teachers_count|intcomma }} من {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</span>
         </div>
         <div class="manager-hero__actions">
           <a class="manager-hero__button manager-hero__button--primary" href="{% url 'reports:admin_reports' %}">
@@ -1072,7 +1072,7 @@
             <i class="fa-solid fa-arrow-left manager-kpi__arrow" aria-hidden="true"></i>
           </span>
           <strong class="manager-kpi__value" id="schoolTeachersCount">{{ teachers_count|intcomma }}</strong>
-          <span class="manager-kpi__label">{{ SCHOOL_TEACHERS_LABEL|default:"المعلمون" }} النشطون في المدرسة</span>
+          <span class="manager-kpi__label">حسابات الكادر التعليمي النشطة في المدرسة</span>
         </a>
       </div>
     </section>
@@ -1159,7 +1159,7 @@
       <div class="manager-section__head">
         <div>
           <h2 id="quickActionsTitle">ابدأ مهمة</h2>
-          <p>الإجراءات الأكثر استخدامًا في عمل مدير المدرسة.</p>
+          <p>الإجراءات الأكثر استخدامًا في عمل {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}.</p>
         </div>
       </div>
       <div class="manager-primary-actions">
@@ -1181,7 +1181,7 @@
         <a class="manager-primary-action" href="{% url 'reports:notifications_create' %}">
           <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
           <strong>إرسال إشعار</strong>
-          <small>رسالة سريعة لمعلم أو قسم.</small>
+          <small>رسالة سريعة {{ SCHOOL_TEACHER_INDEFINITE_DATIVE_LABEL|default:"لمعلم" }} أو قسم.</small>
         </a>
         <a class="manager-primary-action" href="{% url 'reports:circulars_create' %}">
           <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
@@ -1225,7 +1225,6 @@
           <div class="manager-workspace__links">
             <a class="manager-workspace__link" href="{% url 'reports:my_reports' %}"><span>تقاريري</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:reporttypes_list' %}"><span>أنواع التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
-            <a class="manager-workspace__link" href="{% url 'reports:report_templates_list' %}"><span>قوالب التقارير</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:achievement_school_files' %}"><span>ملفات الإنجاز</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link" href="{% url 'reports:leadership_portfolio_list' %}"><span>ملف الأداء القيادي</span><i class="fa-solid fa-arrow-left"></i></a>
             <a class="manager-workspace__link {% if not ARCHIVE_ADDON_ACTIVE and not HAS_SAVED_ARCHIVE %}manager-workspace__link--locked{% endif %}" href="{% url 'reports:school_archive' %}">

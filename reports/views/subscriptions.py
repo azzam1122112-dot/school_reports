@@ -2653,7 +2653,7 @@ def moyasar_checkout_create(request):
 
     membership = _manager_payment_membership(request)
     if not membership:
-        messages.error(request, "هذه الخدمة مخصصة لمدير المدرسة.")
+        messages.error(request, "هذه الخدمة مخصصة لإدارة المدرسة.")
         return redirect("reports:home")
 
     subscription = (
@@ -2810,7 +2810,7 @@ def tamara_checkout_create(request):
 
     membership = _manager_payment_membership(request)
     if not membership:
-        messages.error(request, "هذه الخدمة مخصصة لمدير المدرسة.")
+        messages.error(request, "هذه الخدمة مخصصة لإدارة المدرسة.")
         return redirect("reports:home")
 
     subscription = (

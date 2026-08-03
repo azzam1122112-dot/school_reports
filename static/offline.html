@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#006c35">
+  <title>لا يوجد اتصال | توثيق</title>
+  <style>
+    :root { color-scheme: light; font-family: Tahoma, Arial, sans-serif; }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: max(24px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+      color: #15372a;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(184, 147, 68, .15), transparent 24rem),
+        radial-gradient(circle at 90% 92%, rgba(0, 108, 53, .12), transparent 28rem),
+        #f3f7f4;
+    }
+    main {
+      width: min(100%, 480px);
+      padding: clamp(26px, 7vw, 42px);
+      text-align: center;
+      border: 1px solid rgba(0, 108, 53, .13);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: 0 24px 70px rgba(7, 61, 43, .14);
+    }
+    svg { width: 92px; height: 92px; filter: drop-shadow(0 12px 20px rgba(7, 61, 43, .18)); }
+    h1 { margin: 22px 0 8px; color: #073d2b; font-size: clamp(1.35rem, 5vw, 1.8rem); }
+    p { margin: 0; color: #5b6f65; font-size: .96rem; line-height: 1.9; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 4px;
+      color: #96712c;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    .status::before { width: 8px; height: 8px; content: ""; border-radius: 50%; background: #c59639; }
+    a {
+      min-height: 50px;
+      margin-top: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px;
+      border-radius: 15px;
+      color: #fff;
+      background: linear-gradient(135deg, #0a754b, #073d2b);
+      box-shadow: 0 12px 25px rgba(7, 61, 43, .2);
+      font-weight: 700;
+      text-decoration: none;
+    }
+    a:focus-visible { outline: 3px solid rgba(185, 151, 91, .75); outline-offset: 4px; }
+  </style>
+</head>
+<body>
+  <main>
+    <svg viewBox="0 0 120 120" role="img" aria-label="شعار توثيق">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b7a4e"/><stop offset="1" stop-color="#073d2b"/></linearGradient></defs>
+      <rect width="120" height="120" rx="30" fill="url(#g)"/>
+      <path d="M36 25h35l15 15v55H36z" fill="#fff"/>
+      <path d="M71 25v16h15" fill="#dcebe4"/>
+      <path d="M46 53h28M46 65h22" fill="none" stroke="#0a6a45" stroke-width="6" stroke-linecap="round" opacity=".45"/>
+      <path d="m49 80 9 9 22-25" fill="none" stroke="#c79a42" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="status">وضع عدم الاتصال</div>
+    <h1>أنت الآن دون اتصال</h1>
+    <p>تعذّر الوصول إلى الشبكة. تحقق من اتصال الإنترنت ثم أعد المحاولة؛ لن يؤثر ذلك في بياناتك المحفوظة.</p>
+    <a href="/">إعادة المحاولة</a>
+  </main>
+</body>
+</html>

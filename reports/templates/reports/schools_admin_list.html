@@ -90,7 +90,7 @@
       </div>
       <div class="schools-actions">
         <a class="btn btn-primary" href="{% url 'reports:school_create' %}"><i class="fa-solid fa-plus"></i> إنشاء مدرسة</a>
-        <a class="btn btn-outline" href="{% url 'reports:school_manager_create' %}"><i class="fa-solid fa-user-tie"></i> إنشاء مدير مدرسة</a>
+        <a class="btn btn-outline" href="{% url 'reports:school_manager_create' %}"><i class="fa-solid fa-user-tie"></i> إنشاء حساب إدارة مدرسة</a>
       </div>
     </section>
 
@@ -98,7 +98,7 @@
       <form method="get" class="schools-searchbar">
         <div>
           <label class="schools-label" for="schoolSearch">بحث</label>
-          <input id="schoolSearch" class="schools-input" type="search" name="q" value="{{ q }}" placeholder="اسم المدرسة / المدينة / الجوال / المدير..." autocomplete="off" spellcheck="false">
+          <input id="schoolSearch" class="schools-input" type="search" name="q" value="{{ q }}" placeholder="اسم المدرسة / المدينة / الجوال / المسؤول..." autocomplete="off" spellcheck="false">
           <p class="schools-hint">يعرض النظام 24 مدرسة في كل صفحة للحفاظ على سرعة الصفحة.</p>
         </div>
         <button type="submit" class="schools-btn"><i class="fa-solid fa-magnifying-glass"></i> بحث</button>
@@ -138,7 +138,7 @@
                       <span class="school-manager">{{ manager.name }}</span>
                     {% endfor %}
                   {% else %}
-                    <span class="muted" style="font-weight:900">لا يوجد مدير معيّن</span>
+                    <span class="muted" style="font-weight:900">لا يوجد حساب إدارة معيّن</span>
                   {% endif %}
                 </div>
 

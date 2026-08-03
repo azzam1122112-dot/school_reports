@@ -363,7 +363,7 @@
       *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
     }
   </style>
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260802.1">
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260803.1">
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 <body>
@@ -377,11 +377,11 @@
       <div class="experience-copy">
         <span class="trial-label"><i class="fa-solid fa-sparkles"></i> تجربة كاملة لمدة {{ trial_days }} يومًا</span>
         <h1>ابدأ بمدرستك الحقيقية، لا بنسخة محدودة.</h1>
-        <p>بعد التسجيل ستدخل مباشرة إلى لوحة المدير، وتستطيع تجربة مسارات المنصة الأساسية قبل اتخاذ قرار الاشتراك.</p>
+        <p>بعد التسجيل ستدخل مباشرة إلى لوحة المدرسة، وتستطيع تجربة مسارات المنصة الأساسية قبل اتخاذ قرار الاشتراك.</p>
         <ul class="benefit-list">
           <li><i class="fa-solid fa-check"></i><span>التقارير وملفات الإنجاز والمخرجات بصيغة PDF</span></li>
           <li><i class="fa-solid fa-check"></i><span>الطلبات والتذاكر والتعاميم والتوقيعات</span></li>
-          <li><i class="fa-solid fa-check"></i><span>إضافة حتى {{ trial_teacher_limit }} معلمين لتجربة العمل الجماعي</span></li>
+          <li><i class="fa-solid fa-check"></i><span>إضافة حتى {{ trial_teacher_limit }} من أعضاء الكادر لتجربة العمل الجماعي</span></li>
           <li><i class="fa-solid fa-check"></i><span>أرشيف تجريبي بسعة {{ trial_archive_storage_gb }}GB طوال فترة التجربة</span></li>
         </ul>
       </div>
@@ -400,7 +400,7 @@
       <header class="form-head">
         <div class="steps" aria-label="خطوات البدء">
           <span data-step="1">بيانات المدرسة</span><i></i>
-          <span data-step="2">حساب المدير</span><i></i>
+          <span data-step="2">حساب إدارة المدرسة</span><i></i>
           <span data-step="3">ابدأ التجربة</span>
         </div>
         <h2>أنشئ حساب المدرسة</h2>
@@ -446,7 +446,7 @@
         </section>
 
         <section class="form-section">
-          <div class="section-title"><i class="fa-solid fa-user-shield"></i> حساب مدير المدرسة</div>
+          <div class="section-title"><i class="fa-solid fa-user-shield"></i> حساب إدارة المدرسة</div>
           <div class="field-grid">
             <div class="form-group full">
               <label for="id_manager_name">{{ form.manager_name.label }}</label>

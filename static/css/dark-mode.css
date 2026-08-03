@@ -53,6 +53,28 @@ html[data-theme="dark"] {
   --guide-line: rgba(205, 225, 216, .18);
   --guide-paper: #0d241d;
   --guide-bg: #061512;
+
+  /* Compatibility aliases used by older and page-scoped templates. */
+  --surface-color: #0d241d;
+  --surface-glass: rgba(13, 36, 29, .94);
+  --card-bg: #0d241d;
+  --bg-main: #061512;
+  --bg-page: #061512;
+  --bg-card: rgba(13, 36, 29, .94);
+  --bg-subtle: #102920;
+  --input-bg: #102920;
+  --hover-bg: #14382c;
+  --border-color: rgba(205, 225, 216, .18);
+  --glass-border: rgba(205, 225, 216, .16);
+  --text-primary: #edf6f1;
+  --text-secondary: #abc0b6;
+  --text-h: #edf6f1;
+  --text-1: #d9ebe3;
+  --text-2: #b8ccc2;
+  --text-3: #91a99e;
+  --muted-color: #abc0b6;
+  --royal-gold: #d4b16d;
+  --royal-gold-strong: #e6cf9a;
 }
 
 html[data-theme="dark"] body {
@@ -111,6 +133,471 @@ html[data-theme="dark"] hr { border-color: rgba(205, 225, 216, .16); }
 html[data-theme="dark"] code,
 html[data-theme="dark"] pre { background: #071b15; color: #d5eadf; }
 html[data-theme="dark"] ::selection { background: rgba(212, 177, 109, .34); color: #fff; }
+
+/* Shared navigation, secondary actions and semantic states. */
+html[data-theme="dark"] .hdr-nav {
+  background: rgba(66, 202, 136, .08) !important;
+  border-color: rgba(205, 225, 216, .14) !important;
+}
+html[data-theme="dark"] .hdr-nav .tab.is-active,
+html[data-theme="dark"] .bottom-nav a[aria-current="page"] {
+  color: #d9f4e5 !important;
+  background: linear-gradient(180deg, #173a2f, #102920) !important;
+  box-shadow: inset 0 -2px 0 rgba(212, 177, 109, .55) !important;
+}
+html[data-theme="dark"] .hdr-nav .tab:hover,
+html[data-theme="dark"] .drawer-nav a:hover,
+html[data-theme="dark"] .drawer-nav a.is-active,
+html[data-theme="dark"] .bottom-nav a:hover {
+  color: #d9f4e5 !important;
+  background: rgba(66, 202, 136, .12) !important;
+}
+html[data-theme="dark"] .btn-outline,
+html[data-theme="dark"] .btn-soft,
+html[data-theme="dark"] .secondary,
+html[data-theme="dark"] button.secondary {
+  background: #102920 !important;
+  border-color: rgba(212, 177, 109, .34) !important;
+  color: #d9f4e5 !important;
+}
+html[data-theme="dark"] .btn-outline:hover,
+html[data-theme="dark"] .btn-soft:hover,
+html[data-theme="dark"] .secondary:hover,
+html[data-theme="dark"] button.secondary:hover {
+  background: #173a2f !important;
+  border-color: rgba(212, 177, 109, .52) !important;
+  color: #fff !important;
+}
+
+html[data-theme="dark"] .badge.success,
+html[data-theme="dark"] .msg.success,
+html[data-theme="dark"] .alert-success {
+  background: rgba(66, 202, 136, .14) !important;
+  border-color: rgba(110, 231, 168, .28) !important;
+  color: #9ce8bd !important;
+}
+html[data-theme="dark"] .badge.warning,
+html[data-theme="dark"] .msg.warning,
+html[data-theme="dark"] .alert-warning {
+  background: rgba(212, 177, 109, .15) !important;
+  border-color: rgba(240, 214, 157, .30) !important;
+  color: #f0d69d !important;
+}
+html[data-theme="dark"] .badge.danger,
+html[data-theme="dark"] .msg.error,
+html[data-theme="dark"] .alert-danger {
+  background: rgba(255, 140, 145, .13) !important;
+  border-color: rgba(255, 140, 145, .30) !important;
+  color: #ffc5c8 !important;
+}
+html[data-theme="dark"] .badge.info,
+html[data-theme="dark"] .alert-info {
+  background: rgba(125, 211, 252, .12) !important;
+  border-color: rgba(125, 211, 252, .28) !important;
+  color: #bae6fd !important;
+}
+
+html[data-theme="dark"] :disabled,
+html[data-theme="dark"] [aria-disabled="true"] { opacity: .68; }
+html[data-theme="dark"] input[type="file"]::file-selector-button {
+  border-color: rgba(205, 225, 216, .22);
+  color: #d9f4e5;
+  background: #173a2f;
+}
+html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+html[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(.85);
+}
+
+/* FAQ page */
+html[data-theme="dark"] .faq-category,
+html[data-theme="dark"] .faq-search {
+  background: #0d241d !important;
+  border-color: rgba(205, 225, 216, .16) !important;
+}
+html[data-theme="dark"] .faq-cta {
+  background: linear-gradient(135deg, #102f25, #172f2a) !important;
+  border: 1px solid rgba(212, 177, 109, .24);
+}
+html[data-theme="dark"] .faq-cta p { color: #abc0b6 !important; }
+
+/* Legal and business-policy pages. */
+html[data-theme="dark"] .legal-nav,
+html[data-theme="dark"] .legal-card,
+html[data-theme="dark"] .business-disclosure--legal {
+  background: #0d241d !important;
+  border-color: rgba(205, 225, 216, .16) !important;
+  color: #d9ebe3 !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+html[data-theme="dark"] .legal-nav a { color: #bdebd2; }
+html[data-theme="dark"] .legal-nav a:hover,
+html[data-theme="dark"] .legal-nav a[aria-current="page"] { color: #fff; background: #176b49; }
+html[data-theme="dark"] .legal-card h2,
+html[data-theme="dark"] .legal-card h3,
+html[data-theme="dark"] .legal-field label,
+html[data-theme="dark"] .business-disclosure--legal summary,
+html[data-theme="dark"] .business-disclosure--legal dd { color: #d9f4e5; }
+html[data-theme="dark"] .legal-card p,
+html[data-theme="dark"] .legal-card li,
+html[data-theme="dark"] .business-disclosure--legal,
+html[data-theme="dark"] .business-disclosure--legal dt,
+html[data-theme="dark"] .business-disclosure--legal summary small { color: #abc0b6; }
+html[data-theme="dark"] .business-disclosure--legal .business-disclosure__body {
+  border-color: rgba(205, 225, 216, .13);
+}
+html[data-theme="dark"] .business-disclosure--legal a { color: #75dda8; }
+html[data-theme="dark"] .legal-note {
+  color: #d6c59d;
+  background: #2b2719;
+  border-color: #d4b16d;
+}
+html[data-theme="dark"] .legal-success {
+  color: #9ce8bd;
+  background: rgba(66, 202, 136, .12);
+  border-color: rgba(110, 231, 168, .28);
+}
+html[data-theme="dark"] .legal-errors {
+  color: #ffc5c8;
+  background: rgba(255, 140, 145, .13);
+}
+
+/* Install prompt. */
+html[data-theme="dark"] .pwa-install { background: rgba(0, 10, 7, .70); }
+html[data-theme="dark"] .pwa-install__card {
+  color: #edf6f1;
+  background: radial-gradient(circle at 10% 0, rgba(212, 177, 109, .12), transparent 30%), #0d241d;
+  border-color: rgba(212, 177, 109, .34);
+}
+html[data-theme="dark"] .pwa-install__close,
+html[data-theme="dark"] .pwa-install__steps,
+html[data-theme="dark"] .pwa-install__later {
+  color: #c8dbd1;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .pwa-install h2 { color: #edf6f1; }
+html[data-theme="dark"] .pwa-install__description { color: #abc0b6; }
+html[data-theme="dark"] .pwa-install__eyebrow { color: #f0d69d; }
+
+/* Mansour assistant. */
+html[data-theme="dark"] .mansour-panel {
+  color: #edf6f1;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+  box-shadow: 0 26px 74px rgba(0, 0, 0, .48);
+}
+html[data-theme="dark"] .mansour-conversation,
+html[data-theme="dark"] .mansour-quick-actions { background: #091c16; border-color: rgba(205, 225, 216, .13); }
+html[data-theme="dark"] .mansour-message.assistant,
+html[data-theme="dark"] .mansour-sources a,
+html[data-theme="dark"] .mansour-quick-action,
+html[data-theme="dark"] .mansour-retry,
+html[data-theme="dark"] .mansour-form {
+  color: #d9ebe3;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .16);
+}
+html[data-theme="dark"] .mansour-message.error {
+  color: #ffc5c8;
+  background: rgba(180, 35, 47, .16);
+  border-color: rgba(255, 140, 145, .30);
+}
+html[data-theme="dark"] .mansour-message.role-confirmation {
+  color: #9ce8bd;
+  background: rgba(66, 202, 136, .12);
+  border-color: rgba(110, 231, 168, .25);
+}
+html[data-theme="dark"] .mansour-message.pending,
+html[data-theme="dark"] .mansour-sources-label,
+html[data-theme="dark"] .mansour-composer-meta,
+html[data-theme="dark"] .mansour-disclaimer { color: #91a99e; }
+
+/* Legacy smart-card administration pages. */
+html[data-theme="dark"] .smart-card,
+html[data-theme="dark"] .smart-section,
+html[data-theme="dark"] .smart-table-wrap,
+html[data-theme="dark"] table.smart-table {
+  color: #edf6f1;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .16);
+  box-shadow: var(--shadow-sm);
+}
+html[data-theme="dark"] .smart-label,
+html[data-theme="dark"] .smart-switch .sw-text,
+html[data-theme="dark"] .dept-name,
+html[data-theme="dark"] .rt-name { color: #edf6f1; }
+html[data-theme="dark"] .smart-help,
+html[data-theme="dark"] .dept-tickets { color: #abc0b6; }
+html[data-theme="dark"] .smart-btn.ghost,
+html[data-theme="dark"] .smart-card .smart-btn:hover {
+  color: #bdebd2;
+  background: #102920;
+  border-color: rgba(212, 177, 109, .42);
+}
+html[data-theme="dark"] .smart-card .smart-btn.danger {
+  color: #ffadb1;
+  background: rgba(180, 35, 47, .13);
+  border-color: rgba(255, 140, 145, .30);
+}
+html[data-theme="dark"] .smart-pill.on {
+  color: #9ce8bd;
+  background: rgba(66, 202, 136, .13);
+  border-color: rgba(110, 231, 168, .26);
+}
+html[data-theme="dark"] .smart-pill.off {
+  color: #f0d69d;
+  background: rgba(212, 177, 109, .13);
+  border-color: rgba(240, 214, 157, .28);
+}
+
+/* Report builder and request workspaces with local design tokens. */
+html[data-theme="dark"] .add-report-page {
+  --ar-primary: #42ca88;
+  --ar-primary-dark: #bdebd2;
+  --ar-primary-light: #75dda8;
+  --ar-bg: #061512;
+  --ar-surface: #0d241d;
+  --ar-text: #edf6f1;
+  --ar-text-soft: #abc0b6;
+  --ar-text-muted: #91a99e;
+  --ar-border: rgba(205, 225, 216, .18);
+  --ar-border-light: rgba(205, 225, 216, .11);
+}
+html[data-theme="dark"] .ar-section-option,
+html[data-theme="dark"] .draft-btn.discard {
+  color: #d9ebe3;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .ar-section-option.is-selected {
+  background: linear-gradient(135deg, #14382c, #2b2719);
+  border-color: #55cf91;
+}
+html[data-theme="dark"] .ar-builder-badge {
+  color: #9ce8bd;
+  background: rgba(66, 202, 136, .13);
+}
+html[data-theme="dark"] .add-report-page [style*="background:#fffaf0"] {
+  color: #d6c59d !important;
+  background: #2b2719 !important;
+}
+
+html[data-theme="dark"] .req-scope {
+  --c-brand: #42ca88;
+  --c-brand-deep: #bdebd2;
+  --c-brand-light: #14382c;
+  --c-ink: #edf6f1;
+  --c-muted: #abc0b6;
+  --c-border: rgba(205, 225, 216, .18);
+  --c-bg: #102920;
+  --c-card: #0d241d;
+}
+html[data-theme="dark"] .req-scope .s-open,
+html[data-theme="dark"] .req-scope .badge.open {
+  color: #bae6fd;
+  background: rgba(56, 189, 248, .13);
+  border-color: rgba(125, 211, 252, .26);
+}
+html[data-theme="dark"] .req-scope .s-prog,
+html[data-theme="dark"] .req-scope .badge.prog {
+  color: #f0d69d;
+  background: rgba(212, 177, 109, .13);
+  border-color: rgba(240, 214, 157, .28);
+}
+html[data-theme="dark"] .req-scope .s-done,
+html[data-theme="dark"] .req-scope .badge.done {
+  color: #9ce8bd;
+  background: rgba(66, 202, 136, .13);
+  border-color: rgba(110, 231, 168, .26);
+}
+html[data-theme="dark"] .req-scope .s-rejected,
+html[data-theme="dark"] .req-scope .badge.rej {
+  color: #ffc5c8;
+  background: rgba(255, 140, 145, .13);
+  border-color: rgba(255, 140, 145, .28);
+}
+html[data-theme="dark"] .support-scope .b-open { --bg: rgba(66, 202, 136, .13); --fg: #9ce8bd; --bd: rgba(110, 231, 168, .26); }
+html[data-theme="dark"] .support-scope .b-in { --bg: rgba(212, 177, 109, .13); --fg: #f0d69d; --bd: rgba(240, 214, 157, .28); }
+html[data-theme="dark"] .support-scope .b-done { --bg: rgba(56, 189, 248, .13); --fg: #bae6fd; --bd: rgba(125, 211, 252, .26); }
+html[data-theme="dark"] .support-scope .b-rej { --bg: rgba(255, 140, 145, .13); --fg: #ffc5c8; --bd: rgba(255, 140, 145, .28); }
+
+/* Manager dashboard notices and report gallery controls. */
+html[data-theme="dark"] .manager-subscription-alert,
+html[data-theme="dark"] .manager-workspace__link--locked {
+  color: #f0d69d;
+  background: #2b2719;
+  border-color: rgba(240, 214, 157, .30);
+}
+html[data-theme="dark"] .manager-subscription-alert.is-critical,
+html[data-theme="dark"] .manager-subscription-alert.is-expired {
+  color: #ffc5c8;
+  background: rgba(180, 35, 47, .16);
+  border-color: rgba(255, 140, 145, .30);
+}
+html[data-theme="dark"] .manager-kpi--attention .manager-kpi__icon {
+  color: #f0d69d;
+  background: rgba(212, 177, 109, .13);
+}
+html[data-theme="dark"] .mr-modal-close:hover,
+html[data-theme="dark"] .mr-navbtn:hover {
+  color: #edf6f1;
+  background: #173a2f;
+}
+
+/* Achievement files. */
+html[data-theme="dark"] .af-card,
+html[data-theme="dark"] .af-head,
+html[data-theme="dark"] .af-body,
+html[data-theme="dark"] .af-grid,
+html[data-theme="dark"] .af-item,
+html[data-theme="dark"] .af-details,
+html[data-theme="dark"] .af-details > summary,
+html[data-theme="dark"] .af-evr-item,
+html[data-theme="dark"] .af-modal-card,
+html[data-theme="dark"] .af-quick-nav a,
+html[data-theme="dark"] .af-muted[style] {
+  color: #edf6f1;
+  background: #0d241d !important;
+  border-color: rgba(205, 225, 216, .18) !important;
+}
+html[data-theme="dark"] .af-btn:not(.af-btn-primary),
+html[data-theme="dark"] .af-field input,
+html[data-theme="dark"] .af-field select {
+  color: #d9ebe3;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .20);
+}
+html[data-theme="dark"] .status-draft { color: #d5e2dc; background: rgba(148, 163, 184, .14); }
+html[data-theme="dark"] .status-submitted { color: #bae6fd; background: rgba(56, 189, 248, .13); }
+html[data-theme="dark"] .status-approved { color: #9ce8bd; background: rgba(66, 202, 136, .13); }
+html[data-theme="dark"] .status-returned { color: #ffc5c8; background: rgba(255, 140, 145, .13); }
+
+/* Leadership portfolio. */
+html[data-theme="dark"] .lp-work,
+html[data-theme="dark"] .lp-page {
+  --deep: #d6f5e4;
+  --ink: #edf6f1;
+  --muted: #abc0b6;
+  --lp-deep: #d6f5e4;
+  --lp-ink: #edf6f1;
+  --lp-muted: #abc0b6;
+}
+html[data-theme="dark"] .lp-btn:not(.lp-btn--gold):not(.lp-btn--green):not(.lp-btn--primary),
+html[data-theme="dark"] .lp-item,
+html[data-theme="dark"] .lp-panel,
+html[data-theme="dark"] .lp-report-card {
+  color: #d9ebe3;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .lp-metrics,
+html[data-theme="dark"] .lp-section-title,
+html[data-theme="dark"] .lp-panel-body,
+html[data-theme="dark"] .lp-upload { border-color: rgba(205, 225, 216, .16); }
+html[data-theme="dark"] .lp-index,
+html[data-theme="dark"] .lp-shot,
+html[data-theme="dark"] .lp-empty,
+html[data-theme="dark"] .lp-report-tools,
+html[data-theme="dark"] .lp-complete {
+  color: #abc0b6;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .16);
+}
+html[data-theme="dark"] .lp-textarea,
+html[data-theme="dark"] .lp-field textarea,
+html[data-theme="dark"] .lp-report-add select { color: #edf6f1; background: #102920; border-color: rgba(205, 225, 216, .20); }
+
+/* Subscription purchasing and platform plan management. */
+html[data-theme="dark"] .plan-content,
+html[data-theme="dark"] .archive-action-box,
+html[data-theme="dark"] .custom-table,
+html[data-theme="dark"] .service-switch,
+html[data-theme="dark"] .plan-family,
+html[data-theme="dark"] .archive-offer > div,
+html[data-theme="dark"] .storage-live-card,
+html[data-theme="dark"] .storage-option-card {
+  color: #d9ebe3;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .plans-page {
+  --plans-ink: #edf6f1;
+  --plans-green: #42ca88;
+  --plans-green-deep: #d6f5e4;
+  --plans-cream: #2b2719;
+}
+html[data-theme="dark"] .plans-metric,
+html[data-theme="dark"] .plan-card {
+  color: #edf6f1;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .pricing-policy {
+  background: linear-gradient(135deg, rgba(212, 177, 109, .14), rgba(43, 39, 25, .76));
+  border-color: rgba(212, 177, 109, .30);
+}
+html[data-theme="dark"] .pricing-policy p,
+html[data-theme="dark"] .plans-section-heading p,
+html[data-theme="dark"] .plan-card__capacity,
+html[data-theme="dark"] .plan-card__currency { color: #abc0b6; }
+html[data-theme="dark"] .plan-badge { color: #bdebd2; background: rgba(66, 202, 136, .13); }
+html[data-theme="dark"] .plan-badge--gold { color: #f0d69d; background: rgba(212, 177, 109, .15); }
+html[data-theme="dark"] .plan-badge--muted { color: #c8dbd1; background: rgba(148, 163, 184, .14); }
+
+/* Platform school summary and academic years. */
+html[data-theme="dark"] .sup-header,
+html[data-theme="dark"] .card-sup,
+html[data-theme="dark"] .btn-sup {
+  color: #d9ebe3;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .school-title h1,
+html[data-theme="dark"] .big-num { color: #edf6f1; }
+html[data-theme="dark"] .badge-role { color: #c8dbd1; background: #102920; }
+html[data-theme="dark"] .supervisor-container .card-caption { color: #abc0b6; }
+html[data-theme="dark"] .status-text--cancelled { color: #ffadb1; }
+html[data-theme="dark"] .status-text--expired { color: #f0d69d; }
+html[data-theme="dark"] .status-text--active { color: #9ce8bd; }
+html[data-theme="dark"] .status-text--inactive { color: #abc0b6; }
+html[data-theme="dark"] .supervisor-note {
+  color: #f0d69d;
+  background: #2b2719;
+  border-color: rgba(240, 214, 157, .30);
+}
+html[data-theme="dark"] .ay-card,
+html[data-theme="dark"] .ay-item,
+html[data-theme="dark"] .ay-mini {
+  color: #d9ebe3;
+  background: #0d241d;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .ay-item.off,
+html[data-theme="dark"] .ay-pill { color: #c8dbd1; background: #102920; border-color: rgba(205, 225, 216, .16); }
+html[data-theme="dark"] .ay-add label,
+html[data-theme="dark"] .ay-yv { color: #edf6f1; }
+html[data-theme="dark"] .ay-use,
+html[data-theme="dark"] .ay-empty { color: #abc0b6; }
+
+/* School data export cards and notices. */
+html[data-theme="dark"] .exp-stat,
+html[data-theme="dark"] .exp-info {
+  color: #d9ebe3;
+  background: #102920;
+  border-color: rgba(205, 225, 216, .18);
+}
+html[data-theme="dark"] .exp-stat .n,
+html[data-theme="dark"] .exp-info h3 { color: #bdebd2; }
+html[data-theme="dark"] .exp-stat .l,
+html[data-theme="dark"] .exp-info ul,
+html[data-theme="dark"] .exp-note { color: #abc0b6; }
+html[data-theme="dark"] .exp-scope {
+  color: #f0d69d;
+  background: #2b2719;
+  border-color: rgba(240, 214, 157, .30);
+}
 
 /* Public landing page */
 html[data-theme="dark"] body:has(.main-nav) { background: #061512; }

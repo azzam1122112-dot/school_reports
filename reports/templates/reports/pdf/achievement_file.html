@@ -394,7 +394,7 @@
 
     <div class="cover-main">
       <div class="cover-kicker">ملف مهني موثق · منصة توثيق</div>
-      <h1 class="cover-title">ملف الإنجاز المهني<br />{% if school.gender == 'girls' %}للمعلمة{% else %}للمعلم{% endif %}</h1>
+      <h1 class="cover-title">ملف الإنجاز المهني<br />{{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }}</h1>
       <div class="cover-subtitle">وفق معايير تقييم أداء شاغلي الوظائف التعليمية</div>
       <table class="cover-data">
         <tr><th>الاسم</th><td>{{ file.teacher_name|default:"—" }}</td></tr>
@@ -462,7 +462,7 @@
 
     <div class="chapter-label">الفصل الأول</div>
     <div class="title">البيانات العامة</div>
-    <div class="subtitle">{% if school.gender == 'girls' %}المعلمة{% else %}المعلم{% endif %}: {{ file.teacher_name }} · المرحلة: {{ school.get_stage_display }}</div>
+    <div class="subtitle">{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}: {{ file.teacher_name }} · المرحلة: {{ school.get_stage_display }}</div>
 
     <table class="meta-table">
       <tr>
@@ -499,7 +499,7 @@
 
     {% if file.manager_notes %}
       <section class="section">
-        <div class="section-h">ملاحظات {% if school.gender == 'girls' %}مديرة المدرسة{% else %}مدير المدرسة{% endif %}</div>
+        <div class="section-h">ملاحظات {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }}</div>
         <div class="section-body">{{ file.manager_notes|default:"—" }}</div>
       </section>
     {% endif %}
@@ -622,7 +622,7 @@
                     —
                   {% endif %}
                 </td>
-                <th>عدد المستفيدين</th>
+                <th>عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين" }}</th>
                 <td>
                   {% if ev.is_frozen %}
                     {{ ev.frozen_data.beneficiaries_count|default:"—" }}

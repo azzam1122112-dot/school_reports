@@ -30,49 +30,74 @@
       <article class="cir-document cir-printable" aria-labelledby="circularTitle">
         <header class="cir-document__masthead">
           <div class="cir-document__identity">
-            <div>المملكة العربية السعودية</div>
-            <div>وزارة التعليم</div>
-            <div>{% firstof SCHOOL_NAME "المدرسة" %}</div>
+            <span class="cir-document__identity-kicker">المملكة العربية السعودية</span>
+            <strong>وزارة التعليم</strong>
+            <span>{% firstof SCHOOL_NAME "المدرسة" %}</span>
           </div>
-          <img class="cir-document__logo" src="{% static 'img/logo1.png' %}" alt="شعار توثيق">
-          <div class="cir-document__reference">
-            <div>الرقم: CIR-{{ n.id|stringformat:"05d" }}</div>
-            <div>التاريخ: {{ n.created_at|date:"Y/m/d" }}</div>
-            <div>الحالة: {% if r.is_signed %}موقّع إلكترونيًا{% else %}بانتظار التوقيع{% endif %}</div>
+          <div class="cir-document__brand">
+            <img class="cir-document__logo" src="{% static 'img/logo1.png' %}" alt="شعار توثيق">
+            <span>وثيقة إلكترونية معتمدة</span>
           </div>
+          <dl class="cir-document__reference">
+            <div><dt>الرقم المرجعي</dt><dd>CIR-{{ n.id|stringformat:"05d" }}</dd></div>
+            <div><dt>تاريخ الإصدار</dt><dd>{{ n.created_at|date:"Y/m/d" }}</dd></div>
+            <div><dt>حالة الوثيقة</dt><dd>{% if r.is_signed %}<span class="cir-document__state cir-document__state--signed">موقّع إلكترونيًا</span>{% else %}<span class="cir-document__state">بانتظار التوقيع</span>{% endif %}</dd></div>
+          </dl>
         </header>
 
-        <div class="cir-document__type">تعميم إداري</div>
-        <h2 class="cir-document__title" id="circularTitle">{{ n.title|default:"تعميم رسمي" }}</h2>
-
-        <div class="cir-document__body">
-          {% if body %}
-            {{ body|linebreaksbr }}
-          {% else %}
-            <p>يرجى الاطلاع على المرفق المعتمد لهذا التعميم.</p>
-          {% endif %}
+        <div class="cir-document__heading">
+          <div class="cir-document__type"><span></span><strong>تعميم إداري</strong><span></span></div>
+          <div class="cir-document__subject-label">الموضوع</div>
+          <h2 class="cir-document__title" id="circularTitle">{{ n.title|default:"تعميم رسمي" }}</h2>
+          <div class="cir-document__heading-meta">صادر عن {% firstof sender_name "إدارة المدرسة" %}{% if sender_role_label %} — {{ sender_role_label }}{% endif %}</div>
         </div>
+
+        <section class="cir-document__content" aria-label="نص التعميم">
+          <div class="cir-document__content-label"><span>نص التعميم</span></div>
+          <div class="cir-document__body">
+            {% if body %}
+              {{ body|linebreaksbr }}
+            {% else %}
+              <p>يرجى الاطلاع على المرفق المعتمد لهذا التعميم.</p>
+            {% endif %}
+          </div>
+        </section>
 
         {% if n.signature_ack_text or n.signature_deadline_at %}
         <aside class="cir-document__footnote">
-          {% if n.signature_ack_text %}
-            <strong>إقرار الاطلاع:</strong> {{ n.signature_ack_text|linebreaksbr }}
-          {% else %}
-            <strong>إقرار الاطلاع:</strong> أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه.
-          {% endif %}
-          {% if n.signature_deadline_at %}
-            <br><strong>آخر موعد للتوقيع:</strong> {{ n.signature_deadline_at|date:"Y/m/d — H:i" }}
-          {% endif %}
+          <div class="cir-document__footnote-icon" aria-hidden="true"><i class="fa-solid fa-fingerprint"></i></div>
+          <div class="cir-document__footnote-content">
+            <strong class="cir-document__footnote-title">إقرار الاطلاع الإلكتروني</strong>
+            <div>{% if n.signature_ack_text %}{{ n.signature_ack_text|linebreaksbr }}{% else %}أقرّ بأنني اطلعت على هذا التعميم وفهمت ما ورد فيه.{% endif %}</div>
+            {% if n.signature_deadline_at %}<div class="cir-document__deadline"><strong>آخر موعد للتوقيع</strong><span>{{ n.signature_deadline_at|date:"Y/m/d — H:i" }}</span></div>{% endif %}
+          </div>
         </aside>
         {% endif %}
 
         <footer class="cir-document__issued">
-          <span>جهة الإصدار: {% firstof sender_name "إدارة المدرسة" %}{% if sender_role_label %} — {{ sender_role_label }}{% endif %}</span>
-          {% if r.is_signed %}
-            <span><i class="fa-solid fa-circle-check"></i> اعتمد إلكترونيًا في {{ r.signed_at|date:"Y/m/d — H:i" }}</span>
-          {% else %}
-            <span>نسخة إلكترونية بانتظار إقرار المستلم</span>
-          {% endif %}
+          <div class="cir-document__issued-grid">
+            <div class="cir-document__issued-item">
+              <span>جهة الإصدار</span>
+              <strong>{% firstof sender_name "إدارة المدرسة" %}{% if sender_role_label %} — {{ sender_role_label }}{% endif %}</strong>
+            </div>
+            <div class="cir-document__issued-item">
+              <span>المستلم</span>
+              <strong>{{ r.teacher.name|default:r.teacher }}</strong>
+            </div>
+            <div class="cir-document__issued-item cir-document__issued-item--status">
+              {% if r.is_signed %}
+                <span class="cir-document__verified"><i class="fa-solid fa-circle-check"></i> تم الاعتماد إلكترونيًا</span>
+                <strong>{{ r.signed_at|date:"Y/m/d — H:i" }}</strong>
+              {% else %}
+                <span>حالة الاعتماد</span>
+                <strong>بانتظار إقرار المستلم</strong>
+              {% endif %}
+            </div>
+          </div>
+          <div class="cir-document__verification">
+            <span><i class="fa-solid fa-shield-halved"></i> وثيقة موثقة إلكترونيًا عبر منصة توثيق</span>
+            <span>CIR-{{ n.id|stringformat:"05d" }}</span>
+          </div>
         </footer>
       </article>
 
@@ -125,7 +150,16 @@
               {% if n.signature_ack_text %}{{ n.signature_ack_text|linebreaksbr }}{% else %}أقرّ بأنني اطلعت على التعميم وفهمت ما ورد فيه وأتعهد بالالتزام بمضمونه.{% endif %}
             </div>
 
-            <form id="sigForm" method="post" action="{% url 'reports:circular_sign' r.pk %}" novalidate>
+            <form
+              id="sigForm"
+              method="post"
+              action="{% url 'reports:circular_sign' r.pk %}"
+              data-sign-confirm="سيتم تسجيل إقرارك ووقت التوقيع إلكترونيًا، ولن تتمكن من التراجع بعد الاعتماد."
+              data-sign-confirm-title="اعتماد التوقيع الإلكتروني؟"
+              data-sign-confirm-ok="نعم، اعتماد التوقيع"
+              data-sign-confirm-cancel="مراجعة التعميم"
+              novalidate
+            >
               {% csrf_token %}
               <div class="cir-field">
                 <label for="sig_phone">رقم الجوال المسجل</label>
@@ -136,7 +170,8 @@
 
               <label class="cir-ack" for="sig_ack">
                 <input type="checkbox" id="sig_ack" name="ack" required>
-                <span>قرأت التعميم ومرفقاته، وأوافق على إقرار الاطلاع الموضح أعلاه.</span>
+                <span class="cir-ack__box" aria-hidden="true"></span>
+                <span class="cir-ack__text">قرأت التعميم ومرفقاته، وأوافق على إقرار الاطلاع الموضح أعلاه.</span>
               </label>
 
               <button type="submit" id="sigSubmit" class="cir-btn cir-btn--primary cir-sign-submit">
@@ -184,14 +219,26 @@
   ack.addEventListener('change', validate);
   validate();
 
+  let confirming = false;
   form.addEventListener('submit', function (event) {
-    if (submit.disabled) { event.preventDefault(); return; }
-    if (!window.confirm('سيتم اعتماد إقرارك وتسجيل وقت التوقيع، ولا يمكن التراجع عنه. هل تريد المتابعة؟')) {
-      event.preventDefault();
-      return;
-    }
-    submit.disabled = true;
-    submit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ اعتماد التوقيع…';
+    event.preventDefault();
+    validate();
+    if (submit.disabled || confirming) return;
+
+    confirming = true;
+    window.rcConfirm({
+      type: 'info',
+      title: form.getAttribute('data-sign-confirm-title'),
+      message: form.getAttribute('data-sign-confirm'),
+      okText: form.getAttribute('data-sign-confirm-ok'),
+      cancelText: form.getAttribute('data-sign-confirm-cancel')
+    }).then(function (confirmed) {
+      confirming = false;
+      if (!confirmed) return;
+      submit.disabled = true;
+      submit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ اعتماد التوقيع…';
+      form.submit();
+    });
   });
 })();
 </script>

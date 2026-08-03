@@ -33,6 +33,7 @@ class School(models.Model):
         default=Gender.BOYS,
     )
     phone = models.CharField("رقم الجوال", max_length=20, blank=True, null=True)
+    email = models.EmailField("البريد الإلكتروني", blank=True, default="")
     city = models.CharField("المدينة", max_length=120, blank=True, null=True)
     is_active = models.BooleanField("نشطة؟", default=True)
     print_primary_color = models.CharField(

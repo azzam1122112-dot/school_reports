@@ -25,6 +25,7 @@ from django.utils.text import slugify
 from django.utils import timezone
 
 from .validators import validate_circular_attachment_file
+from .gender_labels import school_gender_labels
 
 # ==============================
 # استيراد الموديلات (من models.py فقط)
@@ -34,7 +35,6 @@ from .models import (
     Department,
     DepartmentMembership,
     ReportType,
-    ReportTemplate,
     Report,
     Ticket,
     TicketNote,
@@ -77,13 +77,11 @@ sa_phone = RegexValidator(r"^0\d{9}$", "رقم الجوال يجب أن يبدأ
 
 def _school_job_title_choices(active_school: Optional["School"] = None) -> tuple[tuple[str, str], ...]:
     """Display job-title labels using the active school's gender, without changing stored values."""
-    gender = (getattr(active_school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    is_girls = gender == girls_value
+    labels = school_gender_labels(active_school)
     return (
-        (SchoolMembership.JobTitle.TEACHER, "معلمة" if is_girls else "معلم"),
-        (SchoolMembership.JobTitle.ADMIN_STAFF, "موظفة إدارية" if is_girls else "موظف إداري"),
-        (SchoolMembership.JobTitle.LAB_TECH, "محضرة مختبر" if is_girls else "محضر مختبر"),
+        (SchoolMembership.JobTitle.TEACHER, str(labels["teacher_indefinite"])),
+        (SchoolMembership.JobTitle.ADMIN_STAFF, str(labels["admin_staff"])),
+        (SchoolMembership.JobTitle.LAB_TECH, str(labels["lab_tech"])),
     )
 
 
@@ -478,14 +476,30 @@ class ReportForm(forms.ModelForm):
     ويستخدم قيمة code كقيمة ثابتة في الخيارات (to_field_name="code").
     """
 
+    section_selection_enabled = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.HiddenInput(),
+    )
+
     class Meta:
         model = Report
         fields = [
             "title",
             "report_date",
             "day_name",
-            "beneficiaries_count",
+            "show_goal",
+            "goal",
+            "show_details",
             "idea",
+            "show_implementation",
+            "implementation_method",
+            "show_results",
+            "results",
+            "show_recommendations",
+            "recommendations",
+            "show_beneficiaries",
+            "beneficiaries_count",
             "category",
             "image1",
             "image2",
@@ -504,11 +518,34 @@ class ReportForm(forms.ModelForm):
             "report_date": forms.DateInput(attrs={"class": "input", "type": "date"}),
             "day_name": forms.TextInput(attrs={"class": "input", "readonly": "readonly"}),
             "beneficiaries_count": forms.NumberInput(attrs={"class": "input", "min": "0", "inputmode": "numeric"}),
-            "idea": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "الوصف / فكرة التقرير"}),
+            "goal": forms.Textarea(attrs={"class": "textarea", "rows": 3, "placeholder": "ما الهدف الذي يسعى النشاط أو البرنامج إلى تحقيقه؟"}),
+            "idea": forms.Textarea(attrs={"class": "textarea", "rows": 5, "placeholder": "اكتب ملخصًا واضحًا لما تم تنفيذه وأبرز تفاصيله"}),
+            "implementation_method": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "وضح الخطوات والإجراءات وطريقة تنفيذ النشاط"}),
+            "results": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "اذكر النتائج والمخرجات التي تحققت"}),
+            "recommendations": forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "أضف التوصيات أو فرص التحسين المستقبلية"}),
+            "show_goal": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_details": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_implementation": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_results": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_recommendations": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
+            "show_beneficiaries": forms.CheckboxInput(attrs={"class": "ar-section-checkbox"}),
         }
 
     def __init__(self, *args, **kwargs):
         active_school = kwargs.pop("active_school", None)
+        self.gender_labels = school_gender_labels(active_school)
+
+        # توافق الطلبات القديمة التي سبقت واجهة اختيار البنود.
+        bound_data = args[0] if args else kwargs.get("data")
+        if bound_data is not None and "section_selection_enabled" not in bound_data:
+            data = bound_data.copy()
+            data["show_details"] = "on"
+            data["show_beneficiaries"] = "on"
+            if args:
+                args = (data, *args[1:])
+            else:
+                kwargs["data"] = data
+
         super().__init__(*args, **kwargs)
 
         qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
@@ -523,17 +560,42 @@ class ReportForm(forms.ModelForm):
             to_field_name="code",
             widget=forms.Select(attrs={"class": "form-select"}),
         )
+        self.fields["beneficiaries_count"].label = f"عدد {self.gender_labels['beneficiaries_object']}"
 
     def clean_beneficiaries_count(self):
         val = self.cleaned_data.get("beneficiaries_count")
         if val is None:
             return val
         if val < 0:
-            raise ValidationError("عدد المستفيدين لا يمكن أن يكون سالبًا.")
+            raise ValidationError(f"عدد {self.gender_labels['beneficiaries_object']} لا يمكن أن يكون سالبًا.")
         return val
 
     def clean(self):
         cleaned = super().clean()
+
+        section_fields = (
+            ("show_goal", "goal", "الهدف"),
+            ("show_details", "idea", "تفاصيل التقرير"),
+            ("show_implementation", "implementation_method", "آلية التنفيذ"),
+            ("show_results", "results", "النتائج"),
+            ("show_recommendations", "recommendations", "التوصيات"),
+        )
+        selected = [flag for flag, _field, _label in section_fields if cleaned.get(flag)]
+        if cleaned.get("show_beneficiaries"):
+            selected.append("show_beneficiaries")
+
+        if not selected:
+            raise ValidationError("اختر بندًا واحدًا على الأقل ليظهر في التقرير.")
+
+        for flag, field_name, label in section_fields:
+            if cleaned.get(flag) and not (cleaned.get(field_name) or "").strip():
+                self.add_error(field_name, f"أدخل محتوى بند {label} أو ألغِ اختياره.")
+
+        if cleaned.get("show_beneficiaries") and cleaned.get("beneficiaries_count") is None:
+            self.add_error(
+                "beneficiaries_count",
+                f"أدخل عدد {self.gender_labels['beneficiaries_object']} أو ألغِ اختيار هذا البند.",
+            )
 
         # ضغط الصور قبل الرفع + التحقق من الحجم بعد الضغط
         for field_name in ["image1", "image2", "image3", "image4"]:
@@ -1737,56 +1799,6 @@ class ReportTypeForm(forms.ModelForm):
         return instance
 
 # ==============================
-# 📌 نموذج قالب التقرير (إضافة/تعديل)
-# ==============================
-class ReportTemplateForm(forms.ModelForm):
-    """نموذج إدارة قوالب التقارير الجاهزة لمدير المدرسة."""
-
-    class Meta:
-        model = ReportTemplate
-        fields = ["name", "category", "title", "idea", "beneficiaries_count", "order", "is_active"]
-        widgets = {
-            "name": forms.TextInput(
-                attrs={"class": "smart-input", "maxlength": "120", "placeholder": "مثال: الإذاعة الصباحية"}
-            ),
-            "title": forms.TextInput(
-                attrs={"class": "smart-input", "maxlength": "255", "placeholder": "عنوان التقرير المقترح (اختياري)"}
-            ),
-            "idea": forms.Textarea(
-                attrs={"class": "smart-input", "rows": 6, "placeholder": "النص الجاهز الذي سيظهر في تفاصيل التقرير"}
-            ),
-            "beneficiaries_count": forms.NumberInput(
-                attrs={"class": "smart-input", "min": "0", "inputmode": "numeric", "placeholder": "اختياري"}
-            ),
-            "order": forms.NumberInput(attrs={"class": "smart-input", "min": "0", "inputmode": "numeric"}),
-            "is_active": forms.CheckboxInput(),
-        }
-
-    def __init__(self, *args, **kwargs):
-        self.active_school = kwargs.pop("active_school", None)
-        super().__init__(*args, **kwargs)
-
-        qs = ReportType.objects.filter(is_active=True).order_by("order", "name")
-        if self.active_school is not None and hasattr(ReportType, "school"):
-            qs = qs.filter(school=self.active_school)
-        self.fields["category"] = forms.ModelChoiceField(
-            label="نوع التقرير",
-            queryset=qs,
-            required=False,
-            empty_label="— بدون نوع محدّد —",
-            widget=forms.Select(attrs={"class": "smart-input"}),
-        )
-
-    def save(self, commit: bool = True):
-        instance = super().save(commit=False)
-        if hasattr(instance, "school") and self.active_school is not None:
-            instance.school = self.active_school
-        if commit:
-            instance.save()
-        return instance
-
-
-# ==============================
 # 📌 إنشاء إشعار
 # ==============================
 class FlexibleModelMultipleChoiceField(forms.ModelMultipleChoiceField):
@@ -1893,12 +1905,10 @@ class NotificationCreateForm(forms.Form):
 
         is_superuser = bool(getattr(user, "is_superuser", False))
         is_platform = bool(is_platform_admin(user)) and not is_superuser
-        school_gender = (getattr(active_school, "gender", "") or "").strip().lower()
-        girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-        is_girls_school = school_gender == girls_value
-        teacher_singular = "معلمة" if is_girls_school else "معلم"
-        teachers_plural = "المعلمات" if is_girls_school else "المعلمون"
-        teachers_obj = "المعلمات" if is_girls_school else "المعلمين"
+        labels = school_gender_labels(active_school)
+        teacher_singular = str(labels["teacher_indefinite"])
+        teachers_plural = str(labels["teachers"])
+        teachers_obj = str(labels["teachers_object"])
         
         # التحقق مما إذا كان المستخدم مديراً ضمن المدرسة النشطة (عزل مدارس)
         try:

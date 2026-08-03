@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import struct
 from pathlib import Path
 
 from django.conf import settings
@@ -16,6 +17,13 @@ class PwaInstallExperienceTests(TestCase):
     @staticmethod
     def _source(relative_path: str) -> str:
         return (Path(settings.BASE_DIR) / relative_path).read_text(encoding="utf-8")
+
+    @staticmethod
+    def _png_size(relative_path: str) -> tuple[int, int]:
+        payload = (Path(settings.BASE_DIR) / relative_path).read_bytes()
+        if payload[:8] != b"\x89PNG\r\n\x1a\n":
+            raise AssertionError(f"Not a PNG file: {relative_path}")
+        return struct.unpack(">II", payload[16:24])
 
     def test_public_mobile_entry_pages_render_the_shared_installer(self):
         for route_name in (
@@ -33,6 +41,8 @@ class PwaInstallExperienceTests(TestCase):
             self.assertContains(response, "js/pwa-install.js")
             self.assertContains(response, 'rel="manifest"')
             self.assertContains(response, 'rel="apple-touch-icon"')
+            self.assertContains(response, 'rel="apple-touch-startup-image"', count=24)
+            self.assertContains(response, "img/pwa/apple-touch-icon-180.png")
 
     def test_all_interactive_standalone_templates_include_the_installer(self):
         templates = (
@@ -58,9 +68,14 @@ class PwaInstallExperienceTests(TestCase):
         self.assertIn("isIPadOS", script)
         self.assertIn("إضافة إلى الشاشة الرئيسية", script)
         self.assertIn("تثبيت التطبيق", script)
-        self.assertIn("window.sessionStorage", script)
-        self.assertNotIn("window.localStorage", script)
-        self.assertIn('navigator.serviceWorker.register("/sw.js")', script)
+        self.assertIn("window.localStorage", script)
+        self.assertNotIn("window.sessionStorage", script)
+        self.assertIn('var SW_URL = "/sw.js?v=8"', script)
+        self.assertIn('updateViaCache: "none"', script)
+        self.assertIn("AUTO_IOS_DELAY_MS = 6500", script)
+        self.assertIn("TawtheeqPWA", script)
+        self.assertIn('event.key !== "Tab"', script)
+        self.assertNotIn("}, 900);", script)
 
     def test_manifest_has_mobile_install_metadata(self):
         manifest = json.loads(self._source("static/manifest.json"))
@@ -71,8 +86,57 @@ class PwaInstallExperienceTests(TestCase):
         self.assertEqual(manifest["display"], "standalone")
         self.assertEqual(manifest["lang"], "ar")
         self.assertEqual(manifest["dir"], "rtl")
+        self.assertEqual(manifest["background_color"], "#F3F7F4")
         self.assertFalse(manifest["prefer_related_applications"])
+        self.assertNotEqual(manifest.get("orientation"), "portrait")
         self.assertEqual(
             {icon["sizes"] for icon in manifest["icons"]},
             {"192x192", "512x512"},
         )
+        self.assertEqual({icon["purpose"] for icon in manifest["icons"]}, {"any", "maskable"})
+
+        for icon in manifest["icons"]:
+            relative_path = icon["src"].lstrip("/")
+            declared = tuple(int(value) for value in icon["sizes"].split("x"))
+            self.assertEqual(self._png_size(relative_path), declared)
+
+    def test_service_worker_uses_private_safe_offline_strategy(self):
+        worker = self._source("static/sw.js")
+        offline = self._source("static/offline.html")
+
+        self.assertIn('const CACHE_NAME = "tawtheeq-v8"', worker)
+        self.assertIn('const OFFLINE_URL = "/static/offline.html"', worker)
+        self.assertIn("navigationPreload.enable()", worker)
+        self.assertIn('startsWith("/api/")', worker)
+        self.assertIn("Promise.allSettled", worker)
+        self.assertNotIn("Default: cache-first", worker)
+        self.assertNotIn("cache.put(event.request", worker)
+        self.assertIn("أنت الآن دون اتصال", offline)
+        self.assertIn('name="viewport"', offline)
+
+    def test_service_worker_response_prevents_browser_and_cdn_caching(self):
+        response = self.client.get(reverse("service_worker"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("no-store", response["Cache-Control"])
+        self.assertEqual(response["CDN-Cache-Control"], "no-store")
+        self.assertEqual(response["Cloudflare-CDN-Cache-Control"], "no-store")
+        self.assertEqual(response["Service-Worker-Allowed"], "/")
+
+    def test_generated_splash_assets_cover_phones_and_tablets_both_orientations(self):
+        splash_dir = Path(settings.BASE_DIR) / "static" / "img" / "pwa"
+        splash_files = sorted(splash_dir.glob("splash-*.png"))
+
+        self.assertEqual(len(splash_files), 24)
+        self.assertTrue(any("iphone" in path.name for path in splash_files))
+        self.assertTrue(any("ipad" in path.name for path in splash_files))
+        self.assertEqual(
+            {path.name.rsplit("-", 1)[-1] for path in splash_files},
+            {"portrait.png", "landscape.png"},
+        )
+        for splash_file in splash_files:
+            width, height = self._png_size(str(splash_file.relative_to(settings.BASE_DIR)))
+            if splash_file.name.endswith("-portrait.png"):
+                self.assertGreater(height, width)
+            else:
+                self.assertGreater(width, height)

@@ -322,7 +322,7 @@
           تعديل بيانات {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
         </h2>
         <p class="te-subtitle">
-          قم بتعديل البيانات الخاصة بـ{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
+          قم بتعديل بيانات {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}
           {% firstof teacher.name form.initial.name "" %}
         </p>
       </div>
@@ -352,7 +352,7 @@
             </label>
             {{ form.name }}
             {% for e in form.name.errors %}<div class="te-field-error">{{ e }}</div>{% endfor %}
-            <div class="te-hint">الاسم الكامل لـ{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</div>
+            <div class="te-hint">الاسم الكامل {{ SCHOOL_TEACHER_DATIVE_LABEL|default:"للمعلم" }}</div>
           </div>
 
           <div class="te-group">

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ._helpers import *
 from ._helpers import _get_active_school
+from ..gender_labels import school_gender_template_context
 
 
 def _ensure_leadership_sections(portfolio: SchoolLeadershipPortfolio) -> None:
@@ -46,7 +47,8 @@ def _leadership_context(
             if report_owner is not None
             else Report.objects.none()
         ),
-        "manager_label": "مديرة المدرسة" if portfolio.school.gender == "girls" else "مدير المدرسة",
+        **school_gender_template_context(portfolio.school),
+        "manager_label": school_gender_template_context(portfolio.school)["SCHOOL_MANAGER_LABEL"],
     }
 
 

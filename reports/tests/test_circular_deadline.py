@@ -87,6 +87,14 @@ class CircularSignatureDeadlineTests(TestCase):
         self.assertContains(response, "وثيقة إدارية رسمية")
         self.assertContains(response, "طباعة التعميم")
         self.assertContains(response, "اعتماد التوقيع نهائيًا")
+        self.assertContains(response, "وثيقة إلكترونية معتمدة")
+        self.assertContains(response, "نص التعميم")
+        self.assertContains(response, "وثيقة موثقة إلكترونيًا عبر منصة توثيق")
+        self.assertContains(response, self.user.name)
+        self.assertContains(response, 'class="cir-ack__box"')
+        self.assertContains(response, 'data-sign-confirm-title="اعتماد التوقيع الإلكتروني؟"')
+        self.assertContains(response, "window.rcConfirm({")
+        self.assertNotContains(response, "window.confirm(")
         self.assertContains(response, "CIR-")
 
     def test_manager_detail_and_print_report_use_real_signature_percentage(self):

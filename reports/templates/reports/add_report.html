@@ -886,6 +886,34 @@
     border:1px solid rgba(185,151,91,.20) !important;
     box-shadow:0 14px 34px -22px rgba(10,92,51,.4) !important;
   }
+
+  /* بنود التقرير القابلة للاختيار */
+  .ar-section-builder{margin-top:26px;padding-top:26px;border-top:2px dashed var(--ar-border);}
+  .ar-builder-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:16px;}
+  .ar-builder-head h2{margin:0;color:var(--ar-primary-dark);font-size:1.25rem;font-weight:950;}
+  .ar-builder-head p{margin:6px 0 0;color:var(--ar-text-soft);font-weight:700;line-height:1.7;}
+  .ar-builder-badge{flex:0 0 auto;padding:7px 12px;border-radius:999px;background:#edf8f2;color:#075b34;font-size:.82rem;font-weight:900;}
+  .ar-section-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:22px;}
+  .ar-section-option{position:relative;display:flex;align-items:center;gap:10px;min-height:62px;padding:12px;border:1.5px solid #dbe6df;border-radius:16px;background:#fff;cursor:pointer;transition:.18s ease;}
+  .ar-section-option:hover{border-color:#7ab795;transform:translateY(-1px);}
+  .ar-section-option.is-selected{border-color:#087442;background:linear-gradient(135deg,#effaf4,#fffaf0);box-shadow:0 8px 22px -16px #075b34;}
+  .ar-section-option input{position:absolute;opacity:0;pointer-events:none;}
+  .ar-section-option .option-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:#edf4f0;color:#087442;font-size:1rem;}
+  .ar-section-option.is-selected .option-icon{background:#087442;color:#fff;}
+  .ar-section-option .option-copy{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .ar-section-option strong{font-size:.92rem;color:#173c2b;font-weight:900;}
+  .ar-section-option small{font-size:.72rem;color:#708078;font-weight:700;}
+  .ar-section-option .option-check{margin-right:auto;color:#087442;opacity:0;transform:scale(.7);transition:.18s ease;}
+  .ar-section-option.is-selected .option-check{opacity:1;transform:scale(1);}
+  .ar-selected-fields{display:flex;flex-direction:column;gap:15px;}
+  .ar-section-field{padding:18px;border:1px solid #dce7e1;border-right:4px solid #087442;border-radius:16px;background:#fbfdfc;animation:fadeIn .2s ease;}
+  .ar-section-field[hidden]{display:none !important;}
+  .ar-section-field .ar-field{margin:0;}
+  .ar-section-field textarea{min-height:110px;}
+  .ar-section-field-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;color:#075b34;font-weight:950;}
+  .ar-section-field-head .ar-required-mark{margin-right:auto;}
+  @media(max-width:900px){.ar-section-options{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media(max-width:560px){.ar-builder-head{flex-direction:column}.ar-section-options{grid-template-columns:1fr}.ar-section-option{min-height:56px}}
 </style>
 {% endblock %}
 
@@ -905,6 +933,7 @@
 
     <form id="report-form" method="POST" enctype="multipart/form-data" autocomplete="off" novalidate>
       {% csrf_token %}
+      {{ form.section_selection_enabled }}
       {% if leadership_section %}
         <input type="hidden" name="leadership_section" value="{{ leadership_section.pk }}">
         <div style="margin-bottom:20px;padding:15px 18px;border:1px solid #d4b16d;border-right:5px solid #0b6238;border-radius:12px;background:#fffaf0;color:#184c35;font-weight:800;line-height:1.8">
@@ -915,17 +944,6 @@
       {% endif %}
 
       <style>
-        .tpl-picker{background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1.5px solid #bbf7d0;border-radius:20px;padding:16px 20px;margin-bottom:22px;}
-        .tpl-picker-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-        .tpl-picker-head .ttl{font-weight:900;color:#006c35;font-size:1.08rem;display:flex;align-items:center;gap:8px;}
-        .tpl-picker-head .hint{font-size:.9rem;color:#0072bc;font-weight:700;}
-        .tpl-chips{display:flex;flex-wrap:wrap;gap:10px;}
-        .tpl-chip{cursor:pointer;border:1.5px solid #006c3533;background:#fff;color:#0f172a;border-radius:999px;padding:8px 16px;font-weight:800;font-size:.98rem;display:inline-flex;align-items:center;gap:8px;transition:all .15s;}
-        .tpl-chip:hover{border-color:#006c35;background:#006c35;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px #006c3526;}
-        .tpl-chip.is-active{border-color:#006c35;background:#006c35;color:#fff;}
-        .tpl-chip i{opacity:.85;}
-        .tpl-clear{cursor:pointer;border:none;background:transparent;color:#64748b;font-weight:800;font-size:.92rem;text-decoration:underline;}
-        .tpl-applied{margin-top:10px;color:#16a34a;font-weight:800;font-size:.95rem;display:none;align-items:center;gap:6px;}
         .draft-banner{background:linear-gradient(135deg,#fff7ed,#fef3c7);border:1.5px solid #fcd34d;border-radius:18px;padding:14px 18px;margin-bottom:22px;display:none;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
         .draft-banner .msg{font-weight:800;color:#92400e;display:flex;align-items:center;gap:10px;font-size:1rem;}
         .draft-banner .msg i{font-size:1.3rem;color:#d97706;}
@@ -951,15 +969,6 @@
         </span>
       </div>
       <div class="draft-saved" id="draftSaved"><i class="fa-solid fa-cloud-arrow-up"></i> تم حفظ مسودة تلقائيًا</div>
-
-      <div class="tpl-picker" id="tplPicker" hidden>
-        <div class="tpl-picker-head">
-          <span class="ttl"><i class="fa-solid fa-wand-magic-sparkles"></i> قوالب جاهزة</span>
-          <span class="hint">اختر قالبًا فتُعبّأ الحقول تلقائيًا — يمكنك تعديلها بعدها</span>
-        </div>
-        <div class="tpl-chips" id="tplChips"></div>
-        <div class="tpl-applied" id="tplApplied"><i class="fa-solid fa-circle-check"></i> تم تطبيق القالب — راجع الحقول قبل الحفظ.</div>
-      </div>
 
       <div id="validationAlert" class="ar-validation-alert" hidden aria-live="assertive" aria-atomic="true">
         <div class="ar-validation-card" role="alert">
@@ -1028,31 +1037,106 @@
                  {{ form.day_name }}
                </div>
 
-               <div class="ar-field" style="margin:0">
-                 <label for="{{ form.beneficiaries_count.id_for_label }}"><i class="fa-solid fa-users"></i> العدد <span class="ar-required-mark">مطلوب</span></label>
-                  {{ form.beneficiaries_count }}
-               </div>
-               
                <div class="ar-field" data-group="teacher_name" style="margin:0">
-                 <label for="id_teacher_name"><i class="fa-solid fa-user"></i> المنفذ</label>
+                 <label for="id_teacher_name"><i class="fa-solid fa-user"></i> {{ SCHOOL_EXECUTOR_LABEL|default:"المنفّذ" }}</label>
                  <input type="text" id="id_teacher_name" name="teacher_name" 
                         value="{{ request.user.name|default:'' }}" readonly aria-readonly="true">
                </div>
             </div>
 
-            <!-- Divider -->
-            <hr style="border:0; border-top:2px dashed var(--ar-border); margin: 30px 0;">
+            <div class="ar-section-builder" aria-labelledby="sectionBuilderTitle">
+              <div class="ar-builder-head">
+                <div>
+                  <h2 id="sectionBuilderTitle"><i class="fa-solid fa-list-check"></i> حدد محتوى تقريرك</h2>
+                  <p>اختر البنود المناسبة لهذا التقرير فقط؛ لن يظهر في النسخة النهائية إلا ما تختاره هنا.</p>
+                </div>
+                <span class="ar-builder-badge">بند واحد على الأقل</span>
+              </div>
 
-            <!-- BIG IDEA FIELD -->
-            <div class="ar-field ar-editor-wrap" data-group="idea">
-                <label for="{{ form.idea.id_for_label }}" style="font-size:1.1rem; margin-bottom:12px;">
-                 <i class="fa-solid fa-pen-nib"></i> تفاصيل التقرير والإنجاز <span class="ar-required-mark">مطلوب</span>
+              <div class="ar-section-options" id="reportSectionOptions">
+                <label class="ar-section-option" data-section-option="goal">
+                  {{ form.show_goal }}
+                  <span class="option-icon"><i class="fa-solid fa-bullseye"></i></span>
+                  <span class="option-copy"><strong>الهدف</strong><small>الغاية المراد تحقيقها</small></span>
+                  <i class="fa-solid fa-circle-check option-check"></i>
                 </label>
-               {{ form.idea }}
-               {% if form.idea.errors %}<div class="ar-error-msg">{{ form.idea.errors.0 }}</div>{% endif %}
-               {% if report_ai_enabled %}
-                 {% include "reports/partials/report_ai_improver.html" with target_id=form.idea.id_for_label %}
-               {% endif %}
+                <label class="ar-section-option" data-section-option="details">
+                  {{ form.show_details }}
+                  <span class="option-icon"><i class="fa-solid fa-align-right"></i></span>
+                  <span class="option-copy"><strong>تفاصيل التقرير</strong><small>ملخص ما تم تنفيذه</small></span>
+                  <i class="fa-solid fa-circle-check option-check"></i>
+                </label>
+                <label class="ar-section-option" data-section-option="implementation">
+                  {{ form.show_implementation }}
+                  <span class="option-icon"><i class="fa-solid fa-gears"></i></span>
+                  <span class="option-copy"><strong>آلية التنفيذ</strong><small>الخطوات والإجراءات</small></span>
+                  <i class="fa-solid fa-circle-check option-check"></i>
+                </label>
+                <label class="ar-section-option" data-section-option="results">
+                  {{ form.show_results }}
+                  <span class="option-icon"><i class="fa-solid fa-chart-line"></i></span>
+                  <span class="option-copy"><strong>النتائج</strong><small>المخرجات المتحققة</small></span>
+                  <i class="fa-solid fa-circle-check option-check"></i>
+                </label>
+                <label class="ar-section-option" data-section-option="recommendations">
+                  {{ form.show_recommendations }}
+                  <span class="option-icon"><i class="fa-solid fa-lightbulb"></i></span>
+                  <span class="option-copy"><strong>التوصيات</strong><small>التحسينات والخطوات القادمة</small></span>
+                  <i class="fa-solid fa-circle-check option-check"></i>
+                </label>
+                <label class="ar-section-option" data-section-option="beneficiaries">
+                  {{ form.show_beneficiaries }}
+                  <span class="option-icon"><i class="fa-solid fa-users"></i></span>
+                  <span class="option-copy"><strong>عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين" }}</strong><small>حجم الفئة المستفيدة</small></span>
+                  <i class="fa-solid fa-circle-check option-check"></i>
+                </label>
+              </div>
+
+              <div class="ar-selected-fields">
+                <div class="ar-section-field" data-section-field="goal">
+                  <div class="ar-field" data-group="goal">
+                    <label class="ar-section-field-head" for="{{ form.goal.id_for_label }}"><i class="fa-solid fa-bullseye"></i> الهدف <span class="ar-required-mark">مطلوب عند الاختيار</span></label>
+                    {{ form.goal }}
+                    {% if form.goal.errors %}<div class="ar-error-msg">{{ form.goal.errors.0 }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="ar-section-field ar-editor-wrap" data-section-field="details">
+                  <div class="ar-field ar-editor-wrap" data-group="idea">
+                    <label class="ar-section-field-head" for="{{ form.idea.id_for_label }}"><i class="fa-solid fa-align-right"></i> تفاصيل التقرير <span class="ar-required-mark">مطلوب عند الاختيار</span></label>
+                    {{ form.idea }}
+                    {% if form.idea.errors %}<div class="ar-error-msg">{{ form.idea.errors.0 }}</div>{% endif %}
+                    {% if report_ai_enabled %}{% include "reports/partials/report_ai_improver.html" with target_id=form.idea.id_for_label %}{% endif %}
+                  </div>
+                </div>
+                <div class="ar-section-field" data-section-field="implementation">
+                  <div class="ar-field" data-group="implementation_method">
+                    <label class="ar-section-field-head" for="{{ form.implementation_method.id_for_label }}"><i class="fa-solid fa-gears"></i> آلية التنفيذ <span class="ar-required-mark">مطلوب عند الاختيار</span></label>
+                    {{ form.implementation_method }}
+                    {% if form.implementation_method.errors %}<div class="ar-error-msg">{{ form.implementation_method.errors.0 }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="ar-section-field" data-section-field="results">
+                  <div class="ar-field" data-group="results">
+                    <label class="ar-section-field-head" for="{{ form.results.id_for_label }}"><i class="fa-solid fa-chart-line"></i> النتائج <span class="ar-required-mark">مطلوب عند الاختيار</span></label>
+                    {{ form.results }}
+                    {% if form.results.errors %}<div class="ar-error-msg">{{ form.results.errors.0 }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="ar-section-field" data-section-field="recommendations">
+                  <div class="ar-field" data-group="recommendations">
+                    <label class="ar-section-field-head" for="{{ form.recommendations.id_for_label }}"><i class="fa-solid fa-lightbulb"></i> التوصيات <span class="ar-required-mark">مطلوب عند الاختيار</span></label>
+                    {{ form.recommendations }}
+                    {% if form.recommendations.errors %}<div class="ar-error-msg">{{ form.recommendations.errors.0 }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="ar-section-field" data-section-field="beneficiaries">
+                  <div class="ar-field" data-group="beneficiaries_count">
+                    <label class="ar-section-field-head" for="{{ form.beneficiaries_count.id_for_label }}"><i class="fa-solid fa-users"></i> عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين" }} <span class="ar-required-mark">مطلوب عند الاختيار</span></label>
+                    {{ form.beneficiaries_count }}
+                    {% if form.beneficiaries_count.errors %}<div class="ar-error-msg">{{ form.beneficiaries_count.errors.0 }}</div>{% endif %}
+                  </div>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -1182,6 +1266,35 @@
     }
   })();
 
+  // إظهار حقول البنود المختارة فقط
+  (function(){
+    var sections = [
+      { key:'goal', toggle:'id_show_goal' },
+      { key:'details', toggle:'id_show_details' },
+      { key:'implementation', toggle:'id_show_implementation' },
+      { key:'results', toggle:'id_show_results' },
+      { key:'recommendations', toggle:'id_show_recommendations' },
+      { key:'beneficiaries', toggle:'id_show_beneficiaries' }
+    ];
+    function syncSection(section){
+      var checkbox = document.getElementById(section.toggle);
+      var option = document.querySelector('[data-section-option="' + section.key + '"]');
+      var field = document.querySelector('[data-section-field="' + section.key + '"]');
+      if(!checkbox) return;
+      var selected = !!checkbox.checked;
+      if(option){
+        option.classList.toggle('is-selected', selected);
+        option.setAttribute('aria-checked', selected ? 'true' : 'false');
+      }
+      if(field){ field.hidden = !selected; }
+    }
+    sections.forEach(function(section){
+      var checkbox = document.getElementById(section.toggle);
+      if(checkbox){ checkbox.addEventListener('change', function(){ syncSection(section); }); }
+      syncSection(section);
+    });
+  })();
+
   // Images
   (function(){
     var ids=["id_image1","id_image2","id_image3","id_image4"];
@@ -1233,8 +1346,16 @@
       { id: 'id_category', group: 'category', label: 'تصنيف التقرير', emptyMessage: 'اختر تصنيف التقرير' },
       { id: 'id_title', group: 'title', label: 'العنوان', emptyMessage: 'أدخل عنوان التقرير' },
       { id: 'id_report_date', group: 'report_date', label: 'التاريخ', emptyMessage: 'حدد تاريخ التقرير' },
-      { id: 'id_beneficiaries_count', label: 'المستفيدين', emptyMessage: 'أدخل عدد المستفيدين' },
-      { id: 'id_idea', group: 'idea', label: 'تفاصيل التقرير والإنجاز', emptyMessage: 'أدخل تفاصيل التقرير والإنجاز' }
+      { id: 'id_goal', group: 'goal', toggle: 'id_show_goal', label: 'الهدف', emptyMessage: 'أدخل هدف التقرير' },
+      { id: 'id_idea', group: 'idea', toggle: 'id_show_details', label: 'تفاصيل التقرير', emptyMessage: 'أدخل تفاصيل التقرير' },
+      { id: 'id_implementation_method', group: 'implementation_method', toggle: 'id_show_implementation', label: 'آلية التنفيذ', emptyMessage: 'أدخل آلية التنفيذ' },
+      { id: 'id_results', group: 'results', toggle: 'id_show_results', label: 'النتائج', emptyMessage: 'أدخل نتائج التقرير' },
+      { id: 'id_recommendations', group: 'recommendations', toggle: 'id_show_recommendations', label: 'التوصيات', emptyMessage: 'أدخل توصيات التقرير' },
+      { id: 'id_beneficiaries_count', group: 'beneficiaries_count', toggle: 'id_show_beneficiaries', label: 'عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين"|escapejs }}', emptyMessage: 'أدخل عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين"|escapejs }}' }
+    ];
+    var sectionToggleIds = [
+      'id_show_goal','id_show_details','id_show_implementation',
+      'id_show_results','id_show_recommendations','id_show_beneficiaries'
     ];
 
     function getFieldContainer(cfg){
@@ -1306,6 +1427,13 @@
     function validateField(cfg){
       var el = getFieldElement(cfg);
       if(!el) return true;
+      if(cfg.toggle){
+        var toggle = document.getElementById(cfg.toggle);
+        if(!toggle || !toggle.checked){
+          setFieldValidity(cfg, true, '');
+          return true;
+        }
+      }
       var value = (el.value || '').trim();
       var valid = true;
       var message = cfg.emptyMessage;
@@ -1326,10 +1454,10 @@
         var num = Number(value);
         if(!isFinite(num) || value === ''){
           valid = false;
-          message = 'أدخل عدد المستفيدين';
+          message = 'أدخل عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين"|escapejs }}';
         } else if(num < 0){
           valid = false;
-          message = 'عدد المستفيدين لا يمكن أن يكون سالبًا';
+          message = 'عدد {{ SCHOOL_BENEFICIARIES_OBJ_LABEL|default:"المستفيدين"|escapejs }} لا يمكن أن يكون سالبًا';
         }
       }
 
@@ -1340,6 +1468,14 @@
     function isValid(){
        var invalidLabels = [];
        var ok = true;
+       var hasSelectedSection = sectionToggleIds.some(function(id){
+         var toggle = document.getElementById(id);
+         return !!(toggle && toggle.checked);
+       });
+       if(!hasSelectedSection){
+         invalidLabels.push('اختر بندًا واحدًا على الأقل ليظهر في التقرير');
+         ok = false;
+       }
        validationFields.forEach(function(cfg){
          var fieldOk = validateField(cfg);
          if(!fieldOk){
@@ -1543,55 +1679,15 @@
 </script>
 
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
-  /* ===== قوالب التقارير الجاهزة ===== */
-  (function(){
-    var data = [];
-    try { data = JSON.parse('{{ report_templates_json|escapejs }}') || []; } catch(e){ data = []; }
-    var picker = document.getElementById("tplPicker");
-    var chips  = document.getElementById("tplChips");
-    var applied = document.getElementById("tplApplied");
-    if(!picker || !chips || !data.length) return;
-
-    picker.hidden = false;
-
-    function setVal(id, val){
-      var el = document.getElementById(id);
-      if(!el) return;
-      if(val === null || typeof val === "undefined") return;
-      el.value = val;
-      el.dispatchEvent(new Event("input", {bubbles:true}));
-      el.dispatchEvent(new Event("change", {bubbles:true}));
-    }
-
-    function applyTemplate(tpl, chip){
-      if(tpl.category_code){ setVal("id_category", tpl.category_code); }
-      if(tpl.title){ setVal("id_title", tpl.title); }
-      if(tpl.idea){ setVal("id_idea", tpl.idea); }
-      if(tpl.beneficiaries_count !== null && typeof tpl.beneficiaries_count !== "undefined"){
-        setVal("id_beneficiaries_count", tpl.beneficiaries_count);
-      }
-      // إبراز الاختيار الحالي
-      Array.prototype.forEach.call(chips.querySelectorAll(".tpl-chip"), function(c){ c.classList.remove("is-active"); });
-      if(chip){ chip.classList.add("is-active"); }
-      if(applied){ applied.style.display = "flex"; }
-    }
-
-    data.forEach(function(tpl){
-      var chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "tpl-chip";
-      chip.innerHTML = '<i class="fa-solid fa-file-lines"></i> ' +
-        (tpl.name ? String(tpl.name).replace(/[<>&]/g, "") : "قالب");
-      chip.addEventListener("click", function(){ applyTemplate(tpl, chip); });
-      chips.appendChild(chip);
-    });
-  })();
-</script>
-
-<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
   /* ===== حفظ تلقائي للمسودّة ===== */
   (function(){
-    var FIELDS = ["id_category","id_title","id_report_date","id_beneficiaries_count","id_idea"];
+    var FIELDS = [
+      "id_category","id_title","id_report_date",
+      "id_show_goal","id_goal","id_show_details","id_idea",
+      "id_show_implementation","id_implementation_method",
+      "id_show_results","id_results","id_show_recommendations","id_recommendations",
+      "id_show_beneficiaries","id_beneficiaries_count"
+    ];
     var KEY = "sr:draft:add_report:u{{ request.user.id|default:0 }}:s{{ request.session.active_school_id|default:0 }}";
     var form = document.getElementById("report-form");
     if(!form || !window.localStorage) return;
@@ -1602,11 +1698,16 @@
 
     function els(){ return FIELDS.map(function(id){ return document.getElementById(id); }); }
     function isEmpty(){
-      return els().every(function(el){ return !el || !(el.value || "").trim(); });
+      return els().every(function(el){
+        if(!el || el.type === "checkbox") return true;
+        return !(el.value || "").trim();
+      });
     }
     function collect(){
       var data = {};
-      els().forEach(function(el){ if(el){ data[el.id] = el.value; } });
+      els().forEach(function(el){
+        if(el){ data[el.id] = el.type === "checkbox" ? el.checked : el.value; }
+      });
       return data;
     }
     function fmtTime(ts){
@@ -1633,7 +1734,8 @@
       FIELDS.forEach(function(id){
         var el = document.getElementById(id);
         if(el && typeof data[id] !== "undefined"){
-          el.value = data[id];
+          if(el.type === "checkbox") el.checked = !!data[id];
+          else el.value = data[id];
           el.dispatchEvent(new Event("input", {bubbles:true}));
           el.dispatchEvent(new Event("change", {bubbles:true}));
         }

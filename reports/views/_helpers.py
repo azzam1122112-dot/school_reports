@@ -363,7 +363,10 @@ def _role_display_map(active_school: Optional[School] = None) -> dict:
     ملاحظة مهمة للتوسع (Multi-tenant): قد تتكرر slugs للأقسام بين المدارس،
     لذا عندما تتوفر مدرسة نشطة نُقيّد القراءة عليها (مع السماح بالأقسام العامة school=NULL).
     """
-    base = {"teacher": "المعلم", "manager": "المدير", "officer": "مسؤول قسم"}
+    from ..gender_labels import school_gender_labels
+
+    labels = school_gender_labels(active_school)
+    base = {"teacher": labels["teacher"], "manager": labels["manager_short"], "officer": "مسؤول قسم"}
     if Department is not None:
         try:
             qs = Department.objects.filter(is_active=True).only("slug", "role_label", "name")
@@ -442,23 +445,23 @@ def _private_comment_role_label(author, school: Optional[School]) -> str:
 
 def _school_manager_label(school: Optional[School]) -> str:
     """مسمى مدير/مديرة المدرسة حسب نوع المدرسة."""
-    gender = (getattr(school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    return "مديرة المدرسة" if gender == girls_value else "مدير المدرسة"
+    from ..gender_labels import school_gender_labels
+
+    return str(school_gender_labels(school)["manager"])
 
 
 def _school_teacher_label(school: Optional[School]) -> str:
     """مسمى معلم/معلمة حسب نوع المدرسة."""
-    gender = (getattr(school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    return "المعلمة" if gender == girls_value else "المعلم"
+    from ..gender_labels import school_gender_labels
+
+    return str(school_gender_labels(school)["teacher"])
 
 
 def _school_teachers_obj_label(school: Optional[School]) -> str:
     """صيغة جمع منصوبة/مجرورة (المعلمين/المعلمات) حسب نوع المدرسة."""
-    gender = (getattr(school, "gender", "") or "").strip().lower()
-    girls_value = str(getattr(getattr(School, "Gender", None), "GIRLS", "girls")).strip().lower()
-    return "المعلمات" if gender == girls_value else "المعلمين"
+    from ..gender_labels import school_gender_labels
+
+    return str(school_gender_labels(school)["teachers_object"])
 
 
 def _canonical_role_label(user, school: Optional[School]) -> str:

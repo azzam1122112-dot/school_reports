@@ -88,7 +88,7 @@ class SchoolRegistrationForm(forms.Form):
 
     # Manager info
     manager_name = forms.CharField(
-        label="اسم مدير المدرسة", max_length=120,
+        label="اسم المسؤول عن إدارة المدرسة", max_length=120,
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
@@ -110,7 +110,7 @@ class SchoolRegistrationForm(forms.Form):
         ),
     )
     manager_email = forms.EmailField(
-        label="البريد الإلكتروني لمدير المدرسة",
+        label="البريد الإلكتروني لإدارة المدرسة",
         required=True,
         widget=forms.EmailInput(
             attrs={

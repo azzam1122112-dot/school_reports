@@ -196,16 +196,16 @@
               <table class="royal-table rtable">
                 <thead>
                   <tr>
-                    <th>المدير</th>
+                    <th>{{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}</th>
                     <th style="width:220px">إجراء</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for m in managers %}
                   <tr>
-                    <td data-label="المدير"><b>{{ m.name }}</b></td>
+                    <td data-label="{{ SCHOOL_MANAGER_SHORT_LABEL|default:'المدير' }}"><b>{{ m.name }}</b></td>
                     <td data-label="إجراء">
-                      <form method="post" style="margin:0" class="js-once" data-confirm="هل تريد إزالة المدير «{{ m.name|escapejs }}» من المدرسة؟">
+                      <form method="post" style="margin:0" class="js-once" data-confirm="هل تريد إزالة {{ SCHOOL_MANAGER_SHORT_LABEL|default:'المدير' }} «{{ m.name|escapejs }}» من المدرسة؟">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="remove">
                         <input type="hidden" name="teacher_id" value="{{ m.id }}">
@@ -223,7 +223,7 @@
 
             <div class="mgr-muted" style="margin-top:10px">
               <i class="fa-solid fa-circle-info" style="opacity:.85"></i>
-              ملاحظة: الإزالة لا تحذف المستخدم، فقط تفك ارتباطه كمدير لهذه المدرسة.
+              ملاحظة: الإزالة لا تحذف المستخدم، بل تفك ارتباطه بإدارة هذه المدرسة فقط.
             </div>
           {% else %}
             <div class="royal-empty">
@@ -235,7 +235,7 @@
         <!-- إضافة مدير -->
         <div>
           <h3 class="mgr-section-title">
-            <i class="fa-solid fa-user-plus" style="opacity:.85"></i> إضافة مدير جديد
+            <i class="fa-solid fa-user-plus" style="opacity:.85"></i> إضافة حساب إدارة جديد
           </h3>
 
           <form method="post" class="mgr-form js-once" id="addManagerForm">
@@ -246,7 +246,7 @@
             <div class="mgr-inline">
               <div>
                 <label class="muted" style="font-weight:900;display:block;margin-bottom:6px">بحث</label>
-                <input type="search" id="managerSearch" class="input" placeholder="ابحث باسم المدير" autocomplete="off" spellcheck="false">
+                <input type="search" id="managerSearch" class="input" placeholder="ابحث باسم {{ SCHOOL_MANAGER_SHORT_LABEL|default:'المدير' }}" autocomplete="off" spellcheck="false">
               </div>
 
               <div class="wide">
@@ -262,7 +262,7 @@
 
               <div style="flex:0 0 auto">
                 <button type="submit" class="btn btn-primary" style="min-height:44px;border-radius:14px">
-                  <i class="fa-solid fa-plus"></i> إضافة كمدير
+                  <i class="fa-solid fa-plus"></i> إضافة بصفة {{ SCHOOL_MANAGER_SHORT_LABEL|default:"المدير" }}
                 </button>
               </div>
             </div>

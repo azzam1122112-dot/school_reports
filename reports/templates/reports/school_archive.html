@@ -125,7 +125,7 @@
         <span>التفعيل منتهٍ؛ التنزيلات السابقة ما زالت متاحة</span>
       {% else %}
         <b><i class="fa-solid fa-lock" aria-hidden="true"></i> غير مفعّلة</b>
-        <span>يمكن للمدير طلبها مباشرة</span>
+        <span>يمكن {{ SCHOOL_MANAGER_SHORT_DATIVE_LABEL|default:"للمدير" }} طلبها مباشرة</span>
       {% endif %}
     </div>
   </header>
@@ -219,14 +219,14 @@
         </div>
         <div class="ar-field">
           <label for="archiveSearch">بحث في جميع سجلات المدرسة</label>
-          <input id="archiveSearch" type="search" name="q" value="{{ search }}" placeholder="تقرير، معلم، جوال، طلب، تعميم أو إشعار">
-          <small class="ar-meta">اسم التقرير أو المعلم أو الجوال، أو نص الطلب والتعميم والإشعار.</small>
+          <input id="archiveSearch" type="search" name="q" value="{{ search }}" placeholder="تقرير، {{ SCHOOL_TEACHER_INDEFINITE_LABEL|default:'معلم' }}، جوال، طلب، تعميم أو إشعار">
+          <small class="ar-meta">اسم التقرير أو {{ SCHOOL_TEACHER_LABEL|default:"المعلم" }} أو الجوال، أو نص الطلب والتعميم والإشعار.</small>
         </div>
         {% if school_wide %}
           <div class="ar-field">
-            <label for="archiveTeacher">المعلم</label>
+            <label for="archiveTeacher">{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</label>
             <select id="archiveTeacher" name="teacher">
-              <option value="">جميع المعلمين</option>
+              <option value="">جميع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}</option>
               {% for teacher in teacher_options %}<option value="{{ teacher.id }}" {% if teacher_filter == teacher.id|stringformat:"s" %}selected{% endif %}>{{ teacher.name }}</option>{% endfor %}
             </select>
           </div>
@@ -370,7 +370,7 @@
               <h3>ملفات الإنجاز</h3>
               <div class="ar-table-wrap">
                 <table class="ar-table">
-                  <thead><tr><th>المعلم</th><th>الحالة</th><th>إجراء</th></tr></thead>
+                  <thead><tr><th>{{ SCHOOL_TEACHER_LABEL|default:"المعلم" }}</th><th>الحالة</th><th>إجراء</th></tr></thead>
                   <tbody>
                     {% for file in achievement_files %}
                       <tr><td><div class="ar-name">{{ file.teacher_name|default:file.teacher.name }}</div><div class="ar-meta">{{ file.academic_year }} هـ</div></td><td>{{ file.get_status_display }}</td><td><a class="ar-btn" href="{% url 'reports:achievement_file_detail' file.pk %}">فتح</a></td></tr>
