@@ -325,3 +325,185 @@ class IncludedFeatureAccuracyTests(SimpleTestCase):
             self.assertTrue(feature.get("icon", "").startswith("fa-"), feature)
             self.assertTrue(feature.get("title"))
             self.assertTrue(feature.get("detail"))
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class PricingMatrixEditorTests(TestCase):
+    """Nine anchor prices drive every published price, and they only make sense
+    relative to each other — so they are edited and validated together."""
+
+    def setUp(self):
+        for spec in DEFAULT_SUBSCRIPTION_PLANS:
+            SubscriptionPlan.objects.create(is_active=True, **spec)
+        self.admin = Teacher.objects.create_superuser(
+            phone="500077665",
+            name="مدير التسعير",
+            password="strong-pass-123",
+        )
+        self.client.force_login(self.admin)
+        self.url = reverse("reports:platform_pricing_matrix")
+
+    def _valid_payload(self, **overrides):
+        payload = {
+            "price_25_1m": "149", "price_25_6m": "799", "price_25_1y": "1290",
+            "price_50_1m": "229", "price_50_6m": "1190", "price_50_1y": "1990",
+            "price_100_1m": "349", "price_100_6m": "1790", "price_100_1y": "2990",
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_editor_is_superuser_only(self):
+        self.client.logout()
+        teacher = Teacher.objects.create_user(
+            phone="500077111", name="معلم", password="strong-pass-123"
+        )
+        self.client.force_login(teacher)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_editor_loads_current_prices_into_the_grid(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        initial = response.context["form"].initial
+        self.assertEqual(initial["price_25_1m"], Decimal("149.00"))
+        self.assertEqual(initial["price_100_1y"], Decimal("2990.00"))
+
+    def test_saving_the_matrix_updates_every_published_price(self):
+        response = self.client.post(
+            self.url,
+            self._valid_payload(price_50_1y="2100"),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        plan = SubscriptionPlan.objects.get(days_duration=365, max_teachers=50)
+        self.assertEqual(plan.price, Decimal("2100"))
+
+    def test_a_saved_anchor_immediately_changes_the_interpolated_prices(self):
+        self.client.post(self.url, self._valid_payload(price_50_1y="2100"), follow=True)
+
+        annual = next(
+            group for group in build_flexible_pricing_catalog() if group["key"] == "1y"
+        )
+        sixty = next(q for q in annual["quotes"] if q["capacity"] == 60)
+        # 60 sits between the 50 and 100 anchors: 2100 + (2990-2100) * 0.2
+        self.assertEqual(sixty["price"], Decimal("2278"))
+
+    def test_a_larger_capacity_priced_below_a_smaller_one_is_rejected(self):
+        response = self.client.post(self.url, self._valid_payload(price_100_1y="1500"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("price_100_1y", response.context["form"].errors)
+        # Nothing may be written when the matrix as a whole is invalid.
+        self.assertEqual(
+            SubscriptionPlan.objects.get(days_duration=365, max_teachers=100).price,
+            Decimal("2990.00"),
+        )
+
+    def test_a_longer_period_without_a_real_saving_is_rejected(self):
+        response = self.client.post(self.url, self._valid_payload(price_25_1y="1800"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("price_25_1y", response.context["form"].errors)
+
+    def test_zero_and_negative_prices_are_rejected(self):
+        for bad in ("0", "-50"):
+            with self.subTest(price=bad):
+                response = self.client.post(self.url, self._valid_payload(price_25_1m=bad))
+                self.assertIn("price_25_1m", response.context["form"].errors)
+
+    def test_a_missing_anchor_is_created_with_the_uniform_entitlements(self):
+        SubscriptionPlan.objects.filter(days_duration=180, max_teachers=100).delete()
+
+        self.client.post(self.url, self._valid_payload(), follow=True)
+
+        created = SubscriptionPlan.objects.get(days_duration=180, max_teachers=100)
+        self.assertEqual(created.price, Decimal("1790"))
+        self.assertEqual(created.support_level, "priority")
+        self.assertEqual(created.onboarding_sessions, 0)
+        self.assertEqual(created.included_archive_storage_gb, 0)
+        self.assertTrue(created.is_active)
+
+    def test_editor_previews_what_the_customer_will_see(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "ما سيراه العميل")
+        capacities = {
+            quote["capacity"]
+            for group in response.context["flexible_pricing_catalog"]
+            for quote in group["quotes"]
+        }
+        self.assertIn(60, capacities)
+
+    def test_editor_shows_the_features_the_customer_is_promised(self):
+        response = self.client.get(self.url)
+
+        for feature in SUBSCRIPTION_INCLUDED_FEATURES:
+            self.assertContains(response, feature["title"])
+
+    def test_plans_page_links_to_the_matrix_editor(self):
+        response = self.client.get(reverse("reports:platform_plans_list"))
+
+        self.assertContains(response, reverse("reports:platform_pricing_matrix"))
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"], SITE_URL="https://tawtheeq.example")
+class UnifiedPricingSurfacesTests(TestCase):
+    """A visitor and a paying manager must be shown the same model: pick a
+    teacher count, see the amount, read what it covers."""
+
+    def setUp(self):
+        for spec in DEFAULT_SUBSCRIPTION_PLANS:
+            SubscriptionPlan.objects.create(is_active=True, **spec)
+
+    def test_landing_sells_by_teacher_count(self):
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-flex-teacher-count")
+        self.assertContains(response, "كم معلماً سيستخدم المنصة؟")
+
+    def test_landing_lists_the_same_features_as_the_manager_page(self):
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertContains(response, "ما الذي يشمله الاشتراك؟")
+        for feature in SUBSCRIPTION_INCLUDED_FEATURES:
+            self.assertContains(response, feature["title"])
+
+    def test_landing_recaps_the_selected_capacity_next_to_the_features(self):
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertContains(response, 'data-flex-summary-target="#landingIncludesSummary"')
+        self.assertContains(response, 'id="landingIncludesSummary"')
+
+    def test_both_surfaces_read_the_same_catalog(self):
+        school = School.objects.create(name="مدرسة الموحّد", code="unified-school")
+        SchoolSubscription.objects.create(
+            school=school, plan=SubscriptionPlan.objects.get(name="تشغيل | سنوي")
+        )
+        manager = Teacher.objects.create_user(
+            phone="500066554", name="مدير", password="strong-pass-123"
+        )
+        SchoolMembership.objects.create(
+            school=school, teacher=manager, role_type=SchoolMembership.RoleType.MANAGER
+        )
+
+        landing = self.client.get(reverse("reports:landing"))
+
+        self.client.force_login(manager)
+        session = self.client.session
+        session["active_school_id"] = school.id
+        session.save()
+        manager_page = self.client.get(reverse("reports:my_subscription"))
+
+        def quoted(response):
+            return {
+                (group["key"], quote["capacity"], quote["price"])
+                for group in response.context["flexible_pricing_catalog"]
+                for quote in group["quotes"]
+            }
+
+        self.assertEqual(quoted(landing), quoted(manager_page))

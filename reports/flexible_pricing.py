@@ -6,6 +6,10 @@ from typing import Iterable
 
 FLEXIBLE_CAPACITIES = (25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100)
 
+# The only capacities stored as plans. Everything between them is interpolated,
+# so these are the nine numbers the platform admin actually maintains.
+ANCHOR_CAPACITIES = (25, 50, 100)
+
 PERIODS = {
     "1m": {"label": "شهري", "months": 1, "target_days": 30, "sort": 10},
     "6m": {"label": "6 أشهر", "months": 6, "target_days": 180, "sort": 20},

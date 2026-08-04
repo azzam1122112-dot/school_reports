@@ -20,6 +20,8 @@ from ._helpers import (
 )
 from ..mansour_knowledge import AUDIENCE_LABELS
 from ..flexible_pricing import (
+    ANCHOR_CAPACITIES,
+    PERIODS,
     build_flexible_pricing_catalog,
     normalize_teacher_capacity,
     period_key_for_days,
@@ -3684,4 +3686,121 @@ def platform_academic_years(request: HttpRequest) -> HttpResponse:
         request,
         "reports/platform_academic_years.html",
         {"items": items, "total": len(years), "active_count": active_count},
+    )
+
+
+# =========================================================================
+# Pricing matrix — the single screen where the anchor prices are maintained
+# =========================================================================
+
+PRICING_MATRIX_PERIOD_DAYS = {"1m": 30, "6m": 180, "1y": 365}
+
+
+def _anchor_plan(capacity: int, period_key: str):
+    """Return the stored plan for a capacity/period pair, if it exists."""
+    return (
+        SubscriptionPlan.objects.filter(
+            max_teachers=capacity,
+            days_duration=PRICING_MATRIX_PERIOD_DAYS[period_key],
+        )
+        .order_by("id")
+        .first()
+    )
+
+
+def _pricing_matrix_initial(capacities) -> dict:
+    initial = {}
+    for capacity in capacities:
+        for period_key in PRICING_MATRIX_PERIOD_DAYS:
+            plan = _anchor_plan(capacity, period_key)
+            if plan is not None:
+                initial[PricingMatrixForm.field_name(capacity, period_key)] = plan.price
+    return initial
+
+
+def _default_anchor_name(capacity: int, period_key: str) -> str:
+    label = {"1m": "شهري", "6m": "6 أشهر", "1y": "سنوي"}[period_key]
+    return f"سعة {capacity} معلماً | {label}"
+
+
+def _default_anchor_description(capacity: int) -> str:
+    return "\n".join(
+        [
+            f"تشغيل كامل للمدرسة حتى {capacity} معلماً",
+            "التقارير والإنجاز والطلبات والتعاميم وPDF",
+            "دعم بأولوية وجميع مزايا المنصة دون تجزئة",
+        ]
+    )
+
+
+@login_required(login_url="reports:login")
+@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
+@require_http_methods(["GET", "POST"])
+def platform_pricing_matrix(request: HttpRequest) -> HttpResponse:
+    """Maintain the nine anchor prices that drive every published price.
+
+    Editing them one plan at a time made the relationships between them
+    invisible, which is how a capacity ended up cheaper than the one below it.
+    Here they are validated together and saved in one transaction.
+    """
+    capacities = list(ANCHOR_CAPACITIES)
+
+    if request.method == "POST":
+        form = PricingMatrixForm(request.POST, capacities=capacities)
+        if form.is_valid():
+            created = 0
+            updated = 0
+            with transaction.atomic():
+                for capacity in capacities:
+                    for period_key, days in PRICING_MATRIX_PERIOD_DAYS.items():
+                        price = form.price_for(capacity, period_key)
+                        plan = _anchor_plan(capacity, period_key)
+                        if plan is None:
+                            SubscriptionPlan.objects.create(
+                                name=_default_anchor_name(capacity, period_key),
+                                description=_default_anchor_description(capacity),
+                                price=price,
+                                days_duration=days,
+                                max_teachers=capacity,
+                                # Uniform by design — see the invariant in
+                                # reports/pricing.py.
+                                support_level="priority",
+                                onboarding_sessions=0,
+                                included_archive_storage_gb=0,
+                                is_active=True,
+                            )
+                            created += 1
+                        elif plan.price != price or not plan.is_active:
+                            plan.price = price
+                            plan.is_active = True
+                            plan.save(update_fields=["price", "is_active"])
+                            updated += 1
+
+            messages.success(
+                request,
+                f"تم حفظ مصفوفة الأسعار (أُضيفت {created} وحُدّثت {updated}). "
+                "الأسعار البينية أُعيد احتسابها تلقائياً في صفحة الهبوط وصفحة التجديد.",
+            )
+            return redirect("reports:platform_pricing_matrix")
+
+        messages.error(request, "راجع الأسعار المُعلّمة بالأحمر؛ لم يُحفظ أي تغيير.")
+    else:
+        form = PricingMatrixForm(
+            initial=_pricing_matrix_initial(capacities),
+            capacities=capacities,
+        )
+
+    active_plans = list(SubscriptionPlan.objects.filter(is_active=True))
+    return render(
+        request,
+        "reports/platform_pricing_matrix.html",
+        {
+            "form": form,
+            "period_labels": [PERIODS[key]["label"] for key in PricingMatrixForm.PERIOD_ORDER],
+            "anchor_capacities": capacities,
+            "flexible_pricing_catalog": build_flexible_pricing_catalog(plans=active_plans),
+            "pricing_warnings": _anchor_pricing_warnings(active_plans),
+            "included_features": SUBSCRIPTION_INCLUDED_FEATURES,
+            "addon_notes": SUBSCRIPTION_ADDON_NOTES,
+        },
     )

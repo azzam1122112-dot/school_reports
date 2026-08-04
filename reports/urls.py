@@ -330,6 +330,7 @@ urlpatterns = [
         name="platform_subscription_record_payment",
     ),
     path("platform/subscriptions/<int:pk>/delete/", views.platform_subscription_delete, name="platform_subscription_delete"),
+    path("platform/pricing/", views.platform_pricing_matrix, name="platform_pricing_matrix"),
     path("platform/plans/", views.platform_plans_list, name="platform_plans_list"),
     path("platform/plans/add/", views.platform_plan_form, name="platform_plan_add"),
     path("platform/plans/<int:pk>/edit/", views.platform_plan_form, name="platform_plan_edit"),

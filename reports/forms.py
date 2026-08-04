@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Optional, List, Tuple
+from decimal import Decimal
 from io import BytesIO
 import os
 import logging
@@ -3124,3 +3125,95 @@ class LeadershipPortfolioSectionForm(forms.ModelForm):
                 }
             )
         }
+
+
+class PricingMatrixForm(forms.Form):
+    """Edit the whole anchor price matrix on one screen.
+
+    Nine numbers drive every price the customer sees, and they only make sense
+    relative to each other: a capacity must cost more than the one below it, and
+    a longer commitment must beat paying month by month. Editing them as nine
+    separate plan forms gave no way to check that, so a single edit could create
+    a band where a school pays more and gets less.
+
+    Entitlements are deliberately absent — they are identical across all paid
+    anchors by design (see reports/pricing.py), so there is nothing per-plan to
+    decide here.
+    """
+
+    PERIOD_ORDER = ("1m", "6m", "1y")
+
+    def __init__(self, *args, **kwargs):
+        from .flexible_pricing import ANCHOR_CAPACITIES, PERIODS
+
+        self.capacities = tuple(kwargs.pop("capacities", ANCHOR_CAPACITIES))
+        super().__init__(*args, **kwargs)
+
+        self.periods = PERIODS
+        for capacity in self.capacities:
+            for period_key in self.PERIOD_ORDER:
+                self.fields[self.field_name(capacity, period_key)] = forms.DecimalField(
+                    label=f"{capacity} معلماً · {PERIODS[period_key]['label']}",
+                    min_value=Decimal("1"),
+                    max_digits=10,
+                    decimal_places=2,
+                    widget=forms.NumberInput(
+                        attrs={"class": "form-control", "step": "1", "min": "1", "inputmode": "numeric"}
+                    ),
+                )
+
+    @staticmethod
+    def field_name(capacity: int, period_key: str) -> str:
+        return f"price_{capacity}_{period_key}"
+
+    def grid(self):
+        """Rows of (capacity, [bound fields]) for template rendering."""
+        return [
+            (capacity, [self[self.field_name(capacity, key)] for key in self.PERIOD_ORDER])
+            for capacity in self.capacities
+        ]
+
+    def price_for(self, capacity: int, period_key: str) -> Optional[Decimal]:
+        return self.cleaned_data.get(self.field_name(capacity, period_key))
+
+    def clean(self):
+        cleaned = super().clean()
+        from .flexible_pricing import PERIODS
+
+        # A larger capacity must never cost less than a smaller one, or the
+        # interpolated curve between the anchors runs downhill.
+        for period_key in self.PERIOD_ORDER:
+            previous_capacity = None
+            previous_price = None
+            for capacity in self.capacities:
+                price = cleaned.get(self.field_name(capacity, period_key))
+                if price is None:
+                    continue
+                if previous_price is not None and price <= previous_price:
+                    self.add_error(
+                        self.field_name(capacity, period_key),
+                        f"يجب أن يكون أعلى من سعر سعة {previous_capacity} معلماً "
+                        f"({previous_price:,.0f} ريال) في نفس المدة.",
+                    )
+                previous_capacity = capacity
+                previous_price = price
+
+        # A longer commitment must be cheaper than paying monthly for the same
+        # span, otherwise nobody has a reason to take it.
+        for capacity in self.capacities:
+            monthly = cleaned.get(self.field_name(capacity, "1m"))
+            if monthly is None:
+                continue
+            for period_key in ("6m", "1y"):
+                price = cleaned.get(self.field_name(capacity, period_key))
+                if price is None:
+                    continue
+                months = Decimal(PERIODS[period_key]["months"])
+                if price >= monthly * months:
+                    self.add_error(
+                        self.field_name(capacity, period_key),
+                        f"يجب أن يكون أقل من {monthly * months:,.0f} ريال "
+                        f"(سعر {int(months)} أشهر بالسعر الشهري) حتى يقدّم توفيراً حقيقياً.",
+                    )
+
+        return cleaned

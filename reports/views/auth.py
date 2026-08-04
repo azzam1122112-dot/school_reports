@@ -40,7 +40,11 @@ from ..middleware import (
 from ..marketing_attribution import capture_marketing_attribution
 from ..models import WebAuthnCredential
 from ..forms import AccountPasswordResetForm, AccountSetPasswordForm
-from ..pricing import DEFAULT_SERVICE_PRICING
+from ..pricing import (
+    DEFAULT_SERVICE_PRICING,
+    SUBSCRIPTION_ADDON_NOTES,
+    SUBSCRIPTION_INCLUDED_FEATURES,
+)
 from ..flexible_pricing import (
     build_flexible_pricing_catalog,
     serialize_flexible_pricing_catalog,
@@ -1231,6 +1235,10 @@ def _build_landing_pricing_context() -> dict[str, Any]:
         "service_pricing": DEFAULT_SERVICE_PRICING,
         "flexible_pricing_catalog": flexible_catalog,
         "flexible_pricing_json": serialize_flexible_pricing_catalog(flexible_catalog),
+        # Same source as the manager's pre-payment panel, so a visitor and a
+        # paying manager never read two different promises.
+        "subscription_included_features": SUBSCRIPTION_INCLUDED_FEATURES,
+        "subscription_addon_notes": SUBSCRIPTION_ADDON_NOTES,
     }
 
     return ctx

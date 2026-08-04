@@ -161,6 +161,7 @@ from ..forms import (
     ManagerCreateForm,
     ArchiveStorageOptionForm,
     PlatformSettingsForm,
+    PricingMatrixForm,
     SubscriptionPlanForm,
     SchoolSubscriptionForm,
     SchoolArchiveAddonForm,

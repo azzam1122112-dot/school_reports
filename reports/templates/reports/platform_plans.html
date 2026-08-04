@@ -155,6 +155,21 @@
         line-height: 1.8;
     }
 
+    .matrix-cta {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding: 1rem 1.25rem;
+        border: 1px solid rgba(33, 98, 78, .2);
+        border-radius: 14px;
+        background: rgba(33, 98, 78, .05);
+    }
+    .matrix-cta strong { display: block; font-size: .92rem; font-weight: 900; }
+    .matrix-cta span { display: block; margin-top: .25rem; font-size: .78rem; font-weight: 700; opacity: .8; }
+
     .pricing-alert {
         margin-bottom: 1.5rem;
         padding: 1.15rem 1.35rem;
@@ -510,6 +525,14 @@
             <h2>سياسة التسعير المعتمدة</h2>
             <p>الباقات 25 و50 و100 هي نقاط التسعير المرجعية. يحسب النظام السعات البينية تلقائياً كل 5 معلمين حتى 50، ثم كل 10 معلمين حتى 100. مزايا جميع الباقات المدفوعة متطابقة عمداً، والسعر وحده يتغير حسب السعة؛ أي اختلاف في المزايا يخلق سعة يدفع فيها العميل أكثر ويحصل على أقل.</p>
         </div>
+    </section>
+
+    <section class="matrix-cta">
+        <div>
+            <strong><i class="fas fa-table-cells ms-1"></i> إدارة الأسعار من مكان واحد</strong>
+            <span>حرّر الأسعار المرجعية التسعة معاً مع تحقق يمنع أن تكون سعة أكبر أرخص من سعة أصغر.</span>
+        </div>
+        <a class="btn btn-primary" href="{% url 'reports:platform_pricing_matrix' %}">فتح مصفوفة الأسعار</a>
     </section>
 
     {% if pricing_warnings %}

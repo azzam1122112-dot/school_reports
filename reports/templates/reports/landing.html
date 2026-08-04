@@ -633,7 +633,7 @@
 
         {% if flexible_pricing_catalog %}
           {{ flexible_pricing_json|json_script:"landingFlexiblePricingData" }}
-          <section class="flex-pricing-shell reveal" data-flex-pricing data-flex-pricing-source="landingFlexiblePricingData" data-initial-period="{{ pricing_initial_period|default:'1y' }}" data-min-teacher-count="1" aria-label="حاسبة اشتراك المدرسة">
+          <section class="flex-pricing-shell reveal" data-flex-pricing data-flex-pricing-source="landingFlexiblePricingData" data-initial-period="{{ pricing_initial_period|default:'1y' }}" data-flex-summary-target="#landingIncludesSummary" data-min-teacher-count="1" aria-label="حاسبة اشتراك المدرسة">
             <div class="flex-pricing-controls">
               <span class="flex-pricing-eyebrow"><i class="fa-solid fa-wand-magic-sparkles"></i> سعر على مقاس مدرستك</span>
               <h3 class="flex-pricing-title">كم معلماً سيستخدم المنصة؟</h3>
@@ -664,6 +664,35 @@
               <p class="flex-result-status" id="landingPricingStatus"><i class="fa-solid fa-circle-check"></i><span data-flex-status>نختار لك السعة الأقل تكلفة تلقائياً.</span></p>
             </div>
           </section>
+
+          {% if subscription_included_features %}
+            <section class="sub-includes reveal" aria-labelledby="landingIncludesTitle">
+              <div class="sub-includes-head">
+                <h4 id="landingIncludesTitle"><i class="fa-solid fa-circle-check"></i> ما الذي يشمله الاشتراك؟</h4>
+                <p>
+                  نفس المزايا لكل السعات والمدد — السعر وحده يتغير حسب عدد المعلمين،
+                  <span id="landingIncludesSummary">وتظهر السعة والمبلغ أعلاه قبل التسجيل</span>.
+                </p>
+              </div>
+              <ul class="sub-includes-grid">
+                {% for feature in subscription_included_features %}
+                  <li class="sub-include">
+                    <span class="sub-include-icon" aria-hidden="true"><i class="fa-solid {{ feature.icon }}"></i></span>
+                    <div>
+                      <strong>{{ feature.title }}</strong>
+                      <small>{{ feature.detail }}</small>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+              {% if subscription_addon_notes %}
+                <div class="sub-includes-note">
+                  <strong><i class="fa-solid fa-circle-info"></i> خدمات تُشترى بشكل منفصل</strong>
+                  <ul>{% for note in subscription_addon_notes %}<li>{{ note }}</li>{% endfor %}</ul>
+                </div>
+              {% endif %}
+            </section>
+          {% endif %}
         {% elif pricing_cards %}
           <div class="period-switch reveal" role="group" aria-label="مدة الاشتراك">
             {% for period in pricing_periods %}{% if period.available %}<button type="button" data-period="{{ period.key }}" class="{% if period.active %}active{% endif %}">{{ period.label }}</button>{% endif %}{% endfor %}
