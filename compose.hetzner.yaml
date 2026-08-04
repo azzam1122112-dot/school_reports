@@ -48,6 +48,44 @@ services:
     networks:
       - backend
 
+  # Opt-in connection pooler. Not started by default — bring it up with
+  #     docker compose --profile pgbouncer up -d
+  # then point DATABASE_URL at pgbouncer:6432 instead of postgres:5432.
+  #
+  # Only needed once WEB_CONCURRENCY × MAX_CONCURRENT_REQUESTS approaches
+  # PostgreSQL's max_connections. transaction mode is required: Django issues
+  # SET/RESET per connection, which session mode would pin. Keep CONN_MAX_AGE=0
+  # either way — with a pooler in front, reuse is the pooler's job, not Django's.
+  pgbouncer:
+    profiles: ["pgbouncer"]
+    image: edoburu/pgbouncer:v1.23.1-p2
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - ${ENV_FILE:-deploy/hetzner/env.production}
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "${PGBOUNCER_MAX_CLIENT_CONN:-500}"
+      DEFAULT_POOL_SIZE: "${PGBOUNCER_DEFAULT_POOL_SIZE:-20}"
+      SERVER_IDLE_TIMEOUT: "300"
+      SERVER_LIFETIME: "3600"
+      AUTH_TYPE: scram-sha-256
+    logging: *default-logging
+    mem_limit: 128m
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U $${POSTGRES_USER}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
@@ -57,12 +95,19 @@ services:
       - ${ENV_FILE:-deploy/hetzner/env.production}
     logging: *default-logging
     mem_limit: 256m
+    # One Redis serves three roles: Celery broker (DB 0), Channels layer (DB 0)
+    # and the Django cache/sessions (DB 1). With `noeviction`, a traffic spike
+    # that fills the cache makes Redis reject *every* write — which takes the
+    # broker down with it, not just the cache.
+    # `volatile-lru` only evicts keys that carry a TTL: cache entries, sessions
+    # and Channels groups. Celery's queues have no TTL, so queued tasks are
+    # never dropped. Degrade the cache, keep the platform up.
     command: >-
       sh -c 'exec redis-server
       --appendonly yes
       --appendfsync everysec
       --maxmemory "$${REDIS_MAXMEMORY:-192mb}"
-      --maxmemory-policy noeviction
+      --maxmemory-policy "$${REDIS_MAXMEMORY_POLICY:-volatile-lru}"
       --requirepass "$${REDIS_PASSWORD}"'
     volumes:
       - redis-data:/data
@@ -91,12 +136,19 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    # Sizing: WEB_CONCURRENCY is the number of OS processes. Requests inside a
+    # process run concurrently on their own threads (ASGI), so raise this to add
+    # CPU parallelism, not I/O concurrency. Budget ~250 MB per worker against
+    # mem_limit and raise `cpus` alongside it; keep
+    # WEB_CONCURRENCY × MAX_CONCURRENT_REQUESTS below PostgreSQL max_connections
+    # minus the Celery workers and beat.
+    # `--threads` is intentionally absent: the Uvicorn worker ignores it, so
+    # passing it only creates false confidence about capacity.
     command: >-
       gunicorn config.asgi:application
       --bind 0.0.0.0:8000
       -k uvicorn.workers.UvicornWorker
       --workers ${WEB_CONCURRENCY:-1}
-      --threads ${GUNICORN_THREADS:-2}
       --timeout ${GUNICORN_TIMEOUT:-120}
       --keep-alive ${GUNICORN_KEEPALIVE:-5}
       --max-requests ${GUNICORN_MAX_REQUESTS:-800}
