@@ -1290,3 +1290,134 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
         )
         opmetrics.increment("celery.task.failure.send_password_change_email_task")
         raise  # auto-retry
+
+
+@shared_task(bind=True, ignore_result=True)
+def check_archive_addon_expiry_task(self) -> dict:
+    """Warn managers before the archive add-on lapses.
+
+    Subscriptions get a reminder; the archive add-on did not, and its expiry is
+    the more disruptive of the two. When it lapses the school's storage limit
+    falls back to the free tier while the stored data stays put, so a school
+    holding more than the free tier can no longer attach a photo to a report,
+    upload achievement evidence, or add a ticket attachment — the whole platform
+    stops accepting files, not just the archive. Nobody should discover that
+    from a failed upload.
+    """
+    task_id, retries, trace_id = _task_ctx(self)
+    summary = {"addons_checked": 0, "reminders_sent": 0, "skipped_duplicate": 0}
+
+    if not bool(getattr(settings, "ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED", True)):
+        return summary
+
+    if not _periodic_lock("check_archive_addon_expiry", ttl=300):
+        logger.info("Archive add-on expiry task skipped: another instance is running.")
+        return {**summary, "skipped": "lock"}
+
+    reminder_days = getattr(settings, "SUBSCRIPTION_EXPIRY_REMINDER_DAYS", [14, 7, 3, 1])
+
+    SchoolArchiveAddon = apps.get_model("reports", "SchoolArchiveAddon")
+    SchoolMembership = apps.get_model("reports", "SchoolMembership")
+    Notification = apps.get_model("reports", "Notification")
+    NotificationRecipient = apps.get_model("reports", "NotificationRecipient")
+    School = apps.get_model("reports", "School")
+
+    today = timezone.localdate()
+    dedup_cutoff = timezone.now() - timedelta(hours=24)
+
+    addons = (
+        SchoolArchiveAddon.objects.filter(is_enabled=True, end_date__isnull=False)
+        .select_related("school")
+        .only("id", "end_date", "storage_limit_gb", "school__id", "school__name")
+    )
+
+    for addon in addons.iterator():
+        days_left = (addon.end_date - today).days
+        if days_left < 0 or days_left not in reminder_days:
+            continue
+
+        summary["addons_checked"] += 1
+        school = addon.school
+        school_name = getattr(school, "name", "")
+
+        dedup_title = f"🗄️ أرشفة {school_name} تنتهي خلال {days_left}"
+        if Notification.objects.filter(
+            title=dedup_title, school=school, created_at__gte=dedup_cutoff
+        ).exists():
+            summary["skipped_duplicate"] += 1
+            continue
+
+        manager_ids = list(
+            SchoolMembership.objects.filter(
+                school=school,
+                role_type="manager",
+                is_active=True,
+                teacher__is_active=True,
+            ).values_list("teacher_id", flat=True)
+        )
+        if not manager_ids:
+            continue
+
+        used_bytes = int(
+            School.objects.filter(pk=school.pk)
+            .values_list("storage_used_bytes", flat=True)
+            .first()
+            or 0
+        )
+        free_bytes = 0
+        try:
+            PlatformSettings = apps.get_model("reports", "PlatformSettings")
+            free_bytes = int(getattr(PlatformSettings.get_solo(), "free_storage_mb", 0) or 0) * 1024 * 1024
+        except Exception:
+            free_bytes = 0
+
+        lines = [
+            f"إضافة الأرشفة لمدرسة {school_name} تنتهي خلال {days_left} يوماً "
+            f"(بتاريخ {addon.end_date})."
+        ]
+        # Spell out the consequence only when it actually applies to this school.
+        if free_bytes and used_bytes > free_bytes:
+            lines.append(
+                f"المستخدم حالياً {round(used_bytes / (1024 ** 3), 2)}GB، والحد المجاني بعد الانتهاء "
+                f"{round(free_bytes / (1024 ** 3), 2)}GB — أي أن رفع أي ملف جديد في المنصة "
+                "سيتوقف (صور التقارير، شواهد الإنجاز، مرفقات الطلبات والتعاميم) حتى التجديد."
+            )
+        else:
+            lines.append(
+                "بعد الانتهاء ترجع المساحة إلى الحد المجاني الأساسي، ولن تُحذف أي ملفات محفوظة."
+            )
+        lines.append("النسخ المحفوظة تبقى قابلة للتنزيل في كل الأحوال.")
+
+        notification = Notification.objects.create(
+            title=dedup_title,
+            message="\n".join(lines),
+            school=school,
+            is_important=(days_left <= 3),
+        )
+        NotificationRecipient.objects.bulk_create(
+            [
+                NotificationRecipient(notification=notification, teacher_id=mid)
+                for mid in manager_ids
+            ],
+            ignore_conflicts=True,
+        )
+        try:
+            from .realtime_notifications import push_new_notification_to_teachers
+
+            push_new_notification_to_teachers(
+                notification=notification, teacher_ids=manager_ids
+            )
+        except Exception:
+            pass
+
+        summary["reminders_sent"] += 1
+
+    logger.info(
+        "Task success name=check_archive_addon_expiry_task task_id=%s trace_id=%s retries=%s summary=%s",
+        task_id,
+        trace_id,
+        retries,
+        summary,
+    )
+    opmetrics.increment("celery.task.success.check_archive_addon_expiry_task")
+    return summary

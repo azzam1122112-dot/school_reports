@@ -738,6 +738,7 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.send_daily_manager_summary_task": {"queue": "periodic"},
     "reports.tasks._daily_summary_for_school": {"queue": "periodic"},
     "reports.tasks.check_subscription_expiry_task": {"queue": "periodic"},
+    "reports.tasks.check_archive_addon_expiry_task": {"queue": "periodic"},
     "reports.tasks.remind_unsigned_circulars_task": {"queue": "periodic"},
     "reports.tasks.cleanup_audit_logs_task": {"queue": "periodic"},
     "reports.tasks.cleanup_expired_sessions_task": {"queue": "periodic"},
@@ -833,6 +834,13 @@ try:
 except Exception:
     SUBSCRIPTION_EXPIRY_REMINDER_DAYS = [14, 7, 3, 1]
 SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED = _env_bool("SUBSCRIPTION_EXPIRY_REMINDER_EMAIL_ENABLED", False)
+
+# The archive add-on lapsing is more disruptive than a subscription lapsing:
+# the storage limit falls back to the free tier while the stored data stays, so
+# every upload in the platform stops for a school holding more than that.
+ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED = _env_bool(
+    "ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED", True
+)
 
 
 # ----------------- Unsigned Circular Reminders -----------------
@@ -930,6 +938,12 @@ if crontab is not None:
         CELERY_BEAT_SCHEDULE["check-subscription-expiry-daily"] = {
             "task": "reports.tasks.check_subscription_expiry_task",
             "schedule": crontab(minute=30, hour=8),  # يومياً الساعة 8:30 صباحاً
+        }
+
+    if ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED:
+        CELERY_BEAT_SCHEDULE["check-archive-addon-expiry-daily"] = {
+            "task": "reports.tasks.check_archive_addon_expiry_task",
+            "schedule": crontab(minute=45, hour=8),
         }
 
     if CIRCULAR_SIGNATURE_REMINDER_ENABLED:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Iterable
 
 from django.db.models import Count, Q, Sum
+from django.utils import timezone
 
 from .models import (
     AchievementEvidenceImage,
@@ -336,6 +337,26 @@ def school_storage_limit_bytes(school: School | None) -> int:
     return _platform_free_storage_bytes()
 
 
+def _expired_archive_addon(school: School | None):
+    """Return the school's archive add-on when it lapsed on its end date.
+
+    Distinguishes "never bought it" from "bought it and it ran out", which need
+    opposite advice.
+    """
+    if school is None:
+        return None
+    try:
+        addon = SchoolArchiveAddon.objects.filter(school=school).first()
+    except Exception:
+        return None
+    if addon is None or addon.is_active:
+        return None
+    if not addon.end_date or addon.end_date >= timezone.localdate():
+        # Disabled by an administrator rather than lapsed.
+        return None
+    return addon
+
+
 def _human_size(num_bytes: int) -> str:
     """تنسيق دقيق للحجم: بايت/كيلو/ميجا/جيجا حسب المقدار."""
     b = max(0, int(num_bytes or 0))
@@ -423,6 +444,18 @@ def archive_storage_capacity_error(school: School | None, incoming_files, *, rep
     )
     if has_active_addon:
         return base + "يمكنك طلب زيادة المساحة من صفحة الاشتراك."
+
+    # An expired add-on is the most likely reason a school that was uploading
+    # fine yesterday is blocked today: the limit silently fell back to the free
+    # tier while the stored data stayed put. Telling this manager to "delete old
+    # files" points them away from the one action that restores their space.
+    expired_addon = _expired_archive_addon(school)
+    if expired_addon is not None:
+        return base + (
+            f"السبب أن إضافة الأرشفة انتهت بتاريخ {expired_addon.end_date}، فرجعت المساحة "
+            "إلى الحد المجاني الأساسي دون حذف أي ملف. تجديد الإضافة من صفحة الاشتراك "
+            "يعيد المساحة كاملة فوراً."
+        )
     return base + "يرجى حذف ملفات قديمة أو ترقية باقة التخزين (إضافة الأرشفة) من صفحة الاشتراك."
 
 
