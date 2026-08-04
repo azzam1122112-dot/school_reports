@@ -36,7 +36,7 @@ services:
     env_file:
       - ${ENV_FILE:-deploy/hetzner/env.production}
     logging: *default-logging
-    mem_limit: 768m
+    mem_limit: 2048m
     shm_size: 128m
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -94,7 +94,7 @@ services:
     env_file:
       - ${ENV_FILE:-deploy/hetzner/env.production}
     logging: *default-logging
-    mem_limit: 256m
+    mem_limit: 512m
     # One Redis serves three roles: Celery broker (DB 0), Channels layer (DB 0)
     # and the Django cache/sessions (DB 1). With `noeviction`, a traffic spike
     # that fills the cache makes Redis reject *every* write — which takes the
@@ -106,7 +106,7 @@ services:
       sh -c 'exec redis-server
       --appendonly yes
       --appendfsync everysec
-      --maxmemory "$${REDIS_MAXMEMORY:-192mb}"
+      --maxmemory "$${REDIS_MAXMEMORY:-384mb}"
       --maxmemory-policy "$${REDIS_MAXMEMORY_POLICY:-volatile-lru}"
       --requirepass "$${REDIS_PASSWORD}"'
     volumes:
@@ -122,7 +122,7 @@ services:
   migrate:
     <<: *app
     restart: "no"
-    mem_limit: 768m
+    mem_limit: 2048m
     command: >-
       sh -c "python manage.py migrate --noinput &&
       python manage.py collectstatic --noinput"
@@ -131,8 +131,8 @@ services:
 
   web:
     <<: *app
-    mem_limit: 768m
-    cpus: 1.00
+    mem_limit: 1536m
+    cpus: 2.00
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -144,18 +144,23 @@ services:
     # minus the Celery workers and beat.
     # `--threads` is intentionally absent: the Uvicorn worker ignores it, so
     # passing it only creates false confidence about capacity.
+    # `sh -c` with $$VAR on purpose: a bare ${VAR} here is expanded by Compose
+    # from the host shell, so values set in env_file were silently ignored and
+    # every deploy ran a single worker no matter what the env file said.
     command: >-
-      gunicorn config.asgi:application
+      sh -c 'exec gunicorn config.asgi:application
       --bind 0.0.0.0:8000
       -k uvicorn.workers.UvicornWorker
-      --workers ${WEB_CONCURRENCY:-1}
-      --timeout ${GUNICORN_TIMEOUT:-120}
-      --keep-alive ${GUNICORN_KEEPALIVE:-5}
-      --max-requests ${GUNICORN_MAX_REQUESTS:-800}
-      --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-80}
+      --workers "$${WEB_CONCURRENCY:-1}"
+      --timeout "$${GUNICORN_TIMEOUT:-120}"
+      --keep-alive "$${GUNICORN_KEEPALIVE:-5}"
+      --max-requests "$${GUNICORN_MAX_REQUESTS:-800}"
+      --max-requests-jitter "$${GUNICORN_MAX_REQUESTS_JITTER:-80}"
       --access-logfile -
-      --error-logfile -
+      --error-logfile -'
     ports:
+      # Compose-level substitution: this one really is read from the host shell
+      # or a .env file beside this compose file, never from env_file.
       - "127.0.0.1:${LOCAL_HTTP_PORT:-18000}:8000"
     volumes:
       - static-data:/app/staticfiles:ro
@@ -182,7 +187,25 @@ services:
 
   worker-core:
     <<: *app
-    mem_limit: 512m
+    mem_limit: 768m
+    cpus: 0.50
+    networks:
+      - backend
+      - edge
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: >-
+      sh -c 'exec celery -A config worker
+      --loglevel=info
+      --concurrency="$${CELERY_CORE_CONCURRENCY:-1}"
+      --prefetch-multiplier=1
+      --max-tasks-per-child=100
+      -Q default,notifications'
+
+  worker-media:
+    <<: *app
+    mem_limit: 1024m
     cpus: 0.75
     networks:
       - backend
@@ -191,30 +214,12 @@ services:
       migrate:
         condition: service_completed_successfully
     command: >-
-      celery -A config worker
+      sh -c 'exec celery -A config worker
       --loglevel=info
-      --concurrency=${CELERY_CORE_CONCURRENCY:-1}
-      --prefetch-multiplier=1
-      --max-tasks-per-child=100
-      -Q default,notifications
-
-  worker-media:
-    <<: *app
-    mem_limit: 640m
-    cpus: 1.00
-    networks:
-      - backend
-      - edge
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    command: >-
-      celery -A config worker
-      --loglevel=info
-      --concurrency=${CELERY_MEDIA_CONCURRENCY:-1}
+      --concurrency="$${CELERY_MEDIA_CONCURRENCY:-1}"
       --prefetch-multiplier=1
       --max-tasks-per-child=50
-      -Q images,periodic
+      -Q images,periodic'
 
   beat:
     <<: *app
