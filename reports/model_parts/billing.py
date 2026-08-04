@@ -148,7 +148,10 @@ class SchoolSubscription(models.Model):
             return True
         if not self.is_active:
             return True
-        return timezone.now().date() > self.end_date
+        # localdate(), not now().date(): end_date is set from the local calendar
+        # in save(), so comparing against the UTC date kept a subscription alive
+        # through the first hours of each local day past its end.
+        return timezone.localdate() > self.end_date
 
     @property
     def is_cancelled(self) -> bool:
@@ -162,7 +165,7 @@ class SchoolSubscription(models.Model):
 
     @property
     def days_remaining(self):
-        delta = self.end_date - timezone.now().date()
+        delta = self.end_date - timezone.localdate()
         return delta.days
 
 

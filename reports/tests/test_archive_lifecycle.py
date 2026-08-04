@@ -62,9 +62,15 @@ class StorageAllowanceTests(TestCase):
         )
         subscription = SchoolSubscription.objects.create(school=self.school, plan=plan)
         if not active:
-            subscription.end_date = timezone.localdate() - timedelta(days=1)
-            subscription.save(update_fields=["end_date"])
-        self.school.refresh_from_db()
+            # Write the past end date without going through save(), which owns
+            # the date logic, then re-fetch the school: refresh_from_db() does
+            # not reliably drop the cached reverse one-to-one, so the allowance
+            # would still see the original subscription.
+            SchoolSubscription.objects.filter(pk=subscription.pk).update(
+                end_date=timezone.localdate() - timedelta(days=1)
+            )
+            subscription.refresh_from_db()
+        self.school = School.objects.get(pk=self.school.pk)
         return subscription
 
     def _use(self, num_bytes):
