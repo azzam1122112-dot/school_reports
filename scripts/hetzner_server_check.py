@@ -78,13 +78,18 @@ def check_server(server: dict) -> None:
 
     server_type = server.get("server_type") or {}
     datacenter = server.get("datacenter") or {}
+    location = (datacenter.get("location") or {}) if datacenter else {}
+    where = " / ".join(
+        part for part in (datacenter.get("name"), location.get("city")) if part
+    )
+    # ASCII separator: Windows consoles mangle an em dash in this output.
     record(
         INFO,
-        f"{server_type.get('name', '?')} — "
+        f"{server_type.get('name', '?')} | "
         f"{server_type.get('cores', '?')} vCPU, "
         f"{server_type.get('memory', '?')}GB RAM, "
         f"{server_type.get('disk', '?')}GB disk",
-        f"{datacenter.get('name', '?')} ({(datacenter.get('location') or {}).get('city', '?')})",
+        where,
     )
 
     public_net = server.get("public_net") or {}
@@ -211,12 +216,16 @@ def check_metrics(server_id: int, token: str) -> None:
 
 def check_recent_actions(server_id: int, token: str) -> None:
     try:
-        payload = get(f"/servers/{server_id}/actions", token, {"sort": "started-desc", "per_page": "5"})
+        payload = get(f"/servers/{server_id}/actions", token, {"per_page": "25"})
     except Exception as exc:
         record(WARN, "Could not read recent actions", str(exc)[:160])
         return
 
-    actions = payload.get("actions") or []
+    actions = sorted(
+        payload.get("actions") or [],
+        key=lambda a: str(a.get("started") or ""),
+        reverse=True,
+    )
     if not actions:
         record(INFO, "No recent server actions")
         return
@@ -290,7 +299,7 @@ def main() -> int:
     warnings = sum(1 for level, _, _ in results if level == WARN)
     print()
     verdict = "PROBLEMS FOUND" if failures else "HEALTHY"
-    print(f"{verdict} — {failures} failure(s), {warnings} warning(s)")
+    print(f"{verdict}: {failures} failure(s), {warnings} warning(s)")
     print(
         "\nThis covers the machine only. For the application inside it, run:\n"
         "  docker compose -f compose.hetzner.yaml exec web python manage.py production_preflight"
