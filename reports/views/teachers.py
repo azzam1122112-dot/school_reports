@@ -164,8 +164,8 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
         if active_school is not None
         else 0
     )
-    plan = getattr(getattr(active_school, "subscription", None), "plan", None)
-    maximum = int(getattr(plan, "max_teachers", 0) or 0)
+    active_subscription = getattr(active_school, "subscription", None)
+    maximum = int(getattr(active_subscription, "teacher_limit", 0) or 0)
     filters_query = request.GET.copy()
     filters_query.pop("page", None)
     return render(
@@ -366,7 +366,7 @@ def _legacy_bulk_import_teachers(request: HttpRequest) -> HttpResponse:
                 return render(request, "reports/bulk_import_teachers.html")
 
             # التحقق من حد الباقة (نحسب فقط العضويات الجديدة الفعلية)
-            max_teachers = int(getattr(getattr(sub, "plan", None), "max_teachers", 0) or 0)
+            max_teachers = int(getattr(sub, "teacher_limit", 0) or 0)
             current_count = SchoolMembership.objects.filter(
                 school=active_school,
                 role_type=SchoolMembership.RoleType.TEACHER,
@@ -686,12 +686,11 @@ def teacher_onboarding(request: HttpRequest) -> HttpResponse:
 
     preview = load_preview(request, active_school)
     result = load_result(request, active_school)
-    plan = getattr(subscription, "plan", None)
     current_count = SchoolMembership.objects.filter(
         school=active_school,
         role_type=SchoolMembership.RoleType.TEACHER,
     ).count()
-    maximum = int(getattr(plan, "max_teachers", 0) or 0)
+    maximum = int(getattr(subscription, "teacher_limit", 0) or 0)
     capacity = {
         "current": current_count,
         "maximum": maximum,
@@ -991,7 +990,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                         messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
                         return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
 
-                    max_teachers = int(getattr(getattr(sub, "plan", None), "max_teachers", 0) or 0)
+                    max_teachers = int(getattr(sub, "teacher_limit", 0) or 0)
                     if max_teachers > 0:
                         current_count = SchoolMembership.objects.filter(
                             school=active_school,
@@ -1034,7 +1033,7 @@ def add_teacher(request: HttpRequest) -> HttpResponse:
                     messages.error(request, "لا يوجد اشتراك فعّال لهذه المدرسة.")
                     return render(request, "reports/add_teacher.html", {"form": form, "title": "إضافة مستخدم"})
 
-                max_teachers = int(getattr(getattr(sub, "plan", None), "max_teachers", 0) or 0)
+                max_teachers = int(getattr(sub, "teacher_limit", 0) or 0)
                 if max_teachers > 0:
                     current_count = SchoolMembership.objects.filter(
                         school=active_school,

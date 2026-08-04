@@ -6,7 +6,6 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
 $outputDir = Join-Path $ProjectRoot "static\img\pwa"
-$sourceLogoPath = Join-Path $ProjectRoot "static\img\logo1.png"
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
 function New-RoundedPath {
@@ -134,8 +133,7 @@ function New-StartupImage {
   param(
     [int]$Width,
     [int]$Height,
-    [string]$FileName,
-    [System.Drawing.Image]$SourceLogo
+    [string]$FileName
   )
 
   $bitmap = [System.Drawing.Bitmap]::new($Width, $Height, [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
@@ -171,14 +169,10 @@ function New-StartupImage {
 
     if ($isLandscape) {
       $markRect = [System.Drawing.RectangleF]::new($Width * 0.22 - $markSize / 2, ($Height - $markSize) / 2, $markSize, $markSize)
-      $logoWidth = [float]($Width * 0.42)
-      $logoHeight = [float]($logoWidth * 199.0 / 417.0)
-      $logoRect = [System.Drawing.RectangleF]::new($Width * 0.68 - $logoWidth / 2, ($Height - $logoHeight) / 2, $logoWidth, $logoHeight)
+      $brandRect = [System.Drawing.RectangleF]::new($Width * 0.42, $Height * 0.34, $Width * 0.48, $Height * 0.32)
     } else {
       $markRect = [System.Drawing.RectangleF]::new(($Width - $markSize) / 2, $Height * 0.34 - $markSize / 2, $markSize, $markSize)
-      $logoWidth = [float]($Width * 0.62)
-      $logoHeight = [float]($logoWidth * 199.0 / 417.0)
-      $logoRect = [System.Drawing.RectangleF]::new(($Width - $logoWidth) / 2, $markRect.Bottom + ($markSize * 0.18), $logoWidth, $logoHeight)
+      $brandRect = [System.Drawing.RectangleF]::new($Width * 0.12, $markRect.Bottom + ($markSize * 0.12), $Width * 0.76, $shortEdge * 0.16)
     }
 
     $shadowRect = [System.Drawing.RectangleF]::new($markRect.X + ($markSize * 0.025), $markRect.Y + ($markSize * 0.04), $markRect.Width, $markRect.Height)
@@ -189,11 +183,22 @@ function New-StartupImage {
 
     Draw-BrandMark -Graphics $graphics -Rect $markRect -RoundedBackground
 
-    $sourceRect = [System.Drawing.RectangleF]::new(46, 165, 417, 199)
-    $graphics.DrawImage($SourceLogo, $logoRect, $sourceRect, [System.Drawing.GraphicsUnit]::Pixel)
+    $brandFont = [System.Drawing.Font]::new("Tahoma", $shortEdge * 0.085, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+    $brandBrush = [System.Drawing.SolidBrush]::new([System.Drawing.ColorTranslator]::FromHtml("#087A48"))
+    $brandFormat = [System.Drawing.StringFormat]::new()
+    $brandFormat.Alignment = [System.Drawing.StringAlignment]::Center
+    $brandFormat.LineAlignment = [System.Drawing.StringAlignment]::Center
+    $brandFormat.FormatFlags = [System.Drawing.StringFormatFlags]::DirectionRightToLeft
+    try {
+      $graphics.DrawString("منصة توثيق", $brandFont, $brandBrush, $brandRect, $brandFormat)
+    } finally {
+      $brandFormat.Dispose()
+      $brandBrush.Dispose()
+      $brandFont.Dispose()
+    }
 
-    $lineWidth = [float]([Math]::Min($logoRect.Width * 0.26, $shortEdge * 0.16))
-    $lineY = [float]($logoRect.Bottom + ($shortEdge * 0.035))
+    $lineWidth = [float]([Math]::Min($brandRect.Width * 0.26, $shortEdge * 0.16))
+    $lineY = [float]($brandRect.Bottom + ($shortEdge * 0.025))
     $linePen = [System.Drawing.Pen]::new([System.Drawing.ColorTranslator]::FromHtml("#B9975B"), [Math]::Max(3.0, $shortEdge * 0.006))
     $linePen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
     $linePen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
@@ -229,14 +234,9 @@ $profiles = @(
   @{ Name = "ipad-1024x1366-2x"; Width = 2048; Height = 2732 }
 )
 
-$sourceLogo = [System.Drawing.Image]::FromFile($sourceLogoPath)
-try {
-  foreach ($profile in $profiles) {
-    New-StartupImage -Width $profile.Width -Height $profile.Height -FileName ("splash-{0}-portrait.png" -f $profile.Name) -SourceLogo $sourceLogo
-    New-StartupImage -Width $profile.Height -Height $profile.Width -FileName ("splash-{0}-landscape.png" -f $profile.Name) -SourceLogo $sourceLogo
-  }
-} finally {
-  $sourceLogo.Dispose()
+foreach ($profile in $profiles) {
+  New-StartupImage -Width $profile.Width -Height $profile.Height -FileName ("splash-{0}-portrait.png" -f $profile.Name)
+  New-StartupImage -Width $profile.Height -Height $profile.Width -FileName ("splash-{0}-landscape.png" -f $profile.Name)
 }
 
 Write-Output "Generated PWA assets in $outputDir"

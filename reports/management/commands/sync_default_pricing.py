@@ -2,8 +2,15 @@ from __future__ import annotations
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
-from reports.models import ArchiveStorageOption, PlatformSettings, SubscriptionPlan
+from reports.models import (
+    ArchiveStorageOption,
+    PlatformSettings,
+    SchoolArchiveAddon,
+    SchoolSubscription,
+    SubscriptionPlan,
+)
 from reports.pricing import DEFAULT_ARCHIVE_PRICING, DEFAULT_SUBSCRIPTION_PLANS
 
 
@@ -49,6 +56,9 @@ class Command(BaseCommand):
                             "days_duration",
                             "max_teachers",
                             "description",
+                            "support_level",
+                            "onboarding_sessions",
+                            "included_archive_storage_gb",
                             "is_active",
                         ]
                     )
@@ -95,10 +105,38 @@ class Command(BaseCommand):
             storage_option.is_active = True
             storage_option.save(update_fields=["price", "is_active", "updated_at"])
 
+        included_archive_count = 0
+        today = timezone.localdate()
+        eligible_subscriptions = SchoolSubscription.objects.select_related("plan").filter(
+            is_active=True,
+            end_date__gte=today,
+            plan__included_archive_storage_gb__gt=0,
+        )
+        for subscription in eligible_subscriptions:
+            included_gb = int(subscription.plan.included_archive_storage_gb or 0)
+            addon, created = SchoolArchiveAddon.objects.get_or_create(
+                school=subscription.school,
+                defaults={
+                    "is_enabled": True,
+                    "start_date": max(subscription.start_date, today),
+                    "end_date": subscription.end_date,
+                    "storage_limit_gb": included_gb,
+                    "paid_amount": 0,
+                    "notes": f"مشمولة تلقائياً ضمن باقة {subscription.plan.name}.",
+                },
+            )
+            if not created:
+                addon.is_enabled = True
+                addon.end_date = max(addon.end_date or subscription.end_date, subscription.end_date)
+                addon.storage_limit_gb = max(int(addon.storage_limit_gb or 0), included_gb)
+                addon.save(update_fields=["is_enabled", "end_date", "storage_limit_gb", "updated_at"])
+            included_archive_count += 1
+
         self.stdout.write(
             self.style.SUCCESS(
                 "Pricing synchronized: "
                 f"created={created_count}, updated={updated_count}, "
-                f"deactivated={deactivated_count}, approved={len(approved_ids)}."
+                f"deactivated={deactivated_count}, approved={len(approved_ids)}, "
+                f"included_archive={included_archive_count}."
             )
         )

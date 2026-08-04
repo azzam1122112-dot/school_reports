@@ -83,7 +83,7 @@
   function configureNativePrompt() {
     instructionsVisible = false;
     steps.hidden = true;
-    description.textContent = "ثبّت توثيق للوصول السريع وفتحه بواجهة مستقلة من شاشتك الرئيسية.";
+    description.textContent = "ثبّت منصة توثيق للوصول السريع وفتحها بواجهة مستقلة من شاشتك الرئيسية.";
     installAction.textContent = "تثبيت الآن";
   }
 
@@ -93,7 +93,7 @@
     steps.hidden = false;
 
     if (isIOS && isSafari) {
-      description.textContent = "أضف توثيق إلى شاشة iPhone أو iPad الرئيسية وافتحه كتطبيق مستقل.";
+      description.textContent = "أضف منصة توثيق إلى شاشة iPhone أو iPad الرئيسية وافتحها كتطبيق مستقل.";
       setSteps([
         "اضغط زر المشاركة في Safari.",
         "اختر «إضافة إلى الشاشة الرئيسية».",
@@ -114,7 +114,7 @@
       return;
     }
 
-    description.textContent = "يمكنك إضافة توثيق من قائمة المتصفح إلى الشاشة الرئيسية.";
+    description.textContent = "يمكنك إضافة منصة توثيق من قائمة المتصفح إلى الشاشة الرئيسية.";
     setSteps([
       "افتح قائمة المتصفح ⋮.",
       "اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».",

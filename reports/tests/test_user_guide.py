@@ -21,7 +21,7 @@ class UserGuideTests(TestCase):
         html = response.content.decode("utf-8")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "أنجز عملك في توثيق")
+        self.assertContains(response, "أنجز عملك في منصة توثيق")
         self.assertContains(response, "ما دورك في المنصة؟")
         self.assertContains(response, 'id="guideSearch"')
         self.assertContains(response, 'data-guide-filter="teacher"')
@@ -103,6 +103,15 @@ class MobileNavigationRegressionTests(TestCase):
         self.assertIn("right: 0 !important;", mobile_css)
         self.assertIn("transform: translateX(105%) !important;", mobile_css)
         self.assertIn("transform: translateX(0) !important;", mobile_css)
+
+    def test_wide_header_never_wraps_and_collapses_before_space_runs_out(self):
+        template = self._source("reports/templates/base.html")
+
+        self.assertIn(".site-header .container.hdr { max-width: 1760px; }", template)
+        self.assertIn("flex-wrap: nowrap;", template)
+        self.assertIn("@media (max-width: 1599px)", template)
+        self.assertIn(".hdr-nav { display: none; }", template)
+        self.assertIn("flex-direction: column;", template)
 
     def test_account_avatar_uses_the_shared_navigation_drawer(self):
         template = self._source("reports/templates/base.html")

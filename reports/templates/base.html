@@ -8,7 +8,7 @@
   <meta name="color-scheme" content="light dark" />
 
   <!-- Favicon (مهم لتفادي طلب /favicon.ico الافتراضي) -->
-  <link rel="icon" href="{% static 'img/logo1.png' %}">
+  <link rel="icon" href="{% static 'img/brand-mark.svg' %}">
 
   {% include "reports/partials/pwa_install_head.html" %}
 
@@ -118,8 +118,9 @@
       align-items: center;
       justify-content: space-between;
       height: 100%;
+      min-height: 0;
       width: 100%;
-      max-width: 1400px; /* Wider Global Layout */
+      max-width: 1760px;
       margin: 0 auto;
       padding: 0 24px;
     }
@@ -133,6 +134,9 @@
       color: var(--brand);
       transition: all 0.3s var(--ease-out);
       position: relative;
+      flex: 0 1 240px;
+      min-width: 0;
+      max-width: 240px;
     }
     
     .hdr-brand::before {
@@ -173,14 +177,41 @@
     /* Navigation Tabs (Modern Pill/Underline) */
     .hdr-nav {
       display: flex;
+      align-items: center;
+      justify-content: center;
       gap: 6px;
       background: var(--bg-sub);
       padding: 4px;
       border-radius: var(--r-full);
       border: 1px solid var(--border-light);
+      flex: 1 1 auto;
+      flex-wrap: nowrap;
+      min-width: 0;
+      margin-inline: 16px;
+      white-space: nowrap;
     }
-    
-    @media (max-width: 991px) { .hdr-nav { display: none; } } /* Hide on Mobile */
+
+    /*
+       The complete manager navigation and its action group need more room than
+       the old 1400px shell provided. Collapse before either group can wrap.
+    */
+    @media (max-width: 1599px) {
+      .hdr-nav { display: none; }
+      .hamburger {
+        display: flex;
+        flex: 0 0 44px;
+        flex-direction: column;
+      }
+      .hdr-brand {
+        flex: 1 1 auto;
+        max-width: none;
+        justify-content: center;
+      }
+      .hdr-brand-txt { max-width: min(320px, calc(100vw - 150px)); }
+      .hdr-actions .icon-btn,
+      .hdr-actions #openSchoolModal { display: none; }
+      .drawer-actions { display: flex; }
+    }
 
     .hdr-nav .tab {
       padding: 6px 16px;
@@ -217,6 +248,18 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      flex: 0 0 auto;
+    }
+
+    .hdr-actions #openSchoolModal { max-width: 260px; }
+
+    /* Installed apps extend below the OS status area without covering it. */
+    @media (display-mode: standalone), (display-mode: fullscreen) {
+      .site-header {
+        height: calc(72px + var(--safe-top));
+        padding-top: var(--safe-top);
+      }
+      .site-header.scrolled { height: calc(64px + var(--safe-top)); }
     }
 
     .icon-btn {
@@ -666,6 +709,9 @@
       margin: 0 auto;
       padding: 0 24px;
     }
+
+    /* The application header has three wide groups; content pages stay at 1400px. */
+    .site-header .container.hdr { max-width: 1760px; }
     
     @media (max-width: 768px) {
       .hdr-brand-name { display: none; } /* Simpler mobile brand */
@@ -769,7 +815,7 @@
   <link rel="stylesheet" href="{% static 'css/royal-theme.css' %}?v=20260802.1" />
 
   {% block head %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260803.1" />
+  <link rel="stylesheet" href="{% static 'css/dark-mode.css' %}?v=20260804.1" />
   <script src="{% static 'js/theme-manager.js' %}?v=20260802.1" defer></script>
 </head>
 
@@ -787,9 +833,9 @@
       </button>
 
       <a class="hdr-brand" href="{% if request.user.is_superuser %}{% url 'reports:platform_admin_dashboard' %}{% elif IS_REPORT_VIEWER %}{% url 'reports:school_reports_readonly' %}{% elif request.user.is_platform_admin %}{% if SCHOOL_ID %}{% url 'reports:platform_school_dashboard' %}{% else %}{% url 'reports:platform_schools_directory' %}{% endif %}{% elif IS_SCHOOL_MANAGER %}{% url 'reports:admin_dashboard' %}{% else %}{% url 'reports:home' %}{% endif %}">
-        <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="الشعار" width="42" height="42" loading="eager" decoding="async">
+        <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/brand-mark.svg' %}{% endif %}" alt="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}شعار المدرسة{% else %}شعار منصة توثيق{% endif %}" width="42" height="42" loading="eager" decoding="async">
         <div class="hdr-brand-txt">
-          <div class="hdr-brand-name">{% if request.user.is_superuser %}إدارة المنصة{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}نظام التقارير{% endif %}</div>
+          <div class="hdr-brand-name">{% if request.user.is_superuser %}إدارة المنصة{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}منصة توثيق{% endif %}</div>
           <div class="hdr-brand-sub">{% if request.user.is_superuser %}مركز التشغيل{% else %}منصة توثيق{% endif %}</div>
         </div>
       </a>
@@ -1415,10 +1461,10 @@
         {# About Section #}
         <div class="footer-col footer-about">
           <div class="footer-logo">
-            <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/logo1.png' %}{% endif %}" alt="شعار النظام">
+            <img src="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}{{ SCHOOL_LOGO_URL }}{% else %}{% static 'img/brand-mark.svg' %}{% endif %}" alt="{% if not request.user.is_superuser and SCHOOL_LOGO_URL %}شعار المدرسة{% else %}شعار منصة توثيق{% endif %}">
             <div class="footer-logo-text">
-              <h3>{% if request.user.is_superuser %}إدارة منصة توثيق{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}توثيق{% endif %}</h3>
-              <p>منصة تــوثيق </p>
+              <h3>{% if request.user.is_superuser %}إدارة منصة توثيق{% elif SCHOOL_NAME %}{{ SCHOOL_NAME }}{% else %}منصة توثيق{% endif %}</h3>
+              <p>منصة توثيق</p>
             </div>
           </div>
           <p class="footer-desc">

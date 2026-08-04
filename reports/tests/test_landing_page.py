@@ -25,6 +25,8 @@ class LandingPageTests(TestCase):
         self.assertContains(response, "التعاميم")
         self.assertContains(response, "الأرشيف")
         self.assertContains(response, "ابدأ تجربة مجانية 21 يوم")
+        self.assertContains(response, "من تسجيل المدرسة إلى أول عمل موثّق")
+        self.assertContains(response, "لكل مدرسة بياناتها وتجربتها وباقتها ودفعها المستقل")
         self.assertContains(response, reverse("reports:register_school"))
         self.assertContains(response, "img/landing/dashboard-system.png")
         self.assertContains(response, "img/landing/tickets-system.png")
@@ -35,6 +37,30 @@ class LandingPageTests(TestCase):
         self.assertContains(response, "img/brand-mark.svg")
         self.assertNotContains(response, "+500K")
         self.assertNotContains(response, "100% رضا")
+
+    def test_landing_answers_the_whatsapp_and_drive_objection(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+
+        self.assertContains(response, 'id="compare"')
+        self.assertContains(response, "قروبات واتساب ومجلدات درايف")
+        # Each contrast row must be paired, otherwise the two columns misalign.
+        self.assertEqual(
+            html.count("compare-cell compare-before"),
+            html.count("compare-cell compare-after"),
+        )
+        self.assertGreaterEqual(html.count("compare-cell compare-before"), 4)
+        # The claim must stay an invitation to verify, never an invented statistic.
+        self.assertContains(response, "جرّبه على أعمال أسبوع واحد")
+
+    def test_landing_backs_each_feature_headline_with_concrete_capabilities(self):
+        response = self.client.get(reverse("reports:landing"))
+        html = response.content.decode("utf-8")
+
+        self.assertEqual(html.count('class="feature-proof"'), 6)
+        self.assertContains(response, "PDF بهوية المدرسة")
+        self.assertContains(response, "بصمة تحقق SHA-256")
+        self.assertContains(response, "سجل اطلاع وتوقيع")
 
     def test_landing_has_accessible_navigation_and_single_main_heading(self):
         response = self.client.get(reverse("reports:landing"))
@@ -63,6 +89,11 @@ class LandingPageTests(TestCase):
         self.assertIn('src="/static/js/landing.js"', html)
         self.assertNotIn("var periodButtons", html)
         self.assertIn("no-store", response.headers["Cache-Control"])
+        self.assertEqual(response.headers["CDN-Cache-Control"], "no-store")
+        self.assertEqual(
+            response.headers["Cloudflare-CDN-Cache-Control"],
+            "no-store",
+        )
 
     def test_landing_shows_compact_payment_methods_in_the_footer(self):
         response = self.client.get(reverse("reports:landing"))
@@ -131,7 +162,14 @@ class LandingPageTests(TestCase):
             response,
             'data-token="SUdjMEt0WXNwNW5IREVVeUNxajRkUT09"',
         )
-        self.assertContains(response, 'data-position="bottom-right"')
+        self.assertNotContains(response, 'data-position="bottom-right"')
+        self.assertContains(response, 'class="footer-verification"')
+        self.assertContains(response, "توثيق رسمي")
+        self.assertGreater(html.index('class="sbc-verify-seal"'), html.index("<footer"))
+        self.assertLess(
+            html.index('class="sbc-verify-seal"'),
+            html.index("</footer>"),
+        )
         self.assertRegex(
             html,
             (
@@ -225,6 +263,13 @@ class LandingPageTests(TestCase):
             description="تشغيل كامل للتجربة\nدعم البدء",
         )
         SubscriptionPlan.objects.create(
+            name="مدرسة متوسطة شهري",
+            price=229,
+            days_duration=30,
+            max_teachers=50,
+            description="تقارير غير محدودة\nملفات إنجاز",
+        )
+        SubscriptionPlan.objects.create(
             name="مدرسة متوسطة",
             price=650,
             days_duration=180,
@@ -243,12 +288,20 @@ class LandingPageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["pricing_cards"]), 1)
+        self.assertContains(response, 'data-period="1m"')
         self.assertContains(response, 'data-period="6m"')
         self.assertContains(response, 'data-period="1y"')
+        self.assertContains(response, "229")
         self.assertContains(response, "650")
         self.assertContains(response, "1,250")
         self.assertContains(response, "حتى 50 معلماً")
         self.assertContains(response, "تشغيل كامل للتجربة")
+        self.assertNotContains(response, "مجموعة مدارس")
+        self.assertContains(response, "توسعة سعة المعلمين")
+        self.assertContains(response, "كل باقة ودفع تخص مدرسة واحدة")
+        self.assertNotContains(response, "اشتراك مجمع")
+        self.assertNotContains(response, "اشتراك موحد")
+        self.assertNotContains(response, "باقة المجموعة")
 
     def test_inactive_plans_are_not_advertised(self):
         SubscriptionPlan.objects.create(

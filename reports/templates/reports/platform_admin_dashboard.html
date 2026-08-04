@@ -1459,6 +1459,11 @@
                             <span class="action-icon bg-amber-light"><i class="fas fa-plus"></i></span>
                             <span class="action-body"><strong>إضافة مدرسة</strong><span>إنشاء مدرسة جديدة على المنصة.</span></span>
                         </a>
+                        <a href="{% url 'reports:platform_school_addition_requests' %}" class="action-card {% if pending_school_addition_requests > 0 %}is-warning{% endif %}" data-search-item data-search-title="طلبات إضافة مدارس المديرين">
+                            <span class="action-icon bg-amber-light"><i class="fas fa-school-circle-check"></i></span>
+                            <span class="action-body"><strong>سجل إضافات المدارس</strong><span>متابعة المدارس التي أضافها المديرون تلقائيًا.</span></span>
+                            {% if pending_school_addition_requests > 0 %}<span class="action-badge">{{ pending_school_addition_requests }}</span>{% endif %}
+                        </a>
                         <a href="{% url 'reports:school_managers_list' %}" class="action-card" data-search-item data-search-title="مدراء المدارس المستخدمون">
                             <span class="action-icon bg-indigo-light"><i class="fas fa-user-tie"></i></span>
                             <span class="action-body"><strong>مدراء المدارس</strong><span>متابعة حسابات الإدارة المدرسية.</span></span>

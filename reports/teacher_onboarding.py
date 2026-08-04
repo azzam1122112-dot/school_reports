@@ -219,7 +219,7 @@ def rows_from_uploaded_file(uploaded_file) -> list[dict[str, Any]]:
 
 def _membership_capacity(school: School) -> dict[str, int]:
     subscription = getattr(school, "subscription", None)
-    maximum = int(getattr(getattr(subscription, "plan", None), "max_teachers", 0) or 0)
+    maximum = int(getattr(subscription, "teacher_limit", 0) or 0)
     current = SchoolMembership.objects.filter(
         school=school,
         role_type=SchoolMembership.RoleType.TEACHER,

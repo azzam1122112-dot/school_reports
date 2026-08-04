@@ -299,7 +299,7 @@
           {% elif payment.purpose == 'archive_storage' %}
             زيادة مساحة الأرشيف
           {% else %}
-            {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
+            {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}{% if payment.requested_teacher_limit %} · سعة {{ payment.requested_teacher_limit }} معلماً{% endif %}
           {% endif %}
         </div>
       </div>
@@ -361,7 +361,7 @@
             {% elif payment.purpose == 'archive_storage' %}
               زيادة مساحة الأرشيف بمقدار {{ payment.archive_storage_gb }}GB
             {% else %}
-              تجديد اشتراك المدرسة{% if payment.requested_plan %} - {{ payment.requested_plan.name }}{% endif %}
+              تجديد اشتراك المدرسة{% if payment.requested_plan %} - {{ payment.requested_plan.name }}{% endif %}{% if payment.requested_teacher_limit %} · سعة {{ payment.requested_teacher_limit }} معلماً{% endif %}
             {% endif %}
           </span>
         </div>
@@ -442,8 +442,8 @@
                 <span class="batch-item-name">
                   {% if bp.purpose == 'archive_addon' %}إضافة الأرشفة
                   {% elif bp.purpose == 'archive_storage' %}زيادة مساحة الأرشيف {{ bp.archive_storage_gb }}GB
-                  {% else %}اشتراك: {{ bp.requested_plan.name|default:"اشتراك المدرسة" }}{% endif %}
-                  {% if bp.id == payment.id %}<span class="batch-current">(الحالي)</span>{% endif %}
+                  {% else %}اشتراك: {{ bp.requested_plan.name|default:"اشتراك المدرسة" }}{% if bp.requested_teacher_limit %} · سعة {{ bp.requested_teacher_limit }}{% endif %}{% endif %}
+                    {% if bp.id == payment.id %}<span class="batch-current">(الحالي)</span>{% endif %}
                 </span>
                 <span class="batch-item-amount">{{ bp.amount|floatformat:0|intcomma }} ريال</span>
                 <span class="batch-item-status batch-st-{{ bp.status }}">

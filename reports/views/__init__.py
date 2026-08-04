@@ -21,5 +21,6 @@ from .exports import *           # noqa: F401,F403
 from .api import *               # noqa: F401,F403
 from .mansour import *           # noqa: F401,F403
 from .onboarding import *       # noqa: F401,F403
+from .school_additions import * # noqa: F401,F403
 from .legal import *            # noqa: F401,F403
 from .customer_care import *    # noqa: F401,F403

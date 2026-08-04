@@ -100,6 +100,16 @@ class PwaInstallExperienceTests(TestCase):
             declared = tuple(int(value) for value in icon["sizes"].split("x"))
             self.assertEqual(self._png_size(relative_path), declared)
 
+    def test_installed_app_header_respects_the_status_bar_safe_area(self):
+        template = self._source("reports/templates/base.html")
+
+        self.assertIn(
+            "@media (display-mode: standalone), (display-mode: fullscreen)",
+            template,
+        )
+        self.assertIn("height: calc(72px + var(--safe-top));", template)
+        self.assertIn("padding-top: var(--safe-top);", template)
+
     def test_service_worker_uses_private_safe_offline_strategy(self):
         worker = self._source("static/sw.js")
         offline = self._source("static/offline.html")

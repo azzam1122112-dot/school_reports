@@ -203,7 +203,7 @@ class UnifiedPaymentTests(TestCase):
         )
         self.assertContains(
             response,
-            'src="/static/js/subscription-checkout.js?v=20260803.2"',
+            'src="/static/js/subscription-checkout.js?v=20260804.1"',
         )
         self.assertContains(response, "document.readyState === 'loading'")
         self.assertContains(response, "initSubscriptionPage()")
@@ -276,3 +276,33 @@ class BatchApprovalTests(TestCase):
         self.assertTrue(SchoolSubscription.objects.filter(school=self.school).exists())
         addon = SchoolArchiveAddon.objects.get(school=self.school)
         self.assertTrue(addon.is_active)
+
+    def test_annual_leadership_plan_grants_included_archive_without_extra_payment(self):
+        leadership_plan = SubscriptionPlan.objects.create(
+            name="قيادة | سنوي",
+            price=2990,
+            days_duration=365,
+            max_teachers=100,
+            included_archive_storage_gb=50,
+        )
+        payment = Payment.objects.create(
+            school=self.school,
+            requested_plan=leadership_plan,
+            purpose=Payment.Purpose.SUBSCRIPTION,
+            amount=2990,
+            status=Payment.Status.PENDING,
+            created_by=self.admin,
+        )
+
+        response = self.client.post(
+            reverse("reports:platform_payment_detail", args=[payment.id]),
+            {"status": Payment.Status.APPROVED},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        subscription = SchoolSubscription.objects.get(school=self.school)
+        addon = SchoolArchiveAddon.objects.get(school=self.school)
+        self.assertEqual(subscription.plan, leadership_plan)
+        self.assertTrue(addon.is_active)
+        self.assertEqual(addon.storage_limit_gb, 50)
+        self.assertEqual(addon.end_date, subscription.end_date)

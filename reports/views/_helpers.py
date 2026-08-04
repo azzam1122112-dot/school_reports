@@ -194,6 +194,7 @@ from ..models import (
     TicketNote,
     TicketImage,
     School,
+    SchoolAdditionRequest,
     SchoolMembership,
     MANAGER_SLUG,
     SubscriptionPlan,

@@ -1002,6 +1002,10 @@
             <i class="fa-solid fa-sliders" aria-hidden="true"></i>
             إعدادات المدرسة
           </a>
+          <a class="manager-hero__button" href="{% url 'reports:school_addition_requests' %}">
+            <i class="fa-solid fa-school-circle-check" aria-hidden="true"></i>
+            إضافة مدرسة أخرى
+          </a>
           {% if USER_SCHOOLS|length > 1 %}
             <a class="manager-hero__button" href="{% url 'reports:select_school' %}">
               <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i>

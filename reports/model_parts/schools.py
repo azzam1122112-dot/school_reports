@@ -663,8 +663,7 @@ class SchoolMembership(models.Model):
             if subscription is None or bool(getattr(subscription, "is_expired", True)):
                 raise ValidationError("لا يوجد اشتراك فعّال لهذه المدرسة.")
 
-            plan = getattr(subscription, "plan", None)
-            max_teachers = int(getattr(plan, "max_teachers", 0) or 0)
+            max_teachers = int(getattr(subscription, "teacher_limit", 0) or 0)
             if max_teachers > 0:
                 current_count = (
                     SchoolMembership.objects.filter(
@@ -692,6 +691,76 @@ class SchoolMembership(models.Model):
                 raise ValidationError("لا يمكن إضافة أكثر من 2 مشرف تقارير (عرض فقط) لهذه المدرسة.")
 
         return super().save(*args, **kwargs)
+
+
+# =========================
+# طلب إضافة مدرسة لحساب مدير قائم
+# =========================
+class SchoolAdditionRequest(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "قيد المراجعة"
+        APPROVED = "approved", "معتمد"
+        REJECTED = "rejected", "مرفوض"
+
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="school_addition_requests",
+        verbose_name="مقدم الطلب",
+    )
+    source_school = models.ForeignKey(
+        School,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="addition_requests_from",
+        verbose_name="المدرسة الحالية",
+    )
+    school_name = models.CharField("اسم المدرسة المطلوبة", max_length=200)
+    stage = models.CharField("المرحلة", max_length=16, choices=School.Stage.choices)
+    gender = models.CharField("بنين / بنات", max_length=8, choices=School.Gender.choices)
+    city = models.CharField("المدينة", max_length=120, blank=True, default="")
+    phone = models.CharField("جوال المدرسة", max_length=20, blank=True, default="")
+    email = models.EmailField("بريد المدرسة", blank=True, default="")
+    manager_notes = models.TextField("ملاحظات المدير", max_length=1000, blank=True, default="")
+    status = models.CharField(
+        "الحالة",
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    created_school = models.OneToOneField(
+        School,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_addition_request",
+        verbose_name="المدرسة المنشأة",
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_school_addition_requests",
+        verbose_name="راجع الطلب",
+    )
+    review_notes = models.TextField("ملاحظات المراجعة", max_length=1000, blank=True, default="")
+    reviewed_at = models.DateTimeField("تاريخ المراجعة", null=True, blank=True)
+    created_at = models.DateTimeField("تاريخ الطلب", auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField("آخر تحديث", auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        verbose_name = "طلب إضافة مدرسة"
+        verbose_name_plural = "طلبات إضافة المدارس"
+        indexes = [
+            models.Index(fields=["requested_by", "status"], name="reports_sar_user_status_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.school_name} — {self.get_status_display()}"
 
 
 # =========================

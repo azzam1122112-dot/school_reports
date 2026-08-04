@@ -69,7 +69,7 @@ def build_school_export_workbook(school):
 
     wb = Workbook()
     labels = school_gender_labels(school)
-    wb.properties.creator = "توثيق - منصة تقارير المدارس"
+    wb.properties.creator = "منصة توثيق"
 
     header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
     header_fill = PatternFill("solid", fgColor=_HEADER_FILL)
@@ -118,7 +118,7 @@ def build_school_export_workbook(school):
     _style_sheet_rtl(ws)
     counts = _counts(school)
     ws.cell(row=1, column=1, value="ملف بيانات المدرسة").font = title_font
-    ws.cell(row=2, column=1, value="منصة توثيق لتقارير المدارس").font = label_font
+    ws.cell(row=2, column=1, value="منصة توثيق").font = label_font
 
     summary_rows = [
         ("اسم المدرسة", getattr(school, "name", "") or ""),
@@ -1425,7 +1425,7 @@ def build_school_export_zip_file(
 
         scope = archive_year_label(academic_year) if is_year_archive else "كل السنوات"
         header = [
-            "ملف تحقّق وسلامة الأرشيف — منصة توثيق لتقارير المدارس",
+            "ملف تحقّق وسلامة الأرشيف — منصة توثيق",
             "=" * 60,
             f"المدرسة      : {getattr(school, 'name', '') or ''} ({getattr(school, 'code', '') or ''})",
             f"النطاق       : {scope}",

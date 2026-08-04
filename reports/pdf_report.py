@@ -102,7 +102,7 @@ def build_report_print_context(report) -> dict:
         "r": report,
         "head_decision": _build_head_decision(dept),
         "SCHOOL_PRINCIPAL": _school_principal_name(school),
-        "SCHOOL_NAME": getattr(school, "name", "") if school else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية"),
+        "SCHOOL_NAME": getattr(school, "name", "") if school else getattr(settings, "SCHOOL_NAME", "منصة توثيق"),
         "SCHOOL_STAGE": school_stage,
         "SCHOOL_LOGO_URL": "",
         "MOE_LOGO_URL": _moe_logo_url(),
@@ -245,7 +245,7 @@ def _generate_report_pdf_fallback(report, *, context: dict | None = None) -> byt
     pdf = canvas.Canvas(output, pagesize=A4, pageCompression=1, pdfVersion=(1, 4))
     title = getattr(report, "title", "") or "تقرير مدرسي"
     pdf.setTitle(title)
-    pdf.setAuthor("منصة توثيقة")
+    pdf.setAuthor("منصة توثيق")
     pdf.setSubject("تقرير مدرسي رسمي")
 
     margin = 42
@@ -281,7 +281,7 @@ def _generate_report_pdf_fallback(report, *, context: dict | None = None) -> byt
         pdf.setLineWidth(0.6)
         pdf.line(margin, 32, page_width - margin, 32)
         draw_center(
-            f"منصة توثيقة  |  صفحة {page_number}",
+            f"منصة توثيق  |  صفحة {page_number}",
             page_width / 2,
             20,
             7.3,

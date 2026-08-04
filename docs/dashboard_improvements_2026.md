@@ -293,4 +293,4 @@ reports/
 ---
 
 **تم التطوير بواسطة:** GitHub Copilot 🤖  
-**المنصة:** منصة توثيق - School Reports Platform  
+**المنصة:** منصة توثيق

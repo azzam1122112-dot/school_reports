@@ -24,7 +24,7 @@
         <div>وزارة التعليم</div>
         <div>{% firstof SCHOOL_NAME "المدرسة" %}</div>
       </div>
-      <img class="cir-report-logo" src="{% static 'img/logo1.png' %}" alt="شعار توثيق">
+      <img class="cir-report-logo" src="{% static 'img/brand-mark.svg' %}" alt="شعار منصة توثيق">
       <div class="cir-report-head__text">
         <div>الرقم: CIR-{{ n.id|stringformat:"05d" }}</div>
         <div>تاريخ الإصدار: {{ n.created_at|date:"Y/m/d" }}</div>
@@ -92,7 +92,7 @@
 
     <footer style="display:flex;justify-content:space-between;gap:1rem;margin-top:6mm;padding-top:3mm;border-top:1px solid #cfd8d2;color:#68766d;font-size:7pt">
       <span>طُبع بواسطة: {{ request.user.name|default:request.user.phone }}</span>
-      <span>نظام توثيق — سجل إداري إلكتروني</span>
+      <span>منصة توثيق — سجل إداري إلكتروني</span>
     </footer>
   </main>
 

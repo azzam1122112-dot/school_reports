@@ -1489,7 +1489,7 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
         executor_label = school_gender_labels(school_scope)["executor"]
 
         # إعدادات المدرسة (الاسم + المرحلة + الشعار)
-        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة توثيق")
         school_stage = ""
         school_logo_url = ""
         if school_scope:
@@ -1792,7 +1792,7 @@ def share_public(request: HttpRequest, token: str) -> HttpResponse:
             school_principal = getattr(settings, "SCHOOL_PRINCIPAL", "")
 
         # إعدادات المدرسة
-        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة التقارير المدرسية")
+        school_name = getattr(school_scope, "name", "") if school_scope else getattr(settings, "SCHOOL_NAME", "منصة توثيق")
         school_stage = ""
         school_logo_url = ""
         if school_scope:

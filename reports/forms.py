@@ -41,6 +41,7 @@ from .models import (
     Notification,
     NotificationRecipient,
     School,
+    SchoolAdditionRequest,
     SchoolMembership,
     PlatformSettings,
     SubscriptionPlan,
@@ -73,6 +74,53 @@ except Exception:
 # ==============================
 digits10 = RegexValidator(r"^\d{10}$", "يجب أن يتكون من 10 أرقام.")
 sa_phone = RegexValidator(r"^0\d{9}$", "رقم الجوال يجب أن يبدأ بـ 0 ويتكون من 10 أرقام.")
+
+
+class SchoolAdditionRequestForm(forms.ModelForm):
+    class Meta:
+        model = SchoolAdditionRequest
+        fields = [
+            "school_name",
+            "stage",
+            "gender",
+            "city",
+            "phone",
+            "email",
+            "manager_notes",
+        ]
+        widgets = {
+            "school_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "اسم المدرسة الرسمي"}),
+            "stage": forms.Select(attrs={"class": "form-select"}),
+            "gender": forms.Select(attrs={"class": "form-select"}),
+            "city": forms.TextInput(attrs={"class": "form-control", "placeholder": "المدينة"}),
+            "phone": forms.TextInput(attrs={"class": "form-control", "placeholder": "05XXXXXXXX", "dir": "ltr", "inputmode": "tel"}),
+            "email": forms.EmailInput(attrs={"class": "form-control", "placeholder": "school@example.com", "dir": "ltr"}),
+            "manager_notes": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "ملاحظات اختيارية عن المدرسة"}),
+        }
+
+    def __init__(self, *args, requested_by=None, **kwargs):
+        self.requested_by = requested_by
+        super().__init__(*args, **kwargs)
+
+    def clean_school_name(self):
+        name = " ".join((self.cleaned_data.get("school_name") or "").split())
+        if len(name) < 3:
+            raise ValidationError("أدخل اسم المدرسة الرسمي.")
+        return name
+
+    def clean_phone(self):
+        raw = (self.cleaned_data.get("phone") or "").strip()
+        if not raw:
+            return ""
+        phone = raw.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
+        phone = "".join(character for character in phone if character.isdigit())
+        if phone.startswith("9665") and len(phone) == 12:
+            phone = f"0{phone[3:]}"
+        elif phone.startswith("5") and len(phone) == 9:
+            phone = f"0{phone}"
+        if len(phone) != 10 or not phone.startswith("05"):
+            raise ValidationError("أدخل رقم جوال سعودي صحيحًا يبدأ بـ 05.")
+        return phone
 
 
 def _school_job_title_choices(active_school: Optional["School"] = None) -> tuple[tuple[str, str], ...]:
@@ -2640,7 +2688,17 @@ class SupportTicketForm(forms.ModelForm):
 class SubscriptionPlanForm(forms.ModelForm):
     class Meta:
         model = SubscriptionPlan
-        fields = ["name", "description", "price", "days_duration", "max_teachers", "is_active"]
+        fields = [
+            "name",
+            "description",
+            "price",
+            "days_duration",
+            "max_teachers",
+            "support_level",
+            "onboarding_sessions",
+            "included_archive_storage_gb",
+            "is_active",
+        ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "مثال: الاحترافية | سنوية"}),
             "description": forms.Textarea(
@@ -2653,6 +2711,9 @@ class SubscriptionPlanForm(forms.ModelForm):
             "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": 0}),
             "days_duration": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
             "max_teachers": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "support_level": forms.Select(attrs={"class": "form-select"}),
+            "onboarding_sessions": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "included_archive_storage_gb": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {
@@ -2661,13 +2722,17 @@ class SubscriptionPlanForm(forms.ModelForm):
             "price": "السعر (ريال)",
             "days_duration": "المدة (بالأيام)",
             "max_teachers": "حد المعلمين",
+            "support_level": "مستوى الدعم",
+            "onboarding_sessions": "جلسات الإعداد المشمولة",
+            "included_archive_storage_gb": "مساحة الأرشيف المشمولة (GB)",
             "is_active": "نشط؟",
         }
         help_texts = {
             "description": "اكتب ثلاث جمل قصيرة، كل جملة في سطر مستقل، لتظهر كمميزات واضحة في بطاقة السعر.",
             "price": "السعر النهائي المطلوب من العميل. استخدم 0 للتجربة المجانية فقط.",
-            "days_duration": "30 للتجربة، 180 لستة أشهر، و365 للسنة.",
+            "days_duration": "30 للشهر، 180 لستة أشهر، و365 للسنة.",
             "max_teachers": "لا يشمل مدير المدرسة. القيمة 0 تعني سعة غير محدودة.",
+            "included_archive_storage_gb": "استخدم 50 للباقة القيادية السنوية، و0 إذا كان الأرشيف إضافة مستقلة.",
         }
 
     def clean(self):
@@ -2700,16 +2765,23 @@ class SchoolSubscriptionForm(forms.ModelForm):
 
     class Meta:
         model = SchoolSubscription
-        fields = ["school", "plan", "is_active"]
+        fields = ["school", "plan", "teacher_limit_override", "is_active"]
         widgets = {
             "school": forms.Select(attrs={"class": "form-select"}),
             "plan": forms.Select(attrs={"class": "form-select"}),
+            "teacher_limit_override": forms.NumberInput(
+                attrs={"class": "form-control", "min": "1", "max": "100", "step": "1"}
+            ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {
             "school": "المدرسة",
             "plan": "الباقة",
+            "teacher_limit_override": "السعة الفعلية المشتراة",
             "is_active": "نشط؟",
+        }
+        help_texts = {
+            "teacher_limit_override": "اختياري. اتركه فارغاً لتطبيق حد الباقة، أو أدخل السعة المرنة المعتمدة للمدرسة.",
         }
 
     def __init__(self, *args, **kwargs):

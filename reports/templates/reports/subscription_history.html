@@ -39,7 +39,7 @@
           {% for payment in payments %}
           <tr>
             <td><span dir="ltr" style="font-weight:900">{{ payment.created_at|date:"Y-m-d" }}</span></td>
-            <td>{{ payment.requested_plan.name|default:"-" }}</td>
+            <td>{{ payment.requested_plan.name|default:"-" }}{% if payment.requested_teacher_limit %}<small style="display:block">سعة {{ payment.requested_teacher_limit }} معلماً</small>{% endif %}</td>
             <td>{{ payment.get_payment_method_display }}</td>
             <td style="font-weight:950">
                 {% if payment.amount < 0 %}

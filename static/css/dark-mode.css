@@ -609,8 +609,25 @@ html[data-theme="dark"] .main-nav .nav-links a { color: #c7d9d0; }
 html[data-theme="dark"] .problem-section,
 html[data-theme="dark"] .product-section,
 html[data-theme="dark"] .roles-section,
+html[data-theme="dark"] .compare-section,
 html[data-theme="dark"] .pricing-section,
 html[data-theme="dark"] .faq-section { background-color: #071a15 !important; }
+html[data-theme="dark"] .compare-panel { background: rgba(205, 225, 216, .16); border-color: rgba(205, 225, 216, .16); }
+html[data-theme="dark"] .compare-head-before { color: #b6c7bf; background: #102920; }
+html[data-theme="dark"] .compare-head-before .compare-head-icon { color: #93a89e; background: rgba(205, 225, 216, .1); }
+html[data-theme="dark"] .compare-head-before small { color: #93a89e; }
+html[data-theme="dark"] .compare-before { color: #a4b7ad; background: #0b1f19; }
+html[data-theme="dark"] .compare-before b { color: #c6d6cd; }
+html[data-theme="dark"] .compare-before > i { color: #7d9187; }
+html[data-theme="dark"] .compare-after { color: #d7e7de; background: #0d241d; }
+html[data-theme="dark"] .compare-after b { color: #edf6f1; }
+html[data-theme="dark"] .compare-after > i { color: #6fc79b; }
+html[data-theme="dark"] .compare-footnote {
+  color: #e6f3ec;
+  background: linear-gradient(135deg, #0d241d, #1c2416) !important;
+  border-color: rgba(212, 177, 109, .4) !important;
+}
+html[data-theme="dark"] .compare-footnote i { color: #e5ca94; }
 html[data-theme="dark"] .value-card:not(.featured),
 html[data-theme="dark"] .showcase-card,
 html[data-theme="dark"] .impact-card,

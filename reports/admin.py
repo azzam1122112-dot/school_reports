@@ -20,6 +20,7 @@ from .models import (
     Ticket,
     TicketNote,
     School,
+    SchoolAdditionRequest,
     SchoolMembership,
     PlatformAdminScope,
     PlatformAdminRole,
@@ -446,17 +447,31 @@ class NotificationRecipientAdmin(admin.ModelAdmin):
 # =========================
 # إدارة الاشتراكات والمالية
 # =========================
+@admin.register(SchoolAdditionRequest)
+class SchoolAdditionRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "school_name", "requested_by", "status",
+        "created_school", "created_at", "reviewed_at",
+    )
+    list_filter = ("status", "stage", "gender", "created_at")
+    search_fields = ("school_name", "city", "requested_by__name", "requested_by__phone")
+    list_select_related = ("requested_by", "created_school", "reviewed_by")
+
+
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(admin.ModelAdmin):
-    list_display = ("name", "price", "days_duration", "max_teachers", "is_active", "created_at")
-    list_filter = ("is_active", "created_at")
+    list_display = (
+        "name", "price", "days_duration", "max_teachers", "support_level",
+        "onboarding_sessions", "included_archive_storage_gb", "is_active", "created_at",
+    )
+    list_filter = ("is_active", "support_level", "created_at")
     search_fields = ("name", "description")
     ordering = ("price",)
 
 
 @admin.register(SchoolSubscription)
 class SchoolSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ("school", "plan", "start_date", "end_date", "is_active", "is_expired")
+    list_display = ("school", "plan", "teacher_limit", "start_date", "end_date", "is_active", "is_expired")
     list_filter = ("is_active", "plan", "start_date", "end_date")
     search_fields = ("school__name", "school__code")
     autocomplete_fields = ("school", "plan")
@@ -510,6 +525,7 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
                         school=obj.school,
                         subscription=obj,
                         requested_plan=obj.plan,
+                        requested_teacher_limit=obj.teacher_limit,
                         amount=0,
                         receipt_image=None,
                         payment_date=today,
@@ -561,6 +577,7 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
                 school=obj.school,
                 subscription=obj,
                 requested_plan=obj.plan,
+                requested_teacher_limit=obj.teacher_limit,
                 amount=obj.plan.price,
                 receipt_image=None,
                 payment_date=today,
@@ -696,6 +713,7 @@ class PaymentAdmin(admin.ModelAdmin):
         "school",
         "purpose",
         "requested_plan",
+        "requested_teacher_limit",
         "amount",
         "status",
         "effects_applied_at",

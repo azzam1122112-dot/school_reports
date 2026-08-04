@@ -308,7 +308,7 @@
 
     <section class="summary-grid" aria-label="ملخص مالي سريع">
       <div class="summary-card">
-        <span class="label">قيمة الباقة</span>
+        <span class="label">السعر المرجعي</span>
         <div class="num">{{ subscription.plan.price|floatformat:0|intcomma }} ريال</div>
       </div>
       <div class="summary-card">
@@ -343,6 +343,11 @@
           <div class="row">
             <span class="label">الخطة الحالية</span>
             <span class="value">{{ subscription.plan.name }}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">السعة المعتمدة</span>
+            <span class="value">{{ subscription.teacher_limit }} معلماً</span>
           </div>
 
           <div class="row">
@@ -518,7 +523,7 @@
                     <span class="badge warning"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> قيد المراجعة</span>
                   {% endif %}
                 </td>
-                <td data-label="الخطة" style="text-align:right">{{ payment.requested_plan.name|default:subscription.plan.name }}</td>
+                <td data-label="الخطة" style="text-align:right">{{ payment.requested_plan.name|default:subscription.plan.name }}{% if payment.requested_teacher_limit %}<small style="display:block">سعة {{ payment.requested_teacher_limit }} معلماً</small>{% endif %}</td>
                 <td data-label="الإجراء" style="text-align:right">
                   <a href="{% url 'reports:platform_payment_detail' payment.id %}" class="btn btn-outline" style="min-height:34px;padding:6px 10px;border-radius:10px;">
                     <i class="fa-solid fa-eye" aria-hidden="true"></i>

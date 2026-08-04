@@ -145,6 +145,13 @@ urlpatterns = [
     path("staff/schools/managers/<int:pk>/delete/", views.school_manager_delete, name="school_manager_delete"),
     path("staff/schools/managers/add/", views.school_manager_create, name="school_manager_create"),
     path("staff/schools/<int:pk>/managers/", views.school_managers_manage, name="school_managers_manage"),
+    path("staff/schools/request-addition/", views.school_addition_requests, name="school_addition_requests"),
+    path("platform/school-addition-requests/", views.platform_school_addition_requests, name="platform_school_addition_requests"),
+    path(
+        "platform/school-addition-requests/<int:pk>/review/",
+        views.platform_school_addition_request_review,
+        name="platform_school_addition_request_review",
+    ),
     path("platform/audit-logs/", views.platform_audit_logs, name="platform_audit_logs"),
     path("platform-dashboard/", views.platform_admin_dashboard, name="platform_admin_dashboard"),
 

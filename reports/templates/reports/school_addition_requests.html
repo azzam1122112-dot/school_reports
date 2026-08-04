@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}إضافة مدرسة أخرى{% endblock %}
+{% block head %}
+<style>
+  .sar-page{max-width:1120px;margin:0 auto;padding:32px 18px 60px;direction:rtl}.sar-hero{background:linear-gradient(135deg,#064e3b,#087443);color:#fff;border-radius:26px;padding:28px;display:flex;justify-content:space-between;gap:20px;align-items:center;box-shadow:0 18px 45px rgba(6,78,59,.18)}.sar-hero h1{margin:0 0 8px;font-size:clamp(1.55rem,4vw,2.3rem)}.sar-hero p{margin:0;color:#d1fae5;max-width:680px}.sar-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);gap:22px;margin-top:24px}.sar-card{background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:24px;box-shadow:0 8px 28px rgba(15,23,42,.06)}.sar-card h2{margin:0 0 6px;color:#0f172a}.sar-muted{color:#64748b;margin:0 0 20px}.sar-fields{display:grid;grid-template-columns:1fr 1fr;gap:15px}.sar-field--full{grid-column:1/-1}.sar-field label{display:block;font-weight:800;color:#334155;margin-bottom:6px}.sar-field input,.sar-field select,.sar-field textarea{width:100%;border:1px solid #cbd5e1;border-radius:12px;padding:11px;background:#fff}.sar-error{color:#b91c1c;font-size:.84rem;margin-top:5px}.sar-submit,.sar-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;padding:12px 18px;font-weight:900;text-decoration:none;cursor:pointer}.sar-submit{background:#087443;color:#fff;margin-top:18px}.sar-action{background:#ecfdf5;color:#065f46}.sar-list{display:grid;gap:12px}.sar-request{border:1px solid #e2e8f0;border-radius:16px;padding:16px}.sar-request__top{display:flex;justify-content:space-between;gap:12px}.sar-status{font-size:.78rem;font-weight:900;border-radius:999px;padding:5px 9px}.sar-status--pending{background:#fff7ed;color:#9a3412}.sar-status--approved{background:#ecfdf5;color:#047857}.sar-status--rejected{background:#fef2f2;color:#b91c1c}.sar-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;color:#64748b;font-size:.86rem}.sar-review{background:#f8fafc;border-radius:10px;padding:10px;margin-top:10px;color:#475569}@media(max-width:800px){.sar-grid{grid-template-columns:1fr}.sar-fields{grid-template-columns:1fr}.sar-field--full{grid-column:auto}.sar-hero{align-items:flex-start;flex-direction:column}}
+</style>
+{% endblock %}
+{% block content %}
+<main class="sar-page">
+  <section class="sar-hero">
+    <div><h1><i class="fa-solid fa-school-circle-check"></i> إضافة مدرسة أخرى</h1><p>أدخل بيانات المدرسة لتُنشأ فورًا بمساحة مستقلة وباقة تجريبية، وتُربط بحسابك تلقائيًا. لن تختلط بيانات المدارس أو معلموها.</p></div>
+  </section>
+  <div class="sar-grid">
+    <section class="sar-card">
+      <h2>إضافة مدرسة جديدة</h2><p class="sar-muted">لا تحتاج إلى موافقة مدير المنصة؛ تُنشأ المدرسة مباشرة بعد التحقق من البيانات.</p>
+      <form method="post" novalidate>{% csrf_token %}
+        <div class="sar-fields">
+          {% for field in form %}<div class="sar-field {% if field.name == 'manager_notes' %}sar-field--full{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="sar-error">{{ error }}</div>{% endfor %}</div>{% endfor %}
+        </div>
+        {% for error in form.non_field_errors %}<div class="sar-error">{{ error }}</div>{% endfor %}
+        <button class="sar-submit" type="submit"><i class="fa-solid fa-plus"></i> إنشاء المدرسة وربطها بحسابي</button>
+      </form>
+    </section>
+    <aside class="sar-card">
+      <h2>المدارس التي أضفتها</h2><p class="sar-muted">لكل مدرسة مساحة مستقلة واشتراك مستقل يمكنك إدارته من حسابك.</p>
+      <div class="sar-list">
+        {% for item in addition_requests %}
+          <article class="sar-request"><div class="sar-request__top"><strong>{{ item.school_name }}</strong><span class="sar-status sar-status--{{ item.status }}">{{ item.get_status_display }}</span></div><div class="sar-meta"><span>{{ item.get_stage_display }}</span><span>{{ item.get_gender_display }}</span>{% if item.city %}<span>{{ item.city }}</span>{% endif %}</div>{% if item.review_notes %}<div class="sar-review">{{ item.review_notes }}</div>{% endif %}{% if item.status == 'approved' and item.created_school %}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><a class="sar-action" href="{% url 'reports:switch_school' %}?school_id={{ item.created_school.id }}&next={% url 'reports:my_subscription' %}">اشتراك المدرسة</a></div>{% endif %}</article>
+        {% empty %}<p class="sar-muted">لا توجد طلبات سابقة.</p>{% endfor %}
+      </div>
+    </aside>
+  </div>
+</main>
+{% endblock %}

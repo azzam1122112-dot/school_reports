@@ -384,7 +384,7 @@
         <div>وزارة التعليم</div>
         <div>{{ school.name|default:"المدرسة" }}</div>
       </div>
-      <img src="{% static 'img/logo1.png' %}" alt="منصة توثيق" class="cover-logo" />
+      <img src="{% static 'img/brand-mark.svg' %}" alt="منصة توثيق" class="cover-logo" />
       <div class="cover-official">
         <div>العام الدراسي</div>
         <div>{{ file.academic_year }} هـ</div>
@@ -405,14 +405,14 @@
     </div>
 
     <div class="cover-foot">
-      <div class="platform-mark"><img src="{% static 'img/logo1.png' %}" alt="" /> منصة توثيق</div>
+      <div class="platform-mark"><img src="{% static 'img/brand-mark.svg' %}" alt="" /> منصة توثيق</div>
       <div>أُنشئ هذا الملف آليًا من الشواهد الموثقة في المنصة</div>
     </div>
   </div>
 
   <div class="page page-break contents-page">
     <header class="document-header">
-      <div class="document-brand"><img src="{% static 'img/logo1.png' %}" alt="" /> منصة توثيق</div>
+      <div class="document-brand"><img src="{% static 'img/brand-mark.svg' %}" alt="" /> منصة توثيق</div>
       <div class="document-meta">{{ school.name }}<br />{{ file.academic_year }} هـ</div>
     </header>
     <h1 class="document-title">محتويات الملف</h1>
@@ -518,7 +518,7 @@
     {% for s in sections %}
       <div class="page page-break criterion-page">
         <header class="document-header">
-          <div class="document-brand"><img src="{% static 'img/logo1.png' %}" alt="" /> منصة توثيق</div>
+          <div class="document-brand"><img src="{% static 'img/brand-mark.svg' %}" alt="" /> منصة توثيق</div>
           <div class="document-meta">{{ school.name }}<br />{{ file.academic_year }} هـ</div>
         </header>
         <div class="criterion-top">
@@ -567,7 +567,7 @@
         {% for ev in s.evidence_reports.all %}
           <div class="page page-break report-page">
             <header class="document-header">
-              <div class="document-brand"><img src="{% static 'img/logo1.png' %}" alt="" /> منصة توثيق</div>
+              <div class="document-brand"><img src="{% static 'img/brand-mark.svg' %}" alt="" /> منصة توثيق</div>
               <div class="document-meta">شاهد موثق<br />{{ s.get_code_display }}</div>
             </header>
             <div class="report-box">

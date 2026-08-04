@@ -15,12 +15,15 @@ class DefaultPricingCommandTests(TestCase):
 
         expected = {
             (30, 5): Decimal("0"),
-            (180, 25): Decimal("699"),
-            (365, 25): Decimal("1099"),
-            (180, 50): Decimal("999"),
-            (365, 50): Decimal("1599"),
-            (180, 100): Decimal("1499"),
-            (365, 100): Decimal("2399"),
+            (30, 25): Decimal("149"),
+            (180, 25): Decimal("799"),
+            (365, 25): Decimal("1290"),
+            (30, 50): Decimal("229"),
+            (180, 50): Decimal("1190"),
+            (365, 50): Decimal("1990"),
+            (30, 100): Decimal("349"),
+            (180, 100): Decimal("1790"),
+            (365, 100): Decimal("2990"),
         }
         actual = {
             (plan.days_duration, plan.max_teachers): plan.price
@@ -28,7 +31,12 @@ class DefaultPricingCommandTests(TestCase):
         }
 
         self.assertEqual(actual, expected)
-        self.assertIn("approved=7", output.getvalue())
+        self.assertIn("approved=10", output.getvalue())
+
+        leadership_annual = SubscriptionPlan.objects.get(days_duration=365, max_teachers=100)
+        self.assertEqual(leadership_annual.included_archive_storage_gb, 50)
+        self.assertEqual(leadership_annual.onboarding_sessions, 2)
+        self.assertEqual(leadership_annual.support_level, "priority")
 
         settings_obj = PlatformSettings.get_solo()
         self.assertEqual(settings_obj.archive_addon_annual_price, Decimal("399"))
@@ -52,6 +60,6 @@ class DefaultPricingCommandTests(TestCase):
         call_command("sync_default_pricing", "--deactivate-other-plans")
         call_command("sync_default_pricing", "--deactivate-other-plans")
 
-        self.assertEqual(SubscriptionPlan.objects.count(), 8)
+        self.assertEqual(SubscriptionPlan.objects.count(), 11)
         legacy.refresh_from_db()
         self.assertFalse(legacy.is_active)

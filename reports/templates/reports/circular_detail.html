@@ -31,7 +31,7 @@
             <div>وزارة التعليم</div>
             <div>{% firstof SCHOOL_NAME "المدرسة" %}</div>
           </div>
-          <img class="cir-document__logo" src="{% static 'img/logo1.png' %}" alt="شعار توثيق">
+          <img class="cir-document__logo" src="{% static 'img/brand-mark.svg' %}" alt="شعار منصة توثيق">
           <div class="cir-document__reference">
             <div>الرقم: CIR-{{ n.id|stringformat:"05d" }}</div>
             <div>التاريخ: {{ n.created_at|date:"Y/m/d" }}</div>

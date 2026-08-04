@@ -93,16 +93,17 @@ class PlatformBillingPagesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "سياسة التسعير المعتمدة")
         self.assertContains(response, "ما يعادل")
-        self.assertContains(response, "وفّر 399 ريال")
+        self.assertContains(response, "وفّر 498 ريال")
         self.assertContains(response, "399 ريال سنوياً")
         self.assertContains(response, "الباقات المنشورة للعملاء")
         self.assertContains(response, "هذه هي الباقات نفسها الظاهرة في الصفحة الرئيسية")
-        self.assertEqual(response.context["stats"]["active_count"], 7)
+        self.assertEqual(response.context["stats"]["active_count"], 10)
+        self.assertEqual(response.context["stats"]["monthly_count"], 3)
         self.assertEqual(response.context["stats"]["capacity_count"], 3)
         self.assertEqual(len(response.context["renewal_catalog"]), 3)
         self.assertEqual(
             [len(group["options"]) for group in response.context["renewal_catalog"]],
-            [2, 2, 2],
+            [3, 3, 3],
         )
         self.assertEqual(len(response.context["other_plans"]), 2)
         self.assertTrue(any(plan.price == 0 for plan in response.context["other_plans"]))

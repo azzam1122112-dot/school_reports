@@ -132,7 +132,7 @@
         ? storageSelect.options[storageSelect.selectedIndex]
         : null;
       const planName = plan
-        ? plan
+        ? plan.dataset.label || plan
             .closest(".plan-duration-choice")
             ?.querySelector(".duration-copy strong")
             ?.textContent.trim()
@@ -266,6 +266,11 @@
       radio.addEventListener("change", () => {
         recompute();
       });
+    });
+
+    form.addEventListener("flex-pricing:change", () => {
+      activateSubscription();
+      recompute();
     });
 
     if (storageSelect) {

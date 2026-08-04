@@ -106,7 +106,7 @@ class OfficialReportPrintDesignTests(TestCase):
         self.assertNotIn("css/app.css", template)
         self.assertNotIn("css/royal-theme.css", template)
         self.assertNotIn("MIN_FIT_SCALE", template)
-        self.assertIn('content: "منصة توثيقة', styles)
+        self.assertIn('content: "منصة توثيق', styles)
         self.assertIn("counter(page)", styles)
         self.assertIn("counter(pages)", styles)
         self.assertIn("break-inside: avoid", styles)

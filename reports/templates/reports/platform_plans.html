@@ -155,6 +155,48 @@
         line-height: 1.8;
     }
 
+    .flex-policy-board {
+        margin-bottom: 1.5rem;
+        padding: 1.25rem;
+        border: 1px solid rgba(33, 98, 78, .16);
+        border-radius: 20px;
+        background: linear-gradient(145deg, #fff, #f4f8f6);
+        box-shadow: 0 12px 30px rgba(19, 63, 52, .07);
+    }
+
+    .flex-policy-board__head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+
+    .flex-policy-board__head h2 { margin: 0 0 .3rem; color: var(--plans-green-deep); font-size: 1.12rem; font-weight: 950; }
+    .flex-policy-board__head p { margin: 0; color: #71807b; font-size: .82rem; line-height: 1.75; }
+    .flex-policy-board__badge { flex: 0 0 auto; padding: .45rem .7rem; border-radius: 999px; color: #176d4d; background: #e8f7ef; font-size: .72rem; font-weight: 900; }
+    .flex-policy-periods { display: grid; gap: .8rem; }
+    .flex-policy-period {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: .8rem;
+        align-items: center;
+        padding: .9rem;
+        border: 1px solid rgba(33, 98, 78, .1);
+        border-radius: 14px;
+        background: var(--surface-color, #fff);
+    }
+    .flex-policy-period__title strong,
+    .flex-policy-period__title small { display: block; }
+    .flex-policy-period__title strong { color: var(--plans-green-deep); font-size: .88rem; }
+    .flex-policy-period__title small { margin-top: .2rem; color: #7b8984; font-size: .68rem; }
+    .flex-policy-quotes { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; scrollbar-width: thin; }
+    .flex-policy-quote { min-width: 92px; padding: .65rem .55rem; border-radius: 11px; text-align: center; background: #edf5f1; }
+    .flex-policy-quote strong,
+    .flex-policy-quote span { display: block; }
+    .flex-policy-quote strong { color: var(--plans-green-deep); font-size: .83rem; }
+    .flex-policy-quote span { margin-top: .15rem; color: #65756f; font-size: .68rem; font-weight: 800; }
+
     .plans-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -385,6 +427,9 @@
             grid-template-columns: 1fr;
         }
 
+        .flex-policy-board__head { flex-direction: column; }
+        .flex-policy-period { grid-template-columns: 1fr; }
+
         .plans-actions .btn {
             width: 100%;
         }
@@ -426,6 +471,10 @@
             <strong class="plans-metric__value">{{ stats.capacity_count }}</strong>
         </article>
         <article class="plans-metric">
+            <span class="plans-metric__label">الباقات الشهرية</span>
+            <strong class="plans-metric__value">{{ stats.monthly_count }}</strong>
+        </article>
+        <article class="plans-metric">
             <span class="plans-metric__label">باقات 6 أشهر</span>
             <strong class="plans-metric__value">{{ stats.semiannual_count }}</strong>
         </article>
@@ -443,9 +492,33 @@
         <span class="pricing-policy__icon"><i class="fas fa-balance-scale"></i></span>
         <div>
             <h2>سياسة التسعير المعتمدة</h2>
-            <p>جميع الباقات المدفوعة تشمل الوظائف الأساسية نفسها، ويختلف السعر حسب عدد المعلمين ومدة الاشتراك. الباقة السنوية تمنح وفراً مباشراً، والأسعار المعروضة نهائية ولا توجد ضريبة قيمة مضافة.</p>
+            <p>الباقات 25 و50 و100 هي نقاط التسعير المرجعية. يحسب النظام السعات البينية تلقائياً كل 5 معلمين حتى 50، ثم كل 10 معلمين حتى 100، مع بقاء مستوى الإعداد والدعم تابعاً لأقرب باقة أدنى.</p>
         </div>
     </section>
+
+    {% if flexible_pricing_catalog %}
+      <section class="flex-policy-board" aria-label="معاينة أسعار السعات المرنة">
+        <div class="flex-policy-board__head">
+          <div>
+            <h2><i class="fas fa-sliders ms-1"></i> السعات المرنة المنشورة تلقائياً</h2>
+            <p>هذه هي الأسعار التي يراها العميل في صفحة الهبوط وصفحة التجديد. تعديل أسعار باقات 25 أو 50 أو 100 يعيد احتساب القيم البينية تلقائياً.</p>
+          </div>
+          <span class="flex-policy-board__badge"><i class="fas fa-circle-check ms-1"></i> متزامنة مع الدفع</span>
+        </div>
+        <div class="flex-policy-periods">
+          {% for period in flexible_pricing_catalog %}
+            <article class="flex-policy-period">
+              <div class="flex-policy-period__title"><strong>{{ period.label }}</strong><small>{{ period.quotes|length }} خيارات سعة</small></div>
+              <div class="flex-policy-quotes">
+                {% for quote in period.quotes %}
+                  <div class="flex-policy-quote"><strong>{{ quote.capacity }} معلماً</strong><span>{{ quote.price|floatformat:0 }} ريال</span></div>
+                {% endfor %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
 
     {% if renewal_catalog %}
         <div class="plans-section-heading">
@@ -473,6 +546,13 @@
                     <div class="plan-card__equivalent">
                         {% if option.monthly_equivalent %}ما يعادل {{ option.monthly_equivalent|floatformat:0 }} ريال شهرياً{% endif %}
                     </div>
+
+                    {% if plan.onboarding_sessions %}
+                        <div class="plan-card__saving"><i class="fas fa-chalkboard-user ms-1"></i>{{ plan.onboarding_sessions }} جلسة إعداد وتدريب مشمولة</div>
+                    {% endif %}
+                    {% if plan.included_archive_storage_gb %}
+                        <div class="plan-card__saving"><i class="fas fa-box-archive ms-1"></i>أرشيف {{ plan.included_archive_storage_gb }}GB مشمول</div>
+                    {% endif %}
 
                     {% if option.annual_savings %}
                         <div class="plan-card__saving">

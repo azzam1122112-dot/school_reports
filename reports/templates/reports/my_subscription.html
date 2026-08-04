@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/flexible-pricing.css' %}?v=20260804.1">
 <style>
   /* ===== DESIGN TOKENS ===== */
   :root {
@@ -1602,6 +1603,48 @@
     gap: 1rem;
   }
 
+  .plan-reference {
+    margin-top: 1rem;
+    border: 1px solid #e3e9e6;
+    border-radius: 17px;
+    background: rgba(255,255,255,.76);
+    overflow: hidden;
+  }
+
+  .plan-reference > summary {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .85rem 1rem;
+    color: var(--text-2);
+    font-size: .76rem;
+    font-weight: 900;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .plan-reference > summary::-webkit-details-marker { display: none; }
+  .plan-reference > summary i:last-child { margin-inline-start: auto; transition: transform .2s ease; }
+  .plan-reference[open] > summary i:last-child { transform: rotate(180deg); }
+  .plan-reference .renewal-catalog { padding: 0 1rem 1rem; }
+  .plan-reference .plan-family { padding: .85rem; border-radius: 15px; box-shadow: none; }
+
+  .reference-plan-options { display: grid; gap: .45rem; }
+  .reference-plan-option {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items: center;
+    gap: .65rem;
+    padding: .65rem .7rem;
+    border: 1px solid #e8edeb;
+    border-radius: 12px;
+    background: #fbfcfc;
+  }
+  .reference-plan-option div { min-width: 0; }
+  .reference-plan-option strong { display: block; color: var(--text-1); font-size: .72rem; }
+  .reference-plan-option small { color: var(--text-3); font-size: .6rem; font-weight: 700; }
+  .reference-plan-option b { color: var(--primary); font-size: .82rem; white-space: nowrap; }
+
   .plan-family {
     position: relative;
     min-width: 0;
@@ -2653,6 +2696,7 @@
     <aside class="glass-card status-sidebar">
       <div class="status-label">الباقة الحالية</div>
       <div class="plan-name-display">{{ subscription.plan.name|default:"غير مشترك" }}</div>
+      {% if current_teacher_limit %}<div class="status-badge badge-active" style="margin-top:.65rem"><i class="fa-solid fa-users"></i> سعة {{ current_teacher_limit }} معلماً</div>{% endif %}
 
       <!-- Circular Progress Ring -->
       <div class="progress-ring">
@@ -2748,7 +2792,7 @@
                 <div class="purchase-heading">
                   <span class="purchase-kicker">الاشتراك الأساسي</span>
                   <h3>تجديد اشتراك المدرسة</h3>
-                  <p>كل الباقات المنشورة ظاهرة أمامك. قارن السعة والمدة ثم اختر الأنسب.</p>
+                  <p>أدخل عدد المعلمين المطلوب واختر المدة؛ نحسب لك أصغر سعة مناسبة والسعر النهائي فوراً.</p>
                 </div>
                 <label class="service-switch">
                   <input type="checkbox" name="include_subscription" value="1" class="order-toggle"
@@ -2761,58 +2805,73 @@
                 </label>
               </div>
 
-              {% if renewal_catalog %}
-                <div class="renewal-catalog">
-                  {% for group in renewal_catalog %}
-                    <article class="plan-family {% if group.is_recommended %}plan-family--recommended{% endif %}">
-                      {% if group.is_recommended %}
-                        <span class="plan-family-badge"><i class="fa-solid fa-star"></i> الأكثر طلبًا</span>
-                      {% endif %}
-                      <div class="plan-family-head">
-                        <div class="plan-family-icon"><i class="fa-solid fa-users"></i></div>
-                        <div>
-                          <span>سعة الباقة</span>
-                          <h4>{{ group.capacity_label }}</h4>
-                        </div>
-                      </div>
-
-                      <div class="plan-duration-options">
-                        {% for option in group.options %}
-                          <label class="plan-duration-choice">
-                            <input type="radio" name="plan_id" value="{{ option.plan.id }}"
-                                   data-price="{{ option.plan.price|stringformat:'f'|floatformat:2 }}"
-                                   {% if option.plan.id == default_renewal_plan_id %}checked{% endif %}>
-                            <span class="plan-duration-card">
-                              <span class="choice-check"><i class="fa-solid fa-check"></i></span>
-                              <span class="duration-copy">
-                                <strong>{{ option.plan.name }}</strong>
-                                {% if option.is_current %}<small class="current-plan-chip">باقتك الحالية · {{ option.duration_label }}</small>{% else %}<small>{{ option.duration_label }} · {{ option.plan.days_duration }} يوم</small>{% endif %}
-                              </span>
-                              <span class="duration-price">
-                                <strong>{{ option.plan.price|floatformat:0 }}</strong>
-                                <small>ريال</small>
-                              </span>
-                              {% if option.monthly_equivalent %}
-                                <span class="monthly-price">يعادل {{ option.monthly_equivalent|floatformat:0 }} ريال/شهر</span>
-                              {% endif %}
-                              {% if option.annual_savings %}
-                                <span class="annual-saving-chip"><i class="fa-solid fa-piggy-bank"></i> وفّر {{ option.annual_savings|floatformat:0 }} ريال</span>
-                              {% endif %}
-                            </span>
-                          </label>
-                        {% endfor %}
-                      </div>
-
-                      {% if group.features %}
-                        <ul class="plan-feature-list">
-                          {% for feature in group.features %}
-                            <li><i class="fa-solid fa-check"></i>{{ feature }}</li>
-                          {% endfor %}
-                        </ul>
-                      {% endif %}
-                    </article>
-                  {% endfor %}
+              {% if flexible_pricing_catalog %}
+                {{ flexible_pricing_json|json_script:"schoolFlexiblePricingData" }}
+                <div class="flex-pricing-shell" data-flex-pricing data-flex-pricing-source="schoolFlexiblePricingData" data-initial-period="1y" data-min-teacher-count="{{ current_teacher_count|default:1 }}">
+                  <input type="radio" name="plan_id" value="" data-flex-plan-input hidden checked>
+                  <input type="hidden" name="teacher_capacity" value="" data-flex-capacity-input>
+                  <div class="flex-pricing-controls">
+                    <span class="flex-pricing-eyebrow"><i class="fa-solid fa-school-circle-check"></i> توصية مبنية على مدرستك</span>
+                    <h4 class="flex-pricing-title">اختر عدد المعلمين المطلوب</h4>
+                    <p class="flex-pricing-copy">لديك الآن {{ current_teacher_count }} معلماً{% if current_teacher_limit %}، وسعتك الحالية {{ current_teacher_limit }}{% endif %}. يمكنك إضافة مساحة للنمو ولن يسمح النظام بسعة أقل من العدد المسجل.</p>
+                    <label class="flex-count-label" for="schoolTeacherCount">عدد المعلمين المتوقع استخدامهم للمنصة</label>
+                    <div class="flex-count-control">
+                      <button type="button" data-flex-decrease aria-label="إنقاص عدد المعلمين"><i class="fa-solid fa-minus"></i></button>
+                      <input id="schoolTeacherCount" data-flex-teacher-count type="number" value="{% if current_teacher_count %}{{ current_teacher_count }}{% else %}25{% endif %}" min="{{ current_teacher_count|default:1 }}" max="150" inputmode="numeric" aria-describedby="schoolPricingStatus">
+                      <button type="button" data-flex-increase aria-label="زيادة عدد المعلمين"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="flex-periods" role="group" aria-label="مدة التجديد">
+                      {% for period in flexible_pricing_catalog %}
+                        <button type="button" data-flex-period="{{ period.key }}" class="{% if period.key == '1y' %}is-active{% endif %}" aria-pressed="{% if period.key == '1y' %}true{% else %}false{% endif %}">{{ period.label }}</button>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div class="flex-pricing-result" data-flex-result>
+                    <span class="flex-result-label">التجديد المقترح</span>
+                    <strong class="flex-result-capacity">سعة <span data-flex-capacity>—</span> معلماً</strong>
+                    <div class="flex-result-price"><strong data-flex-price>—</strong><span>ريال</span></div>
+                    <span class="flex-result-monthly" data-flex-monthly>يُحتسب السعر فوراً</span>
+                    <div class="flex-result-proof">
+                      <div><small>عدد فريقك</small><strong><span data-flex-count-output>{{ current_teacher_count }}</span> معلماً</strong></div>
+                      <div><small>مساحة للنمو</small><strong><span data-flex-spare>—</span> مقاعد</strong></div>
+                    </div>
+                    <p class="flex-result-status" id="schoolPricingStatus"><i class="fa-solid fa-shield-heart"></i><span data-flex-status>السعر النهائي يظهر قبل الدفع.</span></p>
+                  </div>
                 </div>
+
+                {% if renewal_catalog %}
+                  <details class="plan-reference">
+                    <summary>
+                      <i class="fa-solid fa-table-list"></i>
+                      الأسعار المرجعية المنشورة
+                      <i class="fa-solid fa-chevron-down"></i>
+                    </summary>
+                    <div class="renewal-catalog">
+                      {% for group in renewal_catalog %}
+                        <article class="plan-family{% if group.is_recommended %} plan-family--recommended{% endif %}">
+                          <div class="plan-family-head">
+                            <span class="plan-family-icon"><i class="fa-solid fa-users"></i></span>
+                            <div>
+                              <span>السعة المرجعية</span>
+                              <h4>{{ group.capacity_label }}</h4>
+                            </div>
+                          </div>
+                          <div class="reference-plan-options">
+                            {% for option in group.options %}
+                              <div class="reference-plan-option">
+                                <div>
+                                  <strong>{{ option.plan.name }}</strong>
+                                  <small>{{ option.duration_label }}{% if option.monthly_equivalent %} · {{ option.monthly_equivalent|floatformat:0 }} ريال/شهر{% endif %}</small>
+                                </div>
+                                <b>{{ option.plan.price|floatformat:0 }} ريال</b>
+                              </div>
+                            {% endfor %}
+                          </div>
+                        </article>
+                      {% endfor %}
+                    </div>
+                  </details>
+                {% endif %}
               {% else %}
                 <div class="service-empty-state">
                   <i class="fa-solid fa-circle-info"></i>
@@ -3281,7 +3340,7 @@
                   {% elif payment.purpose == 'archive_storage' %}
                     زيادة مساحة الأرشيف {{ payment.archive_storage_gb }}GB
                   {% else %}
-                    {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}
+                    {{ payment.requested_plan.name|default:"اشتراك المدرسة" }}{% if payment.requested_teacher_limit %} · سعة {{ payment.requested_teacher_limit }}{% endif %}
                   {% endif %}
                   <small style="display:block;color:var(--text-3);margin-top:.25rem;">
                     {% if payment.payment_method == 'moyasar' %}الدفع الإلكتروني{% else %}{{ payment.get_payment_method_display }}{% endif %}
@@ -3356,7 +3415,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'js/subscription-checkout.js' %}?v=20260803.2" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
+<script src="{% static 'js/flexible-pricing.js' %}?v=20260804.1" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
+<script src="{% static 'js/subscription-checkout.js' %}?v=20260804.1" nonce="{{ CSP_NONCE }}" data-cfasync="false"></script>
 <script nonce="{{ CSP_NONCE }}" data-cfasync="false">
 (() => {
   function initSubscriptionPage() {
