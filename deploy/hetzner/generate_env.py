@@ -57,7 +57,6 @@ POSTGRES_USER=school_reports
 POSTGRES_PASSWORD={postgres_password}
 DATABASE_URL=postgresql://school_reports:{postgres_password}@postgres:5432/school_reports
 DB_SSL=False
-CONN_MAX_AGE=600
 
 REDIS_PASSWORD={redis_password}
 REDIS_URL=redis://:{redis_password}@redis:6379/0
