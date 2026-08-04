@@ -217,8 +217,10 @@ class SchoolArchiveAddonTests(TestCase):
             {"status": Payment.Status.APPROVED, "notes": ""},
         )
 
-        addon.refresh_from_db()
-        self.assertEqual(addon.storage_limit_gb, 130)
+        # Bought space is credited to the school itself; the yearly-archive
+        # add-on no longer carries the storage entitlement.
+        self.school.refresh_from_db()
+        self.assertEqual(self.school.extra_storage_gb, 50)
 
     def test_archive_capacity_uses_replacement_delta_not_double_counting(self):
         SchoolArchiveAddon.objects.create(

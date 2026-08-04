@@ -739,6 +739,7 @@ CELERY_TASK_ROUTES = {
     "reports.tasks._daily_summary_for_school": {"queue": "periodic"},
     "reports.tasks.check_subscription_expiry_task": {"queue": "periodic"},
     "reports.tasks.check_archive_addon_expiry_task": {"queue": "periodic"},
+    "reports.tasks.check_storage_thresholds_task": {"queue": "periodic"},
     "reports.tasks.remind_unsigned_circulars_task": {"queue": "periodic"},
     "reports.tasks.cleanup_audit_logs_task": {"queue": "periodic"},
     "reports.tasks.cleanup_expired_sessions_task": {"queue": "periodic"},
@@ -842,6 +843,11 @@ ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED = _env_bool(
     "ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED", True
 )
 
+# Storage is its own product, sized from the purchased teacher capacity. Warn
+# managers as they approach the limit rather than letting them find out from a
+# rejected upload.
+STORAGE_THRESHOLD_ALERTS_ENABLED = _env_bool("STORAGE_THRESHOLD_ALERTS_ENABLED", True)
+
 
 # ----------------- Unsigned Circular Reminders -----------------
 CIRCULAR_SIGNATURE_REMINDER_ENABLED = _env_bool("CIRCULAR_SIGNATURE_REMINDER_ENABLED", True)
@@ -944,6 +950,12 @@ if crontab is not None:
         CELERY_BEAT_SCHEDULE["check-archive-addon-expiry-daily"] = {
             "task": "reports.tasks.check_archive_addon_expiry_task",
             "schedule": crontab(minute=45, hour=8),
+        }
+
+    if STORAGE_THRESHOLD_ALERTS_ENABLED:
+        CELERY_BEAT_SCHEDULE["check-storage-thresholds-daily"] = {
+            "task": "reports.tasks.check_storage_thresholds_task",
+            "schedule": crontab(minute=15, hour=9),
         }
 
     if CIRCULAR_SIGNATURE_REMINDER_ENABLED:

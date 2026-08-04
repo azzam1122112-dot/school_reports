@@ -67,6 +67,14 @@ class School(models.Model):
         default=0,
         help_text="إجمالي تزايدي لحجم ملفات المدرسة (تقارير + ملفات إنجاز + شواهد). يُحدّث تلقائيًا.",
     )
+    extra_storage_gb = models.PositiveIntegerField(
+        "مساحة تخزين إضافية مشتراة (GB)",
+        default=0,
+        help_text=(
+            "تُضاف فوق المساحة الأساسية المشتقة من سعة المعلمين. تبقى فعّالة ما دام "
+            "اشتراك المدرسة فعّالاً، ولا علاقة لها بإضافة الأرشفة السنوية."
+        ),
+    )
     marketing_source = models.CharField(
         "مصدر التسجيل التسويقي",
         max_length=120,

@@ -23,6 +23,11 @@ from .models import (
 
 UNCLASSIFIED_YEAR = "__unclassified__"
 
+# Where the manager starts being warned. Early enough to act — buying space or
+# clearing an archived year both take a few minutes — without nagging.
+STORAGE_WARNING_PERCENT = 80
+STORAGE_CRITICAL_PERCENT = 95
+
 
 def _year_sort_key(value: str) -> tuple[int, str]:
     value = (value or "").strip()
@@ -306,10 +311,7 @@ def sync_school_archive_storage_usage(school: School | None) -> int:
 
 
 def _platform_free_storage_bytes() -> int:
-    """حد التخزين المجاني الأساسي لكل مدرسة (بالبايت) من إعدادات المنصة.
-
-    0 = غير محدود.
-    """
+    """الحد الأدنى لمدرسة بلا اشتراك فعّال (بالبايت). 0 = غير محدود."""
     try:
         from .models import PlatformSettings
 
@@ -319,42 +321,94 @@ def _platform_free_storage_bytes() -> int:
     return max(0, mb) * 1024 * 1024
 
 
-def school_storage_limit_bytes(school: School | None) -> int:
-    """الحد الفعلي لتخزين المدرسة (بالبايت).
-
-    - إن كانت لديها إضافة أرشفة مفعّلة: حدّ الإضافة (storage_limit_gb).
-    - وإلا: الحد المجاني الأساسي من إعدادات المنصة (free_storage_mb).
-    - 0 يعني غير محدود.
-    """
-    if school is None:
-        return 0
+def _storage_mb_per_teacher() -> int:
     try:
-        addon = SchoolArchiveAddon.objects.get(school=school)
-        if addon.is_active:
-            return int(addon.storage_limit_gb or 0) * 1024 * 1024 * 1024
-    except SchoolArchiveAddon.DoesNotExist:
-        pass
-    return _platform_free_storage_bytes()
+        from .models import PlatformSettings
+
+        return max(0, int(getattr(PlatformSettings.get_solo(), "storage_mb_per_teacher", 0) or 0))
+    except Exception:
+        return 0
 
 
-def _expired_archive_addon(school: School | None):
-    """Return the school's archive add-on when it lapsed on its end date.
-
-    Distinguishes "never bought it" from "bought it and it ran out", which need
-    opposite advice.
-    """
+def _active_subscription(school: School | None):
     if school is None:
         return None
     try:
-        addon = SchoolArchiveAddon.objects.filter(school=school).first()
+        subscription = getattr(school, "subscription", None)
     except Exception:
         return None
-    if addon is None or addon.is_active:
+    if subscription is None:
         return None
-    if not addon.end_date or addon.end_date >= timezone.localdate():
-        # Disabled by an administrator rather than lapsed.
+    try:
+        return None if subscription.is_expired else subscription
+    except Exception:
         return None
-    return addon
+
+
+def school_storage_allowance(school: School | None) -> dict:
+    """The school's storage entitlement, broken into its two independent parts.
+
+    Storage is deliberately **not** tied to the yearly-archive add-on. It used to
+    be: the limit lived on SchoolArchiveAddon.storage_limit_gb, so a school could
+    not buy space without buying yearly archiving, and space it had paid for
+    vanished when that add-on lapsed.
+
+    - ``base``  scales with the teacher capacity the school actually bought, so a
+      bigger school starts with more room and gains more by upgrading capacity.
+    - ``extra`` is bought separately and stays for as long as the subscription is
+      active.
+
+    A school with no active subscription falls back to the platform floor.
+    Returns bytes; a total of 0 means unlimited.
+    """
+    if school is None:
+        return {"base_bytes": 0, "extra_bytes": 0, "total_bytes": 0, "is_unlimited": True, "seats": 0}
+
+    subscription = _active_subscription(school)
+    if subscription is None:
+        floor = _platform_free_storage_bytes()
+        return {
+            "base_bytes": floor,
+            "extra_bytes": 0,
+            "total_bytes": floor,
+            "is_unlimited": floor <= 0,
+            "seats": 0,
+        }
+
+    try:
+        seats = int(getattr(subscription, "teacher_limit", 0) or 0)
+    except Exception:
+        seats = 0
+
+    per_teacher_mb = _storage_mb_per_teacher()
+    base_bytes = seats * per_teacher_mb * 1024 * 1024
+    extra_bytes = int(getattr(school, "extra_storage_gb", 0) or 0) * 1024 * 1024 * 1024
+
+    total = base_bytes + extra_bytes
+    if total <= 0:
+        # Per-teacher storage disabled and nothing bought: fall back to the floor
+        # rather than silently granting unlimited space.
+        floor = _platform_free_storage_bytes()
+        return {
+            "base_bytes": floor,
+            "extra_bytes": 0,
+            "total_bytes": floor,
+            "is_unlimited": floor <= 0,
+            "seats": seats,
+        }
+
+    return {
+        "base_bytes": base_bytes,
+        "extra_bytes": extra_bytes,
+        "total_bytes": total,
+        "is_unlimited": False,
+        "seats": seats,
+    }
+
+
+def school_storage_limit_bytes(school: School | None) -> int:
+    """الحد الفعلي لتخزين المدرسة (بالبايت). 0 يعني غير محدود."""
+    return school_storage_allowance(school)["total_bytes"]
 
 
 def _human_size(num_bytes: int) -> str:
@@ -382,11 +436,25 @@ def school_storage_overview(school: School | None) -> dict:
             .first()
             or 0
         )
-    limit = school_storage_limit_bytes(school)
-    is_unlimited = limit <= 0
+    allowance = school_storage_allowance(school)
+    limit = allowance["total_bytes"]
+    is_unlimited = allowance["is_unlimited"]
     percent = 0 if is_unlimited else min(100, round((used / limit) * 100, 1))
     remaining = 0 if is_unlimited else max(0, limit - used)
     breakdown = school_storage_breakdown(school)
+
+    warning_level = "ok"
+    if not is_unlimited:
+        if percent >= 100:
+            warning_level = "full"
+        elif percent >= STORAGE_CRITICAL_PERCENT:
+            warning_level = "critical"
+        elif percent >= STORAGE_WARNING_PERCENT:
+            warning_level = "warning"
+
+    reclaimable = reclaimable_storage_by_year(school) if warning_level != "ok" else []
+    reclaimable_bytes = sum(row["bytes"] for row in reclaimable)
+
     return {
         "used_bytes": used,
         "limit_bytes": limit,
@@ -396,12 +464,93 @@ def school_storage_overview(school: School | None) -> dict:
         "remaining_label": "غير محدود" if is_unlimited else _human_size(remaining),
         "usage_percent": percent,
         "is_unlimited": is_unlimited,
+        # Shown so the manager can see that upgrading capacity raises storage
+        # too, and which part they bought separately.
+        "base_bytes": allowance["base_bytes"],
+        "base_label": _human_size(allowance["base_bytes"]),
+        "extra_bytes": allowance["extra_bytes"],
+        "extra_label": _human_size(allowance["extra_bytes"]),
+        "seats": allowance["seats"],
+        "warning_level": warning_level,
+        "needs_attention": warning_level != "ok",
+        "reclaimable_years": reclaimable,
+        "reclaimable_bytes": reclaimable_bytes,
+        "reclaimable_label": _human_size(reclaimable_bytes),
         "breakdown": {
             key: {"bytes": value, "label": _human_size(value)}
             for key, value in breakdown.items()
             if key != "total"
         },
     }
+
+
+def reclaimable_storage_by_year(school: School | None) -> list[dict]:
+    """Years whose live files are already preserved in a saved snapshot.
+
+    This is what makes "delete old files" a safe suggestion rather than a
+    request to destroy records: the yearly snapshot holds an immutable copy, so
+    the live reports and evidence for that year can be removed to free space
+    without losing the year itself.
+
+    Years with no saved snapshot are deliberately excluded.
+    """
+    if school is None:
+        return []
+
+    archived_years = set(
+        SchoolYearArchive.objects.filter(
+            school=school,
+            status__in=[SchoolYearArchive.Status.READY, SchoolYearArchive.Status.PARTIAL],
+        )
+        .exclude(academic_year="")
+        .values_list("academic_year", flat=True)
+    )
+    if not archived_years:
+        return []
+
+    current_year = (getattr(school, "current_academic_year", "") or "").strip()
+
+    rows = []
+    for year in sorted(archived_years, key=_year_sort_key, reverse=True):
+        if year == current_year:
+            # Never suggest clearing the year the school is still working in.
+            continue
+
+        report_bytes = int(
+            Report.objects.filter(school=school, academic_year=year)
+            .aggregate(total=Sum("storage_bytes"))
+            .get("total")
+            or 0
+        )
+        achievement_bytes = int(
+            TeacherAchievementFile.objects.filter(school=school, academic_year=year)
+            .aggregate(total=Sum("storage_bytes"))
+            .get("total")
+            or 0
+        )
+        evidence_bytes = int(
+            AchievementEvidenceImage.objects.filter(
+                section__file__school=school, section__file__academic_year=year
+            )
+            .aggregate(total=Sum("storage_bytes"))
+            .get("total")
+            or 0
+        )
+        total = report_bytes + achievement_bytes + evidence_bytes
+        if total <= 0:
+            continue
+
+        rows.append(
+            {
+                "academic_year": year,
+                "label": archive_year_label(year),
+                "bytes": total,
+                "size_label": _human_size(total),
+                "reports_bytes": report_bytes,
+                "achievements_bytes": achievement_bytes + evidence_bytes,
+            }
+        )
+    return rows
 
 
 def archive_storage_capacity_error(school: School | None, incoming_files, *, replacing_files=None) -> str:
@@ -435,28 +584,24 @@ def archive_storage_capacity_error(school: School | None, incoming_files, *, rep
     if projected_used_bytes <= limit_bytes:
         return ""
 
-    has_active_addon = school_has_archive_addon(school)
     replaced_text = f"، وسيتم استبدال {_human_size(replaced_bytes)}" if replaced_bytes else ""
     base = (
         f"تم تجاوز حد التخزين المتاح للمدرسة. المستخدم حالياً {_human_size(used_bytes)}، "
         f"والملفات الجديدة {_human_size(incoming_bytes)}{replaced_text}، "
         f"والحد المتاح {_human_size(limit_bytes)}. "
     )
-    if has_active_addon:
-        return base + "يمكنك طلب زيادة المساحة من صفحة الاشتراك."
 
-    # An expired add-on is the most likely reason a school that was uploading
-    # fine yesterday is blocked today: the limit silently fell back to the free
-    # tier while the stored data stayed put. Telling this manager to "delete old
-    # files" points them away from the one action that restores their space.
-    expired_addon = _expired_archive_addon(school)
-    if expired_addon is not None:
+    # Two ways out, and the safe one is only offered when it really is safe:
+    # a year can be cleared without losing it once a snapshot preserves it.
+    reclaimable = reclaimable_storage_by_year(school)
+    if reclaimable:
+        biggest = reclaimable[0]
         return base + (
-            f"السبب أن إضافة الأرشفة انتهت بتاريخ {expired_addon.end_date}، فرجعت المساحة "
-            "إلى الحد المجاني الأساسي دون حذف أي ملف. تجديد الإضافة من صفحة الاشتراك "
-            "يعيد المساحة كاملة فوراً."
+            f"يمكنك رفع الحد من صفحة الاشتراك، أو تفريغ مساحة بحذف ملفات "
+            f"{biggest['label']} ({biggest['size_label']}) — لها نسخة سنوية محفوظة "
+            "تحتفظ بها كاملة."
         )
-    return base + "يرجى حذف ملفات قديمة أو ترقية باقة التخزين (إضافة الأرشفة) من صفحة الاشتراك."
+    return base + "يمكنك رفع حد التخزين من صفحة الاشتراك."
 
 
 def archive_available_years(*, school: School, teacher=None, school_wide: bool = False) -> list[str]:

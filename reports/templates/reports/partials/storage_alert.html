@@ -1,0 +1,81 @@
+{% comment %}
+Storage pressure banner for school managers.
+
+Rendered wherever a manager works, so the limit is never discovered from a
+rejected upload. Expects `storage_overview` from services_archive.school_storage_overview.
+Silent until 80% — a banner that is always on is a banner nobody reads.
+{% endcomment %}
+{% if storage_overview and storage_overview.needs_attention %}
+  <section class="storage-alert storage-alert--{{ storage_overview.warning_level }}" role="status" aria-labelledby="storageAlertTitle">
+    <div class="storage-alert__head">
+      <span class="storage-alert__icon" aria-hidden="true">
+        <i class="fa-solid {% if storage_overview.warning_level == 'full' %}fa-circle-exclamation{% else %}fa-hard-drive{% endif %}"></i>
+      </span>
+      <div class="storage-alert__copy">
+        <strong id="storageAlertTitle">
+          {% if storage_overview.warning_level == 'full' %}
+            امتلأت مساحة تخزين المدرسة
+          {% elif storage_overview.warning_level == 'critical' %}
+            مساحة التخزين على وشك الامتلاء
+          {% else %}
+            اقتربت مساحة التخزين من الحد
+          {% endif %}
+        </strong>
+        <span>
+          استُخدم {{ storage_overview.used_label }} من {{ storage_overview.limit_label }}
+          ({{ storage_overview.usage_percent }}%)
+          {% if not storage_overview.warning_level == 'full' %}· المتبقي {{ storage_overview.remaining_label }}{% endif %}
+        </span>
+      </div>
+    </div>
+
+    <div class="storage-alert__meter" role="img"
+         aria-label="نسبة استخدام مساحة التخزين {{ storage_overview.usage_percent }} بالمئة">
+      <span style="width: {{ storage_overview.usage_percent }}%"></span>
+    </div>
+
+    {% if storage_overview.seats %}
+      <p class="storage-alert__origin">
+        مساحتك الأساسية {{ storage_overview.base_label }} (مشتقة من سعة {{ storage_overview.seats }} معلماً)
+        {% if storage_overview.extra_bytes %}+ {{ storage_overview.extra_label }} مشتراة إضافياً{% endif %}.
+      </p>
+    {% endif %}
+
+    <div class="storage-alert__actions">
+      <a class="storage-alert__cta" href="{% url 'reports:my_subscription' %}#storageService">
+        <i class="fa-solid fa-circle-up" aria-hidden="true"></i>
+        <span>
+          <strong>ارفع حد التخزين</strong>
+          <small>زيادة فورية تُفعَّل بعد الدفع</small>
+        </span>
+      </a>
+
+      {% if storage_overview.reclaimable_years %}
+        <a class="storage-alert__cta storage-alert__cta--ghost" href="{% url 'reports:school_archive' %}">
+          <i class="fa-solid fa-broom" aria-hidden="true"></i>
+          <span>
+            <strong>فرّغ {{ storage_overview.reclaimable_label }} بأمان</strong>
+            <small>
+              ملفات
+              {% for row in storage_overview.reclaimable_years|slice:":2" %}{{ row.label }}{% if not forloop.last %}، {% endif %}{% endfor %}
+              لها نسخة سنوية محفوظة
+            </small>
+          </span>
+        </a>
+      {% else %}
+        <a class="storage-alert__cta storage-alert__cta--ghost" href="{% url 'reports:school_archive' %}">
+          <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+          <span>
+            <strong>احفظ نسخة سنة سابقة</strong>
+            <small>ثم يمكنك حذف ملفاتها الحية بأمان</small>
+          </span>
+        </a>
+      {% endif %}
+    </div>
+
+    <p class="storage-alert__note">
+      <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+      لا يُحذف أي ملف تلقائياً. النسخ السنوية المحفوظة تبقى كاملة وقابلة للتنزيل دائماً.
+    </p>
+  </section>
+{% endif %}

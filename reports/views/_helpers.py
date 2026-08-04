@@ -225,9 +225,12 @@ from ..services_archive import (
     archive_payload,
     archive_storage_capacity_error,
     archive_year_label,
+    reclaimable_storage_by_year,
     school_administrative_archive_payload,
     school_administrative_archive_stats,
     school_archive_enabled,
+    school_storage_allowance,
+    school_storage_limit_bytes,
     school_storage_overview,
     sync_school_archive_storage_usage,
 )

@@ -2963,21 +2963,24 @@
             </section>
 
             <!-- 3) Archive storage expansion -->
-            <section class="purchase-section order-item purchase-section--storage {% if not archive_addon or not archive_addon.is_active or pending_archive_storage_payment or not archive_storage_options %}is-locked{% endif %}" id="archiveStorageService">
+            <section class="purchase-section order-item purchase-section--storage {% if pending_archive_storage_payment or not archive_storage_options %}is-locked{% endif %}" id="storageService">
               <div class="purchase-section-head">
                 <div class="purchase-number">03</div>
                 <div class="purchase-heading">
                   <span class="purchase-kicker">توسعة اختيارية</span>
-                  <h3>زيادة مساحة تخزين الأرشيف</h3>
-                  <p>مساحة إضافية لملفات الأرشيف فقط، وليست زيادة في سعة مستخدمي الباقة.</p>
+                  <h3>زيادة مساحة تخزين المدرسة</h3>
+                  <p>
+                    مساحة إضافية لكل ملفات المدرسة (صور التقارير وشواهد الإنجاز والمرفقات والنسخ السنوية).
+                    مستقلة تماماً عن الأرشفة السنوية، وتبقى فعّالة ما دام الاشتراك فعّالاً.
+                  </p>
                 </div>
                 <label class="service-switch">
                   <input type="checkbox" name="include_archive_storage" value="1" class="order-toggle"
-                         {% if not archive_addon or not archive_addon.is_active or pending_archive_storage_payment or not archive_storage_options %}disabled{% endif %}>
+                         {% if pending_archive_storage_payment or not archive_storage_options %}disabled{% endif %}>
                   <span class="service-switch-control" aria-hidden="true"></span>
                   <span class="service-switch-copy">
                     <strong>إضافة مساحة</strong>
-                    <small>{% if archive_addon and archive_addon.is_active %}إلى الأرشيف{% else %}تتطلب تفعيل الأرشيف{% endif %}</small>
+                    <small>{% if pending_archive_storage_payment %}قيد المراجعة{% else %}تُفعَّل بعد الدفع{% endif %}</small>
                   </span>
                 </label>
               </div>
@@ -2988,12 +2991,15 @@
                   <div class="storage-live-values"><strong>{{ storage_overview.used_label }}</strong><span>من {{ storage_overview.limit_label }}</span></div>
                   {% if not storage_overview.is_unlimited %}<div class="archive-progress"><span style="width:{{ storage_overview.usage_percent }}%"></span></div>{% endif %}
                   <small>المتبقي: {{ storage_overview.remaining_label }}</small>
+                  {% if storage_overview.seats %}
+                    <small class="storage-live-origin">
+                      {{ storage_overview.base_label }} أساسية (سعة {{ storage_overview.seats }} معلماً){% if storage_overview.extra_bytes %} + {{ storage_overview.extra_label }} مشتراة{% endif %}
+                    </small>
+                  {% endif %}
                 </div>
 
                 <div class="storage-option-card">
-                  {% if not archive_addon or not archive_addon.is_active %}
-                    <div class="service-notice service-notice--locked"><i class="fa-solid fa-lock"></i> فعّل اشتراك الأرشيف وانتظر اعتماده أولًا، ثم ستتاح لك خيارات المساحة.</div>
-                  {% elif pending_archive_storage_payment %}
+                  {% if pending_archive_storage_payment %}
                     <div class="service-notice service-notice--pending"><i class="fa-solid fa-hourglass-half"></i> يوجد طلب زيادة مساحة قيد المراجعة.</div>
                   {% elif not archive_storage_options %}
                     <div class="service-notice service-notice--locked"><i class="fa-solid fa-circle-info"></i> لا توجد خيارات مساحة منشورة حاليًا.</div>

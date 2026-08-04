@@ -15,14 +15,19 @@ from django.utils import timezone
 from reports.models import (
     Notification,
     PlatformSettings,
+    Report,
     School,
     SchoolArchiveAddon,
     SchoolMembership,
+    SchoolSubscription,
     SchoolYearArchive,
+    SubscriptionPlan,
     Teacher,
 )
 from reports.services_archive import (
     archive_storage_capacity_error,
+    reclaimable_storage_by_year,
+    school_storage_allowance,
     school_storage_limit_bytes,
     school_storage_overview,
 )
@@ -38,89 +43,141 @@ class _Upload:
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
-class ArchiveStorageCapacityTests(TestCase):
+class StorageAllowanceTests(TestCase):
+    """Storage is sized from the purchased teacher capacity and is deliberately
+    independent of the yearly-archive add-on."""
+
     def setUp(self):
         settings_obj = PlatformSettings.get_solo()
-        settings_obj.free_storage_mb = 1024  # 1 GB free tier
-        settings_obj.save(update_fields=["free_storage_mb"])
-
+        settings_obj.free_storage_mb = 1024
+        settings_obj.storage_mb_per_teacher = 200
+        settings_obj.save(
+            update_fields=["free_storage_mb", "storage_mb_per_teacher"]
+        )
         self.school = School.objects.create(name="مدرسة الأرشيف", code="archive-school")
+
+    def _subscribe(self, *, seats, days=365, active=True):
+        plan = SubscriptionPlan.objects.create(
+            name=f"سعة {seats}", price=100, days_duration=days, max_teachers=seats
+        )
+        subscription = SchoolSubscription.objects.create(school=self.school, plan=plan)
+        if not active:
+            subscription.end_date = timezone.localdate() - timedelta(days=1)
+            subscription.save(update_fields=["end_date"])
+        self.school.refresh_from_db()
+        return subscription
 
     def _use(self, num_bytes):
         School.objects.filter(pk=self.school.pk).update(storage_used_bytes=num_bytes)
         self.school.refresh_from_db()
 
-    def _addon(self, *, end_date, limit_gb=50):
+    def _archive_addon(self, *, active=True):
         return SchoolArchiveAddon.objects.create(
             school=self.school,
             is_enabled=True,
-            start_date=timezone.localdate() - timedelta(days=365),
-            end_date=end_date,
-            storage_limit_gb=limit_gb,
+            start_date=timezone.localdate() - timedelta(days=30),
+            end_date=(
+                timezone.localdate() + timedelta(days=30)
+                if active
+                else timezone.localdate() - timedelta(days=1)
+            ),
+            storage_limit_gb=50,
         )
 
-    def test_school_without_the_addon_gets_the_free_tier(self):
+    def test_base_storage_scales_with_purchased_capacity(self):
+        self._subscribe(seats=50)
+
+        # 200 MB per seat x 50 seats
+        self.assertEqual(school_storage_limit_bytes(self.school), 50 * 200 * MB)
+
+    def test_a_bigger_capacity_gets_more_room(self):
+        self._subscribe(seats=100)
+
+        self.assertEqual(school_storage_limit_bytes(self.school), 100 * 200 * MB)
+
+    def test_purchased_extra_storage_adds_on_top(self):
+        self._subscribe(seats=25)
+        School.objects.filter(pk=self.school.pk).update(extra_storage_gb=10)
+        self.school.refresh_from_db()
+
+        allowance = school_storage_allowance(self.school)
+
+        self.assertEqual(allowance["base_bytes"], 25 * 200 * MB)
+        self.assertEqual(allowance["extra_bytes"], 10 * GB)
+        self.assertEqual(allowance["total_bytes"], 25 * 200 * MB + 10 * GB)
+
+    def test_storage_does_not_depend_on_the_archive_addon(self):
+        """The separation this whole change exists for."""
+        self._subscribe(seats=50)
+        expected = school_storage_limit_bytes(self.school)
+
+        self._archive_addon(active=True)
+        self.assertEqual(school_storage_limit_bytes(self.school), expected)
+
+        SchoolArchiveAddon.objects.all().delete()
+        self._archive_addon(active=False)
+        self.assertEqual(school_storage_limit_bytes(self.school), expected)
+
+    def test_an_expired_archive_addon_no_longer_freezes_uploads(self):
+        """Previously the limit collapsed to the free tier and every upload in
+        the platform was rejected."""
+        self._subscribe(seats=50)
+        self._archive_addon(active=False)
+        self._use(5 * GB)
+
+        self.assertEqual(archive_storage_capacity_error(self.school, [_Upload(2 * MB)]), "")
+
+    def test_a_school_without_an_active_subscription_falls_back_to_the_floor(self):
+        self._subscribe(seats=50, active=False)
+
         self.assertEqual(school_storage_limit_bytes(self.school), 1024 * MB)
 
-    def test_active_addon_raises_the_limit(self):
-        self._addon(end_date=timezone.localdate() + timedelta(days=30))
-
-        self.assertEqual(school_storage_limit_bytes(self.school), 50 * GB)
-
-    def test_expired_addon_drops_back_to_the_free_tier(self):
-        self._addon(end_date=timezone.localdate() - timedelta(days=1))
-
-        self.assertEqual(school_storage_limit_bytes(self.school), 1024 * MB)
-
-    def test_expiry_blocks_uploads_across_the_whole_platform(self):
-        """The consequence a manager needs to understand before renewing:
-        with 20 GB stored, an expired add-on stops every upload, not just
-        archive snapshots."""
-        self._addon(end_date=timezone.localdate() - timedelta(days=1))
-        self._use(20 * GB)
+    def test_over_limit_message_offers_raising_the_limit(self):
+        self._subscribe(seats=25)
+        self._use(5 * GB)
 
         error = archive_storage_capacity_error(self.school, [_Upload(2 * MB)])
 
-        self.assertTrue(error)
+        self.assertIn("رفع حد التخزين", error)
 
-    def test_an_expired_addon_is_named_as_the_cause(self):
-        self._addon(end_date=timezone.localdate() - timedelta(days=1))
-        self._use(20 * GB)
+    def test_over_limit_message_offers_clearing_an_archived_year(self):
+        self._subscribe(seats=25)
+        SchoolYearArchive.objects.create(
+            school=self.school,
+            academic_year="1445",
+            version=1,
+            status=SchoolYearArchive.Status.READY,
+        )
+        old_report = Report.objects.create(
+            school=self.school,
+            teacher=Teacher.objects.create_user(
+                phone="500044332", name="معلم", password="strong-pass-123"
+            ),
+            title="تقرير قديم",
+            report_date=timezone.localdate() - timedelta(days=500),
+            academic_year="1445",
+        )
+        Report.objects.filter(pk=old_report.pk).update(storage_bytes=3 * GB)
+        self._use(5 * GB)
 
         error = archive_storage_capacity_error(self.school, [_Upload(2 * MB)])
 
-        self.assertIn("انتهت", error)
-        self.assertIn("تجديد", error)
-
-    def test_a_school_that_never_bought_the_addon_is_told_to_upgrade(self):
-        self._use(2 * GB)
-
-        error = archive_storage_capacity_error(self.school, [_Upload(2 * MB)])
-
-        self.assertIn("إضافة الأرشفة", error)
-        self.assertNotIn("انتهت", error)
-
-    def test_an_active_addon_over_its_limit_is_told_to_buy_more_space(self):
-        self._addon(end_date=timezone.localdate() + timedelta(days=30), limit_gb=1)
-        self._use(2 * GB)
-
-        error = archive_storage_capacity_error(self.school, [_Upload(2 * MB)])
-
-        self.assertIn("زيادة المساحة", error)
+        self.assertIn("1445", error)
+        self.assertIn("نسخة سنوية محفوظة", error)
 
     def test_uploads_within_the_limit_pass(self):
-        self._addon(end_date=timezone.localdate() + timedelta(days=30))
-        self._use(10 * GB)
+        self._subscribe(seats=50)
+        self._use(1 * GB)
 
         self.assertEqual(archive_storage_capacity_error(self.school, [_Upload(5 * MB)]), "")
 
     def test_replacing_a_file_frees_its_space_for_the_check(self):
-        self._addon(end_date=timezone.localdate() + timedelta(days=30), limit_gb=1)
-        self._use(1 * GB)
+        self._subscribe(seats=25)
+        self._use(5 * GB)
 
         class _Existing:
             name = "old.bin"
-            size = 100 * MB
+            size = 200 * MB
 
         error = archive_storage_capacity_error(
             self.school, [_Upload(50 * MB)], replacing_files=[_Existing()]
@@ -261,25 +318,25 @@ class ArchiveAddonExpiryReminderTests(TestCase):
         self.assertEqual(summary["reminders_sent"], 0)
         self.assertEqual(self._manager_notifications().count(), 0)
 
-    def test_a_school_over_the_free_tier_is_told_uploads_will_stop(self):
+    def test_the_reminder_states_only_snapshot_creation_stops(self):
+        self._addon(days_left=3)
+
+        self._run()
+
+        message = self._manager_notifications().first().message
+        self.assertIn("إنشاء نسخة سنوية جديدة", message)
+
+    def test_the_reminder_promises_storage_is_unaffected(self):
+        """Storage is a separate product now, so lapsing must not be implied to
+        threaten it — that would push managers into a renewal they do not need."""
         self._addon(days_left=3)
         School.objects.filter(pk=self.school.pk).update(storage_used_bytes=20 * GB)
 
         self._run()
 
         message = self._manager_notifications().first().message
-        self.assertIn("سيتوقف", message)
-        self.assertIn("شواهد الإنجاز", message)
-
-    def test_a_school_within_the_free_tier_is_not_alarmed(self):
-        self._addon(days_left=3)
-        School.objects.filter(pk=self.school.pk).update(storage_used_bytes=100 * MB)
-
-        self._run()
-
-        message = self._manager_notifications().first().message
+        self.assertIn("مساحة التخزين لا تتأثر", message)
         self.assertNotIn("سيتوقف", message)
-        self.assertIn("لن تُحذف", message)
 
     def test_saved_snapshots_are_promised_to_remain_downloadable(self):
         self._addon(days_left=1)

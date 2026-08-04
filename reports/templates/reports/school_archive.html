@@ -1,9 +1,10 @@
 {% extends "base.html" %}
-{% load hijri_tags %}
+{% load static hijri_tags %}
 
 {% block title %}أرشيف المدرسة{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/storage-alert.css' %}?v=20260804.1">
 <style nonce="{{ CSP_NONCE }}">
   .archive-page {
     --ar-green:#006c35; --ar-green-dark:#064e2c; --ar-gold:#b9975b;
@@ -174,6 +175,8 @@
       </div>
     </div>
   {% endif %}
+
+  {% if can_manage_archive %}{% include "reports/partials/storage_alert.html" %}{% endif %}
 
   {% if storage_overview %}
     {% with pct=storage_overview.usage_percent %}

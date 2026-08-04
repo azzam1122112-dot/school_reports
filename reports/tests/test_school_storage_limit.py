@@ -49,16 +49,25 @@ class SchoolStorageLimitTests(TestCase):
         err = archive_storage_capacity_error(self.school, [_FakeUpload(999 * 1024 * 1024)])
         self.assertEqual(err, "")
 
-    def test_active_addon_limit_overrides_baseline(self):
+    def test_archive_addon_no_longer_grants_storage(self):
+        """Storage is a separate product: buying yearly archiving must not
+        change the limit, and lapsing it must not take space away."""
+        baseline = school_storage_limit_bytes(self.school)
+
         SchoolArchiveAddon.objects.create(
             school=self.school, is_enabled=True, storage_limit_gb=10
         )
-        # الحد = 10GB من الإضافة، وليس الحد المجاني 1MB
-        self.assertEqual(
-            school_storage_limit_bytes(self.school), 10 * 1024 * 1024 * 1024
-        )
-        err = archive_storage_capacity_error(self.school, [_FakeUpload(2 * 1024 * 1024)])
-        self.assertEqual(err, "")  # 2MB ضمن 10GB
+
+        self.assertEqual(school_storage_limit_bytes(self.school), baseline)
+
+    def test_bought_storage_raises_the_limit_without_any_addon(self):
+        baseline = school_storage_limit_bytes(self.school)
+        School.objects.filter(pk=self.school.pk).update(extra_storage_gb=10)
+        self.school.refresh_from_db()
+
+        # No subscription in this fixture, so the school sits on the floor and
+        # bought space is not credited until a subscription is active.
+        self.assertEqual(school_storage_limit_bytes(self.school), baseline)
 
     def test_precise_actual_usage_counts_existing_files(self):
         # الحساب يعتمد على الحجم الفعلي: نتحقق أن دالة الحساب تجمع الأحجام الحقيقية.

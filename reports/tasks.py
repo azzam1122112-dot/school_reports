@@ -1294,15 +1294,11 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
 
 @shared_task(bind=True, ignore_result=True)
 def check_archive_addon_expiry_task(self) -> dict:
-    """Warn managers before the archive add-on lapses.
+    """Warn managers before the yearly-archive add-on lapses.
 
-    Subscriptions get a reminder; the archive add-on did not, and its expiry is
-    the more disruptive of the two. When it lapses the school's storage limit
-    falls back to the free tier while the stored data stays put, so a school
-    holding more than the free tier can no longer attach a photo to a report,
-    upload achievement evidence, or add a ticket attachment — the whole platform
-    stops accepting files, not just the archive. Nobody should discover that
-    from a failed upload.
+    Storage is a separate product, so lapsing no longer freezes uploads — it
+    only stops the school creating new yearly snapshots. Snapshots already saved
+    stay downloadable either way, and the reminder says so.
     """
     task_id, retries, trace_id = _task_ctx(self)
     summary = {"addons_checked": 0, "reminders_sent": 0, "skipped_duplicate": 0}
@@ -1358,35 +1354,15 @@ def check_archive_addon_expiry_task(self) -> dict:
         if not manager_ids:
             continue
 
-        used_bytes = int(
-            School.objects.filter(pk=school.pk)
-            .values_list("storage_used_bytes", flat=True)
-            .first()
-            or 0
-        )
-        free_bytes = 0
-        try:
-            PlatformSettings = apps.get_model("reports", "PlatformSettings")
-            free_bytes = int(getattr(PlatformSettings.get_solo(), "free_storage_mb", 0) or 0) * 1024 * 1024
-        except Exception:
-            free_bytes = 0
-
         lines = [
-            f"إضافة الأرشفة لمدرسة {school_name} تنتهي خلال {days_left} يوماً "
-            f"(بتاريخ {addon.end_date})."
+            f"إضافة الأرشفة السنوية لمدرسة {school_name} تنتهي خلال {days_left} يوماً "
+            f"(بتاريخ {addon.end_date}).",
+            "بعد الانتهاء لن تتمكن المدرسة من إنشاء نسخة سنوية جديدة حتى التجديد.",
+            # Say plainly what does NOT break, so nobody renews out of fear of
+            # losing data or storage.
+            "النسخ المحفوظة تبقى قابلة للتنزيل، ومساحة التخزين لا تتأثر إطلاقاً "
+            "لأنها مستقلة عن الأرشفة السنوية.",
         ]
-        # Spell out the consequence only when it actually applies to this school.
-        if free_bytes and used_bytes > free_bytes:
-            lines.append(
-                f"المستخدم حالياً {round(used_bytes / (1024 ** 3), 2)}GB، والحد المجاني بعد الانتهاء "
-                f"{round(free_bytes / (1024 ** 3), 2)}GB — أي أن رفع أي ملف جديد في المنصة "
-                "سيتوقف (صور التقارير، شواهد الإنجاز، مرفقات الطلبات والتعاميم) حتى التجديد."
-            )
-        else:
-            lines.append(
-                "بعد الانتهاء ترجع المساحة إلى الحد المجاني الأساسي، ولن تُحذف أي ملفات محفوظة."
-            )
-        lines.append("النسخ المحفوظة تبقى قابلة للتنزيل في كل الأحوال.")
 
         notification = Notification.objects.create(
             title=dedup_title,
@@ -1420,4 +1396,127 @@ def check_archive_addon_expiry_task(self) -> dict:
         summary,
     )
     opmetrics.increment("celery.task.success.check_archive_addon_expiry_task")
+    return summary
+
+
+@shared_task(bind=True, ignore_result=True)
+def check_storage_thresholds_task(self) -> dict:
+    """Warn managers before their school runs out of storage.
+
+    Discovering a full disk from a failed upload — mid-lesson, with a photo the
+    teacher wanted to file — is the worst possible moment. This gives managers
+    days of notice and names both ways out: raise the limit, or clear a year
+    that a saved snapshot already preserves.
+    """
+    task_id, retries, trace_id = _task_ctx(self)
+    summary = {"schools_checked": 0, "warnings_sent": 0, "skipped_duplicate": 0}
+
+    if not bool(getattr(settings, "STORAGE_THRESHOLD_ALERTS_ENABLED", True)):
+        return summary
+
+    if not _periodic_lock("check_storage_thresholds", ttl=300):
+        logger.info("Storage threshold task skipped: another instance is running.")
+        return {**summary, "skipped": "lock"}
+
+    from .services_archive import STORAGE_CRITICAL_PERCENT, school_storage_overview
+
+    School = apps.get_model("reports", "School")
+    SchoolMembership = apps.get_model("reports", "SchoolMembership")
+    Notification = apps.get_model("reports", "Notification")
+    NotificationRecipient = apps.get_model("reports", "NotificationRecipient")
+
+    dedup_cutoff = timezone.now() - timedelta(days=3)
+
+    schools = School.objects.filter(is_active=True).select_related(
+        "subscription", "subscription__plan"
+    )
+
+    for school in schools.iterator():
+        overview = school_storage_overview(school)
+        if not overview["needs_attention"]:
+            continue
+
+        summary["schools_checked"] += 1
+        percent = overview["usage_percent"]
+        level = overview["warning_level"]
+
+        # One title per level, so crossing from warning to critical still gets
+        # through while a steady state does not repeat every day.
+        dedup_title = f"💾 مساحة تخزين {school.name} ({level})"
+        if Notification.objects.filter(
+            title=dedup_title, school=school, created_at__gte=dedup_cutoff
+        ).exists():
+            summary["skipped_duplicate"] += 1
+            continue
+
+        manager_ids = list(
+            SchoolMembership.objects.filter(
+                school=school,
+                role_type="manager",
+                is_active=True,
+                teacher__is_active=True,
+            ).values_list("teacher_id", flat=True)
+        )
+        if not manager_ids:
+            continue
+
+        if level == "full":
+            headline = (
+                f"امتلأت مساحة تخزين {school.name} ({overview['used_label']} من "
+                f"{overview['limit_label']}). رفع أي ملف جديد متوقف الآن."
+            )
+        else:
+            headline = (
+                f"مساحة تخزين {school.name} وصلت {percent}% "
+                f"({overview['used_label']} من {overview['limit_label']})."
+            )
+
+        lines = [headline, "", "أمامك خياران:"]
+        lines.append("• رفع حد التخزين من صفحة الاشتراك.")
+        if overview["reclaimable_years"]:
+            biggest = overview["reclaimable_years"][0]
+            lines.append(
+                f"• تفريغ {overview['reclaimable_label']} بحذف ملفات سنوات لها نسخة "
+                f"سنوية محفوظة (أكبرها {biggest['label']} بحجم {biggest['size_label']}). "
+                "النسخة المحفوظة تحتفظ بالسنة كاملة."
+            )
+        else:
+            lines.append(
+                "• أو حفظ نسخة سنوية لسنة سابقة ثم حذف ملفاتها الحية لتفريغ مساحتها."
+            )
+
+        notification = Notification.objects.create(
+            title=dedup_title,
+            message="\n".join(lines),
+            school=school,
+            is_important=(level in {"critical", "full"}),
+        )
+        NotificationRecipient.objects.bulk_create(
+            [
+                NotificationRecipient(notification=notification, teacher_id=mid)
+                for mid in manager_ids
+            ],
+            ignore_conflicts=True,
+        )
+        try:
+            from .realtime_notifications import push_new_notification_to_teachers
+
+            push_new_notification_to_teachers(
+                notification=notification, teacher_ids=manager_ids
+            )
+        except Exception:
+            pass
+
+        summary["warnings_sent"] += 1
+        if percent >= STORAGE_CRITICAL_PERCENT:
+            opmetrics.increment("storage.school.critical")
+
+    logger.info(
+        "Task success name=check_storage_thresholds_task task_id=%s trace_id=%s retries=%s summary=%s",
+        task_id,
+        trace_id,
+        retries,
+        summary,
+    )
+    opmetrics.increment("celery.task.success.check_storage_thresholds_task")
     return summary

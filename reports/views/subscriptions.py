@@ -522,22 +522,21 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         platform_settings = PlatformSettings.get_solo()
         free_limit_bytes = max(0, int(getattr(platform_settings, "free_storage_mb", 0) or 0)) * 1024 * 1024
         storage_near_limit_count = 0
-        storage_schools = School.objects.select_related("archive_addon").only(
+        # Storage no longer depends on the yearly-archive add-on; it comes from
+        # the purchased teacher capacity plus any separately bought space.
+        storage_schools = School.objects.select_related("subscription__plan").only(
             "id",
             "storage_used_bytes",
-            "archive_addon__is_enabled",
-            "archive_addon__start_date",
-            "archive_addon__end_date",
-            "archive_addon__storage_limit_gb",
+            "extra_storage_gb",
+            "subscription__end_date",
+            "subscription__is_active",
+            "subscription__canceled_at",
+            "subscription__teacher_limit_override",
+            "subscription__plan__max_teachers",
+            "subscription__plan__days_duration",
         )
         for school in storage_schools.iterator():
-            limit_bytes = free_limit_bytes
-            try:
-                addon = school.archive_addon
-                if addon.is_active:
-                    limit_bytes = max(0, int(addon.storage_limit_gb or 0)) * 1024 * 1024 * 1024
-            except SchoolArchiveAddon.DoesNotExist:
-                pass
+            limit_bytes = school_storage_limit_bytes(school)
             if limit_bytes > 0 and int(school.storage_used_bytes or 0) >= int(limit_bytes * 0.8):
                 storage_near_limit_count += 1
         
@@ -1873,19 +1872,17 @@ def _apply_payment_effects(payment, today, pricing):
         return applied("success", "تم تفعيل/تجديد إضافة الأرشفة للمدرسة تلقائياً.")
 
     if purpose == Payment.Purpose.ARCHIVE_STORAGE:
-        try:
-            addon = SchoolArchiveAddon.objects.select_for_update().get(school=payment.school)
-        except SchoolArchiveAddon.DoesNotExist:
-            raise _ApprovalError("لا يمكن اعتماد زيادة التخزين قبل تفعيل إضافة الأرشفة لهذه المدرسة.")
-
         added_gb = int(payment.archive_storage_gb or 0)
         if added_gb <= 0:
             raise _ApprovalError("طلب زيادة التخزين لا يحتوي على مساحة صالحة.")
 
-        addon.storage_limit_gb = int(addon.storage_limit_gb or 0) + added_gb
-        addon.paid_amount = (addon.paid_amount or 0) + payment.amount
-        addon.save(update_fields=["storage_limit_gb", "paid_amount", "updated_at"])
-        return applied("success", f"تمت زيادة مساحة أرشيف المدرسة بمقدار {added_gb}GB.")
+        # Storage is its own product. It used to be refused unless the school had
+        # first bought yearly archiving, which forced schools that only needed
+        # room for report photos to buy a product they did not want.
+        school = School.objects.select_for_update().get(pk=payment.school_id)
+        school.extra_storage_gb = int(school.extra_storage_gb or 0) + added_gb
+        school.save(update_fields=["extra_storage_gb"])
+        return applied("success", f"تمت زيادة مساحة تخزين المدرسة بمقدار {added_gb}GB.")
 
     # ── الاشتراك ──
     plan_to_apply = payment.requested_plan
