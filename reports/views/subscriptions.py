@@ -3819,7 +3819,15 @@ def reconcile_pending_gateway_payments(*, max_age_days: int = 7, limit: int = 20
     Payments older than ``max_age_days`` are left alone for manual review rather
     than retried forever.
     """
-    summary = {"checked": 0, "activated": 0, "still_pending": 0, "failed": 0}
+    summary = {
+        "checked": 0,
+        "activated": 0,
+        "still_pending": 0,
+        "failed": 0,
+        # Payment rows that had to be rescued, so the caller can raise an alert
+        # per rescue rather than per sweep.
+        "recovered_payment_ids": [],
+    }
     cutoff = timezone.now() - timedelta(days=max(1, int(max_age_days)))
 
     pending = (
@@ -3848,6 +3856,7 @@ def reconcile_pending_gateway_payments(*, max_age_days: int = 7, limit: int = 20
                 status = _sync_moyasar_batch(payment.batch_ref)
                 if status == "paid":
                     summary["activated"] += 1
+                    summary["recovered_payment_ids"].append(payment.pk)
                 else:
                     summary["still_pending"] += 1
             else:
@@ -3870,6 +3879,7 @@ def reconcile_pending_gateway_payments(*, max_age_days: int = 7, limit: int = 20
                     captured_amount=captured,
                 )
                 summary["activated"] += 1
+                summary["recovered_payment_ids"].append(payment.pk)
         except Exception:
             summary["failed"] += 1
             logger.exception(

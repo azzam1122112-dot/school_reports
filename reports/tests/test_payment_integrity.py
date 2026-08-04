@@ -410,6 +410,52 @@ class PaymentReconciliationTests(TestCase):
         self.payment.refresh_from_db()
         self.assertEqual(self.payment.status, Payment.Status.PENDING)
 
+    @staticmethod
+    def _recovery_alerts(queue):
+        return [
+            call.args[0]
+            for call in queue.call_args_list
+            if str(getattr(call.args[0], "event_key", "")).startswith("payment-recovery:")
+        ]
+
+    def test_a_rescued_payment_alerts_the_team(self):
+        """The rescue is automatic, but the upstream failure must not be silent."""
+        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()),                 patch("reports.telegram_alerts.queue_telegram_alert") as queue:
+            self._run()
+
+        alerts = self._recovery_alerts(queue)
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0].category, "payments")
+        self.assertIn("إنقاذ عملية دفع", alerts[0].text)
+        self.assertIn(self.school.name, alerts[0].text)
+
+    def test_no_alert_when_nothing_needed_rescuing(self):
+        with patch(
+            "reports.views.subscriptions.fetch_moyasar_invoice",
+            return_value=self._invoice(status="initiated"),
+        ), patch("reports.telegram_alerts.queue_telegram_alert") as queue:
+            self._run()
+
+        self.assertEqual(self._recovery_alerts(queue), [])
+
+    def test_a_rescue_is_announced_once_not_on_every_sweep(self):
+        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()),                 patch("reports.telegram_alerts.queue_telegram_alert") as queue:
+            self._run()
+            self._run()
+
+        self.assertEqual(len(self._recovery_alerts(queue)), 1)
+
+    def test_a_broken_alert_channel_does_not_undo_the_recovery(self):
+        with patch("reports.views.subscriptions.fetch_moyasar_invoice", return_value=self._invoice()),                 patch(
+                    "reports.telegram_alerts.queue_telegram_alert",
+                    side_effect=RuntimeError("telegram down"),
+                ):
+            summary = self._run()
+
+        self.assertEqual(summary["activated"], 1)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Status.APPROVED)
+
     def test_the_sweep_is_scheduled(self):
         from django.conf import settings as django_settings
 

@@ -166,6 +166,41 @@ def build_payment_alert(payment, *, created: bool) -> TelegramAlert:
     )
 
 
+def build_payment_recovery_alert(payment) -> TelegramAlert:
+    """Announce a payment the reconciliation sweep had to rescue.
+
+    Reaching this point means the gateway's callback never landed and the
+    customer never returned to the site: the school had paid and was sitting
+    unactivated until the sweep caught it. The recovery is automatic, but the
+    upstream failure is not something to leave unseen — a rising count of these
+    points at a webhook or availability problem worth investigating.
+    """
+    batch_ref = (getattr(payment, "batch_ref", "") or "").strip()
+    operation_ref = f"دفعة موحدة {batch_ref}" if batch_ref else f"#{payment.pk}"
+    text = "\n".join(
+        [
+            "🛟 <b>تم إنقاذ عملية دفع لم يصلنا تأكيدها</b>",
+            f"🏫 المدرسة: {_safe(payment.school.name)}",
+            f"🧾 العملية: <code>{_safe(operation_ref)}</code>",
+            f"💳 الوسيلة: {_safe(payment.get_payment_method_display())}",
+            f"💰 المبلغ: {_safe(payment.amount)} ريال",
+            f"🕒 الوقت: {_event_time()}",
+            "",
+            "فُعّلت الخدمة تلقائياً بعد التحقق من المزوّد. تكرار هذا التنبيه يعني "
+            "خللاً في وصول إشعارات بوابة الدفع يستحق الفحص.",
+            "",
+            "#دفع #تسوية",
+        ]
+    )
+    return TelegramAlert(
+        # Bucketed per payment so one rescue alerts once, not on every sweep.
+        event_key=f"payment-recovery:{payment.pk}",
+        category="payments",
+        text=text,
+        action_url=_admin_url("reports:platform_payment_detail", args=[payment.pk]),
+    )
+
+
 def build_subscription_alert(subscription, *, created: bool) -> TelegramAlert:
     if bool(getattr(subscription, "is_cancelled", False)):
         status_label = "ملغي"

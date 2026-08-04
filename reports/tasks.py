@@ -1543,6 +1543,7 @@ def reconcile_pending_gateway_payments_task(self) -> dict:
 
     summary = reconcile_pending_gateway_payments()
 
+    recovered_ids = summary.get("recovered_payment_ids") or []
     if summary.get("activated"):
         # A recovered payment means a customer-facing failure happened upstream;
         # make it visible instead of quietly papering over it.
@@ -1552,6 +1553,19 @@ def reconcile_pending_gateway_payments_task(self) -> dict:
             summary,
         )
         opmetrics.increment("payments.reconciled.activated", summary["activated"])
+
+        # Tell the team as well. One alert per rescued payment, so a burst of
+        # them reads as the webhook outage it is.
+        if recovered_ids:
+            try:
+                Payment = apps.get_model("reports", "Payment")
+                from .telegram_alerts import build_payment_recovery_alert, queue_telegram_alert
+
+                for payment in Payment.objects.filter(pk__in=recovered_ids).select_related("school"):
+                    queue_telegram_alert(build_payment_recovery_alert(payment))
+            except Exception:
+                # Alerting must never undo a successful recovery.
+                logger.exception("Unable to queue payment recovery alerts")
     if summary.get("failed"):
         opmetrics.increment("payments.reconciled.failed", summary["failed"])
 
