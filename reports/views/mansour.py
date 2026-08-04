@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import logging
 
 from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpRequest, JsonResponse
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -38,12 +41,49 @@ from ..permissions import (
 from ._helpers import _get_active_school
 
 
+logger = logging.getLogger(__name__)
+
+DAILY_BUDGET_CACHE_PREFIX = "mansour:daily-calls"
+
+
 def _json_response(payload: dict, *, status: int = 200) -> JsonResponse:
     return JsonResponse(
         payload,
         status=status,
         json_dumps_params={"ensure_ascii": False},
     )
+
+
+def _daily_budget_exhausted() -> bool:
+    """Reserve one paid assistant call against the platform-wide daily ceiling.
+
+    The per-IP limiter bounds a single visitor; this bounds the invoice. The
+    counter lives in the shared cache, so all web workers see the same total.
+    If the cache is unavailable we allow the call — a degraded cache must not
+    take the assistant offline — and log it so the gap is visible.
+    """
+    limit = int(getattr(settings, "MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT", 0) or 0)
+    if limit <= 0:
+        return False
+
+    key = f"{DAILY_BUDGET_CACHE_PREFIX}:{timezone.localdate().isoformat()}"
+    try:
+        # Two days of TTL so the key survives the timezone boundary.
+        cache.add(key, 0, timeout=60 * 60 * 48)
+        used = int(cache.incr(key))
+    except Exception:
+        logger.warning("Mansour daily budget counter unavailable; allowing the call.")
+        return False
+
+    if used > limit:
+        if used == limit + 1:
+            logger.error(
+                "Mansour assistant daily platform limit reached limit=%s date=%s",
+                limit,
+                timezone.localdate().isoformat(),
+            )
+        return True
+    return False
 
 
 def _resolve_audience(request: HttpRequest, requested_audience, question="", history=None) -> str:
@@ -120,6 +160,15 @@ def mansour_assistant_reply(request: HttpRequest) -> JsonResponse:
         return _json_response(
             {"ok": False, "message": "صيغة الطلب غير صحيحة."},
             status=400,
+        )
+
+    if _daily_budget_exhausted():
+        return _json_response(
+            {
+                "ok": False,
+                "message": "منصور مشغول جدًا اليوم بسبب كثرة الأسئلة. جرّب مجددًا غدًا أو تواصل مع الدعم.",
+            },
+            status=429,
         )
 
     plans = list(

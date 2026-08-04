@@ -63,7 +63,7 @@ def _nav_cache_ttl_seconds() -> int:
     """Short TTL to smooth load spikes without keeping stale nav data for long."""
     try:
         default_ttl = 20 if not bool(getattr(settings, "DEBUG", False)) else 5
-        return max(0, int(getattr(settings, "NAV_CONTEXT_CACHE_TTL", default_ttl) or 0))
+        return max(0, int(getattr(settings, "NAV_CONTEXT_CACHE_TTL_SECONDS", default_ttl) or 0))
     except Exception:
         return 10
 

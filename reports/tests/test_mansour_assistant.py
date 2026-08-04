@@ -292,7 +292,7 @@ class MansourAssistantTests(TestCase):
             },
         )
 
-        self.assertIn("إنشاء تقارير المعلم", answer)
+        self.assertIn("«إضافة تقرير»", answer)
         self.assertTrue(sources[0]["url"].endswith("/guide/#teacher-report"))
 
     def test_system_prompt_enforces_multi_domain_platform_agent(self):
@@ -302,12 +302,26 @@ class MansourAssistantTests(TestCase):
             audience="teacher",
         )
 
-        self.assertIn("وكيل منصة ذكي", prompt)
-        self.assertIn("التسويق", prompt)
-        self.assertIn("الدعم الفني", prompt)
+        self.assertIn("مستشار منصة توثيق", prompt)
+        self.assertIn("تسويق استشاري", prompt)
+        self.assertIn("دعم فني", prompt)
         self.assertIn("الخطوة التالية:", prompt)
-        self.assertIn("سؤال توضيحي واحد", prompt)
+        self.assertIn("سؤالًا توضيحيًا واحدًا", prompt)
         self.assertNotIn("تصرّف كممثل خدمة عملاء فقط", prompt)
+
+    def test_system_prompt_sets_a_human_conversational_contract(self):
+        prompt = _instructions(
+            select_knowledge("الصورة ما ترضى تترفع", audience="teacher"),
+            [],
+            audience="teacher",
+            intent="support",
+            question="الصورة ما ترضى تترفع",
+        )
+
+        self.assertIn("اعترف بذلك بجملة واحدة صادقة", prompt)
+        self.assertIn("لا تتحدث عن آليتك الداخلية", prompt)
+        self.assertIn("لا تدّعي أنك إنسان", prompt)
+        self.assertIn("أدركت أثر المشكلة عليه", prompt)
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_usage_reply_recommends_one_immediate_next_step(self):
@@ -361,7 +375,7 @@ class MansourAssistantTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload["ok"])
-        self.assertIn("ممثل خدمة العملاء", payload["answer"])
+        self.assertIn("مساعدك في منصة توثيق", payload["answer"])
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_complaint_intent_returns_professional_fallback(self):
@@ -379,7 +393,7 @@ class MansourAssistantTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload["ok"])
-        self.assertIn("نعتذر", payload["answer"])
+        self.assertIn("آسف", payload["answer"])
         self.assertIn("رقم متابعة", payload["answer"])
         self.assertTrue(payload["sources"])
         self.assertEqual(payload["sources"][0]["url"], "/complaints/#complaint-form")
@@ -549,6 +563,31 @@ class MansourAssistantTests(TestCase):
         self.assertEqual(len(response.json()["sources"]), 2)
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
+    def test_short_pronominal_follow_up_keeps_the_previous_workflow(self):
+        response = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps(
+                {
+                    "question": "كيف أعدلها؟",
+                    "history": [
+                        {
+                            "role": "user",
+                            "content": "أنشأت تقرير نشاط وظهر في صفحة تقاريري.",
+                        }
+                    ],
+                    "audience": "teacher",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["audience"], "teacher")
+        self.assertIn("«إضافة تقرير»", response.json()["answer"])
+        self.assertIn("تعديله", response.json()["answer"])
+        self.assertTrue(response.json()["sources"][0]["url"].endswith("/#teacher-report"))
+
+    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_pricing_reply_deduplicates_equivalent_free_trials(self):
         SubscriptionPlan.objects.create(
             name="تجربة مجانية",
@@ -577,7 +616,7 @@ class MansourAssistantTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertIn("تُحفظ ضمن حسابها", payload["answer"])
-        self.assertIn("صلاحيات دوره", payload["answer"])
+        self.assertIn("صلاحيات دورك", payload["answer"])
         self.assertEqual(
             [source["url"] for source in payload["sources"]],
             ["/privacy/", "/guide/#account-security"],
@@ -589,7 +628,7 @@ class MansourAssistantTests(TestCase):
             ("دفعت قيمة الاشتراك ولم يتفعل حتى الآن", "رقم العملية", "بيانات البطاقة"),
             ("نسيت كلمة المرور ولا يصلني رابط الاستعادة", "البريد الإلكتروني المسجل", "صالح لمدة ساعة"),
             ("البصمة لا تعمل في جوالي", "قفل شاشة", "الدخول بالبصمة"),
-            ("خرج حسابي بعد أن دخلت من جهاز آخر", "الجلسة الواحدة", "لا يحذف الحساب"),
+            ("خرج حسابي بعد أن دخلت من جهاز آخر", "الجلسة الواحدة", "لا يحذف حسابك"),
             ("لا أستطيع رفع صورة في التقرير وتظهر رسالة خطأ", "ملفًا واحدًا", "نوع الجهاز والمتصفح"),
         )
 
@@ -626,8 +665,8 @@ class MansourAssistantTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertIn("لم أجد حلًا موثقًا", payload["answer"])
-        self.assertIn("يمكن لمدير المدرسة", payload["answer"])
+        self.assertIn("ما لقيت حلًا موثقًا", payload["answer"])
+        self.assertIn("يستطيع مدير المدرسة", payload["answer"])
         self.assertIn(
             {"title": "فتح تذكرة دعم فني (مدير المدرسة)", "url": "/support/new/"},
             payload["sources"],
@@ -643,7 +682,7 @@ class MansourAssistantTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertIn("لم أجد حلًا موثقًا", payload["answer"])
+        self.assertIn("ما لقيت حلًا موثقًا", payload["answer"])
         self.assertIn("/support/new/", [source["url"] for source in payload["sources"]])
         mocked_urlopen.assert_not_called()
 
@@ -657,7 +696,7 @@ class MansourAssistantTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertIn("لن أخمّن", payload["answer"])
+        self.assertIn("غير موثق", payload["answer"])
         self.assertEqual(payload["sources"][0]["url"], "/complaints/#complaint-form")
         mocked_urlopen.assert_not_called()
 
@@ -695,7 +734,7 @@ class MansourAssistantTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertIn("جرّب هذه الخطوات", payload["answer"])
+        self.assertIn("ارفع ملفًا واحدًا", payload["answer"])
         self.assertNotIn("/support/new/", [source["url"] for source in payload["sources"]])
 
     @patch("reports.mansour_assistant.urlopen", return_value=_FakeSupportOpenAIResponse())
@@ -726,7 +765,7 @@ class MansourAssistantTests(TestCase):
                     content_type="application/json",
                 )
                 self.assertEqual(response.status_code, 200)
-                self.assertIn("فقط في خدمات منصة توثيق", response.json()["answer"])
+                self.assertIn("متخصص في منصة توثيق", response.json()["answer"])
                 self.assertEqual(response.json()["sources"], [])
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
@@ -1057,3 +1096,76 @@ class MansourAssistantTests(TestCase):
         payload = response.json()
         self.assertTrue(payload["ok"])
         self.assertIn("التسجيل", payload["answer"])
+
+
+class MansourDailyBudgetTests(TestCase):
+    """The assistant widget is public, so the per-IP limit alone cannot bound
+    the OpenAI invoice — a platform-wide daily ceiling has to exist too."""
+
+    def setUp(self):
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+
+    def _ask(self, question="كيف أشترك؟"):
+        return self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": question}),
+            content_type="application/json",
+        )
+
+    @override_settings(MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT=2)
+    def test_platform_wide_daily_ceiling_blocks_further_calls(self):
+        self.assertEqual(self._ask().status_code, 200)
+        self.assertEqual(self._ask().status_code, 200)
+
+        blocked = self._ask()
+
+        self.assertEqual(blocked.status_code, 429)
+        self.assertFalse(blocked.json()["ok"])
+        self.assertIn("غدًا", blocked.json()["message"])
+
+    @override_settings(MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT=1)
+    def test_ceiling_is_shared_across_visitors(self):
+        self.assertEqual(self._ask().status_code, 200)
+
+        other_visitor = Client()
+        blocked = other_visitor.post(
+            reverse("reports:mansour_assistant_reply"),
+            data=json.dumps({"question": "كم السعر؟"}),
+            content_type="application/json",
+            REMOTE_ADDR="203.0.113.9",
+        )
+
+        self.assertEqual(blocked.status_code, 429)
+
+    @override_settings(MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT=0)
+    def test_ceiling_can_be_disabled(self):
+        for _ in range(4):
+            self.assertEqual(self._ask().status_code, 200)
+
+    @override_settings(MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT=1)
+    def test_malformed_requests_do_not_consume_the_budget(self):
+        broken = self.client.post(
+            reverse("reports:mansour_assistant_reply"),
+            data="not-json",
+            content_type="application/json",
+        )
+        self.assertEqual(broken.status_code, 400)
+
+        self.assertEqual(self._ask().status_code, 200)
+
+    @override_settings(MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT=1)
+    def test_unavailable_cache_does_not_take_the_assistant_offline(self):
+        from unittest.mock import MagicMock
+
+        # Rebind only the assistant view's cache reference so the rest of the
+        # request path (rate limiting, metrics) keeps a working cache.
+        broken_cache = MagicMock()
+        broken_cache.add.side_effect = RuntimeError("redis down")
+        broken_cache.incr.side_effect = RuntimeError("redis down")
+
+        with patch("reports.views.mansour.cache", broken_cache):
+            for _ in range(3):
+                self.assertEqual(self._ask().status_code, 200)

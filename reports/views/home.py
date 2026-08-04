@@ -245,4 +245,25 @@ def home(request: HttpRequest) -> HttpResponse:
         if settings.DEBUG or os.getenv("SHOW_ERRORS") == "1":
             html = "<h2>Home exception</h2><pre>{}</pre>".format(traceback.format_exc())
             return HttpResponse(html, status=500)
-    return redirect("reports:home")
+        # Never redirect back to this same view: if the failure is persistent
+        # the browser ends up in an endless redirect loop instead of showing a
+        # readable error.
+        try:
+            return render(request, "reports/home.html", {
+                "stats": stats,
+                "recent_reports": [],
+                "req_stats": req_stats,
+                "recent_tickets": [],
+                "active_requests_count": 0,
+                "home_notification": None,
+                "home_notification_recipient_id": None,
+                "home_load_failed": True,
+            }, status=500)
+        except Exception:
+            # The template itself may be the failing part; fall back to plain text.
+            logger.exception("Home view fallback rendering failed")
+            return HttpResponse(
+                "تعذّر تحميل الصفحة الرئيسية حالياً. حاول مجدداً بعد قليل.",
+                status=500,
+                content_type="text/plain; charset=utf-8",
+            )

@@ -124,13 +124,16 @@ class AuditLogMiddleware:
         _thread_locals.request = request
         # Ensure suppression does not leak between requests.
         set_audit_logging_suppressed(False)
-        response = self.get_response(request)
-        # تنظيف بعد الطلب
-        if hasattr(_thread_locals, "request"):
-            del _thread_locals.request
-        if hasattr(_thread_locals, "suppress_audit_logging"):
-            delattr(_thread_locals, "suppress_audit_logging")
-        return response
+        try:
+            return self.get_response(request)
+        finally:
+            # تنظيف بعد الطلب — لا بد أن يتم حتى لو رمى الطلب استثناءً،
+            # وإلا بقي الطلب القديم مرتبطًا بالـ thread وسُجّلت عمليات لاحقة
+            # باسم المستخدم الخطأ.
+            if hasattr(_thread_locals, "request"):
+                del _thread_locals.request
+            if hasattr(_thread_locals, "suppress_audit_logging"):
+                delattr(_thread_locals, "suppress_audit_logging")
 
 
 class CanonicalHostMiddleware:
@@ -656,6 +659,7 @@ class SubscriptionMiddleware:
             allowed_paths |= {
                 reverse('reports:my_subscription'),
                 reverse('reports:payment_create'),
+                reverse('reports:school_addition_requests'),
                 reverse('reports:school_archive'),
                 reverse('reports:school_archive_create'),
             }

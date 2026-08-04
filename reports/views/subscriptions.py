@@ -19,6 +19,12 @@ from ._helpers import (
     _clean_query_value, _clean_query_params, _parse_date_safe,
 )
 from ..mansour_knowledge import AUDIENCE_LABELS
+from ..flexible_pricing import (
+    build_flexible_pricing_catalog,
+    normalize_teacher_capacity,
+    quote_for_selection,
+    serialize_flexible_pricing_catalog,
+)
 from ..moyasar_gateway import (
     MoyasarGatewayError,
     create_invoice as create_moyasar_invoice,
@@ -207,7 +213,10 @@ def _renewal_plan_catalog(current_plan_id: int | None = None) -> list[dict]:
         )
 
         days = int(plan.days_duration or 0)
-        if 160 <= days <= 210:
+        if 20 <= days <= 44:
+            duration_label = "شهر"
+            months = 1
+        elif 160 <= days <= 210:
             duration_label = "6 أشهر"
             months = 6
         elif 330 <= days <= 400:
@@ -243,6 +252,14 @@ def _renewal_plan_catalog(current_plan_id: int | None = None) -> list[dict]:
         )
 
     for group in groups.values():
+        monthly = next(
+            (
+                option
+                for option in group["options"]
+                if 20 <= int(option["plan"].days_duration or 0) <= 44
+            ),
+            None,
+        )
         semiannual = next(
             (
                 option
@@ -259,8 +276,12 @@ def _renewal_plan_catalog(current_plan_id: int | None = None) -> list[dict]:
             ),
             None,
         )
-        if semiannual and annual:
-            savings = (semiannual["plan"].price * 2) - annual["plan"].price
+        if monthly and semiannual:
+            savings = (monthly["plan"].price * 6) - semiannual["plan"].price
+            if savings > 0:
+                semiannual["annual_savings"] = savings
+        if monthly and annual:
+            savings = (monthly["plan"].price * 12) - annual["plan"].price
             if savings > 0:
                 annual["annual_savings"] = savings
 
@@ -466,6 +487,9 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
     # ملاحظة: عدّاد التذاكر المفتوحة يأتي من payload الفترة (kpis.tickets_open) أدناه،
     # لذا لا نحسبه هنا تفاديًا لاستعلام مهدور.
     pending_payments = Payment.objects.filter(status=Payment.Status.PENDING).count()
+    pending_school_addition_requests = SchoolAdditionRequest.objects.filter(
+        status=SchoolAdditionRequest.Status.PENDING
+    ).count()
     complaints_pending = CustomerComplaint.objects.filter(
         status__in=(
             CustomerComplaint.Status.NEW,
@@ -786,6 +810,7 @@ def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
         **financial,
         **charts,
         "pending_payments": pending_payments,
+        "pending_school_addition_requests": pending_school_addition_requests,
         "complaints_pending": complaints_pending,
         "tickets_open": int(period_payload["kpis"]["tickets_open"]),
         "recent_activities": recent_activities,
@@ -1429,6 +1454,10 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
             plan.period_key = "trial"
             plan.period_label = "تجربة مجانية"
             months = None
+        elif 20 <= plan.days_duration <= 44:
+            plan.period_key = "monthly"
+            plan.period_label = "شهر"
+            months = 1
         elif plan.days_duration >= 300:
             plan.period_key = "annual"
             plan.period_label = "سنة"
@@ -1470,10 +1499,10 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
     for plan in plans:
         if plan.period_key != "annual":
             continue
-        semiannual = paired_plans.get((plan.max_teachers, "semiannual"))
-        if semiannual is None:
+        monthly = paired_plans.get((plan.max_teachers, "monthly"))
+        if monthly is None:
             continue
-        comparison_price = semiannual.price * 2
+        comparison_price = monthly.price * 12
         savings = max(Decimal("0"), comparison_price - plan.price)
         plan.annual_savings = savings
         if comparison_price > 0:
@@ -1499,11 +1528,14 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
     stats = {
         "active_count": len(active_plans),
         "paid_count": len(paid_plans),
+        "monthly_count": sum(plan.period_key == "monthly" for plan in paid_plans),
         "semiannual_count": sum(plan.period_key == "semiannual" for plan in paid_plans),
         "annual_count": sum(plan.period_key == "annual" for plan in paid_plans),
         "capacity_count": len(capacities),
         "annual_discount_max": max(annual_discounts, default=0),
     }
+
+    flexible_catalog = build_flexible_pricing_catalog(plans=active_plans)
 
     return render(
         request,
@@ -1513,6 +1545,8 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
             "renewal_catalog": renewal_catalog,
             "other_plans": other_plans,
             "stats": stats,
+            "flexible_pricing_catalog": flexible_catalog,
+            "flexible_pricing_json": serialize_flexible_pricing_catalog(flexible_catalog),
         },
     )
 
@@ -1812,6 +1846,11 @@ def _apply_payment_effects(payment, today, pricing):
         subscription = SchoolSubscription(
             school=payment.school,
             plan=plan_to_apply,
+            teacher_limit_override=(
+                int(payment.requested_teacher_limit)
+                if payment.requested_teacher_limit
+                else None
+            ),
             start_date=today,
             end_date=today,
             is_active=True,
@@ -1820,6 +1859,8 @@ def _apply_payment_effects(payment, today, pricing):
     else:
         if plan_to_apply is not None:
             subscription.plan = plan_to_apply
+        if payment.requested_teacher_limit:
+            subscription.teacher_limit_override = int(payment.requested_teacher_limit)
         subscription.is_active = True
         subscription.canceled_at = None
         subscription.cancel_reason = ""
@@ -1829,6 +1870,7 @@ def _apply_payment_effects(payment, today, pricing):
         subscription.save(
             update_fields=[
                 "plan",
+                "teacher_limit_override",
                 "start_date",
                 "end_date",
                 "is_active",
@@ -1842,6 +1884,39 @@ def _apply_payment_effects(payment, today, pricing):
         payment.subscription = subscription
         payment.save(update_fields=["subscription"])
 
+    included_archive_gb = int(
+        getattr(getattr(subscription, "plan", None), "included_archive_storage_gb", 0) or 0
+    )
+    if included_archive_gb > 0:
+        addon, created = SchoolArchiveAddon.objects.select_for_update().get_or_create(
+            school=payment.school,
+            defaults={
+                "is_enabled": True,
+                "start_date": subscription.start_date,
+                "end_date": subscription.end_date,
+                "storage_limit_gb": included_archive_gb,
+                "paid_amount": 0,
+                "notes": f"مشمولة تلقائياً ضمن باقة {subscription.plan.name}.",
+            },
+        )
+        if not created:
+            addon.is_enabled = True
+            addon.start_date = min(addon.start_date or subscription.start_date, subscription.start_date)
+            addon.end_date = max(addon.end_date or subscription.end_date, subscription.end_date)
+            addon.storage_limit_gb = max(int(addon.storage_limit_gb or 0), included_archive_gb)
+            included_note = f"مشمولة تلقائياً ضمن باقة {subscription.plan.name}."
+            if included_note not in (addon.notes or ""):
+                addon.notes = "\n".join(filter(None, [(addon.notes or "").strip(), included_note]))
+            addon.save(
+                update_fields=[
+                    "is_enabled", "start_date", "end_date", "storage_limit_gb", "notes", "updated_at",
+                ]
+            )
+        msg = f"{msg} كما تم تفعيل الأرشيف المضمّن بسعة {included_archive_gb}GB."
+
+    if payment.requested_teacher_limit:
+        msg = f"{msg} سعة المعلمين المعتمدة: {int(payment.requested_teacher_limit)} معلماً."
+
     return applied(level, msg)
 
 
@@ -1853,12 +1928,12 @@ def platform_payment_detail(request: HttpRequest, pk: int) -> HttpResponse:
         pk=pk,
     )
 
-    # ── عمليات الطلب الموحّد الشقيقة (نفس batch_ref) ──
+    # ── بنود الطلب الموحّد للمدرسة نفسها (نفس batch_ref) ──
     batch_payments = []
     if payment.batch_ref:
         batch_payments = list(
             Payment.objects.filter(school=payment.school, batch_ref=payment.batch_ref)
-            .select_related("requested_plan")
+            .select_related("school", "requested_plan")
             .order_by("id")
         )
 
@@ -2105,6 +2180,15 @@ def my_subscription(request):
         if subscription and subscription.plan_id in current_plan_ids
         else (renewal_plans[0].id if renewal_plans else None)
     )
+    current_teacher_count = SchoolMembership.objects.filter(
+        school=membership.school,
+        role_type=SchoolMembership.RoleType.TEACHER,
+    ).count()
+    current_teacher_limit = int(getattr(subscription, "teacher_limit", 0) or 0)
+    recommended_teacher_capacity = normalize_teacher_capacity(
+        max(current_teacher_count, current_teacher_limit, 1)
+    )
+    flexible_catalog = build_flexible_pricing_catalog()
     
     context = {
         "subscription": subscription,
@@ -2112,6 +2196,11 @@ def my_subscription(request):
         "plans": renewal_plans,
         "renewal_catalog": renewal_catalog,
         "default_renewal_plan_id": default_renewal_plan_id,
+        "current_teacher_count": current_teacher_count,
+        "current_teacher_limit": current_teacher_limit,
+        "recommended_teacher_capacity": recommended_teacher_capacity or 100,
+        "flexible_pricing_catalog": flexible_catalog,
+        "flexible_pricing_json": serialize_flexible_pricing_catalog(flexible_catalog),
         "payments": payments,
         "archive_addon": archive_addon,
         "archive_addon_price": pricing["addon_price"],
@@ -2177,6 +2266,38 @@ class _PaymentSelectionError(Exception):
     pass
 
 
+def _subscription_quote_from_request(request, school, requested_plan):
+    raw_capacity = (request.POST.get("teacher_capacity") or "").strip()
+    if not raw_capacity:
+        return {
+            "plan": requested_plan,
+            "capacity": int(getattr(requested_plan, "max_teachers", 0) or 0),
+            "price": Decimal(getattr(requested_plan, "price", 0) or 0),
+        }
+    try:
+        requested_capacity = int(raw_capacity)
+    except (TypeError, ValueError) as exc:
+        raise _PaymentSelectionError("سعة المعلمين المختارة غير صالحة.") from exc
+
+    capacity = normalize_teacher_capacity(requested_capacity)
+    if capacity is None:
+        raise _PaymentSelectionError("السعات المنشورة متاحة حتى 100 معلم. تواصل مع الدعم لسعة أكبر.")
+
+    current_teacher_count = SchoolMembership.objects.filter(
+        school=school,
+        role_type=SchoolMembership.RoleType.TEACHER,
+    ).count()
+    if capacity < current_teacher_count:
+        raise _PaymentSelectionError(
+            f"لا يمكن اختيار سعة {capacity} مع وجود {current_teacher_count} معلماً في المدرسة."
+        )
+
+    quote = quote_for_selection(requested_plan.pk, capacity)
+    if quote is None:
+        raise _PaymentSelectionError("تعذّر احتساب سعر السعة المختارة من الباقات المنشورة.")
+    return quote
+
+
 def _build_unified_payment_items(request, membership, subscription):
     school = membership.school
     pricing = _archive_pricing()
@@ -2212,7 +2333,10 @@ def _build_unified_payment_items(request, membership, subscription):
             requested_plan = subscription.plan
         if not requested_plan:
             raise _PaymentSelectionError("يرجى اختيار باقة للاشتراك/التجديد.")
-        amount = getattr(requested_plan, "price", 0) or 0
+        quote = _subscription_quote_from_request(request, school, requested_plan)
+        requested_plan = quote["plan"]
+        amount = quote["price"]
+        requested_teacher_limit = int(quote["capacity"] or 0)
         try:
             if float(amount) <= 0:
                 raise _PaymentSelectionError("لا يمكن إنشاء طلب دفع لباقة مجانية/غير صالحة.")
@@ -2221,8 +2345,9 @@ def _build_unified_payment_items(request, membership, subscription):
         items.append({
             "purpose": Payment.Purpose.SUBSCRIPTION,
             "requested_plan": requested_plan,
+            "requested_teacher_limit": requested_teacher_limit,
             "amount": amount,
-            "label": f"اشتراك: {requested_plan.name}",
+            "label": f"اشتراك: {requested_plan.name} · سعة {requested_teacher_limit} معلماً",
         })
 
     if include_addon:
@@ -2310,6 +2435,7 @@ def _create_unified_payment(request, membership, subscription):
                 school=school,
                 subscription=subscription,
                 requested_plan=it.get("requested_plan"),
+                requested_teacher_limit=it.get("requested_teacher_limit"),
                 purpose=it["purpose"],
                 amount=it["amount"],
                 archive_storage_gb=it.get("archive_storage_gb", 0),
@@ -2487,7 +2613,14 @@ def payment_create(request):
             messages.error(request, "يرجى اختيار باقة للاشتراك/التجديد.")
             return redirect('reports:my_subscription')
 
-        amount = getattr(requested_plan, "price", None)
+        try:
+            quote = _subscription_quote_from_request(request, membership.school, requested_plan)
+        except _PaymentSelectionError as exc:
+            messages.error(request, str(exc))
+            return redirect("reports:my_subscription")
+        requested_plan = quote["plan"]
+        requested_teacher_limit = int(quote["capacity"] or 0)
+        amount = quote["price"]
         try:
             if amount is None or float(amount) <= 0:
                 messages.error(request, "لا يمكن إنشاء طلب دفع لأن الباقة المختارة مجانية/غير صالحة.")
@@ -2499,6 +2632,7 @@ def payment_create(request):
             school=membership.school,
             subscription=subscription,
             requested_plan=requested_plan,
+            requested_teacher_limit=requested_teacher_limit,
             purpose=Payment.Purpose.SUBSCRIPTION,
             amount=amount,
             receipt_image=receipt,
@@ -2513,11 +2647,11 @@ def payment_create(request):
             <div style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.75rem 1rem; border-radius: 12px; display: inline-block; margin-top: 0.5rem; color: #fff;">
                 <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 0.25rem;">{}</div>
                 <div style="font-size: 0.9rem;">
-                    السعر: {} ريال &bull; المدة: {} يوم
+                    السعر: {} ريال &bull; السعة: {} معلماً &bull; المدة: {} يوم
                 </div>
             </div>
         </div>
-        """, requested_plan.name, requested_plan.price, requested_plan.days_duration)
+        """, requested_plan.name, amount, requested_teacher_limit, requested_plan.days_duration)
         messages.success(request, msg)
         return redirect('reports:my_subscription')
             
@@ -2715,6 +2849,7 @@ def moyasar_checkout_create(request):
                 school=membership.school,
                 subscription=subscription,
                 requested_plan=item.get("requested_plan"),
+                requested_teacher_limit=item.get("requested_teacher_limit"),
                 purpose=item["purpose"],
                 amount=item["amount"],
                 archive_storage_gb=item.get("archive_storage_gb", 0),
@@ -2753,6 +2888,11 @@ def moyasar_return(request, batch_ref: str):
 
 
 @csrf_exempt
+# Unauthenticated by design — Moyasar calls it — and safe because the invoice is
+# re-fetched from Moyasar rather than trusted from the request body. The limit
+# only stops an anonymous client from replaying it to generate database lookups
+# and outbound gateway calls.
+@ratelimit(key="ip", rate="60/m", method="POST", block=True)
 @require_http_methods(["POST"])
 def moyasar_callback(request, batch_ref: str):
     if not moyasar_is_enabled():
@@ -2887,6 +3027,7 @@ def tamara_checkout_create(request):
                 school=membership.school,
                 subscription=subscription,
                 requested_plan=item.get("requested_plan"),
+                requested_teacher_limit=item.get("requested_teacher_limit"),
                 purpose=item["purpose"],
                 amount=item["amount"],
                 archive_storage_gb=item.get("archive_storage_gb", 0),
@@ -3039,6 +3180,7 @@ def _record_tamara_refund(order_id: str, *, refund_id: str, refunded_amount) -> 
             school=original.school,
             subscription=original.subscription,
             requested_plan=original.requested_plan,
+            requested_teacher_limit=original.requested_teacher_limit,
             purpose=original.purpose,
             amount=-amount,
             payment_method=Payment.Method.TAMARA,
@@ -3054,6 +3196,8 @@ def _record_tamara_refund(order_id: str, *, refund_id: str, refunded_amount) -> 
 
 
 @csrf_exempt
+# Bounds token-guessing attempts against the notification token below.
+@ratelimit(key="ip", rate="60/m", method="POST", block=True)
 @require_http_methods(["POST"])
 def tamara_webhook(request):
     if not tamara_is_enabled():
