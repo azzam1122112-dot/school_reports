@@ -287,3 +287,41 @@ class PlatformPlansGuardTests(TestCase):
         warnings = self._page().context["pricing_warnings"]
 
         self.assertTrue(any("مستوى الدعم" in warning for warning in warnings))
+
+
+class IncludedFeatureAccuracyTests(SimpleTestCase):
+    """The "what's included" panel is the last thing a manager reads before
+    paying, so every line has to match what the platform actually ships."""
+
+    def test_no_feature_promises_a_downloadable_mobile_app(self):
+        """There is no native app — the product is a PWA served from the browser."""
+        forbidden = ("تحميل التطبيق", "متجر التطبيقات", "App Store", "Google Play")
+        for feature in SUBSCRIPTION_INCLUDED_FEATURES:
+            text = f"{feature['title']} {feature['detail']}"
+            for phrase in forbidden:
+                self.assertNotIn(phrase, text, feature["title"])
+
+    def test_the_mobile_feature_describes_the_pwa_it_actually_is(self):
+        mobile = next(
+            feature
+            for feature in SUBSCRIPTION_INCLUDED_FEATURES
+            if feature["icon"] == "fa-mobile-screen"
+        )
+
+        self.assertIn("المتصفح", mobile["detail"])
+        self.assertIn("لا يوجد تطبيق منفصل", mobile["detail"])
+
+    def test_no_feature_promises_push_notifications(self):
+        """The service worker handles install/activate/fetch/message only — there
+        is no PushManager, no VAPID key and no showNotification call, so alerts
+        reach users inside the platform rather than as device push."""
+        for feature in SUBSCRIPTION_INCLUDED_FEATURES:
+            text = f"{feature['title']} {feature['detail']}"
+            self.assertNotIn("إشعارات فورية", text, feature["title"])
+            self.assertNotIn("push", text.lower(), feature["title"])
+
+    def test_every_feature_has_a_title_an_icon_and_a_detail(self):
+        for feature in SUBSCRIPTION_INCLUDED_FEATURES:
+            self.assertTrue(feature.get("icon", "").startswith("fa-"), feature)
+            self.assertTrue(feature.get("title"))
+            self.assertTrue(feature.get("detail"))
