@@ -2421,9 +2421,8 @@ def _build_unified_payment_items(request, membership, subscription):
             })
 
     if include_storage:
-        if not addon_active:
-            warnings.append("زيادة المساحة (تتاح بعد تفعيل إضافة الأرشفة)")
-        elif Payment.objects.filter(
+        # Storage is its own product — no yearly-archive add-on required.
+        if Payment.objects.filter(
             school=school,
             purpose=Payment.Purpose.ARCHIVE_STORAGE,
             status=Payment.Status.PENDING,
@@ -2456,9 +2455,8 @@ def _create_unified_payment(request, membership, subscription):
     لكل عنصر مختار يُنشأ سجل Payment مستقل بنفس صورة الإيصال (ملف واحد مشترك)،
     حتى يبقى منطق الاعتماد الحالي (لكل غرض على حدة) سليمًا دون تغيير.
 
-    قيد مهم: زيادة مساحة التخزين تتطلب وجود إضافة أرشفة مفعّلة مسبقًا، لأن اعتمادها
-    يفشل إن لم تكن الإضافة موجودة. لذلك لا نسمح بطلب المساحة ضمن نفس الطلب الذي
-    يُفعّل الإضافة لأول مرة.
+    زيادة مساحة التخزين مستقلة تمامًا عن إضافة الأرشفة السنوية، فيمكن طلبها وحدها
+    أو ضمن نفس الطلب دون أي شرط مسبق.
     """
     import uuid
 
@@ -2597,11 +2595,8 @@ def payment_create(request):
             return redirect('reports:my_subscription')
 
         if payment_kind == Payment.Purpose.ARCHIVE_STORAGE:
-            archive_addon = SchoolArchiveAddon.objects.filter(school=membership.school).first()
-            if not archive_addon or not archive_addon.is_active:
-                messages.error(request, "زيادة مساحة التخزين متاحة بعد تفعيل إضافة الأرشفة فقط.")
-                return redirect('reports:my_subscription')
-
+            # Storage is its own product; it deliberately does not require the
+            # yearly-archive add-on any more.
             if Payment.objects.filter(
                 school=membership.school,
                 purpose=Payment.Purpose.ARCHIVE_STORAGE,
@@ -3801,3 +3796,87 @@ def platform_pricing_matrix(request: HttpRequest) -> HttpResponse:
             "addon_notes": SUBSCRIPTION_ADDON_NOTES,
         },
     )
+
+
+# =========================================================================
+# Reconciliation — a paid school must activate even if we never hear back
+# =========================================================================
+
+def reconcile_pending_gateway_payments(*, max_age_days: int = 7, limit: int = 200) -> dict:
+    """Re-check gateway payments still sitting as PENDING and finish them.
+
+    Activation depended entirely on the customer's browser returning to
+    ``moyasar_return`` or on the gateway's callback reaching us. Both can fail —
+    a closed tab, a dropped webhook, a deploy restarting the container mid-call —
+    and nothing retried. The school had paid, the money was captured, and the
+    subscription silently never activated until someone complained.
+
+    This walks recent pending gateway payments and re-runs the same verified
+    completion path the callback uses: the amount is still re-checked against the
+    gateway and effects are still applied once (``effects_applied_at``), so
+    reconciling is safe to repeat.
+
+    Payments older than ``max_age_days`` are left alone for manual review rather
+    than retried forever.
+    """
+    summary = {"checked": 0, "activated": 0, "still_pending": 0, "failed": 0}
+    cutoff = timezone.now() - timedelta(days=max(1, int(max_age_days)))
+
+    pending = (
+        Payment.objects.filter(
+            status=Payment.Status.PENDING,
+            payment_method__in=[Payment.Method.MOYASAR, Payment.Method.TAMARA],
+            created_at__gte=cutoff,
+        )
+        .exclude(gateway_order_id="")
+        .order_by("created_at")
+    )
+
+    # One attempt per gateway order, not per payment row in the batch.
+    seen: set[tuple[str, str]] = set()
+    for payment in pending[: max(1, int(limit))]:
+        key = (payment.payment_method, payment.batch_ref or payment.gateway_order_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        summary["checked"] += 1
+
+        try:
+            if payment.payment_method == Payment.Method.MOYASAR:
+                if not payment.batch_ref:
+                    continue
+                status = _sync_moyasar_batch(payment.batch_ref)
+                if status == "paid":
+                    summary["activated"] += 1
+                else:
+                    summary["still_pending"] += 1
+            else:
+                order = get_order(payment.gateway_order_id)
+                gateway_status = str(order.get("status") or "").lower()
+                if gateway_status != "fully_captured":
+                    # Only a completed capture is reconciled here. Authorising or
+                    # capturing money without the customer present belongs in the
+                    # webhook, not in a background sweep.
+                    summary["still_pending"] += 1
+                    continue
+                captured = (order.get("captured_amount") or {}).get("amount")
+                if captured is None:
+                    summary["still_pending"] += 1
+                    continue
+                _complete_tamara_order(
+                    payment.gateway_order_id,
+                    gateway_status=gateway_status,
+                    capture_id=str(order.get("capture_id") or ""),
+                    captured_amount=captured,
+                )
+                summary["activated"] += 1
+        except Exception:
+            summary["failed"] += 1
+            logger.exception(
+                "Gateway reconciliation failed method=%s order=%s batch=%s",
+                payment.payment_method,
+                payment.gateway_order_id,
+                payment.batch_ref,
+            )
+
+    return summary

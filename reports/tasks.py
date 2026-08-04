@@ -1520,3 +1520,47 @@ def check_storage_thresholds_task(self) -> dict:
     )
     opmetrics.increment("celery.task.success.check_storage_thresholds_task")
     return summary
+
+
+@shared_task(bind=True, ignore_result=True)
+def reconcile_pending_gateway_payments_task(self) -> dict:
+    """Finish electronic payments the gateway never told us about.
+
+    Activation used to hinge on the customer's browser returning to the site or
+    on the gateway's callback reaching us. Either can fail, and nothing retried —
+    leaving a school that had genuinely paid with no active subscription.
+    """
+    task_id, retries, trace_id = _task_ctx(self)
+
+    if not bool(getattr(settings, "PAYMENT_RECONCILIATION_ENABLED", True)):
+        return {"enabled": False}
+
+    if not _periodic_lock("reconcile_gateway_payments", ttl=600):
+        logger.info("Payment reconciliation skipped: another instance is running.")
+        return {"skipped": "lock"}
+
+    from .views.subscriptions import reconcile_pending_gateway_payments
+
+    summary = reconcile_pending_gateway_payments()
+
+    if summary.get("activated"):
+        # A recovered payment means a customer-facing failure happened upstream;
+        # make it visible instead of quietly papering over it.
+        logger.warning(
+            "Recovered %s payment(s) the gateway never confirmed to us: %s",
+            summary["activated"],
+            summary,
+        )
+        opmetrics.increment("payments.reconciled.activated", summary["activated"])
+    if summary.get("failed"):
+        opmetrics.increment("payments.reconciled.failed", summary["failed"])
+
+    logger.info(
+        "Task success name=reconcile_pending_gateway_payments_task task_id=%s trace_id=%s retries=%s summary=%s",
+        task_id,
+        trace_id,
+        retries,
+        summary,
+    )
+    opmetrics.increment("celery.task.success.reconcile_pending_gateway_payments_task")
+    return summary

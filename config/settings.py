@@ -740,6 +740,7 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.check_subscription_expiry_task": {"queue": "periodic"},
     "reports.tasks.check_archive_addon_expiry_task": {"queue": "periodic"},
     "reports.tasks.check_storage_thresholds_task": {"queue": "periodic"},
+    "reports.tasks.reconcile_pending_gateway_payments_task": {"queue": "periodic"},
     "reports.tasks.remind_unsigned_circulars_task": {"queue": "periodic"},
     "reports.tasks.cleanup_audit_logs_task": {"queue": "periodic"},
     "reports.tasks.cleanup_expired_sessions_task": {"queue": "periodic"},
@@ -847,6 +848,11 @@ ARCHIVE_ADDON_EXPIRY_REMINDER_ENABLED = _env_bool(
 # managers as they approach the limit rather than letting them find out from a
 # rejected upload.
 STORAGE_THRESHOLD_ALERTS_ENABLED = _env_bool("STORAGE_THRESHOLD_ALERTS_ENABLED", True)
+
+# Electronic payments activate on the gateway callback or the customer's return
+# to the site. Both can fail, so a sweep re-checks recent pending payments and
+# finishes the ones the gateway actually captured.
+PAYMENT_RECONCILIATION_ENABLED = _env_bool("PAYMENT_RECONCILIATION_ENABLED", True)
 
 
 # ----------------- Unsigned Circular Reminders -----------------
@@ -956,6 +962,12 @@ if crontab is not None:
         CELERY_BEAT_SCHEDULE["check-storage-thresholds-daily"] = {
             "task": "reports.tasks.check_storage_thresholds_task",
             "schedule": crontab(minute=15, hour=9),
+        }
+
+    if PAYMENT_RECONCILIATION_ENABLED:
+        CELERY_BEAT_SCHEDULE["reconcile-pending-gateway-payments"] = {
+            "task": "reports.tasks.reconcile_pending_gateway_payments_task",
+            "schedule": crontab(minute="*/20"),
         }
 
     if CIRCULAR_SIGNATURE_REMINDER_ENABLED:

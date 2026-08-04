@@ -84,20 +84,22 @@ class UnifiedPaymentTests(TestCase):
         receipt_names = {p.receipt_image.name for p in payments}
         self.assertEqual(len(receipt_names), 1)
 
-    def test_storage_blocked_without_active_addon(self):
-        # لا توجد إضافة أرشفة مفعّلة → يجب تخطّي بند المساحة
+    def test_storage_can_be_bought_without_the_archive_addon(self):
+        """Storage is its own product. Requiring the yearly-archive add-on first
+        forced schools that only needed room for report photos to buy a product
+        they did not want."""
         resp = self._post({
             "unified": "1",
             "include_archive_storage": "1",
             "archive_storage_option_id": str(self.storage_option.id),
         })
+
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(
-            Payment.objects.filter(
-                school=self.school, purpose=Payment.Purpose.ARCHIVE_STORAGE
-            ).count(),
-            0,
+        payment = Payment.objects.get(
+            school=self.school, purpose=Payment.Purpose.ARCHIVE_STORAGE
         )
+        self.assertEqual(payment.amount, self.storage_option.price)
+        self.assertEqual(payment.archive_storage_gb, self.storage_option.storage_gb)
 
     @override_settings(RATELIMIT_ENABLE=False)
     def test_inactive_plan_cannot_be_submitted_manually(self):
