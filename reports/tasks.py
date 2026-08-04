@@ -138,6 +138,128 @@ def cleanup_audit_logs_task(self, days: int | None = None, chunk_size: int = 200
     return deleted_total
 
 
+@shared_task(bind=True, ignore_result=True)
+def monitor_infrastructure_capacity_task(self) -> dict:
+    """Warn before Redis or the session table runs the platform into trouble.
+
+    Redis holds the cache, the sessions and the Celery queues on one instance.
+    ``volatile-lru`` keeps a full instance from rejecting writes, but silent
+    eviction still shows up as users being logged out and rate limits resetting,
+    so the memory ratio needs to be visible *before* it gets there.
+    """
+    task_id, retries, trace_id = _task_ctx(self)
+    report: dict = {"redis_used_percent": None, "expired_sessions": None, "alerts": []}
+
+    def _threshold(name: str, default: int) -> int:
+        # Deliberately not `value or default`: a configured 0 means "always
+        # alert" and must survive, not fall back to the default.
+        value = getattr(settings, name, default)
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    threshold = _threshold("REDIS_MEMORY_ALERT_PERCENT", 80)
+
+    try:
+        from django_redis import get_redis_connection
+
+        info = get_redis_connection("default").info(section="memory")
+        used = int(info.get("used_memory") or 0)
+        limit = int(info.get("maxmemory") or 0)
+        if limit > 0 and used > 0:
+            percent = round((used / limit) * 100, 1)
+            report["redis_used_percent"] = percent
+            if percent >= threshold:
+                message = (
+                    f"Redis memory at {percent}% of its limit "
+                    f"({round(used / (1024 * 1024), 1)} MB of {round(limit / (1024 * 1024), 1)} MB)."
+                )
+                report["alerts"].append(message)
+                logger.error("Infrastructure capacity warning: %s", message)
+                opmetrics.increment("infra.redis.memory_high")
+    except Exception:
+        # A missing Redis (local/dev) must not fail the periodic job.
+        logger.debug("Redis memory probe unavailable", exc_info=True)
+
+    try:
+        Session = apps.get_model("sessions", "Session")
+        expired = Session.objects.filter(expire_date__lt=timezone.now()).count()
+        report["expired_sessions"] = expired
+        if expired > _threshold("EXPIRED_SESSION_ALERT_THRESHOLD", 100_000):
+            message = f"{expired} expired session rows are still pending cleanup."
+            report["alerts"].append(message)
+            logger.error("Infrastructure capacity warning: %s", message)
+            opmetrics.increment("infra.sessions.backlog_high")
+    except Exception:
+        logger.debug("Session backlog probe failed", exc_info=True)
+
+    if report["alerts"]:
+        try:
+            from .telegram_alerts import TelegramAlert, queue_telegram_alert
+
+            queue_telegram_alert(
+                TelegramAlert(
+                    # Bucketed by day so a sustained condition alerts once daily
+                    # rather than on every run.
+                    event_key=f"infra:capacity:{timezone.localdate().isoformat()}",
+                    category="support",
+                    text="⚠️ <b>تنبيه سعة البنية التحتية</b>\n" + "\n".join(report["alerts"]),
+                )
+            )
+        except Exception:
+            logger.exception("Unable to queue infrastructure capacity alert")
+
+    logger.info(
+        "Task success name=monitor_infrastructure_capacity_task task_id=%s trace_id=%s retries=%s report=%s",
+        task_id,
+        trace_id,
+        retries,
+        report,
+    )
+    return report
+
+
+@shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={"max_retries": 3})
+def cleanup_expired_sessions_task(self, chunk_size: int = 5000) -> int:
+    """Delete expired ``django_session`` rows.
+
+    Django never prunes this table on its own. Public traffic (registration
+    forms, logins, checkout returns) keeps adding rows, so without this job the
+    table grows without bound and every ``cached_db`` session miss gets slower.
+    Deleting in chunks keeps the statement short enough to avoid long locks on
+    a busy database.
+    """
+    Session = apps.get_model("sessions", "Session")
+    task_id, retries, trace_id = _task_ctx(self)
+    logger.info(
+        "Task start name=cleanup_expired_sessions_task task_id=%s trace_id=%s retries=%s",
+        task_id,
+        trace_id,
+        retries,
+    )
+
+    chunk_size = max(int(chunk_size), 100)
+    expired = Session.objects.filter(expire_date__lt=timezone.now()).order_by("expire_date")
+
+    deleted_total = 0
+    while True:
+        batch_keys = list(expired.values_list("session_key", flat=True)[:chunk_size])
+        if not batch_keys:
+            break
+        deleted, _ = Session.objects.filter(session_key__in=batch_keys).delete()
+        deleted_total += int(deleted)
+
+    logger.info(
+        "Task success name=cleanup_expired_sessions_task task_id=%s trace_id=%s deleted=%s",
+        task_id,
+        trace_id,
+        deleted_total,
+    )
+    opmetrics.increment("celery.task.success.cleanup_expired_sessions_task")
+    return deleted_total
+
+
 @shared_task(bind=True, ignore_result=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={"max_retries": 3}, rate_limit="30/m")
 def process_report_images(self, report_id: int) -> bool:
     """
@@ -1133,13 +1255,13 @@ def send_password_change_email_task(self, teacher_id: int) -> bool:
     from_email = (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "no-reply@tawtheeq-ksa.com").strip()
     now_text = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M")
 
-    subject = "🔐 تم تغيير كلمة المرور - تَوثيق"
+    subject = "🔐 تم تغيير كلمة المرور - منصة توثيق"
     message = (
         f"مرحباً {teacher_name}،\n\n"
-        f"تم تغيير كلمة المرور لحسابك في منصة تَوثيق بنجاح.\n"
+        f"تم تغيير كلمة المرور لحسابك في منصة توثيق بنجاح.\n"
         f"الوقت: {now_text}\n\n"
         "إذا لم تقم بهذا التغيير، يرجى التواصل مع إدارة المدرسة أو الدعم الفني فوراً.\n\n"
-        "مع تحيات فريق تَوثيق"
+        "مع تحيات فريق منصة توثيق"
     )
 
     try:

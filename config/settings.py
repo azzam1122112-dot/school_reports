@@ -206,6 +206,18 @@ try:
 except (TypeError, ValueError):
     MANSOUR_ASSISTANT_TIMEOUT_SECONDS = 20.0
 
+# Platform-wide daily ceiling on paid assistant calls. The per-IP limit alone
+# cannot bound the bill: the widget is public, so a viral launch or a
+# distributed scraper simply arrives from many addresses. Set to 0 to disable
+# the ceiling (not recommended in production).
+try:
+    MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT = max(
+        0,
+        int(os.getenv("MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT", "2000") or "2000"),
+    )
+except (TypeError, ValueError):
+    MANSOUR_ASSISTANT_DAILY_GLOBAL_LIMIT = 2000
+
 # ----------------- AI report writing assistant -----------------
 REPORT_AI_ENABLED = _env_bool("REPORT_AI_ENABLED", bool(OPENAI_API_KEY))
 REPORT_AI_MODEL = (
@@ -358,9 +370,55 @@ if ENV == "production" and PRODUCTION_STRICT_MODE and not _use_r2:
     )
 
 
+# ----------------- Load shedding -----------------
+# Ceiling on simultaneously-processed requests per web process. Django's ASGI
+# path gives every in-flight request its own thread *and* its own database
+# connection, with no built-in cap, so a traffic spike can exhaust PostgreSQL's
+# max_connections (default 100) and take the whole platform down — Celery
+# included. Keep this comfortably below:
+#     max_connections - (celery workers + beat + admin headroom)
+# Set to 0 to disable shedding entirely.
+#
+# When MAX_CONCURRENT_REQUESTS is not set explicitly, it is derived from the
+# database budget so the ceiling stays correct after someone scales
+# WEB_CONCURRENCY without revisiting this file:
+#
+#   (DB_MAX_CONNECTIONS - DB_RESERVED_CONNECTIONS) / WEB_CONCURRENCY
+#
+# DB_RESERVED_CONNECTIONS covers the Celery workers, beat, and a superuser slot
+# kept free for an operator to connect during an incident.
+def _derive_max_concurrent_requests() -> int:
+    explicit = (os.getenv("MAX_CONCURRENT_REQUESTS") or "").strip()
+    if explicit:
+        try:
+            return max(0, int(explicit))
+        except ValueError:
+            pass
+    try:
+        db_max = int(os.getenv("DB_MAX_CONNECTIONS", "100") or "100")
+        reserved = int(os.getenv("DB_RESERVED_CONNECTIONS", "15") or "15")
+        workers = max(1, int(os.getenv("WEB_CONCURRENCY", "1") or "1"))
+    except ValueError:
+        return 50
+    budget = (db_max - reserved) // workers
+    # Never so low that ordinary traffic is shed, never so high that the budget
+    # is meaningless.
+    return max(10, min(200, budget))
+
+
+MAX_CONCURRENT_REQUESTS = _derive_max_concurrent_requests()
+
+try:
+    OVERLOAD_RETRY_AFTER_SECONDS = max(1, int(os.getenv("OVERLOAD_RETRY_AFTER_SECONDS", "5") or "5"))
+except (TypeError, ValueError):
+    OVERLOAD_RETRY_AFTER_SECONDS = 5
+
+
 # ----------------- Middleware -----------------
 MIDDLEWARE = [
     "core.middleware.RequestTraceMiddleware",
+    # Shed load before anything touches the session store or the database.
+    "core.middleware.ConcurrencyLimitMiddleware",
     "core.middleware.BlockBadPathsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -524,8 +582,9 @@ else:
 
 # ----------------- Database -----------------
 # ── Scaling notes ───────────────────────────────────────────────
-# Current: single PostgreSQL, CONN_MAX_AGE=600, 3 web workers × 2 threads
-# = up to 6 persistent connections per web dyno.
+# Current: single PostgreSQL, CONN_MAX_AGE=0 (see the reasoning below).
+# Peak connections per web process are bounded by MAX_CONCURRENT_REQUESTS,
+# because ASGI gives each in-flight request its own thread and connection.
 # At 500+ schools: consider PgBouncer or another managed connection pooling layer.
 # At 1000+ schools: evaluate read replica for nav_context / dashboard queries.
 # Hot tables: NotificationRecipient, AuditLog, Report (see docs/PHASE5 report).
@@ -546,8 +605,25 @@ else:
 DB_SSL = _env_bool("DB_SSL", False)
 
 # الحد الأقصى لعمر الاتصال (ثوانٍ). 0 يعني إغلاق الاتصال بعد كل طلب.
-# 600 (10 دقائق) يُحسّن الأداء بشكل ملحوظ مع عدد كبير من المدارس.
-_CONN_MAX_AGE = int(os.getenv("CONN_MAX_AGE", "600"))
+#
+# ── Why 0 and not a persistent connection under ASGI ────────────
+# Persistent connections only pay off when a later request reuses the same
+# connection. That cannot happen here: Django's ASGI handler opens a
+# ThreadSensitiveContext per request and asgiref allocates a fresh
+# ThreadPoolExecutor(max_workers=1) for each one, while Django's connection
+# registry is thread-local. Every request therefore starts on a brand-new
+# thread with no connection to reuse and dials PostgreSQL anyway.
+#
+# A non-zero value does change one thing, for the worse: the connection is
+# marked "keep until close_at", so it is *not* closed when the request ends.
+# The thread then dies and the connection lingers until garbage collection —
+# which is exactly how a traffic burst exhausts max_connections.
+#
+# 0 closes the connection deterministically at the end of each request. Same
+# number of connects, bounded connection count. Reintroduce a non-zero value
+# only behind PgBouncer in transaction mode (see the PgBouncer notes above),
+# where the pooler — not Django — owns connection reuse.
+_CONN_MAX_AGE = int(os.getenv("CONN_MAX_AGE", "0"))
 
 if DATABASE_URL and dj_database_url:
     DATABASES = {
@@ -586,7 +662,7 @@ else:
                 "PASSWORD": DB_PASS,
                 "HOST": DB_HOST,
                 "PORT": DB_PORT,
-                "CONN_MAX_AGE": 600,
+                "CONN_MAX_AGE": _CONN_MAX_AGE,
                 "OPTIONS": {"sslmode": "require"} if DB_SSL and "postgresql" in engine else {},
             }
         }
@@ -664,12 +740,52 @@ CELERY_TASK_ROUTES = {
     "reports.tasks.check_subscription_expiry_task": {"queue": "periodic"},
     "reports.tasks.remind_unsigned_circulars_task": {"queue": "periodic"},
     "reports.tasks.cleanup_audit_logs_task": {"queue": "periodic"},
+    "reports.tasks.cleanup_expired_sessions_task": {"queue": "periodic"},
+    "reports.tasks.monitor_infrastructure_capacity_task": {"queue": "periodic"},
 }
 
 
 # ----------------- Audit Logs Retention -----------------
 AUDIT_LOG_RETENTION_DAYS = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "30"))
 AUDIT_LOG_CLEANUP_ENABLED = _env_bool("AUDIT_LOG_CLEANUP_ENABLED", True)
+
+
+# ----------------- Expired Session Cleanup -----------------
+# Django does not prune django_session by itself. Public traffic keeps adding
+# rows, so the table must be swept on a schedule or it grows without bound.
+SESSION_CLEANUP_ENABLED = _env_bool("SESSION_CLEANUP_ENABLED", True)
+
+
+# ----------------- Infrastructure capacity watch -----------------
+# One Redis carries the cache, the sessions and the Celery queues. Eviction
+# under `volatile-lru` is silent — it surfaces as users being logged out and
+# rate limits resetting — so the memory ratio has to be watched, not discovered.
+INFRA_CAPACITY_MONITOR_ENABLED = _env_bool("INFRA_CAPACITY_MONITOR_ENABLED", True)
+try:
+    REDIS_MEMORY_ALERT_PERCENT = max(
+        10, min(99, int(os.getenv("REDIS_MEMORY_ALERT_PERCENT", "80") or "80"))
+    )
+except (TypeError, ValueError):
+    REDIS_MEMORY_ALERT_PERCENT = 80
+try:
+    EXPIRED_SESSION_ALERT_THRESHOLD = max(
+        1000, int(os.getenv("EXPIRED_SESSION_ALERT_THRESHOLD", "100000") or "100000")
+    )
+except (TypeError, ValueError):
+    EXPIRED_SESSION_ALERT_THRESHOLD = 100_000
+
+
+# ----------------- Landing page pricing cache -----------------
+# `/` is deliberately no-store so platform toggles apply at once, which means it
+# renders in full for every campaign visitor. Its pricing model is derived only
+# from the active plans, so it is cached and invalidated on plan changes rather
+# than recomputed per visit.
+try:
+    LANDING_PRICING_CACHE_TTL_SECONDS = max(
+        0, int(os.getenv("LANDING_PRICING_CACHE_TTL_SECONDS", "60") or "60")
+    )
+except (TypeError, ValueError):
+    LANDING_PRICING_CACHE_TTL_SECONDS = 60
 
 
 # ----------------- Daily Manager Report -----------------
@@ -788,6 +904,18 @@ if crontab is not None:
             "args": (AUDIT_LOG_RETENTION_DAYS,),
         }
 
+    if SESSION_CLEANUP_ENABLED:
+        CELERY_BEAT_SCHEDULE["cleanup-expired-sessions-daily"] = {
+            "task": "reports.tasks.cleanup_expired_sessions_task",
+            "schedule": crontab(minute=45, hour=3),
+        }
+
+    if INFRA_CAPACITY_MONITOR_ENABLED:
+        CELERY_BEAT_SCHEDULE["monitor-infrastructure-capacity"] = {
+            "task": "reports.tasks.monitor_infrastructure_capacity_task",
+            "schedule": crontab(minute="*/30"),
+        }
+
     if DAILY_MANAGER_REPORT_ENABLED:
         CELERY_BEAT_SCHEDULE["send-daily-manager-summary"] = {
             "task": "reports.tasks.send_daily_manager_summary_task",
@@ -839,7 +967,14 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # ----------------- Upload limits -----------------
 DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FIELDS", "20000"))
-DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(40 * 1024 * 1024)))
+# Caps the non-file portion of a request body, which Django buffers in memory.
+# Uploaded files are exempt (they spool to disk past FILE_UPLOAD_MAX_MEMORY_SIZE),
+# so this only needs to cover form fields. The largest legitimate form here is a
+# notification addressed to thousands of recipients — roughly 1 MB — so 10 MB
+# leaves a wide margin while removing a cheap memory-exhaustion vector: at the
+# previous 40 MB, a handful of concurrent crafted POSTs could OOM a 768 MB
+# container.
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(10 * 1024 * 1024)))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(2 * 1024 * 1024)))
 DATA_UPLOAD_MAX_NUMBER_FILES = int(os.getenv("DATA_UPLOAD_MAX_NUMBER_FILES", "20"))
 
