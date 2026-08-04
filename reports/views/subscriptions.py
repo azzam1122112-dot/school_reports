@@ -22,9 +22,11 @@ from ..mansour_knowledge import AUDIENCE_LABELS
 from ..flexible_pricing import (
     build_flexible_pricing_catalog,
     normalize_teacher_capacity,
+    period_key_for_days,
     quote_for_selection,
     serialize_flexible_pricing_catalog,
 )
+from ..pricing import SUBSCRIPTION_ADDON_NOTES, SUBSCRIPTION_INCLUDED_FEATURES
 from ..moyasar_gateway import (
     MoyasarGatewayError,
     create_invoice as create_moyasar_invoice,
@@ -1547,8 +1549,58 @@ def platform_plans_list(request: HttpRequest) -> HttpResponse:
             "stats": stats,
             "flexible_pricing_catalog": flexible_catalog,
             "flexible_pricing_json": serialize_flexible_pricing_catalog(flexible_catalog),
+            "pricing_warnings": _anchor_pricing_warnings(active_plans),
         },
     )
+
+
+def _anchor_pricing_warnings(active_plans) -> list[str]:
+    """Flag anchor edits that would break the interpolated pricing model.
+
+    Prices between the anchors are interpolated, so the model only holds if the
+    price rises with capacity and every paid anchor grants the same
+    entitlements. An admin editing one anchor here can silently create a band
+    where a school pays more for less — this surfaces that before schools hit it.
+    """
+    paid = [
+        plan
+        for plan in active_plans
+        if Decimal(getattr(plan, "price", 0) or 0) > 0
+        and int(getattr(plan, "max_teachers", 0) or 0) > 0
+        and period_key_for_days(getattr(plan, "days_duration", 0))
+    ]
+    if not paid:
+        return []
+
+    warnings: list[str] = []
+
+    entitlements = {
+        "مستوى الدعم": {(getattr(plan, "support_level", "") or "") for plan in paid},
+        "جلسات الإعداد": {int(getattr(plan, "onboarding_sessions", 0) or 0) for plan in paid},
+        "الأرشيف المشمول": {
+            int(getattr(plan, "included_archive_storage_gb", 0) or 0) for plan in paid
+        },
+    }
+    for label, values in entitlements.items():
+        if len(values) > 1:
+            warnings.append(
+                f"«{label}» غير متطابق بين الباقات المرجعية ({', '.join(str(v) for v in sorted(values, key=str))}). "
+                "الأسعار بين المراجع محسوبة بالاستيفاء، فاختلاف المزايا يخلق سعة يدفع فيها العميل أكثر ويحصل على أقل."
+            )
+
+    by_period: dict[str, list] = {}
+    for plan in paid:
+        by_period.setdefault(period_key_for_days(plan.days_duration), []).append(plan)
+    for period_key, plans_in_period in by_period.items():
+        ordered = sorted(plans_in_period, key=lambda p: int(p.max_teachers or 0))
+        for lower, upper in zip(ordered, ordered[1:]):
+            if Decimal(upper.price) <= Decimal(lower.price):
+                warnings.append(
+                    f"سعر «{upper.name}» ({upper.price}) ليس أعلى من «{lower.name}» ({lower.price}) "
+                    "رغم أن سعته أكبر؛ سيؤدي ذلك إلى منحنى أسعار غير منطقي في الصفحة الرئيسية."
+                )
+
+    return warnings
 
 
 @login_required(login_url="reports:login")
@@ -2201,6 +2253,10 @@ def my_subscription(request):
         "recommended_teacher_capacity": recommended_teacher_capacity or 100,
         "flexible_pricing_catalog": flexible_catalog,
         "flexible_pricing_json": serialize_flexible_pricing_catalog(flexible_catalog),
+        # Shown next to the calculated price so the manager sees exactly what the
+        # subscription covers — and what is sold separately — before paying.
+        "subscription_included_features": SUBSCRIPTION_INCLUDED_FEATURES,
+        "subscription_addon_notes": SUBSCRIPTION_ADDON_NOTES,
         "payments": payments,
         "archive_addon": archive_addon,
         "archive_addon_price": pricing["addon_price"],

@@ -33,10 +33,22 @@ class DefaultPricingCommandTests(TestCase):
         self.assertEqual(actual, expected)
         self.assertIn("approved=10", output.getvalue())
 
-        leadership_annual = SubscriptionPlan.objects.get(days_duration=365, max_teachers=100)
-        self.assertEqual(leadership_annual.included_archive_storage_gb, 50)
-        self.assertEqual(leadership_annual.onboarding_sessions, 2)
-        self.assertEqual(leadership_annual.support_level, "priority")
+        # Entitlements are identical across every paid anchor on purpose: prices
+        # between the anchors are interpolated, so an entitlement that steps at
+        # one anchor creates a band where a school pays more and receives less.
+        # Archive storage is sold as an add-on to every capacity instead.
+        paid_anchors = SubscriptionPlan.objects.filter(is_active=True, price__gt=0)
+        self.assertEqual(
+            {
+                (
+                    plan.support_level,
+                    plan.onboarding_sessions,
+                    plan.included_archive_storage_gb,
+                )
+                for plan in paid_anchors
+            },
+            {("priority", 0, 0)},
+        )
 
         settings_obj = PlatformSettings.get_solo()
         self.assertEqual(settings_obj.archive_addon_annual_price, Decimal("399"))

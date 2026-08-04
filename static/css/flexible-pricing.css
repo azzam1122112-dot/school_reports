@@ -132,3 +132,82 @@ html[data-theme="dark"] .flex-pricing-shell {
   border-color: rgba(93, 196, 140, .2);
 }
 html[data-theme="dark"] .flex-count-control button:hover { background: #183b2b; }
+
+/* ── What the subscription includes (shown before payment) ───────── */
+.sub-includes {
+  --inc-ink: #0f3025;
+  --inc-muted: #62736b;
+  --inc-green: #087443;
+  --inc-surface: #ffffff;
+  margin: 0 auto 30px;
+  padding: clamp(16px, 2.6vw, 24px);
+  color: var(--inc-ink);
+  border: 1px solid rgba(8, 116, 67, .16);
+  border-radius: 22px;
+  background: linear-gradient(135deg, #fff, #f6faf8);
+  box-shadow: 0 14px 38px rgba(4, 60, 39, .06);
+}
+.sub-includes-head h4 {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 900;
+}
+.sub-includes-head h4 i { color: var(--inc-green); }
+.sub-includes-head p { margin: 0 0 16px; color: var(--inc-muted); font-size: .76rem; line-height: 1.75; font-weight: 700; }
+.sub-includes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sub-include {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid rgba(8, 116, 67, .1);
+  border-radius: 14px;
+  background: var(--inc-surface);
+}
+.sub-include-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  color: var(--inc-green);
+  background: rgba(8, 116, 67, .09);
+  font-size: .82rem;
+}
+.sub-include strong { display: block; font-size: .8rem; font-weight: 900; }
+.sub-include small { display: block; margin-top: 3px; color: var(--inc-muted); font-size: .69rem; line-height: 1.65; font-weight: 700; }
+.sub-includes-note {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px dashed rgba(199, 161, 90, .5);
+  border-radius: 14px;
+  background: rgba(199, 161, 90, .07);
+}
+.sub-includes-note strong { display: flex; gap: 7px; align-items: center; font-size: .76rem; font-weight: 900; }
+.sub-includes-note ul { margin: 7px 0 0; padding-inline-start: 18px; color: var(--inc-muted); font-size: .7rem; line-height: 1.85; font-weight: 700; }
+
+@media (max-width: 760px) {
+  .sub-includes { border-radius: 18px; }
+  .sub-includes-grid { grid-template-columns: 1fr; }
+}
+
+html[data-theme="dark"] .sub-includes {
+  --inc-ink: #edf8f2;
+  --inc-muted: #aabbb3;
+  --inc-surface: #16271f;
+  border-color: rgba(93, 196, 140, .2);
+  background: linear-gradient(135deg, #14251e, #102019);
+}
+html[data-theme="dark"] .sub-include { border-color: rgba(93, 196, 140, .16); }
+html[data-theme="dark"] .sub-includes-note { background: rgba(199, 161, 90, .1); }

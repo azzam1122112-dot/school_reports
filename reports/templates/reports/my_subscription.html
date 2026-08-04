@@ -2807,7 +2807,7 @@
 
               {% if flexible_pricing_catalog %}
                 {{ flexible_pricing_json|json_script:"schoolFlexiblePricingData" }}
-                <div class="flex-pricing-shell" data-flex-pricing data-flex-pricing-source="schoolFlexiblePricingData" data-initial-period="1y" data-min-teacher-count="{{ current_teacher_count|default:1 }}">
+                <div class="flex-pricing-shell" data-flex-pricing data-flex-pricing-source="schoolFlexiblePricingData" data-initial-period="1y" data-flex-summary-target="#subIncludesSummary" data-min-teacher-count="{{ current_teacher_count|default:1 }}">
                   <input type="radio" name="plan_id" value="" data-flex-plan-input hidden checked>
                   <input type="hidden" name="teacher_capacity" value="" data-flex-capacity-input>
                   <div class="flex-pricing-controls">
@@ -2838,6 +2838,39 @@
                     <p class="flex-result-status" id="schoolPricingStatus"><i class="fa-solid fa-shield-heart"></i><span data-flex-status>السعر النهائي يظهر قبل الدفع.</span></p>
                   </div>
                 </div>
+
+                {% if subscription_included_features %}
+                  <section class="sub-includes" aria-labelledby="subIncludesTitle">
+                    <div class="sub-includes-head">
+                      <h4 id="subIncludesTitle"><i class="fa-solid fa-circle-check"></i> ما الذي يشمله الاشتراك؟</h4>
+                      <p>
+                        نفس المزايا لكل السعات والمدد — السعر يتغير حسب عدد المعلمين فقط،
+                        <span id="subIncludesSummary">وتظهر السعة والمبلغ أعلاه قبل الدفع</span>.
+                      </p>
+                    </div>
+                    <ul class="sub-includes-grid">
+                      {% for feature in subscription_included_features %}
+                        <li class="sub-include">
+                          <span class="sub-include-icon" aria-hidden="true"><i class="fa-solid {{ feature.icon }}"></i></span>
+                          <div>
+                            <strong>{{ feature.title }}</strong>
+                            <small>{{ feature.detail }}</small>
+                          </div>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                    {% if subscription_addon_notes %}
+                      <div class="sub-includes-note">
+                        <strong><i class="fa-solid fa-circle-info"></i> خدمات تُشترى بشكل منفصل</strong>
+                        <ul>
+                          {% for note in subscription_addon_notes %}
+                            <li>{{ note }}</li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    {% endif %}
+                  </section>
+                {% endif %}
 
                 {% if renewal_catalog %}
                   <details class="plan-reference">

@@ -155,6 +155,22 @@
         line-height: 1.8;
     }
 
+    .pricing-alert {
+        margin-bottom: 1.5rem;
+        padding: 1.15rem 1.35rem;
+        border: 1px solid #f0b429;
+        border-inline-start-width: 5px;
+        border-radius: 14px;
+        background: #fff8e6;
+        color: #6b4708;
+    }
+    .pricing-alert h2 { margin: 0 0 .55rem; font-size: 1rem; font-weight: 900; }
+    .pricing-alert ul { margin: 0; padding-inline-start: 1.15rem; font-size: .82rem; line-height: 1.9; font-weight: 700; }
+    .pricing-alert p { margin: .6rem 0 0; font-size: .78rem; font-weight: 700; }
+    .pricing-alert code { padding: .1rem .35rem; border-radius: 6px; background: rgba(107, 71, 8, .1); }
+    html[data-theme="dark"] .pricing-alert { background: #2f2712; color: #f6e3b6; border-color: #a97b18; }
+    html[data-theme="dark"] .pricing-alert code { background: rgba(246, 227, 182, .12); }
+
     .flex-policy-board {
         margin-bottom: 1.5rem;
         padding: 1.25rem;
@@ -492,9 +508,19 @@
         <span class="pricing-policy__icon"><i class="fas fa-balance-scale"></i></span>
         <div>
             <h2>سياسة التسعير المعتمدة</h2>
-            <p>الباقات 25 و50 و100 هي نقاط التسعير المرجعية. يحسب النظام السعات البينية تلقائياً كل 5 معلمين حتى 50، ثم كل 10 معلمين حتى 100، مع بقاء مستوى الإعداد والدعم تابعاً لأقرب باقة أدنى.</p>
+            <p>الباقات 25 و50 و100 هي نقاط التسعير المرجعية. يحسب النظام السعات البينية تلقائياً كل 5 معلمين حتى 50، ثم كل 10 معلمين حتى 100. مزايا جميع الباقات المدفوعة متطابقة عمداً، والسعر وحده يتغير حسب السعة؛ أي اختلاف في المزايا يخلق سعة يدفع فيها العميل أكثر ويحصل على أقل.</p>
         </div>
     </section>
+
+    {% if pricing_warnings %}
+      <section class="pricing-alert" role="alert">
+        <h2><i class="fas fa-triangle-exclamation ms-1"></i> تنبيه: إعدادات التسعير غير متسقة</h2>
+        <ul>
+          {% for warning in pricing_warnings %}<li>{{ warning }}</li>{% endfor %}
+        </ul>
+        <p>صحّح الباقات المرجعية أدناه، أو أعد ضبط المصفوفة المعتمدة بأمر <code>sync_default_pricing</code>.</p>
+      </section>
+    {% endif %}
 
     {% if flexible_pricing_catalog %}
       <section class="flex-policy-board" aria-label="معاينة أسعار السعات المرنة">

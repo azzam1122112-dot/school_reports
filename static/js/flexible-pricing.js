@@ -36,6 +36,11 @@
     var monthlyOutput = root.querySelector("[data-flex-monthly]");
     var statusOutput = root.querySelector("[data-flex-status]");
     var result = root.querySelector("[data-flex-result]");
+    // Optional recap rendered outside the calculator (e.g. above the
+    // "what's included" panel) so the chosen capacity and amount stay visible
+    // while the manager reads what the subscription covers.
+    var summarySelector = root.getAttribute("data-flex-summary-target");
+    var summaryOutput = summarySelector ? document.querySelector(summarySelector) : null;
     var periodButtons = root.querySelectorAll("[data-flex-period]");
     var minimumCount = number(root.getAttribute("data-min-teacher-count"), 1);
     var initialPeriod = root.getAttribute("data-initial-period") || "1y";
@@ -90,6 +95,7 @@
           planInput.removeAttribute("data-price");
         }
         if (capacityInput) capacityInput.value = "";
+        if (summaryOutput) summaryOutput.textContent = "وسعة أكبر من 100 معلم تحتاج عرضاً مخصصاً";
         root.dispatchEvent(new CustomEvent("flex-pricing:change", { bubbles: true, detail: null }));
         return;
       }
@@ -113,6 +119,11 @@
         planInput.setAttribute("data-label", "اشتراك بسعة " + format(quote.capacity) + " معلماً · " + period().label);
       }
       if (capacityInput) capacityInput.value = String(quote.capacity);
+      if (summaryOutput) {
+        summaryOutput.textContent =
+          "وأنت الآن تختار سعة " + format(quote.capacity) + " معلماً · " +
+          (quote.price_display || format(quote.price)) + " ريال لمدة " + period().label;
+      }
 
       root.dispatchEvent(new CustomEvent("flex-pricing:change", {
         bubbles: true,
