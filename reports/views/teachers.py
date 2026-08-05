@@ -27,9 +27,6 @@ def _decorate_manage_teacher_rows(teachers, *, active_school: Optional[School]) 
         job_title = (getattr(teacher, "school_job_title", "") or "").strip()
         if is_manager_here:
             role_kind = "manager"
-        elif bool(getattr(teacher, "is_report_viewer", False)):
-            role_kind = "report_viewer"
-            role_label = "مشرف تقارير"
         elif job_title == SchoolMembership.JobTitle.ADMIN_STAFF:
             role_kind = "admin_staff"
         elif job_title == SchoolMembership.JobTitle.LAB_TECH:
@@ -68,14 +65,11 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
 
     qs = Teacher.objects.order_by("-id")
 
-    # ✅ عزل حسب المدرسة (نُظهر المعلمين + مشرفي التقارير المرتبطين بالمدرسة)
+    # ✅ عزل حسب المدرسة (نُظهر المعلمين المرتبطين بالمدرسة)
     if active_school is not None:
         qs = qs.filter(
             school_memberships__school=active_school,
-            school_memberships__role_type__in=[
-                SchoolMembership.RoleType.TEACHER,
-                SchoolMembership.RoleType.REPORT_VIEWER,
-            ],
+            school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
         ).distinct()
 
     # ✅ بحث
@@ -115,12 +109,6 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
                 teacher_m
                 .values("job_title")[:1]
             )
-            viewer_m = SchoolMembership.objects.filter(
-                school=active_school,
-                teacher=OuterRef("pk"),
-                role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-                is_active=True,
-            )
             manager_m = SchoolMembership.objects.filter(
                 school=active_school,
                 teacher=OuterRef("pk"),
@@ -129,7 +117,6 @@ def manage_teachers(request: HttpRequest) -> HttpResponse:
             )
             qs = qs.annotate(
                 has_teacher_membership=Exists(teacher_m),
-                is_report_viewer=Exists(viewer_m),
                 is_school_manager_in_active_school=Exists(manager_m),
                 school_job_title=Subquery(title_sq),
             )
@@ -1146,10 +1133,7 @@ def delete_teacher(request: HttpRequest, pk: int) -> HttpResponse:
                 SchoolMembership.objects.filter(
                     school=active_school,
                     teacher=teacher,
-                    role_type__in=[
-                        SchoolMembership.RoleType.TEACHER,
-                        SchoolMembership.RoleType.REPORT_VIEWER,
-                    ],
+                    role_type=SchoolMembership.RoleType.TEACHER,
                 ).delete()
                 messages.success(request, "🗑️ تم إزالة المستخدم من المدرسة الحالية.")
             else:

@@ -1140,123 +1140,6 @@ class ManagerCreateForm(forms.ModelForm):
         return instance
 
 
-class PlatformAdminCreateForm(forms.ModelForm):
-    """إنشاء حساب مشرف عام (عرض + تواصل) مع نطاق (Scope)."""
-
-    password = forms.CharField(
-        label="كلمة المرور",
-        required=True,
-        strip=False,
-        widget=forms.PasswordInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "كلمة المرور للحساب الجديد",
-                "autocomplete": "new-password",
-            }
-        ),
-    )
-
-    gender_scope = forms.ChoiceField(
-        label="نطاق بنين/بنات",
-        choices=[("all", "الجميع"), ("boys", "بنين"), ("girls", "بنات")],
-        required=True,
-        widget=forms.Select(attrs={"class": "form-control"}),
-        initial="all",
-    )
-
-    role = forms.ModelChoiceField(
-        label="دور المشرف",
-        required=True,
-        queryset=None,
-        widget=forms.Select(attrs={"class": "form-control"}),
-    )
-
-    cities = forms.CharField(
-        label="مدن (اختياري)",
-        required=False,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "مثال: الرياض, جدة, الدمام",
-            }
-        ),
-    )
-
-    allowed_schools = forms.ModelMultipleChoiceField(
-        label="مدارس محددة (اختياري)",
-        required=False,
-        queryset=School.objects.filter(is_active=True).order_by("name"),
-        widget=forms.SelectMultiple(attrs={"class": "form-control"}),
-    )
-
-    class Meta:
-        model = Teacher
-        fields = ["name", "phone", "is_active"]
-        widgets = {
-            "name": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "الاسم الكامل", "maxlength": "150"}
-            ),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # أدوار مشرفي المنصة (قابلة للإدارة من Django Admin)
-        try:
-            from .models import PlatformAdminRole
-
-            roles_qs = PlatformAdminRole.objects.filter(is_active=True).order_by("order", "name", "id")
-            self.fields["role"].queryset = roles_qs
-            # Default role: "general" if exists, else first active
-            default_role = roles_qs.filter(slug="general").first() or roles_qs.first()
-            if default_role is not None:
-                self.fields["role"].initial = default_role
-        except Exception:
-            # إذا لم تكن الهجرة مطبقة بعد، نترك الحقل كما هو (قد يُسبب خطأ عرضي)
-            pass
-
-        # عند التعديل: كلمة المرور اختيارية
-        if getattr(self.instance, "pk", None):
-            self.fields["password"].required = False
-            self.fields["password"].widget.attrs["placeholder"] = "اتركه فارغًا للإبقاء على كلمة المرور الحالية"
-
-            # تعبئة نطاق الصلاحيات من PlatformAdminScope (إن وجد)
-            try:
-                from .models import PlatformAdminScope
-
-                scope = (
-                    PlatformAdminScope.objects.filter(admin=self.instance)
-                    .prefetch_related("allowed_schools")
-                    .first()
-                )
-                if scope is not None:
-                    # الدور
-                    try:
-                        role_obj = getattr(scope, "role", None)
-                        if role_obj is not None:
-                            self.initial.setdefault("role", role_obj)
-                    except Exception:
-                        pass
-                    self.initial.setdefault("gender_scope", scope.gender_scope)
-                    try:
-                        self.initial.setdefault("cities", ", ".join(list(scope.allowed_cities or [])))
-                    except Exception:
-                        self.initial.setdefault("cities", "")
-                    self.initial.setdefault("allowed_schools", scope.allowed_schools.all())
-            except Exception:
-                pass
-
-    def save(self, commit: bool = True):
-        instance: Teacher = super().save(commit=False)
-        pwd = (self.cleaned_data.get("password") or "").strip()
-        if pwd:
-            instance.set_password(pwd)
-        instance.is_platform_admin = True
-        if commit:
-            instance.save()
-        return instance
-
-
 class PlatformSchoolNotificationForm(forms.Form):
     target_scope = forms.ChoiceField(
         label="نطاق المدارس",
@@ -1907,7 +1790,7 @@ class NotificationCreateForm(forms.Form):
             ("all", "كل المدارس"),
         ),
         initial="school",
-        help_text="للمشرف العام فقط: اختر ما إذا كان الإشعار موجهاً لمدرسة واحدة أو لكل المدارس.",
+        help_text="لمالك النظام فقط: اختر ما إذا كان الإشعار موجهاً لمدرسة واحدة أو لكل المدارس.",
     )
     target_school = forms.ModelChoiceField(
         queryset=School.objects.none(),
@@ -1950,10 +1833,7 @@ class NotificationCreateForm(forms.Form):
         if not is_circular:
             self.fields.pop("attachment", None)
 
-        from .permissions import is_platform_admin, platform_allowed_schools_qs
-
         is_superuser = bool(getattr(user, "is_superuser", False))
-        is_platform = bool(is_platform_admin(user)) and not is_superuser
         labels = school_gender_labels(active_school)
         teacher_singular = str(labels["teacher_indefinite"])
         teachers_plural = str(labels["teachers"])
@@ -1966,28 +1846,12 @@ class NotificationCreateForm(forms.Form):
         except Exception:
             is_manager = False
 
-        # إضافة حقل "إرسال للكل" للمشرف العام في وضع التعميمات
-        if is_circular and is_platform:
-            self.fields["send_to_all_managers"] = forms.BooleanField(
-                label="إرسال لجميع مدراء المدارس ضمن نطاقي",
-                required=False,
-                initial=False,
-                widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
-                help_text="اختر هذا الخيار لإرسال التعميم لجميع مدراء المدارس ضمن نطاقك، أو اترك الخيار فارغًا واختر مدراء معينين من القائمة.",
-            )
-
         # إعداد حقول نطاق الإرسال/المدرسة حسب نوع المستخدم
-        if is_superuser or is_platform:
-            if is_superuser:
-                self.fields["target_school"].queryset = School.objects.filter(is_active=True).order_by("name")
-            else:
-                self.fields["target_school"].queryset = platform_allowed_schools_qs(user).order_by("name")
+        if is_superuser:
+            self.fields["target_school"].queryset = School.objects.filter(is_active=True).order_by("name")
 
-            # الأقسام: ليست ضمن نطاق ميزة التعاميم/المشرف العام، فنبقيها للسوبر فقط
-            if is_superuser and "target_department" in self.fields:
+            if "target_department" in self.fields:
                 self.fields["target_department"].queryset = Department.objects.filter(is_active=True).order_by("name")
-            else:
-                self.fields.pop("target_department", None)
         else:
             # لا يحتاج المدير/الضابط لاختيار النطاق أو المدرسة؛ نستخدم المدرسة النشطة تلقائياً
             self.fields.pop("audience_scope", None)
@@ -2003,7 +1867,7 @@ class NotificationCreateForm(forms.Form):
                 self.fields.pop("target_department", None)
 
         # في وضع التعميم: الأقسام متاحة لمدير المدرسة فقط. أما مدير النظام
-        # ومشرف المنصة فيوجهان التعميم إلى مدراء المدارس لا إلى أقسامها.
+        # فيوجّه التعميم إلى مدراء المدارس لا إلى أقسامها.
         if is_circular:
             if not is_manager:
                 self.fields.pop("target_department", None)
@@ -2043,29 +1907,6 @@ class NotificationCreateForm(forms.Form):
                     except ValueError:
                         pass
 
-            # المشرف العام: يرسل التعميمات لمدراء المدارس ضمن نطاقه فقط
-            elif is_platform:
-                allowed_schools_qs = platform_allowed_schools_qs(user)
-                qs = qs.filter(
-                    school_memberships__role_type=SchoolMembership.RoleType.MANAGER,
-                    school_memberships__is_active=True,
-                    school_memberships__school__is_active=True,
-                    school_memberships__school__in=allowed_schools_qs,
-                ).distinct()
-
-                if "teachers" in self.fields:
-                    self.fields["teachers"].label = "مدراء معينين (اختياري)"
-                    self.fields["teachers"].help_text = "اختر مدراء معينين فقط، أو فعّل خيار 'إرسال للكل' أعلاه."
-                    self.fields["teachers"].required = False
-
-                scope_val = (self.data.get("audience_scope") or self.initial.get("audience_scope") or "").strip()
-                school_id = self.data.get("target_school") or self.initial.get("target_school")
-                if (not scope_val or scope_val == "school") and school_id:
-                    try:
-                        qs = qs.filter(school_memberships__school_id=int(school_id)).distinct()
-                    except ValueError:
-                        pass
-
             # مدير المدرسة: يرسل التعميمات للمعلمين ضمن مدرسته فقط
             else:
                 if active_school is not None:
@@ -2073,8 +1914,6 @@ class NotificationCreateForm(forms.Form):
                         school_memberships__school=active_school,
                         school_memberships__is_active=True,
                         school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
-                    ).exclude(
-                        is_platform_admin=True,
                     ).distinct()
                 else:
                     qs = qs.none()
@@ -2113,17 +1952,15 @@ class NotificationCreateForm(forms.Form):
             )
             if is_manager:
                 # واجهة مدير المدرسة موجهة لمنسوبي المدرسة من المعلمين، فلا
-                # نعرض حساب المدير نفسه أو حسابات إدارة المنصة كأنها معلمون.
+                # نعرض حساب المدير نفسه كأنه معلم.
                 qs = qs.filter(
                     school_memberships__role_type=SchoolMembership.RoleType.TEACHER,
                 ).exclude(
                     pk=getattr(user, "pk", None),
-                ).exclude(
-                    is_platform_admin=True,
                 )
             qs = qs.distinct()
 
-        # للمشرف العام: لو اختار "مدرسة معيّنة" في الطلب، نقيّد القائمة بهذه المدرسة
+        # لمالك النظام: لو اختار "مدرسة معيّنة" في الطلب، نقيّد القائمة بهذه المدرسة
         if is_superuser:
             scope_val = (self.data.get("audience_scope") or self.initial.get("audience_scope") or "").strip()
             school_id = self.data.get("target_school") or self.initial.get("target_school")
@@ -2140,37 +1977,19 @@ class NotificationCreateForm(forms.Form):
     def clean(self):
         cleaned = super().clean()
         user = getattr(self, "user", None)
-        try:
-            from .permissions import is_platform_admin
-            is_superuser = bool(getattr(user, "is_superuser", False))
-            is_platform = bool(is_platform_admin(user)) and not is_superuser
-        except Exception:
-            is_superuser = bool(getattr(user, "is_superuser", False))
-            is_platform = False
+        is_superuser = bool(getattr(user, "is_superuser", False))
 
         mode = getattr(self, "mode", "notification") or "notification"
         is_circular = mode == "circular"
 
-        if is_superuser or is_platform:
+        if is_superuser:
             scope = cleaned.get("audience_scope") or "school"
             target_school = cleaned.get("target_school")
             if scope == "school" and not target_school:
-                # للتعاميم: المشرف العام قد يرسل لمدراء من عدة مدارس ضمن نطاقه،
-                # لذلك لا نجبره على اختيار مدرسة واحدة؛ نعاملها كنطاق "كل المدارس" ضمن النطاق.
-                if is_platform and is_circular:
-                    cleaned["audience_scope"] = "all"
-                else:
-                    raise ValidationError("الرجاء اختيار مدرسة مستهدفة أو تغيير النطاق إلى \"كل المدارس\".")
-
-        # التحقق من اختيار المشرف العام: إما إرسال للكل أو اختيار مدراء معينين
-        if is_circular and is_platform:
-            send_to_all = cleaned.get("send_to_all_managers", False)
-            teachers = cleaned.get("teachers", [])
-            if not send_to_all and not teachers:
-                raise ValidationError("يرجى اختيار مدراء معينين أو تفعيل خيار 'إرسال لجميع مدراء المدارس ضمن نطاقي'.")
+                raise ValidationError("الرجاء اختيار مدرسة مستهدفة أو تغيير النطاق إلى \"كل المدارس\".")
 
         # التعميمات داخل المدرسة: مدير المدرسة يجب أن يحدد مستلمين صراحةً.
-        if is_circular and not is_superuser and not is_platform:
+        if is_circular and not is_superuser:
             selected_teachers = cleaned.get("teachers")
             target_departments = cleaned.get("target_department")
             if not selected_teachers and not target_departments:
@@ -2194,7 +2013,7 @@ class NotificationCreateForm(forms.Form):
 
         # للإشعارات العادية (داخل المدرسة): لا نسمح بالإرسال بدون تحديد مستلمين.
         # يمكن التحديد إما عبر اختيار معلمين بشكل مباشر أو اختيار قسم كامل.
-        if not is_circular and not (is_superuser or is_platform):
+        if not is_circular and not is_superuser:
             selected_teachers = cleaned.get("teachers")
             target_departments = cleaned.get("target_department")
             if not selected_teachers and not target_departments:
@@ -2225,19 +2044,10 @@ class NotificationCreateForm(forms.Form):
 
         # تحديد المدرسة المرتبطة بالإشعار
         school_for_notification = default_school
-        try:
-            from .permissions import is_platform_admin
-            is_superuser = bool(getattr(creator, "is_superuser", False))
-            is_platform = bool(is_platform_admin(creator)) and not is_superuser
-        except Exception:
-            is_superuser = bool(getattr(creator, "is_superuser", False))
-            is_platform = False
+        is_superuser = bool(getattr(creator, "is_superuser", False))
 
-        if is_superuser or is_platform:
+        if is_superuser:
             scope = cleaned.get("audience_scope") or "school"
-            # للتعاميم: لو لم تُحدد مدرسة بعينها (خصوصاً للمشرف العام)، نعاملها كنطاق "all".
-            if is_platform and scope == "school" and not cleaned.get("target_school"):
-                scope = "all"
             if scope == "all":
                 school_for_notification = None
             else:
@@ -2279,7 +2089,7 @@ class NotificationCreateForm(forms.Form):
         # الأقسام والأفراد مصدران متكاملان للمستلمين؛ تزيل المجموعة أي تكرار.
         if target_departments and (
             not bool(requires_signature)
-            or not (is_superuser or is_platform)
+            or not is_superuser
         ):
             from .models import DepartmentMembership
             dept_teachers = DepartmentMembership.objects.filter(
@@ -2296,17 +2106,10 @@ class NotificationCreateForm(forms.Form):
         
         teacher_ids = list(teacher_ids_set) if teacher_ids_set else None
 
-        # التعميمات (requires_signature=True): مدير النظام/المشرف العام يرسل لمدراء المدارس
-        # لو لم يحدد أسماء أو فعّل "إرسال للكل"، نعتبره "إرسال للكل" ضمن النطاق المحدد.
-        try:
-            from .permissions import is_platform_admin
-            is_platform_creator = bool(is_platform_admin(creator)) and not bool(getattr(creator, "is_superuser", False))
-        except Exception:
-            is_platform_creator = False
-
-        send_to_all_managers = cleaned.get("send_to_all_managers", False)
-        if bool(requires_signature) and (bool(getattr(creator, "is_superuser", False)) or is_platform_creator):
-            if send_to_all_managers or not teacher_ids:
+        # التعميمات (requires_signature=True): مدير النظام يرسل لمدراء المدارس.
+        # لو لم يحدد أسماء، نعتبره "إرسال للكل" ضمن النطاق المحدد.
+        if bool(requires_signature) and bool(getattr(creator, "is_superuser", False)):
+            if not teacher_ids:
                 try:
                     qs = self.fields["teachers"].queryset
                     teacher_ids = list(qs.values_list("pk", flat=True))

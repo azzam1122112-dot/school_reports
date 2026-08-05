@@ -172,7 +172,6 @@ from ..forms import (
     AchievementManagerNotesForm,
     LeadershipPortfolioForm,
     LeadershipPortfolioSectionForm,
-    PlatformAdminCreateForm,
     PlatformSchoolNotificationForm,
     PrivateCommentForm,
     TicketNoteEditForm,
@@ -278,11 +277,8 @@ from ..permissions import (
     restrict_queryset_for_user,
     effective_user_role_label,
     get_school_manager_school_ids,
-    is_platform_admin,
     is_school_manager,
-    is_report_viewer_for_school,
     platform_allowed_schools_qs,
-    platform_can_access_school,
 )
 try:
     from ..permissions import is_officer  # type: ignore
@@ -344,7 +340,7 @@ def _is_staff_or_officer(user) -> bool:
     """يسمح للموظّفين (is_staff) أو لمسؤولي الأقسام (Officer)."""
     return bool(
         getattr(user, "is_authenticated", False)
-        and (_is_staff(user) or is_officer(user) or is_platform_admin(user))
+        and (_is_staff(user) or is_officer(user))
     )
 
 
@@ -505,7 +501,7 @@ def _get_active_school(request: HttpRequest) -> Optional[School]:
 
     تحسين احترافي:
     - إذا لم تُحدَّد مدرسة في الجلسة، وكان للمستخدم مدرسة واحدة فقط → نعتبرها المدرسة النشطة تلقائياً.
-    - للمشرف العام: إن لم يكن لديه عضويات ومدرسة واحدة فقط مفعّلة في النظام → نختارها تلقائياً.
+    - لمالك النظام: إن لم يكن لديه عضويات ومدرسة واحدة فقط مفعّلة في النظام → نختارها تلقائياً.
     """
     sid = request.session.get("active_school_id")
     try:
@@ -528,7 +524,7 @@ def _get_active_school(request: HttpRequest) -> Optional[School]:
                 _set_active_school(request, school)
                 return school
 
-            # مشرف عام مع مدرسة واحدة فقط في النظام
+            # مالك النظام مع مدرسة واحدة فقط في النظام
             if getattr(user, "is_superuser", False):
                 qs = School.objects.filter(is_active=True)
                 if qs.count() == 1:
@@ -604,11 +600,6 @@ def _user_department_codes(user, active_school: Optional[School] = None) -> list
             logger.exception("Failed to fetch user department codes")
 
     return list(codes)
-
-
-def _is_report_viewer(user, active_school: Optional[School] = None) -> bool:
-    """Compatibility wrapper around the canonical permission helper."""
-    return is_report_viewer_for_school(user, active_school)
 
 
 def _ensure_achievement_sections(ach_file: TeacherAchievementFile) -> None:

@@ -32,7 +32,7 @@ from ._helpers import (
     _is_staff, _is_staff_or_officer, _is_manager_in_school,
     _parse_date_safe, _filter_by_school, _safe_next_url, _safe_redirect,
     _private_comment_role_label, _model_has_field,
-    _get_active_school, _is_report_viewer,
+    _get_active_school,
     _ensure_achievement_sections,
     _clean_query_value, _clean_query_params,
 )
@@ -434,56 +434,6 @@ def admin_reports(request: HttpRequest) -> HttpResponse:
 
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
-def school_reports_readonly(request: HttpRequest) -> HttpResponse:
-    """عرض تقارير المدرسة (عرض فقط) لمشرف التقارير المرتبط بالمدرسة."""
-    active_school = _get_active_school(request)
-    if active_school is None:
-        messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
-        return redirect("reports:home")
-
-    # لا نسمح بالسوبر أو الموظف هنا (لمنع خلط الصلاحيات/الحسابات)
-    if getattr(request.user, "is_superuser", False) or _is_staff(request.user):
-        return redirect("reports:admin_reports")
-
-    if not _is_report_viewer(request.user, active_school):
-        messages.error(request, "لا تملك صلاحية الاطلاع على تقارير هذه المدرسة.")
-        return redirect("reports:home")
-
-    cats = allowed_categories_for(request.user, active_school)
-    qs = get_admin_reports_queryset(user=request.user, active_school=active_school)
-
-    start_date = _parse_date_safe(request.GET.get("start_date"))
-    end_date = _parse_date_safe(request.GET.get("end_date"))
-    teacher_name = _clean_query_value(request.GET.get("teacher_name"))
-    category = _clean_query_value(request.GET.get("category")).lower()
-
-    qs = apply_admin_report_filters(
-        qs,
-        start_date=start_date,
-        end_date=end_date,
-        teacher_name=teacher_name,
-        category=category,
-        cats=cats,
-    )
-
-    allowed_choices = get_reporttype_choices(active_school=active_school) if (HAS_RTYPE and ReportType is not None) else []
-    reports_page = svc_paginate(qs, per_page=20, page=request.GET.get("page", 1))
-
-    context = {
-        "reports": reports_page,
-        "start_date": start_date.isoformat() if start_date else "",
-        "end_date": end_date.isoformat() if end_date else "",
-        "teacher_name": teacher_name,
-        "category": category,
-        "categories": allowed_choices,
-        "can_delete": False,
-        "qs": _clean_query_params(request.GET),
-    }
-    return render(request, "reports/admin_reports.html", context)
-
-
-@login_required(login_url="reports:login")
-@require_http_methods(["GET"])
 def school_archive(request: HttpRequest) -> HttpResponse:
     """Manager-friendly archive workspace: live content plus immutable snapshots."""
     active_school = _get_active_school(request)
@@ -492,10 +442,8 @@ def school_archive(request: HttpRequest) -> HttpResponse:
         return redirect("reports:select_school")
 
     is_manager = is_school_manager(request.user, active_school=active_school)
-    is_viewer = _is_report_viewer(request.user, active_school)
-    is_platform = bool(is_platform_admin(request.user) and platform_can_access_school(request.user, active_school))
     is_superuser = bool(getattr(request.user, "is_superuser", False))
-    school_wide = bool(is_superuser or is_manager or is_viewer or is_platform)
+    school_wide = bool(is_superuser or is_manager)
     can_manage_archive = bool(is_superuser or is_manager)
     archive_enabled = school_archive_enabled(active_school)
     archive_addon = SchoolArchiveAddon.objects.filter(school=active_school).first()
@@ -876,11 +824,6 @@ def school_archive_download(request: HttpRequest, pk: int) -> HttpResponse:
     allowed_school_wide = bool(
         getattr(request.user, "is_superuser", False)
         or is_school_manager(request.user, active_school=active_school)
-        or _is_report_viewer(request.user, active_school)
-        or (
-            is_platform_admin(request.user)
-            and platform_can_access_school(request.user, active_school)
-        )
     )
     if not allowed_school_wide:
         messages.error(request, "لا تملك صلاحية تنزيل نسخ أرشيف المدرسة.")
@@ -987,10 +930,8 @@ def school_archive_export(request: HttpRequest) -> HttpResponse:
         return redirect("reports:school_archive")
 
     is_manager = is_school_manager(request.user, active_school=active_school)
-    is_viewer = _is_report_viewer(request.user, active_school)
-    is_platform = bool(is_platform_admin(request.user) and platform_can_access_school(request.user, active_school))
     is_superuser = bool(getattr(request.user, "is_superuser", False))
-    school_wide = bool(is_superuser or is_manager or is_viewer or is_platform)
+    school_wide = bool(is_superuser or is_manager)
 
     years = archive_available_years(school=active_school, teacher=request.user, school_wide=school_wide)
     selected_year = (request.GET.get("year") or "").strip()
@@ -1110,7 +1051,6 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
     
     # ✅ إضافة صلاحيات الحذف والمشاركة لكل تقرير (بدون N+1 على قاعدة البيانات)
     is_superuser = bool(getattr(user, "is_superuser", False))
-    is_platform = bool(is_platform_admin(user))
 
     allowed_category_ids = set()
     try:
@@ -1119,7 +1059,7 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
         allowed_category_ids = set()
 
     manager_school_ids = set()
-    if (not is_superuser) and (not is_platform):
+    if not is_superuser:
         try:
             manager_school_ids = set(
                 SchoolMembership.objects.filter(
@@ -1134,8 +1074,6 @@ def officer_reports(request: HttpRequest) -> HttpResponse:
     for report in page_obj:
         if is_superuser:
             allowed = True
-        elif is_platform:
-            allowed = False
         else:
             allowed = bool(
                 getattr(report, "teacher_id", None) == getattr(user, "id", None)
@@ -1295,7 +1233,6 @@ def admin_delete_report(request: HttpRequest, pk: int) -> HttpResponse:
     - صاحب التقرير نفسه
     
     ✅ عضو القسم (TEACHER) لا يستطيع الحذف (عرض فقط)
-    ✅ مشرف المنصة لا يستطيع الحذف (عرض فقط)
     """
     active_school = _get_active_school(request)
     user = request.user
@@ -1382,14 +1319,6 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
             if active_school is not None and _model_has_field(Report, "school"):
                 qs = qs.filter(school=active_school)
             r = get_object_or_404(qs, pk=pk)
-        elif is_platform_admin(user):
-            qs = Report.objects.select_related("teacher", "category")
-            if _model_has_field(Report, "school"):
-                allowed_ids = list(platform_allowed_schools_qs(user).values_list("id", flat=True))
-                qs = qs.filter(school_id__in=allowed_ids)
-                if active_school is not None:
-                    qs = qs.filter(school=active_school)
-            r = get_object_or_404(qs, pk=pk)
         else:
             r = _get_report_for_user_or_404(request, pk)
 
@@ -1403,10 +1332,9 @@ def report_print(request: HttpRequest, pk: int) -> HttpResponse:
         comment_form = None
         try:
             is_report_owner = getattr(r, "teacher_id", None) == getattr(user, "id", None)
-            is_allowed_platform = bool(is_platform_admin(user) and platform_can_access_school(user, school_scope))
             is_manager = _is_manager_in_school(user, school_scope)
             is_staff_user = _is_staff(user)
-            can_add_private_comment = bool(is_allowed_platform or is_manager or is_staff_user)
+            can_add_private_comment = bool(is_manager or is_staff_user)
             show_comments = bool(is_report_owner or can_add_private_comment)
 
             # عرض سجل التعليقات للمعلم + أصحاب الصلاحية (ولا تظهر في الطباعة/المشاركة)
@@ -2098,7 +2026,6 @@ def edit_my_report(request: HttpRequest, pk: int) -> HttpResponse:
     - صاحب التقرير نفسه
     
     ✅ عضو القسم (TEACHER) لا يستطيع التعديل (عرض فقط)
-    ✅ مشرف المنصة لا يستطيع التعديل (عرض فقط)
     """
     user = request.user
     active_school = _get_active_school(request)

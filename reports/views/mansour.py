@@ -22,8 +22,6 @@ from ..mansour_knowledge import (
     AUDIENCE_GENERAL,
     AUDIENCE_LABELS,
     AUDIENCE_MANAGER,
-    AUDIENCE_PLATFORM_SUPERVISOR,
-    AUDIENCE_REPORT_SUPERVISOR,
     AUDIENCE_TEACHER,
     PUBLIC_AUDIENCES,
 )
@@ -33,11 +31,7 @@ from ..ai_features import (
     FEATURE_MANSOUR_PUBLIC,
     platform_ai_toggle_enabled,
 )
-from ..permissions import (
-    is_platform_admin,
-    is_report_viewer_for_school,
-    is_school_manager,
-)
+from ..permissions import is_school_manager
 from ._helpers import _get_active_school
 
 
@@ -105,14 +99,12 @@ def _resolve_audience(request: HttpRequest, requested_audience, question="", his
                     return inferred
         return AUDIENCE_GENERAL
 
-    if getattr(user, "is_superuser", False) or is_platform_admin(user):
-        return AUDIENCE_PLATFORM_SUPERVISOR
+    if getattr(user, "is_superuser", False):
+        return AUDIENCE_MANAGER
 
     active_school = _get_active_school(request)
     if is_school_manager(user, active_school=active_school):
         return AUDIENCE_MANAGER
-    if is_report_viewer_for_school(user, active_school=active_school):
-        return AUDIENCE_REPORT_SUPERVISOR
     return AUDIENCE_TEACHER
 
 

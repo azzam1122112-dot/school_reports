@@ -769,29 +769,6 @@ class MansourAssistantTests(TestCase):
                 self.assertEqual(response.json()["sources"], [])
 
     @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
-    def test_public_supervisor_gets_one_safe_role_clarification(self):
-        questions = (
-            "أنا مشرف، ما الذي أستطيع متابعته؟",
-            "ما الفرق بين نوعي المشرف؟",
-            "ما صلاحيات مشرف التقارير؟",
-            "ما نطاق مشرف المنصة؟",
-        )
-
-        for question in questions:
-            with self.subTest(question=question):
-                response = self.client.post(
-                    reverse("reports:mansour_assistant_reply"),
-                    data=json.dumps({"question": question, "audience": "supervisor"}),
-                    content_type="application/json",
-                )
-                self.assertEqual(response.status_code, 200)
-                payload = response.json()
-                self.assertEqual(payload["audience"], "supervisor")
-                self.assertIn("مشرف تقارير", payload["answer"])
-                self.assertIn("مشرف منصة", payload["answer"])
-                self.assertNotIn("الشكوى", payload["answer"])
-
-    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
     def test_role_onboarding_is_specific_for_public_teacher_and_manager(self):
         cases = (
             ("teacher", "كيف أبدأ؟", "مساحة عملك", "إعداد فريق المدرسة"),
@@ -822,9 +799,6 @@ class MansourAssistantTests(TestCase):
             ("manager", "كيف أضيف المعلمين؟", "إدارة المعلمين"),
             ("manager", "كيف أرسل تعميمًا؟", "التعميم"),
             ("manager", "كيف أتابع تقارير المدرسة؟", "تقارير المدرسة"),
-            ("supervisor", "ما الفرق بين نوعي المشرف؟", "مشرف منصة"),
-            ("supervisor", "ما صلاحيات مشرف التقارير؟", "للعرض والمتابعة"),
-            ("supervisor", "ما نطاق مشرف المنصة؟", "المدارس المخصصة"),
         )
 
         for audience, question, expected in cases:
@@ -842,60 +816,6 @@ class MansourAssistantTests(TestCase):
         self.assertEqual(infer_public_audience("كيف أضيف تقريرًا جديدًا؟"), "teacher")
         self.assertEqual(infer_public_audience("كيف أنشئ ملف إنجاز وأشاركه؟"), "teacher")
         self.assertEqual(infer_public_audience("كيف أضيف المعلمين؟"), "manager")
-
-    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
-    def test_report_supervisor_is_told_account_is_read_only(self):
-        school = School.objects.create(name="مدرسة العرض", code="mansour-read-only")
-        SchoolSubscription.objects.create(
-            school=school,
-            plan=SubscriptionPlan.objects.get(name="باقة المدرسة"),
-        )
-        viewer = Teacher.objects.create_user(
-            phone="500009905",
-            name="مشرف العرض",
-            password="test-pass",
-        )
-        SchoolMembership.objects.create(
-            school=school,
-            teacher=viewer,
-            role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-        )
-        self.client.force_login(viewer)
-        session = self.client.session
-        session["active_school_id"] = school.id
-        session.save()
-
-        response = self.client.post(
-            reverse("reports:mansour_assistant_reply"),
-            data=json.dumps({"question": "هل أستطيع تعديل تقرير المعلم أو حذفه؟"}),
-            content_type="application/json",
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["audience"], "report_supervisor")
-        self.assertIn("للعرض فقط", response.json()["answer"])
-        self.assertIn("لا يمكنك", response.json()["answer"])
-
-    @override_settings(OPENAI_API_KEY="", MANSOUR_ASSISTANT_ENABLED=True)
-    def test_authenticated_platform_supervisor_gets_scoped_overview(self):
-        supervisor = Teacher.objects.create_user(
-            phone="500009906",
-            name="مشرف نطاق منصور",
-            password="test-pass",
-            is_platform_admin=True,
-        )
-        self.client.force_login(supervisor)
-
-        response = self.client.post(
-            reverse("reports:mansour_assistant_reply"),
-            data=json.dumps({"question": "ما صلاحياتي؟", "audience": "manager"}),
-            content_type="application/json",
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["audience"], "platform_supervisor")
-        self.assertIn("المدارس المخصصة", response.json()["answer"])
-        self.assertIn("لا تنتقل إليك صلاحيات مدير المدرسة", response.json()["answer"])
 
     def test_generated_links_are_removed_from_answer_text(self):
         answer = _sanitise_answer_text(
@@ -953,7 +873,7 @@ class MansourAssistantTests(TestCase):
 
         self.assertEqual(_resolve_audience(request, "teacher"), "manager")
 
-    def test_server_distinguishes_teacher_and_both_supervisor_types(self):
+    def test_server_resolves_school_role_regardless_of_client_claim(self):
         school = School.objects.create(name="مدرسة الأدوار", code="mansour-roles")
         SchoolSubscription.objects.create(
             school=school,
@@ -964,26 +884,10 @@ class MansourAssistantTests(TestCase):
             name="معلم منصور",
             password="test-pass",
         )
-        report_supervisor = Teacher.objects.create_user(
-            phone="500009903",
-            name="مشرف تقارير منصور",
-            password="test-pass",
-        )
-        platform_supervisor = Teacher.objects.create_user(
-            phone="500009904",
-            name="مشرف منصة منصور",
-            password="test-pass",
-            is_platform_admin=True,
-        )
         SchoolMembership.objects.create(
             school=school,
             teacher=teacher,
             role_type=SchoolMembership.RoleType.TEACHER,
-        )
-        SchoolMembership.objects.create(
-            school=school,
-            teacher=report_supervisor,
-            role_type=SchoolMembership.RoleType.REPORT_VIEWER,
         )
 
         def resolved_for(user):
@@ -994,17 +898,15 @@ class MansourAssistantTests(TestCase):
             return _resolve_audience(request, "manager")
 
         self.assertEqual(resolved_for(teacher), "teacher")
-        self.assertEqual(resolved_for(report_supervisor), "report_supervisor")
-        self.assertEqual(resolved_for(platform_supervisor), "platform_supervisor")
 
     @patch("reports.mansour_assistant.urlopen", return_value=_FakeOpenAIResponse())
-    def test_anonymous_user_cannot_claim_an_internal_supervisor_role(self, mocked_urlopen):
+    def test_anonymous_user_cannot_claim_an_unknown_privileged_role(self, mocked_urlopen):
         response = self.client.post(
             reverse("reports:mansour_assistant_reply"),
             data=json.dumps(
                 {
                     "question": "ما صلاحياتي؟",
-                    "audience": "platform_supervisor",
+                    "audience": "platform_owner",
                 }
             ),
             content_type="application/json",
@@ -1014,7 +916,6 @@ class MansourAssistantTests(TestCase):
         self.assertEqual(response.json()["audience"], "general")
         self.assertIn("معلم", response.json()["answer"])
         self.assertIn("مدير مدرسة", response.json()["answer"])
-        self.assertNotIn("مشرف منصة، تعمل", response.json()["answer"])
         mocked_urlopen.assert_not_called()
 
     @patch("reports.mansour_assistant.urlopen", return_value=_FakeOpenAIResponse())

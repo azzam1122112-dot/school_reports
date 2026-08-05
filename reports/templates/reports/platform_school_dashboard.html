@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load static humanize %}
 
-{% block title %}المشرف العام - المدرسة{% endblock %}
+{% block title %}إدارة المنصة - المدرسة{% endblock %}
 
 {% block head %}
 <style>
-    /* Clean Supervisor View */
-    .supervisor-container {
+    /* Clean platform view */
+    .platform-container {
         padding: 2rem;
         max-width: 1400px;
         margin: 0 auto;
@@ -92,7 +92,7 @@
     .status-text--expired { color:#b9975b; }
     .status-text--active { color:#16845b; }
     .status-text--inactive { color:#64748b; }
-    .supervisor-note {
+    .platform-note {
         margin-top:3rem;
         padding:2rem;
         color:#92400e;
@@ -100,16 +100,16 @@
         border:1px solid #fcd34d;
         border-radius:12px;
     }
-    .supervisor-note h4 { margin:0 0 0.5rem; font-weight:700; }
-    .supervisor-note p { margin:0; font-size:0.95rem; }
+    .platform-note h4 { margin:0 0 0.5rem; font-weight:700; }
+    .platform-note p { margin:0; font-size:0.95rem; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="supervisor-container">
+<div class="platform-container">
     <div class="sup-header">
         <div class="school-title">
-            <span class="badge-role">لوحة المشرف العام</span>
+            <span class="badge-role">لوحة إدارة المنصة</span>
             <h1>{{ school.name }}</h1>
         </div>
         <div>
@@ -176,8 +176,8 @@
     </div>
 
     <!-- Alert Section -->
-    <div class="supervisor-note">
-        <h4><i class="fas fa-info-circle"></i> ملاحظات المشرف</h4>
+    <div class="platform-note">
+        <h4><i class="fas fa-info-circle"></i> ملاحظات الإدارة</h4>
         <p>
             تأكد من متابعة مؤشرات الأداء بشكل دوري. في حال انخفاض عدد التقارير عن المعدل الطبيعي، يرجى التواصل مع إدارة المدرسة.
         </p>

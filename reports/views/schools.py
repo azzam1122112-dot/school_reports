@@ -412,7 +412,7 @@ def get_department_form():
     return None
 
 
-# ---- إعدادات المدرسة الحالية (للمدير أو المشرف العام) ----
+# ---- إعدادات المدرسة الحالية (لمدير المدرسة أو مالك النظام) ----
 def _approx_current_hijri_year() -> int:
     """تقدير السنة الهجرية الحالية (يكفي لتوليد نطاق اختيار واسع)."""
     import datetime
@@ -540,7 +540,7 @@ def school_settings(request: HttpRequest) -> HttpResponse:
     """إعدادات المدرسة الحالية (الاسم، الشعار...).
 
     - متاحة لمدير المدرسة على مدرسته النشطة فقط.
-    - متاحة للمشرف العام على أي مدرسة بعد اختيارها كـ active_school.
+    - متاحة لمالك النظام على أي مدرسة بعد اختيارها كـ active_school.
     """
     active_school = _get_active_school(request)
     if active_school is None:
@@ -587,7 +587,7 @@ def school_settings(request: HttpRequest) -> HttpResponse:
     )
 
 
-# ---- إدارة المدارس (إنشاء/تعديل/حذف) للمشرف العام ----
+# ---- إدارة المدارس (إنشاء/تعديل/حذف) لمالك النظام ----
 class _SchoolAdminForm(forms.ModelForm):
     class Meta:
         model = School

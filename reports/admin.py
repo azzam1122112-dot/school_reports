@@ -5,6 +5,7 @@ from __future__ import annotations
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.db.models import Count
 from django.utils import timezone
 from django.utils.html import format_html
 
@@ -21,9 +22,9 @@ from .models import (
     TicketNote,
     School,
     SchoolAdditionRequest,
+    SchoolGroup,
+    SchoolGroupMembership,
     SchoolMembership,
-    PlatformAdminScope,
-    PlatformAdminRole,
     PlatformSettings,
     SubscriptionPlan,
     SchoolSubscription,
@@ -309,6 +310,38 @@ class TicketNoteAdmin(admin.ModelAdmin):
 # =========================
 # إدارة المدارس وعضوياتها
 # =========================
+class SchoolGroupMembershipInline(admin.TabularInline):
+    model = SchoolGroupMembership
+    extra = 0
+    autocomplete_fields = ("user",)
+    verbose_name = "مدير تنفيذي"
+    verbose_name_plural = "المدير التنفيذي"
+
+
+@admin.register(SchoolGroup)
+class SchoolGroupAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "education_department", "schools_count", "is_active", "created_at")
+    list_filter = ("is_active", "education_department")
+    search_fields = ("name", "code", "education_department")
+    prepopulated_fields = {"code": ("name",)}
+    inlines = (SchoolGroupMembershipInline,)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_schools_count=Count("schools"))
+
+    @admin.display(description="عدد المدارس", ordering="_schools_count")
+    def schools_count(self, obj):
+        return getattr(obj, "_schools_count", 0)
+
+
+@admin.register(SchoolGroupMembership)
+class SchoolGroupMembershipAdmin(admin.ModelAdmin):
+    list_display = ("user", "group", "role_type", "is_active", "created_at")
+    list_filter = ("role_type", "is_active")
+    search_fields = ("user__name", "user__phone", "group__name", "group__code")
+    autocomplete_fields = ("user", "group")
+
+
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
     list_display = (
@@ -397,24 +430,6 @@ class SchoolMembershipAdmin(admin.ModelAdmin):
     search_fields = ("teacher__name", "teacher__phone", "school__name", "school__code")
     autocomplete_fields = ("teacher", "school")
     list_select_related = ("teacher", "school")
-
-
-@admin.register(PlatformAdminScope)
-class PlatformAdminScopeAdmin(admin.ModelAdmin):
-    list_display = ("admin", "role", "gender_scope")
-    list_filter = ("role", "gender_scope")
-    search_fields = ("admin__name", "admin__phone")
-    autocomplete_fields = ("admin", "role")
-    filter_horizontal = ("allowed_schools",)
-
-
-@admin.register(PlatformAdminRole)
-class PlatformAdminRoleAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "is_active", "order")
-    list_filter = ("is_active",)
-    search_fields = ("name", "slug")
-    ordering = ("order", "name")
-
 
 
 from django.contrib import admin
@@ -806,7 +821,7 @@ class AuditLogAdmin(admin.ModelAdmin):
 
         qs = qs.filter(school_id__in=allowed_school_ids)
 
-        # لا نعرض سجلات أنشأها مستخدمون خارج المدرسة (مثل السوبر/مشرف المنصة)
+        # لا نعرض سجلات أنشأها مستخدمون خارج المدرسة (مثل مالك النظام)
         # حتى لو أثّرت على المدرسة، لتجنب خلط السجلات بين المدارس.
         qs = qs.filter(
             Q(teacher__isnull=True)

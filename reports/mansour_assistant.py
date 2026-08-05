@@ -13,9 +13,6 @@ from .mansour_knowledge import (
     AUDIENCE_GENERAL,
     AUDIENCE_LABELS,
     AUDIENCE_MANAGER,
-    AUDIENCE_PLATFORM_SUPERVISOR,
-    AUDIENCE_REPORT_SUPERVISOR,
-    AUDIENCE_SUPERVISOR,
     AUDIENCE_TEACHER,
     KNOWLEDGE_ITEMS,
     ROLE_DEFAULT_SLUGS,
@@ -253,11 +250,6 @@ def _page_context_preferred_slug(value: Any, *, audience: str) -> str:
     if not path.startswith("/") or path.startswith("//"):
         return ""
 
-    if audience == AUDIENCE_REPORT_SUPERVISOR:
-        return "report-supervisor-read-only"
-    if audience == AUDIENCE_PLATFORM_SUPERVISOR:
-        return "platform-supervisor-scope"
-
     if audience == AUDIENCE_MANAGER:
         manager_routes = (
             (("/admin-dashboard/",), "manager-dashboard"),
@@ -339,8 +331,8 @@ def _tokens(value: str) -> set[str]:
 # pulls generic role articles above the workflow the user actually asked about.
 _ROLE_SELF_IDENTIFICATION_RE = re.compile(
     r"(?:أنا|انا|إني|اني|بصفتي|كوني|بوصفي)\s+"
-    r"(?:مدير(?:ة)?|قائد(?:ة)?|معلم(?:ة)?|مشرف(?:ة)?)"
-    r"(?:\s+(?:مدرسة|مدرسه|منصة|منصه|تقارير))?",
+    r"(?:مدير(?:ة)?|قائد(?:ة)?|معلم(?:ة)?)"
+    r"(?:\s+(?:مدرسة|مدرسه))?",
     flags=re.IGNORECASE,
 )
 
@@ -382,8 +374,6 @@ def infer_public_audience(question: Any) -> str:
         return AUDIENCE_MANAGER
     if any(marker in text for marker in ("انا معلم", "انا معلمه", "بصفتي معلم", "بصفتي معلمه")):
         return AUDIENCE_TEACHER
-    if any(marker in text for marker in ("انا مشرف", "انا مشرفه", "بصفتي مشرف", "بصفتي مشرفه")):
-        return "supervisor"
     manager_workflows = (
         "اضافه المعلمين",
         "اضيف المعلمين",
@@ -767,18 +757,6 @@ def _detect_customer_intent(question: str) -> str:
 def _is_role_overview_question(question: str) -> bool:
     """Detect broad onboarding/capability questions that require role guidance."""
     text = _normalise_arabic(question)
-    if "مشرف" in text and any(
-        marker in text
-        for marker in (
-            "ما الفرق",
-            "الفرق بين",
-            "ما صلاحيات",
-            "ما نطاق",
-            "ماذا يتابع",
-            "ما الذي يتابع",
-        )
-    ):
-        return True
     markers = (
         "ما صلاحياتي",
         "وش صلاحياتي",
@@ -821,7 +799,7 @@ def _role_overview_reply(audience: str) -> str:
     replies = {
         AUDIENCE_GENERAL: (
             "أرشدك من أول خطوة، لكن المسار يختلف حسب دورك. هل تستخدم منصة توثيق بصفة "
-            "معلم، أم مدير مدرسة، أم مشرف؟ اذكر دورك في سؤالك وسأعرض لك الخطوات "
+            "معلم أم مدير مدرسة؟ اذكر دورك في سؤالك وسأعرض لك الخطوات "
             "والصلاحيات المناسبة تلقائيًا دون خلط بين الأدوار."
         ),
         AUDIENCE_TEACHER: (
@@ -835,23 +813,6 @@ def _role_overview_reply(audience: str) -> str:
             "الإنجاز والطلبات، وإرسال الإشعارات والتعاميم، وإدارة الاشتراك والأرشيف ضمن "
             "المدرسة النشطة.\n"
             "الخطوة التالية: تأكد من المدرسة النشطة، ثم افتح لوحة المدير وابدأ بإعداد الفريق."
-        ),
-        AUDIENCE_SUPERVISOR: (
-            "حتى أحدد صلاحياتك بدقة: هل حسابك «مشرف تقارير» داخل مدرسة أم «مشرف منصة»؟ "
-            "مشرف التقارير حسابه للعرض والمتابعة، بينما مشرف المنصة يعمل ضمن المدارس "
-            "المخصصة له وبحسب الصلاحيات الممنوحة."
-        ),
-        AUDIENCE_REPORT_SUPERVISOR: (
-            "حساب مشرف التقارير مخصص للعرض والمتابعة. يمكنك عرض تقارير المدرسة وطباعتها، "
-            "وعرض ملفات الإنجاز وطباعتها أو تنزيلها، والوصول إلى الأرشيف المتاح. لا يمكنك "
-            "الإنشاء أو التعديل أو الحذف أو الإرسال أو إدارة الاشتراك.\n"
-            "الخطوة التالية: افتح تقارير المدرسة واختر التقرير المطلوب مراجعته."
-        ),
-        AUDIENCE_PLATFORM_SUPERVISOR: (
-            "بصفتك مشرف منصة، تعمل داخل نطاق المدارس المخصصة لك فقط، وتستخدم صفحات المتابعة "
-            "والتواصل والدعم وفق الصلاحيات الممنوحة. لا تنتقل إليك صلاحيات مدير المدرسة، "
-            "ولا يمكنك الوصول إلى مدرسة خارج نطاقك.\n"
-            "الخطوة التالية: افتح قائمة المدارس وابدأ بالمدرسة الموجودة ضمن نطاقك."
         ),
     }
     return replies[normalise_audience(audience)]
@@ -1320,24 +1281,8 @@ def _offline_customer_reply(
             next_action="سجّل التذكرة بهذه التفاصيل، وإن وصفت لي ما يظهر عندك أحاول معك مرة أخرى هنا.",
         )
 
-    normalised_question = _normalise_arabic(question)
     if intent == INTENT_GENERAL and _is_role_overview_question(question):
         return _role_overview_reply(audience)
-
-    if audience == AUDIENCE_REPORT_SUPERVISOR and any(
-        marker in normalised_question for marker in ("تعديل", "حذف", "انشاء", "صلاحيات", "استطيع")
-    ):
-        return (
-            "حساب مشرف التقارير للعرض فقط. يمكنك متابعة تقارير المدرسة وطباعتها، "
-            "وعرض ملفات الإنجاز وطباعتها أو تنزيلها، لكن لا يمكنك إنشاء التقارير أو تعديلها "
-            "أو حذفها أو تنفيذ أي عملية كتابة."
-        )
-
-    if audience == AUDIENCE_PLATFORM_SUPERVISOR and "صلاحيات" in normalised_question:
-        return (
-            "مشرف المنصة يعمل ضمن المدارس المخصصة له فقط، ويستخدم صفحات المتابعة والتواصل "
-            "بحسب الصلاحيات الممنوحة. لا يملك تلقائيًا صلاحيات مدير المدرسة ولا يصل إلى مدارس خارج نطاقه."
-        )
 
     if intent == INTENT_PRIVACY:
         return (

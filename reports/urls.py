@@ -69,10 +69,6 @@ urlpatterns = [
     path("archive/export/", views.school_archive_export, name="school_archive_export"),
 
     # =========================
-    # تقارير المدرسة (مشرف عرض فقط)
-    # =========================
-    path("reports/school/", views.school_reports_readonly, name="school_reports_readonly"),
-
     # =========================
     # ملف إنجاز المعلّم
     # =========================
@@ -133,6 +129,8 @@ urlpatterns = [
     # =========================
     # لوحة المدير
     # =========================
+    # لوحة المدير التنفيذي: خارج سياق المدرسة الواحدة عمداً.
+    path("group/", views.executive_dashboard, name="executive_dashboard"),
     path("staff/select-school/", views.select_school, name="select_school"),
     path("staff/switch-school/", views.switch_school, name="switch_school"),
     path("staff/my-school/", views.school_settings, name="school_settings"),
@@ -157,7 +155,7 @@ urlpatterns = [
     path("platform-dashboard/", views.platform_admin_dashboard, name="platform_admin_dashboard"),
 
     # =========================
-    # المشرف العام (عرض + تواصل فقط)
+    # لوحة إدارة المنصة (مالك النظام)
     # =========================
     path("platform/schools/", views.platform_schools_directory, name="platform_schools_directory"),
     path("platform/schools/<int:pk>/enter/", views.platform_enter_school, name="platform_enter_school"),
@@ -165,14 +163,6 @@ urlpatterns = [
     path("platform/school/reports/", views.platform_school_reports, name="platform_school_reports"),
     path("platform/school/tickets/", views.platform_school_tickets, name="platform_school_tickets"),
     path("platform/school/notify/", views.platform_school_notify, name="platform_school_notify"),
-    path("platform/admins/add/", views.platform_admin_create, name="platform_admin_create"),
-
-    # =========================
-    # إدارة المشرفين (مدير النظام فقط)
-    # =========================
-    path("platform/admins/", views.platform_admins_list, name="platform_admins_list"),
-    path("platform/admins/<int:pk>/edit/", views.platform_admin_update, name="platform_admin_update"),
-    path("platform/admins/<int:pk>/delete/", views.platform_admin_delete, name="platform_admin_delete"),
 
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("staff/audit-logs/", views.school_audit_logs, name="school_audit_logs"),

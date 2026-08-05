@@ -29,7 +29,7 @@ class PlatformStorageControlTests(TestCase):
     def setUp(self):
         self.admin = Teacher.objects.create_user(
             phone="500660001",
-            name="مشرف المنصة",
+            name="مالك النظام",
             password="control-pass",
             is_staff=True,
             is_superuser=True,

@@ -557,12 +557,12 @@ html[data-theme="dark"] .btn-sup {
 html[data-theme="dark"] .school-title h1,
 html[data-theme="dark"] .big-num { color: #edf6f1; }
 html[data-theme="dark"] .badge-role { color: #c8dbd1; background: #102920; }
-html[data-theme="dark"] .supervisor-container .card-caption { color: #abc0b6; }
+html[data-theme="dark"] .platform-container .card-caption { color: #abc0b6; }
 html[data-theme="dark"] .status-text--cancelled { color: #ffadb1; }
 html[data-theme="dark"] .status-text--expired { color: #f0d69d; }
 html[data-theme="dark"] .status-text--active { color: #9ce8bd; }
 html[data-theme="dark"] .status-text--inactive { color: #abc0b6; }
-html[data-theme="dark"] .supervisor-note {
+html[data-theme="dark"] .platform-note {
   color: #f0d69d;
   background: #2b2719;
   border-color: rgba(240, 214, 157, .30);

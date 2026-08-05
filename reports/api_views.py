@@ -25,7 +25,6 @@ from .models import (
     Ticket,
 )
 from .permissions import (
-    is_platform_admin,
     is_school_manager,
     platform_allowed_schools_qs,
     restrict_queryset_for_user,
@@ -75,8 +74,6 @@ class SchoolViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         if getattr(self.request.user, "is_superuser", False):
-            return School.objects.filter(is_active=True)
-        if is_platform_admin(self.request.user):
             return platform_allowed_schools_qs(self.request.user)
         return School.objects.filter(
             memberships__teacher=self.request.user,
@@ -124,7 +121,7 @@ class TicketViewSet(viewsets.ReadOnlyModelViewSet):
         ).select_related("creator", "assignee", "department")
 
         user = self.request.user
-        if getattr(user, "is_superuser", False) or is_platform_admin(user) or is_school_manager(user, active_school=school):
+        if getattr(user, "is_superuser", False) or is_school_manager(user, active_school=school):
             return qs.order_by("-created_at")
 
         dept_ids = []

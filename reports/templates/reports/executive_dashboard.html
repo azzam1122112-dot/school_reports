@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}لوحة المدير التنفيذي | منصة توثيق{% endblock %}
+
+{% block head %}
+<style>
+  .exec-page {
+    --exec-ink: #10231a;
+    --exec-muted: #607067;
+    --exec-line: #dfe8e2;
+    --exec-soft: #f3f8f5;
+    --exec-surface: #ffffff;
+    /* اللون الأخضر يُستعمل نصاً وخلفيةً، فيُفصل الرمزان ليُضبط كلٌّ لسمته. */
+    --exec-green: #08643b;
+    --exec-green-fill: #08643b;
+    --exec-gold: #b68a42;
+    --exec-danger: #b42318;
+    --exec-warning: #9a6700;
+    max-width: 1440px;
+    margin-inline: auto;
+    padding: 1.25rem;
+    color: var(--exec-ink);
+  }
+
+  [data-theme="dark"] .exec-page {
+    /* نفس منطق لوحة المدير: النص يفتح، والتعبئة تبقى داكنة ليحتفظ
+       الرقم الأبيض فوقها بتباينه. */
+    --exec-ink: #eff8f2;
+    --exec-muted: #afc1b5;
+    --exec-line: #2d4637;
+    --exec-soft: #13271c;
+    --exec-surface: #102019;
+    --exec-green: #6ed3a0;
+    --exec-gold: #eabf58;
+    --exec-danger: #ff9d96;
+    --exec-warning: #eabf58;
+  }
+
+  /* ── الترويسة ───────────────────────────────────────────────── */
+  .exec-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    padding: 1.9rem 1.75rem;
+    background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
+    color: #fff;
+    box-shadow: 0 18px 40px -22px rgba(8, 100, 59, .75);
+  }
+  .exec-hero::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: -70px;
+    inset-block-start: -90px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(182,138,66,.34), transparent 68%);
+    pointer-events: none;
+  }
+  .exec-hero__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .78rem;
+    font-weight: 800;
+    letter-spacing: .01em;
+    padding: .32rem .8rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.24);
+  }
+  .exec-hero__title { margin: .75rem 0 .3rem; font-size: 1.65rem; font-weight: 900; }
+  .exec-hero__meta { margin: 0; font-size: .92rem; opacity: .9; }
+  .exec-hero__note {
+    position: relative;
+    margin: 1.05rem 0 0;
+    padding: .6rem .85rem;
+    border-radius: 12px;
+    font-size: .82rem;
+    line-height: 1.7;
+    background: rgba(0,0,0,.16);
+    border-inline-start: 3px solid var(--exec-gold);
+  }
+
+  .exec-groups { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.1rem; }
+  .exec-groups a {
+    font-size: .82rem; font-weight: 800; text-decoration: none;
+    padding: .38rem .85rem; border-radius: 999px;
+    color: #fff; background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.24);
+  }
+  .exec-groups a.is-active { background: #fff; color: #08643b; }
+
+  /* ── بطاقات المؤشرات ────────────────────────────────────────── */
+  .exec-kpis {
+    display: grid; gap: .9rem; margin-top: 1.15rem;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  }
+  .exec-kpi {
+    background: var(--exec-surface);
+    border: 1px solid var(--exec-line);
+    border-radius: 16px;
+    padding: 1.05rem 1.1rem;
+    box-shadow: 0 10px 26px -24px rgba(16,35,26,.75);
+  }
+  .exec-kpi__icon {
+    width: 38px; height: 38px; border-radius: 11px;
+    display: grid; place-items: center;
+    background: var(--exec-soft); color: var(--exec-green);
+    font-size: .95rem; margin-bottom: .65rem;
+  }
+  .exec-kpi__value { font-size: 1.85rem; font-weight: 900; line-height: 1.1; }
+  .exec-kpi__label { font-size: .82rem; font-weight: 700; color: var(--exec-muted); margin-top: .2rem; }
+
+  /* ── الجدول ─────────────────────────────────────────────────── */
+  .exec-panel {
+    margin-top: 1.4rem;
+    background: var(--exec-surface);
+    border: 1px solid var(--exec-line);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .exec-panel__head {
+    display: flex; flex-wrap: wrap; gap: .5rem;
+    align-items: baseline; justify-content: space-between;
+    padding: 1.05rem 1.2rem;
+    border-bottom: 1px solid var(--exec-line);
+  }
+  .exec-panel__head h2 { margin: 0; font-size: 1.05rem; font-weight: 900; }
+  .exec-panel__head p { margin: 0; font-size: .8rem; color: var(--exec-muted); }
+
+  /* الجداول العريضة تنزلق داخل حاويتها، فلا يزحف الجسم أفقياً. */
+  .exec-scroll { overflow-x: auto; }
+  .exec-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+  .exec-table th, .exec-table td {
+    padding: .8rem 1.2rem; text-align: start;
+    border-bottom: 1px solid var(--exec-line);
+    font-size: .87rem;
+  }
+  .exec-table th {
+    font-size: .74rem; font-weight: 800; text-transform: none;
+    color: var(--exec-muted); background: var(--exec-soft);
+    white-space: nowrap;
+  }
+  .exec-table tbody tr:last-child td { border-bottom: 0; }
+  .exec-table__school { font-weight: 800; }
+  .exec-table__sub { display: block; font-size: .74rem; font-weight: 600; color: var(--exec-muted); margin-top: .12rem; }
+  .exec-num { font-variant-numeric: tabular-nums; font-weight: 800; }
+
+  .exec-bar { display: flex; align-items: center; gap: .5rem; min-width: 130px; }
+  .exec-bar__track {
+    flex: 1; height: 7px; border-radius: 999px;
+    background: var(--exec-soft); overflow: hidden;
+  }
+  .exec-bar__fill {
+    display: block; height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #0a7a48, #b68a42);
+  }
+
+  .exec-chip {
+    display: inline-flex; align-items: center; gap: .32rem;
+    font-size: .74rem; font-weight: 800;
+    padding: .26rem .62rem; border-radius: 999px;
+    white-space: nowrap;
+  }
+  .exec-chip--active  { background: rgba(8,100,59,.12);  color: var(--exec-green); }
+  .exec-chip--ending  { background: rgba(154,103,0,.14); color: var(--exec-warning); }
+  .exec-chip--expired,
+  .exec-chip--none    { background: rgba(180,35,24,.12); color: var(--exec-danger); }
+
+  .exec-empty { padding: 2.4rem 1.2rem; text-align: center; color: var(--exec-muted); }
+  .exec-empty i { font-size: 1.7rem; color: var(--exec-green); display: block; margin-bottom: .6rem; }
+
+  @media (max-width: 640px) {
+    .exec-page { padding: .85rem; }
+    .exec-hero { padding: 1.35rem 1.15rem; }
+    .exec-hero__title { font-size: 1.32rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exec-page">
+
+  <header class="exec-hero">
+    <span class="exec-hero__eyebrow"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> المدارس المتكاملة</span>
+    <h1 class="exec-hero__title">{{ group.name }}</h1>
+    <p class="exec-hero__meta">
+      {% if group.education_department %}{{ group.education_department }} · {% endif %}
+      {{ totals.schools|intcomma }} مدرسة · {{ totals.teachers|intcomma }} معلماً
+      {% if group.headquarters_school %} · المقر: {{ group.headquarters_school.name }}{% endif %}
+    </p>
+
+    <p class="exec-hero__note">
+      هذه اللوحة للمتابعة والإشراف على مستوى المجموعة. كل مدرسة تحتفظ بمديرها
+      وبكامل صلاحياته، والإدارة اليومية تبقى لديه.
+    </p>
+
+    {% if groups|length > 1 %}
+      <nav class="exec-groups" aria-label="مجموعات المدارس">
+        {% for item in groups %}
+          <a href="?group={{ item.pk }}"
+             class="{% if item.pk == group.pk %}is-active{% endif %}"
+             {% if item.pk == group.pk %}aria-current="page"{% endif %}>{{ item.name }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </header>
+
+  <section class="exec-kpis" aria-label="مؤشرات المجموعة">
+    <article class="exec-kpi">
+      <div class="exec-kpi__icon"><i class="fa-solid fa-school" aria-hidden="true"></i></div>
+      <div class="exec-kpi__value">{{ totals.schools|intcomma }}</div>
+      <div class="exec-kpi__label">مدارس المجموعة</div>
+    </article>
+    <article class="exec-kpi">
+      <div class="exec-kpi__icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
+      <div class="exec-kpi__value">{{ totals.teachers|intcomma }}</div>
+      <div class="exec-kpi__label">المعلمون النشطون</div>
+    </article>
+    <article class="exec-kpi">
+      <div class="exec-kpi__icon"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></div>
+      <div class="exec-kpi__value">{{ totals.reports_recent|intcomma }}</div>
+      <div class="exec-kpi__label">تقارير آخر {{ activity_window_days }} يوماً</div>
+    </article>
+    <article class="exec-kpi">
+      <div class="exec-kpi__icon"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></div>
+      <div class="exec-kpi__value">{{ totals.achievements|intcomma }}</div>
+      <div class="exec-kpi__label">ملفات الإنجاز</div>
+    </article>
+  </section>
+
+  {% if needs_attention %}
+    <section class="exec-panel" aria-labelledby="execAttentionTitle">
+      <div class="exec-panel__head">
+        <h2 id="execAttentionTitle"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> تحتاج متابعة</h2>
+        <p>{{ needs_attention|length }} من {{ totals.schools }} مدرسة اشتراكها منتهٍ أو يقارب الانتهاء</p>
+      </div>
+      <div class="exec-scroll">
+        <table class="exec-table">
+          <thead>
+            <tr><th scope="col">المدرسة</th><th scope="col">حالة الاشتراك</th><th scope="col">المعلمون</th></tr>
+          </thead>
+          <tbody>
+            {% for row in needs_attention %}
+              <tr>
+                <td class="exec-table__school">{{ row.school.name }}</td>
+                <td><span class="exec-chip exec-chip--{{ row.subscription.tone }}">{{ row.subscription.label }}</span></td>
+                <td class="exec-num">{{ row.teachers|intcomma }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="exec-panel" aria-labelledby="execSchoolsTitle">
+    <div class="exec-panel__head">
+      <h2 id="execSchoolsTitle"><i class="fa-solid fa-list-check" aria-hidden="true"></i> مدارس المجموعة</h2>
+      <p>النشاط محسوب على آخر {{ activity_window_days }} يوماً</p>
+    </div>
+
+    {% if rows %}
+      <div class="exec-scroll">
+        <table class="exec-table">
+          <thead>
+            <tr>
+              <th scope="col">المدرسة</th>
+              <th scope="col">المعلمون</th>
+              <th scope="col">تقارير الفترة</th>
+              <th scope="col">النشاط</th>
+              <th scope="col">ملفات الإنجاز</th>
+              <th scope="col">الاشتراك</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td>
+                  <span class="exec-table__school">{{ row.school.name }}</span>
+                  <span class="exec-table__sub">
+                    {{ row.school.get_stage_display }} · {{ row.school.get_gender_display }}
+                    {% if row.school.city %} · {{ row.school.city }}{% endif %}
+                  </span>
+                </td>
+                <td class="exec-num">{{ row.teachers|intcomma }}</td>
+                <td class="exec-num">{{ row.reports_recent|intcomma }}</td>
+                <td>
+                  <div class="exec-bar">
+                    <span class="exec-bar__track">
+                      <span class="exec-bar__fill" style="width: {{ row.activity_share }}%"></span>
+                    </span>
+                    <span class="exec-num" style="font-size:.76rem">{{ row.activity_share }}%</span>
+                  </div>
+                </td>
+                <td class="exec-num">{{ row.achievements|intcomma }}</td>
+                <td><span class="exec-chip exec-chip--{{ row.subscription.tone }}">{{ row.subscription.label }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="exec-empty">
+        <i class="fa-solid fa-school-circle-exclamation" aria-hidden="true"></i>
+        لا توجد مدارس مرتبطة بهذه المجموعة بعد.
+      </p>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

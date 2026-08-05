@@ -465,7 +465,7 @@ def platform_mansour_content(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:platform_login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:platform_login")
 def platform_admin_dashboard(request: HttpRequest) -> HttpResponse:
-    """لوحة تحكم خاصة بالمشرف العام لإدارة المنصة بالكامل - تحديث 2026."""
+    """لوحة تحكم خاصة بمالك النظام لإدارة المنصة بالكامل - تحديث 2026."""
     from django.core.cache import cache
     from django.http import JsonResponse
     from django.db.models.functions import TruncMonth
@@ -886,7 +886,7 @@ def platform_admin_dashboard_search(request: HttpRequest) -> HttpResponse:
             "href": f"{reverse('reports:schools_admin_list')}?{query_params}",
         })
 
-    # نبحث في مدراء المدارس فقط لأنهم الفئة التي يديرها مشرف المنصة وتظهر فعلاً
+    # نبحث في مدراء المدارس فقط لأنهم الفئة التي تديرها المنصة وتظهر فعلاً
     # في صفحة الوجهة (school_managers_list). هذا يضمن أن نتيجة البحث قابلة للوصول.
     manager_qs = (
         Teacher.objects.filter(
@@ -940,7 +940,7 @@ def platform_admin_dashboard_search(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
 def platform_audit_logs(request: HttpRequest) -> HttpResponse:
-    """عرض سجل العمليات للنظام بالكامل (للمشرف العام)."""
+    """عرض سجل العمليات للنظام بالكامل (لمالك النظام)."""
     
     logs_qs = AuditLog.objects.all().select_related("teacher", "school").order_by("-timestamp")
 
@@ -3527,7 +3527,7 @@ def platform_subscription_renew(request: HttpRequest, pk: int) -> HttpResponse:
     - يضبط end_date = اليوم + (plan.days_duration - 1)
     - يفعّل is_active=True
 
-    هذا المسار مخصص للمشرف العام فقط لتسهيل التجديد من صفحة الاشتراكات.
+    هذا المسار مخصص لمالك النظام فقط لتسهيل التجديد من صفحة الاشتراكات.
     """
     subscription = get_object_or_404(SchoolSubscription.objects.select_related("plan", "school"), pk=pk)
 
