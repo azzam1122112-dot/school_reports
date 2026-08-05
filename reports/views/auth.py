@@ -19,7 +19,7 @@ from django_ratelimit.decorators import ratelimit
 from ._helpers import *
 from ._helpers import (
     _is_staff, _safe_next_url, _set_active_school,
-    _get_active_school, _user_schools, _is_report_viewer,
+    _get_active_school, _user_schools,
 )
 from ..webauthn import (
     b64url_decode,
@@ -121,14 +121,12 @@ def _offer_passkey_enrollment(request: HttpRequest, user: Teacher) -> None:
 def _default_login_redirect_name(user) -> str:
     if getattr(user, "is_superuser", False):
         return "reports:platform_admin_dashboard"
-    if is_platform_admin(user):
-        return "reports:platform_schools_directory"
     if _is_staff(user):
         return "reports:admin_dashboard"
     return "reports:home"
 
 
-def _is_platform_admin_path(value: str | None) -> bool:
+def _is_owner_only_path(value: str | None) -> bool:
     path = (value or "").split("?", 1)[0].rstrip("/") or "/"
     return path in {"/platform-dashboard", "/platform/settings"}
 
@@ -212,7 +210,7 @@ def _complete_passkey_login(request: HttpRequest, user: Teacher, *, next_url: st
         return _passkey_response(True, redirect=reverse("reports:my_profile"))
 
     safe_next = _safe_next_url(next_url)
-    if safe_next and _is_platform_admin_path(safe_next) and not getattr(user, "is_superuser", False):
+    if safe_next and _is_owner_only_path(safe_next) and not getattr(user, "is_superuser", False):
         return _passkey_response(
             False,
             status=403,
@@ -377,8 +375,6 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
         # إن كان المستخدم موظّف لوحة (مدير/سوبر أدمن) نوجّهه للوحة المناسبة
         if getattr(request.user, "is_superuser", False):
             return redirect("reports:platform_admin_dashboard")
-        if is_platform_admin(request.user):
-            return redirect("reports:platform_schools_directory")
         if _is_staff(request.user):
             return redirect("reports:admin_dashboard")
         return redirect("reports:home")
@@ -464,8 +460,6 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                         next_url = next_value
                         if getattr(user, "is_superuser", False):
                             default_name = "reports:platform_admin_dashboard"
-                        elif is_platform_admin(user):
-                            default_name = "reports:platform_schools_directory"
                         elif _is_staff(user):
                             default_name = "reports:admin_dashboard"
                         else:
@@ -538,7 +532,7 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
                 schools = _user_schools(user)
                 if len(schools) == 1:
                     _set_active_school(request, schools[0])
-                # أو إن كان مشرفاً عاماً وهناك مدرسة واحدة فقط مفعّلة في النظام
+                # أو إن كان مالك النظام وهناك مدرسة واحدة فقط مفعّلة في النظام
                 elif user.is_superuser:
                     qs = School.objects.filter(is_active=True)
                     if qs.count() == 1:
@@ -558,17 +552,14 @@ def login_view(request: HttpRequest, admin_only: bool = False) -> HttpResponse:
             # الوجهة الافتراضية حسب الدور
             if getattr(user, "is_superuser", False):
                 default_name = "reports:platform_admin_dashboard"
-            elif is_platform_admin(user):
-                default_name = "reports:platform_schools_directory"
             elif _is_staff(user):
                 default_name = "reports:admin_dashboard"
             else:
                 default_name = "reports:home"
             logger.info(
-                "Login success user_id=%s is_superuser=%s is_platform_admin=%s active_school_id=%s redirect=%s trace_id=%s",
+                "Login success user_id=%s is_superuser=%s active_school_id=%s redirect=%s trace_id=%s",
                 getattr(user, "id", None),
                 bool(getattr(user, "is_superuser", False)),
-                bool(is_platform_admin(user)),
                 request.session.get("active_school_id"),
                 (next_url or default_name),
                 getattr(request, "trace_id", None),
@@ -870,16 +861,12 @@ def my_profile(request: HttpRequest) -> HttpResponse:
     """بروفايل المستخدم الحالي.
 
     - متاح لكل المستخدمين.
-    - حساب (مشرف تقارير - عرض فقط) لا يدخلها عادةً، ويُسمح له بها فقط عند إجباره على تغيير كلمة المرور.
     - يعرض الاسم + المدارس المسندة.
     - يسمح بتغيير رقم الجوال + تغيير كلمة المرور، ويطلب البريد الإلكتروني عند الدخول الأول.
     """
 
     active_school = _get_active_school(request)
     force_password_change = is_force_password_change_required(request)
-    if (not force_password_change) and (_is_report_viewer(request.user, active_school) or _is_report_viewer(request.user)):
-        messages.error(request, "هذا الحساب للعرض فقط ولا يملك صفحة بروفايل.")
-        return redirect("reports:school_reports_readonly")
 
     memberships = (
         SchoolMembership.objects.filter(teacher=request.user, is_active=True)
@@ -1294,8 +1281,6 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
     if getattr(request.user, "is_authenticated", False):
         if getattr(request.user, "is_superuser", False):
             return redirect("reports:platform_admin_dashboard")
-        if is_platform_admin(request.user):
-            return redirect("reports:platform_schools_directory")
         if _is_staff(request.user):
             return redirect("reports:admin_dashboard")
         return redirect("reports:home")

@@ -21,7 +21,7 @@ from .models import (
     SchoolYearArchive,
     school_has_archive_addon,
 )
-from .permissions import effective_user_role_label, get_school_manager_school_ids, is_report_viewer_for_school
+from .permissions import effective_user_role_label, get_school_manager_school_ids
 from .gender_labels import school_gender_labels, school_gender_template_context
 
 # حالات التذاكر
@@ -762,6 +762,7 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
             "SHOW_SCHOOL_REPORTS_LINK": False,
             "SHOW_ARCHIVE_LINK": False,
             "IS_SCHOOL_MANAGER": False,
+            "IS_EXECUTIVE_DIRECTOR": False,
             "DEPARTMENT_REPORTS_URLNAME": None,
             "NAV_OFFICER_REPORTS": 0,
             "SHOW_ADMIN_DASHBOARD_LINK": False,
@@ -808,7 +809,6 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
                 [
                     "s" if getattr(u, "is_superuser", False) else "-",
                     "f" if getattr(u, "is_staff", False) else "-",
-                    "p" if getattr(u, "is_platform_admin", False) else "-",
                 ]
             )
             role_id = int(getattr(u, "role_id", 0) or 0)
@@ -935,8 +935,6 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
     except Exception:
         nav_officer_reports = 0
 
-    # هل المستخدم مشرف تقارير (عرض فقط) ضمن المدرسة النشطة؟
-    is_report_viewer = is_report_viewer_for_school(u, active_school) if active_school is not None else False
     has_saved_archive = False
     if active_school is not None:
         try:
@@ -964,6 +962,15 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
 
     # روابط لوحة المدير: تظهر لكل من لديه is_staff (مدير/سوبر أدمن) أو مدير مدرسة
     show_admin_link = bool(getattr(u, "is_staff", False)) or any_school_manager
+
+    # المدير التنفيذي لمجموعة المدارس المتكاملة — رابط لوحة المجموعة وحده،
+    # فالدور إشرافي لا يفتح أي مسار تحرير.
+    try:
+        from .permissions import is_executive_director as _is_executive_director
+
+        is_executive_director_user = bool(_is_executive_director(u))
+    except Exception:
+        is_executive_director_user = False
 
     # تسمية دور المستخدم الحالي (لعرضها في الواجهة)
     user_role_label: Optional[str] = effective_user_role_label(u, active_school=active_school)
@@ -1054,8 +1061,8 @@ def nav_context(request: HttpRequest) -> Dict[str, Any]:
         "DEPARTMENT_REPORTS_URLNAME": dept_reports_urlname,
         "NAV_OFFICER_REPORTS": nav_officer_reports,
         "SHOW_ADMIN_DASHBOARD_LINK": show_admin_link,
-        "IS_REPORT_VIEWER": is_report_viewer,
         "IS_SCHOOL_MANAGER": is_school_manager,
+        "IS_EXECUTIVE_DIRECTOR": is_executive_director_user,
         "NAV_NOTIFICATIONS_UNREAD": unread_count,
         "NAV_SIGNATURES_PENDING": signatures_pending,
         "NAV_NOTIFICATION_HERO": hero,

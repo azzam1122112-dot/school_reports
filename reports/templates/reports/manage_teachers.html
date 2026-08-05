@@ -153,9 +153,7 @@
                       </div>
                     {% else %}
                       {% with kind=t.manage_role_kind|default:'' label=t.manage_role_label|default:'' %}
-                        {% if kind == 'report_viewer' %}
-                          <span class="chip chip-role role-officer"><i class="fas fa-user-shield"></i> {{ label|default:"مشرف تقارير" }}</span>
-                        {% elif kind == 'admin_staff' %}
+                        {% if kind == 'admin_staff' %}
                           <span class="chip chip-role role-employee"><i class="fas fa-id-badge"></i> {{ label|default:SCHOOL_ADMIN_STAFF_LABEL|default:"موظف إداري" }}</span>
                         {% elif kind == 'lab_tech' %}
                           <span class="chip chip-role role-employee"><i class="fas fa-flask"></i> {{ label|default:SCHOOL_LAB_TECH_LABEL|default:"محضر مختبر" }}</span>

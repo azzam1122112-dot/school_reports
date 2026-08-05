@@ -6,7 +6,7 @@ from ._helpers import *
 from ._helpers import (
     _is_staff, _is_manager_in_school, _private_comment_role_label,
     _model_has_field, _get_active_school, _school_teachers_obj_label,
-    _is_report_viewer, _user_manager_schools,
+    _user_manager_schools,
 )
 from ..gender_labels import school_gender_labels, school_gender_template_context
 
@@ -102,8 +102,6 @@ def _can_manage_achievement(user, active_school: Optional[School]) -> bool:
 
 def _can_view_achievement(user, active_school: Optional[School]) -> bool:
     if getattr(user, "is_superuser", False):
-        return True
-    if is_platform_admin(user) and platform_can_access_school(user, active_school):
         return True
     if _can_manage_achievement(user, active_school):
         return True
@@ -226,7 +224,7 @@ def achievement_file_update_year(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET", "POST"])
 def achievement_school_files(request: HttpRequest) -> HttpResponse:
-    """قائمة ملفات الإنجاز للمدرسة (مدير/مشرف عرض فقط).
+    """قائمة ملفات الإنجاز للمدرسة (مدير المدرسة).
 
     - تعرض جميع المعلمين في المدرسة النشطة.
     - بجانب كل معلم: فتح الملف + طباعة/حفظ PDF.
@@ -371,11 +369,9 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             raise Http404
 
     is_manager = _can_manage_achievement(user, active_school)
-    is_viewer = _is_report_viewer(user, active_school)
     is_owner = (ach_file.teacher_id == getattr(user, "id", None))
-    is_platform = bool(is_platform_admin(user) and platform_can_access_school(user, active_school))
 
-    if not (getattr(user, "is_superuser", False) or is_manager or is_viewer or is_owner or is_platform):
+    if not (getattr(user, "is_superuser", False) or is_manager or is_owner):
         return HttpResponse(status=403)
 
     _ensure_achievement_sections(ach_file)
@@ -399,7 +395,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
         )
 
     can_edit_teacher = bool(is_owner and ach_file.status in {TeacherAchievementFile.Status.DRAFT, TeacherAchievementFile.Status.RETURNED})
-    can_post = bool((can_edit_teacher or is_manager) and not is_viewer)
+    can_post = bool(can_edit_teacher or is_manager)
 
     general_form = TeacherAchievementFileForm(request.POST or None, instance=ach_file)
     manager_notes_form = AchievementManagerNotesForm(request.POST or None, instance=ach_file)
@@ -408,7 +404,7 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
     # تعليقات خاصة (يراها المعلم + أصحاب الصلاحية داخل المدرسة/المنصة)
     is_staff_user = _is_staff(user)
-    can_add_private_comment = bool(is_platform or is_manager or is_staff_user or getattr(user, "is_superuser", False))
+    can_add_private_comment = bool(is_manager or is_staff_user or getattr(user, "is_superuser", False))
     show_private_comments = bool(is_owner or can_add_private_comment)
     private_comments = (
         TeacherPrivateComment.objects.select_related("created_by")
@@ -727,7 +723,6 @@ def achievement_file_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "manager_notes_form": manager_notes_form,
             "can_edit_teacher": can_edit_teacher,
             "is_manager": is_manager,
-            "is_viewer": is_viewer,
             "is_owner": is_owner,
             "show_private_comments": show_private_comments,
             "private_comments": private_comments,
@@ -919,222 +914,3 @@ def achievement_file_print(request: HttpRequest, pk: int) -> HttpResponse:
             "back_url": back_url,
         },
     )
-
-
-@login_required(login_url="reports:login")
-@role_required({"manager"})
-@require_http_methods(["GET", "POST"])
-def report_viewer_create(request: HttpRequest) -> HttpResponse:
-    """مدير المدرسة ينشئ حساب مشرف تقارير (عرض فقط) داخل المدرسة النشطة."""
-    active_school = _get_active_school(request)
-    if active_school is None:
-        messages.error(request, "فضلاً اختر مدرسة أولاً.")
-        return redirect("reports:select_school")
-
-    if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
-        messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
-        return redirect("reports:select_school")
-
-    form = ManagerCreateForm(request.POST or None)
-    if request.method == "POST":
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    # ✅ حد أقصى: 2 مشرفي تقارير نشطين لكل مدرسة
-                    active_viewers = SchoolMembership.objects.filter(
-                        school=active_school,
-                        role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-                        is_active=True,
-                    ).count()
-                    if active_viewers >= 2:
-                        messages.error(request, "لا يمكن إضافة أكثر من 2 مشرف تقارير (عرض فقط) لهذه المدرسة.")
-                        raise ValidationError("viewer_limit")
-
-                    viewer = form.save(commit=True)
-
-                    # تأكيد: لا نعطي صلاحيات موظف لوحة
-                    try:
-                        viewer.is_staff = False
-                        viewer.save(update_fields=["is_staff"])
-                    except Exception:
-                        viewer.save()
-
-                    SchoolMembership.objects.update_or_create(
-                        school=active_school,
-                        teacher=viewer,
-                        role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-                        defaults={"is_active": True},
-                    )
-
-                messages.success(request, "تم إنشاء حساب مشرف التقارير وربطه بالمدرسة بنجاح.")
-                return redirect("reports:manage_teachers")
-            except ValidationError as e:
-                # رسائل الحد/التحقق
-                if "viewer_limit" not in " ".join(getattr(e, "messages", []) or [str(e)]):
-                    messages.error(request, " ".join(getattr(e, "messages", []) or [str(e)]))
-            except Exception:
-                logger.exception("report_viewer_create failed")
-                messages.error(request, "تعذّر إنشاء مشرف التقارير. تحقّق من البيانات وحاول مرة أخرى.")
-        else:
-            messages.error(request, "فضلاً تحقق من الحقول وأعد المحاولة.")
-
-    return render(
-        request,
-        "reports/add_teacher.html",
-        {
-            "form": form,
-            "page_title": "إضافة مشرف  (عرض فقط)",
-            "page_subtitle": "هذا الحساب يستطيع الاطلاع على تقارير المدرسة و ملفات الإنجاز فقط",
-            "save_label": "حفظ المشرف",
-            "back_url": "reports:manage_teachers",
-            "back_label": f"رجوع لإدارة {_school_teachers_obj_label(active_school)}",
-        },
-    )
-
-
-@login_required(login_url="reports:login")
-@role_required({"manager"})
-@require_http_methods(["GET", "POST"])
-def report_viewer_update(request: HttpRequest, pk: int) -> HttpResponse:
-    """تعديل بيانات مشرف التقارير (عرض فقط) داخل المدرسة النشطة."""
-    active_school = _get_active_school(request)
-    if active_school is None:
-        messages.error(request, "فضلاً اختر مدرسة أولاً.")
-        return redirect("reports:select_school")
-
-    if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
-        messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
-        return redirect("reports:select_school")
-
-    viewer = get_object_or_404(Teacher, pk=pk)
-    has_membership = SchoolMembership.objects.filter(
-        school=active_school,
-        teacher=viewer,
-        role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-    ).exists()
-    if not has_membership:
-        messages.error(request, "هذا المستخدم ليس مشرف تقارير في المدرسة الحالية.")
-        return redirect("reports:manage_teachers")
-
-    form = ManagerCreateForm(request.POST or None, instance=viewer)
-    if request.method == "POST":
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    updated = form.save(commit=True)
-                    # ضمان عدم منحه صلاحيات موظف لوحة
-                    try:
-                        updated.is_staff = False
-                        updated.save(update_fields=["is_staff"])
-                    except Exception:
-                        pass
-                messages.success(request, "✏️ تم تحديث بيانات مشرف التقارير.")
-                return redirect("reports:manage_teachers")
-            except Exception:
-                logger.exception("report_viewer_update failed")
-                messages.error(request, "تعذّر تحديث البيانات. حاول لاحقًا.")
-        else:
-            messages.error(request, "الرجاء تصحيح الأخطاء الظاهرة.")
-
-    return render(
-        request,
-        "reports/add_teacher.html",
-        {
-            "form": form,
-            "page_title": "تعديل مشرف تقارير (عرض فقط)",
-            "page_subtitle": "تعديل بيانات الحساب دون تغيير صلاحياته",
-            "save_label": "حفظ التعديلات",
-            "back_url": "reports:manage_teachers",
-            "back_label": f"رجوع لإدارة {_school_teachers_obj_label(active_school)}",
-        },
-    )
-
-
-@login_required(login_url="reports:login")
-@role_required({"manager"})
-@require_http_methods(["POST"])
-def report_viewer_toggle(request: HttpRequest, pk: int) -> HttpResponse:
-    """تفعيل/إيقاف مشرف التقارير داخل المدرسة النشطة."""
-    active_school = _get_active_school(request)
-    if active_school is None:
-        messages.error(request, "فضلاً اختر مدرسة أولاً.")
-        return redirect("reports:select_school")
-
-    if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
-        messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
-        return redirect("reports:select_school")
-
-    viewer = get_object_or_404(Teacher, pk=pk)
-    membership = SchoolMembership.objects.filter(
-        school=active_school,
-        teacher=viewer,
-        role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-    ).first()
-    if membership is None:
-        messages.error(request, "هذا المستخدم ليس مشرف تقارير في المدرسة الحالية.")
-        return redirect("reports:manage_teachers")
-
-    try:
-        with transaction.atomic():
-            target_active = not bool(membership.is_active)
-            if target_active:
-                # حد 2 مشرفين نشطين
-                active_viewers = SchoolMembership.objects.filter(
-                    school=active_school,
-                    role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-                    is_active=True,
-                ).exclude(pk=membership.pk).count()
-                if active_viewers >= 2:
-                    raise ValidationError("لا يمكن تفعيل أكثر من 2 مشرف تقارير (عرض فقط) لهذه المدرسة.")
-
-            membership.is_active = target_active
-            membership.save(update_fields=["is_active"])
-
-            viewer.is_active = target_active
-            viewer.save(update_fields=["is_active"])
-
-        messages.success(request, "✅ تم تفعيل الحساب." if target_active else "⛔ تم إيقاف الحساب.")
-    except ValidationError as e:
-        messages.error(request, " ".join(getattr(e, "messages", []) or [str(e)]))
-    except Exception:
-        logger.exception("report_viewer_toggle failed")
-        messages.error(request, "تعذّر تغيير حالة الحساب. حاول لاحقًا.")
-
-    return redirect("reports:manage_teachers")
-
-
-@login_required(login_url="reports:login")
-@role_required({"manager"})
-@require_http_methods(["POST"])
-def report_viewer_delete(request: HttpRequest, pk: int) -> HttpResponse:
-    """حذف (آمن) لمشرف التقارير من المدرسة: تعطيل الحساب وإزالة العضوية من المدرسة."""
-    active_school = _get_active_school(request)
-    if active_school is None:
-        messages.error(request, "فضلاً اختر مدرسة أولاً.")
-        return redirect("reports:select_school")
-
-    if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
-        messages.error(request, "ليست لديك صلاحية على هذه المدرسة.")
-        return redirect("reports:select_school")
-
-    viewer = get_object_or_404(Teacher, pk=pk)
-    membership_qs = SchoolMembership.objects.filter(
-        school=active_school,
-        teacher=viewer,
-        role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-    )
-    if not membership_qs.exists():
-        messages.error(request, "هذا المستخدم ليس مشرف تقارير في المدرسة الحالية.")
-        return redirect("reports:manage_teachers")
-
-    try:
-        with transaction.atomic():
-            viewer.is_active = False
-            viewer.save(update_fields=["is_active"])
-            # إزالة الربط حتى يختفي من القائمة
-            membership_qs.delete()
-        messages.success(request, "🗑️ تم حذف مشرف التقارير من المدرسة.")
-    except Exception:
-        logger.exception("report_viewer_delete failed")
-        messages.error(request, "تعذّر حذف المستخدم. حاول لاحقًا.")
-    return redirect("reports:manage_teachers")

@@ -205,17 +205,11 @@ class PlatformAdminExperienceTests(TestCase):
                 "general": "توجيه عام",
                 "teacher": "توجيه معلم",
                 "manager": "توجيه مدير",
-                "supervisor": "توجيه مشرف",
-                "report_supervisor": "توجيه مشرف تقارير",
-                "platform_supervisor": "توجيه مشرف منصة",
             },
             "role_default_slugs": {
                 "general": ["sample"],
                 "teacher": ["sample"],
                 "manager": ["sample"],
-                "supervisor": ["sample"],
-                "report_supervisor": ["sample"],
-                "platform_supervisor": ["sample"],
             },
             "knowledge_items": [
                 {

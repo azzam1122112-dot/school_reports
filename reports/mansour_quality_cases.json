@@ -197,20 +197,6 @@
       "expect_any": [["مدرسة", "المدرسة"], ["تبديل", "التبديل", "النشطة", "إضافة"]]
     },
     {
-      "id": "report-supervisor-scope",
-      "audience": "report_supervisor",
-      "kind": "informational",
-      "question": "أقدر أعدل تقرير معلم أو أحذفه؟",
-      "expect_any": [["عرض", "الاطلاع", "المتابعة"], ["لا يمكنك", "لا تستطيع", "غير متاح"]]
-    },
-    {
-      "id": "platform-supervisor-scope",
-      "audience": "platform_supervisor",
-      "kind": "informational",
-      "question": "وش صلاحياتي على المدارس التابعة لي؟",
-      "expect_any": [["نطاق", "النطاق", "المخصصة", "المدارس"]]
-    },
-    {
       "id": "followup-shorten",
       "audience": "manager",
       "kind": "informational",

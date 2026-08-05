@@ -13,16 +13,12 @@ logger = logging.getLogger(__name__)
 AUDIENCE_GENERAL = "general"
 AUDIENCE_TEACHER = "teacher"
 AUDIENCE_MANAGER = "manager"
-AUDIENCE_SUPERVISOR = "supervisor"
-AUDIENCE_REPORT_SUPERVISOR = "report_supervisor"
-AUDIENCE_PLATFORM_SUPERVISOR = "platform_supervisor"
 
 PUBLIC_AUDIENCES = frozenset(
     {
         AUDIENCE_GENERAL,
         AUDIENCE_TEACHER,
         AUDIENCE_MANAGER,
-        AUDIENCE_SUPERVISOR,
     }
 )
 
@@ -30,15 +26,12 @@ AUDIENCE_LABELS = {
     AUDIENCE_GENERAL: "زائر",
     AUDIENCE_TEACHER: "معلم",
     AUDIENCE_MANAGER: "مدير مدرسة",
-    AUDIENCE_SUPERVISOR: "مشرف",
-    AUDIENCE_REPORT_SUPERVISOR: "مشرف تقارير",
-    AUDIENCE_PLATFORM_SUPERVISOR: "مشرف منصة",
 }
 
 _FALLBACK_ROLE_GUIDANCE = {
     AUDIENCE_GENERAL: (
         "المستخدم لم يحدد دوره بعد. أجب عن المعلومات المشتركة فقط، وإذا اختلفت "
-        "الخطوات حسب الصلاحية فاطلب منه تحديد ما إذا كان معلمًا أو مدير مدرسة أو مشرفًا."
+        "الخطوات حسب الصلاحية فاطلب منه تحديد ما إذا كان معلمًا أو مدير مدرسة."
     ),
     AUDIENCE_TEACHER: (
         "خاطب المستخدم بصفته معلمًا. ركز على تقاريره وملف إنجازه وطلباته وما يصله "
@@ -47,18 +40,6 @@ _FALLBACK_ROLE_GUIDANCE = {
     AUDIENCE_MANAGER: (
         "خاطب المستخدم بصفته مدير مدرسة. اشرح إدارة فريق المدرسة والأقسام والتقارير "
         "والطلبات والتعاميم والإشعارات والاشتراك والأرشيف والتخزين ضمن المدرسة النشطة."
-    ),
-    AUDIENCE_SUPERVISOR: (
-        "المستخدم زائر اختار «مشرف» دون تحديد النوع. ميّز بين مشرف تقارير داخل مدرسة "
-        "ومشرف منصة يتابع مدارس ضمن نطاقه، واطلب تحديد النوع عندما تختلف الخطوات."
-    ),
-    AUDIENCE_REPORT_SUPERVISOR: (
-        "خاطب المستخدم بصفته مشرف تقارير داخل مدرسة. صلاحياته للعرض والمتابعة فقط؛ "
-        "لا تنسب إليه صلاحيات التعديل أو الحذف أو الإرسال أو إدارة الاشتراك."
-    ),
-    AUDIENCE_PLATFORM_SUPERVISOR: (
-        "خاطب المستخدم بصفته مشرف منصة. نطاقه يقتصر على المدارس المخصصة له، ودوره "
-        "للمراجعة والتواصل حسب الصلاحيات؛ لا تنسب إليه صلاحيات مدير المدرسة."
     ),
 }
 
@@ -202,7 +183,7 @@ _FALLBACK_KNOWLEDGE_ITEMS = (
         text=(
             "يقرأ المعلم الإشعار أو التعميم الوارد إليه. الإشعار للمعلومة السريعة، "
             "أما التعميم فقد يتطلب تفعيل الإقرار ثم تأكيد التوقيع. المعلم لا ينشئ "
-            "تعميمات المدرسة؛ الإرسال من صلاحيات مدير المدرسة أو مشرف المنصة بحسب النطاق."
+            "تعميمات المدرسة؛ الإرسال من صلاحيات مدير المدرسة."
         ),
         topics=("تعميم", "إشعار", "توقيع", "قراءة"),
         audiences=frozenset({AUDIENCE_TEACHER}),
@@ -259,7 +240,7 @@ _FALLBACK_KNOWLEDGE_ITEMS = (
             "تفاصيله وصوره وطباعته أو مشاركته عند الحاجة."
         ),
         topics=("تقارير", "بحث", "تصفية", "مراجعة"),
-        audiences=frozenset({AUDIENCE_MANAGER, AUDIENCE_REPORT_SUPERVISOR}),
+        audiences=frozenset({AUDIENCE_MANAGER}),
         keywords="تقارير المدرسة بحث فلترة تصفية معلم تاريخ نوع مراجعة صور طباعة",
         priority=5,
     ),
@@ -347,54 +328,6 @@ _FALLBACK_KNOWLEDGE_ITEMS = (
         keywords="تصدير بيانات مدرسة اكسل Excel zip ملفات تنزيل نسخة احتياطية",
         priority=4,
     ),
-    KnowledgeItem(
-        slug="report-supervisor",
-        title="مشرف التقارير داخل المدرسة",
-        url="/guide/#report-supervisor",
-        text=(
-            "مشرف التقارير عضوية مدرسية للعرض والمتابعة فقط. يمكنه مراجعة تقارير "
-            "المدرسة التي تسمح بها عضويته، ولا يملك صلاحيات مدير المدرسة مثل إدارة "
-            "المعلمين أو حذف البيانات أو إرسال التعاميم أو إدارة الاشتراك والأرشيف."
-        ),
-        topics=("مشرف تقارير", "عرض", "متابعة", "صلاحية"),
-        audiences=frozenset(
-            {AUDIENCE_SUPERVISOR, AUDIENCE_REPORT_SUPERVISOR}
-        ),
-        keywords="مشرف تقارير عرض فقط متابعة صلاحيات مدرسة قراءة بدون تعديل حذف ارسال",
-        priority=7,
-    ),
-    KnowledgeItem(
-        slug="platform-supervisor",
-        title="مشرف المنصة ونطاق المدارس",
-        url="/guide/#supervisor",
-        text=(
-            "يرى مشرف المنصة دليل المدارس الواقعة ضمن نطاقه، ويختار مدرسة لمراجعة "
-            "لوحتها وتقاريرها وطلباتها وفق الصلاحيات المتاحة. يجب التأكد من المدرسة "
-            "الحالية، ولا يتحول مشرف المنصة إلى مدير للمدرسة ولا يتجاوز نطاقه."
-        ),
-        topics=("مشرف منصة", "مدارس", "نطاق", "متابعة"),
-        audiences=frozenset(
-            {AUDIENCE_SUPERVISOR, AUDIENCE_PLATFORM_SUPERVISOR}
-        ),
-        keywords="مشرف منصة مشرف عام دليل المدارس نطاق مدن بنين بنات دخول مدرسة متابعة",
-        priority=7,
-    ),
-    KnowledgeItem(
-        slug="platform-communication",
-        title="تواصل مشرف المنصة",
-        url="/circulars/create/",
-        text=(
-            "يستطيع مشرف المنصة إرسال التواصل إلى مديري المدارس الواقعة ضمن نطاقه "
-            "بحسب صلاحياته، مع اختيار مدرسة أو مدراء محددين أو الإرسال للنطاق المتاح. "
-            "لا يرسل مباشرة إلى معلمي مدرسة بصفته مديرًا لها."
-        ),
-        topics=("مشرف منصة", "تعميم", "مدراء", "نطاق"),
-        audiences=frozenset(
-            {AUDIENCE_SUPERVISOR, AUDIENCE_PLATFORM_SUPERVISOR}
-        ),
-        keywords="مشرف منصة ارسال إرسال تعميم مدراء المدارس نطاق كل المدارس مدير محدد",
-        priority=6,
-    ),
 )
 
 
@@ -416,24 +349,6 @@ _FALLBACK_ROLE_DEFAULT_SLUGS = {
         "manager-team",
         "manager-communication",
         "manager-subscription",
-    ),
-    AUDIENCE_SUPERVISOR: (
-        "report-supervisor",
-        "platform-supervisor",
-        "platform-communication",
-        "getting-started",
-    ),
-    AUDIENCE_REPORT_SUPERVISOR: (
-        "report-supervisor",
-        "manager-reports",
-        "getting-started",
-        "support-and-troubleshooting",
-    ),
-    AUDIENCE_PLATFORM_SUPERVISOR: (
-        "platform-supervisor",
-        "platform-communication",
-        "getting-started",
-        "support-and-troubleshooting",
     ),
 }
 

@@ -184,7 +184,7 @@ class PricingModelConsistencyTests(TestCase):
     def test_admin_plans_page_states_it_maintains_reference_anchors(self):
         admin = Teacher.objects.create_user(
             phone="500330002",
-            name="مشرف المنصة",
+            name="مالك النظام",
             password="pricing-pass",
             is_staff=True,
             is_superuser=True,

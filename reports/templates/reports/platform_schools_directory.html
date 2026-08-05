@@ -75,13 +75,9 @@
     <section class="ps-hero">
       <div>
         <h1 class="ps-title">قائمة المدارس</h1>
-        <p class="ps-sub">عرض المدارس ضمن نطاق صلاحياتك مع فلاتر وبطاقات مناسبة للتنقل بين عدد كبير من المدارس.</p>
+        <p class="ps-sub">عرض كل مدارس المنصة مع فلاتر وبطاقات مناسبة للتنقل بين عدد كبير من المدارس.</p>
       </div>
       <div class="ps-actions">
-        {% if request.user.is_platform_admin and not request.user.is_superuser %}
-          <a class="btn btn-outline" href="{% url 'reports:circulars_sent' %}">التعاميم المرسلة</a>
-          <a class="btn btn-primary" href="{% url 'reports:circulars_create' %}">إنشاء تعميم</a>
-        {% endif %}
         {% if request.user.is_superuser %}
           <a class="btn btn-outline" href="{% url 'reports:platform_admin_dashboard' %}">لوحة المنصة</a>
         {% endif %}

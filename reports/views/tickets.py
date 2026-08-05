@@ -14,7 +14,7 @@ def _can_act(user, ticket: Ticket) -> bool:
     if not getattr(user, "is_authenticated", False):
         return False
 
-    # 1. المشرف العام (تذاكر المنصة)
+    # 1. مالك النظام (تذاكر المنصة)
     if ticket.is_platform and getattr(user, "is_superuser", False):
         return True
 
@@ -40,14 +40,6 @@ def _can_act(user, ticket: Ticket) -> bool:
             is_active=True
         ).exists():
             return True
-
-    # 3.1 المشرف العام (ضمن نطاقه) - لتذاكر المدرسة فقط
-    if not ticket.is_platform and ticket.school_id:
-        try:
-            if is_platform_admin(user) and platform_allowed_schools_qs(user).filter(id=ticket.school_id).exists():
-                return True
-        except Exception:
-            pass
 
     # 4. مسؤول القسم (Officer)
     # إذا كانت التذكرة تابعة لقسم، فمسؤول القسم يملك صلاحية عليها
@@ -329,7 +321,7 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
     )
     
     # إذا كانت التذكرة للمنصة، لا نفلتر بالمدرسة (لأنها قد لا تكون مرتبطة بمدرسة أو نريد السماح للمدير برؤيتها)
-    # لكن يجب التأكد أن المستخدم هو المنشئ أو مشرف نظام
+    # لكن يجب التأكد أن المستخدم هو المنشئ أو مالك النظام
     # سنحاول جلب التذكرة أولاً بدون فلتر المدرسة إذا كانت is_platform=True
     
     # الحل الأبسط: نعدل _filter_by_school ليتجاهل الفلتر إذا كانت التذكرة is_platform=True
@@ -343,7 +335,7 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
     
     # التحقق من الوصول
     if t.is_platform:
-        # تذاكر المنصة: مسموحة للمنشئ (المدير) أو المشرف العام
+        # تذاكر المنصة: مسموحة للمنشئ (المدير) أو مالك النظام
         if not (user.is_superuser or t.creator_id == user.id):
              raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
     else:
@@ -351,16 +343,12 @@ def ticket_detail(request: HttpRequest, pk: int) -> HttpResponse:
         if not user.is_superuser:
             if not t.school_id:
                 raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
-            if is_platform_admin(user):
-                if not platform_allowed_schools_qs(user).filter(id=t.school_id).exists():
-                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
-            else:
-                if not SchoolMembership.objects.filter(
-                    teacher=user,
-                    school_id=t.school_id,
-                    is_active=True,
-                ).exists():
-                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+            if not SchoolMembership.objects.filter(
+                teacher=user,
+                school_id=t.school_id,
+                is_active=True,
+            ).exists():
+                raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
 
             # عند تعدد المدارس: نلزم توافق المدرسة النشطة مع مدرسة التذكرة
             if active_school is not None and t.school_id != active_school.id:
@@ -512,12 +500,8 @@ def ticket_note_edit(request: HttpRequest, pk: int) -> HttpResponse:
         if not user.is_superuser:
             if not getattr(t, "school_id", None):
                 raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
-            if is_platform_admin(user):
-                if not platform_allowed_schools_qs(user).filter(id=t.school_id).exists():
-                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
-            else:
-                if not SchoolMembership.objects.filter(teacher=user, school_id=t.school_id, is_active=True).exists():
-                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+            if not SchoolMembership.objects.filter(teacher=user, school_id=t.school_id, is_active=True).exists():
+                raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
             if active_school is not None and t.school_id != active_school.id:
                 raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")
 
@@ -576,16 +560,12 @@ def ticket_print(request: HttpRequest, pk: int) -> HttpResponse:
         if not user.is_superuser:
             if not t.school_id:
                 raise Http404("هذه التذكرة غير مرتبطة بمدرسة.")
-            if is_platform_admin(user):
-                if not platform_allowed_schools_qs(user).filter(id=t.school_id).exists():
-                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
-            else:
-                if not SchoolMembership.objects.filter(
-                    teacher=user,
-                    school_id=t.school_id,
-                    is_active=True,
-                ).exists():
-                    raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
+            if not SchoolMembership.objects.filter(
+                teacher=user,
+                school_id=t.school_id,
+                is_active=True,
+            ).exists():
+                raise Http404("ليس لديك صلاحية لعرض هذه التذكرة.")
 
             if active_school is not None and t.school_id != active_school.id:
                 raise Http404("هذه التذكرة تابعة لمدرسة أخرى.")

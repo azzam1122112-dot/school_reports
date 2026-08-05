@@ -1335,8 +1335,7 @@
   const form = document.getElementById('notifyForm');
   const recipientGuardMsg = document.getElementById('recipientGuardMsg');
   const isSuperuser = {{ request.user.is_superuser|yesno:"true,false" }};
-  const isPlatformAdmin = {{ request.user.is_platform_admin|yesno:"true,false" }};
-  const enforceRecipientsSelection = !isSuperuser && !isPlatformAdmin;
+  const enforceRecipientsSelection = !isSuperuser;
 
   function showRecipientGuard(){
     if(recipientGuardMsg){

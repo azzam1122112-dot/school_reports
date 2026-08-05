@@ -1,3 +1,4 @@
+import re
 from io import StringIO
 
 from django.core.management import call_command
@@ -14,4 +15,13 @@ class MansourEvaluationSuiteTests(SimpleTestCase):
             stdout=output,
         )
 
-        self.assertIn("39/39 (100.0%)", output.getvalue())
+        # ما يحرسه هذا الاختبار هو نجاح كل حالة، لا عددها. تثبيت العدد كان يُسقطه
+        # عند أي إضافة أو حذف مشروع لحالة تقييم — وهو فشل لسبب لا يخصّه.
+        report = output.getvalue()
+        match = re.search(r"Mansour eval: (\d+)/(\d+) \(([\d.]+)%\)", report)
+        self.assertIsNotNone(match, f"تعذّر قراءة ملخّص التقييم من: {report}")
+
+        passed, total, percent = int(match[1]), int(match[2]), float(match[3])
+        self.assertGreater(total, 0, "لا توجد حالات تقييم مُحمّلة.")
+        self.assertEqual(passed, total, f"حالات تقييم فاشلة: {total - passed} من {total}")
+        self.assertEqual(percent, 100.0)

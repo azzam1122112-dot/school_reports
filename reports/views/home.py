@@ -128,17 +128,6 @@ def switch_school(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def home(request: HttpRequest) -> HttpResponse:
-    # --- Platform Admin Redirect (Not Superuser) ---
-    # إذا كان مشرف منصة (وليس سوبر يوزر)، وجهه لصفحة مدارسه أو المدرسة النشطة
-    if is_platform_admin(request.user) and not getattr(request.user, "is_superuser", False):
-        active_school = _get_active_school(request)
-        if active_school:
-            # توجيه للوحة المدرسة الخاصة بالمشرف
-            return redirect("reports:platform_school_dashboard")
-        # توجيه لدليل المدارس لاختيار مدرسة
-        return redirect("reports:platform_schools_directory")
-    # -----------------------------------------------
-
     # مدير المدرسة له رئيسية واحدة واضحة: لوحة إدارة المدرسة.
     # يحتفظ المدير بإمكانية الوصول لصفحاته الشخصية من قائمة الحساب، لكن لا
     # ينبغي أن تقوده كلمة "الرئيسية" إلى لوحة المعلم وتخلق مسارين متنافسين.

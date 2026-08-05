@@ -436,8 +436,6 @@ MIDDLEWARE = [
     "reports.middleware.ActiveSchoolGuardMiddleware",
     "reports.middleware.SubscriptionMiddleware",
     "reports.middleware.ForcePasswordChangeMiddleware",
-    "reports.middleware.PlatformAdminAccessMiddleware",
-    "reports.middleware.ReportViewerAccessMiddleware",
     "reports.middleware.ContentSecurityPolicyMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

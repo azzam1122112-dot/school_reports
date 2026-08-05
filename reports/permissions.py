@@ -10,7 +10,7 @@ from django.db.models import QuerySet, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 
-from .models import Department, SchoolMembership, School
+from .models import Department, SchoolGroup, SchoolGroupMembership, SchoolMembership, School
 
 # نحاول الاستيراد المرن لعضويات الأقسام
 try:
@@ -26,22 +26,19 @@ __all__ = [
     "is_department_member",
     "get_school_manager_school_ids",
     "is_school_manager",
-    "is_report_viewer_for_school",
+    "get_executive_director_group_ids",
+    "is_executive_director",
+    "executive_director_schools_qs",
+    "executive_director_groups",
     "effective_user_role_label",
     "can_delete_report",
     "can_edit_report",
     "can_share_report",
-    "is_platform_admin",
     "platform_allowed_schools_qs",
-    "platform_can_access_school",
     "role_required",
     "allowed_categories_for",
     "restrict_queryset_for_user",
 ]
-
-
-def is_platform_admin(user) -> bool:
-    return bool(getattr(user, "is_authenticated", False) and getattr(user, "is_platform_admin", False))
 
 
 def _resolved_school_id(
@@ -74,98 +71,11 @@ def _school_role_labels(active_school: Optional[School]) -> dict[str, str]:
     }
 
 
-def is_report_viewer_for_school(
-    user,
-    active_school: Optional[School] = None,
-    *,
-    active_school_id: Optional[int] = None,
-) -> bool:
-    """Single source of truth for the read-only report viewer role.
-
-    - When ``active_school``/``active_school_id`` is provided, the check is scoped to that school.
-    - When omitted, any active report-viewer membership counts.
-    """
-    if not getattr(user, "is_authenticated", False):
-        return False
-    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
-        return False
-
-    school_id = _resolved_school_id(active_school=active_school, active_school_id=active_school_id)
-
-    try:
-        cache = getattr(user, "_report_viewer_membership_cache", None)
-        if not isinstance(cache, dict):
-            cache = {}
-            setattr(user, "_report_viewer_membership_cache", cache)
-
-        cache_key = int(school_id or 0)
-        if cache_key in cache:
-            return bool(cache[cache_key])
-
-        qs = SchoolMembership.objects.filter(
-            teacher=user,
-            role_type=SchoolMembership.RoleType.REPORT_VIEWER,
-            is_active=True,
-        )
-        if school_id:
-            qs = qs.filter(school_id=school_id)
-
-        result = qs.exists()
-        cache[cache_key] = bool(result)
-        return bool(result)
-    except Exception:
-        return False
-
-
 def platform_allowed_schools_qs(user) -> QuerySet[School]:
-    """Schools accessible to a platform admin (scope-based)."""
-    if not getattr(user, "is_authenticated", False):
+    """Schools reachable from the platform back office (owner only)."""
+    if not getattr(user, "is_superuser", False):
         return School.objects.none()
-
-    if getattr(user, "is_superuser", False):
-        return School.objects.filter(is_active=True)
-
-    if not is_platform_admin(user):
-        return School.objects.none()
-
-    qs = School.objects.filter(is_active=True)
-    scope = getattr(user, "platform_scope", None)
-    # Defense-in-depth: if scope is missing, do NOT grant broad access.
-    # A scope row should exist for every platform admin (created in admin flows).
-    if scope is None:
-        return School.objects.none()
-
-    try:
-        if scope.allowed_schools.exists():
-            return qs.filter(id__in=scope.allowed_schools.values_list("id", flat=True))
-    except Exception:
-        pass
-
-    try:
-        gs = (getattr(scope, "gender_scope", None) or "all").strip().lower()
-        if gs in {"boys", "girls"}:
-            qs = qs.filter(gender=gs)
-    except Exception:
-        pass
-
-    try:
-        cities = getattr(scope, "allowed_cities", None) or []
-        cities = [str(c).strip() for c in cities if str(c).strip()]
-        if cities:
-            qs = qs.filter(city__in=cities)
-    except Exception:
-        pass
-
-    return qs
-
-
-def platform_can_access_school(user, school: School | None) -> bool:
-    if school is None:
-        return False
-    try:
-        return platform_allowed_schools_qs(user).filter(id=school.id).exists()
-    except Exception:
-        return False
+    return School.objects.filter(is_active=True)
 
 
 # ==============================
@@ -296,6 +206,82 @@ def is_school_manager(
     return bool(get_school_manager_school_ids(user))
 
 
+# =========================
+# المدير التنفيذي لمجموعة المدارس المتكاملة
+# =========================
+# التنظيم الذي تنفّذه هذه الدوال: المدير التنفيذي يقود مجموعة مدارس إشرافاً
+# ومتابعةً، ولا يتولى الإدارة اليومية لأي مدرسة، ولا ينتقص من صلاحيات مديرها.
+#
+# ولذلك لا تمنح أيٌّ من هذه الدوال صلاحية كتابة، ولا تُستدعى من ``is_school_manager``
+# ولا من دوال ``can_edit_report`` وأخواتها. كون المدير التنفيذي لا يجتاز فحص
+# الإدارة المدرسية ليس إغفالاً بل هو الشرط الذي يحفظ التنظيم، ويحرسه اختبار صريح.
+
+
+def get_executive_director_group_ids(user) -> Set[int]:
+    """Group ids where the user is an active executive director."""
+    if not getattr(user, "is_authenticated", False):
+        return set()
+
+    cache = getattr(user, "_executive_director_group_ids_cache", None)
+    if cache is not None:
+        return set(cache)
+
+    try:
+        ids = {
+            int(x)
+            for x in SchoolGroupMembership.objects.filter(
+                user=user,
+                is_active=True,
+                role_type=SchoolGroupMembership.RoleType.EXECUTIVE_DIRECTOR,
+                group__is_active=True,
+            ).values_list("group_id", flat=True)
+            if x
+        }
+    except Exception:
+        ids = set()
+
+    setattr(user, "_executive_director_group_ids_cache", tuple(sorted(ids)))
+    return ids
+
+
+def is_executive_director(user, group: Optional[SchoolGroup] = None, *, group_id: Optional[int] = None) -> bool:
+    """Canonical executive-director detection via ``SchoolGroupMembership``.
+
+    Scoped to a group when one is given; otherwise any active directorship counts.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+
+    resolved = group_id
+    if resolved is None and group is not None:
+        resolved = getattr(group, "pk", None)
+
+    ids = get_executive_director_group_ids(user)
+    if resolved:
+        return int(resolved) in ids
+    return bool(ids)
+
+
+def executive_director_groups(user) -> QuerySet[SchoolGroup]:
+    """The active groups this user leads."""
+    ids = get_executive_director_group_ids(user)
+    if not ids:
+        return SchoolGroup.objects.none()
+    return SchoolGroup.objects.filter(id__in=ids, is_active=True).order_by("name")
+
+
+def executive_director_schools_qs(user) -> QuerySet[School]:
+    """Schools visible to an executive director — their groups' schools only.
+
+    Deliberately narrow: a user with no directorship gets an empty queryset rather
+    than a broad one, so a missing membership can never widen access.
+    """
+    ids = get_executive_director_group_ids(user)
+    if not ids:
+        return School.objects.none()
+    return School.objects.filter(group_id__in=ids, is_active=True).order_by("name")
+
+
 def effective_user_role_label(
     user,
     active_school: Optional[School] = None,
@@ -328,10 +314,6 @@ def effective_user_role_label(
     try:
         if getattr(user, "is_superuser", False):
             label = "مدير النظام"
-        elif is_platform_admin(user):
-            scope = getattr(user, "platform_scope", None)
-            role_obj = getattr(scope, "role", None) if scope is not None else None
-            label = (getattr(role_obj, "name", "") or "").strip() or "المشرف العام"
         elif is_school_manager(
             user,
             active_school=school,
@@ -355,8 +337,6 @@ def effective_user_role_label(
                     label = labels["lab_tech"]
                 else:
                     label = labels["teacher"]
-            elif is_report_viewer_for_school(user, active_school=school, active_school_id=school_id):
-                label = str(SchoolMembership.RoleType.REPORT_VIEWER.label)
             else:
                 label = "مستخدم"
     except Exception:
@@ -474,12 +454,11 @@ def _build_report_permission_scope(user, *, school_id: Optional[int]) -> dict:
     scope = {
         "is_authenticated": bool(getattr(user, "is_authenticated", False)),
         "is_superuser": bool(getattr(user, "is_superuser", False)),
-        "is_platform_admin": bool(is_platform_admin(user)),
         "manager_school_ids": set(),
         "officer_reporttype_ids": set(),
     }
 
-    if not scope["is_authenticated"] or scope["is_superuser"] or scope["is_platform_admin"]:
+    if not scope["is_authenticated"] or scope["is_superuser"]:
         return scope
 
     manager_ids = get_school_manager_school_ids(user)
@@ -531,8 +510,6 @@ def _can_manage_report(user, report, *, active_school: Optional[School] = None) 
     scope = _get_report_permission_scope(user, active_school=active_school, report_school=report_school)
     if scope.get("is_superuser"):
         return True
-    if scope.get("is_platform_admin"):
-        return False
 
     if report_teacher_id == getattr(user, "id", None):
         return True
@@ -552,7 +529,6 @@ def can_delete_report(user, report, *, active_school: Optional[School] = None) -
     
     الصلاحيات:
     - السوبر: نعم
-    - مشرف المنصة: لا (عرض فقط)
     - مدير المدرسة: نعم
     - رئيس القسم (OFFICER): نعم (للتقارير المرتبطة بقسمه)
     - عضو القسم (TEACHER): لا (عرض فقط)
@@ -567,7 +543,6 @@ def can_share_report(user, report, *, active_school: Optional[School] = None) ->
     
     الصلاحيات:
     - السوبر: نعم
-    - مشرف المنصة: لا (عرض فقط)
     - مدير المدرسة: نعم
     - رئيس القسم (OFFICER): نعم (للتقارير المرتبطة بقسمه)
     - عضو القسم (TEACHER): لا (عرض فقط)
@@ -582,7 +557,6 @@ def can_edit_report(user, report, *, active_school: Optional[School] = None) -> 
     
     الصلاحيات:
     - السوبر: نعم
-    - مشرف المنصة: لا (عرض فقط)
     - مدير المدرسة: نعم
     - رئيس القسم (OFFICER): نعم (للتقارير المرتبطة بقسمه)
     - عضو القسم (TEACHER): لا (عرض فقط)
@@ -669,19 +643,12 @@ def allowed_categories_for(user, active_school: Optional[School] = None) -> Set[
         ملاحظة: لا نستخدم Role.allowed_reporttypes هنا لأن Role عالمي وقد يخلط بين المدارس.
     """
     try:
-        # سوبر/مشرف عام: يرى الكل (لكن عزل المدارس يُطبّق في الـ views)
+        # سوبر: يرى الكل (لكن عزل المدارس يُطبّق في الـ views)
         if getattr(user, "is_superuser", False):
-            return {"all"}
-        if is_platform_admin(user):
             return {"all"}
         if active_school is not None and SchoolMembership is not None:
             if is_school_manager(user, active_school=active_school):
                 return {"all"}
-            try:
-                if is_report_viewer_for_school(user, active_school):
-                    return {"all"}
-            except Exception:
-                pass
 
         if active_school is None:
             # بدون مدرسة نشطة لا نسمح بتوسيع الوصول
@@ -721,19 +688,6 @@ def restrict_queryset_for_user(qs: QuerySet[Any], user, active_school: Optional[
     """
     # سوبر: لا قيود
     if getattr(user, "is_superuser", False):
-        return qs
-
-    # مشرف عام: رؤية مقيدة حسب المدارس المسموحة فقط (إن كان للموديل حقل school)
-    if is_platform_admin(user):
-        try:
-            # إن كانت هناك مدرسة نشطة، نتأكد أنها ضمن المسموح
-            if active_school is not None and not platform_can_access_school(user, active_school):
-                return qs.none()
-            if hasattr(qs.model, "school"):
-                allowed_ids = list(platform_allowed_schools_qs(user).values_list("id", flat=True))
-                return qs.filter(school_id__in=allowed_ids)
-        except Exception:
-            return qs.none()
         return qs
 
     # ✅ مدير المدرسة داخل active_school يرى كل التقارير (مع مراعاة فلترة المدرسة في الـ View)

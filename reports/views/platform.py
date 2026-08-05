@@ -11,18 +11,16 @@ from ._helpers import (
 
 
 # =========================
-# المشرف العام (عرض + تواصل فقط)
+# لوحة إدارة المنصة (مالك النظام وحده)
 # =========================
 
 
 def _require_platform_admin_or_superuser(request: HttpRequest) -> bool:
-    return bool(getattr(request.user, "is_superuser", False) or is_platform_admin(request.user))
+    return bool(getattr(request.user, "is_superuser", False))
 
 
 def _require_platform_school_access(request: HttpRequest, school: Optional[School]) -> bool:
-    if getattr(request.user, "is_superuser", False):
-        return True
-    return bool(is_platform_admin(request.user) and platform_can_access_school(request.user, school))
+    return bool(getattr(request.user, "is_superuser", False) and school is not None)
 
 
 def _attach_directory_subscription_status(schools: list[School]) -> None:
@@ -65,8 +63,7 @@ def platform_schools_directory(request: HttpRequest) -> HttpResponse:
         messages.error(request, "لا تملك صلاحية الوصول إلى شاشة المدارس.")
         return redirect("reports:home")
 
-    # السوبر يوزر يرى كل المدارس، المشرف العام يرى المدارس ضمن نطاقه.
-    base_qs = School.objects.all().order_by("name") if getattr(user, "is_superuser", False) else platform_allowed_schools_qs(user)
+    base_qs = School.objects.all().order_by("name")
 
     q = _clean_query_value(request.GET.get("q"))
     gender = _clean_query_value(request.GET.get("gender")).lower()
@@ -113,14 +110,10 @@ def platform_schools_directory(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def platform_enter_school(request: HttpRequest, pk: int) -> HttpResponse:
-    user = request.user
     if not _require_platform_admin_or_superuser(request):
         raise Http404("ليس لديك صلاحية")
 
-    if getattr(user, "is_superuser", False):
-        school = get_object_or_404(School, pk=pk)
-    else:
-        school = get_object_or_404(platform_allowed_schools_qs(user), pk=pk)
+    school = get_object_or_404(School, pk=pk)
 
     _set_active_school(request, school)
     return redirect("reports:platform_school_dashboard")
@@ -391,158 +384,3 @@ def platform_school_notify(request: HttpRequest) -> HttpResponse:
             "allowed_schools_count": form.fields["selected_schools"].queryset.count(),
         },
     )
-
-
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
-@require_http_methods(["GET", "POST"])
-def platform_admin_create(request: HttpRequest) -> HttpResponse:
-    from ..models import PlatformAdminScope
-
-    form = PlatformAdminCreateForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        try:
-            with transaction.atomic():
-                admin_user = form.save(commit=True)
-
-                role_obj = form.cleaned_data.get("role")
-                gender_scope = (form.cleaned_data.get("gender_scope") or "all").strip().lower()
-                cities_raw = (form.cleaned_data.get("cities") or "").strip()
-                allowed_schools = form.cleaned_data.get("allowed_schools")
-
-                cities_list = []
-                if cities_raw:
-                    for part in cities_raw.replace("؛", ",").split(","):
-                        c = (part or "").strip()
-                        if c and c not in cities_list:
-                            cities_list.append(c)
-
-                scope, _created = PlatformAdminScope.objects.get_or_create(admin=admin_user)
-                scope.role = role_obj
-                scope.gender_scope = gender_scope if gender_scope in {"all", "boys", "girls"} else "all"
-                scope.allowed_cities = cities_list
-                scope.save()
-                if allowed_schools is not None:
-                    scope.allowed_schools.set(list(allowed_schools))
-
-            messages.success(request, "تم إنشاء مشرف المنصة بنجاح.")
-            return redirect("reports:platform_admin_dashboard")
-        except Exception:
-            logger.exception("Failed to create platform admin")
-            messages.error(request, "تعذّر إنشاء مشرف المنصة. تحقق من البيانات.")
-
-    return render(request, "reports/platform_admin_create.html", {"form": form})
-
-
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
-@require_http_methods(["GET"])
-def platform_admins_list(request: HttpRequest) -> HttpResponse:
-    from ..models import PlatformAdminScope
-
-    q = (request.GET.get("q") or "").strip()
-    qs = (
-        Teacher.objects.filter(is_platform_admin=True)
-        .select_related("platform_scope")
-        .prefetch_related("platform_scope__allowed_schools")
-        .order_by("name", "id")
-    )
-    if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(phone__icontains=q))
-
-    # تأكيد وجود scope لكل مشرف (اختياري/مساعد)
-    try:
-        missing_ids = list(qs.filter(platform_scope__isnull=True).values_list("id", flat=True))
-        if missing_ids:
-            for tid in missing_ids:
-                try:
-                    PlatformAdminScope.objects.get_or_create(admin_id=tid)
-                except Exception:
-                    pass
-            qs = (
-                Teacher.objects.filter(is_platform_admin=True)
-                .select_related("platform_scope")
-                .prefetch_related("platform_scope__allowed_schools")
-                .order_by("name", "id")
-            )
-            if q:
-                qs = qs.filter(Q(name__icontains=q) | Q(phone__icontains=q))
-    except Exception:
-        pass
-
-    return render(request, "reports/platform_admins_list.html", {"admins": list(qs), "q": q})
-
-
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
-@require_http_methods(["GET", "POST"])
-def platform_admin_update(request: HttpRequest, pk: int) -> HttpResponse:
-    from ..models import PlatformAdminScope
-
-    admin_user = get_object_or_404(Teacher, pk=pk, is_platform_admin=True)
-    scope, _created = PlatformAdminScope.objects.get_or_create(admin=admin_user)
-
-    form = PlatformAdminCreateForm(request.POST or None, instance=admin_user)
-
-    if request.method == "POST" and form.is_valid():
-        try:
-            with transaction.atomic():
-                updated_user = form.save(commit=True)
-
-                role_obj = form.cleaned_data.get("role")
-                gender_scope = (form.cleaned_data.get("gender_scope") or "all").strip().lower()
-                cities_raw = (form.cleaned_data.get("cities") or "").strip()
-                allowed_schools = form.cleaned_data.get("allowed_schools")
-
-                cities_list = []
-                if cities_raw:
-                    for part in cities_raw.replace("؛", ",").split(","):
-                        c = (part or "").strip()
-                        if c and c not in cities_list:
-                            cities_list.append(c)
-
-                scope.admin = updated_user
-                scope.role = role_obj
-                scope.gender_scope = gender_scope if gender_scope in {"all", "boys", "girls"} else "all"
-                scope.allowed_cities = cities_list
-                scope.save()
-                if allowed_schools is not None:
-                    scope.allowed_schools.set(list(allowed_schools))
-
-            messages.success(request, "تم تحديث بيانات مشرف المنصة.")
-            return redirect("reports:platform_admins_list")
-        except Exception:
-            logger.exception("Failed to update platform admin")
-            messages.error(request, "تعذّر حفظ التعديلات. حاول مرة أخرى.")
-
-    return render(
-        request,
-        "reports/platform_admin_edit.html",
-        {
-            "form": form,
-            "admin_user": admin_user,
-        },
-    )
-
-
-@login_required(login_url="reports:login")
-@user_passes_test(lambda u: getattr(u, "is_superuser", False), login_url="reports:login")
-@require_http_methods(["GET", "POST"])
-def platform_admin_delete(request: HttpRequest, pk: int) -> HttpResponse:
-    admin_user = get_object_or_404(Teacher, pk=pk, is_platform_admin=True)
-
-    # حماية: لا نحذف السوبر يوزر عبر هذه الشاشة
-    if getattr(admin_user, "is_superuser", False):
-        messages.error(request, "لا يمكن حذف مستخدم سوبر يوزر من هنا.")
-        return redirect("reports:platform_admins_list")
-
-    if request.method == "POST":
-        try:
-            admin_user.delete()
-            messages.success(request, "تم حذف المشرف العام.")
-        except Exception:
-            logger.exception("Failed to delete platform admin")
-            messages.error(request, "تعذّر حذف المشرف العام.")
-        return redirect("reports:platform_admins_list")
-
-    return render(request, "reports/platform_admin_delete.html", {"admin_user": admin_user})

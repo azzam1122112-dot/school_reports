@@ -2,6 +2,68 @@ from __future__ import annotations
 
 from .base import *
 
+
+class SchoolGroup(models.Model):
+    """مجموعة المدارس المتكاملة التي يقودها مدير تنفيذي.
+
+    النموذج التنظيمي الذي تبني عليه هذه الفئة: كل مدرسة تحتفظ بمديرها وبكامل
+    صلاحياته الإدارية والتنفيذية، ويقود المدير التنفيذي المجموعة إشرافاً
+    ومتابعةً دون أن يتولى الإدارة اليومية لأي مدرسة. ولذلك تُنمذَج المجموعة
+    طبقةً *فوق* المدرسة لا بديلاً عنها: لا يملك هذا الكيان أي بيانات تشغيلية،
+    وحذفه لا يمس مدرسة واحدة.
+
+    عدد المدارس في المجموعة غير مرمَّز عمداً — يُشتق مما يُربط بها فعلاً، فأي
+    رقم ثابت في الكود يصير خطأً عند أول تعديل تنظيمي.
+    """
+
+    name = models.CharField("اسم المجموعة", max_length=200)
+    code = models.SlugField(
+        "المعرّف (code)",
+        max_length=64,
+        unique=True,
+        help_text="كود قصير لتمييز المجموعة.",
+    )
+    education_department = models.CharField(
+        "إدارة التعليم",
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="الارتباط التنظيمي للمدير التنفيذي.",
+    )
+    headquarters_school = models.ForeignKey(
+        "School",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="headquartered_groups",
+        verbose_name="مدرسة المقر",
+        help_text="المدرسة التي يتخذها المدير التنفيذي مقراً له.",
+    )
+    is_active = models.BooleanField("نشطة؟", default=True)
+    created_at = models.DateTimeField("أُنشئت في", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "مجموعة مدارس متكاملة"
+        verbose_name_plural = "مجموعات المدارس المتكاملة"
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+    def clean(self):
+        super().clean()
+        # مقر المدير التنفيذي يقع داخل إحدى مدارس مجموعته، فمقرٌّ خارجها خطأ إدخال.
+        school = self.headquarters_school
+        if school is not None and self.pk and school.group_id != self.pk:
+            raise ValidationError(
+                {"headquarters_school": "مدرسة المقر يجب أن تكون ضمن مدارس هذه المجموعة."}
+            )
+
+    @property
+    def active_schools(self):
+        return self.schools.filter(is_active=True)
+
+
 class School(models.Model):
     name = models.CharField("اسم المدرسة", max_length=200)
     class Stage(models.TextChoices):
@@ -36,6 +98,15 @@ class School(models.Model):
     email = models.EmailField("البريد الإلكتروني", blank=True, default="")
     city = models.CharField("المدينة", max_length=120, blank=True, null=True)
     is_active = models.BooleanField("نشطة؟", default=True)
+    group = models.ForeignKey(
+        SchoolGroup,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="schools",
+        verbose_name="مجموعة المدارس المتكاملة",
+        help_text="اختياري — المدارس المستقلة تُترك بلا مجموعة.",
+    )
     print_primary_color = models.CharField(
         "لون قالب الطباعة",
         max_length=9,
@@ -213,7 +284,6 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField("نشط", default=True)
     is_staff = models.BooleanField("موظّف لوحة", default=False)
-    is_platform_admin = models.BooleanField("مشرف عام للمنصة؟", default=False)
     current_session_key = models.CharField(max_length=64, blank=True, default="")
     date_joined = models.DateTimeField("تاريخ الانضمام", auto_now_add=True)
 
@@ -230,7 +300,6 @@ class Teacher(AbstractBaseUser, PermissionsMixin):
     def display_role_label(self) -> str:
         """اسم الدور للعرض بالعربية (للواجهات).
 
-        - المشرف العام (is_platform_admin) يجب أن يظهر بدوره الحقيقي المسجل في نطاق المشرف (PlatformAdminScope).
         - مدير المدرسة يجب أن يظهر كـ "مدير المدرسة" حتى لو كان is_staff=True.
         """
         active_school = None
@@ -300,72 +369,6 @@ class WebAuthnCredential(models.Model):
     def __str__(self) -> str:
         label = self.device_name or "مفتاح دخول"
         return f"{label} - {self.teacher}"
-
-
-# =========================
-# نطاق مشرف عام للمنصة (عرض + تواصل فقط)
-# =========================
-
-
-class PlatformAdminRole(models.Model):
-    """أدوار مشرفي المنصة (قابلة للإضافة/التعديل/الحذف من Django Admin)."""
-
-    name = models.CharField("اسم الدور", max_length=64, unique=True)
-    slug = models.SlugField("المعرّف (slug)", max_length=64, unique=True)
-    is_active = models.BooleanField("نشط", default=True)
-    order = models.PositiveIntegerField("ترتيب", default=0)
-
-    class Meta:
-        ordering = ("order", "id")
-        verbose_name = "دور مشرف منصة"
-        verbose_name_plural = "أدوار مشرفي المنصة"
-
-    def __str__(self) -> str:
-        return self.name
-
-
-class PlatformAdminScope(models.Model):
-    class GenderScope(models.TextChoices):
-        ALL = "all", "الجميع"
-        BOYS = "boys", "بنين"
-        GIRLS = "girls", "بنات"
-
-    admin = models.OneToOneField(
-        Teacher,
-        on_delete=models.CASCADE,
-        related_name="platform_scope",
-        verbose_name="المشرف العام",
-    )
-
-    role = models.ForeignKey(
-        PlatformAdminRole,
-        null=True,
-        blank=True,
-        on_delete=models.PROTECT,
-        related_name="scopes",
-        verbose_name="الدور",
-        help_text="يمكن إدارة الأدوار (إضافة/تعديل/حذف) من Django Admin.",
-    )
-    gender_scope = models.CharField(
-        "نطاق بنين/بنات",
-        max_length=8,
-        choices=GenderScope.choices,
-        default=GenderScope.ALL,
-    )
-    allowed_cities = models.JSONField("المدن المسموحة", default=list, blank=True)
-    allowed_schools = models.ManyToManyField(
-        School,
-        blank=True,
-        related_name="platform_admins",
-        verbose_name="مدارس محددة (اختياري)",
-    )
-
-    class Meta:
-        verbose_name = "نطاق مشرف عام"
-        verbose_name_plural = "نطاقات المشرفين العامين"
-
-    def __str__(self) -> str:
-        return f"Scope for {self.admin_id}"
 
 
 # =========================
@@ -571,7 +574,6 @@ class SchoolMembership(models.Model):
     class RoleType(models.TextChoices):
         TEACHER = "teacher", "معلم"
         MANAGER = "manager", "مدير مدرسة"
-        REPORT_VIEWER = "report_viewer", "مشرف تقارير (عرض فقط)"
 
     class JobTitle(models.TextChoices):
         TEACHER = "teacher", "معلم"
@@ -684,21 +686,64 @@ class SchoolMembership(models.Model):
                 if current_count >= max_teachers:
                     raise ValidationError(f"لا يمكن إضافة أكثر من {max_teachers} معلّم لهذه المدرسة حسب الباقة.")
 
-        # ✅ حد أقصى لمشرفي التقارير (عرض فقط): 2 نشطين لكل مدرسة
-        if should_enforce and self.role_type == self.RoleType.REPORT_VIEWER and bool(self.is_active):
-            active_viewers = (
-                SchoolMembership.objects.filter(
-                    school=self.school,
-                    role_type=self.RoleType.REPORT_VIEWER,
-                    is_active=True,
-                )
-                .exclude(pk=self.pk)
-                .count()
-            )
-            if active_viewers >= 2:
-                raise ValidationError("لا يمكن إضافة أكثر من 2 مشرف تقارير (عرض فقط) لهذه المدرسة.")
-
         return super().save(*args, **kwargs)
+
+
+class SchoolGroupMembership(models.Model):
+    """عضوية المدير التنفيذي في مجموعة المدارس المتكاملة.
+
+    العضوية على *المجموعة* لا على أي مدرسة، وهذا مقصود لسببين:
+
+    - تنظيمياً: المدير التنفيذي يرتبط بإدارة التعليم لا بمدرسة بعينها، ولا
+      يتولى الإدارة اليومية لأي منها.
+    - محاسبياً: مقاعد المعلمين المدفوعة تُحسب من ``SchoolMembership``، فبقاؤه
+      خارجها يعني أنه لا يستهلك مقعداً مدفوعاً في أي مدرسة.
+    """
+
+    class RoleType(models.TextChoices):
+        EXECUTIVE_DIRECTOR = "executive_director", "مدير تنفيذي"
+
+    group = models.ForeignKey(
+        SchoolGroup,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+        verbose_name="المجموعة",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="school_group_memberships",
+        verbose_name="المستخدم",
+    )
+    role_type = models.CharField(
+        "الدور داخل المجموعة",
+        max_length=32,
+        choices=RoleType.choices,
+        default=RoleType.EXECUTIVE_DIRECTOR,
+    )
+    is_active = models.BooleanField("نشط؟", default=True)
+    created_at = models.DateTimeField("أُنشئ في", auto_now_add=True)
+
+    class Meta:
+        unique_together = [("group", "user", "role_type")]
+        constraints = [
+            # مجموعة واحدة لا يكون لها أكثر من مدير تنفيذي نشط، على غرار قيد
+            # المدير الواحد لكل مدرسة. القيمة نصية لتفادي NameError داخل الكلاس.
+            models.UniqueConstraint(
+                fields=["group"],
+                condition=models.Q(role_type="executive_director", is_active=True),
+                name="uniq_active_executive_director_per_group",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["group"]),
+            models.Index(fields=["user"]),
+        ]
+        verbose_name = "عضوية مجموعة مدارس"
+        verbose_name_plural = "عضويات مجموعات المدارس"
+
+    def __str__(self) -> str:
+        return f"{self.user} @ {self.group} ({self.role_type})"
 
 
 # =========================
