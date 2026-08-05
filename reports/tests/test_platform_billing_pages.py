@@ -95,8 +95,11 @@ class PlatformBillingPagesTests(TestCase):
         self.assertContains(response, "ما يعادل")
         self.assertContains(response, "وفّر 498 ريال")
         self.assertContains(response, "399 ريال سنوياً")
-        self.assertContains(response, "الباقات المنشورة للعملاء")
-        self.assertContains(response, "هذه هي الباقات نفسها الظاهرة في الصفحة الرئيسية")
+        # Selling is by teacher count, so this page maintains the reference
+        # anchors the calculator interpolates from — not cards the customer sees.
+        self.assertContains(response, "الأسعار المرجعية التي تُغذّي الحاسبة")
+        self.assertContains(response, "يُدخل فيها عدد المعلمين ويختار المدة")
+        self.assertNotContains(response, "هذه هي الباقات نفسها الظاهرة في الصفحة الرئيسية")
         self.assertEqual(response.context["stats"]["active_count"], 10)
         self.assertEqual(response.context["stats"]["monthly_count"], 3)
         self.assertEqual(response.context["stats"]["capacity_count"], 3)

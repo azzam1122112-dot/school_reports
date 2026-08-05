@@ -321,13 +321,57 @@ def _platform_free_storage_bytes() -> int:
     return max(0, mb) * 1024 * 1024
 
 
+STORAGE_RATE_CACHE_KEY = "platform_storage_mb_per_teacher_v1"
+_STORAGE_RATE_CACHE_TTL = 600
+
+
 def _storage_mb_per_teacher() -> int:
+    """Per-teacher storage rate, cached because the landing page reads it.
+
+    The public page has a query budget; this value changes only when an operator
+    edits it, and PlatformSettings.save() drops the key, so the cache can never
+    serve a stale rate after an edit.
+    """
+    try:
+        from django.core.cache import cache
+
+        cached = cache.get(STORAGE_RATE_CACHE_KEY)
+        if cached is not None:
+            return max(0, int(cached))
+    except Exception:
+        cache = None
+
     try:
         from .models import PlatformSettings
 
-        return max(0, int(getattr(PlatformSettings.get_solo(), "storage_mb_per_teacher", 0) or 0))
+        value = max(0, int(getattr(PlatformSettings.get_solo(), "storage_mb_per_teacher", 0) or 0))
     except Exception:
         return 0
+
+    try:
+        if cache is not None:
+            cache.set(STORAGE_RATE_CACHE_KEY, value, _STORAGE_RATE_CACHE_TTL)
+    except Exception:
+        pass
+    return value
+
+
+def storage_bytes_for_seats(seats: int) -> int:
+    """Base storage a school gets for ``seats`` paid teacher slots.
+
+    Quoted before purchase and enforced after it, so the calculator, the order
+    summary and the live limit can never disagree about what was sold.
+    """
+    try:
+        seats = max(0, int(seats or 0))
+    except (TypeError, ValueError):
+        return 0
+    return seats * _storage_mb_per_teacher() * 1024 * 1024
+
+
+def storage_display_for_seats(seats: int) -> str:
+    """Human label for the base storage of a capacity, e.g. ``19.5GB``."""
+    return _human_size(storage_bytes_for_seats(seats))
 
 
 def _active_subscription(school: School | None):
@@ -411,6 +455,142 @@ def school_storage_limit_bytes(school: School | None) -> int:
     return school_storage_allowance(school)["total_bytes"]
 
 
+def school_snapshot_used_bytes(school: School | None) -> int:
+    """Bytes held by saved yearly snapshots only."""
+    if school is None:
+        return 0
+    return int(
+        SchoolYearArchive.objects.filter(school=school)
+        .aggregate(total=Sum("storage_bytes"))
+        .get("total")
+        or 0
+    )
+
+
+def school_work_used_bytes(school: School | None) -> int:
+    """Bytes held by live school work: everything except saved snapshots."""
+    if school is None:
+        return 0
+    total = int(
+        School.objects.filter(pk=school.pk)
+        .values_list("storage_used_bytes", flat=True)
+        .first()
+        or 0
+    )
+    return max(0, total - school_snapshot_used_bytes(school))
+
+
+def school_archive_allowance(school: School | None) -> dict:
+    """Snapshot allowance: a separate product with its own defined space.
+
+    Archiving is sold on its own. A school without the add-on gets no snapshot
+    space at all, and the space it does get comes from the add-on rather than
+    from the teacher capacity that sizes daily work.
+
+    Keeping this bucket apart from the work bucket matters operationally: they
+    used to share one pool, so a once-a-year administrative action — creating a
+    snapshot — could exhaust the space that gates every teacher upload and
+    freeze the whole school. Now a full archive only stops new snapshots.
+    """
+    inactive = {
+        "limit_bytes": 0,
+        "is_unlimited": False,
+        "is_subscribed": False,
+        "addon": None,
+    }
+    if school is None:
+        return inactive
+
+    try:
+        addon = getattr(school, "archive_addon", None)
+    except Exception:
+        addon = None
+
+    try:
+        active = bool(addon and addon.is_active)
+    except Exception:
+        active = False
+
+    if not active:
+        return inactive
+
+    try:
+        limit_gb = max(0, int(getattr(addon, "storage_limit_gb", 0) or 0))
+    except (TypeError, ValueError):
+        limit_gb = 0
+
+    return {
+        "limit_bytes": limit_gb * 1024 * 1024 * 1024,
+        # 0 GB on an active add-on is a misconfiguration, not "unlimited":
+        # treating it as unlimited would hand out free space by accident.
+        "is_unlimited": False,
+        "is_subscribed": True,
+        "addon": addon,
+    }
+
+
+def school_archive_overview(school: School | None) -> dict:
+    """Manager-facing state of the snapshot bucket."""
+    allowance = school_archive_allowance(school)
+    limit = allowance["limit_bytes"]
+    is_unlimited = allowance["is_unlimited"]
+    used = school_snapshot_used_bytes(school)
+    # limit is 0 for a school without the archive subscription, so never divide.
+    percent = 0 if (is_unlimited or limit <= 0) else min(100, round((used / limit) * 100, 1))
+    remaining = 0 if is_unlimited else max(0, limit - used)
+
+    warning_level = "ok"
+    if not is_unlimited:
+        if percent >= 100:
+            warning_level = "full"
+        elif percent >= STORAGE_CRITICAL_PERCENT:
+            warning_level = "critical"
+        elif percent >= STORAGE_WARNING_PERCENT:
+            warning_level = "warning"
+
+    return {
+        "used_bytes": used,
+        "limit_bytes": limit,
+        "remaining_bytes": remaining,
+        "used_label": _human_size(used),
+        "limit_label": "غير محدود" if is_unlimited else _human_size(limit),
+        "remaining_label": "غير محدود" if is_unlimited else _human_size(remaining),
+        "usage_percent": percent,
+        "is_unlimited": is_unlimited,
+        "is_subscribed": allowance["is_subscribed"],
+        "warning_level": warning_level,
+        "needs_attention": warning_level != "ok",
+    }
+
+
+def archive_snapshot_capacity_error(school: School | None, incoming_bytes: int) -> str:
+    """Gate for creating a snapshot. Never blocks teacher uploads."""
+    allowance = school_archive_allowance(school)
+    if not allowance["is_subscribed"]:
+        return (
+            "خدمة الأرشيف السنوي غير مفعّلة لهذه المدرسة. "
+            "فعّل الخدمة من صفحة اشتراك المدرسة للحصول على مساحة أرشيف مستقلة "
+            "تحفظ فيها نسخة ثابتة لكل سنة دراسية."
+        )
+    if allowance["is_unlimited"]:
+        return ""
+
+    limit = allowance["limit_bytes"]
+    used = school_snapshot_used_bytes(school)
+    incoming = max(0, int(incoming_bytes or 0))
+    if used + incoming <= limit:
+        return ""
+
+    return (
+        "لا تتسع مساحة الأرشيف لنسخة جديدة. "
+        f"المحفوظ حالياً {_human_size(used)} من أصل {_human_size(limit)}، "
+        f"والنسخة الجديدة {_human_size(incoming)}. "
+        "نزّل نسخة سنة سابقة على جهازك ثم احذفها من المنصة لتحرير المساحة، "
+        "أو اطلب مساحة أرشيف إضافية. "
+        "لا يؤثر ذلك على عمل المعلمين اليومي؛ الرفع والتوثيق يعملان كالمعتاد."
+    )
+
+
 def _human_size(num_bytes: int) -> str:
     """تنسيق دقيق للحجم: بايت/كيلو/ميجا/جيجا حسب المقدار."""
     b = max(0, int(num_bytes or 0))
@@ -423,6 +603,54 @@ def _human_size(num_bytes: int) -> str:
     if mb < 1024:
         return f"{round(mb, 1)}MB"
     return f"{round(mb / 1024, 2)}GB"
+
+
+def school_storage_pressure(school: School | None) -> dict:
+    """Cheap read of how close the work bucket is to stopping uploads.
+
+    school_storage_overview() runs a nine-way breakdown plus reclaimable-year
+    scanning. The manager dashboard only needs to know whether to warn, and it
+    loads on every visit, so this stays at one aggregate query.
+    """
+    empty = {
+        "needs_attention": False,
+        "warning_level": "ok",
+        "usage_percent": 0,
+        "used_label": "",
+        "limit_label": "",
+        "remaining_label": "",
+    }
+    if school is None:
+        return empty
+
+    allowance = school_storage_allowance(school)
+    if allowance["is_unlimited"]:
+        return empty
+
+    limit = allowance["total_bytes"]
+    if limit <= 0:
+        return empty
+
+    used = school_work_used_bytes(school)
+    percent = min(100, round((used / limit) * 100, 1))
+
+    if percent >= 100:
+        level = "full"
+    elif percent >= STORAGE_CRITICAL_PERCENT:
+        level = "critical"
+    elif percent >= STORAGE_WARNING_PERCENT:
+        level = "warning"
+    else:
+        return empty
+
+    return {
+        "needs_attention": True,
+        "warning_level": level,
+        "usage_percent": percent,
+        "used_label": _human_size(used),
+        "limit_label": _human_size(limit),
+        "remaining_label": _human_size(max(0, limit - used)),
+    }
 
 
 def school_storage_overview(school: School | None) -> dict:
@@ -554,10 +782,11 @@ def reclaimable_storage_by_year(school: School | None) -> list[dict]:
 
 
 def archive_storage_capacity_error(school: School | None, incoming_files, *, replacing_files=None) -> str:
-    """رسالة خطأ عربية عند تجاوز حدّ تخزين المدرسة.
+    """رسالة خطأ عربية عند تجاوز حدّ تخزين عمل المدرسة اليومي.
 
-    يُطبَّق على جميع المدارس: حدّ إضافة الأرشفة إن كانت مفعّلة، وإلا الحدّ المجاني
-    الأساسي من إعدادات المنصة. الحساب يعتمد على الحجم الفعلي للملفات (دقيق).
+    يقيس مساحة العمل فقط (التقارير وملفات الإنجاز والطلبات والمرفقات). النسخ
+    السنوية لها حدّها المستقل، حتى لا يوقف إنشاء نسخة أرشيف رفع المعلمين.
+    الحساب يعتمد على الحجم الفعلي للملفات (دقيق).
     """
     if school is None:
         return ""
@@ -571,14 +800,9 @@ def archive_storage_capacity_error(school: School | None, incoming_files, *, rep
         # 0 = غير محدود
         return ""
 
-    # الحجم المستخدم يُقرأ من الإجمالي التزايدي المخزّن (بلا أي طلب شبكي إلى التخزين).
-    # يُحدَّث هذا الإجمالي تلقائيًا عبر إشارات storage_tracking عند كل رفع/حذف.
-    used_bytes = int(
-        School.objects.filter(pk=school.pk)
-        .values_list("storage_used_bytes", flat=True)
-        .first()
-        or 0
-    )
+    # مساحة العمل = الإجمالي التزايدي المخزّن ناقص النسخ السنوية المحفوظة.
+    # يُحدَّث الإجمالي تلقائيًا عبر إشارات storage_tracking عند كل رفع/حذف.
+    used_bytes = school_work_used_bytes(school)
     replaced_bytes = sum(_file_size(value) for value in (replacing_files or []))
     projected_used_bytes = max(0, used_bytes - replaced_bytes) + incoming_bytes
     if projected_used_bytes <= limit_bytes:

@@ -371,6 +371,13 @@
     .list-card:hover { transform: translateY(-2px); box-shadow: 0 18px 32px -26px rgba(7,91,54,.8); }
     .lc-pill, .badge { border-radius: 5px; }
     .lc-reply { font-size: .85rem; color: #475569; background: #f1f5f9; padding: 10px; border-radius: 6px; line-height: 1.6; }
+
+    /* The page's primary action sat at 1.31:1 on the dark theme. */
+    [data-theme="dark"] .req-scope .hero-new { color: #0a2a1c; background: #cfeedd; border-color: #cfeedd; }
+    [data-theme="dark"] .req-scope .hero-new:hover { color: #06301e; background: #eaf9f1; border-color: #eaf9f1; }
+    [data-theme="dark"] .req-scope .btn-active { color: #42ca88; background: #113328; border-color: #42ca88; }
+    [data-theme="dark"] .req-scope .lc-reply { color: #c8dbd1; background: #102a22; }
+    [data-theme="dark"] .req-scope .empty-state { background: var(--surface); }
     .lc-detail { text-decoration: none; color: var(--c-brand); font-weight: 800; font-size: .9rem; display: flex; align-items: center; gap: 6px; }
     .table-card, .empty-state { border-radius: 8px; box-shadow: none; }
     .empty-state { background: rgba(255,255,255,.82); }

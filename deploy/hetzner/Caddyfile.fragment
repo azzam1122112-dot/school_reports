@@ -2,7 +2,14 @@ tawtheeq-ksa.com {
 	encode zstd gzip
 
 	reverse_proxy school-reports-web:8000 {
-		header_up X-Real-IP {remote_host}
+		# {remote_host} هنا هو عنوان حافة Cloudflare لا الزائر، فيجعل كل زوار
+		# مركز بيانات واحد يتشاركون دلواً واحداً في تحديد المعدل. CF-Connecting-IP
+		# هو عنوان الزائر الحقيقي.
+		#
+		# شرط لازم قبل النشر: يجب أن يقبل جدار ناري الأصل نطاقات Cloudflare فقط
+		# (https://www.cloudflare.com/ips/) — وإلا أمكن لأي عميل يصل الأصل مباشرة
+		# انتحال هذا الرأس وتجاوز تحديد المعدل. راجع docs/CLOUDFLARE_CONFIG.md.
+		header_up X-Real-IP {http.request.header.Cf-Connecting-Ip}
 	}
 
 	header {

@@ -203,10 +203,11 @@ class PlatformSettings(models.Model):
     )
     storage_mb_per_teacher = models.PositiveIntegerField(
         "المساحة الأساسية لكل معلم (ميجابايت)",
-        default=200,
+        default=400,
         help_text=(
-            "تُضرب في سعة المعلمين المشتراة لتحديد المساحة الأساسية للمدرسة. "
-            "مثال: 200MB × سعة 50 معلماً = 10GB. ضع 0 لإلغاء المساحة الأساسية المشتقة."
+            "تُضرب في سعة المعلمين المشتراة لتحديد المساحة الأساسية للمدرسة، "
+            "فتكبر المساحة بنفس نسبة نمو الفريق. "
+            "مثال: 400MB × سعة 50 معلماً = 19.5GB. ضع 0 لإلغاء المساحة الأساسية المشتقة."
         ),
     )
     maintenance_mode_enabled = models.BooleanField(
@@ -271,6 +272,7 @@ class PlatformSettings(models.Model):
             from django.core.cache import cache
 
             cache.delete("platform_maintenance_state_v1")
+            cache.delete("platform_storage_mb_per_teacher_v1")
         except Exception:
             pass
         try:

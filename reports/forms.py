@@ -2888,6 +2888,7 @@ class PlatformSettingsForm(forms.ModelForm):
             "internal_ai_help_enabled",
             "archive_addon_annual_price",
             "archive_included_storage_gb",
+            "storage_mb_per_teacher",
             "free_storage_mb",
         ]
         widgets = {
@@ -2904,6 +2905,7 @@ class PlatformSettingsForm(forms.ModelForm):
             ),
             "archive_addon_annual_price": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
             "archive_included_storage_gb": forms.NumberInput(attrs={"class": "form-control", "min": "1", "step": "1"}),
+            "storage_mb_per_teacher": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "50"}),
             "free_storage_mb": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "1"}),
         }
         labels = {
@@ -2914,13 +2916,21 @@ class PlatformSettingsForm(forms.ModelForm):
             "internal_ai_help_enabled": "المساعدة داخل النظام",
             "archive_addon_annual_price": "سعر الأرشفة السنوي",
             "archive_included_storage_gb": "المساحة المضمنة مع الأرشفة (GB)",
+            "storage_mb_per_teacher": "مساحة عمل المدرسة لكل معلم (ميجابايت)",
             "free_storage_mb": "حد التخزين المجاني لكل مدرسة غير مشتركة (ميجابايت)",
+        }
+        help_texts = {
+            "storage_mb_per_teacher": (
+                "تُضرب في سعة المعلمين المشتراة. مثال: 400MB × سعة 50 معلماً = 19.5GB. "
+                "امتلاء هذه المساحة يوقف رفع الملفات في المدرسة، فاخفضها بحذر."
+            ),
         }
 
     def clean(self):
         cleaned = super().clean()
         annual_price = cleaned.get("archive_addon_annual_price")
         included = cleaned.get("archive_included_storage_gb")
+        per_teacher = cleaned.get("storage_mb_per_teacher")
         free_mb = cleaned.get("free_storage_mb")
 
         if annual_price is not None and annual_price <= 0:
@@ -2929,6 +2939,18 @@ class PlatformSettingsForm(forms.ModelForm):
             self.add_error("archive_included_storage_gb", "المساحة المضمنة يجب أن تكون 1GB أو أكثر.")
         if free_mb is not None and free_mb < 0:
             self.add_error("free_storage_mb", "القيمة يجب أن تكون 0 أو أكثر (0 = غير محدود).")
+        if per_teacher is not None:
+            if per_teacher < 0:
+                self.add_error("storage_mb_per_teacher", "القيمة يجب أن تكون 0 أو أكثر.")
+            elif 0 < per_teacher < 50:
+                # Below this a 25-teacher school starts under 1.2GB, which one
+                # term of report photos exhausts. Zero stays allowed: it means
+                # "no derived space" and falls back to the free floor.
+                self.add_error(
+                    "storage_mb_per_teacher",
+                    "قيمة أقل من 50MB لكل معلم تجعل مساحة المدرسة غير عملية. "
+                    "استخدم 0 لإلغاء المساحة المشتقة، أو 50 فأكثر.",
+                )
         return cleaned
 
 

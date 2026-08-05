@@ -103,6 +103,19 @@
   @media(max-width:980px){.ar-filter{grid-template-columns:repeat(2,1fr)}.ar-filter .ar-actions{grid-column:1/-1}.ar-grid{grid-template-columns:1fr}}
   @media(max-width:720px){.ar-hero,.ar-upsell{grid-template-columns:1fr;flex-direction:column;align-items:flex-start}.ar-status{width:100%}.ar-kpis,.ar-versions{grid-template-columns:1fr 1fr}.ar-storage-breakdown{grid-template-columns:1fr 1fr}}
   @media(max-width:520px){.archive-page{padding:10px 8px 70px}.ar-hero{padding:21px 17px}.ar-filter,.ar-kpis,.ar-versions{grid-template-columns:1fr}.ar-filter .ar-actions{grid-column:auto}.ar-actions .ar-btn{width:100%}}
+
+  .ar-storage-note { margin: .55rem 0 0; color: var(--text-3, #64748b); font-size: .72rem; line-height: 1.75; }
+  .ar-release { margin-top: .5rem; }
+  .ar-release > summary { cursor: pointer; color: #b42318; font-size: .78rem; font-weight: 800; list-style: none; }
+  .ar-release > summary::-webkit-details-marker { display: none; }
+  .ar-release form { margin-top: .6rem; padding: .8rem; border: 1px solid rgba(180, 35, 24, .3); border-radius: 12px; background: rgba(180, 35, 24, .05); display: grid; gap: .5rem; }
+  .ar-release-warn { margin: 0; color: #84251d; font-size: .74rem; line-height: 1.8; }
+  .ar-release label { font-size: .72rem; font-weight: 800; }
+  .ar-release input { min-height: 40px; padding: .4rem .6rem; border: 1px solid var(--border-light, #dbe3de); border-radius: 8px; }
+  .ar-btn--danger { color: #fff; background: #b42318; border-color: #b42318; }
+  [data-theme="dark"] .ar-release > summary { color: #ff8c91; }
+  [data-theme="dark"] .ar-release form { border-color: rgba(255, 140, 145, .34); background: #2b1616; }
+  [data-theme="dark"] .ar-release-warn { color: #ffc5c8; }
 </style>
 {% endblock %}
 
@@ -204,7 +217,46 @@
         </div>
       </section>
       {% if not storage_overview.is_unlimited and pct >= 90 %}
-        <div class="ar-alert ar-alert--danger"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><div><strong>المساحة قاربت الامتلاء.</strong> قد لا تتمكن من حفظ نسخة سنة جديدة قبل زيادة المساحة.</div></div>
+        <div class="ar-alert ar-alert--danger"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><div><strong>مساحة عمل المدرسة قاربت الامتلاء.</strong> قد يتعذر على {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} رفع الصور والمرفقات.</div></div>
+      {% endif %}
+    {% endwith %}
+  {% endif %}
+
+  {% if archive_overview and not archive_overview.is_subscribed %}
+    <section class="ar-storage" aria-label="خدمة الأرشيف السنوي">
+      <div class="ar-storage-head">
+        <span>الأرشيف السنوي</span>
+        <b>غير مفعّل</b>
+      </div>
+      <p class="ar-storage-note">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        الأرشيف السنوي خدمة مستقلة لها مساحتها الخاصة، منفصلة عن مساحة عمل المدرسة.
+        فعّلها من صفحة اشتراك المدرسة لتحفظ نسخة ثابتة لكل سنة دراسية.
+      </p>
+    </section>
+  {% elif archive_overview %}
+    {% with apct=archive_overview.usage_percent %}
+      <section class="ar-storage" aria-label="مساحة النسخ السنوية">
+        <div class="ar-storage-head">
+          <span>مساحة الأرشيف السنوي</span>
+          <b>{{ archive_overview.used_label }} من {{ archive_overview.limit_label }}</b>
+        </div>
+        {% if not archive_overview.is_unlimited %}<progress value="{{ apct }}" max="100">{{ apct }}%</progress>{% endif %}
+        <div class="ar-storage-meta">
+          {% if archive_overview.is_unlimited %}
+            <span>السعة غير محدودة</span>
+          {% else %}
+            <span>{{ apct }}% مستخدم · المتبقي {{ archive_overview.remaining_label }}</span>
+          {% endif %}
+        </div>
+        <p class="ar-storage-note">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+          مساحة خدمة الأرشيف وحدها، منفصلة عن مساحة عمل المدرسة. امتلاؤها يمنع حفظ نسخة
+          جديدة فقط، ولا يوقف رفع {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }} للتقارير والمرفقات.
+        </p>
+      </section>
+      {% if not archive_overview.is_unlimited and apct >= 90 %}
+        <div class="ar-alert ar-alert--warn"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><div><strong>مساحة النسخ السنوية قاربت الامتلاء.</strong> نزّل نسخة سنة سابقة على جهازك ثم احذفها من المنصة لتحرير المساحة، أو اطلب مساحة أرشيف إضافية.</div></div>
       {% endif %}
     {% endwith %}
   {% endif %}
@@ -331,6 +383,25 @@
                     {% endif %}
                     <div class="ar-actions">
                       <a class="ar-btn ar-btn--primary" href="{% url 'reports:school_archive_download' version.pk %}"><i class="fa-solid fa-download" aria-hidden="true"></i> تنزيل هذه النسخة</a>
+                      {% if can_delete_archive %}
+                        {# The release valve: download the year, then free its space here. #}
+                        <details class="ar-release">
+                          <summary><i class="fa-solid fa-trash-can" aria-hidden="true"></i> حذفها من المنصة لتحرير المساحة</summary>
+                          <form method="post" action="{% url 'reports:school_archive_delete' version.pk %}">
+                            {% csrf_token %}
+                            <p class="ar-release-warn">
+                              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                              هذه النسخة هي سجل المدرسة الثابت لعام {{ version.academic_year }}. تأكد من تنزيلها وحفظها على جهازك أولاً — الحذف من المنصة نهائي ولا يمكن التراجع عنه.
+                            </p>
+                            <label for="confirmYear{{ version.pk }}">اكتب السنة الدراسية للتأكيد</label>
+                            <input id="confirmYear{{ version.pk }}" name="confirm_year" type="text" inputmode="text"
+                                   placeholder="{{ version.academic_year }}" autocomplete="off" required>
+                            <button class="ar-btn ar-btn--danger" type="submit">
+                              حذف النسخة وتحرير {{ version.size_label|default:"المساحة" }}
+                            </button>
+                          </form>
+                        </details>
+                      {% endif %}
                     </div>
                   </article>
                 {% endfor %}

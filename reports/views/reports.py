@@ -26,6 +26,8 @@ from ..report_ai import (
 from ..gender_labels import school_gender_labels, school_gender_template_context
 
 from ._helpers import *
+# Star imports skip underscore names; the size formatter is needed by name.
+from ..services_archive import _human_size
 from ._helpers import (
     _is_staff, _is_staff_or_officer, _is_manager_in_school,
     _parse_date_safe, _filter_by_school, _safe_next_url, _safe_redirect,
@@ -131,6 +133,15 @@ def _notify_report_created(report, active_school):
 def add_report(request: HttpRequest) -> HttpResponse:
     active_school = _get_active_school(request)
     leadership_section = _leadership_section_for_new_report(request, active_school)
+
+    def _has_report_types(bound_form) -> bool:
+        """Empty choices mean the school has not defined report types for this
+        teacher yet. The form then cannot be completed, so the page has to say
+        why instead of showing a dead select."""
+        try:
+            return any(value for value, _label in bound_form.fields["category"].choices)
+        except Exception:
+            return True
     if request.method == "POST":
         form = ReportForm(request.POST, request.FILES, active_school=active_school)
         if form.is_valid():
@@ -143,6 +154,7 @@ def add_report(request: HttpRequest) -> HttpResponse:
                     {
                         "form": form,
                         "leadership_section": leadership_section,
+                        "has_report_types": _has_report_types(form),
                         **_report_ai_template_context(request.user),
                     },
                 )
@@ -209,6 +221,7 @@ def add_report(request: HttpRequest) -> HttpResponse:
         {
             "form": form,
             "leadership_section": leadership_section,
+            "has_report_types": _has_report_types(form),
             **_report_ai_template_context(request.user),
         },
     )
@@ -689,6 +702,13 @@ def school_archive(request: HttpRequest) -> HttpResponse:
             "circulars": circulars_page,
             "archive_notifications": notifications_page,
             "storage_overview": school_storage_overview(active_school),
+            # The snapshot bucket is reported separately so a full archive never
+            # reads as "the platform is out of space".
+            "archive_overview": school_archive_overview(active_school),
+            "can_delete_archive": bool(
+                getattr(request.user, "is_superuser", False)
+                or is_school_manager(request.user, active_school=active_school)
+            ),
             "unclassified_year": UNCLASSIFIED_YEAR,
             "archived_at": timezone.localtime(),
             "archive_versions": archive_versions,
@@ -760,11 +780,11 @@ def school_archive_create(request: HttpRequest) -> HttpResponse:
             return_metadata=True,
         )
 
-        class _ArchiveUpload:
-            name = "school-year-archive.zip"
-            size = metadata["archive_size_bytes"]
-
-        capacity_error = archive_storage_capacity_error(active_school, [_ArchiveUpload()])
+        # Snapshots draw on their own bucket. Charging them to the work bucket
+        # meant one archive run could stop every teacher from uploading.
+        capacity_error = archive_snapshot_capacity_error(
+            active_school, metadata["archive_size_bytes"]
+        )
         if capacity_error:
             messages.error(request, capacity_error)
             return redirect(f"{reverse('reports:school_archive')}?year={selected_year}")
@@ -882,6 +902,71 @@ def school_archive_download(request: HttpRequest, pk: int) -> HttpResponse:
         filename=f"archive-{active_school.code}-{safe_year}-v{archive.version}.zip",
         content_type="application/zip",
     )
+
+
+@login_required(login_url="reports:login")
+@require_http_methods(["POST"])
+def school_archive_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Free archive space by removing a snapshot the manager has downloaded.
+
+    This is the release valve for the snapshot bucket: without it a school that
+    fills its archive space can never take another yearly snapshot. Deleting is
+    destructive — the snapshot is the school's immutable record of that year —
+    so it is restricted to the manager, requires the year to be typed back, and
+    is written to the audit log.
+    """
+    active_school = _get_active_school(request)
+    if active_school is None:
+        messages.error(request, "فضلاً اختر/حدّد مدرسة أولاً.")
+        return redirect("reports:select_school")
+
+    # Deliberately narrower than download: report viewers and platform admins
+    # may read a snapshot, only the school's own manager may destroy it.
+    if not (
+        getattr(request.user, "is_superuser", False)
+        or is_school_manager(request.user, active_school=active_school)
+    ):
+        messages.error(request, "حذف نسخ الأرشيف من صلاحية مدير المدرسة فقط.")
+        return redirect("reports:school_archive")
+
+    archive = get_object_or_404(SchoolYearArchive, pk=pk, school=active_school)
+    redirect_url = f"{reverse('reports:school_archive')}?year={archive.academic_year}"
+
+    confirmation = (request.POST.get("confirm_year") or "").strip()
+    if confirmation != (archive.academic_year or "").strip():
+        messages.error(
+            request,
+            "لتأكيد الحذف اكتب السنة الدراسية للنسخة كما تظهر أمامك.",
+        )
+        return redirect(redirect_url)
+
+    freed_bytes = int(getattr(archive, "storage_bytes", 0) or 0)
+    year = archive.academic_year
+    version = archive.version
+
+    try:
+        AuditLog.objects.create(
+            school=active_school,
+            teacher=request.user,
+            action="delete",
+            model_name="SchoolYearArchive",
+            object_id=archive.pk,
+            object_repr=f"نسخة أرشيف {year} الإصدار {version}"[:255],
+            changes={"freed_bytes": freed_bytes},
+            ip_address=request.META.get("REMOTE_ADDR"),
+            user_agent=request.META.get("HTTP_USER_AGENT", "")[:500],
+        )
+    except Exception:
+        logger.exception("Archive delete audit failed archive_id=%s", archive.pk)
+
+    archive.delete()
+
+    messages.success(
+        request,
+        f"تم حذف نسخة {year} من المنصة وتحرير {_human_size(freed_bytes)} من مساحة الأرشيف. "
+        "النسخة التي نزّلتها على جهازك تبقى معك.",
+    )
+    return redirect(redirect_url)
 
 
 @login_required(login_url="reports:login")

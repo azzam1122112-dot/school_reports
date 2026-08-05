@@ -179,6 +179,7 @@ class PlatformAdminExperienceTests(TestCase):
                 "report_ai_enabled": "on",
                 "archive_addon_annual_price": str(settings_obj.archive_addon_annual_price),
                 "archive_included_storage_gb": str(settings_obj.archive_included_storage_gb),
+                "storage_mb_per_teacher": str(settings_obj.storage_mb_per_teacher),
                 "free_storage_mb": str(settings_obj.free_storage_mb),
                 "storage_options-TOTAL_FORMS": "1",
                 "storage_options-INITIAL_FORMS": "1",

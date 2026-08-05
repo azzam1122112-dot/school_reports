@@ -79,6 +79,9 @@
   }
 
   function createFloatingToggle() {
+    // صفحة الهبوط تختار عدم إظهار الزر العائم حتى لا يزاحم دعوات الإجراء،
+    // مع بقاء تطبيق السمة المحفوظة فلا يرى زائرٌ اختار الوضع الليلي صفحةً نهارية.
+    if (root.getAttribute('data-theme-toggle') === 'off') return;
     if (document.querySelector('.theme-toggle')) return;
     var button = document.createElement('button');
     button.type = 'button';

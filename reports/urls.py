@@ -65,6 +65,7 @@ urlpatterns = [
     path("archive/", views.school_archive, name="school_archive"),
     path("archive/create/", views.school_archive_create, name="school_archive_create"),
     path("archive/download/<int:pk>/", views.school_archive_download, name="school_archive_download"),
+    path("archive/delete/<int:pk>/", views.school_archive_delete, name="school_archive_delete"),
     path("archive/export/", views.school_archive_export, name="school_archive_export"),
 
     # =========================

@@ -956,7 +956,16 @@
         .draft-btn.discard:hover{background:#fef3c7;}
         .draft-saved{display:none;align-items:center;gap:6px;color:#16a34a;font-weight:800;font-size:.88rem;margin-bottom:16px;}
         .draft-saved i{font-size:.95rem;}
-      </style>
+      
+  /* Keep the section card on the page's own surface in both themes. */
+  [data-theme="dark"] .ar-section-field{background:var(--bg-sub);border-color:var(--border-light);}
+  [data-theme="dark"] .ar-section-field-head{color:#6ed3a0;}
+
+  /* Shown only when the category list came back empty. */
+  .ar-empty-types{display:flex;align-items:flex-start;gap:9px;margin-top:10px;padding:11px 13px;border:1px solid #e6d6a8;border-radius:12px;background:#fdf8ea;color:#6b5416;font-size:.85rem;line-height:1.7;}
+  .ar-empty-types i{margin-top:4px;}
+  [data-theme="dark"] .ar-empty-types{border-color:rgba(212,177,109,.4);background:#2b2719;color:#f0d69d;}
+</style>
 
       <div class="draft-banner" id="draftBanner" role="status">
         <span class="msg">
@@ -1010,6 +1019,13 @@
                   {% endfor %}
                 </select>
                 {% if form.category.errors %}<div class="ar-error-msg">{{ form.category.errors.0 }}</div>{% endif %}
+                {# An empty list means school setup is unfinished; saying so beats a silent dead end. #}
+                {% if not has_report_types %}
+                  <div class="ar-empty-types" data-empty-types>
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                    <span>لا توجد أنواع تقارير متاحة لك بعد. يحددها {{ SCHOOL_MANAGER_LABEL|default:"مدير المدرسة" }} من «أنواع التقارير»، وبعدها تظهر لك هنا مباشرة.</span>
+                  </div>
+                {% endif %}
               </div>
 
               <!-- Title -->
@@ -1772,4 +1788,6 @@
     });
   })();
 </script>
+
+
 {% endblock %}

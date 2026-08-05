@@ -82,7 +82,7 @@ class LandingPageTests(TestCase):
         self.assertIn('id="security"', html)
         self.assertIn(f'href="{reverse("reports:terms_conditions")}"', html)
         self.assertIn(f'href="{reverse("reports:refund_policy")}"', html)
-        self.assertIn("المنتجات والخدمات والأسعار", html)
+        self.assertIn("التسعير حسب عدد المعلمين", html)
         self.assertNotIn("هوية مقدم الخدمة", html)
         self.assertNotIn('href="#business"', html)
         self.assertIn('<span>دخول</span>', html)
@@ -254,7 +254,7 @@ class LandingPageTests(TestCase):
             html,
         )
 
-    def test_active_plans_drive_the_pricing_cards_and_period_switch(self):
+    def test_published_plans_drive_the_teacher_count_calculator(self):
         SubscriptionPlan.objects.create(
             name="تجربة المدرسة",
             price=0,
@@ -287,18 +287,25 @@ class LandingPageTests(TestCase):
         response = self.client.get(reverse("reports:landing"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context["pricing_cards"]), 1)
+
+        # Selling is by teacher count: the calculator is the only purchase path,
+        # and the three durations are chosen inside it.
+        self.assertTrue(response.context["flexible_pricing_catalog"])
+        self.assertContains(response, "data-flex-teacher-count")
         self.assertContains(response, 'data-period="1m"')
         self.assertContains(response, 'data-period="6m"')
         self.assertContains(response, 'data-period="1y"')
-        self.assertContains(response, "229")
-        self.assertContains(response, "650")
-        self.assertContains(response, "1,250")
-        self.assertContains(response, "حتى 50 معلماً")
+
+        # No package cards beside it — the visitor must not be asked to choose twice.
+        html = response.content.decode("utf-8")
+        self.assertNotIn("price-card paid-card", html)
+        self.assertIn("pricing-grid--trial-only", html)
+        # The free trial stays: it is the entry point, not a package.
+        self.assertContains(response, "التجربة المجانية")
         self.assertContains(response, "تشغيل كامل للتجربة")
         self.assertNotContains(response, "مجموعة مدارس")
         self.assertContains(response, "توسعة سعة المعلمين")
-        self.assertContains(response, "كل باقة ودفع تخص مدرسة واحدة")
+        self.assertContains(response, "كل اشتراك ودفع يخص مدرسة واحدة")
         self.assertNotContains(response, "اشتراك مجمع")
         self.assertNotContains(response, "اشتراك موحد")
         self.assertNotContains(response, "باقة المجموعة")
@@ -316,3 +323,18 @@ class LandingPageTests(TestCase):
 
         self.assertNotContains(response, "باقة قديمة لا تظهر")
         self.assertEqual(response.context["pricing_cards"], [])
+
+    def test_landing_leaks_no_template_syntax_to_the_visitor(self):
+        """A ``{# #}`` comment spanning two lines is printed, not stripped."""
+        html = self.client.get(reverse("reports:landing")).content.decode("utf-8")
+
+        # الصفحة تضمّن JSON مصغّراً (json_script وJSON-LD)، و``}}`` يظهر فيه
+        # مشروعاً عند تداخل الكائنات — فالفحص على محدّدات القوالب وحدها.
+        for token in ("{#", "#}", "{%", "%}"):
+            self.assertNotIn(token, html, f"صيغة قالب ظاهرة للزائر: {token}")
+
+    def test_landing_hides_the_floating_theme_toggle(self):
+        """The marketing page must not put a floating button over its CTAs."""
+        response = self.client.get(reverse("reports:landing"))
+
+        self.assertContains(response, 'data-theme-toggle="off"')

@@ -5,7 +5,10 @@ from django.conf import settings
 from django.conf.urls.static import static as serve_static
 from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
+from datetime import timedelta, timezone as dt_timezone
+
 from django.http import HttpResponse
+from django.utils import timezone
 from django.utils.html import escape
 from django.views.decorators.cache import cache_control
 from django.views.generic.base import RedirectView
@@ -72,8 +75,11 @@ def security_txt(request):
         .replace("\n", "")
         .strip()
     )
+    # RFC 9116 يوجب حقل Expires، ويوصي بمدة أقل من سنة.
+    expires = (timezone.now() + timedelta(days=180)).astimezone(dt_timezone.utc).replace(microsecond=0)
     content = "\n".join([
         f"Contact: mailto:{contact_email}",
+        f"Expires: {expires.strftime('%Y-%m-%dT%H:%M:%SZ')}",
         f"Canonical: {base}/.well-known/security.txt",
         f"Policy: {request.build_absolute_uri(reverse('reports:privacy_policy'))}",
         "Preferred-Languages: ar, en",

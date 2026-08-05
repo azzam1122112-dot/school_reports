@@ -329,6 +329,14 @@
   .af-info h3 { font-size: 1.08rem; }
   .af-status { border-radius: 5px; }
   .af-empty { border-radius: 8px; background: #f7f9f8; }
+
+  /* These surfaces pinned a light background while their text stayed themed,
+     so on the dark theme they rendered light-on-light (down to 1.04:1). */
+  [data-theme="dark"] .af-create-area { background: var(--bg-sub) !important; border-color: var(--border-light) !important; }
+  [data-theme="dark"] .af-empty { background: var(--bg-sub); }
+  [data-theme="dark"] .af-icon-box { background: #113328; }
+  [data-theme="dark"] .af-btn-danger { color: #ff8c91; background: #2b1616; border-color: rgba(255, 140, 145, .34); }
+  [data-theme="dark"] .af-btn-danger:hover { background: #3a1c1c; }
   @media (max-width: 768px) {
     .af-wrap { padding: 18px 14px 40px; }
     .af-wrap .af-head { min-height: 132px; padding: 24px 20px !important; flex-direction: row; text-align: right; }

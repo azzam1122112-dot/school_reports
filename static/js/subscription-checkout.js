@@ -142,6 +142,15 @@
       setItemAmount("addon", addonAmount());
       setItemAmount("storage", storageAmount());
       setItemLabel("subscription", planName || "تجديد اشتراك المدرسة");
+      // Storage is bought with the capacity, so name it before payment.
+      const storageNote = form.querySelector("[data-summary-storage]");
+      if (storageNote) {
+        const includedStorage = plan ? plan.dataset.storage : "";
+        storageNote.textContent = includedStorage
+          ? `يشمل مساحة تخزين ${includedStorage}`
+          : "";
+        storageNote.hidden = !includedStorage;
+      }
       setItemLabel(
         "storage",
         selectedStorage

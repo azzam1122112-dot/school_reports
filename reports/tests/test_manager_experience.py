@@ -395,10 +395,10 @@ class ManagerExperienceTests(TestCase):
         response = self.client.get(reverse("reports:admin_dashboard"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "استقبال الملخص الأسبوعي على البريد الإلكتروني")
+        self.assertContains(response, "الملخص الأسبوعي على بريدك")
         self.assertContains(response, 'name="weekly_summary_email_enabled" value="1"')
         self.assertContains(response, 'name="weekly_summary_email_enabled" value="0"')
-        self.assertContains(response, "الحالة الحالية: مفعّل")
+        self.assertContains(response, "مفعّل حاليًا")
 
         post_disable = self.client.post(
             reverse("reports:admin_dashboard"),
@@ -409,7 +409,7 @@ class ManagerExperienceTests(TestCase):
         self.assertEqual(post_disable.status_code, 200)
         self.manager_membership.refresh_from_db()
         self.assertFalse(self.manager_membership.weekly_summary_email_enabled)
-        self.assertContains(post_disable, "الحالة الحالية: موقّف")
+        self.assertContains(post_disable, "موقّف حاليًا")
 
         post_enable = self.client.post(
             reverse("reports:admin_dashboard"),

@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import logging
 
-from django.db.models import F
+from django.db.models import F, Value
+from django.db.models.functions import Greatest
 from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
@@ -56,13 +57,14 @@ def _apply_school_delta(school_id, delta: int) -> None:
     try:
         from .models import School
 
-        # تحديث ذرّي عبر F() لتفادي حالات التسابق
+        # تحديث ذرّي عبر F() لتفادي حالات التسابق، مع تثبيت الحدّ الأدنى داخل
+        # نفس الاستعلام: الحقل غير سالب على مستوى قاعدة البيانات، فأي انحراف
+        # تاريخي كان يجعل الحذف يفشل بخطأ قيد قبل أن تصل خطوة التصحيح.
         School.objects.filter(pk=school_id).update(
-            storage_used_bytes=F("storage_used_bytes") + delta
-        )
-        # حماية من القيم السالبة الناتجة عن انحراف تاريخي
-        School.objects.filter(pk=school_id, storage_used_bytes__lt=0).update(
-            storage_used_bytes=0
+            storage_used_bytes=Greatest(
+                F("storage_used_bytes") + delta,
+                Value(0),
+            )
         )
     except Exception:
         logger.exception("storage_tracking: failed to apply school delta")

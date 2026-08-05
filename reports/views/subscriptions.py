@@ -370,6 +370,13 @@ def platform_settings(request: HttpRequest) -> HttpResponse:
     platform_storage_used_bytes = int(storage_overview.get("used") or 0)
     schools_count = int(storage_overview.get("schools") or 0)
 
+    # Show what the saved rate actually produces: the operator edits megabytes
+    # per teacher but thinks in "what does a 50-teacher school get".
+    storage_ladder = [
+        {"seats": seats, "label": storage_display_for_seats(seats)}
+        for seats in (25, 50, 100)
+    ]
+
     return render(
         request,
         "reports/platform_settings.html",
@@ -379,6 +386,7 @@ def platform_settings(request: HttpRequest) -> HttpResponse:
             "storage_options_formset": storage_options_formset,
             "platform_storage_used_bytes": platform_storage_used_bytes,
             "schools_count": schools_count,
+            "storage_ladder": storage_ladder,
         },
     )
 
@@ -2264,6 +2272,9 @@ def my_subscription(request):
         "archive_storage_block_price": pricing["storage_block_price"],
         "archive_storage_options": _archive_storage_options(active_only=True),
         "storage_overview": school_storage_overview(membership.school),
+        # Reported separately: a full archive must never read as "the
+        # platform is out of space" for the school's daily work.
+        "archive_overview": school_archive_overview(membership.school),
         "pending_archive_addon_payment": pending_archive_addon_payment,
         "pending_archive_storage_payment": pending_archive_storage_payment,
         "tamara_enabled": tamara_is_enabled(),

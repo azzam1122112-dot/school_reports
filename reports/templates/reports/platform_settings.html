@@ -561,19 +561,36 @@
       </section>
 
       <section class="section">
-        <h2>حد التخزين الأساسي (للمدارس غير المشتركة)</h2>
+        <h2>مساحة عمل المدرسة</h2>
         <div class="grid">
+          <div class="field">
+            <label for="{{ form.storage_mb_per_teacher.id_for_label }}">{{ form.storage_mb_per_teacher.label }}</label>
+            {{ form.storage_mb_per_teacher }}
+            <div class="help">
+              مساحة العمل اليومي (صور التقارير وشواهد الإنجاز والمرفقات)، وتُحتسب من
+              <strong>سعة المعلمين المشتراة</strong> فتكبر مع نمو المدرسة.
+              مستقلة تمامًا عن مساحة الأرشيف السنوي.
+              <strong>امتلاؤها يوقف رفع الملفات في المدرسة</strong>، فأي تخفيض يجب أن يُدرس.
+              ضع <strong>0</strong> لإلغاء المساحة المشتقة والاكتفاء بالحد الأدنى أدناه.
+            </div>
+            {% for e in form.storage_mb_per_teacher.errors %}<div class="error">{{ e }}</div>{% endfor %}
+          </div>
           <div class="field">
             <label for="{{ form.free_storage_mb.id_for_label }}">{{ form.free_storage_mb.label }}</label>
             {{ form.free_storage_mb }}
             <div class="help">
-              الحد الأقصى لإجمالي حجم الصور والملفات لكل مدرسة <strong>لا تملك إضافة أرشفة مفعّلة</strong>.
-              القيمة بالميجابايت (1024MB = 1GB). ضع <strong>0</strong> لإلغاء الحد (تخزين غير محدود).
-              يُحسب الاستهلاك من الحجم الفعلي للملفات.
+              يُطبَّق فقط على مدرسة <strong>بلا اشتراك فعّال</strong>. المدارس المشتركة تأخذ
+              المساحة المشتقة أعلاه. القيمة بالميجابايت (1024MB = 1GB)، و<strong>0</strong> تعني بلا حد.
             </div>
             {% for e in form.free_storage_mb.errors %}<div class="error">{{ e }}</div>{% endfor %}
           </div>
         </div>
+        {% if storage_ladder %}
+          <div class="help" style="margin-top:.6rem">
+            بالقيمة الحالية، تحصل المدرسة على:
+            {% for row in storage_ladder %}<strong>{{ row.seats }} معلماً → {{ row.label }}</strong>{% if not forloop.last %} · {% endif %}{% endfor %}
+          </div>
+        {% endif %}
       </section>
 
       <section class="section">
@@ -670,6 +687,10 @@
         <div class="metric">
           <span>المساحة المضمنة</span>
           <strong>{{ settings_obj.archive_included_storage_gb }}GB</strong>
+        </div>
+        <div class="metric">
+          <span>مساحة العمل لكل معلم</span>
+          <strong>{% if settings_obj.storage_mb_per_teacher %}{{ settings_obj.storage_mb_per_teacher|intcomma }}MB{% else %}معطّلة{% endif %}</strong>
         </div>
         <div class="metric">
           <span>الحد المجاني لكل مدرسة</span>

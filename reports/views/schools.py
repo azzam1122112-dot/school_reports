@@ -12,6 +12,7 @@ from ._helpers import (
     _model_has_field, _get_active_school, _user_manager_schools,
     _clean_query_params, _clean_query_value, _parse_date_safe,
 )
+from ..context_processors import nav_context
 from ..gender_labels import school_gender_labels
 
 
@@ -82,6 +83,65 @@ def _dashboard_period_start(period: str):
     if period == "month":
         return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     return None
+
+
+def _build_manager_focus_items(
+    *,
+    tickets_open: int,
+    pending_achievement_files: int,
+    assigned_to_me: int,
+    notifications_unread: int,
+    signatures_pending: int,
+) -> list[dict]:
+    """Build the manager's follow-up list once, for both the total and the chips.
+
+    Rows flagged ``subset`` are already contained in another row — a ticket
+    assigned to the manager is also an open school ticket — so they are shown as
+    a drill-down but never counted twice in the headline number.
+    """
+    items = [
+        {
+            "key": "tickets",
+            "count": int(tickets_open or 0),
+            "title": "طلبات المدرسة المفتوحة",
+            "hint": "تنتظر المتابعة أو الإسناد",
+            "url": f"{reverse('reports:manager_school_tickets')}?status=attention",
+            "subset": False,
+        },
+        {
+            "key": "achievement",
+            "count": int(pending_achievement_files or 0),
+            "title": "اعتمادات الإنجاز",
+            "hint": "ملفات مرسلة للمراجعة",
+            "url": f"{reverse('reports:achievement_school_files')}?status=submitted",
+            "subset": False,
+        },
+        {
+            "key": "notifications",
+            "count": int(notifications_unread or 0),
+            "title": "إشعارات غير مقروءة",
+            "hint": "آخر المستجدات",
+            "url": reverse("reports:my_notifications"),
+            "subset": False,
+        },
+        {
+            "key": "signatures",
+            "count": int(signatures_pending or 0),
+            "title": "توقيعات مطلوبة منك",
+            "hint": "تعاميم بانتظار الإقرار",
+            "url": reverse("reports:my_circulars"),
+            "subset": False,
+        },
+        {
+            "key": "assigned",
+            "count": int(assigned_to_me or 0),
+            "title": "منها معيّنة لك",
+            "hint": "ضمن طلبات المدرسة المفتوحة أعلاه",
+            "url": reverse("reports:assigned_to_me"),
+            "subset": True,
+        },
+    ]
+    return [item for item in items if item["count"] > 0]
 
 
 def _build_school_dashboard_payload(active_school: Optional[School], period: str, *, reporttypes_count: int = 0) -> dict:
@@ -943,8 +1003,18 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
                 weekly_summary_email_enabled=email_pref_enabled,
             )
             manager_membership.weekly_summary_email_enabled = email_pref_enabled
-            messages.success(request, "تم تحديث تفضيل استلام الملخص الأسبوعي بنجاح.")
+            messages.success(
+                request,
+                "تم تفعيل استلام الملخص الأسبوعي على بريدك."
+                if email_pref_enabled
+                else "تم إيقاف استلام الملخص الأسبوعي على بريدك.",
+            )
             return redirect("reports:admin_dashboard")
+
+        # Any other POST is a stale or tampered form. Re-rendering the dashboard
+        # in response would leave the browser able to re-submit it on refresh.
+        messages.error(request, "إجراء غير معروف. أعد المحاولة من اللوحة.")
+        return redirect("reports:admin_dashboard")
 
     has_reporttype = False
     reporttypes_count = 0
@@ -1000,6 +1070,10 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
             pass
         
         ctx['subscription_warning'] = subscription_warning
+
+        # A full work bucket silently stops every upload in the school, so the
+        # manager has to learn it here rather than from a teacher's failed save.
+        ctx['storage_pressure'] = school_storage_pressure(active_school)
         
         # آخر الأنشطة
         recent_activities = []
@@ -1126,9 +1200,26 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     setup_total = len(setup_steps)
     setup_percent = round((setup_completed / setup_total) * 100) if setup_total else 100
 
+    # The follow-up chips and the headline number must come from one list, or the
+    # hero ends up contradicting the section directly beneath it. nav_context is
+    # short-TTL cached, so the context processor's own call reuses this result.
+    focus_items: list[dict] = []
+    if active_school is not None:
+        nav_counters = nav_context(request)
+        focus_items = _build_manager_focus_items(
+            tickets_open=payload_kpis.get("tickets_open"),
+            pending_achievement_files=pending_achievement_files,
+            assigned_to_me=nav_counters.get("NAV_ASSIGNED_TO_ME"),
+            notifications_unread=nav_counters.get("NAV_NOTIFICATIONS_UNREAD"),
+            signatures_pending=nav_counters.get("NAV_SIGNATURES_PENDING"),
+        )
+    attention_total = sum(item["count"] for item in focus_items if not item["subset"])
+
     ctx.update(
         {
             **payload_kpis,
+            "focus_items": focus_items,
+            "attention_total": attention_total,
             "weekly_summary_email_enabled": bool(
                 getattr(manager_membership, "weekly_summary_email_enabled", True)
             ),
@@ -1154,17 +1245,26 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, "reports/admin_dashboard.html", ctx)
 
 
-@login_required(login_url="reports:login")
-@user_passes_test(_is_staff, login_url="reports:login")
-@role_required({"manager"})
 @require_http_methods(["GET"])
 def admin_dashboard_data(request: HttpRequest) -> HttpResponse:
-    """JSON data endpoint for the school dashboard."""
+    """JSON data endpoint for the school dashboard.
+
+    Authorisation is enforced here rather than through ``role_required`` because
+    that decorator answers with an HTML redirect. The dashboard reaches this
+    endpoint with ``fetch``, where a redirect surfaces as an unexplained parse
+    error instead of a message the manager can act on.
+    """
+    user = request.user
+    if not getattr(user, "is_authenticated", False):
+        return JsonResponse({"detail": "authentication_required"}, status=401)
+    if not (getattr(user, "is_superuser", False) or _is_staff(user)):
+        return JsonResponse({"detail": "forbidden"}, status=403)
+
     active_school = _get_active_school(request)
     if School.objects.filter(is_active=True).exists():
         if active_school is None:
             return JsonResponse({"detail": "active_school_required"}, status=403)
-        if (not request.user.is_superuser) and active_school not in _user_manager_schools(request.user):
+        if (not user.is_superuser) and active_school not in _user_manager_schools(user):
             return JsonResponse({"detail": "forbidden"}, status=403)
 
     reporttypes_count = 0

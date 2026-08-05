@@ -1921,6 +1921,9 @@
   .storage-select { margin-top: .45rem; font-weight: 850; }
   .storage-option-help { margin: .55rem 0 0; color: #16845b; font-size: .65rem; font-weight: 750; }
   .storage-option-help i { margin-inline-end: .25rem; }
+  .storage-live-scope { display: block; margin-top: .3rem; color: var(--text-3); font-size: .62rem; font-weight: 700; line-height: 1.7; }
+  .storage-second-bucket { margin-top: .8rem; padding-top: .8rem; border-top: 1px dashed var(--border-light); }
+  .storage-second-bucket > small { display: block; margin-top: .35rem; color: var(--text-3); font-size: .62rem; font-weight: 700; line-height: 1.7; }
 
   .service-empty-state {
     display: flex;
@@ -1981,6 +1984,8 @@
   }
 
   .summary-line[hidden] { display: none; }
+  .summary-line-note { display: block; margin-top: .18rem; color: var(--text-3); font-size: .66rem; font-weight: 750; }
+  .summary-line-note[hidden] { display: none; }
   .summary-line strong { color: var(--text-h); font-size: .74rem; }
 
   .summary-empty {
@@ -2834,6 +2839,7 @@
                     <div class="flex-result-proof">
                       <div><small>عدد فريقك</small><strong><span data-flex-count-output>{{ current_teacher_count }}</span> معلماً</strong></div>
                       <div><small>مساحة للنمو</small><strong><span data-flex-spare>—</span> مقاعد</strong></div>
+                      <div><small>مساحة التخزين</small><strong data-flex-storage>—</strong></div>
                     </div>
                     <p class="flex-result-status" id="schoolPricingStatus"><i class="fa-solid fa-shield-heart"></i><span data-flex-status>السعر النهائي يظهر قبل الدفع.</span></p>
                   </div>
@@ -2996,6 +3002,21 @@
                       {{ storage_overview.base_label }} أساسية (سعة {{ storage_overview.seats }} معلماً){% if storage_overview.extra_bytes %} + {{ storage_overview.extra_label }} مشتراة{% endif %}
                     </small>
                   {% endif %}
+                  <small class="storage-live-scope">مساحة العمل اليومي: التقارير وملفات الإنجاز والطلبات والمرفقات.</small>
+
+                  {% if archive_overview.is_subscribed %}
+                    <div class="storage-second-bucket">
+                      <div class="storage-live-head"><span>مساحة الأرشيف السنوي</span><strong>{{ archive_overview.usage_percent }}%</strong></div>
+                      <div class="storage-live-values"><strong>{{ archive_overview.used_label }}</strong><span>من {{ archive_overview.limit_label }}</span></div>
+                      <div class="archive-progress"><span style="width:{{ archive_overview.usage_percent }}%"></span></div>
+                      <small>مساحة خدمة الأرشيف وحدها — امتلاؤها يمنع حفظ نسخة جديدة فقط، ولا يوقف عمل {{ SCHOOL_TEACHERS_OBJ_LABEL|default:"المعلمين" }}.</small>
+                    </div>
+                  {% else %}
+                    <div class="storage-second-bucket">
+                      <div class="storage-live-head"><span>مساحة الأرشيف السنوي</span><strong>غير مفعّل</strong></div>
+                      <small>خدمة مستقلة لها مساحتها الخاصة. فعّلها أدناه لحفظ نسخة ثابتة لكل سنة دراسية.</small>
+                    </div>
+                  {% endif %}
                 </div>
 
                 <div class="storage-option-card">
@@ -3027,7 +3048,10 @@
 
               <div class="summary-line-items" id="orderSummaryItems">
                 <div class="summary-line" data-summary-for="subscription" hidden>
-                  <span data-summary-label="subscription">تجديد اشتراك المدرسة</span>
+                  <span>
+                    <span data-summary-label="subscription">تجديد اشتراك المدرسة</span>
+                    <small class="summary-line-note" data-summary-storage hidden></small>
+                  </span>
                   <strong data-amount-for="subscription">0.00 ريال</strong>
                 </div>
                 <div class="summary-line" data-summary-for="addon" hidden>

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone as dt_timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from config.settings import _media_querystring_auth_enabled
 from core.client_ip import client_ip_for_ratelimit
@@ -140,6 +142,10 @@ class PublicMetadataTests(SimpleTestCase):
         self.assertIn("Contact: mailto:security@example.test", body)
         self.assertIn(f"Policy: http://testserver{reverse('reports:privacy_policy')}", body)
         self.assertNotIn("support@example.com", body)
+        # RFC 9116 يوجب حقل Expires بصيغة زمنية صالحة في المستقبل.
+        expires_line = next(line for line in body.splitlines() if line.startswith("Expires: "))
+        expires_at = datetime.strptime(expires_line[len("Expires: "):], "%Y-%m-%dT%H:%M:%SZ")
+        self.assertGreater(expires_at.replace(tzinfo=dt_timezone.utc), timezone.now())
 
 
 class ContentSecurityPolicyTemplateTests(SimpleTestCase):

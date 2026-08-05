@@ -614,6 +614,7 @@ class PlatformSettingsAdmin(admin.ModelAdmin):
         "share_link_default_days",
         "archive_addon_annual_price",
         "archive_included_storage_gb",
+        "storage_mb_per_teacher",
         "free_storage_mb",
         "updated_by",
         "created_at",

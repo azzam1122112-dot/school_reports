@@ -35,6 +35,8 @@
     var spareOutput = root.querySelector("[data-flex-spare]");
     var monthlyOutput = root.querySelector("[data-flex-monthly]");
     var statusOutput = root.querySelector("[data-flex-status]");
+    // Storage is part of the offer, so it moves with the teacher count.
+    var storageOutput = root.querySelector("[data-flex-storage]");
     var result = root.querySelector("[data-flex-result]");
     // Optional recap rendered outside the calculator (e.g. above the
     // "what's included" panel) so the chosen capacity and amount stay visible
@@ -95,6 +97,7 @@
           planInput.removeAttribute("data-price");
         }
         if (capacityInput) capacityInput.value = "";
+        if (storageOutput) storageOutput.textContent = "—";
         if (summaryOutput) summaryOutput.textContent = "وسعة أكبر من 100 معلم تحتاج عرضاً مخصصاً";
         root.dispatchEvent(new CustomEvent("flex-pricing:change", { bubbles: true, detail: null }));
         return;
@@ -106,6 +109,7 @@
       if (priceOutput) priceOutput.textContent = quote.price_display || format(quote.price);
       if (capacityOutput) capacityOutput.textContent = format(quote.capacity);
       if (spareOutput) spareOutput.textContent = format(spare);
+      if (storageOutput) storageOutput.textContent = quote.storage_display || "—";
       if (monthlyOutput) monthlyOutput.textContent = "يعادل " + (quote.monthly_equivalent_display || format(quote.monthly_equivalent)) + " ريال شهرياً";
       if (statusOutput) {
         statusOutput.textContent = spare
@@ -117,12 +121,15 @@
         planInput.checked = true;
         planInput.setAttribute("data-price", String(quote.price));
         planInput.setAttribute("data-label", "اشتراك بسعة " + format(quote.capacity) + " معلماً · " + period().label);
+        // Read back by the checkout summary so the buyer sees the space before paying.
+        planInput.setAttribute("data-storage", quote.storage_display || "");
       }
       if (capacityInput) capacityInput.value = String(quote.capacity);
       if (summaryOutput) {
         summaryOutput.textContent =
           "وأنت الآن تختار سعة " + format(quote.capacity) + " معلماً · " +
-          (quote.price_display || format(quote.price)) + " ريال لمدة " + period().label;
+          (quote.price_display || format(quote.price)) + " ريال لمدة " + period().label +
+          (quote.storage_display ? " · مساحة " + quote.storage_display : "");
       }
 
       root.dispatchEvent(new CustomEvent("flex-pricing:change", {
@@ -132,6 +139,7 @@
           teacherCount: teacherCount,
           capacity: quote.capacity,
           spare: spare,
+          storageDisplay: quote.storage_display || "",
           price: quote.price,
           planId: quote.plan_id,
         },

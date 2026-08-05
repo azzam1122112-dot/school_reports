@@ -90,3 +90,6 @@ tmp/
 
 # لا نتتبع مخازن الترجمة داخل مجلد الهجرات
 **/migrations/__pycache__/
+
+# Local scratch scripts
+*.tmp.py

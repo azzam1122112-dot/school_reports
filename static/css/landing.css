@@ -368,6 +368,11 @@ button { font: inherit; }
 .price-card .button { width: 100%; margin-top: auto; }
 .period-content { display: none; flex: 1; }
 .period-content.active { display: block; }
+/* With the calculator as the purchase path only the trial card remains,
+   so it is centred instead of stretched across the full track. */
+.pricing-grid--trial-only { grid-template-columns: minmax(0, 420px); justify-content: center; }
+.trial-card-note { margin: 10px 0 0; color: var(--muted); font-size: .76rem; line-height: 1.7; }
+
 .pricing-disclosures { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px 18px; margin-top: 22px; }
 .pricing-note { margin: 0; color: var(--muted); text-align: center; font-size: .72rem; }
 .pricing-note i { margin-left: 5px; color: var(--green-700); }
