@@ -119,19 +119,47 @@ def check_server(server: dict) -> None:
             "One mis-click in the console can destroy the production server.",
         )
 
+    # backup_window alone is NOT proof: it survives disabling the backup option,
+    # so trusting it reported "enabled" for a server whose console said
+    # Disabled. Existing backup images are the only reliable evidence.
     backup_window = server.get("backup_window")
-    if backup_window:
-        record(PASS, f"Hetzner backups enabled (window {backup_window})")
-    else:
-        record(
-            WARN,
-            "Hetzner-level backups are not enabled",
-            "The project's own encrypted dumps still run; this is the extra "
-            "snapshot layer that survives a lost filesystem.",
-        )
+    record(
+        INFO,
+        f"Backup window: {backup_window or 'none'}",
+        "A window on its own does not mean backups are running.",
+    )
 
     volumes = server.get("volumes") or []
     record(INFO, f"{len(volumes)} attached volume(s)")
+
+
+def check_backups(server_id: int, token: str) -> None:
+    """Confirm backups by their output, not by a configuration field."""
+    try:
+        payload = get(
+            "/images", token, {"type": "backup", "bound_to": str(server_id), "per_page": "50"}
+        )
+    except Exception as exc:
+        record(WARN, "Could not verify backups", str(exc)[:160])
+        return
+
+    images = payload.get("images") or []
+    if not images:
+        record(
+            FAIL,
+            "No Hetzner backups exist for this server",
+            "Nothing to restore from at the provider level. The project's own "
+            "encrypted dumps are then the only copy — verify their timers are "
+            "actually running.",
+        )
+        return
+
+    newest = max(images, key=lambda image: str(image.get("created") or ""))
+    record(
+        PASS,
+        f"{len(images)} Hetzner backup image(s) exist",
+        f"most recent: {newest.get('created')}",
+    )
 
 
 def check_firewalls(server: dict) -> None:
@@ -139,6 +167,12 @@ def check_firewalls(server: dict) -> None:
     applied = [f for f in firewalls if str(f.get("status")) == "applied"]
     if applied:
         record(PASS, f"{len(applied)} firewall(s) applied")
+        record(
+            INFO,
+            "Check that SSH (22) is not open to 0.0.0.0/0",
+            "Rule sources are not returned on the server object; read them at "
+            "/v1/firewalls if you need to confirm.",
+        )
     else:
         record(
             WARN,
@@ -285,6 +319,7 @@ def main() -> int:
 
     server = payload.get("server") or {}
     check_server(server)
+    check_backups(args.server_id, token)
     check_firewalls(server)
     check_metrics(args.server_id, token)
     check_recent_actions(args.server_id, token)
