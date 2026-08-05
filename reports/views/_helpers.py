@@ -231,6 +231,7 @@ from ..services_archive import (
     _human_size,
     school_archive_enabled,
     school_archive_overview,
+    school_consumption_summary,
     school_snapshot_used_bytes,
     school_storage_allowance,
     school_storage_pressure,

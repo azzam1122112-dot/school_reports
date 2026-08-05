@@ -1074,6 +1074,10 @@ def admin_dashboard(request: HttpRequest) -> HttpResponse:
         # A full work bucket silently stops every upload in the school, so the
         # manager has to learn it here rather than from a teacher's failed save.
         ctx['storage_pressure'] = school_storage_pressure(active_school)
+
+        # الاستهلاك الثلاثي معروضاً دائماً لا عند الخطر فقط: التنبيه وحده يخبر
+        # المدير أنه اقترب من الحدّ، ولا يخبره أين هو منه قبل ذلك.
+        ctx['consumption'] = school_consumption_summary(active_school)
         
         # آخر الأنشطة
         recent_activities = []

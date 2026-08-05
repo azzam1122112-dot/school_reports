@@ -113,10 +113,15 @@
 
     function setSubmitState(button, enabled, enabledLabel, disabledLabel) {
       if (!button) return;
+      // A button left in its "submitting" state is unrecoverable: the label
+      // would never be rewritten again, so a failed or blocked submission
+      // leaves a dead button reading "sending…" forever. Clear the state
+      // whenever we are asked to describe the button afresh.
+      button.classList.remove("loading");
       button.disabled = !enabled;
       button.setAttribute("aria-disabled", String(!enabled));
       const label = button.querySelector("span");
-      if (label && !button.classList.contains("loading")) {
+      if (label) {
         label.textContent = enabled ? enabledLabel : disabledLabel;
       }
     }

@@ -939,3 +939,66 @@ def archive_payload(
             "submitted": int(achievement_stats.get("submitted") or 0),
         },
     }
+
+
+def school_consumption_summary(school: School | None) -> dict:
+    """الاستهلاك الثلاثي للمدرسة في مكان واحد: التخزين والمقاعد والأرشفة.
+
+    المدير يحتاج الأرقام الثلاثة مجتمعة ليعرف أين يقترب من حدّه، وكانت متفرقة:
+    التخزين في صفحة الأرشيف، والمقاعد في صفحة الاشتراك، والأرشفة في لوحة المنصة.
+    هذه الدالة تجمعها بلا إعادة حساب — تستدعي المصادر القائمة نفسها ليبقى
+    الرقم واحداً أينما عُرض.
+
+    الدلاء الثلاثة مستقلة عمداً: امتلاء الأرشفة يوقف النسخ السنوية وحدها، ولا
+    يجمّد رفع المعلمين اليومي.
+    """
+    storage = school_storage_overview(school)
+    archive = school_archive_overview(school)
+
+    subscription = _active_subscription(school)
+    seat_limit = 0
+    if subscription is not None:
+        try:
+            seat_limit = int(getattr(subscription, "teacher_limit", 0) or 0)
+        except (TypeError, ValueError):
+            seat_limit = 0
+
+    seats_used = 0
+    if school is not None:
+        from .models import SchoolMembership
+
+        seats_used = SchoolMembership.objects.filter(
+            school=school,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        ).count()
+
+    # سعة 0 تعني بلا حدّ في هذا المشروع، فلا تُقسم ولا تُعرض نسبة.
+    seat_unlimited = seat_limit <= 0
+    seat_percent = 0 if seat_unlimited else min(100, round(seats_used * 100 / seat_limit))
+    seat_remaining = 0 if seat_unlimited else max(0, seat_limit - seats_used)
+
+    seat_level = "ok"
+    if not seat_unlimited:
+        if seats_used >= seat_limit:
+            seat_level = "full"
+        elif seat_percent >= STORAGE_CRITICAL_PERCENT:
+            seat_level = "critical"
+        elif seat_percent >= STORAGE_WARNING_PERCENT:
+            seat_level = "warning"
+
+    return {
+        "storage": storage,
+        "archive": archive,
+        "seats": {
+            "used": seats_used,
+            "limit": seat_limit,
+            "remaining": seat_remaining,
+            "usage_percent": seat_percent,
+            "is_unlimited": seat_unlimited,
+            "limit_label": "غير محدودة" if seat_unlimited else f"{seat_limit}",
+            "remaining_label": "غير محدودة" if seat_unlimited else f"{seat_remaining}",
+            "warning_level": seat_level,
+            "needs_attention": seat_level != "ok",
+        },
+        "has_subscription": subscription is not None,
+    }

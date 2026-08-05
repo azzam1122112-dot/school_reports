@@ -901,7 +901,7 @@
       <section class="footer-payments" aria-label="وسائل الدفع المدعومة">
         <div class="footer-payments-copy">
           <strong><i class="fa-solid fa-lock" aria-hidden="true"></i> دفع آمن وموثوق</strong>
-          <small>عبر ميسر وتمارا · تظهر الوسائل المفعّلة والمتاحة عند إتمام الدفع</small>
+          <small>عبر ميسر{% if tamara_enabled %} وتمارا{% endif %} · تظهر الوسائل المفعّلة والمتاحة عند إتمام الدفع</small>
         </div>
         <div class="payment-marks" role="list" aria-label="شبكات البطاقات والمحافظ الرقمية">
           <span class="payment-mark payment-mark--mada" role="listitem" aria-label="مدى"><b>مدى</b><small>mada</small></span>
@@ -912,9 +912,11 @@
           <span class="payment-mark payment-mark--google" role="listitem" aria-label="Google Pay"><b>G</b> Pay</span>
           <span class="payment-mark payment-mark--samsung" role="listitem" aria-label="Samsung Pay">SAMSUNG Pay</span>
           <span class="payment-mark payment-mark--stc" role="listitem" aria-label="STC Pay">stc pay</span>
+          {% if tamara_enabled %}
           <span class="payment-mark payment-mark--tamara" role="listitem" aria-label="تمارا">
             <img src="{% static 'img/tamara-wordmark-gradient-ar.png' %}" alt="تمارا" width="76" height="25" loading="lazy">
           </span>
+          {% endif %}
         </div>
       </section>
       <div class="footer-bottom">
@@ -924,10 +926,24 @@
             <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
             توثيق رسمي
           </span>
+          {% comment %}
+            البديل يظهر دائماً، ويخفيه السكربت الرسمي عند نجاح تركيبه عبر
+            data-sbc-mounted. بلا هذا البديل كان فشل السكربت الخارجي — لأي سبب:
+            مانع إعلانات، أو تعذّر النطاق الحكومي، أو حجب طرف ثالث — يترك
+            الزائر أمام فراغ لا شيء فيه.
+          {% endcomment %}
           <div
             class="sbc-verify-seal"
             data-token="SUdjMEt0WXNwNW5IREVVeUNxajRkUT09"
-          ></div>
+          ><a
+              class="sbc-seal-fallback"
+              href="https://eauthenticate.saudibusiness.gov.sa/certificate-details/0000314192"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <i class="fa-solid fa-certificate" aria-hidden="true"></i>
+              <span>متجر موثّق — المركز السعودي للأعمال</span>
+            </a></div>
         </div>
       </div>
     </div>

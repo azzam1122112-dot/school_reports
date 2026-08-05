@@ -49,6 +49,8 @@ from ..flexible_pricing import (
     build_flexible_pricing_catalog,
     serialize_flexible_pricing_catalog,
 )
+from ..moyasar_gateway import is_enabled as moyasar_is_enabled
+from ..tamara_gateway import is_enabled as tamara_is_enabled
 from core import opmetrics
 
 
@@ -1287,7 +1289,13 @@ def platform_landing(request: HttpRequest) -> HttpResponse:
 
     capture_marketing_attribution(request)
 
-    ctx = landing_pricing_context()
+    ctx = dict(landing_pricing_context())
+    # A gateway's brand mark is a claim that we accept it. Show each one only
+    # while its gateway is actually switched on, so the footer can never
+    # advertise a payment method a visitor cannot use. Kept out of the cached
+    # pricing dict so a settings change takes effect on the next request.
+    ctx["tamara_enabled"] = tamara_is_enabled()
+    ctx["moyasar_enabled"] = moyasar_is_enabled()
 
     response = render(request, "reports/landing.html", ctx)
 

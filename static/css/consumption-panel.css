@@ -1,0 +1,97 @@
+/* بطاقة الاستهلاك الثلاثية — تُستخدم في لوحة مدير المدرسة ولوحة المنصة معاً. */
+.cons-panel {
+  --cons-ink: #10231a;
+  --cons-muted: #607067;
+  --cons-line: #dfe8e2;
+  --cons-soft: #f3f8f5;
+  --cons-surface: #ffffff;
+  --cons-green: #08643b;
+  --cons-warning: #9a6700;
+  --cons-danger: #b42318;
+  margin: 1.15rem 0;
+  color: var(--cons-ink);
+}
+
+[data-theme="dark"] .cons-panel {
+  /* النص يفتح والأسطح تدكن؛ التعبئة الخضراء تبقى داكنة ليحفظ النص فوقها تباينه. */
+  --cons-ink: #eff8f2;
+  --cons-muted: #afc1b5;
+  --cons-line: #2d4637;
+  --cons-soft: #13271c;
+  --cons-surface: #102019;
+  --cons-green: #6ed3a0;
+  --cons-warning: #eabf58;
+  --cons-danger: #ff9d96;
+}
+
+.cons-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+}
+.cons-panel__head h2 { margin: 0; font-size: 1.02rem; font-weight: 900; }
+.cons-panel__head h2 i { color: var(--cons-green); }
+
+.cons-tag {
+  font-size: .73rem; font-weight: 800;
+  padding: .24rem .64rem; border-radius: 999px;
+}
+.cons-tag--warn { background: rgba(180,35,24,.12); color: var(--cons-danger); }
+
+.cons-grid {
+  display: grid;
+  gap: .85rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.cons-card {
+  background: var(--cons-surface);
+  border: 1px solid var(--cons-line);
+  border-radius: 16px;
+  padding: 1.05rem 1.1rem;
+  box-shadow: 0 10px 26px -24px rgba(16,35,26,.7);
+}
+/* الحالة تُلوَّن على الحافة الجانبية لا على الخلفية، فيبقى النص مقروءاً في السمتين. */
+.cons-card--warning  { border-inline-start: 3px solid var(--cons-warning); }
+.cons-card--critical { border-inline-start: 3px solid var(--cons-danger); }
+.cons-card--full     { border-inline-start: 3px solid var(--cons-danger); background: rgba(180,35,24,.05); }
+
+.cons-card__top { display: flex; align-items: center; gap: .55rem; margin-bottom: .7rem; }
+.cons-card__top h3 { margin: 0; font-size: .88rem; font-weight: 800; }
+.cons-card__icon {
+  width: 33px; height: 33px; border-radius: 10px;
+  display: grid; place-items: center; flex-shrink: 0;
+  background: var(--cons-soft); color: var(--cons-green); font-size: .85rem;
+}
+
+.cons-card__value {
+  margin: 0; font-size: 1.5rem; font-weight: 900; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.cons-muted { color: var(--cons-muted); font-size: 1.15rem; }
+.cons-of { font-size: .8rem; font-weight: 700; color: var(--cons-muted); margin-inline-start: .4rem; }
+
+.cons-bar {
+  height: 8px; border-radius: 999px; overflow: hidden;
+  background: var(--cons-soft); margin: .6rem 0 .45rem;
+}
+.cons-bar__fill {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #0a7a48, #b68a42);
+}
+.cons-card--critical .cons-bar__fill,
+.cons-card--full .cons-bar__fill { background: linear-gradient(90deg, #b42318, #d9534f); }
+
+.cons-card__sub { margin: 0; font-size: .8rem; color: var(--cons-muted); }
+.cons-card__sub strong { color: var(--cons-ink); font-weight: 800; }
+.cons-card__note {
+  margin: .6rem 0 0; font-size: .72rem; line-height: 1.6; color: var(--cons-muted);
+  padding-top: .55rem; border-top: 1px solid var(--cons-line);
+}
+
+@media (max-width: 640px) {
+  .cons-grid { grid-template-columns: 1fr; }
+}

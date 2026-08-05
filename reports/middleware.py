@@ -774,10 +774,28 @@ class ContentSecurityPolicyMiddleware:
         # Kept for backwards-compat; prefer _policy_for_request
         return ""
 
+    # A hosted checkout is reached by redirecting the payment form to the
+    # gateway's own domain. Browsers enforce ``form-action`` across the whole
+    # redirect chain, not just the form's own target, so an enabled gateway
+    # whose origin is missing here has its checkout silently blocked by the
+    # browser: the order is created server-side and the user never leaves the
+    # page. Every gateway that can be switched on must be listed.
+    PAYMENT_CHECKOUT_ORIGINS = (
+        ("MOYASAR_ENABLED", "https://checkout.moyasar.com"),
+        ("TAMARA_ENABLED", "https://checkout.tamara.co"),
+    )
+
+    @classmethod
+    def _enabled_checkout_origins(cls) -> list[str]:
+        return [
+            origin
+            for setting_name, origin in cls.PAYMENT_CHECKOUT_ORIGINS
+            if bool(getattr(settings, setting_name, False))
+        ]
+
     def _policy_for_request(self, request) -> str:
         sbc_seal_origin = "https://eauthenticate.saudibusiness.gov.sa"
-        tamara_checkout_origin = "https://checkout.tamara.co"
-        tamara_enabled = bool(getattr(settings, "TAMARA_ENABLED", False))
+        checkout_origins = self._enabled_checkout_origins()
         is_landing_page = getattr(request, "path", "") == "/"
 
         # Allow override via env/settings for emergency tweaks.
@@ -816,8 +834,9 @@ class ContentSecurityPolicyMiddleware:
                         parts.append(sbc_seal_origin)
                 elif directive_name == "form-action":
                     seen_form_action = True
-                    if tamara_enabled and tamara_checkout_origin not in parts[1:]:
-                        parts.append(tamara_checkout_origin)
+                    for origin in checkout_origins:
+                        if origin not in parts[1:]:
+                            parts.append(origin)
                 directives.append(" ".join(parts))
 
             for directive_name in script_directives - seen_script_directives:
@@ -827,8 +846,10 @@ class ContentSecurityPolicyMiddleware:
                 directives.append(f"{directive_name} {' '.join(sources)}")
             if is_landing_page and not seen_frame_src:
                 directives.append(f"frame-src 'self' {sbc_seal_origin}")
-            if tamara_enabled and not seen_form_action:
-                directives.append(f"form-action 'self' {tamara_checkout_origin}")
+            if checkout_origins and not seen_form_action:
+                directives.append(
+                    "form-action 'self' " + " ".join(checkout_origins)
+                )
             return "; ".join(directives)
 
         nonce = getattr(request, "csp_nonce", "")
@@ -837,8 +858,8 @@ class ContentSecurityPolicyMiddleware:
         form_action = "form-action 'self'"
         if is_landing_page:
             frame_src = f"{frame_src} {sbc_seal_origin}"
-        if tamara_enabled:
-            form_action = f"{form_action} {tamara_checkout_origin}"
+        if checkout_origins:
+            form_action = f"{form_action} " + " ".join(checkout_origins)
 
         # Default policy: safe baseline with current template constraints.
         # NOTE: style-src keeps 'unsafe-inline' because templates use inline style="...".

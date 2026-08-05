@@ -3650,11 +3650,35 @@
       if (activeSubmit) {
         activeSubmit.classList.add('loading');
         const lbl = activeSubmit.querySelector('span');
+        const previousLabel = lbl ? lbl.textContent : '';
         if (lbl) lbl.textContent = 'جارٍ الإرسال...';
         activeSubmit.disabled = true;
+
+        // Leaving for a hosted checkout replaces this page, so the state above
+        // is never seen again. If we are still here after a few seconds the
+        // navigation did not happen — a blocked redirect, a dropped request —
+        // and a permanently dead button would hide that from the user.
+        window.setTimeout(function () {
+          if (!activeSubmit.classList.contains('loading')) return;
+          activeSubmit.classList.remove('loading');
+          activeSubmit.disabled = false;
+          if (lbl) lbl.textContent = previousLabel;
+          showToast('تعذّر فتح صفحة الدفع. حاول مرة أخرى أو اختر وسيلة دفع أخرى.', 'error');
+        }, 8000);
       }
     });
   }
+
+  // Returning with the browser's Back button restores this page from the cache
+  // exactly as it was left — including a disabled, still-"sending" button.
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return;
+    [submitBtn, tamaraSubmit, moyasarSubmit].forEach(function (button) {
+      if (button) button.classList.remove('loading');
+    });
+    // recompute() rewrites each button's label and enabled state from scratch.
+    checkout?.recompute?.();
+  });
 
   /* ── 5. Toast Helper ── */
   const toastContainer = document.getElementById('toastContainer');

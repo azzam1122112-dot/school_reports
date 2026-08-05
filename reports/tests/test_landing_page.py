@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -107,8 +108,6 @@ class LandingPageTests(TestCase):
         self.assertNotContains(response, "img/moyasar-icon-official.png")
         self.assertNotContains(response, 'aria-label="يونيون باي"')
         self.assertNotContains(response, "UnionPay")
-        self.assertContains(response, "img/tamara-wordmark-gradient-ar.png")
-        self.assertContains(response, 'alt="تمارا"')
         for payment_label in (
             "مدى",
             "فيزا",
@@ -118,12 +117,24 @@ class LandingPageTests(TestCase):
             "Google Pay",
             "Samsung Pay",
             "STC Pay",
-            "تمارا",
         ):
             self.assertContains(response, f'aria-label="{payment_label}"')
         self.assertContains(response, "تظهر الوسائل المفعّلة والمتاحة عند إتمام الدفع")
         self.assertGreater(html.index('class="footer-payments"'), html.index("<footer"))
         self.assertLess(html.index('class="footer-payments"'), html.index('class="footer-bottom"'))
+
+    def test_tamara_is_advertised_only_while_it_is_enabled(self):
+        """إعلان وسيلة دفع معطّلة يقود الزائر إلى خيار لن يجده عند الدفع."""
+        with patch("reports.views.auth.tamara_is_enabled", return_value=True):
+            enabled = self.client.get(reverse("reports:landing"))
+        self.assertContains(enabled, "img/tamara-wordmark-gradient-ar.png")
+        self.assertContains(enabled, 'aria-label="تمارا"')
+        self.assertContains(enabled, "عبر ميسر وتمارا")
+
+        with patch("reports.views.auth.tamara_is_enabled", return_value=False):
+            disabled = self.client.get(reverse("reports:landing"))
+        self.assertNotContains(disabled, "img/tamara-wordmark-gradient-ar.png")
+        self.assertNotContains(disabled, 'aria-label="تمارا"')
 
     def test_landing_exposes_complete_canonical_and_social_metadata(self):
         response = self.client.get(reverse("reports:landing"))
@@ -178,6 +189,14 @@ class LandingPageTests(TestCase):
                 r'EAuthSealApi/seal\.js"[^>]*\basync\b[^>]*></script>'
             ),
         )
+
+        # بديل ثابت داخل الحاوية: بدونه يترك فشلُ السكربت الخارجي فراغاً صامتاً.
+        self.assertContains(response, 'class="sbc-seal-fallback"')
+        self.assertContains(
+            response,
+            "https://eauthenticate.saudibusiness.gov.sa/certificate-details/0000314192",
+        )
+        self.assertContains(response, "متجر موثّق")
 
         policy = response.headers["Content-Security-Policy"]
         self.assertIn(seal_origin, policy)

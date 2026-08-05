@@ -464,6 +464,11 @@ button { font: inherit; }
 .footer-verification__label i { color: #e5ca94; font-size: .9rem; }
 .footer-verification .sbc-verify-seal { min-width: 120px; min-height: 44px; display: flex; align-items: center; }
 .footer-verification iframe.sbc-seal-frame { position: static !important; inset: auto !important; display: block; margin: 0; }
+/* البديل الثابت: يظهر ما لم يُركِّب السكربت الرسمي الشارة، فيضع data-sbc-mounted. */
+.sbc-seal-fallback { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; text-decoration: none; white-space: nowrap; color: rgba(255,255,255,.9); background: rgba(255,255,255,.07); border: 1px solid rgba(229,202,148,.42); font-weight: 800; font-size: .69rem; }
+.sbc-seal-fallback:hover { background: rgba(255,255,255,.12); }
+.sbc-seal-fallback i { color: #e5ca94; font-size: .82rem; }
+.sbc-verify-seal[data-sbc-mounted] .sbc-seal-fallback { display: none; }
 .mobile-sticky { display: none; }
 
 .reveal { opacity: 0; transform: translateY(22px); transition: opacity .65s ease, transform .65s ease; }

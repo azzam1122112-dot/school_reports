@@ -1,0 +1,94 @@
+{% comment %}
+  بطاقة الاستهلاك الثلاثية: التخزين والمقاعد والأرشفة.
+  تُدرَج في لوحة مدير المدرسة وفي لوحة المدرسة داخل المنصة، فتقرأ الجهتان
+  الأرقام نفسها من ``school_consumption_summary`` ولا تفترقان.
+  المتغيّر المتوقع: ``consumption``.
+{% endcomment %}
+<section class="cons-panel" aria-labelledby="consumptionTitle">
+  <div class="cons-panel__head">
+    <h2 id="consumptionTitle"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> الاستهلاك والمتبقي</h2>
+    {% if not consumption.has_subscription %}
+      <span class="cons-tag cons-tag--warn">بلا اشتراك فعّال</span>
+    {% endif %}
+  </div>
+
+  <div class="cons-grid">
+
+    {# التخزين #}
+    <article class="cons-card cons-card--{{ consumption.storage.warning_level }}">
+      <div class="cons-card__top">
+        <span class="cons-card__icon"><i class="fa-solid fa-hard-drive" aria-hidden="true"></i></span>
+        <h3>مساحة العمل</h3>
+      </div>
+      {% if consumption.storage.is_unlimited %}
+        <p class="cons-card__value">غير محدودة</p>
+        <p class="cons-card__sub">المستخدم {{ consumption.storage.used_label }}</p>
+      {% else %}
+        <p class="cons-card__value">
+          {{ consumption.storage.used_label }}<span class="cons-of">من {{ consumption.storage.limit_label }}</span>
+        </p>
+        <div class="cons-bar" role="img"
+             aria-label="استهلاك مساحة العمل {{ consumption.storage.usage_percent }} بالمئة">
+          <span class="cons-bar__fill" style="width: {{ consumption.storage.usage_percent }}%"></span>
+        </div>
+        <p class="cons-card__sub">
+          <strong>المتبقي {{ consumption.storage.remaining_label }}</strong>
+          · {{ consumption.storage.usage_percent }}%
+        </p>
+      {% endif %}
+      <p class="cons-card__note">
+        أساسية {{ consumption.storage.base_label }}{% if consumption.storage.extra_bytes %} + إضافية مشتراة {{ consumption.storage.extra_label }}{% endif %}
+      </p>
+    </article>
+
+    {# المعلمون #}
+    <article class="cons-card cons-card--{{ consumption.seats.warning_level }}">
+      <div class="cons-card__top">
+        <span class="cons-card__icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
+        <h3>مقاعد المعلمين</h3>
+      </div>
+      {% if consumption.seats.is_unlimited %}
+        <p class="cons-card__value">{{ consumption.seats.used }}<span class="cons-of">بلا حدّ</span></p>
+      {% else %}
+        <p class="cons-card__value">
+          {{ consumption.seats.used }}<span class="cons-of">من {{ consumption.seats.limit }}</span>
+        </p>
+        <div class="cons-bar" role="img"
+             aria-label="استهلاك المقاعد {{ consumption.seats.usage_percent }} بالمئة">
+          <span class="cons-bar__fill" style="width: {{ consumption.seats.usage_percent }}%"></span>
+        </div>
+        <p class="cons-card__sub">
+          <strong>المتبقي {{ consumption.seats.remaining_label }} مقعداً</strong>
+          · {{ consumption.seats.usage_percent }}%
+        </p>
+      {% endif %}
+      <p class="cons-card__note">مدير المدرسة لا يُحتسب ضمن المقاعد.</p>
+    </article>
+
+    {# الأرشفة #}
+    <article class="cons-card cons-card--{{ consumption.archive.warning_level }}">
+      <div class="cons-card__top">
+        <span class="cons-card__icon"><i class="fa-solid fa-box-archive" aria-hidden="true"></i></span>
+        <h3>مساحة الأرشفة</h3>
+      </div>
+      {% if not consumption.archive.is_subscribed %}
+        <p class="cons-card__value cons-muted">غير مفعّلة</p>
+        <p class="cons-card__sub">الأرشفة السنوية تُشترى بشكل منفصل.</p>
+      {% else %}
+        <p class="cons-card__value">
+          {{ consumption.archive.used_label }}<span class="cons-of">من {{ consumption.archive.limit_label }}</span>
+        </p>
+        <div class="cons-bar" role="img"
+             aria-label="استهلاك الأرشفة {{ consumption.archive.usage_percent }} بالمئة">
+          <span class="cons-bar__fill" style="width: {{ consumption.archive.usage_percent }}%"></span>
+        </div>
+        <p class="cons-card__sub">
+          <strong>المتبقي {{ consumption.archive.remaining_label }}</strong>
+          · {{ consumption.archive.usage_percent }}%
+        </p>
+      {% endif %}
+      <p class="cons-card__note">مستقلة عن مساحة العمل — امتلاؤها يوقف النسخ السنوية وحدها.</p>
+    </article>
+
+  </div>
+</section>

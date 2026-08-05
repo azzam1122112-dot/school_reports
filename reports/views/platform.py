@@ -8,6 +8,7 @@ from ._helpers import (
     _get_active_school, _user_manager_schools,
     _clean_query_value, _clean_query_params,
 )
+from ..services_archive import school_consumption_summary
 
 
 # =========================
@@ -147,7 +148,12 @@ def platform_school_dashboard(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "reports/platform_school_dashboard.html",
-        {"school": active_school, "subscription": subscription},
+        {
+            "school": active_school,
+            "subscription": subscription,
+            # نفس مصدر أرقام لوحة المدير، فلا يختلف ما يراه الطرفان عن مدرسة واحدة.
+            "consumption": school_consumption_summary(active_school),
+        },
     )
 
 

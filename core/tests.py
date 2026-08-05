@@ -220,7 +220,21 @@ class ContentSecurityPolicyTemplateTests(SimpleTestCase):
             policy,
         )
         self.assertNotIn("script-src-elem 'none'", policy)
-        self.assertIn("form-action 'self' https://checkout.tamara.co", policy)
+        # ما يحرسه هذا السطر أن form-action تبقى مقيّدة بـ 'self' وبوابات الدفع
+        # المفعّلة وحدها. تثبيت السلسلة كاملةً كان يُسقطه عند تفعيل بوابة جديدة —
+        # وهو تغيير مشروع لا انحدار.
+        form_action = next(
+            part.strip()
+            for part in policy.split(";")
+            if part.strip().startswith("form-action")
+        )
+        sources = form_action.split()[1:]
+        self.assertEqual(sources[0], "'self'")
+        self.assertIn("https://checkout.tamara.co", sources)
+        self.assertTrue(
+            all(source == "'self'" or source.startswith("https://") for source in sources),
+            f"مصدر غير آمن في form-action: {form_action}",
+        )
 
 
 class PrivateMediaSettingsTests(SimpleTestCase):
