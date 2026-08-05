@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}تتبّع التعميم | منصة توثيق{% endblock %}
+
+{% block head %}
+<style>
+  .gr-page {
+    --gr-ink: #10231a;
+    --gr-muted: #607067;
+    --gr-line: #dfe8e2;
+    --gr-soft: #f3f8f5;
+    --gr-surface: #ffffff;
+    --gr-green: #08643b;
+    --gr-gold: #b68a42;
+    --gr-danger: #b42318;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding: 1.25rem;
+    color: var(--gr-ink);
+  }
+  [data-theme="dark"] .gr-page {
+    --gr-ink: #eff8f2;
+    --gr-muted: #afc1b5;
+    --gr-line: #2d4637;
+    --gr-soft: #13271c;
+    --gr-surface: #102019;
+    --gr-green: #6ed3a0;
+    --gr-gold: #eabf58;
+    --gr-danger: #ff9d96;
+  }
+
+  .gr-hero {
+    position: relative; overflow: hidden; color: #fff;
+    border-radius: 20px; padding: 1.6rem 1.5rem;
+    background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
+    box-shadow: 0 18px 40px -22px rgba(8,100,59,.75);
+    display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; justify-content: space-between;
+  }
+  .gr-hero::after {
+    content: ""; position: absolute; inset-inline-start: -60px; inset-block-start: -80px;
+    width: 230px; height: 230px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(182,138,66,.34), transparent 68%);
+    pointer-events: none;
+  }
+  .gr-hero__text { position: relative; min-width: 240px; }
+  .gr-hero h1 { margin: .55rem 0 .3rem; font-size: 1.4rem; font-weight: 900; }
+  .gr-hero p { margin: 0; font-size: .86rem; opacity: .92; }
+  .gr-eyebrow {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-size: .76rem; font-weight: 800; padding: .3rem .78rem; border-radius: 999px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
+  }
+
+  /* حلقة التقدّم: conic-gradient بلا أي JS، والنسبة مكتوبة نصاً للقارئ الشاشي. */
+  .gr-ring {
+    position: relative; flex-shrink: 0;
+    width: 132px; height: 132px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: conic-gradient(#b68a42 calc(var(--pct) * 1%), rgba(255,255,255,.22) 0);
+  }
+  .gr-ring::before {
+    content: ""; position: absolute; inset: 11px; border-radius: 50%; background: #075334;
+  }
+  .gr-ring__inner { position: relative; text-align: center; line-height: 1.15; }
+  .gr-ring__pct { font-size: 1.75rem; font-weight: 900; }
+  .gr-ring__label { font-size: .7rem; opacity: .88; }
+
+  .gr-kpis { display: grid; gap: .85rem; margin-top: 1.15rem; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .gr-kpi {
+    background: var(--gr-surface); border: 1px solid var(--gr-line);
+    border-radius: 15px; padding: .95rem 1.05rem;
+  }
+  .gr-kpi__value { font-size: 1.6rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .gr-kpi__label { font-size: .79rem; font-weight: 700; color: var(--gr-muted); margin-top: .15rem; }
+
+  .gr-school {
+    margin-top: .85rem; background: var(--gr-surface);
+    border: 1px solid var(--gr-line); border-radius: 16px; overflow: hidden;
+  }
+  .gr-school > summary {
+    list-style: none; cursor: pointer; padding: .95rem 1.15rem;
+    display: flex; flex-wrap: wrap; gap: .8rem; align-items: center;
+  }
+  .gr-school > summary::-webkit-details-marker { display: none; }
+  .gr-school__name { font-weight: 900; font-size: .95rem; flex: 1 1 200px; }
+  .gr-school__name small { display: block; font-size: .74rem; font-weight: 600; color: var(--gr-muted); margin-top: .1rem; }
+  .gr-bar { display: flex; align-items: center; gap: .55rem; flex: 1 1 220px; min-width: 170px; }
+  .gr-bar__track { flex: 1; height: 8px; border-radius: 999px; background: var(--gr-soft); overflow: hidden; }
+  .gr-bar__fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #0a7a48, #b68a42); }
+  .gr-bar__pct { font-size: .8rem; font-weight: 900; font-variant-numeric: tabular-nums; min-width: 3ch; }
+  .gr-caret { color: var(--gr-muted); font-size: .8rem; }
+  .gr-school[open] .gr-caret { transform: rotate(180deg); }
+
+  .gr-scroll { overflow-x: auto; border-top: 1px solid var(--gr-line); }
+  .gr-table { width: 100%; border-collapse: collapse; min-width: 560px; }
+  .gr-table th, .gr-table td { padding: .68rem 1.15rem; text-align: start; font-size: .85rem; border-bottom: 1px solid var(--gr-line); }
+  .gr-table th { font-size: .73rem; font-weight: 800; color: var(--gr-muted); background: var(--gr-soft); white-space: nowrap; }
+  .gr-table tbody tr:last-child td { border-bottom: 0; }
+  .gr-table tr.is-pending { background: rgba(180,35,24,.045); }
+
+  .gr-chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .73rem; font-weight: 800; padding: .24rem .6rem; border-radius: 999px; white-space: nowrap;
+  }
+  .gr-chip--yes { background: rgba(8,100,59,.12); color: var(--gr-green); }
+  .gr-chip--no { background: rgba(180,35,24,.12); color: var(--gr-danger); }
+  .gr-chip--role { background: var(--gr-soft); color: var(--gr-muted); }
+
+  .gr-empty { padding: 2rem 1.15rem; text-align: center; color: var(--gr-muted); }
+  .gr-back { display: inline-block; margin-top: 1.3rem; text-decoration: none; font-weight: 800; font-size: .86rem;
+             padding: .68rem 1.2rem; border-radius: 12px; color: var(--gr-ink); border: 1px solid var(--gr-line); }
+
+  @media (max-width: 640px) { .gr-page { padding: .85rem; } .gr-hero h1 { font-size: 1.2rem; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gr-page">
+
+  <header class="gr-hero">
+    <div class="gr-hero__text">
+      <span class="gr-eyebrow"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> تتبّع الاطّلاع</span>
+      <h1>{{ batch.title|default:"تعميم بلا عنوان" }}</h1>
+      <p>
+        {{ batch.group.name }} · {{ rows|length }} مدرسة ·
+        {{ batch.get_audience_display }}
+        {% if batch.requires_signature %} · يتطلب توقيعاً{% endif %}
+      </p>
+    </div>
+
+    <div class="gr-ring" style="--pct: {{ totals.read_percent }}" role="img"
+         aria-label="نسبة الاطّلاع {{ totals.read_percent }} بالمئة">
+      <span class="gr-ring__inner">
+        <span class="gr-ring__pct">{{ totals.read_percent }}%</span>
+        <span class="gr-ring__label">اطّلعوا</span>
+      </span>
+    </div>
+  </header>
+
+  <section class="gr-kpis" aria-label="ملخص التعميم">
+    <article class="gr-kpi">
+      <div class="gr-kpi__value">{{ totals.total|intcomma }}</div>
+      <div class="gr-kpi__label">إجمالي المستلمين</div>
+    </article>
+    <article class="gr-kpi">
+      <div class="gr-kpi__value">{{ totals.read|intcomma }}</div>
+      <div class="gr-kpi__label">اطّلعوا</div>
+    </article>
+    <article class="gr-kpi">
+      <div class="gr-kpi__value">{{ totals.unread|intcomma }}</div>
+      <div class="gr-kpi__label">لم يطّلعوا</div>
+    </article>
+    {% if batch.requires_signature %}
+      <article class="gr-kpi">
+        <div class="gr-kpi__value">{{ totals.signed|intcomma }}</div>
+        <div class="gr-kpi__label">وقّعوا</div>
+      </article>
+    {% endif %}
+  </section>
+
+  {% for row in rows %}
+    <details class="gr-school" {% if row.pending %}open{% endif %}>
+      <summary>
+        <span class="gr-school__name">
+          {{ row.school.name }}
+          <small>{{ row.read }} من {{ row.total }} اطّلعوا{% if batch.requires_signature %} · {{ row.signed }} وقّعوا{% endif %}</small>
+        </span>
+        <span class="gr-bar">
+          <span class="gr-bar__track"><span class="gr-bar__fill" style="width: {{ row.read_percent }}%"></span></span>
+          <span class="gr-bar__pct">{{ row.read_percent }}%</span>
+        </span>
+        <i class="fa-solid fa-chevron-down gr-caret" aria-hidden="true"></i>
+      </summary>
+
+      <div class="gr-scroll">
+        <table class="gr-table">
+          <thead>
+            <tr>
+              <th scope="col">الاسم</th>
+              <th scope="col">الدور</th>
+              <th scope="col">الاطّلاع</th>
+              {% if batch.requires_signature %}<th scope="col">التوقيع</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for person in row.people %}
+              <tr class="{% if not person.is_read %}is-pending{% endif %}">
+                <td>{{ person.name }}</td>
+                <td><span class="gr-chip gr-chip--role">{% if person.is_manager %}مدير المدرسة{% else %}معلم{% endif %}</span></td>
+                <td>
+                  {% if person.is_read %}
+                    <span class="gr-chip gr-chip--yes"><i class="fa-solid fa-check" aria-hidden="true"></i> {{ person.read_at|date:"Y-m-d H:i" }}</span>
+                  {% else %}
+                    <span class="gr-chip gr-chip--no">لم يطّلع</span>
+                  {% endif %}
+                </td>
+                {% if batch.requires_signature %}
+                  <td>
+                    {% if person.is_signed %}
+                      <span class="gr-chip gr-chip--yes"><i class="fa-solid fa-signature" aria-hidden="true"></i> {{ person.signed_at|date:"Y-m-d H:i" }}</span>
+                    {% else %}
+                      <span class="gr-chip gr-chip--no">لم يوقّع</span>
+                    {% endif %}
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  {% empty %}
+    <p class="gr-empty">لا توجد مدارس في هذا التعميم.</p>
+  {% endfor %}
+
+  <a class="gr-back" href="{% url 'reports:group_notifications_sent' %}">← كل التعاميم المرسلة</a>
+
+</div>
+{% endblock %}

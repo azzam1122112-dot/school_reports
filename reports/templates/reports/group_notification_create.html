@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}تعميم على مدارس المجموعة | منصة توثيق{% endblock %}
+
+{% block head %}
+<style>
+  .gn-page {
+    --gn-ink: #10231a;
+    --gn-muted: #607067;
+    --gn-line: #dfe8e2;
+    --gn-soft: #f3f8f5;
+    --gn-surface: #ffffff;
+    --gn-green: #08643b;
+    --gn-gold: #b68a42;
+    --gn-danger: #b42318;
+    max-width: 1100px;
+    margin-inline: auto;
+    padding: 1.25rem;
+    color: var(--gn-ink);
+  }
+  [data-theme="dark"] .gn-page {
+    --gn-ink: #eff8f2;
+    --gn-muted: #afc1b5;
+    --gn-line: #2d4637;
+    --gn-soft: #13271c;
+    --gn-surface: #102019;
+    --gn-green: #6ed3a0;
+    --gn-gold: #eabf58;
+    --gn-danger: #ff9d96;
+  }
+
+  .gn-hero {
+    position: relative; overflow: hidden;
+    border-radius: 20px; padding: 1.6rem 1.5rem; color: #fff;
+    background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
+    box-shadow: 0 18px 40px -22px rgba(8,100,59,.75);
+  }
+  .gn-hero::after {
+    content: ""; position: absolute; inset-inline-start: -60px; inset-block-start: -80px;
+    width: 230px; height: 230px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(182,138,66,.34), transparent 68%);
+    pointer-events: none;
+  }
+  .gn-hero h1 { margin: .6rem 0 .3rem; font-size: 1.45rem; font-weight: 900; }
+  .gn-hero p { margin: 0; font-size: .88rem; opacity: .92; }
+  .gn-eyebrow {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-size: .76rem; font-weight: 800; padding: .3rem .78rem; border-radius: 999px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
+  }
+
+  .gn-card {
+    margin-top: 1.15rem; background: var(--gn-surface);
+    border: 1px solid var(--gn-line); border-radius: 18px; overflow: hidden;
+  }
+  .gn-card__head { padding: .95rem 1.15rem; border-bottom: 1px solid var(--gn-line); }
+  .gn-card__head h2 { margin: 0; font-size: 1rem; font-weight: 900; }
+  .gn-card__head p { margin: .2rem 0 0; font-size: .78rem; color: var(--gn-muted); }
+  .gn-card__body { padding: 1.15rem; }
+
+  .gn-schools { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .gn-school {
+    display: flex; align-items: flex-start; gap: .6rem;
+    padding: .8rem .9rem; border: 1px solid var(--gn-line);
+    border-radius: 13px; cursor: pointer; background: var(--gn-soft);
+  }
+  .gn-school input { margin-top: .25rem; accent-color: #08643b; width: 17px; height: 17px; }
+  .gn-school strong { display: block; font-size: .88rem; font-weight: 800; }
+  .gn-school small { display: block; font-size: .74rem; color: var(--gn-muted); margin-top: .12rem; }
+  .gn-school:has(input:checked) { border-color: var(--gn-green); background: rgba(8,100,59,.07); }
+
+  .gn-field { margin-top: 1.05rem; }
+  .gn-field > label { display: block; font-size: .82rem; font-weight: 800; margin-bottom: .35rem; }
+  .gn-field input[type="text"], .gn-field input[type="datetime-local"],
+  .gn-field textarea, .gn-field select {
+    width: 100%; padding: .6rem .75rem; font: inherit; font-size: .88rem;
+    color: var(--gn-ink); background: var(--gn-surface);
+    border: 1px solid var(--gn-line); border-radius: 11px;
+  }
+  .gn-field textarea { resize: vertical; }
+  .gn-help { display: block; font-size: .74rem; color: var(--gn-muted); margin-top: .3rem; }
+
+  .gn-check { display: flex; align-items: flex-start; gap: .55rem; margin-top: .9rem; }
+  .gn-check input { margin-top: .2rem; accent-color: #08643b; width: 17px; height: 17px; }
+  .gn-check label { font-size: .85rem; font-weight: 700; }
+
+  .gn-note {
+    margin-top: 1rem; padding: .7rem .9rem; border-radius: 12px;
+    font-size: .8rem; line-height: 1.75;
+    background: var(--gn-soft); border-inline-start: 3px solid var(--gn-gold);
+  }
+  .gn-errors {
+    margin: 0 0 1rem; padding: .7rem .9rem; border-radius: 12px;
+    font-size: .82rem; list-style: none;
+    background: rgba(180,35,24,.1); color: var(--gn-danger);
+    border-inline-start: 3px solid var(--gn-danger);
+  }
+  .gn-errors li + li { margin-top: .3rem; }
+
+  .gn-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.3rem; }
+  .gn-submit {
+    border: 0; cursor: pointer; font: inherit; font-weight: 900; font-size: .9rem;
+    padding: .72rem 1.5rem; border-radius: 12px; color: #fff;
+    background: linear-gradient(135deg, #08643b, #0a7a48);
+    box-shadow: 0 12px 26px -16px rgba(8,100,59,.9);
+  }
+  .gn-secondary {
+    text-decoration: none; font-weight: 800; font-size: .86rem;
+    padding: .72rem 1.2rem; border-radius: 12px;
+    color: var(--gn-ink); border: 1px solid var(--gn-line);
+  }
+
+  @media (max-width: 640px) { .gn-page { padding: .85rem; } .gn-hero h1 { font-size: 1.22rem; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gn-page">
+
+  <header class="gn-hero">
+    <span class="gn-eyebrow"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> تعميم المجموعة</span>
+    <h1>تعميم على مدارس المجموعة</h1>
+    <p>اختر المدارس والمستقبلين، وتابع الاطّلاع بعد الإرسال مدرسةً مدرسة.</p>
+  </header>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors or form.errors %}
+      <ul class="gn-errors">
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        {% for field in form %}
+          {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <section class="gn-card">
+      <div class="gn-card__head">
+        <h2><i class="fa-solid fa-school" aria-hidden="true"></i> المدارس المستهدفة</h2>
+        <p>{{ schools|length }} مدرسة في مجموعتك</p>
+      </div>
+      <div class="gn-card__body">
+        {% if schools %}
+          <div class="gn-schools">
+            {% for school in schools %}
+              <label class="gn-school">
+                <input type="checkbox" name="schools" value="{{ school.pk }}"
+                       {% if school.pk|stringformat:"s" in form.schools.value|default_if_none:""|stringformat:"s" %}checked{% endif %}>
+                <span>
+                  <strong>{{ school.name }}</strong>
+                  <small>{{ school.get_stage_display }} · {{ school.get_gender_display }}{% if school.city %} · {{ school.city }}{% endif %}</small>
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="gn-help">لا توجد مدارس مرتبطة بمجموعتك بعد.</p>
+        {% endif %}
+
+        <div class="gn-field">
+          <label for="{{ form.audience.id_for_label }}">المستقبلون</label>
+          {{ form.audience }}
+          <span class="gn-help">«مديرو المدارس فقط» للتعاميم الإدارية، و«جميع المنسوبين» لبرامج التحسين.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="gn-card">
+      <div class="gn-card__head"><h2><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> نص التعميم</h2></div>
+      <div class="gn-card__body">
+        <div class="gn-field">
+          <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+          {{ form.title }}
+        </div>
+        <div class="gn-field">
+          <label for="{{ form.message.id_for_label }}">{{ form.message.label }}</label>
+          {{ form.message }}
+        </div>
+        <div class="gn-check">
+          {{ form.is_important }}
+          <label for="{{ form.is_important.id_for_label }}">وسمه بأنه مهم</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="gn-card">
+      <div class="gn-card__head">
+        <h2><i class="fa-solid fa-file-signature" aria-hidden="true"></i> التوقيع والمرفق</h2>
+        <p>التوقيع إثبات أقوى من مجرّد الاطّلاع</p>
+      </div>
+      <div class="gn-card__body">
+        <div class="gn-check">
+          {{ form.requires_signature }}
+          <label for="{{ form.requires_signature.id_for_label }}">{{ form.requires_signature.label }}</label>
+        </div>
+        <span class="gn-help">{{ form.requires_signature.help_text }}</span>
+
+        <div class="gn-field">
+          <label for="{{ form.signature_deadline_at.id_for_label }}">{{ form.signature_deadline_at.label }}</label>
+          {{ form.signature_deadline_at }}
+        </div>
+        <div class="gn-field">
+          <label for="{{ form.signature_ack_text.id_for_label }}">{{ form.signature_ack_text.label }}</label>
+          {{ form.signature_ack_text }}
+          <span class="gn-help">يُترك فارغاً لاستخدام النص الافتراضي: «{{ default_ack_text }}»</span>
+        </div>
+        <div class="gn-field">
+          <label for="{{ form.attachment.id_for_label }}">{{ form.attachment.label }}</label>
+          {{ form.attachment }}
+          <span class="gn-help">{{ form.attachment.help_text }}</span>
+        </div>
+
+        <p class="gn-note">
+          <strong>تنبيه على التخزين:</strong> المرفق يُنسخ لكل مدرسة مستهدفة ويُحتسب على
+          رصيد تخزينها. مرفق بحجم 5MB إلى 4 مدارس يستهلك 20MB موزّعة عليها. والمرفق
+          يُرسل مع التعاميم الموقّعة فقط.
+        </p>
+      </div>
+    </section>
+
+    <div class="gn-actions">
+      <button type="submit" class="gn-submit"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> إرسال التعميم</button>
+      <a class="gn-secondary" href="{% url 'reports:group_notifications_sent' %}">التعاميم المرسلة</a>
+      <a class="gn-secondary" href="{% url 'reports:executive_dashboard' %}">لوحة المجموعة</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

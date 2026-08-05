@@ -1,8 +1,66 @@
 from __future__ import annotations
 
 from .base import *
-from .schools import School, Teacher
+from .schools import School, SchoolGroup, Teacher
 from .tickets import Ticket
+
+
+class GroupNotificationBatch(models.Model):
+    """تعميم يرسله المدير التنفيذي إلى عدد من مدارس مجموعته.
+
+    الدفعة **أبٌ خفيف** لا يُسلَّم بذاته: كل مدرسة مستهدفة تستقبل ``Notification``
+    عادياً بمدرستها الصحيحة، فيراه مديرها تعميماً طبيعياً في شاشته المعتادة بلا
+    أي تغيير في المنطق القائم. ووجود الأب هو ما يتيح للمدير التنفيذي تقريراً
+    موحّداً عبر المدارس بدل N تقارير منفصلة.
+
+    المدارس المستهدفة **لا تُخزَّن هنا** عمداً: تُشتق من ``self.notifications``،
+    فلا يوجد مصدران للحقيقة يفترقان إن حُذف إشعار مدرسة.
+    """
+
+    class Audience(models.TextChoices):
+        MANAGERS = "managers", "مديرو المدارس فقط"
+        ALL = "all", "جميع المنسوبين"
+
+    group = models.ForeignKey(
+        SchoolGroup,
+        on_delete=models.CASCADE,
+        related_name="notification_batches",
+        verbose_name="المجموعة",
+    )
+    sender = models.ForeignKey(
+        Teacher,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="group_notification_batches",
+        verbose_name="المرسِل",
+    )
+    audience = models.CharField(
+        "المستقبلون",
+        max_length=16,
+        choices=Audience.choices,
+        default=Audience.MANAGERS,
+    )
+    title = models.CharField("العنوان", max_length=120, blank=True, default="")
+    requires_signature = models.BooleanField("يتطلب توقيعاً؟", default=False)
+    created_at = models.DateTimeField("أُرسل في", default=timezone.now)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        indexes = [
+            models.Index(fields=["group", "-created_at"]),
+            models.Index(fields=["sender", "-created_at"]),
+        ]
+        verbose_name = "تعميم مجموعة"
+        verbose_name_plural = "تعاميم المجموعات"
+
+    def __str__(self) -> str:
+        return self.title or f"تعميم #{self.pk}"
+
+    @property
+    def target_schools(self):
+        return School.objects.filter(notifications__batch=self).distinct().order_by("name")
+
 
 class Notification(models.Model):
     title = models.CharField(max_length=120, blank=True, default="")
@@ -60,6 +118,18 @@ class Notification(models.Model):
     )
     created_by = models.ForeignKey(
         Teacher, null=True, blank=True, on_delete=models.SET_NULL, related_name="notifications_created"
+    )
+    batch = models.ForeignKey(
+        GroupNotificationBatch,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="notifications",
+        verbose_name="دفعة تعميم المجموعة",
+        help_text=(
+            "يُملأ فقط لتعاميم المدير التنفيذي. حذف الدفعة لا يسحب التعميم من "
+            "المدرسة — فقد وصلها فعلاً، وسحبه تزوير للسجل."
+        ),
     )
 
     class Meta:

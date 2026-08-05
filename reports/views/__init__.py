@@ -15,6 +15,7 @@ from .teachers import *          # noqa: F401,F403
 from .tickets import *           # noqa: F401,F403
 from .schools import *           # noqa: F401,F403
 from .school_groups import *     # noqa: F401,F403
+from .group_notifications import *  # noqa: F401,F403
 from .notifications import *     # noqa: F401,F403
 from .subscriptions import *     # noqa: F401,F403
 from .reporttypes import *       # noqa: F401,F403
