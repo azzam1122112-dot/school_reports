@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}تعاميم المجموعة المرسلة | منصة توثيق{% endblock %}
+
+{% block head %}
+<style>
+  .gs-page {
+    --gs-ink: #10231a; --gs-muted: #607067; --gs-line: #dfe8e2;
+    --gs-soft: #f3f8f5; --gs-surface: #ffffff; --gs-green: #08643b; --gs-gold: #b68a42;
+    max-width: 1180px; margin-inline: auto; padding: 1.25rem; color: var(--gs-ink);
+  }
+  [data-theme="dark"] .gs-page {
+    --gs-ink: #eff8f2; --gs-muted: #afc1b5; --gs-line: #2d4637;
+    --gs-soft: #13271c; --gs-surface: #102019; --gs-green: #6ed3a0; --gs-gold: #eabf58;
+  }
+
+  .gs-hero {
+    position: relative; overflow: hidden; color: #fff;
+    border-radius: 20px; padding: 1.55rem 1.5rem;
+    background: linear-gradient(135deg, #08643b 0%, #0a7a48 55%, #075334 100%);
+    box-shadow: 0 18px 40px -22px rgba(8,100,59,.75);
+    display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;
+  }
+  .gs-hero::after {
+    content: ""; position: absolute; inset-inline-start: -60px; inset-block-start: -80px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(182,138,66,.34), transparent 68%); pointer-events: none;
+  }
+  .gs-hero h1 { position: relative; margin: .5rem 0 .25rem; font-size: 1.4rem; font-weight: 900; }
+  .gs-hero p { position: relative; margin: 0; font-size: .86rem; opacity: .92; }
+  .gs-eyebrow {
+    display: inline-flex; align-items: center; gap: .45rem; position: relative;
+    font-size: .76rem; font-weight: 800; padding: .3rem .78rem; border-radius: 999px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
+  }
+  .gs-new {
+    position: relative; text-decoration: none; font-weight: 900; font-size: .87rem;
+    padding: .7rem 1.3rem; border-radius: 12px; color: #08643b; background: #fff;
+  }
+
+  .gs-list { margin-top: 1.15rem; display: grid; gap: .8rem; }
+  .gs-item {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--gs-surface); border: 1px solid var(--gs-line);
+    border-radius: 16px; padding: 1.05rem 1.15rem;
+  }
+  .gs-item:hover { border-color: var(--gs-green); }
+  .gs-item__top { display: flex; flex-wrap: wrap; gap: .6rem; align-items: baseline; justify-content: space-between; }
+  .gs-item__title { font-size: 1rem; font-weight: 900; }
+  .gs-item__date { font-size: .76rem; color: var(--gs-muted); }
+  .gs-item__meta { margin-top: .3rem; font-size: .79rem; color: var(--gs-muted); }
+  .gs-item__bar { display: flex; align-items: center; gap: .6rem; margin-top: .75rem; }
+  .gs-item__track { flex: 1; height: 8px; border-radius: 999px; background: var(--gs-soft); overflow: hidden; }
+  .gs-item__fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #0a7a48, #b68a42); }
+  .gs-item__pct { font-size: .82rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+
+  .gs-tag {
+    display: inline-flex; align-items: center; gap: .3rem; margin-inline-start: .4rem;
+    font-size: .72rem; font-weight: 800; padding: .2rem .55rem; border-radius: 999px;
+    background: var(--gs-soft); color: var(--gs-gold);
+  }
+  .gs-empty {
+    margin-top: 1.15rem; padding: 2.4rem 1.2rem; text-align: center; color: var(--gs-muted);
+    background: var(--gs-surface); border: 1px solid var(--gs-line); border-radius: 16px;
+  }
+  .gs-empty i { font-size: 1.7rem; color: var(--gs-green); display: block; margin-bottom: .6rem; }
+
+  @media (max-width: 640px) { .gs-page { padding: .85rem; } .gs-hero h1 { font-size: 1.2rem; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gs-page">
+
+  <header class="gs-hero">
+    <div>
+      <span class="gs-eyebrow"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> تعاميم المجموعة</span>
+      <h1>التعاميم المرسلة</h1>
+      <p>تابع اطّلاع كل مدرسة على ما أرسلته.</p>
+    </div>
+    <a class="gs-new" href="{% url 'reports:group_notification_create' %}">
+      <i class="fa-solid fa-plus" aria-hidden="true"></i> تعميم جديد
+    </a>
+  </header>
+
+  {% if rows %}
+    <div class="gs-list">
+      {% for row in rows %}
+        <a class="gs-item" href="{% url 'reports:group_notification_report' row.batch.pk %}">
+          <span class="gs-item__top">
+            <span class="gs-item__title">
+              {{ row.batch.title|default:"تعميم بلا عنوان" }}
+              {% if row.batch.requires_signature %}<span class="gs-tag"><i class="fa-solid fa-signature" aria-hidden="true"></i> توقيع</span>{% endif %}
+            </span>
+            <span class="gs-item__date">{{ row.batch.created_at|date:"Y-m-d H:i" }}</span>
+          </span>
+          <span class="gs-item__meta">
+            {{ row.schools }} مدرسة · {{ row.total|intcomma }} مستلماً · {{ row.batch.get_audience_display }}
+            {% if row.batch.requires_signature %} · {{ row.signed|intcomma }} وقّعوا{% endif %}
+          </span>
+          <span class="gs-item__bar">
+            <span class="gs-item__track"><span class="gs-item__fill" style="width: {{ row.read_percent }}%"></span></span>
+            <span class="gs-item__pct">{{ row.read_percent }}%</span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="gs-empty">
+      <i class="fa-solid fa-inbox" aria-hidden="true"></i>
+      لم ترسل أي تعميم بعد.
+    </p>
+  {% endif %}
+
+</div>
+{% endblock %}

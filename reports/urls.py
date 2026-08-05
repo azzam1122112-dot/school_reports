@@ -131,6 +131,9 @@ urlpatterns = [
     # =========================
     # لوحة المدير التنفيذي: خارج سياق المدرسة الواحدة عمداً.
     path("group/", views.executive_dashboard, name="executive_dashboard"),
+    path("group/notify/", views.group_notification_create, name="group_notification_create"),
+    path("group/notify/sent/", views.group_notifications_sent, name="group_notifications_sent"),
+    path("group/notify/<int:pk>/", views.group_notification_report, name="group_notification_report"),
     path("staff/select-school/", views.select_school, name="select_school"),
     path("staff/switch-school/", views.switch_school, name="switch_school"),
     path("staff/my-school/", views.school_settings, name="school_settings"),

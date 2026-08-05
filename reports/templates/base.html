@@ -892,6 +892,7 @@
             {% endif %}
             {% if IS_EXECUTIVE_DIRECTOR %}
               <a class="tab {% if active == 'executive_dashboard' %}is-active{% endif %}" href="{% url 'reports:executive_dashboard' %}">لوحة المجموعة</a>
+              <a class="tab {% if active == 'group_notifications' %}is-active{% endif %}" href="{% url 'reports:group_notifications_sent' %}">تعاميم المجموعة</a>
             {% endif %}
             {% if SHOW_ARCHIVE_LINK and IS_SCHOOL_MANAGER %}
               <a class="tab {% if active == 'school_archive' %}is-active{% endif %}" href="{% url 'reports:school_archive' %}">الأرشيف</a>

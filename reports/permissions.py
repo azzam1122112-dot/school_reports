@@ -30,6 +30,8 @@ __all__ = [
     "is_executive_director",
     "executive_director_schools_qs",
     "executive_director_groups",
+    "can_send_group_notification",
+    "can_view_group_batch",
     "effective_user_role_label",
     "can_delete_report",
     "can_edit_report",
@@ -280,6 +282,36 @@ def executive_director_schools_qs(user) -> QuerySet[School]:
     if not ids:
         return School.objects.none()
     return School.objects.filter(group_id__in=ids, is_active=True).order_by("name")
+
+
+def can_send_group_notification(user, school_ids: Iterable[int]) -> bool:
+    """هل يجوز لهذا المستخدم تعميمٌ على هذه المدارس بالضبط؟
+
+    الشرط أن تكون **كل** مدرسة مطلوبة ضمن مدارس مجموعاته. ولا يُقبل تقاطع جزئي:
+    طلبٌ فيه مدرسة واحدة خارج النطاق يُرفض كاملاً بدل أن يُنفَّذ منقوصاً، فتنفيذُ
+    بعضِه يُوهم المرسِل أن التعميم وصل حيث لم يصل.
+    """
+    requested = {int(x) for x in school_ids if x}
+    if not requested:
+        return False
+    if not is_executive_director(user):
+        return False
+
+    allowed = set(executive_director_schools_qs(user).values_list("id", flat=True))
+    return requested.issubset(allowed)
+
+
+def can_view_group_batch(user, batch) -> bool:
+    """تقرير الدفعة لمرسِلها وحده، وما دام مديراً تنفيذياً لمجموعتها.
+
+    ربط الصلاحية بالمنصب لا بالإرسال وحده مقصود: من يترك موقعه يفقد الوصول إلى
+    تقارير مدارسَ لم تعد تحت إشرافه.
+    """
+    if batch is None or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(batch, "sender_id", None) != getattr(user, "id", None):
+        return False
+    return is_executive_director(user, group_id=getattr(batch, "group_id", None))
 
 
 def effective_user_role_label(
