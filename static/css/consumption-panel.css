@@ -95,3 +95,59 @@
 @media (max-width: 640px) {
   .cons-grid { grid-template-columns: 1fr; }
 }
+
+/* تفصيل «أين ذهبت المساحة» — مطوي افتراضياً بعنصر details أصلي بلا JS. */
+.cons-details {
+  margin-top: .85rem;
+  background: var(--cons-surface);
+  border: 1px solid var(--cons-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.cons-details > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: .8rem 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  font-size: .84rem;
+  font-weight: 800;
+}
+.cons-details > summary::-webkit-details-marker { display: none; }
+.cons-details > summary i:first-child { color: var(--cons-green); margin-inline-end: .4rem; }
+.cons-caret { color: var(--cons-muted); font-size: .75rem; }
+.cons-details[open] .cons-caret { transform: rotate(180deg); }
+
+.cons-scroll { overflow-x: auto; border-top: 1px solid var(--cons-line); }
+.cons-table { width: 100%; border-collapse: collapse; min-width: 320px; }
+.cons-table th, .cons-table td {
+  padding: .6rem 1.05rem; text-align: start; font-size: .82rem;
+  border-bottom: 1px solid var(--cons-line);
+}
+.cons-table th {
+  font-size: .72rem; font-weight: 800;
+  color: var(--cons-muted); background: var(--cons-soft); white-space: nowrap;
+}
+.cons-table tbody tr:last-child td { border-bottom: 0; }
+.cons-num { font-variant-numeric: tabular-nums; font-weight: 800; white-space: nowrap; }
+
+.cons-reclaim {
+  margin: 0; padding: .7rem 1.05rem; font-size: .78rem; line-height: 1.7;
+  color: var(--cons-muted); background: var(--cons-soft);
+  border-top: 1px solid var(--cons-line);
+}
+.cons-reclaim i { color: var(--cons-green); margin-inline-end: .35rem; }
+.cons-reclaim strong { color: var(--cons-ink); }
+
+/* أعمدة الاستهلاك في دليل مدارس المنصة. */
+.dir-usage { display: flex; flex-direction: column; gap: .3rem; min-width: 132px; }
+.dir-usage__line { display: flex; align-items: center; gap: .45rem; font-size: .74rem; }
+.dir-usage__label { color: #64748b; min-width: 3.2rem; }
+.dir-usage__track {
+  flex: 1; height: 6px; border-radius: 999px; background: rgba(100,116,139,.16); overflow: hidden;
+}
+.dir-usage__fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #0a7a48, #b68a42); }
+.dir-usage__fill.is-critical { background: linear-gradient(90deg, #b42318, #d9534f); }
+.dir-usage__pct { font-variant-numeric: tabular-nums; font-weight: 800; min-width: 2.6rem; text-align: end; }

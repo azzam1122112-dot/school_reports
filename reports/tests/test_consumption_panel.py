@@ -7,7 +7,9 @@
 
 from __future__ import annotations
 
+from django.db import connection
 from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from reports.models import (
@@ -191,6 +193,64 @@ class ConsumptionPanelSurfaceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "الاستهلاك والمتبقي")
         self.assertContains(response, "مقاعد المعلمين")
+
+    def test_the_manager_sees_where_the_space_went(self):
+        """نسبة 80% بلا تفصيل تخبر المدير أنه قارب الحدّ ولا تخبره ما يحرّره."""
+        self._use_school(self.manager)
+
+        response = self.client.get(reverse("reports:admin_dashboard"))
+
+        self.assertContains(response, "أين ذهبت مساحة العمل؟")
+        self.assertIn("breakdown", response.context["consumption"]["storage"])
+
+    def test_the_schools_directory_shows_usage_without_entering_each_school(self):
+        owner = Teacher.objects.create_superuser(
+            phone="0500000604", name="مالك الدليل", password="Passw0rd!123"
+        )
+        self.client.force_login(owner)
+
+        response = self.client.get(reverse("reports:platform_schools_directory"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="dir-usage"')
+        row = next(s for s in response.context["schools"] if s.pk == self.school.pk)
+        self.assertEqual(row.directory_seats_used, 0)
+        self.assertFalse(row.directory_seats_unlimited)
+        self.assertIsNotNone(row.directory_storage_percent)
+
+    def test_directory_queries_do_not_grow_with_the_number_of_schools(self):
+        """استدعاء الملخّص الكامل لكل صف كان سيعني عشرات الاستعلامات في صفحة واحدة.
+
+        القياس مقارنةٌ بين حجمين لا رقمٌ ثابت: الرقم الثابت يسقط عند أي تعديل
+        مشروع في الصفحة، أما النمو مع عدد المدارس فهو الخلل الفعلي.
+        """
+        plan = SubscriptionPlan.objects.first()
+        owner = Teacher.objects.create_superuser(
+            phone="0500000605", name="مالك", password="Passw0rd!123"
+        )
+        self.client.force_login(owner)
+
+        def _add(prefix: str, count: int) -> None:
+            for index in range(count):
+                school = School.objects.create(
+                    name=f"مدرسة {prefix}{index}", code=f"dir-{prefix}-{index}"
+                )
+                SchoolSubscription.objects.create(school=school, plan=plan)
+
+        _add("a", 3)
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(reverse("reports:platform_schools_directory"))
+
+        _add("b", 9)
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(reverse("reports:platform_schools_directory"))
+
+        self.assertEqual(
+            len(many.captured_queries),
+            len(few.captured_queries),
+            f"عدد الاستعلامات نما من {len(few.captured_queries)} إلى "
+            f"{len(many.captured_queries)} بزيادة المدارس",
+        )
 
     def test_both_surfaces_read_the_same_numbers(self):
         """رقمان مختلفان لنفس المدرسة يصنعان تذكرة دعم."""

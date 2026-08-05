@@ -1,11 +1,15 @@
 import re
 from io import BytesIO
+from unittest.mock import patch
 
 import openpyxl
+from django.contrib import messages
+from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from reports import teacher_onboarding
 from reports.forms import TeacherCreateForm
 from reports.models import (
     Department,
@@ -21,7 +25,20 @@ from reports.teacher_onboarding import PREVIEW_SESSION_KEY
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class TeacherOnboardingTests(TestCase):
+    # The preview carries a 30-minute wall-clock TTL. None of the tests below
+    # are about that expiry, yet every one of them would inherit it: the two
+    # requests they make are milliseconds apart normally, but on a loaded
+    # machine the gap can cross the limit and the confirmation is then rejected
+    # as expired. That failed as a bare "False is not true" on whichever
+    # side effect the test happened to assert. Expiry gets its own test below;
+    # here it is held far enough away to stop timing from deciding the result.
     def setUp(self):
+        ttl_patch = patch.object(teacher_onboarding, "PREVIEW_MAX_AGE_SECONDS", 24 * 60 * 60)
+        ttl_patch.start()
+        self.addCleanup(ttl_patch.stop)
+        self._setup_school()
+
+    def _setup_school(self):
         self.school = School.objects.create(
             name="مدرسة الإضافة السريعة",
             code="teacher-onboarding",
@@ -67,15 +84,26 @@ class TeacherOnboardingTests(TestCase):
             },
         )
 
-    def _confirm_current_preview(self):
+    def _confirm_current_preview(self, *, expect_success=True):
         preview = self.client.session[PREVIEW_SESSION_KEY]
-        return self.client.post(
+        response = self.client.post(
             reverse("reports:bulk_import_teachers"),
             {
                 "action": "confirm",
                 "preview_token": preview["token"],
             },
         )
+        if expect_success:
+            # A rejected confirmation writes nothing, so without this the caller
+            # only sees its own side-effect assertion fail with no clue why.
+            # Surface the reason the server gave instead.
+            errors = [
+                str(message)
+                for message in get_messages(response.wsgi_request)
+                if message.level >= messages.WARNING
+            ]
+            self.assertEqual(errors, [], f"لم تُقبل المعاينة: {errors}")
+        return response
 
     def test_unified_onboarding_page_renders_with_one_clear_heading(self):
         response = self.client.get(reverse("reports:bulk_import_teachers"))
@@ -228,6 +256,28 @@ class TeacherOnboardingTests(TestCase):
                 department=self.department,
                 teacher=teacher,
             ).exists()
+        )
+
+    def test_stale_preview_is_refused_and_says_so(self):
+        """The TTL the other tests hold away must still be enforced for real."""
+        self._quick_preview(phone="0559998877", name="معلم معاينة قديمة")
+
+        # Age the stored preview past the limit rather than waiting it out.
+        # The bound is inclusive, so zero would still count as fresh within the
+        # same second — it has to be negative to land on the far side of it.
+        with patch.object(teacher_onboarding, "PREVIEW_MAX_AGE_SECONDS", -1):
+            response = self._confirm_current_preview(expect_success=False)
+
+        self.assertFalse(
+            SchoolMembership.objects.filter(
+                school=self.school,
+                teacher__phone="0559998877",
+            ).exists()
+        )
+        shown = [str(message) for message in get_messages(response.wsgi_request)]
+        self.assertTrue(
+            any("انتهت صلاحية المعاينة" in message for message in shown),
+            f"لم تظهر رسالة انتهاء الصلاحية: {shown}",
         )
 
     def test_created_teacher_must_change_phone_password_on_first_login(self):

@@ -1002,3 +1002,104 @@ def school_consumption_summary(school: School | None) -> dict:
         },
         "has_subscription": subscription is not None,
     }
+
+
+def attach_school_consumption_rows(schools) -> None:
+    """يُلحق ``consumption_row`` بكل مدرسة في قائمة، باستعلامات محدودة.
+
+    ``school_consumption_summary`` تُجري عدة تجميعات للمدرسة الواحدة، فاستدعاؤها
+    لكل صف في قائمة يعني عشرات الاستعلامات. هذه الدالة للقوائم: أربعة استعلامات
+    مجمّعة لكل المدارس مهما كان عددها، فالتكلفة لا تنمو مع طول القائمة.
+
+    تُستخدم في دليل مدارس المنصة وفي لوحة المدير التنفيذي معاً، فيرى الطرفان
+    الأرقام نفسها.
+    """
+    schools = list(schools or [])
+    if not schools:
+        return
+
+    from .models import SchoolArchiveAddon, SchoolMembership, SchoolSubscription, SchoolYearArchive
+
+    school_ids = [school.pk for school in schools]
+
+    seat_counts = {
+        row["school"]: int(row["total"] or 0)
+        for row in SchoolMembership.objects.filter(
+            school_id__in=school_ids,
+            role_type=SchoolMembership.RoleType.TEACHER,
+        )
+        .values("school")
+        .annotate(total=Count("id"))
+    }
+    snapshot_bytes = {
+        row["school"]: int(row["total"] or 0)
+        for row in SchoolYearArchive.objects.filter(school_id__in=school_ids)
+        .values("school")
+        .annotate(total=Sum("storage_bytes"))
+    }
+    subscriptions = {
+        sub.school_id: sub
+        for sub in SchoolSubscription.objects.filter(school_id__in=school_ids).select_related("plan")
+    }
+    addons = {
+        addon.school_id: addon
+        for addon in SchoolArchiveAddon.objects.filter(school_id__in=school_ids)
+    }
+
+    def _percent(used: int, limit: int) -> int:
+        return 0 if limit <= 0 else min(100, round(used * 100 / limit))
+
+    for school in schools:
+        # ربط الاشتراك والملحق مسبقاً يمنع ``school_storage_allowance`` من
+        # إطلاق استعلام لكل مدرسة عبر العلاقة العكسية.
+        subscription = subscriptions.get(school.pk)
+        school._state.fields_cache["subscription"] = subscription
+        school._state.fields_cache["archive_addon"] = addons.get(school.pk)
+
+        allowance = school_storage_allowance(school)
+        storage_limit = int(allowance["total_bytes"] or 0)
+        storage_used = int(getattr(school, "storage_used_bytes", 0) or 0)
+        storage_unlimited = bool(allowance["is_unlimited"]) or storage_limit <= 0
+
+        seats_used = seat_counts.get(school.pk, 0)
+        seat_limit = int(allowance["seats"] or 0)
+        seat_unlimited = seat_limit <= 0
+
+        archive = school_archive_allowance(school)
+        archive_limit = int(archive["limit_bytes"] or 0)
+        archive_used = snapshot_bytes.get(school.pk, 0)
+
+        school.consumption_row = {
+            "storage": {
+                "used": storage_used,
+                "limit": storage_limit,
+                "percent": 0 if storage_unlimited else _percent(storage_used, storage_limit),
+                "is_unlimited": storage_unlimited,
+                "label": (
+                    f"{_human_size(storage_used)} / غير محدود"
+                    if storage_unlimited
+                    else f"{_human_size(storage_used)} / {_human_size(storage_limit)}"
+                ),
+            },
+            "seats": {
+                "used": seats_used,
+                "limit": seat_limit,
+                "percent": 0 if seat_unlimited else _percent(seats_used, seat_limit),
+                "is_unlimited": seat_unlimited,
+                "label": (
+                    f"{seats_used} / بلا حدّ" if seat_unlimited else f"{seats_used} / {seat_limit}"
+                ),
+            },
+            "archive": {
+                "used": archive_used,
+                "limit": archive_limit,
+                "percent": _percent(archive_used, archive_limit),
+                "is_subscribed": bool(archive["is_subscribed"]),
+                "label": (
+                    f"{_human_size(archive_used)} / {_human_size(archive_limit)}"
+                    if archive["is_subscribed"]
+                    else "غير مفعّلة"
+                ),
+            },
+            "has_subscription": subscription is not None,
+        }

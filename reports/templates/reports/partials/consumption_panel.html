@@ -91,4 +91,52 @@
     </article>
 
   </div>
+
+  {% if consumption.storage.breakdown %}
+    {% comment %}
+      «أين ذهبت المساحة» — بلا هذا التفصيل يعرف المدير أنه بلغ 80% ولا يعرف
+      ما يحرّره. مطوي افتراضياً حتى لا يزاحم الأرقام الثلاثة الرئيسية.
+    {% endcomment %}
+    <details class="cons-details">
+      <summary>
+        <span><i class="fa-solid fa-list-ul" aria-hidden="true"></i> أين ذهبت مساحة العمل؟</span>
+        <i class="fa-solid fa-chevron-down cons-caret" aria-hidden="true"></i>
+      </summary>
+      <div class="cons-scroll">
+        <table class="cons-table">
+          <thead>
+            <tr><th scope="col">البند</th><th scope="col">الحجم</th></tr>
+          </thead>
+          <tbody>
+            {% for key, item in consumption.storage.breakdown.items %}
+              {% if item.bytes %}
+                <tr>
+                  <td>
+                    {% if key == "reports" %}التقارير
+                    {% elif key == "achievements" %}ملفات الإنجاز والشواهد
+                    {% elif key == "leadership" %}شواهد القيادة
+                    {% elif key == "tickets" %}الطلبات ومرفقاتها
+                    {% elif key == "circulars" %}التعاميم
+                    {% elif key == "notifications" %}الإشعارات
+                    {% elif key == "snapshots" %}النسخ السنوية المحفوظة
+                    {% else %}{{ key }}{% endif %}
+                  </td>
+                  <td class="cons-num">{{ item.label }}</td>
+                </tr>
+              {% endif %}
+            {% empty %}
+              <tr><td colspan="2" class="cons-muted">لا توجد ملفات مرفوعة بعد.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if consumption.storage.reclaimable_bytes %}
+        <p class="cons-reclaim">
+          <i class="fa-solid fa-recycle" aria-hidden="true"></i>
+          يمكن تحرير <strong>{{ consumption.storage.reclaimable_label }}</strong> من سنوات
+          محفوظة نسخها السنوية بالكامل.
+        </p>
+      {% endif %}
+    </details>
+  {% endif %}
 </section>

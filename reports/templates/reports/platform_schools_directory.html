@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}المدارس{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260805.1">
 <style>
   .ps-page{max-width:1120px;margin:0 auto;padding:clamp(12px,2.5vw,22px)}
   .ps-shell{display:grid;gap:14px}
@@ -139,6 +141,37 @@
                     <span class="badge danger">{{ s.directory_subscription_label }}</span>
                   {% endif %}
                 {% endif %}
+              </div>
+
+              {% comment %}
+                الاستهلاك في القائمة نفسها: بدونه يضطر مدير النظام لدخول كل مدرسة
+                ليعرف أيّها قارب حدّه.
+              {% endcomment %}
+              <div class="dir-usage">
+                <div class="dir-usage__line">
+                  <span class="dir-usage__label"><i class="fa-solid fa-hard-drive" aria-hidden="true"></i> مساحة</span>
+                  {% if s.directory_storage_unlimited %}
+                    <span class="dir-usage__pct">{{ s.directory_storage_label }}</span>
+                  {% else %}
+                    <span class="dir-usage__track">
+                      <span class="dir-usage__fill{% if s.directory_storage_percent >= 90 %} is-critical{% endif %}"
+                            style="width: {{ s.directory_storage_percent }}%"></span>
+                    </span>
+                    <span class="dir-usage__pct">{{ s.directory_storage_percent }}%</span>
+                  {% endif %}
+                </div>
+                <div class="dir-usage__line">
+                  <span class="dir-usage__label"><i class="fa-solid fa-users" aria-hidden="true"></i> مقاعد</span>
+                  {% if s.directory_seats_unlimited %}
+                    <span class="dir-usage__pct">{{ s.directory_seats_label }}</span>
+                  {% else %}
+                    <span class="dir-usage__track">
+                      <span class="dir-usage__fill{% if s.directory_seats_percent >= 90 %} is-critical{% endif %}"
+                            style="width: {{ s.directory_seats_percent }}%"></span>
+                    </span>
+                    <span class="dir-usage__pct">{{ s.directory_seats_label }}</span>
+                  {% endif %}
+                </div>
               </div>
 
               <div class="ps-card-actions">
