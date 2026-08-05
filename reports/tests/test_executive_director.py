@@ -177,6 +177,65 @@ class ExecutiveDirectorTests(TestCase):
         self.assertEqual(rows[self.schools[0].code]["subscription"]["tone"], "active")
         self.assertContains(response, "بلا اشتراك")
 
+    def test_dashboard_shows_per_school_consumption(self):
+        """مدرسة تقارب امتلاء مساحتها يتوقف فيها الرفع، فهو أول من يجب أن يعرف."""
+        self.client.force_login(self.director)
+        response = self.client.get(reverse("reports:executive_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "الاستهلاك")
+        self.assertContains(response, 'class="dir-usage"')
+        for row in response.context["rows"]:
+            self.assertIn("storage", row["consumption"])
+            self.assertIn("seats", row["consumption"])
+            self.assertIn("archive", row["consumption"])
+
+    def test_a_school_near_its_storage_limit_needs_attention(self):
+        """الامتلاء يوقف الرفع كما يوقفه انتهاء الاشتراك، فيستحق نفس التنبيه."""
+        # سعة 0 في باقة التهيئة تعني تخزيناً بلا حدّ، فلا نسبة تُقاس عليها.
+        sized_plan = SubscriptionPlan.objects.create(
+            name="باقة بسعة", price=100, days_duration=365, max_teachers=25
+        )
+        crowded = self.schools[0]
+        SchoolSubscription.objects.filter(school=crowded).update(plan=sized_plan)
+        School.objects.filter(pk=crowded.pk).update(storage_used_bytes=10 ** 15)
+
+        self.client.force_login(self.director)
+        response = self.client.get(reverse("reports:executive_dashboard"))
+
+        rows = {row["school"].pk: row for row in response.context["rows"]}
+        self.assertFalse(rows[crowded.pk]["consumption"]["storage"]["is_unlimited"])
+        self.assertEqual(rows[crowded.pk]["consumption"]["storage"]["percent"], 100)
+
+        flagged = {row["school"].pk for row in response.context["needs_attention"]}
+        self.assertIn(crowded.pk, flagged)
+
+    def test_consumption_queries_do_not_grow_with_the_group_size(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.client.force_login(self.director)
+        # طلب تسخين: الطلب الأول يحمل تهيئة الجلسة وذاكرات الصلاحيات.
+        self.client.get(reverse("reports:executive_dashboard"))
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(reverse("reports:executive_dashboard"))
+
+        plan = SubscriptionPlan.objects.first()
+        for index in range(6):
+            extra = School.objects.create(
+                name=f"مدرسة إضافية {index}", code=f"extra-{index}", group=self.group
+            )
+            SchoolSubscription.objects.create(school=extra, plan=plan)
+
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(reverse("reports:executive_dashboard"))
+
+        self.assertEqual(
+            len(many.captured_queries),
+            len(few.captured_queries),
+            f"الاستعلامات نمت من {len(few.captured_queries)} إلى {len(many.captured_queries)}",
+        )
+
     def test_dashboard_never_enters_a_single_school_context(self):
         """اللوحة تقرأ عبر المدارس مجتمعةً، فلا يصح أن تدخل المستخدم في مدرسة."""
         self.client.force_login(self.director)

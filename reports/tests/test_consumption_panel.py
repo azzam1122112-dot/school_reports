@@ -214,9 +214,10 @@ class ConsumptionPanelSurfaceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'class="dir-usage"')
         row = next(s for s in response.context["schools"] if s.pk == self.school.pk)
-        self.assertEqual(row.directory_seats_used, 0)
-        self.assertFalse(row.directory_seats_unlimited)
-        self.assertIsNotNone(row.directory_storage_percent)
+        self.assertEqual(row.consumption_row["seats"]["used"], 0)
+        self.assertFalse(row.consumption_row["seats"]["is_unlimited"])
+        self.assertFalse(row.consumption_row["archive"]["is_subscribed"])
+        self.assertIn("storage", row.consumption_row)
 
     def test_directory_queries_do_not_grow_with_the_number_of_schools(self):
         """استدعاء الملخّص الكامل لكل صف كان سيعني عشرات الاستعلامات في صفحة واحدة.
@@ -238,6 +239,9 @@ class ConsumptionPanelSurfaceTests(TestCase):
                 SchoolSubscription.objects.create(school=school, plan=plan)
 
         _add("a", 3)
+        # طلب تسخين: الطلب الأول يحمل تهيئة الجلسة وذاكرات الصلاحيات، فقياسه
+        # يقارن شيئين مختلفين.
+        self.client.get(reverse("reports:platform_schools_directory"))
         with CaptureQueriesContext(connection) as few:
             self.client.get(reverse("reports:platform_schools_directory"))
 

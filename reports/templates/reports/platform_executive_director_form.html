@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}تعديل مدير تنفيذي{% else %}إضافة مدير تنفيذي{% endif %}{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}">
+  .execf-scope {
+    --ef-brand: var(--brand, #006c35);
+    --ef-ink: var(--ink, #0f172a);
+    --ef-muted: var(--muted, #64748b);
+    --ef-line: var(--line-2, var(--line, #e5e7eb));
+    --ef-card: var(--card, #fff);
+    direction: rtl;
+  }
+  .execf-scope .page-head {
+    padding: clamp(16px, 3vw, 24px);
+    border-radius: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(0, 108, 53, .96), rgba(15, 143, 135, .88));
+    box-shadow: 0 18px 44px rgba(16, 37, 31, .15);
+  }
+  .execf-scope .page-head h1 { margin: 0; color: #fff !important; font-size: clamp(1.3rem, 3vw, 1.9rem); font-weight: 950; }
+  .execf-scope .page-head p { margin: 8px 0 0; max-width: 680px; line-height: 1.85; font-weight: 800; opacity: .94; }
+
+  .execf-card {
+    margin-top: 16px;
+    padding: 18px;
+    border: 1px solid var(--ef-line);
+    border-radius: 16px;
+    background: var(--ef-card);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, .05);
+  }
+  .execf-card > h2 {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 0 0 4px;
+    color: var(--ef-ink);
+    font-size: 1.05rem;
+    font-weight: 950;
+  }
+  .execf-card > .hint { margin: 0 0 14px; color: var(--ef-muted); font-size: .84rem; font-weight: 750; line-height: 1.85; }
+
+  .execf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .execf-field label { display: block; margin-bottom: 5px; color: var(--ef-ink); font-size: .86rem; font-weight: 850; }
+  .execf-field .help { display: block; margin-top: 4px; color: var(--ef-muted); font-size: .76rem; font-weight: 700; }
+  .execf-field .err { display: block; margin-top: 4px; color: #dc2626; font-size: .78rem; font-weight: 850; }
+
+  .school-picker {
+    max-height: 340px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid var(--ef-line);
+    border-radius: 12px;
+  }
+  .school-picker ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .school-picker li { margin: 0; }
+  .school-picker label {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid var(--ef-line);
+    border-radius: 10px;
+    font-size: .85rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .school-picker label:hover { border-color: var(--ef-brand); background: rgba(0, 108, 53, .05); }
+  .school-picker .owned { margin-inline-start: auto; color: #d97706; font-size: .72rem; font-weight: 900; }
+
+  .execf-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .execf-actions .btn { min-height: 44px; border-radius: 12px; font-weight: 850; }
+
+  @media (max-width: 860px) {
+    .execf-grid, .school-picker ul { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="execf-scope">
+  <section class="page-head">
+    <h1>
+      <i class="fa-solid fa-user-tie ms-2"></i>
+      {% if is_edit %}تعديل: {{ group.name }}{% else %}إضافة مدير تنفيذي{% endif %}
+    </h1>
+    <p>
+      المدير التنفيذي يشرف على مدارس مجموعته ويتابعها، ولا يتولى الإدارة اليومية لأي منها،
+      ولا ينتقص من صلاحيات مديرها. المدارس المسندة هنا هي بالضبط ما سيراه في لوحته.
+    </p>
+  </section>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger mt-3">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <section class="execf-card">
+      <h2><i class="fa-solid fa-sitemap"></i> بيانات المجموعة</h2>
+      <p class="hint">المجموعة هي الكيان الذي يقوده المدير التنفيذي. لا تحمل بيانات تشغيلية، وحذفها لا يمس أي مدرسة.</p>
+      <div class="execf-grid">
+        <div class="execf-field">
+          <label for="{{ form.group_name.id_for_label }}">{{ form.group_name.label }}</label>
+          {{ form.group_name }}
+          {% for error in form.group_name.errors %}<span class="err">{{ error }}</span>{% endfor %}
+        </div>
+        <div class="execf-field">
+          <label for="{{ form.education_department.id_for_label }}">{{ form.education_department.label }}</label>
+          {{ form.education_department }}
+          {% for error in form.education_department.errors %}<span class="err">{{ error }}</span>{% endfor %}
+        </div>
+        <div class="execf-field">
+          <label for="{{ form.group_code.id_for_label }}">{{ form.group_code.label }}</label>
+          {{ form.group_code }}
+          <span class="help">{{ form.group_code.help_text }}</span>
+          {% for error in form.group_code.errors %}<span class="err">{{ error }}</span>{% endfor %}
+        </div>
+        <div class="execf-field">
+          <label>الحالة</label>
+          <div class="form-check">
+            {{ form.is_active }}
+            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+          </div>
+          <span class="help">{{ form.is_active.help_text }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="execf-card">
+      <h2><i class="fa-solid fa-user-shield"></i> حساب المدير التنفيذي</h2>
+      <p class="hint">
+        الجوال هو المعرّف. إن كان لحساب قائم رُبط المنصب به مباشرة؛ وإلا أُنشئ حساب جديد بالاسم وكلمة المرور المدخلين.
+        حساب المدير التنفيذي لا يشغل مقعداً مدفوعاً في أي مدرسة.
+      </p>
+      <div class="execf-grid">
+        <div class="execf-field">
+          <label for="{{ form.director_phone.id_for_label }}">{{ form.director_phone.label }}</label>
+          {{ form.director_phone }}
+          <span class="help">{{ form.director_phone.help_text }}</span>
+          {% for error in form.director_phone.errors %}<span class="err">{{ error }}</span>{% endfor %}
+        </div>
+        <div class="execf-field">
+          <label for="{{ form.director_name.id_for_label }}">{{ form.director_name.label }}</label>
+          {{ form.director_name }}
+          {% for error in form.director_name.errors %}<span class="err">{{ error }}</span>{% endfor %}
+        </div>
+        <div class="execf-field">
+          <label for="{{ form.director_email.id_for_label }}">{{ form.director_email.label }}</label>
+          {{ form.director_email }}
+          {% for error in form.director_email.errors %}<span class="err">{{ error }}</span>{% endfor %}
+        </div>
+        <div class="execf-field">
+          <label for="{{ form.director_password.id_for_label }}">{{ form.director_password.label }}</label>
+          {{ form.director_password }}
+          <span class="help">{{ form.director_password.help_text }}</span>
+          {% for error in form.director_password.errors %}<span class="err">{{ error }}</span>{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="execf-card">
+      <h2><i class="fa-solid fa-school"></i> المدارس المسندة</h2>
+      <p class="hint">
+        اختر مدارس المجموعة. المدرسة المرتبطة بمجموعة أخرى تُنقل عند اختيارها، والمدرسة التي تُلغى تعود مستقلة —
+        وفي الحالتين يبقى مديرها وبياناتها كما هي.
+      </p>
+
+      <div class="mb-2 d-flex gap-2 flex-wrap">
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-schools-select="all">تحديد الكل</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-schools-select="none">إلغاء التحديد</button>
+      </div>
+
+      <div class="school-picker">
+        <ul>
+          {% for choice in form.schools %}
+            <li>
+              <label>
+                {{ choice.tag }}
+                <span>{{ choice.choice_label }}</span>
+              </label>
+            </li>
+          {% empty %}
+            <li class="text-muted">لا توجد مدارس نشطة على المنصة.</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% for error in form.schools.errors %}<span class="err d-block mt-2">{{ error }}</span>{% endfor %}
+
+      <div class="execf-field mt-3">
+        <label for="{{ form.headquarters_school.id_for_label }}">{{ form.headquarters_school.label }}</label>
+        {{ form.headquarters_school }}
+        <span class="help">يجب أن تكون ضمن المدارس المختارة أعلاه.</span>
+        {% for error in form.headquarters_school.errors %}<span class="err">{{ error }}</span>{% endfor %}
+      </div>
+    </section>
+
+    <div class="execf-actions">
+      <button class="btn btn-primary" type="submit">
+        <i class="fa-solid fa-floppy-disk ms-1"></i>
+        {% if is_edit %}حفظ التعديلات{% else %}إضافة المدير التنفيذي{% endif %}
+      </button>
+      <a class="btn btn-outline-secondary" href="{% url 'reports:platform_executive_directors' %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+  document.querySelectorAll("[data-schools-select]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var checked = button.dataset.schoolsSelect === "all";
+      document.querySelectorAll(".school-picker input[type=checkbox]").forEach(function (box) {
+        box.checked = checked;
+      });
+    });
+  });
+</script>
+{% endblock %}

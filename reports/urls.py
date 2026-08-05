@@ -167,6 +167,25 @@ urlpatterns = [
     path("platform/school/tickets/", views.platform_school_tickets, name="platform_school_tickets"),
     path("platform/school/notify/", views.platform_school_notify, name="platform_school_notify"),
 
+    # المدراء التنفيذيون ومجموعات المدارس المتكاملة (مالك النظام وحده)
+    path("platform/executives/", views.platform_executive_directors, name="platform_executive_directors"),
+    path("platform/executives/add/", views.platform_executive_director_form, name="platform_executive_director_add"),
+    path(
+        "platform/executives/<int:pk>/edit/",
+        views.platform_executive_director_form,
+        name="platform_executive_director_edit",
+    ),
+    path(
+        "platform/executives/<int:pk>/toggle/",
+        views.platform_executive_director_toggle,
+        name="platform_executive_director_toggle",
+    ),
+    path(
+        "platform/executives/<int:pk>/delete/",
+        views.platform_executive_director_delete,
+        name="platform_executive_director_delete",
+    ),
+
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("staff/audit-logs/", views.school_audit_logs, name="school_audit_logs"),
 

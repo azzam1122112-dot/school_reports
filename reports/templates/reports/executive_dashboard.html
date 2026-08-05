@@ -1,9 +1,10 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load humanize static %}
 
 {% block title %}لوحة المدير التنفيذي | منصة توثيق{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/consumption-panel.css' %}?v=20260805.1">
 <style>
   .exec-page {
     --exec-ink: #10231a;
@@ -235,19 +236,19 @@
     <section class="exec-panel" aria-labelledby="execAttentionTitle">
       <div class="exec-panel__head">
         <h2 id="execAttentionTitle"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> تحتاج متابعة</h2>
-        <p>{{ needs_attention|length }} من {{ totals.schools }} مدرسة اشتراكها منتهٍ أو يقارب الانتهاء</p>
+        <p>{{ needs_attention|length }} من {{ totals.schools }} مدرسة اشتراكها يقارب الانتهاء أو سعتها تقارب الامتلاء</p>
       </div>
       <div class="exec-scroll">
         <table class="exec-table">
           <thead>
-            <tr><th scope="col">المدرسة</th><th scope="col">حالة الاشتراك</th><th scope="col">المعلمون</th></tr>
+            <tr><th scope="col">المدرسة</th><th scope="col">حالة الاشتراك</th><th scope="col">الاستهلاك</th></tr>
           </thead>
           <tbody>
             {% for row in needs_attention %}
               <tr>
                 <td class="exec-table__school">{{ row.school.name }}</td>
                 <td><span class="exec-chip exec-chip--{{ row.subscription.tone }}">{{ row.subscription.label }}</span></td>
-                <td class="exec-num">{{ row.teachers|intcomma }}</td>
+                <td>{% include "reports/partials/consumption_rows.html" with row=row.consumption %}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -272,6 +273,7 @@
               <th scope="col">تقارير الفترة</th>
               <th scope="col">النشاط</th>
               <th scope="col">ملفات الإنجاز</th>
+              <th scope="col">الاستهلاك</th>
               <th scope="col">الاشتراك</th>
             </tr>
           </thead>
@@ -296,6 +298,7 @@
                   </div>
                 </td>
                 <td class="exec-num">{{ row.achievements|intcomma }}</td>
+                <td>{% include "reports/partials/consumption_rows.html" with row=row.consumption %}</td>
                 <td><span class="exec-chip exec-chip--{{ row.subscription.tone }}">{{ row.subscription.label }}</span></td>
               </tr>
             {% endfor %}

@@ -273,6 +273,7 @@ class PlatformSettings(models.Model):
 
             cache.delete("platform_maintenance_state_v1")
             cache.delete("platform_storage_mb_per_teacher_v1")
+            cache.delete("platform_free_storage_mb_v1")
         except Exception:
             pass
         try:

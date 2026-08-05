@@ -310,19 +310,41 @@ def sync_school_archive_storage_usage(school: School | None) -> int:
     return used
 
 
+STORAGE_RATE_CACHE_KEY = "platform_storage_mb_per_teacher_v1"
+FREE_STORAGE_CACHE_KEY = "platform_free_storage_mb_v1"
+_STORAGE_RATE_CACHE_TTL = 600
+
+
 def _platform_free_storage_bytes() -> int:
-    """الحد الأدنى لمدرسة بلا اشتراك فعّال (بالبايت). 0 = غير محدود."""
+    """الحد الأدنى لمدرسة بلا اشتراك فعّال (بالبايت). 0 = غير محدود.
+
+    مُخزَّنة كنظيرتها ``_storage_mb_per_teacher``: كل مدرسة بسعة صفر أو بلا
+    اشتراك تمرّ من هنا، فكانت قائمة المدارس تُطلق استعلام إعدادات لكل صف.
+    و``PlatformSettings.save()`` يُسقط المفتاح، فلا يُخدَم حدٌّ قديم بعد تعديل.
+    """
+    try:
+        from django.core.cache import cache
+
+        cached = cache.get(FREE_STORAGE_CACHE_KEY)
+        if cached is not None:
+            return max(0, int(cached)) * 1024 * 1024
+    except Exception:
+        cache = None
+
     try:
         from .models import PlatformSettings
 
         mb = int(getattr(PlatformSettings.get_solo(), "free_storage_mb", 0) or 0)
     except Exception:
-        mb = 0
-    return max(0, mb) * 1024 * 1024
+        return 0
 
-
-STORAGE_RATE_CACHE_KEY = "platform_storage_mb_per_teacher_v1"
-_STORAGE_RATE_CACHE_TTL = 600
+    mb = max(0, mb)
+    try:
+        if cache is not None:
+            cache.set(FREE_STORAGE_CACHE_KEY, mb, _STORAGE_RATE_CACHE_TTL)
+    except Exception:
+        pass
+    return mb * 1024 * 1024
 
 
 def _storage_mb_per_teacher() -> int:

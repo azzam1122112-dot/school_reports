@@ -94,5 +94,94 @@ jobs:
       - name: Test
         run: python manage.py test --verbosity 1
 
+      # On main the deploy job builds and pushes the real image, so building
+      # here too would just burn a second five-minute build.
       - name: Build production image
+        if: github.event_name == 'pull_request'
         run: docker build --tag school-reports:ci .
+
+  deploy:
+    name: Deploy to Hetzner
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    # Two deploys racing would let an older image win. Queue instead of cancel:
+    # a cancelled deploy could leave the server mid-release.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Resolve image reference
+        id: image
+        run: |
+          # GHCR rejects uppercase in image names; repository owners may have it.
+          name="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "ref=$name:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.ref }}
+            ${{ steps.image.outputs.name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Sync compose and deploy files to the server
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+        run: |
+          # env.production holds live secrets and exists only on the server —
+          # excluded so a deploy can never clobber it.
+          tar czf - \
+            --exclude='deploy/hetzner/env.production' \
+            compose.hetzner.yaml compose.caddy.yaml deploy/hetzner \
+          | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+              "mkdir -p '$DEPLOY_PATH' && tar xzf - -C '$DEPLOY_PATH'"
+
+      - name: Release and run migrations
+        env:
+          SSH_TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/school_reports' }}
+          APP_IMAGE: ${{ steps.image.outputs.ref }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The registry token goes over stdin, not argv, so it never shows up
+          # in the server's process list.
+          printf '%s' "$GHCR_TOKEN" \
+          | ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_TARGET" \
+              "DEPLOY_PATH='$DEPLOY_PATH' APP_IMAGE='$APP_IMAGE' \
+               GHCR_USER='${{ github.actor }}' GHCR_TOKEN_FROM_STDIN=1 \
+               bash '$DEPLOY_PATH/deploy/hetzner/remote_deploy.sh'"

@@ -1,0 +1,47 @@
+{% comment %}
+  أشرطة استهلاك مدرسة واحدة داخل قائمة — للدليل ولوحة المدير التنفيذي معاً.
+  المتغيّر المتوقع: ``row`` من ``attach_school_consumption_rows``.
+{% endcomment %}
+<div class="dir-usage">
+  <div class="dir-usage__line">
+    <span class="dir-usage__label"><i class="fa-solid fa-hard-drive" aria-hidden="true"></i> مساحة</span>
+    {% if row.storage.is_unlimited %}
+      <span class="dir-usage__pct">{{ row.storage.label }}</span>
+    {% else %}
+      <span class="dir-usage__track" role="img"
+            aria-label="مساحة العمل {{ row.storage.percent }} بالمئة، {{ row.storage.label }}">
+        <span class="dir-usage__fill{% if row.storage.percent >= 90 %} is-critical{% endif %}"
+              style="width: {{ row.storage.percent }}%"></span>
+      </span>
+      <span class="dir-usage__pct">{{ row.storage.percent }}%</span>
+    {% endif %}
+  </div>
+
+  <div class="dir-usage__line">
+    <span class="dir-usage__label"><i class="fa-solid fa-users" aria-hidden="true"></i> مقاعد</span>
+    {% if row.seats.is_unlimited %}
+      <span class="dir-usage__pct">{{ row.seats.label }}</span>
+    {% else %}
+      <span class="dir-usage__track" role="img"
+            aria-label="المقاعد {{ row.seats.percent }} بالمئة، {{ row.seats.label }}">
+        <span class="dir-usage__fill{% if row.seats.percent >= 90 %} is-critical{% endif %}"
+              style="width: {{ row.seats.percent }}%"></span>
+      </span>
+      <span class="dir-usage__pct">{{ row.seats.label }}</span>
+    {% endif %}
+  </div>
+
+  <div class="dir-usage__line">
+    <span class="dir-usage__label"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> أرشفة</span>
+    {% if not row.archive.is_subscribed %}
+      <span class="dir-usage__pct dir-usage__muted">غير مفعّلة</span>
+    {% else %}
+      <span class="dir-usage__track" role="img"
+            aria-label="الأرشفة {{ row.archive.percent }} بالمئة، {{ row.archive.label }}">
+        <span class="dir-usage__fill{% if row.archive.percent >= 90 %} is-critical{% endif %}"
+              style="width: {{ row.archive.percent }}%"></span>
+      </span>
+      <span class="dir-usage__pct">{{ row.archive.percent }}%</span>
+    {% endif %}
+  </div>
+</div>

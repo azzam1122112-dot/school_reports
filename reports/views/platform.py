@@ -8,7 +8,7 @@ from ._helpers import (
     _get_active_school, _user_manager_schools,
     _clean_query_value, _clean_query_params,
 )
-from ..services_archive import school_consumption_summary
+from ..services_archive import attach_school_consumption_rows, school_consumption_summary
 
 
 # =========================
@@ -56,56 +56,6 @@ def _attach_directory_subscription_status(schools: list[School]) -> None:
         school.directory_subscription_label = "ساري"
 
 
-def _attach_directory_consumption(schools: list[School]) -> None:
-    """استهلاك التخزين والمقاعد لصفٍّ واحد من الدليل، بثلاثة استعلامات لا استعلام لكل مدرسة.
-
-    ``school_consumption_summary`` تُجري عدة تجميعات لكل مدرسة، فاستدعاؤها في
-    قائمة من 25 صفاً يعني عشرات الاستعلامات. هنا نكتفي بما يُعرض في القائمة:
-    ``storage_used_bytes`` محفوظ تزايدياً على المدرسة، والسعة من الاشتراك،
-    والمقاعد بعدّة واحدة مجمّعة.
-    """
-    if not schools:
-        return
-
-    from ..services_archive import _human_size, school_storage_allowance
-
-    school_ids = [school.id for school in schools]
-    seat_counts = {
-        row["school"]: row["total"]
-        for row in SchoolMembership.objects.filter(
-            school_id__in=school_ids,
-            role_type=SchoolMembership.RoleType.TEACHER,
-        )
-        .values("school")
-        .annotate(total=Count("id"))
-    }
-
-    for school in schools:
-        allowance = school_storage_allowance(school)
-        limit = int(allowance["total_bytes"] or 0)
-        used = int(getattr(school, "storage_used_bytes", 0) or 0)
-        unlimited = bool(allowance["is_unlimited"]) or limit <= 0
-
-        school.directory_storage_percent = 0 if unlimited else min(100, round(used * 100 / limit))
-        school.directory_storage_label = (
-            f"{_human_size(used)} / غير محدود" if unlimited
-            else f"{_human_size(used)} / {_human_size(limit)}"
-        )
-        school.directory_storage_unlimited = unlimited
-
-        seats_used = int(seat_counts.get(school.id, 0))
-        seat_limit = int(allowance["seats"] or 0)
-        seat_unlimited = seat_limit <= 0
-        school.directory_seats_used = seats_used
-        school.directory_seats_percent = (
-            0 if seat_unlimited else min(100, round(seats_used * 100 / seat_limit))
-        )
-        school.directory_seats_label = (
-            f"{seats_used} / بلا حدّ" if seat_unlimited else f"{seats_used} / {seat_limit}"
-        )
-        school.directory_seats_unlimited = seat_unlimited
-
-
 @login_required(login_url="reports:login")
 @require_http_methods(["GET"])
 def platform_schools_directory(request: HttpRequest) -> HttpResponse:
@@ -144,7 +94,7 @@ def platform_schools_directory(request: HttpRequest) -> HttpResponse:
     page_obj = Paginator(qs.order_by("name"), 25).get_page(request.GET.get("page") or 1)
     school_rows = list(page_obj.object_list)
     _attach_directory_subscription_status(school_rows)
-    _attach_directory_consumption(school_rows)
+    attach_school_consumption_rows(school_rows)
     page_obj.object_list = school_rows
 
     ctx = {

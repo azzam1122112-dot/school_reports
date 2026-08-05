@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}المدراء التنفيذيون{% endblock %}
+
+{% block head %}
+<style nonce="{{ CSP_NONCE }}">
+  .exec-scope {
+    --ex-brand: var(--brand, #006c35);
+    --ex-ink: var(--ink, #0f172a);
+    --ex-muted: var(--muted, #64748b);
+    --ex-line: var(--line-2, var(--line, #e5e7eb));
+    --ex-card: var(--card, #fff);
+    --ex-ok: #16845b;
+    --ex-warn: #d97706;
+    --ex-danger: #dc2626;
+    direction: rtl;
+  }
+  .exec-scope .hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    justify-content: space-between;
+    min-height: 180px;
+    padding: clamp(18px, 3vw, 28px);
+    border-radius: 18px;
+    color: #fff;
+    background:
+      linear-gradient(135deg, rgba(0, 108, 53, .96), rgba(15, 143, 135, .88)),
+      linear-gradient(90deg, rgba(185, 151, 91, .24), transparent);
+    box-shadow: 0 22px 58px rgba(16, 37, 31, .16);
+  }
+  .exec-scope .hero::before {
+    content: "";
+    position: absolute;
+    inset-inline: 22px;
+    top: 0;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, var(--royal-gold, #b9975b), #fff, transparent);
+  }
+  .exec-scope h1 { margin: 0; color: #fff !important; font-size: clamp(1.4rem, 3vw, 2.05rem); font-weight: 950; }
+  .exec-scope .hero p { margin: 8px 0 0; max-width: 640px; line-height: 1.85; font-weight: 800; opacity: .94; }
+  .exec-scope .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .exec-scope .hero-actions .btn { min-height: 44px; border-radius: 12px; font-weight: 850; }
+  .exec-scope .hero-actions .btn-outline-light { color: #fff; border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.12); }
+
+  .exec-scope .stats {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: -20px;
+  }
+  .exec-scope .stat {
+    padding: 14px 16px;
+    border: 1px solid var(--ex-line);
+    border-radius: 14px;
+    background: var(--ex-card);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, .06);
+  }
+  .exec-scope .stat span { display: block; color: var(--ex-muted); font-size: .8rem; font-weight: 800; }
+  .exec-scope .stat strong { display: block; margin-top: 4px; color: var(--ex-ink); font-size: 1.5rem; font-weight: 950; }
+
+  .exec-scope .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin: 18px 0 14px;
+  }
+  .exec-scope .toolbar input { min-width: 260px; border-radius: 12px; }
+
+  .exec-cards { display: grid; gap: 14px; }
+  .exec-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) auto;
+    gap: 18px;
+    align-items: start;
+    padding: 18px;
+    border: 1px solid var(--ex-line);
+    border-radius: 16px;
+    background: var(--ex-card);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, .05);
+  }
+  .exec-card.is-idle { opacity: .82; border-style: dashed; }
+  .exec-card h2 { margin: 0 0 4px; color: var(--ex-ink); font-size: 1.08rem; font-weight: 950; }
+  .exec-card .meta { color: var(--ex-muted); font-size: .82rem; font-weight: 750; line-height: 1.9; }
+  .exec-card .meta code { direction: ltr; unicode-bidi: embed; }
+
+  .exec-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: .3rem .6rem;
+    border-radius: 999px;
+    font-size: .74rem;
+    font-weight: 900;
+  }
+  .exec-badge.ok { color: var(--ex-ok); background: rgba(22, 132, 91, .12); }
+  .exec-badge.warn { color: var(--ex-warn); background: rgba(217, 119, 6, .12); }
+  .exec-badge.off { color: var(--ex-danger); background: rgba(220, 38, 38, .1); }
+
+  .director-box {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--ex-line);
+    border-radius: 12px;
+    background: rgba(0, 108, 53, .04);
+  }
+  .director-box .avatar {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    color: #fff;
+    background: var(--ex-brand);
+  }
+  .director-box strong { display: block; color: var(--ex-ink); font-weight: 900; }
+  .director-box span { color: var(--ex-muted); font-size: .82rem; font-weight: 800; direction: ltr; unicode-bidi: embed; }
+
+  .school-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .school-chip {
+    padding: .28rem .6rem;
+    border: 1px solid var(--ex-line);
+    border-radius: 999px;
+    color: var(--ex-ink);
+    background: rgba(15, 23, 42, .03);
+    font-size: .76rem;
+    font-weight: 800;
+  }
+  .school-chip.is-off { color: var(--ex-muted); text-decoration: line-through; }
+
+  .exec-actions { display: grid; gap: 8px; min-width: 150px; }
+  .exec-actions .btn { border-radius: 10px; font-size: .82rem; font-weight: 850; }
+
+  .exec-empty {
+    padding: 48px 20px;
+    border: 1px dashed var(--ex-line);
+    border-radius: 18px;
+    text-align: center;
+    background: var(--ex-card);
+  }
+  .exec-empty i { display: block; margin-bottom: 10px; color: var(--ex-brand); font-size: 2.2rem; }
+
+  @media (max-width: 992px) {
+    .exec-scope .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .exec-card { grid-template-columns: 1fr; }
+    .exec-actions { min-width: 0; grid-auto-flow: column; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exec-scope">
+  <section class="hero">
+    <div>
+      <h1><i class="fa-solid fa-user-tie ms-2"></i> المدراء التنفيذيون</h1>
+      <p>
+        المدير التنفيذي يقود مجموعة مدارس إشرافاً ومتابعةً، وكل مدرسة تحتفظ بمديرها وبكامل صلاحياته.
+        من هنا تُنشئ المنصب، وتُسند المدارس، وتوقف أو تحذف المجموعة.
+      </p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn btn-light" href="{% url 'reports:platform_executive_director_add' %}">
+        <i class="fa-solid fa-plus ms-1"></i> إضافة مدير تنفيذي
+      </a>
+      <a class="btn btn-outline-light" href="{% url 'reports:platform_admin_dashboard' %}">
+        <i class="fa-solid fa-arrow-right ms-1"></i> لوحة المنصة
+      </a>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="ملخص المدراء التنفيذيين">
+    <article class="stat"><span>المجموعات</span><strong>{{ stats.groups }}</strong></article>
+    <article class="stat"><span>مدراء تنفيذيون نشطون</span><strong>{{ stats.active_directors }}</strong></article>
+    <article class="stat"><span>مجموعات بلا مدير</span><strong>{{ stats.unassigned_groups }}</strong></article>
+    <article class="stat"><span>المدارس المسندة</span><strong>{{ stats.schools }}</strong></article>
+  </section>
+
+  <form class="toolbar" method="get" action="{% url 'reports:platform_executive_directors' %}">
+    <input class="form-control" type="search" name="q" value="{{ q }}"
+           placeholder="ابحث باسم المجموعة أو المدير أو جواله أو إدارة التعليم">
+    <button class="btn btn-primary" type="submit"><i class="fa-solid fa-magnifying-glass ms-1"></i> بحث</button>
+    {% if q %}
+      <a class="btn btn-outline-secondary" href="{% url 'reports:platform_executive_directors' %}">إلغاء الفلترة</a>
+    {% endif %}
+  </form>
+
+  {% if rows %}
+    <div class="exec-cards">
+      {% for row in rows %}
+        <article class="exec-card{% if not row.is_led %} is-idle{% endif %}">
+          <div>
+            <h2>{{ row.group.name }}</h2>
+            <div class="meta">
+              <div>المعرّف: <code>{{ row.group.code }}</code></div>
+              {% if row.group.education_department %}<div>إدارة التعليم: {{ row.group.education_department }}</div>{% endif %}
+              {% if row.group.headquarters_school %}<div>المقر: {{ row.group.headquarters_school.name }}</div>{% endif %}
+            </div>
+            <div class="mt-2">
+              {% if row.is_led %}
+                <span class="exec-badge ok"><i class="fa-solid fa-circle-check"></i> نشط</span>
+              {% elif not row.director %}
+                <span class="exec-badge warn"><i class="fa-solid fa-user-slash"></i> بلا مدير تنفيذي</span>
+              {% else %}
+                <span class="exec-badge off"><i class="fa-solid fa-pause"></i> موقوف</span>
+              {% endif %}
+              <span class="exec-badge warn"><i class="fa-solid fa-school"></i> {{ row.group.schools_count }} مدرسة</span>
+            </div>
+          </div>
+
+          <div>
+            {% if row.director %}
+              <div class="director-box">
+                <span class="avatar"><i class="fa-solid fa-user-tie"></i></span>
+                <div>
+                  <strong>{{ row.director.name }}</strong>
+                  <span>{{ row.director.phone }}</span>
+                  {% if row.director.email %}<span>{{ row.director.email }}</span>{% endif %}
+                </div>
+              </div>
+            {% else %}
+              <div class="director-box">
+                <span class="avatar"><i class="fa-solid fa-user-plus"></i></span>
+                <div>
+                  <strong>لم يُعيَّن مدير تنفيذي</strong>
+                  <span class="text-muted">افتح التعديل لإسناد المنصب.</span>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="school-chips">
+              {% for school in row.schools %}
+                <span class="school-chip{% if not school.is_active %} is-off{% endif %}">{{ school.name }}</span>
+              {% empty %}
+                <span class="school-chip">لا توجد مدارس مسندة</span>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="exec-actions">
+            <a class="btn btn-outline-primary" href="{% url 'reports:platform_executive_director_edit' row.group.pk %}">
+              <i class="fa-solid fa-pen ms-1"></i> تعديل وإسناد
+            </a>
+            <form method="post" action="{% url 'reports:platform_executive_director_toggle' row.group.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-outline-secondary w-100" type="submit">
+                {% if row.group.is_active %}<i class="fa-solid fa-pause ms-1"></i> إيقاف{% else %}<i class="fa-solid fa-play ms-1"></i> تفعيل{% endif %}
+              </button>
+            </form>
+            <form method="post" action="{% url 'reports:platform_executive_director_delete' row.group.pk %}"
+                  class="exec-delete-form" data-group-name="{{ row.group.name }}">
+              {% csrf_token %}
+              <button class="btn btn-outline-danger w-100" type="submit">
+                <i class="fa-solid fa-trash ms-1"></i> حذف المجموعة
+              </button>
+            </form>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="exec-empty">
+      <i class="fa-solid fa-user-tie"></i>
+      <h2 class="h5 fw-bold">{% if q %}لا نتائج مطابقة لبحثك{% else %}لا يوجد مدراء تنفيذيون بعد{% endif %}</h2>
+      <p class="text-muted">أنشئ مجموعة مدارس متكاملة، وعيّن لها مديراً تنفيذياً، ثم أسند إليه مدارسه.</p>
+      <a class="btn btn-primary" href="{% url 'reports:platform_executive_director_add' %}">إضافة أول مدير تنفيذي</a>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ CSP_NONCE }}" data-cfasync="false">
+  document.querySelectorAll(".exec-delete-form").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      var name = form.dataset.groupName || "هذه المجموعة";
+      var message = "حذف مجموعة «" + name + "»؟\n"
+        + "ستعود مدارسها إلى وضعها المستقل، ولن يُحذف حساب المدير التنفيذي.";
+      if (!window.confirm(message)) {
+        event.preventDefault();
+      }
+    });
+  });
+</script>
+{% endblock %}

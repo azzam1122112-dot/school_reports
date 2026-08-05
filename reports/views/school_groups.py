@@ -22,6 +22,7 @@ from django.views.decorators.http import require_http_methods
 
 from ..models import Report, SchoolMembership, TeacherAchievementFile
 from ..permissions import executive_director_groups, is_executive_director
+from ..services_archive import attach_school_consumption_rows
 
 __all__ = ["executive_dashboard"]
 
@@ -96,6 +97,12 @@ def _school_rows(schools, since) -> list[dict]:
                 "reports_recent": recent_reports,
                 "achievements": achievements.get(school.pk, 0),
                 "subscription": _subscription_state(school),
+                # مُلحق مسبقاً بـ attach_school_consumption_rows، فلا استعلام هنا.
+                "consumption": getattr(school, "consumption_row", None) or {
+                    "storage": {"percent": 0, "is_unlimited": True, "label": "—"},
+                    "seats": {"percent": 0, "is_unlimited": True, "label": "—"},
+                    "archive": {"percent": 0, "is_subscribed": False, "label": "—"},
+                },
             }
         )
     return rows
@@ -123,6 +130,9 @@ def executive_dashboard(request):
         .select_related("subscription")
         .order_by("name")
     )
+    # مدرسة قاربت امتلاء مساحتها ستتوقف فيها عمليات الرفع، والمدير التنفيذي أول
+    # من ينبغي أن يعرف. الدالة مشتركة مع دليل المنصة فلا يفترق الرقمان.
+    attach_school_consumption_rows(schools)
     since = timezone.now() - timedelta(days=ACTIVITY_WINDOW_DAYS)
     rows = _school_rows(schools, since)
 
@@ -133,8 +143,14 @@ def executive_dashboard(request):
         "reports_recent": sum(row["reports_recent"] for row in rows),
         "achievements": sum(row["achievements"] for row in rows),
     }
+    # «تحتاج متابعة» يجمع الآن سببين: اشتراك يقارب الانتهاء، أو سعة تقارب
+    # الامتلاء — فامتلاء المساحة يوقف رفع الملفات كما يوقفه انتهاء الاشتراك.
     needs_attention = [
-        row for row in rows if row["subscription"]["tone"] in {"none", "expired", "ending"}
+        row
+        for row in rows
+        if row["subscription"]["tone"] in {"none", "expired", "ending"}
+        or row["consumption"]["storage"]["percent"] >= 90
+        or row["consumption"]["seats"]["percent"] >= 90
     ]
     # أعلى عدد تقارير حديثة يُستخدم أساساً لأشرطة المقارنة في القالب.
     busiest = max((row["reports_recent"] for row in rows), default=0)
